@@ -264,12 +264,12 @@ describe("a monitor secret's value in the logger's lines while a check runs", ()
     );
 
     expect(Object.keys(withCause)).toEqual([]);
-    expect(secretValueFormsIn(inspect(withCause), secret).length).toBeGreaterThan(
-      0,
-    );
-    expect(secretValueFormsIn(inspect(aggregate), secret).length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      secretValueFormsIn(inspect(withCause), secret).length,
+    ).toBeGreaterThan(0);
+    expect(
+      secretValueFormsIn(inspect(aggregate), secret).length,
+    ).toBeGreaterThan(0);
 
     LogSecretValues.run([secret], () => {
       logger.error(

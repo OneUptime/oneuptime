@@ -9,14 +9,20 @@ import {
   DraftRecordButton,
   ImpactAssessmentLink,
   StoreRecordFields,
+  writeRecordField,
 } from "./StoreRecord";
 import LeaveWithoutSavingQuestion from "../UnsavedChanges/LeaveWithoutSavingQuestion";
+import usePendingEdits, {
+  PendingEdits,
+} from "../UnsavedChanges/UsePendingEdits";
 import {
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
+  RecordField,
   RecordFieldStatus,
+  RecordFieldValue,
   RecordFieldView,
 } from "Common/Types/DataSecurity/RecordOfProcessing";
 import ObjectID from "Common/Types/ObjectID";
@@ -45,8 +51,9 @@ import React, {
  * them, Draft with OneUptime AI for what nobody wrote, and its impact
  * assessment, for a store that needs one.
  *
- * A store with no personal data is not in the record: its Settings keep
- * the plain purpose and retention they always had (whenNotInRecord).
+ * A store with no personal data is not in the record: this draws nothing,
+ * and says so (onIsInRecordChange), so its Settings draw the plain purpose
+ * and retention they always had beside it - never a card inside this one.
  */
 
 export const STORE_RECORD_CARD_TEST_ID: string =
@@ -54,10 +61,10 @@ export const STORE_RECORD_CARD_TEST_ID: string =
 
 const StoreRecordCard: FunctionComponent<{
   dataStoreId: ObjectID;
-  whenNotInRecord: ReactElement;
+  onIsInRecordChange: (isInRecord: boolean) => void;
 }> = (props: {
   dataStoreId: ObjectID;
-  whenNotInRecord: ReactElement;
+  onIsInRecordChange: (isInRecord: boolean) => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const [answer, setAnswer] =
@@ -67,7 +74,10 @@ const StoreRecordCard: FunctionComponent<{
   );
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
-  const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
+  // The fields a person is mid-edit on, with the value each one's Save would write.
+  const pending: PendingEdits<RecordFieldValue | null> =
+    usePendingEdits<RecordFieldValue | null>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -79,6 +89,7 @@ const StoreRecordCard: FunctionComponent<{
         if (isCurrent) {
           setAnswer(read);
           setRow(read.rows?.[0] || null);
+          props.onIsInRecordChange(Boolean(read.rows?.[0]));
         }
       })
       .catch((err: unknown) => {
@@ -116,9 +127,12 @@ const StoreRecordCard: FunctionComponent<{
     );
   }
 
+  // Not in the record: the page draws its plain card instead (onIsInRecordChange).
   if (!row) {
-    return props.whenNotInRecord;
+    return <></>;
   }
+
+  const dataStoreId: string = row.dataStoreId;
 
   // "Not legal advice" where OneUptime AI's words wait for a person.
   const hasDrafts: boolean = (row.fields || []).some(
@@ -145,7 +159,7 @@ const StoreRecordCard: FunctionComponent<{
             row={row}
             canEdit={answer.canEdit !== false}
             onRowChange={setRow}
-            onUnsavedChange={setHasUnsaved}
+            pending={pending}
           />
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-4 empty:hidden">
             <DraftRecordButton
@@ -162,6 +176,15 @@ const StoreRecordCard: FunctionComponent<{
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_RECORD}
+        onSaveChanges={pending.saveAllWith(
+          async (field: string, value: RecordFieldValue | null) => {
+            await writeRecordField({
+              dataStoreId,
+              field: field as RecordField,
+              value,
+            });
+          },
+        )}
       />
     </Fragment>
   );

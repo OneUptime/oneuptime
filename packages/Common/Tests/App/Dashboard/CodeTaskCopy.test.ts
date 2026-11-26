@@ -199,6 +199,12 @@ describe("Code's words are complete", () => {
         "OneUptime does not read this repository's branches: only your Runner reaches its Git server. A task starts from its main branch.",
       branchesSearchToFindMore:
         "Type a branch's name to find one that is not listed.",
+      /*
+       * Under the repository picker's first repositories, when the project
+       * has more than it lists: the server finds the rest by name (#10764).
+       */
+      repositoriesSearchToFindMore:
+        "Type a repository's name to find one that is not listed.",
     });
     // A picker's button reads out its name and what it holds.
     expect(placeholdersOf(CODE_PICKER_VALUE_LABEL)).toEqual(["label", "value"]);

@@ -24,6 +24,7 @@ import Route from "../../../Types/API/Route";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   getByTextOutsideFoldedHeaders,
@@ -417,6 +418,17 @@ async function openAddChildSite(): Promise<void> {
 
 beforeEach(() => {
   capturedModels = [];
+
+  /*
+   * A network site's name is one of its kind in its project, so a site's dialog
+   * asks the server, a moment after the site is named, whether another site has
+   * the name (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

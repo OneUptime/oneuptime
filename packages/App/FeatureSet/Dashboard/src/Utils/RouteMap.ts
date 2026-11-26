@@ -1100,6 +1100,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
     "settings/response-targets",
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
+  [PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS]:
+    "settings/erasure-requests",
   [PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
@@ -8910,6 +8912,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS]
     }`,
   ),
 

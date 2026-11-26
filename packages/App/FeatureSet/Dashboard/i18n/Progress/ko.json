@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64313,
-    "untranslated": 8047
+    "keys": 64602,
+    "untranslated": 8056
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -46,6 +46,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Datadog URL",
     "Deployment",
     "DeploymentConfigs",

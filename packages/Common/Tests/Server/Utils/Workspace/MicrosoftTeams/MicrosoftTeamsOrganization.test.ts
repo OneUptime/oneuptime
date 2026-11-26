@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHICH MICROSOFT 365 ORGANIZATION A PROJECT IS CONNECTED TO, BY NAME
@@ -219,11 +220,11 @@ describe("readOrganization: what an answer to GET /organization says of the tena
 });
 
 describe("read: GET /organization on this cloud's Graph, with the admin's token", () => {
-  let get: jest.SpiedFunction<typeof API.get>;
+  let get: SpyInstance<typeof API.get>;
 
   beforeEach(() => {
     environment["MicrosoftTeamsCloudSetting"] = null;
-    get = jest.spyOn(API, "get");
+    get = jest.spyOn(API, "get") as unknown as SpyInstance<typeof API.get>;
   });
 
   afterEach(() => {

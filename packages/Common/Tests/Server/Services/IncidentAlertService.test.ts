@@ -2525,9 +2525,12 @@ describe("readCarryOverAlertOwnersForNewIncident", () => {
     ["left out", undefined],
     ["null", null],
     ["false", false],
-  ])("%s, without alerts, carries none over", (_label: string, value: unknown) => {
-    expect(read(value, [])).toBe(false);
-  });
+  ])(
+    "%s, without alerts, carries none over",
+    (_label: string, value: unknown) => {
+      expect(read(value, [])).toBe(false);
+    },
+  );
 
   test("true without alerts is refused, naming the key the alerts go in", () => {
     expect(() => {
@@ -2547,13 +2550,16 @@ describe("readCarryOverAlertOwnersForNewIncident", () => {
     ["zero", 0],
     ["a list", [false]],
     ["an object", {}],
-  ])("%s is refused, with or without alerts", (_label: string, value: unknown) => {
-    for (const alertIds of [[ALERT_ID], []]) {
-      expect(() => {
-        return read(value, alertIds);
-      }).toThrow(
-        `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} must be true or false.`,
-      );
-    }
-  });
+  ])(
+    "%s is refused, with or without alerts",
+    (_label: string, value: unknown) => {
+      for (const alertIds of [[ALERT_ID], []]) {
+        expect(() => {
+          return read(value, alertIds);
+        }).toThrow(
+          `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} must be true or false.`,
+        );
+      }
+    },
+  );
 });

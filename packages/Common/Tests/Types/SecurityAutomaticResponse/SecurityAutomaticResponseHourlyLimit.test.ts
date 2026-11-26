@@ -26,7 +26,7 @@ import { describe, expect, test } from "@jest/globals";
  * Pinned here: the default and the range, what is refused and in which
  * words, how a stored value is read (never none, never one a project could
  * not set), and the column - who may change it, and that a Security Admin
- * may change nothing else of the project.
+ * may change nothing else of the project but the Trusted Proxies switches.
  */
 
 describe("the hourly limit's numbers", () => {
@@ -141,7 +141,7 @@ describe("the project's column", () => {
     expect(project.getUpdatePermissions()).toContain(Permission.SecurityAdmin);
   });
 
-  test("and to nothing else of the project: it is the one column whose update names a Security Admin", () => {
+  test("and to nothing else of the project but the Trusted Proxies switches: the only columns whose update names a Security Admin", () => {
     const columns: Dictionary<ColumnAccessControl> =
       project.getColumnAccessControlForAllColumns();
 
@@ -155,7 +155,19 @@ describe("the project's column", () => {
       },
     );
 
-    expect(named).toEqual([column]);
+    /*
+     * Beside it, the two switches of Security Events' Trusted Proxies a
+     * Security Admin flips (#10546, #10548): whether the project's own load
+     * balancers are trusted, and whether its access logs end with
+     * X-Forwarded-For.
+     */
+    expect(named.sort()).toEqual(
+      [
+        column,
+        "securityReadAccessLogForwardedFor",
+        "securityTrustOwnLoadBalancers",
+      ].sort(),
+    );
 
     // Nor does any column let in a permission every member holds, now a Security Admin passes the table.
     for (const key of Object.keys(columns)) {

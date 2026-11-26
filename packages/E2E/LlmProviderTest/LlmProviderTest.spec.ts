@@ -62,6 +62,13 @@ const TESTING: string = "Sending a test prompt to your LLM provider…";
 const CHECKS: string =
   "This checks its API key, model and Base URL, and whether its model can call tools.";
 
+/*
+ * A project below the plan that sells providers: the server's refusal,
+ * which says the plan and where to upgrade (PLAN_REQUIRED_REFUSAL, #7276).
+ */
+const PLAN_REFUSAL: string =
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
+
 const CUSTOMER_REFUSAL: string =
   "You do not have permissions to select on - isGlobalLlm. No permission allows it: the column is not readable through the API.";
 
@@ -496,7 +503,7 @@ test.describe("a provider's own page: the Test dialog", () => {
   for (const [verdict, role, words] of [
     // The server's own refusal, whole: it names every permission.
     ["refused", "member", REFUSAL],
-    ["plan", "owner", "Please upgrade your plan to Growth"],
+    ["plan", "owner", PLAN_REFUSAL],
   ]) {
     test(`${verdict}: the server's words alone - no line telling to change a provider that is not the trouble`, async ({
       page,

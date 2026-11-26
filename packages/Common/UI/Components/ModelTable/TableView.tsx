@@ -1,3 +1,4 @@
+import { getDeleteWhatFailed } from "../../Utils/DialogWhatFailed";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -376,6 +377,8 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={`Something went wrong...`}
           description={error}
+          // What failed is the view's delete (#7680).
+          errorWhatFailed={getDeleteWhatFailed(translator, "Table View")}
           isLoading={false}
           submitButtonText={"Close"}
           onSubmit={() => {

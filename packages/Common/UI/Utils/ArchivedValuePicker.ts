@@ -31,6 +31,7 @@ export { ARCHIVED_VALUE_TAG };
 type ModelType = { new (): BaseModel };
 
 const archivableByModel: Map<unknown, boolean> = new Map();
+const recordArchiveSwitchByModel: Map<unknown, boolean> = new Map();
 
 export default class ArchivedValuePicker {
   // Whether a model's rows are values that can be archived.
@@ -59,6 +60,46 @@ export default class ArchivedValuePicker {
     archivableByModel.set(modelType, isArchivable);
 
     return isArchivable;
+  }
+
+  /*
+   * Whether a model's records carry an archive switch of their own though
+   * they are no values a record picks - a monitor, a service, a host, a
+   * status page: archiving hides one from its own list while the records it
+   * is attached to still name it. A list's filter of such a model marks the
+   * archived ones (#10921), as it marks an archived value; it listed them
+   * unmarked, beside the live ones of the same name, unless the filter
+   * opted in. An archivable value is not one of them: it is marked as a
+   * value (isArchivableValueModel).
+   */
+  public static hasRecordArchiveSwitch(
+    modelType: ModelType | undefined | null,
+  ): boolean {
+    if (!modelType) {
+      return false;
+    }
+
+    const cached: boolean | undefined =
+      recordArchiveSwitchByModel.get(modelType);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let hasSwitch: boolean = false;
+
+    try {
+      hasSwitch =
+        !ArchivedValuePicker.isArchivableValueModel(modelType) &&
+        new modelType().hasColumn(ARCHIVED_COLUMN);
+    } catch {
+      // A class that cannot be built for inspection is not marked.
+      hasSwitch = false;
+    }
+
+    recordArchiveSwitchByModel.set(modelType, hasSwitch);
+
+    return hasSwitch;
   }
 
   /*

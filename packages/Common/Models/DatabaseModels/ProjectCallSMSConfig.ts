@@ -21,6 +21,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "../../Types/CallAndSMS/TwilioPhoneNumbers";
+import { CALL_VOICE_VALUES } from "../../Types/Call/CallVoice";
 import {
   DEFAULT_TWILIO_CONFIG_USE,
   TwilioConfigUse,
@@ -621,6 +622,55 @@ export default class ProjectCallSMSConfig extends BaseModel {
     unique: false,
   })
   public twilioSmsPhoneNumbers?: string = undefined; // phone numbers separated by comma
+
+  /*
+   * THE VOICE THIS CONFIG'S CALLS SPEAK WITH (#10948): one of OneUptime's
+   * short list of neural Amazon Polly and Google voices
+   * (Types/Call/CallVoice), which Twilio bills to this account. Empty - as
+   * on every config made before it - calls speak with the account's default
+   * voice in the Twilio Console: Twilio's Basic voice, unless its owner
+   * picked another. ProjectCallSMSConfigService refuses a voice the list
+   * does not hold. Every call through the config speaks with it: pages,
+   * the keys' answers, a message left on voicemail, Send Test Call and an
+   * incoming call policy's greetings.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectCallSMSConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectCallSMSConfig,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Twilio Call Voice",
+    description:
+      "The voice calls through this config speak with: a neural Amazon Polly or Google voice, which Twilio charges for. Leave it empty for the voice the Twilio account uses by default (Twilio's free Basic voice unless you changed it in the Twilio Console).",
+    allowedValues: CALL_VOICE_VALUES,
+    example: "Polly.Joanna-Neural",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioCallVoice?: string = undefined;
 
   @ColumnAccessControl({
     create: [

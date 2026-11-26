@@ -3712,6 +3712,8 @@ const ROUTE = {
   issueGroups: DATA_SECURITY_API_ROUTES.issueGroups,
   issueGroupFixPlan: DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
   fixIssueGroup: DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+  // Where an issue's fix in code stands, under How to Fix (#10367).
+  issueCodeFix: DATA_SECURITY_API_ROUTES.issueCodeFix(":id"),
 };
 
 // What Data Security → AI's notice reads: AI is on, with a provider to use.
@@ -3919,6 +3921,23 @@ async function handleApi(method, options) {
   const fixOf = idOf(ROUTE.fixIssueGroup, pathname);
   if (method === "POST" && fixOf) {
     return new HTTPResponse(200, fixIssueGroup(fixOf, body), {});
+  }
+
+  /*
+   * Where the issue's fix in code stands (#10367), as the server reads it
+   * (Server/Utils/DataSecurity/DataSecurityIssueCodeFix): no issue here
+   * has had Fix with AI asked for it, and none is a secret seen in the
+   * telemetry, so there is no fix and nowhere a secret was seen to say.
+   */
+  const codeFixOf = idOf(ROUTE.issueCodeFix, pathname);
+  if (method === "POST" && codeFixOf) {
+    const issue = table(DataSecurityIssue).find((row) => {
+      return row._id === codeFixOf;
+    });
+    if (!issue) {
+      return new HTTPErrorResponse(404, { message: "Issue not found." }, {});
+    }
+    return new HTTPResponse(200, { fix: null }, {});
   }
 
   if (method === "POST" && pathname.endsWith("/ai-chat/providers")) {

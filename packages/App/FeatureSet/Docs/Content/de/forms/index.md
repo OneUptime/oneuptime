@@ -19,12 +19,12 @@ flowchart TB
     page -->|Senden| checks["Schutzmaßnahmen und<br/>Prüfung der Antworten"]
     checks --> submission["Einreichung, beim<br/>Formular aufbewahrt"]
     submission --> target{"Jede Einreichung erstellt"}
-    target -->|Vorfall| incident["Vorfall, auf Statusseiten<br/>ausgeblendet"]
-    target -->|Warnung| alert["Warnung, zur Prüfung<br/>durch ihre Eigentümer"]
-    target -->|Geplante Wartung| event["Wartungsereignis, ausgeblendet,<br/>sofern nicht anders eingestellt"]
+    target -->|Vorfall| incident["Vorfall, auf<br/>Statusseiten<br/>ausgeblendet"]
+    target -->|Warnung| alert["Warnung, zur<br/>Prüfung durch<br/>ihre Eigentümer"]
+    target -->|Geplante Wartung| event["Wartungsereignis,<br/>ausgeblendet, sofern<br/>nicht anders eingestellt"]
     incident --> response["Bereitschaftsrichtlinien<br/>und Regeln laufen"]
     alert --> response
-    incident --> note["Private Notiz: wer es geschickt hat,<br/>weitere Antworten"]
+    incident --> note["Private Notiz: wer<br/>es geschickt hat,<br/>weitere Antworten"]
     alert --> note
     event --> note
 ```

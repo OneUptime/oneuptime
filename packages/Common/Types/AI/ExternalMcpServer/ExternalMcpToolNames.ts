@@ -1,14 +1,25 @@
 /*
- * The names of the two tools OneUptime AI uses the project's external MCP
+ * The names of the tools OneUptime AI uses the project's external MCP
  * servers through (Server/Utils/AI/Mcp/McpRunToolkit), in a module of their
  * own so the Dashboard can name the steps of a run that used them - in the
  * run's activity and its evidence - without reaching into server code.
  *
  * call_mcp_tool's arguments say which server and which tool were called:
- * { server, tool, arguments }.
+ * { server, tool, arguments }. So do call_mcp_tool_with_approval's.
  */
 export const LIST_MCP_TOOLS_TOOL_NAME: string = "list_mcp_tools";
 export const CALL_MCP_TOOL_TOOL_NAME: string = "call_mcp_tool";
+
+/*
+ * How Ask AI and an incident's or alert's conversation call a tool that
+ * may change something - one its server marks so, or one its server does
+ * not mark read-only (issue #10879): only once the person approves the
+ * call on a card, in every permission mode. An investigation and a fix
+ * never have it: an investigation only reads, and a fix's changes go
+ * through its rule's Approval (call_mcp_tool).
+ */
+export const CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME: string =
+  "call_mcp_tool_with_approval";
 
 /*
  * How call_mcp_tool says a call it made failed - it called the server,

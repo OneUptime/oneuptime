@@ -150,6 +150,7 @@ import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getJestSpyOn } from "../../Spy";
 import {
   InMemoryTable,
@@ -319,6 +320,18 @@ beforeEach(() => {
   stubProjectDirectory({});
   feeds = useInMemoryTable(ThreatIntelFeedService, []);
   rules = useInMemoryTable(DetectionRuleService, []);
+
+  /*
+   * A threat intel feed's name is one of its kind in a project that requires
+   * unique names, so its form asks the server, a moment after a name is typed,
+   * whether another feed has it (DuplicateNameNotice, #10761): none has it
+   * here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

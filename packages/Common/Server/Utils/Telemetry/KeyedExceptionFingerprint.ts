@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import { EncryptionSecret } from "../../EnvironmentConfig";
 
 /*
@@ -51,12 +52,15 @@ const PROJECT_KEY_DERIVATION_LABEL: string = "oneuptime-exception-fingerprint";
 
 /*
  * Each project's key, derived once: every exception occurrence asks for one.
- * Bounded, oldest out first; a key derived again is the same. Never logged
- * or returned.
+ * Bounded, oldest out first (OldestKeyMap, as every bounded cache evicts);
+ * a key derived again is the same. Never logged or returned.
  */
 const MAX_CACHED_PROJECT_KEYS: number = 10_000;
 
-const projectKeys: Map<string, Buffer> = new Map<string, Buffer>();
+const projectKeys: OldestKeyMap<string, Buffer> = new OldestKeyMap<
+  string,
+  Buffer
+>();
 
 // A project's id as its key is derived from it: one spelling of the UUID.
 function projectIdText(projectId: ObjectID | string): string {
@@ -85,7 +89,7 @@ function projectKeyOf(projectId: ObjectID | string): Buffer {
     .digest();
 
   if (projectKeys.size >= MAX_CACHED_PROJECT_KEYS) {
-    const oldest: string | undefined = projectKeys.keys().next().value;
+    const oldest: string | undefined = projectKeys.oldestKey();
 
     if (oldest !== undefined) {
       projectKeys.delete(oldest);

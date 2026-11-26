@@ -21,6 +21,9 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import FeedFollowOnWriteProps from "../Utils/Feed/FeedFollowOnWriteProps";
+import IncidentRoleFeedText, {
+  IncidentRoleAssignmentCause,
+} from "../Utils/Incident/IncidentRoleFeedText";
 import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -221,7 +224,9 @@ export class Service extends ProjectReferencesService<Model> {
       /*
        * Propagate role assignment to all incidents in the episode, as
        * whoever gave it on the episode: each incident's entry names them
-       * (FeedFollowOnWriteProps). A grouping rule's is OneUptime's own.
+       * (FeedFollowOnWriteProps). A grouping rule's is OneUptime's own, and
+       * an on-call policy's that paged them about the episode names the
+       * policy (IncidentRoleFeedText).
        */
       await this.propagateRoleToIncidentsInEpisode({
         incidentEpisodeId,
@@ -231,6 +236,10 @@ export class Service extends ProjectReferencesService<Model> {
         props: FeedFollowOnWriteProps.get({
           props: onCreate.createBy.props,
           userId: createdItem.createdByUserId,
+        }),
+        cause: IncidentRoleFeedText.readCause({
+          miscDataProps: onCreate.createBy.miscDataProps,
+          props: onCreate.createBy.props,
         }),
       });
 
@@ -607,6 +616,8 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     // OneUptime's own write, naming who gave the role on the episode.
     props: DatabaseCommonInteractionProps;
+    // Why OneUptime gave it, when it gave it by itself (IncidentRoleFeedText).
+    cause?: IncidentRoleAssignmentCause | null | undefined;
   }): Promise<void> {
     const { incidentEpisodeId, userId, incidentRoleId, projectId } = data;
 
@@ -663,8 +674,21 @@ export class Service extends ProjectReferencesService<Model> {
         incidentMember.incidentRoleId = incidentRoleId;
         incidentMember.projectId = projectId;
 
+        /*
+         * A role a page gave on the episode: the page told them about it,
+         * so its incidents send them no message about the role either.
+         */
+        if (data.cause?.kind === "onCallPolicy") {
+          incidentMember.isMemberNotified = true;
+        }
+
         await IncidentMemberService.create({
           data: incidentMember,
+          ...(data.cause
+            ? {
+                miscDataProps: IncidentRoleFeedText.toMiscDataProps(data.cause),
+              }
+            : {}),
           props: data.props,
         });
 

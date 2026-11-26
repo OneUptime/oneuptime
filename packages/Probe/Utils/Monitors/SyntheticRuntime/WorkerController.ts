@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { BrowserContext, Frame, Page, Route } from "playwright";
 import PlaywrightCapabilityBroker from "./PlaywrightCapabilityBroker";
+import SyntheticEgressProxy from "./SyntheticEgressProxy";
 import {
   MAX_RPC_RESULT_BYTES,
   MAX_SANDBOX_LOG_BYTES,
@@ -190,6 +191,13 @@ export interface WorkerControllerOptions {
    */
   totpSecrets?: TotpSecrets | undefined;
   /*
+   * The check's egress proxy (SyntheticBrowser starts it with the browser):
+   * the script's axios goes through it, held to the probe's egress policy,
+   * as the browser's requests are. Without one, the run starts one of its
+   * own that allows public addresses only.
+   */
+  egress?: SyntheticEgressProxy | undefined;
+  /*
    * Bootstrap budget for the internal controller page, separate from the
    * tenant's script deadline above. Exposed so tests can drive the retry path
    * without spending half a minute per attempt.
@@ -248,8 +256,15 @@ export default class WorkerController {
     const totpCodes: TotpCodeIssuer = new TotpCodeIssuer({
       secrets: options.totpSecrets || {},
     });
+    // Ours to close only when the caller gave us none.
+    const ownEgress: SyntheticEgressProxy | null = options.egress
+      ? null
+      : new SyntheticEgressProxy();
+    const egress: SyntheticEgressProxy = options.egress || ownEgress!;
 
     try {
+      await egress.start();
+
       const controllerUrl: string = `${SYNTHETIC_RUNTIME_CONTROLLER_ORIGIN}/${executionId}`;
 
       let resolveRuntimeReady: (() => void) | null = null;
@@ -307,6 +322,7 @@ export default class WorkerController {
         controllerPage,
         internalPages: bootstrapPages,
         signal: abortController.signal,
+        egress,
         totpCodes,
         onRuntimeReady: (): void => {
           resolveRuntimeReady?.();
@@ -405,7 +421,10 @@ export default class WorkerController {
           return this.withoutTotpCodes(
             {
               returnValue: undefined,
-              logMessages: broker.getLogMessages(),
+              logMessages: SyntheticEgressProxy.withRefusalNotes(
+                broker.getLogMessages(),
+                egress.getBrowserRefusals(),
+              ),
               capturedMetrics: broker.getCapturedMetrics(),
               screenshots: broker.getScreenshots(),
               scriptError: `Synthetic monitor script timed out after ${options.timeoutInMs} ms.`,
@@ -423,7 +442,16 @@ export default class WorkerController {
       return this.withoutTotpCodes(
         {
           returnValue: workerResult.returnValue,
-          logMessages: this.validateLogMessages(workerResult.logMessages),
+          /*
+           * Then a line for each request of the browser the egress proxy
+           * refused: a refused https request reaches the script only as a
+           * failed tunnel. Before the one-time codes are taken out, so a
+           * code in a host name is masked like any other.
+           */
+          logMessages: SyntheticEgressProxy.withRefusalNotes(
+            this.validateLogMessages(workerResult.logMessages),
+            egress.getBrowserRefusals(),
+          ),
           capturedMetrics: this.validateMetrics(workerResult.capturedMetrics),
           screenshots: broker.getScreenshots(),
           scriptError:
@@ -458,6 +486,7 @@ export default class WorkerController {
           timeoutInMs: this.getTeardownTimeoutInMs(options),
         });
       }
+      await ownEgress?.close();
     }
   }
 

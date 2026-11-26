@@ -1,6 +1,7 @@
 import {
   CodeRepositoriesQuery,
   CodeRepositoriesResponse,
+  CodeRepositoriesScope,
   CodeRepositoryListItem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 import {
@@ -26,7 +27,45 @@ import { matchesCodeRepositorySearch } from "../../../Types/CodeRepository/CodeR
  * activity, a page at a time, with the facts of all of them). What the
  * server answers to the same reads on migrated Postgres is pinned in
  * Tests/Server/API/CodeRepositorySearchPostgres.
+ *
+ * A Fix with AI picker's read is held to what its fix accepts (#10921):
+ * askableOnly leaves out a repository a test marks `canAsk: false`, and
+ * codeReadableOnly one that is not connected or a test marks
+ * `isCodeReadable: false` - before anything else is weighed, as the server
+ * holds them (CodeTaskRepositoryList.keepHeldTo).
  */
+
+/*
+ * A repository as a test gives it: what the server answers, and - for a
+ * read held to a scope - whether the reader may ask in it, and whether
+ * OneUptime reads its code. Unmarked, both.
+ */
+export type FakeCodeRepository = CodeRepositoryListItem & {
+  canAsk?: boolean | undefined;
+  isCodeReadable?: boolean | undefined;
+};
+
+// Whether a read held to a scope keeps a repository, as the server judges it.
+export const isInScope: (
+  repository: FakeCodeRepository,
+  scope: CodeRepositoriesScope | undefined,
+) => boolean = (
+  repository: FakeCodeRepository,
+  scope: CodeRepositoriesScope | undefined,
+): boolean => {
+  if (scope?.askableOnly && repository.canAsk === false) {
+    return false;
+  }
+
+  if (
+    scope?.codeReadableOnly &&
+    (!repository.isConnected || repository.isCodeReadable === false)
+  ) {
+    return false;
+  }
+
+  return true;
+};
 
 const timeOf: (repository: CodeRepositoryListItem) => number = (
   repository: CodeRepositoryListItem,
@@ -78,8 +117,14 @@ export const answerRepositoriesQuery: (data: {
 }): CodeRepositoriesResponse => {
   const query: CodeRepositoriesQuery = data.query || {};
   const search: string = (query.search || "").trim();
+  // Only what the read is held to, before anything else is weighed.
+  const held: Array<CodeRepositoryListItem> = data.repositories.filter(
+    (repository: CodeRepositoryListItem): boolean => {
+      return isInScope(repository, query);
+    },
+  );
   // The database's order: by name.
-  const byName: Array<CodeRepositoryListItem> = [...data.repositories].sort(
+  const byName: Array<CodeRepositoryListItem> = [...held].sort(
     (left: CodeRepositoryListItem, right: CodeRepositoryListItem): number => {
       return left.name.localeCompare(right.name);
     },
@@ -147,7 +192,7 @@ export const answerRepositoriesQuery: (data: {
   return {
     repositories: ordered.slice(skip, skip + limit),
     count: listed.length,
-    facts: getFactsOf(data.repositories),
+    facts: getFactsOf(held),
     matches: {
       connected: connectedFound,
       notConnected: found.length - connectedFound,
@@ -156,13 +201,15 @@ export const answerRepositoriesQuery: (data: {
   };
 };
 
-// Some of the reader's repositories, read by their ids.
+// Some of the reader's repositories, read by their ids - held to a scope, when one is given.
 export const answerRepositoriesById: (data: {
   repositories: Array<CodeRepositoryListItem>;
   ids: Array<string>;
+  scope?: CodeRepositoriesScope | undefined;
 }) => Array<CodeRepositoryListItem> = (data: {
   repositories: Array<CodeRepositoryListItem>;
   ids: Array<string>;
+  scope?: CodeRepositoriesScope | undefined;
 }): Array<CodeRepositoryListItem> => {
   const asked: Set<string> = new Set<string>(
     data.ids.map((id: string): string => {
@@ -172,7 +219,10 @@ export const answerRepositoriesById: (data: {
 
   return data.repositories.filter(
     (repository: CodeRepositoryListItem): boolean => {
-      return asked.has(repository.id.toLowerCase());
+      return (
+        asked.has(repository.id.toLowerCase()) &&
+        isInScope(repository, data.scope)
+      );
     },
   );
 };

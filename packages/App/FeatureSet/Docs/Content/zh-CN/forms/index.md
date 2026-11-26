@@ -19,9 +19,9 @@ flowchart TB
     page -->|提交| checks["保护措施和答案检查"]
     checks --> submission["与表单一起<br/>保存的提交"]
     submission --> target{"每次提交创建"}
-    target -->|事件| incident["事件<br/>（在状态页面上隐藏）"]
+    target -->|事件| incident["事件<br/>（在状态页面<br/>上隐藏）"]
     target -->|警报| alert["警报<br/>（由其所有者查看）"]
-    target -->|计划维护| event["维护事件<br/>（除非另行设置，否则隐藏）"]
+    target -->|计划维护| event["维护事件<br/>（除非另行设置，<br/>否则隐藏）"]
     incident --> response["值班策略和<br/>规则开始运行"]
     alert --> response
     incident --> note["私密备注：提交者<br/>和其他答案"]

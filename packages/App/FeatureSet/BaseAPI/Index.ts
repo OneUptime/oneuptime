@@ -732,6 +732,9 @@ import SecurityCaseAiActionService, {
 import SecurityCasePullRequestService, {
   Service as SecurityCasePullRequestServiceType,
 } from "Common/Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService, {
+  Service as DataSecurityIssuePullRequestServiceType,
+} from "Common/Server/Services/DataSecurityIssuePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1028,6 +1031,9 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
+import SecurityUserErasureRequestService, {
+  Service as SecurityUserErasureRequestServiceType,
+} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1791,6 +1797,7 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -2002,6 +2009,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -2192,6 +2200,7 @@ import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
+import SecurityTrustedProxiesAPI from "Common/Server/API/SecurityTrustedProxiesAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
@@ -4906,6 +4915,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * A person's own pull request, linked to a Data Security issue as its
+     * fix (#10831): linked and taken off by who may change the issue, read
+     * by its readers - the issue's Linked pull requests. What it says of
+     * the pull request, and how production proved it, is OneUptime's.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestServiceType
+      >(
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestService,
+      ).getRouter(),
+    );
+
     // A case's evidence, and the route its files download through.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -6285,6 +6311,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
     );
 
+    // Erasing one person from Security Events' user vault (#10908).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestServiceType
+      >(
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RumSessionPin, RumSessionPinServiceType>(
@@ -7025,6 +7063,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * never why. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectCanSendAPI);
+
+    /*
+     * What Security Events trusts as a proxy without being told
+     * (SecurityTrustedProxiesAPI, #10546): the edges the project connected
+     * and its own application load balancers, for Trusted Proxies to show.
+     * A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SecurityTrustedProxiesAPI);
 
     /*
      * What refers to a record (UsedByAPI, #6813): the status pages that

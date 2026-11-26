@@ -1,10 +1,11 @@
 # Externe MCP-servers
 
-OneUptime AI kan de tools van MCP-servers buiten OneUptime gebruiken – die van je cloud, je codehost of je eigen team, zoals AWS, Azure of GitHub – terwijl het incidenten en waarschuwingen onderzoekt en herstelt. Voeg een server één keer toe onder **Projectinstellingen → AI → Externe MCP-servers**, en OneUptime AI gebruikt hem vanaf het volgende incident.
+OneUptime AI kan de tools van MCP-servers buiten OneUptime gebruiken – die van je cloud, je codehost of je eigen team, zoals AWS, Azure of GitHub – in AI vragen, en terwijl het incidenten en waarschuwingen onderzoekt en herstelt. Voeg een server één keer toe onder **Projectinstellingen → AI → Externe MCP-servers**, en OneUptime AI gebruikt hem vanaf je volgende vraag en het volgende incident.
 
 :::cards
 - [Een server toevoegen](#een-server-toevoegen): Zijn adres, en hoe OneUptime zich aanmeldt.
 - [Wat OneUptime AI met een server doet](#wat-oneuptime-ai-met-een-server-doet): Tools die lezen in onderzoeken, de andere in herstellingen.
+- [In AI vragen](#in-ai-vragen): Vraag het de tools van een server op te sommen of er een te gebruiken; een wijziging wacht op je goedkeuring.
 - [De servers kiezen die een regel mag gebruiken](#de-servers-kiezen-die-een-regel-mag-gebruiken): Allemaal, tenzij een regel er een paar kiest.
 - [Veiligheid](#veiligheid): Wat een server OneUptime AI wel en niet kan laten doen.
 :::
@@ -51,9 +52,9 @@ Zet nooit een token of een wachtwoord in de **URL**: iedereen die de server kan 
 
 ## Wat OneUptime AI met een server doet
 
-Elke tool die een server biedt, leest alleen of kan iets wijzigen. OneUptime gaat uit van wat de server over de tool zegt (zijn `readOnlyHint`): een tool die de server niet als alleen-lezen markeert, telt als een tool die iets kan wijzigen.
+Elke tool die een server biedt, leest alleen of kan iets wijzigen. OneUptime gaat uit van wat de server over de tool zegt (zijn `readOnlyHint`): een tool die de server niet als alleen-lezen markeert, telt als een tool die iets kan wijzigen. Sommige servers markeren geen enkele van hun tools: een onderzoek heeft dan geen tool van die server om te gebruiken, en in AI vragen wacht elke aanroep van zo'n tool op je goedkeuring.
 
-```mermaid title="Welke tools OneUptime AI gebruikt, en wanneer"
+```mermaid title="Welke tools OneUptime AI zelf gebruikt, en wanneer"
 flowchart TB
     T["Een tool van<br/>je MCP-server"] --> Q{"Leest hij<br/>alleen?"}
     Q -->|"ja"| R["Gebruikt in<br/>onderzoeken<br/>en herstellingen"]
@@ -67,6 +68,7 @@ flowchart TB
 | --- | --- | --- |
 | **Onderzoeken** | Gebruikt, naast de eigen gegevens van OneUptime | Nooit gebruikt: OneUptime weigert de aanroep |
 | **Herstellingen** | Gebruikt om het herstel uit te werken | Voorgesteld ter goedkeuring, of meteen gebruikt, zoals het **Herstel** van de AI-regel zegt |
+| **AI vragen** | Gebruikt wanneer je erom vraagt | Gebruikt zodra je elke aanroep goedkeurt |
 
 **In een onderzoek** somt OneUptime AI de tools op van de servers die het mag gebruiken en roept het de tools aan die lezen, om te bekijken wat OneUptime zelf niet ziet: je cloudaccount, een deployment, een issuetracker. Wat ze antwoorden, gebruikt het in zijn analyse van de hoofdoorzaak. Zie [AI SRE](/docs/ai/ai-sre).
 
@@ -79,6 +81,16 @@ Een herstel maakt hooguit 5 wijzigingen. Daarna houdt OneUptime de monitors van 
 
 Om OneUptime AI een server niet meer te laten gebruiken, zet je **OneUptime AI deze server laten gebruiken** op zijn pagina uit. Het vraagt eerst: de server wordt in geen enkel onderzoek of herstel meer gebruikt, en een voorgesteld herstel via hem kan niet meer worden goedgekeurd.
 
+## In AI vragen
+
+AI vragen kan elke server gebruiken die aanstaat, voor degene die de vraag stelt, en het gesprek onder de kaart **OneUptime AI** van een incident of een waarschuwing ook. Vraag "Welke tools heeft AWS?" en OneUptime AI somt ze op, elk gemarkeerd met wat hij mag doen; vraag het er een te gebruiken, met de naam van de tool en van zijn server, en het roept die tool aan en antwoordt met wat er terugkwam.
+
+- **Tools die alleen lezen** worden meteen uitgevoerd, in elke machtigingsmodus.
+- **Elke andere tool** wacht op jou, ook in **Automatisch uitvoeren**: de goedkeuringskaart noemt de server en de tool en toont precies wat er wordt verstuurd, en niets bereikt de server voordat je het toestaat. Een gesprek in de modus **Alleen-lezen** biedt zo'n tool nooit aan.
+- **Jouw machtigingen beslissen.** Een server gebruiken vereist wat het lezen van de Externe MCP-servers van het project vereist; een wijziging via een server goedkeuren vereist de machtiging om runbook-uitvoeringen te starten, net als het goedkeuren van een herstel via MCP-servers. Een geweigerde aanroep zegt waarom, en verstuurt niets.
+
+De servers die een AI-regel noemt, zijn de servers die OneUptime AI zelf gebruikt, voor wat de regel matcht; in AI vragen kies jij de server.
+
 ## De servers kiezen die een regel mag gebruiken
 
 Elke AI-regel kan de MCP-servers noemen die OneUptime AI mag gebruiken voor wat hij matcht. Het veld is **MCP-servers**, onder **Meer velden**. Totdat je er een paar kiest, mag OneUptime AI ze allemaal gebruiken, en de ingeklapte sectie zegt dat.
@@ -86,14 +98,16 @@ Elke AI-regel kan de MCP-servers noemen die OneUptime AI mag gebruiken voor wat 
 - **Geen gekozen** – alle ingeschakelde servers van het project.
 - **Een paar gekozen** – alleen die. Bij een AI-regel die herstelt zonder te vragen, is het noemen van zijn servers ook wat OneUptime AI hun wijzigingen laat maken zonder te vragen.
 
-Als meerdere regels die onderzoeken matchen, mag OneUptime AI elke server gebruiken die een van hen toestaat; als de regels niet kunnen worden gelezen, gebruikt het onderzoek helemaal geen MCP-server. Elke overeenkomende regel die herstelt, werkt zijn eigen herstel uit via zijn servers, en de regels die er geen noemen, delen één herstel via alle servers.
+Als meerdere regels die onderzoeken matchen, mag OneUptime AI elke server gebruiken die een van hen toestaat; als de regels niet kunnen worden gelezen, gebruikt het onderzoek helemaal geen MCP-server. Een onderzoek dat iemand start op een incident of waarschuwing waarop geen regel matcht, mag ze allemaal gebruiken. Elke overeenkomende regel die herstelt, werkt zijn eigen herstel uit via zijn servers, en de regels die er geen noemen, delen één herstel via alle servers.
 
 ## Veiligheid
 
 - **Wat een server terugstuurt, zijn gegevens, nooit instructies.** OneUptime AI leest de beschrijvingen en antwoorden van zijn tools als tekst van buiten OneUptime: ze veranderen nooit een regel, een goedkeuring of wat OneUptime AI mag doen.
+- **Een tool krijgt alleen wat hij aanneemt.** OneUptime stuurt een tool alleen de argumenten die zijn schema noemt; al het andere dat OneUptime AI schreef, blijft in OneUptime.
+- **AI uitzetten stopt elke aanroep.** Staat **AI inschakelen** uit, dan stuurt OneUptime niets naar een server: geen aanroep van een onderzoek, een herstel of AI vragen, zelfs niet een die iemand al heeft goedgekeurd.
 - **Het adres wordt bij elke verbinding gecontroleerd.** OneUptime maakt nooit verbinding met zijn eigen adres of een link-local-adres. In OneUptime Cloud weigert het ook privénetwerkadressen: gebruik het openbare adres van de server. Een zelf gehoste OneUptime bereikt privéadressen, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is ingesteld. Omleidingen volgt het niet.
 - **Limieten.** Een project heeft hooguit 20 servers, en OneUptime leest hooguit 200 tools per server. Verbinden verloopt na 20 seconden, het opsommen van de tools na 30 en een toolaanroep na 60. Een antwoord groter dan 2 MB wordt geweigerd. De aanroepen van een run naar MCP-servers tellen mee voor de limieten per run van het project, als het die instelt.
-- **Elke aanroep wordt vastgelegd.** Elke aanroep is een stap van de run, zichtbaar in zijn activiteit, en elke wijziging van een herstel staat in de stap **Herstel** met wat de server antwoordde. De modelaanroepen erachter staan onder **Projectinstellingen → AI → AI-logboeken**.
+- **Elke aanroep wordt vastgelegd.** Elke aanroep is een stap van de run, zichtbaar in zijn activiteit (in AI vragen tussen de stappen van het antwoord), en elke wijziging van een herstel staat in de stap **Herstel** met wat de server antwoordde. De modelaanroepen erachter staan onder **Projectinstellingen → AI → AI-logboeken**.
 
 ## Problemen oplossen
 
@@ -102,7 +116,7 @@ Het dialoogvenster **Verbinding testen** zegt wat er misging en wat je moet cont
 :::
 
 :::details OneUptime AI gebruikt een server niet
-Controleer of **OneUptime AI deze server laten gebruiken** aanstaat, of de regel die op het incident matchte onder **Meer velden** geen andere servers noemt, en of de tools van de server zijn gelezen: zijn kaart **Hulpmiddelen (tools)** somt ze op. Een onderzoek gebruikt alleen de tools die gemarkeerd zijn met **Alleen lezen**.
+Controleer of **OneUptime AI deze server laten gebruiken** aanstaat, en of de tools van de server zijn gelezen: zijn kaart **Hulpmiddelen (tools)** somt ze op, elk gemarkeerd met **Alleen lezen** of **Kan dingen wijzigen**, en **Verbinding testen** leest ze opnieuw. Vraag daarna in AI vragen "Welke tools heeft AWS?", met de naam van je server: het somt ze op, of zegt waarom het de server niet kan bereiken of niet mag gebruiken. Controleer voor een onderzoek ook of de regel die op het incident matchte onder **Meer velden** geen andere servers noemt: een onderzoek gebruikt alleen de tools die gemarkeerd zijn met **Alleen lezen**, dus een server die geen enkele van zijn tools markeert, geeft het er geen om te gebruiken.
 :::
 
 ## Volgende stappen

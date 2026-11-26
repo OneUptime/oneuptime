@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "보낸 내용이 너무 커서 서버가 받아들이지 못해 작업을 마치지 못했습니다. 더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "보낸 내용이 OneUptime이 한 번의 요청에서 받는 50 MB보다 커서 작업을 마치지 못했습니다. 더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
   "This did not finish.": "작업을 마치지 못했습니다.",
+  "The {{itemName}} was not deleted.": "{{itemName}}이(가) 삭제되지 않았습니다.",
+  "“{{action}}” did not finish.": "\"{{action}}\" 작업을 마치지 못했습니다.",
   "The server ran into a problem it could not explain.": "서버에서 원인을 설명할 수 없는 문제가 생겼습니다.",
   "The OneUptime server did not answer.": "OneUptime 서버가 응답하지 않았습니다.",
   "OneUptime could not be reached.": "OneUptime에 연결할 수 없습니다.",

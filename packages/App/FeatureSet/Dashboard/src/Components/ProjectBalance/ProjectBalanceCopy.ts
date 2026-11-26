@@ -236,5 +236,28 @@ export const ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES: Readonly<
   ),
 };
 
+/*
+ * Add to Balance on a project known to have no payment method, which no
+ * cloud marketplace bills (#11053): the dialog says what is needed first,
+ * and where it is added, in place of the amount. The amount used to come
+ * first, and the missing card only once it was in, in the server's refusal
+ * ("No payment methods found for the project."). The dialog's one action is
+ * the Billing page's own button, Add Payment Method, and takes the person
+ * there.
+ */
+export const NO_PAYMENT_METHOD_DESCRIPTIONS: Readonly<
+  Record<ProjectBalanceType, string>
+> = {
+  [ProjectBalanceType.SmsOrCall]: translationKey(
+    "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add to the balance.",
+  ),
+  [ProjectBalanceType.AI]: translationKey(
+    "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add AI credits.",
+  ),
+};
+
+export const ADD_PAYMENT_METHOD_TITLE: string =
+  translationKey("Add Payment Method");
+
 // The Current Balance card's one row.
 export const CURRENT_BALANCE_ROW_TITLE: string = translationKey("Balance");

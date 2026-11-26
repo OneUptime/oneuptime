@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные оказались слишком большими, и сервер их не принял, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные больше 50 МБ, которые OneUptime принимает за один запрос, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
   "This did not finish.": "Действие не выполнено.",
+  "The {{itemName}} was not deleted.": "Не удалось удалить: {{itemName}}.",
+  "“{{action}}” did not finish.": "Действие «{{action}}» не выполнено.",
   "The server ran into a problem it could not explain.": "На сервере произошла проблема, которую он не смог объяснить.",
   "The OneUptime server did not answer.": "Сервер OneUptime не ответил.",
   "OneUptime could not be reached.": "Не удалось связаться с OneUptime.",

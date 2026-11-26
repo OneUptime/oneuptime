@@ -76,6 +76,8 @@ const SNAPSHOT_READERS: Record<string, string> = {
     "The dashboard's one reader of the snapshot for 'may the user do this?': it hands it to HeldPermissionsUtil.",
   "packages/Common/UI/Utils/GrantablePermission.ts":
     "The grant ceiling's mirror: what the user may hand on to a team or an API key, which is stricter than holding it (TeamPermissionService.assertCanGrantPermission).",
+  "packages/App/FeatureSet/Dashboard/src/Components/User/MemberSavedSignInSettings.tsx":
+    "Whether the reader may clear their people's saved sign-in settings (#9993): a Project Owner by their own rows, a block taking it away, as the server reads it - never by a master admin's standing, which PermissionGate.holdsAnyOf counts and the server does not. It hands the rows to HeldPermissionsUtil.",
 };
 
 // A file that may import PermissionUtil: no other needs a parse.

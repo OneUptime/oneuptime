@@ -227,6 +227,8 @@ La finalité de chacun est « Sécurité des réseaux et de l'information (consi
 
 Un magasin de données est listé tant que votre projet conserve ses données : le coffre d'adresses, tant qu'une règle d'adresse IP activée hache les journaux ou les traces que lit Événements de sécurité, le coffre d'utilisateurs, tant qu'une règle activée de tout autre modèle le fait, et chacun pendant 31 jours ensuite (voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). Une fois ses données disparues, le magasin de données est archivé, et il revient avec votre finalité et votre durée de conservation si les données reviennent.
 
+Pour effacer une personne de « Coffre d'utilisateurs de sécurité », ainsi que des événements et des cas qui la nomment par son intermédiaire, déposez une demande d'effacement : voir [Effacer une personne](/docs/telemetry/security-events#effacer-une-personne).
+
 ## Analyses d'impact
 
 L'article 35 du RGPD exige une analyse d'impact relative à la protection des données avant un traitement susceptible d'engendrer un risque élevé. Sécurité des données indique quels magasins de données en ont besoin : un magasin de données qui contient des catégories particulières de données, comme des données de santé, des données sur de nombreuses personnes (environ 100 000 enregistrements ou plus), ou des données qui quittent les pays des personnes concernées.

@@ -67,6 +67,11 @@ import SlackIncidentEpisodeActions from "../../../../../Server/Utils/Workspace/S
 import SlackScheduledMaintenanceActions from "../../../../../Server/Utils/Workspace/Slack/Actions/ScheduledMaintenance";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceIncidentDeclaredByHand, {
+  WORKSPACE_DECLARED_BY_HAND_TEXT,
+} from "../../../../../Server/Utils/Workspace/WorkspaceIncidentDeclaredByHand";
+import IncidentStateService from "../../../../../Server/Services/IncidentStateService";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../../../Types/Incident/IncidentDeclaredByHandStart";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../../../Types/Dictionary";
@@ -724,6 +729,147 @@ describe("submitting the New Incident form", (): void => {
     expect(props.tenantId?.toString()).toBe(projectId.toString());
     expect(createSpy.mock.calls[0]![0].data.createdByUserId).toBeUndefined();
     expect(directMessageSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The form declares incidents by hand, as Declare Incident does (#11137):
+ * while the project starts those acknowledged, its on-call policies say
+ * that leaving them empty does that; the incident is created as declared by
+ * hand; and the confirmation says it was acknowledged as it was declared,
+ * when it was.
+ */
+describe("an incident declared from the form is declared by hand", (): void => {
+  const viewValues: Dictionary<string | number | Array<string | number>> = {
+    incidentTitle: "Checkout is down",
+    incidentDescription: "Every payment fails.",
+    incidentSeverity: ObjectID.generate().toString(),
+  };
+
+  function policiesDropdown(): WorkspaceDropdownBlock | undefined {
+    return shownModal()
+      .blocks.filter((block: WorkspaceMessageBlock): boolean => {
+        return block._type === "WorkspaceDropdownBlock";
+      })
+      .map((block: WorkspaceMessageBlock): WorkspaceDropdownBlock => {
+        return block as WorkspaceDropdownBlock;
+      })
+      .find((dropdown: WorkspaceDropdownBlock): boolean => {
+        return dropdown.blockId === "onCallDutyPolicies";
+      });
+  }
+
+  // The text of the confirmation posted in the channel.
+  function confirmationText(): string {
+    const sendMessage: SpyInstance<typeof SlackUtil.sendMessage> =
+      SlackUtil.sendMessage as unknown as SpyInstance<
+        typeof SlackUtil.sendMessage
+      >;
+    const blocks: Array<WorkspaceMessageBlock> =
+      sendMessage.mock.calls[0]![0].workspaceMessagePayload.messageBlocks;
+    return (blocks[0] as WorkspacePayloadMarkdown).text;
+  }
+
+  test("while the project starts them acknowledged, the on-call policies say leaving them empty does that", async () => {
+    mockMember([Permission.ProjectMember]);
+    stubLists();
+    const readSpy: SpyInstance<
+      typeof WorkspaceIncidentDeclaredByHand.readIsOn
+    > = jest
+      .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+      .mockResolvedValue(true);
+
+    await SlackIncidentActions.viewNewIncidentModal(
+      handlerArgs(SlackActionType.NewIncident, "Checkout is down"),
+    );
+
+    expect(policiesDropdown()?.description).toBe(
+      WORKSPACE_DECLARED_BY_HAND_TEXT.onCallPoliciesHint,
+    );
+    // Read once, for the form's project.
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    expect(readSpy.mock.calls[0]![0].toString()).toBe(projectId.toString());
+  });
+
+  test("otherwise the on-call policies say nothing about it", async () => {
+    mockMember([Permission.ProjectMember]);
+    stubLists();
+    jest
+      .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+      .mockResolvedValue(false);
+
+    await SlackIncidentActions.viewNewIncidentModal(
+      handlerArgs(SlackActionType.NewIncident, "Checkout is down"),
+    );
+
+    expect(policiesDropdown()).toBeDefined();
+    expect(policiesDropdown()?.description).toBeUndefined();
+  });
+
+  test("the submit creates the incident as declared by hand", async () => {
+    mockMember([Permission.IncidentMember]);
+    const created: Incident = new Incident();
+    created.id = ObjectID.generate();
+    const createSpy: SpyInstance<typeof IncidentService.create> = jest
+      .spyOn(IncidentService, "create")
+      .mockResolvedValue(created);
+
+    await SlackIncidentActions.submitNewIncident(
+      handlerArgs(SlackActionType.SubmitNewIncident, "", viewValues),
+    );
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(createSpy.mock.calls[0]![0].miscDataProps).toEqual({
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+    });
+  });
+
+  test("the confirmation says it was acknowledged as it was declared, when it started acknowledged", async () => {
+    mockMember([Permission.IncidentMember]);
+    const created: Incident = new Incident();
+    created.id = ObjectID.generate();
+    created.incidentNumberWithPrefix = "INC-43";
+    created.currentIncidentStateId = ObjectID.generate();
+    jest.spyOn(IncidentService, "create").mockResolvedValue(created);
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident"));
+    jest
+      .spyOn(IncidentStateService, "isAcknowledgedIncidentState")
+      .mockResolvedValue(true);
+
+    await SlackIncidentActions.submitNewIncident(
+      handlerArgs(SlackActionType.SubmitNewIncident, "", viewValues),
+    );
+
+    const text: string = confirmationText();
+    expect(text).toContain("**Incident INC-43** created successfully.");
+    expect(text).toContain(WORKSPACE_DECLARED_BY_HAND_TEXT.startedAcknowledged);
+  });
+
+  test("and says nothing of it for one that started in the created state", async () => {
+    mockMember([Permission.IncidentMember]);
+    const created: Incident = new Incident();
+    created.id = ObjectID.generate();
+    created.incidentNumberWithPrefix = "INC-44";
+    created.currentIncidentStateId = ObjectID.generate();
+    jest.spyOn(IncidentService, "create").mockResolvedValue(created);
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident"));
+    jest
+      .spyOn(IncidentStateService, "isAcknowledgedIncidentState")
+      .mockResolvedValue(false);
+
+    await SlackIncidentActions.submitNewIncident(
+      handlerArgs(SlackActionType.SubmitNewIncident, "", viewValues),
+    );
+
+    const text: string = confirmationText();
+    expect(text).toContain("**Incident INC-44** created successfully.");
+    expect(text).not.toContain(
+      WORKSPACE_DECLARED_BY_HAND_TEXT.startedAcknowledged,
+    );
   });
 });
 

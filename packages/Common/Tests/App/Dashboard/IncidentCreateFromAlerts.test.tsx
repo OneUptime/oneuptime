@@ -124,6 +124,7 @@ import {
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "../../../Types/Incident/IncidentAlertLink";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../Types/Incident/IncidentDeclaredByHandStart";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -479,6 +480,13 @@ const miscDataSentBy: MiscDataFunction = async (
   const returned: unknown = await form.onBeforeCreate!(item, miscDataProps);
 
   expect(returned).toBe(item);
+
+  /*
+   * Every declaration is sent as declared by hand (#11137): pinned here, and
+   * left out of what each test compares.
+   */
+  expect(miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY]).toBe(true);
+  delete miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY];
 
   return miscDataProps;
 };
@@ -1118,9 +1126,9 @@ describe("the alerts' owners", () => {
 
     const banner: HTMLElement = ownersBanner();
 
-    expect(screen.getByTestId("incident-create-alerts-to-link")).toContainElement(
-      banner,
-    );
+    expect(
+      screen.getByTestId("incident-create-alerts-to-link"),
+    ).toContainElement(banner);
     expect(banner).toHaveAttribute(
       "data-mode",
       AlertOwnersOnDeclareMode.InOwnersField,

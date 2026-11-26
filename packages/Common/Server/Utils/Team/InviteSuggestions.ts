@@ -4,7 +4,6 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
 import UserService from "../../Services/UserService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
-import { escapeLikePattern } from "../../Types/Database/JSONColumnQuery";
 import TablePermission from "../../Types/Database/Permissions/TablePermission";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -281,13 +280,15 @@ export default class InviteSuggestions {
   /*
    * The server's accounts whose name or email holds `text`, matched
    * literally, by what each read searched, besides the project's people
-   * already found: at most INVITE_SUGGESTIONS_SERVER_LIMIT of them.
+   * already found: at most INVITE_SUGGESTIONS_SERVER_LIMIT of them. Search
+   * escapes a typed % or _ itself (QueryHelper.search), so the text goes as
+   * typed.
    */
   private static async findServerAccounts(data: {
     text: string;
     except: ReadonlyArray<ProjectMemberSearchMatch>;
   }): Promise<Array<ProjectMemberSearchMatch>> {
-    const pattern: string = escapeLikePattern(data.text);
+    const pattern: string = data.text;
 
     const read: (column: "name" | "email") => Promise<Array<User>> = (
       column: "name" | "email",

@@ -109,7 +109,8 @@ export function readTickedFindingIds(value: unknown): Array<string> {
   const ids: Array<string> = [];
 
   for (const entry of value) {
-    const id: string = typeof entry === "string" ? entry.trim().toLowerCase() : "";
+    const id: string =
+      typeof entry === "string" ? entry.trim().toLowerCase() : "";
 
     if (ObjectID.isValidUUID(id) && !ids.includes(id)) {
       ids.push(id);
@@ -131,9 +132,8 @@ export default class FindingApplyToSimilar {
     projectId: ObjectID;
     findingId: unknown;
   }): Promise<DataSecuritySimilarFindings> {
-    const source: DataStoreFinding = await FindingApplyToSimilar.readSource(
-      data,
-    );
+    const source: DataStoreFinding =
+      await FindingApplyToSimilar.readSource(data);
     const decision: DataStoreFindingDecision | null = getPersonDecision(source);
     const base: DataSecuritySimilarFindings = {
       findingId: idOf(source),
@@ -190,7 +190,8 @@ export default class FindingApplyToSimilar {
     const findings: Array<DataSecuritySimilarFinding> = [];
 
     for (const finding of similar) {
-      const storeId: string = finding.dataStoreId?.toString().toLowerCase() || "";
+      const storeId: string =
+        finding.dataStoreId?.toString().toLowerCase() || "";
       const store: DataStore | undefined = stores.get(storeId);
 
       // A store the person may not read, or one gone from its cloud: not listed.
@@ -214,7 +215,10 @@ export default class FindingApplyToSimilar {
     }
 
     findings.sort(
-      (a: DataSecuritySimilarFinding, b: DataSecuritySimilarFinding): number => {
+      (
+        a: DataSecuritySimilarFinding,
+        b: DataSecuritySimilarFinding,
+      ): number => {
         return (
           Number(b.isSameStore) - Number(a.isSameStore) ||
           a.storeName.localeCompare(b.storeName) ||

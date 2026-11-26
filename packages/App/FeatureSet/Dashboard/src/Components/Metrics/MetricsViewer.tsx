@@ -15,6 +15,7 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
+  FacetValue,
   SearchHelpRow,
 } from "Common/UI/Components/TelemetryViewer/types";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -34,6 +35,15 @@ import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  ServiceNameSearch,
+  useServiceNameSearch,
+} from "Common/UI/Utils/TelemetryServiceNameSearch";
+import { SearchValuePredicate } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
 import useAttributeValueSuggestions, {
   AttributeValueSuggestionsState,
 } from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
@@ -658,34 +668,65 @@ export function getMetricRowPoints(data: {
 }
 
 /*
- * What a `service:<fragment>` token resolves to against the loaded service
- * names: the ids it matches, or that it matched none. Null when there is no
- * token, or no names to resolve it against yet (a scoped view never loads
- * them), in which case the token is not applied.
+ * What a `service:<fragment>` token resolves to against the services the
+ * server's search found for it (#10921): the ids it keeps, or that it kept
+ * none - or, negated, the ids it leaves out. Null when there is no token,
+ * or no search to resolve it against (a scoped view never searches; one is
+ * on its way), in which case the token is not applied.
  */
 export interface MetricsServiceTokenResolution {
   serviceIds: Array<string>;
+  // A negated token's services: the metrics none of them reports.
+  excludedServiceIds: Array<string>;
   matchedNothing: boolean;
 }
 
 export function resolveMetricsServiceToken(
   serviceMatcher: MetricsTextMatcher | null,
-  services: Array<Service>,
+  services: Array<Service> | null,
+  exclusionMatcher?: MetricsTextMatcher | null,
 ): MetricsServiceTokenResolution | null {
-  if (!serviceMatcher || services.length === 0) {
+  if (!serviceMatcher || !services) {
     return null;
   }
 
-  const serviceIds: Array<string> = [];
+  const idsMatching: (matcher: MetricsTextMatcher) => Array<string> = (
+    matcher: MetricsTextMatcher,
+  ): Array<string> => {
+    const ids: Array<string> = [];
 
-  for (const service of services) {
-    if (service.id && service.name && serviceMatcher(service.name.toString())) {
-      serviceIds.push(service.id.toString());
+    for (const service of services) {
+      if (service.id && service.name && matcher(service.name.toString())) {
+        ids.push(service.id.toString());
+      }
     }
+
+    return ids;
+  };
+
+  /*
+   * A negation leaves out the services the token it negates keeps: the
+   * search found those, never every other service of the project.
+   */
+  if (exclusionMatcher) {
+    return {
+      serviceIds: [],
+      excludedServiceIds: idsMatching(exclusionMatcher),
+      matchedNothing: false,
+    };
   }
 
-  return { serviceIds, matchedNothing: serviceIds.length === 0 };
+  const serviceIds: Array<string> = idsMatching(serviceMatcher);
+
+  return {
+    serviceIds,
+    excludedServiceIds: [],
+    matchedNothing: serviceIds.length === 0,
+  };
 }
+
+// No `service:` token: no services to search for.
+const NO_PREDICATES: Array<SearchValuePredicate> = [];
 
 const MetricsViewer: FunctionComponent<Props> = (
   props: Props,
@@ -782,12 +823,14 @@ const MetricsViewer: FunctionComponent<Props> = (
   useReportTelemetryDataShown(metrics.length > 0);
   const [error, setError] = useState<string>("");
 
-  const [services, setServices] = useState<Array<Service>>([]);
   /*
-   * Whether the service list has landed (or failed). A `service:` token can
-   * only be applied once it has; see isWaitingForServiceNames.
+   * The Service facet's services, read by their ids as its values land
+   * (TelemetryServicesOnPage), for the colour each is drawn in; the server
+   * names them. The page read the project's first 10,000 services by name
+   * instead, and a `service:` token past them matched nothing (#10921): a
+   * typed name is searched for on the server now (serviceNameSearch).
    */
-  const [hasLoadedServices, setHasLoadedServices] = useState<boolean>(false);
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
 
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
@@ -1013,45 +1056,6 @@ const MetricsViewer: FunctionComponent<Props> = (
     pageSize,
     selectedSavedViewId,
   ]);
-
-  // Load services and telemetry attributes once
-  useEffect(() => {
-    if (skipsServiceList) {
-      /*
-       * Neither the Service facet nor a `service:` token has a use for the
-       * project's services on a page pinned by service, attribute or entity
-       * scope, so skip the fetch.
-       */
-      return;
-    }
-    const loadServices: () => Promise<void> = async () => {
-      try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
-        const result: ModelListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: { projectId },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, serviceColor: true },
-          sort: { name: SortOrder.Ascending },
-        });
-        const named: Array<Service> = (result.data || []).filter(
-          (s: Service): boolean => {
-            return Boolean(s.name && s.name.toString().trim());
-          },
-        );
-        setServices(named);
-      } catch {
-        // non-critical
-      } finally {
-        setHasLoadedServices(true);
-      }
-    };
-    void loadServices();
-  }, [skipsServiceList]);
 
   // Load telemetry attributes for autocomplete
   useEffect(() => {
@@ -1302,24 +1306,85 @@ const MetricsViewer: FunctionComponent<Props> = (
   ]);
 
   /*
-   * The `service:` token, resolved by value. The service list lands a moment
-   * after mount; keyed on the list itself, the metric query was rebuilt when
-   * it did - with no token, into the same query - and the list and every
-   * row's sparkline aggregate were read twice on every page load (#4709).
+   * The services a typed `service:` token may match, searched for on the
+   * server by the text each must contain (#10921). Not on a page pinned by
+   * service, attribute or entity scope (skipsServiceList).
+   */
+  const serviceNameSearch: ServiceNameSearch = useServiceNameSearch(
+    parsedSearch.servicePredicate && !skipsServiceList
+      ? [parsedSearch.servicePredicate]
+      : NO_PREDICATES,
+  );
+
+  /*
+   * The `service:` token, resolved by value. The search lands a moment after
+   * the token; keyed on its answer itself, the metric query was rebuilt when
+   * it did - into the same query - and the list and every row's sparkline
+   * aggregate were read twice on every page load (#4709).
    */
   const serviceTokenResolution: MetricsServiceTokenResolution | null =
     useStableValue(
-      resolveMetricsServiceToken(parsedSearch.serviceMatcher, services),
+      resolveMetricsServiceToken(
+        parsedSearch.serviceMatcher,
+        skipsServiceList || serviceNameSearch.isSearching
+          ? null
+          : serviceNameSearch.services,
+        parsedSearch.serviceExclusionMatcher,
+      ),
     );
 
   /*
-   * A typed `service:` token waits for the names it resolves against, where
-   * this view loads them: read before, the list would ignore the token and
-   * be read again with it a moment later.
+   * A typed `service:` token waits for the services its search finds: read
+   * before, the list would ignore the token and be read again with it a
+   * moment later.
    */
   const isWaitingForServiceNames: boolean = Boolean(
-    parsedSearch.serviceMatcher && !skipsServiceList && !hasLoadedServices,
+    parsedSearch.serviceMatcher &&
+      !skipsServiceList &&
+      serviceNameSearch.isSearching,
   );
+
+  // The Service facet's values, read by their ids for their colours.
+  const facetServiceIds: Array<string> = useMemo(() => {
+    return (facetData["primaryEntityId"] || []).map(
+      (facet: FacetValue): string => {
+        return facet.value;
+      },
+    );
+  }, [facetData]);
+
+  useEffect(() => {
+    void servicesOnPage.readServicesOf(facetServiceIds);
+  }, [facetServiceIds]);
+
+  // Every service the page knows of: the facet's and a token's.
+  const services: Array<Service> = useMemo(() => {
+    const byId: Map<string, Service> = new Map<string, Service>();
+
+    for (const id of facetServiceIds) {
+      const service: Service | undefined = servicesOnPage.knownServices.get(
+        id.toLowerCase(),
+      );
+
+      if (service?.id) {
+        byId.set(service.id.toString().toLowerCase(), service);
+      }
+    }
+
+    for (const service of serviceNameSearch.services) {
+      const id: string = service.id?.toString().toLowerCase() || "";
+
+      if (id && !byId.has(id)) {
+        byId.set(id, service);
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [
+    facetServiceIds,
+    servicesOnPage.knownServices,
+    serviceNameSearch.services,
+  ]);
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -1350,10 +1415,10 @@ const MetricsViewer: FunctionComponent<Props> = (
 
     /*
      * `service:<fragment>` search token — resolved to service ids against the
-     * loaded service names, because the metric list filters by id. When the
-     * token matches nothing, force empty results instead of silently ignoring
-     * the filter. Skipped when the service list hasn't loaded (scoped views
-     * don't load it and scope services via props).
+     * services the server's search found for it, because the metric list
+     * filters by id. When the token matches nothing, force empty results
+     * instead of silently ignoring the filter. Skipped on a scoped view,
+     * which scopes services via props and searches none.
      */
     let serviceFragmentMatchedNothing: boolean = false;
     if (serviceTokenResolution) {
@@ -1380,8 +1445,11 @@ const MetricsViewer: FunctionComponent<Props> = (
        * product reads a many-to-many filter - kept services win, since the
        * query holds one predicate on the relation.
        */
-      const excludedServiceIds: Array<string> =
-        getMetricsExcludedEntityFilterIds(activeFilters);
+      const excludedServiceIds: Array<string> = [
+        ...getMetricsExcludedEntityFilterIds(activeFilters),
+        // A negated `service:` token: the services it leaves out.
+        ...(serviceTokenResolution?.excludedServiceIds || []),
+      ];
 
       if (excludedServiceIds.length > 0) {
         (query as Record<string, unknown>)["services"] = new IncludesNone(

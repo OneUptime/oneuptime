@@ -1,4 +1,5 @@
 import { normalizeCloudTags } from "../../../../../Types/Cloud/CloudInventory";
+import { writeScanWarning } from "../../../../../Types/DataSecurity/ScanWarnings";
 import { CloudConnectionFailureKind } from "../../../../../Types/CloudConnection/CloudConnectionTest";
 import {
   DataStoreAccessEntry,
@@ -2076,8 +2077,11 @@ export async function readBigQuerySample(
 
     sample.warnings.push(
       error instanceof CloudReadBudgetSpent
-        ? `The tables of ${where} were not listed: the read reached its limit.`
-        : `Could not list the tables of ${where}: ${errorText(error)}`,
+        ? writeScanWarning("bigQueryTablesNotListedAtLimit", { dataset: where })
+        : writeScanWarning("bigQueryCouldNotListTables", {
+            dataset: where,
+            error: errorText(error),
+          }),
     );
 
     return sample;
@@ -2145,20 +2149,30 @@ export async function readBigQuerySample(
 
       if (error instanceof CloudReadBudgetSpent) {
         sample.warnings.push(
-          `The read reached its limit: ${tableIds.length - sample.tables.length} tables of ${where} were not read.`,
+          writeScanWarning("bigQueryTablesNotReadAtLimit", {
+            count: tableIds.length - sample.tables.length,
+            dataset: where,
+          }),
         );
         break;
       }
 
       sample.warnings.push(
-        `Could not read table ${tableId} of ${where}: ${errorText(error)}`,
+        writeScanWarning("bigQueryCouldNotReadTable", {
+          table: tableId,
+          dataset: where,
+          error: errorText(error),
+        }),
       );
     }
   }
 
   if (more) {
     sample.warnings.push(
-      `${where} has more tables than one sample reads: the first ${tableIds.length} were read.`,
+      writeScanWarning("bigQueryMoreTables", {
+        dataset: where,
+        count: tableIds.length,
+      }),
     );
   }
 

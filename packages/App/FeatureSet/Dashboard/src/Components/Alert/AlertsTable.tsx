@@ -79,7 +79,7 @@ import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline"
 import LiveDuration from "../EventView/LiveDuration";
 import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   CreateFromRecordAddress,
   CreatedRecordKind,
@@ -160,6 +160,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in English (a key), said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [visibleAlerts, setVisibleAlerts] = useState<Array<Alert>>([]);
 
@@ -582,6 +587,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           });
         setAlertStates(result.data);
       } catch (err) {
+        setErrorWhatFailed(
+          translationKey("The alert states could not be loaded."),
+        );
         setError(API.getFriendlyMessage(err));
       }
     };
@@ -1137,6 +1145,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={
+            errorWhatFailed
+              ? translator.translateText(errorWhatFailed) || errorWhatFailed
+              : undefined
+          }
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");

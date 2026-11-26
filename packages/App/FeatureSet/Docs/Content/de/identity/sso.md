@@ -259,6 +259,41 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 6. Öffnen Sie den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
+## E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat
+
+Eine Anmeldung über OpenID Connect findet das OneUptime-Konto der Person über die E-Mail-Adresse, die Ihr Identitätsanbieter sendet, und kann mit dieser Adresse ein Konto anlegen. Manche Anbieter lassen Personen eine Adresse in ihr eigenes Konto eintragen, ohne nachzuweisen, dass sie ihnen gehört, und sagen das im Standard-Claim `email_verified`. Deshalb meldet OneUptime niemanden mit einer Adresse an, die Ihr Anbieter als nicht verifiziert ausweist: Sonst könnte jemand die Adresse einer anderen Person in sein Konto eintragen, um sich als diese Person anzumelden.
+
+| `email_verified` | Die Anmeldung |
+| --- | --- |
+| `true`, auch `"true"` und `1` | Wird fortgesetzt |
+| Nicht gesendet, wie bei Microsoft Entra ID und AD FS | Wird fortgesetzt |
+| `false`, auch `"false"` und `0` | Wird abgelehnt |
+| Alles andere, etwa `"yes"` | Wird abgelehnt: OneUptime kann es nicht erkennen |
+
+- Die Regel gilt für jedes Konto, im Web und in der mobilen App: für ein bestehendes, auch das eines Administrators, und für eines, das die Anmeldung anlegen würde. Eine abgelehnte Anmeldung legt kein Konto an, fügt niemanden einem Team hinzu, nimmt keine Einladung an und sendet keine E-Mail.
+- OneUptime liest `email_verified` dort, woher die Adresse kam, aus dem ID-Token oder vom Userinfo-Endpunkt, und nur, wenn die Adresse der Claim `email` ist. Ein Anbieter, der die Adresse in einem anderen Claim sendet, etwa `preferred_username` oder `upn`, meldet Personen wie bisher an; verwenden Sie daher einen Claim, den Ihre Personen nicht selbst ändern können.
+- Die Person sieht "Your identity provider did not confirm your email address." und wird gebeten, ihre Adresse bei Ihrem Identitätsanbieter zu verifizieren oder Sie zu bitten, sie dort als verifiziert zu markieren, und sich dann erneut anzumelden. Die mobile App zeigt `provider_email_not_verified` mit demselben Hinweis. Hat ein Konto diese Adresse, erfassen die Audit-Protokolle seiner Projekte den Versuch als fehlgeschlagene Anmeldung.
+- SAML-Anbieter lesen `email_verified` nicht, ebenso wenig die OpenID-Connect-Anbieter von Statusseiten, Dashboards und Formularen, die Personen als ihre eigenen privaten Benutzer anmelden.
+
+Anbieter, die die gesendeten Adressen verifizieren, etwa Google und Okta, melden Personen wie bisher an. Bei authentik und Keycloak kann eine Änderung nötig sein:
+
+:::tabs
+@tab authentik
+authentik ab 2025.10 sendet mit seiner Standard-Scope-Zuordnung für `email` für alle `email_verified` als `false`. Darüber meldet sich also niemand an, bis Sie diese Zuordnung ersetzen, wie es authentiks Anleitung [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/) beschreibt:
+
+1. Klicken Sie unter **Customization** > **Property Mappings** auf **New Property Mapping**, wählen Sie **Scope Mapping** und klicken Sie auf **Next**.
+2. Benennen Sie die Zuordnung, setzen Sie **Scope name** auf `email`, geben Sie die **Expression** aus der Anleitung ein, die dazu passt, wie die Adressen Ihrer Personen verifiziert werden, und klicken Sie auf **Finish**.
+3. Öffnen Sie den Anbieter Ihrer Anwendung, ersetzen Sie unter **Scopes** die Standardzuordnung für `email` durch Ihre und speichern Sie den Anbieter.
+
+Senden Sie nicht für jede Adresse `true`, solange Personen ihre eigene Adresse in authentik ändern können: Die Zuordnung würde dann für jede Adresse bürgen, die jemand in sein Konto einträgt. Versionen vor 2025.10 senden für jede Adresse `true`; lassen Sie Personen dort daher ihre eigene Adresse nicht ändern.
+@tab Keycloak
+Keycloak sendet `email_verified` als `false` für Personen, deren Adresse es nicht verifiziert hat: Personen, die ein Administrator mit ausgeschaltetem **Email verified** angelegt hat, und Personen, die sich registriert oder ihre Adresse geändert haben, während **Verify email** aus war.
+
+- Damit sie ihre Adresse verifizieren, schalten Sie **Verify email** unter **Realm settings** > **Login** > **Email settings** ein. Keycloak bittet dann jede dieser Personen bei ihrer nächsten Anmeldung, ihre Adresse per E-Mail zu verifizieren; der Realm braucht dafür einen eingerichteten E-Mail-Server.
+- Um selbst für die Adresse einer Person zu bürgen, schalten Sie auf ihrer Seite in Keycloak **Email verified** ein und klicken Sie auf **Save**.
+- Für Personen aus LDAP oder Active Directory schalten Sie **Trust Email** in den **Advanced settings** des Anbieters unter **User federation** ein. Keycloak markiert eine Adresse dann als verifiziert, wenn es die Person importiert: Schalten Sie **Email verified** für die Personen ein, die es vorher importiert hat.
+:::
+
 ## Auch beim Identitätsanbieter abmelden
 
 Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie bei einem SAML- oder OIDC-Anbieter **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab.
@@ -456,6 +491,10 @@ Jede Antwort Ihres IdP gilt für genau eine Anmeldung. Wenn Sie nach der Anmeldu
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID hat jemanden mit der E-Mail-Adresse eines Kontos angemeldet, das über diesen Anbieter mit einer anderen Objekt-ID verknüpft ist: Die Adresse gehört in Entra ID jetzt einer anderen Person, oder das Entra-ID-Konto der Person wurde neu angelegt. OneUptime lehnt die Anmeldung ab, damit niemand, der die Adresse als Nächstes erhält, das Konto nutzen kann. Gehört das Konto dieser Person, entfernen Sie sie aus dem Projekt und fügen Sie sie wieder hinzu: Bei ihrer nächsten Anmeldung wird das Konto mit ihrer neuen Objekt-ID verknüpft.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Ihr OpenID-Connect-Anbieter hat `email_verified` als `false` gesendet oder als etwas, das weder true noch false ist, daher hat OneUptime niemanden angemeldet. Lassen Sie die Adresse bei Ihrem Identitätsanbieter verifizieren oder markieren Sie sie dort als verifiziert, und melden Sie sich erneut an. [E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat](#e-mail-adressen-die-ihr-identitätsanbieter-nicht-verifiziert-hat) sagt, was Sie in authentik und Keycloak ändern.
 :::
 
 :::details Die Anmeldung scheitert mit einem Signatur- oder Zertifikatsfehler

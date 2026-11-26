@@ -6,6 +6,7 @@ import type { MockedFunction } from "jest-mock";
 import ForgotPasswordScreen from "./ForgotPasswordScreen";
 import { ThemeProvider } from "../../theme";
 import { darkColors, lightColors } from "../../theme/colors";
+import { UNREACHABLE_SENTENCE } from "../../utils/error";
 
 let mockSystemScheme: "light" | "dark" = "light";
 
@@ -425,9 +426,11 @@ describe("When the request fails", () => {
 
     await submitAddress(KNOWN_ADDRESS);
 
-    expect(
-      screen.getByText(/check your internet connection and server URL/i),
-    ).toBeTruthy();
+    /*
+     * The app's sentence for no answer at all, whole: OneUptime could not
+     * be reached, so check the internet connection and the server URL.
+     */
+    expect(screen.getByText(UNREACHABLE_SENTENCE)).toBeTruthy();
   });
 
   test("the confirmation is not shown, so nobody waits for a mail that is not coming", async () => {

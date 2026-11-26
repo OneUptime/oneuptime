@@ -4,8 +4,9 @@ import NotImplementedException from "../../../../Types/Exception/NotImplementedE
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../../Types/ObjectID";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import type { BillingProviderMeteredPlan } from "../BillingProvider";
 
-export default class ServerMeteredPlan {
+export default class ServerMeteredPlan implements BillingProviderMeteredPlan {
   public getProductType(): ProductType {
     throw new NotImplementedException();
   }

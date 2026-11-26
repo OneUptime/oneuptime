@@ -86,8 +86,17 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+/*
+ * The server's own settings, as it reads them, with MQTT ingest on. The
+ * gRPC server's queues load the Incoming Request store, which reads its
+ * limits' defaults from here as it loads (#10975).
+ */
 jest.mock("../../FeatureSet/Telemetry/Config", () => {
   return {
+    ...(jest.requireActual("../../FeatureSet/Telemetry/Config") as Record<
+      string,
+      unknown
+    >),
     MQTT_INGEST_ENABLED: true,
     MQTT_INGEST_PORT: 1883,
     MQTT_WEBSOCKET_PATH: "/mqtt",

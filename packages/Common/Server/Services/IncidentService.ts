@@ -51,6 +51,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import IncidentDeclaredByHandStartReader, {
+  IncidentDeclaredByHandStartingState,
+} from "../Utils/Incident/IncidentDeclaredByHandStartReader";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../Types/Incident/IncidentDeclaredByHandStart";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   HeldRelationIds,
@@ -2977,6 +2981,17 @@ export class Service extends ProjectReferencesService<Model> {
         alertIds: validatedAlertIds,
       });
 
+    /*
+     * Whether a person declared it in one of OneUptime's declare forms -
+     * Declare Incident, or Slack's and Microsoft Teams' - which say so. Read
+     * here, with the other things a declaration asks for, so a value that is
+     * not true or false is refused before the incident number is taken.
+     */
+    const isDeclaredByHand: boolean =
+      IncidentDeclaredByHandStartReader.readDeclaredByHand(
+        createBy.miscDataProps?.[INCIDENT_DECLARED_BY_HAND_KEY],
+      );
+
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
     } else {
@@ -3339,6 +3354,30 @@ export class Service extends ProjectReferencesService<Model> {
       createBy: createBy,
       isScopedToNothingByTemplate: isScopedToNothingByTemplate,
     });
+
+    /*
+     * Declared by hand, with no state picked and none from a template: where
+     * the project starts incidents declared by hand (#11137,
+     * IncidentDeclaredByHandStart). With its switch on, and no on-call policy
+     * to page - none picked, none from the template, which the lines above
+     * have added by now - that is its acknowledged state: whoever declared it
+     * is on it, so it pages nobody, for the reason an incident declared
+     * acknowledged on purpose does. Otherwise nothing is placed here, and it
+     * starts in the created state below, as it always did.
+     */
+    if (!initialIncidentStateId && isDeclaredByHand) {
+      const handStart: IncidentDeclaredByHandStartingState | null =
+        await IncidentDeclaredByHandStartReader.getStartingState({
+          projectId: projectId,
+          onCallPolicies: createBy.data.onCallDutyPolicies,
+        });
+
+      if (handStart) {
+        initialIncidentStateId = handStart.incidentStateId;
+        startingStage = handStart.stage;
+        isStatePlacedByStartingRead = true;
+      }
+    }
 
     /*
      * With no state picked, and none from a template, the incident starts in

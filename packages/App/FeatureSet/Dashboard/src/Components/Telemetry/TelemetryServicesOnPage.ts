@@ -39,6 +39,11 @@ export interface TelemetryServicesOnPage {
    * answers every service known then, by lower-cased id.
    */
   readServicesOf: (ids: Array<RowEntityId>) => Promise<Map<string, Service>>;
+  /*
+   * Every service read so far, by lower-cased id: the same map until a read
+   * lands, so what a page derives from it is not rebuilt on every render.
+   */
+  knownServices: Map<string, Service>;
   // Why the last read failed, in the reader's words; "" when none did.
   error: string;
   // Reads again what the failed reads asked for.
@@ -159,6 +164,7 @@ export function useTelemetryServicesOnPage(): TelemetryServicesOnPage {
       return Boolean(key) && reading.has(key);
     },
     readServicesOf: readServicesOf,
+    knownServices: services,
     error: error,
     retry: async (): Promise<void> => {
       const ids: Array<string> = failedRef.current;

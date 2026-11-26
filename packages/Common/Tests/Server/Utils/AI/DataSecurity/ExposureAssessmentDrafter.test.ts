@@ -785,19 +785,97 @@ describe("who sees it: the case's readers who may read the store and its finding
 
     expect(answer.canChange).toBe(true);
     expect(answer.canDraft).toBe(true);
-    expect(ExposureAssessmentReader.mayChange(props)).toBe(true);
+    expect(
+      await ExposureAssessmentReader.mayChange({
+        securityCaseId: new ObjectID(CASE_ID),
+        props,
+      }),
+    ).toBe(true);
   });
 
-  test("a role that edits the case but may not read the store's findings may not change it", () => {
+  test("a role that edits the case but may not read the store's findings may not change it", async () => {
     expect(
-      ExposureAssessmentReader.mayChange(
-        caller([
+      await ExposureAssessmentReader.mayChange({
+        securityCaseId: new ObjectID(CASE_ID),
+        props: caller([
           Permission.ReadSecurityCase,
           Permission.EditSecurityCase,
           Permission.ReadDataStore,
         ]),
-      ),
+      }),
     ).toBe(false);
+  });
+
+  /*
+   * A change to the case is decided for the case's own row, as an update of
+   * it is - not by holding the case's edit permission somewhere: a case
+   * that is not the project's is changed by nobody.
+   */
+  test("whether a role may change it is asked of the case's own row", async () => {
+    const props: DatabaseCommonInteractionProps = caller([
+      Permission.ReadSecurityCase,
+      Permission.EditSecurityCase,
+      Permission.ReadDataStore,
+      Permission.ReadDataStoreFinding,
+    ]);
+    const updatable: SpyInstance<
+      typeof SecurityCaseService.findOneUpdatableById
+    > = jest.spyOn(SecurityCaseService, "findOneUpdatableById");
+
+    expect(
+      await ExposureAssessmentReader.mayChange({
+        securityCaseId: new ObjectID(CASE_ID),
+        props,
+      }),
+    ).toBe(true);
+    expect(updatable).toHaveBeenCalledTimes(1);
+    expect(updatable.mock.calls[0]![0].id.toString()).toBe(CASE_ID);
+    expect(updatable.mock.calls[0]![0].props).toBe(props);
+    expect(
+      await ExposureAssessmentReader.mayChange({
+        securityCaseId: ObjectID.generate(),
+        props,
+      }),
+    ).toBe(false);
+  });
+
+  /*
+   * A change is decided by the case's own row, as an update of it through
+   * the API would decide (SecurityCaseService.findOneUpdatableById) - not by
+   * holding a case-editing permission somewhere in the project.
+   */
+  test("a credential issued for reading only may not change it, whatever its roles", async () => {
+    const readOnly: DatabaseCommonInteractionProps = {
+      ...OWNER,
+      isReadOnlyCredential: true,
+    };
+    const answer: DataSecurityExposureAssessmentResponse = await read(readOnly);
+
+    expect(answer.canChange).toBe(false);
+    expect(answer.canDraft).toBe(false);
+
+    const refusal: Error = await refusalOf(() => {
+      return assess(readOnly);
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect(refusal.message).toBe(CHANGE_REFUSED_MESSAGE);
+    expect(tables.cases.updates).toHaveLength(0);
+  });
+
+  test("a case in another project is not changed: it answers as one the caller may not change", async () => {
+    const refusal: Error = await refusalOf(() => {
+      return ExposureAssessmentDrafter.assess({
+        projectId: PROJECT_ID,
+        securityCaseId: ObjectID.generate(),
+        props: OWNER,
+        now: NOW,
+      });
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect(refusal.message).toBe(CHANGE_REFUSED_MESSAGE);
+    expect(tables.cases.updates).toHaveLength(0);
   });
 
   test("a case in another project is not found", async () => {

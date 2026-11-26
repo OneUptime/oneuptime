@@ -239,6 +239,7 @@ import {
   getEmptyDropFilterImpact,
 } from "../../../Types/Telemetry/DropFilterImpact";
 import ScrubRuleReadersApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/FieldReaders/ScrubRuleReadersApi";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getEmptyTelemetryFieldReadersByKind } from "../../../Types/Telemetry/TelemetryFieldReaders";
 import LogScrubRule from "../../../Models/DatabaseModels/LogScrubRule";
 import TraceScrubRule from "../../../Models/DatabaseModels/TraceScrubRule";
@@ -349,6 +350,15 @@ beforeEach(() => {
     rules: [],
   });
   /*
+   * What reads the values a scrub rule would hide (#10433), which the scrub
+   * rule forms ask under the name a moment after the values stop changing,
+   * and a rule's Enable asks: nothing reads them here.
+   */
+  jest.spyOn(ScrubRuleReadersApi, "getReaders").mockResolvedValue({
+    kinds: getEmptyTelemetryFieldReadersByKind(true),
+    securityEvents: { isChecked: true, sources: [], loses: [] },
+  });
+  /*
    * What a drop or sample filter would take (#10436), which the drop filter
    * forms ask as the filter is written and before it is saved: some of the
    * records, which nothing else reads, so nothing is asked before a save.
@@ -383,6 +393,18 @@ beforeEach(() => {
         return impact;
       },
     );
+
+  /*
+   * A log or trace pipeline's name is one of its kind in a project that
+   * requires unique names, so its form asks the server, a moment after a name
+   * is typed, whether another pipeline has it (DuplicateNameNotice, #10761):
+   * none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {
@@ -745,18 +767,6 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
    * column Attributes to Hide writes for a Named Attributes rule.
    */
   describe("Only in These Attributes (#10751)", () => {
-    /*
-     * What the form says under the name asks the server what reads the
-     * values the rule would hide, a moment after the values stop changing:
-     * nothing reads them here.
-     */
-    beforeEach(() => {
-      jest.spyOn(ScrubRuleReadersApi, "getReaders").mockResolvedValue({
-        kinds: getEmptyTelemetryFieldReadersByKind(true),
-        securityEvents: { isChecked: true, sources: [], loses: [] },
-      });
-    });
-
     function onlyInBox(): HTMLElement | null {
       return within(dialog()).queryByRole("textbox", {
         name: /^Only in These Attributes/,

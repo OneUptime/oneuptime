@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   cleanup,
   fireEvent,
@@ -39,6 +46,7 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
+import { loadEntityDropdown } from "../../../../UI/Components/EntityDropdown/LazyEntityDropdown";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
@@ -243,6 +251,15 @@ const recordButton: () => HTMLElement = (): HTMLElement => {
 };
 
 describe("a form's picked record (EntityDropdown)", () => {
+  /*
+   * A form loads its entity dropdown's file as it is drawn
+   * (FormFieldControls); the field is drawn on its own here, so the file is
+   * loaded first.
+   */
+  beforeAll(async () => {
+    await loadEntityDropdown();
+  });
+
   test("required, it has no Clear selection, and Delete leaves it picked", () => {
     const setFieldValue: MockFunction = getJestMockFunction();
     renderRecordField({ required: true, setFieldValue });

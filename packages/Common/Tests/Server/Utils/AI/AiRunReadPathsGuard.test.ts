@@ -306,6 +306,18 @@ const TASK_STATE_READERS: Record<string, Classification> = {
       'return { taskId: "", state: DeclaredCodeChangeState.Hidden };',
     ],
   },
+  /*
+   * A Data Security issue's fix in code, on its page (#10367): where the
+   * task stands and its pull request, for the person, read only once the
+   * rule lets them see the task.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueCodeFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      ": await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [task.id], reader: data.props, });",
+      'return { taskId: "", recipe, state: DeclaredCodeChangeState.Hidden, issueCount: data.issueCount || 1, };',
+    ],
+  },
   // A finding's Fix with AI: the task already on its way, for the person.
   "packages/Common/Server/Utils/AI/TelemetryAi/TelemetryAiFix.ts": {
     kind: "asksTheRule",

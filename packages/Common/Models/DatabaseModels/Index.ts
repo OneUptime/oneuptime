@@ -232,6 +232,7 @@ import DataStoreLabelRule from "./DataStoreLabelRule";
 import DataSecurityFlow from "./DataSecurityFlow";
 import DataSecurityIssue from "./DataSecurityIssue";
 import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityIssuePullRequest from "./DataSecurityIssuePullRequest";
 import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
 import DataSecurityAiProposal from "./DataSecurityAiProposal";
 import DataSecurityAiDecision from "./DataSecurityAiDecision";
@@ -264,6 +265,7 @@ import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityUserErasureRequest from "./SecurityUserErasureRequest";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
@@ -768,6 +770,7 @@ const AllModelTypes: Array<{
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityIssuePullRequest,
   DataSecurityIssueGroup,
   DataSecurityAiProposal,
   DataSecurityAiDecision,
@@ -800,6 +803,7 @@ const AllModelTypes: Array<{
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,
+  SecurityUserErasureRequest,
   SecurityBlock,
   SecurityBlockEnforcement,
   SecurityBlockCloudWaf,
