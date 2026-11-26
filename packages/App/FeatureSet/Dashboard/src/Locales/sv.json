@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{count}} SNMPv3-traps från {{address}} misslyckades: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} SNMPv3-trap från {{address}} misslyckades: {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} användare, från enheterna på den här sonden",
-  "{{count}} users, from the devices on this probe_one": "{{count}} användare, från enheterna på den här sonden"
+  "{{count}} users, from the devices on this probe_one": "{{count}} användare, från enheterna på den här sonden",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "Radering begärd. Säkerhetshändelser slutar nämna den här personen inom en minut och tar bort personen från allt det nämnde personen i inom några minuter."
 }

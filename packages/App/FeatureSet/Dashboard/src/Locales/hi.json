@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{address}} से {{count}} SNMPv3 ट्रैप विफल रहे: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{address}} से {{count}} SNMPv3 ट्रैप विफल रहा: {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} उपयोगकर्ता, इस प्रोब के डिवाइस से",
-  "{{count}} users, from the devices on this probe_one": "{{count}} उपयोगकर्ता, इस प्रोब के डिवाइस से"
+  "{{count}} users, from the devices on this probe_one": "{{count}} उपयोगकर्ता, इस प्रोब के डिवाइस से",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "मिटाने का अनुरोध किया गया। सुरक्षा इवेंट एक मिनट के भीतर इस व्यक्ति का नाम लेना बंद कर देता है, और कुछ ही मिनटों में उसे उन सब से हटा देता है जिनमें उसने उसका नाम लिया था।"
 }

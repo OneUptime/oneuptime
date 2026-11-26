@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "Не принято SNMPv3-трапов от {{address}}: {{count}}. Причина: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} SNMPv3-трап от {{address}} не принят: {{reason}}",
   "{{count}} users, from the devices on this probe": "Пользователей: {{count}}, с устройств этого зонда",
-  "{{count}} users, from the devices on this probe_one": "{{count}} пользователь, с устройств этого зонда"
+  "{{count}} users, from the devices on this probe_one": "{{count}} пользователь, с устройств этого зонда",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "Удаление запрошено. События безопасности перестанут называть этого человека в течение минуты и за несколько минут уберут его отовсюду, где оно его называло."
 }

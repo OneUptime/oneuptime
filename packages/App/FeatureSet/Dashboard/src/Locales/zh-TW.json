@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "來自 {{address}} 的 {{count}} 個 SNMPv3 trap 失敗：{{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "來自 {{address}} 的 {{count}} 個 SNMPv3 trap 失敗：{{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} 個使用者，來自此探測器上的裝置",
-  "{{count}} users, from the devices on this probe_one": "{{count}} 個使用者，來自此探測器上的裝置"
+  "{{count}} users, from the devices on this probe_one": "{{count}} 個使用者，來自此探測器上的裝置",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "已請求刪除。安全事件將在一分鐘內停止指名此人，並在幾分鐘內將其從曾指名之處移除。"
 }

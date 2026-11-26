@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{address}}의 SNMPv3 트랩 {{count}}개가 실패했습니다: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{address}}의 SNMPv3 트랩 {{count}}개가 실패했습니다: {{reason}}",
   "{{count}} users, from the devices on this probe": "사용자 {{count}}명, 이 프로브의 디바이스에서",
-  "{{count}} users, from the devices on this probe_one": "사용자 {{count}}명, 이 프로브의 디바이스에서"
+  "{{count}} users, from the devices on this probe_one": "사용자 {{count}}명, 이 프로브의 디바이스에서",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "삭제를 요청했습니다. 보안 이벤트는 1분 안에 이 사람을 더 이상 지칭하지 않으며, 몇 분 안에 그 사람을 지칭하던 곳에서 제외합니다."
 }

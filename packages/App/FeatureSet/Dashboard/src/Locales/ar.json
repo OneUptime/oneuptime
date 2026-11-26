@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "إشعارات SNMPv3 التي فشلت من {{address}}: {{count}}، والسبب: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "فشل {{count}} إشعار SNMPv3 من {{address}}: {{reason}}",
   "{{count}} users, from the devices on this probe": "المستخدمون: {{count}}، من أجهزة هذا المسبار",
-  "{{count}} users, from the devices on this probe_one": "{{count}} مستخدم، من أجهزة هذا المسبار"
+  "{{count}} users, from the devices on this probe_one": "{{count}} مستخدم، من أجهزة هذا المسبار",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "طُلب المحو. تتوقف الأحداث الأمنية عن تسمية هذا الشخص خلال دقيقة، وتزيله خلال دقائق قليلة من كل ما سمّته فيه."
 }

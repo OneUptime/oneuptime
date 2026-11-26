@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{count}} traps SNMPv3 de {{address}} ont échoué : {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} trap SNMPv3 de {{address}} a échoué : {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} utilisateurs, issus des appareils de cette sonde",
-  "{{count}} users, from the devices on this probe_one": "{{count}} utilisateur, issu des appareils de cette sonde"
+  "{{count}} users, from the devices on this probe_one": "{{count}} utilisateur, issu des appareils de cette sonde",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "Effacement demandé. Événements de sécurité cesse de nommer cette personne d'ici une minute et la retire de tout ce où il la nommait en quelques minutes."
 }

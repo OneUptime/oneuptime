@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{count}} trap SNMPv3 da {{address}} non sono riusciti: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} trap SNMPv3 da {{address}} non è riuscito: {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} utenti, dai dispositivi di questa sonda",
-  "{{count}} users, from the devices on this probe_one": "{{count}} utente, dai dispositivi di questa sonda"
+  "{{count}} users, from the devices on this probe_one": "{{count}} utente, dai dispositivi di questa sonda",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "Cancellazione richiesta. Eventi di sicurezza smette di nominare questa persona entro un minuto e la toglie da tutto ciò in cui la nominava entro pochi minuti."
 }

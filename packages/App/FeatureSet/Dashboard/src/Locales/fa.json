@@ -64691,5 +64691,6 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{count}} trap در SNMPv3 از {{address}} ناموفق بود: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} trap در SNMPv3 از {{address}} ناموفق بود: {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} کاربر، از دستگاه‌های این پراب",
-  "{{count}} users, from the devices on this probe_one": "{{count}} کاربر، از دستگاه‌های این پراب"
+  "{{count}} users, from the devices on this probe_one": "{{count}} کاربر، از دستگاه‌های این پراب",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.": "پاک‌سازی درخواست شد. رویدادهای امنیتی ظرف یک دقیقه دیگر این فرد را نام نمی‌برد و ظرف چند دقیقه او را از هر جایی که نامش را برده بود بیرون می‌آورد."
 }
