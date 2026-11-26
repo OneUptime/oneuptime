@@ -82,6 +82,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * EACH OF ASK AI'S DATA SECURITY ACTIONS IS ITS BUTTON (#10378).
@@ -160,8 +161,8 @@ interface World {
   findings: InMemoryTable;
   ownerTeams: InMemoryTable;
   residencyRules: InMemoryTable;
-  scrub: jest.SpyInstance;
-  respond: jest.SpyInstance;
+  scrub: SpyInstance<typeof TelemetryScrubIt.scrubFindingWithProvenRule>;
+  respond: SpyInstance<typeof DataSecurityResponse.run>;
 }
 
 let server: DashboardRequestsOverHttp;
@@ -324,14 +325,15 @@ function fresh(): World {
       dataTypeName: "Email address",
     },
   } as never);
-  const scrub: jest.SpyInstance = jest
-    .spyOn(TelemetryScrubIt, "scrubFindingWithProvenRule")
-    .mockResolvedValue({
-      signal: "log",
-      scrubRuleId: "10378000-0000-4000-8000-0000000002a2",
-      scrubRuleName: "Data Security: Email address in attributes.user.email",
-      isProven: true,
-    } as never);
+  const scrub: SpyInstance<typeof TelemetryScrubIt.scrubFindingWithProvenRule> =
+    jest
+      .spyOn(TelemetryScrubIt, "scrubFindingWithProvenRule")
+      .mockResolvedValue({
+        signal: "log",
+        scrubRuleId: "10378000-0000-4000-8000-0000000002a2",
+        scrubRuleName: "Data Security: Email address in attributes.user.email",
+        isProven: true,
+      } as never);
   jest.spyOn(DataSecurityResponse, "getAvailability").mockResolvedValue({
     actions: [
       {
@@ -340,7 +342,7 @@ function fresh(): World {
       },
     ],
   } as never);
-  const respond: jest.SpyInstance = jest
+  const respond: SpyInstance<typeof DataSecurityResponse.run> = jest
     .spyOn(DataSecurityResponse, "run")
     .mockResolvedValue({ status: "Succeeded" } as never);
 
