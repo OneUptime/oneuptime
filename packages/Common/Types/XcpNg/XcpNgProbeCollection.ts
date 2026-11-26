@@ -226,6 +226,26 @@ export interface XcpNgPoolMessage {
   body: string;
 }
 
+/*
+ * A pool's high availability and its master, as a collection read them
+ * (#10997): XAPI's pool record has all of it; Xen Orchestra's REST pool
+ * object has only whether HA is on and the master, so the plan's fields
+ * stay absent there.
+ */
+export interface XcpNgPoolState {
+  // The pool's XAPI UUID, lower case.
+  poolId: string;
+  haEnabled: boolean;
+  // pool.ha_host_failures_to_tolerate (XAPI only).
+  haHostFailuresToTolerate?: number | undefined;
+  // pool.ha_plan_exists_for (XAPI only).
+  haPlanExistsFor?: number | undefined;
+  // pool.ha_overcommitted (XAPI only).
+  haOvercommitted?: boolean | undefined;
+  // The master's host UUID, lower case.
+  masterHostUuid?: string | undefined;
+}
+
 interface XcpNgProbeReportBase {
   // Succeeded or Failed (XcpNgCollectionStatus).
   status: "Succeeded" | "Failed";
@@ -256,6 +276,8 @@ export interface XcpNgCollectionReport extends XcpNgProbeReportBase {
   xapiPoolHosts?: Array<XcpNgXapiPoolHost> | undefined;
   messages?: Array<XcpNgPoolMessage> | undefined;
   messageWatermark?: XcpNgMessageWatermark | undefined;
+  // XAPI: the pool's HA and master.
+  poolStates?: Array<XcpNgPoolState> | undefined;
 }
 
 // What a probe posts after a connection test.
