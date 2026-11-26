@@ -114,19 +114,16 @@ describe("a read's window", () => {
       days(getPreviousCloudCostWindow(window("2026-10-01", "2026-10-31"))),
     ).toEqual(["2026-09-01", "2026-09-30"]);
     // A whole month against the whole month before, however long each is.
-    expect(days(getPreviousCloudCostWindow(window("2026-11-01", "2026-11-30")))).toEqual([
-      "2026-10-01",
-      "2026-10-31",
-    ]);
-    expect(days(getPreviousCloudCostWindow(window("2026-03-01", "2026-03-31")))).toEqual([
-      "2026-02-01",
-      "2026-02-28",
-    ]);
+    expect(
+      days(getPreviousCloudCostWindow(window("2026-11-01", "2026-11-30"))),
+    ).toEqual(["2026-10-01", "2026-10-31"]);
+    expect(
+      days(getPreviousCloudCostWindow(window("2026-03-01", "2026-03-31"))),
+    ).toEqual(["2026-02-01", "2026-02-28"]);
     // Part of March against as much of February as there is.
-    expect(days(getPreviousCloudCostWindow(window("2026-03-01", "2026-03-30")))).toEqual([
-      "2026-02-01",
-      "2026-02-28",
-    ]);
+    expect(
+      days(getPreviousCloudCostWindow(window("2026-03-01", "2026-03-30"))),
+    ).toEqual(["2026-02-01", "2026-02-28"]);
     // A quarter against the quarter before.
     expect(
       days(getPreviousCloudCostWindow(window("2026-09-01", "2026-11-24"))),

@@ -101,7 +101,7 @@ Ogni mese, i costi dei nodi vengono ripartiti in base a quanto è costato ogni n
 
 ## Voci personalizzate
 
-In **Cloud → Spesa → Gruppi di costi → Voci personalizzate**, aggiungi un addebito o un credito che le fatture dei tuoi cloud non riportano: una quota di un contratto di supporto, uno sconto aziendale, un ricarico interno o una tariffa di piattaforma.
+In **Voci personalizzate**, su **Cloud → Spesa → Gruppi di costi**, aggiungi un addebito o un credito che le fatture dei tuoi cloud non riportano: una quota di un contratto di supporto, uno sconto aziendale, un ricarico interno o una tariffa di piattaforma.
 
 - **Una volta o ogni mese.** Una voce mensile è distribuita sui giorni di ogni mese, quindi una parte di mese ne prende la sua parte.
 - **Su un account o un gruppo.** Una voce aggiunta a un account passa per le regole di ogni vista come i costi dell'account. Una voce aggiunta a un gruppo va direttamente a esso.

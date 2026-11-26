@@ -103,13 +103,10 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data.grouping === CloudCostViewGrouping.TagValue ||
       (updateBy.data.tagKey !== undefined && !updateBy.data.tagKey)
     ) {
-      const views: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: { _id: true, grouping: true, tagKey: true },
-        props: { isRoot: true },
-        limit: 100,
-        skip: 0,
-      });
+      const views: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { _id: true, grouping: true, tagKey: true },
+      );
 
       for (const view of views) {
         const grouping: CloudCostViewGrouping | undefined =

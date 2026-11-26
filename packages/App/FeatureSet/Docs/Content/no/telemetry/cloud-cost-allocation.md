@@ -101,7 +101,7 @@ Hver måned fordeles nodenes kostnader etter hva hvert navnerom kostet i klyngen
 
 ## Egne poster
 
-Under **Sky → Forbruk → Kostnadsgrupper → Egne poster** legger du til en belastning eller kreditering som regningene fra skyene dine ikke har med: en andel av en supportavtale, en bedriftsrabatt, et internt påslag eller et plattformgebyr.
+Under **Egne poster** på **Sky → Forbruk → Kostnadsgrupper** legger du til en belastning eller kreditering som regningene fra skyene dine ikke har med: en andel av en supportavtale, en bedriftsrabatt, et internt påslag eller et plattformgebyr.
 
 - **Én gang eller hver måned.** En månedlig post fordeles over dagene i hver måned, så en del av en måned får sin del.
 - **På en konto eller en gruppe.** En post som er lagt til en konto, går gjennom reglene i hver visning slik kontoens kostnader gjør. En post som er lagt til en gruppe, går rett til den.

@@ -508,7 +508,10 @@ describe("the menu paths", () => {
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
       // What the accounts cost, how to spend less, and the budgets.
-      { title: "Spend", items: ["Costs", "Savings", "Budgets"] },
+      {
+        title: "Spend",
+        items: ["Costs", "Cost Groups", "Savings", "Budgets"],
+      },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },
     ]);

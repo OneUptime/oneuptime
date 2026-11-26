@@ -18,6 +18,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { ProjectScopedReference } from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CloudAccountService from "./CloudAccountService";
@@ -47,7 +48,7 @@ import TeamService from "./TeamService";
  */
 
 export const CLOUD_COST_GROUP_SPLIT_ERROR: string =
-  "Choose how a shared group is split: Even, Proportional or Fixed.";
+  "Choose how a shared group is split: Even, Proportional, Fixed or Kubernetes.";
 export const CLOUD_COST_GROUP_AUTOMATIC_RULES_ERROR: string =
   "OneUptime makes this group's rules for its view, one group per tag value or owner team. Rename it, link it to a team or share it instead, or add a group of your own.";
 export const CLOUD_COST_GROUP_PERCENTAGES_VIEW_ERROR: string =
@@ -94,6 +95,9 @@ const FIELD_REFERENCES: ReadonlyArray<{
       KubernetesClusterService as unknown as ProjectScopedReference["service"],
   },
 ];
+
+// A group's view, by its ID column and by its relation.
+const VIEW_KEYS: Array<string> = ["cloudCostViewId", "cloudCostView"];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -239,7 +243,12 @@ export class Service extends ProjectReferencesService<Model> {
         undefined;
     }
 
-    const viewId: ObjectID | undefined = createBy.data.cloudCostViewId;
+    // The view under either of its names: the two must agree.
+    const viewId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      VIEW_KEYS,
+      "Cost View",
+    );
 
     if (viewId) {
       const count: number = (
@@ -291,18 +300,15 @@ export class Service extends ProjectReferencesService<Model> {
       Object.keys(updateBy.data.sharedPercentages || {}).length > 0;
 
     if (changesRules || changesPercentages) {
-      const groups: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const groups: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           automaticKey: true,
           cloudCostViewId: true,
           rules: true,
         },
-        props: { isRoot: true },
-        limit: CLOUD_COST_MAX_GROUPS_PER_VIEW,
-        skip: 0,
-      });
+      );
 
       for (const group of groups) {
         /*

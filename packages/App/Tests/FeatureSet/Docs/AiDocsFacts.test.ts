@@ -2344,9 +2344,11 @@ describe("MCP Server", () => {
      * frameworks and requirements a resource turned off (Compliance Setting,
      * #9555, #9708), a Data Security setting like Check Setting, so an agent
      * can say what is off where and why, as Data Security's Integrations
-     * page promises.
+     * page promises; and Cloud's cost views, groups and custom line items
+     * (Cloud Cost View, Cloud Cost Group, Cloud Cost Line Item, #11006), so
+     * finance and agents sort the spend as the Cost Groups pages do.
      */
-    expect(records()).toHaveLength(55);
+    expect(records()).toHaveLength(58);
     expect(namesIn(0)).toEqual(records());
     /*
      * Every database model with MCP on gets these tools, the update tool

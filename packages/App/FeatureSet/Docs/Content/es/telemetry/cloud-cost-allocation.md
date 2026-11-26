@@ -101,7 +101,7 @@ Cada mes, los costos de los nodos se reparten según lo que costó cada espacio 
 
 ## Partidas personalizadas
 
-En **Nube → Gasto → Grupos de costos → Partidas personalizadas**, añade un cargo o un crédito que las facturas de tus nubes no incluyen: una parte de un contrato de soporte, un descuento empresarial, un recargo interno o una tarifa de plataforma.
+En **Partidas personalizadas**, dentro de **Nube → Gasto → Grupos de costos**, añade un cargo o un crédito que las facturas de tus nubes no incluyen: una parte de un contrato de soporte, un descuento empresarial, un recargo interno o una tarifa de plataforma.
 
 - **Una vez o cada mes.** Una partida mensual se reparte entre los días de cada mes, así que una parte del mes se lleva su parte.
 - **En una cuenta o en un grupo.** Una partida añadida a una cuenta pasa por las reglas de cada vista igual que los costos de la cuenta. Una añadida a un grupo va directamente a él.

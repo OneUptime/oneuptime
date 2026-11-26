@@ -101,7 +101,7 @@ Hver måned fordeles nodernes omkostninger efter, hvad hvert navnerum kostede i 
 
 ## Egne poster
 
-Tilføj under **Cloud → Forbrug → Omkostningsgrupper → Egne poster** en debitering eller kreditering, som dine clouds' regninger ikke har med: en andel af en supportaftale, en virksomhedsrabat, et internt tillæg eller et platformgebyr.
+Tilføj under **Egne poster** på **Cloud → Forbrug → Omkostningsgrupper** en debitering eller kreditering, som dine clouds' regninger ikke har med: en andel af en supportaftale, en virksomhedsrabat, et internt tillæg eller et platformgebyr.
 
 - **Én gang eller hver måned.** En månedlig post fordeles over hver måneds dage, så en del af en måned får sin del.
 - **På en konto eller en gruppe.** En post, der er tilføjet en konto, går gennem hver visnings regler som kontoens omkostninger. En post, der er tilføjet en gruppe, går direkte til den.

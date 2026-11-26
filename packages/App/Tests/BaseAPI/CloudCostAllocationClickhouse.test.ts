@@ -336,8 +336,16 @@ function namespaceRows(): Array<JSONObject> {
     labels: Record<string, string>;
     cost: number;
   }> = [
-    { namespace: "payments", labels: { team: "payments", app: "api" }, cost: 30 },
-    { namespace: "payments", labels: { team: "payments", app: "worker" }, cost: 20 },
+    {
+      namespace: "payments",
+      labels: { team: "payments", app: "api" },
+      cost: 30,
+    },
+    {
+      namespace: "payments",
+      labels: { team: "payments", app: "worker" },
+      cost: 20,
+    },
     { namespace: "search", labels: { team: "search" }, cost: 30 },
     { namespace: "__idle__", labels: {}, cost: 20 },
   ];
@@ -418,7 +426,12 @@ const SEARCH_BY_OWNER: CloudCostRule = makeCloudCostRule({
 
 function byTeam(): Array<CloudCostGroup> {
   return [
-    group({ id: PAYMENTS, name: "Payments", order: 1, rules: [PAYMENTS_BY_TAG] }),
+    group({
+      id: PAYMENTS,
+      name: "Payments",
+      order: 1,
+      rules: [PAYMENTS_BY_TAG],
+    }),
     group({ id: DATA_GROUP, name: "Data", order: 2, rules: [DATA_BY_ACCOUNT] }),
     group({ id: SEARCH, name: "Search", order: 3, rules: [SEARCH_BY_OWNER] }),
   ];
@@ -438,9 +451,7 @@ function read(
   });
 }
 
-function totals(
-  result: CloudCostAllocationResult,
-): Record<string, number> {
+function totals(result: CloudCostAllocationResult): Record<string, number> {
   const byName: Record<string, number> = {};
 
   for (const entry of result.groups) {
@@ -595,17 +606,20 @@ integration("cost groups against ClickHouse", () => {
     lineItems = [];
 
     // What Postgres would answer, from the fixtures.
-    jest.spyOn(CloudCostViewService, "findOneBy").mockImplementation(async () => {
-      const view: CloudCostView = new CloudCostView();
-      view.id = VIEW;
-      view.name = "By team";
-      return view;
-    });
+    jest
+      .spyOn(CloudCostViewService, "findOneBy")
+      .mockImplementation(async () => {
+        const view: CloudCostView = new CloudCostView();
+        view.id = VIEW;
+        view.name = "By team";
+        return view;
+      });
     jest.spyOn(CloudCostGroupService, "findBy").mockImplementation(async () => {
       return groups;
     });
-    jest.spyOn(CloudCostGroupService, "findOneBy").mockImplementation(
-      async (data: { query: Record<string, unknown> }) => {
+    jest
+      .spyOn(CloudCostGroupService, "findOneBy")
+      .mockImplementation(async (data: { query: Record<string, unknown> }) => {
         const asked: string = String(data.query["_id"]).toLowerCase();
         const found: CloudCostGroup | undefined = groups.find(
           (entry: CloudCostGroup): boolean => {
@@ -618,13 +632,12 @@ integration("cost groups against ClickHouse", () => {
         }
 
         return found || null;
-      },
-    );
-    jest.spyOn(CloudCostLineItemService, "findBy").mockImplementation(
-      async () => {
+      });
+    jest
+      .spyOn(CloudCostLineItemService, "findBy")
+      .mockImplementation(async () => {
         return lineItems;
-      },
-    );
+      });
     jest.spyOn(CloudAccountService, "findBy").mockImplementation(async () => {
       return [PROD, DATA, SHARED].map((id: string): CloudAccount => {
         const account: CloudAccount = new CloudAccount();
@@ -675,9 +688,11 @@ integration("cost groups against ClickHouse", () => {
     // Read by the day: thirty buckets, each a thirtieth.
     expect(result.interval).toBe(CloudCostAllocationInterval.Day);
     expect(result.buckets).toHaveLength(30);
-    expect(byName(result, "Payments").series.every((value: number) => {
-      return value === 14;
-    })).toBe(true);
+    expect(
+      byName(result, "Payments").series.every((value: number) => {
+        return value === 14;
+      }),
+    ).toBe(true);
   });
 
   test("against last month: October cost half as much", async () => {
@@ -780,7 +795,10 @@ integration("cost groups against ClickHouse", () => {
     const support: CloudCostAllocationGroupResult = byName(result, "Support");
 
     // 600 split 420 : 150 : 210 of 780.
-    expect(byName(result, "Payments").sharedIn).toBeCloseTo((600 * 420) / 780, 3);
+    expect(byName(result, "Payments").sharedIn).toBeCloseTo(
+      (600 * 420) / 780,
+      3,
+    );
     expect(byName(result, "Data").sharedIn).toBeCloseTo((600 * 150) / 780, 3);
     expect(byName(result, "Search").sharedIn).toBeCloseTo((600 * 210) / 780, 3);
     expect(byName(result, "Payments").total).toBeCloseTo(
@@ -851,7 +869,10 @@ integration("cost groups against ClickHouse", () => {
     const after: CloudCostAllocationResult = await read(OCTOBER);
     const prodPerDay: number = 10 + 4 + 6 + 2 + 3 + 30;
 
-    expect(byName(after, "Payments").total).toBeCloseTo((prodPerDay / 2) * 31, 6);
+    expect(byName(after, "Payments").total).toBeCloseTo(
+      (prodPerDay / 2) * 31,
+      6,
+    );
     expect(byName(after, "Search").total).toBe(0);
     expect(after.total).toBeCloseTo(before.total, 6);
   });
@@ -1020,7 +1041,9 @@ integration("cost groups against ClickHouse", () => {
 
     expect(read.group.name).toBe("Payments");
     expect(read.group.total).toBe(420);
-    expect(read.group.topServices).toEqual([{ key: "Amazon EC2", amount: 420 }]);
+    expect(read.group.topServices).toEqual([
+      { key: "Amazon EC2", amount: 420 },
+    ]);
     expect(read.group.topResources).toEqual([
       { key: "i-0pay0api", amount: 300 },
       { key: "i-0pay0worker", amount: 90 },

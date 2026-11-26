@@ -323,6 +323,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   SecurityCaseStatus: PROJECT_SETTING,
   SecurityCasePriority: PROJECT_SETTING,
   AlertGroupingRule: PROJECT_SETTING,
+  // The cost view a cost group belongs to: one of the project's views (#11006).
+  CloudCostView: PROJECT_SETTING,
   IncidentGroupingRule: PROJECT_SETTING,
   IncidentSlaRule: PROJECT_SETTING,
   LogPipeline: PROJECT_SETTING,

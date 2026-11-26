@@ -234,9 +234,11 @@ describe("a group's rules, read as sentences", () => {
       "cloud-cost-condition",
     );
 
-    expect(conditions.map((condition: HTMLElement) => {
-      return condition.textContent;
-    })).toEqual([
+    expect(
+      conditions.map((condition: HTMLElement) => {
+        return condition.textContent;
+      }),
+    ).toEqual([
       "Tag team is paymentsorbilling",
       "Account is Production AWS",
       "Service contains EC2",
@@ -336,9 +338,9 @@ describe("the rule editor", () => {
       },
     ]);
     // A condition with no value is said, in the reader's words.
-    expect(
-      screen.getByTestId("cloud-cost-rule-editor").textContent,
-    ).toContain("Rule 1, condition 1: choose or type a value.");
+    expect(screen.getByTestId("cloud-cost-rule-editor").textContent).toContain(
+      "Rule 1, condition 1: choose or type a value.",
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("cloud-cost-condition-add"));
@@ -437,9 +439,9 @@ describe("the rule editor", () => {
       values: [],
     });
     // Without tags, a new condition is on an account.
-    expect(
-      newCloudCostCondition({ ...OPTIONS, tagKeys: [] }).field,
-    ).toBe(CloudCostRuleField.Account);
+    expect(newCloudCostCondition({ ...OPTIONS, tagKeys: [] }).field).toBe(
+      CloudCostRuleField.Account,
+    );
   });
 
   test("what keeps rules from being saved, in the reader's words", () => {
@@ -533,9 +535,11 @@ describe("what no rule matches yet", () => {
       "cloud-cost-unallocated-row",
     );
 
-    expect(rows.map((row: HTMLElement) => {
-      return row.textContent;
-    })).toEqual([
+    expect(
+      rows.map((row: HTMLElement) => {
+        return row.textContent;
+      }),
+    ).toEqual([
       "Amazon S3$600.00Add to Group",
       "Production AWS$900.00Add to Group",
       "env: prod$300.00Add to Group",
@@ -723,9 +727,11 @@ describe("the first view, one click away", () => {
       "cloud-cost-quick-start-choice",
     );
 
-    expect(choices.map((choice: HTMLElement) => {
-      return choice.getAttribute("data-grouping");
-    })).toEqual([
+    expect(
+      choices.map((choice: HTMLElement) => {
+        return choice.getAttribute("data-grouping");
+      }),
+    ).toEqual([
       CloudCostViewGrouping.OwnerTeam,
       CloudCostViewGrouping.TagValue,
       CloudCostViewGrouping.Rules,
@@ -834,14 +840,14 @@ describe("a view's figures", () => {
         groups: [
           groupResult({
             id: PAYMENTS,
-            name: "=HYPERLINK(\"x\")",
+            name: '=HYPERLINK("x")',
             total: 743.08,
             cloud: 420,
             sharedIn: 323.08,
           }),
           groupResult({
             id: SEARCH,
-            name: "Search, \"core\"",
+            name: 'Search, "core"',
             total: -60,
             lineItems: -60,
           }),

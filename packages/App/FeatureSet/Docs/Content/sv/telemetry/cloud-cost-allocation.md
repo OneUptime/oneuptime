@@ -101,7 +101,7 @@ Varje månad fördelas nodernas kostnader efter vad varje namnrymd kostade i klu
 
 ## Egna poster
 
-Under **Moln → Utgifter → Kostnadsgrupper → Egna poster** lägger du till en debitering eller kreditering som dina molns fakturor inte har med: en andel av ett supportavtal, en företagsrabatt, ett internt påslag eller en plattformsavgift.
+Under **Egna poster** på **Moln → Utgifter → Kostnadsgrupper** lägger du till en debitering eller kreditering som dina molns fakturor inte har med: en andel av ett supportavtal, en företagsrabatt, ett internt påslag eller en plattformsavgift.
 
 - **En gång eller varje månad.** En månatlig post fördelas över varje månads dagar, så att en del av en månad får sin del.
 - **På ett konto eller en grupp.** En post som lagts till på ett konto går genom varje vys regler som kontots kostnader gör. En post som lagts till i en grupp går direkt till den.

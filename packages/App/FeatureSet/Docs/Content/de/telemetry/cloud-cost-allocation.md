@@ -101,7 +101,7 @@ Jeden Monat werden die Kosten der Knoten nach dem aufgeteilt, was jeder Namespac
 
 ## Eigene Positionen
 
-Fügen Sie unter **Cloud → Ausgaben → Kostengruppen → Eigene Positionen** eine Belastung oder Gutschrift hinzu, die die Rechnungen Ihrer Clouds nicht enthalten: einen Anteil an einem Supportvertrag, einen Unternehmensrabatt, einen internen Aufschlag oder eine Plattformgebühr.
+Fügen Sie unter **Eigene Positionen** auf **Cloud → Ausgaben → Kostengruppen** eine Belastung oder Gutschrift hinzu, die die Rechnungen Ihrer Clouds nicht enthalten: einen Anteil an einem Supportvertrag, einen Unternehmensrabatt, einen internen Aufschlag oder eine Plattformgebühr.
 
 - **Einmalig oder jeden Monat.** Eine monatliche Position wird auf die Tage jedes Monats verteilt, sodass ein angebrochener Monat seinen Anteil trägt.
 - **Auf einem Konto oder einer Gruppe.** Eine einem Konto hinzugefügte Position durchläuft die Regeln jeder Ansicht wie die Kosten des Kontos. Eine einer Gruppe hinzugefügte geht direkt an sie.

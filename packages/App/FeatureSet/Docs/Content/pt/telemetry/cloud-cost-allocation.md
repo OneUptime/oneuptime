@@ -101,7 +101,7 @@ A cada mês, os custos dos nós são divididos pelo que cada namespace custou no
 
 ## Lançamentos personalizados
 
-Em **Nuvem → Gastos → Grupos de custos → Lançamentos personalizados**, adicione uma cobrança ou um crédito que as faturas das suas nuvens não trazem: parte de um contrato de suporte, um desconto empresarial, uma margem interna ou uma taxa de plataforma.
+Em **Lançamentos personalizados**, na página **Nuvem → Gastos → Grupos de custos**, adicione uma cobrança ou um crédito que as faturas das suas nuvens não trazem: parte de um contrato de suporte, um desconto empresarial, uma margem interna ou uma taxa de plataforma.
 
 - **Uma vez ou todo mês.** Um lançamento mensal é distribuído pelos dias de cada mês, então parte de um mês recebe a sua parte.
 - **Em uma conta ou em um grupo.** Um lançamento adicionado a uma conta passa pelas regras de cada visão como os custos da conta. Um adicionado a um grupo vai direto para ele.

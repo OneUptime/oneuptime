@@ -101,7 +101,7 @@ Elke maand worden de kosten van de nodes verdeeld naar wat elke naamruimte kostt
 
 ## Eigen posten
 
-Voeg onder **Cloud → Uitgaven → Kostengroepen → Eigen posten** een afschrijving of creditering toe die niet op de rekeningen van je clouds staat: een deel van een supportcontract, een bedrijfskorting, een interne opslag of een platformvergoeding.
+Voeg onder **Eigen posten** op **Cloud → Uitgaven → Kostengroepen** een afschrijving of creditering toe die niet op de rekeningen van je clouds staat: een deel van een supportcontract, een bedrijfskorting, een interne opslag of een platformvergoeding.
 
 - **Eenmalig of elke maand.** Een maandelijkse post wordt over de dagen van elke maand verdeeld, zodat een deel van een maand zijn deel krijgt.
 - **Op een account of een groep.** Een post die aan een account is toegevoegd, gaat door de regels van elke weergave zoals de kosten van het account. Een post die aan een groep is toegevoegd, gaat er direct naartoe.

@@ -4,9 +4,11 @@ import {
   CloudCostLineItemRecurrence,
 } from "../../Types/Cloud/CloudCostAllocation";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectReferencesService from "./ProjectReferencesService";
 
@@ -35,6 +37,20 @@ export const CLOUD_COST_LINE_ITEM_TARGET_ERROR: string =
   "Add the line item to an account or to a cost group, not both.";
 
 const CURRENCY_CODE: RegExp = /^[A-Z]{3}$/;
+
+// A line item's account and group, by their ID columns and their relations.
+const ACCOUNT_KEYS: Array<string> = ["cloudAccountId", "cloudAccount"];
+const GROUP_KEYS: Array<string> = ["cloudCostGroupId", "cloudCostGroup"];
+
+// Whether a write names a reference at all, under either of its names.
+function sendsReference(
+  data: Record<string, unknown>,
+  keys: Array<string>,
+): boolean {
+  return keys.some((key: string): boolean => {
+    return data[key] !== undefined;
+  });
+}
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -141,10 +157,18 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.checkDates(createBy.data.startDate, createBy.data.endDate);
 
-    if (
-      Boolean(createBy.data.cloudAccountId) ===
-      Boolean(createBy.data.cloudCostGroupId)
-    ) {
+    const accountId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ACCOUNT_KEYS,
+      "Cloud Account",
+    );
+    const groupId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      GROUP_KEYS,
+      "Cost Group",
+    );
+
+    if (Boolean(accountId) === Boolean(groupId)) {
       throw new BadDataException(CLOUD_COST_LINE_ITEM_TARGET_ERROR);
     }
 
@@ -188,25 +212,32 @@ export class Service extends ProjectReferencesService<Model> {
     const touchesDates: boolean =
       updateBy.data.startDate !== undefined ||
       updateBy.data.endDate !== undefined;
-    const touchesTarget: boolean =
-      updateBy.data.cloudAccountId !== undefined ||
-      updateBy.data.cloudCostGroupId !== undefined;
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const sendsAccount: boolean = sendsReference(data, ACCOUNT_KEYS);
+    const sendsGroup: boolean = sendsReference(data, GROUP_KEYS);
+    // What the write names under either name: the two must agree.
+    const sentAccountId: ObjectID | null = sendsAccount
+      ? RelationIdUtil.readIntoIdColumn(data, ACCOUNT_KEYS, "Cloud Account")
+      : null;
+    const sentGroupId: ObjectID | null = sendsGroup
+      ? RelationIdUtil.readIntoIdColumn(data, GROUP_KEYS, "Cost Group")
+      : null;
 
     // Read with what the line items hold now, for what the write leaves.
-    if (touchesDates || touchesTarget) {
-      const items: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+    if (touchesDates || sendsAccount || sendsGroup) {
+      const items: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           startDate: true,
           endDate: true,
           cloudAccountId: true,
           cloudCostGroupId: true,
         },
-        props: { isRoot: true },
-        limit: 100,
-        skip: 0,
-      });
+      );
 
       for (const item of items) {
         this.checkDates(
@@ -218,14 +249,10 @@ export class Service extends ProjectReferencesService<Model> {
             : item.endDate,
         );
 
-        const accountId: unknown =
-          updateBy.data.cloudAccountId !== undefined
-            ? updateBy.data.cloudAccountId
-            : item.cloudAccountId;
-        const groupId: unknown =
-          updateBy.data.cloudCostGroupId !== undefined
-            ? updateBy.data.cloudCostGroupId
-            : item.cloudCostGroupId;
+        const accountId: unknown = sendsAccount
+          ? sentAccountId
+          : item.cloudAccountId;
+        const groupId: unknown = sendsGroup ? sentGroupId : item.cloudCostGroupId;
 
         if (Boolean(accountId) === Boolean(groupId)) {
           throw new BadDataException(CLOUD_COST_LINE_ITEM_TARGET_ERROR);

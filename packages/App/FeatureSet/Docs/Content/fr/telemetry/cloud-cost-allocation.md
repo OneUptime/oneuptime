@@ -101,7 +101,7 @@ Chaque mois, les coûts des nœuds sont répartis selon ce qu'a coûté chaque e
 
 ## Lignes personnalisées
 
-Sous **Cloud → Dépenses → Groupes de coûts → Lignes personnalisées**, ajoutez un débit ou un crédit que les factures de vos clouds ne portent pas : une part d'un contrat de support, une remise entreprise, une majoration interne ou des frais de plateforme.
+Sous **Lignes personnalisées**, dans **Cloud → Dépenses → Groupes de coûts**, ajoutez un débit ou un crédit que les factures de vos clouds ne portent pas : une part d'un contrat de support, une remise entreprise, une majoration interne ou des frais de plateforme.
 
 - **Une fois ou chaque mois.** Une ligne mensuelle est répartie sur les jours de chaque mois : un mois partiel en prend sa part.
 - **Sur un compte ou un groupe.** Une ligne ajoutée à un compte passe par les règles de chaque vue comme les coûts du compte. Une ligne ajoutée à un groupe va directement à lui.

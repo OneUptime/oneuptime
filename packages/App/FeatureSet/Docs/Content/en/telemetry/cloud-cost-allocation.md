@@ -101,7 +101,7 @@ Each month, the nodes' costs are split by what each namespace cost in the cluste
 
 ## Custom line items
 
-Under **Cloud → Spend → Cost Groups → Custom Line Items**, add a charge or credit your clouds' bills do not carry: a share of a support contract, an enterprise discount, an internal markup or a platform fee.
+Under **Custom Line Items** on **Cloud → Spend → Cost Groups**, add a charge or credit your clouds' bills do not carry: a share of a support contract, an enterprise discount, an internal markup or a platform fee.
 
 - **Once or every month.** A monthly item is spread over each month's days, so part of a month takes its part.
 - **On an account or a group.** One added to an account goes through each view's rules as the account's costs do. One added to a group goes straight to it.

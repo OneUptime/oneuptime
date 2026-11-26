@@ -39,10 +39,7 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  SeededRandom,
-  seededRandom,
-} from "Common/Tests/Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   afterAll,
   beforeAll,
@@ -103,9 +100,7 @@ const DAY_MS: number = 24 * 60 * 60 * 1000;
 const DAYS: Array<Date> = Array.from(
   { length: 365 },
   (_value: unknown, index: number): Date => {
-    return new Date(
-      Date.UTC(2026, 10, 24) - (364 - index) * DAY_MS,
-    );
+    return new Date(Date.UTC(2026, 10, 24) - (364 - index) * DAY_MS);
   },
 );
 
@@ -173,7 +168,13 @@ const TEAM_TAGS: Array<string> = [
   "growth",
 ];
 const ENVIRONMENTS: Array<string> = ["prod", "staging", "dev"];
-const COST_CENTERS: Array<string> = ["cc-100", "cc-200", "cc-300", "cc-410", "cc-999"];
+const COST_CENTERS: Array<string> = [
+  "cc-100",
+  "cc-200",
+  "cc-300",
+  "cc-410",
+  "cc-999",
+];
 
 interface Resource {
   key: string;
@@ -256,7 +257,9 @@ function makeResources(): Array<Resource> {
 
 // What a resource cost on a day: its base, varied by the day, to the cent.
 function dailyCost(resource: Resource, day: number, index: number): number {
-  return roundCost(resource.base * (0.6 + (((day * 7 + index) % 10) / 10) * 0.8));
+  return roundCost(
+    resource.base * (0.6 + (((day * 7 + index) % 10) / 10) * 0.8),
+  );
 }
 
 const RESOURCES: Array<Resource> = makeResources();
@@ -439,10 +442,11 @@ const EVERY_KIND: Array<{
           ACCOUNTS[3]!,
           ACCOUNTS[4]!,
         ]),
-        condition(CloudCostRuleField.Service, CloudCostRuleOperator.DoesNotContain, [
-          "amazon",
-          "azure",
-        ]),
+        condition(
+          CloudCostRuleField.Service,
+          CloudCostRuleOperator.DoesNotContain,
+          ["amazon", "azure"],
+        ),
       ),
     ],
   },
@@ -451,7 +455,9 @@ const EVERY_KIND: Array<{
     name: "Google",
     rules: [
       rule(
-        condition(CloudCostRuleField.Provider, CloudCostRuleOperator.Is, ["gcp"]),
+        condition(CloudCostRuleField.Provider, CloudCostRuleOperator.Is, [
+          "gcp",
+        ]),
         condition(CloudCostRuleField.Resource, CloudCostRuleOperator.EndsWith, [
           "0",
           "5",
@@ -463,7 +469,9 @@ const EVERY_KIND: Array<{
     id: "0192f1a0-1100-7000-8000-00000000ee11",
     name: "Global",
     rules: [
-      rule(condition(CloudCostRuleField.Region, CloudCostRuleOperator.Is, [""])),
+      rule(
+        condition(CloudCostRuleField.Region, CloudCostRuleOperator.Is, [""]),
+      ),
     ],
   },
   {
@@ -530,7 +538,12 @@ const PER_TEAM_TAG: typeof EVERY_KIND = Array.from(
     name: value,
     rules: [
       rule(
-        condition(CloudCostRuleField.Tag, CloudCostRuleOperator.Is, [value], "team"),
+        condition(
+          CloudCostRuleField.Tag,
+          CloudCostRuleOperator.Is,
+          [value],
+          "team",
+        ),
       ),
     ],
   };
@@ -562,9 +575,8 @@ function expected(data: {
   firstDay: number;
   lastDay: number;
 }): { totals: Map<string, number>; unallocated: number; total: number } {
-  const loaded: Array<CloudCostLoadedGroup> = CloudCostAllocationClass.toLoadedGroups(
-    models(data.groups),
-  );
+  const loaded: Array<CloudCostLoadedGroup> =
+    CloudCostAllocationClass.toLoadedGroups(models(data.groups));
   const cloud: CloudCostBucketAmounts = new Map();
   const monthSpend: Map<string, Map<string, number>> = new Map();
   let total: number = 0;
@@ -659,7 +671,9 @@ function expected(data: {
 }
 
 function expectCents(actual: number, wanted: number): void {
-  expect(Math.abs(actual - wanted)).toBeLessThan(0.02 + Math.abs(wanted) * 1e-9);
+  expect(Math.abs(actual - wanted)).toBeLessThan(
+    0.02 + Math.abs(wanted) * 1e-9,
+  );
 }
 
 function expectMatches(
@@ -684,7 +698,9 @@ function expectMatches(
 }
 
 // Whether the read times are printed: when a size is asked for, to measure it.
-const IS_BENCHMARK: boolean = Boolean(process.env["CLOUD_COST_SCALE_RESOURCES"]);
+const IS_BENCHMARK: boolean = Boolean(
+  process.env["CLOUD_COST_SCALE_RESOURCES"],
+);
 
 function report(line: string): void {
   if (IS_BENCHMARK) {
@@ -693,13 +709,12 @@ function report(line: string): void {
   }
 }
 
-async function timed<T>(
-  label: string,
-  run: () => Promise<T>,
-): Promise<T> {
+async function timed<T>(label: string, run: () => Promise<T>): Promise<T> {
   const started: number = Date.now();
   const answer: T = await run();
-  report(`${label}: ${Date.now() - started} ms over ${RESOURCE_COUNT} resources`);
+  report(
+    `${label}: ${Date.now() - started} ms over ${RESOURCE_COUNT} resources`,
+  );
   return answer;
 }
 
@@ -761,7 +776,10 @@ integration("cost groups over a year of a busy project's costs", () => {
         database: ClickhouseDatabase;
         databaseClient: unknown;
       };
-    saved = { database: service.database, databaseClient: service.databaseClient };
+    saved = {
+      database: service.database,
+      databaseClient: service.databaseClient,
+    };
     service.database = clickhouse;
     service.databaseClient = client;
 
@@ -846,12 +864,14 @@ integration("cost groups over a year of a busy project's costs", () => {
     jest.restoreAllMocks();
     viewGroups = EVERY_KIND;
 
-    jest.spyOn(CloudCostViewService, "findOneBy").mockImplementation(async () => {
-      const view: CloudCostView = new CloudCostView();
-      view.id = VIEW;
-      view.name = "Every kind of rule";
-      return view;
-    });
+    jest
+      .spyOn(CloudCostViewService, "findOneBy")
+      .mockImplementation(async () => {
+        const view: CloudCostView = new CloudCostView();
+        view.id = VIEW;
+        view.name = "Every kind of rule";
+        return view;
+      });
     jest.spyOn(CloudCostGroupService, "findBy").mockImplementation(async () => {
       return models(viewGroups);
     });
@@ -875,25 +895,23 @@ integration("cost groups over a year of a busy project's costs", () => {
       });
     jest
       .spyOn(CloudCostAllocationFacts, "readResourceLabels")
-      .mockImplementation(
-        async (data: { labelIds: Array<string> }) => {
-          const labels: Map<string, Set<string>> = new Map();
+      .mockImplementation(async (data: { labelIds: Array<string> }) => {
+        const labels: Map<string, Set<string>> = new Map();
 
-          for (const resource of RESOURCES) {
-            const asked: Array<string> = resource.labels.filter(
-              (label: string): boolean => {
-                return data.labelIds.includes(label);
-              },
-            );
+        for (const resource of RESOURCES) {
+          const asked: Array<string> = resource.labels.filter(
+            (label: string): boolean => {
+              return data.labelIds.includes(label);
+            },
+          );
 
-            if (asked.length > 0) {
-              labels.set(resource.key, new Set(asked));
-            }
+          if (asked.length > 0) {
+            labels.set(resource.key, new Set(asked));
           }
+        }
 
-          return labels;
-        },
-      );
+        return labels;
+      });
     jest
       .spyOn(CloudCostAllocationFacts, "readAccountLabels")
       .mockImplementation(async (data: { labelIds: Array<string> }) => {
@@ -934,7 +952,10 @@ integration("cost groups over a year of a busy project's costs", () => {
     });
 
     expect(result.buckets).toHaveLength(31);
-    expectMatches(result, expected({ groups: EVERY_KIND, firstDay: first, lastDay: first + 30 }));
+    expectMatches(
+      result,
+      expected({ groups: EVERY_KIND, firstDay: first, lastDay: first + 30 }),
+    );
     // The support plan is split away whole: it keeps nothing.
     expectCents(
       result.groups.find((group: CloudCostAllocationGroupResult) => {
@@ -954,7 +975,10 @@ integration("cost groups over a year of a busy project's costs", () => {
 
     expect(result.interval).toBe(CloudCostAllocationInterval.Month);
     expect(result.buckets).toHaveLength(13);
-    expectMatches(result, expected({ groups: EVERY_KIND, firstDay: 0, lastDay: 364 }));
+    expectMatches(
+      result,
+      expected({ groups: EVERY_KIND, firstDay: 0, lastDay: 364 }),
+    );
     // Nothing is stored before the year: the year before cost nothing.
     expect(result.previousTotal).toBe(0);
   });
@@ -971,7 +995,10 @@ integration("cost groups over a year of a busy project's costs", () => {
     );
 
     expect(result.buckets).toHaveLength(45);
-    expectMatches(result, expected({ groups: EVERY_KIND, firstDay: 200, lastDay: 244 }));
+    expectMatches(
+      result,
+      expected({ groups: EVERY_KIND, firstDay: 200, lastDay: 244 }),
+    );
   });
 
   test("one group per value of the team tag", async () => {
@@ -991,9 +1018,11 @@ integration("cost groups over a year of a busy project's costs", () => {
 
     expectMatches(result, wanted);
     // "Payments" and "payments" are one value: one group takes both.
-    expect(result.groups.map((group: CloudCostAllocationGroupResult) => {
-      return group.name;
-    })).toEqual(["payments", "search", "platform", "data", "growth"]);
+    expect(
+      result.groups.map((group: CloudCostAllocationGroupResult) => {
+        return group.name;
+      }),
+    ).toEqual(["payments", "search", "platform", "data", "growth"]);
   });
 
   test("a read split into parts adds up to the whole", async () => {
@@ -1027,13 +1056,18 @@ integration("cost groups over a year of a busy project's costs", () => {
     whole.groups.forEach(
       (group: CloudCostAllocationGroupResult, index: number): void => {
         expectCents(parted.groups[index]!.total, group.total);
-        expectCents(parted.groups[index]!.wouldMatch || 0, group.wouldMatch || 0);
+        expectCents(
+          parted.groups[index]!.wouldMatch || 0,
+          group.wouldMatch || 0,
+        );
       },
     );
     expectCents(parted.unallocated.total, whole.unallocated.total);
-    expect(parted.unallocated.topServices.map((share: { key: string }) => {
-      return share.key;
-    })).toEqual(
+    expect(
+      parted.unallocated.topServices.map((share: { key: string }) => {
+        return share.key;
+      }),
+    ).toEqual(
       whole.unallocated.topServices.map((share: { key: string }) => {
         return share.key;
       }),
