@@ -59,6 +59,11 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   spendSummary: string;
   circuitBreaker: string;
   pipelineCircuitBreaker: (dataPipelineId: string) => string;
+  storeSettings: (dataStoreId: string) => string;
+  storeUpdate: (dataStoreId: string) => string;
+  storeRemove: (dataStoreId: string) => string;
+  storeDelete: (dataStoreId: string) => string;
+  databaseAgents: string;
 } = {
   overview: "/data-observability/overview",
   /*
@@ -174,6 +179,27 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   pipelineCircuitBreaker: (dataPipelineId: string): string => {
     return `/data-observability/pipelines/${dataPipelineId}/circuit-breaker`;
   },
+  /*
+   * A database's settings (#11147): how it is connected - never its
+   * connection string - what else uses it, and what the caller may change.
+   */
+  storeSettings: (dataStoreId: string): string => {
+    return `/data-observability/stores/${dataStoreId}/settings`;
+  },
+  // Renames a database, or changes how it is reached: a new login, another probe or Database Agent.
+  storeUpdate: (dataStoreId: string): string => {
+    return `/data-observability/stores/${dataStoreId}/update`;
+  },
+  // Data Observability stops reading a database and forgets its tables; Data Security keeps it.
+  storeRemove: (dataStoreId: string): string => {
+    return `/data-observability/stores/${dataStoreId}/remove`;
+  },
+  // Deletes a database from OneUptime: what Data Observability and Data Security keep of it too.
+  storeDelete: (dataStoreId: string): string => {
+    return `/data-observability/stores/${dataStoreId}/delete`;
+  },
+  // The Database Agents a database can be read through, with whether each can now (#11148).
+  databaseAgents: "/data-observability/database-agents",
 };
 
 /*
@@ -290,6 +316,32 @@ export enum DataObservabilityCollector {
   OneUptime = "OneUptime",
   // A probe in the customer's network, with the connection string in its environment.
   Probe = "Probe",
+  /*
+   * A Database Agent that already reaches the database (#11148), with the
+   * logins of its own environment: it reads the catalog and runs the checks
+   * with statements it builds itself (Utils/DataObservability/DatabaseAgent).
+   */
+  DatabaseAgent = "DatabaseAgent",
+}
+
+/*
+ * Whether a Database Agent can read a database for Data Observability now,
+ * and when it cannot, what stands in the way: each is said where the agent
+ * is chosen and on the database's page, with the step that fixes it.
+ */
+export enum DataObservabilityAgentState {
+  // On, connected, of an engine it reads.
+  Ready = "Ready",
+  // The database server has no Database Agent of its own registered.
+  NoAgent = "NoAgent",
+  // Its agent has not been heard from for a while.
+  Offline = "Offline",
+  // Its agent is older than Data Observability's agent work: it needs an update.
+  NeedsUpdate = "NeedsUpdate",
+  // Its agent's own setting leaves Data Observability off (ONEUPTIME_DATA_OBSERVABILITY).
+  TurnedOff = "TurnedOff",
+  // Its engine is not one the agent reads for Data Observability yet.
+  EngineNotSupported = "EngineNotSupported",
 }
 
 // How many tables a project watches, and what they cost it.
@@ -312,6 +364,13 @@ export interface DataObservabilityStoreSummary {
   isTableHealthEnabled: boolean;
   collector: DataObservabilityCollector;
   probeName: string | null;
+  /*
+   * A database read through a Database Agent (#11148): the database server
+   * it reports as, and whether its agent can read the database now. Left
+   * out for the other collectors, and by an older server.
+   */
+  databaseServerName?: string | null | undefined;
+  agentState?: DataObservabilityAgentState | null | undefined;
   // Collected, Failed, or null before the first collection.
   status: string | null;
   message: string | null;
@@ -475,6 +534,110 @@ export interface DataObservabilityConnectStoreRequest {
   connectionString?: string | undefined;
   probeId?: string | undefined;
   probeConnectionVariable?: string | undefined;
+  // Or a database server whose Database Agent reads the database, and which of its databases (#11148).
+  databaseServerId?: string | undefined;
+  databaseName?: string | undefined;
+}
+
+/*
+ * HOW A DATABASE IS REACHED, AS ITS SETTINGS SHOW IT (#11147).
+ *
+ * Never the connection string: only whether one is saved. A probe's
+ * variable names where the probe holds it; a Database Agent's database
+ * says which of its server's databases it reads.
+ */
+export interface DataObservabilityStoreConnection {
+  collector: DataObservabilityCollector;
+  hasConnectionString: boolean;
+  probe: { id: string; name: string } | null;
+  probeConnectionVariable: string | null;
+  databaseServer: { id: string; name: string } | null;
+  databaseName: string | null;
+  // For a Database Agent, whether it can read the database now.
+  agentState: DataObservabilityAgentState | null;
+}
+
+/*
+ * What else uses a database, for the confirmations of Remove and Delete
+ * (#11147): taking it away says what breaks first. Data Observability's
+ * part goes with either; Data Security's only with Delete.
+ */
+export interface DataObservabilityStoreUses {
+  // Data Observability: its tables and their history, their checks, and the monitors on it.
+  tableCount: number;
+  checkCount: number;
+  monitorCount: number;
+  // Data Security: what its scans found and keep of it.
+  isContentScanned: boolean;
+  findingCount: number;
+  // Every issue of it, open or closed: the history Delete takes with it.
+  issueCount: number;
+  scanCount: number;
+  ownerCount: number;
+  hasRecordOfProcessing: boolean;
+  /*
+   * How Data Security came to list it: "Data Observability" when it was
+   * connected here, a discovery's name when Data Security found it (it is
+   * found again while it still exists there), "Manual" when someone added
+   * it in Data Security.
+   */
+  foundFrom: string | null;
+}
+
+export interface DataObservabilityStoreSettings {
+  dataStoreId: string;
+  name: string;
+  kind: string;
+  isTableHealthEnabled: boolean;
+  connection: DataObservabilityStoreConnection;
+  uses: DataObservabilityStoreUses;
+  /*
+   * Whether Data Security relies on the database: it found or added it, or
+   * holds something of it. Then only someone who may delete Data
+   * Security's data stores deletes it.
+   */
+  isDataSecurityRelyingOnIt: boolean;
+  // What the caller may do here: rename it, change how it is reached, remove it, delete it.
+  canEdit: boolean;
+  // Why the caller may not change how it is reached, when they may not; null when they may.
+  connectionRefusal: string | null;
+  canRemove: boolean;
+  // Why the caller may not delete it, when they may not; null when they may.
+  deleteRefusal: string | null;
+}
+
+// A database's new name, or its new way in: either, or both.
+export interface DataObservabilityStoreUpdateRequest {
+  name?: string | undefined;
+  connection?:
+    | {
+        collector: DataObservabilityCollector;
+        // OneUptime connects: a new connection string, or none to keep the saved one.
+        connectionString?: string | undefined;
+        probeId?: string | undefined;
+        probeConnectionVariable?: string | undefined;
+        databaseServerId?: string | undefined;
+        databaseName?: string | undefined;
+      }
+    | undefined;
+}
+
+/*
+ * A database server with a Database Agent of its own, as Connect a Database
+ * and a database's settings offer it (#11148): whether its agent can read a
+ * database for Data Observability now, and the engine it reports.
+ */
+export interface DataObservabilityDatabaseAgent {
+  databaseServerId: string;
+  name: string;
+  // The engine its collector reports (db.system.name), when it has said.
+  engine: string | null;
+  // The Data Observability engine a database read through it is collected as.
+  kind: string | null;
+  state: DataObservabilityAgentState;
+  agentVersion: string | null;
+  // Whether the agent runs the project's Custom SQL and Failing Rows checks: only when its owner turned it on.
+  runsCustomSql: boolean;
 }
 
 /*
@@ -497,6 +660,8 @@ export enum DataObservabilitySourceOrigin {
   CloudAccount = "Cloud Account",
   // Read by a BI tool's dashboards (DataBiLineageSummary): offered from Tables Matched.
   BiTool = "BI Tool",
+  // Removed from Data Observability, and kept by Data Security (#11147).
+  Removed = "Removed",
 }
 
 export interface DataObservabilitySourceSuggestion {
@@ -510,6 +675,10 @@ export interface DataObservabilitySourceSuggestion {
   origin: DataObservabilitySourceOrigin;
   // A connection string to start from, with placeholders for its user and password.
   connectionExample: string | null;
+  // Whether Data Security keeps a connection string for it, which connecting may keep.
+  hasSavedConnection?: boolean | undefined;
+  // The database server Database Monitoring found it on, whose Database Agent may read it (#11148).
+  databaseServerId?: string | null | undefined;
 }
 
 // What applying a file of checks did, or would do on a dry run: each named "table: check".

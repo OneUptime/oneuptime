@@ -1207,6 +1207,8 @@ import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTab
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
+import { AddDataStoreDataObservabilityRemovalAndAgent1809187741147 } from "./1809187741147-AddDataStoreDataObservabilityRemovalAndAgent";
+import { AddDataStoreDatabaseAgentIndexAndKey1809187741148 } from "./1809187741148-AddDataStoreDatabaseAgentIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2418,4 +2420,6 @@ export default [
   AddCloudSavingsActions1809187721010,
   AddCloudCostBasesAndCommitments1809187721011,
   AddSanSwitchFibreChannelColumns1809187731166,
+  AddDataStoreDataObservabilityRemovalAndAgent1809187741147,
+  AddDataStoreDatabaseAgentIndexAndKey1809187741148,
 ];

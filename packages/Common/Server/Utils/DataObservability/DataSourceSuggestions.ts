@@ -10,6 +10,7 @@ import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import DataStoreService from "../../Services/DataStoreService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import { DATA_OBSERVABILITY_KINDS } from "./DataObservabilityEngines";
 
 /*
@@ -164,16 +165,51 @@ export default class DataSourceSuggestions {
         scanProbeId: true,
         cloudConnectionId: true,
         databaseServerId: true,
+        tableHealthRemovedAt: true,
       },
       skip: 0,
       limit: MAX_STORES_READ,
       props: { isRoot: true },
     });
-    const notConnected: Array<DataStore> = stores.filter(
+    /*
+     * The databases someone removed from Data Observability (#11147): Data
+     * Security keeps them, with their connection, and they are offered here
+     * again, wherever Data Security found them.
+     */
+    const removed: Array<DataStore> = await DataStoreService.findBy({
+      query: {
+        projectId,
+        isArchived: false,
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
+        tableHealthRemovedAt: QueryHelper.notNull(),
+      },
+      select: {
+        _id: true,
+        name: true,
+        kind: true,
+        storeKey: true,
+        discoveredFrom: true,
+        connectionString: true,
+        scanProbeId: true,
+        cloudConnectionId: true,
+        databaseServerId: true,
+        tableHealthRemovedAt: true,
+      },
+      skip: 0,
+      limit: MAX_STORES_READ,
+      props: { isRoot: true },
+    });
+    const seen: Set<string> = new Set();
+    const notConnected: Array<DataStore> = [...stores, ...removed].filter(
       (store: DataStore): boolean => {
+        if (!store.id || seen.has(store.id.toString())) {
+          return false;
+        }
+
+        seen.add(store.id.toString());
+
         return (
-          Boolean(store.id) &&
-          !isStoreConnected(store) &&
+          (Boolean(store.tableHealthRemovedAt) || !isStoreConnected(store)) &&
           getSuggestedEngine(store.kind) !== undefined
         );
       },
@@ -220,9 +256,14 @@ export default class DataSourceSuggestions {
       dataStoreId: isCollectable ? store.id!.toString() : null,
       name: store.name || "",
       kind: engine,
-      origin:
-        ORIGIN_OF_DISCOVERY[store.discoveredFrom || ""] ||
-        DataObservabilitySourceOrigin.CloudAccount,
+      origin: store.tableHealthRemovedAt
+        ? DataObservabilitySourceOrigin.Removed
+        : ORIGIN_OF_DISCOVERY[store.discoveredFrom || ""] ||
+          DataObservabilitySourceOrigin.CloudAccount,
+      // Connecting it again may keep the connection string Data Security kept.
+      hasSavedConnection: Boolean(store.connectionString),
+      // The server Database Monitoring found it on: its Database Agent may read it (#11148).
+      databaseServerId: store.databaseServerId?.toString() || null,
       connectionExample: buildConnectionExample({
         kind: engine,
         host: server?.serverAddress || traced.host,
