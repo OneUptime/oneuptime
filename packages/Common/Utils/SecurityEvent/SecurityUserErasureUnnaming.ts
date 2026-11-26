@@ -20,6 +20,10 @@ import {
  *   - a value that IS the name (an entity, a detection's group value, an
  *     action's target, a value in a kept event or a step's result) becomes
  *     what the rule left in its place;
+ *   - a correlation's group value, which joins the values it grouped on
+ *     ("alice@example.com / 203.0.113.7"), gets it in the place of each one
+ *     that is the name (#11130) - and so do the title and the case's
+ *     grouping key made of it;
  *   - a title OneUptime made as "<rule> — <name>" ends in what the rule left
  *     instead;
  *   - a detection's description, and its case's, where OneUptime wrote the
@@ -44,6 +48,13 @@ export interface ErasedName {
 // The separator OneUptime puts between a rule's name and the value it grouped on.
 export const TITLE_VALUE_SEPARATOR: string = " — ";
 
+/*
+ * The separator between the values a correlation grouped on, in the one
+ * value it names its group by ("alice@example.com / 203.0.113.7"): the
+ * server's CORRELATION_GROUP_VALUE_SEPARATOR, which a test holds equal.
+ */
+export const GROUP_VALUE_PART_SEPARATOR: string = " / ";
+
 // What a whole value becomes: what the rule left, when it is one of the names.
 export function unnameValue(
   value: string | undefined | null,
@@ -63,9 +74,53 @@ export function unnameValue(
 }
 
 /*
+ * The value a detection grouped on, with what the rule left in each name's
+ * place (#11130): the whole value when it is a name, else each of a
+ * correlation's values that is ("alice@example.com / 203.0.113.7" becomes
+ * "[HASHED:...] / 203.0.113.7"). That is the value a rule groups on once
+ * the events hold the token again, so what was fingerprinted by the old
+ * value is fingerprinted by this one.
+ */
+export function unnameGroupValue(
+  value: string | undefined | null,
+  names: ReadonlyArray<ErasedName>,
+): string | undefined | null {
+  if (typeof value !== "string" || !value) {
+    return value;
+  }
+
+  const whole: string | undefined | null = unnameValue(value, names);
+
+  if (whole !== value) {
+    return whole;
+  }
+
+  const parts: Array<string> = value.split(GROUP_VALUE_PART_SEPARATOR);
+
+  if (parts.length < 2) {
+    return value;
+  }
+
+  let changed: boolean = false;
+  const unnamed: Array<string> = parts.map((part: string): string => {
+    const replaced: string = unnameValue(part, names) as string;
+
+    if (replaced !== part) {
+      changed = true;
+    }
+
+    return replaced;
+  });
+
+  return changed ? unnamed.join(GROUP_VALUE_PART_SEPARATOR) : value;
+}
+
+/*
  * A title OneUptime made of a rule's name and the value it grouped on,
- * "<rule> — <name>", with what the rule left in the name's place. A title
- * that is the name alone becomes what the rule left. Any other title stays.
+ * "<rule> — <name>", with what the rule left in the name's place - or, for a
+ * correlation that grouped on several values ("<rule> — alice@example.com /
+ * 203.0.113.7"), in the place of each one that is a name. A title that is
+ * the name alone becomes what the rule left. Any other title stays.
  */
 export function unnameTitle(
   title: string | undefined | null,
@@ -87,7 +142,19 @@ export function unnameTitle(
     }
   }
 
-  return title;
+  // A correlation's values, after the last separator.
+  const at: number = title.lastIndexOf(TITLE_VALUE_SEPARATOR);
+
+  if (at < 0) {
+    return title;
+  }
+
+  const value: string = title.slice(at + TITLE_VALUE_SEPARATOR.length);
+  const unnamed: string | undefined | null = unnameGroupValue(value, names);
+
+  return unnamed !== value
+    ? `${title.slice(0, at)}${TITLE_VALUE_SEPARATOR}${unnamed}`
+    : title;
 }
 
 /*
@@ -216,7 +283,10 @@ export function getDescriptionNameTexts(names: ReadonlyArray<ErasedName>): {
 /*
  * A case's grouping key, the one about what the rule left when it was
  * about one of the names (getEntityCaseGroupingKey): a later detection
- * about the token joins the case, and the key no longer holds the name.
+ * about the token joins the case, and the key no longer holds the name. A
+ * correlation that grouped on several values keys its case by all of them
+ * ("entity:alice@example.com / 203.0.113.7", case folded): each that is a
+ * name becomes what the rule left, as unnameGroupValue makes the value.
  */
 export function unnameGroupingKey(
   key: string | undefined | null,
@@ -232,7 +302,40 @@ export function unnameGroupingKey(
     }
   }
 
-  return key;
+  const prefix: string = getEntityCaseGroupingKey("");
+
+  if (!key.startsWith(prefix)) {
+    return key;
+  }
+
+  const parts: Array<string> = key
+    .slice(prefix.length)
+    .split(GROUP_VALUE_PART_SEPARATOR);
+
+  if (parts.length < 2) {
+    return key;
+  }
+
+  let changed: boolean = false;
+  const unnamed: Array<string> = parts.map((part: string): string => {
+    const name: ErasedName | undefined = names.find(
+      (candidate: ErasedName): boolean => {
+        return getEntityRiskKey(candidate.named) === part;
+      },
+    );
+
+    if (!name) {
+      return part;
+    }
+
+    changed = true;
+
+    return getEntityRiskKey(name.hashed);
+  });
+
+  return changed
+    ? `${prefix}${unnamed.join(GROUP_VALUE_PART_SEPARATOR)}`
+    : key;
 }
 
 // The entity risk keys of the names: the rows of their risk.

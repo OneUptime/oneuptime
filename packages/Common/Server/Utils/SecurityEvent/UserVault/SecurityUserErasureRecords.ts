@@ -20,15 +20,30 @@ import SecurityPlaybookRunStatus from "../../../../Types/SecurityPlaybook/Securi
 import {
   CORRELATION_SENTENCE_PREFIX,
   ErasedName,
+  GROUP_VALUE_PART_SEPARATOR,
   getDescriptionNameTexts,
   getErasedRiskKeys,
   unnameDescription,
+  unnameGroupValue,
   unnameGroupingKey,
   unnameJson,
   unnameTitle,
   unnameValue,
 } from "../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
+import {
+  DetectionFingerprintKind,
+  DetectionFingerprintPlaces,
+  getFindingUidPlaces,
+  getFiringKeyPlaces,
+  getSourceFingerprintPlaces,
+  putFingerprintAt,
+} from "../../../../Utils/SecurityEvent/DetectionFingerprintPlaces";
 import { getEntityCaseGroupingKey } from "../../../../Utils/SecurityCase/SecurityEntityRiskScore";
+import DetectionFingerprint, {
+  DETECTION_FINGERPRINT_KINDS,
+} from "../DetectionFingerprint";
+import { getEntityRiskFingerprint } from "../EntityRisk/SecurityEntityRiskCases";
+import JobDeadline from "../../JobDeadline";
 import logger from "../../Logger";
 
 /*
@@ -51,10 +66,21 @@ import logger from "../../Logger";
  *     target of every action and the results of every run that named them
  *     get the token too.
  *
+ * And the fingerprints (#11130): what Security Events deduped by the value
+ * a rule grouped on, or a feed's indicator, carries that value's
+ * fingerprint - a detection's fingerprint, the id of the Detection Finding
+ * it points at and the firings it took, an alert's and an incident's
+ * fingerprint, the firings an entity's risk counted. Each that is of a value
+ * that named the person gets the fingerprint of the value once the names
+ * are out (rewriteFingerprints): what the rule makes when it fires on the
+ * token, so an open alert, incident or case detection goes on taking its
+ * group's firings, and nothing stored is a fingerprint of the person.
+ *
  * What it does not change: what people wrote (notes, closing notes,
  * tasks, evidence, custom fields, watchlists, protected entities),
- * OneUptime AI's written reports, a case's feed, incidents and alerts a
- * detection opened, and notifications already sent.
+ * OneUptime AI's written reports, a case's feed, the titles and
+ * descriptions of incidents and alerts a detection opened, and
+ * notifications already sent.
  *
  * WRITTEN WITHOUT THE AUDIT LOG KEEPING THE NAME. An audited update records
  * the values it replaced, and an audited delete the whole row: through the
@@ -78,6 +104,241 @@ export interface SecurityUserErasureRecordCounts {
   // Proposals to act on the person that were withdrawn.
   proposals: number;
 }
+
+// What unnameDetections changed: the cases of the detections, and the correlations' values.
+export interface UnnamedDetections {
+  caseIds: Array<string>;
+  // Each correlation's group value it un-named, as it was (named) and now (hashed).
+  groupValues: Array<ErasedName>;
+}
+
+/*
+ * One fingerprint an erasure rewrites (#11130): what it was - of a value
+ * that named the person, keyed or as it was before the key - and what it
+ * becomes, the keyed one of the value once the names are out.
+ */
+export interface DetectionFingerprintChange {
+  kind: DetectionFingerprintKind;
+  previous: string;
+  next: string;
+}
+
+// What rewriteFingerprints changed, record by record.
+export interface RewrittenFingerprintCounts {
+  detections: number;
+  alerts: number;
+  incidents: number;
+  entityRisks: number;
+}
+
+/*
+ * The fingerprints of every value that named the person, each with the one
+ * it becomes: for each value (a name, or a correlation's group value) and
+ * each source, its keyed and its unkeyed fingerprint, to the keyed one of
+ * what it is once the names are out. A value the change leaves as it was
+ * changes nothing.
+ */
+export function getFingerprintChanges(data: {
+  projectId: ObjectID;
+  groupValues: ReadonlyArray<ErasedName>;
+}): Array<DetectionFingerprintChange> {
+  const changes: Map<string, DetectionFingerprintChange> = new Map();
+
+  for (const value of data.groupValues) {
+    if (!value.named || !value.hashed || value.named === value.hashed) {
+      continue;
+    }
+
+    for (const kind of DETECTION_FINGERPRINT_KINDS) {
+      const next: string = DetectionFingerprint.of({
+        projectId: data.projectId,
+        kind,
+        value: value.hashed,
+      });
+
+      for (const previous of DetectionFingerprint.allOf({
+        projectId: data.projectId,
+        kind,
+        value: value.named,
+      })) {
+        if (previous !== next) {
+          changes.set(`${kind}\u0000${previous}`, { kind, previous, next });
+        }
+      }
+    }
+  }
+
+  return Array.from(changes.values());
+}
+
+/*
+ * The fingerprint an entity's risk detection carries for each name
+ * ("entity-risk:<the name, case folded>": the name itself, not a hash), with
+ * the one about what the rule left in its place.
+ */
+export function getEntityRiskFingerprintChanges(
+  names: ReadonlyArray<ErasedName>,
+): Map<string, string> {
+  const changes: Map<string, string> = new Map<string, string>();
+
+  for (const name of names) {
+    if (!name.named || !name.hashed || name.named === name.hashed) {
+      continue;
+    }
+
+    const previous: string = getEntityRiskFingerprint(name.named);
+    const next: string = getEntityRiskFingerprint(name.hashed);
+
+    if (previous !== next) {
+      changes.set(previous, next);
+    }
+  }
+
+  return changes;
+}
+
+/*
+ * `text` with the fingerprint of a change where its places hold a previous
+ * one; `text` as it was when they hold none of them.
+ */
+function rewriteWithChanges(data: {
+  text: string | undefined | null;
+  placesOf: (text: string) => DetectionFingerprintPlaces | null;
+  changes: Map<string, DetectionFingerprintChange>;
+}): string | undefined | null {
+  if (typeof data.text !== "string") {
+    return data.text;
+  }
+
+  const places: DetectionFingerprintPlaces | null = data.placesOf(data.text);
+  const change: DetectionFingerprintChange | undefined = places
+    ? data.changes.get(`${places.source}\u0000${places.fingerprint}`)
+    : undefined;
+
+  return places && change
+    ? putFingerprintAt({ text: data.text, places, fingerprint: change.next })
+    : data.text;
+}
+
+// The changes by kind and previous fingerprint, as rewriteWithChanges looks them up.
+function changesByPrevious(
+  changes: ReadonlyArray<DetectionFingerprintChange>,
+): Map<string, DetectionFingerprintChange> {
+  const byPrevious: Map<string, DetectionFingerprintChange> = new Map();
+
+  for (const change of changes) {
+    byPrevious.set(`${change.kind}\u0000${change.previous}`, change);
+  }
+
+  return byPrevious;
+}
+
+// A list of firing names with each that holds a previous fingerprint rewritten; null when none did.
+function rewriteFiringKeys(
+  value: unknown,
+  changes: Map<string, DetectionFingerprintChange>,
+): Array<unknown> | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  let changed: boolean = false;
+  const rewritten: Array<unknown> = value.map((key: unknown): unknown => {
+    if (typeof key !== "string") {
+      return key;
+    }
+
+    const next: string = rewriteWithChanges({
+      text: key,
+      placesOf: getFiringKeyPlaces,
+      changes,
+    }) as string;
+
+    if (next !== key) {
+      changed = true;
+    }
+
+    return next;
+  });
+
+  return changed ? rewritten : null;
+}
+
+// The previous fingerprints of the changes, each once.
+function previousFingerprintsOf(
+  changes: ReadonlyArray<DetectionFingerprintChange>,
+): Array<string> {
+  return Array.from(
+    new Set<string>(
+      changes.map((change: DetectionFingerprintChange): string => {
+        return change.previous;
+      }),
+    ),
+  );
+}
+
+/*
+ * An entity's risk contributions with each firing its rule counted under a
+ * previous fingerprint rewritten; null when none was.
+ */
+function rewriteContributionFiringKeys(
+  value: unknown,
+  changes: Map<string, DetectionFingerprintChange>,
+): Array<unknown> | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  let changed: boolean = false;
+  const contributions: Array<unknown> = value.map(
+    (contribution: unknown): unknown => {
+      if (!contribution || typeof contribution !== "object") {
+        return contribution;
+      }
+
+      const record: Record<string, unknown> = contribution as Record<
+        string,
+        unknown
+      >;
+      const firingKeys: Array<unknown> | null = rewriteFiringKeys(
+        record["firingKeys"],
+        changes,
+      );
+
+      if (!firingKeys) {
+        return contribution;
+      }
+
+      changed = true;
+
+      return { ...record, firingKeys };
+    },
+  );
+
+  return changed ? contributions : null;
+}
+
+// A JSON column's value as Postgres is handed it back: its text, or null.
+function jsonOrNull(value: unknown): string | null {
+  return value === null || value === undefined ? null : JSON.stringify(value);
+}
+
+// A detection as its fingerprints' rewrite reads it.
+interface DetectionFingerprintRow {
+  _id: string;
+  fingerprint: string | null;
+  eventUid: string | null;
+  recentFiringKeys: unknown;
+}
+
+// An entity's risk as the rewrite of the firings it counted reads it.
+interface EntityRiskContributionsRow {
+  _id: string;
+  contributions: unknown;
+}
+
+// The most batches of rows one rewrite of the fingerprints goes through, so it always ends.
+const MAX_FINGERPRINT_BATCHES: number = 20;
 
 // The run statuses a proposal still waits in: nothing it would do has been done.
 const WAITING_RUN_STATUSES: ReadonlyArray<SecurityPlaybookRunStatus> = [
@@ -143,6 +404,29 @@ export default class SecurityUserErasureRecords {
     )) as Array<IdRow>;
   }
 
+  // A write of its own, and how many rows it changed.
+  private static async write(
+    sql: string,
+    parameters: Array<unknown>,
+  ): Promise<number> {
+    const result: unknown = await PostgresAppInstance.getDataSource()!.query(
+      sql,
+      parameters,
+    );
+
+    // An UPDATE comes back as [the rows it returned, how many it changed].
+    if (
+      Array.isArray(result) &&
+      result.length === 2 &&
+      Array.isArray(result[0]) &&
+      typeof result[1] === "number"
+    ) {
+      return result[1];
+    }
+
+    return Array.isArray(result) ? result.length : 0;
+  }
+
   /*
    * Takes the person out of what Security Events wrote about them in a
    * project. See the file's comment.
@@ -150,6 +434,8 @@ export default class SecurityUserErasureRecords {
   public static async unnameRecords(data: {
     projectId: ObjectID;
     names: ReadonlyArray<ErasedName>;
+    // The run's: the fingerprints' rewrite stops between batches when it passes.
+    deadline?: JobDeadline | undefined;
   }): Promise<SecurityUserErasureRecordCounts> {
     const names: Array<ErasedName> = data.names.filter(
       (name: ErasedName): boolean => {
@@ -166,11 +452,12 @@ export default class SecurityUserErasureRecords {
     }
 
     const caseIds: Set<string> = new Set<string>();
-
-    for (const caseId of await this.unnameDetections({
+    const detections: UnnamedDetections = await this.unnameDetections({
       projectId: data.projectId,
       names,
-    })) {
+    });
+
+    for (const caseId of detections.caseIds) {
       caseIds.add(caseId);
     }
 
@@ -187,18 +474,27 @@ export default class SecurityUserErasureRecords {
       (await this.withdrawAiActions({ projectId: data.projectId, names })) +
       (await this.withdrawPlaybookRuns({ projectId: data.projectId, names }));
 
+    // Every group value that named the person: each name, and each correlation's.
+    await this.rewriteFingerprints({
+      projectId: data.projectId,
+      groupValues: [...names, ...detections.groupValues],
+      deadline: data.deadline,
+    });
+
     return { cases: caseIds.size, proposals };
   }
 
   /*
    * The project's detections that name the person: in their group value,
    * their title, their description, their entities or their kept events.
-   * Returns the cases of the ones it changed.
+   * Returns the cases of the ones it changed, and the correlations' group
+   * values it un-named - each as it was, with what it is now - whose
+   * fingerprint other records carry (rewriteFingerprints).
    */
   public static async unnameDetections(data: {
     projectId: ObjectID;
     names: ReadonlyArray<ErasedName>;
-  }): Promise<Array<string>> {
+  }): Promise<UnnamedDetections> {
     const ids: Array<ObjectID> = idsOf(
       await this.query(
         `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$4", texts: "$5", prefix: "$6" })}) LIMIT ${MAX_ROWS_PER_KIND}`,
@@ -214,7 +510,7 @@ export default class SecurityUserErasureRecords {
     );
 
     if (ids.length === 0) {
-      return [];
+      return { caseIds: [], groupValues: [] };
     }
 
     const detections: Array<SecurityDetection> =
@@ -235,6 +531,7 @@ export default class SecurityUserErasureRecords {
       });
 
     const caseIds: Array<string> = [];
+    const groupValues: Map<string, ErasedName> = new Map<string, ErasedName>();
 
     for (const detection of detections) {
       const changes: Record<string, unknown> = {};
@@ -246,10 +543,23 @@ export default class SecurityUserErasureRecords {
         detection.description,
         data.names,
       );
-      const groupValue: string | undefined | null = unnameValue(
+      // A correlation's values each, as its findings get them (#11130).
+      const groupValue: string | undefined | null = unnameGroupValue(
         detection.groupValue,
         data.names,
       );
+
+      if (
+        detection.groupValue &&
+        groupValue &&
+        groupValue !== detection.groupValue &&
+        detection.groupValue.includes(GROUP_VALUE_PART_SEPARATOR)
+      ) {
+        groupValues.set(`${detection.groupValue}\u0000${groupValue}`, {
+          named: detection.groupValue,
+          hashed: groupValue,
+        });
+      }
       const entities: { value: JSONArray | undefined; changed: boolean } =
         unnameJson(detection.entities, data.names);
       const matchedEvents: {
@@ -292,7 +602,7 @@ export default class SecurityUserErasureRecords {
       }
     }
 
-    return caseIds;
+    return { caseIds, groupValues: Array.from(groupValues.values()) };
   }
 
   /*
@@ -617,5 +927,253 @@ export default class SecurityUserErasureRecords {
     }
 
     return cancelled;
+  }
+
+  /*
+   * Every fingerprint of a value that named the person, rewritten to the
+   * one of the value once the names are out (#11130, see the file's
+   * comment): in the project's detections (their fingerprint, the id of
+   * the finding they point at, the firings they took), alerts, incidents,
+   * and the firings its entities' risk counted. Each is found by the
+   * fingerprint itself - written by a rule before the change or after, open
+   * or closed, deleted or not - so running it again finds none. With SQL of
+   * its own: an audited write would copy the old fingerprint into the audit
+   * log.
+   */
+  public static async rewriteFingerprints(data: {
+    projectId: ObjectID;
+    // Each value that named the person, with what it is once the names are out.
+    groupValues: ReadonlyArray<ErasedName>;
+    deadline?: JobDeadline | undefined;
+  }): Promise<RewrittenFingerprintCounts> {
+    const changes: Array<DetectionFingerprintChange> = getFingerprintChanges({
+      projectId: data.projectId,
+      groupValues: data.groupValues,
+    });
+    const entityRiskChanges: Map<string, string> =
+      getEntityRiskFingerprintChanges(data.groupValues);
+
+    if (changes.length === 0 && entityRiskChanges.size === 0) {
+      return { detections: 0, alerts: 0, incidents: 0, entityRisks: 0 };
+    }
+
+    const detections: number = await this.rewriteDetectionFingerprints({
+      projectId: data.projectId,
+      changes,
+      entityRiskChanges,
+      deadline: data.deadline,
+    });
+
+    const alerts: number = await this.rewriteSeriesFingerprints({
+      projectId: data.projectId,
+      table: "Alert",
+      changes,
+    });
+
+    const incidents: number = await this.rewriteSeriesFingerprints({
+      projectId: data.projectId,
+      table: "Incident",
+      changes,
+    });
+
+    const entityRisks: number = await this.rewriteEntityRiskFiringKeys({
+      projectId: data.projectId,
+      changes,
+      deadline: data.deadline,
+    });
+
+    return { detections, alerts, incidents, entityRisks };
+  }
+
+  /*
+   * The project's detections that carry a previous fingerprint - as their
+   * own, in the id of the finding they point at, in a firing they took - or
+   * an entity's risk fingerprint of a name, with each rewritten. A row is
+   * written only if it is still as it was read, so a repeat recorded in
+   * between is never lost: a later run rewrites it. Returns how many.
+   */
+  public static async rewriteDetectionFingerprints(data: {
+    projectId: ObjectID;
+    changes: ReadonlyArray<DetectionFingerprintChange>;
+    entityRiskChanges: Map<string, string>;
+    deadline?: JobDeadline | undefined;
+  }): Promise<number> {
+    const byPrevious: Map<string, DetectionFingerprintChange> =
+      changesByPrevious(data.changes);
+    const previous: Array<string> = previousFingerprintsOf(data.changes);
+    const entityRiskPrevious: Array<string> = Array.from(
+      data.entityRiskChanges.keys(),
+    );
+    const seen: Set<string> = new Set<string>();
+    let rewritten: number = 0;
+
+    for (let batch: number = 0; batch < MAX_FINGERPRINT_BATCHES; batch++) {
+      if (data.deadline?.hasPassed()) {
+        break;
+      }
+
+      const rows: Array<DetectionFingerprintRow> = (await this.query(
+        `SELECT "_id", "fingerprint", "eventUid", "recentFiringKeys" FROM "SecurityDetection" WHERE "projectId" = $1 AND NOT ("_id"::text = ANY($4::text[])) AND (split_part(COALESCE("fingerprint", ''), ':', 3) = ANY($2::text[]) OR split_part(COALESCE("eventUid", ''), ':', 5) = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS previous(fingerprint) WHERE strpos(COALESCE("recentFiringKeys"::text, ''), ':' || previous.fingerprint || '"') > 0) OR "fingerprint" = ANY($3::text[])) LIMIT ${MAX_ROWS_PER_KIND}`,
+        [
+          data.projectId.toString(),
+          previous,
+          entityRiskPrevious,
+          Array.from(seen),
+        ],
+      )) as unknown as Array<DetectionFingerprintRow>;
+
+      for (const row of rows) {
+        seen.add(String(row._id));
+
+        const fingerprint: string | undefined | null =
+          (row.fingerprint && data.entityRiskChanges.get(row.fingerprint)) ||
+          rewriteWithChanges({
+            text: row.fingerprint,
+            placesOf: getSourceFingerprintPlaces,
+            changes: byPrevious,
+          });
+        const eventUid: string | undefined | null = rewriteWithChanges({
+          text: row.eventUid,
+          placesOf: getFindingUidPlaces,
+          changes: byPrevious,
+        });
+        const firingKeys: Array<unknown> | null = rewriteFiringKeys(
+          row.recentFiringKeys,
+          byPrevious,
+        );
+
+        if (
+          fingerprint === row.fingerprint &&
+          eventUid === row.eventUid &&
+          !firingKeys
+        ) {
+          continue;
+        }
+
+        const keptFiringKeys: string | null = jsonOrNull(row.recentFiringKeys);
+        const written: number = await this.write(
+          `UPDATE "SecurityDetection" SET "fingerprint" = $3, "eventUid" = $4, "recentFiringKeys" = $5::jsonb, "updatedAt" = now(), "version" = "version" + 1 WHERE "_id" = $1 AND "projectId" = $2 AND "fingerprint" IS NOT DISTINCT FROM $6 AND "eventUid" IS NOT DISTINCT FROM $7 AND "recentFiringKeys" IS NOT DISTINCT FROM $8::jsonb RETURNING "_id"`,
+          [
+            String(row._id),
+            data.projectId.toString(),
+            fingerprint ?? null,
+            eventUid ?? null,
+            firingKeys ? JSON.stringify(firingKeys) : keptFiringKeys,
+            row.fingerprint,
+            row.eventUid,
+            keptFiringKeys,
+          ],
+        );
+
+        rewritten += written > 0 ? 1 : 0;
+      }
+
+      if (rows.length < MAX_ROWS_PER_KIND) {
+        break;
+      }
+    }
+
+    return rewritten;
+  }
+
+  /*
+   * The project's alerts or incidents whose fingerprint - a rule's or a
+   * feed's, open or resolved - is a previous one, with the next in its
+   * place: an open one goes on taking its group's firings, which come about
+   * the token. Nothing else about it changes, not even when it was last
+   * updated. Returns how many.
+   */
+  public static async rewriteSeriesFingerprints(data: {
+    projectId: ObjectID;
+    table: "Alert" | "Incident";
+    changes: ReadonlyArray<DetectionFingerprintChange>;
+  }): Promise<number> {
+    if (data.changes.length === 0) {
+      return 0;
+    }
+
+    return await this.write(
+      `UPDATE "${data.table}" AS record SET "seriesFingerprint" = split_part(record."seriesFingerprint", ':', 1) || ':' || split_part(record."seriesFingerprint", ':', 2) || ':' || change.next FROM unnest($2::text[], $3::text[], $4::text[]) AS change(kind, previous, next) WHERE record."projectId" = $1 AND split_part(record."seriesFingerprint", ':', 1) = change.kind AND split_part(record."seriesFingerprint", ':', 2) <> '' AND split_part(record."seriesFingerprint", ':', 3) = change.previous AND split_part(record."seriesFingerprint", ':', 4) = '' RETURNING record."_id"`,
+        [
+          data.projectId.toString(),
+          data.changes.map((change: DetectionFingerprintChange): string => {
+            return change.kind;
+          }),
+          data.changes.map((change: DetectionFingerprintChange): string => {
+            return change.previous;
+          }),
+          data.changes.map((change: DetectionFingerprintChange): string => {
+            return change.next;
+          }),
+        ],
+    );
+  }
+
+  /*
+   * The firings the project's entities' risk counted under a previous
+   * fingerprint - another entity of a correlation's group, such as the
+   * address beside the person's name - with each rewritten. A row is
+   * written only if it is still as it was read. Returns how many rows.
+   */
+  public static async rewriteEntityRiskFiringKeys(data: {
+    projectId: ObjectID;
+    changes: ReadonlyArray<DetectionFingerprintChange>;
+    deadline?: JobDeadline | undefined;
+  }): Promise<number> {
+    const ruleChanges: Array<DetectionFingerprintChange> = data.changes.filter(
+      (change: DetectionFingerprintChange): boolean => {
+        return change.kind === DetectionFingerprintKind.DetectionRule;
+      },
+    );
+    const byPrevious: Map<string, DetectionFingerprintChange> =
+      changesByPrevious(ruleChanges);
+    const previous: Array<string> = previousFingerprintsOf(ruleChanges);
+
+    if (previous.length === 0) {
+      return 0;
+    }
+
+    const seen: Set<string> = new Set<string>();
+    let rewritten: number = 0;
+
+    for (let batch: number = 0; batch < MAX_FINGERPRINT_BATCHES; batch++) {
+      if (data.deadline?.hasPassed()) {
+        break;
+      }
+
+      const rows: Array<EntityRiskContributionsRow> = (await this.query(
+        `SELECT "_id", "contributions" FROM "SecurityEntityRisk" WHERE "projectId" = $1 AND NOT ("_id"::text = ANY($3::text[])) AND EXISTS (SELECT 1 FROM unnest($2::text[]) AS previous(fingerprint) WHERE strpos(COALESCE("contributions"::text, ''), ':' || previous.fingerprint || '"') > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+        [data.projectId.toString(), previous, Array.from(seen)],
+      )) as unknown as Array<EntityRiskContributionsRow>;
+
+      for (const row of rows) {
+        seen.add(String(row._id));
+
+        const contributions: Array<unknown> | null =
+          rewriteContributionFiringKeys(row.contributions, byPrevious);
+
+        if (!contributions) {
+          continue;
+        }
+
+        const written: number = await this.write(
+          `UPDATE "SecurityEntityRisk" SET "contributions" = $3::jsonb, "updatedAt" = now(), "version" = "version" + 1 WHERE "_id" = $1 AND "projectId" = $2 AND "contributions" IS NOT DISTINCT FROM $4::jsonb RETURNING "_id"`,
+          [
+            String(row._id),
+            data.projectId.toString(),
+            JSON.stringify(contributions),
+            jsonOrNull(row.contributions),
+          ],
+        );
+
+        rewritten += written > 0 ? 1 : 0;
+      }
+
+      if (rows.length < MAX_ROWS_PER_KIND) {
+        break;
+      }
+    }
+
+    return rewritten;
   }
 }

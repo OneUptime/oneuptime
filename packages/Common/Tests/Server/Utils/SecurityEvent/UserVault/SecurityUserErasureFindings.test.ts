@@ -2,13 +2,20 @@ import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
 import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
 import JobDeadline from "../../../../../Server/Utils/JobDeadline";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+} from "../../../../../Server/Utils/SecurityEvent/DetectionFingerprint";
 import SecurityUserErasureFindings, {
   ERASURE_FINDINGS_VENDOR,
+  ErasureFindingRow,
+  FINDING_FINGERPRINTED_ATTRIBUTE,
   FINDING_NAMING_ATTRIBUTES,
   FINDING_USER_ERASED_ATTRIBUTE,
   FindingRewrite,
+  FindingsCursor,
   FindingsMutation,
-  FindingsScanResult,
+  FindingsScanProgress,
+  FindingsScanStep,
   MAX_FINDINGS_PER_MUTATION,
   batchFindingRewrites,
   getFindingReplacement,
@@ -22,8 +29,13 @@ import {
   DETECTION_SUMMARY_ATTRIBUTE,
 } from "../../../../../Types/SecurityEvent/DetectionFindingConstants";
 import { THREAT_INDICATOR_VALUE_ATTRIBUTE } from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
+import {
+  getFindingUidPlaces,
+  putFingerprintAt,
+} from "../../../../../Utils/SecurityEvent/DetectionFingerprintPlaces";
 import { USER_ERASED_ON_REQUEST } from "../../../../../Utils/SecurityEvent/ScrubbedUser";
 import { ErasedName } from "../../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
+import MetricSeriesFingerprint from "../../../../../Utils/Metrics/MetricSeriesFingerprint";
 import {
   afterEach,
   beforeEach,
@@ -36,16 +48,21 @@ import {
 /*
  * THE DETECTION FINDINGS AN ERASURE TAKES THE PERSON OUT OF (#11044): which
  * findings it changes and how, worked out in the worker - every observable
- * that is a name, what goes in its place, and the mutations that share a
- * change - and what it sends ClickHouse to read and change them: the
- * project, the class, ids, tokens and lengths, never the person. The
- * statements run on real servers in SecurityUserErasureClickhouse (26.7
- * and 24.8) and SecurityUserErasureKeeperClickhouse (two replicas).
+ * that is a name, what goes in its place, its id's new fingerprint (#11130),
+ * and the mutations that share a change - and what it sends ClickHouse to
+ * read and change them: the project, the class, ids, tokens, lengths and
+ * keyed fingerprints of what the finding holds once the names are out,
+ * never the person nor a fingerprint of them. And the read itself, on from
+ * where the last one stopped (#11160). The statements run on real servers
+ * in SecurityUserErasureClickhouse (26.7 and 24.8) and
+ * SecurityUserErasureKeeperClickhouse (two replicas).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11044000-0000-4000-8000-0000000000a1",
 );
+const RULE_ID: string = "11044000-0000-4000-8000-0000000000b1";
+const FEED_ID: string = "11044000-0000-4000-8000-0000000000c1";
 
 function tokenOf(value: string): string {
   return ScrubHashToken.ofValue({ projectId: PROJECT_ID, value });
@@ -54,14 +71,38 @@ function tokenOf(value: string): string {
 const ALICE: string = "alice@example.com";
 const TOKEN: string = tokenOf(ALICE);
 const OTHER_TOKEN: string = tokenOf("Alice@Example.com");
+const BOB_TOKEN: string = tokenOf("bob@example.com");
 
 const NAMES: Array<ErasedName> = [
   { named: ALICE, hashed: TOKEN },
   { named: "Alice@Example.com", hashed: OTHER_TOKEN },
   { named: `auth0|${ALICE}`, hashed: `auth0|${TOKEN}` },
 ];
+const TOKENS: Array<string> = [TOKEN, OTHER_TOKEN];
+
+const CONTEXT: { projectId: ObjectID; tokens: Array<string> } = {
+  projectId: PROJECT_ID,
+  tokens: TOKENS,
+};
 
 const EVENTS: string = new SecurityEvent().tableName;
+
+function keyed(value: string, kind?: DetectionFingerprintKind): string {
+  return DetectionFingerprint.of({
+    projectId: PROJECT_ID,
+    kind: kind || DetectionFingerprintKind.DetectionRule,
+    value,
+  });
+}
+
+function unkeyed(value: string): string {
+  return MetricSeriesFingerprint.computeFingerprint({ groupValue: value });
+}
+
+// A scheduled run's finding's id, with `fingerprint` in both its places.
+function runUid(fingerprint: string): string {
+  return `detection:${RULE_ID}:detection-rule:${RULE_ID}:${fingerprint}:run:1764000000000:each:${fingerprint}`;
+}
 
 function parameterValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params as Record<string, unknown>);
@@ -107,33 +148,28 @@ describe("what goes in place of an observable that is a name", () => {
   });
 
   test("two tokens, or a name that does not line up with what the rule left: the tokens alone, nothing of the observable", () => {
-    const second: string = tokenOf("bob@example.com");
-
     expect(
       getFindingReplacement(
         {
           named: `${ALICE} / bob@example.com`,
-          hashed: `${TOKEN} / ${second}`,
+          hashed: `${TOKEN} / ${BOB_TOKEN}`,
         },
         3,
       ),
     ).toEqual({
       position: 3,
       prefixBytes: 0,
-      token: `${TOKEN} ${second}`,
+      token: `${TOKEN} ${BOB_TOKEN}`,
       suffixBytes: 0,
     });
     expect(
-      getFindingReplacement(
-        { named: "somebody else", hashed: `auth0|${TOKEN}` },
-        1,
-      ),
+      getFindingReplacement({ named: "alice", hashed: `user-${TOKEN}` }, 1),
     ).toEqual({ position: 1, prefixBytes: 0, token: TOKEN, suffixBytes: 0 });
   });
 
   test("none for a name whose hashed form holds no token of today's form", () => {
     expect(
-      getFindingReplacement({ named: ALICE, hashed: "[HASHED:8c87b489]" }, 1),
+      getFindingReplacement({ named: ALICE, hashed: "[HASHED:abc]" }, 1),
     ).toBeNull();
   });
 });
@@ -152,6 +188,7 @@ describe("which findings name the person, and the change each needs", () => {
         ],
       },
       NAMES,
+      CONTEXT,
     );
 
     expect(rewrite).toEqual({
@@ -180,28 +217,226 @@ describe("which findings name the person, and the change each needs", () => {
           ],
         },
         NAMES,
+        CONTEXT,
       ),
     ).toBeNull();
   });
 
   test("a name that is no name - empty, or what the rule left already - finds nothing", () => {
     expect(
-      planFindingRewrite({ id: "c", time: "1", observables: ["", TOKEN] }, [
-        { named: "", hashed: TOKEN },
-        { named: TOKEN, hashed: TOKEN },
-      ]),
+      planFindingRewrite(
+        { id: "c", time: "1", observables: ["", TOKEN] },
+        [
+          { named: "", hashed: TOKEN },
+          { named: TOKEN, hashed: TOKEN },
+        ],
+        CONTEXT,
+      ),
     ).toBeNull();
   });
 });
 
+describe("a finding's id: the fingerprint of what it holds once the names are out (#11130)", () => {
+  test("a scheduled run's finding gets the keyed fingerprint of the token in both its places", () => {
+    for (const before of [unkeyed(ALICE), keyed(ALICE)]) {
+      const rewrite: FindingRewrite | null = planFindingRewrite(
+        {
+          id: "a",
+          time: "1",
+          observables: [ALICE, "203.0.113.7"],
+          eventUid: runUid(before),
+          groupValue: ALICE,
+        },
+        NAMES,
+        CONTEXT,
+      );
+
+      expect(rewrite?.uid).toEqual({
+        positions: [5, 9],
+        fingerprint: keyed(TOKEN),
+      });
+      expect(rewrite?.groupValue).toEqual({ named: ALICE, hashed: TOKEN });
+      // What a rule makes when it fires on the token: the same id.
+      expect(
+        putFingerprintAt({
+          text: runUid(before),
+          places: getFindingUidPlaces(runUid(before))!,
+          fingerprint: rewrite!.uid!.fingerprint,
+        }),
+      ).toBe(runUid(keyed(TOKEN)));
+    }
+  });
+
+  test("a finding named by when it was written gets it in its one place", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      {
+        id: "a",
+        time: "1",
+        observables: [`auth0|${ALICE}`],
+        eventUid: `detection:${RULE_ID}:detection-rule:${RULE_ID}:${unkeyed(`auth0|${ALICE}`)}:1764000000123456789`,
+        groupValue: `auth0|${ALICE}`,
+      },
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite?.uid).toEqual({
+      positions: [5],
+      fingerprint: keyed(`auth0|${TOKEN}`),
+    });
+  });
+
+  test("a threat intel finding is fingerprinted by its indicator, as a feed fingerprints it", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      {
+        id: "a",
+        time: "1",
+        observables: [ALICE],
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(ALICE, DetectionFingerprintKind.ThreatIntel)}:1764000000123456789`,
+        groupValue: "",
+        indicatorValue: ALICE,
+      },
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite?.uid).toEqual({
+      positions: [5],
+      fingerprint: keyed(TOKEN, DetectionFingerprintKind.ThreatIntel),
+    });
+  });
+
+  test("a correlation's finding: the fingerprint of its values with each name out", () => {
+    const groupValue: string = `${ALICE} / 203.0.113.7`;
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      {
+        id: "a",
+        time: "1",
+        observables: [ALICE, "203.0.113.7"],
+        eventUid: runUid(unkeyed(groupValue)),
+        groupValue,
+      },
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite?.uid?.fingerprint).toBe(keyed(`${TOKEN} / 203.0.113.7`));
+    expect(rewrite?.groupValue).toEqual({
+      named: groupValue,
+      hashed: `${TOKEN} / 203.0.113.7`,
+    });
+  });
+
+  test("an id of another shape, or a finding about nothing, keeps its id: only its names go", () => {
+    for (const row of [
+      { eventUid: "imported-alert-7", groupValue: ALICE },
+      { eventUid: runUid(unkeyed(ALICE)), groupValue: "" },
+      { eventUid: undefined, groupValue: ALICE },
+    ]) {
+      const rewrite: FindingRewrite | null = planFindingRewrite(
+        { id: "a", time: "1", observables: [ALICE], ...row },
+        NAMES,
+        CONTEXT,
+      );
+
+      expect(rewrite?.replacements).toHaveLength(1);
+      expect(rewrite?.uid).toBeUndefined();
+    }
+  });
+
+  test("an id an earlier erasure left: its id alone, once marked erased and holding a request's token", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      {
+        id: "a",
+        time: "1",
+        observables: [TOKEN, "203.0.113.7"],
+        eventUid: runUid(unkeyed(ALICE)),
+        groupValue: TOKEN,
+        isMarkedErased: true,
+      },
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite).toEqual({
+      id: "a",
+      time: "1",
+      replacements: [],
+      uid: { positions: [5, 9], fingerprint: keyed(TOKEN) },
+    });
+  });
+
+  test("a finding that holds the token but no erasure touched, or another person's, or one already right, is left", () => {
+    for (const row of [
+      // Written about the token: nobody's erasure changed it.
+      {
+        observables: [TOKEN],
+        eventUid: runUid(unkeyed(TOKEN)),
+        groupValue: TOKEN,
+        isMarkedErased: false,
+      },
+      // Another person's erasure.
+      {
+        observables: [BOB_TOKEN],
+        eventUid: runUid(unkeyed("bob@example.com")),
+        groupValue: BOB_TOKEN,
+        isMarkedErased: true,
+      },
+      // Already the fingerprint of what it holds.
+      {
+        observables: [TOKEN],
+        eventUid: runUid(keyed(TOKEN)),
+        groupValue: TOKEN,
+        isMarkedErased: true,
+      },
+    ]) {
+      expect(
+        planFindingRewrite({ id: "a", time: "1", ...row }, NAMES, CONTEXT),
+      ).toBeNull();
+    }
+  });
+
+  test("the new fingerprint is never of a name, keyed or not", () => {
+    const rewrite: FindingRewrite = planFindingRewrite(
+      {
+        id: "a",
+        time: "1",
+        observables: [ALICE],
+        eventUid: runUid(unkeyed(ALICE)),
+        groupValue: ALICE,
+      },
+      NAMES,
+      CONTEXT,
+    )!;
+
+    for (const name of NAMES) {
+      expect(rewrite.uid!.fingerprint).not.toBe(keyed(name.named));
+      expect(rewrite.uid!.fingerprint).not.toBe(unkeyed(name.named));
+    }
+  });
+
+  test("reads the fingerprinted value from the attribute of its source", () => {
+    expect(FINDING_FINGERPRINTED_ATTRIBUTE).toEqual({
+      [DetectionFingerprintKind.DetectionRule]: DETECTION_GROUP_VALUE_ATTRIBUTE,
+      [DetectionFingerprintKind.ThreatIntel]: THREAT_INDICATOR_VALUE_ATTRIBUTE,
+    });
+  });
+});
+
 describe("the mutations that make the changes", () => {
-  function rewrite(id: string, time: string, position: number): FindingRewrite {
+  function rewrite(
+    id: string,
+    time: string,
+    position: number,
+    fingerprint?: string,
+  ): FindingRewrite {
     return {
       id,
       time,
       replacements: [
         { position, prefixBytes: 0, token: TOKEN, suffixBytes: 0 },
       ],
+      ...(fingerprint ? { uid: { positions: [5, 9], fingerprint } } : {}),
     };
   }
 
@@ -229,6 +464,38 @@ describe("the mutations that make the changes", () => {
         ids: ["x"],
         fromTime: "20",
         toTime: "20",
+      },
+    ]);
+  });
+
+  test("the same names out but another new fingerprint is another change", () => {
+    const mutations: Array<FindingsMutation> = batchFindingRewrites([
+      rewrite("a", "10", 1, keyed(TOKEN)),
+      rewrite("b", "11", 1, keyed(`${TOKEN} / 203.0.113.7`)),
+      rewrite("c", "12", 1, keyed(TOKEN)),
+    ]);
+
+    expect(
+      mutations.map((mutation: FindingsMutation): Array<unknown> => {
+        return [mutation.uid?.fingerprint, mutation.ids];
+      }),
+    ).toEqual([
+      [keyed(TOKEN), ["a", "c"]],
+      [keyed(`${TOKEN} / 203.0.113.7`), ["b"]],
+    ]);
+  });
+
+  test("a finding planned twice - read twice - is changed once", () => {
+    expect(
+      batchFindingRewrites([rewrite("a", "10", 1), rewrite("a", "10", 1)]),
+    ).toEqual([
+      {
+        replacements: [
+          { position: 1, prefixBytes: 0, token: TOKEN, suffixBytes: 0 },
+        ],
+        ids: ["a"],
+        fromTime: "10",
+        toTime: "10",
       },
     ]);
   });
@@ -276,7 +543,7 @@ describe("the mutations that make the changes", () => {
 });
 
 describe("what the erasure sends ClickHouse about the findings", () => {
-  test("the read: the project's own Detection Findings, through the Distributed table, in the order they were written", () => {
+  test("the read: the project's own Detection Findings, through the Distributed table, in the order they were written, with what they are about", () => {
     const first: Statement =
       SecurityUserErasureFindings.toFindingsPageStatement({
         projectId: PROJECT_ID,
@@ -285,7 +552,7 @@ describe("what the erasure sends ClickHouse about the findings", () => {
 
     expect(first.query).toMatch(
       new RegExp(
-        `^SELECT _id AS findingId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS findingTime, observables FROM \\S+\\.${EVENTS} WHERE projectId = \\{p\\d+:String\\} AND className = \\{p\\d+:String\\} AND vendorName = \\{p\\d+:String\\} ORDER BY time, _id LIMIT \\{p\\d+:Int32\\}$`,
+        `^SELECT _id AS findingId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS findingTime, observables, eventUid AS findingUid, attributes\\[\\{p\\d+:String\\}\\] AS findingGroupValue, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorValue, attributes\\[\\{p\\d+:String\\}\\] AS findingErased FROM \\S+\\.${EVENTS} WHERE projectId = \\{p\\d+:String\\} AND className = \\{p\\d+:String\\} AND vendorName = \\{p\\d+:String\\} ORDER BY time, _id LIMIT \\{p\\d+:Int32\\}$`,
       ),
     );
     expect(first.query).not.toContain(`${EVENTS}Local`);
@@ -294,6 +561,9 @@ describe("what the erasure sends ClickHouse about the findings", () => {
         PROJECT_ID.toString(),
         DETECTION_FINDING_CLASS_NAME,
         ERASURE_FINDINGS_VENDOR,
+        DETECTION_GROUP_VALUE_ATTRIBUTE,
+        THREAT_INDICATOR_VALUE_ATTRIBUTE,
+        FINDING_USER_ERASED_ATTRIBUTE,
         5000,
       ]),
     );
@@ -343,6 +613,7 @@ describe("what the erasure sends ClickHouse about the findings", () => {
     expect(statement.query).toContain(", attributeKeys = mapKeys(mapUpdate(");
     expect(statement.query).toContain("regexpQuoteMeta(observables[1])");
     expect(statement.query).toContain("regexpQuoteMeta(observables[4])");
+    expect(statement.query).not.toContain("eventUid");
     expect(statement.query).toMatch(
       /WHERE projectId = \{p\d+:String\} AND className = \{p\d+:String\} AND vendorName = \{p\d+:String\} AND time >= fromUnixTimestamp64Nano\(\{p\d+:Int64\}\) AND time <= fromUnixTimestamp64Nano\(\{p\d+:Int64\}\) AND _id IN \(\{p\d+:Array\(String\)\}\)$/,
     );
@@ -361,6 +632,53 @@ describe("what the erasure sends ClickHouse about the findings", () => {
         6,
       ]),
     );
+  });
+
+  test("with the id's new fingerprint: its places by position, the rest of the id its own", () => {
+    const statement: Statement =
+      SecurityUserErasureFindings.toUnnameFindingsStatement({
+        projectId: PROJECT_ID,
+        mutation: {
+          replacements: [
+            { position: 1, prefixBytes: 0, token: TOKEN, suffixBytes: 0 },
+          ],
+          uid: { positions: [5, 9], fingerprint: keyed(TOKEN) },
+          ids: ["finding-a"],
+          fromTime: "1",
+          toTime: "1",
+        },
+      });
+
+    expect(statement.query).toMatch(
+      /, attributeKeys = mapKeys\(mapUpdate\(.*\)\), eventUid = arrayStringConcat\(arrayMap\(\(uidPart, uidPosition\) -> if\(uidPosition IN \(\{p\d+:Int32\}, \{p\d+:Int32\}\), \{p\d+:String\}, uidPart\), splitByChar\(\{p\d+:String\}, eventUid\), arrayEnumerate\(splitByChar\(\{p\d+:String\}, eventUid\)\)\), \{p\d+:String\}\) WHERE /,
+    );
+    expect(parameterValues(statement)).toEqual(
+      expect.arrayContaining([5, 9, keyed(TOKEN), ":"]),
+    );
+  });
+
+  test("an id alone: the one column changed, no name taken out of anything, no marker", () => {
+    const statement: Statement =
+      SecurityUserErasureFindings.toUnnameFindingsStatement({
+        projectId: PROJECT_ID,
+        mutation: {
+          replacements: [],
+          uid: { positions: [5], fingerprint: keyed(TOKEN) },
+          ids: ["finding-a"],
+          fromTime: "1",
+          toTime: "1",
+        },
+      });
+
+    expect(statement.query).toMatch(
+      new RegExp(
+        `^ALTER TABLE \\S+\\.${EVENTS}Local ON CLUSTER '[^']+' UPDATE eventUid = arrayStringConcat\\(`,
+      ),
+    );
+    expect(statement.query).not.toContain("observables =");
+    expect(statement.query).not.toContain("message =");
+    expect(statement.query).not.toContain("attributes =");
+    expect(parameterValues(statement)).not.toContain(USER_ERASED_ON_REQUEST);
   });
 
   test("each observable twice over the message and the attributes: two of a value side by side share the text between them", () => {
@@ -394,7 +712,11 @@ describe("what the erasure sends ClickHouse about the findings", () => {
     );
   });
 
-  test("no value is spelt into a statement's text, and none is the person", () => {
+  test("no value is spelt into a statement's text, none is the person, and none a fingerprint of them", () => {
+    const names: Array<ErasedName> = [
+      ...NAMES,
+      { named: `Alice Smith <${ALICE}>`, hashed: `Alice Smith <${TOKEN}>` },
+    ];
     const rewrite: FindingRewrite = planFindingRewrite(
       {
         id: ObjectID.generate().toString(),
@@ -405,12 +727,14 @@ describe("what the erasure sends ClickHouse about the findings", () => {
           "Alice@Example.com",
           `auth0|${ALICE}`,
         ],
+        eventUid: runUid(unkeyed(`Alice Smith <${ALICE}>`)),
+        groupValue: `Alice Smith <${ALICE}>`,
       },
-      [
-        ...NAMES,
-        { named: `Alice Smith <${ALICE}>`, hashed: `Alice Smith <${TOKEN}>` },
-      ],
+      names,
+      CONTEXT,
     )!;
+
+    expect(rewrite.uid).toBeDefined();
 
     const statements: Array<Statement> = [
       SecurityUserErasureFindings.toFindingsPageStatement({
@@ -439,187 +763,475 @@ describe("what the erasure sends ClickHouse about the findings", () => {
       expect(sent).not.toContain("smith");
       expect(sent).not.toContain("example.com");
       expect(sent).not.toContain("auth0");
+
+      // No fingerprint of any spelling of the person, keyed or not, for either source.
+      for (const name of names) {
+        for (const kind of [
+          DetectionFingerprintKind.DetectionRule,
+          DetectionFingerprintKind.ThreatIntel,
+        ]) {
+          expect(sent).not.toContain(keyed(name.named, kind));
+          expect(sent).not.toContain(
+            DetectionFingerprint.legacyOf({ kind, value: name.named }),
+          );
+        }
+      }
     }
   });
 });
 
-describe("reading a project's findings for the names", () => {
-  let pages: Array<Array<Record<string, unknown>>>;
-  let sent: Array<Statement>;
+/*
+ * A project's findings, in memory, read and changed as ClickHouse would: in
+ * (time, _id) order after a cursor, and a change applied once queued.
+ */
+class FakeFindings {
+  public rows: Array<ErasureFindingRow> = [];
+  public reads: Array<FindingsCursor | null> = [];
+  public flushed: Array<Array<string>> = [];
 
-  function finding(
-    id: string,
-    time: string,
-    observables: Array<string>,
-  ): Record<string, unknown> {
-    return { findingId: id, findingTime: time, observables };
+  public add(count: number, namingEvery: number): void {
+    for (let index: number = 0; index < count; index++) {
+      const isNaming: boolean = index % namingEvery === 0;
+      const value: string = isNaming ? ALICE : `user-${index}@example.org`;
+
+      this.rows.push({
+        id: `f${String(index).padStart(6, "0")}`,
+        time: String(
+          BigInt("1764000000000000000") + BigInt(Math.floor(index / 3)),
+        ),
+        observables: [value, "203.0.113.7"],
+        eventUid: runUid(unkeyed(value)),
+        groupValue: value,
+        isMarkedErased: false,
+      });
+    }
+  }
+
+  public page(after: FindingsCursor | null, limit: number): Array<ErasureFindingRow> {
+    this.reads.push(after);
+
+    return this.rows
+      .filter((row: ErasureFindingRow): boolean => {
+        if (!after) {
+          return true;
+        }
+
+        const time: bigint = BigInt(row.time);
+        const afterTime: bigint = BigInt(after.time);
+
+        return time > afterTime || (time === afterTime && row.id > after.id);
+      })
+      .slice(0, limit)
+      .map((row: ErasureFindingRow): ErasureFindingRow => {
+        return { ...row, observables: [...row.observables] };
+      });
+  }
+
+  // What ClickHouse does once it holds the mutations: each finding changed as planned.
+  public apply(rewrites: ReadonlyArray<FindingRewrite>): void {
+    this.flushed.push(
+      rewrites.map((rewrite: FindingRewrite): string => {
+        return rewrite.id;
+      }),
+    );
+
+    for (const rewrite of rewrites) {
+      const row: ErasureFindingRow | undefined = this.rows.find(
+        (candidate: ErasureFindingRow): boolean => {
+          return candidate.id === rewrite.id;
+        },
+      );
+
+      if (!row) {
+        continue;
+      }
+
+      for (const replacement of rewrite.replacements) {
+        row.observables[replacement.position - 1] = replacement.token;
+        row.groupValue = replacement.token;
+        row.isMarkedErased = true;
+      }
+
+      if (rewrite.uid) {
+        row.eventUid = putFingerprintAt({
+          text: row.eventUid!,
+          places: getFindingUidPlaces(row.eventUid)!,
+          fingerprint: rewrite.uid.fingerprint,
+        });
+      }
+    }
+  }
+
+  public namingLeft(): number {
+    return this.rows.filter((row: ErasureFindingRow): boolean => {
+      return (
+        planFindingRewrite(row, NAMES, CONTEXT) !== null ||
+        row.observables.includes(ALICE)
+      );
+    }).length;
+  }
+}
+
+describe("reading a project's findings, on from where the last read stopped (#11160)", () => {
+  let findings: FakeFindings;
+  let progress: Array<FindingsScanProgress>;
+
+  function onProgress(scanned: FindingsScanProgress): Promise<void> {
+    progress.push(scanned);
+
+    return Promise.resolve();
   }
 
   beforeEach((): void => {
-    pages = [];
-    sent = [];
+    findings = new FakeFindings();
+    progress = [];
 
-    jest.spyOn(SecurityEventService, "executeQuery").mockImplementation((async (
-      statement: Statement,
-    ): Promise<unknown> => {
-      sent.push(statement);
-      const page: Array<Record<string, unknown>> = pages.shift() || [];
-
-      return {
-        json: async (): Promise<unknown> => {
-          return { data: page };
+    jest
+      .spyOn(SecurityUserErasureFindings, "readFindingsPage")
+      .mockImplementation(
+        (data: {
+          after?: FindingsCursor | null | undefined;
+          limit: number;
+        }): Promise<Array<ErasureFindingRow>> => {
+          return Promise.resolve(findings.page(data.after || null, data.limit));
         },
-      };
-    }) as never);
+      );
+    jest
+      .spyOn(SecurityUserErasureFindings, "unnameFindings")
+      .mockImplementation(
+        (data: { rewrites: ReadonlyArray<FindingRewrite> }): Promise<number> => {
+          findings.apply(data.rewrites);
+
+          return Promise.resolve(data.rewrites.length);
+        },
+      );
   });
 
   afterEach((): void => {
     jest.restoreAllMocks();
   });
 
-  test("page after page from where the last one ended, until a page comes back short", async () => {
-    pages = [
-      [finding("a", "10", [ALICE]), finding("b", "10", ["203.0.113.7"])],
-      [
-        finding("c", "11", ["bob@example.com"]),
-        finding("d", "12", ["203.0.113.7", `auth0|${ALICE}`]),
-      ],
-      [finding("e", "13", [ALICE])],
-    ];
+  test("reads page after page to the end, changes each finding that names the person, and says where it is", async () => {
+    findings.add(10, 3);
 
-    const found: FindingsScanResult =
-      await SecurityUserErasureFindings.findNamingFindings({
+    const step: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
         projectId: PROJECT_ID,
         names: NAMES,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
+        pageSize: 4,
+      });
+
+    expect(step).toEqual({
+      after: { time: findings.rows[9]!.time, id: findings.rows[9]!.id },
+      isAtEnd: true,
+      changed: 4,
+      unnamed: 4,
+    });
+    expect(findings.reads).toHaveLength(3);
+    expect(findings.namingLeft()).toBe(0);
+    // Every finding about the person now carries the fingerprint of the token.
+    for (const row of findings.rows) {
+      if (row.observables[0] === TOKEN) {
+        expect(row.eventUid).toBe(runUid(keyed(TOKEN)));
+      }
+    }
+    expect(progress[progress.length - 1]!.after).toEqual(step.after);
+  });
+
+  test("goes on from the cursor it is handed, never from the first finding", async () => {
+    findings.add(10, 3);
+
+    const after: FindingsCursor = {
+      time: findings.rows[5]!.time,
+      id: findings.rows[5]!.id,
+    };
+
+    const step: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: PROJECT_ID,
+        names: NAMES,
+        tokens: TOKENS,
+        after,
+        onProgress,
+        pageSize: 100,
+      });
+
+    expect(findings.reads[0]).toEqual(after);
+    // Findings 6 and 9 name the person after it; 0 and 3 are before it.
+    expect(step.changed).toBe(2);
+    expect(findings.rows[0]!.observables[0]).toBe(ALICE);
+    expect(findings.rows[6]!.observables[0]).toBe(TOKEN);
+  });
+
+  test("queues its changes in batches, and never says it is past one ClickHouse does not hold yet", async () => {
+    findings.add(30, 2);
+
+    await SecurityUserErasureFindings.scanFindings({
+      projectId: PROJECT_ID,
+      names: NAMES,
+      tokens: TOKENS,
+      after: null,
+      onProgress,
+      pageSize: 5,
+      changesPerFlush: 6,
+    });
+
+    // 15 findings name the person: flushed in batches once six or more wait.
+    expect(
+      findings.flushed.reduce((total: number, batch: Array<string>): number => {
+        return total + batch.length;
+      }, 0),
+    ).toBe(15);
+    expect(findings.flushed.length).toBeGreaterThan(1);
+
+    // Each place it reports is past only findings whose change was already queued.
+    for (const reported of progress) {
+      const queued: Set<string> = new Set<string>(
+        findings.flushed
+          .slice(0, progress.indexOf(reported) + 1)
+          .flat(),
+      );
+
+      for (const row of findings.rows) {
+        const isPast: boolean =
+          reported.after !== null &&
+          (BigInt(row.time) < BigInt(reported.after.time) ||
+            (row.time === reported.after.time && row.id <= reported.after.id));
+
+        if (isPast && Number(row.id.slice(1)) % 2 === 0) {
+          expect(queued.has(row.id)).toBe(true);
+        }
+      }
+    }
+  });
+
+  test("stops at as many changes as one run makes, at the finding that reached it, and goes on after it next time", async () => {
+    findings.add(12, 1);
+
+    const first: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: PROJECT_ID,
+        names: NAMES,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
+        pageSize: 100,
+        maxRewrites: 5,
+      });
+
+    expect(first).toEqual({
+      after: { time: findings.rows[4]!.time, id: findings.rows[4]!.id },
+      isAtEnd: false,
+      changed: 5,
+      unnamed: 5,
+      stoppedBy: "cap",
+    });
+
+    const second: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: PROJECT_ID,
+        names: NAMES,
+        tokens: TOKENS,
+        after: first.after,
+        onProgress,
+        pageSize: 100,
+        maxRewrites: 5,
+      });
+
+    expect(second.changed).toBe(5);
+    expect(second.after).toEqual({
+      time: findings.rows[9]!.time,
+      id: findings.rows[9]!.id,
+    });
+  });
+
+  test("when its time is up it stops where it is, without failing: the next run goes on", async () => {
+    findings.add(10, 1);
+
+    const step: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: PROJECT_ID,
+        names: NAMES,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
         pageSize: 2,
+        timeLimitMs: -1,
       });
 
-    expect(
-      found.rewrites.map((rewrite: FindingRewrite): string => {
-        return rewrite.id;
-      }),
-    ).toEqual(["a", "d", "e"]);
-    expect(found.isCapped).toBe(false);
-    expect(sent).toHaveLength(3);
-    expect(parameterValues(sent[1]!)).toEqual(
-      expect.arrayContaining(["10", "b"]),
-    );
-    expect(parameterValues(sent[2]!)).toEqual(
-      expect.arrayContaining(["12", "d"]),
-    );
+    expect(step).toEqual({
+      after: null,
+      isAtEnd: false,
+      changed: 0,
+      unnamed: 0,
+      stoppedBy: "time",
+    });
+    expect(findings.reads).toHaveLength(0);
+    expect(progress).toHaveLength(1);
   });
 
-  test("stops at the first that names the person, when that is all the check needs", async () => {
-    pages = [
-      [finding("a", "10", ["x"]), finding("b", "10", [ALICE])],
-      [finding("c", "11", [ALICE])],
-    ];
+  test("stops between pages once the run's deadline has passed, keeping what it queued", async () => {
+    findings.add(10, 1);
 
-    expect(
-      await SecurityUserErasureFindings.isAnyFindingNaming({
+    const deadline: JobDeadline = new JobDeadline();
+
+    jest
+      .spyOn(SecurityUserErasureFindings, "readFindingsPage")
+      .mockImplementation(
+        (data: {
+          after?: FindingsCursor | null | undefined;
+          limit: number;
+        }): Promise<Array<ErasureFindingRow>> => {
+          // The run runs out of time while the first page is read.
+          deadline.end();
+
+          return Promise.resolve(findings.page(data.after || null, data.limit));
+        },
+      );
+
+    const step: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
         projectId: PROJECT_ID,
         names: NAMES,
-      }),
-    ).toBe(true);
-    expect(sent).toHaveLength(1);
-  });
-
-  test("keeps at most as many as a run changes, and says there may be more", async () => {
-    pages = [
-      [
-        finding("a", "10", [ALICE]),
-        finding("b", "11", [ALICE]),
-        finding("c", "12", [ALICE]),
-      ],
-    ];
-
-    const found: FindingsScanResult =
-      await SecurityUserErasureFindings.findNamingFindings({
-        projectId: PROJECT_ID,
-        names: NAMES,
-        maxRewrites: 2,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
+        pageSize: 3,
+        deadline,
       });
 
-    expect(found.rewrites).toHaveLength(2);
-    expect(found.isCapped).toBe(true);
+    expect(step.stoppedBy).toBe("deadline");
+    expect(step.changed).toBe(3);
+    expect(findings.reads).toHaveLength(1);
+    expect(findings.flushed).toEqual([["f000000", "f000001", "f000002"]]);
+    expect(step.after).toEqual({
+      time: findings.rows[2]!.time,
+      id: findings.rows[2]!.id,
+    });
+  });
+
+  test("a huge project is read over several runs, each on from the last, every finding changed once, and a rerun changes nothing", async () => {
+    findings.add(250, 4);
+
+    let after: FindingsCursor | null = null;
+    let runs: number = 0;
+    let isAtEnd: boolean = false;
+
+    while (!isAtEnd && runs < 100) {
+      const step: FindingsScanStep =
+        await SecurityUserErasureFindings.scanFindings({
+          projectId: PROJECT_ID,
+          names: NAMES,
+          tokens: TOKENS,
+          after,
+          onProgress,
+          pageSize: 7,
+          maxRewrites: 9,
+          changesPerFlush: 4,
+        });
+
+      runs++;
+      isAtEnd = step.isAtEnd;
+      after = step.after;
+    }
+
+    expect(isAtEnd).toBe(true);
+    // 63 findings name the person, at most 9 a run.
+    expect(runs).toBe(Math.ceil(63 / 9) + (63 % 9 === 0 ? 1 : 0));
+    expect(findings.namingLeft()).toBe(0);
+    expect(findings.flushed.flat()).toHaveLength(63);
+    expect(new Set<string>(findings.flushed.flat()).size).toBe(63);
+
+    // A second pass from the first finding: nothing left to change.
+    const again: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: PROJECT_ID,
+        names: NAMES,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
+        pageSize: 50,
+      });
+
+    expect(again.isAtEnd).toBe(true);
+    expect(again.changed).toBe(0);
+    expect(findings.flushed.flat()).toHaveLength(63);
+  });
+
+  test("hands over the correlations' values each batch changed, so what else carries their fingerprint is rewritten", async () => {
+    findings.rows.push({
+      id: "c1",
+      time: "1764000000000000001",
+      observables: [ALICE, "203.0.113.7"],
+      eventUid: runUid(unkeyed(`${ALICE} / 203.0.113.7`)),
+      groupValue: `${ALICE} / 203.0.113.7`,
+    });
+    findings.rows.push({
+      id: "c2",
+      time: "1764000000000000002",
+      observables: [ALICE],
+      eventUid: runUid(unkeyed(ALICE)),
+      groupValue: ALICE,
+    });
+
+    await SecurityUserErasureFindings.scanFindings({
+      projectId: PROJECT_ID,
+      names: NAMES,
+      tokens: TOKENS,
+      after: null,
+      onProgress,
+    });
+
+    expect(
+      progress.flatMap((scanned: FindingsScanProgress): Array<ErasedName> => {
+        return scanned.correlationValues;
+      }),
+    ).toEqual([
+      { named: `${ALICE} / 203.0.113.7`, hashed: `${TOKEN} / 203.0.113.7` },
+    ]);
   });
 
   test("reads nothing for no names, and finds nothing in an empty project", async () => {
     expect(
-      await SecurityUserErasureFindings.findNamingFindings({
+      await SecurityUserErasureFindings.scanFindings({
         projectId: PROJECT_ID,
         names: [],
+        tokens: TOKENS,
+        after: null,
+        onProgress,
       }),
-    ).toEqual({ rewrites: [], isCapped: false });
-    expect(sent).toHaveLength(0);
+    ).toEqual({ after: null, isAtEnd: true, changed: 0, unnamed: 0 });
+    expect(findings.reads).toHaveLength(0);
 
     expect(
-      await SecurityUserErasureFindings.isAnyFindingNaming({
+      await SecurityUserErasureFindings.scanFindings({
         projectId: PROJECT_ID,
         names: NAMES,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
       }),
-    ).toBe(false);
-    expect(sent).toHaveLength(1);
-  });
-
-  test("past its own time limit it throws, so the run is tried again rather than taken as done", async () => {
-    pages = [[finding("a", "10", ["x"])], [finding("b", "11", ["x"])]];
-
-    await expect(
-      SecurityUserErasureFindings.findNamingFindings({
-        projectId: PROJECT_ID,
-        names: NAMES,
-        pageSize: 1,
-        timeLimitMs: -1,
-      }),
-    ).rejects.toThrow(
-      "Security Events could not read all of the project's Detection Findings",
-    );
-  });
-
-  test("stops between pages once the run's deadline has passed", async () => {
-    const deadline: JobDeadline = new JobDeadline();
-
-    pages = [[finding("a", "10", ["x"])], [finding("b", "11", [ALICE])]];
-
-    jest.spyOn(SecurityEventService, "executeQuery").mockImplementation((async (
-      statement: Statement,
-    ): Promise<unknown> => {
-      sent.push(statement);
-      const page: Array<Record<string, unknown>> = pages.shift() || [];
-
-      // The run runs out of time while the first page is read.
-      deadline.end();
-
-      return {
-        json: async (): Promise<unknown> => {
-          return { data: page };
-        },
-      };
-    }) as never);
-
-    await expect(
-      SecurityUserErasureFindings.findNamingFindings({
-        projectId: PROJECT_ID,
-        names: NAMES,
-        pageSize: 1,
-        deadline,
-      }),
-    ).rejects.toThrow();
-    expect(sent).toHaveLength(1);
+    ).toEqual({ after: null, isAtEnd: true, changed: 0, unnamed: 0 });
+    expect(findings.reads).toHaveLength(1);
   });
 
   test("a row with no id is never changed", async () => {
-    pages = [[finding("", "10", [ALICE])]];
+    findings.rows.push({ id: "", time: "10", observables: [ALICE] });
 
-    expect(
-      (
-        await SecurityUserErasureFindings.findNamingFindings({
-          projectId: PROJECT_ID,
-          names: NAMES,
-        })
-      ).rewrites,
-    ).toEqual([]);
+    const step: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: PROJECT_ID,
+        names: NAMES,
+        tokens: TOKENS,
+        after: null,
+        onProgress,
+      });
+
+    expect(step.changed).toBe(0);
+    expect(findings.flushed).toEqual([]);
   });
 });
 
@@ -644,14 +1256,17 @@ describe("changing the findings", () => {
         planFindingRewrite(
           { id: "a", time: "1", observables: [ALICE] },
           NAMES,
+          CONTEXT,
         )!,
         planFindingRewrite(
           { id: "b", time: "2", observables: [ALICE] },
           NAMES,
+          CONTEXT,
         )!,
         planFindingRewrite(
           { id: "c", time: "3", observables: ["x", ALICE] },
           NAMES,
+          CONTEXT,
         )!,
       ],
     });

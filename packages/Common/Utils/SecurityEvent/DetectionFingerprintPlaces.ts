@@ -28,7 +28,7 @@
  */
 
 // The two sources whose fingerprints are of a value: a rule's group, a feed's indicator.
-export enum DetectionFingerprintSource {
+export enum DetectionFingerprintKind {
   DetectionRule = "detection-rule",
   ThreatIntel = "threat-intel",
 }
@@ -42,16 +42,16 @@ const FINGERPRINT: RegExp = /^[0-9a-f]{16}$/;
 const DIGITS: RegExp = /^[0-9]+$/;
 
 // The id a finding's eventUid starts with, for each source.
-const FINDING_UID_HEAD: Record<DetectionFingerprintSource, string> = {
-  [DetectionFingerprintSource.DetectionRule]: "detection",
-  [DetectionFingerprintSource.ThreatIntel]: "threat-intel",
+const FINDING_UID_HEAD: Record<DetectionFingerprintKind, string> = {
+  [DetectionFingerprintKind.DetectionRule]: "detection",
+  [DetectionFingerprintKind.ThreatIntel]: "threat-intel",
 };
 
 const FIRING_KEY_HEAD: string = "run";
 
 // Where a text keeps the fingerprint, and whose fingerprint it is.
 export interface DetectionFingerprintPlaces {
-  source: DetectionFingerprintSource;
+  source: DetectionFingerprintKind;
   // Counted from 1, as ClickHouse's arrays count.
   positions: Array<number>;
   // What stands there now (each place holds the same fingerprint).
@@ -66,9 +66,9 @@ function isFingerprint(part: string | undefined): boolean {
   return typeof part === "string" && FINGERPRINT.test(part);
 }
 
-function sourceOfName(name: string | undefined): DetectionFingerprintSource | null {
-  return name === DetectionFingerprintSource.DetectionRule ||
-    name === DetectionFingerprintSource.ThreatIntel
+function sourceOfName(name: string | undefined): DetectionFingerprintKind | null {
+  return name === DetectionFingerprintKind.DetectionRule ||
+    name === DetectionFingerprintKind.ThreatIntel
     ? name
     : null;
 }
@@ -86,7 +86,7 @@ export function getSourceFingerprintPlaces(
   }
 
   const parts: Array<string> = partsOf(text);
-  const source: DetectionFingerprintSource | null = sourceOfName(parts[0]);
+  const source: DetectionFingerprintKind | null = sourceOfName(parts[0]);
 
   if (!source || parts.length !== 3 || !parts[1] || !isFingerprint(parts[2])) {
     return null;
@@ -108,7 +108,7 @@ export function getFindingUidPlaces(
   }
 
   const parts: Array<string> = partsOf(eventUid);
-  const source: DetectionFingerprintSource | null = sourceOfName(parts[2]);
+  const source: DetectionFingerprintKind | null = sourceOfName(parts[2]);
 
   if (
     !source ||
@@ -127,7 +127,7 @@ export function getFindingUidPlaces(
 
   // A scheduled run's firing: its name carries the same fingerprint.
   if (
-    source === DetectionFingerprintSource.DetectionRule &&
+    source === DetectionFingerprintKind.DetectionRule &&
     parts.length === 9 &&
     parts[5] === FIRING_KEY_HEAD &&
     DIGITS.test(parts[6]!) &&
@@ -165,7 +165,7 @@ export function getFiringKeyPlaces(
   }
 
   return {
-    source: DetectionFingerprintSource.DetectionRule,
+    source: DetectionFingerprintKind.DetectionRule,
     positions: [4],
     fingerprint: parts[3]!,
   };

@@ -4,6 +4,7 @@ import ObjectID from "../../../Types/ObjectID";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import { EncryptionSecret } from "../../EnvironmentConfig";
+import { DetectionFingerprintKind } from "../../../Utils/SecurityEvent/DetectionFingerprintPlaces";
 
 /*
  * THE FINGERPRINT OF WHAT A DETECTION IS ABOUT (#11130).
@@ -53,12 +54,8 @@ import { EncryptionSecret } from "../../EnvironmentConfig";
  * are.
  */
 
-export enum DetectionFingerprintKind {
-  // What a detection rule grouped on: "detection-rule:<rule id>:<fingerprint>".
-  DetectionRule = "detection-rule",
-  // The indicator a threat intel feed matched: "threat-intel:<feed id>:<fingerprint>".
-  ThreatIntel = "threat-intel",
-}
+// Whose fingerprint: a rule's group, or a feed's indicator (Utils/SecurityEvent/DetectionFingerprintPlaces).
+export { DetectionFingerprintKind };
 
 export const DETECTION_FINGERPRINT_KINDS: ReadonlyArray<DetectionFingerprintKind> =
   Object.values(DetectionFingerprintKind);

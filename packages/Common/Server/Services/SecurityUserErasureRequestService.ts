@@ -20,6 +20,11 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { truncateLongText } from "../Utils/Database/TruncateColumnValue";
 import ScrubHashToken from "../Utils/Telemetry/ScrubHashToken";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  SecurityUserErasureProgress,
+  readErasureProgress,
+  toStoredErasureProgress,
+} from "../Utils/SecurityEvent/UserVault/SecurityUserErasureProgress";
 
 /*
  * SECURITY EVENTS' ERASURE REQUESTS (#10908): erasing one person from the
@@ -50,6 +55,7 @@ export const ERASURE_REQUEST_SELECT: {
   projectId: true;
   userToErase: true;
   namesToErase: true;
+  progress: true;
   tokens: true;
   status: true;
   requestedAt: true;
@@ -65,6 +71,7 @@ export const ERASURE_REQUEST_SELECT: {
   projectId: true,
   userToErase: true,
   namesToErase: true,
+  progress: true,
   tokens: true,
   status: true,
   requestedAt: true,
@@ -163,6 +170,13 @@ export function toStoredErasureNames(names: ReadonlyArray<ErasedName>): string {
       return { named: name.named, hashed: name.hashed };
     }),
   );
+}
+
+// Where a request's worker has got to (#11160), whatever the column held.
+export function readErasureRequestProgress(
+  request: Model,
+): SecurityUserErasureProgress {
+  return readErasureProgress(request.progress);
 }
 
 // A request's tokens as stored: a list of text, whatever the column held.
@@ -325,22 +339,58 @@ export class Service extends ProjectReferencesService<Model> {
      * run kept. Left as it is when not given.
      */
     names?: ReadonlyArray<ErasedName> | undefined;
+    // Where the run got to (#11160). Left as it is when not given.
+    progress?: SecurityUserErasureProgress | undefined;
   }): Promise<void> {
+    /*
+     * A record of the columns, not the update's payload type: that type of a
+     * JSON column (progress) is one the compiler cannot unfold.
+     */
+    const update: Record<string, unknown> = {
+      status: SecurityUserErasureRequestStatus.InProgress,
+      failureReason: null,
+      ...data.counts,
+    };
+
+    if (data.names) {
+      update["namesToErase"] =
+        data.names.length > 0 ? toStoredErasureNames(data.names) : null;
+    }
+
+    if (data.progress) {
+      update["progress"] = toStoredErasureProgress(data.progress);
+    }
+
     await this.updateOneById({
       id: data.requestId,
-      data: {
-        status: SecurityUserErasureRequestStatus.InProgress,
-        failureReason: null as unknown as string,
-        ...data.counts,
-        ...(data.names
-          ? {
-              namesToErase:
-                data.names.length > 0
-                  ? toStoredErasureNames(data.names)
-                  : (null as unknown as string),
-            }
-          : {}),
-      },
+      data: update as never,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * Where a run has got to (#11160), kept as it goes: a run that stops
+   * after this goes on from here. Says nothing about how the run ended, so
+   * why an earlier one failed stays until a run gets through.
+   */
+  @CaptureSpan()
+  public async markProgress(data: {
+    requestId: ObjectID;
+    progress: SecurityUserErasureProgress;
+    // The events counted so far (getEventsUnnamed), when they changed.
+    eventsUnnamed?: number | undefined;
+  }): Promise<void> {
+    const update: Record<string, unknown> = {
+      progress: toStoredErasureProgress(data.progress),
+    };
+
+    if (data.eventsUnnamed !== undefined) {
+      update["eventsUnnamed"] = data.eventsUnnamed;
+    }
+
+    await this.updateOneById({
+      id: data.requestId,
+      data: update as never,
       props: { isRoot: true },
     });
   }

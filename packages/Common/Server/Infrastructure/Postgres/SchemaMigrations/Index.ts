@@ -1202,6 +1202,7 @@ import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./180918
 import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
 import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
 import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
+import { AddSecurityUserErasureRequestProgress1809187721160 } from "./1809187721160-AddSecurityUserErasureRequestProgress";
 
 export default [
   InitialMigration,
@@ -2408,4 +2409,5 @@ export default [
   AddMonitorTestUnansweredIndex1809187700819,
   AddCloudCostViewsGroupsAndLineItems1809187711006,
   AddProbeSnmpTrapReceiver1809187715110,
+  AddSecurityUserErasureRequestProgress1809187721160,
 ];

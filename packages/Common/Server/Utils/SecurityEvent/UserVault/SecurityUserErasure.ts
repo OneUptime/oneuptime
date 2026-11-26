@@ -3,6 +3,7 @@ import ProjectService from "../../../Services/ProjectService";
 import SecurityUserErasureRequestService, {
   SecurityUserErasureCounts,
   readErasureRequestNames,
+  readErasureRequestProgress,
   readErasureRequestTokens,
 } from "../../../Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService, {
@@ -16,17 +17,24 @@ import {
   getErasureSpellings,
 } from "../../../../Types/SecurityEvent/SecurityUserErasure";
 import { ErasedName } from "../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
-import JobDeadline from "../../JobDeadline";
+import JobDeadline, { JOB_DEADLINE_GRACE_MS } from "../../JobDeadline";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ScrubHashToken from "../../Telemetry/ScrubHashToken";
+import { SECURITY_PROJECT_WORK_JOB_TIMEOUT_IN_MS } from "../SecurityProjectWork";
 import { ERASED_TOKENS_CACHE_TTL_MS } from "./SecurityUserErasedTokens";
 import SecurityUserErasureEvents, {
   SecurityUserErasurePair,
 } from "./SecurityUserErasureEvents";
 import SecurityUserErasureFindings, {
-  FindingsScanResult,
+  FindingsScanProgress,
+  FindingsScanStep,
 } from "./SecurityUserErasureFindings";
+import {
+  SecurityUserErasureFindingsPass,
+  SecurityUserErasureProgress,
+  getEventsUnnamed,
+} from "./SecurityUserErasureProgress";
 import SecurityUserErasureRecords, {
   SecurityUserErasureRecordCounts,
 } from "./SecurityUserErasureRecords";
@@ -46,47 +54,54 @@ import SecurityUserErasureRecords, {
  *     before it deletes anything - a row written by a process that had not
  *     heard yet is deleted with the rest, never after them.
  *
- *   InProgress. Claimed (one worker does it), then:
+ *   InProgress. Claimed (one worker does it), then told (runErasure):
  *     1. who the vault named: what the requester typed, the vault's own
  *        rows of the tokens, the users the events it named hold - the
  *        names Security Events may have copied onward - and the names an
  *        earlier run kept on the request;
  *     2. Postgres: the person taken out of detections, cases, entity risk
- *        and proposals (SecurityUserErasureRecords). Synchronous, and the
- *        counts kept at once, so a run that fails later loses none. The
- *        names are kept on the request with them, encrypted
- *        (namesToErase): the vault's rows and the events that hold them go
- *        with this run, and later runs and the check need them (#11044);
- *     3. ClickHouse: the Detection Findings a rule wrote about the person
- *        read and the names taken out of them (SecurityUserErasureFindings:
- *        they carry no token to be found by); the events the vault named
- *        counted and the token put back in them (SecurityUserErasureEvents);
- *        the vault's rows of the tokens counted and deleted. Queued
- *        mutations, durable from then on.
+ *        and proposals, and every fingerprint of a value that named them
+ *        rewritten - a detection's, an alert's, an incident's, a firing's
+ *        (SecurityUserErasureRecords, #11130). Synchronous, and the counts
+ *        kept at once, so a run that fails later loses none. The names are
+ *        kept on the request with them, encrypted (namesToErase): the
+ *        vault's rows and the events that hold them go with this run, and
+ *        later runs need them (#11044);
+ *     3. ClickHouse: the events the vault named counted and the token put
+ *        back in them (SecurityUserErasureEvents), the vault's rows of the
+ *        tokens counted and deleted. Queued mutations, durable from then
+ *        on.
+ *     Then, this run and every one after it, the project's Detection
+ *     Findings are read and changed (SecurityUserErasureFindings: they
+ *     carry no token to be found by), in passes from the first to the last,
+ *     each run going on where the last one stopped (#11160,
+ *     SecurityUserErasureProgress) - so a project too large to read in one
+ *     run is read over several, and never fails for it.
  *
- *   Completed, once a later run checks that ClickHouse applied them: no
- *     row of the tokens is left in the vault, no event still names the
- *     person through them, and none of the project's own Detection Findings
- *     names them. Postgres is gone through once more first, for a detection
- *     a rule wrote from the events before they lost the name. What the
- *     requester typed, and the names, are wiped. A request still not done
- *     RESUBMIT_AFTER_MS after its last run is run again: every step finds
- *     only what still names the person.
+ *   Completed, once a pass of the findings that started after no vault row
+ *     and no event had named the person for DETECTION_TURN_SETTLE_MS - no
+ *     detection that read the name before it went can still be writing - has
+ *     read every one and found nothing to change. Postgres is gone through
+ *     once more first, for a detection a rule wrote from the events before
+ *     they lost the name. What the requester typed, and the names, are
+ *     wiped. A request whose vault rows or events are still not done
+ *     RESUBMIT_AFTER_MS after ClickHouse was told is told again: every step
+ *     finds only what still names the person.
  *
  *   Failed, after MAX_ERASURE_ATTEMPTS failed runs, spaced out
  *     (RETRY_BACKOFF_MS more each time): the project's owners are emailed,
  *     because a right-to-erasure obligation must not die on a log line.
- *     What the requester typed is wiped; the tokens are still refused.
+ *     What the requester typed is wiped; the tokens are still refused. A
+ *     run that fails keeps where its read of the findings got to, and the
+ *     next run goes on from there.
  *
  * Every ClickHouse statement names tokens, never the person
  * (SecurityUserVaultService says why): the findings are matched to the
  * names here, in the worker, and changed by their ids.
  *
  * A run that runs out of the cron job's time (its deadline) stops where it
- * is, with nothing counted against the request: one not started yet waits
- * for the next run, and one started is run again as any request still not
- * done is (RESUBMIT_AFTER_MS). Every step finds only what still names the
- * person, so nothing is done twice.
+ * is, with nothing counted against the request: what it read of the
+ * findings is kept, and the next run carries on.
  */
 
 // How many failed runs a request survives before it is marked Failed.
@@ -111,6 +126,17 @@ export const RESUBMIT_AFTER_MS: number = 30 * 60 * 1000;
 // How much longer each failed run waits than the one before it: 10, 20, 30... minutes.
 export const RETRY_BACKOFF_MS: number = 10 * 60 * 1000;
 
+/*
+ * How long after no event names the person the final read of the findings
+ * starts: a detection turn - a rule's or a feed's, scheduled or in real
+ * time - that read the events before they lost the name may write a finding
+ * naming the person until its job's time is up (SecurityProjectWork's
+ * timeout, and the grace to finish what is in flight). One that starts
+ * after they lost it reads none.
+ */
+export const DETECTION_TURN_SETTLE_MS: number =
+  SECURITY_PROJECT_WORK_JOB_TIMEOUT_IN_MS + JOB_DEADLINE_GRACE_MS;
+
 // What one run of a request found and changed.
 export interface SecurityUserErasureRunResult {
   names: Array<ErasedName>;
@@ -121,7 +147,7 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function timeOf(value: Date | string | undefined): number {
+function timeOf(value: Date | string | undefined | null): number {
   if (!value) {
     return 0;
   }
@@ -145,6 +171,16 @@ function distinctNames(names: Array<ErasedName>): Array<ErasedName> {
   }
 
   return Array.from(seen.values());
+}
+
+// A request's counts as they stand.
+function countsOf(request: SecurityUserErasureRequest): SecurityUserErasureCounts {
+  return {
+    vaultEntriesDeleted: request.vaultEntriesDeleted || 0,
+    eventsUnnamed: request.eventsUnnamed || 0,
+    casesUnnamed: request.casesUnnamed || 0,
+    proposalsWithdrawn: request.proposalsWithdrawn || 0,
+  };
 }
 
 export default class SecurityUserErasure {
@@ -234,7 +270,7 @@ export default class SecurityUserErasure {
           return;
         }
 
-        await this.runErasure(request, deadline);
+        await this.runErasure(request, deadline, data.now);
 
         return;
       }
@@ -245,21 +281,38 @@ export default class SecurityUserErasure {
 
       // Its last run failed, and its backoff is over: run it again.
       if (this.didLastRunFail(request)) {
-        await this.runErasure(request, deadline);
+        await this.runErasure(request, deadline, data.now);
 
         return;
       }
 
-      if (await this.isErased(request, deadline)) {
-        await this.complete(request);
+      const progress: SecurityUserErasureProgress =
+        readErasureRequestProgress(request);
+      const isClean: boolean = await this.isVaultAndEventsClean(request);
+
+      /*
+       * Not applied yet: told again once it has had long enough. A request
+       * from before #11160 kept no time it was told: its last run's.
+       */
+      if (
+        !isClean &&
+        timeOf(progress.toldAt || request.updatedAt) + RESUBMIT_AFTER_MS <=
+          data.now.getTime()
+      ) {
+        await this.runErasure(request, deadline, data.now);
 
         return;
       }
 
-      // Not applied yet: told again once it has had long enough.
-      if (timeOf(request.updatedAt) + RESUBMIT_AFTER_MS <= data.now.getTime()) {
-        await this.runErasure(request, deadline);
-      }
+      await this.continueFindings({
+        request,
+        names: this.getKeptNames(request),
+        progress,
+        counts: countsOf(request),
+        isClean,
+        now: data.now,
+        deadline,
+      });
     } catch (error) {
       // The run's own time ran out, not the request: a later run carries on.
       if (deadline.hasPassed()) {
@@ -277,31 +330,34 @@ export default class SecurityUserErasure {
   /*
    * Checked done: Postgres gone through once more, for a detection a rule
    * wrote from the events before they lost the name - none can be written
-   * after, as no event names the person once the check passes - then the
-   * request marked Completed, with what was typed and the names wiped.
+   * after, as no event names the person and no detection that read them
+   * before is still running - then the request marked Completed, with what
+   * was typed and the names wiped.
    */
-  private static async complete(
-    request: SecurityUserErasureRequest,
-  ): Promise<void> {
+  private static async complete(data: {
+    request: SecurityUserErasureRequest;
+    names: ReadonlyArray<ErasedName>;
+    counts: SecurityUserErasureCounts;
+    deadline: JobDeadline;
+  }): Promise<void> {
     const records: SecurityUserErasureRecordCounts =
       await SecurityUserErasureRecords.unnameRecords({
-        projectId: request.projectId!,
-        names: this.getKeptNames(request),
+        projectId: data.request.projectId!,
+        names: data.names,
+        deadline: data.deadline,
       });
 
     await SecurityUserErasureRequestService.markCompleted({
-      requestId: request.id!,
+      requestId: data.request.id!,
       counts: {
-        vaultEntriesDeleted: request.vaultEntriesDeleted || 0,
-        eventsUnnamed: request.eventsUnnamed || 0,
-        casesUnnamed: (request.casesUnnamed || 0) + records.cases,
-        proposalsWithdrawn:
-          (request.proposalsWithdrawn || 0) + records.proposals,
+        ...data.counts,
+        casesUnnamed: data.counts.casesUnnamed + records.cases,
+        proposalsWithdrawn: data.counts.proposalsWithdrawn + records.proposals,
       },
     });
 
     logger.info(
-      `SecurityUserErasure: erasure request ${request.id!.toString()} is complete.`,
+      `SecurityUserErasure: erasure request ${data.request.id!.toString()} is complete.`,
     );
   }
 
@@ -381,18 +437,22 @@ export default class SecurityUserErasure {
   }
 
   /*
-   * One run of the erasure itself: Postgres, then ClickHouse, the counts
-   * kept as each part is done. The request stays InProgress; a later run
-   * checks it is done.
+   * Telling the erasure, the first time and every time it is told again:
+   * Postgres, then ClickHouse's vault rows and events, the counts kept as
+   * each part is done - then on with the findings, from where their read
+   * got to. The request stays InProgress; a later run checks it is done.
    */
   @CaptureSpan()
   public static async runErasure(
     request: SecurityUserErasureRequest,
     deadline: JobDeadline = JobDeadline.none(),
+    now: Date = OneUptimeDate.getCurrentDate(),
   ): Promise<SecurityUserErasureRunResult> {
     const requestId: ObjectID = request.id!;
     const projectId: ObjectID = request.projectId!;
     const tokens: Array<string> = readErasureRequestTokens(request);
+    const progress: SecurityUserErasureProgress =
+      readErasureRequestProgress(request);
 
     const names: Array<ErasedName> = await this.findNames({
       projectId,
@@ -402,15 +462,17 @@ export default class SecurityUserErasure {
     });
 
     const records: SecurityUserErasureRecordCounts =
-      await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+      await SecurityUserErasureRecords.unnameRecords({
+        projectId,
+        names,
+        deadline,
+      });
 
     // Kept at once: Postgres is done, and a retry would find nothing left to count.
-    const counts: SecurityUserErasureCounts = {
-      vaultEntriesDeleted: request.vaultEntriesDeleted || 0,
-      eventsUnnamed: request.eventsUnnamed || 0,
-      casesUnnamed: (request.casesUnnamed || 0) + records.cases,
-      proposalsWithdrawn: (request.proposalsWithdrawn || 0) + records.proposals,
-    };
+    const counts: SecurityUserErasureCounts = countsOf(request);
+
+    counts.casesUnnamed += records.cases;
+    counts.proposalsWithdrawn += records.proposals;
 
     /*
      * The names are kept with the counts before anything in ClickHouse
@@ -422,22 +484,6 @@ export default class SecurityUserErasure {
       counts,
       names,
     });
-
-    /*
-     * The findings first, by the names: a rule's Detection Findings about
-     * the person carry no token. Counted with the events, below.
-     */
-    const findings: FindingsScanResult =
-      await SecurityUserErasureFindings.findNamingFindings({
-        projectId,
-        names,
-        deadline,
-      });
-    const findingsChanged: number =
-      await SecurityUserErasureFindings.unnameFindings({
-        projectId,
-        rewrites: findings.rewrites,
-      });
 
     /*
      * Counted before each is queued, as ClickHouse answers a mutation with
@@ -458,9 +504,11 @@ export default class SecurityUserErasure {
 
     await SecurityUserVaultService.eraseTokens({ projectId, tokens });
 
+    progress.toldAt = now.toISOString();
+    progress.namedEvents = Math.max(progress.namedEvents, events);
     counts.eventsUnnamed = Math.max(
       counts.eventsUnnamed,
-      events + findingsChanged,
+      getEventsUnnamed(progress),
     );
     counts.vaultEntriesDeleted = Math.max(
       counts.vaultEntriesDeleted,
@@ -470,25 +518,34 @@ export default class SecurityUserErasure {
     await SecurityUserErasureRequestService.markInProgress({
       requestId,
       counts,
+      progress,
     });
 
     logger.info(
-      `SecurityUserErasure: erasure request ${requestId.toString()} took the person out of ${records.cases} case(s) and ${records.proposals} proposal(s), and queued the token back into ${events} event(s) and ${findingsChanged} Detection Finding(s)${findings.isCapped ? " (a later run takes the rest)" : ""}, and the delete of ${vaultRows} vault row(s).`,
+      `SecurityUserErasure: erasure request ${requestId.toString()} took the person out of ${records.cases} case(s) and ${records.proposals} proposal(s), and queued the token back into ${events} event(s) and the delete of ${vaultRows} vault row(s); its Detection Findings are read next.`,
     );
+
+    // Nothing named the person here before it was told: nothing does now.
+    await this.continueFindings({
+      request,
+      names,
+      progress,
+      counts,
+      isClean: events === 0 && vaultRows === 0,
+      now,
+      deadline,
+    });
 
     return { names, counts };
   }
 
   /*
-   * Whether nothing the request reaches in ClickHouse names the person any
-   * more: no vault row of its tokens, at any age, no event the vault named
-   * through them, and none of the project's own Detection Findings naming
-   * one of the request's names (#11044). The cheap checks first: a request
-   * still waiting on ClickHouse reads no findings.
+   * Whether nothing in the user vault or the events names the person any
+   * more: no vault row of its tokens, at any age, and no event the vault
+   * named through them. Two counts by the tokens alone.
    */
-  public static async isErased(
+  public static async isVaultAndEventsClean(
     request: SecurityUserErasureRequest,
-    deadline: JobDeadline = JobDeadline.none(),
   ): Promise<boolean> {
     const projectId: ObjectID = request.projectId!;
     const tokens: Array<string> = readErasureRequestTokens(request);
@@ -497,17 +554,8 @@ export default class SecurityUserErasure {
       return true;
     }
 
-    const vaultRows: number = await SecurityUserVaultService.countRowsOfTokens({
-      projectId,
-      tokens,
-    });
-
-    if (vaultRows > 0) {
-      return false;
-    }
-
     if (
-      (await SecurityUserErasureEvents.countNamedEvents({
+      (await SecurityUserVaultService.countRowsOfTokens({
         projectId,
         tokens,
       })) > 0
@@ -515,16 +563,189 @@ export default class SecurityUserErasure {
       return false;
     }
 
-    const names: Array<ErasedName> = this.getKeptNames(request);
-
     return (
-      names.length === 0 ||
-      !(await SecurityUserErasureFindings.isAnyFindingNaming({
+      (await SecurityUserErasureEvents.countNamedEvents({
         projectId,
-        names,
-        deadline,
-      }))
+        tokens,
+      })) === 0
     );
+  }
+
+  /*
+   * Whether a pass of the findings started now would be the final check:
+   * nothing in the vault or the events has named the person for as long as
+   * a detection that read them before could still be writing a finding.
+   */
+  public static canStartFinalPass(data: {
+    progress: SecurityUserErasureProgress;
+    isClean: boolean;
+    now: Date;
+  }): boolean {
+    return (
+      data.isClean &&
+      Boolean(data.progress.cleanSince) &&
+      timeOf(data.progress.cleanSince) + DETECTION_TURN_SETTLE_MS <=
+        data.now.getTime()
+    );
+  }
+
+  /*
+   * The read of the project's findings, on from where it got to (#11160,
+   * SecurityUserErasureProgress says how): this run's share of the pass it
+   * is in, or the next pass once one can be the final check - and the
+   * request completed when a final pass found nothing to change.
+   */
+  public static async continueFindings(data: {
+    request: SecurityUserErasureRequest;
+    names: ReadonlyArray<ErasedName>;
+    progress: SecurityUserErasureProgress;
+    counts: SecurityUserErasureCounts;
+    isClean: boolean;
+    now: Date;
+    deadline: JobDeadline;
+  }): Promise<void> {
+    const request: SecurityUserErasureRequest = data.request;
+    const progress: SecurityUserErasureProgress = data.progress;
+    const cleanSince: string | null = data.isClean
+      ? progress.cleanSince || data.now.toISOString()
+      : null;
+    const isCleanSinceNew: boolean = cleanSince !== progress.cleanSince;
+
+    progress.cleanSince = cleanSince;
+
+    const save: () => Promise<void> = async (): Promise<void> => {
+      await SecurityUserErasureRequestService.markProgress({
+        requestId: request.id!,
+        progress,
+        eventsUnnamed: Math.max(
+          data.counts.eventsUnnamed,
+          getEventsUnnamed(progress),
+        ),
+      });
+    };
+
+    const complete: () => Promise<void> = async (): Promise<void> => {
+      await save();
+      await this.complete({
+        request,
+        names: data.names,
+        counts: {
+          ...data.counts,
+          eventsUnnamed: Math.max(
+            data.counts.eventsUnnamed,
+            getEventsUnnamed(progress),
+          ),
+        },
+        deadline: data.deadline,
+      });
+    };
+
+    // Nothing a finding could name the person by: done once ClickHouse is.
+    if (data.names.length === 0) {
+      if (data.isClean) {
+        await complete();
+      } else if (isCleanSinceNew) {
+        await save();
+      }
+
+      return;
+    }
+
+    let pass: SecurityUserErasureFindingsPass | null = progress.findings;
+
+    if (pass && pass.endedAt) {
+      if (pass.isFinal && pass.changed === 0 && data.isClean) {
+        await complete();
+
+        return;
+      }
+
+      // The next pass waits until it can be the final check.
+      if (!this.canStartFinalPass(data)) {
+        if (isCleanSinceNew) {
+          await save();
+        }
+
+        return;
+      }
+
+      pass = this.startPass({ number: pass.number + 1, ...data });
+    } else if (!pass) {
+      pass = this.startPass({ number: 1, ...data });
+    }
+
+    progress.findings = pass;
+
+    const startedWith: { changed: number; unnamed: number } = {
+      changed: pass.changed,
+      unnamed: pass.unnamed,
+    };
+    const current: SecurityUserErasureFindingsPass = pass;
+
+    const step: FindingsScanStep =
+      await SecurityUserErasureFindings.scanFindings({
+        projectId: request.projectId!,
+        names: data.names,
+        tokens: readErasureRequestTokens(request),
+        after: current.after,
+        deadline: data.deadline,
+        onProgress: async (scanned: FindingsScanProgress): Promise<void> => {
+          // What else carries the fingerprint of a correlation's values the batch changed.
+          if (scanned.correlationValues.length > 0) {
+            await SecurityUserErasureRecords.rewriteFingerprints({
+              projectId: request.projectId!,
+              groupValues: scanned.correlationValues,
+              deadline: data.deadline,
+            });
+          }
+
+          current.after = scanned.after;
+          current.changed = startedWith.changed + scanned.changed;
+          current.unnamed = startedWith.unnamed + scanned.unnamed;
+
+          await save();
+        },
+      });
+
+    logger.info(
+      `SecurityUserErasure: erasure request ${request.id!.toString()} read its project's Detection Findings (pass ${current.number}${current.isFinal ? ", the final check" : ""}) and queued a change for ${step.changed} of them${step.isAtEnd ? ", to the last one" : `; it stopped (${step.stoppedBy || "early"}) and a later run goes on from there`}.`,
+    );
+
+    if (!step.isAtEnd) {
+      return;
+    }
+
+    current.endedAt = OneUptimeDate.getCurrentDate().toISOString();
+    progress.unnamedFindings = Math.max(
+      progress.unnamedFindings,
+      current.unnamed,
+    );
+
+    if (current.isFinal && current.changed === 0 && data.isClean) {
+      await complete();
+
+      return;
+    }
+
+    await save();
+  }
+
+  // A new pass of the findings, from the first; the final check when it can be.
+  private static startPass(data: {
+    number: number;
+    progress: SecurityUserErasureProgress;
+    isClean: boolean;
+    now: Date;
+  }): SecurityUserErasureFindingsPass {
+    return {
+      number: data.number,
+      startedAt: data.now.toISOString(),
+      after: null,
+      changed: 0,
+      unnamed: 0,
+      isFinal: this.canStartFinalPass(data),
+      endedAt: null,
+    };
   }
 
   /*
