@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "測試此 OIDC 提供者",
   "Attach": "新增附件",
   "Attached Projects": "已連結的專案",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "此提供者讓使用者登入的專案，以及新使用者加入的團隊。未連結任何專案時，它適用於使用者已加入的每個專案。",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "透過此提供者登入的人員會加入這些專案，進入為每個專案選定的團隊。未連結任何專案時，新使用者無法登入。",
   "No projects attached to this provider.": "此提供者未連結任何專案。",
   "Select Project": "選取專案",
   "Runs JavaScript steps and AI code fixes for every project.": "為所有專案執行 JavaScript 步驟和 AI 程式碼修正。",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此監測器範本不屬於任何專案，因此無法將監測器連結到它。請在此專案中重新建立該範本。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此監測器範本沒有監測器類型，因此無法同步其監測器。請使用監測器類型重新建立該範本。",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "範本同步設定需要範本的監測器類型。請先選擇監測器類型，然後重新選擇同步設定。",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "監測器範本無法同步「{{field}}」。請從範本提供的範本同步設定中選擇，然後重新儲存。"
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "監測器範本無法同步「{{field}}」。請從範本提供的範本同步設定中選擇，然後重新儲存。",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "目前還沒有新使用者可以登入。請在「已連結的專案」中連結一個專案，並選擇他們加入的團隊。"
 }

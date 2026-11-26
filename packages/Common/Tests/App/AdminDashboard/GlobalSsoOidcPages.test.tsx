@@ -340,6 +340,11 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
 import ProjectScopedTeamsPicker from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/ProjectScopedTeamsPicker";
+import {
+  NOBODY_NEW_CAN_SIGN_IN_NOTE,
+  NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+  canAttachmentsTakeNewcomers,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/GlobalProviderAnswers";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   SSO_GLOBAL_REACH_TITLE,
@@ -640,10 +645,27 @@ const expectAnswerRows: (
     restrictToAttachedProjects: true,
   });
 
-  expect(drawn(signUp, off)).toBe("Get one on their first sign-in");
-  expect(drawn(signUp, on)).toBe("Must be invited first");
-  expect(drawn(reach, off)).toBe("Every project");
-  expect(drawn(reach, on)).toBe("Attached projects only");
+  /*
+   * Each answer, and under it the line that says what it does (#11149):
+   * "Every project" alone was read as access to every project. Nothing
+   * else while the attached projects have not been read.
+   */
+  expect(drawn(signUp, off)).toBe(
+    "Get one on their first sign-in" +
+      "They join the projects attached to this provider. With none attached, they must be invited first.",
+  );
+  expect(drawn(signUp, on)).toBe(
+    "Must be invited first" +
+      "They are turned away until someone invites them to a project.",
+  );
+  expect(drawn(reach, off)).toBe(
+    "Every project" +
+      "Projects that require SSO accept a sign-in with this provider.",
+  );
+  expect(drawn(reach, on)).toBe(
+    "Attached projects only" +
+      "Other projects that require SSO turn it away, even for people already signed in.",
+  );
 };
 
 /*
@@ -1789,6 +1811,212 @@ describe("the Global OIDC provider page", () => {
     expect((navigate.mock.calls[0]?.[0] as Route).toString()).toBe(
       "/admin/settings/sso",
     );
+  });
+});
+
+/*
+ * #11149: a provider's page said "People without an account: Get one on
+ * their first sign-in" while no project was attached to it, and nobody who
+ * signed in got an account. A server's own provider gives someone new an
+ * account only by adding them to an attached project, with its teams. So
+ * while the Attached Projects table holds no attachment that is on with
+ * teams, the answer has one amber line under it that names the break and
+ * the way out - and nothing while the table has not said, or cannot tell.
+ */
+describe("a provider's page says when nobody new can sign in (#11149)", () => {
+  interface ProviderPageCase {
+    page: PageCase;
+    makeProvider: (disableSignUpWithSso: boolean) => unknown;
+  }
+
+  const PROVIDER_PAGES: Array<ProviderPageCase> = [
+    {
+      page: PAGES[1]!,
+      makeProvider: (disableSignUpWithSso: boolean): unknown => {
+        const provider: GlobalSSO = new GlobalSSO();
+        provider.disableSignUpWithSso = disableSignUpWithSso;
+        provider.restrictToAttachedProjects = false;
+        return provider;
+      },
+    },
+    {
+      page: PAGES[3]!,
+      makeProvider: (disableSignUpWithSso: boolean): unknown => {
+        const provider: GlobalOIDC = new GlobalOIDC();
+        provider.disableSignUpWithSso = disableSignUpWithSso;
+        provider.restrictToAttachedProjects = false;
+        return provider;
+      },
+    },
+  ];
+
+  // What the "People without an account" row draws for the provider now.
+  const signUpRowFor: (
+    providerCase: ProviderPageCase,
+    disableSignUpWithSso: boolean,
+  ) => HTMLElement = (
+    providerCase: ProviderPageCase,
+    disableSignUpWithSso: boolean,
+  ): HTMLElement => {
+    const fields: Array<MockProps> = (
+      lastDetail(providerCase.page.detailCard!)["modelDetailProps"] as MockProps
+    )["fields"] as Array<MockProps>;
+
+    const row: MockProps = fields.find((field: MockProps): boolean => {
+      return (
+        Object.keys(field["field"] as Record<string, unknown>)[0] ===
+        "disableSignUpWithSso"
+      );
+    }) as MockProps;
+
+    return render(
+      (row["getElement"] as (item: unknown) => ReactElement)(
+        providerCase.makeProvider(disableSignUpWithSso),
+      ),
+    ).container;
+  };
+
+  // The attached projects the table read, as it hands them to the page.
+  const tableReads: (
+    providerCase: ProviderPageCase,
+    rows: Array<Record<string, unknown>>,
+    totalCount?: number,
+  ) => void = (
+    providerCase: ProviderPageCase,
+    rows: Array<Record<string, unknown>>,
+    totalCount?: number,
+  ): void => {
+    const onFetchSuccess: (
+      rows: Array<Record<string, unknown>>,
+      totalCount: number,
+    ) => void = lastTable(providerCase.page.table)["onFetchSuccess"] as (
+      rows: Array<Record<string, unknown>>,
+      totalCount: number,
+    ) => void;
+
+    act(() => {
+      onFetchSuccess(rows, totalCount ?? rows.length);
+    });
+  };
+
+  const membersTeam: Record<string, unknown> = { name: "Members" };
+
+  for (const providerCase of PROVIDER_PAGES) {
+    describe(providerCase.page.name, () => {
+      test("nothing is said before the attached projects are read", async () => {
+        await renderPage(providerCase.page);
+
+        expect(
+          within(signUpRowFor(providerCase, false)).queryByTestId(
+            NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+          ),
+        ).toBeNull();
+      });
+
+      test("with no project attached, the answer says nobody new can sign in yet, and how to change that", async () => {
+        await renderPage(providerCase.page);
+        tableReads(providerCase, []);
+
+        const row: HTMLElement = signUpRowFor(providerCase, false);
+        const note: HTMLElement = within(row).getByTestId(
+          NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+        );
+
+        expect(note).toHaveTextContent(NOBODY_NEW_CAN_SIGN_IN_NOTE);
+        expect(NOBODY_NEW_CAN_SIGN_IN_NOTE).toBe(
+          "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.",
+        );
+        // Something to look at, not something broken: amber, and a note.
+        expect(note).toHaveAttribute("role", "note");
+        expect(note.className).toContain("text-amber-700");
+        // Under the answer it is about, and its line.
+        expect(row).toHaveTextContent("Get one on their first sign-in");
+      });
+
+      test("an attachment that is on, with teams, takes them: nothing is said", async () => {
+        await renderPage(providerCase.page);
+        tableReads(providerCase, [{ isEnabled: true, teams: [membersTeam] }]);
+
+        expect(
+          within(signUpRowFor(providerCase, false)).queryByTestId(
+            NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+          ),
+        ).toBeNull();
+      });
+
+      test("attachments that are off, or have no teams, take nobody: it is said", async () => {
+        await renderPage(providerCase.page);
+        tableReads(providerCase, [
+          { isEnabled: false, teams: [membersTeam] },
+          { isEnabled: true, teams: [] },
+        ]);
+
+        expect(
+          within(signUpRowFor(providerCase, false)).getByTestId(
+            NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+          ),
+        ).toBeInTheDocument();
+      });
+
+      test("a table of more than one page whose first takes nobody cannot tell: nothing is said", async () => {
+        await renderPage(providerCase.page);
+        tableReads(providerCase, [{ isEnabled: true, teams: [] }], 12);
+
+        expect(
+          within(signUpRowFor(providerCase, false)).queryByTestId(
+            NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+          ),
+        ).toBeNull();
+      });
+
+      test('"Must be invited first" gives nobody an account anyway: nothing is said', async () => {
+        await renderPage(providerCase.page);
+        tableReads(providerCase, []);
+
+        expect(
+          within(signUpRowFor(providerCase, true)).queryByTestId(
+            NOBODY_NEW_CAN_SIGN_IN_NOTE_TEST_ID,
+          ),
+        ).toBeNull();
+      });
+
+      test("the Attached Projects card says they are where people join, and that nobody new signs in without one", async () => {
+        await renderPage(providerCase.page);
+
+        expect(
+          (lastTable(providerCase.page.table)["cardProps"] as MockProps)[
+            "description"
+          ],
+        ).toBe(
+          "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.",
+        );
+      });
+    });
+  }
+
+  test("canAttachmentsTakeNewcomers: an attachment that is on, with teams, or null when the rows cannot tell", () => {
+    expect(canAttachmentsTakeNewcomers([], 0)).toBe(false);
+    expect(
+      canAttachmentsTakeNewcomers([{ isEnabled: true, teams: [{}] }], 1),
+    ).toBe(true);
+    // An attachment whose Enabled the table did not read counts as on.
+    expect(canAttachmentsTakeNewcomers([{ teams: [{}] }], 1)).toBe(true);
+    expect(
+      canAttachmentsTakeNewcomers([{ isEnabled: false, teams: [{}] }], 1),
+    ).toBe(false);
+    expect(canAttachmentsTakeNewcomers([{ isEnabled: true }], 1)).toBe(false);
+    expect(
+      canAttachmentsTakeNewcomers([{ isEnabled: true, teams: [] }], 3),
+    ).toBeNull();
+    expect(
+      canAttachmentsTakeNewcomers(
+        [
+          { isEnabled: true, teams: [] },
+          { isEnabled: true, teams: [{}] },
+        ],
+        30,
+      ),
+    ).toBe(true);
   });
 });
 

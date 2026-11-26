@@ -78,7 +78,7 @@ flowchart TB
 
 - **Nessun progetto collegato (tutti i progetti / prima l'invito):** gli utenti possono accedere con il provider e raggiungere **qualsiasi progetto di cui sono già membri**. I nuovi utenti **non** vengono creati automaticamente: un utente deve prima essere invitato in un progetto. Usalo per un SSO aziendale quando le appartenenze vengono gestite altrove.
 
-- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Progetti collegati** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti al primo accesso. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
+- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Progetti collegati** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti: chi è nuovo al primo accesso, e chi ha già un account, per esempio uno che hai creato a mano, a quello successivo. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Un progetto collegato senza team non aggiunge nessuno. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
 
 Chi è già membro di un progetto collegato mantiene i team che ha lì.
 
@@ -89,7 +89,7 @@ Due domande del provider cambiano questo comportamento, raccolte sotto **Altri c
 | **Persone senza account** | **Ne ricevono uno al primo accesso**: entrano nei progetti collegati; se non ce n'è nessuno collegato, devono prima essere invitate. **Devono prima essere invitate**: le persone devono essere invitate in un progetto prima di poter accedere con questo provider, anche se ci sono progetti collegati. |
 | **Dove questo accesso vale come SSO** | **Ogni progetto**: i progetti che richiedono l'SSO accettano un accesso con questo provider. **Solo i progetti collegati**: accedere con questo provider soddisfa l'obbligo di SSO solo nei progetti collegati a esso, quindi chi ha già eseguito l'accesso può perdere l'accesso ad altri progetti. |
 
-Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
+Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati: nessuna delle due risposte aggiunge qualcuno a un progetto. Finché non è collegato nessun progetto con dei team, la pagina del provider indica sotto **Persone senza account** che nessuna nuova persona può ancora accedere.
 
 ## Indirizzi email che il tuo provider di identità non ha verificato
 
@@ -166,7 +166,7 @@ Due modifiche su chi può accedere vengono verificate una dopo l'altra. Se nello
 ## Risoluzione dei problemi
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona non ha ancora un account OneUptime e il provider non ne crea: o non ha progetti collegati, o **Persone senza account** è impostato su **Devono prima essere invitate**. Invitala in un progetto o collega un progetto al provider.
+La persona non ha ancora un account OneUptime e il provider non ne crea: o non ha nessun progetto collegato con dei team, o **Persone senza account** è impostato su **Devono prima essere invitate**. Invitala in un progetto o collega al provider un progetto, con i team in cui entra. Il log del server indica di quale dei due casi si tratta, senza nominare la persona.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

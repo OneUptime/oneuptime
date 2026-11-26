@@ -45,6 +45,18 @@ const exceptionsViewerMock: MockFunction = getJestMockFunction();
  * compiled requires, so the mock variables above are still unassigned when
  * the factory runs.
  */
+// A device's refused SNMPv3 traps read the device and its probe on their own (#11005).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceSnmpTrapRefusals",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

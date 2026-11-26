@@ -106,6 +106,51 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 
 Chart 内置 **KEDA**，因此应用、worker、探测器和全局 Runner 可以按队列积压自动伸缩。请同时开启 `keda.enabled` 和每个服务自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安装 KEDA 的集群上，第一次安装需要额外执行一轮：请参阅 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服务可以改用基于 CPU 或内存的自动伸缩器（`autoscaling`）。
 
+## 运行大量监视器
+
+每个探测器的每个 worker 都会分批向应用 Pod 索取到期的监视器，每个到期的监视器只会交给其中一个 worker。所有每分钟检查的监视器都在每分钟开始时一起到期，因此关键在于一整分钟的监视器能多快分发出去。以下数据是在 39,700 个监视器（28,200 个每分钟检查，11,500 个每五分钟检查）和一个有 20 个副本的探测器上测得的，每条数据库语句都像在繁忙的数据库上一样，比空闲机器慢 50 或 100 ms。
+
+### 以更大的批次分发监视器
+
+把每个探测器的获取上限（Helm Chart 中为 `monitorFetchLimit`，其他情况下为 `PROBE_MONITOR_FETCH_LIMIT`）从 10 提高到 50。这样每个请求以大致相同的成本分发五倍的监视器。在三个应用 Pod、语句慢 50 ms 的情况下，每分钟的 28,200 个监视器在 19 秒内分发完毕，上限为 10 时需要 44 秒；每五分钟到期的 39,700 个监视器也在 19 秒内分发完毕，上限为 10 时需要 57 秒。此时探测器的一个副本最多同时运行 worker 数 × 获取上限个检查，3 个 worker 时为 150 个：请为它提供相应的内存，或增加副本。
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### 保持调度上限的默认值
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS`（`app.probeSchedulingMaxConcurrentRequests`）是每个应用 Pod 同时处理的探测器请求数：其数据库连接池的五分之一，即 50 个中的 10 个。每个 Pod 都有自己的上限，所以你新增的应用 Pod 会带来各自的上限。在 39,700 个监视器同时到期、语句慢 100 ms 的情况下，一个探测器从一个应用 Pod 每秒获得 313 个监视器，三个 Pod 时为 659 个，六个时为 763 个；把上限提高到 20 多了 7%。单独一个探测器可以使用 Pod 的所有名额，相互竞争的探测器则公平分配名额。Test Monitor 运行有自己的 2 个名额，因此无论监视器多忙，测试都会在探测器每十秒一次的轮询内送达探测器。只有当探测器请求不断等待名额而数据库仍有余量时才提高上限，并同时提高该 Pod 的数据库连接池。
+
+### 一个探测器还是多个
+
+把每个监视器放在它需要从那里检查的探测器上。无论同时有多少副本请求，每个到期的监视器只交给其探测器的一个副本，所以一个有很多副本的探测器和很多探测器一样跟得上。如果监视器延迟而没有请求在等待名额，说明探测器不够：增加副本，或让 KEDA 按每个探测器到期的监视器数对其扩缩容。
+
+### 按探测器所等待的内容自动扩缩容
+
+应用端口上的 `/metrics/probe-scheduling` 汇总了每个应用 Pod 过去一分钟的情况。除 CPU 和内存外，用 KEDA 按其 `queueDepth` 扩缩应用 Pod，并在监视器分发延迟时发出告警：
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `queueDepth` | 当前所有应用 Pod 上等待名额的探测器请求数。连续数分钟大于 0：增加应用 Pod。 |
+| `slotWaitP95Ms` | 在最忙的应用 Pod 上，请求等待名额的时长。 |
+| `refusalsPerMinute` | 收到服务器繁忙答复的探测器请求数。 |
+| `dispatchLagP95Seconds` | 监视器在其间隔使其到期之后延迟了多久才分发出去。在没有请求等待时接近你最短的间隔：增加探测器副本。 |
+| `monitorsLateByAnIntervalPerMinute` | 延迟了整整一个间隔才分发的监视器：即被跳过的检查。 |
+| `monitorTestWaitP95Seconds` | Test Monitor 运行等待探测器的时长。 |
+
 ## 起步档位
 
 选择最接近您环境的档位作为起点，然后观察实际用量（`kubectl top pods`、ClickHouse 和 PostgreSQL 的磁盘增长）并调整。
