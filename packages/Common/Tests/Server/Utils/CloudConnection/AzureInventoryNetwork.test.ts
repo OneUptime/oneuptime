@@ -3,6 +3,7 @@ import AzureCloudConnector from "../../../../Server/Utils/CloudConnection/Azure/
 import {
   AZURE_LISTED_ONLY_TYPES,
   AZURE_NETWORK_SECURITY_GROUP_TYPE,
+  AZURE_NETWORK_SUBNET_COUNT_FIELD,
   AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS,
   AZURE_SUBNET_TYPE,
   AZURE_VIRTUAL_NETWORK_TYPE,
@@ -10,6 +11,8 @@ import {
   buildAzureInventoryItems,
   buildAzureInventoryQuery,
   buildAzureSubnetQuery,
+  describeAzureNetworksPastExpandedRows,
+  getAzureNetworksPastExpandedRows,
   networkSecurityGroupRules,
 } from "../../../../Server/Utils/CloudConnection/Azure/AzureInventory";
 import {
@@ -283,6 +286,8 @@ describe("the subnet query", () => {
       "networkSecurityGroupId = tostring(subnet.properties.networkSecurityGroup.id)",
       "routeTableId = tostring(subnet.properties.routeTable.id)",
       "delegations = subnet.properties.delegations",
+      // How many subnets the row's network holds: more than it expands says some went unlisted.
+      `${AZURE_NETWORK_SUBNET_COUNT_FIELD} = array_length(properties.subnets)`,
     ]) {
       expect(query).toContain(field);
     }
@@ -919,5 +924,127 @@ describe("a subscription's inventory, against a Resource Graph that reads its qu
         return listed.accountId;
       }),
     ).toEqual([SUB, STAGING]);
+  });
+
+  /*
+   * Azure lets a virtual network hold 3,000 subnets, and Resource Graph
+   * expands 2,000 of one row: the rest of a larger network's are not
+   * listed, so the subnets are not listed in full and none is taken for
+   * gone, and the inventory says which network.
+   */
+  test("a network of more subnets than Resource Graph expands: its subnets are listed as far as they go, none taken for gone, and the network named", async () => {
+    const crowded: Array<JSONObject> = subnets.map(
+      (entry: JSONObject): JSONObject => {
+        return { ...entry, [AZURE_NETWORK_SUBNET_COUNT_FIELD]: 2400 };
+      },
+    );
+    const result: CloudInventoryResult = await readInventory(
+      createFakeGraph({ main, subnets: crowded }),
+    );
+
+    expect(result.warnings).toEqual([
+      "The virtual network vnet-prod has 2400 subnets: the first 2000 are listed, the most Resource Graph lists of one network.",
+    ]);
+    expect(
+      result.items
+        .filter((entry: CloudInventoryItem): boolean => {
+          return entry.resource.resourceType === AZURE_SUBNET_TYPE;
+        })
+        .map((entry: CloudInventoryItem): string => {
+          return entry.displayName || "";
+        })
+        .sort(),
+    ).toEqual(["vnet-prod/apps", "vnet-prod/data"]);
+    expect(result.completelyListed[0]!.resourceTypes).not.toContain(
+      AZURE_SUBNET_TYPE,
+    );
+    expect(result.completelyListed[0]!.resourceTypes).toContain(
+      AZURE_NETWORK_SECURITY_GROUP_TYPE,
+    );
+    // The count is read, never kept as a property of the subnet.
+    expect(
+      Object.keys(itemOf(result.items, "vnet-prod/apps").properties || {}),
+    ).not.toContain(AZURE_NETWORK_SUBNET_COUNT_FIELD);
+  });
+
+  test("a network of exactly as many subnets as Resource Graph expands is listed in full", async () => {
+    const full: Array<JSONObject> = subnets.map(
+      (entry: JSONObject): JSONObject => {
+        return {
+          ...entry,
+          [AZURE_NETWORK_SUBNET_COUNT_FIELD]:
+            AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS,
+        };
+      },
+    );
+    const result: CloudInventoryResult = await readInventory(
+      createFakeGraph({ main, subnets: full }),
+    );
+
+    expect(result.warnings).toEqual([]);
+    expect(result.completelyListed[0]!.resourceTypes).toContain(
+      AZURE_SUBNET_TYPE,
+    );
+  });
+});
+
+describe("the networks whose subnets were not all listed", () => {
+  const NETWORK: string = `${RG}/providers/Microsoft.Network/virtualNetworks`;
+
+  function counted(
+    network: string,
+    subnet: string,
+    count: unknown,
+  ): JSONObject {
+    return subnetRow(`${NETWORK}/${network}/subnets/${subnet}`, {
+      [AZURE_NETWORK_SUBNET_COUNT_FIELD]: count as never,
+    });
+  }
+
+  test("are each named once, the most subnets first, and a network within the limit is not one", () => {
+    expect(
+      getAzureNetworksPastExpandedRows([
+        counted("vnet-a", "s1", 2001),
+        counted("vnet-a", "s2", 2001),
+        counted("vnet-b", "s1", 3000),
+        counted("vnet-c", "s1", 2000),
+        counted("vnet-d", "s1", 12),
+        counted("vnet-e", "s1", "2400"),
+        subnetRow(`${NETWORK}/vnet-f/subnets/s1`),
+      ]),
+    ).toEqual([
+      { name: "vnet-b", subnets: 3000 },
+      { name: "vnet-a", subnets: 2001 },
+    ]);
+  });
+
+  test("are none when no row counts more than Resource Graph expands", () => {
+    expect(getAzureNetworksPastExpandedRows([])).toEqual([]);
+    expect(
+      getAzureNetworksPastExpandedRows([counted("vnet-a", "s1", 1)]),
+    ).toEqual([]);
+  });
+
+  test("are said in one warning, naming five at most", () => {
+    expect(describeAzureNetworksPastExpandedRows([])).toBe("");
+    expect(
+      describeAzureNetworksPastExpandedRows([
+        { name: "vnet-b", subnets: 3000 },
+        { name: "vnet-a", subnets: 2001 },
+      ]),
+    ).toBe(
+      "2 virtual networks have more than 2000 subnets (vnet-b 3000, vnet-a 2001): the first 2000 of each are listed, the most Resource Graph lists of one network.",
+    );
+    expect(
+      describeAzureNetworksPastExpandedRows(
+        ["a", "b", "c", "d", "e", "f", "g"].map(
+          (name: string): { name: string; subnets: number } => {
+            return { name: `vnet-${name}`, subnets: 2500 };
+          },
+        ),
+      ),
+    ).toBe(
+      "7 virtual networks have more than 2000 subnets (vnet-a 2500, vnet-b 2500, vnet-c 2500, vnet-d 2500, vnet-e 2500 and 2 more): the first 2000 of each are listed, the most Resource Graph lists of one network.",
+    );
   });
 });

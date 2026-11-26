@@ -212,6 +212,13 @@ export function buildAzureInventoryQuery(): KqlText {
 export const AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS: number = 2000;
 
 /*
+ * Each subnet row's count of its virtual network's subnets. Azure lets a
+ * network hold 3,000, more than Resource Graph expands of one row: a row
+ * counting more says its network's subnets were not all listed.
+ */
+export const AZURE_NETWORK_SUBNET_COUNT_FIELD: string = "networkSubnetCount";
+
+/*
  * The subnets, read out of their virtual networks (#9375): Azure lists a
  * subnet inside its virtual network, never as a resource of its own. One
  * row each, shaped as the main query's rows are, with only what a subnet
@@ -234,8 +241,79 @@ export function buildAzureSubnetQuery(): KqlText {
     kql`  addressPrefixes = subnet.properties.addressPrefixes,`,
     kql`  networkSecurityGroupId = tostring(subnet.properties.networkSecurityGroup.id),`,
     kql`  routeTableId = tostring(subnet.properties.routeTable.id),`,
-    kql`  delegations = subnet.properties.delegations`,
+    kql`  delegations = subnet.properties.delegations,`,
+    kql`  networkSubnetCount = array_length(properties.subnets)`,
   ]);
+}
+
+/*
+ * The virtual networks whose subnets the subnet query could not all list -
+ * more than AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS of them - each once, by
+ * its name, with how many it holds: the most first.
+ */
+export function getAzureNetworksPastExpandedRows(
+  rows: ReadonlyArray<JSONObject>,
+): Array<{ name: string; subnets: number }> {
+  const networks: Map<string, { name: string; subnets: number }> = new Map();
+
+  for (const row of rows) {
+    const subnets: unknown = row[AZURE_NETWORK_SUBNET_COUNT_FIELD];
+
+    if (
+      typeof subnets !== "number" ||
+      !(subnets > AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS)
+    ) {
+      continue;
+    }
+
+    const id: string = text(row, "id");
+    const network: string = getAzureParentResourceId(id) || id;
+    // A subnet row is named "<network>/<subnet>".
+    const name: string = text(row, "name").split("/")[0] || network;
+
+    networks.set(network.toLowerCase(), { name, subnets });
+  }
+
+  return [...networks.values()].sort(
+    (
+      a: { name: string; subnets: number },
+      b: { name: string; subnets: number },
+    ): number => {
+      return b.subnets - a.subnets || a.name.localeCompare(b.name);
+    },
+  );
+}
+
+// Networks one warning names before "and N more".
+const MAX_NAMED_NETWORKS: number = 5;
+
+// What an inventory says of the networks whose subnets were not all listed.
+export function describeAzureNetworksPastExpandedRows(
+  networks: ReadonlyArray<{ name: string; subnets: number }>,
+): string {
+  const most: number = AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS;
+  const why: string = "the most Resource Graph lists of one network";
+
+  if (networks.length === 0) {
+    return "";
+  }
+
+  if (networks.length === 1) {
+    return `The virtual network ${networks[0]!.name} has ${networks[0]!.subnets} subnets: the first ${most} are listed, ${why}.`;
+  }
+
+  const named: string = networks
+    .slice(0, MAX_NAMED_NETWORKS)
+    .map((network: { name: string; subnets: number }): string => {
+      return `${network.name} ${network.subnets}`;
+    })
+    .join(", ");
+  const more: string =
+    networks.length > MAX_NAMED_NETWORKS
+      ? ` and ${networks.length - MAX_NAMED_NETWORKS} more`
+      : "";
+
+  return `${networks.length} virtual networks have more than ${most} subnets (${named}${more}): the first ${most} of each are listed, ${why}.`;
 }
 
 function text(row: JSONObject, key: string): string {
