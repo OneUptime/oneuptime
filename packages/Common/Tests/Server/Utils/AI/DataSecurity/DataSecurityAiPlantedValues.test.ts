@@ -2080,8 +2080,23 @@ const RUM_SOURCE_MAP_SERVICE_ID: string =
 const RUM_STORE_ID: string = "10933000-0000-4000-8000-0000000000b1";
 const RUM_ISSUE_ID: string = "10933000-0000-4000-8000-0000000000a1";
 
+// What is planted in a RUM application's reads, by name: each read of one is a string.
+type RumPlantedName =
+  | "logLine"
+  | "logLineAgain"
+  | "pagePath"
+  | "pageQuery"
+  | "stackMessage"
+  | "sessionLabel"
+  | "sessionTrait"
+  | "sessionAttribute"
+  | "replayDomText"
+  | "sourcesContent"
+  | "sessionId"
+  | "logId";
+
 // Each told apart by its first sixteen characters, as the search reads them.
-const RUM_PLANTED: Readonly<Record<string, string>> = {
+const RUM_PLANTED: Readonly<Record<RumPlantedName, string>> = {
   // One line of code, read with two values: only its words may go.
   logLine: "PLANTED-LOGLINE-ONE",
   logLineAgain: "PLANTED-LINETWO-RUM",
