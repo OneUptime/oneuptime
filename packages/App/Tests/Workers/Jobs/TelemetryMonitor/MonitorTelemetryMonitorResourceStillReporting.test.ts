@@ -18,6 +18,7 @@ import { MonitorStepPodmanMonitorUtil } from "Common/Types/Monitor/MonitorStepPo
 import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorType, {
   MonitorTypeHelper,
@@ -327,6 +328,22 @@ const WITH_A_HEARTBEAT: Partial<Record<MonitorType, HeartbeatCase>> = {
     },
     metricNames: ["purefa_info", "purefb_info"],
     scope: { "resource.storage.array.name": "array-01" },
+  },
+  [MonitorType.XcpNg]: {
+    step: (view: MetricsViewConfig): MonitorStep => {
+      return new MonitorStep().setXcpNgMonitor({
+        ...MonitorStepXcpNgMonitorUtil.getDefault(),
+        // Written in capitals: read as ingest stores it, lower-cased.
+        poolIdentifier: "1E8B7C4A-3F2D-4B6E-9A1C-0D5E7F9B2A3C",
+        metricViewConfig: view,
+        rollingTime: ROLLING_TIME,
+      });
+    },
+    // Xen Orchestra's own heartbeat for the pool, sent every scrape.
+    metricNames: ["xcp_pool_connected"],
+    scope: {
+      "resource.xcp_ng.pool.id": "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+    },
   },
 };
 

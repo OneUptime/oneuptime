@@ -43,6 +43,7 @@ import Service from "../../../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../../../Models/DatabaseModels/StorageArray";
 import TelemetryUsageBilling from "../../../../../Models/DatabaseModels/TelemetryUsageBilling";
 import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../../../Models/DatabaseModels/XcpNgPool";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
@@ -115,6 +116,7 @@ const RESOURCE_MODELS: ReadonlyArray<[string, ModelType]> = [
   ["CephCluster", CephCluster],
   ["StorageArray", StorageArray],
   ["VMwareVCenter", VMwareVCenter],
+  ["XcpNgPool", XcpNgPool],
   ["IoTFleet", IoTFleet],
   ["CloudResource", CloudResource],
   ["ServerlessFunction", ServerlessFunction],

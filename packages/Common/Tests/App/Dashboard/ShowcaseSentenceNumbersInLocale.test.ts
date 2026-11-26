@@ -477,6 +477,7 @@ const SENTENCE_NUMBERS: Record<string, Array<SentenceNumber>> = {
   "analytics-etl-02 waited for a CPU 12.4% of the time on esx-03.": [
     percent("12.4", 12.4),
   ],
+  "Xen Orchestra xo-paris · 3 hosts · 42 VMs": [count("3", 3), count("42", 42)],
 };
 
 // The sentences whose digits are all a name's, a version's or a code's.
@@ -512,6 +513,10 @@ const CODES_ONLY: Array<string> = [
   "VM · esx-01",
   "VM · esx-02",
   "VM · esx-04",
+  "VM · xcp-host-1",
+  "VM · xcp-host-2 · stopped after running",
+  "VM · xcp-host-3",
+  "ci-runner is Halted on xcp-host-2, though it was running this morning.",
 ];
 
 // A number a language says as a word: [key, language, the English number].

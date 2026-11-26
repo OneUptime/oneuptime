@@ -26,6 +26,8 @@ import { IoTResourceScope } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { KubernetesResourceScope } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { ProxmoxResourceScope } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepVMwareMonitor from "Common/Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepXcpNgMonitor from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
+import { XcpNgScope } from "Common/Types/XcpNg/XcpNgTelemetry";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -90,6 +92,9 @@ const MONITOR_TYPES_WITHOUT_STEP_CONFIG: Array<MonitorType> = [
   MonitorType.IncomingEmail,
   MonitorType.Profiles,
 ];
+
+// An XCP-ng pool, by the XAPI UUID its telemetry carries.
+const XCP_NG_POOL: string = "6b3e4a1c-2f9d-4e8b-a7c5-0d1e2f3a4b5c";
 
 const METRIC_VIEW_CONFIG: MetricsViewConfig = {
   queryConfigs: [
@@ -441,6 +446,18 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           },
           metricViewConfig: METRIC_VIEW_CONFIG,
           rollingTime: RollingTime.Past30Minutes,
+        },
+      });
+    case MonitorType.XcpNg:
+      return buildStep({
+        xcpNgMonitor: {
+          poolIdentifier: XCP_NG_POOL,
+          resourceFilters: {
+            scope: XcpNgScope.StorageRepository,
+            hostName: "xcp-host-01",
+          },
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past2Hours,
         },
       });
     case MonitorType.DockerSwarm:
@@ -1695,6 +1712,7 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     MonitorType.Proxmox,
     MonitorType.OpenStack,
     MonitorType.VMware,
+    MonitorType.XcpNg,
     MonitorType.DockerSwarm,
     MonitorType.Ceph,
     MonitorType.IoTDevice,
@@ -1804,6 +1822,104 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     expect(getRow(MonitorType.Proxmox, "proxmoxGuestId")?.value).toBe(
       "qemu/100",
     );
+  });
+
+  it("shows the XCP-ng pool by its UUID, its scope in the form's words, and every filter that is set", () => {
+    expect(getRow(MonitorType.XcpNg, "poolIdentifier")?.value).toBe(
+      XCP_NG_POOL,
+    );
+    // Never the bare "Pool", a Ceph or OpenStack storage pool's word.
+    expect(getRowTitles(MonitorType.XcpNg)).toContain("XCP-ng Pool");
+    expect(getRowTitles(MonitorType.XcpNg)).not.toContain("Pool");
+
+    // "sr" is drawn as the Resource Scope field names it, looked up.
+    const scope: MonitorStepViewRow | undefined = getRow(
+      MonitorType.XcpNg,
+      "xcpNgScope",
+    );
+    expect(scope?.value).toBe("Storage Repository");
+    expect(scope?.translateValue).toBe(true);
+
+    expect(getRow(MonitorType.XcpNg, "xcpNgHostName")?.value).toBe(
+      "xcp-host-01",
+    );
+    // A filter nobody set is not a row.
+    expect(getRow(MonitorType.XcpNg, "xcpNgId")).toBeUndefined();
+  });
+
+  it("names every XCP-ng scope in the form's words", () => {
+    const expected: Record<XcpNgScope, string> = {
+      [XcpNgScope.Pool]: "XCP-ng Pool",
+      [XcpNgScope.Host]: "Host",
+      [XcpNgScope.VM]: "VM",
+      [XcpNgScope.StorageRepository]: "Storage Repository",
+      [XcpNgScope.VDI]: "Virtual Disk",
+      [XcpNgScope.Xostor]: "XOSTOR",
+    };
+
+    for (const scope of Object.values(XcpNgScope)) {
+      const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+        monitorStep: buildStep({
+          xcpNgMonitor: {
+            poolIdentifier: XCP_NG_POOL,
+            resourceFilters: { scope: scope },
+            metricViewConfig: METRIC_VIEW_CONFIG,
+            rollingTime: RollingTime.Past5Minutes,
+          },
+        }),
+        monitorType: MonitorType.XcpNg,
+      });
+      const row: MonitorStepViewRow | undefined = rows.find(
+        (candidate: MonitorStepViewRow) => {
+          return candidate.key === "xcpNgScope";
+        },
+      );
+
+      expect({
+        scope,
+        value: row?.value,
+        translated: row?.translateValue,
+      }).toEqual({ scope, value: expected[scope], translated: true });
+    }
+  });
+
+  it("shows an XCP-ng scope the form does not offer as written, and a UUID filter", () => {
+    const xcpNgMonitor: MonitorStepXcpNgMonitor = {
+      poolIdentifier: XCP_NG_POOL,
+      resourceFilters: {
+        // Written through the API: no scope the form offers.
+        scope: "network" as XcpNgScope,
+        xcpNgId: "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      },
+      metricViewConfig: METRIC_VIEW_CONFIG,
+      rollingTime: RollingTime.Past5Minutes,
+    };
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({ xcpNgMonitor }),
+      monitorType: MonitorType.XcpNg,
+    });
+    const byKey: Record<string, MonitorStepViewRow> = {};
+    for (const row of rows) {
+      byKey[row.key] = row;
+    }
+
+    expect(byKey["xcpNgScope"]?.value).toBe("network");
+    expect(byKey["xcpNgScope"]?.translateValue).toBeUndefined();
+    expect(byKey["xcpNgId"]?.value).toBe(
+      "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    );
+    expect(byKey["xcpNgHostName"]).toBeUndefined();
+  });
+
+  it("shows an XCP-ng step that names no pool yet with its placeholder", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({}),
+      monitorType: MonitorType.XcpNg,
+    });
+
+    expect(rows[0]?.key).toBe("poolIdentifier");
+    expect(rows[0]?.value).toBeUndefined();
+    expect(rows[0]?.placeholder).toBe("No pool selected");
   });
 
   it("shows the OpenStack cloud and every resource filter that is set", () => {
@@ -2032,6 +2148,12 @@ describe("MonitorStepViewModel metric helpers", () => {
 
     expect(
       MonitorStepViewModel.getRollingTime(
+        buildStepForMonitorType(MonitorType.XcpNg),
+      ),
+    ).toBe(RollingTime.Past2Hours);
+
+    expect(
+      MonitorStepViewModel.getRollingTime(
         buildStepForMonitorType(MonitorType.API),
       ),
     ).toBeUndefined();
@@ -2049,6 +2171,7 @@ describe("MonitorStepViewModel metric helpers", () => {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
@@ -2086,6 +2209,7 @@ describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
     MonitorType.Proxmox,
     MonitorType.OpenStack,
     MonitorType.VMware,
+    MonitorType.XcpNg,
     MonitorType.DockerSwarm,
     MonitorType.Ceph,
     MonitorType.IoTDevice,
@@ -2204,6 +2328,18 @@ describe("MonitorStepViewModel.getEvaluatedMetricsViewConfig", () => {
       expect(attributes).toMatchObject({
         "resource.proxmox.cluster.name": "pve-cluster",
         id: "qemu/100",
+      });
+    }
+  });
+
+  it("narrows an XCP-ng monitor's queries to its pool, by UUID, and its filters", () => {
+    for (const attributes of attributesOf(
+      evaluated(MonitorType.XcpNg, buildStepForMonitorType(MonitorType.XcpNg)),
+    )) {
+      expect(attributes).toMatchObject({
+        "resource.xcp_ng.pool.id": XCP_NG_POOL,
+        "xcp_ng.scope": "sr",
+        host_name: "xcp-host-01",
       });
     }
   });

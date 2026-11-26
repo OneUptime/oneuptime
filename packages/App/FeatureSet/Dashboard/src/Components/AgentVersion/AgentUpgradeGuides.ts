@@ -51,6 +51,11 @@ import {
   getStorageArrayAgentDownloadCommand,
   getStorageArrayAgentUpgradeCommand,
 } from "../../Pages/StorageArray/Utils/DocumentationMarkdown";
+import {
+  XCP_NG_AGENT_RECREATE_COMMAND,
+  getXcpNgAgentDownloadCommand,
+  getXcpNgAgentUpgradeCommand,
+} from "../../Pages/XcpNg/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../Runner/RunnerImage";
 import {
   doesInstallScriptStartResourceAiAgent,
@@ -331,8 +336,8 @@ interface InstallScriptAgentCommands {
 }
 
 /*
- * The Proxmox, Ceph and VMware agents: the stock collector plus a config,
- * pinned in the docker-compose.yml beside it. Their install scripts reuse
+ * The Proxmox, Ceph, VMware and XCP-ng agents: the stock collector plus a
+ * config, pinned in the docker-compose.yml beside it. Their install scripts reuse
  * the .env they find (nothing is asked again), download both files and
  * recreate the containers, so running one again is the upgrade (the
  * Proxmox and Ceph scripts also keep a file the reader edited as
@@ -767,6 +772,16 @@ export function getAgentUpgradeGuide(
       });
     case AgentKind.StorageArrayAgent:
       return getStorageArrayAgentGuide(oneuptimeUrl);
+    /*
+     * One agent reads every pool of its Xen Orchestra: upgrading it from
+     * any of those pools upgrades it for all of them.
+     */
+    case AgentKind.XcpNgAgent:
+      return getInstallScriptAgentGuide({
+        upgrade: getXcpNgAgentUpgradeCommand(oneuptimeUrl),
+        download: getXcpNgAgentDownloadCommand(oneuptimeUrl),
+        recreate: XCP_NG_AGENT_RECREATE_COMMAND,
+      });
     default:
       return null;
   }

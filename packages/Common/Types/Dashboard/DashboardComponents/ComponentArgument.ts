@@ -44,6 +44,7 @@ export enum EntityFilterModelType {
   PodmanHost = "PodmanHost",
   ProxmoxCluster = "ProxmoxCluster",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",

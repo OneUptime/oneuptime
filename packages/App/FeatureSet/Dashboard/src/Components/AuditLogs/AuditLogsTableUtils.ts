@@ -360,6 +360,12 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     bgColor: "bg-emerald-50 border-emerald-100",
     viewRoute: PageMap.VMWARE_VCENTER_VIEW,
   },
+  "XCP-ng Pool": {
+    icon: IconProp.XcpNg,
+    color: "text-fuchsia-700",
+    bgColor: "bg-fuchsia-50 border-fuchsia-100",
+    viewRoute: PageMap.XCP_NG_POOL_VIEW,
+  },
   "Inventory Item": {
     icon: IconProp.Cube,
     color: "text-gray-700",

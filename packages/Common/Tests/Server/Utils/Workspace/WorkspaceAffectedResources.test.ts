@@ -185,6 +185,7 @@ describe("the kinds a chat's Declare Incident form offers", () => {
       "ProxmoxCluster",
       "OpenStackCloud",
       "VMwareVCenter",
+      "XcpNgPool",
       "CephCluster",
       "StorageArray",
       "DockerSwarmCluster",

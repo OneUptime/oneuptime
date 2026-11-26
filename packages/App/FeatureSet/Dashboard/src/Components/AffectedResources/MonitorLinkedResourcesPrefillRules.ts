@@ -39,6 +39,7 @@ export const MONITOR_LINKED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "OpenStackCloud",
   "VMwareVCenter",
+  "XcpNgPool",
   "CephCluster",
   "StorageArray",
   "DockerSwarmCluster",
@@ -56,6 +57,7 @@ export type MonitorLinkedResourceKey =
   | "proxmoxClusters"
   | "openStackClouds"
   | "vmwareVCenters"
+  | "xcpNgPools"
   | "cephClusters"
   | "storageArrays"
   | "dockerSwarmClusters"
@@ -73,6 +75,7 @@ export const MONITOR_LINKED_RESOURCE_KEYS: Array<MonitorLinkedResourceKey> = [
   "proxmoxClusters",
   "openStackClouds",
   "vmwareVCenters",
+  "xcpNgPools",
   "cephClusters",
   "storageArrays",
   "dockerSwarmClusters",
@@ -122,6 +125,7 @@ export const MONITOR_LINKED_RESOURCES_SELECT: Record<
   proxmoxClusters: { _id: true, name: true },
   openStackClouds: { _id: true, name: true },
   vmwareVCenters: { _id: true, name: true },
+  xcpNgPools: { _id: true, name: true },
   cephClusters: { _id: true, name: true },
   storageArrays: { _id: true, name: true },
   dockerSwarmClusters: { _id: true, name: true },
@@ -261,6 +265,7 @@ export function buildPrefillPayload(data: {
     proxmoxClusters: undefined,
     openStackClouds: undefined,
     vmwareVCenters: undefined,
+    xcpNgPools: undefined,
     cephClusters: undefined,
     storageArrays: undefined,
     dockerSwarmClusters: undefined,

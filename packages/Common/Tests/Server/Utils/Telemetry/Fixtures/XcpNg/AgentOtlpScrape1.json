@@ -1,0 +1,13750 @@
+{
+"resourceMetrics": [
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.165.0"
+}
+},
+{
+"key": "server.address",
+"value": {
+"stringValue": "xo.example.test"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "443"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "https"
+}
+},
+{
+"key": "xcp_ng.pool.id",
+"value": {
+"stringValue": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1"
+}
+},
+{
+"key": "xen_orchestra.name",
+"value": {
+"stringValue": "xo-behaviour"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.165.0"
+},
+"metrics": [
+{
+"name": "xcp_host_cpu_average",
+"description": "Host average CPU usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.08
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_cpu_core_usage",
+"description": "Host CPU core usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.08
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.09
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iops_read",
+"description": "Host disk read IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 120
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iops_total",
+"description": "Total IOPS (read + write) per SR",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 430
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iops_write",
+"description": "Host disk write IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 310
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iowait",
+"description": "Host disk IO wait ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.012
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_latency_seconds",
+"description": "Combined I/O latency per SR in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0029
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_read_latency_seconds",
+"description": "Host disk read latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0021
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_throughput_read_bytes",
+"description": "Host disk read throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 3670016
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_throughput_total_bytes",
+"description": "Total I/O throughput per SR in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 11272192
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_throughput_write_bytes",
+"description": "Host disk write throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 7602176
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_write_latency_seconds",
+"description": "Host disk write latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "77aa88bb"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0034
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_load",
+"description": "Normalized host load",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.088
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_load_average",
+"description": "Host load average",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.32
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_free_bytes",
+"description": "Host free memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 42949672960
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_reclaimed_bytes",
+"description": "Reclaimed host memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_reclaimed_max_bytes",
+"description": "Maximum reclaimable host memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_total_bytes",
+"description": "Host total memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 68719476736
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_aggregated_receive_bytes",
+"description": "Aggregated received bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1873421.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_aggregated_transmit_bytes",
+"description": "Aggregated transmitted bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 958231.75
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_receive_bytes_total",
+"description": "Host network interface received bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "interface",
+"value": {
+"stringValue": "eth0"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1873421.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_transmit_bytes_total",
+"description": "Host network interface transmitted bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "interface",
+"value": {
+"stringValue": "eth0"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 958231.75
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_host_running_vcpus",
+"description": "Total number of running vCPUs",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 3
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_status",
+"description": "Host status (1 = current state)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "power_state",
+"value": {
+"stringValue": "Running"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_uptime_seconds",
+"description": "Host uptime in seconds since boot",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 259200
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_pool_connected",
+"description": "Indicates if a pool is connected (1) or not (0)",
+"gauge": {
+"dataPoints": [
+{
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_sr_physical_size_bytes",
+"description": "SR physical size in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 268435456000
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_sr_physical_usage_bytes",
+"description": "SR physical space used in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 42949672960
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_sr_virtual_size_bytes",
+"description": "SR virtual allocated size in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 64424509440
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vdi_physical_usage_bytes",
+"description": "VDI physical space used in bytes (allocated on SR)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "dd44ee55-ff66-4077-8188-229900112233"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+},
+{
+"key": "vm_uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 3221225472
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vdi_virtual_size_bytes",
+"description": "VDI virtual size in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "77aa88bb-99cc-4ddd-8eee-ff0011223344"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "dd44ee55-ff66-4077-8188-229900112233"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+},
+{
+"key": "vm_uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 10737418240
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_cpu_core_usage",
+"description": "VM CPU core usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.24
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_cpu_usage",
+"description": "VM CPU usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.24
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_inflight",
+"description": "VM disk inflight operations",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iops_read",
+"description": "VM disk read IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 42
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iops_total",
+"description": "VM disk total IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 139
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iops_write",
+"description": "VM disk write IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 97
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iowait",
+"description": "VM disk IO wait ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_latency_seconds",
+"description": "VM disk average IO latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0031
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_queue_size",
+"description": "VM disk average queue size",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.02
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_read_bytes_total",
+"description": "VM disk read bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2097152
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_read_latency_seconds",
+"description": "VM disk read latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0018
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_throughput_read_bytes",
+"description": "VM disk read throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2097152
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_throughput_total_bytes",
+"description": "VM disk total throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 6291456
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_throughput_write_bytes",
+"description": "VM disk write throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4194304
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_write_bytes_total",
+"description": "VM disk write bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4194304
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_write_latency_seconds",
+"description": "VM disk write latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "ext"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "lab-vm-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0041
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_memory_bytes",
+"description": "VM memory usage in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1073741824
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1073741824
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_memory_internal_free_bytes",
+"description": "VM internal free memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 375809638
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_memory_target_bytes",
+"description": "VM memory target in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1073741824
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1073741824
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_receive_bytes_total",
+"description": "VM network interface received bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 524288.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_receive_errors_total",
+"description": "VM network interface receive errors",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_transmit_bytes_total",
+"description": "VM network interface transmitted bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 262144
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_transmit_errors_total",
+"description": "VM network interface transmit errors",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_blocked",
+"description": "VM runstate blocked ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.76
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.95
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_concurrency_hazard",
+"description": "VM runstate concurrency hazard ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.001
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.001
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_full_contention",
+"description": "VM runstate full contention ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_fullrun",
+"description": "VM runstate fullrun ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.192
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.04
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_partial_contention",
+"description": "VM runstate partial contention ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.003
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.003
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_partial_run",
+"description": "VM runstate partial run ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-lab-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-lab-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_status",
+"description": "VM power state indicator (always 1; current state is carried by the power_state label)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "power_state",
+"value": {
+"stringValue": "Running"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_uptime_seconds",
+"description": "VM uptime in seconds since boot",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "uuid",
+"value": {
+"stringValue": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "lab-vm-01"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 172800
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+}
+]
+}
+]
+},
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.165.0"
+}
+},
+{
+"key": "server.address",
+"value": {
+"stringValue": "xo.example.test"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "443"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "https"
+}
+},
+{
+"key": "xcp_ng.pool.id",
+"value": {
+"stringValue": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+}
+},
+{
+"key": "xcp_ng.pool.name",
+"value": {
+"stringValue": "Production"
+}
+},
+{
+"key": "xen_orchestra.name",
+"value": {
+"stringValue": "xo-behaviour"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.165.0"
+},
+"metrics": [
+{
+"name": "xcp_host_cpu_average",
+"description": "Host average CPU usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.62
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.35
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_cpu_core_usage",
+"description": "Host CPU core usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.62
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.35
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.63
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.36
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "2"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.64
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "2"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.37
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "3"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.65
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "3"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.38
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iops_read",
+"description": "Host disk read IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 120
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 120
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 120
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iops_total",
+"description": "Total IOPS (read + write) per SR",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 430
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 430
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 430
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iops_write",
+"description": "Host disk write IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 310
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 310
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 310
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_iowait",
+"description": "Host disk IO wait ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.012
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.012
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.012
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_latency_seconds",
+"description": "Combined I/O latency per SR in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0612
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0029
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0612
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_read_latency_seconds",
+"description": "Host disk read latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0021
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0021
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0021
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_throughput_read_bytes",
+"description": "Host disk read throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 3670016
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 3670016
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 3670016
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_throughput_total_bytes",
+"description": "Total I/O throughput per SR in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 11272192
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 11272192
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 11272192
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_throughput_write_bytes",
+"description": "Host disk write throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 7602176
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 7602176
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 7602176
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_disk_write_latency_seconds",
+"description": "Host disk write latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0743
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "ad4b8c63"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0034
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "sr",
+"value": {
+"stringValue": "1d2c3b4a"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0743
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_load",
+"description": "Normalized host load",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.682
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.385
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_load_average",
+"description": "Host load average",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2.48
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1.4
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_free_bytes",
+"description": "Host free memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 9663676416
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 42949672960
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_reclaimed_bytes",
+"description": "Reclaimed host memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_reclaimed_max_bytes",
+"description": "Maximum reclaimable host memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_memory_total_bytes",
+"description": "Host total memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 68719476736
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 68719476736
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_aggregated_receive_bytes",
+"description": "Aggregated received bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1873421.5
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1873421.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_aggregated_transmit_bytes",
+"description": "Aggregated transmitted bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 958231.75
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 958231.75
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_receive_bytes_total",
+"description": "Host network interface received bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "interface",
+"value": {
+"stringValue": "eth0"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1873421.5
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "interface",
+"value": {
+"stringValue": "eth0"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1873421.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_host_network_transmit_bytes_total",
+"description": "Host network interface transmitted bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "interface",
+"value": {
+"stringValue": "eth0"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 958231.75
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "interface",
+"value": {
+"stringValue": "eth0"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 958231.75
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_host_running_vcpus",
+"description": "Total number of running vCPUs",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 6
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "host"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 8
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_status",
+"description": "Host status (1 = current state)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "enabled",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "power_state",
+"value": {
+"stringValue": "Running"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "power_state",
+"value": {
+"stringValue": "Running"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-03"
+}
+},
+{
+"key": "power_state",
+"value": {
+"stringValue": "Halted"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "f0e1d2c3-b4a5-4968-8776-655443322110"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_host_uptime_seconds",
+"description": "Host uptime in seconds since boot",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "rack-a"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 864000
+},
+{
+"attributes": [
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 18000
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_pool_connected",
+"description": "Indicates if a pool is connected (1) or not (0)",
+"gauge": {
+"dataPoints": [
+{
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_sr_physical_size_bytes",
+"description": "SR physical size in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "iso"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "XCP-ng Tools"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "iso"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "c0ffee00-1111-4222-8333-444455556666"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 536870912000
+},
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "shared-storage"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 2199023255552
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_sr_physical_usage_bytes",
+"description": "SR physical space used in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "iso"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "XCP-ng Tools"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "iso"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "c0ffee00-1111-4222-8333-444455556666"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 128849018880
+},
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "shared-storage"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 2034096511386
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_sr_virtual_size_bytes",
+"description": "SR virtual allocated size in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "iso"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "XCP-ng Tools"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "iso"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "c0ffee00-1111-4222-8333-444455556666"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "Local storage"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "lvm"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "ad4b8c63-1f2e-4d3c-8b4a-596877665544"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 214748364800
+},
+{
+"attributes": [
+{
+"key": "content_type",
+"value": {
+"stringValue": "user"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "shared-storage"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 2858730232218
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vdi_physical_usage_bytes",
+"description": "VDI physical space used in bytes (allocated on SR)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "bb22cc33-dd44-4e55-8f66-007788990011"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+},
+{
+"key": "vm_uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 65498251264
+},
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "old-backup"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "cc33dd44-ee55-4f66-8077-118899001122"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 53687091200
+},
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "aa11bb22-cc33-4d44-8e55-ff6677889900"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+},
+{
+"key": "vm_uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 8589934592
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vdi_virtual_size_bytes",
+"description": "VDI virtual size in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "bb22cc33-dd44-4e55-8f66-007788990011"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+},
+{
+"key": "vm_uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 107374182400
+},
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "old-backup"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "cc33dd44-ee55-4f66-8077-118899001122"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 53687091200
+},
+{
+"attributes": [
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "sr_uuid",
+"value": {
+"stringValue": "1d2c3b4a-5e6f-4789-9abc-def012345678"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vdi_uuid",
+"value": {
+"stringValue": "aa11bb22-cc33-4d44-8e55-ff6677889900"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+},
+{
+"key": "vm_uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 21474836480
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_cpu_core_usage",
+"description": "VM CPU core usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.71
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.24
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.71
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.24
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "2"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.71
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "2"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "2"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "3"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.71
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "3"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "core",
+"value": {
+"stringValue": "3"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_cpu_usage",
+"description": "VM CPU usage ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.71
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.24
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_inflight",
+"description": "VM disk inflight operations",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iops_read",
+"description": "VM disk read IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 42
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 42
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iops_total",
+"description": "VM disk total IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 139
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 139
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iops_write",
+"description": "VM disk write IOPS",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 97
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 97
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_iowait",
+"description": "VM disk IO wait ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_latency_seconds",
+"description": "VM disk average IO latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0031
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0031
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_queue_size",
+"description": "VM disk average queue size",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.02
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.02
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_read_bytes_total",
+"description": "VM disk read bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2097152
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2097152
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_read_latency_seconds",
+"description": "VM disk read latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0018
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0018
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_throughput_read_bytes",
+"description": "VM disk read throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2097152
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2097152
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_throughput_total_bytes",
+"description": "VM disk total throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 6291456
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 6291456
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_throughput_write_bytes",
+"description": "VM disk write throughput in bytes per second",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4194304
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4194304
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_write_bytes_total",
+"description": "VM disk write bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4194304
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4194304
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_disk_write_latency_seconds",
+"description": "VM disk write latency in seconds",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "db-01 data"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0041
+},
+{
+"attributes": [
+{
+"key": "device",
+"value": {
+"stringValue": "xvda"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "sr_name",
+"value": {
+"stringValue": "NFS VM store"
+}
+},
+{
+"key": "sr_type",
+"value": {
+"stringValue": "nfs"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vdi_name",
+"value": {
+"stringValue": "web-01 system"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.0041
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_memory_bytes",
+"description": "VM memory usage in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 17179869184
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4294967296
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_memory_internal_free_bytes",
+"description": "VM internal free memory in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 6012954214
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 1503238554
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_memory_target_bytes",
+"description": "VM memory target in bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 17179869184
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 4294967296
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 2147483648
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_receive_bytes_total",
+"description": "VM network interface received bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 524288.5
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 524288.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_receive_errors_total",
+"description": "VM network interface receive errors",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.5
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.5
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_transmit_bytes_total",
+"description": "VM network interface transmitted bytes",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 262144
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 262144
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_network_transmit_errors_total",
+"description": "VM network interface transmit errors",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "Pool-wide network associated with eth0"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vif",
+"value": {
+"stringValue": "0"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "counter"
+}
+}
+]
+},
+{
+"name": "xcp_vm_power_consumption_watts",
+"description": "Estimated VM power consumption in watts (estimate, host power split by CPU load)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "estimate",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 241
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_blocked",
+"description": "VM runstate blocked ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.29
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.95
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.76
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.95
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_concurrency_hazard",
+"description": "VM runstate concurrency hazard ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.001
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.001
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.001
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.001
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_full_contention",
+"description": "VM runstate full contention ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.142
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.004
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_fullrun",
+"description": "VM runstate fullrun ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.568
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.04
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.192
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.04
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_partial_contention",
+"description": "VM runstate partial contention ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.003
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.003
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.003
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.003
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_runstate_partial_run",
+"description": "VM runstate partial run ratio",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-02"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-02"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+},
+{
+"attributes": [
+{
+"key": "host_id",
+"value": {
+"stringValue": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d"
+}
+},
+{
+"key": "host_name",
+"value": {
+"stringValue": "xcp-prod-01"
+}
+},
+{
+"key": "is_control_domain",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "type",
+"value": {
+"stringValue": "vm"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "Control domain on host: xcp-prod-01"
+}
+}
+],
+"timeUnixNano": "1794999900000000000",
+"asDouble": 0.05
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_status",
+"description": "VM power state indicator (always 1; current state is carried by the power_state label)",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "power_state",
+"value": {
+"stringValue": "Halted"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "app-02"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "power_state",
+"value": {
+"stringValue": "Running"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "power_state",
+"value": {
+"stringValue": "Running"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "power_state",
+"value": {
+"stringValue": "Suspended"
+}
+},
+{
+"key": "tags",
+"value": {
+"stringValue": "windows"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "win-03"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "xcp_vm_uptime_seconds",
+"description": "VM uptime in seconds since boot",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "tags",
+"value": {
+"stringValue": "production"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "db-01"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 14400
+},
+{
+"attributes": [
+{
+"key": "tags",
+"value": {
+"stringValue": "production,web"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c"
+}
+},
+{
+"key": "vm_name",
+"value": {
+"stringValue": "web-01"
+}
+}
+],
+"timeUnixNano": "1795000000000000000",
+"asDouble": 172800
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+}
+]
+}
+]
+}
+]
+}

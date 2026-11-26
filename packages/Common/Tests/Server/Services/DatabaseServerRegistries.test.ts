@@ -54,6 +54,7 @@ import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterServic
 import ServiceService from "../../../Server/Services/ServiceService";
 import TelemetryUsageBillingService from "../../../Server/Services/TelemetryUsageBillingService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import OwnerTableRegistry, {
   OwnerTablePair,
 } from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
@@ -467,6 +468,7 @@ describe("TelemetryUsageBillingService.buildTelemetryRetentionMap", () => {
       ProxmoxClusterService,
       OpenStackCloudService,
       VMwareVCenterService,
+      XcpNgPoolService,
       CephClusterService,
       StorageArrayService,
       IoTFleetService,

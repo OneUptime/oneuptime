@@ -134,6 +134,8 @@ beforeAll(async () => {
       PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.VMware]:
       PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.XcpNg]:
+      PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.Ceph]:
       PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.StorageArray]:

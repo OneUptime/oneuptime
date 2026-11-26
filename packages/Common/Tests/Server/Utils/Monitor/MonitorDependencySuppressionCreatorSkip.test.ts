@@ -261,6 +261,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         iotFleetIds: [],
         databaseServerIds: [],
         storageArrayIds: [],
+        xcpNgPoolIds: [],
         cloudResourceIds: [],
         networkDeviceIds: [],
       }) as unknown as SpyLike;

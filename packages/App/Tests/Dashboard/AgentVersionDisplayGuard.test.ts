@@ -123,6 +123,20 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index.tsx": [
     "StorageArrayAgent",
   ],
+  /*
+   * An XCP-ng pool's Settings: the agent beside the Xen Orchestra it is read
+   * from, among where the pool is read from.
+   */
+  "packages/App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Settings.tsx": [
+    "XcpNgAgent",
+  ],
+  /*
+   * An XCP-ng pool's Overview: in its hero, where the pool is read from,
+   * and in its Pool Details.
+   */
+  "packages/App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Index.tsx": [
+    "XcpNgAgent",
+  ],
   "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Index.tsx": [
     "IoTExporter",
   ],

@@ -50,7 +50,7 @@ OneUptime は 3 時間ごとに、種類ごとの期間より長く沈黙して�
 | --- | --- |
 | Pod、Deployment、Proxmox ゲスト、OpenStack インスタンス、VMware 仮想マシン | 1 日 |
 | Kubernetes のノードと名前空間、Proxmox ノード、OpenStack ハイパーバイザー、VMware のホスト、クラスター、データストア、そしてトレースが呼び出すデータベースとリモートサービス | 7 日 |
-| サービス、ホスト、Kubernetes・Proxmox・Ceph のクラスター、OpenStack クラウド、ストレージアレイ、vCenter、Docker Swarm クラスター | 30 日 |
+| サービス、ホスト、Kubernetes・Proxmox・Ceph のクラスター、OpenStack クラウド、ストレージアレイ、vCenter、XCP-ng プール、Docker Swarm クラスター | 30 日 |
 
 OneUptime が検出した関係は、30 日間再び確認されないと削除されます。
 

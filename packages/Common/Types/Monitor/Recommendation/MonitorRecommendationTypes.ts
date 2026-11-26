@@ -35,6 +35,8 @@ export enum MonitorRecommendationResourceType {
   Proxmox = "Proxmox",
   OpenStack = "OpenStack",
   VMware = "VMware",
+  // An XCP-ng pool (the XcpNgPool model), scoped by its XAPI UUID.
+  XcpNg = "XcpNg",
   Ceph = "Ceph",
   /*
    * A storage array (the StorageArray model). Its recommendation set depends
@@ -397,6 +399,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   clusterIdentifier -> Kubernetes, DockerSwarm, Proxmox, Ceph
  *   cloudIdentifier   -> OpenStack
  *   vcenterIdentifier -> VMware
+ *   poolIdentifier    -> XCP-ng
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice
  *   arrayIdentifier   -> Storage array

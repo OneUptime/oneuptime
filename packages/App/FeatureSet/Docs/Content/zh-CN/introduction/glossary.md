@@ -162,7 +162,7 @@ OneUptime 在项目中可以联系到你的地址：邮箱地址、用于短信�
 
 ### 基础设施
 
-菜单中汇集你所运行的机器和平台的一组：主机、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、Ceph、存储阵列、网络和 IoT。每一项都由代理或连接填充，并显示其中每台机器、每个集群或每台设备的运行状况。
+菜单中汇集你所运行的机器和平台的一组：主机、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、XCP-ng、Ceph、存储阵列、网络和 IoT。每一项都由代理或连接填充，并显示其中每台机器、每个集群或每台设备的运行状况。
 
 参见 [主机](/docs/telemetry/hosts)。
 

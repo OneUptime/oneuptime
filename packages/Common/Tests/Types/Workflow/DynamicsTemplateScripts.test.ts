@@ -1116,7 +1116,7 @@ describe.each(KINDS)(
             configurationItemColumn: ITEM_COLUMN,
           }),
           replaceInCode(
-            `const CONFIGURATION_ITEM_PRECEDENCE = ['hosts', 'networkDevices', 'kubernetesClusters', 'dockerHosts', 'podmanHosts', 'proxmoxClusters', 'openStackClouds', 'vmwareVCenters', 'cephClusters', 'storageArrays', 'dockerSwarmClusters', 'iotFleets', 'databaseServers', 'cloudResources', 'services', 'serviceLevelObjectives', '${kind.monitorRelation}'];`,
+            `const CONFIGURATION_ITEM_PRECEDENCE = ['hosts', 'networkDevices', 'kubernetesClusters', 'dockerHosts', 'podmanHosts', 'proxmoxClusters', 'openStackClouds', 'vmwareVCenters', 'xcpNgPools', 'cephClusters', 'storageArrays', 'dockerSwarmClusters', 'iotFleets', 'databaseServers', 'cloudResources', 'services', 'serviceLevelObjectives', '${kind.monitorRelation}'];`,
             `const CONFIGURATION_ITEM_PRECEDENCE = ['${kind.monitorRelation}', 'kubernetesClusters'];`,
           ),
         ),

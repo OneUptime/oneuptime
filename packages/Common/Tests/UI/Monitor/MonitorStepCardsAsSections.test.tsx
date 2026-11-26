@@ -220,6 +220,17 @@ jest.mock(
   },
 );
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMonitorStepForm",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMonitorStepForm",
   () => {
     return {
