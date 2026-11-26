@@ -58,6 +58,9 @@ import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/Da
 import DataSecurityFindingVerdicts from "../../../../../Server/Utils/AI/DataSecurity/FindingVerdicts";
 import DataTypeDiscovery from "../../../../../Server/Utils/AI/DataSecurity/DataTypeDiscovery";
 import DataTypeFromSentence from "../../../../../Server/Utils/AI/DataSecurity/DataTypeFromSentence";
+import RuleFromSentence from "../../../../../Server/Utils/AI/DataSecurity/RuleFromSentence";
+import LabelService from "../../../../../Server/Services/LabelService";
+import TeamService from "../../../../../Server/Services/TeamService";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
@@ -92,6 +95,7 @@ import {
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import DataSecurityIssueCodeFix from "../../../../../Server/Utils/DataSecurity/DataSecurityIssueCodeFix";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import {
@@ -1267,6 +1271,14 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
     return sentToTheModel();
   },
   [DataSecurityAiFeature.FixIssue]: async (): Promise<string> => {
+    /*
+     * No fix on its way yet: a second press returns the first (#10378),
+     * and what that reads is not what this test is about.
+     */
+    jest
+      .spyOn(DataSecurityIssueCodeFix, "read")
+      .mockResolvedValue({ fix: null } as never);
+
     for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
       const sent: SentRequest = await post(
         DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId),
@@ -1764,6 +1776,61 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  /*
+   * A rule from a person's sentence (#10378): the sentence, OneUptime's
+   * own catalogs and the names of the project's labels and teams, read as
+   * the person - never a store, a finding or what one holds, and nothing
+   * else a label or a team keeps.
+   */
+  [DataSecurityAiFeature.DraftRuleFromSentence]: async (): Promise<string> => {
+    useInMemoryTable(asService(LabelService), [
+      {
+        _id: "10378000-0000-4000-8000-0000000000e1",
+        projectId: PROJECT_ID.toString(),
+        name: "PCI",
+        description: PLANTED["description"]!,
+      },
+    ]);
+    useInMemoryTable(asService(TeamService), [
+      {
+        _id: "10378000-0000-4000-8000-0000000000e2",
+        projectId: PROJECT_ID.toString(),
+        name: "Payments",
+        description: PLANTED["description"]!,
+      },
+    ]);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        rule: {
+          kind: "residency",
+          name: "EU personal data stays in the EU",
+          description: "Personal data is kept only in EU regions.",
+          dataCategories: [],
+          subjectCountries: [],
+          allowedRegions: ["eu-*", "europe-*"],
+          nameRegexPattern: null,
+          descriptionRegexPattern: null,
+          cloudTagPattern: null,
+          matchLabels: [],
+          owners: [],
+          labelsToAdd: [],
+        },
+        reason: "The sentence keeps personal data in the EU.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 40, totalTokens: 340 },
+    });
+
+    await RuleFromSentence.draft({
+      projectId: PROJECT_ID,
+      userId: OWNER.userId!,
+      sentence: "EU personal data must stay in the EU",
+      props: OWNER,
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
 };
 
 /*
@@ -1891,6 +1958,12 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
   ],
   // The person's sentence, and their examples' shapes.
   [DataSecurityAiFeature.DescribeDataType]: ["customer numbers", "AA-999999"],
+  // The sentence, and the names a rule may use: a label and a team (#10378).
+  [DataSecurityAiFeature.DraftRuleFromSentence]: [
+    "EU personal data must stay in the EU",
+    "PCI",
+    "Payments",
+  ],
 };
 
 describe("no feature's input carries a value planted where a record keeps one", () => {
@@ -2219,7 +2292,7 @@ function useRumTables(): void {
  * planted - one line of code, read twice with different values.
  */
 function plantedRumLogRows(): Array<JSONObject> {
-  return [RUM_PLANTED["logLine"], RUM_PLANTED["logLineAgain"]].map(
+  return [RUM_PLANTED["logLine"]!, RUM_PLANTED["logLineAgain"]!].map(
     (value: string, index: number): JSONObject => {
       return {
         recordTime: 1795000000000 + index,
@@ -2411,5 +2484,222 @@ describe("a RUM application's leaks reach OneUptime AI without a value in them (
         selected: false,
       });
     }
+  });
+});
+
+/*
+ * A LINE READ FROM ONE RECORD, A PERSON'S NAME IN IT (#11098): Fix with AI
+ * and the plan before it, over HTTP, for a service's log and a RUM
+ * application's browser log - each finding seen in a single record whose
+ * line holds a name no detector names, and a RUM page whose path holds one.
+ * Nothing aligns one record with another, so only the words code writes
+ * log lines with may go: never the name, in the plan the Dashboard shows or
+ * in the request the code agent is handed (and its pull request is written
+ * from).
+ */
+const ONE_RECORD_NAME: Readonly<Record<string, string>> = {
+  given: "Ottilie",
+  family: "Quarrington",
+  slug: "ottilie-quarrington",
+};
+
+function oneRecordNamesIn(sent: string): Array<string> {
+  return Object.entries(ONE_RECORD_NAME)
+    .filter(([, name]: [string, string]): boolean => {
+      return sent.toLowerCase().includes(name.toLowerCase());
+    })
+    .map(([key]: [string, string]): string => {
+      return key;
+    });
+}
+
+function useOneRecordServiceRead(): void {
+  useInMemoryTable(asService(ServiceService), [
+    {
+      _id: CHECKOUT_SERVICE_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "checkout",
+    },
+  ]);
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(STORE_ID),
+    storeRow(TELEMETRY_STORE_ID, {
+      name: "checkout · Logs",
+      kind: "Logs",
+      provider: "oneuptime",
+      serviceId: CHECKOUT_SERVICE_ID,
+    }),
+  ]);
+  jest
+    .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+    .mockResolvedValue({ rules: [] } as never);
+  // The one record the finding was seen in: a line with a person's name.
+  jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+    json: async (): Promise<{ data: Array<JSONObject> }> => {
+      return {
+        data: [
+          {
+            recordTime: 1795000000000,
+            readLogId: PLANTED["sampleRecordLog"],
+            readFile1: "/usr/src/app/src/signup.js",
+            readLine1: "12",
+            readFunction1: "signUp",
+            readScope: "checkout",
+            readBody: `Payment declined for ${ONE_RECORD_NAME["given"]} ${ONE_RECORD_NAME["family"]}`,
+          },
+        ],
+      };
+    },
+  } as never);
+  jest
+    .spyOn(CodeRepositoryService, "getResolvableRepositories")
+    .mockResolvedValue([
+      {
+        id: INFRA_ID,
+        name: "infra",
+        organizationName: "acme",
+        repositoryName: "infra",
+        mainBranchName: "main",
+        gitHubAppInstallationId: null,
+        repositoryHostedAt: CodeRepositoryType.GitHub,
+      },
+    ]);
+  jest
+    .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+    .mockResolvedValue(["package.json", "src/signup.js"]);
+  jest
+    .spyOn(ProductionReviewScope, "get")
+    .mockResolvedValue({ services: [] } as never);
+  jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+  jest
+    .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+    .mockResolvedValue(0);
+}
+
+describe("a line read from one record never puts a person's name in a plan or a prompt (#11098)", () => {
+  test("a service's log: the plan and the code agent's request say the line's words, never the name", async () => {
+    useOneRecordServiceRead();
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+
+    const shown: string = JSON.stringify(plan.answer);
+
+    expect(shown).toContain("Payment declined for <value>");
+    expect(oneRecordNamesIn(shown)).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Payment declined for <value>");
+    expect(asked).toContain("src/signup.js");
+    expect(oneRecordNamesIn(asked)).toEqual([]);
+  });
+
+  test("a RUM application's browser log: its line and its page, never the name in either", async () => {
+    useRumTables();
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return {
+          data: [
+            {
+              recordTime: 1795000000000,
+              readLogId: RUM_PLANTED["logId"],
+              readBody: `Payment declined for ${ONE_RECORD_NAME["given"]} ${ONE_RECORD_NAME["family"]}`,
+              readUrlFull: `https://shop.example.com/profile/${ONE_RECORD_NAME["slug"]}/settings?tab=billing`,
+              readStackTrace: [
+                "Error: Payment declined",
+                "    at e (https://shop.example.com/assets/app.3f9c1e.js:1:1)",
+              ].join("\n"),
+              readServiceVersion: "web-1.4.2",
+            },
+          ],
+        };
+      },
+    } as never);
+    jest.spyOn(RumSessionService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: [] };
+      },
+    } as never);
+    jest
+      .spyOn(TelemetrySourceMapService, "resolveFramesForService")
+      .mockImplementation((async (data: { frames: Array<JSONObject> }) => {
+        return {
+          frames: data.frames.map((frame: JSONObject) => {
+            return {
+              ...frame,
+              inApp: true,
+              resolved: true,
+              originalFileName:
+                "webpack://storefront-web/./src/checkout/payment.js",
+              originalLineNumber: 8,
+              originalFunctionName: "pay",
+            };
+          }),
+        };
+      }) as never);
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "web",
+          organizationName: "acme",
+          repositoryName: "web",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/checkout/payment.js"]);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(RUM_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+    expect(oneRecordNamesIn(JSON.stringify(plan.answer))).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(RUM_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Payment declined for <value>");
+    expect(asked).toContain("/profile/<value>/settings");
+    expect(oneRecordNamesIn(asked)).toEqual([]);
   });
 });

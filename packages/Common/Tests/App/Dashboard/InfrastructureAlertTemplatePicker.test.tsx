@@ -49,6 +49,10 @@ import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "../../../Types/Monitor/VMwareAlertTemplates";
+import {
+  XcpNgAlertTemplate,
+  getAllXcpNgAlertTemplates,
+} from "../../../Types/Monitor/XcpNgAlertTemplates";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import AlertTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplatePicker";
@@ -66,6 +70,7 @@ import KubernetesTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/C
 import ProxmoxTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxTemplatePicker";
 import OpenStackTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackTemplatePicker";
 import VMwareTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareTemplatePicker";
+import XcpNgTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgTemplatePicker";
 import CephTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephTemplatePicker";
 import StorageArrayTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayTemplatePicker";
 import IoTTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTTemplatePicker";
@@ -218,6 +223,14 @@ const PICKER_CASES: Array<PickerCase> = [
       "Datacenter",
       "vSAN",
     ],
+  },
+  {
+    name: "XCP-ng",
+    templates: getAllXcpNgAlertTemplates(),
+    render: (onTemplateSelected: MockFunction): void => {
+      render(<XcpNgTemplatePicker onTemplateSelected={onTemplateSelected} />);
+    },
+    headings: ["Availability", "Host", "VM", "Storage"],
   },
   {
     name: "Ceph",
@@ -1004,6 +1017,7 @@ describe("summaries the pickers draw stay short", () => {
       getAllDockerSwarmAlertTemplates() as Array<DockerSwarmAlertTemplate>,
     ],
     ["VMware", getAllVMwareAlertTemplates() as Array<VMwareAlertTemplate>],
+    ["XCP-ng", getAllXcpNgAlertTemplates() as Array<XcpNgAlertTemplate>],
     ["IoT", getAllIoTAlertTemplates() as Array<IoTAlertTemplate>],
   ])(
     "%s summaries fit one line of a two-column grid",

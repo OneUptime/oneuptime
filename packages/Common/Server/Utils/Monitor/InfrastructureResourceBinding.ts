@@ -144,6 +144,19 @@ export const RESOURCE_KEYS: Partial<Record<MonitorType, ResourceKey>> = {
       return asService(await import("../../Services/VMwareVCenterService"));
     },
   },
+  /*
+   * An XCP-ng pool is matched on its XAPI UUID, never its name: a rename -
+   * here or in Xen Orchestra - never moves its monitors.
+   */
+  [MonitorType.XcpNg]: {
+    stepKey: "xcpNgMonitor",
+    identifierField: "poolIdentifier",
+    matchColumn: "poolIdentifier",
+    isCanonicalHostName: false,
+    loadService: async () => {
+      return asService(await import("../../Services/XcpNgPoolService"));
+    },
+  },
   [MonitorType.Ceph]: {
     stepKey: "cephMonitor",
     identifierField: "clusterIdentifier",

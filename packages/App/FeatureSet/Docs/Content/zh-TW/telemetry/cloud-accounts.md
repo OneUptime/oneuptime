@@ -12,6 +12,7 @@
 - [串流 Azure Monitor 指標和日誌](/docs/telemetry/cloud-streaming-azure): 幾分鐘內取得關鍵指標和資源日誌，從你訂用帳戶中的事件中樞讀取。
 - [串流 Google Cloud 日誌](/docs/telemetry/cloud-streaming-google-cloud): 每筆日誌一寫入就透過 Pub/Sub 推送。
 - [資料安全](#資料安全): 這個連線讓資料安全讀取什麼，以及每個層級會在指令中新增什麼。
+- [節省動作](#節省動作): 讓 OneUptime 執行你所核准節省的最小存取權。
 - [讓 AI 修正問題](#讓-ai-修正問題): 再執行一個指令，OneUptime AI 就能修正它發現的問題。
 :::
 
@@ -346,6 +347,26 @@ Compute Engine VM 的記憶體和磁碟使用率不是 Google Cloud 本身的指
 - **資源的健康狀況。** 每次讀取都會保存資源關鍵指標的最新值並加以判斷：資源會顯示 **健康**、**效能下降** 或 **不健康**，並附上原因，例如狀態檢查失敗或儲存空間快滿，指標停止時會顯示 **未回報**。**雲端 → 概覽** 和帳戶的概覽會列出需要注意的內容，最緊急的排在最前。資源頁面以其類型所依據的數字開頭，例如虛擬機器的 CPU、記憶體、網路和磁碟；上次讀取未帶回的數字顯示為 **未回報**。
 - **建議的監測器。** 帳戶的 **建議** 依資源類型列出 OneUptime 為其資源建議的監測器，以及每個監測器適用的資源和已有多少資源設定了它：可以將其新增到單一資源，或一次新增到同類型的所有資源，側邊選單會統計仍待設定的數量。資源自己的 **建議** 分頁會提供它自己的監測器。每個監測器每 5 分鐘讀取一次連線所讀取的關鍵指標，在 AWS 上讀取最近 30 分鐘、在 Azure 和 Google Cloud 上讀取最近 15 分鐘的資料，並連結到其資源。讀取間隔更長的連線會為每個監測器設定更長的視窗，足以判斷每次讀取帶來的每個值：每小時讀取一次時為最近 2 小時。在間隔變更之前建立的監測器會保留其視窗。計數（例如錯誤或被節流的請求）會在該時間範圍內加總，因此[以串流方式傳送指標](/docs/telemetry/cloud-streaming)的帳戶與被讀取的帳戶會以相同方式發出警示，串流傳送的帳戶會更早發出。ACM 每天發布兩次的憑證剩餘天數每小時讀取一次：其監測器讀取最近 2 天的資料，在憑證剩餘 30 天或更少時，或在憑證過期、ACM 停止發布時發出警示。RDS 執行個體的連線數會與其執行個體類別和引擎連線上限的 90% 進行比較。當[維護事件](/docs/scheduled-maintenance/creating-events)包含某個資源時，其監測器不會建立事件或警示。設定了健康檢查的 App Service 應用程式還會再獲得兩個建議，讀取最近 30 分鐘，因為 Azure Monitor 以五分鐘粒度保存其指標：一個針對某個執行個體未通過健康檢查，另一個針對通過的執行個體不到一半；每個事件都會提供在 Azure Cloud Shell 中執行的命令，指出未通過的執行個體。
 - **帳戶的成本。** **雲端 → 支出 → 成本** 繪製每天的支出及其去向，**雲端 → 支出 → 節省** 列出減少支出的方法，**雲端 → 支出 → 預算** 會在某個月的成本超出應有水準之前發出警示：[雲端成本與節省](/docs/telemetry/cloud-costs)。
+
+## 節省動作
+
+同一個連線也可以讓 OneUptime 執行它找到的節省：擁有者核准的節省、節省 AI 規則執行的節省，以及非上班時間排程的停止動作（[雲端成本與節省](/docs/telemetry/cloud-costs#執行節省)）。在 **更多欄位** 中，**節省動作** 預設為 **關閉**，直到你另外選擇，表單顯示的指令也會隨之改變：
+
+| 節省動作 | OneUptime 可以變更什麼 | 指令會新增什麼 |
+| --- | --- | --- |
+| **關閉** | 無：連線只讀取。 | 無 |
+| **停止、啟動和清理** | 停止和啟動執行個體與資料庫，把 gp2 磁碟區改為 gp3，在最終快照後刪除未連接的磁碟並能從中重新建立，刪除舊快照或未使用的映像，以及釋放未使用的位址 | AWS：角色或使用者上的內嵌政策 `OneUptimeSavingsActions`。Azure：每個訂用帳戶上的自訂角色 **OneUptime Savings Actions**。Google Cloud：每個專案上的自訂角色 `oneuptimeSavingsActions`，並開啟 Compute Engine API |
+| **停止、啟動、清理和調整規格** | 以上全部，以及把執行個體或資料庫調整為建議的規格（會重新啟動） | 同上，另含調整規格 |
+
+這項政策和這些角色只允許下列動作：
+
+| 雲端 | 停止、啟動和清理 | 調整規格 |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+在 AWS 上，只有在建立快照或磁碟區時才允許 `ec2:CreateTags`，用來標示 OneUptime 是為哪項變更建立的。不會有任何東西自行變更：每項變更都要等待擁有者核准、節省 AI 規則或排程。要收回存取權，請把 **節省動作** 設為 **關閉**，並刪除該政策或角色；之後要求的變更會失敗、說明原因，而且不會變更任何東西。
 
 ## 讓 AI 修正問題
 

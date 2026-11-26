@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Nullable columns with no default: adding them rewrites no row.
  */
-export class AddSanSwitchFibreChannelColumns1809187720000
+export class AddSanSwitchFibreChannelColumns1809187731166
   implements MigrationInterface
 {
-  public name: string = "AddSanSwitchFibreChannelColumns1809187720000";
+  public name: string = "AddSanSwitchFibreChannelColumns1809187731166";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

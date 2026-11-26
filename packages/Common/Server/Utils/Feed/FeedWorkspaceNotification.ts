@@ -71,6 +71,12 @@ export interface FeedWorkspaceNotification {
    * transcript, deleted with the transcript (IncidentCallSummaryFeed).
    */
   onPosted?: ((messages: Array<WorkspacePostedMessage>) => void) | undefined;
+  /*
+   * The entry is the record's Created message, which announces it: posted
+   * at once, ahead of every other message about the record that its create
+   * holds back until it (WorkspaceCreatedMessageFirst).
+   */
+  announcesRecord?: boolean | undefined;
 }
 
 /*
@@ -157,6 +163,7 @@ export default class FeedWorkspaceNotificationUtil {
     authorApiKeyName?: string | undefined;
     updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
     onPosted?: ((messages: Array<WorkspacePostedMessage>) => void) | undefined;
+    announcesRecord?: boolean | undefined;
   } {
     return {
       sendWorkspaceNotification:
@@ -171,6 +178,9 @@ export default class FeedWorkspaceNotificationUtil {
       ...(data.updateKinds ? { updateKinds: data.updateKinds } : {}),
       ...(data.workspaceNotification.onPosted
         ? { onPosted: data.workspaceNotification.onPosted }
+        : {}),
+      ...(data.workspaceNotification.announcesRecord
+        ? { announcesRecord: true }
         : {}),
     };
   }

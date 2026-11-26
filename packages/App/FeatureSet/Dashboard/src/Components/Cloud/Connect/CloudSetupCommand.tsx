@@ -16,6 +16,7 @@ import {
   getCloudConnectionSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import { CloudSavingsActionsAccess } from "Common/Types/Cloud/CloudSavingsAction";
 import IconProp from "Common/Types/Icon/IconProp";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -127,6 +128,12 @@ export const ACCESS_EXTRA_LINES: Readonly<
   [CloudConnectionAccessExtra.WafPolicyRules]: translationKey(
     "Your blocklist may also keep OneUptime's own rules in the WAF policies you pick, and changes no rule of yours.",
   ),
+  [CloudConnectionAccessExtra.SavingsActions]: translationKey(
+    "OneUptime may also act on a saving once its owner approves it: stop or start an instance, delete an unattached disk after a final snapshot, release an idle address.",
+  ),
+  [CloudConnectionAccessExtra.SavingsResize]: translationKey(
+    "It may also resize an instance or a database to the size recommended, which restarts it.",
+  ),
 };
 
 const ACCESS_EXTRA_ICONS: Readonly<
@@ -137,6 +144,8 @@ const ACCESS_EXTRA_ICONS: Readonly<
   [CloudConnectionAccessExtra.WafIpSets]: IconProp.NoSymbol,
   [CloudConnectionAccessExtra.WafRule]: IconProp.ShieldCheck,
   [CloudConnectionAccessExtra.WafPolicyRules]: IconProp.ShieldCheck,
+  [CloudConnectionAccessExtra.SavingsActions]: IconProp.ArrowTrendingDown,
+  [CloudConnectionAccessExtra.SavingsResize]: IconProp.ArrowUpDown,
 };
 
 export interface ComponentProps {
@@ -152,6 +161,8 @@ export interface ComponentProps {
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   // AWS: whether security cases may read IAM users back. Off when absent.
   securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
+  // Whether OneUptime may act on savings, and resize too. Off when absent.
+  savingsActions?: CloudSavingsActionsAccess | undefined;
   /*
    * AWS: what a role trusts, and the project's external id, which names a
    * role and the blocklist's IP sets. Undefined while it loads; the command
@@ -177,6 +188,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       dataSecurityResponse: props.dataSecurityResponse,
       wafBlocklist: props.wafBlocklist,
       securityCaseChecks: props.securityCaseChecks,
+      savingsActions: props.savingsActions,
     },
   );
   // What the command grants beyond reading how things are set up, if anything.
@@ -186,6 +198,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       dataSecurityResponse: props.dataSecurityResponse,
       wafBlocklist: props.wafBlocklist,
       provider: props.definition.provider,
+      savingsActions: props.savingsActions,
     });
   const isOrganization: boolean =
     props.scope === CloudConnectionSetupScope.Organization;

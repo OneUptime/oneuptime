@@ -91,6 +91,13 @@ export const RESOURCE_FACET_CATALOG: ReadonlyArray<ResourceFacetDefinition> = [
     icon: IconProp.VMware,
   },
   {
+    facetKey: "xcpNgPoolId",
+    serviceType: ServiceType.XcpNgPool,
+    label: "XCP-ng Pool",
+    pluralLabel: "XCP-ng Pools",
+    icon: IconProp.XcpNg,
+  },
+  {
     facetKey: "cephClusterId",
     serviceType: ServiceType.CephCluster,
     label: "Ceph Cluster",

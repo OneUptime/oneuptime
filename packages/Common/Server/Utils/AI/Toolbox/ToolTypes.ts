@@ -17,7 +17,10 @@ import {
 } from "../../../../Types/AI/AIChatTypes";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
-import { AIActionSentence } from "../../../../Types/AI/AIActionWords";
+import {
+  AIActionEffects,
+  AIActionSentence,
+} from "../../../../Types/AI/AIActionWords";
 import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
 
 /*
@@ -225,7 +228,40 @@ export interface PreparedMutation {
         reason?: AIActionSentence | undefined;
       }
     | undefined;
+  /*
+   * What the action does, as the card says it under its title (#10378):
+   * what changes, what stops working and what it costs - each only where
+   * it applies - and, for an action that asks in every mode, why it does.
+   * Read with the person's own permissions, in sentences of
+   * Types/AI/AIActionWords; never a value, a sample or a record. Left out,
+   * the card is its title and line, as every action's was.
+   */
+  effects?: AIActionEffects | undefined;
+  /*
+   * The page in OneUptime where a person makes the same change by hand,
+   * with its button (#10378): a finding's store, an issue, a store's
+   * owners, a kind of rule's settings. Where an MCP client is sent when the
+   * action asks in every mode and it can show no card OneUptime waits on
+   * (DataSecurityActionRunner). Never a permission.
+   */
+  buttonPage?: AIChatCitationTarget | undefined;
 }
+
+/*
+ * Whether a call of a mutation waits for a person's approval in every
+ * permission mode, Auto-run included (#10378), decided by the tool from the
+ * arguments it will run with and what its prepare read - `prepared` is
+ * undefined when the tool has no prepare or its prepare failed, and a tool
+ * whose answer rests on a read then answers true: it fails closed. The
+ * actions a person must see before they happen ask in every mode: one that
+ * changes who can reach data or stops a finding or an issue counting, and
+ * one whose arguments text an attacker can write (a store's name, a
+ * finding's evidence) could have talked the model into.
+ */
+export type AsksInEveryMode = (
+  args: JSONObject,
+  prepared: PreparedMutation | undefined,
+) => boolean;
 
 export interface ToolExecutionResult {
   // Serialized, truncated and redacted data that goes into the LLM prompt.
@@ -316,10 +352,25 @@ export interface ObservabilityTool {
    */
   setupAction?: SetupActionInfo | undefined;
   /*
-   * For a setup action: why it cannot be proposed, read with the person's
-   * props from the prepared arguments, before any card is shown - null
-   * when nothing stops it. The toolbox's own gates (the person, the
-   * project, the permissions) are checked first
+   * For a mutation that is not a setup action: whether this call asks for
+   * approval in every mode, Auto-run included (AsksInEveryMode, #10378).
+   * Left out, the call follows the conversation's mode.
+   */
+  asksInEveryMode?: AsksInEveryMode | undefined;
+  /*
+   * The model hands this action only what its schema takes, as a setup
+   * action (#10041): whatever else it sends is dropped before the prepare
+   * reads anything, so what the prepare writes beside the schema's
+   * arguments - the findings like one a decision also settles, the plan a
+   * fix was shown - is the action's own, read as the person, and never the
+   * model's (#10378).
+   */
+  takesOnlyItsSchema?: boolean | undefined;
+  /*
+   * For a setup action, or a Data Security action (#10378): why it cannot
+   * be proposed, read with the person's props from the prepared arguments,
+   * before any card is shown - null when nothing stops it. The toolbox's
+   * own gates (the person, the project, the permissions) are checked first
    * (AIToolbox.checkBeforeApproval). Never throws: a read that fails lets
    * the card show, and running the action says what went wrong.
    */

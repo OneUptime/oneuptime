@@ -162,7 +162,7 @@ Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastruktur
 
-Menyns grupp med maskinerna och plattformarna som du kör: Värdar, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Lagringsarrayer, Nätverk och IoT. En agent eller en anslutning fyller var och en, och var och en visar hur varje maskin, kluster eller enhet i den mår.
+Menyns grupp med maskinerna och plattformarna som du kör: Värdar, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Lagringsarrayer, Nätverk och IoT. En agent eller en anslutning fyller var och en, och var och en visar hur varje maskin, kluster eller enhet i den mår.
 
 Se [Värdar](/docs/telemetry/hosts).
 

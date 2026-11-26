@@ -319,6 +319,20 @@ jobs:
       # following within an interval each time - with the token never on a
       # command line. Its stand-ins run on the node image warmed above.
       - run: bash Tests/Ops/proxmox-agent-failover-behaviour.sh
+      # And for the XCP-ng Agent's scrape of Xen Orchestra (#10995): its
+      # collector exactly as it ships (scraping every 5 seconds instead of 60)
+      # against a stand-in Xen Orchestra serving the recorded OpenMetrics
+      # scrape over HTTPS, exporting through a stand-in OneUptime into an
+      # OTLP sink. Each pool must arrive as one resource carrying its
+      # identity, every served sample with its value and the second Xen
+      # Orchestra served, the eight rate series it types counter as gauges,
+      # nothing without a pool and nothing but xcp_*; a wrong secret, a
+      # certificate that is not the pinned one, and Xen Orchestra's own
+      # self-signed certificate (which names no host) must each send
+      # nothing. The run is also held to the OTLP fixtures the ingest tests
+      # read (packages/Common/Tests/Server/Utils/Telemetry/Fixtures/XcpNg).
+      # Its stand-ins run on the node image warmed above.
+      - run: bash Tests/Ops/xcp-ng-agent-scrape-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a

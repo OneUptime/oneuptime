@@ -78,6 +78,7 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
+import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import LinkedAffectedResources from "../../../Server/Utils/AffectedResources/LinkedAffectedResources";
@@ -329,10 +330,10 @@ class Gate {
 }
 
 /*
- * Where a test holds the record on its way: the create's chain before its
- * Slack / Microsoft Teams step (before any owner it adds), the monitor's
- * code once the create has returned (before the criteria's and the
- * device's owners), and a create before its creator is made an owner.
+ * Where a test holds the record on its way: the create's chain at its
+ * first state (before any owner it adds), the monitor's code once the
+ * create has returned (before the criteria's and the device's owners), and
+ * a create before its creator is made an owner.
  */
 let gates: { chain: Gate; monitor: Gate; creator: Gate };
 
@@ -967,15 +968,19 @@ function stubCreateHooks(): void {
   const alertService: Record<string, () => Promise<unknown>> =
     AlertService as unknown as Record<string, () => Promise<unknown>>;
 
-  // The chain's Slack / Microsoft Teams step: before any owner it adds.
+  /*
+   * The chain's first state: before any owner it adds. (Its Slack /
+   * Microsoft Teams step comes after its owners, so its notification rules
+   * see them: #11146.)
+   */
   jest
-    .spyOn(incidentService, "handleIncidentWorkspaceOperationsAsync")
+    .spyOn(incidentService, "handleIncidentStateChangeAsync")
     .mockImplementation(async (): Promise<undefined> => {
       await gates.chain.pass();
       return undefined;
     });
   jest
-    .spyOn(alertService, "handleAlertWorkspaceOperationsAsync")
+    .spyOn(alertService, "handleAlertStateChangeAsync")
     .mockImplementation(async (): Promise<undefined> => {
       await gates.chain.pass();
       return undefined;
@@ -983,7 +988,7 @@ function stubCreateHooks(): void {
 
   for (const method of [
     "createIncidentFeedAsync",
-    "handleIncidentStateChangeAsync",
+    "handleIncidentWorkspaceOperationsAsync",
     "handleMonitorStatusChangeAsync",
     "disableActiveMonitoringIfManualIncident",
     "refreshReminderSchedule",
@@ -994,12 +999,20 @@ function stubCreateHooks(): void {
 
   for (const method of [
     "createAlertFeedAsync",
-    "handleAlertStateChangeAsync",
+    "handleAlertWorkspaceOperationsAsync",
     "refreshReminderSchedule",
     "executeAlertOnCallDutyPoliciesAsync",
   ]) {
     jest.spyOn(alertService, method).mockResolvedValue(undefined as never);
   }
+
+  /*
+   * No notification rule asks who owns a record: its channels and its
+   * Created message wait for nobody (WorkspaceRuleOwnersOnCreate).
+   */
+  jest
+    .spyOn(WorkspaceNotificationRuleService, "hasRulesWithOwnerCondition")
+    .mockResolvedValue(false as never);
 
   jest.spyOn(IncidentService, "findOneById").mockImplementation((async (args: {
     id: ObjectID;

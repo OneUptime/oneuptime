@@ -457,7 +457,7 @@ I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.databa
 
 ### Monitor di metriche e infrastruttura
 
-I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Array di storage e IoT Device hanno una variabile propria:
+I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Array di storage e IoT Device hanno una variabile propria:
 
 | Variabile | Cosa contiene | Tipo |
 | --- | --- | --- |

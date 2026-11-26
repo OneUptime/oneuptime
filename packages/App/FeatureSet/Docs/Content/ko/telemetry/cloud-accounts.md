@@ -12,6 +12,7 @@
 - [Azure Monitor 메트릭 및 로그 스트리밍](/docs/telemetry/cloud-streaming-azure): 핵심 메트릭은 몇 분 안에, 리소스 로그도 구독의 이벤트 허브에서 읽어 옵니다.
 - [Google Cloud 로그 스트리밍](/docs/telemetry/cloud-streaming-google-cloud): 기록되는 즉시 모든 로그를 Pub/Sub를 통해 푸시합니다.
 - [데이터 보안](#데이터-보안): 연결이 데이터 보안에 무엇을 읽도록 허용하는지, 그리고 각 수준이 명령에 무엇을 더하는지.
+- [절감 작업](#절감-작업): 승인한 절감을 OneUptime이 실행하게 하는 최소한의 액세스입니다.
 - [AI가 문제를 해결하도록 허용](#ai가-문제를-해결하도록-허용): 명령 하나만 더 실행하면 OneUptime AI가 찾은 문제를 해결할 수 있습니다.
 :::
 
@@ -346,6 +347,26 @@ Compute Engine VM의 메모리와 디스크 사용률은 Google Cloud 자체 메
 - **리소스의 상태.** 각 읽기는 리소스 주요 메트릭의 최신 값을 보관하고 판단합니다. 리소스에는 **정상**, **저하됨** 또는 **비정상**이 상태 확인 실패나 거의 찬 스토리지 같은 이유와 함께 표시되며, 메트릭이 멈추면 **보고 없음**이 표시됩니다. **클라우드 → 개요**와 계정의 개요에는 주의가 필요한 항목이 가장 급한 것부터 나열됩니다. 리소스 페이지는 가상 머신의 CPU, 메모리, 네트워크, 디스크처럼 그 종류를 읽는 수치로 시작하며, 마지막 읽기에서 가져오지 못한 수치는 **보고되지 않음**으로 표시됩니다.
 - **권장 모니터.** 계정의 **권장 사항**에는 OneUptime이 그 리소스에 권장하는 모니터가 리소스 유형별로, 각각의 대상 리소스와 이미 설정된 수와 함께 나열됩니다. 리소스 하나에 추가하거나 같은 유형의 모든 리소스에 한 번에 추가할 수 있으며, 사이드 메뉴는 아직 설정해야 하는 것을 셉니다. 리소스의 **권장 사항** 탭에는 그 리소스용 모니터가 제공됩니다. 각 모니터는 연결이 읽는 주요 메트릭을 5분마다, AWS에서는 최근 30분, Azure와 Google Cloud에서는 최근 15분에 걸쳐 읽으며, 해당 리소스에 연결됩니다. 더 드물게 읽는 연결에서는 각 모니터가 한 번의 읽기로 들어오는 모든 값을 판단할 수 있도록 더 긴 기간을 읽습니다. 1시간마다 읽으면 최근 2시간입니다. 간격을 바꾸기 전에 만든 모니터는 그 기간을 그대로 유지합니다. 오류나 제한된 요청 같은 개수는 그 기간 전체에 걸쳐 합산되므로, [메트릭을 스트리밍하는](/docs/telemetry/cloud-streaming) 계정과 읽히는 계정은 똑같이 경고하며, 스트리밍하는 계정이 더 빨리 경고합니다. ACM이 하루에 두 번 게시하는 인증서의 만료까지 남은 일수는 1시간마다 읽힙니다. 그 모니터는 최근 2일을 읽고, 인증서의 남은 기간이 30일 이하가 되거나 인증서가 만료되어 ACM이 게시를 멈추면 경고합니다. RDS 인스턴스의 연결 수는 그 클래스와 엔진의 연결 한도의 90%와 비교됩니다. [유지 관리 이벤트](/docs/scheduled-maintenance/creating-events)가 리소스를 포함하는 동안에는 그 모니터가 인시던트나 경고를 열지 않습니다. 상태 확인이 설정된 App Service 앱에는 두 가지가 더 제안되며, Azure Monitor가 그 메트릭을 5분 단위로 보관하므로 최근 30분을 읽습니다: 인스턴스가 상태 확인에 실패할 때와 인스턴스의 절반 미만만 통과할 때입니다. 각 인시던트에는 실패한 인스턴스를 알려 주는 Azure Cloud Shell용 명령이 함께 나옵니다.
 - **계정의 비용.** **클라우드 → 지출 → 비용**은 매일의 지출과 그 쓰임을 그리고, **클라우드 → 지출 → 절감**은 지출을 줄이는 방법을 나열하며, **클라우드 → 지출 → 예산**은 한 달 비용이 예상보다 커지기 전에 경고를 보냅니다. [클라우드 비용과 절감](/docs/telemetry/cloud-costs)을 참고하세요.
+
+## 절감 작업
+
+같은 연결로 OneUptime이 찾은 절감을 실행하게 할 수도 있습니다: 소유자가 승인한 것, 절감 AI 규칙이 실행하는 것, 근무 시간 외 스케줄의 중지입니다([클라우드 비용과 절감](/docs/telemetry/cloud-costs#절감-실행)). **추가 필드**의 **절감 작업**은 다른 것을 선택할 때까지 **꺼짐**이며, 양식에 표시되는 명령도 그에 맞게 바뀝니다:
+
+| 절감 작업 | OneUptime이 변경할 수 있는 것 | 명령이 추가하는 것 |
+| --- | --- | --- |
+| **꺼짐** | 없음: 연결은 읽기만 합니다. | 없음 |
+| **중지, 시작, 정리** | 인스턴스와 데이터베이스 중지 및 시작, gp2 볼륨의 gp3 변경, 최종 스냅샷 후 연결되지 않은 디스크 삭제와 그 스냅샷에서의 재생성, 오래된 스냅샷이나 사용하지 않는 이미지 삭제, 사용하지 않는 주소 해제 | AWS: 역할 또는 사용자의 인라인 정책 `OneUptimeSavingsActions`. Azure: 각 구독의 사용자 지정 역할 **OneUptime Savings Actions**. Google Cloud: 각 프로젝트의 사용자 지정 역할 `oneuptimeSavingsActions`와 켜 둔 Compute Engine API |
+| **중지, 시작, 정리, 크기 조정** | 위의 모든 것에 더해, 인스턴스나 데이터베이스를 권장 크기로 조정(다시 시작됨) | 같은 것(크기 조정 포함) |
+
+정책과 역할은 다음 작업만 허용합니다:
+
+| 클라우드 | 중지, 시작, 정리 | 크기 조정 |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+AWS에서 `ec2:CreateTags`는 스냅샷이나 볼륨을 만드는 동안에만 허용되며, OneUptime이 어떤 변경을 위해 무엇을 만들었는지 표시합니다. 아무것도 저절로 바뀌지 않습니다: 모든 변경은 소유자의 승인, 절감 AI 규칙 또는 스케줄을 기다립니다. 액세스를 거두려면 **절감 작업**을 **꺼짐**으로 설정하고 정책이나 역할을 삭제하세요. 그 뒤에 요청된 변경은 이유를 알려 주며 실패하고 아무것도 바꾸지 않습니다.
 
 ## AI가 문제를 해결하도록 허용
 

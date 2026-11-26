@@ -393,6 +393,25 @@ export const friendlyToolNames: { [key: string]: string } = {
   query_data_store_access: translationKey(
     "Checking who can reach a data store",
   ),
+  // Data Security's buttons as actions, once allowed (#10378, #10889).
+  scrub_data_security_finding: translationKey("Scrubbing a finding"),
+  judge_data_security_finding: translationKey("Deciding on a finding"),
+  change_data_security_issue: translationKey("Changing a data security issue"),
+  set_data_store_owners: translationKey("Changing a data store's owners"),
+  draft_data_security_rule: translationKey("Drafting a rule from your words"),
+  save_data_security_rule: translationKey("Saving a data security rule"),
+  respond_on_data_store: translationKey(
+    "Changing a data store through its cloud connection",
+  ),
+  fix_data_security_issue_with_ai: translationKey(
+    "Asking OneUptime AI for a fix",
+  ),
+  query_data_security_proposals: translationKey(
+    "Reading what OneUptime AI proposes",
+  ),
+  decide_data_security_proposal: translationKey(
+    "Deciding on a proposal of OneUptime AI's",
+  ),
   // Continuous profiling, what a change shipped, and the code behind it.
   get_profile_hotspots: translationKey(
     "Reading where a service spends its time",
@@ -671,6 +690,7 @@ export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   ProxmoxCluster: translationKey("Proxmox cluster"),
   OpenStackCloud: translationKey("OpenStack cloud"),
   VMwareVCenter: translationKey("VMware vCenter"),
+  XcpNgPool: translationKey("XCP-ng pool"),
   CephCluster: translationKey("Ceph cluster"),
   StorageArray: translationKey("Storage array"),
   IoTFleet: translationKey("IoT fleet"),

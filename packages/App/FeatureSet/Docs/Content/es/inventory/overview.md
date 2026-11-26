@@ -50,7 +50,7 @@ Cada tres horas, OneUptime elimina los elementos descubiertos que llevan más ti
 | --- | --- |
 | Pods, despliegues, invitados de Proxmox, instancias de OpenStack y máquinas virtuales de VMware | 1 día |
 | Nodos y espacios de nombres de Kubernetes, nodos de Proxmox, hipervisores de OpenStack, hosts, clústeres y almacenes de datos de VMware, y las bases de datos y servicios remotos a los que llaman tus trazas | 7 días |
-| Servicios, hosts, clústeres de Kubernetes, Proxmox y Ceph, nubes OpenStack, cabinas de almacenamiento, vCenters y clústeres de Docker Swarm | 30 días |
+| Servicios, hosts, clústeres de Kubernetes, Proxmox y Ceph, nubes OpenStack, cabinas de almacenamiento, vCenters, pools de XCP-ng y clústeres de Docker Swarm | 30 días |
 
 Una relación que OneUptime descubrió se elimina cuando no se ha vuelto a ver durante 30 días.
 

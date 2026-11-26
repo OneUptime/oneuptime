@@ -457,7 +457,7 @@ Alerts for payments:
 
 ### メトリクスとインフラストラクチャのモニター
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、ストレージアレイ、IoT デバイス の各モニターには、固有の変数が 1 つあります。
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、XCP-ng、Ceph、ストレージアレイ、IoT デバイス の各モニターには、固有の変数が 1 つあります。
 
 | 変数 | 内容 | 型 |
 | --- | --- | --- |

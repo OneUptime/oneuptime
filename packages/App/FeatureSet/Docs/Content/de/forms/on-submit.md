@@ -75,7 +75,7 @@ Ein über ein Formular gemeldeter Vorfall ist ein gewöhnlicher Vorfall, mit ein
 
 - **Auf Statusseiten verborgen.** **Auf Statusseite sichtbar** ist aus, ebenso **Statusseiten-Abonnenten benachrichtigen**. Bis ein Responder ihn veröffentlicht, erreicht nichts über den Vorfall eine Statusseite oder einen Abonnenten — außer der Änderung des Monitorstatus durch eine Vorlage, siehe oben.
 - **Von niemandem gemeldet.** Die einreichende Person ist kein OneUptime-Benutzer, daher wird kein Benutzer als meldende Person des Vorfalls festgehalten.
-- **Seine Eigentümer erfahren davon.** Die Eigentümer, die die Einstellungen und die Vorlage nennen, werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle des Vorfalls existieren, und benachrichtigt — die Benachrichtigung **Vorfall erstellt** des Vorfalls wartet, bis sie seine Eigentümer sind, und geht so an sie statt an die Projektinhaber.
+- **Seine Eigentümer erfahren davon.** Die Eigentümer, die die Einstellungen und die Vorlage nennen, werden hinzugefügt, bevor die Slack- und Microsoft-Teams-Kanäle des Vorfalls angelegt werden, sodass Ihre Benachrichtigungsregeln sie sehen, und sie werden benachrichtigt — die Benachrichtigung **Vorfall erstellt** des Vorfalls wartet, bis sie seine Eigentümer sind, und geht so an sie statt an die Projektinhaber.
 - **Eine private Notiz hält die Einreichung fest** — siehe [Die private Notiz](#die-private-notiz).
 
 Alles, was für einen neuen Vorfall läuft, läuft auch für diese: Datenschutz-, Eigentümer-, Beschriftungs-, Bereitschafts- und Runbook-Regeln, Bereitschaftsrichtlinien und Workflows **Bei Erstellung: Vorfall**. Bereitschaftsregeln treffen auf die Vorfälle eines Formulars wie auf alle anderen zu — auch über ihren Titel und ihre Beschreibung, die die einreichende Person geschrieben hat.
@@ -117,7 +117,7 @@ Weil der Vorfall mit ausgeschaltetem **Statusseiten-Abonnenten benachrichtigen**
 
 Eine über ein Formular erstellte Warnung ist eine gewöhnliche Warnung, erstellt wie eine, die von Hand mit **Warnung erstellen** angelegt wird:
 
-- **Ihre Eigentümer erfahren einmal davon.** Die Eigentümer, die die Einstellungen nennen, werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle der Warnung existieren, und die Benachrichtigung **Warnung erstellt** der Warnung wartet, bis sie ihre Eigentümer sind, und geht so an sie statt an die Projektinhaber — sie ist die einzige Nachricht, die sie darüber bekommen.
+- **Ihre Eigentümer erfahren einmal davon.** Die Eigentümer, die die Einstellungen nennen, werden hinzugefügt, bevor die Slack- und Microsoft-Teams-Kanäle der Warnung angelegt werden, sodass Ihre Benachrichtigungsregeln sie sehen, und die Benachrichtigung **Warnung erstellt** der Warnung wartet, bis sie ihre Eigentümer sind, und geht so an sie statt an die Projektinhaber — sie ist die einzige Nachricht, die sie darüber bekommen.
 - **Sie beginnt, wo Sie es sagen.** Im üblichen Anfangsstatus, außer die Einstellung **Anfangsstatus** nennt einen späteren. Eine Warnung, die bestätigt oder behoben beginnt, alarmiert niemanden: Ein Formular für Meldungen, die nur einen Blick brauchen, kann das so festlegen.
 - **Von niemandem erstellt, und nicht privat.** Die einreichende Person ist kein OneUptime-Benutzer, daher wird kein Benutzer als erstellende Person festgehalten. Eine Datenschutzregel kann sie trotzdem privat machen.
 - **Eine private Notiz hält die Einreichung fest** — siehe [Die private Notiz](#die-private-notiz).

@@ -457,7 +457,7 @@ Serienavnene i `metrics` indeholder punktummer, som `oneuptime.monitor.database.
 
 ### Metrik- og infrastruktur-monitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagerarray- og IoT-enhed-monitorer har én variabel for sig selv:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, XCP-ng-, Ceph-, Lagerarray- og IoT-enhed-monitorer har én variabel for sig selv:
 
 | Variabel | Hvad den indeholder | Type |
 | --- | --- | --- |

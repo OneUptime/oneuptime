@@ -3,9 +3,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The alert templates of an infrastructure monitor type (Host, Docker,
- * Podman, Docker Swarm, Kubernetes, Proxmox, VMware, Ceph, Storage Array,
- * IoT), as the Quick Setup picker lists them. React-free, so App tests can
- * read it.
+ * Podman, Docker Swarm, Kubernetes, Proxmox, VMware, XCP-ng, Ceph, Storage
+ * Array, IoT), as the Quick Setup picker lists them. React-free, so App
+ * tests can read it.
  *
  * Each template says in one line when it fires (`summary`); how it is
  * computed (`description`) waits behind Show more once it is picked.

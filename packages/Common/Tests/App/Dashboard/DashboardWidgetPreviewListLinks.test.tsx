@@ -171,6 +171,7 @@ function modelRow(name: string): Record<string, unknown> {
     proxmoxClusterId: ObjectID.generate().toString(),
     storageArrayId: ObjectID.generate().toString(),
     vmwareVCenterId: ObjectID.generate().toString(),
+    xcpNgPoolId: ObjectID.generate().toString(),
     name: name,
     title: name,
     createdAt: SEEN_AT,
@@ -206,6 +207,8 @@ function modelRow(name: string): Record<string, unknown> {
     clusterName: CLUSTER,
     vmwareVCenter: { name: "vcenter.eu-west.example.com" },
     hostName: "esxi-07.eu-west.example.com",
+    parentHostName: "xcp-ng-eu-west-2",
+    xcpNgPool: { name: CLUSTER },
     networkSiteType: { name: "Edge data center" },
     latitude: 52.37,
     longitude: 4.9,
@@ -278,6 +281,8 @@ const LIST_WIDGETS: Array<ListWidgetCase> = [
   { type: DashboardComponentType.StorageArrayVolumeList, hasLinks: true },
   { type: DashboardComponentType.VMwareHostList, hasLinks: true },
   { type: DashboardComponentType.VMwareVirtualMachineList, hasLinks: true },
+  { type: DashboardComponentType.XcpNgHostList, hasLinks: true },
+  { type: DashboardComponentType.XcpNgVmList, hasLinks: true },
   // Drawn as its list (viewMode "list"), the network map's sites.
   {
     type: DashboardComponentType.NetworkMap,
@@ -433,17 +438,17 @@ afterAll(() => {
 });
 
 test("every list widget is opened here, as a list and as a honeycomb", () => {
-  // Thirty-six lists: a new one joins this suite, or the count says so.
-  expect(LIST_WIDGETS).toHaveLength(36);
+  // Thirty-eight lists: a new one joins this suite, or the count says so.
+  expect(LIST_WIDGETS).toHaveLength(38);
   expect(
     new Set(
       LIST_WIDGETS.map((listWidget: ListWidgetCase): string => {
         return listWidget.type;
       }),
     ).size,
-  ).toBe(36);
-  expect(LINKED_LIST_WIDGETS).toHaveLength(28);
-  expect(HONEYCOMB_WIDGETS).toHaveLength(34);
+  ).toBe(38);
+  expect(LINKED_LIST_WIDGETS).toHaveLength(30);
+  expect(HONEYCOMB_WIDGETS).toHaveLength(36);
 });
 
 describe("a list's names", () => {

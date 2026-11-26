@@ -136,6 +136,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getMobileAppOffer } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
 import {
   getFirstOnCallPolicyName,
@@ -203,6 +205,13 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const serverEmail: ServerEmail = useServerEmail();
   const canSendEmail: boolean = !cannotSendEmail(serverEmail);
   const userId: string = UserUtil.getUserId()?.toString() || "";
+  /*
+   * Whether the server offers the mobile app (Admin Dashboard > Settings >
+   * Help and Support, #10945): where it does not, no sentence here names
+   * the app as a way to be reached.
+   */
+  const isMobileAppOffered: boolean =
+    getMobileAppOffer(useHelpAndSupport()) !== null;
 
   const store: GuidedSetupRunStore = useMemo(() => {
     return new GuidedSetupRunStore({
@@ -769,8 +778,12 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         title={
           translator.translateText(
             serverEmail.isMasterAdmin
-              ? WEBSITE_DOWN_COPY.noEmailForAdmin
-              : WEBSITE_DOWN_COPY.noEmail,
+              ? isMobileAppOffered
+                ? WEBSITE_DOWN_COPY.noEmailForAdmin
+                : WEBSITE_DOWN_COPY.noEmailForAdminWithoutApp
+              : isMobileAppOffered
+                ? WEBSITE_DOWN_COPY.noEmail
+                : WEBSITE_DOWN_COPY.noEmailWithoutApp,
           ) || ""
         }
       />
@@ -1958,7 +1971,11 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       {showNotReceivedHelp && !isAcknowledged ? (
         <div className="space-y-2" data-testid="guided-setup-not-received">
           <p className="text-sm text-gray-700">
-            {translator.translateText(WEBSITE_DOWN_COPY.testDidNotGetItHelp)}
+            {translator.translateText(
+              isMobileAppOffered
+                ? WEBSITE_DOWN_COPY.testDidNotGetItHelp
+                : WEBSITE_DOWN_COPY.testDidNotGetItHelpWithoutApp,
+            )}
           </p>
           <AppLink
             to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}

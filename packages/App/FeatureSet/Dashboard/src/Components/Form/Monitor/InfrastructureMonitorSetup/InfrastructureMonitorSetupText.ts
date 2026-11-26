@@ -6,11 +6,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words and rules of an infrastructure monitor's setup - Host,
- * Kubernetes, Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage
- * Array and IoT Device - in the one shape all ten share
+ * Kubernetes, Docker, Podman, Docker Swarm, Proxmox, VMware, XCP-ng, Ceph,
+ * Storage Array and IoT Device - in the one shape all eleven share
  * (InfrastructureMonitorSetup):
  *
- *   1. what to watch: the host, cluster, vCenter, array or fleet, with
+ *   1. what to watch: the host, cluster, vCenter, pool, array or fleet, with
  *      whether it is sending data, and - when there is none yet - the
  *      install steps, keys filled in, that wait for its first data;
  *   2. what to alert on: the alert templates, starting on the type's

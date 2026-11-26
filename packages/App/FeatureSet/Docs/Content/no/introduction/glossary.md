@@ -162,7 +162,7 @@ Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastruktur
 
-Menyens gruppe for maskinene og plattformene du kjører: Verter, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Lagringsarrayer, Nettverk og IoT. En agent eller en tilkobling fyller hver av dem, og hver viser hvordan hver maskin, klynge eller enhet i den har det.
+Menyens gruppe for maskinene og plattformene du kjører: Verter, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Lagringsarrayer, Nettverk og IoT. En agent eller en tilkobling fyller hver av dem, og hver viser hvordan hver maskin, klynge eller enhet i den har det.
 
 Se [Verter](/docs/telemetry/hosts).
 

@@ -267,15 +267,25 @@ export async function planProvenScrubItRule(data: {
 async function propsFor(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  callerProps?: DatabaseCommonInteractionProps | undefined;
 }): Promise<DatabaseCommonInteractionProps> {
-  if (!data.userId) {
-    return { isRoot: true };
+  if (data.userId) {
+    return await WorkspaceActionAuthorization.getProjectMemberProps({
+      userId: data.userId,
+      projectId: data.projectId,
+    });
   }
 
-  return await WorkspaceActionAuthorization.getProjectMemberProps({
-    userId: data.userId,
-    projectId: data.projectId,
-  });
+  /*
+   * No person pressed: a project API key, through the API (#10378). The
+   * rule is made with the key's own props - never as OneUptime, which let a
+   * key that may make one kind of scrub rule make any kind.
+   */
+  if (data.callerProps && !data.callerProps.isRoot) {
+    return data.callerProps;
+  }
+
+  return { isRoot: true };
 }
 
 function idOf(rule: LogScrubRule | TraceScrubRule): string {
@@ -295,6 +305,8 @@ function idOf(rule: LogScrubRule | TraceScrubRule): string {
 export async function saveProvenScrubItRule(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  // The caller's own props, when no person asked (propsFor, #10378).
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   planned: Pick<
     ProvenScrubItRule,
     "signal" | "plan" | "scope" | "name" | "description" | "proof"
@@ -372,6 +384,12 @@ export async function saveProvenScrubItRule(data: {
 export async function scrubFindingWithProvenRule(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  /*
+   * The caller's own props, when no person pressed - a project API key,
+   * through the API (#10378): the rule is made with them, never as
+   * OneUptime (propsFor).
+   */
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   findingId?: string | null | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
@@ -423,6 +441,7 @@ export async function scrubFindingWithProvenRule(data: {
     ...(await saveProvenScrubItRule({
       projectId: data.projectId,
       userId: data.userId,
+      callerProps: data.callerProps,
       planned,
     })),
     isProven: Boolean(planned.proof),

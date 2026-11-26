@@ -79,6 +79,7 @@ export const TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES: ReadonlyArray<string> = [
   "CephCluster",
   "StorageArray",
   "VMwareVCenter",
+  "XcpNgPool",
   "IoTFleet",
   "CloudResource",
   "ServerlessFunction",

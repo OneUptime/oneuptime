@@ -324,6 +324,39 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
   },
 
   /*
+   * XCP-ng, in fuchsias: a pool, the hosts it is made of, the VMs each host
+   * runs and the storage repositories they use, as Xen Orchestra names them.
+   */
+  "xcp_ng.pool": {
+    label: translationKey("XCP-ng Pool"),
+    plural: translationKey("XCP-ng Pools"),
+    icon: IconProp.XcpNg,
+    color: "#a21caf",
+    order: 0,
+  },
+  "xcp_ng.host": {
+    label: translationKey("Host"),
+    plural: translationKey("Hosts"),
+    icon: IconProp.Server,
+    color: "#c026d3",
+    order: 10,
+  },
+  "xcp_ng.vm": {
+    label: translationKey("VM"),
+    plural: translationKey("VMs"),
+    icon: IconProp.ComputerDesktop,
+    color: "#d946ef",
+    order: 20,
+  },
+  "xcp_ng.sr": {
+    label: translationKey("Storage Repository"),
+    plural: translationKey("Storage Repositories"),
+    icon: IconProp.Database,
+    color: "#86198f",
+    order: 40,
+  },
+
+  /*
    * OpenStack, in the reds its master Topology entries take. The cloud's own icon is
    * the neutral one until the trademark check (#5751).
    */

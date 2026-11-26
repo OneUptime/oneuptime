@@ -7,6 +7,7 @@ import logger from "../../Logger";
 import {
   EntityRecognizer,
   RecognitionMap,
+  recognizeAsWritten,
   UnavailableRecognizer,
 } from "./EntityRecognizer";
 import { BudgetScope, ModelBudget, ModelStoreBudget } from "./ModelBudget";
@@ -103,10 +104,11 @@ export async function recognizeTexts(
   const budget: ModelStoreBudget = context.budget.forStore(storeKey);
 
   try {
+    // Each value as the model reads it: a URL's escapes read (#11034).
     const found: Map<
       string,
       Array<RecognizedEntity>
-    > = await context.recognizer.recognize(unique, budget);
+    > = await recognizeAsWritten(context.recognizer, unique, budget);
 
     return found.size > 0 ? new RecognitionMap(found) : undefined;
   } catch (error) {

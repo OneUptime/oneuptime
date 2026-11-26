@@ -457,7 +457,7 @@ Alerts for payments:
 
 ### 메트릭 및 인프라 모니터
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, 스토리지 어레이, IoT 디바이스 모니터에는 고유한 변수가 하나 있습니다.
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, 스토리지 어레이, IoT 디바이스 모니터에는 고유한 변수가 하나 있습니다.
 
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |

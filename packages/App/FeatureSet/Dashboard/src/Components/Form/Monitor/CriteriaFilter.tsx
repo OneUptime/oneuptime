@@ -369,7 +369,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
    * Collect metric variables from whichever metric-shaped monitor sub-config is
    * populated on this step (metricMonitor, hostMonitor, kubernetesMonitor,
    * dockerMonitor, dockerSwarmMonitor, podmanMonitor, proxmoxMonitor,
-   * vmwareMonitor, cephMonitor, iotMonitor). Centralized in MonitorStepMetricViewConfigUtil so
+   * vmwareMonitor, xcpNgMonitor, cephMonitor, iotMonitor). Centralized in MonitorStepMetricViewConfigUtil so
    * a new metric-shaped monitor type can't silently leave this dropdown empty.
    */
   const metricViewConfig: MetricsViewConfig | undefined =

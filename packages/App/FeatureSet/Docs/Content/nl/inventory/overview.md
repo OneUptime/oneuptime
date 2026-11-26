@@ -50,7 +50,7 @@ Elke drie uur verwijdert OneUptime de ontdekte items die langer stil zijn dan he
 | --- | --- |
 | Pods, deployments, Proxmox-gasten, OpenStack-instanties en virtuele VMware-machines | 1 dag |
 | Kubernetes-nodes en -namespaces, Proxmox-nodes, OpenStack-hypervisors, VMware-hosts, -clusters en -datastores, en de databases en externe services die je traces aanroepen | 7 dagen |
-| Services, hosts, Kubernetes-, Proxmox- en Ceph-clusters, OpenStack-clouds, storage-arrays, vCenters en Docker Swarm-clusters | 30 dagen |
+| Services, hosts, Kubernetes-, Proxmox- en Ceph-clusters, OpenStack-clouds, storage-arrays, vCenters, XCP-ng-pools en Docker Swarm-clusters | 30 dagen |
 
 Een relatie die OneUptime heeft ontdekt, wordt verwijderd zodra die 30 dagen niet opnieuw is gezien.
 

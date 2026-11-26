@@ -111,7 +111,7 @@ The rule is named for what it hides, such as "Data Security: Email address in lo
 | Any other data type a pattern finds on its own, such as a GitHub token | A **Custom Regex** rule made from the data type's own patterns. A secret is redacted. |
 | One of your own data types, with a pattern | That pattern, only in the attribute it was found in |
 | A data type told apart by the words around it, such as a routing number | Its shape, only in the attribute it was found in |
-| A data type found from the field's name, such as a person's name under `customer_name`, or a value under a key that names a secret | A **Named Attributes** rule, which hides the whole value of that attribute |
+| A data type found from the field's name, such as a person's name under `customer_name` or under a URL's `full_name` parameter, or a value under a key that names a secret | A **Named Attributes** rule, which hides the whole value of that attribute |
 | A value under a key that looks sensitive, where nothing narrower hides it | A **Sensitive Attribute Keys** rule, which redacts the whole value of every such attribute |
 | Any data type in a metric's attribute | A **Redact Attribute** metric pipeline rule for the service, which replaces the attribute's values that hold the data type with `[REDACTED]`. For an IP address, an email address or a card number, its filter is **Matches Pattern Type** of that type, which finds what a log or trace rule of that **Pattern Type** finds, IPv6 addresses and values percent-encoded or in another script among them. For another data type, it is the type's own pattern, and where no pattern finds the data type, the rule replaces every value of the attribute |
 
@@ -170,7 +170,7 @@ Before OneUptime AI starts, Data Security reads the records each leak was seen i
 
 - **A span or an AI call**: the file, line and function its `code.*` attributes name, and the span's name.
 - **An exception**: its own top frames, those in the service's code.
-- **A log line**: the file, line and function its attributes name, when it has them, its logger, and the line as a template, each value replaced by its type's name, such as `User <Email address> signed up`.
+- **A log line**: the file, line and function its attributes name, when it has them, its logger, and the line as a template, each value replaced by its type's name, such as `User <Email address> signed up`, and each word its records don't prove the code wrote, such as a person's name, as `<value>`: `Payment declined for Maria Gonzalez`, read from one record, is `Payment declined for <value>`. A span's name and a metric's name are read the same way.
 - **A metric**: the metric's name.
 - **Any leak**: its attribute key, such as `user.email`, which code usually writes as it is.
 

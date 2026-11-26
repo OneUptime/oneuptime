@@ -594,6 +594,7 @@ describe("Criteria filter defaults", () => {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
     ])(
@@ -640,7 +641,7 @@ describe("Criteria filter defaults", () => {
           })
           .sort(),
       );
-      expect(metricOnly.length).toBe(11);
+      expect(metricOnly.length).toBe(12);
     });
 
     test.each([
@@ -761,6 +762,7 @@ describe("Criteria filter defaults", () => {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
     ])(
       "%s alerts on metrics, so it prefers the metric value check",
@@ -874,6 +876,7 @@ describe("Criteria filter defaults", () => {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
     ])("%s is metric-only", (monitorType: MonitorType) => {
       expect(CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType)).toBe(

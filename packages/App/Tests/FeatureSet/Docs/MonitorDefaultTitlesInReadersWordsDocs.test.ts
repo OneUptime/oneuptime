@@ -76,6 +76,7 @@ const PAGES: ReadonlyArray<DefaultTitlesPage> = [
   { page: "monitor/host-monitor", monitorType: MonitorType.Host },
   { page: "monitor/podman-monitor", monitorType: MonitorType.Podman },
   { page: "monitor/proxmox-monitor", monitorType: MonitorType.Proxmox },
+  { page: "monitor/xcp-ng-monitor", monitorType: MonitorType.XcpNg },
   {
     page: "monitor/storage-array-monitor",
     monitorType: MonitorType.StorageArray,

@@ -154,6 +154,7 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         iotFleetIds: [],
         databaseServerIds: [],
         storageArrayIds: [],
+        xcpNgPoolIds: [],
         cloudResourceIds: [],
         networkDeviceIds: [],
       });

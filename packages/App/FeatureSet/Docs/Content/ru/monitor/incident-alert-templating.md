@@ -457,7 +457,7 @@ Alerts for payments:
 
 ### Мониторы метрик и инфраструктуры
 
-У мониторов Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Система хранения и IoT-устройство есть одна собственная переменная:
+У мониторов Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Система хранения и IoT-устройство есть одна собственная переменная:
 
 | Переменная | Что содержит | Тип |
 | --- | --- | --- |

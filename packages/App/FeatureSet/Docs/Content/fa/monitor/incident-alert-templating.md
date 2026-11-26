@@ -457,7 +457,7 @@ Alerts for payments:
 
 ### مانیتورهای متریک و زیرساخت
 
-مانیتورهای Metrics، Kubernetes، Docker، Host، Podman، Docker Swarm، Proxmox، OpenStack، VMware، Ceph، آرایه ذخیره‌سازی و دستگاه IoT یک متغیر مخصوص به خود دارند:
+مانیتورهای Metrics، Kubernetes، Docker، Host، Podman، Docker Swarm، Proxmox، OpenStack، VMware، XCP-ng، Ceph، آرایه ذخیره‌سازی و دستگاه IoT یک متغیر مخصوص به خود دارند:
 
 | متغیر | چه نگه می‌دارد | نوع |
 | --- | --- | --- |

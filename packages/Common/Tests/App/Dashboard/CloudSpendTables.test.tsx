@@ -69,6 +69,7 @@ import CloudBudgets, {
   ALL_ACCOUNTS,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Budgets";
 import CloudSavings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Savings";
+import CloudSavingsApi from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Savings/CloudSavingsApi";
 import { SAVINGS_GAPS_NONE_READ_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostGapsCard";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
@@ -143,6 +144,21 @@ beforeEach(() => {
       };
     },
   );
+  /*
+   * What acting on savings came to (#11010): nothing changed yet, so the
+   * Savings page draws no strip, approval card or changes of its own.
+   */
+  getJestSpyOn(CloudSavingsApi, "getSummary").mockResolvedValue({
+    currency: "USD",
+    savedThisMonth: 0,
+    realisedCount: 0,
+    measuringCount: 0,
+    promisedMonthly: 0,
+    scheduledHoursThisMonth: 0,
+    changesCount: 0,
+    waitingCount: 0,
+    waitingForYouCount: 0,
+  });
 });
 
 afterEach(() => {

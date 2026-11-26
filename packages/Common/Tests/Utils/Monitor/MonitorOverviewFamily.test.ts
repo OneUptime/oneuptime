@@ -38,8 +38,8 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("covers all 39 monitor types", () => {
-    expect(ALL_TYPES).toHaveLength(39);
+  it("covers all 40 monitor types", () => {
+    expect(ALL_TYPES).toHaveLength(40);
   });
 
   it("ProbeCheck matches isProbableMonitor exactly", () => {
@@ -77,7 +77,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("family sizes are 15/2/1/7/11/1/1/1", () => {
+  it("family sizes are 15/2/1/7/12/1/1/1", () => {
     expect({
       probeCheck: typesInFamily(MonitorOverviewFamily.ProbeCheck).length,
       heartbeat: typesInFamily(MonitorOverviewFamily.Heartbeat).length,
@@ -93,7 +93,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
       heartbeat: 2,
       agent: 1,
       telemetry: 7,
-      infrastructure: 11,
+      infrastructure: 12,
       networkDevice: 1,
       probeStatus: 1,
       manual: 1,
@@ -144,6 +144,15 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
   it("an AI / LLM monitor gets the telemetry overview, with no signal preview", () => {
     expect(MonitorOverviewFamilyUtil.getFamily(MonitorType.Llm)).toBe(
       MonitorOverviewFamily.TelemetrySignal,
+    );
+  });
+
+  it("XCP-ng pools get the infrastructure overview, like Proxmox clusters", () => {
+    expect(MonitorOverviewFamilyUtil.getFamily(MonitorType.XcpNg)).toBe(
+      MonitorOverviewFamily.Infrastructure,
+    );
+    expect(MonitorOverviewFamilyUtil.getFamily(MonitorType.XcpNg)).toBe(
+      MonitorOverviewFamilyUtil.getFamily(MonitorType.Proxmox),
     );
   });
 

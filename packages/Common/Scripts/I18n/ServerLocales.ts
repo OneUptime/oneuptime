@@ -17,7 +17,8 @@ import path from "path";
  *     translateTemplate("...") call, and a translatePlural({ one: "...",
  *     other: "..." }) call, in double quotes or single ones;
  *   - in an email template, the email language helpers
- *     (Notification/Utils/EmailLanguage): t, tHtml, tt, ttHtml and tp.
+ *     (Notification/Utils/EmailLanguage): t, tHtml, tt, ttHtml, ttMailtoHtml
+ *     and tp.
  *
  * `npm run i18n:server-sync` (SyncServerLocales.ts) writes en.json from them
  * and gives every other language each new sentence in English, to be
@@ -272,7 +273,7 @@ const TYPESCRIPT_PLURAL_CALL: RegExp = new RegExp(
 );
 
 const TEMPLATE_KEY_CALL: RegExp = new RegExp(
-  `[({]\\s*(?:t|tHtml|tt|ttHtml)\\s+${STRING_LITERAL_BODY}`,
+  `[({]\\s*(?:t|tHtml|tt|ttHtml|ttMailtoHtml)\\s+${STRING_LITERAL_BODY}`,
   "g",
 );
 

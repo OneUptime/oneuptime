@@ -222,6 +222,7 @@ function mockAnyService(): unknown {
       getVMwareVCenterLinkInDashboard: jest.fn(),
       getCephClusterLinkInDashboard: jest.fn(),
       getStorageArrayLinkInDashboard: jest.fn(),
+      getXcpNgPoolLinkInDashboard: jest.fn(),
       getOnCallDutyPolicyLinkInDashboard: jest.fn(),
       isScheduledMaintenanceCompleted: jest.fn(),
       isScheduledMaintenanceOngoing: jest.fn(),
@@ -535,6 +536,15 @@ jest.mock("Common/Server/Services/StorageArrayOwnerTeamService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/StorageArrayOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/XcpNgPoolService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/XcpNgPoolOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/XcpNgPoolOwnerUserService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/IoTFleetService", () => {
@@ -958,6 +968,9 @@ import CephClusterOwnerUserService from "Common/Server/Services/CephClusterOwner
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import StorageArrayOwnerTeamService from "Common/Server/Services/StorageArrayOwnerTeamService";
 import StorageArrayOwnerUserService from "Common/Server/Services/StorageArrayOwnerUserService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
+import XcpNgPoolOwnerTeamService from "Common/Server/Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService from "Common/Server/Services/XcpNgPoolOwnerUserService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleetOwnerTeamService from "Common/Server/Services/IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "Common/Server/Services/IoTFleetOwnerUserService";
@@ -1047,6 +1060,7 @@ import "../../../FeatureSet/Workers/Jobs/OpenStackCloudOwners/SendOwnerAddedNoti
 import "../../../FeatureSet/Workers/Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CephClusterOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/XcpNgPoolOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
@@ -1781,6 +1795,9 @@ const EVERY_RESOURCE_SERVICES: Array<unknown> = [
   StorageArrayService,
   StorageArrayOwnerTeamService,
   StorageArrayOwnerUserService,
+  XcpNgPoolService,
+  XcpNgPoolOwnerTeamService,
+  XcpNgPoolOwnerUserService,
   IoTFleetService,
   IoTFleetOwnerTeamService,
   IoTFleetOwnerUserService,
@@ -2709,6 +2726,15 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     record: ownedRecord,
   }),
   ownerAddedCase({
+    title: "a team added as the owner of an XCP-ng pool",
+    jobName: "XcpNgPoolOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.XcpNgPoolOwnerAdded,
+    recordService: XcpNgPoolService,
+    teamService: XcpNgPoolOwnerTeamService,
+    recordIdField: "xcpNgPoolId",
+    record: ownedRecord,
+  }),
+  ownerAddedCase({
     title: "a team added as the owner of a IoT fleet",
     jobName: "IoTFleetOwner:SendOwnerAddedNotification",
     kind: OwnerNotificationKind.IoTFleetOwnerAdded,
@@ -3010,6 +3036,7 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
           "getVMwareVCenterLinkInDashboard",
           "getCephClusterLinkInDashboard",
           "getStorageArrayLinkInDashboard",
+          "getXcpNgPoolLinkInDashboard",
           "getOnCallDutyPolicyLinkInDashboard",
         ]) {
           asMock(each[link]).mockResolvedValue("https://oneuptime.test/record");

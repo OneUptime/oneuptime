@@ -14,6 +14,7 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
@@ -35,6 +36,7 @@ import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../Services/XcpNgPoolService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import UUIDColumnFilter from "../../Types/Database/UUIDColumnFilter";
 import { EventLoopBudget } from "../EventLoop";
@@ -82,6 +84,7 @@ export interface SeriesLinkableModel {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
+  xcpNgPools?: Array<XcpNgPool> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
@@ -104,6 +107,7 @@ export interface SeriesResolvedResourceIds {
   proxmoxClusterIds: Array<string>;
   openStackCloudIds: Array<string>;
   vmwareVCenterIds: Array<string>;
+  xcpNgPoolIds: Array<string>;
   cephClusterIds: Array<string>;
   dockerSwarmClusterIds: Array<string>;
   iotFleetIds: Array<string>;
@@ -580,6 +584,7 @@ export default class SeriesResourceLinker {
       proxmoxClusterIds: [],
       openStackCloudIds: [],
       vmwareVCenterIds: [],
+      xcpNgPoolIds: [],
       cephClusterIds: [],
       dockerSwarmClusterIds: [],
       iotFleetIds: [],
@@ -651,7 +656,7 @@ export default class SeriesResourceLinker {
    * its lookups are sent. Each service's findBy is looked up when this is
    * called, so a stand-in a test puts on it is the one read.
    *
-   * Proxmox / VMware / Ceph / Docker Swarm / IoT / storage arrays carry no
+   * Proxmox / VMware / XCP-ng / Ceph / Docker Swarm / IoT / storage arrays carry no
    * `oneuptime.*.id` stamp at ingest — they are addressable by name only —
    * so they have no ids, by construction, not by omission. Databases are
    * the reverse: never addressable by name (see DatabaseServerIdLabelKeys),
@@ -748,6 +753,20 @@ export default class SeriesResourceLinker {
         },
         nameColumn: "name",
         findBy: VMwareVCenterService.findBy.bind(VMwareVCenterService),
+      },
+      /*
+       * Name-only like the clusters around it, but its "name" is the
+       * pool's XAPI UUID, matched on poolIdentifier: ingest stamps no
+       * `oneuptime.*.id` on a pool's telemetry.
+       */
+      {
+        resultKey: "xcpNgPoolIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.xcpNgPoolIdentifiers;
+        },
+        nameColumn: "poolIdentifier",
+        findBy: XcpNgPoolService.findBy.bind(XcpNgPoolService),
       },
       {
         resultKey: "cephClusterIds",
@@ -1012,6 +1031,16 @@ export default class SeriesResourceLinker {
         resolved.vmwareVCenterIds,
         (): VMwareVCenter => {
           return new VMwareVCenter();
+        },
+      );
+    }
+
+    if (resolved.xcpNgPoolIds.length > 0) {
+      model.xcpNgPools = this.mergeById(
+        model.xcpNgPools,
+        resolved.xcpNgPoolIds,
+        (): XcpNgPool => {
+          return new XcpNgPool();
         },
       );
     }

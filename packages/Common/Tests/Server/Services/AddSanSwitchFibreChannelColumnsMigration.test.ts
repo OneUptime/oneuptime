@@ -1,4 +1,4 @@
-import { AddSanSwitchFibreChannelColumns1809187720000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187720000-AddSanSwitchFibreChannelColumns";
+import { AddSanSwitchFibreChannelColumns1809187731166 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187731166-AddSanSwitchFibreChannelColumns";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
@@ -44,11 +44,11 @@ function makeQueryRunner(): MakeQueryRunnerResult {
   };
 }
 
-describe("AddSanSwitchFibreChannelColumns1809187720000", () => {
+describe("AddSanSwitchFibreChannelColumns1809187731166", () => {
   test("up() adds the three nullable columns, and nothing else", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddSanSwitchFibreChannelColumns1809187720000().up(runner);
+    await new AddSanSwitchFibreChannelColumns1809187731166().up(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "NetworkDevice" ADD "snmpV3ContextName" character varying(100)`,
@@ -64,7 +64,7 @@ describe("AddSanSwitchFibreChannelColumns1809187720000", () => {
   test("down() drops them again, in reverse order", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddSanSwitchFibreChannelColumns1809187720000().down(runner);
+    await new AddSanSwitchFibreChannelColumns1809187731166().down(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "NetworkInterface" DROP COLUMN "downReason"`,
@@ -86,18 +86,18 @@ describe("AddSanSwitchFibreChannelColumns1809187720000", () => {
     });
 
     const position: number = names.indexOf(
-      "AddSanSwitchFibreChannelColumns1809187720000",
+      "AddSanSwitchFibreChannelColumns1809187731166",
     );
 
     expect(position).toBeGreaterThan(-1);
     expect(
-      names.lastIndexOf("AddSanSwitchFibreChannelColumns1809187720000"),
+      names.lastIndexOf("AddSanSwitchFibreChannelColumns1809187731166"),
     ).toBe(position);
     expect(names.indexOf("AddProbeSnmpTrapReceiver1809187715110")).toBeLessThan(
       position,
     );
-    expect(new AddSanSwitchFibreChannelColumns1809187720000().name).toBe(
-      "AddSanSwitchFibreChannelColumns1809187720000",
+    expect(new AddSanSwitchFibreChannelColumns1809187731166().name).toBe(
+      "AddSanSwitchFibreChannelColumns1809187731166",
     );
   });
 
@@ -105,11 +105,11 @@ describe("AddSanSwitchFibreChannelColumns1809187720000", () => {
     const sharing: Array<string> = fs
       .readdirSync(MIGRATION_DIRECTORY)
       .filter((file: string): boolean => {
-        return file.startsWith("1809187720000-");
+        return file.startsWith("1809187731166-");
       });
 
     expect(sharing).toEqual([
-      "1809187720000-AddSanSwitchFibreChannelColumns.ts",
+      "1809187731166-AddSanSwitchFibreChannelColumns.ts",
     ]);
   });
 
