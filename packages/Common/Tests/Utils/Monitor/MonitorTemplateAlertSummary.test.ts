@@ -256,9 +256,13 @@ describe("one criterion, in plain terms", () => {
 });
 
 describe("what can be met on a device that only answers ping", () => {
-  test("reachability and traps, never the walk", () => {
+  test("reachability, the device's ping and traps, never the walk", () => {
     expect([...PING_ONLY_EVALUATED_CHECKS]).toEqual([
       CheckOn.SnmpIsOnline,
+      // The device's ping on its own (issue #11071): what a ping-only poll is.
+      CheckOn.IcmpIsReachable,
+      CheckOn.IcmpResponseTime,
+      CheckOn.IcmpPacketLossPercent,
       CheckOn.SnmpTrapReceived,
       CheckOn.SnmpTrapVarbindValue,
     ]);
@@ -286,7 +290,8 @@ describe("what can be met on a device that only answers ping", () => {
 
     const snmpChecks: Array<CheckOn> = Object.entries(CheckOn)
       .filter(([key]: [string, CheckOn]): boolean => {
-        return key.startsWith("Snmp");
+        // A Network Device's own checks: its SNMP and its ping (#11071).
+        return key.startsWith("Snmp") || key.startsWith("Icmp");
       })
       .map(([, value]: [string, CheckOn]): CheckOn => {
         return value;
@@ -294,6 +299,7 @@ describe("what can be met on a device that only answers ping", () => {
 
     // A guard against the filter above quietly matching nothing.
     expect(snmpChecks.length).toBeGreaterThan(10);
+    expect(snmpChecks).toContain(CheckOn.IcmpIsReachable);
 
     for (const check of snmpChecks) {
       expect({
@@ -364,6 +370,97 @@ describe("what can be met on a device that only answers ping", () => {
         filterCondition: FilterCondition.Any,
       }),
     ).toBe(false);
+  });
+
+  /*
+   * Issue #11071. "No answer to ping" fires on a device that is only
+   * pinged, and "answers ping, SNMP failing" never does: a device with no
+   * SNMP credentials has no walk to fail, so the default criteria never
+   * tell it SNMP is failing.
+   */
+  test("the device's ping is judged on a ping-only device, and SNMP failing is not", () => {
+    expect(
+      isCriterionEvaluatedOnPingOnlyDevices({
+        checks: [CheckOn.IcmpIsReachable],
+        filterCondition: FilterCondition.All,
+      }),
+    ).toBe(true);
+    expect(
+      isCriterionEvaluatedOnPingOnlyDevices({
+        checks: [CheckOn.IcmpResponseTime, CheckOn.IcmpPacketLossPercent],
+        filterCondition: FilterCondition.All,
+      }),
+    ).toBe(true);
+    expect(
+      isCriterionEvaluatedOnPingOnlyDevices({
+        checks: [CheckOn.IcmpIsReachable, CheckOn.SnmpWalkIsSucceeding],
+        filterCondition: FilterCondition.All,
+      }),
+    ).toBe(false);
+  });
+
+  test("a new Network Device monitor's SNMP-failing criteria reads as SNMP devices only", () => {
+    const summary: MonitorTemplateAlertSummary = summarizeMonitorTemplateAlerts(
+      MonitorSteps.getDefaultMonitorSteps({
+        monitorType: MonitorType.NetworkDevice,
+        monitorName: "Branch switch",
+        defaultMonitorStatusId: OFFLINE,
+        onlineMonitorStatusId: new ObjectID(
+          "77777777-7777-4777-8777-777777777777",
+        ),
+        offlineMonitorStatusId: OFFLINE,
+        defaultIncidentSeverityId: CRITICAL,
+        defaultAlertSeverityId: MAJOR,
+        warningAlertSeverityId: WARNING_ALERT,
+      }),
+    );
+
+    expect(
+      summary.criteria.map(
+        (
+          criterion: MonitorCriteriaAlertSummary,
+        ): {
+          checks: Array<CheckOn>;
+          isEvaluatedOnPingOnlyDevices: boolean;
+          raisesIncident: boolean;
+          raisesAlert: boolean;
+        } => {
+          return {
+            checks: criterion.checks,
+            isEvaluatedOnPingOnlyDevices:
+              criterion.isEvaluatedOnPingOnlyDevices,
+            raisesIncident: criterion.raisesIncident,
+            raisesAlert: criterion.raisesAlert,
+          };
+        },
+      ),
+    ).toEqual([
+      // Offline: an incident, on any device.
+      {
+        checks: [CheckOn.SnmpIsOnline],
+        isEvaluatedOnPingOnlyDevices: true,
+        raisesIncident: true,
+        raisesAlert: false,
+      },
+      // SNMP failing: an alert, on a device that is walked.
+      {
+        checks: [CheckOn.IcmpIsReachable, CheckOn.SnmpWalkIsSucceeding],
+        isEvaluatedOnPingOnlyDevices: false,
+        raisesIncident: false,
+        raisesAlert: true,
+      },
+      // Online: nothing raised.
+      {
+        checks: [CheckOn.SnmpIsOnline],
+        isEvaluatedOnPingOnlyDevices: true,
+        raisesIncident: false,
+        raisesAlert: false,
+      },
+    ]);
+    // The SNMP-failing alert starts on the project's warning severity.
+    expect(summary.criteria[1]!.alertSeverityIds).toEqual([
+      WARNING_ALERT.toString(),
+    ]);
   });
 });
 

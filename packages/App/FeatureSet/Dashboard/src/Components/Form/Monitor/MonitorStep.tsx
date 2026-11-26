@@ -879,6 +879,9 @@ return {
       networkDeviceVendorTemplateId={networkDeviceVendorTemplateId}
       isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
       offlineMonitorStatusId={props.offlineMonitorStatusId}
+      upMonitorStatusId={
+        props.defaultMonitorStatusId || props.onlineMonitorStatusId
+      }
       monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
       incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
       alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}

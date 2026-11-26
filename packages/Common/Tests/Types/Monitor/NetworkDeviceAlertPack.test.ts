@@ -55,10 +55,19 @@ describe("NetworkDeviceAlertPackUtil.getPackItems", () => {
       expect(item.createAlerts).toBe(false);
     });
 
-    test("an 'SNMP walk failing' item alerts (never incidents) on the walk CheckOn", () => {
+    test("an 'SNMP walk failing' item alerts (never incidents) on the walk CheckOn, for a device that answers ping", () => {
       const item: NetworkDeviceAlertPackItem = packItem("SNMP walk failing");
 
+      /*
+       * Issue #11071: it reads the ping itself, so a device that answers
+       * nothing is down and is not also told its SNMP is failing.
+       */
       expect(item.filters).toEqual([
+        {
+          checkOn: CheckOn.IcmpIsReachable,
+          filterType: FilterType.True,
+          value: undefined,
+        },
         {
           checkOn: CheckOn.SnmpWalkIsSucceeding,
           filterType: FilterType.False,
@@ -67,6 +76,19 @@ describe("NetworkDeviceAlertPackUtil.getPackItems", () => {
       ]);
       expect(item.createAlerts).toBe(true);
       expect(item.createIncidents).toBe(false);
+      expect(item.keepsDeviceUp).toBe(true);
+    });
+
+    test("no other item keeps the device up", () => {
+      expect(
+        NetworkDeviceAlertPackUtil.getPackItems()
+          .filter((item: NetworkDeviceAlertPackItem): boolean => {
+            return Boolean(item.keepsDeviceUp);
+          })
+          .map((item: NetworkDeviceAlertPackItem): string => {
+            return item.name;
+          }),
+      ).toEqual(["SNMP walk failing"]);
     });
 
     test("no other item reads the walk verdict as if it were reachability", () => {
@@ -219,6 +241,65 @@ describe("NetworkDeviceAlertPackUtil.buildCriteriaInstances", () => {
        */
       expect(instance.data?.changeMonitorStatus).toBe(false);
     }
+  });
+
+  /*
+   * Issue #11071. The first criteria that matches decides the status, and
+   * one that changes none leaves the status as it was: a device down for one
+   * poll that came back with SNMP still failing matched "SNMP walk failing"
+   * and stayed at the down status for as long as SNMP failed. With an up
+   * status to go to, it moves the monitor there.
+   */
+  test("with an upMonitorStatusId, SNMP walk failing moves the monitor up, and nothing else changes", () => {
+    const downStatusId: ObjectID = ObjectID.generate();
+    const upStatusId: ObjectID = ObjectID.generate();
+    const items: Array<NetworkDeviceAlertPackItem> =
+      NetworkDeviceAlertPackUtil.getPackItems();
+    const instances: Array<MonitorCriteriaInstance> =
+      NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+        downMonitorStatusId: downStatusId,
+        upMonitorStatusId: upStatusId,
+      });
+
+    for (let i: number = 0; i < items.length; i++) {
+      const data: MonitorCriteriaInstance["data"] = instances[i]!.data;
+
+      if (items[i]!.name === "SNMP walk failing") {
+        expect(data?.changeMonitorStatus).toBe(true);
+        expect(data?.monitorStatusId?.toString()).toBe(upStatusId.toString());
+        expect(data?.createAlerts).toBe(true);
+        expect(data?.createIncidents).toBe(false);
+        continue;
+      }
+
+      expect({
+        item: items[i]!.name,
+        changeMonitorStatus: data?.changeMonitorStatus,
+        monitorStatusId: data?.monitorStatusId?.toString(),
+      }).toEqual({
+        item: items[i]!.name,
+        changeMonitorStatus: items[i]!.createIncidents,
+        monitorStatusId: downStatusId.toString(),
+      });
+    }
+  });
+
+  test("an up status alone changes only SNMP walk failing's status", () => {
+    const upStatusId: ObjectID = ObjectID.generate();
+    const instances: Array<MonitorCriteriaInstance> =
+      NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+        upMonitorStatusId: upStatusId,
+      });
+
+    expect(
+      instances
+        .filter((instance: MonitorCriteriaInstance): boolean => {
+          return Boolean(instance.data?.changeMonitorStatus);
+        })
+        .map((instance: MonitorCriteriaInstance): string => {
+          return instance.data!.name;
+        }),
+    ).toEqual(["SNMP walk failing"]);
   });
 
   test("only incident-creating pack items request a monitor status change", () => {
