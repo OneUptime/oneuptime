@@ -199,7 +199,7 @@ CPU スロットリングのテンプレートはありません。エージェ�
 | `resource.container.id` | 完全なコンテナ ID。 |
 | `resource.container.runtime` | 常に `podman`。 |
 | `attributes["log.iostream"]` | `stdout` または `stderr`。 |
-| `severityText` / `severityNumber` | 行の中にレベルがあれば、そのレベルのキーワードから読み取ります（`[ERROR]`、`app.INFO:`、`{"level":"warn"}`、`level=error`）。レベルのない行はストリームから決まります。`stderr` は `ERROR`、`stdout` は `INFO` です。 |
+| `severityText` / `severityNumber` | 行の中にレベルがあれば、行に書かれたそのレベルから読み取ります（`[ERROR]`、`app.INFO:`、`{"level":"warn"}`、`level=error`）。例外のトレースバックは `ERROR` です。レベルのない行は、`stdout` では `INFO` になり、`stderr` では重大度がありません（指定なし）。 |
 | `body` | コンテナが書き込んだ行。スタックトレースの行のように、空白や閉じ括弧で始まる行は前の行に連結されます。 |
 | `time` | その行に対する Podman のタイムスタンプ。 |
 

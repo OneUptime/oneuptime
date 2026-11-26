@@ -20,6 +20,9 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A cloud account's Recommendations (CloudAccountMonitorRecommendations),
@@ -258,6 +261,10 @@ function monitorFor(resource: CloudResource, templateId: string): Monitor {
 
 let resources: Array<CloudResource> = [];
 let monitors: Array<Monitor> = [];
+// Which recommendations the server says a monitor covers (#11074).
+let coverageSpy: SpyInstance<
+  typeof MonitorRecommendationCoverageApi.findCoveringMonitors
+>;
 let dismissals: Array<RecommendationDismissal> = [];
 let failResourcesRead: boolean = false;
 
@@ -361,6 +368,15 @@ beforeEach(() => {
     monitors.push(saved((args as { model: Monitor }).model));
     return Promise.resolve({});
   });
+
+  /*
+   * Which recommendations a monitor covers is the server's to say
+   * (#11074): answered from the monitors the project has.
+   */
+  coverageSpy = serveCoverageFrom(() => {
+    return monitors;
+  });
+  coverageSpy.mockClear();
 
   holding([Permission.ProjectOwner]);
 });
@@ -819,7 +835,8 @@ describe("adding monitors", () => {
     window.addEventListener(RECOMMENDATIONS_CHANGED_EVENT, changed);
 
     await renderPage();
-    const monitorReadsBefore: number = listCallsOf(Monitor).length;
+    // Which recommendations a monitor covers is asked of the server (#11074).
+    const coverageReadsBefore: number = coverageSpy.mock.calls.length;
 
     fireEvent.click(
       screen.getByTestId(
@@ -829,8 +846,10 @@ describe("adding monitors", () => {
     await createFromPanel();
 
     await waitFor(() => {
-      expect(listCallsOf(Monitor).length).toBe(monitorReadsBefore + 1);
+      expect(coverageSpy.mock.calls.length).toBe(coverageReadsBefore + 1);
     });
+    // Never by reading the project's monitors.
+    expect(listCallsOf(Monitor)).toHaveLength(0);
     await waitFor(() => {
       expect(changed).toHaveBeenCalledTimes(1);
     });

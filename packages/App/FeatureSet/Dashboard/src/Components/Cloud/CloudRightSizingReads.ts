@@ -14,9 +14,11 @@ import {
 } from "Common/Types/Cloud/CloudCost";
 import {
   CLOUD_RIGHT_SIZING_WINDOW_DAYS,
+  CloudMemorySource,
   CloudResourceDailyCost,
   CloudRightSizingProfile,
   CloudUsageObservation,
+  isCloudHostVmProfile,
 } from "Common/Types/Cloud/CloudRightSizing";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
@@ -113,7 +115,15 @@ export async function fetchCloudResourceUsage(data: {
     });
   };
 
-  const [cpuP95, cpuMax, cpuCount, memoryMax]: [
+  /*
+   * A VM's memory may come from its host too: how many readings its cloud
+   * gave is what the two are told apart by (#11013).
+   */
+  const countsMemory: boolean = Boolean(
+    data.profile.memory && isCloudHostVmProfile(data.profile),
+  );
+  const [cpuP95, cpuMax, cpuCount, memoryMax, memoryCount]: [
+    AggregatedModel | null,
     AggregatedModel | null,
     AggregatedModel | null,
     AggregatedModel | null,
@@ -124,6 +134,9 @@ export async function fetchCloudResourceUsage(data: {
     read(data.profile.cpu.names, AggregationType.Count),
     data.profile.memory
       ? read(data.profile.memory.names, AggregationType.Max)
+      : Promise.resolve(null),
+    countsMemory && data.profile.memory
+      ? read(data.profile.memory.names, AggregationType.Count)
       : Promise.resolve(null),
   ]);
 
@@ -139,7 +152,7 @@ export async function fetchCloudResourceUsage(data: {
   const cpuScale: number = data.profile.cpu.toPercent;
   const memoryScale: number = data.profile.memory?.toPercent || 1;
 
-  return {
+  const observation: CloudUsageObservation = {
     cpuP95Percent: p95 * cpuScale,
     cpuMaxPercent: max === null ? null : max * cpuScale,
     memoryPeakPercent: memory === null ? null : memory * memoryScale,
@@ -148,6 +161,16 @@ export async function fetchCloudResourceUsage(data: {
       ? Math.max(0, (end.getTime() - first) / HOUR_MS)
       : 0,
   };
+
+  if (memory !== null) {
+    observation.memorySource = CloudMemorySource.Cloud;
+    observation.memorySamples = Math.max(
+      0,
+      Math.round(valueOf(memoryCount) || 0),
+    );
+  }
+
+  return observation;
 }
 
 /*

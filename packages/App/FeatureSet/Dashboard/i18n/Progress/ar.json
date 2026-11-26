@@ -388,6 +388,7 @@
     "p99 (ms)",
     "p99 {{duration}}",
     "payment-.*",
+    "payments, search, platform-*",
     "pending\npaid\nrefunded",
     "pod",
     "prod, staging",

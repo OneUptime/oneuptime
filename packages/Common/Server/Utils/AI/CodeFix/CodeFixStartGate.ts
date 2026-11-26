@@ -6,6 +6,7 @@ import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import CodeFixTaskContext from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import { CodeTaskBlocker } from "../../../../Types/AI/CodeTask";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -25,9 +26,13 @@ import ObjectID from "../../../../Types/ObjectID";
  * Now they ask what Code's own request box asks (CodeTaskGate): about the
  * repository the run will be queued on, or - when none resolves yet -
  * about everything that does not depend on one. The plan and the bill are
- * the project's, read for it (nobody's request carries them here), and the
- * person's own permission to edit the repository is not asked: these runs
- * are OneUptime's, started by anyone who may read the trace or the service.
+ * the project's, read for it (nobody's request carries them here). The
+ * person's own permission to use the repository in Code is the caller's to
+ * weigh, before it asks: a trace's fix is held to the repositories the
+ * person may read and ask OneUptime AI to work in, as every other Fix with
+ * AI is (FixPerformanceTaskTrigger, #11075) - the allowance below - while
+ * a service's improvement and an incident's fix are OneUptime's runs,
+ * started by anyone who may read the service or the incident.
  *
  * The suggestion routes ask this before they offer the button, and the
  * create routes ask it again and refuse in the same words, so the page
@@ -51,6 +56,13 @@ export default class CodeFixStartGate {
     projectId: ObjectID;
     taskType: CodeFixTaskType;
     taskContext: CodeFixTaskContext;
+    /*
+     * The repositories the run may be queued on, when fewer than its
+     * context allows: a person's trace fix is held to the ones they may
+     * use in Code (#11075). None of them: asked as for a run whose
+     * repository is not known yet.
+     */
+    allowance?: CodeRepositoryAllowance | undefined;
     billingEnabled?: boolean | undefined;
   }): Promise<CodeFixStart> {
     /*
@@ -63,6 +75,7 @@ export default class CodeFixStartGate {
           projectId: data.projectId,
           taskType: data.taskType,
           taskContext: data.taskContext,
+          ...(data.allowance ? { allowance: data.allowance } : {}),
         }),
         ProjectService.getCurrentPlan(data.projectId),
       ]);
