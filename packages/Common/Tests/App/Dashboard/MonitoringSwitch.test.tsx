@@ -407,7 +407,8 @@ describe("the banner on a turned-off monitor's pages", () => {
     [
       "an incident",
       { disableActiveMonitoringBecauseOfManualIncident: true },
-      "We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.",
+      // What the pause does, and how to keep it checked (#11141).
+      "An incident declared by hand paused this monitor's checks until it is resolved. What reaches it meanwhile is listed in Logs, not evaluated. To keep it checked during incidents, turn on Keep monitoring during incidents in Settings.",
     ],
     [
       "a maintenance event",

@@ -6695,13 +6695,21 @@ ${incidentSeverity.name}
          * or left out as they do (MonitorIncidentPause). An edit of the
          * monitors did that already.
          */
+        const isMonitorStatusCleared: boolean =
+          RelationIdUtil.isPresent(
+            onUpdate.updateBy.data as Dictionary<unknown>,
+            CHANGE_MONITOR_STATUS_KEYS,
+          ) &&
+          !RelationIdUtil.readConsistent(
+            onUpdate.updateBy.data as Dictionary<unknown>,
+            CHANGE_MONITOR_STATUS_KEYS,
+            "Monitor Status",
+          );
+
         if (
           !isMonitorPauseWorkedOut &&
           (onUpdate.updateBy.data.pauseMonitoring !== undefined ||
-            RelationIdUtil.isPresent(
-              onUpdate.updateBy.data as Dictionary<unknown>,
-              CHANGE_MONITOR_STATUS_KEYS,
-            ))
+            isMonitorStatusCleared)
         ) {
           try {
             await this.disableActiveMonitoringIfManualIncident(incidentId);
@@ -6874,6 +6882,22 @@ ${incidentSeverity.name}
     }
 
     if (data.written["customFields"] !== undefined) {
+      return true;
+    }
+
+    /*
+     * Pause Monitoring written, or the monitor status taken away: the
+     * incident's monitors are worked out again (#11141).
+     */
+    if (
+      data.written["pauseMonitoring"] !== undefined ||
+      (RelationIdUtil.isPresent(data.written, CHANGE_MONITOR_STATUS_KEYS) &&
+        !RelationIdUtil.readConsistent(
+          data.written,
+          CHANGE_MONITOR_STATUS_KEYS,
+          "Monitor Status",
+        ))
+    ) {
       return true;
     }
 
