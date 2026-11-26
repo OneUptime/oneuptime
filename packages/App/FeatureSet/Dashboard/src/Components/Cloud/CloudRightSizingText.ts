@@ -1,6 +1,7 @@
 import {
   CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS,
   CLOUD_RIGHT_SIZING_VERDICT_LABELS,
+  CloudMemorySource,
   CloudRightSizing,
   CloudRightSizingEvidence,
   CloudRightSizingVerdict,
@@ -69,6 +70,30 @@ export const RIGHT_SIZING_EVIDENCE_LINE: string = translationKey(
 export const RIGHT_SIZING_EVIDENCE_LINE_WITH_MEMORY: string = translationKey(
   "OneUptime's readings: 95% of the time its CPU was at or under {{p95}}, and never above {{max}}; its memory peaked at {{memory}}.",
 );
+// Its memory read by the host the VM is (#11013).
+export const RIGHT_SIZING_EVIDENCE_LINE_WITH_HOST_MEMORY: string =
+  translationKey(
+    "OneUptime's readings: 95% of the time its CPU was at or under {{p95}}, and never above {{max}}; its memory peaked at {{memory}}, as its host {{host}} read it.",
+  );
+
+/*
+ * Where a VM's memory came from, and how to size one on memory that is
+ * sized by its CPU alone (#11013): the host OneUptime's collector runs on
+ * in it read it, the host has read too little of it yet, or the collector
+ * is not on it.
+ */
+export const RIGHT_SIZING_MEMORY_FROM_HOST: string = translationKey(
+  "Its memory is read by OneUptime's host collector on {{host}}.",
+);
+export const RIGHT_SIZING_MEMORY_HOST_PENDING: string = translationKey(
+  "OneUptime's host collector on {{host}} reads its memory. Right-sizing on memory needs {{needed}} days of it, and has {{read}} so far.",
+);
+export const RIGHT_SIZING_MEMORY_INSTALL_HINT: string = translationKey(
+  "Install OneUptime's host collector on it, and it is sized on its memory too.",
+);
+export const RIGHT_SIZING_INSTALL_HOST_COLLECTOR: string = translationKey(
+  "Install Host Collector",
+);
 
 export interface CloudRightSizingFact {
   // Its English label, translated where it is drawn (CloudCostFigure).
@@ -114,6 +139,86 @@ export interface CloudRightSizingText {
   why: Array<string>;
   // What to check first, when it was sized by CPU only.
   caveat: string | null;
+  /*
+   * How its memory was read, or how it could be (#11013): the host it is
+   * read it (its name a link to its page), the host has read too little of
+   * it yet, or - a VM sized by CPU alone - installing the host collector
+   * sizes it on memory too.
+   */
+  memory: CloudRightSizingMemoryLine | null;
+}
+
+/*
+ * A sentence whose host the card draws as a link in its {{host}} slot
+ * (TranslatedSentence): its English key and the values beside the slot.
+ */
+export type CloudRightSizingMemoryLine =
+  | {
+      kind: "from-host" | "host-pending";
+      template: string;
+      values: Record<string, string>;
+      hostId: string;
+      hostName: string;
+    }
+  | {
+      kind: "install";
+      // In the reader's language.
+      sentence: string;
+    };
+
+// How a sizing says where its memory came from, or how it could come.
+export function getCloudRightSizingMemoryLine(data: {
+  sizing: CloudRightSizing;
+  translator: Translator;
+}): CloudRightSizingMemoryLine | null {
+  const { sizing, translator } = data;
+
+  if (
+    sizing.verdict === CloudRightSizingVerdict.NotEnoughHistory ||
+    sizing.verdict === CloudRightSizingVerdict.NotSized
+  ) {
+    return null;
+  }
+
+  if (
+    sizing.isMemoryRead &&
+    sizing.memorySource === CloudMemorySource.Host &&
+    sizing.memoryHost
+  ) {
+    return {
+      kind: "from-host",
+      template: RIGHT_SIZING_MEMORY_FROM_HOST,
+      values: {},
+      hostId: sizing.memoryHost.id,
+      hostName: sizing.memoryHost.name,
+    };
+  }
+
+  if (sizing.isMemoryRead || !sizing.canHostReadMemory) {
+    return null;
+  }
+
+  if (sizing.memoryHostPending) {
+    return {
+      kind: "host-pending",
+      template: RIGHT_SIZING_MEMORY_HOST_PENDING,
+      values: {
+        needed: translator.formatNumber(
+          Math.round(CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS / 24),
+        ),
+        read: translator.formatNumber(sizing.memoryHostPending.observedDays),
+      },
+      hostId: sizing.memoryHostPending.host.id,
+      hostName: sizing.memoryHostPending.host.name,
+    };
+  }
+
+  return {
+    kind: "install",
+    sentence:
+      translator.translateText(RIGHT_SIZING_MEMORY_INSTALL_HINT) ||
+      RIGHT_SIZING_MEMORY_INSTALL_HINT,
+  };
 }
 
 // A percent as the tiles write one: whole, in the reader's digits.
@@ -190,6 +295,7 @@ export function getCloudRightSizingText(data: {
       facts: [],
       why: [],
       caveat: null,
+      memory: null,
     };
   }
 
@@ -300,6 +406,7 @@ export function getCloudRightSizingText(data: {
     facts,
     why,
     caveat,
+    memory: getCloudRightSizingMemoryLine({ sizing, translator }),
   };
 }
 
@@ -326,6 +433,21 @@ export function getCloudRightSizingEvidenceLine(data: {
   };
 
   if (data.evidence.memoryPeakPercent !== null) {
+    // Its memory as the host the VM is read it, named (#11013).
+    if (
+      data.evidence.memorySource === CloudMemorySource.Host &&
+      data.evidence.memoryHostName
+    ) {
+      return data.translator.translateTemplate(
+        RIGHT_SIZING_EVIDENCE_LINE_WITH_HOST_MEMORY,
+        {
+          ...values,
+          memory: percent(data.evidence.memoryPeakPercent),
+          host: data.evidence.memoryHostName,
+        },
+      );
+    }
+
     return data.translator.translateTemplate(
       RIGHT_SIZING_EVIDENCE_LINE_WITH_MEMORY,
       { ...values, memory: percent(data.evidence.memoryPeakPercent) },

@@ -137,6 +137,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resource_detection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   batch:
 
 exporters:
@@ -150,9 +167,9 @@ service:
   pipelines:
     metrics:
       receivers: [host_metrics, systemd]
-      processors: [resource_detection, batch]
+      processors: [resource_detection, resource_detection/cloud, batch]
       exporters: [otlp_http/oneuptime]
     logs:
       receivers: [journald]
-      processors: [resource_detection, batch]
+      processors: [resource_detection, resource_detection/cloud, batch]
       exporters: [otlp_http/oneuptime]

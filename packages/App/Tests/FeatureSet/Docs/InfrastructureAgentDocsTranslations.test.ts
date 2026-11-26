@@ -432,7 +432,14 @@ const PROSE: Record<string, Array<string>> = {
  * labels nor shown in English, so a translation words them freely.
  */
 const PROSE_LEADS: Record<string, Array<string>> = {
-  [HOST]: ["AI investigations are on by default."],
+  [HOST]: [
+    "AI investigations are on by default.",
+    // On a cloud VM: what the resourcedetection/cloud step does (#11013).
+    "The host keeps its name.",
+    "Off a cloud it does nothing.",
+    "It reads no credentials.",
+    "A container may not reach it.",
+  ],
   [KUBERNETES]: [
     "AI investigations are on by default.",
     "If an admin will not add an SCC,",

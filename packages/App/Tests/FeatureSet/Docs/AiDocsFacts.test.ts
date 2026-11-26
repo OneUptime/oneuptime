@@ -2362,9 +2362,11 @@ describe("MCP Server", () => {
      * can say what is off where and why, as Data Security's Integrations
      * page promises; and Cloud's cost views, groups and custom line items
      * (Cloud Cost View, Cloud Cost Group, Cloud Cost Line Item, #11006), so
-     * finance and agents sort the spend as the Cost Groups pages do.
+     * finance and agents sort the spend as the Cost Groups pages do; and
+     * the tags Cloud requires (Required Tag, #11012), set the way Cloud
+     * Budget is.
      */
-    expect(records()).toHaveLength(58);
+    expect(records()).toHaveLength(59);
     expect(namesIn(0)).toEqual(records());
     /*
      * Every database model with MCP on gets these tools, the update tool

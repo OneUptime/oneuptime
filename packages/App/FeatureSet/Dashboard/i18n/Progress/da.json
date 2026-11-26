@@ -545,6 +545,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "payments, search, platform-*",
     "persistent volume",
     "persistent volume claim",
     "platform",

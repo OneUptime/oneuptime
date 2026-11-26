@@ -591,6 +591,14 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
     },
   },
+  // Required tags' coverage (#11012): Cloud > Tags and an account's Tags read it.
+  "packages/Common/Server/API/CloudRequiredTagAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${CLOUD_TAG_COVERAGE_ROUTE}`":
+        READ,
+    },
+  },
   "packages/Common/Server/API/XcpNgResourceAPI.ts": {
     products: [ProductKey.XcpNg],
     leftAlone: {
@@ -602,6 +610,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Hosts],
     leftAlone: {
       "`${new this.entityType().getCrudApiPath()?.toString()}/needs-attention`":
+        READ,
+      // The cloud VM a host is, and the host a VM is (#11013).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/:id/${HOST_CLOUD_MACHINE_ROUTE}`":
+        READ,
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${HOST_OF_CLOUD_RESOURCE_ROUTE}/:cloudResourceId`":
         READ,
     },
   },
