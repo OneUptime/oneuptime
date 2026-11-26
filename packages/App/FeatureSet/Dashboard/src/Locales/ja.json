@@ -65554,5 +65554,7 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{address}} からの SNMPv3 トラップ {{count}} 件が失敗しました: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{address}} からの SNMPv3 トラップ {{count}} 件が失敗しました: {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} 人のユーザー、このプローブのデバイスから",
-  "{{count}} users, from the devices on this probe_one": "{{count}} 人のユーザー、このプローブのデバイスから"
+  "{{count}} users, from the devices on this probe_one": "{{count}} 人のユーザー、このプローブのデバイスから",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime の外部にある MCP サーバーで、OneUptime AI が「AI に質問」と調査・修正に使えるツールを提供します（AWS、Azure、GitHub など）。",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "この問題に対するあなた自身の修正です。OneUptime は OneUptime AI の修正と同様に、これを本番環境まで追跡し、本番環境で確認されると問題は修正済みとして扱われます。"
 }

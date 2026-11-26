@@ -65554,5 +65554,7 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "来自 {{address}} 的 {{count}} 个 SNMPv3 trap 失败：{{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "来自 {{address}} 的 {{count}} 个 SNMPv3 trap 失败：{{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} 个用户，来自此探测器上的设备",
-  "{{count}} users, from the devices on this probe_one": "{{count}} 个用户，来自此探测器上的设备"
+  "{{count}} users, from the devices on this probe_one": "{{count}} 个用户，来自此探测器上的设备",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 之外的 MCP 服务器，OneUptime AI 在“询问 AI”中以及调查和修复时可以使用其工具，例如 AWS、Azure 或 GitHub。",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "你为此问题做的修复。OneUptime 会像跟踪 OneUptime AI 的修复一样将其跟踪到生产环境，一旦生产环境证实，该问题即视为已修复。"
 }

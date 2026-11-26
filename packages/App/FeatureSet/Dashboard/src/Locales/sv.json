@@ -65554,5 +65554,7 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{count}} SNMPv3-traps från {{address}} misslyckades: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} SNMPv3-trap från {{address}} misslyckades: {{reason}}",
   "{{count}} users, from the devices on this probe": "{{count}} användare, från enheterna på den här sonden",
-  "{{count}} users, from the devices on this probe_one": "{{count}} användare, från enheterna på den här sonden"
+  "{{count}} users, from the devices on this probe_one": "{{count}} användare, från enheterna på den här sonden",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "MCP-servrar utanför OneUptime vars verktyg OneUptime AI får använda i Fråga AI och när den utreder och åtgärdar, till exempel AWS, Azure eller GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "Din egen åtgärd för det här problemet. OneUptime följer den till produktion, så som den följer OneUptime AI:s åtgärder, och problemet räknas som åtgärdat när produktionen visar det."
 }

@@ -65554,5 +65554,7 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "Не принято SNMPv3-трапов от {{address}}: {{count}}. Причина: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{count}} SNMPv3-трап от {{address}} не принят: {{reason}}",
   "{{count}} users, from the devices on this probe": "Пользователей: {{count}}, с устройств этого зонда",
-  "{{count}} users, from the devices on this probe_one": "{{count}} пользователь, с устройств этого зонда"
+  "{{count}} users, from the devices on this probe_one": "{{count}} пользователь, с устройств этого зонда",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "MCP-серверы вне OneUptime, инструменты которых OneUptime AI может использовать в «Спросить ИИ», а также при расследовании и исправлении, например AWS, Azure или GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "Ваше собственное исправление этой проблемы. OneUptime отслеживает его до продакшена так же, как исправления OneUptime AI, и проблема считается исправленной, как только продакшен это покажет."
 }

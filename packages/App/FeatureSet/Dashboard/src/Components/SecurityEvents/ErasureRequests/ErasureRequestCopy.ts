@@ -4,6 +4,7 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   PluralTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -155,6 +156,17 @@ export const ERASURE_HELP_MARKDOWN: string = translationKey(
 - Who filed it and when, your reference, and the person's tokens - never their user ID or email address once it is done.
 - Project Owners and Admins, Security Admins and anyone with Create Security Erasure Request can file one. Every Security role can read them.`,
 );
+
+/*
+ * The list's help as the reader reads it: the help dialog draws the
+ * markdown it is handed as it is (HelpModal), so the page hands it the
+ * reader's wording, which every Dashboard language has.
+ */
+export function getErasureHelpMarkdown(translator: Translator): string {
+  return (
+    translator.translateText(ERASURE_HELP_MARKDOWN) || ERASURE_HELP_MARKDOWN
+  );
+}
 
 // What one request changed, as the row lists it: only what it did.
 export function getErasureChanges(request: SecurityUserErasureRequest): Array<{

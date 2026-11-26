@@ -65554,5 +65554,7 @@
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}": "{{address}}의 SNMPv3 트랩 {{count}}개가 실패했습니다: {{reason}}",
   "{{count}} SNMPv3 traps from {{address}} failed: {{reason}}_one": "{{address}}의 SNMPv3 트랩 {{count}}개가 실패했습니다: {{reason}}",
   "{{count}} users, from the devices on this probe": "사용자 {{count}}명, 이 프로브의 디바이스에서",
-  "{{count}} users, from the devices on this probe_one": "사용자 {{count}}명, 이 프로브의 디바이스에서"
+  "{{count}} users, from the devices on this probe_one": "사용자 {{count}}명, 이 프로브의 디바이스에서",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 외부의 MCP 서버로, OneUptime AI가 'AI에게 질문'에서, 그리고 조사하고 수정할 때 그 도구를 사용할 수 있습니다(AWS, Azure, GitHub 등).",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "이 이슈에 대해 직접 만든 수정입니다. OneUptime이 OneUptime AI의 수정처럼 프로덕션까지 추적하며, 프로덕션에서 확인되면 이슈가 수정된 것으로 간주됩니다."
 }
