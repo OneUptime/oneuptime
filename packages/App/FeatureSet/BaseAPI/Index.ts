@@ -1117,6 +1117,12 @@ import CephClusterService, {
 import StorageArrayService, {
   Service as StorageArrayServiceType,
 } from "Common/Server/Services/StorageArrayService";
+import StorageArrayConnectionService, {
+  Service as StorageArrayConnectionServiceType,
+} from "Common/Server/Services/StorageArrayConnectionService";
+import StorageArrayConnectionTestService, {
+  Service as StorageArrayConnectionTestServiceType,
+} from "Common/Server/Services/StorageArrayConnectionTestService";
 import XcpNgPoolService, {
   Service as XcpNgPoolServiceType,
 } from "Common/Server/Services/XcpNgPoolService";
@@ -1854,6 +1860,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayConnection from "Common/Models/DatabaseModels/StorageArrayConnection";
+import StorageArrayConnectionTest from "Common/Models/DatabaseModels/StorageArrayConnectionTest";
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
@@ -6730,6 +6738,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArray, StorageArrayServiceType>(
         StorageArray,
         StorageArrayService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayConnection, StorageArrayConnectionServiceType>(
+        StorageArrayConnection,
+        StorageArrayConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StorageArrayConnectionTest,
+        StorageArrayConnectionTestServiceType
+      >(
+        StorageArrayConnectionTest,
+        StorageArrayConnectionTestService,
       ).getRouter(),
     );
 

@@ -1204,6 +1204,7 @@ import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./180918771100
 import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
+import { AddStorageArrayConnections1809187740000 } from "./1809187740000-AddStorageArrayConnections";
 
 export default [
   InitialMigration,
@@ -2412,4 +2413,5 @@ export default [
   AddProbeSnmpTrapReceiver1809187715110,
   AddXcpNgPoolTables1809187720000,
   AddCloudSavingsActions1809187721010,
+  AddStorageArrayConnections1809187740000,
 ];
