@@ -11,7 +11,11 @@ import {
   getDateTimeFormat,
 } from "Common/Types/DateLanguage";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT THE BUDGET AND FORECAST PAGES SAY (#11008), in English as keys the
@@ -88,7 +92,7 @@ export const FISCAL_START_TITLE: string = translationKey(
 export const FISCAL_START_DESCRIPTION: string = translationKey(
   "The month your fiscal year starts in. Quarters start every three months from it.",
 );
-export const PLAN_TITLE: string = translationKey("Plan");
+export const PLAN_TITLE: string = translationKey("Budget Plan");
 export const PLAN_DESCRIPTION: string = translationKey(
   "Split by month, each month is held to its own share, so a quiet month is never warned for a busy month's spend.",
 );
@@ -229,9 +233,10 @@ export const TREND_PER_MONTH: string = translationKey("{{amount}} a month");
 export const LIKELY_RANGE: string = translationKey("Likely range");
 export const RANGE_OF: string = translationKey("{{low}} to {{high}}");
 export const NO_RANGE: string = translationKey("No range: too little history");
-export const MADE_FROM_MONTHS: string = translationKey(
-  "Made from {{count}} full months",
-);
+export const MADE_FROM_MONTHS: PluralTemplate = {
+  one: "Made from {{count}} full month",
+  other: "Made from {{count}} full months",
+};
 export const HOW_MADE_TITLE: string = translationKey(
   "How This Forecast Is Made",
 );
@@ -240,8 +245,11 @@ export const BY_MONTH_DESCRIPTION: string = translationKey(
   "The months behind the forecast as they cost, this month on course, and each month ahead with its likely range.",
 );
 export const WHAT_IF_TITLE: string = translationKey("What If");
-export const WHAT_IF_GROWS: string = translationKey("Grows by");
-export const WHAT_IF_FROM: string = translationKey("from");
+// One sentence, its two values the percent typed and the month picked.
+export const WHAT_IF_SENTENCE: string = translationKey(
+  "Every month from {{month}} on grows by {{percent}}%",
+);
+export const WHAT_IF_MONTH: string = translationKey("First month that grows");
 export const WHAT_IF_PERCENT: string = translationKey("Percent of growth");
 export const WHAT_IF_CLEAR: string = translationKey("Clear What-If");
 export const WHAT_IF_APPLIED: string = translationKey(

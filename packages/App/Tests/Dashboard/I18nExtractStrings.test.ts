@@ -1694,6 +1694,9 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/LlmObservability",
       // Each cloud's title, its sign in methods, its shell and its fields.
       "ui packages/Common/Types/CloudConnection",
+      "keys packages/Common/Types/Cloud/CloudSavingsAction.ts",
+      "keys packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+      "keys packages/Common/Types/Cloud/CloudSavingsAi.ts",
       // A managed device's status, as Inventory > Managed Devices draws it - not the server's.
       "keys packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
@@ -1858,6 +1861,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Cloud/CloudCommitments.ts",
       // Billed, amortized and net: what each is called and counts (#11007).
       "keys packages/Common/Types/Cloud/CloudCostBasis.ts",
+      // What a budget counts and its period, and how a forecast is made (#11008).
+      "keys packages/Common/Types/Cloud/CloudBudget.ts",
+      "keys packages/Common/Types/Cloud/CloudCostForecast.ts",
       // A commitment's state, scope and payment option (#11011).
       "keys packages/Common/Types/Cloud/CloudCommitmentInventory.ts",
       // A resource's right-sizing from OneUptime's own readings: its verdict and why.
@@ -1870,6 +1876,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.
       "keys packages/Common/Types/AI/AIActionWords.ts",
+      "keys packages/Common/Types/AI/AIDataSecurityActionWords.ts",
       // What Ask AI's tables and Sources chips say beside their data.
       "keys packages/Common/Types/AI/AIReadTableWords.ts",
       "keys packages/Common/Types/AI/AiAffectedResources.ts",

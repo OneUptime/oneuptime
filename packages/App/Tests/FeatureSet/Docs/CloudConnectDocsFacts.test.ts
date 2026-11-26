@@ -1548,7 +1548,7 @@ describe("Cloud Costs and Savings", () => {
       "Period",
       "Amount",
       "First Month of the Year",
-      "Plan",
+      "Budget Plan",
       "Monthly Plan",
       "Notify",
       "Notify the Cost Group's Team",

@@ -236,7 +236,7 @@ Under **Cloud → Spend → Budgets**, create a budget and choose what it **Appl
 
 ### Say what it may cost
 
-Its **Period** is a month, a quarter or a year, and its **Amount** is what one period may cost. Quarters and years start in the **First Month of the Year**: from April, a year runs from April to March. A year's **Plan** can split its amount equally over its months, or give each month its own in a **Monthly Plan**. Each month is then held to its own share, so a quiet month is never warned for a busy month's spend.
+Its **Period** is a month, a quarter or a year, and its **Amount** is what one period may cost. Quarters and years start in the **First Month of the Year**: from April, a year runs from April to March. A year's **Budget Plan** can split its amount equally over its months, or give each month its own in a **Monthly Plan**. Each month is then held to its own share, so a quiet month is never warned for a busy month's spend.
 
 ### Choose when it alerts
 

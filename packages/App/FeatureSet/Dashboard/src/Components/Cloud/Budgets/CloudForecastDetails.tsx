@@ -71,9 +71,10 @@ export const CloudForecastHowMade: FunctionComponent<{
         />
         {forecast.monthsOfHistory > 0 ? (
           <span className="text-xs text-gray-500">
-            {translator.translateTemplate(MADE_FROM_MONTHS, {
-              count: translator.formatNumber(forecast.monthsOfHistory),
-            })}
+            {translator.translatePlural(
+              MADE_FROM_MONTHS,
+              forecast.monthsOfHistory,
+            )}
           </span>
         ) : (
           <></>

@@ -45,9 +45,9 @@ import {
   TREND_TILE,
   WHAT_IF_APPLIED,
   WHAT_IF_CLEAR,
-  WHAT_IF_FROM,
-  WHAT_IF_GROWS,
+  WHAT_IF_MONTH,
   WHAT_IF_PERCENT,
+  WHAT_IF_SENTENCE,
   WHAT_IF_TITLE,
   formatCloudMonth,
 } from "../../Components/Cloud/Budgets/CloudBudgetWords";
@@ -83,6 +83,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -462,50 +463,57 @@ const CloudForecastPage: FunctionComponent<
         >
           <CloudForecastChart months={forecast.months} currency={currency} />
           <div
-            className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center"
+            className="mt-4 space-y-3 border-t border-gray-100 pt-4"
             data-testid="cloud-forecast-what-if"
           >
-            <span className="text-sm font-medium text-gray-700">
+            <div className="text-sm font-medium text-gray-700">
               {translator.translateText(WHAT_IF_TITLE)}
-            </span>
-            <span className="text-sm text-gray-600">
-              {translator.translateText(WHAT_IF_GROWS)}
-            </span>
-            <div className="w-28">
-              <Input
-                type={InputType.NUMBER}
-                value={growthPercent}
-                placeholder="20"
-                ariaLabel={WHAT_IF_PERCENT}
-                dataTestId="cloud-forecast-growth-percent"
-                onChange={(text: string) => {
-                  setGrowthPercent(text);
-                }}
-              />
             </div>
-            <span className="text-sm text-gray-600">%</span>
-            <span className="text-sm text-gray-600">
-              {translator.translateText(WHAT_IF_FROM)}
-            </span>
-            <div className="w-full sm:w-56">
-              <Dropdown
-                ariaLabel={WHAT_IF_FROM}
-                isClearable={false}
-                options={getWhatIfMonthOptions(forecast, translator)}
-                value={getWhatIfMonthOptions(forecast, translator).find(
-                  (option: DropdownOption): boolean => {
-                    return option.value === growthFrom;
-                  },
-                )}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setGrowthFrom(value ? String(value) : "");
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+              <TranslatedSentence
+                template={WHAT_IF_SENTENCE}
+                renderText={(text: string): ReactElement => {
+                  return <span>{text}</span>;
+                }}
+                slots={{
+                  month: (
+                    <span className="inline-block w-48 sm:w-56">
+                      <Dropdown
+                        ariaLabel={WHAT_IF_MONTH}
+                        isClearable={false}
+                        options={getWhatIfMonthOptions(forecast, translator)}
+                        value={getWhatIfMonthOptions(forecast, translator).find(
+                          (option: DropdownOption): boolean => {
+                            return option.value === growthFrom;
+                          },
+                        )}
+                        onChange={(
+                          value: DropdownValue | Array<DropdownValue> | null,
+                        ) => {
+                          setGrowthFrom(value ? String(value) : "");
+                        }}
+                      />
+                    </span>
+                  ),
+                  percent: (
+                    <span className="inline-block w-24">
+                      <Input
+                        type={InputType.NUMBER}
+                        value={growthPercent}
+                        placeholder="20"
+                        ariaLabel={WHAT_IF_PERCENT}
+                        dataTestId="cloud-forecast-growth-percent"
+                        onChange={(text: string) => {
+                          setGrowthPercent(text);
+                        }}
+                      />
+                    </span>
+                  ),
                 }}
               />
             </div>
             {growth ? (
-              <Fragment>
+              <div className="flex flex-wrap items-center gap-2">
                 <span
                   className="text-sm text-gray-600"
                   data-testid="cloud-forecast-growth-applied"
@@ -525,7 +533,7 @@ const CloudForecastPage: FunctionComponent<
                     setGrowthFrom("");
                   }}
                 />
-              </Fragment>
+              </div>
             ) : (
               <></>
             )}
