@@ -381,7 +381,7 @@ Xen Orchestra فقط استخرهایی را گزارش می‌کند که به 
 
 افزونه OpenMetrics در Xen Orchestra متریک ارائه می‌کند، پس بخشی از آنچه در یک استخر XCP-ng زیر نظر دارید هنوز در آن نیست:
 
-- **آلارم‌ها**، جز آلارم‌های XOSTOR، **وضعیت HA**، **ارباب استخر** (pool master)، **وصله‌های نصب‌نشده**، **پشتیبان‌ها** و **اسنپ‌شات‌ها**، و **وضعیت پیوند** رابط‌های فیزیکی یک میزبان (PIFها). این‌ها از REST API در Xen Orchestra می‌آیند، در [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
+- **آلارم‌ها**، جز آلارم‌های XOSTOR، **وضعیت HA**، **ارباب استخر**، **وصله‌های نصب‌نشده**، **پشتیبان‌ها** و **اسنپ‌شات‌ها**، و **وضعیت پیوند** رابط‌های فیزیکی یک میزبان (PIFها). این‌ها از REST API در Xen Orchestra می‌آیند، در [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
 - **استخرهای بدون Xen Orchestra**، یا پشت یک XOA بدون مجوز Premium که افزونه نیاز دارد: این‌ها مستقیم از راه XAPI خوانده می‌شوند، در [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
 - **اتصال بدون عامل**، از یک پراب OneUptime، همان‌گونه که برای VMware ممکن است: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
 
