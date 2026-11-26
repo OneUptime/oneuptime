@@ -2686,6 +2686,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "2001:db8::1",
       "jane%40example.com",
       "jane@example.com",
+      "jos%C3%A9%40example.com",
+      "josé@example.com",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
@@ -2705,6 +2707,31 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(scrubbedBody("jane%40example.com", [emailHash])).toBe(
       scrubbedBody("jane@example.com", [emailHash]),
+    );
+    // Its letters' UTF-8 bytes percent-encoded too (#11032).
+    expect(scrubbedBody("jos%C3%A9%40example.com", [emailHash])).toBe(
+      scrubbedBody("josé@example.com", [emailHash]),
+    );
+
+    // What a Custom Regex rule finds, by what it reads (#11031, #11033).
+    const customHash: { rule: LogScrubRule; regex: ScrubRegExp } = {
+      rule: scrubRule(LogScrubPatternType.Custom, LogScrubAction.Hash).rule,
+      regex: getRegexForPattern(
+        LogScrubPatternType.Custom,
+        "\\+44 \\d{2} \\d{4} \\d{4}",
+      ) as ScrubRegExp,
+    };
+
+    customHash.rule.customRegex = "\\+44 \\d{2} \\d{4} \\d{4}";
+    customHash.rule.projectId = projectId;
+
+    for (const written of ["%2B44%2020%207946%200958", "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨"]) {
+      expect(scrubbedBody(written, [customHash])).toBe(
+        scrubbedBody("+44 20 7946 0958", [customHash]),
+      );
+    }
+    expect(item).toContain(
+      "what a **Custom Regex** rule finds, by what it reads",
     );
     expect(
       scrubbedBody("４１１１ １１１１ １１１１ １１１１", [cardHash]),
@@ -2739,6 +2766,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "user@例え.jp",
       "jane%40example.com",
       "/signup?email=jane%40example.com",
+      "jos%C3%A9%40example.com",
     ]);
     expect(item).toContain(
       "**Mask** reads such an address decoded, so it keeps its first letter and the end of its domain",
@@ -2749,6 +2777,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "josé@example.com",
       "user@例え.jp",
       "jane%40example.com",
+      // Its letters' UTF-8 bytes percent-encoded too (#11032).
+      "jos%C3%A9%40example.com",
     ]) {
       expect({ address, stored: scrubbedBody(address, redact) }).toEqual({
         address,
@@ -2792,6 +2822,60 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Mask),
       ]),
     ).toBe("****-****-****-1111");
+  });
+
+  it("hides what the Custom Regex list item says a custom pattern finds, encoded or in another script's digits, and masks it as it reads (#11031, #11033)", () => {
+    const item: string = listItemOf(
+      page,
+      "A Custom Regex rule reads a value as Data Security reads it.",
+    );
+    const codes: Array<string> = inlineCodes(item);
+
+    expect(codes).toEqual([
+      "\\+44 \\d{2} \\d{4} \\d{4}",
+      "%2B44%2020%207946%200958",
+      "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+    ]);
+
+    const pattern: string = codes[0]!;
+    const customOf: (action: string) => {
+      rule: LogScrubRule;
+      regex: ScrubRegExp;
+    } = (action: string): { rule: LogScrubRule; regex: ScrubRegExp } => {
+      const custom: { rule: LogScrubRule; regex: ScrubRegExp } = {
+        rule: scrubRule(LogScrubPatternType.Custom, action).rule,
+        regex: getRegexForPattern(
+          LogScrubPatternType.Custom,
+          pattern,
+        ) as ScrubRegExp,
+      };
+
+      custom.rule.customRegex = pattern;
+
+      return custom;
+    };
+
+    expect(checkScrubRuleCustomRegex(pattern)).toBeNull();
+
+    for (const written of codes.slice(1)) {
+      expect({
+        written,
+        stored: scrubbedBody(`GET /callback?to=${written}&step=2`, [
+          customOf(LogScrubAction.Redact),
+        ]),
+      }).toEqual({
+        written,
+        stored: "GET /callback?to=[REDACTED]&step=2",
+      });
+      // Masked as it reads: its first and last characters, in ASCII digits.
+      expect(scrubbedBody(written, [customOf(LogScrubAction.Mask)])).toBe(
+        scrubbedBody("+44 20 7946 0958", [customOf(LogScrubAction.Mask)]),
+      );
+    }
+
+    expect(item).toContain(
+      "The **Custom Regex** rules **Scrub It** makes for other data types, such as a GitHub token or an IBAN, read a value the same ways.",
+    );
   });
 
   it("says every pattern rule but the two that read keys reads only the attributes it lists under More fields, as the form draws it (#10751)", () => {
