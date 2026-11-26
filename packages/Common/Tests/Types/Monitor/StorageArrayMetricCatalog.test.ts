@@ -12,9 +12,8 @@ import {
 } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import { StorageArrayResourceScope } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import { STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES } from "../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "../../../Types/StorageArray/StorageSystem";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { describe, expect, test } from "@jest/globals";

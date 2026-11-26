@@ -54,6 +54,7 @@ import StorageArrayFileSystems from "../../../App/FeatureSet/Dashboard/src/Pages
 import StorageArrayFileSystemDetail from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/FileSystemDetail";
 import StorageArrayBuckets from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Buckets";
 import StorageArrayBucketDetail from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/BucketDetail";
+import StorageArrayInventory from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Inventory";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -65,6 +66,11 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  ACME_AGGREGATE_KIND,
+  ACME_PLATFORM,
+} from "Common/Tests/Helpers/StorageArray/AcmePlatform";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -121,6 +127,14 @@ const TIB = 1024 * GIB;
 
 const FLASHARRAY_ID = uuid("58000000", 1);
 const FLASHBLADE_ID = uuid("58000000", 2);
+const ACME_ID = uuid("58000000", 3);
+
+/*
+ * Acme, a platform that exists only in tests (#11000), registered here the
+ * way a test registers it: its array gets the tab, the counts and the
+ * inventory page a new platform gets with no page changed for it.
+ */
+StorageArrayPlatformRegistry.register(ACME_PLATFORM);
 
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,
@@ -188,6 +202,31 @@ const flashBlade = {
   unhealthyHardwareCount: 0,
   isArchived: false,
   createdAt: new Date(LOADED_AT - 60 * 24 * 60 * MINUTE),
+};
+
+// An array of the test-only Acme platform: volumes, and aggregates of its own.
+const acmeArray = {
+  _id: ACME_ID,
+  name: "acme-prod-01",
+  description: "An array of a platform the preview registers itself.",
+  storageSystem: ACME_PLATFORM.storageSystem,
+  reportedName: "acme-prod-01",
+  osName: "AcmeOS",
+  osVersion: "9.1",
+  agentVersion: "14.0.101",
+  otelCollectorStatus: DISCONNECTED ? "disconnected" : "connected",
+  lastSeenAt: LAST_REPORT,
+  capacityBytes: 50 * TIB,
+  usedBytes: 20 * TIB,
+  capacityUsedPercent: 40,
+  openAlertCount: 0,
+  criticalAlertCount: 0,
+  warningAlertCount: 0,
+  healthStatus: 0,
+  volumeCount: 2,
+  countsByKind: { Volume: 2, [ACME_AGGREGATE_KIND]: 3 },
+  isArchived: false,
+  createdAt: new Date(LOADED_AT - 10 * 24 * 60 * MINUTE),
 };
 
 let rowNumber = 0;
@@ -385,6 +424,32 @@ const openIncidents = CALM
       },
     ];
 
+// The Acme array's parts.
+for (const [name, usedTib, sizeTib] of [
+  ["aggr1", 12, 20],
+  ["aggr2", 6, 20],
+  ["aggr3", 2, 10],
+]) {
+  part(ACME_ID, {
+    kind: ACME_AGGREGATE_KIND,
+    externalId: name,
+    name: name,
+    status: "online",
+    capacityBytes: sizeTib * TIB,
+    usedBytes: usedTib * TIB,
+  });
+}
+for (const name of ["vol-acme-01", "vol-acme-02"]) {
+  part(ACME_ID, {
+    kind: "Volume",
+    externalId: name,
+    name: name,
+    status: "online",
+    capacityBytes: 2 * TIB,
+    usedBytes: TIB,
+  });
+}
+
 /*
  * ---------------------------------------------------------------------------
  * The data boundary
@@ -456,7 +521,7 @@ function matches(record, query) {
 }
 
 const store = {
-  StorageArray: [flashArray, flashBlade],
+  StorageArray: [flashArray, flashBlade, acmeArray],
   StorageArrayResource: inventory,
   IncidentState: [
     { _id: uuid("50000000", 1), name: "Identified", order: 1 },
@@ -866,7 +931,15 @@ async function handleApi(method, options) {
           return row.externalId.toLowerCase();
         }),
     ).size;
+    // Every kind's count, as the server's summary has it (countsByKind).
+    const countsByKind = {};
+    for (const row of inventory) {
+      if (row.storageArrayId === arrayId) {
+        countsByKind[row.kind] = (countsByKind[row.kind] || 0) + 1;
+      }
+    }
     return ok({
+      countsByKind: countsByKind,
       volumeCount: count("Volume"),
       hostCount: count("Host"),
       podCount: count("Pod"),
@@ -1009,6 +1082,7 @@ const PAGES = [
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL, StorageArrayFileSystemDetail],
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS, StorageArrayBuckets],
   [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL, StorageArrayBucketDetail],
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY, StorageArrayInventory],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),

@@ -64493,5 +64493,6 @@
   "The usual starting state, so the on-call policies you picked are paged.": "The usual starting state, so the on-call policies you picked are paged.",
   "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.",
   "They start in the created state and page their on-call policies, as every new incident does.": "They start in the created state and page their on-call policies, as every new incident does.",
-  "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "With none picked, the incident starts acknowledged, as you are on it, and pages no one."
+  "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "With none picked, the incident starts acknowledged, as you are on it, and pages no one.",
+  "Inventory Counts": "Anzahlen im Inventar"
 }

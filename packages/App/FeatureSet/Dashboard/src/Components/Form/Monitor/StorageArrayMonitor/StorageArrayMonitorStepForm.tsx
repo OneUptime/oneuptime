@@ -40,9 +40,10 @@ import {
   StorageArrayMetricDefinition,
   getStorageArrayObjectLabel,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
@@ -115,8 +116,10 @@ const aggregationOptions: Array<DropdownOption> = [
  * One text input per StorageArrayResourceFilters key. Each value becomes
  * an equality filter on the datapoint label that names that object on the
  * platform (getStorageArrayObjectLabel); the worker always scopes on
- * `resource.storage.array.name` on top. `storageSystems` is where the
- * field means something: an array whose platform is not known yet shows
+ * `resource.storage.array.name` on top. Which filters a platform offers,
+ * and what each filters on in its terms, is the platform's
+ * (StorageArrayPlatform.resourceFilters); `storageSystems` lists the
+ * platforms that offer it. An array whose platform is not known yet shows
  * them all.
  */
 export interface ResourceFilterField {
@@ -127,68 +130,75 @@ export interface ResourceFilterField {
   storageSystems: Array<StorageSystem>;
 }
 
-export const resourceFilterFields: Array<ResourceFilterField> = [
-  {
-    key: "volumeName",
-    title: "Volume",
-    description:
-      "Filter to one FlashArray volume — the `name` label of the purefa_volume_* series (optional). Volumes in a pod or volume group are named pod::volume or group/volume.",
-    placeholder: "e.g. vol-db-01",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
-  },
-  {
-    key: "hostName",
-    title: "Host",
-    description:
-      "Filter to one host defined on the FlashArray — the `host` label of the purefa_host_* series (optional).",
-    placeholder: "e.g. esxi-01",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
-  },
-  {
-    key: "podName",
-    title: "Pod",
-    description:
-      "Filter to one pod — the `name` label of the purefa_pod_* series, and `local_pod` on the replica link series (optional).",
-    placeholder: "e.g. pod-prod",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
-  },
-  {
-    key: "componentName",
+// What each filter is called, whichever platform offers it.
+const RESOURCE_FILTER_WORDS: Record<
+  keyof StorageArrayResourceFilters,
+  { title: string; placeholder: string }
+> = {
+  volumeName: { title: "Volume", placeholder: "e.g. vol-db-01" },
+  hostName: { title: "Host", placeholder: "e.g. esxi-01" },
+  podName: { title: "Pod", placeholder: "e.g. pod-prod" },
+  componentName: {
     title: "Hardware Component",
-    description:
-      "Filter to one hardware part — the `component_name` label on a FlashArray, `name` on a FlashBlade (optional).",
     placeholder: "e.g. CH0.BAY1",
-    storageSystems: [
-      StorageSystem.PureStorageFlashArray,
-      StorageSystem.PureStorageFlashBlade,
-    ],
   },
-  {
-    key: "fileSystemName",
-    title: "File System",
-    description:
-      "Filter to one FlashBlade file system — the `name` label of the purefb_file_systems_* series (optional).",
-    placeholder: "e.g. fs-home",
-    storageSystems: [StorageSystem.PureStorageFlashBlade],
-  },
-  {
-    key: "bucketName",
-    title: "Bucket",
-    description:
-      "Filter to one FlashBlade S3 bucket — the `name` label of the purefb_buckets_* series (optional).",
-    placeholder: "e.g. backups",
-    storageSystems: [StorageSystem.PureStorageFlashBlade],
-  },
-];
+  fileSystemName: { title: "File System", placeholder: "e.g. fs-home" },
+  bucketName: { title: "Bucket", placeholder: "e.g. backups" },
+};
+
+/*
+ * Every filter any platform offers, in the order the platforms list them;
+ * each with the description of the first platform that offers it, or of
+ * `platform` when it offers it.
+ */
+function buildResourceFilterFields(
+  platform?: StorageArrayPlatform | null | undefined,
+): Array<ResourceFilterField> {
+  const fields: Array<ResourceFilterField> = [];
+  for (const candidate of StorageArrayPlatformRegistry.getPlatforms()) {
+    for (const filter of candidate.resourceFilters) {
+      let field: ResourceFilterField | undefined = fields.find(
+        (existing: ResourceFilterField): boolean => {
+          return existing.key === filter.key;
+        },
+      );
+      if (!field) {
+        field = {
+          key: filter.key,
+          title: RESOURCE_FILTER_WORDS[filter.key].title,
+          description: filter.description,
+          placeholder: RESOURCE_FILTER_WORDS[filter.key].placeholder,
+          storageSystems: [],
+        };
+        fields.push(field);
+      }
+      field.storageSystems.push(candidate.storageSystem as StorageSystem);
+      if (candidate === platform) {
+        field.description = filter.description;
+      }
+    }
+  }
+  return fields;
+}
+
+// Every filter the shipped platforms offer.
+export const resourceFilterFields: Array<ResourceFilterField> =
+  buildResourceFilterFields();
 
 export function getResourceFilterFields(
   storageSystem: string | null | undefined,
 ): Array<ResourceFilterField> {
-  if (!StorageSystemUtil.isKnownSystem(storageSystem)) {
-    return resourceFilterFields;
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  const fields: Array<ResourceFilterField> =
+    buildResourceFilterFields(platform);
+  if (!platform) {
+    return fields;
   }
-  return resourceFilterFields.filter((field: ResourceFilterField): boolean => {
-    return field.storageSystems.includes(storageSystem);
+  return fields.filter((field: ResourceFilterField): boolean => {
+    return (field.storageSystems as Array<string>).includes(
+      platform.storageSystem,
+    );
   });
 }
 

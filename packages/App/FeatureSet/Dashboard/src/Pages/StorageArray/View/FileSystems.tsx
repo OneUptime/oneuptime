@@ -33,8 +33,8 @@ import TableEmptyValue, {
 } from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
- * FlashBlade file systems (kind=FileSystem), from
- * purefb_file_systems_space_bytes / _performance_* via the inventory.
+ * FlashBlade file systems (kind=FileSystem), from its file system space
+ * and performance series via the inventory.
  */
 const StorageArrayFileSystems: FunctionComponent<
   PageComponentProps
