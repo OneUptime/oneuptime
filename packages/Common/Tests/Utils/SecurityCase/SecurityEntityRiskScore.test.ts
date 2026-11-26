@@ -281,6 +281,42 @@ describe("a firing handed again", () => {
     expect(again[0]!.points).toBe(50);
   });
 
+  test("a firing counted under the name it had before #11130 counts once, and keeps its old name", () => {
+    const counted: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      [],
+      observation({ firingKey: "run:1:each:1111111111111111" }),
+      NOW,
+    );
+
+    const again: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      counted,
+      observation({
+        firingKey: "run:1:each:2222222222222222",
+        formerFiringKeys: ["run:1:each:1111111111111111"],
+      }),
+      NOW,
+    );
+
+    expect(again).toBe(counted);
+    expect(again[0]!.hits).toBe(1);
+  });
+
+  test("a former name alone never counts as the firing: with no name of its own it is counted", () => {
+    const counted: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      [],
+      observation({ firingKey: FIRING }),
+      NOW,
+    );
+
+    expect(
+      addRiskObservation(
+        counted,
+        observation({ formerFiringKeys: [FIRING] }),
+        NOW,
+      )[0]!.hits,
+    ).toBe(2);
+  });
+
   test("a new firing of the source counts, and its name is kept with the ones before", () => {
     const first: Array<SecurityEntityRiskContribution> = addRiskObservation(
       [],

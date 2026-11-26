@@ -58,9 +58,13 @@ export const USER_TOO_LONG: string = translationKey(
   "That is longer than any user Security Events keeps. Enter the user ID or email address as your logs hold it.",
 );
 
-// Said as the dialog closes.
+/*
+ * Said as the dialog closes. It promises no time for Erased: a request
+ * reads Erased only after a last read of the Detection Findings, once no
+ * detection that read the person's name can still be running (#11160).
+ */
 export const ERASURE_REQUESTED: string = translationKey(
-  "Erasure requested. Security Events stops naming this person within a minute, and finishes erasing them in a few minutes.",
+  "Erasure requested. Security Events stops naming this person within a minute, and takes them out of what it named them in within a few minutes.",
 );
 
 // The list's columns.

@@ -6,14 +6,17 @@ import {
   threatIntelMatchMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { getEntityCaseGroupingKey } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
+import { CORRELATION_GROUP_VALUE_SEPARATOR } from "../../../Server/Utils/SecurityEvent/Correlation/CorrelationQueries";
 import {
   CORRELATION_SENTENCE_PREFIX,
   ErasedName,
+  GROUP_VALUE_PART_SEPARATOR,
   TITLE_VALUE_SEPARATOR,
   getDescriptionNameTexts,
   getErasedRiskKeys,
   namesAnyone,
   unnameDescription,
+  unnameGroupValue,
   unnameGroupingKey,
   unnameJson,
   unnameTitle,
@@ -371,5 +374,131 @@ describe("a JSON value", () => {
       value: TOKEN,
       changed: true,
     });
+  });
+});
+
+/*
+ * A correlation that groups on several values names its group by all of
+ * them, joined (#11130): "alice@example.com / 203.0.113.7". Its detection's
+ * group value, its title and its case's grouping key are made of that text,
+ * so each value in it that is a name gets what the rule left - the value a
+ * rule groups on once the events hold the token again, whose fingerprint
+ * the erasure puts in place of the old one.
+ */
+describe("a correlation's group value", () => {
+  const BOB_TOKEN: string = "[HASHED:aaaaaaaaaaaaaaab]";
+
+  test("is joined as the server joins it", () => {
+    expect(GROUP_VALUE_PART_SEPARATOR).toBe(CORRELATION_GROUP_VALUE_SEPARATOR);
+  });
+
+  test("each of its values that is a name becomes what the rule left", () => {
+    expect(unnameGroupValue("alice@example.com / 203.0.113.7", NAMES)).toBe(
+      `${TOKEN} / 203.0.113.7`,
+    );
+    expect(unnameGroupValue("203.0.113.7 / alice@example.com", NAMES)).toBe(
+      `203.0.113.7 / ${TOKEN}`,
+    );
+    expect(unnameGroupValue("alice@example.com / bob / web-1", NAMES)).toBe(
+      `${TOKEN} / ${BOB_TOKEN} / web-1`,
+    );
+    expect(unnameGroupValue("auth0|alice@example.com / 10.0.0.1", NAMES)).toBe(
+      `auth0|${TOKEN} / 10.0.0.1`,
+    );
+  });
+
+  test("a single value is a whole value", () => {
+    expect(unnameGroupValue("alice@example.com", NAMES)).toBe(TOKEN);
+    expect(unnameGroupValue("203.0.113.7", NAMES)).toBe("203.0.113.7");
+  });
+
+  test("a name inside one of its values, or spelt otherwise, stays", () => {
+    for (const value of [
+      "Alice@Example.com / 203.0.113.7",
+      "alice@example.com, bob / 203.0.113.7",
+      "bobby / 203.0.113.7",
+      "alice@example.com/203.0.113.7",
+      "203.0.113.7 / 198.51.100.4",
+    ]) {
+      expect(unnameGroupValue(value, NAMES)).toBe(value);
+    }
+  });
+
+  test("a value whose whole is a name wins over its parts", () => {
+    const names: Array<ErasedName> = [
+      ...NAMES,
+      { named: "bob / ops", hashed: "[HASHED:cccccccccccccccc] / ops" },
+    ];
+
+    expect(unnameGroupValue("bob / ops", names)).toBe(
+      "[HASHED:cccccccccccccccc] / ops",
+    );
+  });
+
+  test("taking the names out twice changes nothing more", () => {
+    const once: string = unnameGroupValue(
+      "alice@example.com / bob / web-1",
+      NAMES,
+    ) as string;
+
+    expect(unnameGroupValue(once, NAMES)).toBe(once);
+  });
+
+  test("nothing stays nothing", () => {
+    expect(unnameGroupValue(undefined, NAMES)).toBeUndefined();
+    expect(unnameGroupValue(null, NAMES)).toBeNull();
+    expect(unnameGroupValue("", NAMES)).toBe("");
+  });
+
+  test("a title made of it ends in it with the names out", () => {
+    expect(
+      unnameTitle(
+        `First sign-in from a new address${TITLE_VALUE_SEPARATOR}alice@example.com / 203.0.113.7`,
+        NAMES,
+      ),
+    ).toBe(`First sign-in from a new address — ${TOKEN} / 203.0.113.7`);
+    expect(
+      unnameTitle("Spray — 203.0.113.7 / alice@example.com / bob", NAMES),
+    ).toBe(`Spray — 203.0.113.7 / ${TOKEN} / ${BOB_TOKEN}`);
+    // Only what is after the title's last separator is the value.
+    expect(
+      unnameTitle("alice@example.com / x — 203.0.113.7 / bob", NAMES),
+    ).toBe(`alice@example.com / x — 203.0.113.7 / ${BOB_TOKEN}`);
+  });
+
+  test("a title whose value names nobody stays", () => {
+    for (const title of [
+      "Spray — 203.0.113.7 / 198.51.100.4",
+      "Spray — alice@example.com, then a success / 203.0.113.7",
+      "alice@example.com / 203.0.113.7",
+    ]) {
+      expect(unnameTitle(title, NAMES)).toBe(title);
+    }
+  });
+
+  test("its case's grouping key is the one about it with the names out", () => {
+    expect(
+      unnameGroupingKey(
+        getEntityCaseGroupingKey("alice@example.com / 203.0.113.7"),
+        NAMES,
+      ),
+    ).toBe(getEntityCaseGroupingKey(`${TOKEN} / 203.0.113.7`));
+    expect(
+      unnameGroupingKey(
+        getEntityCaseGroupingKey("203.0.113.7 / Bob / web-1"),
+        NAMES,
+      ),
+    ).toBe(getEntityCaseGroupingKey(`203.0.113.7 / ${BOB_TOKEN} / web-1`));
+  });
+
+  test("a grouping key that names nobody stays, and so does any other key", () => {
+    for (const key of [
+      getEntityCaseGroupingKey("203.0.113.7 / 198.51.100.4"),
+      getEntityCaseGroupingKey("bobby / 203.0.113.7"),
+      "detection:detection-rule:r1:abc / def",
+      `entity:sha256:${"a".repeat(64)}`,
+    ]) {
+      expect(unnameGroupingKey(key, NAMES)).toBe(key);
+    }
   });
 });
