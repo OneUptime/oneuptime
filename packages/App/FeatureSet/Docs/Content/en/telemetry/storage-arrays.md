@@ -317,7 +317,7 @@ isi snmp settings modify --service yes
 isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
 ```
 
-Or turn on SNMPv3 (OneFS 8.2 and later), which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:
+Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:
 
 ```bash
 isi snmp settings modify --service yes

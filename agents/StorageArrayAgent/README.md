@@ -106,7 +106,7 @@ Turn SNMP on with Dell's commands, on any node (OneFS applies them to the cluste
 ```bash
 isi snmp settings modify --service yes
 isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
-# or SNMPv3 (OneFS 8.2+); the read-only user is `general` until renamed
+# or SNMPv3; the read-only user is `general` until renamed
 isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
 isi snmp settings view
 ```
