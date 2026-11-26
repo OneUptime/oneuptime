@@ -3,7 +3,9 @@ import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResou
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Column from "Common/UI/Components/ModelTable/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { JSONValue } from "Common/Types/JSON";
 import {
@@ -15,13 +17,15 @@ import {
   StorageArrayRowColumn,
   StorageArrayRowValue,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
-import { getStorageUsage, StorageUsage } from "Common/Utils/Storage/StorageUsage";
+import {
+  getStorageUsage,
+  StorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
 import {
   getGlobalTranslator,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import StorageArrayResourceUtils, {
   getMetricStaleMs,
 } from "../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
@@ -89,8 +93,10 @@ export function readStorageArrayRowValue(
     if (!isRowFresh(row)) {
       return null;
     }
-    const raw: JSONValue | undefined =
-      StorageArrayResourceUtils.getDetail(row, value.detail);
+    const raw: JSONValue | undefined = StorageArrayResourceUtils.getDetail(
+      row,
+      value.detail,
+    );
     return raw === undefined || raw === "" ? null : raw;
   }
   return null;
@@ -199,13 +205,18 @@ function valueCell(text: string): ReactElement {
   if (!text) {
     return <TableEmptyValue />;
   }
-  return <span className="text-sm text-gray-700">{getValueOrQuietDash(text)}</span>;
+  return (
+    <span className="text-sm text-gray-700">{getValueOrQuietDash(text)}</span>
+  );
 }
 
 // How full a row is, from its size and what it uses.
 export function getStorageArrayRowUsage(
   row: StorageArrayResource,
-  thresholds?: { warningPercent?: number | undefined; criticalPercent?: number | undefined },
+  thresholds?: {
+    warningPercent?: number | undefined;
+    criticalPercent?: number | undefined;
+  },
 ): StorageUsage | null {
   const capacity: number | null = StorageArrayResourceUtils.freshMetricValue(
     row,

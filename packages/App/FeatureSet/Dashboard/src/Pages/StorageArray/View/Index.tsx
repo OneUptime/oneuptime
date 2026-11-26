@@ -499,11 +499,9 @@ export function getStatusKinds(
         StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem) &&
           StorageArrayPlatformRegistry.getPlatform(
             storageSystem,
-          )?.kindDefinitions?.some(
-            (definition: { kind: string }): boolean => {
-              return definition.kind === kind;
-            },
-          ),
+          )?.kindDefinitions?.some((definition: { kind: string }): boolean => {
+            return definition.kind === kind;
+          }),
       ) ||
       Boolean(
         StorageArrayPlatformRegistry.getKindPage(
@@ -1096,8 +1094,7 @@ const StorageArrayOverview: FunctionComponent<
               metricName: problem.metricName,
               time: metric.time ? new Date(metric.time as Date).getTime() : 0,
               value: Number(metric.value),
-              attributes:
-                (metric.attributes as Record<string, unknown>) || {},
+              attributes: (metric.attributes as Record<string, unknown>) || {},
             });
           }
         }

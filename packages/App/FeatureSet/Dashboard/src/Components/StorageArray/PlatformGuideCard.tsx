@@ -48,8 +48,7 @@ const StorageArrayPlatformGuideCard: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const platform: StorageArrayPlatform | null =
     StorageArrayPlatformRegistry.getPlatform(props.storageSystem);
-  const config: StorageArrayAgentConfig | undefined =
-    platform?.agentConfigs[0];
+  const config: StorageArrayAgentConfig | undefined = platform?.agentConfigs[0];
 
   const words: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;

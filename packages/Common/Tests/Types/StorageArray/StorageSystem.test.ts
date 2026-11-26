@@ -123,7 +123,9 @@ describe("StorageSystemUtil.normalize", () => {
   test.each(ONTAP_ALIASES)(
     "ONTAP alias %p normalizes to netapp.ontap",
     (alias: string) => {
-      expect(StorageSystemUtil.normalize(alias)).toBe(StorageSystem.NetAppOntap);
+      expect(StorageSystemUtil.normalize(alias)).toBe(
+        StorageSystem.NetAppOntap,
+      );
       expect(StorageSystemUtil.normalize(alias.toUpperCase())).toBe(
         StorageSystem.NetAppOntap,
       );
@@ -316,9 +318,7 @@ describe("StorageSystemUtil display helpers", () => {
   });
 
   test("an unknown platform is shown under its own value", () => {
-    expect(StorageSystemUtil.getDisplayName("hitachi.vsp")).toBe(
-      "hitachi.vsp",
-    );
+    expect(StorageSystemUtil.getDisplayName("hitachi.vsp")).toBe("hitachi.vsp");
     expect(StorageSystemUtil.getShortName("hitachi.vsp")).toBe("hitachi.vsp");
     expect(StorageSystemUtil.getVendorName("hitachi.vsp")).toBe("Unknown");
   });

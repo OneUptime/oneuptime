@@ -136,7 +136,11 @@ describe("what the agent's collector sends of Harvest's scrape", () => {
     for (const name of ONTAP.readSeries) {
       expect(name.startsWith("netapp_")).toBe(true);
     }
-    for (const notRead of ["up", "scrape_duration_seconds", "netapp_ems_events"]) {
+    for (const notRead of [
+      "up",
+      "scrape_duration_seconds",
+      "netapp_ems_events",
+    ]) {
       expect(ONTAP.readSeries).not.toContain(notRead);
     }
   });
@@ -245,7 +249,10 @@ describe("an ONTAP cluster", () => {
       failedPowerSupplies: 0,
     });
     expect(first.statusDetail).toBeNull();
-    expect((first.details["uptimeSeconds"] as number) / 86400).toBeCloseTo(120, 0);
+    expect((first.details["uptimeSeconds"] as number) / 86400).toBeCloseTo(
+      120,
+      0,
+    );
     expect(second).toMatchObject({
       status: "degraded",
       statusDetail: "Fan 2 is not operating within the recommended RPM range.",
@@ -295,7 +302,9 @@ describe("an ONTAP cluster", () => {
     expect(rowOf(ONTAP, OntapKind.Svm, "svm_nas")!.details["protocols"]).toBe(
       "NFS, SMB",
     );
-    expect(rowOf(ONTAP, OntapKind.Svm, "svm_san")!.readLatencyUsec).toBeGreaterThan(0);
+    expect(
+      rowOf(ONTAP, OntapKind.Svm, "svm_san")!.readLatencyUsec,
+    ).toBeGreaterThan(0);
   });
 
   test("its volumes, each named in its SVM, with its aggregate, state, fill and latency", () => {
@@ -357,7 +366,10 @@ describe("an ONTAP cluster", () => {
       OntapKind.Lun,
       "svm_san:/vol/vol_db/lun_db01",
     )!;
-    expect(lun).toMatchObject({ name: "/vol/vol_db/lun_db01", groupName: "svm_san" });
+    expect(lun).toMatchObject({
+      name: "/vol/vol_db/lun_db01",
+      groupName: "svm_san",
+    });
     expect(lun.details).toMatchObject({ lun: "lun_db01", volume: "vol_db" });
     expect(lun.readIops).toBeGreaterThan(0);
     expect((lun.capacityBytes as number) / TIB).toBeCloseTo(2, 1);
@@ -379,9 +391,14 @@ describe("an ONTAP cluster", () => {
           ];
         },
       )
-      .sort((a: [string | null, ...Array<unknown>], b: [string | null, ...Array<unknown>]): number => {
-        return String(a[0]).localeCompare(String(b[0]));
-      });
+      .sort(
+        (
+          a: [string | null, ...Array<unknown>],
+          b: [string | null, ...Array<unknown>],
+        ): number => {
+          return String(a[0]).localeCompare(String(b[0]));
+        },
+      );
     expect(relationships).toEqual([
       ["svm_dr:vol_db_sync", "healthy", 0, undefined],
       ["svm_dr:vol_erp_dr", "unhealthy", 11404000, 3600],
@@ -463,7 +480,9 @@ describe("an ONTAP cluster", () => {
       ["1.0 Temperature 4", "Temperature Sensor", "normal"],
       ["1.0 Voltage 1", "Voltage Sensor", "normal"],
     ]);
-    expect(rowOf(ONTAP, StorageArrayResourceKind.Hardware, "1.0")).toMatchObject({
+    expect(
+      rowOf(ONTAP, StorageArrayResourceKind.Hardware, "1.0"),
+    ).toMatchObject({
       model: "NS224",
     });
     expect(
@@ -488,7 +507,10 @@ describe("an ONTAP cluster", () => {
       StorageArrayResourceKind.Hardware,
       "ontap-prod-01-02 System Fan 2",
     )!;
-    expect(fan).toMatchObject({ status: "critical", groupName: "ontap-prod-01-02" });
+    expect(fan).toMatchObject({
+      status: "critical",
+      groupName: "ontap-prod-01-02",
+    });
     expect(fan.details).toMatchObject({
       sensorType: "fan",
       reading: "1200 RPM",
@@ -566,17 +588,29 @@ describe("an ONTAP cluster", () => {
       }).toEqual({ word, known: true });
     }
     // And the troubles of the day read as troubles.
-    for (const word of ["broken", "error", "critical", "down", "offline", "unhealthy"]) {
-      expect({ word, critical: StorageArrayStatusUtil.isCritical(word) }).toEqual({
+    for (const word of [
+      "broken",
+      "error",
+      "critical",
+      "down",
+      "offline",
+      "unhealthy",
+    ]) {
+      expect({
+        word,
+        critical: StorageArrayStatusUtil.isCritical(word),
+      }).toEqual({
         word,
         critical: true,
       });
     }
     for (const word of ["degraded", "stopped"]) {
-      expect({ word, warning: StorageArrayStatusUtil.isWarning(word) }).toEqual({
-        word,
-        warning: true,
-      });
+      expect({ word, warning: StorageArrayStatusUtil.isWarning(word) }).toEqual(
+        {
+          word,
+          warning: true,
+        },
+      );
     }
   });
 
@@ -659,8 +693,12 @@ describe("an Amazon FSx for NetApp ONTAP file system", () => {
       timeMs: NETAPP_RECORDING_TIME_MS["fsx.prom"],
     });
     expect(outcome.extras.osName).toBe(ONTAP_OS_NAME);
-    expect(outcome.countsByKind![StorageArrayResourceKind.Drive]).toBeUndefined();
-    expect(outcome.countsByKind![StorageArrayResourceKind.Hardware]).toBeUndefined();
+    expect(
+      outcome.countsByKind![StorageArrayResourceKind.Drive],
+    ).toBeUndefined();
+    expect(
+      outcome.countsByKind![StorageArrayResourceKind.Hardware],
+    ).toBeUndefined();
     expect(
       outcome.countsByKind![StorageArrayResourceKind.NetworkInterface],
     ).toBeUndefined();
@@ -696,7 +734,9 @@ describe("a batch that is not the whole scrape", () => {
     const outcome: NetAppIngestOutcome = ingestNetAppSeries(beforeVolumes, {
       timeMs: NETAPP_RECORDING_TIME_MS["ontap.prom"],
     });
-    expect(outcome.countsByKind![StorageArrayResourceKind.Volume]).toBeUndefined();
+    expect(
+      outcome.countsByKind![StorageArrayResourceKind.Volume],
+    ).toBeUndefined();
     expect(outcome.countsByKind![OntapKind.Aggregate]).toBe(2);
   });
 
@@ -732,7 +772,9 @@ describe("a batch that is not the whole scrape", () => {
 describe("the extractor's readers", () => {
   test("an ONTAP release from Harvest's version label", () => {
     expect(
-      parseOntapVersion("NetApp Release 9.16.1P3: Thu Mar 13 08:24:36 UTC 2025"),
+      parseOntapVersion(
+        "NetApp Release 9.16.1P3: Thu Mar 13 08:24:36 UTC 2025",
+      ),
     ).toBe("9.16.1P3");
     expect(parseOntapVersion("NetApp Release 9.12.1")).toBe("9.12.1");
     expect(parseOntapVersion("9.15.1P7")).toBe("9.15.1P7");

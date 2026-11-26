@@ -40,8 +40,10 @@ export const ONTAP_UNIT_RULES: ReadonlyArray<StorageArrayUnitRule> = [
   // Shares, utilization and a node's CPU.
   { pattern: "_percent$", unit: "%" },
   { pattern: "_busy$", unit: "%" },
-  // Durations ONTAP gives in seconds: a relationship's lag, its last
-  // transfer, how long a node has been up, a relationship's schedule.
+  /*
+   * Durations ONTAP gives in seconds: a relationship's lag, its last
+   * transfer, how long a node has been up, a relationship's schedule.
+   */
   {
     pattern:
       "^netapp_snapmirror_(lag_time|last_transfer_duration|schedule_seconds)$",
@@ -55,19 +57,29 @@ export const ONTAP_UNIT_RULES: ReadonlyArray<StorageArrayUnitRule> = [
   { pattern: "_count$", unit: "count" },
   { pattern: "^netapp_node_failed_(fan|power)$", unit: "count" },
   { pattern: "_errors$", unit: "count" },
-  { pattern: "^netapp_fcp_(link_failure|loss_of_signal|loss_of_sync|invalid_crc)$", unit: "count" },
+  {
+    pattern:
+      "^netapp_fcp_(link_failure|loss_of_signal|loss_of_sync|invalid_crc)$",
+    unit: "count",
+  },
   { pattern: "^netapp_cluster_subsystem_outstanding_alerts$", unit: "count" },
   // A shelf's readings.
   { pattern: "^netapp_shelf_fan_rpm$", unit: "rpm" },
   { pattern: "^netapp_shelf_temperature_reading$", unit: "°C" },
   { pattern: "^netapp_(shelf|environment_sensor)_power$", unit: "W" },
   // Space, sizes and transfers, in bytes.
-  { pattern: "^netapp_snapmirror_(last_transfer_size|total_transfer_bytes)$", unit: "bytes" },
-  { pattern: "_(space|size)(_[a-z_]+)?$", unit: "bytes" },
   {
-    pattern:
-      "^netapp_aggr_(logical|physical)_used_wo_snapshots(_flexclones)?$",
+    pattern: "^netapp_snapmirror_(last_transfer_size|total_transfer_bytes)$",
     unit: "bytes",
   },
-  { pattern: "^netapp_aggr_(efficiency_savings|total_logical_used|total_physical_used)", unit: "bytes" },
+  { pattern: "_(space|size)(_[a-z_]+)?$", unit: "bytes" },
+  {
+    pattern: "^netapp_aggr_(logical|physical)_used_wo_snapshots(_flexclones)?$",
+    unit: "bytes",
+  },
+  {
+    pattern:
+      "^netapp_aggr_(efficiency_savings|total_logical_used|total_physical_used)",
+    unit: "bytes",
+  },
 ];

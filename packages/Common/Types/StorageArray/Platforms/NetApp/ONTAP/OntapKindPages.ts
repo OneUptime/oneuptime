@@ -139,7 +139,10 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
         { label: "svm", from: "groupName" },
       ],
       charts: [
-        { metricId: "netapp-volume-read-latency", legend: translationKey("Read") },
+        {
+          metricId: "netapp-volume-read-latency",
+          legend: translationKey("Read"),
+        },
         {
           metricId: "netapp-volume-write-latency",
           legend: translationKey("Write"),
@@ -406,7 +409,10 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
       charts: [
         { metricId: "netapp-aggr-used-percent" },
         { metricId: "netapp-aggr-used" },
-        { metricId: "netapp-aggr-read-latency", legend: translationKey("Read") },
+        {
+          metricId: "netapp-aggr-read-latency",
+          legend: translationKey("Read"),
+        },
         {
           metricId: "netapp-aggr-write-latency",
           legend: translationKey("Write"),
@@ -671,7 +677,10 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
         },
         {
           title: translationKey("Last Transfer Took"),
-          value: { detail: "lastTransferDurationSeconds", format: "durationSeconds" },
+          value: {
+            detail: "lastTransferDurationSeconds",
+            format: "durationSeconds",
+          },
         },
       ],
       alerts: {

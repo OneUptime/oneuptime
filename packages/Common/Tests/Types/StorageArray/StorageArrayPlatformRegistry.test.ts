@@ -224,7 +224,8 @@ describe("the shipped platforms", () => {
         ?.pluralLabel,
     ).toBe("Aggregates");
     expect(
-      StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Svm)?.singularLabel,
+      StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Svm)
+        ?.singularLabel,
     ).toBe("SVM");
   });
 });
@@ -444,7 +445,10 @@ describe("registering a platform at runtime", () => {
       ),
     ).toBe(ACME_PLATFORM.kindDefinitions![0]);
     expect(
-      StorageArrayPlatformRegistry.getKindDefinition(ACME_AGGREGATE_KIND, ONTAP),
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ONTAP,
+      ),
     ).not.toBe(ACME_PLATFORM.kindDefinitions![0]);
     expect(
       StorageArrayPlatformRegistry.getObjectKindForMetricName(

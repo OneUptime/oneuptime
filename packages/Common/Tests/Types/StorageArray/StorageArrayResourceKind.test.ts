@@ -121,9 +121,9 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
       for (const kind of kinds) {
         covered.add(kind);
         if (
-          !(StorageArrayResourceKindUtil.getAllKinds() as Array<string>).includes(
-            kind,
-          )
+          !(
+            StorageArrayResourceKindUtil.getAllKinds() as Array<string>
+          ).includes(kind)
         ) {
           expect({
             system,

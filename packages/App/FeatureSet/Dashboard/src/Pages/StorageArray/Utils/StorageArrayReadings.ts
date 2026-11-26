@@ -125,19 +125,22 @@ export async function loadStorageArrayLatency(data: {
    * cluster's): the newest reading of each for this array.
    */
   if (latency.readMetricName || latency.writeMetricName) {
-    const newest: (metricName: string | undefined) => Promise<number | null> =
-      async (metricName: string | undefined): Promise<number | null> => {
-        if (!metricName) {
-          return null;
-        }
-        const perArray: StorageArrayLatestPerLabel =
-          await loadStorageArrayLatestPerLabel({
-            arrayName: data.arrayName,
-            metricName: metricName,
-            labelAttribute: STORAGE_ARRAY_ATTRIBUTE,
-          });
-        return perArray.get(data.arrayName)?.value ?? null;
-      };
+    const newest: (
+      metricName: string | undefined,
+    ) => Promise<number | null> = async (
+      metricName: string | undefined,
+    ): Promise<number | null> => {
+      if (!metricName) {
+        return null;
+      }
+      const perArray: StorageArrayLatestPerLabel =
+        await loadStorageArrayLatestPerLabel({
+          arrayName: data.arrayName,
+          metricName: metricName,
+          labelAttribute: STORAGE_ARRAY_ATTRIBUTE,
+        });
+      return perArray.get(data.arrayName)?.value ?? null;
+    };
     const [readUsec, writeUsec]: [number | null, number | null] =
       await Promise.all([
         newest(latency.readMetricName),

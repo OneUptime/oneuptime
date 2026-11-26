@@ -1291,13 +1291,13 @@ describe("MonitorRecommendationCatalog", () => {
     });
 
     it("offers nothing to an array of a platform OneUptime ships no templates for", () => {
-      expect(
-        storageArrayTemplateIds({ storageSystem: "hitachi.vsp" }),
-      ).toEqual([]);
+      expect(storageArrayTemplateIds({ storageSystem: "hitachi.vsp" })).toEqual(
+        [],
+      );
       // The module itself would hand such a platform every template.
-      expect(
-        getStorageArrayAlertTemplatesForSystem("hitachi.vsp").length,
-      ).toBe(getAllStorageArrayAlertTemplates().length);
+      expect(getStorageArrayAlertTemplatesForSystem("hitachi.vsp").length).toBe(
+        getAllStorageArrayAlertTemplates().length,
+      );
     });
 
     it("the platforms' sets partition the whole catalog", () => {

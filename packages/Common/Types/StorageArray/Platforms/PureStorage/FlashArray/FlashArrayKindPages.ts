@@ -22,7 +22,10 @@ const FLASHARRAY_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
     part: {
       labels: [{ label: "name", from: "externalId" }],
       charts: [
-        { metricId: "purefa-volume-read-latency", legend: translationKey("Read") },
+        {
+          metricId: "purefa-volume-read-latency",
+          legend: translationKey("Read"),
+        },
         {
           metricId: "purefa-volume-write-latency",
           legend: translationKey("Write"),
@@ -34,7 +37,10 @@ const FLASHARRAY_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
           legend: translationKey("Write"),
           overlayWithPreviousQuery: true,
         },
-        { metricId: "purefa-volume-read-bandwidth", legend: translationKey("Read") },
+        {
+          metricId: "purefa-volume-read-bandwidth",
+          legend: translationKey("Read"),
+        },
         {
           metricId: "purefa-volume-write-bandwidth",
           legend: translationKey("Write"),
@@ -61,7 +67,10 @@ const FLASHARRAY_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
     part: {
       labels: [{ label: "host", from: "externalId" }],
       charts: [
-        { metricId: "purefa-host-read-latency", legend: translationKey("Read") },
+        {
+          metricId: "purefa-host-read-latency",
+          legend: translationKey("Read"),
+        },
         {
           metricId: "purefa-host-write-latency",
           legend: translationKey("Write"),

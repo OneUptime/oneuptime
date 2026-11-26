@@ -11,7 +11,11 @@ import {
   deriveStorageArraySnapshotExtras,
   getStorageArrayResourceRows,
 } from "../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
-import { CapturedSeries, parseOpenMetrics, toOtlpDatapoint } from "./OpenMetricsCapture";
+import {
+  CapturedSeries,
+  parseOpenMetrics,
+  toOtlpDatapoint,
+} from "./OpenMetricsCapture";
 
 /*
  * WHAT NETAPP HARVEST SERVED, AS WHAT THE AGENT SENDS AND WHAT ONEUPTIME
@@ -45,7 +49,8 @@ const AGENT_DIRECTORY: string = path.resolve(
   "../../../../../agents/StorageArrayAgent",
 );
 
-export const NETAPP_COLLECTOR_CONFIG: string = "otel-collector-config.netapp-ontap.yaml";
+export const NETAPP_COLLECTOR_CONFIG: string =
+  "otel-collector-config.netapp-ontap.yaml";
 
 export type NetAppRecording =
   | "ontap.prom"
@@ -104,7 +109,10 @@ export function readNetAppCollectorProcessing(): NetAppCollectorProcessing {
     return processing;
   }
   const config: CollectorConfig = yaml.load(
-    fs.readFileSync(path.join(AGENT_DIRECTORY, NETAPP_COLLECTOR_CONFIG), "utf8"),
+    fs.readFileSync(
+      path.join(AGENT_DIRECTORY, NETAPP_COLLECTOR_CONFIG),
+      "utf8",
+    ),
   ) as CollectorConfig;
   const job: CollectorConfig["receivers"]["prometheus"]["config"]["scrape_configs"][number] =
     config.receivers.prometheus.config.scrape_configs[0]!;
@@ -122,7 +130,9 @@ export function readNetAppCollectorProcessing(): NetAppCollectorProcessing {
 
   const scheduleSeconds: Map<string, number> = new Map();
   const statements: Array<string> = Object.values(config.processors).flatMap(
-    (processor: { metric_statements?: Array<{ statements: Array<string> }> }) => {
+    (processor: {
+      metric_statements?: Array<{ statements: Array<string> }>;
+    }) => {
       return (processor.metric_statements || []).flatMap(
         (group: { statements: Array<string> }): Array<string> => {
           return group.statements;
@@ -302,8 +312,7 @@ const RECORDINGS: ReadonlyArray<NetAppRecording> = [
   "fsx.prom",
 ];
 
-let recordedLabels: Record<string, Record<string, Array<string>>> | null =
-  null;
+let recordedLabels: Record<string, Record<string, Array<string>>> | null = null;
 
 /*
  * Every label of every series the agent sends, by metric name, with the
@@ -321,8 +330,8 @@ export function getRecordedSeriesLabels(): Record<
   const labels: Record<string, Record<string, Set<string>>> = {};
   for (const file of RECORDINGS) {
     for (const series of whatTheAgentSends(readNetAppRecording(file))) {
-      const byLabel: Record<string, Set<string>> =
-        labels[series.name] || (labels[series.name] = {});
+      const byLabel: Record<string, Set<string>> = labels[series.name] ||
+      (labels[series.name] = {});
       for (const [label, value] of Object.entries(series.labels)) {
         const values: Set<string> =
           byLabel[label] || (byLabel[label] = new Set<string>());

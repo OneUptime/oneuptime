@@ -200,40 +200,39 @@ export function buildStorageArrayMonitorConfig(args: {
     attributes?: Record<string, string> | undefined;
     aggregationType: MetricsAggregationType;
     legendUnit: string | undefined;
-  }) => MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] =
-    (query: {
-      metricAlias: string;
-      metricName: string;
-      attributes?: Record<string, string> | undefined;
-      aggregationType: MetricsAggregationType;
-      legendUnit: string | undefined;
-    }): MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] => {
-      return {
-        metricAliasData: {
-          metricVariable: query.metricAlias,
-          title: query.metricAlias,
-          description: query.metricAlias,
-          legend: query.metricAlias,
-          legendUnit: query.legendUnit,
+  }) => MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] = (query: {
+    metricAlias: string;
+    metricName: string;
+    attributes?: Record<string, string> | undefined;
+    aggregationType: MetricsAggregationType;
+    legendUnit: string | undefined;
+  }): MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] => {
+    return {
+      metricAliasData: {
+        metricVariable: query.metricAlias,
+        title: query.metricAlias,
+        description: query.metricAlias,
+        legend: query.metricAlias,
+        legendUnit: query.legendUnit,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: query.metricName,
+          attributes: query.attributes || {},
+          aggegationType: query.aggregationType,
+          aggregateBy: {},
         },
-        metricQueryData: {
-          filterData: {
-            metricName: query.metricName,
-            attributes: query.attributes || {},
-            aggegationType: query.aggregationType,
-            aggregateBy: {},
-          },
-          ...(args.groupByAttributeKey
-            ? {
-                groupByAttributeKeys: [
-                  args.groupByAttributeKey,
-                  ...(args.scopeAttributeKeys || []),
-                ],
-              }
-            : {}),
-        },
-      };
+        ...(args.groupByAttributeKey
+          ? {
+              groupByAttributeKeys: [
+                args.groupByAttributeKey,
+                ...(args.scopeAttributeKeys || []),
+              ],
+            }
+          : {}),
+      },
     };
+  };
 
   if (args.ratioTo) {
     const ratio: StorageArrayAlertTemplateRatio = args.ratioTo;

@@ -234,7 +234,9 @@ describe("each config of the table", () => {
           return volume.split(":")[0]!.replace(/^\.\//, "");
         },
       );
-      expect(mounted.sort()).toEqual([...(entry.config.extraFiles || [])].sort());
+      expect(mounted.sort()).toEqual(
+        [...(entry.config.extraFiles || [])].sort(),
+      );
       const given: Array<string> = (service.environment || []).map(
         (variable: string): string => {
           return variable.split("=")[0]!;
@@ -266,11 +268,19 @@ describe("each config of the table", () => {
     expect(script).toContain(
       'AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}"',
     );
-    expect(script).toMatch(/PLATFORM_EXTRA_FILES="\$\(platform_lines \| cut -d '\|' -f 11/);
+    expect(script).toMatch(
+      /PLATFORM_EXTRA_FILES="\$\(platform_lines \| cut -d '\|' -f 11/,
+    );
     // A user's name is asked for, and a password is never refused for a $.
-    expect(script).toContain('USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"');
-    expect(script).toContain('SECRET_KIND="$(platform_field "$PLATFORM_LINE" 12)"');
-    expect(script).toContain('read -rsp "Password of the $ARRAY_NOUN\'s read-only user: "');
+    expect(script).toContain(
+      'USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"',
+    );
+    expect(script).toContain(
+      'SECRET_KIND="$(platform_field "$PLATFORM_LINE" 12)"',
+    );
+    expect(script).toContain(
+      'read -rsp "Password of the $ARRAY_NOUN\'s read-only user: "',
+    );
   });
 
   test("whose exporter the compose file runs under the line's profile", () => {

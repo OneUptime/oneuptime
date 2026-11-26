@@ -234,12 +234,7 @@ describe("which extractor reads a datapoint", () => {
       null,
       ONTAP,
     ],
-    [
-      "a FlashArray series declared ONTAP",
-      "purefa_info",
-      ONTAP,
-      FLASHARRAY,
-    ],
+    ["a FlashArray series declared ONTAP", "purefa_info", ONTAP, FLASHARRAY],
   ] as Array<[string, string, string | null, string]>)(
     "%s is the platform's",
     (

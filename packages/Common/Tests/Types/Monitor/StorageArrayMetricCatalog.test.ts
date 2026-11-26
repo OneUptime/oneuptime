@@ -323,14 +323,23 @@ const ONTAP_DOCUMENTED_SERIES: Record<string, Record<string, Array<string>>> = {
     partner_state: [],
     severity: ["error"],
   },
-  netapp_health_node_alerts: { node: [], healthy: ["false"], severity: ["error"] },
+  netapp_health_node_alerts: {
+    node: [],
+    healthy: ["false"],
+    severity: ["error"],
+  },
   netapp_health_network_fc_port_alerts: {
     node: [],
     port: [],
     state: [],
     severity: ["error"],
   },
-  netapp_health_lif_alerts: { svm: [], lif: [], isHome: ["false"], severity: ["warning"] },
+  netapp_health_lif_alerts: {
+    svm: [],
+    lif: [],
+    isHome: ["false"],
+    severity: ["warning"],
+  },
   netapp_health_volume_move_alerts: {
     svm: [],
     volume: [],
@@ -351,14 +360,23 @@ const ONTAP_DOCUMENTED_SERIES: Record<string, Record<string, Array<string>>> = {
 };
 const ONTAP_DOCUMENTED_VALUES: Record<string, Record<string, Array<string>>> = {
   netapp_ems_events: {
-    severity: ["emergency", "alert", "error", "notice", "informational", "debug"],
+    severity: [
+      "emergency",
+      "alert",
+      "error",
+      "notice",
+      "informational",
+      "debug",
+    ],
   },
 };
 
 function getOntapSeries(): Record<string, SeriesLabels> {
   const series: Record<string, SeriesLabels> = {};
-  const recorded: Record<string, Record<string, Array<string>>> =
-    getRecordedSeriesLabels();
+  const recorded: Record<
+    string,
+    Record<string, Array<string>>
+  > = getRecordedSeriesLabels();
   for (const [name, labels] of Object.entries({
     ...recorded,
     ...ONTAP_DOCUMENTED_SERIES,

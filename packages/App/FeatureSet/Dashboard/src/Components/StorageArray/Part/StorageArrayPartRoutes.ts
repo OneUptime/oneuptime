@@ -92,7 +92,10 @@ export function getStorageArrayInventoryPartRoute(data: {
       modelId: data.storageArrayId,
       subModelId: encodeURIComponent(data.kind),
     },
-  ).addRouteParam(RouteParams.PartID, routeParamFromExternalId(data.externalId));
+  ).addRouteParam(
+    RouteParams.PartID,
+    routeParamFromExternalId(data.externalId),
+  );
 }
 
 export function getStorageArrayPartRoutes(

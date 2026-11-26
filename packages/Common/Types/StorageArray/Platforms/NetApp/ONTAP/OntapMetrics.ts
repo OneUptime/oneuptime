@@ -268,9 +268,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-cluster-read-bandwidth",
     friendlyName: translationKey("Read Bandwidth"),
-    description: translationKey(
-      "Bytes read per second across the cluster.",
-    ),
+    description: translationKey("Bytes read per second across the cluster."),
     metricName: "netapp_cluster_read_data",
     category: "Performance",
     aggregation: MetricsAggregationType.Avg,
@@ -279,9 +277,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-cluster-write-bandwidth",
     friendlyName: translationKey("Write Bandwidth"),
-    description: translationKey(
-      "Bytes written per second across the cluster.",
-    ),
+    description: translationKey("Bytes written per second across the cluster."),
     metricName: "netapp_cluster_write_data",
     category: "Performance",
     aggregation: MetricsAggregationType.Avg,
@@ -525,9 +521,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-volume-used",
     friendlyName: translationKey("Volume Used"),
-    description: translationKey(
-      "Space each volume has in use, in bytes.",
-    ),
+    description: translationKey("Space each volume has in use, in bytes."),
     metricName: "netapp_volume_size_used",
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
@@ -537,9 +531,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-volume-free",
     friendlyName: translationKey("Volume Free"),
-    description: translationKey(
-      "Space still free in each volume, in bytes.",
-    ),
+    description: translationKey("Space still free in each volume, in bytes."),
     metricName: "netapp_volume_size_available",
     category: "Volumes",
     aggregation: MetricsAggregationType.Min,
@@ -621,9 +613,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-volume-read-iops",
     friendlyName: translationKey("Volume Read IOPS"),
-    description: translationKey(
-      "Read operations per second on each volume.",
-    ),
+    description: translationKey("Read operations per second on each volume."),
     metricName: "netapp_volume_read_ops",
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
@@ -633,9 +623,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-volume-write-iops",
     friendlyName: translationKey("Volume Write IOPS"),
-    description: translationKey(
-      "Write operations per second on each volume.",
-    ),
+    description: translationKey("Write operations per second on each volume."),
     metricName: "netapp_volume_write_ops",
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
@@ -645,9 +633,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-volume-read-bandwidth",
     friendlyName: translationKey("Volume Read Bandwidth"),
-    description: translationKey(
-      "Bytes read per second from each volume.",
-    ),
+    description: translationKey("Bytes read per second from each volume."),
     metricName: "netapp_volume_read_data",
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
@@ -657,9 +643,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-volume-write-bandwidth",
     friendlyName: translationKey("Volume Write Bandwidth"),
-    description: translationKey(
-      "Bytes written per second to each volume.",
-    ),
+    description: translationKey("Bytes written per second to each volume."),
     metricName: "netapp_volume_write_data",
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
@@ -683,7 +667,9 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-lun-size",
     friendlyName: translationKey("LUN Size"),
-    description: translationKey("The size each LUN presents to its hosts, in bytes."),
+    description: translationKey(
+      "The size each LUN presents to its hosts, in bytes.",
+    ),
     metricName: "netapp_lun_size",
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
@@ -963,9 +949,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
   metric({
     id: "netapp-port-transmitted",
     friendlyName: translationKey("Port Transmitted"),
-    description: translationKey(
-      "Bytes each Ethernet port sends per second.",
-    ),
+    description: translationKey("Bytes each Ethernet port sends per second."),
     metricName: "netapp_nic_tx_bytes",
     category: "Hardware",
     aggregation: MetricsAggregationType.Avg,

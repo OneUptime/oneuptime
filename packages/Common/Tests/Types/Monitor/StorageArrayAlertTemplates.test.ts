@@ -199,7 +199,14 @@ const ONTAP_DOCUMENTED_SERIES: Record<string, Record<string, Array<string>>> = {
 };
 const ONTAP_DOCUMENTED_VALUES: Record<string, Record<string, Array<string>>> = {
   netapp_ems_events: {
-    severity: ["emergency", "alert", "error", "notice", "informational", "debug"],
+    severity: [
+      "emergency",
+      "alert",
+      "error",
+      "notice",
+      "informational",
+      "debug",
+    ],
     message: ["sk.panic", "disk.outOfService", "monitor.fan.failed"],
   },
 };
@@ -278,7 +285,9 @@ interface TemplateExpectation {
   // The labels the object is named within, grouped by after groupBy.
   scope?: Array<string> | undefined;
   // A second query, and the quotient the criteria read.
-  ratio?: { alias: string; metricName: string; formulaAlias: string } | undefined;
+  ratio?:
+    | { alias: string; metricName: string; formulaAlias: string }
+    | undefined;
   // An event's: it fires on any reading of the window past the line.
   fireOnAnyReading?: boolean | undefined;
   fire: Threshold;

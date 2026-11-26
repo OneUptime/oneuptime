@@ -168,7 +168,10 @@ export function parseOntapVersion(full: string | null): string | null {
   if (match && match[1]) {
     return match[1];
   }
-  return /^[0-9][0-9A-Za-z.]*$/.test(full.trim()) ? full.trim() : null;
+  // A release written bare, such as 9.16.1P3.
+  const bareRelease: RegExp = /^[0-9][0-9A-Za-z.]*$/;
+  const bare: string = full.trim();
+  return bareRelease.test(bare) ? bare : null;
 }
 
 // Whether a cluster's name is an Amazon FSx for NetApp ONTAP file system's.
@@ -364,66 +367,71 @@ function readAggregate(series: StorageArraySeries): void {
     return;
   }
   const metricName: string = series.metricName;
-  fold(series, OntapKind.Aggregate, aggr, (row: StorageArrayResourceBufferEntry) => {
-    row.name = aggr;
-    row.groupName = series.label("node");
-    switch (metricName) {
-      case "netapp_aggr_labels": {
-        // ONTAP names a disk type in lowercase (ssd, fsas): as on its disks.
-        row.componentType = series.label("type")?.toUpperCase() || null;
-        const state: string | null = series.label("state");
-        if (state) {
-          row.details["state"] = state.toLowerCase();
+  fold(
+    series,
+    OntapKind.Aggregate,
+    aggr,
+    (row: StorageArrayResourceBufferEntry) => {
+      row.name = aggr;
+      row.groupName = series.label("node");
+      switch (metricName) {
+        case "netapp_aggr_labels": {
+          // ONTAP names a disk type in lowercase (ssd, fsas): as on its disks.
+          row.componentType = series.label("type")?.toUpperCase() || null;
+          const state: string | null = series.label("state");
+          if (state) {
+            row.details["state"] = state.toLowerCase();
+          }
+          const encrypted: string | null = series.label("is_encrypted");
+          if (encrypted) {
+            row.details["isEncrypted"] = encrypted === "true";
+          }
+          return;
         }
-        const encrypted: string | null = series.label("is_encrypted");
-        if (encrypted) {
-          row.details["isEncrypted"] = encrypted === "true";
-        }
-        return;
+        case "netapp_aggr_new_status":
+          row.details["online"] = series.value >= 1;
+          return;
+        case "netapp_aggr_space_total":
+          row.capacityBytes = wholeBytes(series.value);
+          return;
+        case "netapp_aggr_space_used":
+          row.usedBytes = wholeBytes(series.value);
+          return;
+        case "netapp_aggr_space_available":
+          row.details["availableBytes"] = wholeBytes(series.value);
+          return;
+        case "netapp_aggr_inode_used_percent":
+          row.details["inodeUsedPercent"] = nonNegative(series.value);
+          return;
+        case "netapp_aggr_logical_used_wo_snapshots_flexclones":
+          row.details["logicalUsedBytes"] = wholeBytes(series.value);
+          return;
+        case "netapp_aggr_physical_used_wo_snapshots_flexclones":
+          row.details["physicalUsedBytes"] = wholeBytes(series.value);
+          return;
+        case "netapp_aggr_read_latency":
+          row.readLatencyUsec = nonNegative(series.value);
+          return;
+        case "netapp_aggr_write_latency":
+          row.writeLatencyUsec = nonNegative(series.value);
+          return;
+        case "netapp_aggr_read_ops":
+          row.readIops = nonNegative(series.value);
+          return;
+        case "netapp_aggr_write_ops":
+          row.writeIops = nonNegative(series.value);
+          return;
+        case "netapp_aggr_read_data":
+          row.readBytesPerSec = nonNegative(series.value);
+          return;
+        case "netapp_aggr_write_data":
+          row.writeBytesPerSec = nonNegative(series.value);
+          return;
+        default:
+          return;
       }
-      case "netapp_aggr_new_status":
-        row.details["online"] = series.value >= 1;
-        return;
-      case "netapp_aggr_space_total":
-        row.capacityBytes = wholeBytes(series.value);
-        return;
-      case "netapp_aggr_space_used":
-        row.usedBytes = wholeBytes(series.value);
-        return;
-      case "netapp_aggr_space_available":
-        row.details["availableBytes"] = wholeBytes(series.value);
-        return;
-      case "netapp_aggr_inode_used_percent":
-        row.details["inodeUsedPercent"] = nonNegative(series.value);
-        return;
-      case "netapp_aggr_logical_used_wo_snapshots_flexclones":
-        row.details["logicalUsedBytes"] = wholeBytes(series.value);
-        return;
-      case "netapp_aggr_physical_used_wo_snapshots_flexclones":
-        row.details["physicalUsedBytes"] = wholeBytes(series.value);
-        return;
-      case "netapp_aggr_read_latency":
-        row.readLatencyUsec = nonNegative(series.value);
-        return;
-      case "netapp_aggr_write_latency":
-        row.writeLatencyUsec = nonNegative(series.value);
-        return;
-      case "netapp_aggr_read_ops":
-        row.readIops = nonNegative(series.value);
-        return;
-      case "netapp_aggr_write_ops":
-        row.writeIops = nonNegative(series.value);
-        return;
-      case "netapp_aggr_read_data":
-        row.readBytesPerSec = nonNegative(series.value);
-        return;
-      case "netapp_aggr_write_data":
-        row.writeBytesPerSec = nonNegative(series.value);
-        return;
-      default:
-        return;
-    }
-  });
+    },
+  );
 }
 
 // ---------------- SVMs ----------------
@@ -691,7 +699,9 @@ function readLun(series: StorageArraySeries): void {
 export function parseDiskPlace(
   disk: string,
 ): { shelf: string; bay: string } | null {
-  const match: RegExpMatchArray | null = disk.match(/^(\d+\.\d+)\.(\d+)(?:\.P\d+)?$/);
+  const match: RegExpMatchArray | null = disk.match(
+    /^(\d+\.\d+)\.(\d+)(?:\.P\d+)?$/,
+  );
   return match ? { shelf: match[1]!, bay: match[2]! } : null;
 }
 
@@ -721,7 +731,8 @@ function readDisk(series: StorageArraySeries): void {
          */
         const place: { shelf: string; bay: string } | null =
           parseDiskPlace(disk);
-        const bay: string | null = series.label("shelf_bay") || place?.bay || null;
+        const bay: string | null =
+          series.label("shelf_bay") || place?.bay || null;
         if (place) {
           row.groupName = place.shelf;
         }
@@ -766,7 +777,12 @@ const SHELF_PARTS: ReadonlyArray<{
     type: ONTAP_COMPONENT_TYPES.powerSupply,
     noun: "PSU",
   },
-  { family: "fan", idLabel: "fan_id", type: ONTAP_COMPONENT_TYPES.fan, noun: "Fan" },
+  {
+    family: "fan",
+    idLabel: "fan_id",
+    type: ONTAP_COMPONENT_TYPES.fan,
+    noun: "Fan",
+  },
   {
     family: "temperature",
     idLabel: "sensor_id",
@@ -1162,7 +1178,9 @@ function extractOntapSeries(series: StorageArraySeries): void {
   const cluster: string | null = series.label("cluster");
   if (cluster && !array.reportedName) {
     array.reportedName = cluster;
-    array.osName = isFsxClusterName(cluster) ? ONTAP_FSX_OS_NAME : ONTAP_OS_NAME;
+    array.osName = isFsxClusterName(cluster)
+      ? ONTAP_FSX_OS_NAME
+      : ONTAP_OS_NAME;
   }
 
   if (metricName === "netapp_metadata_collector_instances") {

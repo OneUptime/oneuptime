@@ -71,8 +71,7 @@ const StorageArrayVolumes: FunctionComponent<
       // What the platform's columns read is any of the row's values.
       {...(page?.columns
         ? {
-            selectMoreFields:
-              INVENTORY_SELECT as Select<StorageArrayResource>,
+            selectMoreFields: INVENTORY_SELECT as Select<StorageArrayResource>,
           }
         : {})}
       getDetailRoute={(item: StorageArrayResource): Route => {
@@ -93,7 +92,8 @@ const StorageArrayVolumes: FunctionComponent<
               StorageArrayResourceColumns.getTextColumn({
                 field: "groupName",
                 title: "Pod / Group",
-                description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeGroupColumn,
+                description:
+                  STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeGroupColumn,
               }),
               StorageArrayResourceColumns.getProvisionedColumn(),
               StorageArrayResourceColumns.getPhysicalColumn(),
@@ -102,7 +102,8 @@ const StorageArrayVolumes: FunctionComponent<
               StorageArrayResourceColumns.getTextColumn({
                 field: "connectionCount",
                 title: "Hosts",
-                description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeHostsColumn,
+                description:
+                  STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeHostsColumn,
               }),
               StorageArrayResourceColumns.getLastSeenColumn(),
             ]

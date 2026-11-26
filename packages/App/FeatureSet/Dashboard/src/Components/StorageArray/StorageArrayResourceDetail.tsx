@@ -64,7 +64,11 @@ import {
 } from "./Part/StorageArrayPartRoutes";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../MetricDescriptions/StorageArrayMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { chartWordsInReadersLanguage } from "../Metrics/Utils/ChartWordsInReadersLanguage";
 import ResourceStorageCard from "../ResourcePart/ResourceStorageCard";
 import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
@@ -73,7 +77,6 @@ import {
   getStorageArrayPartQueries,
   getStorageArrayRowUsage,
 } from "./StorageArrayKindView";
-import { translatableTerm } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   // A shared kind, or one only the array's platform has (an aggregate).
@@ -90,7 +93,9 @@ export interface ComponentProps {
    * only when the inventory has the row. A platform that declares the
    * kind's facts (StorageArrayKindPage.part.fields) draws its own instead.
    */
-  getSummaryFields?: ((row: StorageArrayResource) => Array<SummaryField>) | undefined;
+  getSummaryFields?:
+    | ((row: StorageArrayResource) => Array<SummaryField>)
+    | undefined;
   /*
    * Charts for the Metrics tab, scoped to this array and this object. The
    * array's platform's charts for the kind (StorageArrayKindPage.part)
@@ -278,7 +283,9 @@ const PLATFORM_PART_CURRENT: string = translationKey("This {{kind}}");
 const PLATFORM_PART_ATTENTION: string = translationKey(
   "What about this {{kind}} is broken or needs a look.",
 );
-const PLATFORM_PART_OPEN_TITLE: string = translationKey("Open on this {{kind}}");
+const PLATFORM_PART_OPEN_TITLE: string = translationKey(
+  "Open on this {{kind}}",
+);
 const PLATFORM_PART_OPEN_DESCRIPTION: string = translationKey(
   "Unresolved incidents and alerts about this {{kind}}, incidents first.",
 );
@@ -519,9 +526,7 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
         <TranslatedSentence
           template={texts.location}
           slots={{
-            ...(texts.locationKind
-              ? { kind: <>{texts.locationKind}</> }
-              : {}),
+            ...(texts.locationKind ? { kind: <>{texts.locationKind}</> } : {}),
             array: (
               <Link to={routes.arrayRoute} className={LINK_CLASS_NAME}>
                 <bdi>{arrayName}</bdi>

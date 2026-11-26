@@ -287,8 +287,8 @@ function groupLabels(step: MonitorStep, series: CapturedSeries): JSONObject {
 // Whether a recorded series passes a query's label filters.
 function passesFilters(step: MonitorStep, series: CapturedSeries): boolean {
   const attributes: Record<string, string> = (step.data!.storageArrayMonitor!
-    .metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
-    .attributes || {}) as Record<string, string>;
+    .metricViewConfig.queryConfigs[0]!.metricQueryData.filterData.attributes ||
+    {}) as Record<string, string>;
   return Object.entries(attributes).every(
     ([key, value]: [string, string]): boolean => {
       return series.labels[key] === value;
@@ -451,7 +451,12 @@ describe("an open problem's alert, while ONTAP reports it", () => {
           return series.labels["svm"] || "";
         })
         .sort(),
-    ).toEqual(["ontap-prod-01", "ontap-prod-01-01", "ontap-prod-01-02", "svm_test"]);
+    ).toEqual([
+      "ontap-prod-01",
+      "ontap-prod-01-01",
+      "ontap-prod-01-02",
+      "svm_test",
+    ]);
   });
 
   test("an unhealthy SnapMirror relationship opens one incident by its destination", async () => {
@@ -471,7 +476,9 @@ describe("an open problem's alert, while ONTAP reports it", () => {
         };
       }),
     );
-    expect(tick.breaching).toEqual([{ destination_location: "svm_dr:vol_erp_dr" }]);
+    expect(tick.breaching).toEqual([
+      { destination_location: "svm_dr:vol_erp_dr" },
+    ]);
   });
 });
 
@@ -508,25 +515,22 @@ describe("a state, as Harvest's 0 or 1", () => {
 
   test("a failed shelf power supply fires for its shelf", async () => {
     const step: MonitorStep = stepOf("netapp-shelf-power-supply-failed");
-    const tick: Tick = await evaluate(
-      step,
-      [
-        {
-          labels: { shelf: "1.0" },
-          readings: {
-            [aliasOf(step)]: Array(10).fill(
-              Math.min(
-                ...seriesOf("ontap.prom", "netapp_shelf_psu_status").map(
-                  (series: CapturedSeries): number => {
-                    return series.value;
-                  },
-                ),
+    const tick: Tick = await evaluate(step, [
+      {
+        labels: { shelf: "1.0" },
+        readings: {
+          [aliasOf(step)]: Array(10).fill(
+            Math.min(
+              ...seriesOf("ontap.prom", "netapp_shelf_psu_status").map(
+                (series: CapturedSeries): number => {
+                  return series.value;
+                },
               ),
             ),
-          },
+          ),
         },
-      ],
-    );
+      },
+    ]);
     expect(tick.breaching).toEqual([{ shelf: "1.0" }]);
   });
 });
@@ -588,7 +592,10 @@ describe("SnapMirror Behind Schedule, the lag over the schedule", () => {
 describe("a volume is one incident per SVM and volume", () => {
   test("two SVMs' vol1, both full, are two incidents", async () => {
     const step: MonitorStep = stepOf("netapp-volume-full");
-    expect(MonitorStep.getGroupByAttributeKeys(step)).toEqual(["volume", "svm"]);
+    expect(MonitorStep.getGroupByAttributeKeys(step)).toEqual([
+      "volume",
+      "svm",
+    ]);
     const tick: Tick = await evaluate(step, [
       {
         labels: { volume: "vol1", svm: "svm_a" },
@@ -655,34 +662,25 @@ describe("the ONTAP catalog, against what Harvest serves", () => {
   });
 
   test("its unit is the one Harvest's name says", () => {
+    // Harvest's name endings and the unit each says, the first that fits.
+    const units: Array<[RegExp, string]> = [
+      [/_(latency|read_latency|write_latency)$/, "µs"],
+      [/_ops$/, "ops/s"],
+      [/_(data|rx_bytes|tx_bytes)$/, "bytes/s"],
+      [/(_percent|_processor_busy)$/, "%"],
+      [/_(lag_time|schedule_seconds|uptime|transfer_duration)$/, "s"],
+      [/_reading$/, "°C"],
+      [
+        /_(size|size_used|size_total|size_available|space_total|space_used|space_available|transfer_size|wo_snapshots_flexclones)$/,
+        "bytes",
+      ],
+      [/(_new_status|_status|_labels)$/, ""],
+    ];
     const unitOf: (name: string) => string = (name: string): string => {
-      if (/_(latency|read_latency|write_latency)$/.test(name)) {
-        return "µs";
-      }
-      if (/_ops$/.test(name)) {
-        return "ops/s";
-      }
-      if (/_(data|rx_bytes|tx_bytes)$/.test(name)) {
-        return "bytes/s";
-      }
-      if (/(_percent|_processor_busy)$/.test(name)) {
-        return "%";
-      }
-      if (/_(lag_time|schedule_seconds|uptime|transfer_duration)$/.test(name)) {
-        return "s";
-      }
-      if (/_reading$/.test(name)) {
-        return "°C";
-      }
-      if (
-        /_(size|size_used|size_total|size_available|space_total|space_used|space_available|transfer_size|wo_snapshots_flexclones)$/.test(
-          name,
-        )
-      ) {
-        return "bytes";
-      }
-      if (/(_new_status|_status|_labels)$/.test(name)) {
-        return "";
+      for (const [ending, unit] of units) {
+        if (ending.test(name)) {
+          return unit;
+        }
       }
       return "count";
     };
@@ -695,22 +693,35 @@ describe("the ONTAP catalog, against what Harvest serves", () => {
   });
 
   test("a state reads by its worst reading, a latency by its highest, a rate by its average", () => {
+    const state: RegExp = /_new_status$/;
+    const shelfState: RegExp = /_(psu|fan|temperature)_status$/;
+    const latency: RegExp = /_latency$/;
+    const rate: RegExp = /_(ops|data)$/;
     for (const metric of metrics) {
       const name: string = metric.metricName;
-      if (/_new_status$/.test(name) || /_(psu|fan|temperature)_status$/.test(name)) {
-        expect({ id: metric.id, aggregation: metric.defaultAggregation }).toEqual({
+      if (state.test(name) || shelfState.test(name)) {
+        expect({
+          id: metric.id,
+          aggregation: metric.defaultAggregation,
+        }).toEqual({
           id: metric.id,
           aggregation: MetricsAggregationType.Min,
         });
       }
-      if (/_latency$/.test(name)) {
-        expect({ id: metric.id, aggregation: metric.defaultAggregation }).toEqual({
+      if (latency.test(name)) {
+        expect({
+          id: metric.id,
+          aggregation: metric.defaultAggregation,
+        }).toEqual({
           id: metric.id,
           aggregation: MetricsAggregationType.Max,
         });
       }
-      if (/_(ops|data)$/.test(name)) {
-        expect({ id: metric.id, aggregation: metric.defaultAggregation }).toEqual({
+      if (rate.test(name)) {
+        expect({
+          id: metric.id,
+          aggregation: metric.defaultAggregation,
+        }).toEqual({
           id: metric.id,
           aggregation: MetricsAggregationType.Avg,
         });

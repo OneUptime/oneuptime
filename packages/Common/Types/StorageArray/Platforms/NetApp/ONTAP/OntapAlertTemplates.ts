@@ -323,7 +323,10 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricName: "netapp_cluster_read_latency",
     aggregationType: MetricsAggregationType.Avg,
     rollingTime: RollingTime.Past15Minutes,
-    fire: { filterType: FilterType.GreaterThan, value: ONTAP_LATENCY_WARNING_USEC },
+    fire: {
+      filterType: FilterType.GreaterThan,
+      value: ONTAP_LATENCY_WARNING_USEC,
+    },
     recover: {
       filterType: FilterType.LessThanOrEqualTo,
       value: ONTAP_LATENCY_WARNING_USEC,
@@ -347,7 +350,10 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricName: "netapp_cluster_write_latency",
     aggregationType: MetricsAggregationType.Avg,
     rollingTime: RollingTime.Past15Minutes,
-    fire: { filterType: FilterType.GreaterThan, value: ONTAP_LATENCY_WARNING_USEC },
+    fire: {
+      filterType: FilterType.GreaterThan,
+      value: ONTAP_LATENCY_WARNING_USEC,
+    },
     recover: {
       filterType: FilterType.LessThanOrEqualTo,
       value: ONTAP_LATENCY_WARNING_USEC,
@@ -634,7 +640,8 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricName: "netapp_snapmirror_labels",
     attributes: { healthy: "false" },
     groupByAttributeKey: "destination_location",
-    incidentTitle: "[Storage Array] CRITICAL: SnapMirror Relationship Unhealthy",
+    incidentTitle:
+      "[Storage Array] CRITICAL: SnapMirror Relationship Unhealthy",
     incidentDescription:
       "ONTAP reports a SnapMirror relationship unhealthy (the destination_location label names it, unhealthy_reason why). Run `snapmirror show -destination-path <destination> -instance` on the destination cluster, fix what the reason says (`snapmirror resume`, `snapmirror resync`, the cluster peer), and watch the next transfer succeed.",
     criteriaName: "SnapMirror Unhealthy",

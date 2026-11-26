@@ -35,7 +35,9 @@ const StorageArrayInventoryPart: FunctionComponent<
         "{{name}} is not in the inventory yet. It appears here a few minutes after the Storage Array Agent starts reading the array.",
       )}
       metricsTitleTemplate={translationKey("Metrics: {{name}}")}
-      description={translationKey("Its latest performance and space, as the array reports them.")}
+      description={translationKey(
+        "Its latest performance and space, as the array reports them.",
+      )}
     />
   );
 };

@@ -5,6 +5,7 @@ import {
   ResourceTopologyFact,
   ResourceTopologyGraph,
   ResourceTopologyHealth,
+  ResourceTopologyLinkTarget,
   ResourceTopologyNodeInput,
   ResourceTopologyText,
   ResourceTopologyTruncation,
@@ -24,7 +25,6 @@ import {
 import { healthOfStatusWord } from "../ResourceTopologyStatusWords";
 import { storageArrayPlatformKind } from "../ResourceTopologyKinds";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
-import { ResourceTopologyLinkTarget } from "../ResourceTopologyModel";
 import {
   StorageArrayAssessment,
   assessStorageArray,

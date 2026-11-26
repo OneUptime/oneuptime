@@ -294,7 +294,9 @@ function readGolden(): JSONObject {
  * platforms. A filter another platform shares (an ONTAP volume's, #11001)
  * lists that platform too, so the golden is computed with Pure's alone.
  */
-async function withPurePlatformsAlone<T>(compute: () => Promise<T>): Promise<T> {
+async function withPurePlatformsAlone<T>(
+  compute: () => Promise<T>,
+): Promise<T> {
   const others: Array<StorageArrayPlatform> =
     StorageArrayPlatformRegistry.getPlatforms().filter(
       (platform: StorageArrayPlatform): boolean => {
@@ -403,9 +405,11 @@ describe("a Pure Storage array's pages are told about its platform as before #11
           namesOntap =
             namesOntap ||
             JSON.stringify(actual[part]).includes('"netapp.ontap"');
-          expect({ system, part, value: withoutOntap(actual[part]!) }).toEqual(
-            { system, part, value: expected[part] },
-          );
+          expect({ system, part, value: withoutOntap(actual[part]!) }).toEqual({
+            system,
+            part,
+            value: expected[part],
+          });
           continue;
         }
         expect({ system, part, value: actual[part] }).toEqual({

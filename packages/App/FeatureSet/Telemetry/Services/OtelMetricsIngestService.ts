@@ -1508,7 +1508,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * fallback for a platform OneUptime has no extractor for.
            */
           const storageArrayDeclaredSystem: string | null = storageArrayId
-            ? this.getDeclaredStorageSystemFromAttributes(resourceAttributes_raw)
+            ? this.getDeclaredStorageSystemFromAttributes(
+                resourceAttributes_raw,
+              )
             : null;
           if (storageArrayId && storageArrayDeclaredSystem) {
             storageArrayDeclaredSystems.set(

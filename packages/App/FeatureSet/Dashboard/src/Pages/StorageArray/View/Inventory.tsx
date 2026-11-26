@@ -56,13 +56,17 @@ const StorageArrayInventory: FunctionComponent<
   }
 
   const definition: StorageArrayKindDefinition | null =
-    StorageArrayPlatformRegistry.getKindDefinition(kind, platform.storageSystem);
+    StorageArrayPlatformRegistry.getKindDefinition(
+      kind,
+      platform.storageSystem,
+    );
   const page: StorageArrayKindPage | null = getKindPageFor(
     platform.storageSystem,
     kind,
   );
   const pluralName: string =
-    definition?.pluralLabel || StorageArrayResourceKindUtil.getPluralLabel(kind);
+    definition?.pluralLabel ||
+    StorageArrayResourceKindUtil.getPluralLabel(kind);
   const singularName: string =
     definition?.singularLabel ||
     StorageArrayResourceKindUtil.getSingularLabel(kind);
@@ -84,8 +88,7 @@ const StorageArrayInventory: FunctionComponent<
       // What the platform's columns read is any of the row's values.
       {...(page?.columns
         ? {
-            selectMoreFields:
-              INVENTORY_SELECT as Select<StorageArrayResource>,
+            selectMoreFields: INVENTORY_SELECT as Select<StorageArrayResource>,
           }
         : {})}
       {...(page?.part

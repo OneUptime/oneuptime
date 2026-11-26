@@ -444,7 +444,12 @@ describe("an ONTAP cluster's parts link to pages of their own", () => {
     expect(routes.getPartRoute("Volume", "svm1:vol_projects").toString()).toBe(
       `${BASE}/volumes/svm1%3Avol_projects`,
     );
-    for (const kind of ["Drive", "Hardware", "Controller", "NetworkInterface"]) {
+    for (const kind of [
+      "Drive",
+      "Hardware",
+      "Controller",
+      "NetworkInterface",
+    ]) {
       expect(routes.getPartRoute(kind, "x").toString()).toBe(
         `${BASE}/hardware`,
       );
@@ -524,7 +529,9 @@ describe("an ONTAP volume's page reads ONTAP's metrics (#11122)", () => {
     render(<StorageArrayVolumeDetail {...PAGE_PROPS} />);
     await settle();
 
-    expect(await screen.findByText("What ONTAP reports about this volume.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("What ONTAP reports about this volume."),
+    ).toBeInTheDocument();
     expect(document.body).toHaveTextContent("Junction Path");
     expect(document.body).toHaveTextContent("/projects");
     expect(document.body).toHaveTextContent("aggr1_node1");
@@ -738,7 +745,10 @@ describe("an ONTAP cluster's Overview", () => {
         StorageArrayResourceKind.Directory,
         StorageArrayResourceKind.Hardware,
       ]),
-    ).toEqual([StorageArrayResourceKind.Pod, StorageArrayResourceKind.Hardware]);
+    ).toEqual([
+      StorageArrayResourceKind.Pod,
+      StorageArrayResourceKind.Hardware,
+    ]);
   });
 
   test("lists each open problem Harvest reports once, by its newest reading, while it lasts", () => {
@@ -806,18 +816,23 @@ describe("an ONTAP cluster's Overview", () => {
       },
     ];
 
-    const open: Array<{ severity: string; summary: string; component: string }> =
-      getOpenProblemRows({
-        problems: platform!.overview.openProblems || [],
-        rows: rows,
-        translator: ENGLISH,
-        staleAfterMs: 10 * MINUTE,
-      });
+    const open: Array<{
+      severity: string;
+      summary: string;
+      component: string;
+    }> = getOpenProblemRows({
+      problems: platform!.overview.openProblems || [],
+      rows: rows,
+      translator: ENGLISH,
+      staleAfterMs: 10 * MINUTE,
+    });
 
     expect(
-      open.map((row: { severity: string; summary: string; component: string }) => {
-        return [row.severity, row.summary, row.component];
-      }),
+      open.map(
+        (row: { severity: string; summary: string; component: string }) => {
+          return [row.severity, row.summary, row.component];
+        },
+      ),
     ).toEqual([
       ["critical", "Disk 1.0.3 is broken", "1.0.3"],
       [
@@ -872,7 +887,9 @@ describe("an ONTAP cluster's Documentation tab", () => {
     expect(guide).toHaveTextContent("choose NetApp ONTAP.");
     expect(
       screen.getByTestId("storage-array-platform-guide-option"),
-    ).toHaveTextContent("ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP");
+    ).toHaveTextContent(
+      "ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP",
+    );
     expect(
       screen
         .getByTestId("storage-array-platform-guide-link")

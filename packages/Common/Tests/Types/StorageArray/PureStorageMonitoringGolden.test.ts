@@ -467,10 +467,13 @@ function withPurePlatformsAlone<T>(compute: () => T): T {
 const computed: JSONObject = withPurePlatformsAlone(computeGolden);
 const besideTheOthers: JSONObject = computeGolden();
 
+// A canonical Pure value, a Pure catalog id or a Pure series' name.
+const ABOUT_PURE: RegExp =
+  /purestorage\.(flasharray|flashblade)"|purefa[-_]|purefb[-_]/;
+
 // A golden entry about a Pure platform or a Pure catalog id.
 function isAboutPure(key: string): boolean {
-  // A canonical Pure value, a Pure catalog id or a Pure series' name.
-  return /purestorage\.(flasharray|flashblade)"|purefa[-_]|purefb[-_]/.test(key);
+  return ABOUT_PURE.test(key);
 }
 
 if (process.env["UPDATE_PURE_STORAGE_GOLDEN"] === "1") {

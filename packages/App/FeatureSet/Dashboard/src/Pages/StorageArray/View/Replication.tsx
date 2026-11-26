@@ -38,7 +38,6 @@ function textCell(text: string): ReactElement {
   return <span className="text-sm text-gray-700">{text}</span>;
 }
 
-
 // What the list says on a platform that says nothing of the kind.
 const PODS_DESCRIPTION: string = translationKey(
   "What this array replicates and to where: how far each remote copy is behind, and the status of its link.",

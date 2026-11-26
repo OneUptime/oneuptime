@@ -94,14 +94,20 @@ export default class StorageArrayStatusUtil {
   }
 
   public static isCritical(status: string | null | undefined): boolean {
-    return getLists().critical.includes(StorageArrayStatusUtil.normalize(status));
+    return getLists().critical.includes(
+      StorageArrayStatusUtil.normalize(status),
+    );
   }
 
   public static isWarning(status: string | null | undefined): boolean {
-    return getLists().warning.includes(StorageArrayStatusUtil.normalize(status));
+    return getLists().warning.includes(
+      StorageArrayStatusUtil.normalize(status),
+    );
   }
 
   public static isHealthy(status: string | null | undefined): boolean {
-    return getLists().healthy.includes(StorageArrayStatusUtil.normalize(status));
+    return getLists().healthy.includes(
+      StorageArrayStatusUtil.normalize(status),
+    );
   }
 }
