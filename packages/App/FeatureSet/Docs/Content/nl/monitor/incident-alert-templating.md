@@ -416,6 +416,11 @@ Om de schermafbeelding van elke mislukte uitvoering te tonen, zet je de afbeeldi
 | `trapOid` | De OID van de trap. Alleen als een SNMP-trap de controle startte. | `string` |
 | `trapSourceIp` | Het adres waar de trap vandaan kwam. Alleen als een SNMP-trap de controle startte. | `string` |
 | `trapVarbinds` | De varbinds van de trap, elk als `{oid, value}`. Alleen als een SNMP-trap de controle startte. | `Array<Object>` |
+| `trapInterface` | De interface waar de trap over gaat: de naam die de trap meestuurt, anders de naam die de laatste walk van het apparaat voor de index vastlegde. Alleen als een SNMP-trap de controle startte. | `string` |
+| `trapAlarmCounter` | Bij een RMON-alarmtrap (een MDS-port-monitoralarm) de teller die zijn drempel overschreed. Leeg bij elke andere trap. | `string` |
+| `trapAlarmDirection` | Bij een RMON-alarmtrap `rising` of `falling`. Leeg bij elke andere trap. | `string` |
+| `trapAlarmValue` | Bij een RMON-alarmtrap de waarde van de teller toen die zijn drempel overschreed. Leeg bij elke andere trap. | `string` |
+| `trapAlarmThreshold` | Bij een RMON-alarmtrap de drempel die de teller overschreed. Leeg bij elke andere trap. | `string` |
 
 Een netwerkapparaat wordt bij elke poll gepingd en alleen via SNMP doorlopen als het inloggegevens heeft, dus **`isOnline` is de enige variabele hierboven die een apparaat met alleen ping invult**: alle andere komen uit de SNMP-walk en blijven zonder die walk staan zoals ze geschreven zijn. Begin met `{{isOnline}}` en de naam van het apparaat in templates die mogelijk worden gebruikt voor apparaten zonder inloggegevens. Zie [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor#wat-een-poll-echt-doet) voor wat elk soort poll verzamelt.
 

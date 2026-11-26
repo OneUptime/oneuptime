@@ -233,6 +233,7 @@ var monitorStepsCheckOnValues = []string{
 	"SNMP Transceiver Past Warning Threshold",
 	"SNMP Transceiver Reading",
 	"SNMP Transceiver RX Power Drop (in dB)",
+	"SNMP Fibre Channel Counter (per second)",
 	"DNS Response Time (in ms)",
 	"DNS Is Online",
 	"DNS Record Value",

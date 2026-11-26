@@ -172,6 +172,7 @@ import MonitorStepNetworkDeviceMonitor, {
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpVendorTemplateUtil from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   NetworkDeviceCriteriaCatalogue,
@@ -531,6 +532,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     useState<Array<string>>([]);
   const [networkDeviceTableCatalogue, setNetworkDeviceTableCatalogue] =
     useState<Array<NetworkDeviceTableCatalogueEntry>>([]);
+  const [networkDeviceVendorTemplateId, setNetworkDeviceVendorTemplateId] =
+    useState<string | undefined>(undefined);
 
   /*
    * The device the catalogue currently in state was fetched for, rather than
@@ -565,6 +568,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         snmpOids: true,
         snmpTables: true,
         snmpTableSnapshot: true,
+        // What platform it is, for the alerts only that platform has.
+        sysObjectId: true,
+        sysDescr: true,
         oidTemplate: {
           name: true,
           oids: true,
@@ -677,6 +683,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
     return {
       tables: tables,
+      vendorTemplateId: SnmpVendorTemplateUtil.matchDevice({
+        sysObjectId: device?.sysObjectId || undefined,
+        sysDescr: device?.sysDescr || undefined,
+      })?.id,
       oids: effectiveOids.map(
         (entry: SnmpOid): NetworkDeviceOidCatalogueEntry => {
           const isFromTemplate: boolean = normalizedTemplateOids.has(entry.oid);
@@ -706,6 +716,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
           setNetworkDeviceOidCatalogue(catalogue.oids);
           setNetworkDeviceTableCatalogue(catalogue.tables);
+          setNetworkDeviceVendorTemplateId(catalogue.vendorTemplateId);
           setNetworkDeviceInterfaceNames(catalogue.interfaceNames);
           setLoadedCatalogueNetworkDeviceId(selectedNetworkDeviceId);
         })
@@ -865,6 +876,7 @@ return {
       networkDeviceOidCatalogue={networkDeviceOidCatalogue}
       networkDeviceInterfaceNames={networkDeviceInterfaceNames}
       networkDeviceTableCatalogue={networkDeviceTableCatalogue}
+      networkDeviceVendorTemplateId={networkDeviceVendorTemplateId}
       isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
       offlineMonitorStatusId={props.offlineMonitorStatusId}
       monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}

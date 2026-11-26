@@ -416,6 +416,11 @@ Per mostrare lo screenshot di ogni esecuzione fallita, metti l'immagine in un ci
 | `trapOid` | L'OID del trap. Solo quando un trap SNMP ha avviato il controllo. | `string` |
 | `trapSourceIp` | L'indirizzo da cui è arrivato il trap. Solo quando un trap SNMP ha avviato il controllo. | `string` |
 | `trapVarbinds` | I varbind del trap, ognuno come `{oid, value}`. Solo quando un trap SNMP ha avviato il controllo. | `Array<Object>` |
+| `trapInterface` | L'interfaccia di cui parla il trap: il nome che il trap porta, altrimenti quello che l'ultimo walk del dispositivo ha registrato per il suo indice. Solo quando un trap SNMP ha avviato il controllo. | `string` |
+| `trapAlarmCounter` | Su un trap di allarme RMON (un allarme di port-monitor MDS), il contatore che ha superato la soglia. Vuoto per qualsiasi altro trap. | `string` |
+| `trapAlarmDirection` | Su un trap di allarme RMON, `rising` o `falling`. Vuoto per qualsiasi altro trap. | `string` |
+| `trapAlarmValue` | Su un trap di allarme RMON, il valore del contatore quando ha superato la soglia. Vuoto per qualsiasi altro trap. | `string` |
+| `trapAlarmThreshold` | Su un trap di allarme RMON, la soglia che il contatore ha superato. Vuoto per qualsiasi altro trap. | `string` |
 
 Un dispositivo di rete riceve un ping a ogni interrogazione e viene scansionato via SNMP solo quando ha credenziali, quindi **`isOnline` è l'unica variabile qui sopra che un dispositivo solo ping compila**: tutte le altre vengono dalla scansione SNMP e, senza di essa, restano come scritte. Comincia con `{{isOnline}}` e il nome del dispositivo nei modelli che possono essere usati per dispositivi senza credenziali. Vedi [Monitor dispositivi di rete](/docs/monitor/network-device-monitor#cosa-fa-davvero-un-polling) per cosa raccoglie ogni tipo di interrogazione.
 

@@ -25,7 +25,7 @@ Ambas aceptan hasta 100 incidentes seleccionados. El resultado indica cuántos s
 
 ## Qué hace añadir
 
-- **Una sola entrada en el feed del episodio** nombra cada incidente añadido: los 20 primeros por número y título, y después cuántos más. Se publica una sola vez en el canal de Slack o Microsoft Teams del episodio, no una vez por incidente. Un incidente privado se nombra solo por su número.
+- **Una sola entrada en el feed del episodio** nombra cada incidente añadido: los 20 primeros por número y título, y después cuántos más. Se publica una sola vez en el canal de Slack o Microsoft Teams del episodio, no una vez por incidente, y, en un episodio creado con esos incidentes, sigue allí al mensaje de creación del episodio. Un incidente privado se nombra solo por su número.
 - **El feed de cada incidente** indica a qué episodio se añadió.
 - **La gravedad del episodio** sube a la del incidente más grave añadido a un episodio existente, y nunca baja. Un episodio nuevo empieza con la gravedad que elijas.
 - **Un episodio resuelto sigue resuelto.** Añadirle incidentes no lo reabre, y añadir nunca cambia el estado de un incidente.

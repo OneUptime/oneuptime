@@ -416,6 +416,11 @@ For å vise skjermbildet av hver feilet kjøring legger du bildet i en løkke. H
 | `trapOid` | Trapens OID. Bare når en SNMP-trap utløste sjekken. | `string` |
 | `trapSourceIp` | Adressen trapen kom fra. Bare når en SNMP-trap utløste sjekken. | `string` |
 | `trapVarbinds` | Trapens varbinds, hver som `{oid, value}`. Bare når en SNMP-trap utløste sjekken. | `Array<Object>` |
+| `trapInterface` | Grensesnittet trapen gjelder: navnet trapen har med seg, ellers det enhetens siste walk registrerte for indeksen. Bare når en SNMP-trap utløste sjekken. | `string` |
+| `trapAlarmCounter` | Ved en RMON-alarmtrap (en MDS-port-monitor-alarm) telleren som krysset terskelen sin. Tom for enhver annen trap. | `string` |
+| `trapAlarmDirection` | Ved en RMON-alarmtrap `rising` eller `falling`. Tom for enhver annen trap. | `string` |
+| `trapAlarmValue` | Ved en RMON-alarmtrap tellerens verdi da den krysset terskelen sin. Tom for enhver annen trap. | `string` |
+| `trapAlarmThreshold` | Ved en RMON-alarmtrap terskelen telleren krysset. Tom for enhver annen trap. | `string` |
 
 En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når den har påloggingsinformasjon, så **`isOnline` er den eneste variabelen over som en enhet med bare ping fyller ut**: alle de andre kommer fra SNMP-gjennomgangen og blir stående som de er skrevet uten den. Begynn med `{{isOnline}}` og enhetens navn i maler som kan brukes for enheter uten påloggingsinformasjon. Se [Nettverksenhets-monitor](/docs/monitor/network-device-monitor#hva-en-polling-faktisk-gjør) for hva hver type avspørring samler inn.
 

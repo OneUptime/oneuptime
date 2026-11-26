@@ -11,6 +11,7 @@ import {
 } from "../../../../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../../../../Types/Monitor/MonitorMetricType";
 import SnmpDataType from "../../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
+import { FibreChannelCounter } from "../../../../../Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import SnmpInterface from "../../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -913,6 +914,15 @@ describe("SnmpMonitorCriteria — ping-first polling", () => {
         checkOn: CheckOn.SnmpInterfaceErrorsPerSecond,
         filterType: FilterType.LessThan,
         value: 100,
+      },
+      {
+        checkOn: CheckOn.SnmpFibreChannelCounterPerSecond,
+        filterType: FilterType.LessThan,
+        value: 100,
+        snmpMonitorOptions: {
+          interfaceName: "*",
+          fibreChannelCounter: FibreChannelCounter.CreditLoss,
+        },
       },
     ];
 

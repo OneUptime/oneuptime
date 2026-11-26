@@ -537,6 +537,9 @@ describe("the monitor create page opened from a network device", () => {
         oidTemplate: {
           tables: true,
         },
+        // And a SAN switch's own alerts, by the platform it answered as.
+        sysObjectId: true,
+        sysDescr: true,
       });
     });
 
@@ -696,6 +699,61 @@ describe("the monitor create page opened from a network device", () => {
 
       expect(names).toContain("Device unreachable");
       expect(names).toContain("IPsec Tunnels: row unhealthy");
+    });
+
+    function seededNames(form: CapturedFormProps): Array<string | undefined> {
+      const step: MonitorStep = MonitorSteps.fromJSON(
+        form.initialValues["monitorSteps"] as JSONObject,
+      ).data!.monitorStepsInstanceArray[0]!;
+
+      return (
+        step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+      ).map((instance: MonitorCriteriaInstance): string | undefined => {
+        return instance.data?.name;
+      });
+    }
+
+    /*
+     * A SAN switch (#11014, #11015): its Fibre Channel errors in place of the
+     * once-a-second interface errors, and the fabric's own alerts, from the
+     * platform the device answered as.
+     */
+    test("a Brocade switch starts with its Fibre Channel and fabric alerts", async () => {
+      deviceRow!.sysObjectId = "1.3.6.1.4.1.1588.2.1.1.109";
+      deviceRow!.sysDescr = "Fibre Channel Switch";
+
+      const names: Array<string | undefined> = seededNames(await openForm());
+
+      expect(names).toContain("Device unreachable");
+      expect(names).toContain("Fibre Channel port errors");
+      expect(names).toContain("Inter-switch link down");
+      expect(names).toContain("Zone configuration changed");
+      expect(names).not.toContain("Interface errors");
+    });
+
+    test("an MDS starts with its slow-drain and port-monitor alerts", async () => {
+      deviceRow!.sysObjectId = "1.3.6.1.4.1.9.12.3.1.3.1660";
+      deviceRow!.sysDescr =
+        "Cisco NX-OS(tm) m9300, Software (m9300-s6ek9-mz), Version 9.3(2)";
+
+      const names: Array<string | undefined> = seededNames(await openForm());
+
+      expect(names).toContain("Fibre Channel port errors");
+      expect(names).toContain("Credit loss (slow drain)");
+      expect(names).toContain("Port monitor alarm");
+      expect(names).not.toContain("Interface errors");
+      expect(names).not.toContain("Inter-switch link down");
+    });
+
+    test("any other device keeps the interface errors, and no SAN alert", async () => {
+      deviceRow!.sysObjectId = "1.3.6.1.4.1.9.1.2066";
+      deviceRow!.sysDescr = "Cisco IOS Software, C2960X Software";
+
+      const names: Array<string | undefined> = seededNames(await openForm());
+
+      expect(names).toContain("Interface errors");
+      expect(names).not.toContain("Fibre Channel port errors");
+      expect(names).not.toContain("Credit loss (slow drain)");
     });
 
     test("lands on the monitor, and binds nothing", async () => {
