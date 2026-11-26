@@ -985,9 +985,14 @@ describePostgres("Cost groups against Postgres", () => {
             automatic: Boolean(group.automaticKey),
           };
         })
-        .sort((a: { name?: string }, b: { name?: string }): number => {
-          return String(a.name).localeCompare(String(b.name));
-        });
+        .sort(
+          (
+            a: { name: string | undefined },
+            b: { name: string | undefined },
+          ): number => {
+            return String(a.name).localeCompare(String(b.name));
+          },
+        );
 
       expect(made).toEqual([
         {
