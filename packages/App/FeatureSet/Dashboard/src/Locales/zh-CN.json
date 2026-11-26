@@ -64644,5 +64644,7 @@
   "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.",
   "They start in the created state and page their on-call policies, as every new incident does.": "They start in the created state and page their on-call policies, as every new incident does.",
   "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "With none picked, the incident starts acknowledged, as you are on it, and pages no one.",
-  "Inventory Counts": "资产清单计数"
+  "Inventory Counts": "资产清单计数",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 之外的 MCP 服务器，OneUptime AI 在“询问 AI”中以及调查和修复时可以使用其工具，例如 AWS、Azure 或 GitHub。",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "你为此问题做的修复。OneUptime 会像跟踪 OneUptime AI 的修复一样将其跟踪到生产环境，一旦生产环境证实，该问题即视为已修复。"
 }

@@ -64644,5 +64644,7 @@
   "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "تبدأ مُقرًّا بها ولا تستدعي أحدًا، ولا حتى عبر قواعد المناوبة، ما لم يختر من يعلنها سياسة مناوبة لاستدعاء أفرادها.",
   "They start in the created state and page their on-call policies, as every new incident does.": "تبدأ في حالة الإنشاء وتُنفَّذ سياسات المناوبة الخاصة بها، كما يحدث مع كل حادثة جديدة.",
   "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "إن لم تختر أيًّا منها، تبدأ الحادثة مُقرًّا بها لأنك تتولاها، ولا تستدعي أحدًا.",
-  "Inventory Counts": "أعداد الجرد"
+  "Inventory Counts": "أعداد الجرد",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "خوادم MCP خارج OneUptime يمكن لـ OneUptime AI استخدام أدواتها في «اسأل الذكاء الاصطناعي» وأثناء التحقيق والإصلاح، مثل AWS أو Azure أو GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "إصلاحك الخاص لهذه المشكلة. يتابعه OneUptime حتى بيئة الإنتاج كما يتابع إصلاحات OneUptime AI، وتُعد المشكلة مُصلَحة بمجرد أن تُثبت بيئة الإنتاج ذلك."
 }
