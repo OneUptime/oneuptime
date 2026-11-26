@@ -595,7 +595,7 @@ describe("a rule started from what no rule matches", () => {
       "updateById",
     ).mockResolvedValue({});
     getJestSpyOn(Toast, "success").mockReturnValue("");
-    const added: jest.Mock = jest.fn();
+    let added: number = 0;
     const own: CloudCostRule = {
       conditions: [
         {
@@ -618,7 +618,9 @@ describe("a rule started from what no rule matches", () => {
           pick={{ field: CloudCostRuleField.Service, value: "Amazon S3" }}
           names={names()}
           onClose={() => {}}
-          onAdded={added}
+          onAdded={() => {
+            added++;
+          }}
         />,
       );
     });
@@ -651,7 +653,7 @@ describe("a rule started from what no rule matches", () => {
         },
       }),
     );
-    expect(added).toHaveBeenCalled();
+    expect(added).toBe(1);
   });
 
   test("into a new group, named after what it takes", async () => {

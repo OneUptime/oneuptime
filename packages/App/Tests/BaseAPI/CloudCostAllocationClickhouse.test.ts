@@ -1081,9 +1081,7 @@ integration("cost groups against ClickHouse", () => {
     const actual: typeof CloudCostAllocationClass.partition =
       CloudCostAllocationClass.partition.bind(CloudCostAllocationClass);
     // One resource a part, as many parts as a read makes.
-    const partition: jest.SpiedFunction<
-      typeof CloudCostAllocationClass.partition
-    > = jest
+    jest
       .spyOn(CloudCostAllocationClass, "partition")
       .mockImplementation(
         (
@@ -1095,7 +1093,7 @@ integration("cost groups against ClickHouse", () => {
 
     const parted: CloudCostAllocationResult = await read();
 
-    expect(partition).toHaveBeenCalled();
+    expect(CloudCostAllocationClass.partition).toHaveBeenCalled();
     expect(
       actual(
         {
