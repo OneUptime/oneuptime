@@ -3594,12 +3594,13 @@ describe("Topology (telemetry/topology)", () => {
 
   it("names every resource that has a Topology page of its own, and each page is in its side menu", () => {
     expect(page).toContain(
-      "A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, an OpenStack cloud and a storage array each have a **Topology** page of their own.",
+      "A vCenter, an XCP-ng pool, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, an OpenStack cloud and a storage array each have a **Topology** page of their own.",
     );
 
-    // Each of the ten is a page of the resource, under Topology in its side menu.
+    // Each of the eleven is a page of the resource, under Topology in its side menu.
     for (const [menu, key] of [
       ["VMware", "VMWARE_VCENTER_VIEW_TOPOLOGY"],
+      ["XcpNg", "XCP_NG_POOL_VIEW_TOPOLOGY"],
       ["Kubernetes", "KUBERNETES_CLUSTER_VIEW_TOPOLOGY"],
       ["Host", "HOST_VIEW_TOPOLOGY"],
       ["Docker", "DOCKER_HOST_VIEW_TOPOLOGY"],
@@ -3623,7 +3624,7 @@ describe("Topology (telemetry/topology)", () => {
       );
     }
 
-    // The ten are the ones the master map links into, and no others.
+    // The eleven are the ones the master map links into, and no others.
     const links: string = readDashboardSource(
       "Components/ResourceTopology/ResourceTopologyLinks.ts",
     );
@@ -3640,6 +3641,7 @@ describe("Topology (telemetry/topology)", () => {
         "PROXMOX_CLUSTER_VIEW_TOPOLOGY",
         "STORAGE_ARRAY_VIEW_TOPOLOGY",
         "VMWARE_VCENTER_VIEW_TOPOLOGY",
+        "XCP_NG_POOL_VIEW_TOPOLOGY",
       ].sort(),
     );
   });
@@ -3712,12 +3714,13 @@ describe("Topology (telemetry/topology)", () => {
         "Open cloud topology",
         "Open cluster topology",
         "Open host topology",
+        "Open pool topology",
         "Open storage array topology",
         "Open vCenter topology",
       ].sort(),
     );
     expect(page).toContain(
-      "**Open in Topology** opens the resource on **Infrastructure**, and its **Open vCenter topology**, **Open cluster topology**, **Open host topology** or **Open storage array topology** button leads back.",
+      "**Open in Topology** opens the resource on **Infrastructure**, and its **Open vCenter topology**, **Open pool topology**, **Open cluster topology**, **Open host topology** or **Open storage array topology** button leads back.",
     );
     expect(
       readDashboardSource("Components/Topology/InfrastructureExplorer.tsx"),
