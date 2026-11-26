@@ -9,7 +9,7 @@ import { translationKey } from "Common/Types/Translator";
 
 export const LINK_PULL_REQUEST: string = translationKey("Link Pull Request");
 export const LINK_ISSUE_PULL_REQUEST_DESCRIPTION: string = translationKey(
-  "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.",
 );
 export const LINK_PULL_REQUEST_FIELD_TITLE: string =
   translationKey("Pull Request URL");

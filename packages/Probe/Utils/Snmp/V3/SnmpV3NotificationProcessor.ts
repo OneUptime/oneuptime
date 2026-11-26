@@ -26,6 +26,7 @@ import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLeve
 import SnmpTrapReceiverUtil, {
   SnmpTrapRefusalReason,
 } from "Common/Types/Probe/SnmpTrapReceiver";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import crypto from "crypto";
 
 /*
@@ -149,8 +150,9 @@ export default class SnmpV3NotificationProcessor {
   private readonly engineId: Buffer;
   private readonly users: SnmpV3UserTable;
   private readonly now: () => number;
-  // Least recently heard from first.
-  private readonly remoteEngines: Map<string, RemoteEngineTime> = new Map();
+  // Least recently heard from first, answered in constant time.
+  private readonly remoteEngines: OldestKeyMap<string, RemoteEngineTime> =
+    new OldestKeyMap();
   private readonly usmStats: Record<SnmpTrapRefusalReason, number> = {
     [SnmpTrapRefusalReason.UnsupportedSecurityLevel]: 0,
     [SnmpTrapRefusalReason.NotInTimeWindow]: 0,
@@ -500,8 +502,7 @@ export default class SnmpV3NotificationProcessor {
     });
 
     while (this.remoteEngines.size > MAX_REMOTE_ENGINES) {
-      const oldest: string | undefined = this.remoteEngines.keys().next()
-        .value as string | undefined;
+      const oldest: string | undefined = this.remoteEngines.oldestKey();
 
       if (oldest === undefined) {
         break;

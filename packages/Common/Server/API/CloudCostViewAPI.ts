@@ -13,6 +13,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import ProductKey from "../../Types/Product/ProductKey";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CloudCostViewService, {
   Service as CloudCostViewServiceType,
@@ -25,6 +26,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 
@@ -45,7 +47,10 @@ import CommonAPI from "./CommonAPI";
  *
  *   POST /cloud-cost-view/:viewId/make-groups
  *     For a view made per tag value or owner team: makes the groups it is
- *     missing now, rather than at the hourly job (CloudCostViewSync).
+ *     missing now, rather than at the hourly job (CloudCostViewSync). It
+ *     writes them as the server, so it is refused while the server has
+ *     switched Cloud off (ServerProductRoutes), before anything is read;
+ *     the allocation only reads, and is left alone.
  */
 
 // An allocation's request body, read: refused with what to fix.
@@ -176,6 +181,7 @@ export default class CloudCostViewAPI extends BaseAPI<
     this.router.post(
       `${path}/:viewId/make-groups`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.makeGroups(req, res);

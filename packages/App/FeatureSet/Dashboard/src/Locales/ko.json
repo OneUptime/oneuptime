@@ -64162,8 +64162,8 @@
   "The issue is marked not an issue, and stays closed. Your reason: {{reason}}": "이 이슈는 문제 아님으로 표시되고 닫힌 상태로 유지됩니다. 이유: {{reason}}",
   "The issue is marked not an issue. It stays closed.": "이 이슈는 문제 아님으로 표시됩니다. 닫힌 상태로 유지됩니다.",
   "The issue is open again and counts again. If its check passes now, it resolves on its own.": "이 이슈는 다시 열려 다시 집계됩니다. 지금 검사를 통과하면 자동으로 해결됩니다.",
-  "The issue stops counting for good: it leaves the open issues, the store's risk and the compliance scores, and its open alert resolves.": "이 이슈는 영구적으로 집계되지 않습니다: 열린 이슈, 저장소의 위험, 규정 준수 점수에서 빠지며, 열린 알림은 해결됩니다.",
-  "The issue stops counting until then: it leaves the open issues, the store's risk and the compliance scores, and its open alert resolves.": "이 이슈는 그때까지 집계되지 않습니다: 열린 이슈, 저장소의 위험, 규정 준수 점수에서 빠지며, 열린 알림은 해결됩니다.",
+  "The issue stops counting for good: it leaves the open issues, the store's risk and the compliance scores, and its open alert resolves.": "이 이슈는 영구적으로 집계되지 않습니다: 열린 이슈, 저장소의 위험, 규정 준수 점수에서 빠지며, 열린 경고는 해결됩니다.",
+  "The issue stops counting until then: it leaves the open issues, the store's risk and the compliance scores, and its open alert resolves.": "이 이슈는 그때까지 집계되지 않습니다: 열린 이슈, 저장소의 위험, 규정 준수 점수에서 빠지며, 열린 경고는 해결됩니다.",
   "The kinds of personal data and the cloud regions a rule can name": "규칙에서 지정할 수 있는 개인 데이터 종류와 클라우드 리전",
   "The law counts from when you determine a breach occurred; this counts from when it was found, the earlier of the two.": "법은 침해가 발생했다고 판단한 시점부터 계산하지만, 여기서는 발견한 시점, 즉 둘 중 더 이른 시점부터 계산합니다.",
   "The names of the project's labels and teams, which a rule can name": "규칙에서 지정할 수 있는 프로젝트의 레이블과 팀 이름",
@@ -66019,5 +66019,7 @@
   "Times the receiver lost synchronization with the signal.": "수신기가 신호와의 동기화를 잃은 횟수입니다.",
   "Times the receiver lost the light altogether.": "수신기가 빛을 완전히 잃은 횟수입니다.",
   "VF:128": "VF:128",
-  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "초당 비교할 포트의 카운터입니다. 오류, 폐기된 프레임, 또는 느린 장치가 크레딧을 돌려주지 않을 때의 크레딧 손실입니다."
+  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "초당 비교할 포트의 카운터입니다. 오류, 폐기된 프레임, 또는 느린 장치가 크레딧을 돌려주지 않을 때의 크레딧 손실입니다.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 외부의 MCP 서버로, OneUptime AI가 'AI에게 질문'에서, 그리고 조사하고 수정할 때 그 도구를 사용할 수 있습니다(AWS, Azure, GitHub 등).",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "이 이슈에 대해 직접 만든 수정입니다. OneUptime이 OneUptime AI의 수정처럼 프로덕션까지 추적하며, 프로덕션에서 확인되면 이슈가 수정된 것으로 간주됩니다."
 }

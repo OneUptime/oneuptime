@@ -13,7 +13,6 @@ import {
   ERASE_PERSON,
   ERASE_VERB,
   ERASURE_HELP_DESCRIPTION,
-  ERASURE_HELP_MARKDOWN,
   ERASURE_REQUESTED,
   ERASURE_REQUESTS_DESCRIPTION,
   ERASURE_REQUESTS_TITLE,
@@ -25,6 +24,7 @@ import {
   TOKENS_COLUMN,
   USER_FIELD_DESCRIPTION,
   USER_FIELD_TITLE,
+  getErasureHelpMarkdown,
 } from "../../../Components/SecurityEvents/ErasureRequests/ErasureRequestCopy";
 import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import Route from "Common/Types/API/Route";
@@ -85,7 +85,7 @@ const SecurityErasureRequestsPage: FunctionComponent<
       helpContent={{
         title: ERASURE_REQUESTS_TITLE,
         description: ERASURE_HELP_DESCRIPTION,
-        markdown: ERASURE_HELP_MARKDOWN,
+        markdown: getErasureHelpMarkdown(translator),
       }}
       documentationLink={Route.fromString(
         "/docs/telemetry/security-events#erase-a-person",

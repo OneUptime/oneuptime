@@ -66019,5 +66019,7 @@
   "Times the receiver lost synchronization with the signal.": "接收端与信号失去同步的次数。",
   "Times the receiver lost the light altogether.": "接收端完全失去光的次数。",
   "VF:128": "VF:128",
-  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "每秒比较端口的哪个计数器：错误、丢弃的帧，或在慢速设备不再返还信用时的信用丢失。"
+  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "每秒比较端口的哪个计数器：错误、丢弃的帧，或在慢速设备不再返还信用时的信用丢失。",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 之外的 MCP 服务器，OneUptime AI 在“询问 AI”中以及调查和修复时可以使用其工具，例如 AWS、Azure 或 GitHub。",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "你为此问题做的修复。OneUptime 会像跟踪 OneUptime AI 的修复一样将其跟踪到生产环境，一旦生产环境证实，该问题即视为已修复。"
 }

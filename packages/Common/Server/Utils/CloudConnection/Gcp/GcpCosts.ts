@@ -131,7 +131,8 @@ export function buildGcpBillingExportQuery(table: string): string {
       ? "IFNULL(resource.global_name, '') AS resource_id,"
       : "'' AS resource_id,",
     "currency,",
-    "SUM(cost) AS cost,",
+    // Named for what it holds, as the two beside it are, never as its column.
+    "SUM(cost) AS billed_cost,",
     // Its labels, the keys in order, so one set of labels is one group.
     "TO_JSON_STRING(ARRAY(SELECT AS STRUCT label.key, label.value FROM UNNEST(labels) AS label ORDER BY label.key)) AS labels_json,",
     `SUM(cost + IFNULL((SELECT SUM(credit.amount) FROM UNNEST(credits) AS credit WHERE credit.type IN (${sqlCreditTypes(
@@ -144,7 +145,7 @@ export function buildGcpBillingExportQuery(table: string): string {
     // The export's partitions: a day's usage lands in its day's or a later one.
     "AND _PARTITIONTIME >= TIMESTAMP_SUB(TIMESTAMP(@start), INTERVAL 1 DAY)",
     "GROUP BY day, project_id, service, region, resource_id, currency, labels_json",
-    "HAVING cost != 0 OR amortized_cost != 0 OR net_cost != 0",
+    "HAVING billed_cost != 0 OR amortized_cost != 0 OR net_cost != 0",
   ].join(" ");
 }
 

@@ -66019,5 +66019,7 @@
   "Times the receiver lost synchronization with the signal.": "عدد مرات فقدان المستقبِل التزامن مع الإشارة.",
   "Times the receiver lost the light altogether.": "عدد مرات فقدان المستقبِل الضوء تمامًا.",
   "VF:128": "VF:128",
-  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "أيّ عدّادات المنفذ تُقارن في الثانية: الأخطاء، أو الإطارات المهملة، أو فقدان الرصيد حين يتوقف جهاز بطيء عن إعادة الرصيد."
+  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "أيّ عدّادات المنفذ تُقارن في الثانية: الأخطاء، أو الإطارات المهملة، أو فقدان الرصيد حين يتوقف جهاز بطيء عن إعادة الرصيد.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "خوادم MCP خارج OneUptime يمكن لـ OneUptime AI استخدام أدواتها في «اسأل الذكاء الاصطناعي» وأثناء التحقيق والإصلاح، مثل AWS أو Azure أو GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "إصلاحك الخاص لهذه المشكلة. يتابعه OneUptime حتى بيئة الإنتاج كما يتابع إصلاحات OneUptime AI، وتُعد المشكلة مُصلَحة بمجرد أن تُثبت بيئة الإنتاج ذلك."
 }

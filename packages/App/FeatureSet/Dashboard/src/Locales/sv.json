@@ -66019,5 +66019,7 @@
   "Times the receiver lost synchronization with the signal.": "Antal gånger mottagaren tappade synkroniseringen med signalen.",
   "Times the receiver lost the light altogether.": "Antal gånger mottagaren helt tappade ljuset.",
   "VF:128": "VF:128",
-  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "Vilken av portens räknare som jämförs per sekund: fel, kasserade ramar eller kreditförlust när en långsam enhet slutar lämna tillbaka kredit."
+  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "Vilken av portens räknare som jämförs per sekund: fel, kasserade ramar eller kreditförlust när en långsam enhet slutar lämna tillbaka kredit.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "MCP-servrar utanför OneUptime vars verktyg OneUptime AI får använda i Fråga AI och när den utreder och åtgärdar, till exempel AWS, Azure eller GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "Din egen åtgärd för det här problemet. OneUptime följer den till produktion, så som den följer OneUptime AI:s åtgärder, och problemet räknas som åtgärdat när produktionen visar det."
 }

@@ -66019,5 +66019,7 @@
   "Times the receiver lost synchronization with the signal.": "دفعاتی که گیرنده همگامی با سیگنال را از دست داد.",
   "Times the receiver lost the light altogether.": "دفعاتی که گیرنده نور را به‌کلی از دست داد.",
   "VF:128": "VF:128",
-  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "کدام شمارنده پورت در ثانیه مقایسه شود: خطاها، فریم‌های دورریخته، یا از دست رفتن اعتبار وقتی دستگاهی کند دیگر اعتبار را برنمی‌گرداند."
+  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "کدام شمارنده پورت در ثانیه مقایسه شود: خطاها، فریم‌های دورریخته، یا از دست رفتن اعتبار وقتی دستگاهی کند دیگر اعتبار را برنمی‌گرداند.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "سرورهای MCP بیرون از OneUptime که OneUptime AI در «پرسش از هوش مصنوعی» و هنگام بررسی و اصلاح می‌تواند از ابزارهایشان استفاده کند، مانند AWS، Azure یا GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "اصلاح خود شما برای این مسئله. OneUptime آن را مانند اصلاح‌های OneUptime AI تا محیط عملیاتی دنبال می‌کند و به‌محض اینکه محیط عملیاتی آن را نشان دهد، مسئله اصلاح‌شده به شمار می‌آید."
 }

@@ -10,7 +10,9 @@ import {
 } from "Common/Types/Cloud/CloudCostRules";
 import {
   PluralTemplate,
+  toLabelTerm,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -232,6 +234,26 @@ export const FIELD_LABELS: Readonly<Record<CloudCostRuleField, string>> = {
   [CloudCostRuleField.KubernetesNamespace]: translationKey(
     "Kubernetes namespace",
   ),
+};
+
+/*
+ * A field's name, as the rule editor's picker and its label draw it, and
+ * as a condition's sentence starts with it ("{{field}} is {{values}}"): a
+ * label, so it starts with a capital wherever the language writes one.
+ * "Kubernetes cluster" is a key the sentences that say it share, and five
+ * languages word it for the middle of a sentence: "clúster de Kubernetes"
+ * reads "Clúster de Kubernetes" here (toLabelTerm).
+ */
+export const getFieldLabel: (
+  field: CloudCostRuleField,
+  translator: Translator,
+) => string = (field: CloudCostRuleField, translator: Translator): string => {
+  const label: string = FIELD_LABELS[field];
+
+  return toLabelTerm(
+    translator.translateText(label) || label,
+    translator.language,
+  );
 };
 
 // The order fields are offered in: what most groups are made of first.

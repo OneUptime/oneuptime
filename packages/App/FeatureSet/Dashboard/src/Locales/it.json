@@ -66019,5 +66019,7 @@
   "Times the receiver lost synchronization with the signal.": "Volte in cui il ricevitore ha perso la sincronizzazione con il segnale.",
   "Times the receiver lost the light altogether.": "Volte in cui il ricevitore ha perso del tutto la luce.",
   "VF:128": "VF:128",
-  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "Quale contatore della porta confrontare, al secondo: errori, frame scartati o perdita di credito quando un dispositivo lento smette di restituire credito."
+  "Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit.": "Quale contatore della porta confrontare, al secondo: errori, frame scartati o perdita di credito quando un dispositivo lento smette di restituire credito.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.": "Server MCP esterni a OneUptime i cui strumenti OneUptime AI può usare in Chiedi all'IA e per indagare e correggere, come AWS, Azure o GitHub.",
+  "Your own fix for this issue. OneUptime follows it to production as it does OneUptime AI's, and the issue counts as fixed once production shows it.": "La tua correzione per questo problema. OneUptime la segue fino alla produzione, come segue le correzioni di OneUptime AI, e il problema conta come risolto non appena la produzione lo dimostra."
 }
