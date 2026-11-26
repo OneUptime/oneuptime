@@ -15,7 +15,7 @@ import {
 
 /*
  * One FlashBlade S3 bucket. Its series carry the bucket's name in the
- * `name` label (purefb_buckets_*), which scopes the Metrics tab.
+ * `name` label of its bucket series, which scopes the Metrics tab.
  */
 const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,

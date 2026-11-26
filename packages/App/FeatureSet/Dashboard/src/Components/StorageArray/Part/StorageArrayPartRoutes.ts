@@ -6,6 +6,7 @@ import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
 } from "../../Recommendations/RecommendationFilterUtil";
 import { routeParamFromExternalId } from "../../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
 
 /*
  * Where a storage array's pages link to: the array, a volume's, a host's, a
@@ -46,6 +47,16 @@ const PART_LISTS: Record<string, PageMap> = {
   Directory: PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES,
 };
 
+// A kind's page from a table above; never a name Object itself has.
+function ownPage(
+  pages: Record<string, PageMap>,
+  kind: string,
+): PageMap | undefined {
+  return Object.prototype.hasOwnProperty.call(pages, kind)
+    ? pages[kind]
+    : undefined;
+}
+
 export function getStorageArrayPartRoutes(
   storageArrayId: ObjectID,
 ): StorageArrayPartRoutes {
@@ -71,7 +82,7 @@ export function getStorageArrayPartRoutes(
     hardwareRoute: ofArray(PageMap.STORAGE_ARRAY_VIEW_HARDWARE),
     replicationRoute: ofArray(PageMap.STORAGE_ARRAY_VIEW_REPLICATION),
     getPartRoute: (kind: string, externalId: string): Route => {
-      const page: PageMap | undefined = PART_PAGES[kind];
+      const page: PageMap | undefined = ownPage(PART_PAGES, kind);
       if (page) {
         // The part's own name on the array, percent-encoded: one segment.
         return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
@@ -79,8 +90,24 @@ export function getStorageArrayPartRoutes(
           subModelId: routeParamFromExternalId(externalId),
         });
       }
-      const list: PageMap | undefined = PART_LISTS[kind];
-      return list ? ofArray(list) : arrayRoute;
+      const list: PageMap | undefined = ownPage(PART_LISTS, kind);
+      if (list) {
+        return ofArray(list);
+      }
+      /*
+       * A kind only its platform has (StorageArrayPlatform.kindDefinitions):
+       * the inventory tab that lists it.
+       */
+      if (StorageArrayPlatformRegistry.getKindDefinition(kind)) {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY] as Route,
+          {
+            modelId: storageArrayId,
+            subModelId: encodeURIComponent(kind),
+          },
+        );
+      }
+      return arrayRoute;
     },
     getIncidentRoute: (incidentId: ObjectID): Route => {
       return ofRecord(PageMap.INCIDENT_VIEW, incidentId);

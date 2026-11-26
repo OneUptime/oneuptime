@@ -1197,6 +1197,7 @@ import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-Ad
 import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
 import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
 import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from "./1809187680000-AddProjectStartIncidentsDeclaredByHandAcknowledged";
+import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
 
 export default [
   InitialMigration,
@@ -2398,4 +2399,5 @@ export default [
   AddOnCallPolicyIncidentRole1809187670000,
   AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
   AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000,
+  AddStorageArrayCountsByKind1809187690000,
 ];

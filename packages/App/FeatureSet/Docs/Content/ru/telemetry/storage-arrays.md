@@ -13,11 +13,11 @@
 
 Storage Arrays — это продукт, который работает одинаково для любого производителя. Он поддерживает:
 
-| Массив | Как агент его читает | Конфигурация коллектора |
-| --- | --- | --- |
-| **Pure Storage FlashArray**, Purity//FA 6.7 и новее | Собственный эндпоинт OpenMetrics массива (`https://<array>/metrics/...?namespace=purefa`): рядом с коллектором ничего не работает | `otel-collector-config.yaml` (по умолчанию) |
-| **Pure Storage FlashArray**, более старый Purity//FA | Экспортёр OpenMetrics для FlashArray от Pure, который тот же файл Compose запускает как сервис `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
-| **Pure Storage FlashBlade** | Экспортёр OpenMetrics для FlashBlade от Pure, который тот же файл Compose запускает как сервис `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| Массив | `storage.system` | Как агент его читает | Конфигурация коллектора |
+| --- | --- | --- | --- |
+| **Pure Storage FlashArray**, Purity//FA 6.7 и новее | `purestorage.flasharray` | Собственный эндпоинт OpenMetrics массива (`https://<array>/metrics/...?namespace=purefa`): рядом с коллектором ничего не работает | `otel-collector-config.yaml` (по умолчанию) |
+| **Pure Storage FlashArray**, более старый Purity//FA | `purestorage.flasharray` | Экспортёр OpenMetrics для FlashArray от Pure, который тот же файл Compose запускает как сервис `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
+| **Pure Storage FlashBlade** | `purestorage.flashblade` | Экспортёр OpenMetrics для FlashBlade от Pure, который тот же файл Compose запускает как сервис `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 
 В феврале 2026 года Pure Storage сменила название на **Everpure**. FlashArray, FlashBlade и Purity сохранили свои названия, как и метрики `purefa_*` и `purefb_*`, поэтому всё на этой странице относится к массивам, продаваемым под любым из двух названий.
 

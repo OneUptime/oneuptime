@@ -18,8 +18,8 @@ import TableEmptyValue, {
 /*
  * FlashArray pods (kind=Pod) — the unit of ActiveCluster and ActiveDR
  * replication. A pod's lag and link status come from its worst replica
- * link (purefa_pod_replica_links_lag_max_msec), its mediator status from
- * purefa_pod_mediator_status (ingest keeps any status other than online
+ * link (its replica links' maximum lag), its mediator status from its
+ * mediator series (ingest keeps any status other than online
  * that one of the pod's arrays reports).
  */
 
