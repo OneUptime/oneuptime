@@ -37,11 +37,25 @@ const FLASHBLADE_ALIASES: Array<string> = [
   "flashblade",
 ];
 
+// What an ONTAP agent may stamp (#11001), Amazon FSx for NetApp ONTAP's too.
+const ONTAP_ALIASES: Array<string> = [
+  "netapp.ontap",
+  "netapp_ontap",
+  "netapp-ontap",
+  "netapp.cdot",
+  "netapp.fas",
+  "netapp.aff",
+  "netapp.fsx",
+  "aws.fsx_ontap",
+  "ontap",
+];
+
 describe("StorageSystem enum", () => {
-  test("carries exactly the two launch platforms with vendor.product values", () => {
+  test("carries exactly the shipped platforms with vendor.product values", () => {
     expect(Object.entries(StorageSystem)).toEqual([
       ["PureStorageFlashArray", "purestorage.flasharray"],
       ["PureStorageFlashBlade", "purestorage.flashblade"],
+      ["NetAppOntap", "netapp.ontap"],
     ]);
   });
 
@@ -49,6 +63,7 @@ describe("StorageSystem enum", () => {
     expect(StorageSystemUtil.getAllSystems()).toEqual([
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
+      StorageSystem.NetAppOntap,
     ]);
   });
 
@@ -71,7 +86,7 @@ describe("StorageSystemUtil.isKnownSystem", () => {
     ["an alias", "purefa"],
     ["an upper-case canonical value", "PURESTORAGE.FLASHARRAY"],
     ["a padded canonical value", " purestorage.flasharray "],
-    ["another platform", "netapp.ontap"],
+    ["another platform", "hitachi.vsp"],
     ["the empty string", ""],
   ])(
     "%s is not known (only normalized values are)",
@@ -105,6 +120,16 @@ describe("StorageSystemUtil.normalize", () => {
     },
   );
 
+  test.each(ONTAP_ALIASES)(
+    "ONTAP alias %p normalizes to netapp.ontap",
+    (alias: string) => {
+      expect(StorageSystemUtil.normalize(alias)).toBe(StorageSystem.NetAppOntap);
+      expect(StorageSystemUtil.normalize(alias.toUpperCase())).toBe(
+        StorageSystem.NetAppOntap,
+      );
+    },
+  );
+
   test.each([
     ["PureFA", StorageSystem.PureStorageFlashArray],
     ["  purefa  ", StorageSystem.PureStorageFlashArray],
@@ -129,7 +154,7 @@ describe("StorageSystemUtil.normalize", () => {
   });
 
   test.each([
-    ["NetApp.ONTAP", "netapp.ontap"],
+    ["Hitachi.VSP", "hitachi.vsp"],
     ["dell.powerstore", "dell.powerstore"],
     ["hpe_alletra-9000", "hpe_alletra-9000"],
     ["  IBM.FlashSystem  ", "ibm.flashsystem"],
@@ -173,11 +198,24 @@ describe("StorageSystemUtil.normalize", () => {
     expect(StorageSystemUtil.normalize(undefined)).toBeNull();
   });
 
-  test("no alias belongs to both platforms", () => {
-    const shared: Array<string> = FLASHARRAY_ALIASES.filter((alias: string) => {
-      return FLASHBLADE_ALIASES.includes(alias);
-    });
-    expect(shared).toEqual([]);
+  test("no alias belongs to two platforms", () => {
+    const lists: Array<Array<string>> = [
+      FLASHARRAY_ALIASES,
+      FLASHBLADE_ALIASES,
+      ONTAP_ALIASES,
+    ];
+    for (const list of lists) {
+      for (const other of lists) {
+        if (other === list) {
+          continue;
+        }
+        expect(
+          list.filter((alias: string): boolean => {
+            return other.includes(alias);
+          }),
+        ).toEqual([]);
+      }
+    }
   });
 });
 
@@ -192,6 +230,8 @@ describe("StorageSystemUtil.fromMetricName", () => {
     ["purefb_info", StorageSystem.PureStorageFlashBlade],
     ["purefb_hardware_health", StorageSystem.PureStorageFlashBlade],
     ["purefb_buckets_object_count", StorageSystem.PureStorageFlashBlade],
+    ["netapp_volume_size_used", StorageSystem.NetAppOntap],
+    ["netapp_metadata_component_status", StorageSystem.NetAppOntap],
   ])("%s belongs to %s", (metricName: string, expected: StorageSystem) => {
     expect(StorageSystemUtil.fromMetricName(metricName)).toBe(expected);
   });
@@ -202,6 +242,8 @@ describe("StorageSystemUtil.fromMetricName", () => {
     ["a Ceph metric", "ceph_health_status"],
     ["a dotted OTel metric", "vcenter.host.cpu.usage"],
     ["a prefix in the middle", "my_purefa_info"],
+    // What Harvest serves without the agent's global_prefix.
+    ["an unprefixed Harvest series", "volume_size_used"],
     ["the empty string", ""],
   ])("returns null for %s", (_: string, metricName: string) => {
     expect(StorageSystemUtil.fromMetricName(metricName)).toBeNull();
@@ -233,6 +275,21 @@ describe("StorageSystemUtil.fromMetricName", () => {
 });
 
 describe("StorageSystemUtil display helpers", () => {
+  test("display, short and vendor names of NetApp ONTAP", () => {
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.NetAppOntap)).toBe(
+      "NetApp ONTAP",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.NetAppOntap)).toBe(
+      "ONTAP",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.NetAppOntap)).toBe(
+      "NetApp",
+    );
+    expect(StorageSystemUtil.getMetricPrefix(StorageSystem.NetAppOntap)).toBe(
+      "netapp_",
+    );
+  });
+
   test("display, short and vendor names of the launch platforms", () => {
     expect(
       StorageSystemUtil.getDisplayName(StorageSystem.PureStorageFlashArray),
@@ -246,7 +303,10 @@ describe("StorageSystemUtil display helpers", () => {
     expect(
       StorageSystemUtil.getShortName(StorageSystem.PureStorageFlashBlade),
     ).toBe("FlashBlade");
-    for (const system of StorageSystemUtil.getAllSystems()) {
+    for (const system of [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.PureStorageFlashBlade,
+    ]) {
       // Product names are unchanged by the Everpure rename.
       expect(StorageSystemUtil.getVendorName(system)).toBe("Pure Storage");
       expect(StorageSystemUtil.getDisplayName(system)).toContain(
@@ -256,11 +316,11 @@ describe("StorageSystemUtil display helpers", () => {
   });
 
   test("an unknown platform is shown under its own value", () => {
-    expect(StorageSystemUtil.getDisplayName("netapp.ontap")).toBe(
-      "netapp.ontap",
+    expect(StorageSystemUtil.getDisplayName("hitachi.vsp")).toBe(
+      "hitachi.vsp",
     );
-    expect(StorageSystemUtil.getShortName("netapp.ontap")).toBe("netapp.ontap");
-    expect(StorageSystemUtil.getVendorName("netapp.ontap")).toBe("Unknown");
+    expect(StorageSystemUtil.getShortName("hitachi.vsp")).toBe("hitachi.vsp");
+    expect(StorageSystemUtil.getVendorName("hitachi.vsp")).toBe("Unknown");
   });
 
   test("a missing platform reads Unknown, never an empty string", () => {
@@ -285,7 +345,7 @@ describe("StorageSystemUtil display helpers", () => {
       StorageSystemUtil.isFlashBlade(StorageSystem.PureStorageFlashArray),
     ).toBe(false);
 
-    for (const value of [null, undefined, "", "purefa", "netapp.ontap"]) {
+    for (const value of [null, undefined, "", "purefa", "hitachi.vsp"]) {
       expect(StorageSystemUtil.isFlashArray(value)).toBe(false);
       expect(StorageSystemUtil.isFlashBlade(value)).toBe(false);
     }

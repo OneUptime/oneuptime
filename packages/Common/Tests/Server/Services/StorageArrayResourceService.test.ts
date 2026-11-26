@@ -23,6 +23,7 @@ import StorageArrayResourceService, {
   ParsedStorageArrayResource,
   StorageArrayInventorySummary,
   UNHEALTHY_HARDWARE_STATUSES,
+  getUnhealthyHardwareStatuses,
 } from "../../../Server/Services/StorageArrayResourceService";
 import {
   isCriticalComponentStatus,
@@ -844,10 +845,21 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     expect(params).toEqual([
       PROJECT_ID.toString(),
       ARRAY_ID.toString(),
-      UNHEALTHY_HARDWARE_STATUSES,
+      getUnhealthyHardwareStatuses(),
       HARDWARE_KINDS,
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
+    // The shared words first, then every platform's own: an ONTAP disk is broken, a shelf part in error.
+    const statuses: Array<string> = getUnhealthyHardwareStatuses();
+    expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
+      UNHEALTHY_HARDWARE_STATUSES,
+    );
+    for (const word of ["broken", "error", "down", "offline"]) {
+      expect(statuses).toContain(word);
+    }
+    for (const word of ["healthy", "normal", "online", "spare", "up"]) {
+      expect(statuses).not.toContain(word);
+    }
   });
 
   test("parses the text counts and the distinct unhealthy component count every row carries", async () => {

@@ -44,10 +44,21 @@ interface TableLine {
   noun: string;
   menu: string;
   readHow: string;
+  // "" for a platform that authenticates with an API token alone.
+  userVariable: string;
+  extraFiles: Array<string>;
+  secret: string;
 }
 
 interface ComposeFile {
-  services: Record<string, { profiles?: Array<string> | undefined }>;
+  services: Record<
+    string,
+    {
+      profiles?: Array<string> | undefined;
+      volumes?: Array<string> | undefined;
+      environment?: Array<string> | undefined;
+    }
+  >;
 }
 
 function readAgentFile(name: string): string {
@@ -66,7 +77,7 @@ function installTable(): Array<TableLine> {
     })
     .map((line: string): TableLine => {
       const fields: Array<string> = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 9 });
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
       return {
         config: fields[0]!,
         system: fields[1]!,
@@ -77,6 +88,9 @@ function installTable(): Array<TableLine> {
         noun: fields[6]!,
         menu: fields[7]!,
         readHow: fields[8]!,
+        userVariable: fields[9] === "-" ? "" : fields[9]!,
+        extraFiles: fields[10] === "-" ? [] : fields[10]!.split(","),
+        secret: fields[11]!,
       };
     });
 }
@@ -135,8 +149,18 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         endpointVariable: entry.config.endpointVariable,
         tokenVariable: entry.config.tokenVariable,
         noun: entry.config.arrayNoun,
-        // Only a collector that talks to the array itself asks about its TLS.
-        tlsToArray: entry.config.exporterService === null ? "yes" : "no",
+        /*
+         * Only an agent that talks to the array itself asks about its TLS:
+         * the collector, or an exporter that logs in to it (Harvest).
+         */
+        tlsToArray:
+          entry.config.exporterService === null || entry.config.userVariable
+            ? "yes"
+            : "no",
+        userVariable: entry.config.userVariable || "",
+        extraFiles: [...(entry.config.extraFiles || [])],
+        // A user's password is the exporter's alone; a token the collector's.
+        secret: entry.config.userVariable ? "password" : "token",
       });
       expect(line!.menu).not.toBe("");
       expect(line!.readHow).not.toBe("");
@@ -158,17 +182,96 @@ describe("each config of the table", () => {
       expect(text).toMatch(
         /key: storage\.system\s+value: "?\$\{env:STORAGE_SYSTEM\}"?/,
       );
-      // ...and reads the address and token the line names.
-      expect(text).toContain(`\${env:${line.endpointVariable}}`);
-      expect(text).toContain(`\${env:${line.tokenVariable}}`);
+      if (line.userVariable) {
+        /*
+         * ...and its exporter logs in with the user and password the line
+         * names, from its own files: the collector never holds them.
+         */
+        const exporterFiles: string = line.extraFiles
+          .map((file: string): string => {
+            return readAgentFile(file);
+          })
+          .join("\n");
+        for (const variable of [
+          line.endpointVariable,
+          line.userVariable,
+          line.tokenVariable,
+        ]) {
+          expect(exporterFiles).toContain(`\${${variable}}`);
+          expect(text).not.toContain(variable);
+        }
+      } else {
+        // ...and reads the address and token the line names.
+        expect(text).toContain(`\${env:${line.endpointVariable}}`);
+        expect(text).toContain(`\${env:${line.tokenVariable}}`);
+      }
 
       // Every OneUptime serves it at /install/storage-array-agent/<config>.
       const entry: InstallScriptEntry | null = getInstallScriptEntry(
         InstallScriptName.StorageArrayAgent,
       );
       expect(entry?.files).toContain(config);
+      // And its exporter's own files, which ship beside it.
+      for (const file of line.extraFiles) {
+        expect(fs.existsSync(path.join(AGENT_DIRECTORY, file))).toBe(true);
+        expect(entry?.files).toContain(file);
+      }
     },
   );
+
+  test("an exporter that logs in itself is given its files and its login, and nothing else of .env", () => {
+    const compose: ComposeFile = yaml.load(
+      readAgentFile("docker-compose.yml"),
+    ) as ComposeFile;
+    for (const entry of REGISTERED) {
+      if (!entry.config.userVariable || !entry.config.exporterService) {
+        continue;
+      }
+      const service: ComposeFile["services"][string] =
+        compose.services[entry.config.exporterService]!;
+      const mounted: Array<string> = (service.volumes || []).map(
+        (volume: string): string => {
+          return volume.split(":")[0]!.replace(/^\.\//, "");
+        },
+      );
+      expect(mounted.sort()).toEqual([...(entry.config.extraFiles || [])].sort());
+      const given: Array<string> = (service.environment || []).map(
+        (variable: string): string => {
+          return variable.split("=")[0]!;
+        },
+      );
+      expect(given).toEqual(
+        expect.arrayContaining([
+          entry.config.endpointVariable,
+          entry.config.userVariable,
+          entry.config.tokenVariable,
+        ]),
+      );
+      // No env_file: the ingestion key and every other platform's token stay out.
+      expect(Object.keys(service)).not.toContain("env_file");
+      for (const variable of given) {
+        expect([
+          entry.config.endpointVariable,
+          entry.config.userVariable,
+          entry.config.tokenVariable,
+          "STORAGE_ARRAY_NAME",
+          "STORAGE_ARRAY_INSECURE_SKIP_VERIFY",
+        ]).toContain(variable);
+      }
+    }
+  });
+
+  test("install.sh downloads every exporter's own files with the configs", () => {
+    const script: string = readAgentFile("install.sh");
+    expect(script).toContain(
+      'AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}"',
+    );
+    expect(script).toMatch(/PLATFORM_EXTRA_FILES="\$\(platform_lines \| cut -d '\|' -f 11/);
+    // A user's name is asked for, and a password is never refused for a $.
+    expect(script).toContain('USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"');
+    expect(script).toContain('SECRET_KIND="$(platform_field "$PLATFORM_LINE" 12)"');
+    expect(script).toContain('read -rsp "Password of the $ARRAY_NOUN\'s read-only user: "');
+  });
 
   test("whose exporter the compose file runs under the line's profile", () => {
     const compose: ComposeFile = yaml.load(

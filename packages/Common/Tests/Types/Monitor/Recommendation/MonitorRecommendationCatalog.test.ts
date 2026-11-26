@@ -1292,28 +1292,41 @@ describe("MonitorRecommendationCatalog", () => {
 
     it("offers nothing to an array of a platform OneUptime ships no templates for", () => {
       expect(
-        storageArrayTemplateIds({ storageSystem: "netapp.ontap" }),
+        storageArrayTemplateIds({ storageSystem: "hitachi.vsp" }),
       ).toEqual([]);
       // The module itself would hand such a platform every template.
       expect(
-        getStorageArrayAlertTemplatesForSystem("netapp.ontap").length,
+        getStorageArrayAlertTemplatesForSystem("hitachi.vsp").length,
       ).toBe(getAllStorageArrayAlertTemplates().length);
     });
 
-    it("the two platforms' sets partition the whole catalog", () => {
+    it("the platforms' sets partition the whole catalog", () => {
       const flashArray: Array<string> = storageArrayTemplateIds({
         storageSystem: StorageSystem.PureStorageFlashArray,
       });
       const flashBlade: Array<string> = storageArrayTemplateIds({
         storageSystem: StorageSystem.PureStorageFlashBlade,
       });
+      const ontap: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.NetAppOntap,
+      });
 
       expect(
         flashArray.filter((id: string) => {
-          return flashBlade.includes(id);
+          return flashBlade.includes(id) || ontap.includes(id);
         }),
       ).toEqual([]);
-      expect([...flashArray, ...flashBlade].sort()).toEqual(
+      expect(
+        flashBlade.filter((id: string) => {
+          return ontap.includes(id);
+        }),
+      ).toEqual([]);
+      // An ONTAP cluster is offered ONTAP's own, its heartbeat first.
+      expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
+      for (const id of ontap) {
+        expect(id.startsWith("netapp-")).toBe(true);
+      }
+      expect([...flashArray, ...flashBlade, ...ontap].sort()).toEqual(
         getAllStorageArrayAlertTemplates()
           .map((template: StorageArrayAlertTemplate) => {
             return template.id;

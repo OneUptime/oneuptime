@@ -12,6 +12,8 @@ import {
 import StorageArrayExtractors from "../../../../../Server/Utils/Telemetry/StorageArray/StorageArrayExtractors";
 import FlashArrayExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashArrayExtractor";
 import FlashBladeExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashBladeExtractor";
+import OntapExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/NetApp/OntapExtractor";
+import NetAppOntapPlatform from "../../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
 import {
   STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   deriveStorageArrayCountsByKind,
@@ -41,6 +43,7 @@ import {
 
 const FLASHARRAY: string = StorageSystem.PureStorageFlashArray;
 const FLASHBLADE: string = StorageSystem.PureStorageFlashBlade;
+const ONTAP: string = StorageSystem.NetAppOntap;
 
 afterEach(() => {
   StorageArrayExtractors.unregister(ACME_STORAGE_SYSTEM);
@@ -75,13 +78,19 @@ function row(
 }
 
 describe("the shipped extractors", () => {
-  test("are FlashArray's and FlashBlade's, one for each shipped platform", () => {
+  test("are FlashArray's, FlashBlade's and ONTAP's, one for each shipped platform", () => {
     expect(StorageArrayExtractors.getExtractors()).toEqual([
       FlashArrayExtractor,
       FlashBladeExtractor,
+      OntapExtractor,
     ]);
     expect(FlashArrayExtractor.storageSystem).toBe(FLASHARRAY);
     expect(FlashBladeExtractor.storageSystem).toBe(FLASHBLADE);
+    expect(OntapExtractor.storageSystem).toBe(ONTAP);
+    // Only ONTAP works out what a batch's series say together.
+    expect(FlashArrayExtractor.finishBatch).toBeUndefined();
+    expect(FlashBladeExtractor.finishBatch).toBeUndefined();
+    expect(typeof OntapExtractor.finishBatch).toBe("function");
     for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
       expect(
         StorageArrayExtractors.getExtractor(platform.storageSystem)
@@ -91,7 +100,7 @@ describe("the shipped extractors", () => {
   });
 
   test("are found by storage.system only", () => {
-    for (const other of [null, undefined, "", "purefa", "netapp.ontap"]) {
+    for (const other of [null, undefined, "", "purefa", "hitachi.vsp"]) {
       expect(StorageArrayExtractors.getExtractor(other)).toBeNull();
     }
   });
@@ -105,7 +114,7 @@ describe("the shipped extractors", () => {
     }).toThrow(
       "A storage array extractor for purestorage.flasharray is already registered",
     );
-    expect(StorageArrayExtractors.getExtractors()).toHaveLength(2);
+    expect(StorageArrayExtractors.getExtractors()).toHaveLength(3);
   });
 });
 
@@ -114,6 +123,7 @@ describe("the ingest's gate", () => {
     const names: Array<string> = [
       ...PureStorageFlashArrayPlatform.snapshotMetricNames,
       ...PureStorageFlashBladePlatform.snapshotMetricNames,
+      ...NetAppOntapPlatform.snapshotMetricNames,
     ];
     expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
       [...names].sort(),
@@ -129,6 +139,10 @@ describe("the ingest's gate", () => {
       "node_cpu_seconds_total",
       "",
       "acme_volume_used_bytes",
+      // Harvest's measurements of itself, and an EMS event (the monitors').
+      "netapp_metadata_collector_api_time",
+      "netapp_ems_events",
+      "netapp_volume_read_latency_histogram",
     ]) {
       expect({ name, read: isStorageArraySnapshotMetric(name) }).toEqual({
         name,
@@ -191,7 +205,7 @@ describe("which extractor reads a datapoint", () => {
     [
       "a series declared a platform OneUptime has no extractor for",
       "purefb_info",
-      "netapp.ontap",
+      "hitachi.vsp",
       FLASHBLADE,
     ],
     // Defense in depth: a series no catalog lists still has its platform.
@@ -199,6 +213,31 @@ describe("which extractor reads a datapoint", () => {
       "a FlashArray series no catalog lists",
       "purefa_some_series_purity_adds_later",
       FLASHARRAY,
+      FLASHARRAY,
+    ],
+    [
+      "an ONTAP series an agent declared ONTAP",
+      "netapp_volume_size_used",
+      ONTAP,
+      ONTAP,
+    ],
+    // An ONTAP .env that lost STORAGE_SYSTEM declares the compose default.
+    [
+      "an ONTAP series under the FlashArray default",
+      "netapp_aggr_space_used",
+      FLASHARRAY,
+      ONTAP,
+    ],
+    [
+      "an ONTAP series of an agent that declares nothing",
+      "netapp_metadata_collector_instances",
+      null,
+      ONTAP,
+    ],
+    [
+      "a FlashArray series declared ONTAP",
+      "purefa_info",
+      ONTAP,
       FLASHARRAY,
     ],
   ] as Array<[string, string, string | null, string]>)(

@@ -536,6 +536,7 @@ describe("Acme's monitors", () => {
     expect(ResourceHeartbeatUtil.getForMonitorStep(step)?.metricNames).toEqual([
       "purefa_info",
       "purefb_info",
+      "netapp_cluster_new_status",
       "acme_info",
     ]);
   });

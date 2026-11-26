@@ -39,6 +39,8 @@ import { StorageArrayAffectedResource } from "../../../Types/Monitor/MetricMonit
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
 import fs from "fs";
 import path from "path";
 
@@ -82,7 +84,7 @@ const SYSTEM_INPUTS: Array<string | null | undefined> = [
   "purefa",
   " FlashBlade ",
   "everpure.flasharray",
-  "netapp.ontap",
+  "hitachi.vsp",
   "dell.powerstore",
   "constructor",
   "__proto__",
@@ -98,7 +100,7 @@ const METRIC_NAMES_FOR_PLATFORM: Array<string> = [
   "purefa_volume_space_bytes",
   "purefb_buckets_object_count",
   "pure_something",
-  "netapp_volume_size",
+  "hitachi_volume_size",
   "",
 ];
 
@@ -301,7 +303,7 @@ function computeGolden(): JSONObject {
 
   const objectLabels: JSONObject = {};
   for (const scope of Object.values(StorageArrayResourceScope)) {
-    for (const system of [FA, FB, "netapp.ontap", null]) {
+    for (const system of [FA, FB, "hitachi.vsp", null]) {
       for (const metricName of [undefined, ...metricNames]) {
         const label: string | null = getStorageArrayObjectLabel(
           scope,
@@ -369,7 +371,7 @@ function computeGolden(): JSONObject {
     "purefb_hardware_health",
     "purefb_buckets_space_bytes",
     "purefa_array_space_bytes",
-    "netapp_volume_size",
+    "hitachi_volume_size",
     "",
   ]) {
     objectKinds[name] = Evaluator.getStorageArrayObjectKind(name);
@@ -393,7 +395,7 @@ function computeGolden(): JSONObject {
       "purefb_buckets_object_count",
       "purefb_hardware_health",
       "purefa_volume_group_performance_latency_usec",
-      "netapp_volume_size",
+      "hitachi_volume_size",
     ]) {
       const entry: { kind: string; name: unknown; details: unknown } =
         Evaluator.getStorageArrayAffectedResourceEntry({
@@ -436,7 +438,40 @@ function computeGolden(): JSONObject {
   };
 }
 
-const computed: JSONObject = computeGolden();
+/*
+ * The golden is what the code answered when Pure's were the only
+ * platforms, and whole-catalog answers (an array of no known platform is
+ * offered every template) grow with each platform added since (NetApp
+ * ONTAP, #11001). So it is computed with Pure's platforms alone; what Pure
+ * answers beside the others is held to it below.
+ */
+function withPurePlatformsAlone<T>(compute: () => T): T {
+  const others: Array<StorageArrayPlatform> =
+    StorageArrayPlatformRegistry.getPlatforms().filter(
+      (platform: StorageArrayPlatform): boolean => {
+        return platform.vendorName !== "Pure Storage";
+      },
+    );
+  for (const platform of others) {
+    StorageArrayPlatformRegistry.unregister(platform.storageSystem);
+  }
+  try {
+    return compute();
+  } finally {
+    for (const platform of others) {
+      StorageArrayPlatformRegistry.register(platform);
+    }
+  }
+}
+
+const computed: JSONObject = withPurePlatformsAlone(computeGolden);
+const besideTheOthers: JSONObject = computeGolden();
+
+// A golden entry about a Pure platform or a Pure catalog id.
+function isAboutPure(key: string): boolean {
+  // A canonical Pure value, a Pure catalog id or a Pure series' name.
+  return /purestorage\.(flasharray|flashblade)"|purefa[-_]|purefb[-_]/.test(key);
+}
 
 if (process.env["UPDATE_PURE_STORAGE_GOLDEN"] === "1") {
   fs.writeFileSync(
@@ -463,6 +498,40 @@ describe("a Pure Storage array is watched as it was before #11000", () => {
     }),
   )("%s", (key: string) => {
     expect(computed[key]).toEqual(readGolden()[key]);
+  });
+
+  test("with every shipped platform registered, Pure's own answers are the same", () => {
+    const golden: JSONObject = readGolden();
+    let compared: number = 0;
+    for (const [key, part] of Object.entries(besideTheOthers)) {
+      const expected: JSONValue | undefined = golden[key];
+      if (
+        !part ||
+        typeof part !== "object" ||
+        Array.isArray(part) ||
+        !expected ||
+        typeof expected !== "object" ||
+        Array.isArray(expected)
+      ) {
+        continue;
+      }
+      for (const [entry, value] of Object.entries(part as JSONObject)) {
+        if (!isAboutPure(entry) || !(entry in (expected as JSONObject))) {
+          continue;
+        }
+        expect({ key, entry, value }).toEqual({
+          key,
+          entry,
+          value: (expected as JSONObject)[entry],
+        });
+        compared++;
+      }
+    }
+    expect(compared).toBeGreaterThan(100);
+    // And they were computed with ONTAP registered.
+    expect(
+      StorageArrayPlatformRegistry.getPlatform("netapp.ontap"),
+    ).not.toBeNull();
   });
 
   test("the golden holds every part this test computes, and no other", () => {
