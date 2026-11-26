@@ -103,6 +103,9 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Alert/AlertOnCallRulesOnOwnerChange.ts":
     SERVER_LOG,
+  // That a new record's owners were not all in before its notification rules were matched (#11176).
+  "packages/Common/Server/Utils/Workspace/WorkspaceRuleOwnersOnCreate.ts":
+    SERVER_LOG,
   "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
     SERVER_LOG,

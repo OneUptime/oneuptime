@@ -1424,6 +1424,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/PacketCapture.ts": 3,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Probe.ts": 6,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts": 1,
+        // Its SNMP trap receiver's report, for its devices' SNMPv3 users (#11005).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts": 3,
         "packages/Probe/API/IncomingRequestIngress.ts": 2,
