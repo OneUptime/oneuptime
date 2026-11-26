@@ -1302,6 +1302,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addIncomingCallNotificationSettings(userId, projectId);
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
+    await this.addNewMemberCloudBudgetNotificationSettings(userId, projectId);
     await this.addExceptionNotificationSettings(userId, projectId);
     await this.addPublicNoteApprovalNotificationSettings(userId, projectId);
   }
@@ -1363,6 +1364,22 @@ export class Service extends DatabaseService<UserNotificationSetting> {
    * seed it too before sending.
    */
   @CaptureSpan()
+  /*
+   * A cloud budget's early threshold (#11008), by email: what a member who
+   * joins now starts with. One who joined before is given theirs the first
+   * time a budget tells them (addCloudBudgetNotificationSettings).
+   */
+  public async addNewMemberCloudBudgetNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION,
+    );
+  }
+
   public async addSecurityHuntNotificationSettings(
     userId: ObjectID,
     projectId: ObjectID,

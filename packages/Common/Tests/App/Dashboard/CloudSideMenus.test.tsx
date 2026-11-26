@@ -88,6 +88,8 @@ describe("the Cloud product menu", () => {
       // Non-production resources stopped outside working hours (#11010).
       { title: "Schedules", href: `${CLOUD}/schedules` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
+      // What the spend is on course to cost, beside what it may (#11008).
+      { title: "Forecast", href: `${CLOUD}/forecast` },
     ]);
     // The rules, then the cost basis the pages open on and when commitments alert.
     expect(linksIn("Settings")).toEqual([

@@ -7730,9 +7730,32 @@
       "spend alerts",
       "budget alerts",
       "spend controls",
-      "cost alerts"
+      "cost alerts",
+      "quarterly budget",
+      "yearly budget",
+      "fiscal year budget",
+      "cost group budget",
+      "budget plan"
     ],
     "path": "/dashboard/:projectId/cloud/budgets",
+    "kind": "page"
+  },
+  {
+    "title": "Forecast",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cost forecast",
+      "spend forecast",
+      "cloud forecast",
+      "forecasting",
+      "projected spend",
+      "what if",
+      "growth what-if"
+    ],
+    "path": "/dashboard/:projectId/cloud/forecast",
     "kind": "page"
   },
   {

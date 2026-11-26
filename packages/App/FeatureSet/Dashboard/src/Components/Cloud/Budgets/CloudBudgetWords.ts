@@ -213,6 +213,9 @@ export const FORECAST_DESCRIPTION: string = translationKey(
   "What your cloud spend is on course to cost in the months ahead, and how that is worked out.",
 );
 export const FORECAST_FOR: string = translationKey("Forecast for");
+export const FORECAST_PICK_FIRST: string = translationKey(
+  "Choose what to forecast.",
+);
 export const FORECAST_EVERYTHING: string = translationKey("Everything");
 export const FORECAST_AN_ACCOUNT: string = translationKey("An account");
 export const FORECAST_A_COST_GROUP: string = translationKey("A cost group");

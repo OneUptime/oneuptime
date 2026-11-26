@@ -509,7 +509,8 @@ describe("the menu paths", () => {
       },
       /*
        * What the accounts cost and how it is shared out, how to spend less,
-       * the commitments, the off-hours schedules and the budgets.
+       * the commitments, the off-hours schedules, the budgets and the
+       * forecast of the months ahead.
        */
       {
         title: "Spend",
@@ -520,6 +521,7 @@ describe("the menu paths", () => {
           "Commitments",
           "Schedules",
           "Budgets",
+          "Forecast",
         ],
       },
       // The cost basis and commitment alerts, then what OneUptime AI may do with a saving.

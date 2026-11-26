@@ -25,7 +25,9 @@ import {
   FORECAST_A_SERVICE,
   FORECAST_DESCRIPTION,
   FORECAST_EVERYTHING,
+  FORECAST_FOR,
   FORECAST_NOTHING_YET,
+  FORECAST_PICK_FIRST,
   FORECAST_TITLE,
   HOW_MADE_TITLE,
   LIKELY_RANGE,
@@ -82,7 +84,7 @@ import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -107,10 +109,6 @@ import React, {
  * (applyCloudCostGrowth), the same way the API applies one asked of it.
  */
 
-export const FORECAST_SCOPE_LABEL: string = translationKey("Forecast for");
-export const FORECAST_PICK_FIRST: string = translationKey(
-  "Choose what to forecast.",
-);
 
 type ForecastScope = "all" | "account" | "group" | "service";
 
@@ -253,7 +251,7 @@ const CloudForecastPage: FunctionComponent<
   const scopePicker: ReactElement = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <FilterButtons
-        ariaLabel={FORECAST_SCOPE_LABEL}
+        ariaLabel={FORECAST_FOR}
         dataTestId="cloud-forecast-scope"
         className="flex-wrap"
         selectedValue={scope}

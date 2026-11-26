@@ -205,7 +205,7 @@ export function readCloudCostForecastRequest(
       monthsAhead > CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD
     ) {
       throw new BadDataException(
-        `A forecast is for 1 to ${CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD} months ahead.`,
+        `A forecast is for 1 to ${CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD}\u00A0months ahead.`,
       );
     }
 

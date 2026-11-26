@@ -932,6 +932,18 @@ const monitoring: Array<SectionDef> = [
     ],
   ),
   /*
+   * Cloud budgets (#11008): a budget that names the person, or a team they
+   * are on, passes an early threshold. From 100% the budget alerts, and
+   * they hear of it as the alert's owners.
+   */
+  buildSection(
+    translationKey("Cloud Budgets"),
+    translationKey(
+      "Notify me when a cloud budget that names me, or a team I am on, passes a threshold below 100%.",
+    ),
+    [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION],
+  ),
+  /*
    * Dashboards, workflows and runbooks (#9700), the products menu's own
    * group, and the Runners that run runbook steps (#9758).
    */
@@ -1047,18 +1059,6 @@ const security: Array<SectionDef> = [
       "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
     ),
     [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
-  ),
-  /*
-   * Cloud budgets (#11008): a budget that names the person, or a team they
-   * are on, passes an early threshold. From 100% the budget alerts, and
-   * they hear of it as the alert's owners.
-   */
-  buildSection(
-    translationKey("Cloud Budgets"),
-    translationKey(
-      "Notify me when a cloud budget that names me, or a team I am on, passes a threshold below 100%.",
-    ),
-    [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION],
   ),
   /*
    * Data stores (#9681): being made an owner, by an owner rule whose Notify
