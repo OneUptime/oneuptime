@@ -64475,5 +64475,6 @@
   "“{{action}}” did not finish.": "L'opération « {{action}} » n'a pas abouti.",
   "Date unknown": "Date inconnue",
   "Yesterday": "Hier",
-  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "La réponse DNS est comparée dans son ensemble à celle de la vérification précédente. « Différent de » correspond quand ses enregistrements ont changé, « Égal à » quand ils n'ont pas changé. Les mêmes enregistrements dans un autre ordre ne sont pas un changement."
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "La réponse DNS est comparée dans son ensemble à celle de la vérification précédente. « Différent de » correspond quand ses enregistrements ont changé, « Égal à » quand ils n'ont pas changé. Les mêmes enregistrements dans un autre ordre ne sont pas un changement.",
+  "Another repository": "Un autre dépôt"
 }

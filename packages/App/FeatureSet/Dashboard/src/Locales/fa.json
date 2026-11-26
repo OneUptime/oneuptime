@@ -62900,7 +62900,7 @@
   "AI Change Failed": "تغییر هوش مصنوعی ناموفق بود",
   "AI Response": "پاسخ هوش مصنوعی",
   "An id field holding numbers that pass the Luhn check": "فیلد شناسه‌ای با شماره‌هایی که از کنترل Luhn عبور می‌کنند",
-  "Another store": "مخزنی دیگر",
+  "Another store": "مخزن داده‌ای دیگر",
   "Apply to Similar Findings": "اعمال روی یافته‌های مشابه",
   "Confirm it": "تأییدش کنید",
   "Confirm {{count}}": "تأیید {{count}} یافته",
@@ -64475,5 +64475,6 @@
   "“{{action}}” did not finish.": "کار «{{action}}» تمام نشد.",
   "Date unknown": "تاریخ نامعلوم",
   "Yesterday": "دیروز",
-  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "پاسخ DNS به‌صورت یکجا با پاسخ بررسی قبلی مقایسه می‌شود. «نابرابر با» زمانی برقرار است که رکوردهای آن تغییر کرده باشند و «برابر با» زمانی که تغییر نکرده باشند. همان رکوردها با ترتیبی دیگر تغییر به شمار نمی‌آیند."
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "پاسخ DNS به‌صورت یکجا با پاسخ بررسی قبلی مقایسه می‌شود. «نابرابر با» زمانی برقرار است که رکوردهای آن تغییر کرده باشند و «برابر با» زمانی که تغییر نکرده باشند. همان رکوردها با ترتیبی دیگر تغییر به شمار نمی‌آیند.",
+  "Another repository": "مخزن دیگر"
 }
