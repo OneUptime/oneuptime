@@ -339,7 +339,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-x
 :::
 
 :::details Xen Orchestra がシークレットを拒否する (401)
-コレクターが `server returned HTTP status 401 Unauthorized` を記録します。*Settings → Plugins → openmetrics* からシークレットをコピーし直し、`XO_OPENMETRICS_SECRET` (`.env` 内) に、一重引用符で囲み `$` をすべて `$$` と書いて設定してから、エージェントのフォルダーで `docker compose up -d` を実行します。6.9 より前の Xen Orchestra は再起動時に新しいシークレットを作ることがありました。アップグレードしてください。
+コレクターが `server returned HTTP status 401 Unauthorized` を記録します。*Settings → Plugins → openmetrics* からシークレットをコピーし直し、`XO_OPENMETRICS_SECRET` (`.env` 内) に、一重引用符で囲み `$` をすべて `$$` と書いて設定してから、エージェントのフォルダーで `docker compose up -d` を実行します。6.8 より前の Xen Orchestra は再起動時に新しいシークレットを作ることがありました。アップグレードしてください。
 :::
 
 :::details プラグインが応答しない (404、500、502、503)

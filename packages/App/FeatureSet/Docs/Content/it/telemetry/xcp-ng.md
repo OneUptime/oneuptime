@@ -339,7 +339,7 @@ Termina con un verdetto che indica la causa più probabile.
 :::
 
 :::details Xen Orchestra rifiuta il secret (401)
-Il collector registra `server returned HTTP status 401 Unauthorized`. Copia di nuovo il secret da *Settings → Plugins → openmetrics*, imposta `XO_OPENMETRICS_SECRET` su di esso in `.env`, tra apici singoli e con ogni `$` scritto come `$$`, ed esegui `docker compose up -d` nella cartella dell'agent. Prima della 6.9, Xen Orchestra poteva creare un nuovo secret a un riavvio: aggiornalo.
+Il collector registra `server returned HTTP status 401 Unauthorized`. Copia di nuovo il secret da *Settings → Plugins → openmetrics*, imposta `XO_OPENMETRICS_SECRET` su di esso in `.env`, tra apici singoli e con ogni `$` scritto come `$$`, ed esegui `docker compose up -d` nella cartella dell'agent. Prima della 6.8, Xen Orchestra poteva creare un nuovo secret a un riavvio: aggiornalo.
 :::
 
 :::details Il plugin non risponde (404, 500, 502 o 503)

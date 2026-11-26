@@ -339,7 +339,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-x
 :::
 
 :::details Xen Orchestra सीक्रेट अस्वीकार करता है (401)
-कलेक्टर `server returned HTTP status 401 Unauthorized` लॉग करता है। *Settings → Plugins → openmetrics* से सीक्रेट फिर से कॉपी करें, `XO_OPENMETRICS_SECRET` को, जो `.env` में है, उस पर सेट करें, सिंगल कोट्स में और हर `$` को `$$` लिखकर, और एजेंट के फ़ोल्डर में `docker compose up -d` चलाएँ। 6.9 से पहले Xen Orchestra रीस्टार्ट पर नया सीक्रेट बना सकता था: उसे अपग्रेड करें।
+कलेक्टर `server returned HTTP status 401 Unauthorized` लॉग करता है। *Settings → Plugins → openmetrics* से सीक्रेट फिर से कॉपी करें, `XO_OPENMETRICS_SECRET` को, जो `.env` में है, उस पर सेट करें, सिंगल कोट्स में और हर `$` को `$$` लिखकर, और एजेंट के फ़ोल्डर में `docker compose up -d` चलाएँ। 6.8 से पहले Xen Orchestra रीस्टार्ट पर नया सीक्रेट बना सकता था: उसे अपग्रेड करें।
 :::
 
 :::details प्लगइन जवाब नहीं देता (404, 500, 502 या 503)

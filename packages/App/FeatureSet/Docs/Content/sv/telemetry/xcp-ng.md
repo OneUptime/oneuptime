@@ -339,7 +339,7 @@ Det avslutas med en bedömning som anger den mest sannolika orsaken.
 :::
 
 :::details Xen Orchestra avvisar hemligheten (401)
-Collectorn loggar `server returned HTTP status 401 Unauthorized`. Kopiera hemligheten igen från *Settings → Plugins → openmetrics*, sätt `XO_OPENMETRICS_SECRET` till den i `.env`, inom enkla citattecken och med varje `$` skrivet som `$$`, och kör `docker compose up -d` i agentens mapp. Före 6.9 kunde Xen Orchestra skapa en ny hemlighet vid en omstart: uppgradera den.
+Collectorn loggar `server returned HTTP status 401 Unauthorized`. Kopiera hemligheten igen från *Settings → Plugins → openmetrics*, sätt `XO_OPENMETRICS_SECRET` till den i `.env`, inom enkla citattecken och med varje `$` skrivet som `$$`, och kör `docker compose up -d` i agentens mapp. Före 6.8 kunde Xen Orchestra skapa en ny hemlighet vid en omstart: uppgradera den.
 :::
 
 :::details Pluginet svarar inte (404, 500, 502 eller 503)

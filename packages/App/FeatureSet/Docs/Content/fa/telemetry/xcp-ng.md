@@ -339,7 +339,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-x
 :::
 
 :::details Xen Orchestra راز را رد می‌کند (401)
-کالکتور `server returned HTTP status 401 Unauthorized` را ثبت می‌کند. راز را دوباره از *Settings → Plugins → openmetrics* کپی کنید، `XO_OPENMETRICS_SECRET` را در `.env` روی آن بگذارید، میان تک‌نقل‌قول و با هر `$` نوشته‌شده به‌صورت `$$`، و `docker compose up -d` را در پوشه عامل اجرا کنید. پیش از 6.9، Xen Orchestra می‌توانست در راه‌اندازی دوباره رازی تازه بسازد: آن را به‌روزرسانی کنید.
+کالکتور `server returned HTTP status 401 Unauthorized` را ثبت می‌کند. راز را دوباره از *Settings → Plugins → openmetrics* کپی کنید، `XO_OPENMETRICS_SECRET` را در `.env` روی آن بگذارید، میان تک‌نقل‌قول و با هر `$` نوشته‌شده به‌صورت `$$`، و `docker compose up -d` را در پوشه عامل اجرا کنید. پیش از 6.8، Xen Orchestra می‌توانست در راه‌اندازی دوباره رازی تازه بسازد: آن را به‌روزرسانی کنید.
 :::
 
 :::details افزونه پاسخ نمی‌دهد (404، 500، 502 یا 503)

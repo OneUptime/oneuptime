@@ -339,7 +339,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-x
 :::
 
 :::details Xen Orchestra가 시크릿을 거부함(401)
-수집기가 `server returned HTTP status 401 Unauthorized`를 기록합니다. *Settings → Plugins → openmetrics* 에서 시크릿을 다시 복사해 `XO_OPENMETRICS_SECRET`(`.env` 안)에 작은따옴표로 감싸고 모든 `$`를 `$$`로 써서 설정한 다음, 에이전트 폴더에서 `docker compose up -d`를 실행하세요. 6.9 이전의 Xen Orchestra는 다시 시작할 때 새 시크릿을 만들 수 있었습니다. 업그레이드하세요.
+수집기가 `server returned HTTP status 401 Unauthorized`를 기록합니다. *Settings → Plugins → openmetrics* 에서 시크릿을 다시 복사해 `XO_OPENMETRICS_SECRET`(`.env` 안)에 작은따옴표로 감싸고 모든 `$`를 `$$`로 써서 설정한 다음, 에이전트 폴더에서 `docker compose up -d`를 실행하세요. 6.8 이전의 Xen Orchestra는 다시 시작할 때 새 시크릿을 만들 수 있었습니다. 업그레이드하세요.
 :::
 
 :::details 플러그인이 응답하지 않음(404, 500, 502, 503)

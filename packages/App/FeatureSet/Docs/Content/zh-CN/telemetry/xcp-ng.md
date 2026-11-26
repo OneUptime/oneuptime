@@ -339,7 +339,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-x
 :::
 
 :::details Xen Orchestra 拒绝密钥（401）
-收集器记录 `server returned HTTP status 401 Unauthorized`。从 *Settings → Plugins → openmetrics* 重新复制密钥，把 `XO_OPENMETRICS_SECRET`（位于 `.env` 中）设置为它，用单引号括起，并把每个 `$` 写成 `$$`，然后在代理的文件夹中运行 `docker compose up -d`。6.9 之前的 Xen Orchestra 可能在重启时生成新的密钥：请升级它。
+收集器记录 `server returned HTTP status 401 Unauthorized`。从 *Settings → Plugins → openmetrics* 重新复制密钥，把 `XO_OPENMETRICS_SECRET`（位于 `.env` 中）设置为它，用单引号括起，并把每个 `$` 写成 `$$`，然后在代理的文件夹中运行 `docker compose up -d`。6.8 之前的 Xen Orchestra 可能在重启时生成新的密钥：请升级它。
 :::
 
 :::details 插件没有响应（404、500、502 或 503）

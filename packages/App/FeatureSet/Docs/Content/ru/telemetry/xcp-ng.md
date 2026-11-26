@@ -339,7 +339,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-x
 :::
 
 :::details Xen Orchestra отклоняет секрет (401)
-Коллектор записывает в журнал `server returned HTTP status 401 Unauthorized`. Снова скопируйте секрет из *Settings → Plugins → openmetrics*, задайте его в `XO_OPENMETRICS_SECRET` в `.env`, в одинарных кавычках и с каждым `$`, записанным как `$$`, и выполните `docker compose up -d` в папке агента. До версии 6.9 Xen Orchestra могла создать новый секрет при перезапуске: обновите её.
+Коллектор записывает в журнал `server returned HTTP status 401 Unauthorized`. Снова скопируйте секрет из *Settings → Plugins → openmetrics*, задайте его в `XO_OPENMETRICS_SECRET` в `.env`, в одинарных кавычках и с каждым `$`, записанным как `$$`, и выполните `docker compose up -d` в папке агента. До версии 6.8 Xen Orchestra могла создать новый секрет при перезапуске: обновите её.
 :::
 
 :::details Плагин не отвечает (404, 500, 502 или 503)
