@@ -215,6 +215,19 @@ const FriendlyLabelNames: Record<string, string> = {
   "xen_orchestra.name": "Xen Orchestra",
   "xcp_ng.scope": "Object Type",
   "xcp_ng.id": "Object UUID",
+  /*
+   * #10997: what the pool's alarm and backup records carry, which the
+   * XcpNgEventAlertTemplates group by - the object or the job by name
+   * first, the UUIDs after.
+   */
+  "xcp_ng.object.name": "Object",
+  "xcp_ng.object.uuid": "Object UUID",
+  "xcp_ng.object.type": "Object Type",
+  "xcp_ng.message.name": "Message",
+  "xcp_ng.alarm.variable": "Alarm",
+  "xcp_ng.backup.job.name": "Backup Job",
+  "xcp_ng.backup.failed_vms": "Failed VMs",
+  "xcp_ng.backup.job.id": "Backup Job ID",
   host_name: "Host",
   host_id: "Host UUID",
   vm_name: "VM",
@@ -460,6 +473,14 @@ const LabelPriority: Record<string, number> = {
   sr: 27,
   host_name: 30,
   "xcp_ng.id": 31,
+  "xcp_ng.object.name": 25,
+  "xcp_ng.backup.job.name": 25,
+  "xcp_ng.backup.failed_vms": 26,
+  "xcp_ng.message.name": 27,
+  "xcp_ng.alarm.variable": 28,
+  "xcp_ng.object.uuid": 32,
+  "xcp_ng.backup.job.id": 33,
+  "xcp_ng.object.type": 55,
   "xcp_ng.scope": 55,
   "xcp_ng.pool.name": 75,
   "xen_orchestra.name": 80,

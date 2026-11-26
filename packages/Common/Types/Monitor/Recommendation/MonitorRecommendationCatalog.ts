@@ -98,6 +98,10 @@ import {
   getAllXcpNgAlertTemplates,
 } from "../XcpNgAlertTemplates";
 import {
+  XcpNgEventAlertTemplate,
+  getAllXcpNgEventAlertTemplates,
+} from "../XcpNgEventAlertTemplates";
+import {
   DataObservabilityAlertTemplate,
   getAllDataObservabilityAlertTemplates,
 } from "../DataObservabilityAlertTemplates";
@@ -646,23 +650,54 @@ function getVMwareRecommendations(): Array<MonitorRecommendation> {
  * the pool's XAPI UUID (XcpNgPool.poolIdentifier), never its name.
  */
 function getXcpNgRecommendations(): Array<MonitorRecommendation> {
-  return getAllXcpNgAlertTemplates().map((template: XcpNgAlertTemplate) => {
-    return normalize({
-      resourceType: MonitorRecommendationResourceType.XcpNg,
-      monitorType: MonitorType.XcpNg,
-      template: template,
-      getMonitorStep: (args: MonitorRecommendationArgs) => {
-        return template.getMonitorStep({
-          poolIdentifier: args.resourceIdentifier,
-          onlineMonitorStatusId: args.onlineMonitorStatusId,
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-          defaultAlertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllXcpNgAlertTemplates().map((template: XcpNgAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.XcpNg,
+        monitorType: MonitorType.XcpNg,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            poolIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    });
+
+  /*
+   * What XCP-ng and Xen Orchestra say themselves - a VM that crashed, a host
+   * HA lost, a failed backup job - are logs of the pool once a probe reads
+   * them (XcpNgEventAlertTemplates), so their alerts are Logs monitors
+   * scoped to the pool: offered beside the metric templates, last, under
+   * their own Alarms and Backups headings.
+   */
+  const eventRecommendations: Array<MonitorRecommendation> =
+    getAllXcpNgEventAlertTemplates().map(
+      (template: XcpNgEventAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.XcpNg,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              poolIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
         });
       },
-    });
-  });
+    );
+
+  return [...metricRecommendations, ...eventRecommendations];
 }
 
 function getCephRecommendations(): Array<MonitorRecommendation> {
@@ -1375,7 +1410,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.XcpNg,
-      monitorTypes: [MonitorType.XcpNg],
+      // Metric templates, and the Logs monitors over what XCP-ng says.
+      monitorTypes: [MonitorType.XcpNg, MonitorType.Logs],
       resourceLabel: "XCP-ng Pool",
       identifierFieldName: "poolIdentifier",
       icon: IconProp.XcpNg,
