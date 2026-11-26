@@ -19,6 +19,12 @@
  *      package also ships builds for browsers, WebGPU and WebNN, 130 MB the
  *      image never runs.
  *
+ * With --runtime and no --manifest it fetches nothing, and only slims the
+ * runtime. The ingress image (packages/Nginx/Dockerfile.tpl) does that: its
+ * certificate sidecar reaches, through Common, the code that can start the
+ * model's thread, so its prune keeps the package that thread requires,
+ * though the image never has the model's files and never scans.
+ *
  * Nothing is fetched when the images run: a server or probe without the
  * files scans without the model, and says so in its scans' warnings. Iron
  * Bank's manifests list the same files with the same URLs and checksums
@@ -30,6 +36,11 @@
  *   COPY ./packages/Common/Server/Utils/DataSecurity/Model/NameAddressModel.json /tmp/NameAddressModel.json
  *   COPY ./Scripts/Docker/FetchDataSecurityModel.js /tmp/FetchDataSecurityModel.js
  *   RUN node /tmp/FetchDataSecurityModel.js --manifest /tmp/NameAddressModel.json --runtime /usr/src/Common/node_modules/onnxruntime-web
+ *
+ * or, for the runtime alone:
+ *
+ *   COPY ./Scripts/Docker/FetchDataSecurityModel.js /tmp/FetchDataSecurityModel.js
+ *   RUN node /tmp/FetchDataSecurityModel.js --runtime /usr/src/Common/node_modules/onnxruntime-web
  */
 
 "use strict";
@@ -80,8 +91,13 @@ function readArguments(argv) {
     throw new Error(`Unknown option ${name}.`);
   }
 
-  if (!options.manifest) {
-    throw new Error("--manifest is required.");
+  if (!options.manifest && !options.runtime) {
+    throw new Error("--manifest or --runtime is required.");
+  }
+
+  // Where to put the model's files: nothing to put without a manifest.
+  if (options.directory && !options.manifest) {
+    throw new Error("--directory needs --manifest.");
   }
 
   return options;
@@ -242,16 +258,19 @@ async function main(
   { retryDelayInMs = RETRY_DELAY_IN_MS } = {},
 ) {
   const options = readArguments(argv);
-  const manifest = readManifest(options.manifest);
-  const directory = options.directory || manifest.directory;
 
-  fs.mkdirSync(directory, { recursive: true });
+  if (options.manifest) {
+    const manifest = readManifest(options.manifest);
+    const directory = options.directory || manifest.directory;
 
-  for (const file of manifest.files) {
-    await fetchFile(file, directory, fetcher, retryDelayInMs);
-    process.stdout.write(
-      `Fetched ${file.name} of ${manifest.name} at ${manifest.revision} (${file.bytes} bytes, SHA-256 ${file.sha256}).\n`,
-    );
+    fs.mkdirSync(directory, { recursive: true });
+
+    for (const file of manifest.files) {
+      await fetchFile(file, directory, fetcher, retryDelayInMs);
+      process.stdout.write(
+        `Fetched ${file.name} of ${manifest.name} at ${manifest.revision} (${file.bytes} bytes, SHA-256 ${file.sha256}).\n`,
+      );
+    }
   }
 
   if (options.runtime) {

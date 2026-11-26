@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "Um Proprietário do projeto apagou as configurações de login salvas na sua conta do {{product}}.",
   "A backup code was used to confirm it's you in your {{product}} account": "Um código de backup foi usado para confirmar que é você na sua conta do {{product}}",
   "A backup code was used to confirm it's you.": "Um código de backup foi usado para confirmar que é você.",
   "A backup code was used to sign in to your account.": "Um código de backup foi usado para entrar na sua conta.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "Uma nota deste incidente foi atualizada. Esta é a versão mais recente:",
   "A note on this scheduled event has been updated. Here is the latest version:": "Uma nota deste evento agendado foi atualizada. Esta é a versão mais recente:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "Uma análise pós-incidente foi publicada para um incidente que afetou serviços em que você está inscrito.",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "Um proprietário de projeto apagou as configurações de login salvas na sua conta do {{product}}.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "Um administrador do servidor alterou o endereço de e-mail da sua conta do {{product}} deste endereço para um novo.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "Um administrador do servidor apagou as configurações de login salvas na sua conta do {{product}}.",
   "A server admin made this the email address of your {{product}} account.": "Um administrador do servidor definiu este endereço como o endereço de e-mail da sua conta do {{product}}.",
@@ -405,7 +405,7 @@
   "TEST page from {{product}} for {{project}}: nothing is wrong. Acknowledge: {{link}}": "TESTE de chamada de {{product}} para {{project}}: está tudo bem. Confirmar: {{link}}",
   "TEST page from {{project}}: nothing is wrong": "TESTE de chamada de {{project}}: está tudo bem",
   "Tap to acknowledge": "Toque para confirmar",
-  "That was your last backup code. If you lose your authenticator app or security key now, an administrator will have to reset two-factor authentication for you, so make a new set of backup codes as soon as you can.": "Esse era o seu último código de backup. Se você perder agora o seu aplicativo autenticador ou a sua chave de segurança, um administrador terá que redefinir a sua autenticação de dois fatores, então crie um novo conjunto de códigos de backup assim que puder.",
+  "That was your last backup code. If you lose your authenticator app or security key now, an administrator will have to reset two-factor authentication for you, so make a new set of backup codes as soon as you can.": "Esse era o seu último código de backup. Se você perder agora o seu app autenticador ou a sua chave de segurança, um administrador terá que redefinir a sua autenticação de dois fatores, então crie um novo conjunto de códigos de backup assim que puder.",
   "The SSL certificate of {{monitorName}} expires soon. Renew it before it expires, so visitors do not see a certificate error.": "O certificado SSL de {{monitorName}} expira em breve. Renove-o antes que expire, para que os visitantes não vejam um erro de certificado.",
   "The SSL certificate of {{monitorName}} is not valid, or could not be checked.": "O certificado SSL de {{monitorName}} não é válido ou não pôde ser verificado.",
   "The email address of your {{product}} account was changed from this address to a new one.": "O endereço de e-mail da sua conta do {{product}} foi alterado deste endereço para um novo.",

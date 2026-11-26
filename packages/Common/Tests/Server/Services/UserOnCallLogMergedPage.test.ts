@@ -17,6 +17,11 @@ import ObjectID from "../../../Types/ObjectID";
 import { getOnCallPageMergedMessage } from "../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
+import OnCallPolicyIncidentRole, {
+  PagedPerson,
+  PagedPersonRoleOutcome,
+} from "../../../Server/Utils/OnCall/OnCallPolicyIncidentRole";
+import logger from "../../../Server/Utils/Logger";
 
 /*
  * A PERSON'S LOG OF A PAGE MERGED INTO THEIR OPEN PAGE FROM ANOTHER POLICY'S
@@ -59,6 +64,9 @@ let createLog: SpyInstance<typeof UserOnCallLogService.create>;
 let workspaceRules: SpyInstance<
   typeof UserNotificationRuleService.runWorkspaceRulesForOnCallNotification
 >;
+let giveRole: SpyInstance<
+  typeof OnCallPolicyIncidentRole.giveRoleToPagedPerson
+>;
 
 beforeEach(() => {
   createLog = jest
@@ -70,11 +78,30 @@ beforeEach(() => {
       "runWorkspaceRulesForOnCallNotification",
     )
     .mockResolvedValue(undefined as never);
+  // The incident role the paging policy gives (OnCallPolicyIncidentRole).
+  giveRole = jest
+    .spyOn(OnCallPolicyIncidentRole, "giveRoleToPagedPerson")
+    .mockResolvedValue(PagedPersonRoleOutcome.Given);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// The role is given without the page waiting for it: let it run.
+async function settle(): Promise<void> {
+  for (let turn: number = 0; turn < 5; turn++) {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  }
+}
+
+function observerRun(isObserver: boolean): void {
+  jest
+    .spyOn(UserNotificationRuleService, "isObserverRun" as never)
+    .mockResolvedValue(isObserver as never);
+}
 
 function createdLog(): Model {
   return (createLog.mock.calls[0]![0] as { data: Model }).data;
@@ -156,6 +183,142 @@ describe("recording a merged page", () => {
     expect(createdLog().status).toBe(UserNotificationExecutionStatus.Scheduled);
     expect(createdLog().statusMessage).toBe("Scheduled");
     expect(createdLog().mergedIntoUserOnCallLogId).toBeUndefined();
+  });
+});
+
+describe("the incident role the paging policy gives the person it pages", () => {
+  const pageAbout: (record: {
+    triggeredByIncidentId?: ObjectID;
+    triggeredByIncidentEpisodeId?: ObjectID;
+    triggeredByAlertId?: ObjectID;
+    onCallPolicyId?: ObjectID | undefined;
+  }) => Promise<void> = async (record: {
+    triggeredByIncidentId?: ObjectID;
+    triggeredByIncidentEpisodeId?: ObjectID;
+    triggeredByAlertId?: ObjectID;
+    onCallPolicyId?: ObjectID | undefined;
+  }): Promise<void> => {
+    await UserNotificationRuleService.startUserNotificationRulesExecution(
+      USER_ID,
+      {
+        projectId: PROJECT_ID,
+        userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        onCallPolicyExecutionLogId: RUN_ID,
+        ...record,
+        onCallPolicyId:
+          "onCallPolicyId" in record ? record.onCallPolicyId : POLICY_ID,
+      },
+    );
+    await settle();
+  };
+
+  test("a responder paged about an incident is given it, by the policy that paged them", async () => {
+    observerRun(false);
+
+    await pageAbout({ triggeredByIncidentId: INCIDENT_ID });
+
+    expect(giveRole).toHaveBeenCalledTimes(1);
+    expect(giveRole.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      onCallDutyPolicyId: POLICY_ID,
+      userId: USER_ID,
+      incidentId: INCIDENT_ID,
+      incidentEpisodeId: undefined,
+    } as PagedPerson);
+  });
+
+  test("paged about an incident episode: given it on the episode", async () => {
+    observerRun(false);
+    const episodeId: ObjectID = ObjectID.generate();
+
+    await pageAbout({ triggeredByIncidentEpisodeId: episodeId });
+
+    expect(giveRole).toHaveBeenCalledTimes(1);
+    expect(giveRole.mock.calls[0]![0].incidentEpisodeId).toEqual(episodeId);
+    expect(giveRole.mock.calls[0]![0].incidentId).toBeUndefined();
+  });
+
+  test("an observer is kept informed, not given a part: no role", async () => {
+    observerRun(true);
+
+    await pageAbout({ triggeredByIncidentId: INCIDENT_ID });
+
+    expect(giveRole).not.toHaveBeenCalled();
+  });
+
+  test("a page about an alert gives no incident role", async () => {
+    observerRun(false);
+
+    await pageAbout({ triggeredByAlertId: ObjectID.generate() });
+
+    expect(giveRole).not.toHaveBeenCalled();
+  });
+
+  test("a page sent to people directly names no policy: no role", async () => {
+    observerRun(false);
+
+    await pageAbout({
+      triggeredByIncidentId: INCIDENT_ID,
+      onCallPolicyId: undefined,
+    });
+
+    expect(giveRole).not.toHaveBeenCalled();
+  });
+
+  test("a role that cannot be given never fails the page: it is logged", async () => {
+    observerRun(false);
+    giveRole.mockRejectedValue(new Error("database is down"));
+    const logged: SpyInstance<typeof logger.error> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {
+        return;
+      });
+
+    await expect(
+      pageAbout({ triggeredByIncidentId: INCIDENT_ID }),
+    ).resolves.toBeUndefined();
+
+    expect(createdLog().status).toBe(UserNotificationExecutionStatus.Scheduled);
+    expect(logged).toHaveBeenCalled();
+  });
+
+  test("a merged page: the policy reached them too, so they are given its role", async () => {
+    observerRun(false);
+
+    await UserNotificationRuleService.recordMergedPage(USER_ID, {
+      projectId: PROJECT_ID,
+      triggeredByIncidentId: INCIDENT_ID,
+      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      onCallPolicyExecutionLogId: RUN_ID,
+      onCallPolicyId: POLICY_ID,
+      mergedIntoUserOnCallLogId: COVER_LOG_ID,
+      statusMessage: MESSAGE,
+    });
+    await settle();
+
+    expect(giveRole).toHaveBeenCalledTimes(1);
+    expect(giveRole.mock.calls[0]![0]).toMatchObject({
+      onCallDutyPolicyId: POLICY_ID,
+      userId: USER_ID,
+      incidentId: INCIDENT_ID,
+    });
+  });
+
+  test("a merged observer's page: no role", async () => {
+    observerRun(true);
+
+    await UserNotificationRuleService.recordMergedPage(USER_ID, {
+      projectId: PROJECT_ID,
+      triggeredByIncidentId: INCIDENT_ID,
+      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      onCallPolicyExecutionLogId: RUN_ID,
+      onCallPolicyId: POLICY_ID,
+      mergedIntoUserOnCallLogId: COVER_LOG_ID,
+      statusMessage: MESSAGE,
+    });
+    await settle();
+
+    expect(giveRole).not.toHaveBeenCalled();
   });
 });
 

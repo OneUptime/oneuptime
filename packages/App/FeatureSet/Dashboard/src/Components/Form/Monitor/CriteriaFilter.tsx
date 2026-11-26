@@ -193,12 +193,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   >([]);
 
   useEffect(() => {
+    /*
+     * The check's own conditions, and for a DNS answer compared with the
+     * previous check only "different from it" and "the same" (#10905).
+     */
     setFilterTypeOptions(
-      criteriaFilter?.checkOn
-        ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
-            criteriaFilter?.checkOn,
-          )
-        : [],
+      CriteriaFilterUiUtil.getFilterTypeOptions({
+        criteriaFilter: criteriaFilter,
+        monitorType: props.monitorType,
+      }),
     );
     setValuePlaceholder(
       criteriaFilter?.checkOn

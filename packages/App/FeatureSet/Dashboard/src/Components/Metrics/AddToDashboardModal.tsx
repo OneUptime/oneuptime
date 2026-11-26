@@ -257,6 +257,8 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
       <ConfirmModal
         title="Could Not Add Chart"
         description={error}
+        // Its title says what failed: the explanation does not again (#7680).
+        titleSaysWhatFailed={true}
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}
         onSubmit={props.onClose}

@@ -8,12 +8,24 @@ import SecurityTrustedProxiesCard, {
   TRUSTED_PROXIES_CARD_KEY,
 } from "../../Components/SecurityEvents/SecurityTrustedProxiesCard";
 import {
+  ACCESS_LOGS_TITLE,
   CONNECTIONS_MORE_SETTINGS_DESCRIPTION,
+  TRUSTED_AUTOMATICALLY_TITLE,
   TRUSTED_PROXIES_TEST_IDS,
   TRUSTED_PROXIES_TITLE,
 } from "../../Components/SecurityEvents/SecurityTrustedProxiesCopy";
+import SecurityAccessLogsCard, {
+  ACCESS_LOGS_CARD_KEY,
+} from "../../Components/SecurityEvents/TrustedProxies/SecurityAccessLogsCard";
+import SecurityTrustedAutomaticallyCard, {
+  TRUSTED_AUTOMATICALLY_CARD_KEY,
+} from "../../Components/SecurityEvents/TrustedProxies/SecurityTrustedAutomaticallyCard";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
-import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  FOLDED_SECTION_OFF,
+  FOLDED_SECTION_ON,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -34,8 +46,12 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *   Send to your SIEM     the SIEMs OneUptime sends what it finds to
  *   More settings         Trusted Proxies: the proxies the project's apps
  *                         sit behind, whose forwarded client address the
- *                         scans trust (#10416) - optional, and about the
- *                         project's own infrastructure, so folded
+ *                         scans trust (#10416); Trusted Automatically: what
+ *                         they trust without being listed, and the switch
+ *                         for the project's own load balancers (#10546);
+ *                         Access Logs: whether its access logs end with
+ *                         X-Forwarded-For (#10548) - optional, and about
+ *                         the project's own infrastructure, so folded
  *
  * Each card owns its own state, so the page is only the plan gate in front
  * of them.
@@ -46,6 +62,15 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
   const translator: Translator = useTranslator();
   // How many proxies the project trusts, for the folded header's chip.
   const [trustedProxyCount, setTrustedProxyCount] = useState<number>(0);
+  /*
+   * The two switches, for the folded header's chips: each named only while
+   * it is not where a project starts - its own load balancers trusted, its
+   * access logs not read for the header.
+   */
+  const [isTrustingOwnLoadBalancers, setIsTrustingOwnLoadBalancers] =
+    useState<boolean>(true);
+  const [isReadingAccessLogHeader, setIsReadingAccessLogHeader] =
+    useState<boolean>(false);
 
   /*
    * Same reseller-telemetry gate as every other Security Events page —
@@ -79,10 +104,26 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
             isSet: trustedProxyCount > 0,
             value: translator.formatNumber(trustedProxyCount),
           }),
+          foldedSectionItem(TRUSTED_AUTOMATICALLY_TITLE, {
+            key: TRUSTED_AUTOMATICALLY_CARD_KEY,
+            isSet: !isTrustingOwnLoadBalancers,
+            value: FOLDED_SECTION_OFF,
+            translateValue: true,
+          }),
+          foldedSectionItem(ACCESS_LOGS_TITLE, {
+            key: ACCESS_LOGS_CARD_KEY,
+            isSet: isReadingAccessLogHeader,
+            value: FOLDED_SECTION_ON,
+            translateValue: true,
+          }),
         ]}
         dataTestId={TRUSTED_PROXIES_TEST_IDS.fold}
       >
         <SecurityTrustedProxiesCard onLoaded={setTrustedProxyCount} />
+        <SecurityTrustedAutomaticallyCard
+          onChange={setIsTrustingOwnLoadBalancers}
+        />
+        <SecurityAccessLogsCard onChange={setIsReadingAccessLogHeader} />
       </AdvancedPageSection>
     </div>
   );

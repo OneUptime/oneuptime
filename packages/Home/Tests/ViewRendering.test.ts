@@ -1117,9 +1117,12 @@ describe("security-events.ejs", () => {
 
     /*
      * Most containment acts through a security product's connection and cuts
-     * someone off (isDisruptive). Closing a data store's exposure (#5366)
-     * acts through the store's own cloud connection and cuts nobody off, but
-     * it changes a cloud's settings, so it starts needing approval too
+     * someone off (isDisruptive). Two kinds act through no connection of
+     * their own. Blocking an address (#10342) is enforced by every
+     * destination of the project's blocklist, and it cuts the address off
+     * (isDisruptive). Closing a data store's exposure (#5366) acts through
+     * the store's own cloud connection and cuts nobody off, but it changes a
+     * cloud's settings, so it starts needing approval too
      * (needsApprovalByDefault).
      */
     const productContainment: Array<SecurityPlaybookActionDefinition> =
@@ -1128,10 +1131,18 @@ describe("security-events.ejs", () => {
           return action.connectionProvider !== undefined;
         },
       );
+    const blocklistContainment: Array<SecurityPlaybookActionDefinition> =
+      containActions.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.connectionProvider === undefined && action.isDisruptive;
+        },
+      );
     const dataStoreContainment: Array<SecurityPlaybookActionDefinition> =
       containActions.filter(
         (action: SecurityPlaybookActionDefinition): boolean => {
-          return action.connectionProvider === undefined;
+          return (
+            action.connectionProvider === undefined && !action.isDisruptive
+          );
         },
       );
 
@@ -1160,6 +1171,18 @@ describe("security-events.ejs", () => {
     }
 
     expect(
+      blocklistContainment.map(
+        (action: SecurityPlaybookActionDefinition): string => {
+          return action.type;
+        },
+      ),
+    ).toEqual([SecurityPlaybookActionType.BlockAddress]);
+
+    expect(html).toContain(
+      "block the address at every destination that enforces your blocklist",
+    );
+
+    expect(
       dataStoreContainment
         .map((action: SecurityPlaybookActionDefinition): string => {
           return action.type;
@@ -1185,7 +1208,7 @@ describe("security-events.ejs", () => {
 
     expect(html).toContain("with approval on by default");
     expect(html).toContain(
-      "Containment beyond Okta, Microsoft Entra ID, Google Workspace, CrowdStrike and Microsoft Defender",
+      "Containment beyond Okta, Microsoft Entra ID, Google Workspace, CrowdStrike, Microsoft Defender and the destinations of your blocklist",
     );
   });
 });
@@ -2876,7 +2899,8 @@ describe("queues.ejs", () => {
     /*
      * The labels are translation keys, and a key is its English text:
      * translationKey() returns its argument, so English shows exactly
-     * these words.
+     * these words. The heading draws its words with their (i) after the
+     * last one (WordsWithInfoTooltip, #8044).
      */
     expect(section).toMatch(
       /BROKER_HEALTH_TITLE: string = translationKey\("Broker health"\);/,
@@ -2884,8 +2908,8 @@ describe("queues.ejs", () => {
     expect(section).toMatch(
       /BROKER_HEALTH_CREATE_MONITOR_LABEL: string =\s*translationKey\("Create monitor"\);/,
     );
-    expect(section).toContain(
-      "{translator.translateText(BROKER_HEALTH_TITLE)}",
+    expect(section).toMatch(
+      /<WordsWithInfoTooltip\s+text=\{\s*translator\.translateText\(BROKER_HEALTH_TITLE\)/,
     );
     expect(section).toMatch(
       /translator\.translateText\(\s*BROKER_HEALTH_CREATE_MONITOR_LABEL,?\s*\)/,

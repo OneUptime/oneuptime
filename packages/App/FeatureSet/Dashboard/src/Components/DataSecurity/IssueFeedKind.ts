@@ -72,13 +72,17 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
        */
       case DataSecurityIssueFeedEventType.ResponseActionTaken:
         return { icon: IconProp.ShieldCheck, tone: FeedTone.Record };
-      // What OneUptime AI proposed for the issue, and what became of it (#10364).
+      /*
+       * What OneUptime AI proposed for the issue, and what became of it
+       * (#10364) - and for its group: proposed, dismissed or expired (#10741).
+       */
       case DataSecurityIssueFeedEventType.AiProposed:
       case DataSecurityIssueFeedEventType.AiProposalApproved:
       case DataSecurityIssueFeedEventType.AiChangeMade:
       case DataSecurityIssueFeedEventType.AiProposalDismissed:
       case DataSecurityIssueFeedEventType.AiChangeUndone:
       case DataSecurityIssueFeedEventType.AiChangeFailed:
+      case DataSecurityIssueFeedEventType.AiProposalExpired:
         return getAiFeedKind(eventType);
       /*
        * Contained at ingest is no fix (#10368): hidden, in a warning's
@@ -97,6 +101,13 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
         return { icon: IconProp.Refresh, tone: FeedTone.Danger };
       case DataSecurityIssueFeedEventType.FixUnverifiable:
         return { icon: IconProp.QuestionMarkCircle, tone: FeedTone.Record };
+      // A person's own pull request, linked as the issue's fix (#10831).
+      case DataSecurityIssueFeedEventType.FixLinked:
+        return { icon: IconProp.Link, tone: FeedTone.Info };
+      case DataSecurityIssueFeedEventType.FixClosed:
+        return { icon: IconProp.Close, tone: FeedTone.Record };
+      case DataSecurityIssueFeedEventType.FixUnlinked:
+        return { icon: IconProp.Link, tone: FeedTone.Record };
       default:
         return undefined;
     }

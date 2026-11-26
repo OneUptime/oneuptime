@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  DETECTION_RULE_COUNTS_NOTHING,
   DETECTION_RULE_NEEDS_ATTENTION,
   DETECTION_RULE_REAL_TIME,
   DETECTION_RULE_RUN_FAILED,
@@ -312,6 +313,67 @@ describe("a detection rule's Status", () => {
     ).toBe(SECURITY_DETECTION_DISABLED);
   });
 
+  /*
+   * A rule that counts per value and could count none of what it matched in
+   * the last day - every match had no value for its field - cannot fire
+   * (#10547): it runs, so it is no failure, but it needs a look.
+   */
+  test("a rule that could count none of what it matched needs attention, in yellow, saying where to look", () => {
+    const status: SecurityDetectionStatus = getDetectionRuleStatus(
+      rule({ isEnabled: true, lastEvaluatedAt: POLLED_AT }),
+      { countsNothing: true },
+    );
+
+    expect(status).toBe(DETECTION_RULE_COUNTS_NOTHING);
+    expect(status.text).toBe("Needs attention");
+    expect(status.color).toBe(Yellow);
+    expect(status.tooltip).toBe(
+      "It couldn't count any event it matched in the last day, so it can't fire. The line under its name says why.",
+    );
+
+    // Real time or waiting, it still cannot fire.
+    for (const fields of [
+      { isEnabled: true, isRealTime: true },
+      { isEnabled: true },
+    ]) {
+      expect(
+        getDetectionRuleStatus(rule(fields), { countsNothing: true }),
+      ).toBe(DETECTION_RULE_COUNTS_NOTHING);
+    }
+  });
+
+  test("off, or failing, says so before what it could not count; a rule that counts reads as before", () => {
+    expect(
+      getDetectionRuleStatus(rule({ isEnabled: false }), {
+        countsNothing: true,
+      }),
+    ).toBe(SECURITY_DETECTION_DISABLED);
+    expect(
+      getDetectionRuleStatus(rule({ isEnabled: true, lastError: "Timeout" }), {
+        countsNothing: true,
+      }),
+    ).toBe(DETECTION_RULE_RUN_FAILED_TRIED_AGAIN);
+    expect(
+      getDetectionRuleStatus(
+        rule({ isEnabled: true, lastError: RULE_OVERFLOW }),
+        { countsNothing: true },
+      ),
+    ).toBe(DETECTION_RULE_NEEDS_ATTENTION);
+
+    expect(
+      getDetectionRuleStatus(
+        rule({ isEnabled: true, lastEvaluatedAt: POLLED_AT }),
+        { countsNothing: false },
+      ),
+    ).toBe(SECURITY_DETECTION_ENABLED);
+    expect(
+      getDetectionRuleStatus(
+        rule({ isEnabled: true, lastEvaluatedAt: POLLED_AT }),
+        undefined,
+      ),
+    ).toBe(SECURITY_DETECTION_ENABLED);
+  });
+
   test("its one message is its Last Error, a note when the run wrote it about its work", () => {
     expect(
       getDetectionRuleMessages(rule({ lastError: RULE_OVERFLOW })),
@@ -354,6 +416,7 @@ describe("every Status is worded in every Dashboard language", () => {
     DETECTION_RULE_RUN_FAILED,
     DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
     DETECTION_RULE_NEEDS_ATTENTION,
+    DETECTION_RULE_COUNTS_NOTHING,
     DETECTION_RULE_WAITING,
     DETECTION_RULE_REAL_TIME,
     SECURITY_DETECTION_ENABLED,

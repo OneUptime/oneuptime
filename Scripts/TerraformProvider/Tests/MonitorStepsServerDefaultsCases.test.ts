@@ -261,6 +261,10 @@ describe("what OneUptime writes of its own into steps a configuration writes spa
       "browserTypes",
       "monitorDestinationPort",
       '"isEnabled":false',
+      // The three settings the provider writes since #10984.
+      "incidentMemberRoles",
+      "doNotSyncFields",
+      "securityEventsMonitor",
     ]) {
       expect(all).toContain(part);
     }

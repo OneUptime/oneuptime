@@ -271,24 +271,67 @@ describe("the shared update path asks it, once, around the hooks", () => {
     "utf8",
   );
 
-  test("before the update's hooks, and after them for parents a hook names", () => {
-    const start: number = source.indexOf(
-      "private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {",
-    );
-    const update: string = source.slice(start, start + 9000);
+  /*
+   * The whole of _updateBy, up to the class's next member: a fixed number
+   * of its first characters stopped short of the permission check once
+   * the method grew (#10957 added the unique name's hold), and read as if
+   * the check were gone.
+   */
+  const UPDATE_BY: string =
+    "private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {";
+  const NEXT_MEMBER: RegExp = /\n {2}(?:public|private|protected)\b/;
 
-    const before: number = update.indexOf(
-      "await this.checkUpdateNamedRecords(",
-    );
-    const hooks: number = update.indexOf("await this.onBeforeUpdate(updateBy)");
-    const after: number = update.indexOf(
-      "await this.checkUpdateParentsAfterHooks(",
-    );
-    const permission: number = update.indexOf(
-      "await ModelPermission.checkUpdateQueryPermissions(",
-    );
+  function readUpdateBy(): string {
+    const start: number = source.indexOf(UPDATE_BY);
 
     expect(start).toBeGreaterThan(-1);
+
+    const next: RegExpExecArray | null = NEXT_MEMBER.exec(
+      source.slice(start + UPDATE_BY.length),
+    );
+
+    expect(next).not.toBeNull();
+
+    return source.slice(start, start + UPDATE_BY.length + next!.index);
+  }
+
+  test("reads the update path to its end, and no further", () => {
+    const update: string = readUpdateBy();
+    const closing: number = update.lastIndexOf("\n  }\n");
+
+    // The row's write, far past where the window used to end, is in it.
+    expect(update.indexOf("await this.getRepository().save(savedItem);")).toBe(
+      update.lastIndexOf("await this.getRepository().save(savedItem);"),
+    );
+    expect(update).toContain("await this.getRepository().save(savedItem);");
+
+    // It ends at the method's closing brace: after it, only the next member's comment.
+    expect(closing).toBeGreaterThan(-1);
+    expect(update.slice(closing + "\n  }\n".length).trim()).toMatch(
+      /^(?:\/\*[\s\S]*\*\/|\/\/[^\n]*)?$/,
+    );
+  });
+
+  test("before the update's hooks, and after them for parents a hook names", () => {
+    const update: string = readUpdateBy();
+    const calls: Array<string> = [
+      "await this.checkUpdateNamedRecords(",
+      "await this.onBeforeUpdate(updateBy)",
+      "await this.checkUpdateParentsAfterHooks(",
+      "await ModelPermission.checkUpdateQueryPermissions(",
+    ];
+
+    // Each is asked once on the path, so its place below is the only one.
+    for (const call of calls) {
+      expect([call, update.split(call).length - 1]).toEqual([call, 1]);
+    }
+
+    const [before, hooks, after, permission] = calls.map(
+      (call: string): number => {
+        return update.indexOf(call);
+      },
+    ) as [number, number, number, number];
+
     expect(before).toBeGreaterThan(-1);
     expect(hooks).toBeGreaterThan(before);
     expect(after).toBeGreaterThan(hooks);

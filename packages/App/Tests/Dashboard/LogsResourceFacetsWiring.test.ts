@@ -180,19 +180,14 @@ describe("resource type hints and scope picker", () => {
     expect(LOGS_ENTITY_NAMES).not.toContain('hostId:"Host"');
   });
 
-  test("scope picker group titles are derived from the catalog's plural labels", () => {
-    expect(LOGS_INSIGHTS).toContain(
-      "toInsightsScopeGroupLabel(definition.pluralLabel)",
-    );
+  test("no hand-kept scope picker group titles: each record's kind comes from the catalog (#10921)", () => {
     expect(LOGS_INSIGHTS).not.toContain('hostId:"Hosts"');
+    expect(LOGS_INSIGHTS).not.toContain("INSIGHTS_SCOPE_FACET_LABELS");
   });
 
-  test("the Insights page still skips a resource group with nothing in it", () => {
+  test("the Insights page searches only the kinds of resource the window's logs list", () => {
     expect(LOGS_DASHBOARD).toContain(
-      "for(constfacetKeyofINSIGHTS_SCOPE_FACET_KEYS){constvalues:Array<ScopeFacetValue>=scopeFacets[facetKey]||[];if(values.length===0){continue;}",
-    );
-    expect(LOGS_DASHBOARD).toContain(
-      "label:INSIGHTS_SCOPE_FACET_LABELS[facetKey]||facetKey",
+      "returnINSIGHTS_SCOPE_FACET_KEYS.filter((facetKey:string):boolean=>{return(facetKey!==SERVICE_SCOPE_FACET_KEY&&(scopeFacets[facetKey]||[]).length>0);});",
     );
   });
 });

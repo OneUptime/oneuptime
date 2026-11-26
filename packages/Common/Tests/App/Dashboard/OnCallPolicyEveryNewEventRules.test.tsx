@@ -184,6 +184,7 @@ import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getJestSpyOn } from "../../Spy";
 
 jest.setTimeout(30000);
@@ -264,6 +265,16 @@ beforeEach(() => {
 
   getJestSpyOn(Navigation, "navigate").mockImplementation((): void => {
     return undefined;
+  });
+
+  /*
+   * Once typing stops, the form asks the server whether another policy has
+   * the name typed (DuplicateNameNotice, #10761): none has it here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
   });
 
   getListMock.mockImplementation(async (params: any): Promise<any> => {

@@ -138,6 +138,7 @@ import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -252,6 +253,18 @@ beforeEach(() => {
   jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
   // Every field is offered: who may write which column is not under test.
   jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+
+  /*
+   * A threat intel feed's name is one of its kind in a project that requires
+   * unique names, so its form asks the server, a moment after a name is typed,
+   * whether another feed has it (DuplicateNameNotice, #10761): none has it
+   * here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

@@ -44,6 +44,7 @@ import CheckWindowCounts, {
 import PreviousCheckComparison, {
   PreviousCheckReads,
 } from "./Criteria/PreviousCheckComparison";
+import DnsAnswerFingerprint from "./DnsAnswerFingerprint";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import CriteriaRecovery, {
@@ -1600,6 +1601,14 @@ ${incomingRequestGrouping.rootCauseNote}
       diskPaths: diskPaths,
       reads: input.matchHistory
         ? PreviousCheckReads.forMatchHistoryReads(input.matchHistory.reads)
+        : undefined,
+      // A DNS answer is compared as one, by its fingerprint (#10905).
+      dnsAnswer: CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        input.criteriaFilter.checkOn,
+      )
+        ? DnsAnswerFingerprint.read(
+            (input.dataToProcess as ProbeMonitorResponse).dnsResponse,
+          )
         : undefined,
       isMetOnThisCheck: async (): Promise<boolean> => {
         const check: CriteriaFilterCheck | undefined =

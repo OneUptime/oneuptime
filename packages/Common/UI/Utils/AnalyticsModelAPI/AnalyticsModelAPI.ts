@@ -10,6 +10,7 @@ import Sort from "../../../Types/BaseDatabase/Sort";
 import Navigation from "../Navigation";
 import ProjectUtil from "../Project";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnswerReader from "../../../Types/API/AnswerReader";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -205,10 +206,13 @@ export default class ModelAPI {
       const result: HTTPResponse<TAnalyticsBaseModel> =
         apiResult as HTTPResponse<TAnalyticsBaseModel>;
 
-      result.data = AnalyticsBaseModel.fromJSON(
-        result.data,
-        modelType,
-      ) as TAnalyticsBaseModel;
+      // What throws while it is read is an answer the page could not read (#8413).
+      result.data = AnswerReader.read(result, (): TAnalyticsBaseModel => {
+        return AnalyticsBaseModel.fromJSON(
+          result.data,
+          modelType,
+        ) as TAnalyticsBaseModel;
+      });
 
       return result;
     }
@@ -348,9 +352,19 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      const list: Array<TAnalyticsBaseModel> = AnalyticsBaseModel.fromJSONArray(
-        result.data as JSONArray,
-        modelType,
+      /*
+       * The answer's rows, as models: an answer that holds none, or a row
+       * that will not read, is an answer the page could not read
+       * (AnswerReader, #8413), never "json is not iterable".
+       */
+      const list: Array<TAnalyticsBaseModel> = AnswerReader.read(
+        result,
+        (): Array<TAnalyticsBaseModel> => {
+          return AnalyticsBaseModel.fromJSONArray(
+            AnswerReader.getRows(result) as Array<JSONObject>,
+            modelType,
+          );
+        },
       );
 
       return {
@@ -410,9 +424,8 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      const count: number = result.data["count"] as number;
-
-      return count;
+      // A number, or an answer the page could not read (#8413): never undefined.
+      return AnswerReader.getCount(result);
     }
 
     this.checkStatusCode(result);
@@ -515,10 +528,17 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      return AnalyticsBaseModel.fromJSON(
-        result.data,
-        modelType,
-      ) as TAnalyticsBaseModel;
+      /*
+       * The record, as a model: a page of text answering 200 read as a
+       * record with no fields, and a value that will not read threw its own
+       * words; both are an answer the page could not read now (#8413).
+       */
+      return AnswerReader.read(result, (): TAnalyticsBaseModel => {
+        return AnalyticsBaseModel.fromJSON(
+          AnswerReader.getRecord(result),
+          modelType,
+        ) as TAnalyticsBaseModel;
+      });
     }
 
     this.checkStatusCode(result);

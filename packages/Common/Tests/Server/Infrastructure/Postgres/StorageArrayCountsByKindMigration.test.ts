@@ -1,4 +1,4 @@
-import { AddStorageArrayCountsByKind1809187661000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187661000-AddStorageArrayCountsByKind";
+import { AddStorageArrayCountsByKind1809187690000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187690000-AddStorageArrayCountsByKind";
 import { AddUniqueNameIndexes1809187640010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640010-AddUniqueNameIndexes";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
@@ -41,7 +41,7 @@ const recordingQueryRunner: () => {
 
 async function upStatements(): Promise<Array<string>> {
   const { queryRunner, statements } = recordingQueryRunner();
-  await new AddStorageArrayCountsByKind1809187661000().up(queryRunner);
+  await new AddStorageArrayCountsByKind1809187690000().up(queryRunner);
   return statements;
 }
 
@@ -126,7 +126,7 @@ describe("AddStorageArrayCountsByKind", () => {
 
   test("down() drops the column again", async () => {
     const { queryRunner, statements } = recordingQueryRunner();
-    await new AddStorageArrayCountsByKind1809187661000().down(queryRunner);
+    await new AddStorageArrayCountsByKind1809187690000().down(queryRunner);
     expect(statements).toEqual([
       `ALTER TABLE "StorageArray" DROP COLUMN "countsByKind"`,
     ]);
@@ -139,14 +139,14 @@ describe("AddStorageArrayCountsByKind", () => {
       },
     );
     const own: number = names.indexOf(
-      AddStorageArrayCountsByKind1809187661000.name,
+      AddStorageArrayCountsByKind1809187690000.name,
     );
     expect(own).toBeGreaterThan(-1);
     expect(own).toBeGreaterThan(
       names.indexOf(AddUniqueNameIndexes1809187640010.name),
     );
-    expect(new AddStorageArrayCountsByKind1809187661000().name).toBe(
-      "AddStorageArrayCountsByKind1809187661000",
+    expect(new AddStorageArrayCountsByKind1809187690000().name).toBe(
+      "AddStorageArrayCountsByKind1809187690000",
     );
   });
 

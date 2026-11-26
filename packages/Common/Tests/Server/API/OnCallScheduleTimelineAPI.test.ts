@@ -1294,7 +1294,7 @@ describe("GET /on-call-schedule-timeline: the plan", () => {
       .spyOn(BillingPermissions, "checkFeatureIsOnPlan")
       .mockImplementation((): void => {
         throw new PaymentRequiredException(
-          "Please upgrade your plan to Growth to access this feature",
+          "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
         );
       });
 
@@ -1303,7 +1303,9 @@ describe("GET /on-call-schedule-timeline: the plan", () => {
     expect(result.status).toBe(ExceptionCode.PaymentRequiredException);
     expect(
       (JSON.parse(result.body) as Record<string, unknown>)["message"],
-    ).toBe("Please upgrade your plan to Growth to access this feature");
+    ).toBe(
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+    );
     expect(scheduleFindBy).not.toHaveBeenCalled();
     expect(layerUserFindBy).not.toHaveBeenCalled();
     expect(tryAcquireRenderSlot).not.toHaveBeenCalled();

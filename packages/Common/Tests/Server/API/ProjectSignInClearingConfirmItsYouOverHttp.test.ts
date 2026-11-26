@@ -76,6 +76,7 @@ import {
   NO_LOCAL_SIGN_IN_SETTINGS,
   toSavedSignInSettingsOfPeopleRequestJSON,
 } from "../../../Types/SSO/LocalSignInClearing";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { getJestSpyOn } from "../../Spy";
 import InMemoryLocks from "../TestingUtils/InMemoryLocks";
 import {
@@ -532,6 +533,16 @@ beforeEach(() => {
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  /*
+   * With billing on (as CI runs), a request in a project carries its plan
+   * (CallerPlan): the highest one, paid, so that no plan decides what is
+   * asked here. Unread, Acme's row names no plan, and every request is
+   * refused before the route is reached.
+   */
+  getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
   getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(true);
   getJestSpyOn(
     ProjectService,

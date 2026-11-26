@@ -171,6 +171,9 @@ describe("a call's keypad token, as this release signs it", () => {
       isAccepted: true,
       answers: expect.objectContaining(ANSWERS),
       isEarlierCall: false,
+      // Signed without a prompt or a voice: neither is read back.
+      prompt: null,
+      voice: undefined,
     });
   });
 
@@ -327,6 +330,9 @@ describe("a call placed before this release, while its call token lasts", () => 
       isAccepted: true,
       answers: expect.objectContaining(ANSWERS),
       isEarlierCall: true,
+      // It carried no prompt: its wrong key ends it, as it always did.
+      prompt: null,
+      voice: undefined,
     });
   });
 
@@ -428,5 +434,224 @@ describe("why a key press is refused, for the server's log", () => {
         OnCallKeypadTokenRefusal.OtherNotification,
       ),
     ).toBe("Its call token was signed for another notification.");
+  });
+});
+
+/*
+ * HOW THE CALL SPEAKS, BESIDE WHAT EACH KEY ANSWERS (#10949, #10948).
+ *
+ * A call's token carries its prompt - so the keypad route asks again after
+ * a wrong key, in the call's own words - and its voice - so every answer is
+ * said in the call's voice. Each is read back only as it may be: words and
+ * a time to listen, a voice from OneUptime's list. A keypad route of the
+ * release before reads what each key answers and nothing else.
+ */
+describe("the prompt and the voice a call's token carries", () => {
+  const PROMPT: {
+    sayMessage: string;
+    noInputMessage: string;
+    timeoutInSeconds: number;
+  } = {
+    sayMessage: "Press 1 to acknowledge, or 2 to escalate.",
+    noInputMessage:
+      "You did not press a key, so this incident is not acknowledged. Good bye.",
+    timeoutInSeconds: 10,
+  };
+
+  function signed(data: { prompt?: unknown; voice?: unknown }): string {
+    return OnCallKeypadToken.sign({
+      userOnCallLogTimelineId: NOTIFICATION,
+      answers: ANSWERS,
+      prompt: data.prompt as never,
+      voice: data.voice as never,
+    });
+  }
+
+  test("are read back as the call was placed with them", () => {
+    const reading: OnCallKeypadTokenReading = read(
+      claimsOf(signed({ prompt: PROMPT, voice: "Polly.Joanna-Neural" })),
+    );
+
+    expect(reading).toEqual({
+      isAccepted: true,
+      answers: expect.objectContaining(ANSWERS),
+      isEarlierCall: false,
+      prompt: PROMPT,
+      voice: "Polly.Joanna-Neural",
+    });
+  });
+
+  test("ride beside the answers under names no key is ever called: a keypad route of the release before reads 1 and every other key exactly as before", () => {
+    const claims: JSONObject = claimsOf(
+      signed({ prompt: PROMPT, voice: "Google.en-US-Neural2-F" }),
+    );
+
+    expect(claims["ask"]).toEqual(PROMPT);
+    expect(claims["voice"]).toBe("Google.en-US-Neural2-F");
+    // What an earlier route reads, by the key Twilio posts, is unchanged.
+    expect((claims["1"] as JSONObject)["sayMessage"]).toBe(
+      ANSWERS["1"]!.sayMessage,
+    );
+    expect((claims["default"] as JSONObject)["sayMessage"]).toBe(
+      ANSWERS["default"]!.sayMessage,
+    );
+
+    // No key of a phone's keypad is named like a claim.
+    for (const key of [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "*",
+      "#",
+    ]) {
+      expect(["ask", "voice", "purpose", "notification"]).not.toContain(key);
+    }
+  });
+
+  test("leave both out of a call that names neither: its token is the one this release signed before", () => {
+    const claims: JSONObject = claimsOf(signed({}));
+
+    expect(claims["ask"]).toBeUndefined();
+    expect(claims["voice"]).toBeUndefined();
+    expect(read(claims)).toMatchObject({
+      isAccepted: true,
+      prompt: null,
+    });
+    expect((read(claims) as { voice?: string }).voice).toBeUndefined();
+  });
+
+  test("never carry a voice OneUptime does not offer", () => {
+    for (const voice of [
+      "man",
+      "alice",
+      "Polly.Joanna",
+      "polly.joanna-neural",
+      'Polly.Joanna-Neural"/><Dial>+19005550100</Dial>',
+      42,
+    ]) {
+      const claims: JSONObject = claimsOf(signed({ voice: voice }));
+
+      expect({ voice, claim: claims["voice"] }).toEqual({
+        voice,
+        claim: undefined,
+      });
+    }
+  });
+
+  test("read a voice only as OneUptime's list writes it: one the list no longer holds is the account's default voice", () => {
+    const claims: JSONObject = claimsOf(signed({ prompt: PROMPT }));
+
+    for (const voice of ["Polly.Kevin-Neural", "man", "", 7, null]) {
+      const reading: OnCallKeypadTokenReading = read({
+        ...claims,
+        voice: voice as never,
+      });
+
+      expect(reading.isAccepted).toBe(true);
+      expect((reading as { voice?: string }).voice).toBeUndefined();
+    }
+  });
+
+  test("read a prompt only as words and a time to listen: anything else asks nothing again, and the key is still taken", () => {
+    const claims: JSONObject = claimsOf(signed({ prompt: PROMPT }));
+
+    for (const ask of [
+      null,
+      "Press 1",
+      ["Press 1"],
+      { noInputMessage: "Good bye." },
+      { sayMessage: "   " },
+      { sayMessage: 42 },
+    ]) {
+      const reading: OnCallKeypadTokenReading = read({
+        ...claims,
+        ask: ask as never,
+      });
+
+      expect(reading.isAccepted).toBe(true);
+      expect((reading as { prompt: unknown }).prompt).toBeNull();
+    }
+  });
+
+  test("keep a prompt's time to listen within reason: none or nonsense is 5 seconds, more than a minute is a minute", () => {
+    const cases: Array<[unknown, number]> = [
+      [undefined, 5],
+      [0, 5],
+      [-3, 5],
+      [2.5, 5],
+      ["10", 5],
+      [10, 10],
+      [60, 60],
+      [3600, 60],
+    ];
+
+    for (const [timeoutInSeconds, listened] of cases) {
+      const claims: JSONObject = claimsOf(
+        signed({
+          prompt: {
+            sayMessage: PROMPT.sayMessage,
+            noInputMessage: PROMPT.noInputMessage,
+            timeoutInSeconds: timeoutInSeconds,
+          },
+        }),
+      );
+
+      expect({
+        timeoutInSeconds,
+        listened: (
+          read(claims) as { prompt: { timeoutInSeconds: number } | null }
+        ).prompt?.timeoutInSeconds,
+      }).toEqual({ timeoutInSeconds, listened });
+    }
+  });
+
+  test("a prompt with no words for silence still asks again: silence after it then ends the call with nothing more said", () => {
+    const reading: OnCallKeypadTokenReading = read(
+      claimsOf(
+        signed({
+          prompt: { sayMessage: PROMPT.sayMessage, timeoutInSeconds: 10 },
+        }),
+      ),
+    );
+
+    expect((reading as { prompt: unknown }).prompt).toEqual({
+      sayMessage: PROMPT.sayMessage,
+      noInputMessage: "",
+      timeoutInSeconds: 10,
+    });
+  });
+
+  test("a call placed before this release, which carried neither, is still taken as it always was", () => {
+    const reading: OnCallKeypadTokenReading = read(
+      claimsOf(earlierCallToken()),
+      pageTokenFor(NOTIFICATION),
+    );
+
+    expect(reading).toMatchObject({
+      isAccepted: true,
+      isEarlierCall: true,
+      prompt: null,
+    });
+    expect((reading as { voice?: string }).voice).toBeUndefined();
+  });
+
+  test("the prompt and the voice open no other notification's page", () => {
+    expect(
+      read(
+        claimsOf(signed({ prompt: PROMPT, voice: "Polly.Amy-Neural" })),
+        undefined,
+        OTHER_NOTIFICATION,
+      ),
+    ).toEqual({
+      isAccepted: false,
+      refusal: OnCallKeypadTokenRefusal.OtherNotification,
+    });
   });
 });

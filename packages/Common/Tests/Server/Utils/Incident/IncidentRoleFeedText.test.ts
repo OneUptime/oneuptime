@@ -88,6 +88,20 @@ describe("somebody given a role", () => {
     );
   });
 
+  test("by an on-call policy that paged them: the policy is named", () => {
+    expect(
+      IncidentRoleFeedText.getAddedMarkdown({
+        roleName: "Service Owner",
+        incident: INCIDENT,
+        person: DEANE,
+        isSelf: false,
+        cause: { kind: "onCallPolicy", policyName: "  Payments Primary  " },
+      }).toString(),
+    ).toBe(
+      `👤 On-Call Policy **Payments Primary** added **[Deane Looi](https://oneuptime.example/dashboard/p/users/d)** as **Service Owner** to [Incident INC-18](${LINK}).`,
+    );
+  });
+
   test("by OneUptime, to the first person to change the state: it says why", () => {
     expect(
       IncidentRoleFeedText.getAddedMarkdown({
@@ -118,6 +132,7 @@ describe("somebody given a role", () => {
   test.each<[string, IncidentRoleAssignmentCause]>([
     ["a state with no name", { kind: "stateChange", stateName: "   " }],
     ["a monitor with no name", { kind: "monitor", monitorName: "" }],
+    ["a policy with no name", { kind: "onCallPolicy", policyName: "  " }],
   ])(
     "%s is no cause: the plain sentence stands",
     (_label: string, cause: IncidentRoleAssignmentCause) => {
@@ -157,6 +172,17 @@ describe("somebody given a role", () => {
     }).toString();
 
     expect(monitor).not.toContain("![x](");
+
+    const policy: string = IncidentRoleFeedText.getAddedMarkdown({
+      roleName: "Responder",
+      incident: INCIDENT,
+      person: DEANE,
+      isSelf: false,
+      cause: { kind: "onCallPolicy", policyName: "<!here> **Ops**" },
+    }).toString();
+
+    expect(policy).not.toContain("<!here>");
+    expect(policy).toContain("\\*\\*Ops\\*\\*");
 
     const state: string = IncidentRoleFeedText.getAddedMarkdown({
       roleName: "Responder",
@@ -375,6 +401,7 @@ describe("why OneUptime gave the role, carried in a create's miscDataProps", () 
     for (const cause of [
       { kind: "stateChange", stateName: "Acknowledged" },
       { kind: "monitor", monitorName: "API Health" },
+      { kind: "onCallPolicy", policyName: "Payments Primary" },
     ] as Array<IncidentRoleAssignmentCause>) {
       expect(
         IncidentRoleFeedText.readCause({
@@ -415,6 +442,8 @@ describe("why OneUptime gave the role, carried in a create's miscDataProps", () 
     ["a state with no name", { kind: "stateChange", stateName: " " }],
     ["a state name that is no text", { kind: "stateChange", stateName: 7 }],
     ["a monitor with no name", { kind: "monitor" }],
+    ["a policy with no name", { kind: "onCallPolicy", policyName: "" }],
+    ["a policy name that is no text", { kind: "onCallPolicy", policyName: 3 }],
   ])("%s is no cause", (_label: string, value: unknown) => {
     expect(
       IncidentRoleFeedText.readCause({

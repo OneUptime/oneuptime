@@ -706,31 +706,42 @@ describe("an entity-key scope makes the metrics list a scoped page, as an entity
     ).toContain("isScoped");
   });
 
-  test("the project's services still load under an entity-key scope, so a typed service: token is applied rather than dropped", () => {
+  test("a typed service: token is still searched for under an entity-key scope, so it is applied rather than dropped", () => {
     /*
-     * A `service:<name>` token applies only once the service list has
-     * loaded. Gating that load on `isScoped` made the Inventory item's
+     * A `service:<name>` token applies only once its services are found -
+     * searched for on the server now, never read from the project's first
+     * 10,000 (#10921). Gating that on `isScoped` made the Inventory item's
      * Metrics page ignore a submitted `service:checkout` while still offering
-     * the token, so the load has its own flag, which the entity-key scope
+     * the token, so the search has its own flag, which the entity-key scope
      * does not throw.
      */
-    const loadServicesAt: number = METRICS_VIEWER.indexOf(
-      "const loadServices: () => Promise<void> = async () =>",
+    const statementFrom: (marker: string) => string = (
+      marker: string,
+    ): string => {
+      const start: number = METRICS_VIEWER.indexOf(marker);
+
+      expect(start).toBeGreaterThanOrEqual(0);
+
+      return METRICS_VIEWER.slice(
+        start,
+        METRICS_VIEWER.indexOf(");", start) + 2,
+      );
+    };
+
+    const search: string = statementFrom(
+      "const serviceNameSearch: ServiceNameSearch = useServiceNameSearch(",
     );
 
-    expect(loadServicesAt).toBeGreaterThanOrEqual(0);
+    expect(search).toContain("!skipsServiceList");
+    expect(search).not.toContain("isScoped");
 
-    const effect: string = hookFrom(
-      METRICS_VIEWER.slice(
-        METRICS_VIEWER.lastIndexOf("useEffect(", loadServicesAt),
-      ),
-      "useEffect(",
+    const waiting: string = statementFrom(
+      "const isWaitingForServiceNames: boolean = Boolean(",
     );
-    const guard: string = effect.slice(0, effect.indexOf("const loadServices"));
 
-    expect(guard).toContain("if (skipsServiceList)");
-    expect(guard).not.toContain("isScoped");
-    expect(memoDependencies(effect)).toContain("skipsServiceList");
+    expect(waiting).toContain("!skipsServiceList");
+    expect(waiting).toContain("serviceNameSearch.isSearching");
+    expect(METRICS_VIEWER).not.toContain("const loadServices");
 
     const flag: string = hookFrom(
       METRICS_VIEWER,

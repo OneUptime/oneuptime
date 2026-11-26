@@ -170,6 +170,8 @@ const StatusPageReports: FunctionComponent<
         <ConfirmModal
           description={error}
           title={`Test email report not sent`}
+          // Its title says what failed: the explanation does not again (#7680).
+          titleSaysWhatFailed={true}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

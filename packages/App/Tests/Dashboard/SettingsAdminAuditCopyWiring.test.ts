@@ -181,7 +181,8 @@ describe("Project Settings > Call and SMS", () => {
    * numbers it sends from: its primary number, and its SMS number beside
    * it when SMS have their own (TwilioConfigPhoneNumbers). The account
    * comes last and starts hidden: a SID is the widest value in the row, and
-   * beside the side menu it was cut short under the row's actions.
+   * beside the side menu it was cut short under the row's actions. The
+   * voice calls speak with is one switch away too (#10948).
    */
   test("tells configs apart by name, use, numbers and default, with the account last and hidden", () => {
     const columns: string = table.slice(table.indexOf("columns={["));
@@ -203,7 +204,20 @@ describe("Project Settings > Call and SMS", () => {
     expect(
       columns.slice(columns.indexOf('title: "Twilio Account SID"')),
     ).toContain("isHiddenByDefault: true");
-    expect(countOf(columns, "isHiddenByDefault: true")).toBe(1);
+
+    /*
+     * The voice its calls speak with (#10948) starts hidden too, before the
+     * account: most configs keep the account's default voice.
+     */
+    const voiceAt: number = columns.indexOf("twilioCallVoice: true");
+    const accountAt: number = columns.indexOf('title: "Twilio Account SID"');
+
+    expect(voiceAt).toBeGreaterThan(-1);
+    expect(voiceAt).toBeLessThan(accountAt);
+    expect(columns.slice(voiceAt, accountAt)).toContain(
+      "isHiddenByDefault: true",
+    );
+    expect(countOf(columns, "isHiddenByDefault: true")).toBe(2);
   });
 });
 

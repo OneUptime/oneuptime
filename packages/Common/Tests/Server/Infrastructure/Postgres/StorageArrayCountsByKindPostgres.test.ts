@@ -1,4 +1,4 @@
-import { AddStorageArrayCountsByKind1809187661000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187661000-AddStorageArrayCountsByKind";
+import { AddStorageArrayCountsByKind1809187690000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187690000-AddStorageArrayCountsByKind";
 import { MERGE_COUNTS_BY_KIND_SQL } from "../../../../Server/Services/StorageArrayService";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -204,7 +204,7 @@ describePostgres("StorageArray countsByKind against Postgres", () => {
     }
 
     await runInSchema(async (queryRunner: QueryRunner): Promise<void> => {
-      await new AddStorageArrayCountsByKind1809187661000().up(queryRunner);
+      await new AddStorageArrayCountsByKind1809187690000().up(queryRunner);
     });
   }, 120_000);
 
@@ -284,7 +284,7 @@ describePostgres("StorageArray countsByKind against Postgres", () => {
           return [];
         },
       } as unknown as QueryRunner;
-      await new AddStorageArrayCountsByKind1809187661000().up(recorder);
+      await new AddStorageArrayCountsByKind1809187690000().up(recorder);
       for (const statement of statements.slice(1)) {
         await queryRunner.query(statement);
       }
@@ -387,7 +387,7 @@ describePostgres("StorageArray countsByKind against Postgres", () => {
 
   test("down() drops the column, and up() adds it back", async () => {
     await runInSchema(async (queryRunner: QueryRunner): Promise<void> => {
-      await new AddStorageArrayCountsByKind1809187661000().down(queryRunner);
+      await new AddStorageArrayCountsByKind1809187690000().down(queryRunner);
     });
     const without: Array<unknown> = await database.query(
       `SELECT 1 FROM information_schema.columns
@@ -397,7 +397,7 @@ describePostgres("StorageArray countsByKind against Postgres", () => {
     expect(without).toHaveLength(0);
 
     await runInSchema(async (queryRunner: QueryRunner): Promise<void> => {
-      await new AddStorageArrayCountsByKind1809187661000().up(queryRunner);
+      await new AddStorageArrayCountsByKind1809187690000().up(queryRunner);
     });
     expect(await countsOf(ARRAYS["flashArray"]!.id)).toEqual({
       Volume: 120,

@@ -21,6 +21,8 @@ import AIService, {
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
   AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
   AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
@@ -200,10 +202,12 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
          * OneUptime AI's Data Security work, each started with no person:
          * an issue's analysis, store owners, a group's name, scrub rules,
          * the verdicts on findings that wait for a person (#10372), a pull
-         * request's sensitive data, the daily record drafts, and an
+         * request's sensitive data, the daily record drafts, the data
+         * types drafted from fields scans could not place (#10371), and an
          * exposure's write-up as its case opens (#10377). The drafts a
          * person asks for (on request, an impact assessment, audit
-         * evidence, an exposure's write-up) are not budgeted.
+         * evidence, an exposure's write-up, Describe It's data type) are
+         * not budgeted.
          */
         AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
@@ -212,6 +216,7 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
         AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
         AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
         AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+        AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
         AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
         RUNBOOK_AI_STEP_FEATURE,
         WORKFLOW_AI_FEATURE,
@@ -238,6 +243,27 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
     );
     expect(AUTONOMOUS_AI_FEATURES).not.toContain(
       AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
+    );
+  });
+
+  /*
+   * A data type OneUptime AI drafts (#10371): from the fields scans could
+   * not place, started by the scans with no one pressing it, it is
+   * budgeted; from a person's sentence on the data type form (Describe
+   * It), answered while they wait, it is not.
+   */
+  test("a data type drafted from unplaced fields is budgeted, and not one a person describes", () => {
+    expect(AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE).toBe(
+      "AI Data Security Data Type Draft",
+    );
+    expect(AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE).toBe(
+      "AI Data Security Data Type Describe",
+    );
+    expect(AUTONOMOUS_AI_FEATURES).toContain(
+      AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+    );
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
     );
   });
 });

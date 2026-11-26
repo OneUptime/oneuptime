@@ -65,6 +65,7 @@ flowchart TB
 | **Notiz-Vorlagen** | Einstellungen | Fertige Texte für die Notizen, die Ihr Team zu seinen Fällen schreibt |
 | **Nummerierung** | Einstellungen | Der Text vor den Fallnummern und die Nummer, die der nächste Fall erhält |
 | **Risikobewertung** | Einstellungen | Ob das Risiko einer Entität einen Fall eröffnet, ab welchem Risiko, und wie wichtig jede Entität ist |
+| **Löschanfragen** | Einstellungen | Personen, die auf Anfrage gelöscht wurden, und was jede Löschung geändert hat |
 
 **Erkennungen**, **KI**, **Verbindungen** und **Einstellungen**, die man einmal einrichtet, bleiben eingeklappt, bis Sie sie öffnen. Neu bei Sicherheit? [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started) richtet sie mit zwei Klicks ein.
 
@@ -246,7 +247,7 @@ Schalten Sie **Netzwerk-Flows** unter **Ihre OneUptime-Daten** auf **Verbindunge
 - der Bereich jedes ihrer Erkennungsscans, solange der Scan läuft;
 - die Hosts und Ports, die ihre Monitore prüfen.
 
-Er wird als informatives Ereignis `oneuptime-probe-traffic` aufbewahrt, das die Sonde nennt, und keine Regel liest es. **Netzwerk-Flows** zeigt, wie viel am letzten Tag beiseitegelegt wurde, mit **Anzeigen**. Alles andere von der Adresse einer Sonde wird gezählt wie jeder andere Datenverkehr, und ein Sweep oder Scan über die Arbeit der Sonde hinaus wird gemeldet, mit dem Namen der Sonde. Eine Sonde wird an der Adresse erkannt, von der aus sie sich meldet, und an den Adressen ihrer eigenen Netzwerkschnittstellen, die sie bei jeder Meldung auflistet.
+Er wird als informatives Ereignis `oneuptime-probe-traffic` aufbewahrt, das die Sonde nennt, und keine Regel liest es. **Netzwerk-Flows** zeigt, wie viel am letzten Tag beiseitegelegt wurde, mit **Anzeigen**. Alles andere von der Adresse einer Sonde wird gezählt wie jeder andere Datenverkehr, und ein Sweep oder Scan über die Arbeit der Sonde hinaus wird gemeldet, mit dem Namen der Sonde. Eine Sonde wird an der Adresse erkannt, von der aus sie sich meldet, und an den Adressen ihrer eigenen Netzwerkschnittstellen, die sie bei jeder Meldung auflistet. Eine benutzerdefinierte Sonde ohne Host-Netzwerk, etwa ein Kubernetes-Pod oder ein Container in einem Docker-Bridge-Netzwerk, wird auch an den Adressen ihres Hosts erkannt, die ihr `PROBE_HOST_IP_ADDRESSES` mitteilt: Solange sie sie nicht hat, verlassen ihre Abfragen den Rechner über eine Adresse, an der sie nicht erkannt wird, und werden als Sweeps gemeldet. Siehe [Was eine Sonde bei ihrer Meldung sendet](/docs/probe/custom-probe#was-eine-sonde-bei-ihrer-meldung-sendet).
 
 ### Ein Sicherheitsprodukt verbinden
 
@@ -288,6 +289,55 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 
 Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
 
+### Welche Adresse ein Ereignis nennt
+
+Ein Ereignis nennt die Adresse, von der eine Anfrage kam, nur dann, wenn der Absender der Anfrage sie nicht selbst hätte schreiben können. Diese Adresse ist verifiziert und wird zur **Quell-IP** des Ereignisses: Erkennungsregeln zählen sie, Threat Intelligence gleicht sie ab, und der **Reaktionsplan** eines Falls bietet an, sie zu sperren. Jede andere Adresse, die eine Anfrage nennt, ist nur behauptet: Das Ereignis behält sie als **Behauptete IP**, und nichts zählt oder sperrt sie.
+
+- Die eigene Adresse der Verbindung ist verifiziert: die `network.peer.address` eines Server-Spans oder das erste Feld einer Zeile im Zugriffslog eines Webservers. Niemand kann sie in eine Anfrage schreiben.
+- Hinter einem Proxy, dem Sie vertrauen, ist die Adresse der Verbindung die des Proxys, und der Client ist die Adresse, die der Proxy in `X-Forwarded-For` weitergegeben hat. Jeder Proxy hängt die Adresse an, von der er die Verbindung angenommen hat, daher liest OneUptime den Header von rechts und nimmt die erste Adresse, die kein Proxy ist, dem Sie vertrauen. Was ein Absender in den Header schreibt, landet links davon und bleibt eine Behauptung.
+- Eine Adresse, die eine Anfrage über sich selbst nennt, ist behauptet: `client.address`, die die Instrumentierung aus dem linken Teil des Headers füllt, der Rest von `X-Forwarded-For` und `Forwarded`.
+
+Eine behauptete Adresse wird nie aus einem Fall heraus gesperrt: Jeder kann `X-Forwarded-For: 192.0.2.44` senden, und eine Sperre würde treffen, wem auch immer 192.0.2.44 gehört. Ein Ereignis mit nur einer behaupteten Adresse hat einen **Reaktionsplan**, der Sie auffordert, die echte Adresse in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen.
+
+Zeichnen Sie zwei Dinge auf den Server-Spans Ihrer App auf, damit ihre Adressen verifiziert sind: die eigene Adresse der Verbindung, `network.peer.address`, die die HTTP-Instrumentierungen von OpenTelemetry setzen, und hinter einem Proxy den Header `X-Forwarded-For`, den sie als `http.request.header.x-forwarded-for` aufzeichnen, sobald Sie ihn in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` aufführen. Ein JSON-Zugriffslog wird genauso gelesen: Sein Client-Feld, etwa `remote_addr`, ist die Adresse der Verbindung, und sein Feld `http_x_forwarded_for` ist der Header.
+
+#### Vertrauenswürdige Proxys
+
+Sicherheitsereignisse glaubt einem Proxy, wer sein Client war, wenn seine Adresse eine der folgenden ist:
+
+| Vertrauenswürdig | Warum |
+| --- | --- |
+| Privat, Loopback oder Link-Local, etwa `10.0.0.5` | Immer: Niemand hat sie im Internet, also ist sie ein Load Balancer oder ein Ingress in Ihrem Netzwerk |
+| Unter **Vertrauenswürdige Proxys** aufgeführt | Sie haben sie aufgeführt |
+| In den veröffentlichten Bereichen eines Edge, das Sie verbunden haben, etwa [Cloudflare](/docs/integrations/cloudflare) | Solange die Verbindung besteht |
+| Einer Ihrer eigenen Application Load Balancer | Sofern Sie es nicht ausschalten |
+
+**Sicherheitsereignisse → Verbindungen → Weitere Einstellungen** enthält **Vertrauenswürdige Proxys**, die Liste, die Sie schreiben, und **Automatisch vertrauenswürdig**, das den Rest zeigt und warum. Führen Sie einen Proxy unter **Vertrauenswürdige Proxys** auf, eine Adresse oder einen Bereich pro Zeile, wenn seine Adresse öffentlich ist und ihm sonst nichts vertraut: ein CDN, das Sie nicht verbunden haben, ein Load Balancer, der Ihre App über das Internet erreicht, oder ein Reverse Proxy wie nginx auf einem Server mit öffentlicher Adresse vor Ihrer App. Bis dahin wird jeder Angriff über ihn dem Proxy zugeschrieben. Hinter einem globalen externen Application Load Balancer von Google Cloud kommen die Verbindungen Ihrer App von den Front-Ends von Google: Führen Sie `35.191.0.0/16` und `130.211.0.0/22` auf.
+
+Ihre eigenen Application Load Balancer sind die, die Ihre [verbundenen Cloud-Konten](/docs/telemetry/cloud-accounts) aufführen: AWS Application Load Balancer, AWS Classic Load Balancer, deren Listener alle HTTP oder HTTPS sind, Google Cloud Application Load Balancer und Azure Application Gateways, mit ihren öffentlichen Adressen. Jeder hängt den Client, den er weiterleitet, an `X-Forwarded-For` an. Ein Load Balancer von Google Cloud hängt seine eigene Adresse nach der des Clients an, und ein Application Gateway erreicht ein öffentliches Backend von seiner eigenen Adresse aus, daher würde ohne sie jeder Angriff über einen von ihnen dem Load Balancer zugeschrieben. **Ihre Load Balancer** auf **Automatisch vertrauenswürdig** führt sie auf, und ein Projektinhaber, Projektadministrator oder Sicherheits-Administrator kann es ausschalten.
+
+Nichts anderes von Ihnen ist automatisch vertrauenswürdig: nicht Ihre Hosts, Kubernetes-Knoten, Sonden oder virtuellen Maschinen, kein NAT-Gateway und kein Network, Gateway oder Azure Load Balancer. Sie leiten niemanden weiter oder geben eine Anfrage so weiter, wie sie kam, daher könnte alles, was auf ihnen läuft, jeden beliebigen Client nennen: eine Anfrage, die ein Monitor mit eigenen Headern sendet, ein Pod, ein Laptop hinter dem Gateway. Ist einer davon Ihr Proxy, fügen Sie ihn zu **Vertrauenswürdige Proxys** hinzu. Einem Kubernetes-Ingress wird so vertraut wie dem Load Balancer, der er ist: Ein GKE-Ingress ist ein Google Cloud Application Load Balancer, ein AKS-Ingress für Application Gateway ein Application Gateway und ein EKS-Ingress der Klasse `alb` ein AWS Application Load Balancer. Ein Ingress-Controller in Ihrem Cluster leitet von einer privaten Adresse aus weiter, der immer vertraut wird.
+
+Eine Änderung an einem davon wirkt innerhalb einer Minute, und einem neuen Load Balancer wird innerhalb von fünf vertraut.
+
+#### Zugriffslogs, die mit X-Forwarded-For enden
+
+Hinter einem Load Balancer protokollieren viele Webserver die weitergeleitete Adresse zuletzt, wie es das eigene Format `main` von nginx tut:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Eine Zeile sagt nie, was ihre Felder sind, daher wird ihr letztes Feld erst dann als `X-Forwarded-For` gelesen, wenn Sie **Protokolle enden mit X-Forwarded-For** auf **Zugriffsprotokolle** unter **Weitere Einstellungen** einschalten, und dann nur:
+
+- wenn das erste Feld der Zeile ein Proxy ist, dem Sie vertrauen: Eine Zeile von einem Client, der Ihren Webserver direkt erreicht hat, gehört diesem Client;
+- im Format combined, mit genau einem Feld in Anführungszeichen nach dem User-Agent und nichts danach;
+- wenn dieses Feld `-` ist oder eine Liste von Adressen, deren letzte keinen Port hat.
+
+Lassen Sie es aus, wenn Ihr Format mit einem anderen Header endet, der eine Adresse enthält, etwa `X-Real-IP`, oder wenn Ihr Webserver Header schreibt, ohne ihre Anführungszeichen zu maskieren, wie es `morgan` von Express tut: Der eigene User-Agent einer Anfrage könnte dann ein Feld hinzufügen. Ein JSON-Zugriffslog braucht keinen Schalter, da seine Felder benannt sind.
+
 ### Von einer Bereinigungsregel verborgen
 
 Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbirgt die Adresse, von der ein Angriff kam, bevor Sicherheitsereignisse sie liest. Das Ereignis wird trotzdem gespeichert, ohne Adresse, und überall, wo es die Adresse nennen würde, sagt es, dass eine Scrub-Regel sie verborgen hat:
@@ -303,6 +353,8 @@ Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodas
 Eine Erkennungsregel, die pro Adresse zählt, sollte wie die Regeln der Regelbibliothek pro `principalIp` oder `targetIp` zählen, denn diese Felder nennen die Adresse hinter dem Token einer Regel, die hasht. Das eigene Adressfeld eines Formats, etwa `openstack.audit.initiator_address` oder `asa.src_ip`, enthält nur eine Adresse, die das Log geschrieben hat, und bleibt daher überall leer, wo eine Scrub-Regel eine verborgen hat.
 
 Eine Regel, die einen Benutzer schwärzt oder maskiert, verbirgt ihn genauso: Wo das Ereignis den Benutzer nennen würde, sagt **Quellbenutzer** oder **Zielbenutzer**, dass eine Scrub-Regel ihn verborgen hat. Wo Sicherheitsereignisse einen Benutzer liest, bewahrt eine Regel, die hasht, den Benutzer dafür auf: die `enduser.id` oder `user.id` einer Anfrage, den Benutzer eines KI-Aufrufs und einen Benutzer, den eine Logzeile nennt, etwa den Principal eines Cloud-Audit-Logs. So nennt das Ereignis den Benutzer hinter dem Token, ein Fall über ihn nennt das Konto, und ein Playbook kann darauf handeln wie bei jedem anderen Benutzer. Was die Regel hinterlassen hat, steht in `oneuptime.principal_user_hashed_as` oder `oneuptime.target_user_hashed_as`, damit Sie den Benutzer in Ihren Logs und Traces finden, die nur das Token enthalten. Ein Token, zu dem kein Benutzer aufbewahrt ist, etwa eines, das entstand, bevor Token einen Schlüssel hatten, bleibt der Benutzer des Ereignisses: Regeln zählen es als ein Konto, und kein Playbook handelt darauf.
+
+Das Panel des Ereignisses sagt das unter dem Benutzer, den es in **Quellbenutzer** und **Zielbenutzer** nennt: „In Ihren Protokollen gehasht als …“, oder „In Ihren Traces gehasht als …“ bei einem Ereignis aus Ihren Traces, wobei … für das Token steht. Das Token ist ein Link, der Ihre Logs oder Traces danach durchsucht, von einem Tag vor dem Ereignis bis zu einem Tag danach. Bei einem auf Anfrage gelöschten Benutzer steht stattdessen **Auf Anfrage gelöscht**, und das Ereignis zeigt sein Token: siehe [Eine Person löschen](#eine-person-löschen).
 
 ## Sicherheitsereignisse erkunden
 
@@ -548,6 +600,8 @@ Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mi
 | Password Spraying: eine IP scheitert an 5 verschiedenen Konten | `principalIp` | `principalUser` | 5 |
 | Portscan: eine IP erreicht 20 verschiedene Ports | `principalIp` | `targetPort` | 20 |
 
+Eine Regel mit **Nach Feld gruppieren**, die mehr als ein Ereignis in einer Gruppe braucht, durch einen Schwellenwert über 1 oder ein **Feld für eindeutige Zählung**, lässt die Ereignisse aus, die keinen Wert für ihr Feld haben: Gezählt würden sie sich alle zu einem Wert summieren, jede fehlgeschlagene Anmeldung ohne Adresse zu einer IP-Adresse. Eine Regel, die bei jedem Ereignis auslöst, löst für sie weiter aus. **Erkennungsregeln** zeigt unter dem Namen einer Regel, wie viele der passenden Ereignisse des letzten Tages sie nicht zählen konnte, und die Zeile öffnet den Grund: wie viele keinen Wert hatten und wie viele davon eine Scrub-Regel verborgen hat, mit **Scrub-Regeln öffnen**. Eine Regel, die nichts von dem zählen konnte, worauf sie zutraf, kann nicht auslösen, und ihr **Status** sagt **Erfordert Aufmerksamkeit**. **Auf vergangene Ereignisse anwenden** sagt dasselbe für den Zeitraum, den es liest.
+
 ### Wann eine Regel läuft
 
 OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem letzten Lauf hinter sich haben. Jeder Lauf liest die Ereignisse, die zwischen dem vorigen Lauf und vor zwei Minuten bei OneUptime angekommen sind, gleich wann sie geschehen sind, und geht dann weiter. Die zwei Minuten lassen Ereignissen Zeit, die noch geschrieben werden:
@@ -696,6 +750,30 @@ Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die 
 - Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
 
 **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** listet die aktivierten Regeln auf, die weiter zurückblicken als ihre **Standardaufbewahrung (Tage)**. Um sie abzudecken, bewahren Sie Ereignisse länger auf, mit **Aufbewahrung ändern** unter einer Regel, oder verkürzen Sie die Zeitspanne einer Regel auf das Aufbewahrte. OneUptime bewahrt 15 Tage auf, sofern Sie es nicht ändern, denn die Aufbewahrung bestimmt, was Ihre Telemetrie kostet und wie lange personenbezogene Daten in Ereignissen, etwa Adressen und Benutzernamen, aufbewahrt werden. Eine neue Aufbewahrung gilt für Ereignisse, die ab dann eintreffen, sodass Regeln weiter zurückblicken, je älter diese Ereignisse werden.
+
+## Eine Person löschen
+
+Wenn jemand Sie bittet, seine Daten zu löschen, etwa nach Artikel 17 DSGVO, löschen Sie die Person unter **Sicherheitsereignisse → Einstellungen → Löschanfragen**. Wählen Sie **Person löschen** und geben Sie ihre Benutzer-ID oder E-Mail-Adresse so ein, wie Ihre Logs sie enthielten, bevor Ihre Hash-Scrub-Regel sie verbarg, oder das Token, das ein Ereignis an ihrer Stelle zeigt. Eine E-Mail-Adresse wird auch in Kleinbuchstaben gelöscht. Tragen Sie unter **Referenz** Ihren eigenen Verweis ein, etwa die Ticketnummer der Anfrage, nie den Namen der Person.
+
+Was die Anfrage bewirkt:
+
+- Innerhalb einer Minute wird die Person nicht mehr genannt. Der Benutzertresor verweigert ab dann ihre Token, sodass kein Ereignis, kein Fall und kein Playbook sie wieder nennt, auch wenn ein späteres Ereignis dasselbe Token trägt: Dieses Ereignis behält das Token als seinen Benutzer, wie bei jedem Token, zu dem kein Benutzer aufbewahrt wird. Ein wiederkehrendes Token aufzubewahren würde die Person wieder nennen, und genau das sollen Sie auf ihren Wunsch beenden.
+- Innerhalb weniger Minuten löscht sie die Einträge des Tresors zur Person und setzt das Token wieder an ihre Stelle in den Ereignissen, die sie über den Tresor nannten: **Quellbenutzer**, **Zielbenutzer**, die Observables und die Attribute. Sie entfernt die Person aus den Titeln, Entitäten und aufbewahrten Ereignissen von Fällen und Erkennungen sowie aus dem Entitätsrisiko.
+- Ein Playbook-Lauf oder eine Aktion von OneUptime AI, die auf eine Genehmigung wartet, um auf die Person zu wirken, wird zurückgezogen und sagt, warum.
+
+Jede Anfrage zeigt ihren Status, **In der Warteschlange**, **Wird gelöscht**, **Gelöscht** oder **Fehlgeschlagen**, und was sie geändert hat: die gelöschten Tresoreinträge, die Ereignisse und Fälle, die die Person nicht mehr nennen, und die zurückgezogenen Vorschläge. Das Löschen beginnt zwei Minuten nach dem Stellen der Anfrage, sobald kein OneUptime-Server die Person mehr nennt, und eine Anfrage zeigt **Gelöscht** erst, wenn jede Änderung angewendet ist. Eine fehlgeschlagene Anfrage wird erneut versucht; nach fünf Versuchen zeigt sie **Fehlgeschlagen** mit dem Grund, und die Inhaber des Projekts erhalten eine E-Mail. Die Person wird weiterhin nicht genannt, und wenn Sie die Anfrage erneut stellen, wird es noch einmal versucht.
+
+Was sie belässt:
+
+- Was Menschen geschrieben haben: Notizen, Abschlussnotizen, Aufgaben, Beweise, benutzerdefinierte Felder und was OneUptime AI über einen Fall geschrieben hat.
+- Ereignisse, die die Person nannten, weil Ihre Logs sie im Klartext enthielten, und Ihre Logs und Traces selbst, die nur das Token enthalten.
+- Die Detection-Finding-Ereignisse, die eine Regel über die Person geschrieben hat und deren Nachricht und Observables sie nennen können, bis Ihre Telemetrie-Aufbewahrung sie löscht.
+- Bereits gesendete Benachrichtigungen, Vorfälle und Alarme, die eine Erkennung geöffnet hat, die Aktivität eines Falls, Exporte, Backups und das Audit-Log.
+- Bei einem selbst gehosteten OneUptime, dessen `ENCRYPTION_SECRET` sich geändert hat, die Token von vor der Änderung: Löschen Sie jedes über das Token, das ein Ereignis zeigt.
+
+Die Anfrage bewahrt auf, wer sie wann gestellt hat, Ihren Verweis und die Token der Person, mit denen der Tresor sie weiterhin verweigert. Die Benutzer-ID oder E-Mail-Adresse wird verschlüsselt gespeichert, wo keine Seite, kein Export und keine API sie lesen kann, und gelöscht, sobald die Löschung abgeschlossen ist; ClickHouse erhält immer nur die Token. Anfragen lassen sich weder bearbeiten noch löschen: Sie sind Ihr Nachweis der Löschung.
+
+Projektinhaber, Projektadministratoren, Sicherheits-Administratoren und alle mit Create Security Erasure Request, etwa Ihr Datenschutzbeauftragter, können eine Anfrage stellen, auf der Seite oder über `/security-user-erasure-request` der API. Jede Sicherheitsrolle kann sie lesen.
 
 ## Fehlerbehebung
 

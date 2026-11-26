@@ -6,6 +6,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1279,6 +1280,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Test Failed`}
           error={testFailureLead}
+          // What failed is the Send Test Now the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Send Test Now") || "Send Test Now",
+          )}
           description={
             hasTestChannelsNotPostedIn ? (
               <WorkspaceSummaryTestFailure channels={testChannels} />

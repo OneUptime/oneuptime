@@ -130,7 +130,10 @@ export const getRequiredUniqueNameServices: (
       return true;
     })
     .sort(
-      (a: DatabaseService<BaseModel>, b: DatabaseService<BaseModel>): number => {
+      (
+        a: DatabaseService<BaseModel>,
+        b: DatabaseService<BaseModel>,
+      ): number => {
         return (a.getModel().tableName || "").localeCompare(
           b.getModel().tableName || "",
         );

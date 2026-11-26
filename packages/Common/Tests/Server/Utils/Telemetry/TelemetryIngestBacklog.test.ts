@@ -50,18 +50,89 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * Each line's head, as getJobs answers for it: the wait list (monitoring
+ * work, and jobs an earlier release queued) and the prioritized set (bulk
+ * telemetry), issue #11131.
+ */
+function heads(data: {
+  wait?: QueueJob | undefined;
+  prioritized?: QueueJob | undefined;
+}): void {
+  getJobs.mockImplementation(async (types: Array<string>) => {
+    const head: QueueJob | undefined =
+      types[0] === "prioritized" ? data.prioritized : data.wait;
+
+    return head ? [head] : [];
+  });
+}
+
 describe("TelemetryIngestBacklog.getOldestWaitingSince", () => {
-  test("reads the oldest waiting job of the Telemetry queue, oldest first, one job only", async () => {
-    getJobs.mockResolvedValue([job({ timestamp: 1_791_588_000_000 })]);
+  test("reads the oldest waiting job of each line of the Telemetry queue, oldest first, one job only", async () => {
+    heads({ wait: job({ timestamp: 1_791_588_000_000 }) });
 
     expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toEqual(
       new Date(1_791_588_000_000),
     );
     expect(getQueue).toHaveBeenCalledWith(QueueName.Telemetry);
     expect(getJobs).toHaveBeenCalledWith(["wait"], 0, 0, true);
+    expect(getJobs).toHaveBeenCalledWith(["prioritized"], 0, 0, true);
+    expect(getJobs).toHaveBeenCalledTimes(2);
   });
 
   test("nothing waiting means nothing behind", async () => {
+    expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toBeNull();
+  });
+
+  test("bulk telemetry waiting behind current monitoring work is how far behind the queue is", async () => {
+    // The monitoring work is taken first, so it is current...
+    heads({
+      wait: job({ timestamp: 1_791_588_600_000 }),
+      // ...while the logs and metrics behind it are ten minutes behind.
+      prioritized: job({ timestamp: 1_791_588_000_000 }),
+    });
+
+    expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toEqual(
+      new Date(1_791_588_000_000),
+    );
+  });
+
+  test("monitoring work older than every waiting telemetry batch is how far behind the queue is", async () => {
+    heads({
+      wait: job({ timestamp: 1_791_588_000_000 }),
+      prioritized: job({ timestamp: 1_791_588_600_000 }),
+    });
+
+    expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toEqual(
+      new Date(1_791_588_000_000),
+    );
+  });
+
+  test("only bulk telemetry waiting: its oldest batch", async () => {
+    heads({ prioritized: job({ timestamp: 1_791_588_000_000 }) });
+
+    expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toEqual(
+      new Date(1_791_588_000_000),
+    );
+  });
+
+  test("a line whose head is a retry says nothing; the other line still does", async () => {
+    heads({
+      wait: job({ timestamp: 1_791_588_600_000 }),
+      prioritized: job({ timestamp: 1_791_588_000_000, attemptsMade: 1 }),
+    });
+
+    expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toEqual(
+      new Date(1_791_588_600_000),
+    );
+  });
+
+  test("both heads retries: it cannot be told", async () => {
+    heads({
+      wait: job({ timestamp: 1_791_588_600_000, attemptsMade: 2 }),
+      prioritized: job({ timestamp: 1_791_588_000_000, attemptsMade: 1 }),
+    });
+
     expect(await TelemetryIngestBacklog.getOldestWaitingSince()).toBeNull();
   });
 
@@ -89,6 +160,18 @@ describe("TelemetryIngestBacklog.getAddedAt", () => {
         job({ timestamp: 1_791_588_000_000, attemptsMade: 1 }),
       ),
     ).toBeNull();
+  });
+
+  test("the oldest of several times is the earliest, and null times say nothing", () => {
+    expect(
+      TelemetryIngestBacklog.getOldest([
+        new Date(1_791_588_600_000),
+        null,
+        new Date(1_791_588_000_000),
+      ]),
+    ).toEqual(new Date(1_791_588_000_000));
+    expect(TelemetryIngestBacklog.getOldest([null, null])).toBeNull();
+    expect(TelemetryIngestBacklog.getOldest([])).toBeNull();
   });
 
   test("no job, or one without a usable time, says nothing", () => {

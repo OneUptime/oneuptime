@@ -173,7 +173,12 @@ export default class ExposureAssessmentDrafter {
     dataStoreId?: ObjectID | undefined;
     now?: Date | undefined;
   }): Promise<DataSecurityExposureAssessmentResponse> {
-    if (!ExposureAssessmentReader.mayChange(data.props)) {
+    if (
+      !(await ExposureAssessmentReader.mayChange({
+        securityCaseId: data.securityCaseId,
+        props: data.props,
+      }))
+    ) {
       throw new NotAuthorizedException(CHANGE_REFUSED_MESSAGE);
     }
 
@@ -260,7 +265,12 @@ export default class ExposureAssessmentDrafter {
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
   }): Promise<DataSecurityExposureAssessmentResponse> {
-    if (!ExposureAssessmentReader.mayChange(data.props)) {
+    if (
+      !(await ExposureAssessmentReader.mayChange({
+        securityCaseId: data.securityCaseId,
+        props: data.props,
+      }))
+    ) {
       throw new NotAuthorizedException(CHANGE_REFUSED_MESSAGE);
     }
 
@@ -447,7 +457,12 @@ export default class ExposureAssessmentDrafter {
     markdown: string;
     now?: Date | undefined;
   }): Promise<DataSecurityExposureAssessmentResponse> {
-    if (!ExposureAssessmentReader.mayChange(data.props)) {
+    if (
+      !(await ExposureAssessmentReader.mayChange({
+        securityCaseId: data.securityCaseId,
+        props: data.props,
+      }))
+    ) {
       throw new NotAuthorizedException(CHANGE_REFUSED_MESSAGE);
     }
 
@@ -516,7 +531,12 @@ export default class ExposureAssessmentDrafter {
     places: ReadonlyArray<unknown>;
     now?: Date | undefined;
   }): Promise<DataSecurityExposureAssessmentResponse> {
-    if (!ExposureAssessmentReader.mayChange(data.props)) {
+    if (
+      !(await ExposureAssessmentReader.mayChange({
+        securityCaseId: data.securityCaseId,
+        props: data.props,
+      }))
+    ) {
       throw new NotAuthorizedException(CHANGE_REFUSED_MESSAGE);
     }
 
@@ -796,7 +816,10 @@ export default class ExposureAssessmentDrafter {
         props: ROOT,
       });
     const isAiEnabled: boolean = project?.enableAi !== false;
-    const canChange: boolean = ExposureAssessmentReader.mayChange(data.props);
+    const canChange: boolean = await ExposureAssessmentReader.mayChange({
+      securityCaseId: data.scope.securityCaseId,
+      props: data.props,
+    });
     const stored: StoredExposureAssessment | null =
       data.context?.stored || null;
     const facts: Array<ComplianceFact> = data.context?.built.facts || [];

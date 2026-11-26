@@ -5,6 +5,10 @@ import { CodeAgent, CodeAgentResult } from "../CodeAgents/Index";
 import { CodeRepositoryInfo } from "./BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
 import SecretRedactor from "./SecretRedactor";
+import {
+  getCodeFixCommandEnvironment,
+  withoutRunnerOwnEnvironment,
+} from "./RunnerOwnEnvironment";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -34,7 +38,10 @@ import logger from "Common/Server/Utils/Logger";
  * Trust model: the commands are operator-authored repository configuration
  * executed on the operator's own Runner (the same posture as runbook Bash
  * steps) — they are configuration, not AI output, and are never composed by
- * the model.
+ * the model. They are written by those who write a runbook's steps that run
+ * (Common/Types/CodeRepository/CodeRepositoryRunnerAuthoring), and run
+ * without the Runner's own settings - its id and key among them - in their
+ * environment (RunnerOwnEnvironment).
  */
 
 /*
@@ -232,11 +239,12 @@ export default class BuildVerification {
             cwd: data.repositoryPath,
             detached: true,
             stdio: ["ignore", "pipe", "pipe"],
-            env: {
-              ...process.env,
-              // Verification must never sit on an interactive prompt.
-              CI: "true",
-            },
+            /*
+             * The Runner's environment less its own settings and the
+             * pipeline's git credentials, with CI=true: verification must
+             * never sit on an interactive prompt.
+             */
+            env: getCodeFixCommandEnvironment(),
           },
         );
 
@@ -434,10 +442,18 @@ export default class BuildVerification {
       (resolve: (paths: Array<string>) => void) => {
         let out: string = "";
 
+        /*
+         * Without the Runner's own settings: the commands that just ran in
+         * this tree may have set up an fsmonitor or a hook that git runs.
+         */
         const child: ReturnType<typeof spawn> = spawn(
           "git",
           GIT_STATUS_PORCELAIN_ARGS,
-          { cwd: repositoryPath, stdio: ["ignore", "pipe", "ignore"] },
+          {
+            cwd: repositoryPath,
+            stdio: ["ignore", "pipe", "ignore"],
+            env: withoutRunnerOwnEnvironment(),
+          },
         );
 
         child.stdout?.on("data", (chunk: Buffer) => {

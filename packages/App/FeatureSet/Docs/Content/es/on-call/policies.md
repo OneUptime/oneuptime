@@ -87,6 +87,16 @@ Los minutos se cuentan desde cada reconocimiento, y una política vuelve a avisa
 
 Quien recibe el nuevo aviso lo reconoce desde su mensaje, o con **Reconocer de nuevo** en la página del incidente o de la alerta, y los minutos empiezan de nuevo; **Escalar** lo pasa al siguiente nivel. Resolver o eliminar el incidente o la alerta, archivar o eliminar la política, o elegir **No volver a avisar** lo detiene. La fila **Después de un reconocimiento** de la tarjeta dice qué hace la política, y **Más ajustes** muestra los minutos mientras está plegado. **La política de un vistazo** en la **Vista general** y el **Resumen del escalado** dicen lo mismo con palabras.
 
+## Dar un rol de incidente a las personas avisadas
+
+Los **Roles de incidente** de un incidente dicen quién trabaja en él. Una política puede incluir ahí a las personas que avisa: abre su página **Reglas de escalado**, abre **Más ajustes** abajo y haz clic en **Editar** en la tarjeta **Rol de incidente**. **Editar rol de incidente** pide un **Rol**: uno de los roles de incidente de tu proyecto, o **Sin rol**, con el que empieza toda política.
+
+Todas las personas a las que la política avise después sobre un incidente o un episodio de incidentes reciben ese rol en él, en cada nivel y cada vez que vuelve a avisar, siempre que sean miembros del proyecto. A quien avisa como observador no se le da. Quien ya tiene el rol lo conserva tal cual, y un rol que admite una sola persona, como **Comandante de incidente**, va a la primera persona avisada mientras nadie lo tenga. El feed del incidente nombra la política que la añadió, y no recibe ningún mensaje aparte sobre el rol: su aviso ya le informó del incidente.
+
+Así aparece en los incidentes de un servicio la persona de guardia del equipo dueño de ese servicio. Crea un rol como «Responsable del servicio» en **Incidentes → Ajustes → Roles de incidente**, elígelo en la política que avisa al equipo de pagos y haz que los monitores de pagos ejecuten esa política, desde sus criterios o una regla de guardia. Quien esté de guardia para pagos figura entonces como «Responsable del servicio» del incidente, y quien cambie primero su estado, al reconocerlo, sigue convirtiéndose en su **Comandante de incidente**, aunque una política le haya dado otro rol al avisarle.
+
+La fila **Rol de las personas avisadas** de la tarjeta dice qué rol da la política, y **Más ajustes** lo nombra mientras está plegado. Archivar el rol no impide que la política lo dé, y el diálogo de archivo del rol cuenta la política entre lo que lo usa: elige **Sin rol** para dejar de darlo. Eliminar el rol devuelve la política a **Sin rol**.
+
 ## Cuando avisan varias políticas
 
 Un incidente, una alerta o un episodio ejecuta cada una de sus políticas por separado, al mismo tiempo.
@@ -176,11 +186,14 @@ Las políticas de guardia son el recurso `/api/on-call-duty-policy`, y el recurs
 | **Si nadie lo reconoce después del último nivel** | `repeatPolicyIfNoOneAcknowledges` |
 | **¿Cuántas veces más?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **¿Después de cuántos minutos?** | `acknowledgementTimeoutInMinutes` |
+| **Rol** | `incidentRoleId` |
 | Archivada | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` debe ser un número entero de 1 o más: OneUptime rechaza `0`. Una política antigua guardada con `0` nunca se repite, y el panel la muestra como **Dejar de avisar**.
 
 `acknowledgementTimeoutInMinutes` es `null` para **No volver a avisar**, y un número entero de minutos de 5 a 1440 para **Volver a avisar**. OneUptime rechaza cualquier otro valor.
+
+`incidentRoleId` es el ID de uno de los roles de incidente del proyecto, o `null` para **Sin rol**.
 
 Para crear una política con su primer nivel en una sola petición, consulta [Crear reglas con la API o Terraform](/docs/on-call/escalation-rules#crear-reglas-con-la-api-o-terraform).
 

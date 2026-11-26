@@ -1,9 +1,10 @@
 {
-  "Something went wrong": "Er is iets misgegaan",
-  "An unexpected error has occurred. Please reload the page to continue": "Er is een onverwachte fout opgetreden. Laad de pagina opnieuw om verder te gaan",
+  "This page stopped working": "Deze pagina werkt niet meer",
+  "Part of this page ran into a problem. Reload the page to continue.": "Een deel van deze pagina liep tegen een probleem aan. Laad de pagina opnieuw om verder te gaan.",
   "Error details": "Foutdetails",
   "Still stuck?": "Kom je er nog steeds niet uit?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het met OneUptime Support deelt.",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het deelt.",
   "Download support bundle": "Ondersteuningsbundel downloaden",
   "Send it to {{email}}": "Stuur het naar {{email}}",
   "Support bundle downloaded. Review it, then attach it to your email.": "Ondersteuningsbundel gedownload. Bekijk hem en voeg hem toe aan je e-mail.",
@@ -642,6 +643,8 @@
   "The {{itemName}} was not created.": "{{itemName}} is niet aangemaakt.",
   "The {{itemName}} was not saved.": "{{itemName}} is niet opgeslagen.",
   "This did not finish.": "Dit is niet voltooid.",
+  "The {{itemName}} was not deleted.": "{{itemName}} is niet verwijderd.",
+  "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Deze pagina liep tegen een probleem aan, dus dit is niet voltooid. Laad de pagina opnieuw en probeer het daarna opnieuw.",
   "This page ran into a problem.": "Deze pagina liep tegen een probleem aan.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Om te zien wat er misging, voer je npm run doctor -- --logs uit in de map oneuptime van de server en zoek je naar deze referentie.",
@@ -737,6 +740,5 @@
     "note": "Opmerking",
     "tip": "Tip",
     "warning": "Waarschuwing"
-  },
-  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het deelt."
+  }
 }

@@ -141,6 +141,7 @@ import {
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
 } from "../../../Types/Incident/IncidentAlertLink";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../Types/Incident/IncidentDeclaredByHandStart";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -489,6 +490,13 @@ const miscDataSent: MiscDataFunction = async (): Promise<
   const returned: unknown = await form.onBeforeCreate!(item, miscDataProps);
 
   expect(returned).toBe(item);
+
+  /*
+   * Every declaration is sent as declared by hand (#11137): pinned here, and
+   * left out of what each test compares.
+   */
+  expect(miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY]).toBe(true);
+  delete miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY];
 
   return miscDataProps;
 };

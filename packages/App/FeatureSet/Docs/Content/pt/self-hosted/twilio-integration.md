@@ -147,6 +147,21 @@ O que nenhuma configuração padrão envia sai como sairia sem configuração: e
 
 As páginas de status oferecem só as configurações que enviam SMS, e **Enviar SMS de teste** e **Enviar chamada de teste** aparecem só para o que uma configuração envia. Toda configuração existente fica em **Chamadas e SMS**, como antes. Pela API e pelo Terraform, a escolha é o campo `usedFor`, e uma configuração sem os números de que sua escolha precisa é recusada.
 
+### A voz com que as chamadas falam
+
+As chamadas falam com a voz que a sua conta do Twilio usa por padrão: a voz Basic gratuita do Twilio, a menos que você tenha escolhido outra no Twilio Console. Segundo o Twilio, as vozes Basic não são feitas para produção, por isso cada conta pode, em vez disso, falar com uma destas vozes neurais. Escolha a da conta da instalação inteira no cartão **Voz das chamadas** de **Admin Dashboard > Configurações > Chamadas e SMS**, e a de uma configuração de projeto no campo **Voz das chamadas**, em **Mais campos**.
+
+| Voz | Feita por | Como soa |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Inglês americano, voz feminina |
+| `Polly.Matthew-Neural` | Amazon Polly | Inglês americano, voz masculina |
+| `Polly.Amy-Neural` | Amazon Polly | Inglês britânico, voz feminina |
+| `Polly.Brian-Neural` | Amazon Polly | Inglês britânico, voz masculina |
+| `Google.en-US-Neural2-F` | Google | Inglês americano, voz feminina |
+| `Google.en-US-Neural2-J` | Google | Inglês americano, voz masculina |
+
+Toda chamada feita pela conta fala com essa voz: os acionamentos de plantão e a resposta à tecla que você pressiona, a mensagem deixada na caixa postal, os códigos de verificação, **Enviar chamada de teste** e as saudações de uma política de chamadas recebidas. Nessas vozes, um número como `INC-42` é soletrado com SSML, o que soa mais natural do que as letras espaçadas que as outras vozes recebem. O Twilio cobra essas vozes na conta que faz a chamada: $0.0032 a cada 100 caracteres em novembro de 2026, menos de 2 centavos de dólar americano pela chamada de um acionamento. Veja [os preços de voz do Twilio](https://www.twilio.com/en-us/voice/pricing/us). Deixe o campo **Voz das chamadas** vazio para manter a voz padrão da conta. Pela API e pelo Terraform, a voz é o campo `twilioCallVoice`, e uma voz que não está na tabela é recusada.
+
 ### Caixa postal nas chamadas de plantão
 
 Para o Twilio, uma chamada atendida pela caixa postal foi atendida, como uma atendida por uma pessoa. Por isso cada chamada de plantão pergunta ao Twilio, em segundo plano, se uma pessoa ou a caixa postal atendeu, com a [detecção de secretária eletrônica](https://www.twilio.com/docs/voice/answering-machine-detection): quem atende ouve o acionamento na hora. Uma chamada atendida pela caixa postal conta como não atendida, como uma que toca até cair, e o acionamento continua como para uma chamada perdida. Assim que a saudação termina, o OneUptime deixa uma mensagem curta com o que a chamada dizia. O log da chamada diz se uma mensagem foi deixada, assim como o feed do incidente: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

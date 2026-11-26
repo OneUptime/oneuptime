@@ -14,6 +14,7 @@ Begge bruker samme monitortype. Det som skiller dem, er kriteriene du konfigurer
 - [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
 - [Varsle når kallene stopper](#marker-som-offline-hvis-det-ikke-kommer-noe-heartbeat-på-10-minutter-en-dødmannsbryter): Gjør monitoren til en dødmannsbryter.
 - [Motta varsler](#motta-varsler-fra-et-annet-system): Én hendelse per varsel fra Alertmanager eller Grafana.
+- [Publiser i Slack uten å tilkalle noen](#publiser-i-slack-uten-å-tilkalle-noen): Gi en kanal beskjed, og tilkall bare utenfor arbeidstiden.
 - [Abonner på SNS eller Event Grid](#abonnere-på-amazon-sns-eller-azure-event-grid): Bekreft abonnementet med ett klikk.
 :::
 
@@ -421,6 +422,32 @@ Hele nyttelasten er tilgjengelig ved siden av, så både en hendelsestittel `{{a
 ### Gjennomgått eksempel
 
 En fullstendig Alertmanager-konfigurasjon finner du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
+
+## Publiser i Slack uten å tilkalle noen
+
+Et staging-miljø, eller et produkt der problemene kan vente, vil kanskje ha en forespørsel publisert i en chattekanal uten å tilkalle noen. Et varsel som ikke nevner noen vaktpolicy, gjør nettopp det: det publiseres i Slack, Microsoft Teams eller Mattermost via prosjektets arbeidsområderegler og starter ingen eskalering.
+
+:::steps
+1. Åpne kriteriet, og slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**. La **Vaktpolicyer** for varselet stå tomt.
+2. Skriv det forespørselen sier inn i varselet, for eksempel `{{requestBody.commonAnnotations.summary}}` i beskrivelsen. Se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
+3. Legg til en regel for denne monitorens varsler under **Varsler → Arbeidsområde → Slack**, og slå på **Publiser i eksisterende kanaler**. Slack må først være [koblet til prosjektet](/docs/workspace-connections/slack).
+:::
+
+Et varsel som ikke nevner noen vaktpolicy, kan likevel tilkalle noen via prosjektets regler. Sjekk at ingen regel under **Varsler → Regler → Vaktregler** tilkaller noen for disse varslene, og at ingen regel under **Varsler → Regler → Hendelsesregler** erklærer en hendelse ut fra dem.
+
+For å publisere uten å opprette et varsel slår du bare på **Når filtre samsvarer, endre monitorstatus.** og legger regelen under **Monitorer → Arbeidsområde → Slack** i stedet. Kanalen får da bare vite at monitorens status endret seg, uten noe fra forespørselen, og bare når den endrer seg: flere forespørsler mens monitoren allerede har den statusen, publiserer ingenting.
+
+### Tilkall bare utenfor arbeidstiden
+
+To kriterier med de samme filtrene deler uken mellom seg, i denne rekkefølgen:
+
+1. Det første publiserer i arbeidstiden. Slå på **Evaluer disse kriteriene bare på bestemte dager og tider** under dets **Innstillinger**, og velg dagene, klokkeslettene og **Tidssone**. Varselet dets nevner ingen vaktpolicy.
+2. Det andre tilkaller resten av tiden. Det har ingen tider, og varselet dets nevner vaktpolicyen din.
+
+Det første kriteriet som samsvarer med en forespørsel, avgjør hva som skjer. Utenfor tidene sine hoppes det første kriteriet over, så det andre samsvarer om natten og i helgene, og bare da blir noen tilkalt. Se [Bare på bestemte dager og tider](/docs/monitor/criteria-and-statuses#bare-på-bestemte-dager-og-tider).
+
+- En forespørsel vurderes når den kommer, etter tidene slik de er da. Et problem som starter kl. 16:55, tilkaller noen etter kl. 17:00 bare hvis avsenderen sender det på nytt, slik Alertmanager gjør én gang per `repeat_interval`.
+- Et varsel med **Løs varsel automatisk** slått på løses når en forespørsel samsvarer med et annet kriterium. Den første forespørselen etter at arbeidstiden begynner, samsvarer med det første kriteriet, så den løser nattens varsel og åpner et som ikke tilkaller noen. La **Løs varsel automatisk** være slått av på varselet til det andre kriteriet for å holde det åpent til noen løser det.
 
 ## Tjenester som sjekker URL-en først
 

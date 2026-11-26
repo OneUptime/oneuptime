@@ -541,11 +541,55 @@ describe("Data Security's permission matrix", () => {
       "contentScanState",
       "fieldSuggestionState",
       "fingerprints",
+      // The store's impact assessment: served by its own route (see the next test).
+      "impactAssessment",
       // Data Observability's schedule: when the store's tables are next collected.
       "nextTableHealthCollectionAt",
+      // OneUptime AI's drafts of the store's record: served by the record's route.
+      "recordDrafts",
       // The database a collection read, for tying services' spans to its tables.
       "tableHealthTarget",
     ]);
+  });
+
+  /*
+   * A store's compliance paperwork (#10375): its data protection impact
+   * assessment, and OneUptime AI's drafts of its record of processing. No
+   * role reads or writes either through the API. Their own routes serve
+   * them to whoever may read the store, read as the caller first
+   * (RecordOfProcessingReader), and the assessment only to whoever may read
+   * the store's issues too (ImpactAssessmentDrafter). They are changed, as
+   * OneUptime, only for someone who may update that store's own row
+   * (StoreChangeAccess). A grant on the column itself would get past both.
+   */
+  test("a store's impact assessment and its record's drafts are read and written only through their own routes, never the API", () => {
+    const columns: Dictionary<ColumnAccessControl> = columnsOf(new DataStore());
+
+    for (const column of ["impactAssessment", "recordDrafts"]) {
+      expect([column, columns[column]!.read]).toEqual([column, []]);
+      expect([column, columns[column]!.create]).toEqual([column, []]);
+      expect([column, columns[column]!.update]).toEqual([column, []]);
+    }
+
+    /*
+     * What a person writes or confirms in the record is the store's own
+     * column, read and edited through the API like its name.
+     */
+    for (const column of [
+      "purpose",
+      "retention",
+      "legalBasis",
+      "dataSubjects",
+    ]) {
+      expect([column, sorted(columns[column]!.read)]).toEqual([
+        column,
+        sorted([...READERS, Permission.ReadDataStore]),
+      ]);
+      expect([column, sorted(columns[column]!.update)]).toEqual([
+        column,
+        sorted([...EDITORS, Permission.EditDataStore]),
+      ]);
+    }
   });
 
   test("what a scan works out about a store is OneUptime's: its key, kind of exposure, sensitivity, posture, counts and risk", () => {

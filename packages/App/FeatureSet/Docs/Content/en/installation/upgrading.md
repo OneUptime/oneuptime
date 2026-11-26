@@ -261,6 +261,44 @@ with recurring templates.
   picked for a device. Make the people who look after sites their owners, on
   a site's **Owners** page or with **Add Owner** in the **Sites** list's
   **Bulk Actions**. See [Network Sites](/docs/monitor/network-sites).
+- **OpenID Connect sign-in refuses an email address the identity provider says
+  it has not verified.** A global or project OpenID Connect provider that
+  sends `email_verified` as `false`, or as something that is neither true nor
+  false, signs nobody in with that address, on the web and in the mobile app:
+  someone could have put another person's address, a master admin's
+  included, on their own account at the provider. A provider that sends
+  `true`, or no `email_verified` at all, as Microsoft Entra ID does, signs
+  people in as before. authentik 2025.10 and later sends `false` for everyone
+  with its default `email` scope mapping, and Keycloak sends it for people
+  whose address it has not verified: change them as
+  [Email addresses your identity provider has not verified](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified)
+  says. Master admins with a password can still sign in with it meanwhile.
+- **Workflows that run with the default permissions no longer change runbook
+  variables, monitor secrets, BI tool connections or threat intel feeds.** A
+  Project Member can build a workflow, and its steps act as a Project Admin,
+  so such a step let them change what a runbook runs on your machines, or
+  send a credential they can't read to a server of their choosing. The step
+  is refused now: it takes its Error output, and the run log names the
+  permission the change takes. A workflow that rotates one of these needs
+  more than the default permissions: in its Settings, have it run as Project
+  Owner, or as a custom role that holds that permission. See
+  [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+- **Only those who may write a runbook's steps that run set a code
+  repository's commands or pick its Runner, and only those who may read a
+  Runner's key choose one.** A repository's setup, build and test commands run
+  on your own Runner, with its access. Setting, changing or removing them, or
+  picking the repository's Runner, now takes `ProjectOwner`, `ProjectAdmin`,
+  `RunbookAdmin` or `EditRunbook` beside the repository's own permissions:
+  anyone else's write is refused, through the API, Terraform or a workflow
+  that runs with the default permissions, and the Runner card in the
+  repository's settings is locked for them. Creating a Runner with a key of
+  your choosing, or changing a Runner's key, takes `ProjectOwner`,
+  `ProjectAdmin` or `RunbookAdmin`, and creating a Runner answers with its key
+  only to them. The commands a Runner runs for a project - Bash and kubectl
+  steps, and a repository's commands - no longer see the Runner's own
+  `ONEUPTIME_RUNNER_` settings. An API key or a Terraform configuration that
+  sets these needs one of those permissions now. See
+  [Code](/docs/ai/ai-agent).
 :::
 
 ## Upgrading from OneUptime 15 → 16

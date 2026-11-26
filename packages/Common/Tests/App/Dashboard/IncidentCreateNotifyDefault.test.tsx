@@ -838,7 +838,12 @@ describe("when the project's choice is not known", () => {
 });
 
 describe("reading the project", () => {
-  test("reads the selected project once, for the one column", async () => {
+  /*
+   * Once, for the project's two declare defaults: this box's, and whether
+   * an incident declared by hand starts acknowledged (#11137) - one read,
+   * not one per default (useDeclareIncidentDefaults).
+   */
+  test("reads the selected project once, for its declare defaults", async () => {
     await renderPage("/dashboard/incidents/create");
     await screen.findByRole("textbox", { name: /^Title/ });
 
@@ -847,7 +852,7 @@ describe("reading the project", () => {
     expect(reads).toHaveLength(1);
     expect(reads[0]!.id.toString()).toBe(PROJECT_ID);
     expect(Object.keys(reads[0]!.select || {}).sort()).toEqual(
-      ["_id", COLUMN].sort(),
+      ["_id", COLUMN, "startIncidentsDeclaredByHandAcknowledged"].sort(),
     );
   });
 

@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-ただし、OneUptime でモニターのステップに追加された設定のうち、構成に書かれていないものは違いになります。次の plan で `monitor_steps` の変更として表示され、その後の apply は plan のとおりにその設定を削除します。残すには、構成にも書いてください。
+ただし、OneUptime でモニターのステップに追加された設定のうち、構成に書かれていないものは違いになります。次の plan で `monitor_steps` の変更として表示され、その後の apply は plan のとおりにその設定を削除します。残すには、構成にも書いてください。プロバイダーに属性がない設定と、`jsonencode()` で書く設定の中に OneUptime が保持しているキーは違いにならず、apply はそれらを残します。[モニターステップ](/docs/terraform/monitor-steps) を参照してください。
 
 ## ラベルと、OneUptime も追加するほかのリスト
 

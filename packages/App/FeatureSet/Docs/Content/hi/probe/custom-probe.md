@@ -457,7 +457,7 @@ OneUptime सर्वर की तरफ़ भी, जिस प्रोब 
 ### अन्य समस्याएँ
 
 :::details प्रोब शुरू होते ही रुक जाता है
-उसका लॉग बताता है कि क्या छूटा है: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` या `PROBE_ID or REGISTER_PROBE_KEY should be set`। अगर तीनों सेट हैं पर ID और कुंजी किसी प्रोब से मेल नहीं खाते, तो प्रोब 30 सेकंड के अंतर पर 10 बार कोशिश करता है, फिर `Unable to register probe after 10 attempts` के साथ रुक जाता है। **आईडी और कुंजी दिखाएँ** से ID और कुंजी दोबारा कॉपी करें।
+उसका लॉग बताता है कि क्या छूटा है: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` या `PROBE_ID is not set`। अगर तीनों सेट हैं पर ID और कुंजी किसी प्रोब से मेल नहीं खाते, तो प्रोब 30 सेकंड के अंतर पर 10 बार कोशिश करता है, फिर `Unable to register probe after 10 attempts` के साथ रुक जाता है। **आईडी और कुंजी दिखाएँ** से ID और कुंजी दोबारा कॉपी करें।
 :::
 
 :::details किसी के कुंजी रीसेट करने तक प्रोब चल रहा था

@@ -21,10 +21,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * column, nullable and without a default, is added without rewriting a
  * row.
  */
-export class AddStorageArrayCountsByKind1809187661000
+export class AddStorageArrayCountsByKind1809187690000
   implements MigrationInterface
 {
-  public name: string = "AddStorageArrayCountsByKind1809187661000";
+  public name: string = "AddStorageArrayCountsByKind1809187690000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

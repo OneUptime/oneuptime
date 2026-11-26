@@ -90,7 +90,7 @@ Per disattivare quello incluso, imposta `GLOBAL_RUNNER_REPLICAS=0` nel `config.e
 ## Prima di iniziare
 
 - **Un host con Docker** nella tua infrastruttura, che raggiunga l'URL del tuo OneUptime in HTTPS e i sistemi su cui agiscono i tuoi passaggi.
-- **Un ruolo che crea Runner.** Proprietario del progetto, Amministratore del progetto, Membro del progetto e Amministratore dei runbook possono crearne uno. Solo un Proprietario del progetto, un Amministratore del progetto o un Amministratore dei runbook possono vedere la chiave di un Runner, contenuta nel comando di installazione.
+- **Un ruolo che crea Runner.** Proprietario del progetto, Amministratore del progetto, Membro del progetto e Amministratore dei runbook possono crearne uno. Solo un Proprietario del progetto, un Amministratore del progetto o un Amministratore dei runbook possono vedere la chiave di un Runner, contenuta nel comando di installazione. Solo loro possono anche scegliere la chiave di un Runner: un Runner creato da chiunque altro riceve una chiave generata da OneUptime, e crearlo non mostra loro la chiave.
 
 ## Installare un Runner
 

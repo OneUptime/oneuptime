@@ -111,6 +111,14 @@ export const WHATSAPP_TEMPLATE_BY_EVENT_TYPE: Readonly<
     WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification,
   [NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.ProbeOwnerAddedNotification,
+  /*
+   * A custom probe a major release behind (#9977) has a template of its own
+   * (#10913): the probe status template's "Probe X status is Y" is not true
+   * of it - a probe's status is Connected, Disconnected or Behind on its
+   * checks.
+   */
+  [NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification,
   [NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification,
   [NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION]:

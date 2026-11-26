@@ -97,6 +97,14 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingAdmin,
     Permission.BillingMember,
     Permission.BillingViewer,
+    /*
+     * Security Admin reads the hourly limit of automatic blocks it sets
+     * (securityAutomaticResponseMaxBlocksPerHour, #10746): an update reaches
+     * only the records its caller may read, so without this its one change
+     * of the project would change nothing. Each column's own read list
+     * decides the rest.
+     */
+    Permission.SecurityAdmin,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   /*
@@ -110,7 +118,11 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * update. Edit Incoming Request Secret is here for one column alone,
    * requireIncomingRequestSecret (issue #8502), the same way, and so is
    * Security Admin, for the hourly limit of automatic blocks
-   * (securityAutomaticResponseMaxBlocksPerHour, #10746).
+   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and the two
+   * switches of Security Events' Trusted Proxies: whether the project's own
+   * load balancers are trusted (securityTrustOwnLoadBalancers, #10546) and
+   * whether its access logs end with X-Forwarded-For
+   * (securityReadAccessLogForwardedFor, #10548).
    */
   update: [
     Permission.ProjectOwner,
@@ -711,6 +723,8 @@ export default class Project extends TenantModel {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
+      // Read by exactly who reads the project (PermissionCatalogueCoverage).
+      Permission.SecurityAdmin,
     ],
     update: [],
   })
@@ -3218,6 +3232,97 @@ export default class Project extends TenantModel {
   public securityTrustedProxies?: string = undefined;
 
   /*
+   * Whether Security Events trusts the public addresses of the project's
+   * own application load balancers as proxies (#10546), as it does its
+   * Trusted Proxies: an AWS Application or Classic (HTTP) Load Balancer, a
+   * Google Cloud Application Load Balancer and an Azure Application Gateway
+   * its connected cloud accounts list, each of which adds the client it
+   * forwards to X-Forwarded-For. On unless turned off
+   * (Server/Utils/SecurityEvent/SecurityOwnLoadBalancers). Never its hosts,
+   * nodes or probes, which forward nobody: trusted, whatever ran on them
+   * could name any client. A Security Admin may turn it off and on, as a
+   * Project Owner or Admin may - which is why the table's update list
+   * names them too.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Trust Your Load Balancers",
+    description:
+      "Whether Security Events trusts the client address your own application load balancers forward. On unless turned off.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public securityTrustOwnLoadBalancers?: boolean = undefined;
+
+  /*
+   * Whether the project's web servers' access logs end with the
+   * X-Forwarded-For header, as nginx's main format does (#10548): Security
+   * Events then reads a combined log line's last quoted field as the one
+   * its trusted proxy forwarded (Utils/SecurityEvent/LogParsers/
+   * WebAttackLogParser). Off unless turned on: a line cannot say what its
+   * fields are, and a server that does not escape quotes lets a request's
+   * user agent add a field to a plain combined line. Set as the switch
+   * beside it is.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Access Logs End With X-Forwarded-For",
+    description:
+      "Whether your access logs end with X-Forwarded-For, as nginx's main format does, so the client a trusted proxy forwarded is read. Off unless turned on.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public securityReadAccessLogForwardedFor?: boolean = undefined;
+
+  /*
    * The most automatic blocks the project's automatic response policies
    * make in an hour (#10746, Security Events > Playbooks > Automatic
    * Response, under More settings): past it they stop blocking and page the
@@ -3237,6 +3342,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.SecurityAdmin,
     ],
     update: [
       Permission.ProjectOwner,
@@ -3608,6 +3714,48 @@ export default class Project extends TenantModel {
   })
   public notifyStatusPageSubscribersOfNewIncidentsByDefault?: boolean =
     undefined;
+
+  /*
+   * Whether an incident someone declares by hand starts acknowledged
+   * (Incidents -> Settings -> Incident State, issue #11137;
+   * Common/Types/Incident/IncidentDeclaredByHandStart). Off for every
+   * project, existing and new, so nothing pages any less until an owner or
+   * admin turns it on. On, an incident declared in the dashboard, Slack or
+   * Microsoft Teams starts in the project's acknowledged state when no state
+   * is picked for it, by the person or its template, and it pages no on-call
+   * policy: whoever declares it is on it. One that pages a policy starts in
+   * the created state, so the policy pages. Incidents created by monitors,
+   * rules, the API and workflows are not affected.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Start Incidents Declared by Hand Acknowledged",
+    description:
+      "Whether an incident someone declares in the dashboard, Slack or Microsoft Teams starts acknowledged, since whoever declares it is already on it. When enabled, such an incident starts in the project's acknowledged state, so no one is paged, unless a state is picked for it (by the person or its template) or it pages an on-call policy: then it starts as it always did. On-call rules do not page an incident that starts acknowledged. Incidents created by monitors, rules, the API and workflows are not affected. Off by default.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public startIncidentsDeclaredByHandAcknowledged?: boolean = undefined;
 
   /*
    * The layout every network topology map in the project opens on (issue

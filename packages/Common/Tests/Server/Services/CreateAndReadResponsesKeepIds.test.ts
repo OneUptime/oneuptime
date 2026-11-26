@@ -263,7 +263,10 @@ describe("create and read responses keep their _id", () => {
         ),
         props: loggedInUserProps(),
       }),
-    ).rejects.toThrow(/not allowed/i);
+      // The refusal of an operation no permission allows, in its words (#7276).
+    ).rejects.toThrow(
+      "User records cannot be created through the Dashboard or the API: OneUptime keeps them itself.",
+    );
 
     const rows: Array<User> = await UserService.findBy({
       query: { _id: USER_ID.toString() } as never,

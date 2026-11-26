@@ -35,6 +35,12 @@ export interface FakeReply {
   // HTTP status to answer with. 2xx resolves; anything else rejects, as axios does.
   status?: number | undefined;
   data?: JSONObject | JSONArray | undefined;
+  /*
+   * The body exactly as axios hands it on, in place of `data`: text that
+   * was not JSON (a proxy's page, an answer cut short), which axios passes
+   * on as a string, or null for a body of "null" (#8413).
+   */
+  rawData?: unknown;
   headers?: Dictionary<string> | undefined;
   // Fail without any response, the way a refused or dropped connection does.
   networkErrorCode?: string | undefined;
@@ -202,7 +208,7 @@ export default class FakeAxiosServer {
     const status: number = reply.status ?? 200;
 
     const response: AxiosResponse = {
-      data: reply.data ?? {},
+      data: "rawData" in reply ? reply.rawData : reply.data ?? {},
       status: status,
       statusText: "",
       headers: reply.headers ?? {},

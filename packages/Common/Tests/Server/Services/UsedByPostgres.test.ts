@@ -43,6 +43,7 @@ import UsedByService, {
 } from "../../../Server/Services/UsedByService";
 import logger from "../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -252,11 +253,16 @@ interface OwnerTable {
   nameColumn: string;
 }
 
+/*
+ * What every owner row has beside the record it names: its team, its
+ * project, who created it, and what created and last changed it, which every
+ * record keeps (RecordActor, #10290).
+ */
 const OWNER_TABLE_SHARED_COLUMNS: Array<string> = [
   "teamId",
   "projectId",
   "createdByUserId",
-  "deletedByUserId",
+  ...RECORD_ACTOR_COLUMNS,
 ];
 
 const NAMED_BY_TITLE: Array<string> = [

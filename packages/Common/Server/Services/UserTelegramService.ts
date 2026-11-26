@@ -11,6 +11,7 @@ import UserNotificationRuleService, {
 } from "./UserNotificationRuleService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { ChannelVerificationMessages } from "../../Types/UserNotification/ChannelVerificationMessages";
 import ObjectID from "../../Types/ObjectID";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import Project from "../../Models/DatabaseModels/Project";
@@ -225,13 +226,11 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!item) {
-      throw new BadDataException(
-        "Item with ID " + itemId.toString() + " not found",
-      );
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     if (item.isVerified) {
-      throw new BadDataException("Telegram account already verified");
+      throw new BadDataException(ChannelVerificationMessages.alreadyVerified);
     }
 
     if (
@@ -242,7 +241,7 @@ export class Service extends DatabaseService<Model> {
         userId: item.userId,
       }))
     ) {
-      throw new BadDataException("Item not found");
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     const retryAfterSeconds: number =
@@ -288,13 +287,11 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!updatedItem) {
-      throw new BadDataException(
-        "Item with ID " + itemId.toString() + " not found",
-      );
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     if (updatedItem.isVerified) {
-      throw new BadDataException("Telegram account already verified");
+      throw new BadDataException(ChannelVerificationMessages.alreadyVerified);
     }
 
     if (updatedItem.verificationCode !== verificationCode) {
@@ -320,7 +317,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!item) {
-      throw new BadDataException("Item not found");
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     if (item.isVerified) {

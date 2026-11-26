@@ -70,6 +70,8 @@ export const FINDING_VERDICT_TIMEOUT_IN_MS: number = 90 * 1000;
 const FINDING_REFERENCE_PREFIX: string = "F";
 // ...and of a precedent's within it: P1, P2...
 const PRECEDENT_REFERENCE_PREFIX: string = "P";
+// A precedent reference as an answer cites it: P1 to P99, its number taken.
+const PRECEDENT_REFERENCE: RegExp = /^P(\d{1,2})$/;
 
 const MAX_ANSWER_TEXT_LENGTH: number = 800;
 
@@ -275,7 +277,7 @@ export function holdFindingVerdictToFacts(data: {
   const seen: Set<string> = new Set();
 
   for (const ref of data.answer.precedentRefs) {
-    const match: RegExpMatchArray | null = /^P(\d{1,2})$/.exec(ref.trim());
+    const match: RegExpMatchArray | null = PRECEDENT_REFERENCE.exec(ref.trim());
     const index: number = match ? Number(match[1]) - 1 : -1;
     const entry: DataStoreFindingPrecedent | undefined =
       index >= 0 ? data.precedent[index] : undefined;

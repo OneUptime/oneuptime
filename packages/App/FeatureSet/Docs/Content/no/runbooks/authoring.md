@@ -140,7 +140,7 @@ Et bash-skript som kjøres med `bash -c <script>` på en [runbook-agent](/docs/r
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
 | **Runner** | Under **Flere felt**. Runneren som kjører trinnet. Bare den Runneren kan ta jobben. Globale Runnere kjører bare JavaScript-trinn. | Prosjektets standard-Runner, hvis du har angitt en |
-| **Bash-skript** | Skriptet. Output (stdout og stderr) registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. | — |
+| **Bash-skript** | Skriptet. Output (stdout og stderr) registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. Det kjører med Runnerens miljø, uten Runnerens egne `ONEUPTIME_RUNNER_`-innstillinger, nøkkelen inkludert; en nøkkel som et skript likevel skriver ut, lagres som `[REDACTED]`. | — |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den dreper det med `SIGKILL`. Øk den for trinn som med god grunn tar minutter. | 30 sekunder |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
@@ -195,7 +195,7 @@ Kjør kubectl-kommandoer mot en klynge. Skriptet kjører med bash på Runneren, 
 | --- | --- |
 | **Runner** | Under **Flere felt**. Runneren som kjører kubectl. Den må kunne nå klyngens API-server. Et trinn som ikke velger noen, kjører på prosjektets standard-Runner. |
 | **Kubeconfig** | Den hemmelige variabelen som holder klyngens kubeconfig, eller **Runnerens egen tilgang**: Runnerens egen kubeconfig, eller tjenestekontoen når den kjører i klyngen. Runneren skriver en kubeconfig til en fil bare den kan lese, og fjerner den når skriptet avsluttes. |
-| **Skript** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
+| **Skript** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. Som skriptet i et Bash-trinn kjører det uten Runnerens egne `ONEUPTIME_RUNNER_`-innstillinger. |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den stopper det med `SIGKILL`. Standard 30 sekunder. |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 

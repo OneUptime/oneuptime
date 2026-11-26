@@ -22,7 +22,9 @@
 import ExceptionPullRequestTaskHandler from "../../TaskHandlers/ExceptionPullRequestTaskHandler";
 import FixExceptionTaskHandler from "../../TaskHandlers/FixExceptionTaskHandler";
 import FixFromIncidentTaskHandler from "../../TaskHandlers/FixFromIncidentTaskHandler";
+import FixInfrastructureCodeTaskHandler from "../../TaskHandlers/FixInfrastructureCodeTaskHandler";
 import FixPerformanceTaskHandler from "../../TaskHandlers/FixPerformanceTaskHandler";
+import FixSensitiveDataInTelemetryTaskHandler from "../../TaskHandlers/FixSensitiveDataInTelemetryTaskHandler";
 import ImproveExceptionHandlingTaskHandler from "../../TaskHandlers/ImproveExceptionHandlingTaskHandler";
 import ImproveInstrumentationTaskHandler from "../../TaskHandlers/ImproveInstrumentationTaskHandler";
 import ImproveLoggingTaskHandler from "../../TaskHandlers/ImproveLoggingTaskHandler";
@@ -31,6 +33,11 @@ import SubjectPullRequestTaskHandler from "../../TaskHandlers/SubjectPullRequest
 import WriteRegressionTestTaskHandler from "../../TaskHandlers/WriteRegressionTestTaskHandler";
 import PullRequestCreator from "../../Utils/PullRequestCreator";
 import { ExceptionDetails, SubjectTaskDetails } from "../../Utils/BackendAPI";
+import {
+  TelemetryLeakFixStrategy,
+  TelemetryLeakHandling,
+  TelemetryLeakSignal,
+} from "Common/Types/DataSecurity/TelemetryLeakFix";
 import fs from "fs";
 import path from "path";
 
@@ -66,6 +73,104 @@ const subjectDetails: SubjectTaskDetails = {
 };
 
 /*
+ * The Data Security recipes write their body from a context of their own,
+ * which the task's record carries. Each is given every part its body can
+ * show - a cause, its code, issue links, a secret to rotate - so every line
+ * a reviewer could read is held to the assertions below.
+ */
+const infrastructureFixDetails: SubjectTaskDetails = {
+  ...subjectDetails,
+  subjectType: "infrastructure",
+  subjectTitle: "Turn on access logging in the static-site module",
+  analysisMarkdown: "Change the module's setting so every store passes.",
+  serviceName: null,
+  infrastructureFix: {
+    groupId: "group-id",
+    checkId: "access-not-logged",
+    title: "Turn on access logging in the static-site module",
+    cause: "the static-site module",
+    request: "Change the module's setting so every store passes.",
+    codeKind: "Terraform",
+    paths: ["modules/static-site/main.tf"],
+    stores: [
+      {
+        name: "site-assets",
+        kind: "AWS S3 Bucket",
+        region: "eu-west-1",
+        issueId: "issue-id",
+        issueUrl:
+          "https://oneuptime.example/dashboard/p/data-security/issues/issue-id",
+      },
+      {
+        name: "docs-assets",
+        kind: "AWS S3 Bucket",
+        region: "eu-west-1",
+        issueId: "second-issue-id",
+        issueUrl:
+          "https://oneuptime.example/dashboard/p/data-security/issues/second-issue-id",
+      },
+    ],
+    storeCount: 2,
+    issuesUrl: "https://oneuptime.example/dashboard/p/data-security/issues",
+  },
+};
+
+const telemetryLeakFixDetails: SubjectTaskDetails = {
+  ...subjectDetails,
+  subjectType: "service",
+  subjectTitle: "Stop checkout writing sensitive data to its telemetry",
+  analysisMarkdown:
+    'Stop the service "checkout" writing sensitive data to its telemetry.',
+  telemetryLeakFix: {
+    serviceId: "service-id",
+    serviceName: "checkout",
+    title: "Stop checkout writing sensitive data to its telemetry",
+    request:
+      'Stop the service "checkout" writing sensitive data to its telemetry.',
+    strategy: TelemetryLeakFixStrategy.CallSites,
+    placeCount: 1,
+    leaks: [
+      {
+        issueId: "issue-id",
+        dataStoreId: "data-store-id",
+        checkId: "sensitive-data-in-telemetry",
+        signal: TelemetryLeakSignal.Spans,
+        dataTypeId: "api-key",
+        dataTypeName: "API key",
+        isSecret: true,
+        location: "attributes.payment.api_key",
+        key: "payment.api_key",
+        isMaskedByScrubRule: false,
+        handling: TelemetryLeakHandling.CallSite,
+        places: [
+          {
+            filePath: "src/checkout.ts",
+            lineNumber: 42,
+            functionName: "process",
+            recordCount: 3,
+          },
+        ],
+      },
+    ],
+    issues: [
+      {
+        issueId: "issue-id",
+        title: "Sensitive data is reaching your telemetry",
+        checkId: "sensitive-data-in-telemetry",
+        signal: TelemetryLeakSignal.Spans,
+        issueUrl:
+          "https://oneuptime.example/dashboard/p/data-security/issues/issue-id",
+      },
+    ],
+    redactionKeys: [],
+    redactionDataTypes: [],
+    startFiles: ["src/checkout.ts"],
+    hasSecrets: true,
+    issuesUrl: "https://oneuptime.example/dashboard/p/data-security/issues",
+  },
+};
+
+/*
  * buildPullRequestBody is `protected` — it is an extension point for the
  * recipes, not part of the public handler surface. These are the typed seams
  * for reading it back without widening the real classes.
@@ -91,9 +196,12 @@ function exceptionBody(handler: ExceptionPullRequestTaskHandler): string {
   );
 }
 
-function subjectBody(handler: SubjectPullRequestTaskHandler): string {
+function subjectBody(
+  handler: SubjectPullRequestTaskHandler,
+  details: SubjectTaskDetails = subjectDetails,
+): string {
   return (handler as unknown as SubjectBodySeam).buildPullRequestBody(
-    subjectDetails,
+    details,
     AGENT_SUMMARY,
   );
 }
@@ -131,6 +239,20 @@ const BODIES: Array<{ recipe: string; body: string }> = [
   {
     recipe: "ImproveTracing",
     body: subjectBody(new ImproveTracingTaskHandler()),
+  },
+  {
+    recipe: "FixInfrastructureCode",
+    body: subjectBody(
+      new FixInfrastructureCodeTaskHandler(),
+      infrastructureFixDetails,
+    ),
+  },
+  {
+    recipe: "FixSensitiveDataInTelemetry",
+    body: subjectBody(
+      new FixSensitiveDataInTelemetryTaskHandler(),
+      telemetryLeakFixDetails,
+    ),
   },
   {
     recipe: "PullRequestCreator.generatePRBody",

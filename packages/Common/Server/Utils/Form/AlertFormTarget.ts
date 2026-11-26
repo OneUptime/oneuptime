@@ -138,8 +138,8 @@ export default class AlertFormTarget
   public async getCustomFieldDefinitions(
     projectId: ObjectID,
   ): Promise<Array<FormCustomFieldDefinition>> {
-    const fields: Array<AlertCustomField> = await AlertCustomFieldService.findBy(
-      {
+    const fields: Array<AlertCustomField> =
+      await AlertCustomFieldService.findBy({
         query: { projectId: projectId },
         select: {
           _id: true,
@@ -152,8 +152,7 @@ export default class AlertFormTarget
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         props: { isRoot: true },
-      },
-    );
+      });
 
     return fields
       .filter((field: AlertCustomField): boolean => {

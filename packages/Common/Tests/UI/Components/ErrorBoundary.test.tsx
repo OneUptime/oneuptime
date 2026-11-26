@@ -1,13 +1,21 @@
 import ErrorBoundary, {
   CHUNK_LOAD_RELOAD_COOLDOWN_IN_MS,
   CHUNK_LOAD_RELOAD_STORAGE_KEY,
+  CRASH_SCREEN_WORDS,
+  Fallback,
   handleChunkLoadError,
   hasRecentlyReloadedForChunkLoadError,
   isChunkLoadError,
+  loadErrorSupportBundle,
   markChunkLoadErrorReload,
 } from "../../../UI/Components/ErrorBoundary";
 import downloadFile from "../../../UI/Utils/DownloadFile";
+import {
+  isEmptyErrorPhrase,
+  meetsErrorMessageRule,
+} from "../../../Types/Exception/ErrorMessageRule";
 import { ErrorSupportBundle } from "../../../UI/Utils/ErrorSupportBundle";
+import { LazyLibrary } from "../../../UI/Utils/LazyLibrary";
 import NewVersion from "../../../UI/Utils/NewVersion/NewVersion";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
@@ -72,7 +80,10 @@ const ThrowInEffect: FunctionComponent = (): ReactElement => {
 };
 
 const FALLBACK_TEXT: string =
-  "An unexpected error has occurred. Please reload the page to continue";
+  "Part of this page ran into a problem. Reload the page to continue.";
+
+// The screen's title: what happened (#7270).
+const FALLBACK_TITLE: string = "This page stopped working";
 
 describe("ErrorBoundary", () => {
   const consoleErrorSpy: jest.SpyInstance = jest.spyOn(console, "error");
@@ -231,8 +242,37 @@ describe("ErrorBoundary", () => {
       );
 
       expect(
-        screen.queryByRole("heading", { name: "Something went wrong" }),
+        screen.queryByRole("heading", { name: FALLBACK_TITLE }),
       ).not.toBeNull();
+    });
+
+    /*
+     * #7270: the title was "Something went wrong", one of the empty
+     * phrases, over a sentence that said only that something failed. It
+     * says what happened, and what to do next, as sentences.
+     */
+    test("says what happened and what to do next, never an empty phrase", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      const fallback: HTMLElement = screen.getByTestId(
+        "error-boundary-fallback",
+      );
+
+      expect(fallback.textContent).not.toContain("Something went wrong");
+      expect(fallback.textContent).not.toContain("An unexpected error");
+      expect(screen.getByTestId("error-boundary-title").textContent).toBe(
+        CRASH_SCREEN_WORDS.title,
+      );
+      expect(CRASH_SCREEN_WORDS).toEqual({
+        title: FALLBACK_TITLE,
+        message: FALLBACK_TEXT,
+      });
+      expect(isEmptyErrorPhrase(CRASH_SCREEN_WORDS.title)).toBe(false);
+      expect(meetsErrorMessageRule(CRASH_SCREEN_WORDS.message)).toBe(true);
     });
 
     test("shows the underlying error message for support", () => {
@@ -350,6 +390,16 @@ describe("ErrorBoundary", () => {
   });
 
   describe("recovery", () => {
+    /*
+     * The support part asks for the support bundle's file as it is drawn
+     * (ErrorBoundary's errorSupportBundle); loaded first here, a press
+     * writes the bundle at once, as it does once the file has arrived. A
+     * press before it has is below ("the support bundle's file").
+     */
+    beforeAll(async () => {
+      await loadErrorSupportBundle();
+    });
+
     test("'Try again' re-renders the children", () => {
       let shouldThrow: boolean = true;
 
@@ -576,6 +626,123 @@ describe("ErrorBoundary", () => {
         </ErrorBoundary>,
       );
       expect(screen.queryByText(FALLBACK_TEXT)).not.toBeNull();
+    });
+  });
+
+  /*
+   * The support bundle is written only when somebody asks for one, so it is
+   * a file of its own, asked for as the support part is drawn - 2 to 3.5
+   * KiB gzipped of every page's first load
+   * (packages/Common/Scripts/first-load-budgets.js).
+   */
+  describe("the support bundle's file", () => {
+    let spies: Array<{ mockRestore: () => void }> = [];
+
+    afterEach(() => {
+      for (const spy of spies) {
+        spy.mockRestore();
+      }
+
+      spies = [];
+    });
+
+    test("is asked for as the support part is drawn", () => {
+      const load: jest.SpyInstance = jest.spyOn(LazyLibrary.prototype, "load");
+      spies.push(load);
+
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      expect(
+        screen.queryByTestId("error-boundary-download-support-bundle"),
+      ).not.toBeNull();
+      expect(load).toHaveBeenCalled();
+    });
+
+    test("is never asked for by a screen with no support part (a status page's, a public dashboard's)", () => {
+      const load: jest.SpyInstance = jest.spyOn(LazyLibrary.prototype, "load");
+      spies.push(load);
+
+      render(
+        <Fallback
+          error={new Error("Render exploded")}
+          resetErrorBoundary={() => {}}
+          showSupport={false}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId("error-boundary-download-support-bundle"),
+      ).toBeNull();
+      expect(load).not.toHaveBeenCalled();
+    });
+
+    test("pressed before it has arrived, writes the bundle as it arrives", async () => {
+      const getLoaded: jest.SpyInstance = jest
+        .spyOn(LazyLibrary.prototype, "getLoaded")
+        .mockReturnValue(null);
+      spies.push(getLoaded);
+
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender message="Pressed early" />
+        </ErrorBoundary>,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+
+      await waitFor(() => {
+        expect(downloadFileMock).toHaveBeenCalledTimes(1);
+      });
+
+      const bundle: ErrorSupportBundle = JSON.parse(
+        downloadFileMock.mock.calls[0]![0].content as string,
+      ) as ErrorSupportBundle;
+
+      expect(bundle.error.message).toBe("Pressed early");
+      expect(bundle.react.componentStack).toContain("ThrowOnRender");
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("error-boundary-support-bundle-status")
+            .textContent,
+        ).toContain("Support bundle downloaded");
+      });
+    });
+
+    test("pressed when it cannot be loaded, says the bundle could not be downloaded", async () => {
+      const getLoaded: jest.SpyInstance = jest
+        .spyOn(LazyLibrary.prototype, "getLoaded")
+        .mockReturnValue(null);
+      const load: jest.SpyInstance = jest
+        .spyOn(LazyLibrary.prototype, "load")
+        .mockImplementation((): Promise<unknown> => {
+          return Promise.reject(new Error("The file could not be fetched"));
+        });
+      spies.push(getLoaded, load);
+
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("error-boundary-support-bundle-status")
+            .textContent,
+        ).toContain("could not be downloaded");
+      });
+      expect(downloadFileMock).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("error-boundary-fallback")).not.toBeNull();
     });
   });
 });
@@ -842,7 +1009,7 @@ describe("ErrorBoundary chunk load recovery", () => {
     // The page's own loader while the next page arrives, never an error.
     expect(reloadMock).not.toHaveBeenCalled();
     expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
-    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.queryByText(FALLBACK_TITLE)).toBeNull();
   });
 
   test("auto-reloads when a lazy route fails to load", async () => {
@@ -865,7 +1032,7 @@ describe("ErrorBoundary chunk load recovery", () => {
     // The user is never looking at a blank page, nor at an error.
     expect(screen.getByTestId("chunk-load-recovery")).toBeTruthy();
     expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
-    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.queryByText(FALLBACK_TITLE)).toBeNull();
   });
 
   test("says the page could not be loaded, without reloading, when a reload already happened", async () => {

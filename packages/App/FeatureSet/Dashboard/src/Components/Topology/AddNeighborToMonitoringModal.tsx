@@ -1,3 +1,4 @@
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -452,6 +453,8 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         title={title}
         isTitleTranslated={true}
         description={error}
+        // Named by its title, the action the person chose (#7680).
+        errorWhatFailed={getDialogWhatFailed(translator, title)}
         submitButtonText="Close"
         onSubmit={props.onClose}
       />

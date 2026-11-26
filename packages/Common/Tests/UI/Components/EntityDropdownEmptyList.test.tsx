@@ -7,6 +7,7 @@ import {
   ENTITY_DROPDOWN_EMPTY_LIST_COPY,
   getEntityDropdownEmptyListText,
 } from "../../../UI/Components/EntityDropdown/EntityDropdownEmptyList";
+import { loadEntityDropdown } from "../../../UI/Components/EntityDropdown/LazyEntityDropdown";
 import FormField from "../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -15,6 +16,7 @@ import { JSONObject } from "../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -295,6 +297,15 @@ describe("a form's entity dropdown field", () => {
   interface TestEntity extends JSONObject {
     monitors?: Array<string>;
   }
+
+  /*
+   * A form loads its entity dropdown's file as it is drawn
+   * (FormFieldControls); the field is drawn on its own here, so the file is
+   * loaded first.
+   */
+  beforeAll(async () => {
+    await loadEntityDropdown();
+  });
 
   test("hands its list the words its dropdownModal names", async () => {
     const field: Field<TestEntity> = {

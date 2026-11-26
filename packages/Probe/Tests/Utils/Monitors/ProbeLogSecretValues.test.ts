@@ -69,8 +69,13 @@ import API from "Common/Utils/API";
 import APIException from "Common/Types/Exception/ApiException";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { secretValueFormsIn } from "Common/Tests/Helpers/SecretValueForms";
+import escapeRegExp from "Common/Utils/RegExpEscape";
+import SyntheticMonitor from "../../../Utils/Monitors/MonitorTypes/SyntheticMonitor";
+import ProxyConfig from "../../../Utils/ProxyConfig";
+import FakeInternet from "./SyntheticRuntime/Fixtures/FakeInternet";
 import http from "http";
 import net, { AddressInfo, Socket } from "net";
+import { chromium } from "playwright";
 import { inspect } from "util";
 
 /*
@@ -95,6 +100,12 @@ import { inspect } from "util";
  * OpenTelemetry exporter - for every form of each value, by plain search
  * (SecretValueForms) and by the redaction's own reading; and that the check
  * still worked: the real value went out, and the result was reported.
+ *
+ * A Synthetic check's every request goes through its own egress proxy, which
+ * refuses loopback (GHSA-9rx7-vwfj-whp7). So the page Chromium cannot load
+ * is on a made-up public address that FakeInternet, standing in for the
+ * probe's outbound proxy, answers from a server on this machine; and a host
+ * that does not resolve is looked up by that egress proxy, not by Chromium.
  */
 
 jest.setTimeout(600_000);
@@ -564,6 +575,63 @@ async function runMonitorTestJob(monitorTest: MonitorTest): Promise<void> {
   await job!.runFunction();
 }
 
+// A made-up public address whose TLS port closes every connection it takes.
+const CLOSING_SITE: string = "93.184.215.16";
+
+/*
+ * The Chromium the probe launches: its own lookup finds the Linux builds its
+ * image installs; elsewhere - a developer's machine - Playwright's own.
+ */
+async function useChromium(): Promise<void> {
+  const executablePath: string =
+    await SyntheticMonitor.getChromeExecutablePath().catch((): string => {
+      return chromium.executablePath();
+    });
+
+  jest
+    .spyOn(SyntheticMonitor, "getChromeExecutablePath")
+    .mockResolvedValue(executablePath);
+}
+
+// The probe's outbound proxy, which a check's egress proxy goes through.
+function useOutboundProxy(fakeInternet: FakeInternet): void {
+  jest.spyOn(ProxyConfig, "isProxyConfigured").mockReturnValue(true);
+  jest
+    .spyOn(ProxyConfig, "getHttpsProxyUrl")
+    .mockReturnValue(fakeInternet.url());
+  jest.spyOn(ProxyConfig, "getHttpProxyUrl").mockReturnValue(null);
+}
+
+// A Synthetic step whose script logs the token, then opens the target.
+function syntheticStep(
+  target: string,
+  token: string,
+  password: string,
+): MonitorStep {
+  return step(
+    {
+      customCode: [
+        `const token = ${JSON.stringify(token)};`,
+        `console.log("signing in with " + token);`,
+        `await page.goto(${JSON.stringify(target)}, { timeout: 20000 });`,
+      ].join("\n"),
+      browserTypes: [BrowserType.Chromium],
+      screenSizeTypes: [ScreenSizeType.Desktop],
+      retryCountOnError: 0,
+    },
+    [token, password],
+  );
+}
+
+// The one browser run the check reported.
+function reportedRun(): JSONObject {
+  expect(reported).toHaveLength(1);
+
+  return (
+    reported[0]!.syntheticMonitorResponse as unknown as Array<JSONObject>
+  )[0]!;
+}
+
 // An API step that sends both values every way a request carries one.
 function echoStep(token: string, password: string): MonitorStep {
   return step(
@@ -665,36 +733,82 @@ describe("the probe's own log never writes a monitor secret's value, at debug le
   test("a Synthetic check, in real Playwright, whose page fails to load with the token in its URL and whose script logs it", async () => {
     const token: string = makeToken(random);
     const password: string = makePassword(random);
-    const target: string = `https://app.secret-echo.invalid/login?user=ops&token=${encodeURIComponent(password)}`;
-
-    const synthetic: MonitorStep = step(
-      {
-        customCode: [
-          `const token = ${JSON.stringify(token)};`,
-          `console.log("signing in with " + token);`,
-          `await page.goto(${JSON.stringify(target)}, { timeout: 20000 });`,
-        ].join("\n"),
-        browserTypes: [BrowserType.Chromium],
-        screenSizeTypes: [ScreenSizeType.Desktop],
-        retryCountOnError: 0,
-      },
-      [token, password],
+    const target: string = `https://${CLOSING_SITE}/login?user=ops&token=${encodeURIComponent(password)}`;
+    const quotedTarget: RegExp = new RegExp(
+      `net::ERR_[A-Z_]+ at https://${escapeRegExp(CLOSING_SITE)}/login`,
     );
 
-    await runMonitorJob(monitorOf(MonitorType.SyntheticMonitor, [synthetic]));
+    // The site's TLS port takes each connection and closes it: the load fails.
+    const closingServer: net.Server = net.createServer(
+      (socket: Socket): void => {
+        socket.on("error", (): void => {
+          // The tunnel went away first.
+        });
+        socket.destroy();
+      },
+    );
+    const fakeInternet: FakeInternet = new FakeInternet();
 
-    // The run was real: Playwright quoted the URL, and the script logged.
-    expect(reported).toHaveLength(1);
-    const run: JSONObject = (
-      reported[0]!.syntheticMonitorResponse as unknown as Array<JSONObject>
-    )[0]!;
-    expect(String(run["scriptError"])).toContain("ERR_NAME_NOT_RESOLVED");
+    try {
+      fakeInternet.route(CLOSING_SITE, 443, await listen(closingServer));
+      await fakeInternet.start();
+      useOutboundProxy(fakeInternet);
+      await useChromium();
+
+      await runMonitorJob(
+        monitorOf(MonitorType.SyntheticMonitor, [
+          syntheticStep(target, token, password),
+        ]),
+      );
+
+      /*
+       * The run was real: it reached the site, Playwright quoted the URL,
+       * and the script logged.
+       */
+      expect(fakeInternet.connects).toContain(`${CLOSING_SITE}:443`);
+      const run: JSONObject = reportedRun();
+      expect(String(run["scriptError"])).toMatch(quotedTarget);
+      expect(JSON.stringify(run["logMessages"])).toContain("signing in with");
+
+      expectNoValueWritten([token, password]);
+      const written: string = everythingWritten();
+      expect(written).toContain("Synthetic Monitor script failed");
+      expect(written).toMatch(quotedTarget);
+      expect(written).toContain(`signing in with ${HIDDEN_SECRET_MARKER}`);
+    } finally {
+      await fakeInternet.stop();
+      await close(closingServer);
+    }
+  });
+
+  test("a Synthetic check, in real Playwright, whose page's host does not resolve: it is told the host could not be reached, as API and Website checks are", async () => {
+    const token: string = makeToken(random);
+    const password: string = makePassword(random);
+    const host: string = "app.secret-echo.invalid";
+    const target: string = `https://${host}/login?user=ops&token=${encodeURIComponent(password)}`;
+    const unreachable: string = `Monitor target host ${host} could not be reached.`;
+
+    await useChromium();
+
+    await runMonitorJob(
+      monitorOf(MonitorType.SyntheticMonitor, [
+        syntheticStep(target, token, password),
+      ]),
+    );
+
+    /*
+     * The check's egress proxy looked the name up, not Chromium, and the
+     * page is told no more than an API or Website check is: neither whether
+     * the name resolved nor the URL, so no value in it is quoted at all.
+     */
+    const run: JSONObject = reportedRun();
+    expect(String(run["scriptError"])).toBe(unreachable);
     expect(JSON.stringify(run["logMessages"])).toContain("signing in with");
 
     expectNoValueWritten([token, password]);
     const written: string = everythingWritten();
     expect(written).toContain("Synthetic Monitor script failed");
-    expect(written).toContain("ERR_NAME_NOT_RESOLVED");
+    expect(written).toContain(unreachable);
     expect(written).toContain(`signing in with ${HIDDEN_SECRET_MARKER}`);
   });
 

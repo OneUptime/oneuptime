@@ -1,5 +1,6 @@
 import { ProbeExpressRequest } from "../Types/Request";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeKeyHeaders, {
@@ -205,7 +206,7 @@ export default class ProbeAuthorization {
    *
    * A wrong key is refused as it is in a parsed body, and counted as one; a
    * body that opens with anything else is refused as a body without a key
-   * is ("ProbeId or ProbeKey is missing"). Either way the rest of the
+   * is (ProbeConnectionRefusals.missingIdOrKey). Either way the rest of the
    * report is never read, so a client without the right key costs the App
    * a few kilobytes, however large or however shaped the body it sends. A
    * right key has the whole report read and parsed.
@@ -267,7 +268,7 @@ export default class ProbeAuthorization {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("ProbeId or ProbeKey is missing"),
+        new BadDataException(ProbeConnectionRefusals.missingIdOrKey),
       );
     }
 
@@ -350,7 +351,7 @@ export default class ProbeAuthorization {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Probe ID or Probe Key"),
+        new BadDataException(ProbeConnectionRefusals.wrongIdOrKey),
       );
     }
 

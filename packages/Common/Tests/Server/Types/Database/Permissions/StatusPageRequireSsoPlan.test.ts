@@ -86,7 +86,7 @@ const PLAN_ENVIRONMENT: Record<string, string> = {
 const COLUMN: string = "requireSsoForLogin";
 
 const SCALE_REFUSAL: string =
-  "Please upgrade your plan to Scale to access this feature";
+  "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const PLANS_BELOW_SCALE: ReadonlyArray<PlanType> = [
   PlanType.Free,
@@ -320,7 +320,9 @@ describe("on OneUptime Cloud (billing on), at the server's column check", () => 
         plan: PlanType.Free,
         data: { [COLUMN]: false, enableSmsSubscribers: true },
       }),
-    ).toBe("Please upgrade your plan to Growth to access this feature");
+    ).toBe(
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+    );
   });
 
   test.each([

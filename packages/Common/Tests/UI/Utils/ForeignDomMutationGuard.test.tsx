@@ -652,7 +652,7 @@ describe("when a foreign edit gets past the guard, the boundary never leaves a b
 
     expect(result.container.childNodes.length).toBeGreaterThan(0);
     expect(fallback.querySelector("[role='alert']")!.textContent).toContain(
-      "Something went wrong",
+      "This page stopped working",
     );
     expect(result.queryByTestId("error-boundary-reload")).not.toBeNull();
     expect(result.queryByTestId("error-boundary-try-again")).not.toBeNull();
