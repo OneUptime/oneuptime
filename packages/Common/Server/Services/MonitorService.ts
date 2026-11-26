@@ -1979,7 +1979,6 @@ export class Service extends ProjectReferencesService<Model> {
       });
   }
 
-  @CaptureSpan()
   /*
    * Moves a telemetry monitor's next evaluation to its interval's next run,
    * at its own moment of the interval (TelemetryMonitorSchedule): the time
@@ -1994,6 +1993,7 @@ export class Service extends ProjectReferencesService<Model> {
    * Scheduler bookkeeping, like the scheduler's own stamp: one statement,
    * no hooks.
    */
+  @CaptureSpan()
   public async rescheduleTelemetryMonitor(data: {
     monitorId: ObjectID;
     monitoringInterval: string | null | undefined;
@@ -2024,6 +2024,7 @@ export class Service extends ProjectReferencesService<Model> {
     return nextMonitorAt;
   }
 
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
