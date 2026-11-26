@@ -20,7 +20,11 @@ import {
   SetupGuideLink,
   SetupGuideTopic,
 } from "../../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
-import { diagramSkeleton, navTitle } from "./DocsTranslationChecks";
+import {
+  diagramSkeleton,
+  escapeRegExp,
+  navTitle,
+} from "./DocsTranslationChecks";
 import { tabPanel } from "./DocsPageShape";
 import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { sectionInLanguage } from "./NetworkDocsLabels";
@@ -147,6 +151,12 @@ const MERMAID_FENCE: RegExp = /^\s*```mermaid\b/;
 const TABLE_DIVIDER: RegExp = /^\|\s*-/;
 const ENV_REFERENCE: RegExp = /\$\{env:([A-Z0-9_]+)\}/g;
 const COMPOSE_REFERENCE: RegExp = /\$\{([A-Z][A-Z0-9_]*)/g;
+// A variable install.sh writes to the .env: NAME=value.
+const DOTENV_LINE: RegExp = /^[A-Z][A-Z0-9_]*=/;
+// A curl that skips the certificate check.
+const INSECURE_CURL: RegExp = /\bcurl\b.*\s-k\b/;
+// A line with words to translate, not only names and code.
+const PROSE_LINE: RegExp = /[A-Za-z]{4,}.*[A-Za-z]{4,}/;
 
 /*
  * js-yaml from Common/node_modules, as StorageArrayDocs.test.ts loads it:
@@ -347,7 +357,7 @@ function dotenvVariables(): Array<string> {
   return (heredoc as RegExpMatchArray)[1]!
     .split("\n")
     .filter((line: string): boolean => {
-      return /^[A-Z][A-Z0-9_]*=/.test(line);
+      return DOTENV_LINE.test(line);
     })
     .map((line: string): string => {
       return line.split("=")[0] as string;
@@ -358,7 +368,9 @@ function dotenvVariables(): Array<string> {
 function composeVariables(): Array<string> {
   return Array.from(
     new Set(
-      Array.from(readAgentFile("docker-compose.yml").matchAll(COMPOSE_REFERENCE))
+      Array.from(
+        readAgentFile("docker-compose.yml").matchAll(COMPOSE_REFERENCE),
+      )
         .map((match: RegExpMatchArray): string => {
           return match[1] as string;
         })
@@ -415,7 +427,9 @@ function spokenSeconds(duration: string): string {
   return `${Number(match[1])} seconds`;
 }
 
-function guideFor(method: "install-script" | "docker-compose"): SetupGuideContent {
+function guideFor(
+  method: "install-script" | "docker-compose",
+): SetupGuideContent {
   return getXcpNgSetupGuide({
     oneuptimeUrl: DOCS_ONEUPTIME_URL,
     apiKey: "<YOUR_API_KEY>",
@@ -664,9 +678,12 @@ describe("XCP-ng docs", (): void => {
         expect(targets.length).toBeGreaterThan(0);
 
         for (const target of targets) {
-          expect({ language, page, target, inNav: navPages.has(target) }).toEqual(
-            { language, page, target, inNav: true },
-          );
+          expect({
+            language,
+            page,
+            target,
+            inNav: navPages.has(target),
+          }).toEqual({ language, page, target, inNav: true });
         }
       }
     });
@@ -735,10 +752,12 @@ describe("XCP-ng docs", (): void => {
         .join("\n")
         .split("\n")
         .filter((line: string): boolean => {
-          return /\bcurl\b.*\s-k\b/.test(line);
+          return INSECURE_CURL.test(line);
         });
 
-      expect(insecure).toEqual([`curl -k https://xo.example.com${HEALTH_PATH}`]);
+      expect(insecure).toEqual([
+        `curl -k https://xo.example.com${HEALTH_PATH}`,
+      ]);
       expect(readAgentFile("install.sh")).toContain(HEALTH_PATH);
     });
   });
@@ -802,7 +821,10 @@ describe("XCP-ng docs", (): void => {
     it("has both links' titles in every docs locale, each naming XCP-ng", (): void => {
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const locale: { navLinks: Record<string, string> } = JSON.parse(
-          fs.readFileSync(path.join(DOCS_LOCALES_DIR, `${language}.json`), "utf8"),
+          fs.readFileSync(
+            path.join(DOCS_LOCALES_DIR, `${language}.json`),
+            "utf8",
+          ),
         ) as { navLinks: Record<string, string> };
 
         for (const title of ["XCP-ng Agent", "XCP-ng Monitor"]) {
@@ -839,7 +861,9 @@ describe("XCP-ng docs", (): void => {
 
       expect(props?.title).toBe("XCP-ng");
       expect(infrastructure?.monitorTypes).toContain(MonitorType.XcpNg);
-      expect(create).toContain(`pick **${props?.title}** under **Infrastructure**`);
+      expect(create).toContain(
+        `pick **${props?.title}** under **Infrastructure**`,
+      );
       // The search word the page gives finds the type by its title.
       expect(create).toContain("type `xcp` in the search box");
       expect(props?.title.toLowerCase()).toContain("xcp");
@@ -876,9 +900,10 @@ describe("XCP-ng docs", (): void => {
           field,
           inForm: true,
         });
-        expect({ field, inDocs: settings.includes(`| **${field}** |`) }).toEqual(
-          { field, inDocs: true },
-        );
+        expect({
+          field,
+          inDocs: settings.includes(`| **${field}** |`),
+        }).toEqual({ field, inDocs: true });
       }
 
       const options: Array<string> = Array.from(
@@ -916,7 +941,9 @@ describe("XCP-ng docs", (): void => {
         `resource.${XCP_NG_POOL_ID_ATTRIBUTE}`,
       );
       expect(identity).toContain(`\`resource.${XCP_NG_POOL_NAME_ATTRIBUTE}\``);
-      expect(identity).toContain(`\`resource.${XEN_ORCHESTRA_NAME_ATTRIBUTE}\``);
+      expect(identity).toContain(
+        `\`resource.${XEN_ORCHESTRA_NAME_ATTRIBUTE}\``,
+      );
 
       const scopeRow: string = tableRows(identity).find(
         (line: string): boolean => {
@@ -1139,7 +1166,9 @@ describe("XCP-ng docs", (): void => {
         expect({ template: template.id, fires }).toEqual({
           template: template.id,
           fires: expect.stringMatching(
-            new RegExp(`^${fireWord} ${threshold(fire.value).replace(".", "\\.")}\\b`),
+            new RegExp(
+              `^${fireWord} ${escapeRegExp(threshold(fire.value))}\\b`,
+            ),
           ),
         });
 
@@ -1151,7 +1180,7 @@ describe("XCP-ng docs", (): void => {
           template: template.id,
           recovers: expect.stringMatching(
             new RegExp(
-              `^${recoverWord} ${threshold(recover.value).replace(".", "\\.")}\\b`,
+              `^${recoverWord} ${escapeRegExp(threshold(recover.value))}\\b`,
             ),
           ),
         });
@@ -1161,7 +1190,10 @@ describe("XCP-ng docs", (): void => {
     it("documents the Terraform attribute as the provider and the step define it", (): void => {
       const terraform: string = section(readPage(MONITOR_PAGE), "## Terraform");
       const provider: string = fs.readFileSync(
-        path.join(REPO_ROOT, "Scripts/TerraformProvider/StaticFiles/monitorsteps.go"),
+        path.join(
+          REPO_ROOT,
+          "Scripts/TerraformProvider/StaticFiles/monitorsteps.go",
+        ),
         "utf8",
       );
       const step: MonitorStep = new MonitorStep();
@@ -1220,9 +1252,11 @@ describe("XCP-ng docs", (): void => {
         readPage(TELEMETRY_PAGE),
         "Docker Compose",
       );
-      const env: string = codeBlocks(quickStart).find((block: string): boolean => {
-        return block.startsWith("ONEUPTIME_URL=");
-      }) as string;
+      const env: string = codeBlocks(quickStart).find(
+        (block: string): boolean => {
+          return block.startsWith("ONEUPTIME_URL=");
+        },
+      ) as string;
       const written: Array<string> = env
         .split("\n")
         .map((line: string): string => {
@@ -1232,7 +1266,9 @@ describe("XCP-ng docs", (): void => {
 
       expect(written).toEqual(composeVariables());
       expect(env).toContain("XO_OPENMETRICS_SECRET='");
-      expect(quickStart).toContain(getXcpNgAgentDownloadCommand(DOCS_ONEUPTIME_URL));
+      expect(quickStart).toContain(
+        getXcpNgAgentDownloadCommand(DOCS_ONEUPTIME_URL),
+      );
       expect(quickStart).toContain(`\`${XCP_NG_AGENT_CA_FILE}\``);
       expect(quickStart).toContain("docker compose up -d");
     });
@@ -1247,9 +1283,9 @@ describe("XCP-ng docs", (): void => {
       expect(readAgentFile("install.sh")).toContain(
         `INSTALL_DIR="\${INSTALL_DIR:-${XCP_NG_AGENT_INSTALL_DIR}}"`,
       );
-      expect(
-        readAgentFile("systemd/oneuptime-xcp-ng-agent.service"),
-      ).toContain(`WorkingDirectory=${XCP_NG_AGENT_INSTALL_DIR}`);
+      expect(readAgentFile("systemd/oneuptime-xcp-ng-agent.service")).toContain(
+        `WorkingDirectory=${XCP_NG_AGENT_INSTALL_DIR}`,
+      );
       expect(compose).toContain(`container_name: ${XCP_NG_AGENT_CONTAINER}`);
       expect(compose).toContain(`source: ./${XCP_NG_AGENT_CA_FILE}`);
       expect(markdown).toContain(`\`${XCP_NG_AGENT_INSTALL_DIR}\``);
@@ -1263,15 +1299,21 @@ describe("XCP-ng docs", (): void => {
       )) {
         expect({
           file: match[1],
-          served: Boolean(entry && getInstallScriptFile(entry, match[1] as string)),
+          served: Boolean(
+            entry && getInstallScriptFile(entry, match[1] as string),
+          ),
         }).toEqual({ file: match[1], served: true });
       }
     });
 
     it("states the scrape the config ships: Xen Orchestra's path, every 60 seconds, with the Bearer secret", (): void => {
       const config: CollectorConfig = collectorConfig();
-      const job: ScrapeJob = config.receivers.prometheus.config.scrape_configs[0]!;
-      const works: string = section(readPage(TELEMETRY_PAGE), "## How it works");
+      const job: ScrapeJob =
+        config.receivers.prometheus.config.scrape_configs[0]!;
+      const works: string = section(
+        readPage(TELEMETRY_PAGE),
+        "## How it works",
+      );
 
       expect(job.metrics_path).toBe(XCP_NG_OPENMETRICS_PATH);
       expect(works).toContain(`\`${job.metrics_path}\``);
@@ -1284,7 +1326,8 @@ describe("XCP-ng docs", (): void => {
 
     it("names the processors it tells people to keep, as the config names them", (): void => {
       const config: CollectorConfig = collectorConfig();
-      const pipeline: Array<string> = config.service.pipelines.metrics.processors;
+      const pipeline: Array<string> =
+        config.service.pipelines.metrics.processors;
       const markdown: string = readPage(TELEMETRY_PAGE);
 
       expect(pipeline).toContain("transform/xcp-ng-rates");
@@ -1411,7 +1454,9 @@ describe("XCP-ng docs", (): void => {
         );
 
         expect(upgrade).toContain(
-          "```bash\n" + getXcpNgAgentUpgradeCommand(DOCS_ONEUPTIME_URL) + "\n```",
+          "```bash\n" +
+            getXcpNgAgentUpgradeCommand(DOCS_ONEUPTIME_URL) +
+            "\n```",
         );
         expect(upgrade).toContain(
           "```bash\n" +
@@ -1422,7 +1467,13 @@ describe("XCP-ng docs", (): void => {
         );
         expect(upgrade).toContain("`INSTALL_DIR=<folder> bash install.sh`");
         for (const label of ["Agent Version", "Overview", "Settings"]) {
-          expect({ language, label, named: upgrade.includes(`**${drawnDashboardLabel(language, label)}**`) }).toEqual({
+          expect({
+            language,
+            label,
+            named: upgrade.includes(
+              `**${drawnDashboardLabel(language, label)}**`,
+            ),
+          }).toEqual({
             language,
             label,
             named: true,
@@ -1480,9 +1531,9 @@ describe("XCP-ng docs", (): void => {
         expect(text).toContain(`/docs/${TELEMETRY_PAGE}#${CERTIFICATE_ANCHOR}`);
       }
 
-      expect(slugifyMarkdownHeading(CERTIFICATE_HEADING.replace(/^## /, ""))).toBe(
-        CERTIFICATE_ANCHOR,
-      );
+      expect(
+        slugifyMarkdownHeading(CERTIFICATE_HEADING.replace(/^## /, "")),
+      ).toBe(CERTIFICATE_ANCHOR);
       expect(anchorsOf(readPage(TELEMETRY_PAGE)).has(CERTIFICATE_ANCHOR)).toBe(
         true,
       );
@@ -1538,7 +1589,11 @@ describe("XCP-ng docs", (): void => {
   describe("translations", (): void => {
     it("ship both pages in every language", (): void => {
       for (const { language, page } of TRANSLATED_PAGES) {
-        expect({ language, page, exists: fs.existsSync(pageFile(language, page)) }).toEqual({
+        expect({
+          language,
+          page,
+          exists: fs.existsSync(pageFile(language, page)),
+        }).toEqual({
           language,
           page,
           exists: true,
@@ -1669,7 +1724,7 @@ describe("XCP-ng docs", (): void => {
           const words: string = line
             .replace(/`[^`]*`/g, "")
             .replace(/\]\([^)]*\)/g, "");
-          if (inFence || !/[A-Za-z]{4,}.*[A-Za-z]{4,}/.test(words)) {
+          if (inFence || !PROSE_LINE.test(words)) {
             return;
           }
           prose++;
