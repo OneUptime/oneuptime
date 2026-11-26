@@ -88,6 +88,8 @@ import {
 import { RESOLVED_RECORD_RETENTION_PROJECTS_REACHED_ROUTE } from "../../Types/Retention/ResolvedRecordRetentionAnswers";
 import CommonAPI from "./CommonAPI";
 import HelpAndSupportServerSettings from "../Utils/HelpAndSupport/HelpAndSupportServerSettings";
+import HelpAndSupportSeeding from "../Utils/HelpAndSupport/HelpAndSupportSeeding";
+import { readSeededItems } from "../../Types/HelpAndSupport/HelpAndSupportSeed";
 import {
   HELP_AND_SUPPORT_LINKS_ITEMS,
   HELP_AND_SUPPORT_LINKS_ROUTE,
@@ -1067,6 +1069,9 @@ export default class GlobalConfigAPI extends BaseAPI<
       isProductRenamed: ProductBrandingUtil.isRenamed(
         EnterpriseEdition.getProductBranding(),
       ),
+      // What came from the server's configuration, and what it set that was refused (#10938).
+      seededItems: readSeededItems(config?.helpAndSupport),
+      seedProblems: HelpAndSupportSeeding.getProblems(),
     };
   }
 

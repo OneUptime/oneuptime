@@ -240,6 +240,19 @@ x-common-runtime-variables: &common-runtime-variables
   # a config.env from before it, every product is on.
   SERVER_PRODUCTS: ${SERVER_PRODUCTS:-everything}
 
+  # Where the server sends its people for help (#10938): each seeds Admin
+  # Dashboard > Settings > Help and Support while nothing is saved there yet,
+  # and the page holds the settings from then on. Unset in a config.env from
+  # before them, every setting stays on OneUptime's default.
+  HELP_AND_SUPPORT_SUPPORT_EMAIL: ${HELP_AND_SUPPORT_SUPPORT_EMAIL:-}
+  HELP_AND_SUPPORT_CHAT: ${HELP_AND_SUPPORT_CHAT:-}
+  HELP_AND_SUPPORT_REQUEST_DEMO: ${HELP_AND_SUPPORT_REQUEST_DEMO:-}
+  HELP_AND_SUPPORT_GIVE_FEEDBACK: ${HELP_AND_SUPPORT_GIVE_FEEDBACK:-}
+  HELP_AND_SUPPORT_HELP_LINK: ${HELP_AND_SUPPORT_HELP_LINK:-}
+  HELP_AND_SUPPORT_GITHUB: ${HELP_AND_SUPPORT_GITHUB:-}
+  HELP_AND_SUPPORT_MOBILE_APP: ${HELP_AND_SUPPORT_MOBILE_APP:-}
+  HELP_AND_SUPPORT_INVITE_MESSAGE: ${HELP_AND_SUPPORT_INVITE_MESSAGE:-}
+
   # Defaulted, unlike its siblings: this one gates outbound traffic, and an
   # existing config.env upgraded in place will not have the key.
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}

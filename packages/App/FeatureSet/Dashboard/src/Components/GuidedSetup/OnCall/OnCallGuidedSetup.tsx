@@ -87,9 +87,9 @@ import {
 import VerificationCodeModal from "../../NotificationMethods/VerificationCodeModal";
 import { VerificationCodeChannel } from "../../NotificationMethods/VerificationCodeChannels";
 import {
-  BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserPushError,
   BrowserPushProblem,
+  getBrowserPushProblemMessage,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
 import {
@@ -910,8 +910,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           <p className="text-sm text-amber-700">
             {translator.translateText(
               serverEmail.isMasterAdmin
-                ? ON_CALL_SETUP_COPY.serverNoTwilioForAdmin
-                : ON_CALL_SETUP_COPY.serverNoTwilio,
+                ? mobileAppOffer
+                  ? ON_CALL_SETUP_COPY.serverNoTwilioForAdmin
+                  : ON_CALL_SETUP_COPY.serverNoTwilioForAdminWithoutApp
+                : mobileAppOffer
+                  ? ON_CALL_SETUP_COPY.serverNoTwilio
+                  : ON_CALL_SETUP_COPY.serverNoTwilioWithoutApp,
             )}
           </p>
           {serverEmail.isMasterAdmin ? (
@@ -1153,7 +1157,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               data-problem={browserPushProblem}
             >
               {translator.translateText(
-                BROWSER_PUSH_PROBLEM_MESSAGES[browserPushProblem],
+                getBrowserPushProblemMessage(
+                  browserPushProblem,
+                  mobileAppOffer !== null,
+                ),
               )}
             </p>
           ) : (
@@ -1198,7 +1205,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             >
               {browserPushError.problem ? (
                 translator.translateText(
-                  BROWSER_PUSH_PROBLEM_MESSAGES[browserPushError.problem],
+                  getBrowserPushProblemMessage(
+                    browserPushError.problem,
+                    mobileAppOffer !== null,
+                  ),
                 )
               ) : (
                 <ErrorInSentence
@@ -1318,7 +1328,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         })}
         {reachRow({
           key: "push",
-          title: ON_CALL_SETUP_COPY.pushRow,
+          title: mobileAppOffer
+            ? ON_CALL_SETUP_COPY.pushRow
+            : ON_CALL_SETUP_COPY.pushRowWithoutApp,
           value:
             pushes.length > 0
               ? describeMethods(pushes)
@@ -2738,7 +2750,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       {showNotReceivedHelp && !isAcknowledged ? (
         <div className="space-y-2" data-testid="on-call-setup-not-received">
           <p className="text-sm text-gray-700">
-            {translator.translateText(ON_CALL_SETUP_COPY.testDidNotGetItHelp)}
+            {translator.translateText(
+              mobileAppOffer
+                ? ON_CALL_SETUP_COPY.testDidNotGetItHelp
+                : ON_CALL_SETUP_COPY.testDidNotGetItHelpWithoutApp,
+            )}
           </p>
           <AppLink
             to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}

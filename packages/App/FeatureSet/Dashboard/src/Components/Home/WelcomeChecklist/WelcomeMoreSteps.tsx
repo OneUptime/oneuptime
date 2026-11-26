@@ -7,6 +7,8 @@ import {
 import WelcomePlanStep from "./WelcomePlanStep";
 import PageMap from "../../../Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getMobileAppOffer } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import {
   WelcomeChecklistStepState,
   WelcomeStep,
@@ -91,6 +93,14 @@ const WelcomeMoreSteps: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const headingId: string = `welcome-more-title-${useId()}`;
+  /*
+   * The phone's offer names the app only where the server offers it (Admin
+   * Dashboard > Settings > Help and Support, #10945).
+   */
+  const phoneDescription: string =
+    getMobileAppOffer(useHelpAndSupport()) !== null
+      ? PHONE_OFFER_ENTRY.description
+      : WELCOME_MORE_COPY.phoneDescriptionWithoutApp;
 
   return (
     <section
@@ -146,9 +156,7 @@ const WelcomeMoreSteps: FunctionComponent<ComponentProps> = (
             testIdKey={WELCOME_MORE_PHONE_KEY}
             state={PHONE_OFFER_STATE}
             entry={PHONE_OFFER_ENTRY}
-            description={
-              translator.translateText(PHONE_OFFER_ENTRY.description) || ""
-            }
+            description={translator.translateText(phoneDescription) || ""}
             isLast={true}
             isOnPath={false}
             onOpen={props.onOpenPhone}

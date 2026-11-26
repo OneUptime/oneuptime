@@ -95,6 +95,8 @@ const HTML_VARIABLES: ReadonlyArray<string> = [
 const ESCAPING_HELPERS: ReadonlyArray<string> = [
   "tHtml",
   "ttHtml",
+  // Escapes its sentence and values; its one markup is the address's link.
+  "ttMailtoHtml",
   "brandNameHtml",
 ];
 

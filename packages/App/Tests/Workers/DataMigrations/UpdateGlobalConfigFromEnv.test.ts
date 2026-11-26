@@ -12,6 +12,17 @@ import {
   StoredRow,
   useInMemoryTable,
 } from "Common/Tests/Server/TestingUtils/InMemoryRepository";
+import HelpAndSupportServerSettings from "Common/Server/Utils/HelpAndSupport/HelpAndSupportServerSettings";
+import {
+  HelpAndSupportSettings,
+  HelpChoice,
+  HelpItem,
+  getDefaultHelpAndSupportSettings,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import {
+  HELP_AND_SUPPORT_SEED_VARIABLES,
+  readSeededItems,
+} from "Common/Types/HelpAndSupport/HelpAndSupportSeed";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import {
@@ -74,6 +85,8 @@ const SMTP_VARIABLES: ReadonlyArray<string> = [
   "TWILIO_AUTH_TOKEN",
   "TWILIO_PHONE_NUMBER",
   "DISABLE_SIGNUP",
+  // Help and Support from the configuration (#10938), cleared like the rest.
+  ...Object.values(HELP_AND_SUPPORT_SEED_VARIABLES),
 ];
 
 const SETTINGS_ID: string = ObjectID.getZeroObjectID().toString();
@@ -387,5 +400,146 @@ describe("a fresh server, end to end", () => {
     expect(ServerChannelSetup.getEmailSetUpProblem(await readSettings())).toBe(
       "SMTP: the Port is not set under Settings > Emails.",
     );
+  });
+});
+
+/*
+ * A NEW SERVER'S HELP AND SUPPORT, FROM ITS CONFIGURATION (#10938).
+ *
+ * The first start of a new server may run the startup migration that seeds
+ * Admin Dashboard > Settings > Help and Support before AddDefaultGlobalConfig
+ * makes the settings row; so this migration, which runs right after it,
+ * seeds it too. End to end: the row AddDefaultGlobalConfig makes, this
+ * migration run over it through the real GlobalConfigService, the write held
+ * to nothing being saved as the statement holds it, and the settings read
+ * back as every page reads them.
+ */
+describe("a fresh server's Help and Support, from its configuration", () => {
+  // The statement compareAndSetColumnsByIdWithoutHooks sends, on the table.
+  function answerConditionalWrites(table: InMemoryTable): void {
+    jest
+      .spyOn(GlobalConfigService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockImplementation(
+        async (input: {
+          id: ObjectID;
+          data: unknown;
+          expectedData: unknown;
+        }): Promise<boolean> => {
+          const row: StoredRow | undefined = table.get(input.id);
+
+          if (!row) {
+            return false;
+          }
+
+          for (const [column, expected] of Object.entries(
+            input.expectedData as Record<string, unknown>,
+          )) {
+            if (
+              JSON.stringify(row[column] ?? null) !== JSON.stringify(expected)
+            ) {
+              return false;
+            }
+          }
+
+          Object.assign(row, input.data as StoredRow);
+          return true;
+        },
+      );
+  }
+
+  async function readHelpAndSupport(): Promise<HelpAndSupportSettings> {
+    HelpAndSupportServerSettings.forget();
+    return await HelpAndSupportServerSettings.getSettings();
+  }
+
+  afterEach(() => {
+    HelpAndSupportServerSettings.forget();
+  });
+
+  test("nothing configured: nothing written, every setting OneUptime's default as today", async () => {
+    const table: InMemoryTable = useInMemoryTable(GlobalConfigService, [
+      defaultRow(),
+    ]);
+    answerConditionalWrites(table);
+
+    await new UpdateGlobalConfigFromEnv().migrate();
+
+    expect(table.get(SETTINGS_ID)!["helpAndSupport"] ?? null).toBeNull();
+    expect(await readHelpAndSupport()).toEqual(
+      getDefaultHelpAndSupportSettings(),
+    );
+  });
+
+  test("configured: seeded as soon as the row is made, and read as every page reads it", async () => {
+    process.env["HELP_AND_SUPPORT_SUPPORT_EMAIL"] = "it-help@acme.example";
+    process.env["HELP_AND_SUPPORT_CHAT"] =
+      "https://acme.slack.com/archives/C024BE91L";
+    process.env["HELP_AND_SUPPORT_GITHUB"] = "false";
+
+    const table: InMemoryTable = useInMemoryTable(GlobalConfigService, [
+      defaultRow(),
+    ]);
+    answerConditionalWrites(table);
+
+    await new UpdateGlobalConfigFromEnv().migrate();
+
+    const settings: HelpAndSupportSettings = await readHelpAndSupport();
+
+    expect(settings[HelpItem.SupportEmail]).toEqual({
+      choice: HelpChoice.Email,
+      value: "it-help@acme.example",
+    });
+    expect(settings[HelpItem.Chat]).toEqual({
+      choice: HelpChoice.Link,
+      value: "https://acme.slack.com/archives/C024BE91L",
+    });
+    expect(settings[HelpItem.GitHub]).toEqual({
+      choice: HelpChoice.Hidden,
+      value: null,
+    });
+    expect(settings[HelpItem.RequestDemo].choice).toBe(HelpChoice.Default);
+    expect(readSeededItems(table.get(SETTINGS_ID)!["helpAndSupport"])).toEqual([
+      HelpItem.SupportEmail,
+      HelpItem.Chat,
+      HelpItem.GitHub,
+    ]);
+  });
+
+  test("an unsafe link is left out and said, and the rest still seeded", async () => {
+    process.env["HELP_AND_SUPPORT_HELP_LINK"] = "javascript:alert(1)";
+    process.env["HELP_AND_SUPPORT_SUPPORT_EMAIL"] = "it-help@acme.example";
+
+    const table: InMemoryTable = useInMemoryTable(GlobalConfigService, [
+      defaultRow(),
+    ]);
+    answerConditionalWrites(table);
+
+    await new UpdateGlobalConfigFromEnv().migrate();
+
+    const settings: HelpAndSupportSettings = await readHelpAndSupport();
+
+    expect(settings[HelpItem.HelpLink].choice).toBe(HelpChoice.Default);
+    expect(settings[HelpItem.SupportEmail].value).toBe("it-help@acme.example");
+    expect(
+      JSON.stringify(table.get(SETTINGS_ID)!["helpAndSupport"]),
+    ).not.toContain("javascript");
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("HELP_AND_SUPPORT_HELP_LINK"),
+    );
+  });
+
+  test("an install whose page was saved before keeps what was saved", async () => {
+    process.env["HELP_AND_SUPPORT_SUPPORT_EMAIL"] = "it-help@acme.example";
+
+    const table: InMemoryTable = useInMemoryTable(GlobalConfigService, [
+      defaultRow({ helpAndSupport: { chat: { choice: "hidden" } } }),
+    ]);
+    answerConditionalWrites(table);
+
+    await new UpdateGlobalConfigFromEnv().migrate();
+
+    expect(table.get(SETTINGS_ID)!["helpAndSupport"]).toEqual({
+      chat: { choice: "hidden" },
+    });
   });
 });

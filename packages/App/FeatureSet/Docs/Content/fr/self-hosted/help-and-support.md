@@ -7,6 +7,7 @@ Dirigez l'aide que propose OneUptime vers votre propre équipe : l'adresse de su
 - [Ce que change chaque paramètre](#ce-que-change-chaque-paramètre) : Chaque emplacement, sa valeur par défaut et ses choix.
 - [Donner votre avis](#donner-votre-avis) : Où est envoyé ce que les personnes écrivent.
 - [Le message de connexion](#le-message-de-connexion) : À qui demander une invitation.
+- [Définir les paramètres depuis votre configuration](#définir-les-paramètres-depuis-votre-configuration) : Valeurs Helm ou `config.env`, pour un nouveau serveur.
 :::
 
 ## Changer où mène l'aide
@@ -28,12 +29,12 @@ Tant que vous ne modifiez pas un emplacement, il affiche ce que OneUptime a touj
 
 | Paramètre | Où les personnes le voient | Par défaut | Personnalisé |
 | --- | --- | --- | --- |
-| **E-mail de support** | Aide › **E-mail de support**, **Contacter le support** sur la page introuvable, et l'adresse à laquelle un écran d'erreur demande d'envoyer un pack de support | `support@oneuptime.com` | Une adresse e-mail |
-| **Chat** | Aide › **Discuter sur Slack** | La communauté OneUptime sur Slack | Un lien. Un lien Slack ou Microsoft Teams garde son nom ; tout autre lien s'appelle **Discuter avec le support** |
+| **E-mail de support** | Aide › **E-mail de support**, **Contacter le support** sur la page introuvable, les e-mails liés au compte, et l'adresse à laquelle un écran d'erreur demande d'envoyer un pack de support | `support@oneuptime.com` | Une adresse e-mail |
+| **Chat** | Aide › **Discuter sur Slack**, et le lien de chat en haut de la référence de l'API | La communauté OneUptime sur Slack | Un lien. Un lien Slack ou Microsoft Teams garde son nom ; tout autre lien s'appelle **Discuter avec le support** |
 | **Demander une démo** | Aide › **Demander une démo** | Affiché | Masqué uniquement |
 | **Donner votre avis** | Aide › **Donner votre avis**, et **Donner votre avis** dans la recherche | Les administrateurs de ce serveur | Une adresse e-mail, ou votre propre page |
-| **Aide et support** | **Aide et support** dans le pied de page, et **Contact** sur les pages de connexion | `https://oneuptime.com/support` | Un lien |
-| **Signaler un bug ou demander une fonctionnalité** | Le bas du menu des produits, et l'issue GitHub publique proposée après un avis | Affiché | Masqué uniquement |
+| **Aide et support** | **Aide et support** dans le pied de page, **Contact** sur les pages de connexion, et **Assistance** en haut de la référence de l'API | `https://oneuptime.com/support` | Un lien |
+| **Signaler un bug ou demander une fonctionnalité** | Le bas du menu des produits, l'issue GitHub publique proposée après un avis, et les liens GitHub de la documentation et de la référence de l'API | Affiché | Masqué uniquement |
 | **Obtenir l'app mobile** | **Comment me joindre**, la configuration de l'astreinte, les premiers pas d'un nouveau membre sur la page Accueil, et **Applications mobiles** dans **Paramètres du projet** | L'App Store et Google Play | Votre propre page, par exemple le portail d'entreprise de votre gestionnaire d'appareils |
 | **Message pour les personnes qui ont besoin d'une invitation** | Les écrans d'authentification unique qui disent « You need to be invited. » et « No project access. » | La phrase de OneUptime | Vos propres mots |
 
@@ -41,9 +42,17 @@ Chaque paramètre, sauf le message, peut aussi être masqué. Un lien commence p
 
 Le menu d'aide, le pied de page et le menu des produits du Admin Dashboard lui-même gardent les liens de OneUptime : ils s'adressent aux administrateurs de ce serveur, qui obtiennent de l'aide sur le serveur auprès de OneUptime.
 
+### Les e-mails liés au compte
+
+Sur un serveur auto-hébergé, les e-mails liés au compte, comme une invitation ou un changement d'adresse e-mail, se terminent en renvoyant les personnes vers l'administrateur de ce serveur, jamais vers le support de OneUptime. Avec votre propre adresse de support, ils l'indiquent sous forme de lien : « Besoin d'aide ? Écrivez à it-help@example.com. » Avec la valeur par défaut, ou si le paramètre est masqué, ils restent tels qu'ils ont toujours été.
+
+### La documentation et la référence de l'API
+
+La documentation et la référence de l'API que fournit ce serveur suivent les mêmes paramètres. Lorsque **Signaler un bug ou demander une fonctionnalité** est masqué, aucune page ne renvoie vers GitHub, et la question **Cette page vous a-t-elle été utile ?** n'est posée que là où sa réponse est conservée ou envoyée. La barre du haut de la référence de l'API affiche le chat et la page d'aide que vous avez choisis, ou ni l'un ni l'autre lorsqu'ils sont masqués.
+
 ### Qui peut lire vos liens
 
-L'adresse de support et le lien **Aide et support** s'affichent aussi sur les pages de connexion : toute personne qui peut ouvrir ces pages peut donc les lire. Un lien de chat et la page de l'app mobile ne sont envoyés qu'aux personnes connectées : un lien de chat est souvent une invitation dans votre espace de travail.
+L'adresse de support et le lien **Aide et support** s'affichent aussi sur les pages de connexion : toute personne qui peut ouvrir ces pages peut donc les lire. Un lien de chat et la page de l'app mobile ne sont envoyés qu'aux personnes connectées : un lien de chat est souvent une invitation dans votre espace de travail. Pour la même raison, la documentation et la référence de l'API, que tout le monde peut lire, n'affichent votre propre lien de chat qu'à une personne connectée à ce serveur.
 
 ## Donner votre avis
 
@@ -78,6 +87,39 @@ Avec votre propre page, chaque incitation à obtenir l'app mobile pointe vers el
 - **Obtenir l'app mobile** disparaît des premiers pas d'un nouveau membre sur la page Accueil, qui se terminent quand même lorsque la personne peut être jointe et qu'un appel de test l'a jointe.
 - **Comment me joindre** et la configuration de l'astreinte ne proposent que les navigateurs.
 - **Applications mobiles** disparaît de **Paramètres du projet**.
+- Partout où OneUptime énumère les moyens de joindre quelqu'un, comme les configurations guidées, la page Accueil, les règles de conformité d'une équipe et Demander à l'IA, l'app n'y figure plus.
+
+## Définir les paramètres depuis votre configuration
+
+Un serveur installé avec Helm ou Docker Compose peut démarrer avec ces paramètres déjà en place. Définissez-les dans les valeurs `helpAndSupport` du chart Helm, ou dans `config.env` pour Docker Compose :
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Valeur Helm | `config.env` | Ce qu'elle accepte |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | Une adresse e-mail, ou `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | Un lien, ou `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` ou `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | Une adresse e-mail, un lien ou `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | Un lien, ou `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` ou `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | Un lien, ou `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | Du texte brut |
+
+- Ces valeurs sont lues au démarrage du serveur, et seulement tant que rien n'a été enregistré dans **Aide et support**. À partir de là, c'est la page qui fait foi : une modification qui y est faite est conservée, et un redémarrage ne la défait jamais.
+- Une valeur modifiée plus tard dans la configuration n'est pas appliquée, et le journal du serveur le signale. Modifiez-la sur la page.
+- Chaque valeur est vérifiée comme la page la vérifie. Une valeur qui serait refusée, comme un lien `javascript:`, est écartée, et la page et le journal du serveur en donnent la raison. Les autres sont tout de même définies.
+- Laissez une valeur vide pour garder la valeur par défaut de OneUptime. `true` et `false` fonctionnent aussi pour les deux interrupteurs.
+- La page signale chaque paramètre venu de votre configuration, jusqu'à ce que vous le modifiiez.
 
 ## Étapes suivantes
 

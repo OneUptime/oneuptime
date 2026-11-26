@@ -327,6 +327,82 @@ describe("the rule form's fields", () => {
     );
   });
 
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10945): the push device rule says what a
+   * member can register there, a browser, and every other card is as it
+   * was. A server that offers the app, or a call that does not say, keeps
+   * the catalog's sentence.
+   */
+  test("on a server without the mobile app, the push device card names a browser only", () => {
+    const pushCard: (
+      isMobileAppOffered?: boolean,
+    ) => CardSelectOption | undefined = (
+      isMobileAppOffered?: boolean,
+    ): CardSelectOption | undefined => {
+      return getRuleTypeCardOptions(undefined, isMobileAppOffered)
+        .flatMap((group: CardSelectOptionGroup) => {
+          return group.options;
+        })
+        .find((option: CardSelectOption) => {
+          return option.value === ComplianceRuleType.HasNotificationPushMethod;
+        });
+    };
+
+    expect(pushCard(false)?.description).toBe(
+      "Members have a browser registered for push notifications.",
+    );
+    expect(pushCard(true)?.description).toBe(
+      "Members have the mobile app or a browser registered for push notifications.",
+    );
+    expect(pushCard()?.description).toBe(pushCard(true)?.description);
+
+    const others: (isMobileAppOffered: boolean) => Array<unknown> = (
+      isMobileAppOffered: boolean,
+    ): Array<unknown> => {
+      return getRuleTypeCardOptions(undefined, isMobileAppOffered).map(
+        (group: CardSelectOptionGroup) => {
+          return group.options.filter((option: CardSelectOption) => {
+            return (
+              option.value !== ComplianceRuleType.HasNotificationPushMethod
+            );
+          });
+        },
+      );
+    };
+
+    expect(others(false)).toEqual(others(true));
+  });
+
+  test("only the push device rule has a sentence without the app", () => {
+    expect(
+      COMPLIANCE_RULE_DEFINITIONS.filter(
+        (definition: ComplianceRuleDefinition) => {
+          return Boolean(definition.descriptionWithoutApp);
+        },
+      ).map((definition: ComplianceRuleDefinition) => {
+        return definition.ruleType;
+      }),
+    ).toEqual([ComplianceRuleType.HasNotificationPushMethod]);
+  });
+
+  test("the form's rule type picker takes the server's answer", () => {
+    const pickerFor: (isMobileAppOffered: boolean) => unknown = (
+      isMobileAppOffered: boolean,
+    ): unknown => {
+      return getComplianceRuleFormFields(
+        undefined,
+        undefined,
+        isMobileAppOffered,
+      ).find((field: ModelField<TeamComplianceSetting>) => {
+        return Boolean(field.field && "ruleType" in field.field);
+      })?.cardSelectOptions;
+    };
+
+    expect(pickerFor(false)).toEqual(getRuleTypeCardOptions(undefined, false));
+    expect(pickerFor(true)).toEqual(getRuleTypeCardOptions(undefined, true));
+  });
+
   test("each card says what the catalog says", () => {
     for (const group of getRuleTypeCardOptions()) {
       for (const option of group.options) {
