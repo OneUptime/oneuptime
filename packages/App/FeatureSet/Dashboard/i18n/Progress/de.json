@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64670,
-    "untranslated": 2757
+    "keys": 64815,
+    "untranslated": 2902
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -414,7 +414,6 @@
     "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Name",
     "Name (optional)",
-    "Name in Xen Orchestra",
     "Nameserver",
     "Namespace",
     "Namespaces",
@@ -741,9 +740,6 @@
     "Workflow {{id}}",
     "Workload",
     "Workloads",
-    "XCP-ng",
-    "XOSTOR",
-    "Xen Orchestra",
     "Zone",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
