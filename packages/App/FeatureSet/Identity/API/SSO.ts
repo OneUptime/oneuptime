@@ -32,6 +32,8 @@ import SsoTeamMembership, {
   SSO_NO_ROOM_ERROR,
   SSO_NO_ROOM_MESSAGE,
   SSO_NO_ROOM_TITLE,
+  SSO_NO_TEAMS_ERROR,
+  SSO_NO_TEAMS_TITLE,
   SsoTeamMembershipOutcome,
 } from "../Utils/SsoTeamMembership";
 import { DashboardRoute } from "Common/ServiceRoute";
@@ -714,32 +716,47 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     });
 
     if (teamMemberCount.toNumber() === 0) {
-      // user not in project, add him to default teams.
+      /*
+       * Not in the project yet: they join the provider's teams, taking a
+       * seat like anyone invited, so a project with no room for one more
+       * person adds them nowhere, and they are told so. Only the project's
+       * own teams take them (#11149); a provider with none of them - no
+       * teams at all, or only another project's - adds nobody.
+       */
+      const joined: SsoTeamMembershipOutcome =
+        await SsoTeamMembership.addToTeams({
+          projectId: new ObjectID(req.params["projectId"] as string),
+          userId: alreadySavedUser.id!,
+          teams: projectSSO.teams,
+        });
 
-      if (!projectSSO.teams || projectSSO.teams.length === 0) {
+      if (joined === SsoTeamMembershipOutcome.NoTeams) {
+        const noTeamsMessage: string =
+          "No teams have been added to this SSO config. Please contact your admin and have default teams added.";
+
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: SSO_NO_TEAMS_ERROR,
+            errorDescription: noTeamsMessage,
+          })
+        ) {
+          return;
+        }
+
         return Response.render(
           req,
           res,
           "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
           {
-            title: "No teams added.",
-            message:
-              "No teams have been added to this SSO config. Please contact your admin and have default teams added.",
+            title: SSO_NO_TEAMS_TITLE,
+            message: noTeamsMessage,
           },
         );
       }
 
-      /*
-       * They take a seat like anyone invited: a project with no room for
-       * one more person adds them nowhere, and they are told so.
-       */
-      if (
-        (await SsoTeamMembership.addToTeams({
-          projectId: new ObjectID(req.params["projectId"] as string),
-          userId: alreadySavedUser.id!,
-          teams: projectSSO.teams,
-        })) === SsoTeamMembershipOutcome.NoRoom
-      ) {
+      if (joined === SsoTeamMembershipOutcome.NoRoom) {
         if (
           respondToMobileSsoFailure({
             res,

@@ -117,6 +117,7 @@ export interface ProjectSsoConfirmationResult {
 }
 
 interface ProjectSsoProvider {
+  // Its default teams that are teams of its project (SsoTeamMembership.getProjectTeams).
   teams: Array<Team>;
 }
 
@@ -456,7 +457,14 @@ export default class ProjectSsoSignInConfirmation {
         },
       });
 
-      return provider ? { teams: provider.teams || [] } : null;
+      return provider
+        ? {
+            teams: await SsoTeamMembership.getProjectTeams({
+              projectId: data.projectId,
+              teams: provider.teams,
+            }),
+          }
+        : null;
     }
 
     const provider: ProjectOIDC | null = await ProjectOidcService.findOneBy({
@@ -476,7 +484,14 @@ export default class ProjectSsoSignInConfirmation {
       },
     });
 
-    return provider ? { teams: provider.teams || [] } : null;
+    return provider
+      ? {
+          teams: await SsoTeamMembership.getProjectTeams({
+            projectId: data.projectId,
+            teams: provider.teams,
+          }),
+        }
+      : null;
   }
 
   /*
@@ -694,6 +709,11 @@ export default class ProjectSsoSignInConfirmation {
 
       if (added === SsoTeamMembershipOutcome.NoRoom) {
         return { outcome: ProjectSsoConfirmationOutcome.NoRoom };
+      }
+
+      // Its teams were read as its project's own (findProvider): gone since.
+      if (added === SsoTeamMembershipOutcome.NoTeams) {
+        return { outcome: ProjectSsoConfirmationOutcome.NoDefaultTeams };
       }
     }
 
