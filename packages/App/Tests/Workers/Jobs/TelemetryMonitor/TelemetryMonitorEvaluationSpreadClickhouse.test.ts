@@ -19,14 +19,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getDockerAlertTemplateById } from "Common/Types/Monitor/DockerAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
 import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
  * ------------------------------------------------------------------

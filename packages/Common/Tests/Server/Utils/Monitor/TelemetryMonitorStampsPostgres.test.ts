@@ -50,7 +50,7 @@ jest.mock("../../../../Server/Utils/Logger");
  * A "Monitor" table with the columns the statements touch is made in a
  * schema of its own, dropped afterwards.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_TELEMETRY_STAMP_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -419,7 +419,7 @@ describePostgres("the telemetry scheduler's stamps against Postgres", () => {
   });
 
   test("nothing to stamp or make due again sends no statement", async () => {
-    const query: jest.Mock = jest.fn();
+    const query: ReturnType<typeof jest.fn> = jest.fn();
 
     repositories = [{ manager: { query } } as unknown as Repository<Monitor>];
 

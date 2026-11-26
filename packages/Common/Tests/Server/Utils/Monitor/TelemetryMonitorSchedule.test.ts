@@ -317,7 +317,7 @@ describe("TelemetryMonitorSchedule", () => {
           isReadable: false,
         });
 
-        const onUnreadable: jest.Mock = jest.fn();
+        const onUnreadable: ReturnType<typeof jest.fn> = jest.fn();
         const runs: Array<number> = runsOf({
           monitorId: monitorIds(7, 1)[0]!,
           monitoringInterval: value,
@@ -336,7 +336,7 @@ describe("TelemetryMonitorSchedule", () => {
     });
 
     test("a readable interval never calls onUnreadable", () => {
-      const onUnreadable: jest.Mock = jest.fn();
+      const onUnreadable: ReturnType<typeof jest.fn> = jest.fn();
 
       runsOf({
         monitorId: monitorIds(8, 1)[0]!,
