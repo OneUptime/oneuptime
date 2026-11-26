@@ -586,7 +586,10 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
         ? props.getSummaryFields(row)
         : [
             {
-              title: StorageArrayResourceKindUtil.getSingularLabel(props.kind),
+              title: StorageArrayResourceKindUtil.getSingularLabel(
+                props.kind,
+                storageSystem,
+              ),
               value: StorageArrayResourceUtils.displayNameForResource(row),
             },
           ];

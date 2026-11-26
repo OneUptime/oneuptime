@@ -439,6 +439,12 @@ const PROSE: Record<string, Array<string>> = {
   [QUEUES]: ["destination", "namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
+  /*
+   * ONTAP's Aggregates tab, which the Dashboard draws with a key of its own
+   * (Aggregates (disk aggregates), #11001): the bare Aggregates is
+   * OpenStack's host aggregate in some languages.
+   */
+  [STORAGE_ARRAYS]: ["Aggregates"],
 };
 
 /*

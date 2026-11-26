@@ -103,7 +103,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
       {
         type: "value",
         id: "aggregate",
-        title: translationKey("Aggregate"),
+        title: translationKey("Aggregate (disk aggregate)"),
         description: translationKey(
           "The aggregate the volume's space comes from; a FlexGroup lists each of its aggregates.",
         ),
@@ -189,7 +189,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
           value: { column: "status", format: "status" },
         },
         {
-          title: translationKey("Aggregate"),
+          title: translationKey("Aggregate (disk aggregate)"),
           value: { detail: "aggregate", format: "text" },
         },
         {
@@ -213,7 +213,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
           value: { column: "usedBytes", format: "bytes" },
         },
         {
-          title: translationKey("Available"),
+          title: translationKey("Free (storage space)"),
           value: { detail: "availableBytes", format: "bytes" },
         },
         {
@@ -389,7 +389,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
       {
         type: "value",
         id: "free",
-        title: translationKey("Available"),
+        title: translationKey("Free (storage space)"),
         value: { detail: "availableBytes", format: "bytes" },
       },
       DATA_REDUCTION_COLUMN,
@@ -436,7 +436,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
       ),
       fields: [
         {
-          title: translationKey("Aggregate"),
+          title: translationKey("Aggregate (disk aggregate)"),
           value: { column: "name", format: "text" },
         },
         {
@@ -460,7 +460,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
           value: { column: "usedBytes", format: "bytes" },
         },
         {
-          title: translationKey("Available"),
+          title: translationKey("Free (storage space)"),
           value: { detail: "availableBytes", format: "bytes" },
         },
         {

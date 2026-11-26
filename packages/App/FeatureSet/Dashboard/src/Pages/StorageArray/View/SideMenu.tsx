@@ -184,7 +184,7 @@ export function getPlatformKindMenuItems(
     .map((kind: string): PlatformKindMenuItem => {
       return {
         kind: kind,
-        title: StorageArrayResourceKindUtil.getPluralLabel(kind),
+        title: StorageArrayResourceKindUtil.getPluralLabel(kind, storageSystem),
         icon: getStorageArrayKindWords(kind, storageSystem).icon,
       };
     });

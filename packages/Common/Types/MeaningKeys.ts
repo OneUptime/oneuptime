@@ -198,6 +198,15 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * (النموذج), where a device's model is 型号 / 型號 and الطراز.
    */
   "Model (hardware model)",
+  /*
+   * A NetApp ONTAP aggregate, the disks its node's volumes are carved from:
+   * ONTAP's Aggregates tab, the kind on its parts' pages and the aggregate a
+   * volume lives in (#11001). The bare "Aggregate" is OpenStack's host
+   * aggregate, a group of compute hosts, worded so in Traditional Chinese
+   * (主機集合) and Arabic (تجميع المضيفين), which no group of disks is.
+   */
+  "Aggregate (disk aggregate)",
+  "Aggregates (disk aggregates)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

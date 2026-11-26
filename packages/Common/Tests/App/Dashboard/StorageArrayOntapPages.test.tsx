@@ -467,7 +467,12 @@ describe("an ONTAP cluster's parts link to pages of their own", () => {
 
   test("its own kinds are tabs, in ONTAP's words and icons", () => {
     expect(getPlatformKindMenuItems(ONTAP)).toEqual([
-      { kind: "Aggregate", title: "Aggregates", icon: IconProp.Layers },
+      // Not OpenStack's host aggregates: a key of its own (MeaningKeys).
+      {
+        kind: "Aggregate",
+        title: "Aggregates (disk aggregates)",
+        icon: IconProp.Layers,
+      },
       { kind: "Svm", title: "SVMs", icon: IconProp.ServerStack },
       { kind: "Lun", title: "LUNs", icon: IconProp.Cube },
       {

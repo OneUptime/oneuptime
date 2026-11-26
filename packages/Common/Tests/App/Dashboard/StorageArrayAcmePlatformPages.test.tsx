@@ -396,7 +396,12 @@ describe("an Acme array's counts", () => {
       count: { one: "{{count}} aggregate", other: "{{count}} aggregates" },
       icon: IconProp.Database,
     });
-    expect(getStorageArrayInventoryTileWords(ACME_AGGREGATE_KIND).title).toBe(
+    expect(
+      getStorageArrayInventoryTileWords(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      ).title,
+    ).toBe(
       "Aggregates",
     );
     // No ranked lists are written for it.

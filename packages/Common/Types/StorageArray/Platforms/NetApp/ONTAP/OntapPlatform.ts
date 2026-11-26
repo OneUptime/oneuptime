@@ -410,8 +410,9 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
   kindDefinitions: [
     {
       kind: OntapKind.Aggregate,
-      singularLabel: translationKey("Aggregate"),
-      pluralLabel: translationKey("Aggregates"),
+      // Not OpenStack's host aggregate (Common/Types/MeaningKeys).
+      singularLabel: translationKey("Aggregate (disk aggregate)"),
+      pluralLabel: translationKey("Aggregates (disk aggregates)"),
       countLabel: {
         one: translationKey("{{count}} aggregate"),
         other: translationKey("{{count}} aggregates"),
@@ -652,7 +653,7 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
         {
           type: "value",
           id: "model",
-          title: translationKey("Model"),
+          title: translationKey("Model (hardware model)"),
           value: { column: "model", format: "text" },
         },
         {
@@ -751,7 +752,7 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
         {
           type: "value",
           id: "model",
-          title: translationKey("Model"),
+          title: translationKey("Model (hardware model)"),
           value: { column: "model", format: "text" },
           hiddenByDefault: true,
         },
@@ -779,7 +780,7 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
         {
           type: "value",
           id: "model",
-          title: translationKey("Model"),
+          title: translationKey("Model (hardware model)"),
           value: { column: "model", format: "text" },
         },
         {

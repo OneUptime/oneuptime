@@ -764,9 +764,9 @@ describe("the ONTAP catalog, against what Harvest serves", () => {
       });
       for (const query of step.data!.storageArrayMonitor!.metricViewConfig
         .queryConfigs) {
-        expect(names.has(query.metricQueryData.filterData.metricName!)).toBe(
-          true,
-        );
+        expect(
+          names.has(String(query.metricQueryData.filterData.metricName)),
+        ).toBe(true);
       }
     }
   });

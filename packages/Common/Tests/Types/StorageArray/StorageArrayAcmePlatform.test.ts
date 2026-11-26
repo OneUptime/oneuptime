@@ -387,11 +387,21 @@ describe("Acme's inventory and counts", () => {
         FLASHARRAY,
       ),
     ).toBe(false);
+    /*
+     * In its own words, asked on its platform: ONTAP has an Aggregate too
+     * (#11001), worded by a key of its own.
+     */
     expect(
-      StorageArrayResourceKindUtil.getSingularLabel(ACME_AGGREGATE_KIND),
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      )?.singularLabel,
     ).toBe("Aggregate");
     expect(
-      StorageArrayResourceKindUtil.getPluralLabel(ACME_AGGREGATE_KIND),
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      )?.pluralLabel,
     ).toBe("Aggregates");
     // A shared kind keeps the shared words.
     expect(

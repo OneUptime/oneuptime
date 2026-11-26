@@ -11,7 +11,8 @@ import path from "path";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
-import { StorageArrayPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
+// A registered platform; the setup guide's StorageArrayPlatform is a key.
+import { StorageArrayPlatform as RegisteredPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { getInventoryMenuItems } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/SideMenu";
 import {
@@ -297,9 +298,9 @@ function readGolden(): JSONObject {
 async function withPurePlatformsAlone<T>(
   compute: () => Promise<T>,
 ): Promise<T> {
-  const others: Array<StorageArrayPlatform> =
+  const others: Array<RegisteredPlatform> =
     StorageArrayPlatformRegistry.getPlatforms().filter(
-      (platform: StorageArrayPlatform): boolean => {
+      (platform: RegisteredPlatform): boolean => {
         return platform.vendorName !== "Pure Storage";
       },
     );

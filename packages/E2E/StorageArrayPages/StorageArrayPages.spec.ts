@@ -740,6 +740,8 @@ test.describe("a NetApp ONTAP cluster, as Harvest reports it (#11001)", () => {
     await expect(body).toContainText("Port e0c on ontap-prod-01-01 is down");
     // Nothing of Pure's is said about it.
     await expect(body).not.toContainText(/FlashArray|FlashBlade|Purity/);
+    // A key that names its meaning reads as its word.
+    await expect(body).not.toContainText("(disk aggregate");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "ontap-overview-1280");
 
@@ -765,6 +767,7 @@ test.describe("a NetApp ONTAP cluster, as Harvest reports it (#11001)", () => {
     );
     await expect(listRow(page, "aggr1_n01")).toBeVisible();
     await expect(listRow(page, "aggr1_n02")).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "ontap-aggregates-1280");
 
@@ -777,6 +780,7 @@ test.describe("a NetApp ONTAP cluster, as Harvest reports it (#11001)", () => {
       "What ONTAP reports about this aggregate.",
     );
     await expect(page.locator("body")).toContainText("Aggregate alerts");
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
     // The trail leads back through the aggregates to the cluster.
     const breadcrumbs: Locator = page.getByRole("navigation", {
       name: "Breadcrumb",
@@ -818,6 +822,7 @@ test.describe("a NetApp ONTAP cluster, as Harvest reports it (#11001)", () => {
     await expect(listRow(page, "vol_projects")).toBeVisible();
     await expect(listRow(page, "vol_logs")).toBeVisible();
     await expect(page.locator("body")).not.toContainText("Pod / Group");
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "ontap-volumes-1280");
 
@@ -829,6 +834,7 @@ test.describe("a NetApp ONTAP cluster, as Harvest reports it (#11001)", () => {
       "What ONTAP reports about this volume.",
     );
     await expect(page.locator("body")).toContainText("Volume alerts");
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
     await screenshot(page, "ontap-volume-1280");
 
     await page.setViewportSize(PHONE);

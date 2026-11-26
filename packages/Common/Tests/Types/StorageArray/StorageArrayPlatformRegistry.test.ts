@@ -14,6 +14,7 @@ import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArr
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import {
   ACME_AGGREGATE_KIND,
   ACME_PLATFORM,
@@ -219,9 +220,16 @@ describe("the shipped platforms", () => {
         definition,
       );
     }
+    // A key of its own, which English reads as Aggregates (MeaningKeys).
     expect(
       StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Aggregate)
         ?.pluralLabel,
+    ).toBe("Aggregates (disk aggregates)");
+    expect(
+      withMeaningKeyAsItsWord(
+        StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Aggregate)!
+          .pluralLabel,
+      ),
     ).toBe("Aggregates");
     expect(
       StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Svm)

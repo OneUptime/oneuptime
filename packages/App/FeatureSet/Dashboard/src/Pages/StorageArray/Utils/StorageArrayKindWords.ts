@@ -135,7 +135,10 @@ export function getStorageArrayKindWords(
   if (definition) {
     return { count: definition.countLabel, icon: definition.icon };
   }
-  const label: string = StorageArrayResourceKindUtil.getPluralLabel(kind);
+  const label: string = StorageArrayResourceKindUtil.getPluralLabel(
+    kind,
+    storageSystem,
+  );
   return {
     count: { one: `{{count}} ${label}`, other: `{{count}} ${label}` },
     icon: IconProp.Squares,
@@ -150,7 +153,7 @@ export function getStorageArrayInventoryTileWords(
     INVENTORY_TILE_WORDS,
     kind,
   ) || {
-    title: StorageArrayResourceKindUtil.getPluralLabel(kind),
+    title: StorageArrayResourceKindUtil.getPluralLabel(kind, storageSystem),
     description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.inventoryCounts,
   };
   const page: StorageArrayKindPage | null =
