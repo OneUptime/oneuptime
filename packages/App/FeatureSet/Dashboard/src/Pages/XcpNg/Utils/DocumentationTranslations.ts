@@ -37,4 +37,7 @@ export const XCP_NG_DOCUMENTATION_TRANSLATIONS: SetupGuideTranslations = {
   sv: () => {
     return import("../DocumentationTranslations/sv");
   },
+  ru: () => {
+    return import("../DocumentationTranslations/ru");
+  },
 };
