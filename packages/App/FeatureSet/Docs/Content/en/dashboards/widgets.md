@@ -197,6 +197,7 @@ Each of these lists the resources that an agent or a collector reports to OneUpt
 | **Podman** | **Hosts**, **Containers**, **Images**, **Networks**, **Volumes** | The Podman Agent |
 | **Proxmox** | **Nodes**, **Guests** | The Proxmox Agent |
 | **VMware** | **Hosts**, **Virtual Machines** | The VMware Agent, or a vCenter you connect |
+| **XCP-ng** | **Hosts**, **VMs** | The XCP-ng Agent |
 | **Ceph** | **OSDs**, as a wall colored by state, and **Pools** | The Ceph Agent |
 | **Storage Arrays** | **Volumes**, and **Hardware** as a wall colored by status | The Storage Array Agent |
 
