@@ -901,7 +901,7 @@ Kies na het toevoegen van het pakket zoals gewoonlijk ernstniveaus en dienstroos
 
 ## SNMP-traps
 
-Pollen vangt een probleem bij de volgende poll; traps vangen het binnen seconden. Elke sonde draait een SNMP-trapontvanger die v1- en v2c-traps en -informs aanneemt en ze doorstuurt naar OneUptime.
+Pollen vangt een probleem bij de volgende poll; traps vangen het binnen seconden. Elke sonde draait een SNMP-trapontvanger die v1-, v2c- en v3-traps en -informs aanneemt en ze doorstuurt naar OneUptime. Hij bevestigt elke inform, zodat het apparaat hem niet opnieuw stuurt.
 
 ```mermaid title="Van een trap naar een incident"
 flowchart TB
@@ -925,6 +925,7 @@ De ontvanger staat standaard aan en luistert op UDP 162. Configureer hem op de s
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Zet op `false` om de trapontvanger uit te zetten. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | De UDP-poort waarop de ontvanger luistert. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Hoeveel traps hij per minuut doorstuurt voordat hij de rest laat vallen. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | De SNMPv3-engine-ID van de sonde, in hex (5 tot 32 octetten). Stel hem alleen in om de engine-ID te houden van een ontvanger die deze sonde vervangt. | Afgeleid van de ID van de sonde |
 
 Als de sonde in Docker draait, publiceer dan de UDP-poort zodat traps haar kunnen bereiken:
 
@@ -940,6 +941,42 @@ Richt daarna de trapbestemming van je apparaten op de sonde; op Cisco IOS bijvoo
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3-traps en -informs
+
+Een SNMPv3-trap is ondertekend, en meestal versleuteld, met de sleutels van een gebruiker, dus een sonde neemt er alleen een aan van een gebruiker die ze kent: de SNMPv3-inloggegevens van de apparaten die aan haar zijn toegewezen. De eigen SNMP-inloggegevens van elk apparaat, zijn inloggegevensprofiel en de standaard van zijn locatie tellen allemaal, dus een apparaat dat via v2c wordt gepold, kan zijn traps toch als de SNMPv3-gebruiker van de locatie sturen. Op de sonde stel je niets in:
+
+1. Geef het apparaat, zijn inloggegevensprofiel of zijn locatie de SNMPv3-gebruiker waarmee het apparaat zijn traps stuurt: gebruikersnaam, beveiligingsniveau en de authenticatie- en privacyprotocollen met hun wachtwoordzinnen (zie [SNMP-inloggegevens en inloggegevensprofielen](#snmp-inloggegevens-en-inloggegevensprofielen)).
+2. Richt de SNMPv3-traps van het apparaat op de sonde. Op Cisco IOS bijvoorbeeld:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime geeft elke sonde elke dertig seconden de SNMPv3-gebruikers van haar eigen apparaten, dus gewijzigde inloggegevens, een gewijzigd profiel of een apparaat dat naar een andere sonde gaat, gelden binnen een minuut, terwijl de ontvanger blijft luisteren. De inloggegevens blijven in rust versleuteld, net als bij het pollen, en de sonde houdt ze alleen in het geheugen en logt ze nooit. De gebruikers van het ene project bereiken nooit de sonde van een ander project.
+
+De ontvanger neemt de protocollen aan die het pollen gebruikt: MD5-, SHA-1-, SHA-256- en SHA-512-authenticatie, en DES-, AES-128- en AES-256-privacy. Een trap moet binnenkomen met minstens de beveiliging waarvoor zijn gebruiker is ingesteld: traps van een authPriv-gebruiker worden geweigerd als ze ongeauthenticeerd of onversleuteld binnenkomen.
+
+**Traps, informs en de engine-ID van de sonde.** Een trap wordt geauthenticeerd met de eigen SNMP-engine-ID van het apparaat, dus er valt niets in te stellen. Een inform wordt geauthenticeerd met de engine-ID van de sonde, die de meeste apparaten zelf vinden. Sommige hebben hem ingetypt nodig: voer op Cisco IOS `snmp-server engineID remote <probe-ip> <engine-id>` in voordat je de gebruiker aanmaakt. Open **Monitoren → Instellingen → Sondes** en kies de sonde: haar kaart **SNMP-traps** toont de engine-ID om te kopiëren. Hij wordt afgeleid van de ID van de sonde en blijft dus hetzelfde na herstarts, upgrades en tussen replica's van de sonde; stel `PROBE_SNMP_ENGINE_ID` in om een andere te kiezen.
+
+Informs worden bevestigd, bij v2c en v3. Een inform die opnieuw wordt gestuurd omdat zijn bevestiging verloren ging, wordt opnieuw bevestigd en één keer vastgelegd.
+
+**Het tijdvenster.** Net als `snmptrapd` van Net-SNMP weigert de ontvanger een trap waarvan de engine-boots en -tijd meer dan 150 seconden teruggaan ten opzichte van de laatste trap van het apparaat: een herhaalde of vertraagde kopie, of een apparaat dat opnieuw is opgestart zonder die herstart in zijn engine-boots te tellen. Een inform moet binnen 150 seconden van de eigen tijd van de sonde liggen.
+
+**Geweigerde SNMPv3-traps** worden nooit doorgestuurd, en niets van wat ze bevatten wordt bewaard of gelogd: alleen waar ze vandaan kwamen, als welke gebruiker ze zijn gestuurd en waarom. De kaart **SNMP-traps** van de sonde toont die van de afgelopen dag, zoals ‘12 SNMPv3-traps van 10.20.0.5 zijn mislukt: onbekende gebruiker ‘san-monitor’’, elk met wat je moet veranderen. De pagina's **Overzicht** en **Logboeken** van een apparaat zeggen hetzelfde als het adres een van de eigen adressen van het apparaat is. Een trap die van dat adres als die gebruiker wordt aangenomen, wist het.
+
+| Reden | Wat te veranderen |
+| --- | --- |
+| Onbekende gebruiker | Geen apparaat op de sonde heeft een SNMPv3-gebruiker met die naam. Voeg hem toe aan de inloggegevens van het apparaat, zijn inloggegevensprofiel of de standaard van zijn locatie, of corrigeer de naam op het apparaat. |
+| Verkeerde wachtwoordzin of verkeerd protocol voor authenticatie | Maak de wachtwoordzin en het protocol voor authenticatie van het apparaat gelijk aan die van OneUptime voor die gebruiker. |
+| Verkeerde wachtwoordzin of verkeerd protocol voor privacy | Maak de wachtwoordzin en het protocol voor privacy van het apparaat gelijk aan die van OneUptime voor die gebruiker. |
+| Buiten het tijdvenster | De engineklok van het apparaat is teruggegaan. Zijn traps worden weer aangenomen zodra het een herstart in zijn engine-boots telt. |
+| Naar een andere engine-ID gestuurd | Een inform is naar een andere engine-ID dan die van de sonde gestuurd. Geef het apparaat de engine-ID van de sonde. |
+| Minder beveiliging dan voor de gebruiker is ingesteld | Stel het beveiligingsniveau van de traps op het apparaat in op dat wat OneUptime voor de gebruiker heeft. |
+
+In de trapgeschiedenis zegt een SNMPv3-trap wat er binnenkwam, naast zijn OID en zijn varbinds: versie 3, de gebruiker waarmee hij is geauthenticeerd, of hij ook versleuteld was en de engine-ID van het apparaat dat hem stuurde.
+
 ### Hoe traps aan monitors worden gekoppeld
 
 Traps worden gekoppeld via de apparaatinventaris:
@@ -948,7 +985,7 @@ Traps worden gekoppeld via de apparaatinventaris:
 2. OneUptime zoekt de netwerkapparaten die aan die sonde zijn toegewezen en waarvan de hostnaam, of een van de **Overige adressen**, het bron-IP-adres van de trap is.
 3. De trap wordt vastgelegd in de trapgeschiedenis van het apparaat, en elke netwerkapparaat-monitor op een passend apparaat beoordeelt hem tegen zijn criteria, meestal een filter **SNMP-trap ontvangen (trap-OID)**.
 
-Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met alleen ping kan traps ontvangen: een apparaat waarvoor je geen leesrechten hebt, kan ze nog steeds sturen. Registreer het apparaat met het adres waarvandaan het traps stuurt, of voeg dat adres toe aan zijn **Overige adressen** op zijn pagina **Instellingen**. Generieke SNMPv1-traps (coldStart, linkDown, linkUp enzovoort) worden omgezet naar hun standaard-SNMPv2-notificatie-OID's, dus linkDown past op trap-OID `1.3.6.1.6.3.1.1.5.3`, welke SNMP-versie ook.
+Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met alleen ping kan v1- en v2c-traps ontvangen: een apparaat waarvoor je geen leesrechten hebt, kan ze nog steeds sturen. Een SNMPv3-trap heeft daarnaast de gebruiker nodig waarmee hij is ondertekend (zie [SNMPv3-traps en -informs](#snmpv3-traps-en-informs)), en wordt dan op dezelfde manier op zijn adres gekoppeld. Registreer het apparaat met het adres waarvandaan het traps stuurt, of voeg dat adres toe aan zijn **Overige adressen** op zijn pagina **Instellingen**. Generieke SNMPv1-traps (coldStart, linkDown, linkUp enzovoort) worden omgezet naar hun standaard-SNMPv2-notificatie-OID's, dus linkDown past op trap-OID `1.3.6.1.6.3.1.1.5.3`, welke SNMP-versie ook.
 
 #### Voorbeeld: een incident openen bij linkDown
 
@@ -1176,6 +1213,13 @@ Als de apparaten er allemaal zijn maar de monitors niet: apparaten en monitors z
 - Publiceer en sta UDP 162 toe tot aan de sonde, of de poort in `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Controleer of de hostnaam van het apparaat, of een van zijn **Overige adressen**, het adres is waarvandaan het traps stuurt: zo worden traps aan apparaten gekoppeld.
 - Controleer de logs van de sonde op bindfouten: de poort al in gebruik, of geen rechten voor een poort onder 1024.
+:::
+
+:::details SNMPv3-traps worden geweigerd
+- Open **Monitoren → Instellingen → Sondes** en kies de sonde: haar kaart **SNMP-traps** toont elke geweigerde bron met de reden en wat je moet veranderen.
+- De SNMPv3-gebruiker moet horen bij een apparaat dat aan die sonde is toegewezen: zijn eigen inloggegevens, zijn inloggegevensprofiel of de standaard van zijn locatie. Een gebruiker van een apparaat dat aan een andere sonde is toegewezen, telt niet.
+- Een inform heeft daarnaast de engine-ID van de sonde nodig, die op dezelfde kaart staat. Een apparaat dat een verkeerde kreeg, staat erbij als sturend naar een andere engine-ID.
+- Na een wijziging neemt de sonde de nieuwe gebruikers binnen een minuut over.
 :::
 
 :::details SNMP testen vanuit het netwerk van de sonde

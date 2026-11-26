@@ -78,7 +78,7 @@ flowchart TB
 
 - **Aucun projet attaché (tous les projets / invitation d'abord) :** les utilisateurs peuvent se connecter avec le fournisseur et accéder à **tout projet dont ils sont déjà membres**. Les nouveaux utilisateurs ne sont **pas** créés automatiquement — un utilisateur doit d'abord être invité dans un projet. Utilisez ce mode pour un SSO à l'échelle de l'entreprise quand les appartenances sont gérées ailleurs.
 
-- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Projets associés** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut lors de leur première connexion. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
+- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Projets associés** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut : une nouvelle personne lors de sa première connexion, et une personne qui a déjà un compte, par exemple un compte que vous avez créé à la main, lors de la suivante. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Un projet attaché sans équipe n'ajoute personne. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
 
 Une personne déjà membre d'un projet attaché garde les équipes qu'elle y a.
 
@@ -89,7 +89,7 @@ Deux questions du fournisseur modifient ce comportement, repliées sous **Plus d
 | **Personnes sans compte** | **En obtiennent un à leur première connexion** : elles rejoignent les projets attachés ; si aucun n'est attaché, elles doivent d'abord être invitées. **Doivent d'abord être invitées** : les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. |
 | **Où cette connexion compte comme SSO** | **Tous les projets** : les projets qui exigent le SSO acceptent une connexion avec ce fournisseur. **Uniquement les projets attachés** : se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. |
 
-Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
+Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés : aucune des deux réponses n'ajoute qui que ce soit à un projet. Tant qu'aucun projet avec des équipes n'est attaché, la page du fournisseur indique sous **Personnes sans compte** que les nouvelles personnes ne peuvent pas encore se connecter.
 
 ## Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées
 
@@ -166,7 +166,7 @@ Deux modifications de qui peut se connecter sont vérifiées l'une après l'autr
 ## Dépannage
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet ne lui est attaché, soit **Personnes sans compte** est réglé sur **Doivent d'abord être invitées**. Invitez-la dans un projet, ou attachez un projet au fournisseur.
+La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet avec des équipes ne lui est attaché, soit **Personnes sans compte** est réglé sur **Doivent d'abord être invitées**. Invitez-la dans un projet, ou attachez au fournisseur un projet, avec les équipes qu'elle rejoint. Le journal du serveur indique de quel cas il s'agit, sans nommer la personne.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

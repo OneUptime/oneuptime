@@ -13,9 +13,10 @@ import path from "path";
  * Who hears that an incident reported through a form was created.
  *
  * A form hands its template's owners to IncidentService.create, and the
- * create's own onCreateSuccess chain adds them once the incident's Slack /
- * Microsoft Teams channels exist - seconds after the incident is written,
- * with a workspace connected, and after the submitter has their answer. The
+ * create's own onCreateSuccess chain adds them - after its first state,
+ * before the incident's Slack / Microsoft Teams channels are opened (so
+ * its notification rules see them), and after the submitter has their
+ * answer. The
  * owners' "Incident Created" notification is sent by a job
  * (IncidentOwner:SendCreatedResourceEmail) that runs every minute and takes
  * every incident not yet marked as notified. Had it taken the form's
@@ -26,9 +27,9 @@ import path from "path";
  *
  * This drives the real submitPublicForm, the real IncidentService
  * onBeforeCreate and onCreateSuccess chain and the real owner assignment,
- * with the incident table kept in memory and the chain's Slack / Microsoft
- * Teams step held open for as long as a test likes. Where the job would
- * look, it looks with the job's own query.
+ * with the incident table kept in memory and the chain's first state - the
+ * step before its owners - held open for as long as a test likes. Where
+ * the job would look, it looks with the job's own query.
  */
 
 jest.mock("../../../Server/Utils/Logger", () => {
@@ -78,6 +79,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
+import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import UpdateByID from "../../../Server/Types/Database/UpdateByID";
@@ -133,8 +135,8 @@ let heldSince: Map<string, Date | null>;
 // The incident's owner users, as their rows are written.
 let ownerUserIds: Array<string>;
 let templateOwners: Array<IncidentTemplateOwnerUser>;
-let workspaceStarted: boolean;
-let finishWorkspace: () => void;
+let firstStateStarted: boolean;
+let finishFirstState: () => void;
 let ownerRulesApplied: boolean;
 
 // A form that asks for a title only, declaring from a template.
@@ -218,8 +220,8 @@ beforeEach(() => {
   heldSince = new Map<string, Date | null>();
   ownerUserIds = [];
   templateOwners = [templateOwner(TEMPLATE_OWNER_ID)];
-  workspaceStarted = false;
-  finishWorkspace = (): void => {};
+  firstStateStarted = false;
+  finishFirstState = (): void => {};
   ownerRulesApplied = false;
 
   // What submitPublicForm reads and writes.
@@ -402,22 +404,28 @@ beforeEach(() => {
     unknown
   >;
 
+  // The chain's first state, before any owner it adds: held open as long as a test likes.
   jest
     .spyOn(
       service as Record<string, () => Promise<void>>,
-      "handleIncidentWorkspaceOperationsAsync",
+      "handleIncidentStateChangeAsync",
     )
     .mockImplementation((): Promise<void> => {
-      workspaceStarted = true;
+      firstStateStarted = true;
 
       return new Promise<void>((resolve: () => void) => {
-        finishWorkspace = resolve;
+        finishFirstState = resolve;
       });
     });
 
+  // No notification rule asks who owns an incident: nothing waits for its owners.
+  jest
+    .spyOn(WorkspaceNotificationRuleService, "hasRulesWithOwnerCondition")
+    .mockResolvedValue(false as never);
+
   for (const method of [
     "createIncidentFeedAsync",
-    "handleIncidentStateChangeAsync",
+    "handleIncidentWorkspaceOperationsAsync",
     "handleMonitorStatusChangeAsync",
     "disableActiveMonitoringIfManualIncident",
     "refreshReminderSchedule",
@@ -482,7 +490,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  finishWorkspace();
+  finishFirstState();
   jest.restoreAllMocks();
 });
 
@@ -490,17 +498,17 @@ describe("the Incident Created notification of an incident reported through a fo
   test("waits for the template's owners: the job cannot take the incident until they are its owners", async () => {
     const result: PublicFormSubmissionResult = await submit();
 
-    // The submitter has their answer; the chain is still creating the channels.
+    // The submitter has their answer; the chain has not added its owners yet.
     expect(result.reference).toBe("INC-7");
     await waitUntil((): boolean => {
-      return workspaceStarted;
+      return firstStateStarted;
     });
 
     // A run of the job now finds nothing to notify, rather than no owners.
     expect(ownerUserIds).toEqual([]);
     expect(incidentsTheJobWouldTake()).toEqual([]);
 
-    finishWorkspace();
+    finishFirstState();
     await waitUntil((): boolean => {
       return incidentsTheJobWouldTake().length > 0;
     });
@@ -523,12 +531,12 @@ describe("the Incident Created notification of an incident reported through a fo
 
     await submit();
     await waitUntil((): boolean => {
-      return workspaceStarted;
+      return firstStateStarted;
     });
 
     expect(incidentsTheJobWouldTake()).toEqual([]);
 
-    finishWorkspace();
+    finishFirstState();
     await waitUntil((): boolean => {
       return incidentsTheJobWouldTake().length > 0;
     });
@@ -636,9 +644,9 @@ describe("the Incident Created notification of an incident reported through a fo
       props: { isRoot: true },
     });
     await waitUntil((): boolean => {
-      return workspaceStarted;
+      return firstStateStarted;
     });
-    finishWorkspace();
+    finishFirstState();
     await waitUntil((): boolean => {
       return ownerRulesApplied;
     });

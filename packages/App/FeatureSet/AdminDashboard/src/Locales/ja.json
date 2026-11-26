@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "この OIDC プロバイダーをテスト",
   "Attach": "添付",
   "Attached Projects": "関連付けたプロジェクト",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "このプロバイダーでサインインできるプロジェクトと、新しいメンバーが参加するチームです。関連付けがない場合は、本人がすでに所属しているすべてのプロジェクトで使えます。",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "このプロバイダーでサインインしたユーザーは、これらのプロジェクトに、それぞれに選んだチームで参加します。関連付けがない場合、新しいユーザーはサインインできません。",
   "No projects attached to this provider.": "このプロバイダーに関連付けられたプロジェクトはありません。",
   "Select Project": "プロジェクトを選択",
   "Runs JavaScript steps and AI code fixes for every project.": "すべてのプロジェクトの JavaScript ステップと AI によるコード修正を実行します。",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "このモニターテンプレートはどのプロジェクトにも属していないため、モニターを関連付けられません。このプロジェクトでテンプレートを作り直してください。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "このモニターテンプレートにはモニターの種類がないため、そのモニターを同期できません。モニターの種類を指定してテンプレートを作り直してください。",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "テンプレートの同期設定には、テンプレートのモニターの種類が必要です。先にモニターの種類を選んでから、同期設定を選び直してください。",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "モニターテンプレートは「{{field}}」を同期できません。テンプレートが提供する同期設定から選んでから、もう一度保存してください。"
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "モニターテンプレートは「{{field}}」を同期できません。テンプレートが提供する同期設定から選んでから、もう一度保存してください。",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "まだ新しいユーザーはサインインできません。「関連付けたプロジェクト」で、参加するチームとともにプロジェクトを関連付けてください。"
 }

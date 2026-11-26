@@ -98,6 +98,9 @@ import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
 import CloudBudget from "./CloudBudget";
+import CloudCostGroup from "./CloudCostGroup";
+import CloudCostLineItem from "./CloudCostLineItem";
+import CloudCostView from "./CloudCostView";
 import CloudCostRecommendation from "./CloudCostRecommendation";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
@@ -1369,6 +1372,9 @@ const AllModelTypes: Array<{
   CloudAccount,
   CloudAccountFeed,
   CloudBudget,
+  CloudCostView,
+  CloudCostGroup,
+  CloudCostLineItem,
   CloudCostRecommendation,
   CloudConnection,
   CloudResource,

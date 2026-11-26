@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Tester ce fournisseur OIDC",
   "Attach": "Joindre",
   "Attached Projects": "Projets associés",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Les projets auxquels ce fournisseur connecte les personnes, et les équipes que rejoignent les nouveaux venus. Sans projet associé, il fonctionne pour chaque projet dont une personne fait déjà partie.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Les personnes qui se connectent avec ce fournisseur rejoignent ces projets, dans les équipes choisies pour chacun. Sans projet associé, aucune nouvelle personne ne peut se connecter.",
   "No projects attached to this provider.": "Aucun projet n'est associé à ce fournisseur.",
   "Select Project": "Sélectionner un projet",
   "Runs JavaScript steps and AI code fixes for every project.": "Exécute les étapes JavaScript et les corrections de code par l'IA pour chaque projet.",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Ce modèle de moniteur n'appartient à aucun projet : aucun moniteur ne peut donc y être lié. Recréez le modèle dans ce projet.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Ce modèle de moniteur n'a pas de type de moniteur : ses moniteurs ne peuvent donc pas être synchronisés. Recréez le modèle avec un type de moniteur.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Les paramètres de synchronisation du modèle nécessitent le type de moniteur du modèle. Choisissez d'abord le type de moniteur, puis choisissez à nouveau les paramètres de synchronisation.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modèle de moniteur ne peut pas synchroniser « {{field}} ». Choisissez parmi les paramètres de synchronisation que propose le modèle, puis enregistrez à nouveau."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modèle de moniteur ne peut pas synchroniser « {{field}} ». Choisissez parmi les paramètres de synchronisation que propose le modèle, puis enregistrez à nouveau.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Les nouvelles personnes ne peuvent pas encore se connecter. Associez un projet, avec les équipes qu'elles rejoignent, dans « Projets associés »."
 }

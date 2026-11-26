@@ -3,12 +3,16 @@ import AzureCloudConnector from "../../../../Server/Utils/CloudConnection/Azure/
 import {
   AZURE_LISTED_ONLY_TYPES,
   AZURE_NETWORK_SECURITY_GROUP_TYPE,
+  AZURE_NETWORK_SUBNET_COUNT_FIELD,
+  AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS,
   AZURE_SUBNET_TYPE,
   AZURE_VIRTUAL_NETWORK_TYPE,
   buildAzureInventoryItem,
   buildAzureInventoryItems,
   buildAzureInventoryQuery,
   buildAzureSubnetQuery,
+  describeAzureNetworksPastExpandedRows,
+  getAzureNetworksPastExpandedRows,
   networkSecurityGroupRules,
 } from "../../../../Server/Utils/CloudConnection/Azure/AzureInventory";
 import {
@@ -42,9 +46,14 @@ import ObjectID from "../../../../Types/ObjectID";
 import {
   FakeProviderApi,
   FakeResponse,
+  bodyOf,
   createFakeProviderApi,
   json,
 } from "../LlmObservability/FakeProviderApi";
+import {
+  RECORDED_PARSER_FAILURE,
+  strictResourceGraph,
+} from "./StrictResourceGraph";
 
 /*
  * An Azure subscription's network, from Resource Graph (#9375), as a
@@ -255,15 +264,18 @@ function itemOf(
 }
 
 describe("the subnet query", () => {
-  const query: string = buildAzureSubnetQuery();
+  const query: string = buildAzureSubnetQuery().toString();
 
   test("reads each virtual network's subnets, one row each, shaped as the main query's rows", () => {
     expect(query).toContain(
       "| where type =~ 'microsoft.network/virtualnetworks'",
     );
+    // What it expands first, its row limit - Resource Graph's most - last (#11142).
     expect(query).toContain(
-      "| mv-expand limit 2000 subnet = properties.subnets",
+      `| mv-expand subnet = properties.subnets limit ${AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS}`,
     );
+    expect(AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS).toBe(2000);
+    expect(query).not.toContain("mv-expand limit");
     expect(query).toContain(
       "| project id = tostring(subnet.id), name = strcat(name, '/', tostring(subnet.name)), type = 'microsoft.network/virtualnetworks/subnets', location, resourceGroup, subscriptionId,",
     );
@@ -274,6 +286,8 @@ describe("the subnet query", () => {
       "networkSecurityGroupId = tostring(subnet.properties.networkSecurityGroup.id)",
       "routeTableId = tostring(subnet.properties.routeTable.id)",
       "delegations = subnet.properties.delegations",
+      // How many subnets the row's network holds: more than it expands says some went unlisted.
+      `${AZURE_NETWORK_SUBNET_COUNT_FIELD} = array_length(properties.subnets)`,
     ]) {
       expect(query).toContain(field);
     }
@@ -297,7 +311,7 @@ describe("the subnet query", () => {
   });
 
   test("the main query lists network security groups, with their rules and a cluster's node resource group", () => {
-    const main: string = buildAzureInventoryQuery();
+    const main: string = buildAzureInventoryQuery().toString();
 
     expect(main).toContain("'microsoft.network/networksecuritygroups'");
     expect(main).toContain(
@@ -670,10 +684,17 @@ interface FakeGraph extends FakeProviderApi {
   queries: Array<string>;
 }
 
+/*
+ * Resource Graph, reading each query it is sent as Azure would
+ * (StrictResourceGraph): a query Azure refuses is refused here too, with
+ * Azure's answer, before the suite's rows are given (#11142).
+ */
 function createFakeGraph(options: {
   main: Array<JSONObject>;
   subnets: Array<JSONObject>;
   subnetError?: FakeResponse | undefined;
+  // The subscriptions the app may read: the one production subscription unless said.
+  subscriptions?: Array<JSONObject> | undefined;
 }): FakeGraph {
   const queries: Array<string> = [];
 
@@ -692,7 +713,7 @@ function createFakeGraph(options: {
         path: "/subscriptions",
         respond: (): FakeResponse => {
           return json({
-            value: [
+            value: options.subscriptions || [
               {
                 subscriptionId: SUB,
                 displayName: "Production",
@@ -706,17 +727,23 @@ function createFakeGraph(options: {
         host: "management.azure.com",
         path: "/providers/Microsoft.ResourceGraph/resources",
         method: "POST",
-        respond: (request: DataSourceHttpRequest): FakeResponse => {
-          const query: string = String(
-            (JSON.parse(String(request.body)) as JSONObject)["query"],
-          );
+        respond: (
+          request: DataSourceHttpRequest,
+        ): FakeResponse | Promise<FakeResponse> => {
+          const query: string = String(bodyOf(request)["query"]);
           queries.push(query);
 
-          if (query.includes("mv-expand")) {
-            return options.subnetError || json({ data: options.subnets });
+          if (query.includes("mv-expand") && options.subnetError) {
+            return options.subnetError;
           }
 
-          return json({ data: options.main });
+          return strictResourceGraph((): FakeResponse => {
+            return json({
+              data: query.includes("mv-expand")
+                ? options.subnets
+                : options.main,
+            });
+          })(request, new URL(request.url));
         },
       },
     ]),
@@ -737,7 +764,7 @@ async function readInventory(fake: FakeGraph): Promise<CloudInventoryResult> {
   });
 }
 
-describe("a subscription's inventory, against a fake Resource Graph", () => {
+describe("a subscription's inventory, against a Resource Graph that reads its queries", () => {
   const all: Array<JSONObject> = rows();
   const main: Array<JSONObject> = all.filter((entry: JSONObject) => {
     return entry["type"] !== "microsoft.network/virtualnetworks/subnets";
@@ -751,8 +778,8 @@ describe("a subscription's inventory, against a fake Resource Graph", () => {
     const result: CloudInventoryResult = await readInventory(fake);
 
     expect(fake.queries).toEqual([
-      buildAzureInventoryQuery(),
-      buildAzureSubnetQuery(),
+      buildAzureInventoryQuery().toString(),
+      buildAzureSubnetQuery().toString(),
     ]);
     expect(
       result.items
@@ -794,18 +821,19 @@ describe("a subscription's inventory, against a fake Resource Graph", () => {
   });
 
   test("a subnet query that fails is a warning: the rest is listed, and no subnet is taken for gone", async () => {
+    // Azure's answer to the subnet query of 16.0.0, as the customer's report recorded it (#11142).
     const fake: FakeGraph = createFakeGraph({
       main,
       subnets,
-      subnetError: json(
-        { error: { code: "BadRequest", message: "mv-expand is not allowed" } },
-        400,
-      ),
+      subnetError: json(RECORDED_PARSER_FAILURE, 400),
     });
     const result: CloudInventoryResult = await readInventory(fake);
 
     expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toContain("Could not list the subnets");
+    expect(result.warnings[0]).toContain(
+      "Could not list the subnets: Azure resource graph query failed with HTTP 400",
+    );
+    expect(result.warnings[0]).toContain("ParserFailure");
     expect(
       result.items.some((entry: CloudInventoryItem): boolean => {
         return entry.resource.resourceType === AZURE_SUBNET_TYPE;
@@ -816,6 +844,207 @@ describe("a subscription's inventory, against a fake Resource Graph", () => {
     );
     expect(result.completelyListed[0]!.resourceTypes).toContain(
       AZURE_NETWORK_SECURITY_GROUP_TYPE,
+    );
+  });
+
+  /*
+   * The customer's connection (#11142): every subscription in the tenant
+   * (no subscriptions named), tested from the connection's Test step. The
+   * subscriptions go into the request, never into the query's text, and
+   * each one's subnets are listed.
+   */
+  test("every subscription in the tenant: both queries go to every subscription, and each one's subnets are listed with nothing warned", async () => {
+    const STAGING: string = "aaaaaaaa-0000-4000-8000-000000000002";
+    const STAGING_VNET: string = `/subscriptions/${STAGING}/resourceGroups/rg-staging/providers/Microsoft.Network/virtualNetworks/vnet-staging`;
+    const STAGING_SUBNET: string = `${STAGING_VNET}/subnets/apps`;
+    const fake: FakeGraph = createFakeGraph({
+      main: [
+        ...main,
+        row({
+          id: STAGING_VNET,
+          name: "vnet-staging",
+          type: "microsoft.network/virtualnetworks",
+          subscriptionId: STAGING,
+          resourceGroup: "rg-staging",
+        }),
+      ],
+      subnets: [
+        ...subnets,
+        subnetRow(STAGING_SUBNET, {
+          subscriptionId: STAGING,
+          resourceGroup: "rg-staging",
+          addressPrefix: "10.1.0.0/24",
+        }),
+      ],
+      subscriptions: [
+        { subscriptionId: SUB, displayName: "Production", state: "Enabled" },
+        { subscriptionId: STAGING, displayName: "Staging", state: "Enabled" },
+        {
+          subscriptionId: "aaaaaaaa-0000-4000-8000-000000000003",
+          displayName: "Retired",
+          state: "Disabled",
+        },
+      ],
+    });
+    const result: CloudInventoryResult = await readInventory(fake);
+    const graph: Array<DataSourceHttpRequest> = fake.requestsTo(
+      "/providers/Microsoft.ResourceGraph/resources",
+    );
+
+    expect(graph).toHaveLength(2);
+
+    for (const request of graph) {
+      expect(bodyOf(request)["subscriptions"]).toEqual([SUB, STAGING]);
+      expect(String(bodyOf(request)["query"])).not.toContain(SUB);
+      expect(String(bodyOf(request)["query"])).not.toContain(STAGING);
+    }
+
+    expect(result.warnings).toEqual([]);
+    expect(result.accounts).toEqual([
+      { accountId: SUB, name: "Production" },
+      { accountId: STAGING, name: "Staging" },
+    ]);
+    expect(
+      result.items
+        .filter((entry: CloudInventoryItem): boolean => {
+          return entry.resource.resourceType === AZURE_SUBNET_TYPE;
+        })
+        .map((entry: CloudInventoryItem): string => {
+          return entry.displayName || "";
+        })
+        .sort(),
+    ).toEqual(["vnet-prod/apps", "vnet-prod/data", "vnet-staging/apps"]);
+
+    for (const listed of result.completelyListed) {
+      expect(listed.resourceTypes).toContain(AZURE_SUBNET_TYPE);
+    }
+
+    expect(
+      result.completelyListed.map((listed: { accountId: string }): string => {
+        return listed.accountId;
+      }),
+    ).toEqual([SUB, STAGING]);
+  });
+
+  /*
+   * Azure lets a virtual network hold 3,000 subnets, and Resource Graph
+   * expands 2,000 of one row: the rest of a larger network's are not
+   * listed, so the subnets are not listed in full and none is taken for
+   * gone, and the inventory says which network.
+   */
+  test("a network of more subnets than Resource Graph expands: its subnets are listed as far as they go, none taken for gone, and the network named", async () => {
+    const crowded: Array<JSONObject> = subnets.map(
+      (entry: JSONObject): JSONObject => {
+        return { ...entry, [AZURE_NETWORK_SUBNET_COUNT_FIELD]: 2400 };
+      },
+    );
+    const result: CloudInventoryResult = await readInventory(
+      createFakeGraph({ main, subnets: crowded }),
+    );
+
+    expect(result.warnings).toEqual([
+      "The virtual network vnet-prod has 2400 subnets: the first 2000 are listed, the most Resource Graph lists of one network.",
+    ]);
+    expect(
+      result.items
+        .filter((entry: CloudInventoryItem): boolean => {
+          return entry.resource.resourceType === AZURE_SUBNET_TYPE;
+        })
+        .map((entry: CloudInventoryItem): string => {
+          return entry.displayName || "";
+        })
+        .sort(),
+    ).toEqual(["vnet-prod/apps", "vnet-prod/data"]);
+    expect(result.completelyListed[0]!.resourceTypes).not.toContain(
+      AZURE_SUBNET_TYPE,
+    );
+    expect(result.completelyListed[0]!.resourceTypes).toContain(
+      AZURE_NETWORK_SECURITY_GROUP_TYPE,
+    );
+    // The count is read, never kept as a property of the subnet.
+    expect(
+      Object.keys(itemOf(result.items, "vnet-prod/apps").properties || {}),
+    ).not.toContain(AZURE_NETWORK_SUBNET_COUNT_FIELD);
+  });
+
+  test("a network of exactly as many subnets as Resource Graph expands is listed in full", async () => {
+    const full: Array<JSONObject> = subnets.map(
+      (entry: JSONObject): JSONObject => {
+        return {
+          ...entry,
+          [AZURE_NETWORK_SUBNET_COUNT_FIELD]:
+            AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS,
+        };
+      },
+    );
+    const result: CloudInventoryResult = await readInventory(
+      createFakeGraph({ main, subnets: full }),
+    );
+
+    expect(result.warnings).toEqual([]);
+    expect(result.completelyListed[0]!.resourceTypes).toContain(
+      AZURE_SUBNET_TYPE,
+    );
+  });
+});
+
+describe("the networks whose subnets were not all listed", () => {
+  const NETWORK: string = `${RG}/providers/Microsoft.Network/virtualNetworks`;
+
+  function counted(
+    network: string,
+    subnet: string,
+    count: unknown,
+  ): JSONObject {
+    return subnetRow(`${NETWORK}/${network}/subnets/${subnet}`, {
+      [AZURE_NETWORK_SUBNET_COUNT_FIELD]: count as never,
+    });
+  }
+
+  test("are each named once, the most subnets first, and a network within the limit is not one", () => {
+    expect(
+      getAzureNetworksPastExpandedRows([
+        counted("vnet-a", "s1", 2001),
+        counted("vnet-a", "s2", 2001),
+        counted("vnet-b", "s1", 3000),
+        counted("vnet-c", "s1", 2000),
+        counted("vnet-d", "s1", 12),
+        counted("vnet-e", "s1", "2400"),
+        subnetRow(`${NETWORK}/vnet-f/subnets/s1`),
+      ]),
+    ).toEqual([
+      { name: "vnet-b", subnets: 3000 },
+      { name: "vnet-a", subnets: 2001 },
+    ]);
+  });
+
+  test("are none when no row counts more than Resource Graph expands", () => {
+    expect(getAzureNetworksPastExpandedRows([])).toEqual([]);
+    expect(
+      getAzureNetworksPastExpandedRows([counted("vnet-a", "s1", 1)]),
+    ).toEqual([]);
+  });
+
+  test("are said in one warning, naming five at most", () => {
+    expect(describeAzureNetworksPastExpandedRows([])).toBe("");
+    expect(
+      describeAzureNetworksPastExpandedRows([
+        { name: "vnet-b", subnets: 3000 },
+        { name: "vnet-a", subnets: 2001 },
+      ]),
+    ).toBe(
+      "2 virtual networks have more than 2000 subnets (vnet-b 3000, vnet-a 2001): the first 2000 of each are listed, the most Resource Graph lists of one network.",
+    );
+    expect(
+      describeAzureNetworksPastExpandedRows(
+        ["a", "b", "c", "d", "e", "f", "g"].map(
+          (name: string): { name: string; subnets: number } => {
+            return { name: `vnet-${name}`, subnets: 2500 };
+          },
+        ),
+      ),
+    ).toBe(
+      "7 virtual networks have more than 2000 subnets (vnet-a 2500, vnet-b 2500, vnet-c 2500, vnet-d 2500, vnet-e 2500 and 2 more): the first 2000 of each are listed, the most Resource Graph lists of one network.",
     );
   });
 });

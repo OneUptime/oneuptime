@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64212,
-    "untranslated": 2759
+    "keys": 64602,
+    "untranslated": 2766
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -630,6 +630,7 @@
     "Tablet",
     "Tabs",
     "Tag",
+    "Tag {{key}}",
     "Tags",
     "Tags ({{count}})",
     "Task · 31% CPU · 380 MB",

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64212,
+    "keys": 64602,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -244,8 +244,11 @@
     "SLI %",
     "SLOs",
     "SNMP Community String",
+    "SNMP inform",
     "SNMP trap",
     "SNMP:",
+    "SNMPv3 inform",
+    "SNMPv3 trap",
     "SQL Server",
     "SSH",
     "SSH: {{command}}",
