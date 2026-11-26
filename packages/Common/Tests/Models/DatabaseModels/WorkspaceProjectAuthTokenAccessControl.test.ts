@@ -125,8 +125,11 @@ describe("WorkspaceProjectAuthToken access control", () => {
         DatabaseRequestType.Create,
       );
 
+      // Refused in the words of an operation no permission allows (#7276).
       expect(error).not.toBeNull();
-      expect(error?.message).toContain("is not allowed");
+      expect(error?.message).toBe(
+        "Workspace Project Auth Token records cannot be created through the Dashboard or the API: OneUptime keeps them itself.",
+      );
     }
   });
 

@@ -273,16 +273,40 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
+      "../../Types/Billing/PlanRequiredRefusal",
       "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
       "../../Types/DataObservability/DataCheckRefusals",
       "../../Types/Database/UniqueName",
+      "../../Types/Database/UniqueValueTaken",
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Exception/UnexplainedError",
+      "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce",
+      "../../Types/SecurityCase/SecurityCasePullRequestLink",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
       "../../Utils/NetworkDiscovery/DiscoveryScanRun",
       "./SentenceSeparator",
     ]);
+    /*
+     * A responder an escalation rule pages already (#10538), a plan a
+     * feature needs and a value another record holds (#10967), and a pull
+     * request a security case cannot link (#10858): each refusal lives in a
+     * module of its own that imports only the translation helpers.
+     */
+    for (const refusals of [
+      ["Billing", "PlanRequiredRefusal.ts"],
+      ["Database", "UniqueValueTaken.ts"],
+      ["OnCallDutyPolicy", "EscalationRuleResponderOnce.ts"],
+      ["SecurityCase", "SecurityCasePullRequestLink.ts"],
+    ]) {
+      expect({
+        refusals: refusals.join("/"),
+        imports: importsOf(readRaw(COMMON_ROOT, "Types", ...refusals)),
+      }).toEqual({
+        refusals: refusals.join("/"),
+        imports: ["../Exception/RefusalWithValues", "../Translator"],
+      });
+    }
     // An AWS role that lets OneUptime in without the project's external ID (#10405, #10425).
     expect(
       importsOf(

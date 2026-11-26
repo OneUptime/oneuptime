@@ -94,6 +94,10 @@ const SERVICES: Array<ServiceSteps> = [
       "this.refreshReminderSchedule":
         "reminders, which never come for a resolved incident",
       "this.linkAlertsDeclaredWithIncident": "the alerts it was declared from",
+      "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate":
+        "the owners its notification rules match on as it is created (#11146)",
+      "WorkspaceCreatedMessageFirst.postHeld":
+        "what was posted about it while its created message waited (#11146)",
     },
     decidedByOngoing: [
       "this.handleIncidentWorkspaceOperationsAsync",
@@ -129,6 +133,10 @@ const SERVICES: Array<ServiceSteps> = [
         "which on-call policies it lists",
       "this.refreshReminderSchedule":
         "reminders, which never come for a resolved alert",
+      "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate":
+        "the owners its notification rules match on as it is created (#11146)",
+      "WorkspaceCreatedMessageFirst.postHeld":
+        "what was posted about it while its created message waited (#11146)",
     },
     decidedByOngoing: [
       "this.handleAlertWorkspaceOperationsAsync",

@@ -61,6 +61,17 @@ import {
 } from "./CloudCostWords";
 import { cloudConnectionDocsUrl } from "./Connect/CloudConnectApi";
 import { CloudAccountRow } from "./UseCloudAccounts";
+import AppLink from "../AppLink/AppLink";
+import CloudCostView from "Common/Models/DatabaseModels/CloudCostView";
+import { CloudCostAllocationGroupResult } from "Common/Types/Cloud/CloudCostAllocation";
+import { fetchCloudCostViews } from "./CostGroups/CloudCostAllocationReads";
+import { getGroupChangeHint } from "./CostGroups/CloudCostGroupFigures";
+import {
+  BREAKDOWN_MANAGE,
+  BREAKDOWN_NO_VIEWS,
+  BREAKDOWN_SET_UP_GROUPS,
+  BREAKDOWN_VIEW_PICKER,
+} from "./CostGroups/CloudCostGroupWords";
 
 /*
  * WHERE THE MONEY GOES: what cost the most in a period - this month, last
@@ -232,7 +243,17 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [attempt, setAttempt] = useState<number>(0);
   const [showAll, setShowAll] = useState<boolean>(false);
+  // By cost group: the project's views, read when the choice is first made.
+  const [views, setViews] = useState<Array<CloudCostView> | null>(null);
+  const [viewId, setViewId] = useState<string>("");
   const scopeKey: string = JSON.stringify(props.scope);
+  const activeViewId: string =
+    views &&
+    views.some((view: CloudCostView): boolean => {
+      return view.id?.toString() === viewId;
+    })
+      ? viewId
+      : views?.[0]?.id?.toString() || "";
 
   const accountNames: Map<string, string> = useMemo((): Map<string, string> => {
     return new Map(
@@ -289,6 +310,35 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
           return { shares: [], rest: [], total: 0 };
         }
 
+        if (dimension === "group") {
+          const known: Array<CloudCostView> =
+            views || (await fetchCloudCostViews());
+
+          if (!views && !ignore) {
+            setViews(known);
+          }
+
+          const picked: string = known.some((view: CloudCostView) => {
+            return view.id?.toString() === viewId;
+          })
+            ? viewId
+            : known[0]?.id?.toString() || "";
+
+          if (!picked) {
+            return { shares: [], rest: [], total: 0, groups: [] };
+          }
+
+          return await fetchCloudCostBreakdown({
+            scope: {
+              ...props.scope,
+              startDate: window.start,
+              endDate: window.end,
+            },
+            dimension,
+            viewId: new ObjectID(picked),
+          });
+        }
+
         let platformLists: CloudCostPlatformLists | undefined = undefined;
 
         if (needsLists) {
@@ -332,7 +382,7 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
     return (): void => {
       ignore = true;
     };
-  }, [scopeKey, dimension, period, activeTagKey, attempt]);
+  }, [scopeKey, dimension, period, activeTagKey, activeViewId, attempt]);
 
   const money: (amount: number) => string = useCallback(
     (amount: number): string => {
@@ -446,6 +496,33 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
       return { ...base, label: <bdi>{share.key}</bdi>, title: share.key };
     }
 
+    if (dimension === "group") {
+      const group: CloudCostAllocationGroupResult | undefined =
+        result?.groups?.find((entry: CloudCostAllocationGroupResult) => {
+          return entry.id === share.key;
+        });
+      const name: string = group?.name || share.key;
+
+      // A group's name as its project wrote it; its change under it.
+      return {
+        ...base,
+        label: <bdi>{name}</bdi>,
+        title: name,
+        hint: group
+          ? getGroupChangeHint({ group, translator }) || undefined
+          : undefined,
+        to: activeViewId
+          ? RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_COST_GROUP_VIEW] as Route,
+              {
+                modelId: new ObjectID(activeViewId),
+                subModelId: new ObjectID(share.key),
+              },
+            )
+          : undefined,
+      };
+    }
+
     const label: CloudCostShareLabel = getCloudCostShareLabel({
       dimension,
       key: share.key,
@@ -494,6 +571,17 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
     >
       {translator.translateText(READ_THE_GUIDE)}
     </a>
+  );
+
+  // A view by the name its project gave it, never looked up as a word.
+  const viewOptions: Array<DropdownOption> = (views || []).map(
+    (view: CloudCostView): DropdownOption => {
+      return {
+        value: view.id?.toString() || "",
+        label: view.name || "",
+        isUserContent: true,
+      };
+    },
   );
 
   const tagOptions: Array<DropdownOption> = tagKeys.map(
@@ -573,7 +661,66 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {error ? (
+        {dimension === "group" && views && views.length > 0 ? (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-2"
+            data-testid="cloud-cost-breakdown-view"
+          >
+            <span className="text-xs font-medium text-gray-600">
+              {translator.translateText(BREAKDOWN_VIEW_PICKER)}
+            </span>
+            <div className="w-full min-w-0 sm:w-72">
+              <Dropdown
+                ariaLabel={BREAKDOWN_VIEW_PICKER}
+                dataTestId="cloud-cost-breakdown-view-picker"
+                options={viewOptions}
+                value={viewOptions.find((option: DropdownOption): boolean => {
+                  return option.value === activeViewId;
+                })}
+                isClearable={false}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  if (typeof value === "string" && value) {
+                    setViewId(value);
+                  }
+                }}
+              />
+            </div>
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_COST_VIEW] as Route,
+                { modelId: new ObjectID(activeViewId) },
+              )}
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              dataTestId="cloud-cost-breakdown-view-manage"
+            >
+              {translator.translateText(BREAKDOWN_MANAGE) || BREAKDOWN_MANAGE}
+            </AppLink>
+          </div>
+        ) : (
+          <></>
+        )}
+        {dimension === "group" && views && views.length === 0 ? (
+          <div
+            className="flex flex-col items-start gap-3 py-2"
+            data-testid="cloud-cost-breakdown-no-views"
+          >
+            <p className="text-sm text-gray-600">
+              {translator.translateText(BREAKDOWN_NO_VIEWS)}
+            </p>
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_COST_GROUPS] as Route,
+              )}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              dataTestId="cloud-cost-breakdown-set-up-groups"
+            >
+              {translator.translateText(BREAKDOWN_SET_UP_GROUPS) ||
+                BREAKDOWN_SET_UP_GROUPS}
+            </AppLink>
+          </div>
+        ) : error ? (
           <ErrorMessage
             message={error}
             onRefreshClick={() => {

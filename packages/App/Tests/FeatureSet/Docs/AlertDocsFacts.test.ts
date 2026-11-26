@@ -1403,10 +1403,10 @@ describe("what happens when an alert is created", () => {
       inOrder(
         positionsIn(steps, [
           "AlertPrivacyRuleEngineService.applyRulesToAlert",
-          "this.handleAlertWorkspaceOperationsAsync",
-          "this.createAlertFeedAsync",
           "AlertOwnerRuleEngineService.applyRulesToAlert",
           "AlertLabelRuleEngineService.applyRulesToAlert",
+          "this.handleAlertWorkspaceOperationsAsync",
+          "this.createAlertFeedAsync",
           "AlertOnCallRuleEngineService.applyRulesToAlert",
           "RunbookRuleEngineService.applyRulesToAlert",
           "this.executeAlertOnCallDutyPoliciesAsync",
@@ -1423,8 +1423,8 @@ describe("what happens when an alert is created", () => {
       inOrder(
         positionsIn(list, [
           "**Privacy rules run first**",
-          "**The feed and your chat tools hear of it.**",
           "**Owners and labels are added**",
+          "**The feed and your chat tools hear of it.**",
           "**On-call rules add their policies**, then runbook rules",
           "**On-call policies run.**",
           "**Grouping rules put it into an episode**",
@@ -1432,6 +1432,40 @@ describe("what happens when an alert is created", () => {
         ]),
       ),
     ).toBe(true);
+  });
+
+  /*
+   * #11146: the rules are matched once the owners and labels are in - the
+   * creator's and the monitor's waited for - and whatever was said about the
+   * alert meanwhile is let go right after Alert Created, which is filed as
+   * the feed starts.
+   */
+  it("matches the chat rules on the owners and labels the alert was created with, and files Alert Created first", () => {
+    expect(
+      inOrder(
+        positionsIn(steps, [
+          "WorkspaceCreatedMessageFirst.hold({ alertId: createdItem.id });",
+          "AlertOwnerRuleEngineService.applyRulesToAlert",
+          "AlertLabelRuleEngineService.applyRulesToAlert",
+          "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate",
+          "this.handleAlertWorkspaceOperationsAsync",
+          "this.createAlertFeedAsync(createdItem.id!, feedStartsAt)",
+          "await WorkspaceCreatedMessageFirst.postHeld",
+          "this.executeAlertOnCallDutyPoliciesAsync",
+        ]),
+      ),
+    ).toBe(true);
+
+    expect(service).toContain("announcesRecord: true,");
+    expect(list).toContain(
+      "An **Alert Created** entry is written to the **Alert Feed**, as its first entry,",
+    );
+    expect(list).toContain(
+      "The rules see the owners and labels the alert was created with, so a rule that asks who owns an alert, or how it is labelled, posts it too.",
+    );
+    expect(list).toContain(
+      "Whatever was said about the alert meanwhile, such as the owners just added, follows **Alert Created** in those channels.",
+    );
   });
 
   it("writes the Alert Created entry to the Alert Feed, and runs every policy at once, each settled on its own", () => {

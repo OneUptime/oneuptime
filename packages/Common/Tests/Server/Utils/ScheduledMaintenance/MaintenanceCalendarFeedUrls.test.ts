@@ -115,9 +115,13 @@ describe("MaintenanceCalendarFeedUrls", () => {
     // The app's server block, and the two that front a status page domain.
     expect(exempt.length).toBe(3);
 
+    /*
+     * The one location for every feed whose path is its credential: the
+     * calendars, and the blocklist feeds (#10345).
+     */
     for (const line of exempt) {
       expect(line).toContain(
-        "^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/",
+        "^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/",
       );
     }
   });

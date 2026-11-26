@@ -166,6 +166,24 @@ describe("getProjectSelectionNavigationDecision", () => {
       expect(decision.shouldNavigate).toBe(false);
     });
 
+    /*
+     * A status page's preview links its owner to the page's Resources by its
+     * id alone (#9180): the page there finds the status page's project and
+     * carries them on itself, so a boot-time selection must not take them to
+     * the open project's home first.
+     */
+    test("a boot-time selection leaves the user on a status page's Resources opened by its id", () => {
+      const decision: ProjectSelectionNavigationDecision =
+        getProjectSelectionNavigationDecision({
+          currentRoute:
+            "/dashboard/status-pages/0b6b1c9e-5d0a-4c55-9f43-6c1b2a7e8d31/resources",
+          selectedProjectId: PROJECT_A,
+          previousProjectId: null,
+        });
+
+      expect(decision.shouldNavigate).toBe(false);
+    });
+
     test("a trailing slash or query string does not defeat the match", () => {
       expect(
         isProjectIndependentRoute("/dashboard/user-profile/two-factor-auth/"),

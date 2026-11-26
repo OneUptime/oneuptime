@@ -140,7 +140,7 @@ Um script bash, executado com `bash -c <script>` em um [agente de runbook](/docs
 | Campo | O que faz | Padrão |
 | --- | --- | --- |
 | **Runner** | Em **Mais campos**. O Runner que executa a etapa. Só esse Runner pode assumir o trabalho. Runners globais rodam só etapas JavaScript. | O Runner padrão do projeto, se você definiu um |
-| **Script Bash** | O script. A saída (stdout e stderr) é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. | — |
+| **Script Bash** | O script. A saída (stdout e stderr) é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. Ele é executado com o ambiente do Runner, sem as configurações `ONEUPTIME_RUNNER_` do próprio Runner, incluindo a chave dele; uma chave que um script imprima mesmo assim é salva como `[REDACTED]`. | — |
 | **Tempo limite de execução** | Por quanto tempo o Runner deixa o script rodar antes de matá-lo com `SIGKILL`. Aumente-o para etapas que legitimamente levam minutos. | 30 segundos |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
 
@@ -195,7 +195,7 @@ Executar comandos kubectl em um cluster. O script roda com bash no Runner, que t
 | --- | --- |
 | **Runner** | Em **Mais campos**. O Runner que executa o kubectl. Ele precisa alcançar o servidor de API do cluster. Uma etapa que não escolhe nenhum roda no Runner padrão do projeto. |
 | **Kubeconfig** | A variável secreta que guarda o kubeconfig do cluster, ou **O acesso próprio do Runner**: o kubeconfig do próprio Runner, ou a conta de serviço dele quando roda dentro do cluster. O Runner grava um kubeconfig em um arquivo que só ele pode ler, e o remove quando o script termina. |
-| **Script** | Os comandos kubectl. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
+| **Script** | Os comandos kubectl. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. Como o script de uma etapa de Bash, ele é executado sem as configurações `ONEUPTIME_RUNNER_` do próprio Runner. |
 | **Tempo limite de execução** | Por quanto tempo o Runner deixa o script rodar antes de pará-lo com `SIGKILL`. Padrão de 30 segundos. |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
 

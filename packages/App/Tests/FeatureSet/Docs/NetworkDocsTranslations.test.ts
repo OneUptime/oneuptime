@@ -237,6 +237,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // The naming rules section's own terms (#6619).
     "naming rules",
     "name pattern",
+    // SNMPv3 Traps and Informs (#11005).
+    "Traps, informs and the probe's engine ID.",
+    "The time window.",
+    "Refused SNMPv3 traps",
   ],
   [VENDORS]: ["Port health.", "Path quality.", "Traffic."],
 };

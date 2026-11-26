@@ -46,8 +46,8 @@ import {
 
 /*
  * `component_name` is the datapoint label every FlashArray hardware and
- * drive series carries (purefa_hw_component_status,
- * purefa_drive_capacity_bytes) and is stored verbatim as
+ * drive series carries (its component status and drive capacity series)
+ * and is stored verbatim as
  * StorageArrayResource.externalId, so a dashboard variable bound to
  * `component_name` narrows this list too. This map must stay byte-identical
  * to STORAGE_ARRAY_HARDWARE_ATTRIBUTE_TO_COLUMN in

@@ -158,7 +158,13 @@ describe("monitoring", () => {
       limit: 10,
     });
 
-    expectClaimSkipsBlockedProjects(statements[0]!);
+    /*
+     * One statement (#10819): the rows it claims hold the whole rule, and
+     * so does its check for rows it stepped over (IS NOT TRUE there: a
+     * blocked project's due rows are set aside).
+     */
+    expectClaimSkipsBlockedProjects(statements[0]!, 2);
+    expect(normalizeSql(statements[0]!.sql)).toContain(") IS NOT TRUE");
   });
 
   test("the network device poll claim hands out no device of a blocked project", async () => {

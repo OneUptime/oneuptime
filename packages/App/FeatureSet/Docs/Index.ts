@@ -14,7 +14,10 @@ import DocsSearchIndex, {
 } from "./Utils/SearchIndex";
 import DocsSitemap from "./Utils/Sitemap";
 import DocsSearch, { DocsSearchAnswer } from "./Utils/DocsSearch";
-import DocsFeedback, { DocsFeedbackAnswer } from "./Utils/DocsFeedback";
+import DocsFeedback, {
+  DocsFeedbackAnswer,
+  DocsPageFeedback,
+} from "./Utils/DocsFeedback";
 import DocsSearchReport, {
   DocsSearchFoundNothing,
 } from "./Utils/DocsSearchReport";
@@ -59,6 +62,8 @@ import {
 } from "Common/Server/Utils/Sitemap";
 import "ejs";
 import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
+import DocsSiteLinksStore from "Common/Server/Utils/HelpAndSupport/DocsSiteLinksStore";
+import { DocsSiteLinks } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import {
   DocsTailwindSite,
   getDocsTailwindSite,
@@ -173,13 +178,18 @@ function pickLanguage(req: ExpressRequest): string {
 /*
  * The docs' own 404 page, in the given language: a 404 status, with the
  * sidebar and the search box, so the reader can find the page they were
- * after.
+ * after. Its header follows this server's Help and Support settings, as
+ * every docs page's does (#10940).
  */
-function renderNotFound(
+async function renderNotFound(
   req: ExpressRequest,
   res: ExpressResponse,
   lang: string,
-): void {
+): Promise<void> {
+  // Null without the App's reader: the header is as it always was.
+  const helpLinks: DocsSiteLinks | null =
+    await DocsSiteLinksStore.getLinks(req);
+
   res.status(404);
   return res.render(`${ViewsPath}/NotFound`, {
     nav: getLocalizedNav(lang),
@@ -192,6 +202,7 @@ function renderNotFound(
     currentPath: req.originalUrl,
     // A search that finds nothing is reported where analytics is set up (#7207).
     searchReport: DocsSearchReport.isReported(),
+    helpLinks: helpLinks,
   });
 }
 
@@ -1035,6 +1046,25 @@ const DocsFeatureSet: FeatureSet = {
             translatedLanguages: await DocsTranslations.getLanguages(fullPath),
           });
 
+          /*
+           * Where this server sends its people for help (Admin Dashboard >
+           * Settings > Help and Support, #10940): the header's GitHub,
+           * "Edit on GitHub" and a no's "Tell us on GitHub" go with
+           * OneUptime's GitHub links. Where the answer to "Was this page
+           * helpful?" would go nowhere - nothing posted, and no GitHub to
+           * tell - the page does not ask.
+           */
+          const helpLinks: DocsSiteLinks | null =
+            await DocsSiteLinksStore.getLinks(req);
+          const feedback: DocsPageFeedback | null =
+            DocsFeedback.getPageFeedback({
+              page: fullPath,
+              title: currentNavLink.title,
+              lang: lang,
+              mode: await DocsFeedback.getMode(),
+              isGitHubShown: !helpLinks || helpLinks.isGitHubShown,
+            });
+
           return res.render(`${ViewsPath}/Index`, {
             nav: localizedNav,
             t: t,
@@ -1055,15 +1085,8 @@ const DocsFeatureSet: FeatureSet = {
             markdownUrl: `/docs/as-markdown/${lang}/${fullPath}`,
             githubPath: fullPath,
             // "Was this page helpful?" (Views/Partials/PageFeedback.ejs, Utils/DocsFeedback.ts).
-            feedback: {
-              page: fullPath,
-              mode: await DocsFeedback.getMode(),
-              githubIssueUrl: DocsFeedback.getGitHubIssueUrl({
-                page: fullPath,
-                title: currentNavLink.title,
-                lang: lang,
-              }),
-            },
+            feedback: feedback,
+            helpLinks: helpLinks,
             enableGoogleTagManager: GoogleTagManagerEnabled,
             // A search that finds nothing is reported where analytics is set up (#7207).
             searchReport: DocsSearchReport.isReported(),

@@ -178,6 +178,7 @@ AI エージェントは [MCP サーバー](/docs/ai/mcp-server) から、スク
 ## 次のステップ
 
 :::cards
+- [クラウドコストの配分](/docs/telemetry/cloud-cost-allocation): 支出をチーム、製品、コストセンターごとに振り分けます。
 - [クラウド アカウントの接続](/docs/telemetry/cloud-accounts): 別のアカウントを接続するか、コマンドを実行し直します。
 - [クラウド リソース](/docs/telemetry/cloud-resources): 各リソースのメトリクスを、自分のコレクターから。
 - [Kubernetes のコストの可観測性](/docs/telemetry/kubernetes-cost): Kubernetes の各ワークロードのコスト。

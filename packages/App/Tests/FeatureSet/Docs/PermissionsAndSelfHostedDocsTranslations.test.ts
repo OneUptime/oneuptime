@@ -373,8 +373,14 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "every project on the instance",
     "not",
     "hostname",
+    /*
+     * The monitor type the probe's private network setting has governed
+     * since GHSA-9rx7-vwfj-whp7; the Dashboard's label is "Synthetic
+     * Monitor", so this one bold word is the page's own.
+     */
+    "Synthetic",
     "Prefer the allowlist to the blanket boolean.",
-    "Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.",
+    "Anyone who can author a workflow or an API, Website, External Status Page, Custom JavaScript Code or Synthetic monitor, or add a status page subscriber, can reach anything you allowed.",
     "The response body comes back.",
     "Redirects are never followed",
     "OneUptime connects to the address it checked.",

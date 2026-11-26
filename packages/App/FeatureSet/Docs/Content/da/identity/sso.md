@@ -259,6 +259,41 @@ Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspac
 6. Åbn linket i kortet **SSO-loginlink**, og vælg udbyderen for at logge ind via den, før du kræver SSO for projektet.
 :::
 
+## E-mailadresser, som din identitetsudbyder ikke har bekræftet
+
+Et login med OpenID Connect finder personens OneUptime-konto ud fra den e-mailadresse, din identitetsudbyder sender, og kan oprette en konto med den adresse. Nogle udbydere lader folk sætte en adresse på deres egen konto uden at bevise, at den er deres, og siger det i standardclaimet `email_verified`. Derfor logger OneUptime ingen ind med en adresse, som din udbyder siger, at den ikke har bekræftet: nogen kunne have sat en anden persons adresse på sin konto for at logge ind som vedkommende.
+
+| `email_verified` | Loginforsøget |
+| --- | --- |
+| `true`, eller `"true"` og `1` | Fortsætter |
+| Ikke sendt, som hos Microsoft Entra ID og AD FS | Fortsætter |
+| `false`, eller `"false"` og `0` | Afvises |
+| Alt andet, såsom `"yes"` | Afvises: OneUptime kan ikke afgøre det |
+
+- Reglen gælder for alle konti, på nettet og i mobilappen: en, der findes, også en administrators, og en, som loginforsøget ville oprette. Et afvist loginforsøg opretter ingen konto, tilføjer ingen til et team, accepterer ingen invitation og sender ingen e-mail.
+- OneUptime læser `email_verified` dér, hvor adressen kom fra, ID-tokenet eller userinfo-endpointet, og kun når adressen er claimet `email`. En udbyder, der er sat op til at sende adressen i et andet claim, såsom `preferred_username` eller `upn`, logger folk ind som før, så brug et claim, som dine folk ikke selv kan ændre.
+- Personen ser "Your identity provider did not confirm your email address." og bliver bedt om at bekræfte sin adresse hos din identitetsudbyder, eller om at bede dig markere den som bekræftet dér, og derefter logge ind igen. Mobilappen viser `provider_email_not_verified` med samme råd. Når en konto har adressen, registrerer auditlogs for dens projekter forsøget som et mislykket login.
+- SAML-udbydere læser ikke `email_verified`, og det gør OpenID Connect-udbyderne for statussider, dashboards og formularer heller ikke; de logger folk ind som deres egne private brugere.
+
+Udbydere, der bekræfter de adresser, de sender, såsom Google og Okta, logger folk ind som før. authentik og Keycloak kan kræve en ændring:
+
+:::tabs
+@tab authentik
+authentik 2025.10 og nyere sender `email_verified` som `false` for alle med sin standard-scope-mapping for `email`, så ingen logger ind via authentik, før du erstatter den mapping, som authentiks vejledning [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/) beskriver:
+
+1. Under **Customization** > **Property Mappings** skal du klikke på **New Property Mapping**, vælge **Scope Mapping** og klikke på **Next**.
+2. Giv mappingen et navn, sæt **Scope name** til `email`, indtast den **Expression** fra vejledningen, der passer til, hvordan dine folks adresser bekræftes, og klik på **Finish**.
+3. Åbn din applikations udbyder, erstat standardmappingen for `email` i **Scopes** med din, og gem udbyderen.
+
+Send ikke `true` for alle adresser, så længe folk kan ændre deres egen adresse i authentik: mappingen ville så gå god for enhver adresse, nogen sætter på sin konto. Versioner før 2025.10 sender `true` for alle adresser, så lad ikke folk ændre deres egen adresse dér.
+@tab Keycloak
+Keycloak sender `email_verified` som `false` for folk, hvis adresse den ikke har bekræftet: folk, som en administrator har oprettet med **Email verified** slået fra, og folk, der har registreret sig eller ændret deres adresse, mens **Verify email** var slået fra.
+
+- For at få dem til at bekræfte den skal du slå **Verify email** til under **Realm settings** > **Login** > **Email settings**. Keycloak beder så hver af dem om at bekræfte deres adresse med en e-mail, næste gang de logger ind, så realmen skal have en mailserver sat op.
+- For selv at gå god for én persons adresse skal du slå **Email verified** til på vedkommendes side i Keycloak og klikke på **Save**.
+- For folk fra LDAP eller Active Directory skal du slå **Trust Email** til under **Advanced settings** på udbyderen i **User federation**. Keycloak markerer så en adresse som bekræftet, når den importerer personen: slå **Email verified** til for de folk, den har importeret før.
+:::
+
 ## Log også ud af identitetsudbyderen
 
 Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer, som en NOC-skærm eller en kiosk, kommer den næste, der vælger udbyderen på login-siden, ind som den, der gik. Slå **Log også ud af identitetsudbyderen** til under **Flere felter** på en SAML- eller OIDC-udbyder for at afslutte sessionen hos udbyderen, når nogen logger ud af OneUptime. Den er slået fra som standard: På en personlig bærbar ville den også logge personen ud af alle andre apps, der bruger udbyderen. Den gælder for personer, der logger ind i en browser, efter at den er slået til; mobilappen logger kun ud af OneUptime.
@@ -456,6 +491,10 @@ Hvert svar fra din IdP logger kun ind én gang. Går du tilbage i browseren efte
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID loggede en person ind med e-mailadressen på en konto, der via denne udbyder er knyttet til et andet objekt-ID: en anden person har nu adressen i Entra ID, eller personens Entra ID-konto er blevet oprettet igen. OneUptime afviser loginforsøget, så den, der får adressen næste gang, ikke kan bruge kontoen. Hvis kontoen tilhører personen, så fjern vedkommende fra projektet, og tilføj vedkommende igen: ved næste login knyttes kontoen til personens nye objekt-ID.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Din OpenID Connect-udbyder sendte `email_verified` som `false` eller som noget, der hverken er true eller false, så OneUptime loggede ingen ind. Få adressen bekræftet hos din identitetsudbyder, eller markér den som bekræftet dér, og log ind igen. [E-mailadresser, som din identitetsudbyder ikke har bekræftet](#e-mailadresser-som-din-identitetsudbyder-ikke-har-bekræftet) fortæller, hvad du skal ændre i authentik og Keycloak.
 :::
 
 :::details Login mislykkes med en signatur- eller certifikatfejl

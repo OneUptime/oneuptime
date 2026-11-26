@@ -87,6 +87,16 @@ Minuttene telles fra hver bekreftelse, og en policy varsler høyst 5 ganger igje
 
 Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette policyen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva policyen gjør, og **Flere innstillinger** viser minuttene mens den er lukket. **Policyen i korte trekk** på **Oversikt** og **Oversikt over eskalering** sier det samme med ord.
 
+## Gi dem den varsler, en hendelsesrolle
+
+En hendelses **Hendelsesroller** viser hvem som jobber med den. En policy kan føre opp dem den varsler der: åpne siden **Eskaleringsregler** for den, åpne **Flere innstillinger** nederst, og klikk på **Rediger** på kortet **Hendelsesrolle**. **Rediger hendelsesrolle** ber om en **Rolle**: en av prosjektets hendelsesroller, eller **Ingen rolle**, som alle policyer starter med.
+
+Alle som policyen deretter varsler om en hendelse eller en hendelsesepisode, får den rollen i den, på hvert nivå og hver gang den varsler på nytt, så lenge de er medlem av prosjektet. Den den varsler som observatør, får den ikke. Den som allerede har rollen, beholder den som den er, og en rolle for bare én person, som **Hendelsesleder**, går til den første som varsles så lenge ingen har den. Hendelsens feed nevner policyen som la dem til, og de får ingen egen melding om rollen: varselet har allerede fortalt dem om hendelsen.
+
+Slik vises den som har vakt i teamet som eier en tjeneste, på tjenestens hendelser. Opprett en rolle som "Tjenesteeier" under **Hendelser → Innstillinger → Hendelsesroller**, velg den i policyen som varsler betalingsteamet, og la betalingsmonitorene kjøre den policyen, fra kriteriene sine eller en vaktregel. Den som har vakt for betalinger, står da som hendelsens "Tjenesteeier", og den som endrer statusen først ved å bekrefte den, blir likevel dens **Hendelsesleder**, også når en policy ga vedkommende en annen rolle da den varslet.
+
+Kortets rad **Rolle for dem den varsler** viser hvilken rolle policyen gir, og **Flere innstillinger** nevner den mens den er slått sammen. Å arkivere rollen hindrer ikke policyen i å gi den, og arkiveringsdialogen for rollen regner policyen med blant det som bruker den: velg **Ingen rolle** for å stoppe. Å slette rollen setter policyen tilbake til **Ingen rolle**.
+
 ## Når flere policyer tilkaller
 
 En hendelse, et varsel eller en episode kjører hver av policyene sine for seg, samtidig.
@@ -176,11 +186,14 @@ Vaktpolicyer er ressursen `/api/on-call-duty-policy`, og ressursen `oneuptime_on
 | **Hvis ingen bekrefter etter det siste nivået** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hvor mange ganger til?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Etter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
+| **Rolle** | `incidentRoleId` |
 | Arkivert | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` må `repeatPolicyIfNoOneAcknowledgesNoOfTimes` være et heltall på 1 eller mer: OneUptime avviser `0`. En eldre policy som er lagret med `0`, gjentas aldri, og dashbordet viser den som **Stopp varslingen**.
 
 `acknowledgementTimeoutInMinutes` er `null` for **Ikke varsle igjen** og et helt antall minutter fra 5 til 1440 for **Varsle igjen**. OneUptime avviser alt annet.
+
+`incidentRoleId` er ID-en til en av prosjektets hendelsesroller, eller `null` for **Ingen rolle**.
 
 Se [Opprett regler med API-et eller Terraform](/docs/on-call/escalation-rules#opprett-regler-med-api-et-eller-terraform) for å opprette en policy med det første nivået i én forespørsel.
 

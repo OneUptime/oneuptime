@@ -102,6 +102,18 @@ jest.mock(
     };
   },
 );
+// A device's refused SNMPv3 traps read the device and its probe on their own (#11005).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceSnmpTrapRefusals",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceVendorTemplateBanner",
   () => {

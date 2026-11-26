@@ -34,10 +34,10 @@ import CompliancePaperSection from "../../Components/DataSecurity/CompliancePape
 import {
   PaperworkExportNames,
   downloadMarkdown,
-  downloadMarkdownPdf,
   getAuditEvidenceExportNames,
   getAuditEvidenceMarkdown,
 } from "../../Components/DataSecurity/CompliancePaperworkExport";
+import { downloadMarkdownPdf } from "../../Components/DataSecurity/CompliancePaperworkPdfDownload";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import {
   IssueStatusPill,

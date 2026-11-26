@@ -4,6 +4,7 @@
   "Error details": "Detalles del error",
   "Still stuck?": "¿Sigues bloqueado?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Descarga un archivo de diagnóstico local con la pila del error, la pila de componentes, la URL de la página depurada, los detalles del navegador y la compilación de OneUptime. Nunca lee cookies, datos guardados del navegador ni contenido de formularios. Revísalo antes de compartirlo con el soporte de OneUptime.",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Descarga un archivo de diagnóstico local con la pila del error, la pila de componentes, la URL de la página depurada, los detalles del navegador y la compilación de OneUptime. Nunca lee cookies, datos guardados del navegador ni contenido de formularios. Revísalo antes de compartirlo.",
   "Download support bundle": "Descargar el paquete de soporte",
   "Send it to {{email}}": "Enviarlo a {{email}}",
   "Support bundle downloaded. Review it, then attach it to your email.": "Paquete de soporte descargado. Revísalo y luego adjúntalo a tu correo.",
@@ -739,6 +740,5 @@
     "note": "Nota",
     "tip": "Consejo",
     "warning": "Advertencia"
-  },
-  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Descarga un archivo de diagnóstico local con la pila del error, la pila de componentes, la URL de la página depurada, los detalles del navegador y la compilación de OneUptime. Nunca lee cookies, datos guardados del navegador ni contenido de formularios. Revísalo antes de compartirlo."
+  }
 }

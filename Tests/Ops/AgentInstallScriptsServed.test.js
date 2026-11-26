@@ -122,6 +122,23 @@ function assignment(block, name) {
  * Storage Array agent's AGENT_FILES list, the Database agent's
  * configs/<engine>.yaml.
  */
+/*
+ * The collector configs of the Storage Array agent's PLATFORMS table
+ * (#11000): one line per platform, its config the first |-separated field.
+ */
+function platformTableConfigs(script) {
+  const table = /^PLATFORMS="\n([\s\S]*?)\n"$/m.exec(script);
+  expect(table).not.toBeNull();
+  return table[1]
+    .split("\n")
+    .filter((line) => {
+      return line.trim() !== "";
+    })
+    .map((line) => {
+      return line.split("|")[0];
+    });
+}
+
 function fetchedFiles(entry) {
   const script = readScript(entry.directory);
   const files = new Set();
@@ -138,7 +155,14 @@ function fetchedFiles(entry) {
       const list = /^AGENT_FILES="([^"]+)"$/m.exec(script);
 
       for (const file of list ? list[1].split(" ") : []) {
-        files.add(file);
+        if (file === "$PLATFORM_CONFIGS") {
+          // Its PLATFORMS table's collector configs: each line's first field.
+          for (const config of platformTableConfigs(script)) {
+            files.add(config);
+          }
+        } else {
+          files.add(file);
+        }
       }
     } else if (name.includes("$AGENT_CONFIG")) {
       for (const file of entry.files) {

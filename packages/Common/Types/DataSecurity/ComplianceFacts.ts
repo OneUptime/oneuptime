@@ -458,7 +458,9 @@ export const COMPLIANCE_FACT_KIND_TITLES: Readonly<
   Record<ComplianceFactKind, string>
 > = {
   [ComplianceFactKind.StoreHolds]: translationKey("What it holds"),
-  [ComplianceFactKind.StoreIdentity]: translationKey("What it is"),
+  [ComplianceFactKind.StoreIdentity]: translationKey(
+    "What it is (store identity)",
+  ),
   [ComplianceFactKind.StoreTags]: translationKey("Cloud tags"),
   [ComplianceFactKind.Location]: translationKey("Where its data is"),
   [ComplianceFactKind.ServiceUse]: translationKey("A service that uses it"),

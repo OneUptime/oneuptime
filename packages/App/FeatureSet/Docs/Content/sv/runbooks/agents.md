@@ -90,7 +90,7 @@ För att stänga av den medföljande anger du `GLOBAL_RUNNER_REPLICAS=0` i Docke
 ## Innan du börjar
 
 - **En värd med Docker** i din infrastruktur som kan nå din OneUptime-URL över HTTPS och de system som dina steg verkar på.
-- **En roll som skapar Runners.** Projektägare, Projektadministratör, Projektmedlem och Runbook-administratör kan skapa en. Bara en Projektägare, Projektadministratör eller Runbook-administratör kan se en Runners nyckel, som installationskommandot innehåller.
+- **En roll som skapar Runners.** Projektägare, Projektadministratör, Projektmedlem och Runbook-administratör kan skapa en. Bara en Projektägare, Projektadministratör eller Runbook-administratör kan se en Runners nyckel, som installationskommandot innehåller. Bara de kan också välja en Runners nyckel: en Runner som någon annan skapar får en nyckel som OneUptime genererar, och att skapa den visar inte nyckeln för dem.
 
 ## Installera en Runner
 

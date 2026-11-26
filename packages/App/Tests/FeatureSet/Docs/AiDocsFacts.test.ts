@@ -1379,7 +1379,11 @@ describe("Code", () => {
       numberConstant(verification, "VERIFICATION_COMMAND_TIMEOUT_MS") / 60000;
     const repairs: number = numberConstant(verification, "MAX_REPAIR_ATTEMPTS");
 
-    expect(verification).toContain('CI: "true"');
+    // CI=true, in the environment every code-fix command gets.
+    expect(verification).toContain("env: getCodeFixCommandEnvironment(),");
+    expect(readRepoFile("Runner/Utils/RunnerOwnEnvironment.ts")).toContain(
+      'environment["CI"] = "true";',
+    );
     expect(section).toContain(
       `Each one gets up to ${minutes} minutes and runs with \`CI=true\``,
     );
@@ -1458,9 +1462,20 @@ describe("Code", () => {
       "canRunCommands: runsProjectAuthoredCommands(),",
     );
 
-    // A command the model composed runs without the Runner's own key.
-    expect(flat(agent)).toContain(
-      'for (const name of [ "ONEUPTIME_RUNNER_KEY", "ONEUPTIME_RUNNER_ID", "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ]) { delete environment[name]; }',
+    /*
+     * A command the model composed runs without the Runner's own settings -
+     * its key and id among them - nor the pipeline's git credentials.
+     */
+    const environment: string = flat(
+      readRepoFile("Runner/Utils/RunnerOwnEnvironment.ts"),
+    );
+
+    expect(flat(agent)).toContain("return getCodeFixCommandEnvironment();");
+    expect(environment).toContain(
+      'export const RUNNER_OWN_ENVIRONMENT_PREFIX: string = "ONEUPTIME_RUNNER_";',
+    );
+    expect(environment).toContain(
+      'export const CODE_FIX_PIPELINE_ENVIRONMENT_NAMES: ReadonlyArray<string> = [ "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ];',
     );
 
     expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
@@ -2345,9 +2360,11 @@ describe("MCP Server", () => {
      * frameworks and requirements a resource turned off (Compliance Setting,
      * #9555, #9708), a Data Security setting like Check Setting, so an agent
      * can say what is off where and why, as Data Security's Integrations
-     * page promises.
+     * page promises; and Cloud's cost views, groups and custom line items
+     * (Cloud Cost View, Cloud Cost Group, Cloud Cost Line Item, #11006), so
+     * finance and agents sort the spend as the Cost Groups pages do.
      */
-    expect(records()).toHaveLength(55);
+    expect(records()).toHaveLength(58);
     expect(namesIn(0)).toEqual(records());
     /*
      * Every database model with MCP on gets these tools, the update tool

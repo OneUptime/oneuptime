@@ -534,7 +534,14 @@ describe("the store's columns a relation reads", () => {
     );
 
     expect(labels.sort()).toEqual([...IDENTITY].sort());
-    expect(SECURITY_FACTS).toHaveLength(42);
+    /*
+     * The store's record of processing (#10375) adds two: its legal basis
+     * and the people it is about, read only by who may read the store.
+     */
+    expect(SECURITY_FACTS).toHaveLength(44);
+    expect(SECURITY_FACTS).toEqual(
+      expect.arrayContaining(["legalBasis", "dataSubjects"]),
+    );
     expect(SECURITY_FACTS).toEqual(expect.arrayContaining(NAMED_FACTS));
   });
 });

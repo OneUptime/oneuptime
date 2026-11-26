@@ -25,7 +25,8 @@ import { DataSource, DataSourceOptions } from "typeorm";
  * PostgresDatabase.connect() caps the connections queue jobs borrow from
  * the app's pool as soon as it is open (#7920): with the defaults - a
  * process that serves requests and runs the queue workers, a pool of 50 -
- * queue jobs hold at most 30, waiting as long as a checkout from the pool
+ * queue jobs hold at most 28 (the pool less a fifth kept for requests and
+ * less probe scheduling's two lanes, #10819), waiting as long as a checkout from the pool
  * does. The database is stubbed; QueueJobConnections.limitsFor's own suite
  * covers the processes that get no cap.
  */
@@ -73,7 +74,7 @@ describe("PostgresDatabase.connect() and the queue jobs' share of the pool", () 
     jest.restoreAllMocks();
   });
 
-  test("the defaults: queue jobs hold at most 30 of the pool's 50, and wait as long as a checkout does", async () => {
+  test("the defaults: queue jobs hold at most 28 of the pool's 50, and wait as long as a checkout does", async () => {
     expect(DisableQueueWorkers).toBe(false);
     expect(ReceivesIngressTraffic).toBe(true);
     expect(MaxPostgresConnections).toBe(50);
@@ -83,7 +84,7 @@ describe("PostgresDatabase.connect() and the queue jobs' share of the pool", () 
     const limiter: KeyedConcurrencyLimiter | undefined =
       QueueJobConnections.limiterOf(dataSource);
     expect(limiter).toBeDefined();
-    expect(limiter!.limits.maxRunning).toBe(30);
+    expect(limiter!.limits.maxRunning).toBe(28);
     expect(limiter!.limits.maxRunning).toBe(
       DatabaseConnectionShares.maxQueueJobConnections,
     );
@@ -96,6 +97,11 @@ describe("PostgresDatabase.connect() and the queue jobs' share of the pool", () 
     );
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining("so requests always have 10"),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS",
+      ),
     );
   });
 });

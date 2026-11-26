@@ -18,6 +18,12 @@
  *     GitHub", with the page's name filled in, and the reader decides
  *     whether to send it.
  *
+ * Where this server's admins hid OneUptime's GitHub (Admin Dashboard >
+ * Settings > Help and Support, #10940), there is no GitHub link
+ * (feedback.githubIssueUrl is null): a no offers its reasons where the
+ * answer is posted, and the page asks nothing where nothing would be
+ * posted (Docs/Index.ts passes no feedback then).
+ *
  * The script shows the question only once it runs, so a page without it
  * shows nothing to click.
  */
@@ -67,6 +73,7 @@ var feedbackReasons = [
         <% } else { %>
         <p class="docs-feedback__question" role="status"><%- t('ui.feedbackTellUs') %></p>
         <% } %>
+        <% if (feedback.githubIssueUrl) { %>
         <a class="docs-feedback__github docs-link"
            href="<%= feedback.githubIssueUrl %>"
            target="_blank"
@@ -74,5 +81,6 @@ var feedbackReasons = [
            data-feedback-github><%- t('ui.feedbackTellUsOnGithub') %>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
         </a>
+        <% } %>
     </div>
 </section>

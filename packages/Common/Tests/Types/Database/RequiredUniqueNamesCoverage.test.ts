@@ -106,6 +106,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   PacketCapture: LeftOut.EventOrRecord,
   ToolImportRecord: LeftOut.EventOrRecord,
   OpenStackProjectUsage: LeftOut.EventOrRecord,
+  // A charge or credit, as a bill line: "Support contract share" each year.
+  CloudCostLineItem: LeftOut.EventOrRecord,
 
   // Discovered, and named by their source.
   CephResource: LeftOut.Discovered,

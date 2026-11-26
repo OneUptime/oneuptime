@@ -31,7 +31,7 @@ Les deux enregistrent un problème, et les deux peuvent alerter la personne d'as
 
 |                                    | Alerte                                                 | Incident                                          |
 | ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
-| **Ce que c'est**                   | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés | Un problème qui touche vos utilisateurs, comme une panne |
+| **Ce qu'il est**                   | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés | Un problème qui touche vos utilisateurs, comme une panne |
 | **Sur les pages de statut**        | Jamais                                                 | Peut s'afficher, et prévient les abonnés          |
 | **Notes**                          | Notes privées, réservées aux personnes qui peuvent voir l'alerte            | Notes publiques pour les clients, et notes privées |
 | **États de départ**                | **Identifié**, **Pris en compte**, **Résolu**          | **Identifié**, **Pris en compte**, **Résolu**     |
@@ -97,8 +97,8 @@ Dès qu'une alerte est créée, OneUptime franchit ces étapes, dans cet ordre :
 
 1. **Elle reçoit un numéro et un état.** Le numéro d'alerte vient d'un compteur propre au projet, affiché avec votre préfixe (`ALT-42`). L'alerte commence dans votre état de création, sauf si le formulaire, l'API, un flux de travail ou Demander à l'IA en a choisi un autre.
 2. **Les règles de confidentialité passent en premier**, pour que tout ce qui suit sache si l'alerte est privée.
-3. **Le fil d'activité et vos outils de chat en sont informés.** Une entrée **Alerte créée** est écrite dans le **Fil d'activité de l'alerte**, et les canaux que nomment vos règles Slack et Microsoft Teams sont prévenus ; une règle peut créer un canal pour l'alerte.
-4. **Les propriétaires et les étiquettes sont ajoutés** : ceux que nomment les critères du moniteur ou la requête, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
+3. **Les propriétaires et les étiquettes sont ajoutés** : ceux que nomment les critères du moniteur ou la requête, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
+4. **Le fil d'activité et vos outils de chat en sont informés.** Une entrée **Alerte créée** est écrite dans le **Fil d'activité de l'alerte**, dont elle est la première entrée, et les canaux que nomment vos règles Slack et Microsoft Teams sont prévenus ; une règle peut créer un canal pour l'alerte. Les règles voient les propriétaires et les étiquettes avec lesquels l'alerte a été créée, si bien qu'une règle qui porte sur le propriétaire ou les étiquettes d'une alerte la publie aussi. Tout ce qui a été dit sur l'alerte entre-temps, comme les propriétaires tout juste ajoutés, suit **Alerte créée** dans ces canaux.
 5. **Les règles d'astreinte ajoutent leurs politiques**, puis les règles de runbook lancent les runbooks qui correspondent.
 6. **Les politiques d'astreinte s'exécutent.** Chaque politique de l'alerte alerte ses personnes en parallèle ; l'échec de l'une n'arrête pas les autres. Ensuite, la première règle d'incident qui correspond déclare un incident à partir de l'alerte, tout de suite ou une fois son attente écoulée.
 7. **Les règles de regroupement la placent dans un épisode**, quand l'une d'elles correspond. Voir [Épisodes d'alertes et règles de regroupement](/docs/alerts/episodes).

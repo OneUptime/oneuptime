@@ -81,6 +81,19 @@ const ISSUER: string = "https://idp.example.com/metadata";
 const MESSAGE_VIEW: string =
   "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
 
+/*
+ * The teams a sign-in adds people to are read as the project's own
+ * (SsoTeamMembership.getProjectTeams, #11149): every team a provider names
+ * here is one (./SsoProjectTeamsStandIn).
+ */
+jest.mock("Common/Server/Services/TeamService", () => {
+  return (
+    jest.requireActual(
+      "./SsoProjectTeamsStandIn",
+    ) as typeof import("./SsoProjectTeamsStandIn")
+  ).everyTeamInItsProject();
+});
+
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
     jest.requireActual(

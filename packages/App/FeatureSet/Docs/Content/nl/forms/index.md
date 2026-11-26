@@ -19,12 +19,12 @@ flowchart TB
     page -->|Verzenden| checks["Beveiliging en<br/>controle van de antwoorden"]
     checks --> submission["Inzending, bewaard<br/>bij het formulier"]
     submission --> target{"Elke inzending maakt aan"}
-    target -->|Incident| incident["Incident, verborgen<br/>op statuspagina's"]
-    target -->|Waarschuwing| alert["Waarschuwing, na te kijken<br/>door haar eigenaren"]
-    target -->|Gepland onderhoud| event["Onderhoudsgebeurtenis,<br/>verborgen tenzij ingesteld"]
+    target -->|Incident| incident["Incident,<br/>verborgen op<br/>statuspagina's"]
+    target -->|Waarschuwing| alert["Waarschuwing,<br/>na te kijken door<br/>haar eigenaren"]
+    target -->|Gepland onderhoud| event["Onderhoudsgebeurtenis,<br/>verborgen tenzij<br/>ingesteld"]
     incident --> response["Dienstbeleid en<br/>regels worden uitgevoerd"]
     alert --> response
-    incident --> note["Privénotitie: wie het verzond,<br/>overige antwoorden"]
+    incident --> note["Privénotitie:<br/>wie het verzond,<br/>overige antwoorden"]
     alert --> note
     event --> note
 ```

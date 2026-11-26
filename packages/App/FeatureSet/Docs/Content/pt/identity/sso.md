@@ -259,6 +259,41 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 6. Abra o link do cartão **Link de login SSO** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
 :::
 
+## Endereços de email que o seu provedor de identidade não verificou
+
+Um login com OpenID Connect encontra a conta do OneUptime da pessoa pelo endereço de email que o seu provedor de identidade envia, e pode criar uma conta com esse endereço. Alguns provedores deixam as pessoas colocarem um endereço na própria conta sem provar que ele é delas, e dizem isso na claim padrão `email_verified`. Por isso o OneUptime não faz o login de ninguém com um endereço que o seu provedor diz não ter verificado: alguém poderia ter colocado o endereço de outra pessoa na própria conta para entrar como ela.
+
+| `email_verified` | O login |
+| --- | --- |
+| `true`, ou `"true"` e `1` | Continua |
+| Não enviado, como fazem o Microsoft Entra ID e o AD FS | Continua |
+| `false`, ou `"false"` e `0` | É recusado |
+| Qualquer outro valor, como `"yes"` | É recusado: o OneUptime não consegue saber |
+
+- A regra vale para toda conta, na web e no app móvel: uma que existe, inclusive a de um administrador, e uma que o login criaria. Um login recusado não cria nenhuma conta, não adiciona ninguém a uma equipe, não aceita nenhum convite e não envia nenhum email.
+- O OneUptime lê `email_verified` de onde o endereço veio, o token de ID ou o endpoint userinfo, e só quando o endereço é a claim `email`. Um provedor configurado para enviar o endereço em outra claim, como `preferred_username` ou `upn`, faz o login das pessoas como antes, então use uma claim que as suas pessoas não possam mudar sozinhas.
+- A pessoa vê "Your identity provider did not confirm your email address.", e é orientada a verificar o endereço com o seu provedor de identidade, ou a pedir que você o marque como verificado lá, e depois entrar novamente. O app móvel mostra `provider_email_not_verified` com a mesma orientação. Quando uma conta tem esse endereço, os registros de auditoria dos projetos dela registram a tentativa como um login com falha.
+- Os provedores SAML não leem `email_verified`, nem os provedores OpenID Connect de páginas de status, painéis e formulários, que fazem o login das pessoas como seus próprios usuários privados.
+
+Os provedores que verificam os endereços que enviam, como Google e Okta, fazem o login das pessoas como antes. O authentik e o Keycloak podem precisar de uma mudança:
+
+:::tabs
+@tab authentik
+O authentik 2025.10 e posteriores envia `email_verified` como `false` para todos com o mapeamento de escopo `email` padrão, então ninguém entra por ele até você substituir esse mapeamento, como descreve o guia do authentik [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/):
+
+1. Em **Customization** > **Property Mappings**, clique em **New Property Mapping**, selecione **Scope Mapping** e clique em **Next**.
+2. Dê um nome ao mapeamento, defina **Scope name** como `email`, insira a **Expression** do guia que corresponde a como os endereços das suas pessoas são verificados e clique em **Finish**.
+3. Abra o provedor do seu aplicativo, substitua em **Scopes** o mapeamento `email` padrão pelo seu e salve o provedor.
+
+Não envie `true` para todo endereço enquanto as pessoas puderem mudar o próprio endereço no authentik: o mapeamento garantiria qualquer endereço que alguém colocasse na própria conta. As versões anteriores à 2025.10 enviam `true` para todo endereço, então não deixe as pessoas mudarem o próprio endereço nelas.
+@tab Keycloak
+O Keycloak envia `email_verified` como `false` para pessoas cujo endereço ele não verificou: pessoas que um administrador criou com **Email verified** desligado, e pessoas que se registraram ou mudaram de endereço enquanto **Verify email** estava desligado.
+
+- Para que elas o verifiquem, ative **Verify email** em **Realm settings** > **Login** > **Email settings**. O Keycloak então pede a cada uma que verifique o endereço por email na próxima vez que entrar, então o realm precisa de um servidor de email configurado.
+- Para garantir você mesmo o endereço de uma pessoa, ative **Email verified** na página dela no Keycloak e clique em **Save**.
+- Para pessoas vindas do LDAP ou do Active Directory, ative **Trust Email** em **Advanced settings** do provedor em **User federation**. O Keycloak então marca um endereço como verificado quando importa a pessoa: ative **Email verified** para as pessoas que ele importou antes.
+:::
+
 ## Sair também do provedor de identidade
 
 Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, como uma tela do NOC ou um quiosque, a próxima pessoa que escolhe o provedor na página de entrada entra como quem saiu. Em um provedor SAML ou OIDC, ative **Sair também do provedor de identidade** em **Mais campos** para que sair do OneUptime também encerre a sessão no provedor. Vem desativado: em um notebook pessoal, também encerraria a sessão da pessoa em todos os outros apps que usam o provedor. Vale para as pessoas que entram em um navegador depois de ativado; o app para celular sai apenas do OneUptime.
@@ -456,6 +491,10 @@ Cada resposta do seu IdP faz o login uma única vez. Voltar no navegador depois 
 
 :::details "This account is linked to someone else."
 O Microsoft Entra ID fez o login de alguém com o endereço de email de uma conta que está vinculada, por meio deste provedor, a outro ID de objeto: outra pessoa tem agora esse endereço no Entra ID, ou a conta do Entra ID da pessoa foi criada de novo. O OneUptime recusa o login, para que quem ficar com o endereço depois não possa usar a conta. Se a conta for dessa pessoa, remova-a do projeto e adicione-a de novo: o próximo login dela vincula a conta ao novo ID de objeto.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+O seu provedor OpenID Connect enviou `email_verified` como `false`, ou como algo que não é nem true nem false, então o OneUptime não fez o login de ninguém. Peça a verificação do endereço no seu provedor de identidade, ou marque-o como verificado lá, e entre novamente. [Endereços de email que o seu provedor de identidade não verificou](#endereços-de-email-que-o-seu-provedor-de-identidade-não-verificou) diz o que mudar no authentik e no Keycloak.
 :::
 
 :::details O login falha com um erro de assinatura ou de certificado

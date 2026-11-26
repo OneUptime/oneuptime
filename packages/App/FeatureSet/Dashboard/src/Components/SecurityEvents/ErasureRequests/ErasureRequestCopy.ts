@@ -141,14 +141,13 @@ export const ERASURE_HELP_MARKDOWN: string = translationKey(
 ## What it does
 
 - Within a minute of filing it, the user vault refuses the person's tokens: Security Events never names them again, even when a later event carries the token.
-- Within a few minutes it deletes the vault's entries of them, puts the token back in the events it named them in, and takes them out of the titles, entities and kept events of cases and detections, and out of entity risk.
+- Within a few minutes it deletes the vault's entries of them, puts the token back in the events it named them in and in the Detection Findings a rule wrote about them, and takes them out of the titles, entities and kept events of cases and detections, and out of entity risk.
 - A playbook run or an action of OneUptime AI waiting for approval to act on them is withdrawn.
 
 ## What it leaves
 
 - What people wrote: notes, closing notes, tasks, evidence and custom fields.
 - Events that named the person because your logs held them in clear, and your logs and traces themselves, which hold only the token.
-- The Detection Finding events a rule wrote about them, until your telemetry retention deletes them.
 - Notifications already sent, incidents and alerts a detection opened, and the audit log.
 
 ## What the request keeps

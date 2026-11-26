@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "Un Propietario del proyecto borró la configuración de inicio de sesión guardada en su cuenta de {{product}}.",
   "A backup code was used to confirm it's you in your {{product}} account": "Se usó un código de respaldo para confirmar que es usted en su cuenta de {{product}}",
   "A backup code was used to confirm it's you.": "Se usó un código de respaldo para confirmar que es usted.",
   "A backup code was used to sign in to your account.": "Se usó un código de respaldo para iniciar sesión en su cuenta.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "Se ha actualizado una nota de esta incidencia. Esta es la versión más reciente:",
   "A note on this scheduled event has been updated. Here is the latest version:": "Se ha actualizado una nota de este evento programado. Esta es la versión más reciente:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "Se ha publicado un análisis posterior de una incidencia que afectó a servicios a los que está suscrito.",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "Un propietario de un proyecto borró la configuración de inicio de sesión guardada en su cuenta de {{product}}.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "Un administrador del servidor cambió la dirección de correo electrónico de su cuenta de {{product}} de esta dirección a una nueva.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "Un administrador del servidor borró la configuración de inicio de sesión guardada en su cuenta de {{product}}.",
   "A server admin made this the email address of your {{product}} account.": "Un administrador del servidor estableció esta dirección como la dirección de correo electrónico de su cuenta de {{product}}.",
@@ -268,7 +268,9 @@
   "More than {{percent}}% of the AI's answers were bad.": "Más del {{percent}} % de las respuestas de la IA fueron malas.",
   "Need help?": "¿Necesita ayuda?",
   "Need help? Ask your server's admin.": "¿Necesita ayuda? Pregunte al administrador de su servidor.",
+  "Need help? Ask {{inviter}}, who invited you, or write to {{address}}.": "¿Necesita ayuda? Pregunte a {{inviter}}, que le ha invitado, o escriba a {{address}}.",
   "Need help? Ask {{inviter}}, who invited you, or your server's admin.": "¿Necesita ayuda? Pregunte a {{inviter}}, que le ha invitado, o al administrador de su servidor.",
+  "Need help? Write to {{address}}.": "¿Necesita ayuda? Escriba a {{address}}.",
   "New Alert Episode {{number}}: {{title}}": "Nuevo episodio de alerta {{number}}: {{title}}",
   "New Alert Episode: {{title}}": "Nuevo episodio de alerta: {{title}}",
   "New Alert {{number}}: {{title}}": "Nueva alerta {{number}}: {{title}}",

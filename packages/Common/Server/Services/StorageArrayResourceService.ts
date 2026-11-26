@@ -6,6 +6,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import StorageArrayResourceKind from "../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayPlatformRegistry from "../../Types/StorageArray/StorageArrayPlatformRegistry";
 import {
   truncateLongText,
   truncateShortText,
@@ -18,8 +19,9 @@ import logger from "../Utils/Logger";
  *
  * Writes and reads the storage array inventory table populated by the
  * telemetry ingest path. Callers are either:
- *   - OtelMetricsIngestService (bulkUpsert, from the purefa_* / purefb_*
- *     snapshot scan in processMetricsAsync — StorageArraySnapshotScan)
+ *   - OtelMetricsIngestService (bulkUpsert, from the snapshot scan in
+ *     processMetricsAsync — StorageArraySnapshotScan and each platform's
+ *     extractor)
  *   - CleanupStaleResources worker (deleteStaleForArray)
  *   - StorageArrayResourceAPI / the dashboard pages (reads via the
  *     inherited DatabaseService CRUD)
@@ -79,11 +81,12 @@ const SLOW_SCRAPE_STALE_MINUTES: number = 90;
 
 /*
  * Statuses that mean a hardware component, drive or controller needs a
- * person: critical / degraded / unknown hardware (purefa_hw_component_status),
- * failed / missing / unhealthy / unrecognized drives
- * (purefa_drive_capacity_bytes), controllers that are not ready, and
- * FlashBlade components reporting unhealthy (purefb_hardware_health = 0).
- * not_installed, device_off, identifying, empty, healthy and ok are fine.
+ * person, as the shipped platforms write them (their componentStatuses:
+ * STORAGE_ARRAY_COMPONENT_STATUSES): critical / degraded / unknown
+ * hardware, failed / missing / unhealthy / unrecognized drives,
+ * controllers that are not ready, and FlashBlade components reporting
+ * unhealthy. not_installed, device_off, identifying, empty, healthy and ok
+ * are fine. getUnhealthyHardwareStatuses adds any other platform's words.
  */
 export const UNHEALTHY_HARDWARE_STATUSES: Array<string> = [
   "critical",
@@ -100,7 +103,7 @@ export const UNHEALTHY_HARDWARE_STATUSES: Array<string> = [
  * The subset that makes the array's own health Critical — the same set the
  * snapshot scan's isCriticalComponentStatus uses, so a row the UI paints
  * critical is exactly a row that turned StorageArray.healthStatus Critical
- * (a FlashBlade component reporting purefb_hardware_health 0 is `unhealthy`).
+ * (a FlashBlade component whose health reads 0 is `unhealthy`).
  */
 // The kinds that describe physical parts of the array.
 export const HARDWARE_KINDS: Array<string> = [
@@ -115,6 +118,35 @@ export const CRITICAL_HARDWARE_STATUSES: Array<string> = [
   "missing",
   "unhealthy",
 ];
+
+/*
+ * The statuses above, and any other platform's (a platform that writes its
+ * parts' states in words of its own declares them in its
+ * StorageArrayPlatform.componentStatuses), the shipped ones first.
+ */
+export function getUnhealthyHardwareStatuses(): Array<string> {
+  const statuses: Set<string> = new Set(UNHEALTHY_HARDWARE_STATUSES);
+  for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+    for (const status of [
+      ...platform.componentStatuses.critical,
+      ...platform.componentStatuses.warning,
+    ]) {
+      statuses.add(status);
+    }
+  }
+  return Array.from(statuses);
+}
+
+// The kinds above, and any other platform's hardware kinds.
+export function getHardwareKinds(): Array<string> {
+  const kinds: Set<string> = new Set(HARDWARE_KINDS);
+  for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+    for (const kind of platform.hardwareKinds || []) {
+      kinds.add(kind);
+    }
+  }
+  return Array.from(kinds);
+}
 
 /*
  * Order of the columns bulkUpsert() writes, and of the parameter tuples it
@@ -519,8 +551,8 @@ export class Service extends DatabaseService<Model> {
    * Zero the connection count of every volume of an array that a complete
    * hosts scrape no longer names, and return how many were reset.
    *
-   * purefa_host_connections_info is the only source of a volume's
-   * connectionCount, and it lists connected volumes only: a volume detached
+   * The hosts' connections are the only source of a volume's
+   * connectionCount, and they list connected volumes only: a volume detached
    * from its last host just stops appearing in it, so bulkUpsert never
    * writes that row's count again and the old one would stand for as long
    * as the volume exists. The ingest flush calls this after the upsert, and
@@ -600,8 +632,8 @@ export class Service extends DatabaseService<Model> {
       [
         data.projectId.toString(),
         data.storageArrayId.toString(),
-        UNHEALTHY_HARDWARE_STATUSES,
-        HARDWARE_KINDS,
+        getUnhealthyHardwareStatuses(),
+        getHardwareKinds(),
       ],
     );
 

@@ -106,8 +106,8 @@ const ROUTED_SENDERS: Record<string, { how: string; marker: string }> = {
   },
   "packages/Probe/Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker.ts":
     {
-      how: "a synthetic monitor's axios bridge, routed by hand",
-      marker: "OutboundProxyAgents.routeAxiosRequest(config)",
+      how: "a synthetic monitor's axios bridge: through the check's egress proxy (SyntheticEgressProxy), which goes through the outbound proxy itself",
+      marker: "config.proxy = false;",
     },
   "packages/Runner/Services/KubernetesExecutor.ts": {
     how: "the Kubernetes API: on agents of its own that go through the proxy themselves",

@@ -15,7 +15,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 
 | Side                         | Hva du gjør der                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Hendelsesstatus**          | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på tilstandene en hendelse går gjennom. |
+| **Hendelsesstatus**          | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på tilstandene en hendelse går gjennom, og velge om hendelser erklært for hånd starter som bekreftet. Slått av som standard. |
 | **Hendelsesalvor**           | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på alvorlighetsgradene.            |
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |
@@ -82,7 +82,7 @@ flowchart TB
     merge --> incident
 ```
 
-- **I dashbordet** — knappen **Opprett fra mal** i listen over hendelser åpner en velger **Velg hendelsesmal**, og erklæringssiden leser malen fra spørreparameteren `incidentTemplateId` og forhåndsutfyller deretter skjemaet med malen pluss eierteamene og eierbrukerne. Trinnet **Detaljer** følger malens [egendefinerte felt ved opprettelse](#egendefinerte-felt-ved-opprettelse). Eierne blir hendelsens eiere uten å få beskjed, når hendelsens Slack- og Microsoft Teams-kanaler finnes, slik at en varslingsregel som inviterer hendelsens eiere til en ny kanal, også inviterer dem.
+- **I dashbordet** — knappen **Opprett fra mal** i listen over hendelser åpner en velger **Velg hendelsesmal**, og erklæringssiden leser malen fra spørreparameteren `incidentTemplateId` og forhåndsutfyller deretter skjemaet med malen pluss eierteamene og eierbrukerne. Trinnet **Detaljer** følger malens [egendefinerte felt ved opprettelse](#egendefinerte-felt-ved-opprettelse). Eierne blir hendelsens eiere uten å få beskjed, før hendelsens Slack- og Microsoft Teams-kanaler opprettes, slik at en varslingsregel som spør hvem som eier hendelsen, samsvarer med dem, og en regel som inviterer hendelsens eiere til en ny kanal, også inviterer dem.
 - **På serveren** — et [skjema](/docs/forms/on-submit#hendelsesmalen) som har en **Hendelsesmal**, og trinnet **Opprett Hendelse (én post)** i en arbeidsflyt med en valgt **Hendelsesmal**, erklærer hendelsen fra malen på serveren. Trinnet leser malen som Prosjektadministrator for arbeidsflytens prosjekt, så en mal fra et annet prosjekt, eller en som er slettet, avvises, og på et abonnement som ikke omfatter hendelsesmaler, avvises trinnet med abonnementet det krever. Malens eiere blir hendelsens eiere, som i dashbordet. Se [Erklær en hendelse ut fra en mal](/docs/workflows/components#erklær-en-hendelse-ut-fra-en-mal).
 
 En hendelse som erklæres på serveren, registrerer malen i `createdIncidentTemplateId`. Bare OneUptime setter den kolonnen, for et skjema eller et arbeidsflyttrinn som nevner en mal: en API-nøkkel eller en pålogget bruker kan ikke, og en forespørsel som sender `createdIncidentTemplateId`, avvises. For å erklære fra en mal via API-et leser du den fra `/api/incident-templates` og sender verdiene i forespørselen.

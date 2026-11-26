@@ -341,6 +341,17 @@ export const AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE: string =
   "AI Data Security Data Type Describe";
 
 /*
+ * The LlmLog feature name for a Data Security rule drafted from a sentence
+ * (RuleFromSentence, #10378): one request, started by a person asking Ask
+ * AI or an agent through the MCP server for a residency, owner or label
+ * rule in their own words - never a store, a finding or a value - and
+ * answered while they wait. Not autonomous. Its AI Logs rows keep no
+ * previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_RULE_DRAFT_FEATURE: string =
+  "AI Data Security Rule Draft";
+
+/*
  * The LlmLog feature name for OneUptime AI's write-up of an exposure's
  * assessment (ExposureAssessmentDrafter, #10377) written on its own: one
  * constrained call per security case Data Security opens for a Critical

@@ -13,11 +13,11 @@ OneUptime Storage Array एजेंट स्टोरेज ऐरे की �
 
 Storage Arrays एक ऐसा उत्पाद है जो हर वेंडर के लिए एक ही तरह काम करता है। यह इन्हें सपोर्ट करता है:
 
-| ऐरे | एजेंट इसे कैसे पढ़ता है | कलेक्टर कॉन्फ़िगरेशन |
-| --- | --- | --- |
-| **Pure Storage FlashArray**, Purity//FA 6.7 और बाद का | ऐरे का अपना OpenMetrics एंडपॉइंट (`https://<array>/metrics/...?namespace=purefa`): कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.yaml` (डिफ़ॉल्ट) |
-| **Pure Storage FlashArray**, पुराना Purity//FA | Pure का FlashArray OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fa-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flasharray-exporter.yaml` |
-| **Pure Storage FlashBlade** | Pure का FlashBlade OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fb-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flashblade.yaml` |
+| ऐरे | `storage.system` | एजेंट इसे कैसे पढ़ता है | कलेक्टर कॉन्फ़िगरेशन |
+| --- | --- | --- | --- |
+| **Pure Storage FlashArray**, Purity//FA 6.7 और बाद का | `purestorage.flasharray` | ऐरे का अपना OpenMetrics एंडपॉइंट (`https://<array>/metrics/...?namespace=purefa`): कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.yaml` (डिफ़ॉल्ट) |
+| **Pure Storage FlashArray**, पुराना Purity//FA | `purestorage.flasharray` | Pure का FlashArray OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fa-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flasharray-exporter.yaml` |
+| **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure का FlashBlade OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fb-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flashblade.yaml` |
 
 Pure Storage ने फ़रवरी 2026 में अपना नाम बदलकर **Everpure** कर लिया। FlashArray, FlashBlade और Purity के नाम वही रहे, और `purefa_*` और `purefb_*` मेट्रिक्स के भी, इसलिए इस पेज की हर बात दोनों में से किसी भी नाम से बेचे गए ऐरे पर लागू होती है।
 

@@ -19,11 +19,26 @@ import OneUptimeDate from "../../Types/Date";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
 import { OnCreate } from "../Types/AnalyticsDatabase/Hooks";
+import ModelPermission, {
+  CheckReadPermissionType,
+} from "../Types/AnalyticsDatabase/ModelPermission";
+import Query from "../Types/AnalyticsDatabase/Query";
+import InBetween from "../../Types/BaseDatabase/InBetween";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   KubernetesCostEfficiencyRow,
   getKubernetesCostEfficiencyWeight,
   getKubernetesCostWeightedEfficiency,
 } from "../../Types/Kubernetes/KubernetesCostEfficiency";
+
+// What one namespace (and the labels a cost view reads) cost in one month.
+export interface KubernetesNamespaceShare {
+  // The month, at its first day ("2026-11-01").
+  month: string;
+  namespace: string;
+  labels: Record<string, string>;
+  amount: number;
+}
 
 const SLICE_READ_SETTINGS: string = getQuerySettings({
   maxExecutionTimeInSeconds: 60,
@@ -169,6 +184,96 @@ export class KubernetesCostAllocationService extends AnalyticsDatabaseService<Ku
 
     return KubernetesCostAllocationService.readWindowSlices(
       (response.data || []) as Array<JSONObject>,
+    );
+  }
+
+  /*
+   * What each namespace of a cluster cost, month by month, with the labels
+   * a cost view's rules read of it - only the keys they ask about: a pod's
+   * own labels (its template's hash) would make every pod a row of its
+   * own. Read as the caller may read the cluster's costs, and summed as
+   * every read of the table is, corrections and all. A cost view splits a
+   * shared group holding the cluster's nodes by these
+   * (Utils/CloudCost/CloudCostAllocation).
+   */
+  public async readNamespaceShares(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    // The first day read, and the day after the last.
+    start: Date;
+    endBefore: Date;
+    labelKeys: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<KubernetesNamespaceShare>> {
+    const permission: CheckReadPermissionType<KubernetesCostAllocation> =
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        await this.bindReadQueryOf(
+          {
+            projectId: data.projectId,
+            kubernetesClusterId: data.kubernetesClusterId,
+            windowStart: new InBetween<Date>(
+              data.start,
+              new Date(data.endBefore.getTime() - 1),
+            ),
+          } as Query<KubernetesCostAllocation>,
+          data.props,
+        ),
+        null,
+        data.props,
+      );
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+    const statement: Statement = SQL`SELECT toString(toStartOfMonth(toDate(windowStart, 'UTC'))) AS shareMonth, namespace AS shareNamespace, mapKeys(sliceLabels) AS shareKeys, mapValues(sliceLabels) AS shareValues, sum(totalCost) AS shareAmount FROM (SELECT windowStart, namespace, totalCost, mapFilter((k, v) -> has(${{
+      type: TableColumnType.ArrayText,
+      value: data.labelKeys.length ? data.labelKeys : [""],
+      sendAsHex: true,
+    }}, k), labels) AS sliceLabels FROM `;
+
+    statement
+      .append(`${databaseName}.${this.model.tableName}`)
+      .append(SQL` WHERE TRUE `)
+      .append(
+        this.statementGenerator.toWhereStatement(permission.query, {
+          tableAlias: this.model.tableName,
+        }),
+      )
+      .append(this.getRetentionReadFilter())
+      .append(
+        SQL`) GROUP BY shareMonth, shareNamespace, shareKeys, shareValues ORDER BY shareMonth, shareNamespace LIMIT 100000`,
+      )
+      .append(SLICE_READ_SETTINGS);
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return ((response.data || []) as Array<JSONObject>).map(
+      (row: JSONObject): KubernetesNamespaceShare => {
+        const keys: Array<unknown> = Array.isArray(row["shareKeys"])
+          ? (row["shareKeys"] as Array<unknown>)
+          : [];
+        const values: Array<unknown> = Array.isArray(row["shareValues"])
+          ? (row["shareValues"] as Array<unknown>)
+          : [];
+        const labels: Record<string, string> = {};
+
+        keys.forEach((key: unknown, index: number): void => {
+          writeOwnValue(labels, String(key), String(values[index] ?? ""));
+        });
+
+        return {
+          month: textOf(row["shareMonth"]),
+          namespace: textOf(row["shareNamespace"]),
+          labels,
+          amount: numberOf(row["shareAmount"]),
+        };
+      },
     );
   }
 

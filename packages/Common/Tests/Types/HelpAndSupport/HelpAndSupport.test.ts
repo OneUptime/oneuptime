@@ -37,6 +37,7 @@ import {
   getInviteMessage,
   getInviteMessageProblem,
   getMobileAppOffer,
+  getOwnSupportEmailAddress,
   getRequestDemoUrl,
   getSupportEmailAddress,
   hasOwnInviteMessage,
@@ -950,6 +951,51 @@ describe("what people see, place by place", () => {
         }),
       ),
     ).toBeNull();
+  });
+
+  /*
+   * What an account email names where it would say "Ask your server's
+   * admin" (#10941): an address an admin set, and nothing else - never
+   * OneUptime's, never one hidden.
+   */
+  test("the server's own support address: only one an admin set", () => {
+    expect(
+      getOwnSupportEmailAddress(
+        settingsWith({
+          [HelpItem.SupportEmail]: {
+            choice: HelpChoice.Email,
+            value: "it-help@example.com",
+          },
+        }),
+      ),
+    ).toBe("it-help@example.com");
+    expect(
+      getOwnSupportEmailAddress(getDefaultHelpAndSupportSettings()),
+    ).toBeNull();
+    expect(
+      getOwnSupportEmailAddress(
+        settingsWith({
+          [HelpItem.SupportEmail]: { choice: HelpChoice.Hidden },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("the server's own support address is never one the page would refuse", () => {
+    for (const value of [
+      "",
+      "not an address",
+      "Ada <ada@example.com>",
+      '"quoted"@example.com',
+      "it-help@example.com\nBcc: x@example.com",
+    ]) {
+      expect(
+        getOwnSupportEmailAddress({
+          ...getDefaultHelpAndSupportSettings(),
+          [HelpItem.SupportEmail]: { choice: HelpChoice.Email, value: value },
+        }),
+      ).toBeNull();
+    }
   });
 
   test("the chat: named for the chat a link of the server's own opens", () => {

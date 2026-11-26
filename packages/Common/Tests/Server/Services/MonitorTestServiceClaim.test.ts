@@ -1,4 +1,5 @@
 import { Service as MonitorTestServiceType } from "../../../Server/Services/MonitorTestService";
+import ProbeSchedulingMetrics from "../../../Server/Utils/Probe/ProbeSchedulingMetrics";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -14,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE MONITOR TEST CLAIM IS ONE STATEMENT (OneUptime issue #7392).
@@ -131,8 +133,86 @@ describe("MonitorTestService.claimMonitorTestsForProbing", () => {
     );
     // The rows it wrote, in the order it locked them: oldest first.
     expect(sql).toMatch(
-      /SELECT "pending"\."_id" FROM "pending" INNER JOIN "claimed" ON "claimed"\."_id" = "pending"\."_id" ORDER BY "pending"\."createdAt" ASC$/,
+      /SELECT "pending"\."_id", "pending"\."createdAt", "pending"\."wasQueued" FROM "pending" INNER JOIN "claimed" ON "claimed"\."_id" = "pending"\."_id" ORDER BY "pending"\."createdAt" ASC$/,
     );
+    // Whether each was in the queue: read before the statement takes it out.
+    expect(pendingPart(sql)).toContain(
+      'SELECT mt."_id", mt."createdAt", mt."isInQueue" AS "wasQueued"',
+    );
+  });
+
+  /*
+   * How long each Test Monitor run waited for a probe (issue #10819,
+   * ProbeSchedulingMetrics): from when it was asked for to this claim. A
+   * stale test handed out again was counted when it was first handed out.
+   */
+  describe("Test Monitor wait", () => {
+    test("each test taken out of the queue is counted with how long it waited", async () => {
+      const record: SpyInstance<
+        typeof ProbeSchedulingMetrics.recordMonitorTestsHandedOut
+      > = jest
+        .spyOn(ProbeSchedulingMetrics, "recordMonitorTestsHandedOut")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+
+      await claim([
+        {
+          _id: TEST_ID,
+          createdAt: new Date(NOW.getTime() - 4000),
+          wasQueued: true,
+        },
+        {
+          _id: SECOND_TEST_ID,
+          createdAt: new Date(NOW.getTime() - 9000).toISOString(),
+          wasQueued: true,
+        },
+      ]);
+
+      expect(record).toHaveBeenCalledWith({
+        handedOutAt: NOW,
+        askedAt: [
+          new Date(NOW.getTime() - 4000),
+          new Date(NOW.getTime() - 9000),
+        ],
+      });
+    });
+
+    test("a stale test handed out again is not counted twice", async () => {
+      const record: SpyInstance<
+        typeof ProbeSchedulingMetrics.recordMonitorTestsHandedOut
+      > = jest
+        .spyOn(ProbeSchedulingMetrics, "recordMonitorTestsHandedOut")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+
+      await claim([
+        {
+          _id: TEST_ID,
+          createdAt: new Date(NOW.getTime() - 15 * 60 * 1000),
+          wasQueued: false,
+        },
+      ]);
+
+      expect(record).not.toHaveBeenCalled();
+    });
+
+    test("nothing claimed, or no readable time, counts nothing", async () => {
+      const record: SpyInstance<
+        typeof ProbeSchedulingMetrics.recordMonitorTestsHandedOut
+      > = jest
+        .spyOn(ProbeSchedulingMetrics, "recordMonitorTestsHandedOut")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+
+      await claim([]);
+      await claim([{ _id: TEST_ID, createdAt: "not a time", wasQueued: true }]);
+      await claim([{ _id: TEST_ID, createdAt: null, wasQueued: true }]);
+
+      expect(record).not.toHaveBeenCalled();
+    });
   });
 
   test("hands the claimed ids back as ObjectIDs, in claim order", async () => {

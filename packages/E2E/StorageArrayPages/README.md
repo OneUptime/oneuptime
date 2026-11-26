@@ -23,7 +23,7 @@ npm run test-storage-array-pages-ui
 
 ## Dataset
 
-An "Acme Storage" workspace with two arrays:
+An "Acme Storage" workspace with three arrays:
 
 - `fa-prod-01`, a Pure Storage FlashArray: six volumes (one with a long
   name), six hosts in `vsphere-prod` (`esx-06` unused), two pods replicating
@@ -32,6 +32,11 @@ An "Acme Storage" workspace with two arrays:
 - `fb-prod-01`, a Pure Storage FlashBlade: three file systems (`scratch`,
   `home`, `projects`), a bucket (`logs-archive`, in the `analytics`
   account) and four blades and modules.
+- `acme-prod-01`, an array of Acme, a platform that exists only in tests
+  (`Common/Tests/Helpers/StorageArray/AcmePlatform.ts`, which the fixture
+  registers the way a test does, #11000): two volumes and three aggregates,
+  a kind of its own that the Inventory page lists
+  (`View/Inventory.tsx`, at `/inventory/Aggregate`).
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).

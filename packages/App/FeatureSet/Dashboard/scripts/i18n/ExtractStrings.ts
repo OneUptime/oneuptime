@@ -1162,6 +1162,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What Ask AI's Data Security actions say on their cards (#10378): what
+   * each changes, what stops working, what it costs and why it asks in
+   * every mode. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIDataSecurityActionWords.ts",
+    kind: "keys",
+  },
+  /*
    * What Ask AI's tables and its Sources chips say beside their data - a
    * table's title and line, the cells that are OneUptime's words, a
    * chip's label (issues #7977, #7979, #7980) - which the chat says in the
@@ -1216,6 +1225,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * Each storage platform's catalog and the words its pages say (#11000):
+   * its metric names and descriptions, its Resource Usage cards, its
+   * hardware tables, its monitor filters, its setup guide options and the
+   * words of the kinds only it has. Only the text the files mark is read.
+   */
+  {
+    directory: "packages/Common/Types/StorageArray/Platforms",
     kind: "keys",
   },
   {

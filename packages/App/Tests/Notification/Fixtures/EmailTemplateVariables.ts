@@ -48,6 +48,8 @@ const HELPERS: ReadonlySet<string> = new Set<string>([
   "tHtml",
   "tt",
   "ttHtml",
+  // A sentence whose address is a mailto: link (#10941).
+  "ttMailtoHtml",
   "tp",
   "emailStart",
   "emailEnd",

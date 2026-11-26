@@ -106,6 +106,51 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 
 Chart 內建 **KEDA**，因此應用程式、worker、探測器和全域 Runner 可以依佇列積壓自動調整規模。請同時開啟 `keda.enabled` 和每個服務自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安裝 KEDA 的叢集上，第一次安裝需要額外執行一輪：請參閱 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服務可以改用以 CPU 或記憶體為依據的自動調整器（`autoscaling`）。
 
+## 執行大量監控
+
+每個探測器的每個 worker 都會分批向應用程式 Pod 索取到期的監控，每個到期的監控只會交給其中一個 worker。所有每分鐘檢查的監控都在每分鐘開始時一起到期，因此關鍵在於一整分鐘的監控能多快分發出去。以下數據是在 39,700 個監控（28,200 個每分鐘檢查，11,500 個每五分鐘檢查）和一個有 20 個複本的探測器上測得的，每條資料庫陳述式都像在忙碌的資料庫上一樣，比閒置機器慢 50 或 100 ms。
+
+### 以更大的批次分發監控
+
+把每個探測器的擷取上限（Helm Chart 中為 `monitorFetchLimit`，其他情況下為 `PROBE_MONITOR_FETCH_LIMIT`）從 10 提高到 50。這樣每個請求以大致相同的成本分發五倍的監控。在三個應用程式 Pod、陳述式慢 50 ms 的情況下，每分鐘的 28,200 個監控在 19 秒內分發完畢，上限為 10 時需要 44 秒；每五分鐘到期的 39,700 個監控也在 19 秒內分發完畢，上限為 10 時需要 57 秒。此時探測器的一個複本最多同時執行 worker 數 × 擷取上限個檢查，3 個 worker 時為 150 個：請為它提供相應的記憶體，或增加複本。
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### 保持排程上限的預設值
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS`（`app.probeSchedulingMaxConcurrentRequests`）是每個應用程式 Pod 同時處理的探測器請求數：其資料庫連線集區的五分之一，即 50 個中的 10 個。每個 Pod 都有自己的上限，所以你新增的應用程式 Pod 會帶來各自的上限。在 39,700 個監控同時到期、陳述式慢 100 ms 的情況下，一個探測器從一個應用程式 Pod 每秒獲得 313 個監控，三個 Pod 時為 659 個，六個時為 763 個；把上限提高到 20 多了 7%。單獨一個探測器可以使用 Pod 的所有名額，相互競爭的探測器則公平分配名額。Test Monitor 執行有自己的 2 個名額，因此無論監控多忙，測試都會在探測器每十秒一次的輪詢內送達探測器。只有當探測器請求不斷等待名額而資料庫仍有餘裕時才提高上限，並同時提高該 Pod 的資料庫連線集區。
+
+### 一個探測器還是多個
+
+把每個監控放在它需要從那裡檢查的探測器上。無論同時有多少複本請求，每個到期的監控只交給其探測器的一個複本，所以一個有很多複本的探測器和很多探測器一樣跟得上。如果監控延遲而沒有請求在等待名額，表示探測器不夠：增加複本，或讓 KEDA 依每個探測器到期的監控數對其擴縮。
+
+### 依探測器所等待的內容自動擴縮
+
+應用程式連接埠上的 `/metrics/probe-scheduling` 彙總了每個應用程式 Pod 過去一分鐘的情況。除了 CPU 和記憶體，用 KEDA 依其 `queueDepth` 擴縮應用程式 Pod，並在監控分發延遲時發出警示：
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| 欄位 | 含義 |
+| --- | --- |
+| `queueDepth` | 目前所有應用程式 Pod 上等待名額的探測器請求數。連續數分鐘大於 0：增加應用程式 Pod。 |
+| `slotWaitP95Ms` | 在最忙的應用程式 Pod 上，請求等待名額的時間。 |
+| `refusalsPerMinute` | 收到伺服器忙碌回覆的探測器請求數。 |
+| `dispatchLagP95Seconds` | 監控在其間隔使其到期之後延遲了多久才分發出去。在沒有請求等待時接近你最短的間隔：增加探測器複本。 |
+| `monitorsLateByAnIntervalPerMinute` | 延遲了整整一個間隔才分發的監控：即被略過的檢查。 |
+| `monitorTestWaitP95Seconds` | Test Monitor 執行等待探測器的時間。 |
+
 ## 起步級別
 
 選擇最接近您環境的級別作為起點，然後觀察實際用量（`kubectl top pods`、ClickHouse 和 PostgreSQL 的磁碟成長）並調整。

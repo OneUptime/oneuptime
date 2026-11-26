@@ -379,11 +379,17 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     builtFrom:
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
   },
+  /*
+   * The one place the scrub rules built on the detectors match them
+   * (findDetectorRanges, PR #10964): the IP Address rule's detectors, which
+   * ScrubIpAddress matched itself before, and the Email Address and Credit
+   * Card rules' and the toolbox serializer's.
+   */
   {
-    file: "packages/Common/Utils/Telemetry/ScrubIpAddress.ts",
+    file: "packages/Common/Utils/DataSecurity/TextReadings.ts",
     count: 1,
     builtFrom:
-      "the IP address type's two built-in detectors' patterns (IP_ADDRESS_DETECTORS), pattern literals of Utils/DataSecurity/Detectors/ContactDetectors that DetectorCatalog holds to bounded quantifiers",
+      "the built-in detectors' patterns its callers hand it (IP_ADDRESS_DETECTORS, EMAIL_ADDRESS_DETECTORS, CARD_NUMBER_DETECTORS), pattern literals of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers; a custom data type's detector runs its own pattern as LinearRegExp (CustomDataTypeDetector)",
   },
   {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",

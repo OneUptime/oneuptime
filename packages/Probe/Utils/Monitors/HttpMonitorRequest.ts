@@ -9,6 +9,9 @@ import CertificateRevocationChecker, {
   DEFAULT_REVOCATION_CHECK_TIMEOUT_IN_MS,
 } from "./CertificateRevocation/CertificateRevocationChecker";
 import CertificateRevokedError from "./CertificateRevocation/CertificateRevokedError";
+import MonitorEgressGuardOptions, {
+  MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
+} from "./MonitorEgressGuardOptions";
 import {
   TlsPeerCertificateChain,
   TlsPeerCertificateRecorder,
@@ -336,19 +339,8 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
   }
 }
 
-/*
- * Total budget for the pre-flight name resolution of a monitor target.
- *
- * It has to sit ABOVE the resolver budget the probe itself is configured with,
- * or the guard cuts the lookup off before the resolver has finished its own
- * failover and a reachable host is reported down. The Helm chart ships
- * timeout:2 + attempts:2 over a cluster resolver plus two fallback
- * nameservers, so a single getaddrinfo can legitimately take ~12s before it
- * succeeds on a fallback — the very resilience those fallbacks exist to
- * provide. This is only a hang guard; the real per-check bound is the
- * monitor's own execution-context deadline, which reports an honest timeout.
- */
-export const MONITOR_DNS_RESOLVE_BUDGET_IN_MS: number = 15000;
+// The pre-flight DNS budget, shared with every monitor (MonitorEgressGuardOptions).
+export { MONITOR_DNS_RESOLVE_BUDGET_IN_MS };
 
 export default class HttpMonitorRequest {
   /*
@@ -392,13 +384,16 @@ export default class HttpMonitorRequest {
       addresses: Array<ResolvedAddress>;
     };
     try {
-      validated = await DataSourceEgressGuard.assertUrlAllowed(urlString, {
-        blockPrivateAddresses: !PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
-        targetLabel: options.targetLabel || "Monitor target",
-        privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
-        includeResolvedAddressInError: false,
-        resolveTimeoutInMs: MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
-      });
+      validated = await DataSourceEgressGuard.assertUrlAllowed(
+        urlString,
+        MonitorEgressGuardOptions.forPolicy(
+          {
+            allowPrivateNetworkAddresses: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+            privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
+          },
+          options.targetLabel,
+        ),
+      );
     } finally {
       if (shouldTimeDnsLookup) {
         options.timingCollector?.finishDnsLookup();
