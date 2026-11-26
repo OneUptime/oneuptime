@@ -1120,6 +1120,12 @@ import StorageArrayService, {
 import XcpNgPoolService, {
   Service as XcpNgPoolServiceType,
 } from "Common/Server/Services/XcpNgPoolService";
+import XcpNgConnectionService, {
+  Service as XcpNgConnectionServiceType,
+} from "Common/Server/Services/XcpNgConnectionService";
+import XcpNgConnectionTestService, {
+  Service as XcpNgConnectionTestServiceType,
+} from "Common/Server/Services/XcpNgConnectionTestService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -1857,6 +1863,8 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import XcpNgConnection from "Common/Models/DatabaseModels/XcpNgConnection";
+import XcpNgConnectionTest from "Common/Models/DatabaseModels/XcpNgConnectionTest";
 import XcpNgPoolOwnerTeam from "Common/Models/DatabaseModels/XcpNgPoolOwnerTeam";
 import XcpNgPoolOwnerUser from "Common/Models/DatabaseModels/XcpNgPoolOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -6730,6 +6738,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<XcpNgPool, XcpNgPoolServiceType>(
         XcpNgPool,
         XcpNgPoolService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgConnection, XcpNgConnectionServiceType>(
+        XcpNgConnection,
+        XcpNgConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgConnectionTest, XcpNgConnectionTestServiceType>(
+        XcpNgConnectionTest,
+        XcpNgConnectionTestService,
       ).getRouter(),
     );
 

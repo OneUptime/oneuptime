@@ -1203,6 +1203,8 @@ import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddM
 import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
 import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
+import { AddXcpNgConnections1809187730000 } from "./1809187730000-AddXcpNgConnections";
+import { AddXcpNgPoolConnectionKey1809187730010 } from "./1809187730010-AddXcpNgPoolConnectionKey";
 
 export default [
   InitialMigration,
@@ -2410,4 +2412,6 @@ export default [
   AddCloudCostViewsGroupsAndLineItems1809187711006,
   AddProbeSnmpTrapReceiver1809187715110,
   AddXcpNgPoolTables1809187720000,
+  AddXcpNgConnections1809187730000,
+  AddXcpNgPoolConnectionKey1809187730010,
 ];

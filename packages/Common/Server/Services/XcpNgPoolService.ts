@@ -36,6 +36,20 @@ import crypto from "crypto";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import { NameHolder } from "../../Types/Exception/NameTakenException";
 import { XcpNgTelemetryUtil } from "../../Types/XcpNg/XcpNgTelemetry";
+import XcpNgCollectionMethod, {
+  XcpNgCollectionMethodUtil,
+} from "../../Types/XcpNg/XcpNgCollectionMethod";
+import XcpNgConnectionType from "../../Types/XcpNg/XcpNgConnectionType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import Select from "../Types/Database/Select";
+import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
+import XcpNgConnection from "../../Models/DatabaseModels/XcpNgConnection";
+import {
+  XcpNgPoolAssignmentDecision,
+  decideXcpNgPoolAssignment,
+  isXcpNgPoolKept,
+} from "../Utils/XcpNg/XcpNgPoolAssignment";
 
 /*
  * Two clocks, two heartbeats, two throttles, as for a Proxmox cluster.
@@ -98,6 +112,23 @@ export const XCP_NG_POOL_NAMING: DiscoveredResourceNaming<Model> = {
 const XCP_NG_POOL_MATCH_COLUMN: MatchColumn =
   matchedOnIdentifier(XCP_NG_POOL_IDENTITY);
 
+// The connection a pool is read through, under both names a write uses.
+const XCP_NG_POOL_CONNECTION_KEYS: Array<string> = [
+  "xcpNgConnectionId",
+  "xcpNgConnection",
+];
+
+// A switch of how one pool is read, from onBeforeUpdate to onUpdateSuccess.
+interface XcpNgPoolCollectionChange {
+  xcpNgPoolId: ObjectID;
+  toMethod: XcpNgCollectionMethod;
+  toConnectionId: ObjectID | null;
+}
+
+interface XcpNgPoolWriteCarryForward {
+  xcpNgCollectionChanges?: Array<XcpNgPoolCollectionChange> | undefined;
+}
+
 // What ingest knows about a pool when it first sees it, besides its UUID.
 export interface XcpNgPoolDiscovery {
   projectId: ObjectID;
@@ -106,6 +137,11 @@ export interface XcpNgPoolDiscovery {
   reportedName?: string | undefined;
   // The Xen Orchestra the agent reads (xen_orchestra.name).
   xenOrchestraName?: string | undefined;
+  /*
+   * A pool a probe connection reports first is made read by it (#10996,
+   * #10999); one first seen from the agent is the agent's, as before.
+   */
+  xcpNgConnectionId?: ObjectID | undefined;
 }
 
 // The pool's counts and capacity, as one batch's snapshot derived them.
@@ -360,6 +396,10 @@ export class Service extends ProjectReferencesService<Model> {
       if (data.xenOrchestraName && data.xenOrchestraName.trim()) {
         newPool.xenOrchestraName = data.xenOrchestraName.trim();
       }
+      if (data.xcpNgConnectionId) {
+        newPool.collectionMethod = XcpNgCollectionMethod.Probe;
+        newPool.xcpNgConnectionId = data.xcpNgConnectionId;
+      }
 
       return await this.create({
         data: newPool,
@@ -386,6 +426,141 @@ export class Service extends ProjectReferencesService<Model> {
         "Failed to create or find XCP-ng pool: " + poolIdentifier,
       );
     }
+  }
+
+  /*
+   * WHICH POOLS A PROBE CONNECTION'S READ MAY WRITE (#10996, #10999): the
+   * pools the read reports that the connection reads - made now for one
+   * nobody registered yet, taken over for one the agent read, left alone
+   * for one another connection reads or a person switched back to the
+   * agent (decideXcpNgPoolAssignment). Returns the pools whose data is
+   * stored, and in words what was left alone, for the connection's page.
+   */
+  @CaptureSpan()
+  public async assignPoolsToConnection(data: {
+    projectId: ObjectID;
+    connection: {
+      id: ObjectID;
+      name: string;
+      connectionType: XcpNgConnectionType;
+    };
+    // The pools the read reports, by UUID, with their names there.
+    pools: Array<{ poolIdentifier: string; reportedName?: string | undefined }>;
+  }): Promise<{ poolIdsToKeep: Set<string>; warnings: Array<string> }> {
+    const poolIdsToKeep: Set<string> = new Set();
+    const warnings: Array<string> = [];
+    const reported: Map<string, string | undefined> = new Map();
+
+    for (const pool of data.pools) {
+      const poolIdentifier: string = XcpNgTelemetryUtil.normalizePoolIdentifier(
+        pool.poolIdentifier,
+      );
+
+      if (poolIdentifier && !reported.has(poolIdentifier)) {
+        reported.set(poolIdentifier, pool.reportedName);
+      }
+    }
+
+    if (reported.size === 0) {
+      return { poolIdsToKeep, warnings };
+    }
+
+    const existing: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        poolIdentifier: QueryHelper.any(Array.from(reported.keys())),
+      },
+      select: {
+        _id: true,
+        name: true,
+        poolIdentifier: true,
+        collectionMethod: true,
+        xcpNgConnectionId: true,
+        xcpNgConnection: {
+          name: true,
+        },
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const byIdentifier: Map<string, Model> = new Map();
+    for (const pool of existing) {
+      byIdentifier.set(
+        XcpNgTelemetryUtil.normalizePoolIdentifier(pool.poolIdentifier),
+        pool,
+      );
+    }
+
+    const isXenOrchestra: boolean =
+      data.connection.connectionType === XcpNgConnectionType.XenOrchestra;
+
+    for (const [poolIdentifier, reportedName] of reported) {
+      const pool: Model | undefined = byIdentifier.get(poolIdentifier);
+      const decision: XcpNgPoolAssignmentDecision = decideXcpNgPoolAssignment({
+        pool: pool
+          ? {
+              collectionMethod: pool.collectionMethod,
+              xcpNgConnectionId: pool.xcpNgConnectionId,
+            }
+          : null,
+        connectionId: data.connection.id,
+      });
+
+      try {
+        if (decision === XcpNgPoolAssignmentDecision.Create) {
+          await this.findOrCreateByIdentifier({
+            projectId: data.projectId,
+            poolIdentifier: poolIdentifier,
+            reportedName: reportedName,
+            xenOrchestraName: isXenOrchestra ? data.connection.name : undefined,
+            xcpNgConnectionId: data.connection.id,
+          });
+        } else if (decision === XcpNgPoolAssignmentDecision.TakeOver) {
+          await this.updateOneById({
+            id: pool!.id!,
+            data: {
+              collectionMethod: XcpNgCollectionMethod.Probe,
+              xcpNgConnectionId: data.connection.id,
+              // The agent's version means nothing for a pool a probe reads.
+              agentVersion: null,
+              ...(isXenOrchestra ? {} : { xenOrchestraName: null }),
+            } as never,
+            props: {
+              isRoot: true,
+            },
+          });
+        } else if (decision === XcpNgPoolAssignmentDecision.LeaveToAgent) {
+          warnings.push(
+            `${pool?.name || poolIdentifier} was switched back to the XCP-ng Agent on its Settings, so this connection leaves it to the agent.`,
+          );
+        } else if (
+          decision === XcpNgPoolAssignmentDecision.LeaveToOtherConnection
+        ) {
+          warnings.push(
+            `${pool?.name || poolIdentifier} is read through ${
+              pool?.xcpNgConnection?.name || "another connection"
+            }, so this connection leaves it alone.`,
+          );
+        }
+      } catch (error) {
+        logger.error(
+          `Could not assign XCP-ng pool ${poolIdentifier} to connection ${data.connection.id.toString()}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        continue;
+      }
+
+      if (isXcpNgPoolKept(decision)) {
+        poolIdsToKeep.add(poolIdentifier);
+      }
+    }
+
+    return { poolIdsToKeep, warnings };
   }
 
   private async findByIdentifier(data: {
@@ -862,6 +1037,180 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * HOW THE POOL IS READ, switched by a person ("Use the XCP-ng Agent",
+   * "Collect With a Probe" on its Settings) or by a probe connection taking
+   * it over (assignPoolsToConnection): a pool a probe reads names the
+   * connection it is read through, and that connection must be one that
+   * can read it, as far as OneUptime knows - an XAPI connection reads one
+   * pool, a Xen Orchestra the pools it last reported. The connection's
+   * project is checked by the generic reference check first.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const isMethodWrite: boolean = data["collectionMethod"] !== undefined;
+    const isConnectionWrite: boolean = RelationIdUtil.isPresent(
+      data,
+      XCP_NG_POOL_CONNECTION_KEYS,
+    );
+
+    if (!isMethodWrite && !isConnectionWrite) {
+      return onUpdate;
+    }
+
+    if (
+      isMethodWrite &&
+      !XcpNgCollectionMethodUtil.isValid(data["collectionMethod"])
+    ) {
+      throw new BadDataException(
+        `Collection method must be one of ${XcpNgCollectionMethodUtil.getAll().join(", ")}.`,
+      );
+    }
+
+    const nextConnectionId: ObjectID | null = isConnectionWrite
+      ? RelationIdUtil.readIntoIdColumn(
+          data,
+          XCP_NG_POOL_CONNECTION_KEYS,
+          "XCP-ng Connection",
+        )
+      : null;
+
+    const saved: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        poolIdentifier: true,
+        collectionMethod: true,
+        xcpNgConnectionId: true,
+      } as Select<Model>,
+    );
+
+    const changes: Array<XcpNgPoolCollectionChange> = [];
+
+    for (const row of saved) {
+      const method: XcpNgCollectionMethod = isMethodWrite
+        ? (data["collectionMethod"] as XcpNgCollectionMethod)
+        : row.collectionMethod || XcpNgCollectionMethod.Agent;
+      const connectionId: ObjectID | null = isConnectionWrite
+        ? nextConnectionId
+        : row.xcpNgConnectionId || null;
+
+      if (method === XcpNgCollectionMethod.Probe) {
+        if (!connectionId) {
+          throw new BadDataException(
+            "A pool a probe reads names the XCP-ng connection it is read through: pick one, or connect its Xen Orchestra first.",
+          );
+        }
+
+        await this.assertConnectionCanReadPool({
+          connectionId: connectionId,
+          poolIdentifier: row.poolIdentifier || "",
+        });
+      }
+
+      const fromMethod: XcpNgCollectionMethod =
+        row.collectionMethod || XcpNgCollectionMethod.Agent;
+      const fromConnectionId: string | null =
+        row.xcpNgConnectionId?.toString() || null;
+
+      if (
+        row.id &&
+        (fromMethod !== method ||
+          (method === XcpNgCollectionMethod.Probe &&
+            fromConnectionId !== (connectionId?.toString() || null)))
+      ) {
+        changes.push({
+          xcpNgPoolId: row.id,
+          toMethod: method,
+          toConnectionId: connectionId,
+        });
+      }
+    }
+
+    if (changes.length === 0) {
+      return onUpdate;
+    }
+
+    return {
+      updateBy: onUpdate.updateBy,
+      carryForward: { xcpNgCollectionChanges: changes },
+    };
+  }
+
+  /*
+   * Refuse a connection that cannot read this pool, as far as OneUptime
+   * knows: an XAPI connection reads the one pool its master reported, a Xen
+   * Orchestra the pools its last read reported. A connection that never
+   * read anything yet is taken at its word.
+   */
+  private async assertConnectionCanReadPool(data: {
+    connectionId: ObjectID;
+    poolIdentifier: string;
+  }): Promise<void> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT "connectionType", "xapiPoolId", "collectionSummary" FROM "XcpNgConnection" WHERE "_id" = $1 AND "deletedAt" IS NULL`,
+      [data.connectionId.toString()],
+    );
+    const connection: Record<string, unknown> | undefined = Array.isArray(rows)
+      ? (rows[0] as Record<string, unknown> | undefined)
+      : undefined;
+
+    if (!connection) {
+      throw new BadDataException(
+        "XCP-ng connection not found. Pick one of this project's connections.",
+      );
+    }
+
+    const poolIdentifier: string = XcpNgTelemetryUtil.normalizePoolIdentifier(
+      data.poolIdentifier,
+    );
+
+    if (connection["connectionType"] === XcpNgConnectionType.Xapi) {
+      const xapiPoolId: string = XcpNgTelemetryUtil.normalizePoolIdentifier(
+        connection["xapiPoolId"] as string | null,
+      );
+
+      if (xapiPoolId && poolIdentifier && xapiPoolId !== poolIdentifier) {
+        throw new BadDataException(
+          "This XAPI connection reads another pool. Pick the connection of this pool's master, or connect it.",
+        );
+      }
+
+      return;
+    }
+
+    const summary: { pools?: Array<{ poolId?: unknown }> } | null =
+      connection["collectionSummary"] &&
+      typeof connection["collectionSummary"] === "object"
+        ? (connection["collectionSummary"] as {
+            pools?: Array<{ poolId?: unknown }>;
+          })
+        : null;
+    const reported: Array<string> = (summary?.pools || [])
+      .map((pool: { poolId?: unknown }): string => {
+        return XcpNgTelemetryUtil.normalizePoolIdentifier(
+          typeof pool.poolId === "string" ? pool.poolId : "",
+        );
+      })
+      .filter((poolId: string): boolean => {
+        return poolId.length > 0;
+      });
+
+    if (reported.length > 0 && poolIdentifier && !reported.includes(poolIdentifier)) {
+      throw new BadDataException(
+        "This Xen Orchestra does not report this pool. Pick the connection of the Xen Orchestra that manages it.",
+      );
+    }
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -873,7 +1222,77 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
+    const carryForward: XcpNgPoolWriteCarryForward | null =
+      (onUpdate.carryForward as XcpNgPoolWriteCarryForward | null) || null;
+
+    if (carryForward?.xcpNgCollectionChanges?.length) {
+      const updatedIds: Set<string> = new Set(
+        updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      this.writeCollectionChangedFeed({
+        changes: carryForward.xcpNgCollectionChanges.filter(
+          (change: XcpNgPoolCollectionChange): boolean => {
+            return updatedIds.has(change.xcpNgPoolId.toString());
+          },
+        ),
+        userId: onUpdate.updateBy.props.userId,
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
+    }
+
     return onUpdate;
+  }
+
+  // The feed line that says how the pool is read now, and what to do.
+  private async writeCollectionChangedFeed(data: {
+    changes: Array<XcpNgPoolCollectionChange>;
+    userId?: ObjectID | undefined;
+  }): Promise<void> {
+    for (const change of data.changes) {
+      const pool: Model | null = await this.findOneById({
+        id: change.xcpNgPoolId,
+        select: {
+          projectId: true,
+          xcpNgConnection: {
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!pool?.projectId) {
+        continue;
+      }
+
+      const connectionName: string =
+        (pool.xcpNgConnection as XcpNgConnection | undefined)?.name ||
+        "its XCP-ng connection";
+
+      const line: MarkdownText =
+        change.toMethod === XcpNgCollectionMethod.Agent
+          ? mdText`🔌 Data collection changed. Its data now comes from the XCP-ng Agent: what a probe reads of it through ${FeedMarkdown.code(
+              connectionName,
+            )} is left out from now on.`
+          : mdText`🔌 Data collection changed. A probe now reads it through ${FeedMarkdown.code(
+              connectionName,
+            )}, with nothing to install. Stop the XCP-ng Agent if it still runs for this pool, or every metric arrives twice.`;
+
+      await XcpNgPoolFeedService.createXcpNgPoolFeedItem({
+        xcpNgPoolId: change.xcpNgPoolId,
+        projectId: pool.projectId,
+        xcpNgPoolFeedEventType: XcpNgPoolFeedEventType.XcpNgPoolUpdated,
+        displayColor:
+          change.toMethod === XcpNgCollectionMethod.Agent ? Yellow500 : Blue500,
+        feedInfoInMarkdown: line.toString(),
+        userId: data.userId,
+      });
+    }
   }
 
   private async writeXcpNgPoolUpdatedFeed(

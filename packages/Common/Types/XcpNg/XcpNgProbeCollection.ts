@@ -162,7 +162,14 @@ export interface XcpNgApiTokenSummary {
   userName?: string | undefined;
   // Every privilege it holds reads, and its user is not an administrator.
   isReadOnly?: boolean | undefined;
+  /*
+   * Xen Orchestra answers a list a user may not read with an empty list,
+   * not a refusal, so each list OneUptime reads is checked: /alarms holds
+   * only threshold ALARMs and bond and multipath alerts; a VM that crashed
+   * or a host HA lost are /messages.
+   */
   canReadAlarms?: boolean | undefined;
+  canReadMessages?: boolean | undefined;
   canReadBackupLogs?: boolean | undefined;
   /*
    * Why the token was not usable, while the metrics still came through the
@@ -226,6 +233,26 @@ export interface XcpNgPoolMessage {
   body: string;
 }
 
+/*
+ * A pool's high availability and its master, as XAPI's pool record has
+ * them (#10999), for #10997's HA overview and templates. Xen Orchestra's
+ * REST pool object carries only whether HA is on and the master; XAPI has
+ * the plan too.
+ */
+export interface XcpNgPoolState {
+  // The pool's XAPI UUID, lower case.
+  poolId: string;
+  haEnabled: boolean;
+  // How many host failures the plan is to tolerate (ha_host_failures_to_tolerate).
+  haHostFailuresToTolerate?: number | undefined;
+  // How many failures the current plan does tolerate (ha_plan_exists_for).
+  haPlanExistsFor?: number | undefined;
+  // The pool can no longer tolerate the failures it is set to.
+  haOvercommitted?: boolean | undefined;
+  // The master's host UUID, lower case.
+  masterHostUuid?: string | undefined;
+}
+
 interface XcpNgProbeReportBase {
   // Succeeded or Failed (XcpNgCollectionStatus).
   status: "Succeeded" | "Failed";
@@ -256,6 +283,8 @@ export interface XcpNgCollectionReport extends XcpNgProbeReportBase {
   xapiPoolHosts?: Array<XcpNgXapiPoolHost> | undefined;
   messages?: Array<XcpNgPoolMessage> | undefined;
   messageWatermark?: XcpNgMessageWatermark | undefined;
+  // XAPI: each pool's HA and master (one pool per XAPI connection).
+  poolStates?: Array<XcpNgPoolState> | undefined;
 }
 
 // What a probe posts after a connection test.
