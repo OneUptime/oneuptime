@@ -344,6 +344,38 @@ describe("a JSON value", () => {
     expect(JSON.stringify(value)).toBe(copy);
   });
 
+  test('keeps a key a sender named "__proto__" as the copy\'s own, unnamed, never as its prototype', () => {
+    // As an event's attributes arrive: parsed from what its sender wrote.
+    const value: JSONObject = JSON.parse(
+      '{"__proto__": {"user": "alice@example.com"}, "actor": "bob", "nested": {"__proto__": "alice@example.com"}}',
+    ) as JSONObject;
+
+    const result: { value: JSONObject; changed: boolean } = unnameJson(
+      value,
+      NAMES,
+    );
+    const copy: JSONObject = result.value;
+
+    expect(result.changed).toBe(true);
+    expect(Object.getPrototypeOf(copy)).toBe(Object.prototype);
+    expect(Object.keys(copy)).toEqual(["__proto__", "actor", "nested"]);
+    expect(Object.getOwnPropertyDescriptor(copy, "__proto__")?.value).toEqual({
+      user: TOKEN,
+    });
+    expect(copy["actor"]).toBe("[HASHED:aaaaaaaaaaaaaaab]");
+    expect(
+      Object.getOwnPropertyDescriptor(copy["nested"] as JSONObject, "__proto__")
+        ?.value,
+    ).toBe(TOKEN);
+    // Nothing reached Object.prototype, or the copy's own prototype.
+    expect(({} as JSONObject)["user"]).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(copy))).toEqual(
+      JSON.parse(
+        `{"__proto__": {"user": "${TOKEN}"}, "actor": "[HASHED:aaaaaaaaaaaaaaab]", "nested": {"__proto__": "${TOKEN}"}}`,
+      ),
+    );
+  });
+
   test("hands back the very value, and says so, when nothing names anyone", () => {
     const value: JSONObject = { entities: [{ value: "carol@example.com" }] };
     const result: { value: JSONObject; changed: boolean } = unnameJson(
