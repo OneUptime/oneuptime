@@ -147,16 +147,18 @@ export function getResourceTagConditionSql(data: {
 
   const keyParam: string = next(normalizeCloudTagKey(data.rule.key));
   const valueConditions: Array<string> = [];
+  // A tag's value as text: only a string is a value, as in code.
+  const value: string = `(t.j #>> '{}')`;
 
   if (exact.length > 0) {
-    valueConditions.push(`lower(btrim(t.v)) = ANY(${next(exact)}::text[])`);
+    valueConditions.push(`lower(btrim(${value})) = ANY(${next(exact)}::text[])`);
   }
 
   if (patterns.length > 0) {
-    valueConditions.push(`btrim(t.v) ILIKE ANY(${next(patterns)}::text[])`);
+    valueConditions.push(`btrim(${value}) ILIKE ANY(${next(patterns)}::text[])`);
   }
 
-  return `EXISTS (SELECT 1 FROM jsonb_each_text(CASE WHEN jsonb_typeof(${data.tagsColumn}) = 'object' THEN ${data.tagsColumn} ELSE '{}'::jsonb END) AS t(k, v) WHERE lower(t.k) = ${keyParam} AND btrim(t.v) <> ''${
+  return `EXISTS (SELECT 1 FROM jsonb_each(CASE WHEN jsonb_typeof(${data.tagsColumn}) = 'object' THEN ${data.tagsColumn} ELSE '{}'::jsonb END) AS t(k, j) WHERE jsonb_typeof(t.j) = 'string' AND lower(t.k) = ${keyParam} AND btrim(${value}) <> ''${
     valueConditions.length > 0 ? ` AND (${valueConditions.join(" OR ")})` : ""
   })`;
 }

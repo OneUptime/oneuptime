@@ -5186,6 +5186,27 @@ jobs:
           Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
           --forceExit
 
+      # #11012 and #11013: required cloud tags and the host a VM is, on
+      # copies of the migrated tables. "Carries the tag" as SQL over a
+      # resource's jsonb tags means what it means in code, edge by edge; a
+      # required tag's key is one per place whatever its case; a host is
+      # linked to its VM by the ID each cloud keeps (an EC2 ARN, a Compute
+      # Engine VM's numeric ID and an Azure VM's vmId read from their JSON
+      # columns), a clone and a Kubernetes node to none; and the watcher,
+      # run whole twice an hour apart, finds new resources without a tag,
+      # tells who created one, counts the day and closes a tagged one.
+      - name: Test required cloud tags and host links on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_TAGS_TESTS: "true"
+          PICKER_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PICKER_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PICKER_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/CloudConnection/CloudTagsAndHostLinksPostgres.test.ts --forceExit
+
       # The LLM provider an AI rule picks, on migrated Postgres: the two
       # migrations on copies of the rule tables that already hold rules (the
       # columns added without a backfill, each rule's index and key built

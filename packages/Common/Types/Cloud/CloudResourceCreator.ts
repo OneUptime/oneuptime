@@ -26,6 +26,13 @@ import { CloudProvider } from "./CloudPlatform";
  */
 
 const AWS_CREATE_ACTION: RegExp = /^(create|run|allocate|launch)/i;
+/*
+ * Tagging a resource is no creation of it, though AWS names it as one
+ * ("ec2:CreateTags", "autoscaling:CreateOrUpdateTags"): whoever tags a
+ * resource is never taken for who created it.
+ */
+const AWS_TAGGING_ACTION: RegExp = /tags$/i;
+const AZURE_TAGGING_OPERATION: string = "microsoft.resources/tags/write";
 const GCP_CREATE_METHOD: RegExp = /^(insert|create)/i;
 
 // Whether an operation, as the change log names it, creates a resource.
@@ -42,10 +49,14 @@ export function isCloudCreateOperation(
   switch ((provider || "").toLowerCase()) {
     case CloudProvider.AWS: {
       const action: string = op.includes(":") ? op.split(":").pop() || "" : op;
-      return AWS_CREATE_ACTION.test(action);
+      return AWS_CREATE_ACTION.test(action) && !AWS_TAGGING_ACTION.test(action);
     }
-    case CloudProvider.Azure:
-      return op.toLowerCase().endsWith("/write");
+    case CloudProvider.Azure: {
+      const lowered: string = op.toLowerCase();
+      return (
+        lowered.endsWith("/write") && !lowered.endsWith(AZURE_TAGGING_OPERATION)
+      );
+    }
     case CloudProvider.GCP: {
       const method: string = op.split(".").pop() || "";
       return GCP_CREATE_METHOD.test(method);
