@@ -7,6 +7,7 @@ Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coût
 - [Microsoft Azure](#microsoft-azure): Cost Management et Azure Advisor, avec un rôle de plus.
 - [Google Cloud](#google-cloud): Votre export de facturation vers BigQuery, et le Recommender.
 - [Budgets](#budgets): Une alerte quand les dépenses d'un mois dépassent une part de son budget.
+- [Étiquettes obligatoires](#étiquettes-obligatoires): Quelle part de vos dépenses porte les étiquettes que vous exigez, et les nouvelles ressources qui ne les ont pas.
 :::
 
 ## Fonctionnement
@@ -94,7 +95,15 @@ Une ressource pour laquelle aucun moteur de recommandation ne se prononce, parce
 - **Surdimensionné** quand la taille deux fois plus petite, ou quatre fois plus petite, aurait encore de la marge : sur la plus petite taille, le 95e centile de son CPU serait d'au plus 60 %, son relevé de CPU le plus haut d'au plus 100 % et le pic de sa mémoire d'au plus 70 % quand sa mémoire est lue.
 - **Sous-dimensionné** quand le 95e centile de son CPU atteint 85 % ou plus, ou le pic de sa mémoire 90 % ou plus : la taille deux fois plus grande.
 
-Une ressource est dimensionnée dès qu'elle a 6 jours de relevés. Sa page montre son **Redimensionnement** à côté de ce qu'elle coûte, et une ressource surdimensionnée figure sous **Cloud → Dépenses → Économies**, avec OneUptime comme source. Ce qu'un changement fait économiser est sa part de ce que la ressource a coûté sur les 30 derniers jours : on le connaît donc dès que votre cloud facture la ressource par son nom. L'export détaillé d'Azure et de Google Cloud le fait, et AWS aussi une fois Coûts par ressource activé. Une instance EC2 ne signale sa mémoire qu'avec l'agent CloudWatch, et une VM Compute Engine qu'avec l'Ops Agent : sans lui, elle est dimensionnée d'après son seul CPU. Les tailles burstables, comme t3, la série B et e2-micro, ne sont jamais dimensionnées.
+Une ressource est dimensionnée dès qu'elle a 6 jours de relevés. Sa page montre son **Redimensionnement** à côté de ce qu'elle coûte, et une ressource surdimensionnée figure sous **Cloud → Dépenses → Économies**, avec OneUptime comme source. Ce qu'un changement fait économiser est sa part de ce que la ressource a coûté sur les 30 derniers jours : on le connaît donc dès que votre cloud facture la ressource par son nom. L'export détaillé d'Azure et de Google Cloud le fait, et AWS aussi une fois Coûts par ressource activé. Les tailles burstables, comme t3, la série B et e2-micro, ne sont jamais dimensionnées.
+
+Votre cloud ne lit la mémoire d'une VM qu'avec un agent à lui dans la VM : l'agent CloudWatch sur une instance EC2, l'Ops Agent sur une VM Compute Engine, et aucun pour une VM Azure, qui signale la mémoire libre plutôt que la mémoire utilisée. Une VM sur laquelle tourne [le collecteur d'hôte de OneUptime](/docs/telemetry/hosts) est dimensionnée d'après la mémoire que lit le collecteur d'hôte :
+
+- **La VM et l'hôte sont une seule machine** quand le fournisseur, le compte, la région et l'ID d'instance correspondent tous : l'ID d'instance EC2, l'ID numérique d'une VM Compute Engine ou le `vmId` d'une VM Azure. Un nom d'hôte seul ne suffit jamais, et une VM que deux hôtes revendiquent, comme une machine clonée, n'est liée à aucun. La page de la VM nomme son hôte, et la page de l'hôte nomme sa VM, chacune avec un lien vers l'autre.
+- **La mémoire est la mémoire utilisée de l'hôte, sans cache ni tampons**, le chiffre que trace la page de l'hôte, sur les mêmes 14 jours. Un cache de fichiers chargé ne se lit jamais comme une machine pleine. L'hôte a lui aussi besoin de 6 jours de relevés.
+- **Quand les deux lisent la mémoire**, comme pour une VM Compute Engine avec l'Ops Agent et le collecteur d'hôte, c'est celui qui a le plus de relevés qui compte. Le CPU est toujours le relevé de votre cloud.
+
+Le **Redimensionnement** de la VM indique d'où vient sa mémoire, tout comme sa ligne sous **Cloud → Dépenses → Économies**. Une VM dimensionnée d'après son seul CPU le dit, avec un lien pour installer le collecteur d'hôte. Le collecteur d'hôte appose l'identité de son cloud avec l'étape `resourcedetection/cloud` que contient [la configuration du guide des hôtes](/docs/telemetry/host-otel-collector). Un hôte sur la configuration par défaut de OneUptime reçoit l'étape avec la prochaine version de OneUptime, et un hôte sur une configuration à vous doit l'ajouter. Les nœuds Kubernetes relèvent de l'[Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost), qui dimensionne les requêtes de ce qui tourne dessus.
 
 ### Engagements
 
@@ -138,11 +147,60 @@ Après chaque lecture, chacun des 14 derniers jours complets d'un compte est com
 
 Sous la liste, la carte indique à combien s'élève le reste : ce qui n'est dans aucun environnement, ce qui est facturé à un environnement dans son ensemble, ou ce qui ne porte pas l'étiquette. Les coûts lus avant que les étiquettes soient conservées sont relus une fois, aussi loin qu'une première lecture, pour que leurs étiquettes se complètent.
 
+## Étiquettes obligatoires
+
+Les dépenses ne sont bien réparties que si elles portent les bonnes étiquettes. Sous **Cloud → Dépenses → Étiquettes**, indiquez les étiquettes que chaque ressource doit porter, comme `team`, `env` et `cost-center`, et voyez quelle part de vos dépenses et de vos ressources les porte, quelles ressources ne les ont pas, et qui a créé chaque nouvelle ressource sans elles.
+
+:::steps
+### Exiger une étiquette
+
+Choisissez **Exiger une étiquette** et saisissez sa **Clé d'étiquette**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
+
+### Lire la couverture
+
+La page s'ouvre sur la part des dépenses des 30 derniers jours et de vos ressources qui porte toutes les étiquettes obligatoires. En dessous figurent les ressources auxquelles il manque une étiquette, les plus coûteuses d'abord, puis chaque étiquette séparément, la tendance sur les 12 dernières semaines et chaque compte.
+
+### Étiqueter ce qui manque
+
+Chaque ressource à laquelle il manque une étiquette montre la valeur que OneUptime suggère et la commande qui la pose dans votre cloud. Une ressource déclarée dans du code indique quel code la déclare : ajoutez-y l'étiquette, sinon le prochain déploiement la retire.
+:::
+
+- **Les clés correspondent quelle que soit leur casse.** `Team`, `team` et `TEAM` sont une seule clé, et une ressource porte l'étiquette quand l'une de ses graphies a une valeur autorisée. Les valeurs correspondent aussi quelle que soit leur casse, et une valeur vide n'est pas une valeur.
+- **Une valeur autorisée peut être un motif.** `*` remplace n'importe quels caractères et `?` un seul, donc `prod-*` accepte `prod-eu` et `prod-us`. Les motifs ne sont pas des expressions régulières.
+- **Les étiquettes propres à un compte.** Une étiquette exigée dans un compte y remplace l'étiquette du projet de même clé, et un compte peut exiger une clé à lui. Les **Étiquettes** d'un compte montrent les deux.
+- **Rien n'est modifié dans votre cloud.** OneUptime n'arrête ni n'étiquette jamais une ressource pour une étiquette manquante. Il prévient les personnes et suggère la valeur.
+
+### Couverture
+
+- **Dépenses étiquetées** est la part des coûts des 30 derniers jours qui porte toutes les étiquettes obligatoires, selon les étiquettes avec lesquelles chaque coût a été lu. Elle est calculée à chaque ouverture de la page, si bien qu'une étiquette exigée aujourd'hui est aussi mesurée sur les 30 derniers jours. Les coûts AWS ne portent d'étiquettes qu'une fois [Coûts par ressource](#coûts-par-ressource) activé : jusque-là, les dépenses d'un compte AWS indiquent **Non mesuré** plutôt que 0 %.
+- **Ressources étiquetées** est la part des ressources listées par vos connexions qui portent toutes les étiquettes obligatoires, telles qu'elles sont étiquetées maintenant.
+- **Couverture dans le temps** montre chacune des 12 dernières semaines : les dépenses d'après les coûts, et les ressources d'après le décompte que OneUptime fait chaque jour.
+
+### Nouvelles ressources
+
+Une ressource que votre connexion liste après la première liste complète de son compte est nouvelle. La connexion liste toutes les 30 minutes, donc une nouvelle ressource est trouvée dans l'heure qui suit sa création. Une ressource à laquelle il manque une étiquette obligatoire est signalée une fois :
+
+- **Qui est informé.** La personne qui l'a créée, quand le journal des modifications du compte nomme un membre de votre projet par son adresse e-mail, et les propriétaires de la ressource, d'après les règles de propriété et les équipes. Quand personne parmi eux ne peut être informé, ce sont les propriétaires du projet. Chacun doit pouvoir lire vos ressources cloud.
+- **À quelle fréquence.** Un e-mail par heure liste toutes les nouveautés pour chaque personne. Sous **Plus de paramètres**, **Un e-mail par ressource** envoie chacune séparément, et **Déclencher une alerte** déclenche aussi une alerte pour chaque compte, avec la gravité et les politiques d'astreinte définies sous **Destination des alertes**.
+- **Quand elle est étiquetée.** Une ressource étiquetée avant l'envoi de l'e-mail n'y figure pas, et la liste **Nouvelles ressources** marque chacune **Étiquetée** dès qu'elle les porte.
+
+### Valeurs suggérées
+
+OneUptime ne suggère une valeur que si l'étiquette l'autorise :
+
+- **Une clé de type équipe**, comme `team`, `owner` ou `squad` : l'équipe propriétaire de la ressource.
+- **Une clé de type environnement**, comme `env`, `environment` ou `stage` : l'environnement App Platforms d'une application qui tourne en tant que ressource, ou pour une VM, l'environnement de déploiement que signale son hôte.
+- **N'importe quelle clé** : la valeur que portent la plupart des ressources voisines, dans la même pile CloudFormation, le même groupe de ressources Azure ou avec le même nom avant leur numéro, comme `web-1` et `web-2`. Au moins deux doivent concorder.
+- **Une étiquette qui n'autorise qu'une valeur** : cette valeur.
+
+La commande pose l'étiquette en une étape, depuis le shell de votre cloud : `aws resourcegroupstaggingapi tag-resources` sur AWS, `az tag update --operation Merge` sur Azure, et `gcloud ... add-labels` ou `--update-labels` pour les VM et disques Compute Engine, les buckets Cloud Storage et les instances Cloud SQL sur Google Cloud.
+
 ## Ce que vous voyez dans OneUptime
 
 - **La vue d'ensemble de Cloud.** **Cloud → Vue d'ensemble** montre les dépenses du mois face à celles du mois dernier au même jour, les services qui coûtent le plus et les plus gros moyens de dépenser moins, à côté de ce qui demande votre attention.
 - **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
+- **Étiquettes obligatoires.** **Cloud → Dépenses → Étiquettes** montre quelle part des dépenses et des ressources porte vos étiquettes obligatoires, et les **Étiquettes** d'un compte montrent la même chose pour ce seul compte.
 - **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
 
 ## Dépannage

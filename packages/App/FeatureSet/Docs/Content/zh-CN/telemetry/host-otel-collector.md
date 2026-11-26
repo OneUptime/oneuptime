@@ -37,6 +37,7 @@ flowchart TB
 | **Systemd 单元**（Linux） | `systemd` 接收器。 |
 | **服务**（Windows） | `windows_service` 接收器。 |
 | 清单项 | `resourcedetection` 处理器，以及 [你自行打上的属性](#清单属性ipmac序列号厂商型号固件)。 |
+| 它对应的云虚拟机 | `resourcedetection/cloud` 处理器：在 EC2 实例、Compute Engine 虚拟机或 Azure 虚拟机上，标明它是哪个云、账户、区域和实例。参见 [在云虚拟机上](#在云虚拟机上)。 |
 | **代理版本** | `resource` 处理器中的 `oneuptime.agent.version`。 |
 
 当一个携带 `host.name` 的批次同时携带 `hostmetrics` 或 `process` 指标，或 `os.type` 属性时，主机就会被注册。`resourcedetection` 处理器会设置所有这些属性，所以每份配置都把它放在第一位。仅有 `host.id` 或 `host.arch` 不会注册主机；携带 Kubernetes 身份（`k8s.cluster.name`、`k8s.node.name`、`k8s.pod.name`）的遥测会改为归入其集群：请使用 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 监视 Kubernetes 节点。
@@ -195,6 +196,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -213,11 +231,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [journald]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 @tab macOS
@@ -293,6 +311,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -311,11 +346,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [filelog/system]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 @tab Windows
@@ -401,6 +436,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -419,19 +471,19 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 :::
 
-每份配置都是仪表板在 **产品 → 基础设施 → 主机 → 文档** 下写出的那份，另外加了一条日志管道：处理器为 `resourcedetection`、`resource` 和 `batch`，导出器为 `otlphttp/oneuptime`。它没有设置 `service.name`，因此主机的遥测属于主机本身，归档为 `host/<hostname>`。只有当你希望它改为归入同名的遥测服务时，才在 `resource` 处理器中添加 `service.name`。
+每份配置都是仪表板在 **产品 → 基础设施 → 主机 → 文档** 下写出的那份，另外加了一条日志管道：处理器为 `resourcedetection`、`resourcedetection/cloud`、`resource` 和 `batch`，导出器为 `otlphttp/oneuptime`。它没有设置 `service.name`，因此主机的遥测属于主机本身，归档为 `host/<hostname>`。只有当你希望它改为归入同名的遥测服务时，才在 `resource` 处理器中添加 `service.name`。
 
 ### 安装并启动 Collector
 
@@ -648,7 +700,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
 ```
 
 该接收器首次随 `otelcol-contrib` v0.142.0 发布，而 v0.143.0 是第一个值得运行的版本。在更早的版本上，添加 `systemd` 会在启动时以 `'receivers' unknown type: "systemd"` 失败；唯独 v0.142.0 将其 CPU 指标命名为 `systemd.unit.cpu.time`，并在每个单元上查找 cgroup 统计信息，这会为每个非 `.service` 单元记录一个抓取错误。
@@ -750,7 +802,7 @@ processors:
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource, resource/oneuptime-labels, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, resource/oneuptime-labels, batch]
 ```
 
 标签匹配不区分大小写，因此已有的 `Production` 标签会被复用而不是重复创建，在 OneUptime 中添加的标签也永远不会被 Collector 删除。
@@ -797,7 +849,7 @@ processors:
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, resource/oneuptime-hardware, batch]
 ```
 
 把 `resource/oneuptime-hardware` 添加到你已有的处理器列表中，而不是把这一行粘贴覆盖原有的那行：去掉 `resource`，主机就会失去它的 **代理版本**。无论哪种方式，都要把 `resourcedetection` 放在第一位：正是它把批次关联到主机。
@@ -1143,11 +1195,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [filter/drop-metrics, resourcedetection, resource, batch]
+      processors: [filter/drop-metrics, resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [journald]
-      processors: [filter/drop-low-severity, resourcedetection, resource, batch]
+      processors: [filter/drop-low-severity, resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 
@@ -1214,6 +1266,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -1232,7 +1301,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 
@@ -1240,6 +1309,15 @@ service:
 
 > [!CAUTION]
 > 注意你削减的内容。日志监视器需要日志到达，因此过滤掉某个严重性或通道会让监视它的监视器沉默，而 Host 警报模板需要 `*.utilization` 指标。削减你不会据此采取行动的数据，而不是监视器正在监视的数据，并在调整下一个杠杆之前，于一两天后在 **项目设置 → 遥测与 APM → 用量** 下检查降幅（用量按天统计）。
+
+## 在云虚拟机上
+
+`resourcedetection/cloud` 处理器向虚拟机自己的元数据服务询问它是哪个云、账户、区域和实例，并打上 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `host.id`（设为云自己的实例 ID）。随后 OneUptime 会把该主机与其 [云连接](/docs/telemetry/cloud-accounts) 列出的虚拟机关联起来，使两边的页面互相链接，并按主机读取的内存判断虚拟机的规格：参见 [基于 OneUptime 自身读数的规格调整](/docs/telemetry/cloud-costs#基于-oneuptime-自身读数的规格调整)。
+
+- **主机保留自己的名称。** 每个云检测器的 `host.name` 都已关闭，因此 `host.name` 仍是 `system` 检测器打上的值，主机也保留自己的页面。
+- **不在云上时它什么也不做。** 在不属于任何云的机器上，每个检测器都找不到元数据服务，也不会打上任何属性。
+- **它不读取任何凭据。** 它只读取不需要凭据的元数据服务，也不读取虚拟机的任何标记或标签。
+- **容器可能访问不到它。** EC2 实例上 Docker 容器中的收集器，只有在实例允许第二个网络跃点时（其 `HttpPutResponseHopLimit` 为 2）才能访问元数据服务。
 
 ## 自托管 OneUptime 和代理服务器
 

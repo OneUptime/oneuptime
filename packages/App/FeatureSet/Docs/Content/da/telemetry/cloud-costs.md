@@ -7,6 +7,7 @@ En forbundet cloudkonto siger også, hvad den koster, og hvordan den kunne koste
 - [Microsoft Azure](#microsoft-azure): Cost Management og Azure Advisor, med én rolle mere.
 - [Google Cloud](#google-cloud): Din faktureringseksport til BigQuery og Recommender.
 - [Budgetter](#budgetter): En advarsel, når en måneds forbrug passerer en andel af dens budget.
+- [Påkrævede tags](#påkrævede-tags): Hvor meget af dit forbrug der har de tags, du kræver, og nye ressourcer uden dem.
 :::
 
 ## Sådan virker det
@@ -94,7 +95,15 @@ En ressource, som ingen anbefalingstjeneste udtaler sig om, fordi den ikke er sl
 - **Overprovisioneret**, når den halvt så store størrelse, eller en fjerdedel, stadig ville have plads: på den mindre størrelse ville CPU'ens 95. percentil højst være 60 %, dens højeste CPU-måling højst 100 % og hukommelsens top højst 70 %, når hukommelsen læses.
 - **Underprovisioneret**, når CPU'ens 95. percentil er 85 % eller mere, eller hukommelsens top 90 % eller mere: den dobbelt så store størrelse.
 
-En ressource vurderes, så snart den har 6 dages målinger. Dens side viser dens **Størrelsestilpasning** ved siden af, hvad den koster, og en overprovisioneret står under **Cloud → Forbrug → Besparelser** med OneUptime som kilde. Det, en ændring sparer, er dens andel af det, ressourcen kostede de sidste 30 dage, så det kendes, så snart din cloud fakturerer ressourcen ved navn: Azures og Google Clouds detaljerede eksport gør det, og AWS gør det, når Omkostninger pr. ressource er slået til. En EC2-instans rapporterer kun sin hukommelse med CloudWatch-agenten og en Compute Engine-VM kun med Ops Agent: uden den vurderes den alene ud fra sin CPU. Burstable størrelser som t3, B-serien og e2-micro vurderes aldrig.
+En ressource vurderes, så snart den har 6 dages målinger. Dens side viser dens **Størrelsestilpasning** ved siden af, hvad den koster, og en overprovisioneret står under **Cloud → Forbrug → Besparelser** med OneUptime som kilde. Det, en ændring sparer, er dens andel af det, ressourcen kostede de sidste 30 dage, så det kendes, så snart din cloud fakturerer ressourcen ved navn: Azures og Google Clouds detaljerede eksport gør det, og AWS gør det, når Omkostninger pr. ressource er slået til. Burstable størrelser som t3, B-serien og e2-micro vurderes aldrig.
+
+Din cloud læser kun en VM's hukommelse med en agent af sin egen inde i VM'en: CloudWatch-agenten på en EC2-instans, Ops Agent på en Compute Engine-VM og ingen for en Azure-VM, som rapporterer den ledige hukommelse i stedet for den brugte. En VM, som [OneUptimes værtscollector](/docs/telemetry/hosts) kører på, vurderes i stedet ud fra den hukommelse, værtscollectoren læser:
+
+- **VM'en og værten er én maskine**, når udbyder, konto, region og instans-ID alle passer: EC2-instans-ID'et, en Compute Engine-VM's numeriske ID eller en Azure-VM's `vmId`. Et værtsnavn alene giver aldrig et match, og en VM, som to værter gør krav på, f.eks. en klonet maskine, knyttes til ingen af dem. VM'ens side nævner dens vært, og værtens side nævner dens VM, hver med et link til den anden.
+- **Hukommelse er værtens brugte hukommelse uden cache og buffere**, det tal værtens side viser i diagrammet, over de samme 14 dage. En travl filcache læses aldrig som en fuld maskine. Værten skal også have 6 dages målinger.
+- **Hvor begge læser hukommelsen**, som på en Compute Engine-VM med Ops Agent og værtscollectoren, bruges den med flest målinger. CPU er altid din clouds måling.
+
+VM'ens **Størrelsestilpasning** fortæller, hvor dens hukommelse kom fra, og det gør dens linje under **Cloud → Forbrug → Besparelser** også. En VM, der kun vurderes ud fra sin CPU, siger det med et link til at installere værtscollectoren. Værtscollectoren stempler sin clouds identitet med trinnet `resourcedetection/cloud`, som [værtsvejledningens konfiguration](/docs/telemetry/host-otel-collector) indeholder. En vært med OneUptimes standardkonfiguration får trinnet med OneUptimes næste udgivelse, og en vært med din egen konfiguration skal have det tilføjet. Kubernetes-noder overlades til [Kubernetes-omkostningsobservability](/docs/telemetry/kubernetes-cost), som vurderer requests for det, der kører på dem.
 
 ### Forpligtelser
 
@@ -138,11 +147,60 @@ Efter hver læsning holdes hver af en kontos sidste 14 hele dage op mod de 14 da
 
 Under listen fortæller kortet, hvad resten beløb sig til: det, der ikke er i noget miljø, det, der faktureres til et miljø som helhed, eller det, der ikke har tagget. Omkostninger, der blev læst, før tags blev gemt, læses igen én gang, så langt tilbage som en første læsning, så deres tags bliver udfyldt.
 
+## Påkrævede tags
+
+Forbrug er kun så godt fordelt som de tags, det har. Under **Cloud → Forbrug → Tags** angiver du, hvilke tags alle ressourcer skal have, f.eks. `team`, `env` og `cost-center`, og ser, hvor meget af dit forbrug og dine ressourcer der har dem, hvilke ressourcer der ikke har, og hvem der oprettede hver ny ressource uden dem.
+
+:::steps
+### Kræv et tag
+
+Vælg **Kræv et tag**, og angiv dets **Tag-nøgle**. Under **Tilladte værdier** angiver du de værdier, det må have, adskilt med kommaer, eller lader feltet stå tomt for at tillade enhver værdi. Vælg en **Konto** for kun at kræve tagget i den konto. En **Beskrivelse** under **Flere felter** fortæller i e-mailene, hvad tagget er til.
+
+### Læs dækningen
+
+Siden åbner med, hvor meget af de sidste 30 dages forbrug og af dine ressourcer der har alle påkrævede tags. Derunder står de ressourcer, der mangler et tag, de dyreste først, så hvert tag for sig, udviklingen over de sidste 12 uger og hver konto.
+
+### Tag det, der mangler
+
+Hver ressource, der mangler et tag, viser den værdi, OneUptime foreslår, og kommandoen, der sætter den i din cloud. En ressource, der er erklæret i kode, fortæller, hvilken kode der erklærer den: tilføj tagget der, ellers fjerner næste deploy det igen.
+:::
+
+- **Nøgler matcher uanset store og små bogstaver.** `Team`, `team` og `TEAM` er én nøgle, og en ressource har tagget, når en hvilken som helst stavemåde af det har en tilladt værdi. Værdier matcher også uanset store og små bogstaver, og en tom værdi er ingen værdi.
+- **En tilladt værdi kan være et mønster.** `*` står for vilkårlige tegn og `?` for ét, så `prod-*` passer på `prod-eu` og `prod-us`. Mønstre er ikke regulære udtryk.
+- **En kontos egne tags.** Et tag, der kræves i én konto, erstatter der projektets tag med samme nøgle, og en konto kan kræve en nøgle af sin egen. En kontos **Tags** viser begge.
+- **Intet ændres i din cloud.** OneUptime stopper eller tagger aldrig en ressource på grund af et manglende tag. Den giver personer besked og foreslår værdien.
+
+### Dækning
+
+- **Forbrug med tags** er andelen af de sidste 30 dages omkostninger, der har alle påkrævede tags, efter de tags hver omkostning blev læst med. Den beregnes, hver gang du åbner siden, så et tag, du kræver i dag, også måles over de sidste 30 dage. AWS-omkostninger har først tags, når [Omkostninger pr. ressource](#omkostninger-pr-ressource) er slået til: indtil da viser en AWS-kontos forbrug **Ikke målt** i stedet for 0 %.
+- **Ressourcer med tags** er andelen af de ressourcer, dine forbindelser viser, der har alle påkrævede tags, som de er tagget nu.
+- **Dækning over tid** viser hver af de sidste 12 uger: forbrug ud fra omkostningerne og ressourcer ud fra den optælling, OneUptime laver hver dag.
+
+### Nye ressourcer
+
+En ressource, som din forbindelse viser efter kontoens første fulde liste, er ny. Forbindelsen laver en liste hvert 30. minut, så en ny ressource findes inden for den time, den oprettes. Om en, der mangler et påkrævet tag, gives der besked én gang:
+
+- **Hvem der får besked.** Den, der oprettede den, når kontoens ændringslog nævner et medlem af dit projekt ved vedkommendes e-mailadresse, og ressourcens ejere ud fra ejerregler og teams. Kan ingen af dem få besked, får projektets ejere det. Hver af dem skal kunne læse dine cloudressourcer.
+- **Hvor ofte.** Én e-mail i timen samler alt nyt for hver person. Under **Yderligere indstillinger** sender **Én e-mail pr. ressource** hver for sig, og **Udløs en advarsel** udløser også en advarsel for hver konto med alvoren og vagtpolitikkerne under **Hvor advarsler sendes hen**.
+- **Når den bliver tagget.** En ressource, der tagges, før e-mailen sendes, udelades af den, og listen **Nye ressourcer** markerer hver ressource som **Tagget**, så snart den har dem.
+
+### Foreslåede værdier
+
+OneUptime foreslår kun en værdi, når tagget tillader den:
+
+- **En team-agtig nøgle**, f.eks. `team`, `owner` eller `squad`: det team, der ejer ressourcen.
+- **En miljø-agtig nøgle**, f.eks. `env`, `environment` eller `stage`: App Platforms-miljøet for en app, der kører som ressourcen, eller for en VM det deploymentmiljø, dens vært rapporterer.
+- **Enhver nøgle**: den værdi, de fleste ressourcer ved siden af har, i samme CloudFormation-stak, samme Azure-ressourcegruppe eller med samme navn før deres nummer, f.eks. `web-1` og `web-2`. Mindst to skal være enige.
+- **Et tag, der tillader én værdi**: den værdi.
+
+Kommandoen sætter tagget i ét trin fra din clouds egen shell: `aws resourcegroupstaggingapi tag-resources` på AWS, `az tag update --operation Merge` på Azure og `gcloud ... add-labels` eller `--update-labels` for Compute Engine-VM'er og -diske, Cloud Storage-buckets og Cloud SQL-instanser på Google Cloud.
+
 ## Det, du ser i OneUptime
 
 - **Clouds oversigt.** **Cloud → Oversigt** viser månedens forbrug over for sidste måneds på samme dag, de dyreste tjenester og de største måder at bruge mindre på, ved siden af det, der kræver opmærksomhed.
 - **Hver dags forbrug.** **Cloud → Forbrug → Omkostninger** tegner hver af de sidste 30 dage og markerer de dage, der kostede langt mere end normalt, viser de dage og opdeler en periode efter tjeneste, region, konto, ressource, miljø i app-platforme, app eller tag. De konti, hvis omkostninger ikke læses, vises nedenunder, hver med årsagen.
 - **En kontos omkostninger.** En kontos **Omkostninger** viser det samme for kontoen alene, med dens forpligtelser og dens måder at bruge mindre på.
+- **Påkrævede tags.** **Cloud → Forbrug → Tags** viser, hvor meget af forbruget og ressourcerne der har dine påkrævede tags, og en kontos **Tags** viser det samme for kontoen alene.
 - **En ressources omkostning.** En ressources side viser, hvad den har kostet i denne måned og de sidste 30 dage, når dens cloud fakturerer den ved navn, med dens måder at bruge mindre på og dens størrelsestilpasning.
 
 ## Fejlfinding
