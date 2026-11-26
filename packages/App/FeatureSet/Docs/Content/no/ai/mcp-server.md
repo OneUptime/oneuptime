@@ -359,6 +359,25 @@ Serveren har også oppsettshandlingene til Spør AI, ett kall hver: det du sette
 
 De handler som deg, pålogget med OAuth: en API-nøkkel for et prosjekt kan ikke bruke de åtte som oppretter noe. Klienten din spør deg før hver av dem, og svaret sier hva som ble opprettet. Det som mangler, for eksempel en tillatelse, en adresse eller plass i abonnementet, sies før noe opprettes.
 
+## Verktøy for Datasikkerhet
+
+Serveren har også [Datasikkerhet-handlingene til Spør AI](/docs/data-security/integrations#spør-ai), ett kall hver. Hver gjør nøyaktig den endringen knappen gjør i Datasikkerhet, som deg og med dine tillatelser, etter de samme sjekkene:
+
+- **`query_data_security_proposals`**: det OneUptime AI foreslår og som venter på en person, de mest risikable først. Med `which: "data-types"` datatypene det har funnet og som skanninger ennå ikke ser etter: navn, kategori og sensitivitet for hver, hvordan den ble bevist, og datalagrene og feltene den står i, aldri en verdi. Den endrer ingenting
+- **`draft_data_security_rule`**: en residens-, eier- eller etikettregel laget fra en setning, som «personopplysninger fra EU må bli i EU», med datalagrene den treffer i dag. Den endrer ingenting
+- **`scrub_data_security_finding`**: **Rens** på et funn i telemetrien
+- **`judge_data_security_finding`**: **Bekreft**, eller **Ikke sensitivt** med en begrunnelse, og det samme for lignende funn
+- **`change_data_security_issue`**: **Gjenåpne**, **Tildel**, **Godta risiko** eller **Ikke et problem**
+- **`set_data_store_owners`**: eierne av et datalager, lagt til eller fjernet
+- **`save_data_security_rule`**: en regel som `draft_data_security_rule` laget
+- **`respond_on_data_store`**: en responshandling gjennom datalagerets skytilkobling, som **Blokker offentlig tilgang**
+- **`fix_data_security_issue_with_ai`**: **Fiks med AI**, en pull-forespørsel som noen går gjennom og fletter
+- **`decide_data_security_proposal`**: **Godkjenn** eller **Skjul** på et forslag
+
+Spør AI spør en person før noen av disse i alle moduser, på et kort som sier hva som endres, hva som slutter å virke og hva det koster: å respondere på et datalager, **Ikke sensitivt**, **Godta risiko**, **Ikke et problem**, å endre eierne av et datalager, å lagre en regel, å avgjøre et forslag, en rensing som noe leser, og **Bekreft** i et prosjekt som varsler noen ved et kritisk problem. Denne serveren kan ikke vise deg det kortet, så den avviser dem, sier hvorfor og nevner siden i OneUptime der du gjør endringen. Ingenting kjøres noen gang uten det.
+
+De andre handler som deg, pålogget med OAuth: En API-nøkkel for prosjektet kan ikke bruke dem og bruker bare de to som ikke endrer noe. På en selvdriftet server lar `MCP_READ_ONLY=true` bare verktøyene som ikke endrer noe, være igjen, og `MCP_ALLOW_DESTRUCTIVE=false` avviser å fjerne eierne av et datalager, noe som sletter dem.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.

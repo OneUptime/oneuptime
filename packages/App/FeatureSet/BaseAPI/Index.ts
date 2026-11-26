@@ -14,6 +14,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import SetupActionAPI from "Common/Server/API/SetupActionAPI";
+import DataSecurityActionAPI from "Common/Server/API/DataSecurityActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -8003,6 +8004,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * server's outcome-level tools (#7241).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
+
+    /*
+     * Ask AI's Data Security actions, one call each, outside the chat: the
+     * MCP server's scrub, judge, accept, owners, rule and response tools
+     * (#10378).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DataSecurityActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

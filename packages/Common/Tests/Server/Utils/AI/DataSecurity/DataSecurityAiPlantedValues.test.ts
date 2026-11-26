@@ -58,6 +58,9 @@ import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/Da
 import DataSecurityFindingVerdicts from "../../../../../Server/Utils/AI/DataSecurity/FindingVerdicts";
 import DataTypeDiscovery from "../../../../../Server/Utils/AI/DataSecurity/DataTypeDiscovery";
 import DataTypeFromSentence from "../../../../../Server/Utils/AI/DataSecurity/DataTypeFromSentence";
+import RuleFromSentence from "../../../../../Server/Utils/AI/DataSecurity/RuleFromSentence";
+import LabelService from "../../../../../Server/Services/LabelService";
+import TeamService from "../../../../../Server/Services/TeamService";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
@@ -92,6 +95,7 @@ import {
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import DataSecurityIssueCodeFix from "../../../../../Server/Utils/DataSecurity/DataSecurityIssueCodeFix";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import {
@@ -1267,6 +1271,14 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
     return sentToTheModel();
   },
   [DataSecurityAiFeature.FixIssue]: async (): Promise<string> => {
+    /*
+     * No fix on its way yet: a second press returns the first (#10378),
+     * and what that reads is not what this test is about.
+     */
+    jest
+      .spyOn(DataSecurityIssueCodeFix, "read")
+      .mockResolvedValue({ fix: null } as never);
+
     for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
       const sent: SentRequest = await post(
         DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId),
@@ -1764,6 +1776,61 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  /*
+   * A rule from a person's sentence (#10378): the sentence, OneUptime's
+   * own catalogs and the names of the project's labels and teams, read as
+   * the person - never a store, a finding or what one holds, and nothing
+   * else a label or a team keeps.
+   */
+  [DataSecurityAiFeature.DraftRuleFromSentence]: async (): Promise<string> => {
+    useInMemoryTable(asService(LabelService), [
+      {
+        _id: "10378000-0000-4000-8000-0000000000e1",
+        projectId: PROJECT_ID.toString(),
+        name: "PCI",
+        description: PLANTED["description"]!,
+      },
+    ]);
+    useInMemoryTable(asService(TeamService), [
+      {
+        _id: "10378000-0000-4000-8000-0000000000e2",
+        projectId: PROJECT_ID.toString(),
+        name: "Payments",
+        description: PLANTED["description"]!,
+      },
+    ]);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        rule: {
+          kind: "residency",
+          name: "EU personal data stays in the EU",
+          description: "Personal data is kept only in EU regions.",
+          dataCategories: [],
+          subjectCountries: [],
+          allowedRegions: ["eu-*", "europe-*"],
+          nameRegexPattern: null,
+          descriptionRegexPattern: null,
+          cloudTagPattern: null,
+          matchLabels: [],
+          owners: [],
+          labelsToAdd: [],
+        },
+        reason: "The sentence keeps personal data in the EU.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 40, totalTokens: 340 },
+    });
+
+    await RuleFromSentence.draft({
+      projectId: PROJECT_ID,
+      userId: OWNER.userId!,
+      sentence: "EU personal data must stay in the EU",
+      props: OWNER,
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
 };
 
 /*
@@ -1891,6 +1958,12 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
   ],
   // The person's sentence, and their examples' shapes.
   [DataSecurityAiFeature.DescribeDataType]: ["customer numbers", "AA-999999"],
+  // The sentence, and the names a rule may use: a label and a team (#10378).
+  [DataSecurityAiFeature.DraftRuleFromSentence]: [
+    "EU personal data must stay in the EU",
+    "PCI",
+    "Payments",
+  ],
 };
 
 describe("no feature's input carries a value planted where a record keeps one", () => {

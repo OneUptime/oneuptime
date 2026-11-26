@@ -39,6 +39,27 @@ import WorkflowStatus, {
 } from "../Workflow/WorkflowStatus";
 import { PROBE_AGREEMENT_SENTENCES } from "../../Utils/Monitor/ProbeAgreementRule";
 import { OnCallPageChannel } from "../OnCallDutyPolicy/OnCallPageChannel";
+import { ALL_DATA_CATEGORIES } from "../DataSecurity/DataCategory";
+import {
+  AI_DATA_SECURITY_ACTION_ASKS_BECAUSE,
+  AI_DATA_SECURITY_ACTION_CHANGES,
+  AI_DATA_SECURITY_ACTION_COSTS,
+  AI_DATA_SECURITY_ACTION_PLURAL_CHANGES,
+  AI_DATA_SECURITY_ACTION_STOPS_WORKING,
+  AI_DATA_SECURITY_ACTION_TERMS,
+  AI_DATA_SECURITY_ACTION_TITLES,
+  AI_DATA_SECURITY_CARD_KINDS,
+  AI_DATA_SECURITY_CARD_LINES,
+  AI_DATA_SECURITY_CARD_PLURAL_LINES,
+  AI_DATA_SECURITY_CITATIONS,
+  AI_DATA_SECURITY_FINDING_AT_PLACE,
+  AI_DATA_SECURITY_ISSUE_ON_STORE,
+  AI_DATA_SECURITY_READER_KIND_TERMS,
+  AI_DATA_SECURITY_RULE_CONDITIONS,
+  AI_DATA_SECURITY_SCRUB_PLURAL_SENTENCES,
+  AI_DATA_SECURITY_SCRUB_SENTENCES,
+  AI_DATA_SECURITY_STORE_IN_REGION,
+} from "./AIDataSecurityActionWords";
 
 /*
  * WHAT AN AI ACTION'S CARD SAYS, IN EVERY READER'S LANGUAGE.
@@ -150,12 +171,33 @@ export interface AIActionSentence {
 }
 
 /*
+ * What an action does, said on its card under its title (#10378): what
+ * changes, what stops working and what it costs - each only where it
+ * applies - and, for an action that asks in every mode, Auto-run included,
+ * why it asks. A Data Security action's card says them in words a person
+ * who has never seen Data Security understands, so nobody approves a
+ * change without knowing what it breaks.
+ */
+export interface AIActionEffects {
+  changes?: Array<AIActionSentence> | undefined;
+  stopsWorking?: Array<AIActionSentence> | undefined;
+  costs?: Array<AIActionSentence> | undefined;
+  asksBecause?: AIActionSentence | undefined;
+}
+
+/*
  * An action's card: its title, and the sentences of the line under it
  * (what it names by name, what the prepare chose for the person).
  */
 export interface AIActionWords {
   title: AIActionSentence;
   description?: Array<AIActionSentence> | undefined;
+  /*
+   * What it changes, what stops working, what it costs and why it asks
+   * (AIActionEffects, #10378). Left out of every action that says none,
+   * and of one saved before them.
+   */
+  effects?: AIActionEffects | undefined;
   /*
    * Why the action was not made (issue #6982): a code change Auto-run held
    * back - AI_ACTION_CODE_NOT_MADE - which its Skipped row says under its
@@ -1206,6 +1248,21 @@ export const AI_ACTION_CARD_LINES: {
   opensAlertsForTeam: translationKey("Opens alerts for your team"),
 };
 
+/*
+ * The names of an action's effects on its approval card (#10378), each over
+ * its sentences: what changes, what stops working, what it costs. The model
+ * and the exports read the last two before their sentences, in English.
+ */
+export const AI_ACTION_EFFECT_HEADINGS: {
+  changes: string;
+  stopsWorking: string;
+  costs: string;
+} = {
+  changes: translationKey("What changes"),
+  stopsWorking: translationKey("What stops working"),
+  costs: translationKey("What it costs"),
+};
+
 // The names of a card's facts.
 export const AI_ACTION_CARD_FACTS: {
   affectedResources: string;
@@ -1717,6 +1774,22 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_READ_TABLE_LINES),
   // Every other read's table, and the chips under Sources (#7977, #7979, #7980).
   ...AI_READ_TABLE_AND_CITATION_SENTENCES,
+  /*
+   * Data Security's actions (#10378): their titles, what each changes,
+   * stops and costs, why it asks in every mode, and the card it leaves.
+   */
+  ...Object.values(AI_DATA_SECURITY_ACTION_TITLES),
+  ...Object.values(AI_DATA_SECURITY_ACTION_CHANGES),
+  ...Object.values(AI_DATA_SECURITY_ACTION_STOPS_WORKING),
+  ...Object.values(AI_DATA_SECURITY_ACTION_COSTS),
+  ...Object.values(AI_DATA_SECURITY_ACTION_ASKS_BECAUSE),
+  ...Object.values(AI_DATA_SECURITY_SCRUB_SENTENCES),
+  ...Object.values(AI_DATA_SECURITY_CARD_LINES),
+  ...Object.values(AI_DATA_SECURITY_RULE_CONDITIONS),
+  ...Object.values(AI_DATA_SECURITY_CITATIONS),
+  AI_DATA_SECURITY_STORE_IN_REGION,
+  AI_DATA_SECURITY_FINDING_AT_PLACE,
+  AI_DATA_SECURITY_ISSUE_ON_STORE,
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
@@ -1724,6 +1797,9 @@ export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
   ...Object.values(AI_ACTION_PLURAL_LINES),
   ...Object.values(AI_READ_CARD_PLURAL_SENTENCES),
   ...AI_READ_TABLE_AND_CITATION_PLURAL_SENTENCES,
+  ...Object.values(AI_DATA_SECURITY_ACTION_PLURAL_CHANGES),
+  ...Object.values(AI_DATA_SECURITY_SCRUB_PLURAL_SENTENCES),
+  ...Object.values(AI_DATA_SECURITY_CARD_PLURAL_LINES),
 ];
 
 // The kinds of resource, by the nouns the server names them by.
@@ -1748,6 +1824,12 @@ export const AI_ACTION_TERM_WORDS: ReadonlyArray<string> = [
   ...AI_READ_TABLE_TERMS,
   ...AI_READ_RUM_APPLICATION_STATUSES,
   ...AI_READ_WORKFLOW_RUN_STATUSES,
+  // Data Security's actions (#10378): their terms, and what reads an attribute.
+  ...Object.values(AI_DATA_SECURITY_ACTION_TERMS),
+  // The kinds of data a residency rule names, as Data Security's pages name them.
+  ...ALL_DATA_CATEGORIES,
+  ...Object.values(AI_DATA_SECURITY_READER_KIND_TERMS),
+  ...Object.values(AI_DATA_SECURITY_CARD_KINDS),
 ];
 
 /*
@@ -2092,7 +2174,48 @@ export function isKnownAIActionWords(value: unknown): value is AIActionWords {
     (value["reason"] === undefined ||
       isKnownAIActionSentence(value["reason"])) &&
     isNameList(value["namedArguments"]) &&
-    isNameList(value["describedArguments"])
+    isNameList(value["describedArguments"]) &&
+    isKnownAIActionEffects(value["effects"])
+  );
+}
+
+/*
+ * An action's effects (#10378), as a stored action holds them: left out,
+ * or each list of the module's sentences and the reason one of them.
+ * Anything else makes the whole of the action's words read as the English
+ * it stores, as a sentence of another shape does.
+ */
+export function isKnownAIActionEffects(value: unknown): boolean {
+  if (value === undefined) {
+    return true;
+  }
+
+  if (!isPlainObject(value)) {
+    return false;
+  }
+
+  const isSentenceList: (sentences: unknown) => boolean = (
+    sentences: unknown,
+  ): boolean => {
+    return (
+      sentences === undefined ||
+      (Array.isArray(sentences) &&
+        sentences.length <= MAX_SENTENCE_VALUES &&
+        sentences.every((sentence: unknown): boolean => {
+          return isKnownAIActionSentence(sentence);
+        }))
+    );
+  };
+
+  return (
+    Object.keys(value).every((key: string): boolean => {
+      return ["changes", "stopsWorking", "costs", "asksBecause"].includes(key);
+    }) &&
+    isSentenceList(value["changes"]) &&
+    isSentenceList(value["stopsWorking"]) &&
+    isSentenceList(value["costs"]) &&
+    (value["asksBecause"] === undefined ||
+      isKnownAIActionSentence(value["asksBecause"]))
   );
 }
 
@@ -2105,8 +2228,11 @@ const MAX_CARD_FACTS: number = 20;
  * A write's card saved with a name only a read's card has - "Steps", a
  * playbook's step count of before - reads as the English it stores.
  */
-const WRITE_CARD_KIND_TERMS: ReadonlyArray<string> =
-  Object.values(AI_ACTION_CARD_KINDS);
+const WRITE_CARD_KIND_TERMS: ReadonlyArray<string> = [
+  ...Object.values(AI_ACTION_CARD_KINDS),
+  // What a Data Security action changed (#10378).
+  ...Object.values(AI_DATA_SECURITY_CARD_KINDS),
+];
 const READ_CARD_KIND_TERMS: ReadonlyArray<string> = [
   ...WRITE_CARD_KIND_TERMS,
   ...Object.values(AI_READ_CARD_KINDS),
@@ -2663,9 +2789,34 @@ export function describeAIActionWords(
   words: AIActionWords,
   translator: Translator = getEnglishTranslator(),
 ): { title: string; description?: string | undefined } {
+  const said: (sentences: Array<AIActionSentence> | undefined) => string = (
+    sentences: Array<AIActionSentence> | undefined,
+  ): string => {
+    return joinAIActionSentences(
+      (sentences || []).map((sentence: AIActionSentence): string => {
+        return describeAIActionSentence(sentence, translator);
+      }),
+    );
+  };
+  /*
+   * An action's effects (#10378) go after its line, each under the name
+   * its section has on the card, so the model reads in a turn's history -
+   * and an export prints - what the person was told before approving it.
+   */
+  const effects: AIActionEffects = words.effects || {};
   const description: string = joinAIActionSentences(
-    (words.description || []).map((sentence: AIActionSentence): string => {
-      return describeAIActionSentence(sentence, translator);
+    [
+      said(words.description),
+      said(effects.changes),
+      effects.stopsWorking && effects.stopsWorking.length > 0
+        ? `${translator.translateText(AI_ACTION_EFFECT_HEADINGS.stopsWorking)}: ${said(effects.stopsWorking)}`
+        : "",
+      effects.costs && effects.costs.length > 0
+        ? `${translator.translateText(AI_ACTION_EFFECT_HEADINGS.costs)}: ${said(effects.costs)}`
+        : "",
+      effects.asksBecause ? said([effects.asksBecause]) : "",
+    ].filter((part: string): boolean => {
+      return part.length > 0;
     }),
   );
 

@@ -359,6 +359,25 @@ El servidor también tiene las acciones de configuración de Preguntar a la IA, 
 
 Actúan como tú, con la sesión iniciada mediante OAuth: una clave de API de proyecto no puede usar las ocho que crean algo. Tu cliente te pregunta antes de cada una, y su respuesta dice qué se creó. Lo que falta, como un permiso, una dirección o espacio en el plan, se dice antes de crear nada.
 
+## Herramientas para Seguridad de datos
+
+El servidor también tiene [las acciones de Seguridad de datos de Preguntar a la IA](/docs/data-security/integrations#preguntar-a-la-ia), una llamada cada una. Cada una hace exactamente el cambio que hace su botón en Seguridad de datos, como tú y con tus permisos, tras las mismas comprobaciones:
+
+- **`query_data_security_proposals`**: lo que OneUptime AI propone y espera a una persona, lo más arriesgado primero. Con `which: "data-types"`, los tipos de datos que encontró y que los escaneos aún no buscan: el nombre, la categoría y la sensibilidad de cada uno, cómo se demostró y los almacenes y campos en los que está, nunca un valor. No cambia nada
+- **`draft_data_security_rule`**: una regla de residencia, de propietario o de etiquetas redactada a partir de una frase, como «los datos personales de la UE deben quedarse en la UE», con los almacenes que cubre hoy. No cambia nada
+- **`scrub_data_security_finding`**: **Depurar** en un hallazgo de la telemetría
+- **`judge_data_security_finding`**: **Confirmar**, o **No sensible** con un motivo, y lo mismo para los hallazgos parecidos
+- **`change_data_security_issue`**: **Reabrir**, **Asignar**, **Aceptar el riesgo** o **No es un problema**
+- **`set_data_store_owners`**: los propietarios de un almacén, añadidos o quitados
+- **`save_data_security_rule`**: una regla que redactó `draft_data_security_rule`
+- **`respond_on_data_store`**: una acción de respuesta a través de la conexión a la nube del almacén, como **Bloquear el acceso público**
+- **`fix_data_security_issue_with_ai`**: **Corregir con IA**, una pull request que alguien revisa y fusiona
+- **`decide_data_security_proposal`**: **Aprobar** o **Descartar** una propuesta
+
+Preguntar a la IA pregunta a una persona antes de algunas de ellas en todos los modos, en una tarjeta que dice qué cambia, qué deja de funcionar y cuánto cuesta: responder en un almacén, **No sensible**, **Aceptar el riesgo**, **No es un problema**, cambiar los propietarios de un almacén, guardar una regla, decidir una propuesta, una depuración que algo lee, y **Confirmar** en un proyecto que avisa a alguien por un problema crítico. Este servidor no puede mostrarte esa tarjeta, así que las rechaza, dice por qué y nombra la página de OneUptime donde haces el cambio. Nada se ejecuta nunca sin ella.
+
+Las demás actúan como tú, con la sesión iniciada mediante OAuth: una clave de API del proyecto no puede usarlas y solo usa las dos que no cambian nada. En un servidor autoalojado, `MCP_READ_ONLY=true` deja solo las herramientas que no cambian nada, y `MCP_ALLOW_DESTRUCTIVE=false` rechaza quitar los propietarios de un almacén, lo que los elimina.
+
 ## Consultar la telemetría
 
 Los logs, las métricas, las trazas (spans), las excepciones, los logs de monitores y los demás tipos de telemetría llegan como herramientas `list_` y `count_` de solo lectura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` y sus gemelas `count_`). La telemetría llega a través de OpenTelemetry, así que no hay herramientas de creación.
