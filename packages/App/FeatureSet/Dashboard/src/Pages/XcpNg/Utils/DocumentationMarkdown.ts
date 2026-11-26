@@ -393,7 +393,7 @@ The agent checks Xen Orchestra's certificate against \`${XCP_NG_AGENT_CA_FILE}\`
 function getCertificateTopic(context: GuideContext): SetupGuideTopic {
   const renew: string =
     context.method === "install-script"
-      ? "When a pinned certificate is renewed, run the install script again: it shows the new fingerprint to check, and changes nothing until you answer **y**."
+      ? "When a pinned certificate is renewed, the agent stops reading Xen Orchestra until it trusts the new one. Run the install script again: it shows the new fingerprint and stops, changing nothing. Check that fingerprint on Xen Orchestra's machine, then run the script once more with it: `XO_TLS_FINGERPRINT=<new fingerprint> bash install.sh`."
       : `When the certificate in \`${XCP_NG_AGENT_CA_FILE}\` is renewed, read it again as in step 3, then run \`docker compose up -d --force-recreate\`.`;
 
   return {
