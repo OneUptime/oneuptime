@@ -46,7 +46,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorStepLimit from "../../Types/Monitor/MonitorStepLimit";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import TelemetryMonitorSchedule from "../Utils/Monitor/TelemetryMonitorSchedule";
-import OneUptimeDate from "../../Types/Date";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
