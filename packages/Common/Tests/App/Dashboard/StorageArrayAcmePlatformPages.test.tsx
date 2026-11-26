@@ -520,7 +520,12 @@ describe("the setup guide, whose steps are Pure Storage's", () => {
           return option.key;
         },
       ),
-    ).toEqual(["flasharray", "flasharray-exporter", "flashblade"]);
+    ).toEqual([
+      "flasharray",
+      "flasharray-exporter",
+      "flashblade",
+      "powerscale",
+    ]);
     expect(STORAGE_ARRAY_PLATFORMS).toEqual(getStorageArrayPlatformOptions());
     expect(
       getStorageArrayPlatformForSystem(ACME_STORAGE_SYSTEM),

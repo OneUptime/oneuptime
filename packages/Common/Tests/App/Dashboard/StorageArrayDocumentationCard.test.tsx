@@ -149,6 +149,7 @@ describe("StorageArrayDocumentationCard", () => {
       expect.stringMatching(/^FlashArrayRecommended/),
       expect.stringMatching(/^FlashArray, older Purity/),
       expect.stringMatching(/^FlashBlade/),
+      expect.stringMatching(/^PowerScale/),
     ]);
     expect(platformRadio(0)).toHaveAttribute("aria-checked", "true");
 

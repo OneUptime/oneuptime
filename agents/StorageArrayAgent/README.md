@@ -1,14 +1,15 @@
 # OneUptime Storage Array Agent
 
-Monitor storage arrays — capacity, latency, IOPS and bandwidth, volumes, hosts, pods and replication, hardware health, file systems and buckets — with OneUptime using a pre-configured OpenTelemetry Collector.
+Monitor storage arrays — capacity, latency, IOPS and bandwidth, volumes, hosts, pods and replication, hardware health, file systems, buckets and quotas — with OneUptime using a pre-configured OpenTelemetry Collector.
 
-The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the array's OpenMetrics endpoints with a read-only API token, stamps every metric with your array's identity, and ships it to OneUptime over OTLP. It supports:
+The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the array's OpenMetrics endpoints with a read-only API token (or polls a Dell PowerScale's nodes over SNMP), stamps every metric with your array's identity, and ships it to OneUptime over OTLP. It supports:
 
 | Array | How the agent reads it | Collector config |
 |---|---|---|
 | **Pure Storage FlashArray**, Purity//FA 6.7 and later | The array's own OpenMetrics endpoint (`https://<array>/metrics/...?namespace=purefa`) — no sidecar | `otel-collector-config.yaml` (default) |
 | **Pure Storage FlashArray**, older Purity//FA | Pure's [FlashArray OpenMetrics exporter](https://github.com/PureStorage-OpenConnect/pure-fa-openmetrics-exporter), run as the `pure-fa-exporter` sidecar | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | Pure's [FlashBlade OpenMetrics exporter](https://github.com/PureStorage-OpenConnect/pure-fb-openmetrics-exporter), run as the `pure-fb-exporter` sidecar | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 and later | Each node over SNMP (Dell's ISILON-MIB), with the collector's own `snmp` receiver — no sidecar ([Dell PowerScale](#dell-powerscale)) | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage renamed itself **Everpure** in February 2026. FlashArray, FlashBlade and Purity kept their names, and so did the `purefa_*` / `purefb_*` metrics — everything here applies unchanged.
 
@@ -91,6 +92,36 @@ docker compose up -d
 
 After the first scrape (about a minute) the array appears automatically in the **Storage Arrays** section of OneUptime.
 
+## Dell PowerScale
+
+The agent polls a PowerScale (Isilon) cluster over SNMP, reading Dell's ISILON-MIB with the collector's own `snmp` receiver (no exporter, no API token). One cluster is one storage array.
+
+- **Every node is polled at its own address** — a node answers SNMP only for its own drives, sensors and ports. Never use the SmartConnect zone name: it hands each poll to whichever node it picks.
+- **`snmp/cluster`** (every 60 s) and **`snmp/quotas`** (every 5 min) read the cluster's health, capacity, throughput, node counts and SmartQuotas once, through `POWERSCALE_ENDPOINT`. **`snmp/node-<n>`** (every 60 s) reads node `<n>`'s health, CPU, protocol performance (NFS, SMB, S3, HDFS, ...), drives, fans, temperature and power sensors and ports.
+- The config has 252 node slots (OneFS's largest cluster), `snmp/node-1` to `snmp/node-252`, each a copy of `snmp/node` at `POWERSCALE_NODE_<n>`. Only the ones `POWERSCALE_SNMP_RECEIVERS` lists run, and `install.sh` writes that list from `POWERSCALE_NODES`.
+- OneFS gives sensor readings as text and CPU in per mil, throughput in bits: the `transform/powerscale` processor turns them into plain gauges, and `filter/powerscale` drops what is not a number (a sensor reading `N/A`).
+
+Turn SNMP on with Dell's commands, on any node (OneFS applies them to the cluster), unless another tool already polls it — then reuse its community or user:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+# or SNMPv3 (OneFS 8.2+); the read-only user is `general` until renamed
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+isi snmp settings view
+```
+
+Then install:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+It asks for every node's address (`isi network interfaces list` lists them), the SNMP version, then the community or the SNMPv3 user and passwords (read without echo). Put `POWERSCALE_SNMP_AUTH_PROTOCOL`, `POWERSCALE_SNMP_PRIVACY_PROTOCOL` or `POWERSCALE_SNMP_SECURITY_LEVEL` in front of `bash install.sh` for an SNMPv3 user on other protocols or without privacy. A node added later: add it to `POWERSCALE_NODES` in `.env` and run `install.sh` again. `troubleshoot.sh` asks each node for `clusterName` with `snmpget` (the community or passwords go to it in a `snmp.conf` of its own, never on a command line).
+
+Not read yet: OneFS's events, storage pools and data reduction, which only the OneFS API gives ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Until then, send the events as SNMP traps to a OneUptime probe (`isi event channels create oneuptime snmp --host <probe> --community '<community>' --use-snmp-trap true`, then `isi event alerts modify <alert> --channel oneuptime`), with the nodes added as network devices on it.
+
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -98,13 +129,23 @@ After the first scrape (about a minute) the array appears automatically in the *
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
 | `STORAGE_ARRAY_NAME` | Yes | The name this array registers under in OneUptime. Stamped on every metric as the `storage.array.name` resource attribute. Keep it stable — changing it registers a new array. The collector refuses to start without it |
-| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray` or `purestorage.flashblade` (default: `purestorage.flasharray`) |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray) or `otel-collector-config.flashblade.yaml` (FlashBlade) |
+| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray`, `purestorage.flashblade` or `dell.powerscale` (default: `purestorage.flasharray`) |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) or `otel-collector-config.powerscale.yaml` (PowerScale) |
 | `COMPOSE_PROFILES` | No | Starts the exporter the config needs: empty for the native FlashArray config, `flasharray-exporter` or `flashblade` for the others |
 | `PURE_FA_ENDPOINT` | FlashArray | The FlashArray's management address — host name or IP, no `https://` |
 | `PURE_FA_API_TOKEN` | FlashArray | API token of the FlashArray user with the readonly role |
 | `PURE_FB_ENDPOINT` | FlashBlade | The FlashBlade's management address — host name or IP, no `https://` |
 | `PURE_FB_API_TOKEN` | FlashBlade | API token of the FlashBlade user with the readonly role |
+| `POWERSCALE_NODES` | PowerScale | Every node's address, comma-separated — never the SmartConnect zone name. `install.sh` writes the three below from it |
+| `POWERSCALE_ENDPOINT` | PowerScale | The node the cluster's own objects (health, capacity, quotas) are read through: the first node |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | The polls the collector runs: `[snmp/cluster, snmp/quotas, snmp/node-1, ...]`, one `snmp/node-<n>` per node |
+| `POWERSCALE_NODE_<n>` | PowerScale | Node `<n>`'s address, 1 to 252 (an IPv6 address in brackets) |
+| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community. OneFS's default, `I$ilonpublic`, works: `install.sh` refuses only `$$` and `${`, which the collector would expand |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` / `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512`, and the password |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` / `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3, `auth_priv` | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C`, and the password |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accepts the array's self-signed certificate on the native endpoint; `false` verifies it (default: `true`). Pure's exporters never verify the array's certificate, so it does not apply to them |
 
 ## Scrape Behavior
@@ -180,20 +221,21 @@ The unit assumes the agent lives in `/opt/oneuptime-storage-array-agent` (the in
 
 The collector and exporter images are pinned in `docker-compose.yml`, and the collector configs report the collector's pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the array's page; select it to see these commands.
 
-Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and the three collector configs (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and the collector configs (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again, then pull and recreate the agent (re-apply any change you made to those files):
+Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again, then pull and recreate the agent (re-apply any change you made to those files):
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -207,7 +249,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Then delete the read-only user (and its API token) on the array if you no longer need it.
+Then delete the read-only user (and its API token) on the array if you no longer need it — on a PowerScale, turn SNMP off or change the agent's community or SNMPv3 passwords if nothing else polls the cluster.
 
 ## Troubleshooting
 

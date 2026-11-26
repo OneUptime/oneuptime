@@ -174,6 +174,35 @@ interface FilterOffering {
   description: string;
 }
 
+/*
+ * The scope each filter narrows to, so a platform outside the shared words
+ * above is held to the object label its own series carry (a PowerScale's
+ * hardware filter names `node`, its file system filter `quota`).
+ */
+const FILTER_SCOPES: Record<
+  keyof Required<StorageArrayResourceFilters>,
+  StorageArrayResourceScope
+> = {
+  volumeName: StorageArrayResourceScope.Volume,
+  hostName: StorageArrayResourceScope.Host,
+  podName: StorageArrayResourceScope.Pod,
+  componentName: StorageArrayResourceScope.Hardware,
+  fileSystemName: StorageArrayResourceScope.FileSystem,
+  bucketName: StorageArrayResourceScope.Bucket,
+};
+
+function expectedLabel(
+  key: keyof StorageArrayResourceFilters,
+  storageSystem: string,
+): string {
+  const shared: { label: string; storageSystems: Array<StorageSystem> } =
+    RESOURCE_FILTER_LABELS[key];
+  if ((shared.storageSystems as Array<string>).includes(storageSystem)) {
+    return shared.label;
+  }
+  return `\`${getStorageArrayObjectLabel(FILTER_SCOPES[key], storageSystem as StorageSystem)}\``;
+}
+
 function filterOfferings(key: string): Array<FilterOffering> {
   return StorageArrayPlatformRegistry.getPlatforms().flatMap(
     (platform: StorageArrayPlatform): Array<FilterOffering> => {
@@ -201,7 +230,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       expect(filterOfferings(key).length).toBeGreaterThan(0);
       for (const offering of filterOfferings(key)) {
         expect(offering.description).toContain(
-          RESOURCE_FILTER_LABELS[key].label,
+          expectedLabel(key, offering.storageSystem),
         );
       }
     },
@@ -281,9 +310,27 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
         getStorageArrayObjectLabel(scope, StorageSystem.PureStorageFlashBlade),
       ).toBe("name");
     }
-    // The hardware field names both platforms' labels.
+    // Pure's hardware field names both of its platforms' labels...
+    const pure: Array<string> = [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.PureStorageFlashBlade,
+    ];
     for (const offering of filterOfferings("componentName")) {
-      expect(offering.description).toContain("`name` on a FlashBlade");
+      if (pure.includes(offering.storageSystem)) {
+        expect(offering.description).toContain("`name` on a FlashBlade");
+      }
+    }
+    // ...and a PowerScale's names its nodes' label, the one its series carry.
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Hardware,
+        StorageSystem.DellPowerScale,
+      ),
+    ).toBe("node");
+    for (const offering of filterOfferings("componentName")) {
+      if (offering.storageSystem === StorageSystem.DellPowerScale) {
+        expect(offering.description).toContain("`node`");
+      }
     }
   });
 

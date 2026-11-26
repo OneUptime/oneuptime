@@ -20,6 +20,7 @@ import {
   STORAGE_ARRAY_READ_ONLY_USER,
   STORAGE_ARRAY_SYSLOG_PORT,
   StorageArrayPlatform,
+  StorageArrayWholeConfigPlatform,
   getStorageArrayAgentDownloadCommand,
   getStorageArrayAgentUpgradeCommand,
   getStorageArrayEnvFile,
@@ -71,11 +72,23 @@ const KEY: string = "tik_secret_123";
  */
 const SERVED: string = `${URL}/install/storage-array-agent`;
 
-const PLATFORMS: Array<StorageArrayPlatform> = STORAGE_ARRAY_PLATFORMS.map(
-  (option: SetupGuideOption<StorageArrayPlatform>): StorageArrayPlatform => {
-    return option.key;
-  },
-);
+/*
+ * Pure Storage's options, whose steps and whole collector configs this file
+ * holds the guide to. A Dell PowerScale's guide is its own
+ * (PowerScaleSetupGuide.test.ts).
+ */
+const PLATFORMS: Array<StorageArrayWholeConfigPlatform> =
+  STORAGE_ARRAY_PLATFORMS.map(
+    (option: SetupGuideOption<StorageArrayPlatform>): StorageArrayPlatform => {
+      return option.key;
+    },
+  ).filter(
+    (
+      platform: StorageArrayPlatform,
+    ): platform is StorageArrayWholeConfigPlatform => {
+      return platform !== "powerscale";
+    },
+  );
 
 interface GuideOverrides {
   oneuptimeUrl?: string;
@@ -244,7 +257,19 @@ const compose: () => Record<string, any> = (): Record<string, any> => {
 };
 
 describe("the platform picker", () => {
-  test("offers the native FlashArray endpoint first, then the older FlashArray, then FlashBlade", () => {
+  test("offers the native FlashArray endpoint first, then the older FlashArray, then FlashBlade, then PowerScale", () => {
+    expect(
+      STORAGE_ARRAY_PLATFORMS.map(
+        (option: SetupGuideOption<StorageArrayPlatform>): string => {
+          return option.key;
+        },
+      ),
+    ).toEqual([
+      "flasharray",
+      "flasharray-exporter",
+      "flashblade",
+      "powerscale",
+    ]);
     expect(PLATFORMS).toEqual([
       "flasharray",
       "flasharray-exporter",
@@ -686,7 +711,7 @@ describe("the Docker Compose install", () => {
         expect(variant).toContain(`curl -fsSLO ${SERVED}/${file}`);
       }
       expect(variant).toContain(
-        "Download the compose file and the three collector configs from this OneUptime into a new folder:",
+        "Download the compose file and the collector configs from this OneUptime into a new folder:",
       );
       expect(variant).not.toContain("github.com/OneUptime");
       expect(STORAGE_ARRAY_AGENT_INSTALL_NAME).toBe("storage-array-agent");

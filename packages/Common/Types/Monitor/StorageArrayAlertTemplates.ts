@@ -276,12 +276,16 @@ function arrayStoppedReportingTemplate(data: {
   storageSystem: StorageSystem;
   platformName: string;
   infoMetricName: string;
+  description?: string | undefined;
+  incidentDescription?: string | undefined;
 }): StorageArrayAlertTemplate {
   return {
     id: data.id,
     name: "Array Stopped Reporting",
     summary: "The array sends no data for 10 minutes.",
-    description: `Alert when the ${data.platformName} sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it (down, unreachable, or its read-only API token no longer works). Reads ${data.infoMetricName}, which every endpoint the agent scrapes exports on every scrape.`,
+    description:
+      data.description ||
+      `Alert when the ${data.platformName} sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it (down, unreachable, or its read-only API token no longer works). Reads ${data.infoMetricName}, which every endpoint the agent scrapes exports on every scrape.`,
     category: "Availability",
     severity: "Critical",
     storageSystems: [data.storageSystem],
@@ -306,7 +310,9 @@ function arrayStoppedReportingTemplate(data: {
           metricAlias,
           resourceNoun: "storage array",
           incidentTitle: `[Storage Array] Array Stopped Reporting - ${args.monitorName}`,
-          incidentDescription: `OneUptime has received no data from this ${data.platformName} for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the array's management address answers from the agent's machine, whether the read-only user's API token still works, whether the Storage Array Agent's containers are running and what the collector's log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
+          incidentDescription:
+            data.incidentDescription ||
+            `OneUptime has received no data from this ${data.platformName} for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the array's management address answers from the agent's machine, whether the read-only user's API token still works, whether the Storage Array Agent's containers are running and what the collector's log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
           criteriaName: "Array Stopped Reporting - No data for 10 minutes",
           criteriaDescription: `Triggers when the array sends no ${data.infoMetricName} data for the whole ten-minute window.`,
         }),
@@ -339,6 +345,8 @@ function getPlatformTemplates(
         storageSystem: storageSystem,
         platformName: platform.shortName,
         infoMetricName: platform.heartbeat.metricName,
+        description: platform.heartbeat.description,
+        incidentDescription: platform.heartbeat.incidentDescription,
       }),
       ...platform.alertTemplates.map(
         (spec: StorageArrayAlertTemplateSpec): StorageArrayAlertTemplate => {

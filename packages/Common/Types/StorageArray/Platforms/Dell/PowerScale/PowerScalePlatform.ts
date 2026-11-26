@@ -450,6 +450,10 @@ const DellPowerScalePlatform: StorageArrayPlatform = {
   heartbeat: {
     templateId: "powerscale-cluster-stopped-reporting",
     metricName: "powerscale_cluster_health",
+    description:
+      "Alert when the PowerScale sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the cluster stopped answering it (down, unreachable, SNMP turned off, or its community or SNMPv3 user changed). Reads powerscale_cluster_health, which the agent's poll of the cluster sends every minute.",
+    incidentDescription:
+      "OneUptime has received no data from this PowerScale for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the cluster's first node answers SNMP from the agent's machine, whether the agent's community or SNMPv3 user still works (isi snmp settings view), whether the Storage Array Agent's container is running and what the collector's log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.",
   },
   alertTemplates: POWERSCALE_ALERT_TEMPLATES,
   resourceFilters: [

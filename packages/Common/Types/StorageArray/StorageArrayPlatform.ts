@@ -309,6 +309,15 @@ export const STORAGE_ARRAY_RECOVER_WHEN_ABSENT: StorageArrayAlertTemplateSpec["r
 export interface StorageArrayHeartbeat {
   templateId: string;
   metricName: string;
+  /*
+   * What Array Stopped Reporting says in this platform's words, when an
+   * API token and a scrape of every endpoint are not how the agent reads
+   * it (a PowerScale's SNMP community, and the one poll that sends its
+   * health): the template's description, and the incident's checklist.
+   * Left out, the template says what a Pure Storage array's says.
+   */
+  description?: string | undefined;
+  incidentDescription?: string | undefined;
 }
 
 /*

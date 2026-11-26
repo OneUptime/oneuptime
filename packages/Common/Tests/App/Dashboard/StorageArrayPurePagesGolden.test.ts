@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { SetupGuideOption } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { getInventoryMenuItems } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/SideMenu";
 import {
@@ -134,6 +135,36 @@ function asJson(value: unknown): JSONValue {
   return JSON.parse(JSON.stringify(value)) as JSONValue;
 }
 
+/*
+ * A Pure array's monitor form, as it reads it: a filter field another
+ * platform shares (Hardware Component, which a PowerScale reads as its
+ * nodes) names that platform in its storageSystems too, and a Pure array's
+ * form never reads another platform's name there.
+ */
+function withPureSystemsOnly(fields: JSONValue): JSONValue {
+  return (fields as Array<JSONObject>).map((field: JSONObject): JSONObject => {
+    return {
+      ...field,
+      storageSystems: ((field["storageSystems"] as Array<string>) || []).filter(
+        (storageSystem: string): boolean => {
+          return storageSystem.startsWith("purestorage.");
+        },
+      ),
+    };
+  });
+}
+
+/*
+ * Pure Storage's picker options. The picker also offers a Dell PowerScale
+ * since #11003, whose guide is its own (PowerScaleSetupGuide.test.ts).
+ */
+const PURE_OPTIONS: Array<SetupGuideOption<StorageArrayPlatform>> =
+  STORAGE_ARRAY_PLATFORMS.filter(
+    (option: SetupGuideOption<StorageArrayPlatform>): boolean => {
+      return option.key !== "powerscale";
+    },
+  );
+
 async function computeGolden(): Promise<JSONObject> {
   const bySystem: JSONObject = {};
 
@@ -188,7 +219,9 @@ async function computeGolden(): Promise<JSONObject> {
           });
         }),
       ),
-      resourceFilterFields: asJson(getResourceFilterFields(system)),
+      resourceFilterFields: withPureSystemsOnly(
+        asJson(getResourceFilterFields(system)),
+      ),
       setupGuidePlatform: getStorageArrayPlatformForSystem(system) || null,
       latencyReads,
       health,
@@ -200,7 +233,7 @@ async function computeGolden(): Promise<JSONObject> {
   const fileSystemReads: JSONValue = asJson(mockReadings);
 
   const guides: JSONObject = {};
-  for (const option of STORAGE_ARRAY_PLATFORMS) {
+  for (const option of PURE_OPTIONS) {
     const platform: StorageArrayPlatform = option.key;
     guides[platform] = {
       settings: asJson(STORAGE_ARRAY_PLATFORM_SETTINGS[platform]),
@@ -274,7 +307,7 @@ async function computeGolden(): Promise<JSONObject> {
     projectId: PROJECT_ID,
     bySystem,
     fileSystemReads,
-    picker: asJson(STORAGE_ARRAY_PLATFORMS),
+    picker: asJson(PURE_OPTIONS),
     defaultPlatform: DEFAULT_STORAGE_ARRAY_PLATFORM,
     resolved,
     agentFiles: STORAGE_ARRAY_AGENT_FILES,

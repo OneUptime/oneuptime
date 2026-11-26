@@ -13,6 +13,8 @@ import {
 import { StorageArrayNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import {
@@ -274,6 +276,31 @@ function platformVariables(): Array<string> {
     const fields: Array<string> = line.split("|");
     for (const name of [fields[3], fields[4]]) {
       if (name && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
+/*
+ * The variables a platform's setup in install.sh writes besides its address
+ * and token (PLATFORM_EXTRA_VARIABLES: a PowerScale's SNMP settings, its
+ * node list and its polls), each once. A node's own address,
+ * POWERSCALE_NODE_<n>, is numbered as the script counts the nodes, so it is
+ * documented as a pattern and left out here.
+ */
+const VARIABLE_NAME: RegExp = /^[A-Z][A-Z0-9_]+$/;
+
+function platformExtraVariables(): Array<string> {
+  const names: Array<string> = [];
+  for (const match of readAgentFile("install.sh").matchAll(
+    /PLATFORM_EXTRA_VARIABLES="([^"]*)"/g,
+  )) {
+    // "... POWERSCALE_SNMP_RECEIVERS$PLATFORM_EXTRA_VARIABLES": a name, then what came before.
+    for (const word of match[1]!.split(/\s+/)) {
+      const name: string = word.split("$")[0]!;
+      if (VARIABLE_NAME.test(name) && !names.includes(name)) {
         names.push(name);
       }
     }
@@ -685,12 +712,16 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
+      // Each platform's count, in the registry's order: "12 for FlashArray, 8 for FlashBlade and 13 for PowerScale".
+      const counts: Array<string> = StorageSystemUtil.getAllSystems().map(
+        (system: StorageSystem): string => {
+          return `${count(system)} for ${platformName(system)}`;
+        },
+      );
       expect(intro).toContain(
-        `OneUptime ships ${templates.length} templates — ${count(
-          StorageSystem.PureStorageFlashArray,
-        )} for FlashArray and ${count(
-          StorageSystem.PureStorageFlashBlade,
-        )} for FlashBlade`,
+        `OneUptime ships ${templates.length} templates — ${counts
+          .slice(0, -1)
+          .join(", ")} and ${counts[counts.length - 1]}`,
       );
 
       for (const template of templates) {
@@ -861,7 +892,10 @@ describe("Storage Array docs", (): void => {
           return name !== null;
         });
 
-      expect(documented.sort()).toEqual(dotenvVariables().sort());
+      expect(platformExtraVariables().length).toBeGreaterThan(0);
+      expect(documented.sort()).toEqual(
+        [...dotenvVariables(), ...platformExtraVariables()].sort(),
+      );
     });
 
     it("documents every variable the collector configs read", (): void => {
@@ -993,8 +1027,21 @@ describe("Storage Array docs", (): void => {
         readPage(TELEMETRY_PAGE),
         "## What the agent collects",
       );
+      // Every platform's families, by its metric prefix (purefa_, purefb_, powerscale_).
+      const prefixes: Array<string> =
+        StorageArrayPlatformRegistry.getPlatforms()
+          .map((platform: StorageArrayPlatform): string => {
+            return platform.metricPrefix || "";
+          })
+          .filter((prefix: string): boolean => {
+            return prefix.length > 0;
+          });
+      const family: RegExp = new RegExp(
+        `\`((?:${prefixes.join("|")})[a-z0-9_]+)(\\*?)\``,
+        "g",
+      );
       const families: Array<string> = Array.from(
-        collected.matchAll(/`(pure(?:fa|fb)_[a-z_]+)(\*?)`/g),
+        collected.matchAll(family),
       ).map((match: RegExpMatchArray): string => {
         return `${match[1]}${match[2]}`;
       });
