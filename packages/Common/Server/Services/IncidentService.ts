@@ -1,5 +1,8 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
+import MonitorIncidentPause, {
+  MonitorIncidentPauseState,
+} from "../Utils/Monitor/MonitorIncidentPause";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import IncidentMeasurementService from "./IncidentMeasurementService";
@@ -5236,6 +5239,15 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     }
   }
 
+  /*
+   * Pauses the checks of the incident's monitors when the incident, declared
+   * by hand, pauses monitoring - except monitors set to keep monitoring
+   * during incidents - and resumes any it no longer pauses. Each monitor is
+   * worked out from every open incident on it, not from this one alone
+   * (MonitorIncidentPause), and its time is left out of uptime while the
+   * incidents that pause it put it in no status. An incident OneUptime
+   * declared pauses nothing, so its monitors are not read.
+   */
   @CaptureSpan()
   public async disableActiveMonitoringIfManualIncident(
     incidentId: ObjectID,
@@ -5243,6 +5255,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
+        projectId: true,
         monitors: {
           _id: true,
         },
@@ -5257,21 +5270,20 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
       throw new BadDataException("Incident not found");
     }
 
-    if (!incident.isCreatedAutomatically) {
-      const monitors: Array<Monitor> = incident.monitors || [];
-
-      for (const monitor of monitors) {
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            disableActiveMonitoringBecauseOfManualIncident: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+    if (incident.isCreatedAutomatically || !incident.projectId) {
+      return;
     }
+
+    await MonitorIncidentPause.syncMonitors({
+      projectId: incident.projectId,
+      monitorIds: (incident.monitors || [])
+        .filter((monitor: Monitor): boolean => {
+          return Boolean(monitor.id);
+        })
+        .map((monitor: Monitor): ObjectID => {
+          return monitor.id!;
+        }),
+    });
   }
 
   @CaptureSpan()
@@ -6531,6 +6543,9 @@ ${incidentSeverity.name}
         const carryForward: UpdateCarryForward | undefined =
           onUpdate.carryForward;
 
+        // Whether the edit of its monitors worked them out again already.
+        let isMonitorPauseWorkedOut: boolean = false;
+
         if (carryForward) {
           const incidentCarryForward: UpdateCarryForward[string] | undefined =
             carryForward[incidentId.toString()];
@@ -6661,13 +6676,43 @@ ${incidentSeverity.name}
               }
             }
 
-            await this.updateMonitorsForIncidentEdit({
-              projectId: projectId,
-              incidentId: incidentId,
-              incidentNumberDisplay: incidentNumberDisplay,
-              carryForward: incidentCarryForward,
-              props: onUpdate.updateBy.props,
-            });
+            isMonitorPauseWorkedOut = await this.updateMonitorsForIncidentEdit(
+              {
+                projectId: projectId,
+                incidentId: incidentId,
+                incidentNumberDisplay: incidentNumberDisplay,
+                carryForward: incidentCarryForward,
+                props: onUpdate.updateBy.props,
+              },
+            );
+          }
+        }
+
+        /*
+         * Pause Monitoring switched (issue #11141), or the status the
+         * incident puts its monitors in taken away: its monitors are paused
+         * or resumed as their open incidents now say, and their time counted
+         * or left out as they do (MonitorIncidentPause). An edit of the
+         * monitors did that already.
+         */
+        if (
+          !isMonitorPauseWorkedOut &&
+          (onUpdate.updateBy.data.pauseMonitoring !== undefined ||
+            RelationIdUtil.isPresent(
+              onUpdate.updateBy.data as Dictionary<unknown>,
+              CHANGE_MONITOR_STATUS_KEYS,
+            ))
+        ) {
+          try {
+            await this.disableActiveMonitoringIfManualIncident(incidentId);
+          } catch (pauseError) {
+            logger.error(
+              `Pausing or resuming the incident's monitors failed in IncidentService.onUpdateSuccess: ${pauseError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
           }
         }
 
@@ -6884,14 +6929,19 @@ ${incidentSeverity.name}
    * would sit on its monitors as false downtime.
    *
    * An open incident:
-   * - stops probing the monitors of a manual incident when one is added,
-   *   as creating it did (disableActiveMonitoringIfManualIncident);
    * - puts the monitors added in its status, and all of its monitors only
    *   when the edit changes that status. Every save used to put all of them
    *   in it again, overwriting a status a probe had set since;
+   * - then pauses the monitors of an incident declared by hand that pauses
+   *   monitoring, as declaring it did (disableActiveMonitoringIfManualIncident):
+   *   after the status, so the time a pause left out of uptime counts again
+   *   once the incident puts its monitors in a status;
    * - holds its monitors from then on (Incident.holdsMonitors), so its
    *   resolve gives them back - even one that held nothing before, as an
    *   incident declared already resolved and reopened since.
+   *
+   * Returns whether it worked the incident's monitors out again, so the
+   * update does not do it twice.
    */
   private async updateMonitorsForIncidentEdit(data: {
     projectId: ObjectID;
@@ -6899,7 +6949,7 @@ ${incidentSeverity.name}
     incidentNumberDisplay: string;
     carryForward: UpdateCarryForward[string];
     props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const carryForward: UpdateCarryForward[string] = data.carryForward;
 
     if (
@@ -6918,7 +6968,7 @@ ${incidentSeverity.name}
       this.isMonitorStatusChangedByUpdate(carryForward);
 
     if (carryForward.monitorsAdded.length === 0 && !isMonitorStatusChanged) {
-      return;
+      return false;
     }
 
     /*
@@ -6927,7 +6977,7 @@ ${incidentSeverity.name}
      * monitors it holds, the added ones included.
      */
     if (await this.isIncidentResolved({ incidentId: data.incidentId })) {
-      return;
+      return false;
     }
 
     // What the edit does next, it does to monitors the incident then holds.
@@ -6938,9 +6988,35 @@ ${incidentSeverity.name}
       });
     }
 
-    if (carryForward.monitorsAdded.length > 0) {
-      await this.disableActiveMonitoringIfManualIncident(data.incidentId);
-    }
+    await this.putMonitorsInStatusOfEdit({
+      projectId: data.projectId,
+      incidentId: data.incidentId,
+      incidentNumberDisplay: data.incidentNumberDisplay,
+      carryForward: carryForward,
+      isMonitorStatusChanged: isMonitorStatusChanged,
+      props: data.props,
+    });
+
+    await this.disableActiveMonitoringIfManualIncident(data.incidentId);
+
+    return true;
+  }
+
+  /*
+   * Puts the incident's monitors in the status it puts them in after an
+   * edit (updateMonitorsForIncidentEdit): the monitors added, and all of
+   * them when the edit changes the status.
+   */
+  private async putMonitorsInStatusOfEdit(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentNumberDisplay: string;
+    carryForward: UpdateCarryForward[string];
+    isMonitorStatusChanged: boolean;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const carryForward: UpdateCarryForward[string] = data.carryForward;
+    const isMonitorStatusChanged: boolean = data.isMonitorStatusChanged;
 
     // The status the incident puts its monitors in after the update.
     const monitorStatusIdToApply: ObjectID | undefined =
@@ -7113,28 +7189,6 @@ ${incidentSeverity.name}
     }
   }
 
-  // Whether another open incident declared by hand still holds the monitor.
-  @CaptureSpan()
-  public async doesMonitorHasMoreActiveManualIncidents(
-    monitorId: ObjectID,
-    proojectId: ObjectID,
-  ): Promise<boolean> {
-    const incidentCount: PositiveNumber = await this.countBy({
-      query: {
-        monitors: QueryHelper.inRelationArray([monitorId]),
-        currentIncidentStateId: QueryHelper.any(
-          await IncidentStateService.getUnresolvedIncidentStateIds(proojectId),
-        ),
-        isCreatedAutomatically: false,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return incidentCount.toNumber() > 0;
-  }
-
   // Whether any open incident lists the monitor (Common/Utils/ResolvedState).
   @CaptureSpan()
   public async doesMonitorHaveActiveIncidents(
@@ -7156,123 +7210,137 @@ ${incidentSeverity.name}
     return incidentCount.toNumber() > 0;
   }
 
+  /*
+   * Gives the monitors back once an incident lets go of them - resolved,
+   * the monitors taken off it, or deleted. Each monitor is worked out from
+   * the incidents still open on it (MonitorIncidentPause):
+   *
+   *   - one that another open incident declared by hand still pauses stays
+   *     paused, in the status it holds;
+   *   - any other is resumed, and returned to operational unless another
+   *     incident is still open on it - its checks then set its status.
+   *
+   * Only the incidents that pause a monitor keep it paused: open, declared
+   * by hand, holding their monitors and pausing monitoring. A reopened
+   * incident holds nothing, so it paused nothing - but it used to count as
+   * one still holding the monitor, which then stayed paused for good, its
+   * resolve giving back nothing (issue #11141).
+   *
+   * The time a monitor's pause left out of uptime is counted again from
+   * when it resumes, or from its operational status when that is written.
+   */
   @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
     monitors: Array<Monitor>,
     startsAt?: Date | undefined,
   ): Promise<void> {
-    // resolve all the monitors.
+    if (monitors.length === 0) {
+      return;
+    }
 
-    if (monitors.length > 0) {
-      // get resolved monitor state.
+    /*
+     * Resolve monitors back to the project's operational status. A project
+     * can hold more than one operational state, so this lookup MUST be
+     * deterministic: without an explicit sort findOneBy falls back to
+     * `createdAt DESC` and would resolve monitors into whichever operational
+     * status was created most recently (e.g. a user- or fixture-added one)
+     * rather than the seeded default. Order by priority ascending (the
+     * seeded default operational status is priority 0), tie-broken by the
+     * oldest row, matching MonitorService.onBeforeCreate so a monitor's
+     * operational status is the same canonical one throughout its lifecycle.
+     */
+    const resolvedMonitorState: MonitorStatus | null =
+      await MonitorStatusService.findOneBy({
+        query: {
+          projectId: projectId!,
+          isOperationalState: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    for (const monitor of monitors) {
       /*
-       * Resolve monitors back to the project's operational status. A project
-       * can hold more than one operational state, so this lookup MUST be
-       * deterministic: without an explicit sort findOneBy falls back to
-       * `createdAt DESC` and would resolve monitors into whichever operational
-       * status was created most recently (e.g. a user- or fixture-added one)
-       * rather than the seeded default. Order by priority ascending (the
-       * seeded default operational status is priority 0), tie-broken by the
-       * oldest row, matching MonitorService.onBeforeCreate so a monitor's
-       * operational status is the same canonical one throughout its lifecycle.
+       * Per-monitor isolation: one monitor failing here (for example the
+       * fail-closed status timeline lock, or a transient DB error) must not
+       * abort the loop and strand the REMAINING monitors with
+       * disableActiveMonitoringBecauseOfManualIncident still true - a
+       * monitor left in that state is skipped by probes and sits in its
+       * down status indefinitely, silently accruing downtime. So the
+       * monitors are resumed whether or not the project has an operational
+       * status to return them to.
        */
-      const resolvedMonitorState: MonitorStatus | null =
-        await MonitorStatusService.findOneBy({
-          query: {
-            projectId: projectId!,
-            isOperationalState: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-            createdAt: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-          },
-        });
+      try {
+        const pause: MonitorIncidentPauseState | null =
+          await MonitorIncidentPause.syncPause({
+            projectId: projectId,
+            monitorId: monitor.id!,
+          });
 
-      if (resolvedMonitorState) {
-        for (const monitor of monitors) {
-          /*
-           * Per-monitor isolation: one monitor failing here (for example the
-           * fail-closed status timeline lock, or a transient DB error) must not
-           * abort the loop and strand the REMAINING monitors with
-           * disableActiveMonitoringBecauseOfManualIncident still true - a
-           * monitor left in that state is skipped by probes and sits in its
-           * down status indefinitely, silently accruing downtime.
-           */
-          try {
-            //check state of the monitor.
-
-            const doesMonitorHasMoreActiveManualIncidents: boolean =
-              await this.doesMonitorHasMoreActiveManualIncidents(
-                monitor.id!,
-                projectId!,
-              );
-
-            if (doesMonitorHasMoreActiveManualIncidents) {
-              continue;
-            }
-
-            await MonitorService.updateOneById({
-              id: monitor.id!,
-              data: {
-                disableActiveMonitoringBecauseOfManualIncident: false,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            /*
-             * Don't flip the monitor to operational while other incidents
-             * are still open on it — e.g. a metric monitor with group-by
-             * may have one incident per series, and resolving one series
-             * shouldn't claim the whole monitor is healthy.
-             */
-            const hasOtherActiveIncidents: boolean =
-              await this.doesMonitorHaveActiveIncidents(
-                monitor.id!,
-                projectId!,
-              );
-
-            if (hasOtherActiveIncidents) {
-              continue;
-            }
-
-            /*
-             * changeMonitorStatus performs the same latest-status dedupe check
-             * this loop used to do inline, and additionally absorbs the two
-             * recoverable error classes (status already set by a concurrent
-             * writer, lock not acquired after retries) by skipping the write,
-             * so the common failure modes never even reach the catch below.
-             * notifyOwners is true to preserve the previous behavior here: the
-             * created row had isOwnerNotified unset, so owners were notified.
-             */
-            await MonitorService.changeMonitorStatus(
-              projectId!,
-              [monitor.id!],
-              resolvedMonitorState.id!,
-              true, // notifyOwners - matches the pre-existing behavior of this loop.
-              undefined,
-              undefined,
-              {
-                isRoot: true,
-              },
-              startsAt,
-            );
-          } catch (err) {
-            logger.error(
-              `IncidentService.markMonitorsActiveForMonitoring: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
-            );
-            logger.error(err);
-            continue;
-          }
+        if (!pause) {
+          continue;
         }
+
+        if (pause.isPaused) {
+          // Still held: its time counts as what the incidents left holding it say.
+          await MonitorIncidentPause.markUptime(pause);
+          continue;
+        }
+
+        /*
+         * Don't flip the monitor to operational while other incidents
+         * are still open on it — e.g. a metric monitor with group-by
+         * may have one incident per series, and resolving one series
+         * shouldn't claim the whole monitor is healthy.
+         */
+        const hasOtherActiveIncidents: boolean =
+          await this.doesMonitorHaveActiveIncidents(monitor.id!, projectId!);
+
+        if (!hasOtherActiveIncidents && resolvedMonitorState) {
+          /*
+           * changeMonitorStatus performs the same latest-status dedupe check
+           * this loop used to do inline, and additionally absorbs the two
+           * recoverable error classes (status already set by a concurrent
+           * writer, lock not acquired after retries) by skipping the write,
+           * so the common failure modes never even reach the catch below.
+           * notifyOwners is true to preserve the previous behavior here: the
+           * created row had isOwnerNotified unset, so owners were notified.
+           */
+          await MonitorService.changeMonitorStatus(
+            projectId!,
+            [monitor.id!],
+            resolvedMonitorState.id!,
+            true, // notifyOwners - matches the pre-existing behavior of this loop.
+            undefined,
+            undefined,
+            {
+              isRoot: true,
+            },
+            startsAt,
+          );
+        }
+
+        /*
+         * After the status: a time left out ends with the operational status
+         * written above, and only one that did not change - already
+         * operational, or kept for another incident - needs a row of its own.
+         */
+        await MonitorIncidentPause.markUptime(pause);
+      } catch (err) {
+        logger.error(
+          `IncidentService.markMonitorsActiveForMonitoring: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
+        );
+        logger.error(err);
+        continue;
       }
     }
   }
