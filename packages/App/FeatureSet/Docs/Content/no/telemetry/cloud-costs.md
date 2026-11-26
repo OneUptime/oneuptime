@@ -178,6 +178,7 @@ Skyen rapporterer den siste dagen eller to for sent, og beløpene er før kredit
 ## Neste steg
 
 :::cards
+- [Fordeling av skykostnader](/docs/telemetry/cloud-cost-allocation): Fordel utgiftene på team, produkter og kostnadssteder.
 - [Koble til en skykonto](/docs/telemetry/cloud-accounts): Koble til en annen konto, eller kjør kommandoen på nytt.
 - [Skyressurser](/docs/telemetry/cloud-resources): Målingene til hver ressurs, fra en egen collector.
 - [Kubernetes-kostnadsobservability](/docs/telemetry/kubernetes-cost): Hva hver Kubernetes-arbeidslast koster.

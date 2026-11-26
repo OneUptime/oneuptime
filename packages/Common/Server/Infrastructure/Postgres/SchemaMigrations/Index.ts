@@ -1200,7 +1200,8 @@ import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from 
 import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
 import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
 import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
-import { AddProbeSnmpTrapReceiver1809187705110 } from "./1809187705110-AddProbeSnmpTrapReceiver";
+import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
+import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
 
 export default [
   InitialMigration,
@@ -2405,5 +2406,6 @@ export default [
   AddStorageArrayCountsByKind1809187690000,
   AddSecurityUserErasureRequestNamesToErase1809187691044,
   AddMonitorTestUnansweredIndex1809187700819,
-  AddProbeSnmpTrapReceiver1809187705110,
+  AddCloudCostViewsGroupsAndLineItems1809187711006,
+  AddProbeSnmpTrapReceiver1809187715110,
 ];

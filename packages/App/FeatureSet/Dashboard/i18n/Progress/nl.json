@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8311
+    "keys": 64602,
+    "untranslated": 8328
   },
   "sameAsEnglish": [
     " is",
@@ -375,6 +375,7 @@
     "Pebibytes",
     "Peer",
     "Percentage",
+    "Percentages",
     "Persistent volume claims",
     "Persistent volumes",
     "Petabytes",
@@ -518,6 +519,7 @@
     "TX",
     "Tablet",
     "Tag",
+    "Tag {{key}}",
     "Tags",
     "Tags ({{count}})",
     "Team",
@@ -933,6 +935,7 @@
     "{{dataType}} in {{location}}",
     "{{delta}} pp",
     "{{exceptionType}} in {{serviceName}}",
+    "{{field}} is {{values}}",
     "{{field}} is {{value}}",
     "{{gigabytes}} GB",
     "{{inQuorum}}/{{count}} mon in quorum",

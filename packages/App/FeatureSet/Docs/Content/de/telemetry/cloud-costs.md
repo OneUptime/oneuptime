@@ -178,6 +178,7 @@ Ihre Cloud meldet die letzten ein, zwei Tage verspätet, und die Werte gelten vo
 ## Nächste Schritte
 
 :::cards
+- [Cloud-Kostenzuordnung](/docs/telemetry/cloud-cost-allocation): Die Ausgaben nach Teams, Produkten und Kostenstellen aufteilen.
 - [Ein Cloud-Konto verbinden](/docs/telemetry/cloud-accounts): Ein weiteres Konto verbinden oder seinen Befehl erneut ausführen.
 - [Cloud-Ressourcen](/docs/telemetry/cloud-resources): Die Metriken jeder Ressource, aus einem eigenen Collector.
 - [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost): Was jeder Kubernetes-Workload kostet.

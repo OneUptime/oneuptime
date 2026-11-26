@@ -69,7 +69,8 @@ const SAML_ROUTES: Array<SamlRoute> = [
     builder: "SamlServiceProviders.forGlobalSso(",
     providerKind: "SamlProviderKind.GlobalSso",
     storedProviderId: "globalSso.id!",
-    firstLookup: "GlobalSSOProjectService.findBy(",
+    // Its attached projects, read before the account (#11149).
+    firstLookup: "GlobalSsoProvisioning.readAttachments(",
     startRoute: '"/global-sso/:globalSsoId"',
     replyRoute: '"/global-idp-login/:globalSsoId"',
     issuerRefusal: ISSUER_URL_DOES_NOT_MATCH,
