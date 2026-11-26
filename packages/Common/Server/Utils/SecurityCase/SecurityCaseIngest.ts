@@ -63,6 +63,12 @@ export interface SecurityDetectionSignal {
   source: SecurityDetectionSource;
   // Stable for "the same signal": the source and what it fired for.
   fingerprint: string;
+  /*
+   * The fingerprints the same signal had before (#11130: a detection's was
+   * unkeyed): a detection recorded under one of them is the one this signal
+   * repeats. Never written.
+   */
+  formerFingerprints?: Array<string> | undefined;
   title: string;
   // Markdown OneUptime wrote around the source's text.
   description?: string | undefined;
@@ -103,6 +109,23 @@ export interface SecurityDetectionSignal {
    * firing already takes nothing more from it. None: taken every time.
    */
   firingKey?: string | undefined;
+  /*
+   * The names the same firing had before (#11130): a detection that took it
+   * under one of them took it. Never written.
+   */
+  formerFiringKeys?: Array<string> | undefined;
+}
+
+// Whether the detection took this signal's firing already, under its name or one it had before.
+export function hasDetectionTakenFiring(data: {
+  detection: SecurityDetection;
+  signal: SecurityDetectionSignal;
+}): boolean {
+  return [data.signal.firingKey, ...(data.signal.formerFiringKeys || [])].some(
+    (firingKey: string | undefined): boolean => {
+      return hasTakenFiring(data.detection.recentFiringKeys, firingKey);
+    },
+  );
 }
 
 export interface SecurityCaseIngestResult {
@@ -134,20 +157,61 @@ export type KeptEventsOfDetections = Map<
 
 /*
  * The detection a signal repeats: the one with its fingerprint whose case
- * is still open. Undefined for a signal that opens or joins a case.
+ * is still open - or, when there is none, one recorded under a fingerprint
+ * the signal had before (#11130). Undefined for a signal that opens or
+ * joins a case.
  */
 export function findRepeatedDetection(data: {
   detections: Array<SecurityDetection>;
   fingerprint: string;
+  formerFingerprints?: ReadonlyArray<string> | undefined;
   openCases: Map<string, SecurityCase>;
 }): SecurityDetection | undefined {
-  return data.detections.find((detection: SecurityDetection): boolean => {
+  const inOpenCase: (detection: SecurityDetection) => boolean = (
+    detection: SecurityDetection,
+  ): boolean => {
     return (
-      detection.fingerprint === data.fingerprint &&
       Boolean(detection.securityCaseId) &&
       data.openCases.has(detection.securityCaseId!.toString())
     );
+  };
+
+  const underFingerprint: SecurityDetection | undefined = data.detections.find(
+    (detection: SecurityDetection): boolean => {
+      return detection.fingerprint === data.fingerprint && inOpenCase(detection);
+    },
+  );
+
+  if (underFingerprint || !data.formerFingerprints?.length) {
+    return underFingerprint;
+  }
+
+  const formers: Array<string> = data.formerFingerprints.map(cutShortDetectionText);
+
+  return data.detections.find((detection: SecurityDetection): boolean => {
+    return (
+      Boolean(detection.fingerprint) &&
+      formers.includes(detection.fingerprint!) &&
+      inOpenCase(detection)
+    );
   });
+}
+
+// The fingerprints a batch's detections are looked up by: each signal's, and the ones it had before.
+export function getSignalLookupFingerprints(
+  signals: ReadonlyArray<SecurityDetectionSignal>,
+): Array<string> {
+  const fingerprints: Set<string> = new Set<string>();
+
+  for (const signal of signals) {
+    fingerprints.add(cutShortDetectionText(signal.fingerprint));
+
+    for (const former of signal.formerFingerprints || []) {
+      fingerprints.add(cutShortDetectionText(former));
+    }
+  }
+
+  return Array.from(fingerprints);
 }
 
 /*
@@ -171,6 +235,7 @@ export function getRepeatedDetectionIdsToRead(data: {
     const repeated: SecurityDetection | undefined = findRepeatedDetection({
       detections: data.detections,
       fingerprint: cutShortDetectionText(signal.fingerprint),
+      formerFingerprints: signal.formerFingerprints,
       openCases: data.openCases,
     });
     const id: string = repeated?.id?.toString() || "";
@@ -369,19 +434,11 @@ export default class SecurityCaseIngest {
       detectionsRepeated: 0,
     };
 
-    const fingerprints: Array<string> = Array.from(
-      new Set(
-        signals.map((signal: SecurityDetectionSignal): string => {
-          return cutShortDetectionText(signal.fingerprint);
-        }),
-      ),
-    );
-
     const existingDetections: Array<SecurityDetection> =
       await SecurityDetectionService.findBy({
         query: {
           projectId: projectId,
-          fingerprint: new Includes(fingerprints),
+          fingerprint: new Includes(getSignalLookupFingerprints(signals)),
         },
         select: {
           _id: true,
@@ -500,18 +557,17 @@ export default class SecurityCaseIngest {
         const repeated: SecurityDetection | undefined = findRepeatedDetection({
           detections: existingDetections,
           fingerprint,
+          formerFingerprints: signal.formerFingerprints,
           openCases,
         });
 
         /*
          * A firing the detection took already (#10489): a rule's run judged
          * the same events again after its worker stopped before recording
-         * where it got to. Its counts went up when the firing was taken.
+         * where it got to. Its counts went up when the firing was taken -
+         * under its name, or under the one it had before #11130.
          */
-        if (
-          repeated &&
-          hasTakenFiring(repeated.recentFiringKeys, signal.firingKey)
-        ) {
+        if (repeated && hasDetectionTakenFiring({ detection: repeated, signal })) {
           result.detectionsAlreadyTaken =
             (result.detectionsAlreadyTaken || 0) + 1;
           continue;
