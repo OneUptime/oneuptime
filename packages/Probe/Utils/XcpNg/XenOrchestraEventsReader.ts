@@ -119,10 +119,17 @@ export interface XenOrchestraEventsReadInput {
 
 class XoReadError extends Error {
   public readonly status: number | null;
+  // Its message already says why, in words fitter than the status's.
+  public readonly isExplained: boolean;
 
-  public constructor(message: string, status: number | null) {
+  public constructor(
+    message: string,
+    status: number | null,
+    isExplained: boolean = false,
+  ) {
     super(message);
     this.status = status;
+    this.isExplained = isExplained;
   }
 }
 
@@ -159,6 +166,20 @@ export function getXoEventsBlocker(
     return "The API token cannot read messages, so alarms, HA and backups were not read. Give its user a copy of Xen Orchestra's built-in Read only role.";
   }
 
+  return null;
+}
+
+/*
+ * Whether backups may be read with a token events are read with: one whose
+ * user may not read backup logs reads an empty list, which would say "no
+ * backups" of a Xen Orchestra that has them.
+ */
+export function getXoBackupsBlocker(
+  summary: XcpNgApiTokenSummary | undefined,
+): string | null {
+  if (summary?.canReadBackupLogs === false) {
+    return "The API token cannot read backup logs, so backups were not read (alarms and HA still are). Give its user a copy of Xen Orchestra's built-in Read only role.";
+  }
   return null;
 }
 
@@ -322,7 +343,12 @@ export default class XenOrchestraEventsReader {
     }
 
     // 3. Backups.
-    if (!this.tokenRejected && !this.isOverBudget()) {
+    const backupsBlocker: string | null = getXoBackupsBlocker(
+      this.input.tokenSummary,
+    );
+    if (backupsBlocker) {
+      report.problems.backups = backupsBlocker;
+    } else if (!this.tokenRejected && !this.isOverBudget()) {
       try {
         const backups: {
           runs: Array<XcpNgBackupRun>;
@@ -368,6 +394,9 @@ export default class XenOrchestraEventsReader {
 
   private describe(error: unknown, what: string): string {
     if (error instanceof XoReadError) {
+      if (error.isExplained) {
+        return error.message;
+      }
       if (error.status === 403) {
         return `Xen Orchestra at ${this.input.where} does not let the API token read ${what} (HTTP 403). Give its user a copy of the built-in Read only role.`;
       }
@@ -799,6 +828,7 @@ export default class XenOrchestraEventsReader {
         ? new XoReadError(
             `Xen Orchestra at ${this.input.where} does not list missing patches for the API token (HTTP 403): on the Xen Orchestra Appliance it needs a plan that includes them, and the token's user needs host read access.`,
             403,
+            true,
           )
         : (refusal as XoReadError);
     }

@@ -2,20 +2,20 @@ import ObjectID from "../../../../Types/ObjectID";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import XcpNgPoolEventsIngest, {
   XcpNgPoolEventsPreparation,
-  XcpNgPoolEventsStore,
 } from "../../../../Server/Utils/XcpNg/XcpNgPoolEventsIngest";
 import {
-  XcpNgFeedLine,
   XcpNgPoolEventColumns,
   XcpNgStoredPool,
   XcpNgStoredResource,
-  XcpNgVmBackupUpdate,
 } from "../../../../Server/Utils/XcpNg/XcpNgPoolEventsProcessing";
+import MemoryXcpNgPoolEventsStore, {
+  makeXcpNgStoredPool,
+  makeXcpNgStoredResource,
+} from "../../../Helpers/XcpNg/MemoryXcpNgPoolEventsStore";
 import {
   XCP_NG_PATCH_CHECK_INTERVAL_MS,
   XcpNgEventsJobState,
   XcpNgEventsReport,
-  XcpNgHostPatches,
 } from "../../../../Types/XcpNg/XcpNgPoolEvents";
 import { XcpNgEventSource } from "../../../../Types/XcpNg/XcpNgPoolEventState";
 import XcpNgResourceKind from "../../../../Types/XcpNg/XcpNgResourceKind";
@@ -38,110 +38,23 @@ const WEB_01: string = "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c";
 const PROD_01: string = "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d";
 const NOW: Date = new Date(1795000100 * 1000);
 
-class MemoryStore implements XcpNgPoolEventsStore {
-  public pools: Map<string, XcpNgStoredPool> = new Map();
-  public inventories: Map<string, Array<XcpNgStoredResource>> = new Map();
-  public poolWrites: Array<{ id: string; columns: XcpNgPoolEventColumns }> = [];
-  public vmBackupWrites: Array<XcpNgVmBackupUpdate> = [];
-  public patchWrites: Array<XcpNgHostPatches> = [];
-  public feed: Array<XcpNgFeedLine> = [];
-  public failWritesFor: Set<string> = new Set<string>();
-
-  public async readPools(data: {
+// The shared store in memory, holding every read to the project.
+class MemoryStore extends MemoryXcpNgPoolEventsStore {
+  public override async readPools(data: {
     projectId: ObjectID;
     xcpNgPoolIds: Array<ObjectID>;
   }): Promise<Array<XcpNgStoredPool>> {
     expect(data.projectId.toString()).toBe(PROJECT.toString());
-    return data.xcpNgPoolIds
-      .map((id: ObjectID): XcpNgStoredPool | undefined => {
-        const pool: XcpNgStoredPool | undefined = this.pools.get(id.toString());
-        return pool
-          ? (JSON.parse(JSON.stringify(pool)) as XcpNgStoredPool)
-          : undefined;
-      })
-      .filter((pool: XcpNgStoredPool | undefined): pool is XcpNgStoredPool => {
-        return Boolean(pool);
-      });
-  }
-
-  public async readInventory(data: {
-    xcpNgPoolId: ObjectID;
-  }): Promise<Array<XcpNgStoredResource>> {
-    return this.inventories.get(data.xcpNgPoolId.toString()) || [];
-  }
-
-  public async writePool(data: {
-    xcpNgPoolId: ObjectID;
-    columns: XcpNgPoolEventColumns;
-  }): Promise<void> {
-    if (this.failWritesFor.has(data.xcpNgPoolId.toString())) {
-      throw new Error("the database went away");
-    }
-    this.poolWrites.push({
-      id: data.xcpNgPoolId.toString(),
-      columns: data.columns,
-    });
-    const pool: XcpNgStoredPool = this.pools.get(
-      data.xcpNgPoolId.toString(),
-    ) as XcpNgStoredPool;
-    const columns: XcpNgPoolEventColumns = JSON.parse(
-      JSON.stringify(data.columns),
-    ) as XcpNgPoolEventColumns;
-    this.pools.set(data.xcpNgPoolId.toString(), {
-      ...pool,
-      eventState: columns.eventState,
-      isHaEnabled:
-        columns.isHaEnabled === undefined
-          ? pool.isHaEnabled
-          : columns.isHaEnabled ?? null,
-      masterHostExternalId:
-        columns.masterHostExternalId === undefined
-          ? pool.masterHostExternalId
-          : columns.masterHostExternalId ?? null,
-      backupJobs: columns.backupJobs ?? pool.backupJobs,
-      patchesCheckedAt: columns.patchesCheckedAt
-        ? new Date(columns.patchesCheckedAt)
-        : pool.patchesCheckedAt,
-    });
-  }
-
-  public async writeVmBackups(data: {
-    updates: Array<XcpNgVmBackupUpdate>;
-  }): Promise<void> {
-    this.vmBackupWrites.push(...data.updates);
-  }
-
-  public async writeVmIntervals(): Promise<void> {
-    // Read back through the inventory in these tests when they need it.
-  }
-
-  public async writeHostPatches(data: {
-    hosts: Array<XcpNgHostPatches>;
-  }): Promise<void> {
-    this.patchWrites.push(...data.hosts);
-  }
-
-  public async writeFeed(data: { lines: Array<XcpNgFeedLine> }): Promise<void> {
-    this.feed.push(...data.lines);
+    return await super.readPools(data);
   }
 }
 
 function pool(id: ObjectID, identifier: string, name: string): XcpNgStoredPool {
-  return {
+  return makeXcpNgStoredPool({
     xcpNgPoolId: id.toString(),
     poolIdentifier: identifier,
     name: name,
-    reportedName: name,
-    xenOrchestraName: "xo-paris",
-    isHaEnabled: null,
-    haHostFailuresToTolerate: null,
-    haPlanExistsFor: null,
-    isHaOvercommitted: null,
-    masterHostExternalId: null,
-    backupJobs: null,
-    eventState: null,
-    patchesCheckedAt: null,
-  };
+  });
 }
 
 function resource(
@@ -149,17 +62,7 @@ function resource(
   externalId: string,
   name: string,
 ): XcpNgStoredResource {
-  return {
-    kind: kind,
-    externalId: externalId,
-    name: name,
-    isUp: true,
-    isEnabled: true,
-    isControlDomain: false,
-    lastSuccessfulBackupAt: null,
-    backupIntervalSeconds: null,
-    missingPatchCount: null,
-  };
+  return makeXcpNgStoredResource(kind, externalId, name);
 }
 
 let store: MemoryStore;

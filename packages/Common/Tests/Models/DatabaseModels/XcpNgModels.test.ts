@@ -802,6 +802,11 @@ describe("XCP-ng database models", () => {
           "OwnerTeamRemoved",
           "OwnerRuleExecuted",
           "LabelRuleExecuted",
+          // #10996 / #10997: what XAPI and Xen Orchestra say of the pool.
+          "XcpNgPoolMessage",
+          "XcpNgPoolMasterChanged",
+          "XcpNgPoolHaChanged",
+          "XcpNgPoolBackupFailed",
         ].sort(),
       );
     });
