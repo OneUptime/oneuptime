@@ -2249,6 +2249,36 @@ const IncidentCreate: FunctionComponent<
                   },
                 },
                 /*
+                 * Whether the incident pauses its monitors' checks (#11141):
+                 * under the monitors and the status it puts them in, and only
+                 * once a monitor is picked, so declaring never pauses a
+                 * monitor without the person seeing it. Ticked, as every
+                 * incident declared by hand always paused them; unticked,
+                 * they keep being checked. A monitor set to keep monitoring
+                 * during incidents is never paused.
+                 */
+                {
+                  field: {
+                    pauseMonitoring: true,
+                  },
+                  title: "Pause Monitoring",
+                  stepId: "resources-affected",
+                  description:
+                    "Stops checking these monitors until the incident is resolved. Monitors set to keep monitoring during incidents keep being checked.",
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  defaultValue: true,
+                  required: false,
+                  showIf: hasMonitors,
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    return (
+                      <BooleanValue
+                        value={item.pauseMonitoring !== false}
+                        dataTestId="incident-create-pause-monitoring-value"
+                      />
+                    );
+                  },
+                },
+                /*
                  * Everything else the incident affects. Anchored on `hosts`;
                  * its payload is split back into each relation by the
                  * onChange below, and the hidden registrations further down
