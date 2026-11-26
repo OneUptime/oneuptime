@@ -171,7 +171,7 @@ A few quick rules:
 - The **Details** step follows the template's **Custom Fields on Create**, as [described above](#details-your-incident-custom-fields).
 - Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
 - An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
-- The template's **Owners** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the Project Owners.
+- The template's **Owners** are added before the incident's Slack and Microsoft Teams channels are created, so a notification rule that asks who owns the incident matches them, and one that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the Project Owners.
 
 ## Declaring automatically from monitor criteria
 

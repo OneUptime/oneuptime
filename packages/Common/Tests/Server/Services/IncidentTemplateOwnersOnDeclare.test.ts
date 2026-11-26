@@ -18,7 +18,7 @@ import logger from "../../../Server/Utils/Logger";
 import CreatedNotificationHold, {
   OwnersAddedBy,
 } from "../../../Server/Utils/Notification/CreatedNotificationHold";
-import ChannelMembersNotAddedNotice from "../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
@@ -283,6 +283,11 @@ beforeEach(() => {
     .spyOn(AutoRemediationRuleEngineService, "applyRulesToIncident")
     .mockResolvedValue(undefined as never);
 
+  // No notification rule asks who owns an incident: nothing waits for its owners.
+  jest
+    .spyOn(WorkspaceNotificationRuleService, "hasRulesWithOwnerCondition")
+    .mockResolvedValue(false as never);
+
   // Nobody owns the new incident yet, and every user is in the project.
   jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([] as never);
   jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([] as never);
@@ -449,7 +454,14 @@ describe("the template's owners an incident form hands over", () => {
     expect(createdOwnerTeams[0]!.row.isOwnerNotified).toBe(true);
   });
 
-  test("are added only once the incident's channels exist, and after Incident Created", async () => {
+  /*
+   * #11146: a notification rule that asks who owns an incident is matched
+   * on these owners when the incident's channels are opened and its
+   * "Incident Created" is posted, so they are added before both. The
+   * channels' setup invites them, and their "owner added" messages follow
+   * "Incident Created" (WorkspaceCreatedMessageFirst).
+   */
+  test("are added before the incident's channels are opened and Incident Created is posted, so its rules see them", async () => {
     await onCreateSuccess(
       { ownerUsers: [USER_A], ownerTeams: [TEAM_A], notifyOwners: true },
       FORM_PROPS,
@@ -463,16 +475,16 @@ describe("the template's owners an incident form hands over", () => {
         .invocationCallOrder[0]!;
     };
 
-    const firstOwnerAdded: number = Math.min(
+    const lastOwnerAdded: number = Math.max(
       orderOf(IncidentOwnerUserService.create),
       orderOf(IncidentOwnerTeamService.create),
     );
 
-    expect(
+    expect(lastOwnerAdded).toBeLessThan(
       orderOf(service["handleIncidentWorkspaceOperationsAsync"]),
-    ).toBeLessThan(firstOwnerAdded);
-    expect(orderOf(service["createIncidentFeedAsync"])).toBeLessThan(
-      firstOwnerAdded,
+    );
+    expect(lastOwnerAdded).toBeLessThan(
+      orderOf(service["createIncidentFeedAsync"]),
     );
   });
 });
@@ -610,14 +622,23 @@ describe("the Incident Created notification a create holds for its owners", () =
     expect(releases()).toEqual([{ id: INCIDENT_ID.toString(), ...RELEASE }]);
   });
 
+  /*
+   * Every step before the owner rules catches its own failure, so the chain
+   * stops short of them only when even that fails: here its first step,
+   * whose failure cannot be logged.
+   */
   test("is let go when the chain stops short of the owner rules", async () => {
     jest
-      .spyOn(ChannelMembersNotAddedNotice, "noteAll")
-      .mockRejectedValue(new Error("the notice could not be read") as never);
+      .spyOn(IncidentPrivacyRuleEngineService, "applyRulesToIncident")
+      .mockRejectedValue(
+        new Error("the privacy rules are unreadable") as never,
+      );
     const loggedError: ReturnType<typeof jest.fn> = jest
       .spyOn(logger, "error")
-      .mockImplementation((() => {
-        // expected: the failure is logged
+      .mockImplementation(((message: unknown) => {
+        if (String(message).startsWith("Apply incident privacy rules failed")) {
+          throw new Error("the log is unreachable");
+        }
       }) as never) as unknown as ReturnType<typeof jest.fn>;
 
     await onCreateSuccess({ ownerUsers: [USER_A] }, USER_PROPS, {

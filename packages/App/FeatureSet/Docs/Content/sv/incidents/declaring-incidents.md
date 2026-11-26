@@ -171,7 +171,7 @@ Några snabba regler:
 - Steget **Detaljer** följer mallens **Anpassade fält vid skapande**, som [beskrivs ovan](#detaljer-dina-anpassade-incidentfält).
 - Värden i anpassade fält slås ihop ett fält i taget. En malls värden fyller i de anpassade fälten som incidenten deklareras utan; ett värde som sätts i steget **Detaljer**, eller skickas i begärans `customFields`, vinner alltid — `0`, `false` och `null` inräknade. Ett fält som kopieras från ett anpassat monitorfält får fortfarande monitorns värde.
 - En befintlig malls värden i anpassade fält finns på dess kort **Anpassade fält**, bredvid dess andra kort.
-- Mallens **Ägare** läggs till när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem. Att deklarera från en mall i instrumentpanelen lägger till dem utan aviseringen "du har lagts till"; ett [formulär](/docs/forms/on-submit) med en mall meddelar dem och håller tillbaka incidentens avisering **Incident skapad** tills de har lagts till, så att den går till dem och inte till Projektägare.
+- Mallens **Ägare** läggs till innan incidentens Slack- och Microsoft Teams-kanaler skapas, så att en aviseringsregel som frågar vem som äger incidenten matchar dem, och en regel som bjuder in incidentens ägare till en ny kanal också bjuder in dem. Att deklarera från en mall i instrumentpanelen lägger till dem utan aviseringen "du har lagts till"; ett [formulär](/docs/forms/on-submit) med en mall meddelar dem och håller tillbaka incidentens avisering **Incident skapad** tills de har lagts till, så att den går till dem och inte till Projektägare.
 
 ## Deklarera automatiskt från monitorkriterier
 
