@@ -55,8 +55,18 @@ export default class SnmpOctetCounter {
         : undefined;
     }
 
-    if (value instanceof Uint8Array) {
-      return SnmpOctetCounter.fromBytes(Array.from(value));
+    /*
+     * Bytes in any view of them - a Buffer, a Uint8Array - and from any
+     * realm: `instanceof Uint8Array` is false for a Buffer made by another
+     * context's constructor (a sandbox, a test environment), while
+     * ArrayBuffer.isView reads the object itself.
+     */
+    if (ArrayBuffer.isView(value)) {
+      return SnmpOctetCounter.fromBytes(
+        Array.from(
+          new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+        ),
+      );
     }
 
     if (typeof value === "string") {

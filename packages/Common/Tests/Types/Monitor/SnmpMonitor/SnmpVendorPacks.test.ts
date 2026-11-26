@@ -1,13 +1,18 @@
 import SnmpVendorTemplateUtil, {
+  CISCO_MDS_CHASSIS_SYS_OBJECT_IDS,
   SnmpVendorTemplate,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import {
+  SnmpTableColumn,
+  SnmpTableColumnRole,
   SnmpTableDefinition,
   SnmpTableKind,
   SnmpTableSnapshot,
+  SnmpTableWalkRequest,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil, {
   MAX_DEVICE_SPECIFIC_TABLES,
+  MAX_SNMP_TABLE_MAX_ROWS,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
@@ -419,5 +424,301 @@ describe("device roles for the new platforms", () => {
     ["1.3.6.1.4.1.2604.5", "firewall"],
   ])("%s -> %s", (sysObjectId: string, role: string) => {
     expect(classifyDeviceRole({ sysObjectId: sysObjectId })).toBe(role);
+  });
+});
+
+/*
+ * The SAN switch packs (#11014, #11015): Brocade Fabric OS and Cisco MDS
+ * 9000. Each is matched by itself, from the switch's sysObjectID (and an
+ * MDS's sysDescr), reads the switch's health and its hardware as tables,
+ * and changes no other device's template: a Brocade VDX or SLX, a Nexus,
+ * an IOS or IOS-XE switch stays where it was.
+ */
+describe("SAN switch packs", () => {
+  const ENT_PHYSICAL_NAME: string = "1.3.6.1.2.1.47.1.1.1.1.7";
+
+  const SAN_PACKS: Array<string> = ["brocade-fos", "cisco-mds"];
+
+  function walkRequest(id: string, key: string): SnmpTableWalkRequest {
+    return SnmpTableListUtil.toWalkRequests([tableOf(id, key)])[0]!;
+  }
+
+  describe("are well-formed", () => {
+    it.each(SAN_PACKS)("%s ships health OIDs and tables", (id: string) => {
+      expect(pack(id).oids.length).toBeGreaterThan(0);
+      expect((pack(id).tables || []).length).toBeGreaterThan(0);
+    });
+
+    it("Brocade: switch state, firmware, CPU and memory from SW-MIB", () => {
+      expect(
+        pack("brocade-fos").oids.map((oid: SnmpOid) => {
+          return [oid.name, oid.oid];
+        }),
+      ).toEqual([
+        ["Switch State", "1.3.6.1.4.1.1588.2.1.1.1.1.7.0"],
+        ["Firmware Version", "1.3.6.1.4.1.1588.2.1.1.1.1.6.0"],
+        ["CPU %", "1.3.6.1.4.1.1588.2.1.1.1.26.1.0"],
+        ["Memory %", "1.3.6.1.4.1.1588.2.1.1.1.26.6.0"],
+      ]);
+    });
+
+    it("MDS: CPU and memory from CISCO-SYSTEM-EXT-MIB", () => {
+      expect(
+        pack("cisco-mds").oids.map((oid: SnmpOid) => {
+          return oid.oid;
+        }),
+      ).toEqual(["1.3.6.1.4.1.9.9.305.1.1.1.0", "1.3.6.1.4.1.9.9.305.1.1.2.0"]);
+    });
+
+    it.each([
+      // connUnitStatus ok(3).
+      ["brocade-fos", "switch_status", ["3"]],
+      // swSensorStatus nominal(4), absent(6).
+      ["brocade-fos", "sensors", ["4", "6"]],
+      // fruStatus on(3).
+      ["brocade-fos", "frus", ["3"]],
+      // cefcFRUPowerOperStatus on(2).
+      ["cisco-mds", "power_supplies", ["2"]],
+      // cefcModuleOperStatus ok(2).
+      ["cisco-mds", "modules", ["2"]],
+      // cefcFanTrayOperStatus up(2).
+      ["cisco-mds", "fan_trays", ["2"]],
+    ])(
+      "%s %s: its status column knows what healthy is (%j)",
+      (id: string, key: string, healthy: Array<string>) => {
+        const statuses: Array<Array<string> | undefined> = tableOf(
+          id,
+          key,
+        )
+          .columns.filter((column: SnmpTableColumn) => {
+            return column.role === SnmpTableColumnRole.Status;
+          })
+          .map((column: SnmpTableColumn) => {
+            return column.healthyValues;
+          });
+
+        expect(statuses).toEqual([healthy]);
+      },
+    );
+
+    it("MDS VSANs are informational: an empty or isolated VSAN is down by design", () => {
+      for (const column of tableOf("cisco-mds", "vsans").columns) {
+        expect(column.healthyValues || []).toEqual([]);
+      }
+    });
+
+    it("a Brocade sensor's -2147483648 is no reading, not minus two billion", () => {
+      const value: SnmpTableColumn | undefined = tableOf(
+        "brocade-fos",
+        "sensors",
+      ).columns.find((column: SnmpTableColumn) => {
+        return column.name === "Value";
+      });
+
+      expect(value?.noReadingValues).toEqual(["-2147483648"]);
+      expect(SnmpTableListUtil.buildCell(value!, -2147483648)).toEqual({
+        raw: -2147483648,
+        display: "",
+      });
+      expect(SnmpTableListUtil.buildCell(value!, 41).display).toBe("41");
+    });
+
+    it.each([
+      ["brocade-fos", "frus"],
+      ["cisco-mds", "power_supplies"],
+      ["cisco-mds", "modules"],
+      ["cisco-mds", "fan_trays"],
+    ])(
+      "%s %s: named by entPhysicalName, read row by row rather than walking the entity table",
+      (id: string, key: string) => {
+        const table: SnmpTableDefinition = tableOf(id, key);
+
+        expect(table.rowLabelsByIndex).toBe(true);
+        expect(table.rowLabelColumnOids).toEqual([ENT_PHYSICAL_NAME]);
+        // Kept through the validation a device's saved tables go through.
+        expect(
+          SnmpTableListUtil.validateTable(table, id)
+            .rowLabelsByIndex,
+        ).toBe(true);
+
+        const request: SnmpTableWalkRequest = walkRequest(id, key);
+
+        expect(request.labelOids).toEqual([ENT_PHYSICAL_NAME]);
+        expect(request.columnOids).not.toContain(ENT_PHYSICAL_NAME);
+      },
+    );
+
+    it("tables named by a column of their own walk it as before", () => {
+      const request: SnmpTableWalkRequest = walkRequest(
+        "brocade-fos",
+        "sensors",
+      );
+
+      expect(request.labelOids).toBeUndefined();
+      expect(request.columnOids).toContain(
+        "1.3.6.1.4.1.1588.2.1.1.1.1.22.1.5",
+      );
+    });
+
+    it("the VSAN table reads as many rows as a table may: an MDS has up to 256 VSANs", () => {
+      expect(walkRequest("cisco-mds", "vsans").maxRows).toBe(
+        MAX_SNMP_TABLE_MAX_ROWS,
+      );
+    });
+  });
+
+  describe("are matched by themselves", () => {
+    it.each([
+      ["1.3.6.1.4.1.1588.2.1.1.1", "Fibre Channel Switch."],
+      // Newer models report themselves under fcSwitch.
+      ["1.3.6.1.4.1.1588.2.1.1.162", "G620"],
+      ["1.3.6.1.4.1.1588.2.1.1.1", undefined],
+    ])(
+      "Brocade Fabric OS: %s",
+      (sysObjectId: string, sysDescr: string | undefined) => {
+        expect(
+          SnmpVendorTemplateUtil.matchDevice({
+            sysObjectId: sysObjectId,
+            sysDescr: sysDescr,
+          })?.id,
+        ).toBe("brocade-fos");
+      },
+    );
+
+    it.each([
+      // Brocade VDX (Network OS) and SLX are Ethernet switches.
+      ["1.3.6.1.4.1.1588.2.2.1.1.1.5", "Brocade VDX Switch."],
+      ["1.3.6.1.4.1.1588.3.3.1.131", "SLX-OS Software"],
+      // Not under fcSwitch, however it starts.
+      ["1.3.6.1.4.1.1588.2.1.10", "Fibre Channel Switch."],
+      ["1.3.6.1.4.1.1588.2.1", "Fibre Channel Switch."],
+      ["1.3.6.1.4.1.15880.1", "Fibre Channel Switch."],
+    ])("not Brocade Fabric OS: %s", (sysObjectId: string, sysDescr: string) => {
+      expect(
+        SnmpVendorTemplateUtil.matchDevice({
+          sysObjectId: sysObjectId,
+          sysDescr: sysDescr,
+        })?.id,
+      ).not.toBe("brocade-fos");
+    });
+
+    it.each([
+      [1326, "9250i"],
+      [1327, "9710"],
+      [1420, "9706"],
+      [1491, "9148S"],
+      [1660, "9396S"],
+      [1683, "9718"],
+      [1894, "9132T"],
+      [1895, "9232U"],
+      [2054, "9148T"],
+      [2055, "9396T"],
+      [2402, "9220i"],
+      [2513, "9148V"],
+      [2514, "9124V"],
+      [2549, "9396V"],
+    ])("MDS by its chassis sysObjectID alone: .%s (MDS %s)", (model: number) => {
+      const sysObjectId: string = `1.3.6.1.4.1.9.12.3.1.3.${model}`;
+
+      expect(CISCO_MDS_CHASSIS_SYS_OBJECT_IDS.has(sysObjectId)).toBe(true);
+      expect(
+        SnmpVendorTemplateUtil.matchDevice({ sysObjectId: sysObjectId })?.id,
+      ).toBe("cisco-mds");
+    });
+
+    it.each([
+      "Cisco NX-OS(tm) m9100, Software (m9100-s6ek9-mz), Version 8.4(2c), RELEASE SOFTWARE Copyright (c) 2002-2020 by Cisco Systems, Inc.",
+      "Cisco NX-OS(tm) m9300, Software (m9300-s1ek9-mz), Version 9.4(1a), RELEASE SOFTWARE",
+      "Cisco NX-OS(tm) m9700, Software (m9700-sf3ek9-mz), Version 8.4(2c)",
+      "Cisco NX-OS(tm) m9250i, Software (m9250-s5ek9-mz), Version 8.4(2e)",
+      "Cisco NX-OS(tm) m9148t, Software (m9148-s8ek9-mz), Version 9.3(2)",
+      "Cisco SAN-OS(tm) m9200, Software (m9200-ek9-mz), Version 3.3(1c)",
+    ])(
+      "MDS by its sysDescr, for a model the list does not have: %s",
+      (sysDescr: string) => {
+        expect(
+          SnmpVendorTemplateUtil.matchDevice({
+            sysObjectId: "1.3.6.1.4.1.9.12.3.1.3.9999",
+            sysDescr: sysDescr,
+          })?.id,
+        ).toBe("cisco-mds");
+      },
+    );
+
+    it.each([
+      // Nexus shares the chassis arc, and never says m9.
+      [
+        "1.3.6.1.4.1.9.12.3.1.3.1084",
+        "Cisco NX-OS(tm) n9000, Software (n9000-dk9), Version 9.3(8), RELEASE SOFTWARE",
+      ],
+      [
+        "1.3.6.1.4.1.9.12.3.1.3.1409",
+        "Cisco NX-OS(tm) n5000, Software (n5000-uk9), Version 7.3(8)N1(1)",
+      ],
+      ["1.3.6.1.4.1.9.12.3.1.3.612", "Cisco NX-OS(tm) n7000, Software"],
+      [
+        "1.3.6.1.4.1.9.1.2494",
+        "Cisco IOS Software [Bengaluru], Catalyst L3 Switch Software (CAT9K_IOSXE), Version 17.6.4",
+      ],
+      [
+        "1.3.6.1.4.1.9.1.1208",
+        "Cisco IOS Software, C2960X Software (C2960X-UNIVERSALK9-M), Version 15.2(7)E8",
+      ],
+      // A name that mentions MDS is not an MDS's sysDescr.
+      ["1.3.6.1.4.1.9.1.1208", "Cisco IOS Software, for the MDS 9148 lab"],
+      ["1.3.6.1.4.1.9.1.1208", "Cisco NX-OS(tm) m91, Software"],
+    ])("stays on cisco-ios: %s, %s", (sysObjectId: string, sysDescr: string) => {
+      expect(
+        SnmpVendorTemplateUtil.matchDevice({
+          sysObjectId: sysObjectId,
+          sysDescr: sysDescr,
+        })?.id,
+      ).toBe("cisco-ios");
+    });
+
+    it("no Nexus chassis is in the MDS list", () => {
+      for (const nexus of [612, 777, 932, 1084, 1147, 1409, 1410]) {
+        expect(
+          CISCO_MDS_CHASSIS_SYS_OBJECT_IDS.has(
+            `1.3.6.1.4.1.9.12.3.1.3.${nexus}`,
+          ),
+        ).toBe(false);
+      }
+    });
+
+    it("the MDS list holds chassis OIDs only", () => {
+      for (const sysObjectId of CISCO_MDS_CHASSIS_SYS_OBJECT_IDS) {
+        expect(sysObjectId.startsWith("1.3.6.1.4.1.9.12.3.1.3.")).toBe(true);
+        expect(SnmpOidListUtil.isValidOid(sysObjectId)).toBe(true);
+      }
+    });
+
+    it("an MDS sysDescr on another maker's arc is not an MDS", () => {
+      expect(
+        SnmpVendorTemplateUtil.matchDevice({
+          sysObjectId: "1.3.6.1.4.1.2636.1.1.1.2.29",
+          sysDescr: "Cisco NX-OS(tm) m9100, Software",
+        })?.id,
+      ).not.toBe("cisco-mds");
+    });
+  });
+
+  describe("device roles", () => {
+    it.each([
+      ["1.3.6.1.4.1.1588.2.1.1.1", "Fibre Channel Switch."],
+      ["1.3.6.1.4.1.1588.2.1.1.162", undefined],
+      ["1.3.6.1.4.1.9.12.3.1.3.1660", undefined],
+      [
+        "1.3.6.1.4.1.9.12.3.1.3.9999",
+        "Cisco NX-OS(tm) m9100, Software (m9100-s6ek9-mz), Version 8.4(2c)",
+      ],
+    ])(
+      "%s is a switch, though its description never says so",
+      (sysObjectId: string, sysDescr: string | undefined) => {
+        expect(
+          classifyDeviceRole({ sysObjectId: sysObjectId, sysDescr: sysDescr }),
+        ).toBe("switch");
+      },
+    );
   });
 });

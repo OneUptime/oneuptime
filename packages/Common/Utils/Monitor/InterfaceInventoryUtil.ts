@@ -306,7 +306,10 @@ export default class InterfaceInventoryUtil {
             walked: walked,
             stored: existing,
           }),
-          downReason: InterfaceInventoryUtil.downReason(walked),
+          downReason: InterfaceInventoryUtil.downReason({
+            walked: walked,
+            stored: existing,
+          }),
           lastSeenAt: data.now,
         };
 
@@ -339,7 +342,10 @@ export default class InterfaceInventoryUtil {
             walked: walked,
             stored: undefined,
           }),
-          downReason: InterfaceInventoryUtil.downReason(walked),
+          downReason: InterfaceInventoryUtil.downReason({
+            walked: walked,
+            stored: undefined,
+          }),
           lastSeenAt: data.now,
         });
       }
@@ -354,34 +360,51 @@ export default class InterfaceInventoryUtil {
    * A down port reports no type (MDS: "port operationally down") or a
    * generic one (Brocade: G-Port), and the type it had - an E-port, an
    * inter-switch link - is what says what went down. Null on any other port.
+   *
+   * A poll that read nothing of the port's Fibre Channel side - its read
+   * failed or ran out of time, which leaves the rest of the walk standing -
+   * keeps what is stored rather than wiping it until the next poll.
    */
   public static fibreChannelPortType(data: {
     walked: SnmpInterface;
     stored: InterfaceExistingRowSnapshot | undefined;
   }): string | null {
-    const walkedType: string | null = truncateShortText(
-      data.walked.fibreChannel?.portType,
+    const storedType: string | null = truncateShortText(
+      data.stored?.fibreChannelPortType || undefined,
     );
 
     if (!data.walked.fibreChannel) {
-      return null;
+      return storedType;
     }
+
+    const walkedType: string | null = truncateShortText(
+      data.walked.fibreChannel.portType,
+    );
 
     if (data.walked.isOperationallyUp) {
       return walkedType;
     }
 
-    return truncateShortText(data.stored?.fibreChannelPortType || undefined) ||
-      walkedType;
+    return storedType || walkedType;
   }
 
-  // Why a Fibre Channel port is down, while it is; null otherwise.
-  public static downReason(walked: SnmpInterface): string | null {
-    if (walked.isOperationallyUp) {
+  /*
+   * Why a Fibre Channel port is down, while it is; null otherwise. A poll
+   * that read nothing of its Fibre Channel side keeps the stored reason.
+   */
+  public static downReason(data: {
+    walked: SnmpInterface;
+    stored: InterfaceExistingRowSnapshot | undefined;
+  }): string | null {
+    if (data.walked.isOperationallyUp) {
       return null;
     }
 
-    return truncateShortText(walked.fibreChannel?.downReason);
+    if (!data.walked.fibreChannel) {
+      return truncateShortText(data.stored?.downReason || undefined);
+    }
+
+    return truncateShortText(data.walked.fibreChannel.downReason);
   }
 
   /*

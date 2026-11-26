@@ -25,6 +25,7 @@ import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import RmonAlarmTrapUtil, {
   RmonAlarm,
 } from "../../../Utils/NetworkEvent/RmonAlarmTrap";
+import { getSnmpTrapInterfaceLabel } from "../../../Utils/NetworkEvent/SnmpTrapEvent";
 import SnmpTrap, {
   SnmpTrapVarbind,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTrap";
@@ -501,7 +502,10 @@ export default class MonitorTemplateUtil {
            * which interface, at what value past which threshold - so a
            * title can say "{{trapAlarmCounter}} on {{trapInterface}}".
            * Empty for any other trap, so a template renders blank rather
-           * than a raw placeholder.
+           * than a raw placeholder. {{trapInterface}} also names the
+           * interface of any other trap that carries IF-MIB varbinds - a
+           * link down, Cisco's cieLinkDown - as the trap or the device's
+           * walk names it.
            */
           const alarm: RmonAlarm | null =
             RmonAlarmTrapUtil.decode(snmpTrapResponse);
@@ -512,7 +516,10 @@ export default class MonitorTemplateUtil {
                   alarm,
                   snmpTrapResponse.interfaceName,
                 )
-              : snmpTrapResponse.interfaceName) || "";
+              : getSnmpTrapInterfaceLabel(
+                  snmpTrapResponse,
+                  snmpTrapResponse.interfaceName,
+                )) || "";
           storageMap["trapAlarmCounter"] = alarm
             ? alarm.counterName || alarm.variableOid || ""
             : "";

@@ -57,6 +57,12 @@ interface SourceMatchedDevice {
   id: string;
   projectId: string;
   name: string | undefined;
+  /*
+   * The SNMPv3 context the device is polled in, which tells apart devices
+   * that share an address (a Brocade chassis' logical switches) when a
+   * trap names its context (SnmpTrapContextRouting).
+   */
+  snmpV3ContextName: string | undefined;
 }
 
 /*
@@ -836,15 +842,21 @@ export default class NetworkDeviceHydrationUtil {
    * once per trap. Concurrent asks for an address not yet cached share one
    * lookup, so a burst of traps from one sender costs one read.
    *
-   * The devices handed back carry `_id`, `projectId` and `name` (traps log
-   * the name), and are the caller's own: changing one changes no other
-   * caller's. `select` is accepted for the callers that still pass it;
-   * `name` is always read.
+   * The devices handed back carry `_id`, `projectId`, `name` (traps log
+   * the name) and `snmpV3ContextName` (a trap's context picks among
+   * devices that share an address), and are the caller's own: changing one
+   * changes no other caller's. `select` is accepted for the callers that
+   * still pass it; both are always read.
    */
   public static async findDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
-    select?: { name?: boolean | undefined } | undefined;
+    select?:
+      | {
+          name?: boolean | undefined;
+          snmpV3ContextName?: boolean | undefined;
+        }
+      | undefined;
   }): Promise<Array<NetworkDevice>> {
     const address: string = data.sourceIpAddress.trim();
     const key: string = `${data.probeId.toString()}|${address}`;
@@ -890,6 +902,7 @@ export default class NetworkDeviceHydrationUtil {
           sourceIpAddress: data.sourceIpAddress,
           select: {
             name: true,
+            snmpV3ContextName: true,
           },
         });
 
@@ -904,6 +917,10 @@ export default class NetworkDeviceHydrationUtil {
           id: device.id.toString(),
           projectId: device.projectId.toString(),
           name: typeof device.name === "string" ? device.name : undefined,
+          snmpV3ContextName:
+            typeof device.snmpV3ContextName === "string"
+              ? device.snmpV3ContextName
+              : undefined,
         });
       }
 
@@ -936,6 +953,10 @@ export default class NetworkDeviceHydrationUtil {
         device.name = entry.name;
       }
 
+      if (entry.snmpV3ContextName !== undefined) {
+        device.snmpV3ContextName = entry.snmpV3ContextName;
+      }
+
       return device;
     });
   }
@@ -953,17 +974,27 @@ export default class NetworkDeviceHydrationUtil {
   public static async lookupDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
-    // Extra columns callers need (syslog attribution wants `name`).
-    select?: { name?: boolean | undefined } | undefined;
+    /*
+     * Extra columns callers need (syslog attribution wants `name`; trap
+     * routing `snmpV3ContextName`).
+     */
+    select?:
+      | {
+          name?: boolean | undefined;
+          snmpV3ContextName?: boolean | undefined;
+        }
+      | undefined;
   }): Promise<Array<NetworkDevice>> {
     const select: {
       _id: boolean;
       projectId: boolean;
       name?: boolean | undefined;
+      snmpV3ContextName?: boolean | undefined;
     } = {
       _id: true,
       projectId: true,
       ...(data.select?.name ? { name: true } : {}),
+      ...(data.select?.snmpV3ContextName ? { snmpV3ContextName: true } : {}),
     };
 
     const exactMatches: Array<NetworkDevice> =
