@@ -16,7 +16,6 @@ import {
   CloudCostAnomaly,
   CloudCostState,
   addUtcDays,
-  getMostCommonCloudCurrency,
   readCloudAccountCostSummary,
   readCloudAccountSavingsSummary,
   startOfUtcMonth,
@@ -87,6 +86,7 @@ import CloudCostSettingService from "../../Services/CloudCostSettingService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CloudCostAllocation from "./CloudCostAllocation";
 import {
+  getCloudCostAccountsCurrency,
   getCloudCostServerReader,
   readCloudCostAccounts,
 } from "./CloudCostServerReader";
@@ -463,19 +463,7 @@ export class CloudCostReportBuilder {
     accounts: Array<CloudAccount>,
     _basis: CloudCostBasis,
   ): string {
-    const counts: Map<string, number> = new Map();
-
-    for (const account of accounts) {
-      const summary: CloudAccountCostSummary | null =
-        readCloudAccountCostSummary(account.costSummary);
-
-      if (summary?.currency && summary.state === CloudCostState.Reading) {
-        const code: string = summary.currency.toUpperCase();
-        counts.set(code, (counts.get(code) || 0) + 1);
-      }
-    }
-
-    return counts.size > 0 ? getMostCommonCloudCurrency(counts) : "USD";
+    return getCloudCostAccountsCurrency(accounts);
   }
 
   // The accounts left out of the figures, billed in another currency.

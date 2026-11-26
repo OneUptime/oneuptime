@@ -6,6 +6,10 @@ import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import {
+  readCloudAccountCostSummary,
+  totalCloudCosts,
+} from "../../../Types/Cloud/CloudCost";
 import { CloudCostAllocationResult } from "../../../Types/Cloud/CloudCostAllocation";
 import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import {
@@ -135,6 +139,22 @@ export function getCloudCostServerReader(
       });
     },
   };
+}
+
+/*
+ * The currency the figures are in when none is asked: the one most of the
+ * accounts read are billed in - Costs' own rule (totalCloudCosts), over the
+ * accounts the same person may read, so the API, a report and the page
+ * answer in the same currency.
+ */
+export function getCloudCostAccountsCurrency(
+  accounts: Array<CloudAccount>,
+): string {
+  return totalCloudCosts(
+    accounts.map((account: CloudAccount) => {
+      return readCloudAccountCostSummary(account.costSummary);
+    }),
+  ).currency.toUpperCase();
 }
 
 // The project's accounts a person may read, by their OneUptime ID.

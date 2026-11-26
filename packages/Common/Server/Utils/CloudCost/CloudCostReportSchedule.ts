@@ -6,6 +6,7 @@ import ObjectID from "../../../Types/ObjectID";
 import WorkspaceSummaryScheduleUtil from "../../../Utils/Workspace/WorkspaceSummarySchedule";
 import CloudCostReportService from "../../Services/CloudCostReportService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CloudCostReportSender, {
@@ -51,7 +52,8 @@ export default class CloudCostReportSchedule {
         sendFirstReportAt: true,
         timezone: true,
       },
-      sort: { nextSendAt: "Ascending" } as never,
+      // The longest waiting first.
+      sort: { nextSendAt: SortOrder.Ascending },
       skip: 0,
       limit: CLOUD_COST_REPORTS_PER_TICK,
       props: { isRoot: true },

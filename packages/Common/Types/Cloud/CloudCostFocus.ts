@@ -702,6 +702,22 @@ export function toCloudCostFocusDecimal(value: number): string {
     return "0";
   }
 
+  /*
+   * The shortest text that reads back as the figure, where it has no
+   * exponent and ten places or fewer: 123456789.12 stays "123456789.12",
+   * where toFixed(10) writes the float's "123456789.1200000048".
+   */
+  const shortest: string = String(number);
+
+  if (!/e/i.test(shortest) && (shortest.split(".")[1] || "").length <= 10) {
+    return shortest;
+  }
+
+  // Past what a double holds whole: the integer, without an exponent.
+  if (Math.abs(number) >= 1e21) {
+    return BigInt(Math.round(number)).toString();
+  }
+
   const text: string = number.toFixed(10).replace(/\.?0+$/, "");
 
   return text === "-0" ? "0" : text;

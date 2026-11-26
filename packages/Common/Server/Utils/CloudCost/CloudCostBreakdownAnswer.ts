@@ -42,8 +42,8 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import CloudCostSettingService from "../../Services/CloudCostSettingService";
-import CloudCostAllocation from "./CloudCostAllocation";
 import {
+  getCloudCostAccountsCurrency,
   getCloudCostServerReader,
   readCloudCostAccounts,
 } from "./CloudCostServerReader";
@@ -407,18 +407,21 @@ export async function answerCloudCostBreakdown(data: {
       now,
     });
 
-  const [currency, basis, accounts]: [string, CloudCostBasis, Array<CloudAccount>] =
+  /*
+   * The caller's accounts: what a breakdown by account is named by, and -
+   * when no currency is asked - the currency Costs would show them in.
+   */
+  const [basis, accounts]: [CloudCostBasis, Array<CloudAccount>] =
     await Promise.all([
-      request.currency
-        ? Promise.resolve(request.currency)
-        : CloudCostAllocation.getProjectCurrency(data.projectId),
       request.basis
         ? Promise.resolve(request.basis)
         : CloudCostSettingService.getCostBasisOfProject(data.projectId),
-      request.by === "cloudAccountId"
+      request.by === "cloudAccountId" || !request.currency
         ? readCloudCostAccounts({ projectId: data.projectId, props: data.props })
         : Promise.resolve([]),
     ]);
+  const currency: string =
+    request.currency || getCloudCostAccountsCurrency(accounts);
 
   if (!/^[A-Z]{3}$/.test(currency)) {
     throw new BadDataException(

@@ -464,10 +464,23 @@ export class CloudCostReportSender {
   ): Promise<Array<Audience>> {
     const audiences: Array<Audience> = [];
     const seen: Set<string> = new Set();
+    // Who gets the whole report: every group is in it, so no section too.
+    const getsWhole: Set<string> = new Set();
     const add: (audience: Audience) => void = (audience: Audience): void => {
-      const key: string = audience.user.id?.toString() || "";
+      const userId: string = audience.user.id?.toString() || "";
+      /*
+       * A person once for the whole report, and once for each group whose
+       * team they are on: on two groups' teams, two sections.
+       */
+      const key: string = audience.groupId
+        ? `${userId}|${audience.groupId.toString()}`
+        : userId;
 
-      if (!key || seen.has(key)) {
+      if (
+        !userId ||
+        seen.has(key) ||
+        (audience.groupId && getsWhole.has(userId))
+      ) {
         return;
       }
 
@@ -480,6 +493,11 @@ export class CloudCostReportSender {
       }
 
       seen.add(key);
+
+      if (!audience.groupId) {
+        getsWhole.add(userId);
+      }
+
       audiences.push(audience);
     };
 

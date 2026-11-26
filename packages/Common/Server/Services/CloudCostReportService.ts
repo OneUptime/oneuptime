@@ -24,6 +24,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectReferencesService from "./ProjectReferencesService";
 import UserService from "./UserService";
@@ -377,7 +378,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!namesOutsideRecipients(data.write)) {
       // Every outside recipient gone: nobody's access is read for them.
-      data.write["outsideRecipientsSetByUserId"] = null;
+      /*
+       * OneUptime's own value for a column only OneUptime writes: marked as
+       * such, so the write's column check lets it through (ServerSetColumns).
+       */
+      ServerSetColumns.set(data.write, { outsideRecipientsSetByUserId: null });
       return;
     }
 
@@ -395,7 +400,9 @@ export class Service extends ProjectReferencesService<Model> {
       throw new NotAuthorizedException(CLOUD_COST_REPORT_OUTSIDE_REFUSAL);
     }
 
-    data.write["outsideRecipientsSetByUserId"] = data.props.userId;
+    ServerSetColumns.set(data.write, {
+      outsideRecipientsSetByUserId: data.props.userId,
+    });
   }
 
   @CaptureSpan()
@@ -574,7 +581,8 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (scheduleWrite.nextSendAt) {
-        data["nextSendAt"] = scheduleWrite.nextSendAt;
+        // The next send only OneUptime works out, marked as its own.
+        ServerSetColumns.set(data, { nextSendAt: scheduleWrite.nextSendAt });
       }
     }
 

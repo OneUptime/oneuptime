@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import DashboardCloudCostComponent from "Common/Types/Dashboard/DashboardComponents/DashboardCloudCostComponent";
 import {
   CloudCostWidgetDisplay,
@@ -45,8 +45,10 @@ import {
   fetchCloudCostGroupSpend,
   CloudCostGroupSpend,
 } from "../../Cloud/CostGroups/CloudCostAllocationReads";
-import useCloudAccounts, {
-  CloudAccountsRead,
+import {
+  CloudAccountRow,
+  fetchCloudAccounts,
+  totalCloudAccounts,
 } from "../../Cloud/UseCloudAccounts";
 import RankedBars, { RankedBarItem } from "../../SecurityOverview/RankedBars";
 import useProductAnalyticsRead, {
@@ -108,6 +110,8 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 // What one read of the widget answers, whatever it draws.
 interface CloudCostWidgetData {
   currency: string;
+  // The viewer's accounts by their OneUptime ID: a breakdown by account's names.
+  accountNames?: Record<string, string> | undefined;
   total: number;
   previousTotal: number;
   rows: Array<{ key: string; name: string; amount: number }>;
@@ -311,23 +315,23 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
   const groupId: string | null = DashboardWidgetIds.readId(args.cloudCostGroupId);
   const viewId: string | null = DashboardWidgetIds.readId(args.cloudCostViewId);
   const period: InBetween<Date> = useProductAnalyticsWidgetPeriod(props);
-  const accounts: CloudAccountsRead = useCloudAccounts();
-  const currency: string = accounts.totals.costs.currency;
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   const needsId: boolean =
     (scope === CloudCostWidgetScope.Account && !accountId) ||
     (scope === CloudCostWidgetScope.CostGroup && !groupId) ||
     (scope === CloudCostWidgetScope.CostView && !viewId);
-  const canRead: boolean =
-    !isPublic && !needsId && Boolean(projectId) && !accounts.isLoading;
+  /*
+   * Nothing is read on a public dashboard, nor before the widget says what
+   * it covers: a public page never asks for the project's costs (#11009).
+   */
+  const canRead: boolean = !isPublic && !needsId && Boolean(projectId);
 
   const read: ProductAnalyticsRead<CloudCostWidgetData | null> =
     useProductAnalyticsRead<CloudCostWidgetData | null>(
       canRead
         ? JSON.stringify([
             args,
-            currency,
             period.startValue.getTime(),
             period.endValue.getTime(),
             props.refreshTick || 0,
@@ -338,11 +342,25 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
           return null;
         }
 
-        const basis: CloudCostBasis = isCloudCostBasis(args.basis)
-          ? args.basis
-          : await fetchProjectCloudCostBasis(projectId);
+        /*
+         * The viewer's accounts: the currency most of them are billed in,
+         * as Costs totals them, and their names.
+         */
+        const [basis, accounts]: [CloudCostBasis, Array<CloudAccountRow>] =
+          await Promise.all([
+            isCloudCostBasis(args.basis)
+              ? Promise.resolve(args.basis)
+              : fetchProjectCloudCostBasis(projectId),
+            fetchCloudAccounts(),
+          ]);
+        const accountNames: Record<string, string> = {};
 
-        return await readCloudCostWidget({
+        for (const account of accounts) {
+          accountNames[account.id.toString()] =
+            account.name || account.accountId;
+        }
+
+        const answer: CloudCostWidgetData = await readCloudCostWidget({
           scope,
           display,
           breakdownBy,
@@ -350,11 +368,13 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
           groupId,
           viewId,
           basis,
-          currency,
+          currency: totalCloudAccounts(accounts).costs.currency,
           projectId,
           start: period.startValue,
           end: period.endValue,
         });
+
+        return { ...answer, accountNames };
       },
     );
 
@@ -364,23 +384,11 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
   ): string => {
     return formatCloudCostMoney({
       amount,
-      currency: read.data?.currency || currency,
+      currency: read.data?.currency || "USD",
       language: translator.language,
       whole,
     });
   };
-
-  const accountNames: Map<string, string> = useMemo(():
-    | Map<string, string>
-    | never => {
-    return new Map(
-      accounts.accounts.map(
-        (account: { id: ObjectID; name?: string; accountId: string }) => {
-          return [account.id.toString(), account.name || account.accountId];
-        },
-      ),
-    );
-  }, [accounts.accounts]);
 
   const title: string =
     args.title?.trim() ||
@@ -400,11 +408,11 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
     );
   } else if (needsId) {
     body = <WidgetPlaceholder icon={IconProp.Billing} message={CLOUD_COST_SETUP} />;
-  } else if (read.error || accounts.error) {
+  } else if (read.error) {
     body = (
       <DashboardWidgetError
         icon={IconProp.Billing}
-        error={read.error || accounts.error}
+        error={read.error}
       />
     );
   } else if (!read.data) {
@@ -470,7 +478,7 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
             : breakdownBy === "cloudAccountId" &&
                 scope !== CloudCostWidgetScope.CostView &&
                 scope !== CloudCostWidgetScope.CostGroup
-              ? accountNames.get(row.key) || row.name
+              ? read.data?.accountNames?.[row.key] || row.name
               : row.name;
 
         return {
