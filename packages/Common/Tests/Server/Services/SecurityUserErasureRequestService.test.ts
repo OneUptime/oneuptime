@@ -1,9 +1,12 @@
 import SecurityUserErasureRequestService, {
+  ERASURE_REQUEST_SELECT,
   getErasureTokens,
   readErasureRequestNames,
+  readErasureRequestProgress,
   readErasureRequestTokens,
   toStoredErasureNames,
 } from "../../../Server/Services/SecurityUserErasureRequestService";
+import { SecurityUserErasureProgress } from "../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureProgress";
 import { MAX_USER_VAULT_USER_LENGTH } from "../../../Server/Services/SecurityUserVaultService";
 import ColumnPermission from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
@@ -626,6 +629,97 @@ describe("the worker's moves keep and wipe the names (#11044)", () => {
     for (const data of written) {
       expect(data["namesToErase"]).toBeNull();
       expect(data["userToErase"]).toBeNull();
+    }
+  });
+
+  const progress: SecurityUserErasureProgress = {
+    toldAt: "2026-11-26T10:02:00.000Z",
+    namedEvents: 3,
+    cleanSince: null,
+    unnamedFindings: 0,
+    findings: {
+      number: 1,
+      startedAt: "2026-11-26T10:02:00.000Z",
+      after: { time: "1764151200000000123", id: "finding-7" },
+      changed: 5,
+      unnamed: 5,
+      isFinal: false,
+      endedAt: null,
+    },
+  };
+
+  test("where a run got to is kept as it goes, and read back exactly (#11160)", async () => {
+    await SecurityUserErasureRequestService.markProgress({
+      requestId: ObjectID.generate(),
+      progress,
+      eventsUnnamed: 8,
+    });
+
+    expect(written[0]).toEqual({
+      progress: JSON.parse(JSON.stringify(progress)),
+      eventsUnnamed: 8,
+    });
+
+    const request: SecurityUserErasureRequest =
+      new SecurityUserErasureRequest();
+
+    request.progress = written[0]!["progress"] as never;
+
+    expect(readErasureRequestProgress(request)).toEqual(progress);
+  });
+
+  test("keeping progress says nothing about how the run ended, and changes no other column", async () => {
+    await SecurityUserErasureRequestService.markProgress({
+      requestId: ObjectID.generate(),
+      progress,
+    });
+
+    expect(Object.keys(written[0]!)).toEqual(["progress"]);
+  });
+
+  test("a run told with its progress keeps it beside its counts; one told without leaves it", async () => {
+    await SecurityUserErasureRequestService.markInProgress({
+      requestId: ObjectID.generate(),
+      counts,
+      progress,
+    });
+    await SecurityUserErasureRequestService.markInProgress({
+      requestId: ObjectID.generate(),
+      counts,
+    });
+
+    expect(written[0]!["progress"]).toEqual(JSON.parse(JSON.stringify(progress)));
+    expect(written[0]!["failureReason"]).toBeNull();
+    expect(Object.keys(written[1]!)).not.toContain("progress");
+  });
+});
+
+describe("where the worker has got to (#11160)", () => {
+  test("is read with every request the worker works on", () => {
+    expect(ERASURE_REQUEST_SELECT.progress).toBe(true);
+  });
+
+  test("nobody reads, sends or changes it, the audit log leaves it out, and it is the worker's alone", () => {
+    const model: SecurityUserErasureRequest = new SecurityUserErasureRequest();
+    const columns: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    expect(columns["progress"]?.read).toEqual([]);
+    expect(columns["progress"]?.create).toEqual([]);
+    expect(columns["progress"]?.update).toEqual([]);
+    expect(model.getTableColumnMetadata("progress").computed).toBe(true);
+    // Times, counts and a finding's id: nothing of the person to encrypt.
+    expect(model.getTableColumnMetadata("progress").encrypted).toBeFalsy();
+  });
+
+  test("whatever the column holds that is no progress reads as none", () => {
+    const request: SecurityUserErasureRequest =
+      new SecurityUserErasureRequest();
+
+    for (const stored of [undefined, null, "progress", 7, []]) {
+      request.progress = stored as never;
+      expect(readErasureRequestProgress(request).findings).toBeNull();
+      expect(readErasureRequestProgress(request).toldAt).toBeNull();
     }
   });
 });
