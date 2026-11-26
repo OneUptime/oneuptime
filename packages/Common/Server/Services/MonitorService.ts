@@ -92,6 +92,13 @@ import WorkspaceNotificationRuleService, {
   WorkspaceChannelsCreated,
 } from "./WorkspaceNotificationRuleService";
 import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import OneUptimeDate from "../../Types/Date";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import { UnreadableParentException } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator, {
@@ -227,6 +234,18 @@ type MonitorUpdateCarryForward = {
   valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
   monitorIdsTurnedOff?: Array<string> | undefined;
   monitorIdsTurnedOn?: Array<string> | undefined;
+};
+
+// What onBeforeCreate hands to onCreateSuccess.
+type MonitorCreateCarryForward = {
+  /*
+   * The moment the monitor's create began, taken before it is written - so
+   * before anything about it can be. Its "Monitor Created" entry is filed
+   * at it, whenever the step that writes it runs: the first line of its
+   * feed, ahead of its first status and its owners, which its create now
+   * writes first (#11188).
+   */
+  feedStartsAt: Date;
 };
 
 export class Service extends ProjectReferencesService<Model> {
@@ -2488,6 +2507,12 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * When the monitor's feed starts (MonitorCreateCarryForward): now,
+     * before the monitor is written and so before any entry about it can be.
+     */
+    const feedStartsAt: Date = OneUptimeDate.getCurrentDate();
+
     // The owners picked in the form are asked about now, before anything is saved.
     await OwnerRuleAssignment.checkOwnersPickedOnCreate({
       ownerUserService: MonitorOwnerUserService,
@@ -2819,7 +2844,39 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: MonitorCreateCarryForward = {
+      feedStartsAt: feedStartsAt,
+    };
+
+    return { createBy, carryForward: carryForward };
+  }
+
+  // When the monitor's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(onCreate: OnCreate<Model>): Date | undefined {
+    const carryForward: Partial<MonitorCreateCarryForward> | null =
+      (onCreate.carryForward as Partial<MonitorCreateCarryForward> | null) ||
+      null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
+  }
+
+  /*
+   * A create: its creator is made an owner of the monitor as it returns
+   * (autoOwnerOnCreate), which its notification rules wait for a moment
+   * before they are matched (WorkspaceRuleOwnersOnCreate) - also when the
+   * create fails, which leaves nothing to wait for.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
+
+    try {
+      return await super.create(createBy);
+    } finally {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Create);
+    }
   }
 
   /*
@@ -2933,53 +2990,8 @@ export class Service extends ProjectReferencesService<Model> {
       milestone: ActivationMilestone.FirstMonitorCreated,
     });
 
-    const monitor: Model | null = await this.findOneById({
-      id: createdItem.id,
-      select: {
-        projectId: true,
-        name: true,
-        description: true,
-        monitorType: true,
-        currentMonitorStatus: {
-          name: true,
-        },
-        labels: {
-          name: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
-
-    let feedInfoInMarkdown: string = mdText`#### 🌎 Monitor Created: 
-          
-**${createdItem.name?.trim() || "No name provided."}**:
-
-${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description provided.")}
-    
-`.toString();
-
-    if (monitor?.currentMonitorStatus?.name) {
-      feedInfoInMarkdown += mdText`➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
-    }
-
-    if (monitor?.monitorType) {
-      feedInfoInMarkdown += mdText`⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
-    }
-
-    if (monitor?.labels && monitor.labels.length > 0) {
-      feedInfoInMarkdown += `🏷️ **Labels**:\n`;
-
-      for (const label of monitor.labels) {
-        feedInfoInMarkdown += mdText`- ${label.name}\n`;
-      }
-
-      feedInfoInMarkdown += `\n\n`;
-    }
 
     /*
      * Probes are attached inline rather than on the detached chain below: the
@@ -3032,32 +3044,36 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       createdAt: createdItem.createdAt,
     });
 
-    // Execute operations sequentially with error handling (workspace first)
+    /*
+     * When the monitor's feed starts (MonitorCreateCarryForward): its
+     * "Monitor Created" entry is filed at it, whenever the step below writes
+     * it.
+     */
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
+    /*
+     * The monitor's Slack, Microsoft Teams and Mattermost messages. Its rules
+     * are matched - its channels opened, its "Monitor Created" posted - once
+     * its owners and labels are in, so a rule that asks who owns it or how
+     * it is labelled matches it (#11188): the owners picked on its create
+     * form, its label rules' labels and its owner rules' owners, and its
+     * creator, made its owner as the create returns. Every other message
+     * about it - its first status, "Added team Platform to the Monitor as
+     * the owner", its first probe result - waits for "Monitor Created" until
+     * then, on every App server, and follows it in the order it was made
+     * (WorkspaceCreatedMessageFirst): its channels hear of the monitor first,
+     * then of what happened to it.
+     */
+    await WorkspaceCreatedMessageFirst.hold({ monitorId: createdItem.id });
+
+    // Execute operations sequentially with error handling (owners and labels first)
     Promise.resolve()
       .then(async () => {
         try {
-          return await this.handleWorkspaceOperationsAsync({
-            projectId: createdItem.projectId!,
-            monitorId: createdItem.id!,
-            monitorName: createdItem.name!,
-            feedInfoInMarkdown,
-            createdByUserId,
-          });
-        } catch (error) {
-          logger.error(
-            "Workspace operations failed in MonitorService.onCreateSuccess",
-            {
-              projectId: createdItem.projectId?.toString(),
-              monitorId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          logger.error(error as Error);
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        try {
           /*
+           * Its first status, which its feed lists right under "Monitor
+           * Created", ahead of its owners; posted right after it.
+           *
            * The monitor's first status row is part of creating it, as an
            * incident's first state is: OneUptime writes it, for the person
            * who created the monitor (still its creator). Written as them, it
@@ -3110,6 +3126,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
         }
       })
       .then(async () => {
+        /*
+         * The owners picked on its create form, before its channels are
+         * opened and "Monitor Created" is posted: its rules match on them,
+         * and the channels' setup invites them. Their "owner added" messages
+         * wait for "Monitor Created".
+         */
         try {
           if (
             onCreate.createBy.miscDataProps &&
@@ -3144,7 +3166,9 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
         /*
          * Apply label rules first so rule-added labels are persisted before
          * owner rules run. Owner rules re-fetch labels from the DB, so this
-         * lets owner rules key on rule-added labels.
+         * lets owner rules key on rule-added labels - and before its
+         * channels are opened, so its notification rules match on them, and
+         * "Monitor Created" lists them.
          */
         try {
           await MonitorLabelRuleEngineService.applyRulesToMonitor(createdItem);
@@ -3176,6 +3200,60 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
           return Promise.resolve();
         }
         return Promise.resolve();
+      })
+      .then(async () => {
+        /*
+         * Its rules are matched from here on, on what it ends up with: the
+         * owners and labels this chain adds are in. Its creator, made its
+         * owner as the create returns, and the owners the code that made it
+         * adds are waited for a moment, in a project with a rule that asks
+         * who owns a monitor (WorkspaceRuleOwnersOnCreate). Never throws.
+         */
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId!,
+          eventType: NotificationRuleEventType.Monitor,
+          recordId: createdItem.id!,
+        });
+      })
+      .then(async () => {
+        /*
+         * Its channels, "Monitor Created" - filed when its feed starts, and
+         * naming the labels its label rules attached - and who could not be
+         * added to the channels.
+         */
+        try {
+          return await this.handleWorkspaceOperationsAsync({
+            projectId: createdItem.projectId!,
+            monitorId: createdItem.id!,
+            monitorName: createdItem.name!,
+            feedInfoInMarkdown:
+              await this.getMonitorCreatedMarkdown(createdItem),
+            createdByUserId,
+            postedAt: feedStartsAt,
+          });
+        } catch (error) {
+          logger.error(
+            "Workspace operations failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        /*
+         * Then what waited for "Monitor Created", in the order it was made:
+         * its first status, the owners added above, and anything else
+         * posted about the monitor meanwhile, on any App server - its first
+         * probe result, say. Never throws.
+         */
+        await WorkspaceCreatedMessageFirst.postHeld({
+          monitorId: createdItem.id!,
+        });
       })
       .then(async () => {
         /*
@@ -3275,11 +3353,81 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
             monitorId: createdItem.id?.toString(),
           } as LogAttributes,
         );
+
+        /*
+         * Maybe of "Monitor Created" too: what waited for it goes out now,
+         * rather than once its hold runs out. Never throws.
+         */
+        void WorkspaceCreatedMessageFirst.postHeld({
+          monitorId: createdItem.id!,
+        });
       });
 
     return createdItem;
   }
 
+  /*
+   * What "Monitor Created" says: the monitor's name and description, and
+   * its status, type and labels as they are now - read once its label rules
+   * have attached theirs, so it names those too.
+   */
+  @CaptureSpan()
+  private async getMonitorCreatedMarkdown(createdItem: Model): Promise<string> {
+    const monitor: Model | null = await this.findOneById({
+      id: createdItem.id!,
+      select: {
+        projectId: true,
+        name: true,
+        description: true,
+        monitorType: true,
+        currentMonitorStatus: {
+          name: true,
+        },
+        labels: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let feedInfoInMarkdown: string = mdText`#### 🌎 Monitor Created: 
+          
+**${createdItem.name?.trim() || "No name provided."}**:
+
+${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description provided.")}
+    
+`.toString();
+
+    if (monitor?.currentMonitorStatus?.name) {
+      feedInfoInMarkdown += mdText`➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
+    }
+
+    if (monitor?.monitorType) {
+      feedInfoInMarkdown += mdText`⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
+    }
+
+    if (monitor?.labels && monitor.labels.length > 0) {
+      feedInfoInMarkdown += `🏷️ **Labels**:\n`;
+
+      for (const label of monitor.labels) {
+        feedInfoInMarkdown += mdText`- ${label.name}\n`;
+      }
+
+      feedInfoInMarkdown += `\n\n`;
+    }
+
+    return feedInfoInMarkdown;
+  }
+
+  /*
+   * The monitor's channels, its "Monitor Created" entry - posted to them as
+   * the message that announces it, ahead of the messages its create held
+   * back until it (WorkspaceCreatedMessageFirst), and filed at `postedAt`
+   * when given, when its feed starts - and the note under it of who could
+   * not be added to them.
+   */
   @CaptureSpan()
   private async handleWorkspaceOperationsAsync(data: {
     projectId: ObjectID;
@@ -3287,6 +3435,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     monitorName: string;
     feedInfoInMarkdown: string;
     createdByUserId: ObjectID | undefined | null;
+    postedAt?: Date | undefined;
   }): Promise<void> {
     // send message to workspaces - slack, teams, etc.
     const workspaceResult: WorkspaceChannelsCreated | null =
@@ -3316,9 +3465,11 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       displayColor: Green500,
       feedInfoInMarkdown: data.feedInfoInMarkdown,
       userId: data.createdByUserId || undefined,
+      ...(data.postedAt ? { postedAt: data.postedAt } : {}),
       workspaceNotification: {
         appendMessageBlocks: monitorCreateMessageBlocks,
         sendWorkspaceNotification: true,
+        announcesRecord: true,
       },
     });
 

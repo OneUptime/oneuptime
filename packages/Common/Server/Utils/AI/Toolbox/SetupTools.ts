@@ -113,6 +113,10 @@ import IncidentOnCallRuleService from "../../../Services/IncidentOnCallRuleServi
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
 import MonitorProbeService from "../../../Services/MonitorProbeService";
 import MonitorService from "../../../Services/MonitorService";
+import CreateBy from "../../../Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../Notification/CreatedNotificationHold";
 import MonitorStatusService from "../../../Services/MonitorStatusService";
 import OnCallDutyPolicyEscalationRuleService from "../../../Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Services/OnCallDutyPolicyEscalationRuleTeamService";
@@ -1268,34 +1272,61 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
      * ownership. Its name is the address's: numbered, not refused, where
      * the project requires unique names and another monitor has it.
      */
-    const created: Monitor = await MonitorService.create({
+    const createBy: CreateBy<Monitor> = {
       data: monitor,
       miscDataProps: getNumbersTakenNameData(),
       props: ctx.props,
-    });
+    };
 
     /*
-     * The person owns it, as the card said: the server makes the creator of
-     * an operational resource its owner (DatabaseService.autoOwnerOnCreate),
-     * but never a master admin - and the first person to sign up to a
-     * self-hosted server is one. The guided setup makes them the owner, and
-     * so does this, quietly (#7409). A failure leaves the monitor as made.
+     * A master admin is made the owner below, once the create returns: the
+     * monitor's notification rules wait a moment for that before they are
+     * matched (WorkspaceRuleOwnersOnCreate, #11188).
      */
-    if (ctx.props.isMasterAdmin && ctx.props.userId) {
-      try {
-        await MonitorService.addOwners(
-          ctx.projectId,
-          created.id!,
-          [ctx.props.userId],
-          [],
-          false,
-          ctx.props,
+    const ownerAddedAfter: boolean = Boolean(
+      ctx.props.isMasterAdmin && ctx.props.userId,
+    );
+
+    if (ownerAddedAfter) {
+      CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+    }
+
+    let created: Monitor;
+
+    try {
+      created = await MonitorService.create(createBy);
+
+      /*
+       * The person owns it, as the card said: the server makes the creator
+       * of an operational resource its owner
+       * (DatabaseService.autoOwnerOnCreate), but never a master admin - and
+       * the first person to sign up to a self-hosted server is one. The
+       * guided setup makes them the owner, and so does this, quietly
+       * (#7409). A failure leaves the monitor as made.
+       */
+      if (ownerAddedAfter) {
+        try {
+          await MonitorService.addOwners(
+            ctx.projectId,
+            created.id!,
+            [ctx.props.userId!],
+            [],
+            false,
+            ctx.props,
+          );
+        } catch (error) {
+          logger.error(
+            `set_up_website_monitoring could not make its master admin the owner of monitor ${created.id!.toString()}.`,
+          );
+          logger.error(error as Error);
+        }
+      }
+    } finally {
+      if (ownerAddedAfter) {
+        await CreatedNotificationHold.ownersAreIn(
+          createBy,
+          OwnersAddedBy.Caller,
         );
-      } catch (error) {
-        logger.error(
-          `set_up_website_monitoring could not make its master admin the owner of monitor ${created.id!.toString()}.`,
-        );
-        logger.error(error as Error);
       }
     }
 
