@@ -63,8 +63,15 @@ import {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import TransceiverWalker, {
   TRANSCEIVER_WALK_BUDGET_MS,
+  TransceiverSnmpAccess,
   TransceiverWalkResult,
 } from "../../Snmp/TransceiverWalker";
+import FibreChannelPortWalker, {
+  FIBRE_CHANNEL_WALK_BUDGET_MS,
+  FibreChannelWalkInput,
+  FibreChannelWalkResult,
+} from "../../Snmp/FibreChannelPortWalker";
+import { SnmpFibreChannelPort } from "Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import SnmpOidWalker, {
   SnmpOidWalkOutcome,
   SnmpOidWalkSession,
@@ -1019,6 +1026,18 @@ export default class SnmpMonitor {
         version: snmp.Version3,
         transport: SnmpMonitor.getTransportForHost(config.hostname),
       };
+
+      /*
+       * The context every request names (contextName). A Brocade logical
+       * switch of a Virtual Fabric answers only in its own ("VF:128"), and
+       * the agent's default context is another logical switch altogether.
+       */
+      const contextName: string = SnmpMonitor.getV3ContextName(config);
+
+      if (contextName) {
+        sessionOptionsV3.context = contextName;
+      }
+
       const user: snmp.User = SnmpMonitor.buildV3User(config);
       return snmp.createV3Session(config.hostname, user, sessionOptionsV3);
     }
@@ -1221,6 +1240,8 @@ export default class SnmpMonitor {
       const interfaces: Array<SnmpInterface> = [];
       // Every name each interface goes by, for matching optics to ports.
       const transceiverInterfaces: Array<TransceiverInterfaceCandidate> = [];
+      // The same, with each port's ifType, for its Fibre Channel side.
+      const fibreChannelInterfaces: FibreChannelWalkInput["interfaces"] = [];
 
       for (const interfaceIndex of Object.keys(ifTable)) {
         const row: Record<string, unknown> = ifTable[interfaceIndex]!;
@@ -1261,6 +1282,13 @@ export default class SnmpMonitor {
               extendedColumn(IF_X_TABLE_COLUMNS.ifAlias),
             ),
           ],
+        });
+
+        fibreChannelInterfaces.push({
+          ...transceiverInterfaces[transceiverInterfaces.length - 1]!,
+          interfaceType: SnmpMonitor.toMetricNumber(
+            column(IF_TABLE_COLUMNS.ifType),
+          ),
         });
 
         interfaces.push({
@@ -1320,6 +1348,28 @@ export default class SnmpMonitor {
       interfaces.sort((a: SnmpInterface, b: SnmpInterface) => {
         return a.interfaceIndex - b.interfaceIndex;
       });
+
+      /*
+       * Best-effort Fibre Channel side of a SAN switch's ports: type, why a
+       * down one is down, and the error counters IF-MIB does not carry.
+       * Read only on a device with Fibre Channel interfaces, from its
+       * maker's MIB, within its own budget. A read that fails attaches
+       * nothing: the next poll's rates span the longer window instead.
+       */
+      try {
+        const fibreChannel: FibreChannelWalkResult =
+          await SnmpMonitor.walkFibreChannelPorts({
+            session: session,
+            sysObjectId: systemInfo?.sysObjectId,
+            interfaces: fibreChannelInterfaces,
+          });
+
+        SnmpMonitor.attachFibreChannelPorts(interfaces, fibreChannel.ports);
+      } catch (err) {
+        logger.debug(
+          `SNMP Fibre Channel port read failed for ${config.hostname}: ${(err as Error)?.message || err}`,
+        );
+      }
 
       // Best-effort LLDP neighbor discovery for the topology graph.
       let lldpNeighbors: Array<LldpNeighbor> | undefined = undefined;
@@ -1563,8 +1613,24 @@ export default class SnmpMonitor {
       isTruncated = true;
     }
 
-    const rows: Array<SnmpTableResultRow> = Array.from(rowsByIndex.entries())
-      .slice(0, maxRows)
+    const keptRows: Array<
+      [string, Record<string, string | number | null>]
+    > = Array.from(rowsByIndex.entries()).slice(0, maxRows);
+
+    /*
+     * Name columns read by each row's own index (labelOids): a GET of
+     * exactly the rows found, never a walk of a column that names every
+     * entity in the chassis. Best effort: a name that cannot be read leaves
+     * the row named by its index.
+     */
+    await SnmpMonitor.readTableLabels({
+      session: session,
+      labelOids: table.labelOids,
+      rows: keptRows,
+      deadlineAt: deadlineAt,
+    });
+
+    const rows: Array<SnmpTableResultRow> = keptRows
       .map(
         ([index, values]: [
           string,
@@ -1579,6 +1645,93 @@ export default class SnmpMonitor {
       rows: rows,
       ...(isTruncated ? { isTruncated: true } : {}),
     };
+  }
+
+  public static async readTableLabels(data: {
+    session: snmp.Session;
+    labelOids: Array<string> | undefined;
+    rows: Array<[string, Record<string, string | number | null>]>;
+    deadlineAt: number;
+  }): Promise<void> {
+    const labelOids: Array<string> = [];
+
+    for (const oid of data.labelOids || []) {
+      const normalized: string = SnmpOidListUtil.normalizeOid(oid);
+
+      if (
+        SnmpOidListUtil.isValidOid(normalized) &&
+        !labelOids.includes(normalized)
+      ) {
+        labelOids.push(normalized);
+      }
+    }
+
+    if (labelOids.length === 0 || data.rows.length === 0) {
+      return;
+    }
+
+    const cells: Array<{
+      oid: string;
+      labelOid: string;
+      values: Record<string, string | number | null>;
+    }> = [];
+
+    for (const [index, values] of data.rows) {
+      for (const labelOid of labelOids) {
+        cells.push({
+          oid: `${labelOid}.${index}`,
+          labelOid: labelOid,
+          values: values,
+        });
+      }
+    }
+
+    for (
+      let offset: number = 0;
+      offset < cells.length;
+      offset += SnmpMonitor.snmpGetChunkSize
+    ) {
+      if (Date.now() > data.deadlineAt) {
+        return;
+      }
+
+      const chunk: typeof cells = cells.slice(
+        offset,
+        offset + SnmpMonitor.snmpGetChunkSize,
+      );
+
+      let varbinds: Array<snmp.Varbind> = [];
+
+      try {
+        varbinds = await SnmpMonitor.getOids(
+          data.session,
+          chunk.map((cell: { oid: string }) => {
+            return cell.oid;
+          }),
+        );
+      } catch {
+        // The names are a nicety: the rows stand without them.
+        return;
+      }
+
+      chunk.forEach(
+        (
+          cell: {
+            labelOid: string;
+            values: Record<string, string | number | null>;
+          },
+          position: number,
+        ) => {
+          const varbind: snmp.Varbind | undefined = varbinds[position];
+
+          if (!varbind || snmp.isVarbindError(varbind)) {
+            return;
+          }
+
+          cell.values[cell.labelOid] = SnmpMonitor.parseVarbindValue(varbind);
+        },
+      );
+    }
   }
 
   private static clampTableMaxRows(maxRows: number | undefined): number {
@@ -1795,6 +1948,71 @@ export default class SnmpMonitor {
    * The device's transceivers, read within their own budget through the
    * bounded walks and chunked GETs below (TransceiverWalker).
    */
+  private static async walkFibreChannelPorts(data: {
+    session: snmp.Session;
+    sysObjectId: string | undefined;
+    interfaces: FibreChannelWalkInput["interfaces"];
+  }): Promise<FibreChannelWalkResult> {
+    const deadlineAt: number = Date.now() + FIBRE_CHANNEL_WALK_BUDGET_MS;
+
+    return await FibreChannelPortWalker.collect({
+      sysObjectId: data.sysObjectId,
+      interfaces: data.interfaces,
+      access: SnmpMonitor.boundAccess(data.session, deadlineAt),
+    });
+  }
+
+  // Each port's Fibre Channel side onto the interface it was joined to.
+  public static attachFibreChannelPorts(
+    interfaces: Array<SnmpInterface>,
+    ports: Map<number, SnmpFibreChannelPort>,
+  ): void {
+    for (const snmpInterface of interfaces) {
+      const port: SnmpFibreChannelPort | undefined = ports.get(
+        snmpInterface.interfaceIndex,
+      );
+
+      if (port) {
+        snmpInterface.fibreChannel = port;
+      }
+    }
+  }
+
+  // Table reads bound to one session and one deadline.
+  private static boundAccess(
+    session: snmp.Session,
+    deadlineAt: number,
+  ): TransceiverSnmpAccess {
+    return {
+      walkColumns: (
+        tableOid: string,
+        columns: Array<number>,
+        maxRows: number,
+      ): Promise<SnmpTableRows> => {
+        return SnmpMonitor.getBoundedTableColumns(
+          session,
+          tableOid,
+          columns,
+          maxRows,
+          deadlineAt,
+        );
+      },
+      getCells: (
+        tableOid: string,
+        columns: Array<number>,
+        rowIndexes: Array<string>,
+      ): Promise<SnmpTableRows> => {
+        return SnmpMonitor.getTableCells({
+          session: session,
+          tableOid: tableOid,
+          columns: columns,
+          rowIndexes: rowIndexes,
+          deadlineAt: deadlineAt,
+        });
+      },
+    };
+  }
+
   private static async walkTransceivers(data: {
     session: snmp.Session;
     sysObjectId: string | undefined;
@@ -1809,34 +2027,7 @@ export default class SnmpMonitor {
       interfaces: data.interfaces,
       entityRows: data.entityRows,
       cacheKey: data.cacheKey,
-      access: {
-        walkColumns: (
-          tableOid: string,
-          columns: Array<number>,
-          maxRows: number,
-        ): Promise<SnmpTableRows> => {
-          return SnmpMonitor.getBoundedTableColumns(
-            data.session,
-            tableOid,
-            columns,
-            maxRows,
-            deadlineAt,
-          );
-        },
-        getCells: (
-          tableOid: string,
-          columns: Array<number>,
-          rowIndexes: Array<string>,
-        ): Promise<SnmpTableRows> => {
-          return SnmpMonitor.getTableCells({
-            session: data.session,
-            tableOid: tableOid,
-            columns: columns,
-            rowIndexes: rowIndexes,
-            deadlineAt: deadlineAt,
-          });
-        },
-      },
+      access: SnmpMonitor.boundAccess(data.session, deadlineAt),
     });
   }
 
@@ -2666,6 +2857,20 @@ export default class SnmpMonitor {
       }
       throw err as Error;
     }
+  }
+
+  /*
+   * The SNMPv3 context to poll in: the device's, trimmed, or empty for the
+   * agent's default context. SNMPv1 and v2c have no context.
+   */
+  public static getV3ContextName(config: MonitorStepSnmpMonitor): string {
+    if (config.snmpVersion !== SnmpVersion.V3) {
+      return "";
+    }
+
+    const contextName: unknown = config.snmpV3Auth?.contextName;
+
+    return typeof contextName === "string" ? contextName.trim() : "";
   }
 
   private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {

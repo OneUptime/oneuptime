@@ -108,6 +108,8 @@ export interface InterfaceExistingRowSnapshot {
   outRateMbps?: number | null | undefined;
   utilizationPercent?: number | null | undefined;
   errorsPerSecond?: number | null | undefined;
+  fibreChannelPortType?: string | null | undefined;
+  downReason?: string | null | undefined;
   lastSeenAt?: Date | string | null | undefined;
 }
 
@@ -136,6 +138,9 @@ export interface InterfaceInsertRow {
   isOperationallyUp: boolean;
   isAdministrativelyUp: boolean;
   speedInMbps: number | null;
+  // A Fibre Channel port's type and why it is down; null on any other port.
+  fibreChannelPortType: string | null;
+  downReason: string | null;
   lastSeenAt: Date;
 }
 
@@ -166,6 +171,8 @@ export interface InterfaceUpdateRow {
   outRateMbps: number | null;
   utilizationPercent: number | null;
   errorsPerSecond: number | null;
+  fibreChannelPortType: string | null;
+  downReason: string | null;
   lastSeenAt: Date;
 }
 
@@ -295,6 +302,11 @@ export default class InterfaceInventoryUtil {
           ),
           utilizationPercent: walked.utilizationPercent ?? null,
           errorsPerSecond: walked.errorsPerSecond ?? null,
+          fibreChannelPortType: InterfaceInventoryUtil.fibreChannelPortType({
+            walked: walked,
+            stored: existing,
+          }),
+          downReason: InterfaceInventoryUtil.downReason(walked),
           lastSeenAt: data.now,
         };
 
@@ -323,12 +335,53 @@ export default class InterfaceInventoryUtil {
           speedInMbps: InterfaceInventoryUtil.toMbps(
             walked.speedInBitsPerSecond,
           ),
+          fibreChannelPortType: InterfaceInventoryUtil.fibreChannelPortType({
+            walked: walked,
+            stored: undefined,
+          }),
+          downReason: InterfaceInventoryUtil.downReason(walked),
           lastSeenAt: data.now,
         });
       }
     }
 
     return plan;
+  }
+
+  /*
+   * A Fibre Channel port's type, as stored: what the switch reports while
+   * the port is up, and, while it is down, what it was when it was last up.
+   * A down port reports no type (MDS: "port operationally down") or a
+   * generic one (Brocade: G-Port), and the type it had - an E-port, an
+   * inter-switch link - is what says what went down. Null on any other port.
+   */
+  public static fibreChannelPortType(data: {
+    walked: SnmpInterface;
+    stored: InterfaceExistingRowSnapshot | undefined;
+  }): string | null {
+    const walkedType: string | null = truncateShortText(
+      data.walked.fibreChannel?.portType,
+    );
+
+    if (!data.walked.fibreChannel) {
+      return null;
+    }
+
+    if (data.walked.isOperationallyUp) {
+      return walkedType;
+    }
+
+    return truncateShortText(data.stored?.fibreChannelPortType || undefined) ||
+      walkedType;
+  }
+
+  // Why a Fibre Channel port is down, while it is; null otherwise.
+  public static downReason(walked: SnmpInterface): string | null {
+    if (walked.isOperationallyUp) {
+      return null;
+    }
+
+    return truncateShortText(walked.fibreChannel?.downReason);
   }
 
   /*
@@ -345,9 +398,10 @@ export default class InterfaceInventoryUtil {
    *     be written on its own. So an answering interface's lastSeenAt is
    *     never more than one window and one poll old.
    *  3. Always when anything the walk reads about the port changed: its
-   *     name, alias, MAC, type, speed, or its operational or administrative
-   *     state. Compared exactly, after the same truncation and unit
-   *     conversion the write applies.
+   *     name, alias, MAC, type, speed, its operational or administrative
+   *     state, or a Fibre Channel port's type and why it is down. Compared
+   *     exactly, after the same truncation and unit conversion the write
+   *     applies.
    *  4. When a reading moved noticeably (ratesMoved).
    *
    * Otherwise the row is left as it is. isMonitored plays no part: the walk
@@ -406,7 +460,12 @@ export default class InterfaceInventoryUtil {
         stored.isAdministrativelyUp,
         update.isAdministrativelyUp,
       ) ||
-      !InterfaceInventoryUtil.isSame(stored.speedInMbps, update.speedInMbps)
+      !InterfaceInventoryUtil.isSame(stored.speedInMbps, update.speedInMbps) ||
+      !InterfaceInventoryUtil.isSame(
+        stored.fibreChannelPortType,
+        update.fibreChannelPortType,
+      ) ||
+      !InterfaceInventoryUtil.isSame(stored.downReason, update.downReason)
     ) {
       return true;
     }
