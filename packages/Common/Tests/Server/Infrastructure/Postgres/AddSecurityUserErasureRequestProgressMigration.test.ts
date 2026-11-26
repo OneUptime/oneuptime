@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSecurityUserErasureRequestProgress1809187721160 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187721160-AddSecurityUserErasureRequestProgress";
+import { AddSecurityUserErasureRequestProgress1809187741160 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187741160-AddSecurityUserErasureRequestProgress";
 import SecurityUserErasureRequest from "../../../../Models/DatabaseModels/SecurityUserErasureRequest";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -20,7 +20,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * holds its statement to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809187721160";
+const MIGRATION_TIMESTAMP: string = "1809187741160";
 const MIGRATION_BASE_NAME: string = "AddSecurityUserErasureRequestProgress";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -37,7 +37,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddSecurityUserErasureRequestProgress1809187721160();
+    new AddSecurityUserErasureRequestProgress1809187741160();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -48,7 +48,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddSecurityUserErasureRequestProgress1809187721160", () => {
+describe("AddSecurityUserErasureRequestProgress1809187741160", () => {
   test("adds progress to the erasure requests, nullable, with no default", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "SecurityUserErasureRequest" ADD "progress" jsonb`,
@@ -91,7 +91,7 @@ describe("AddSecurityUserErasureRequestProgress1809187721160", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddSecurityUserErasureRequestProgress1809187721160().name).toBe(
+    expect(new AddSecurityUserErasureRequestProgress1809187741160().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     // After the one that added the names it keeps beside it (#11044).

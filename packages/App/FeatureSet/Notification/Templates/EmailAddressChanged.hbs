@@ -27,9 +27,12 @@
 
   The product's name is the installation's own, and support's address is
   OneUptime's, so both go into sentences through ttHtml, which escapes the
-  whole sentence. The masked address and the request's rows are values, on
-  plainText. Everything else is OneUptime's own words, looked up in the
-  reader's language (Utils/EmailLanguage.ts).
+  whole sentence. On a self-hosted server whose admins set a support
+  address of their own (serverSupportEmail, #10941), whom to ask is that
+  address, a mailto: link through ttMailtoHtml, which escapes the rest.
+  The masked address and the request's rows are values, on plainText.
+  Everything else is OneUptime's own words, looked up in the reader's
+  language (Utils/EmailLanguage.ts).
 --}}
 
 {{#if changedByServerAdmin}}
@@ -55,7 +58,11 @@
 {{> InfoBlock info=(tHtml "If this was not you, someone who was signed in to your account moved it to an address of their own.")}}
 
 {{#if @root.isSelfHosted}}
+{{#if @root.serverSupportEmail}}
+{{> InfoBlock info=(ttMailtoHtml "Contact support at {{address}} right away, from this address: they can move your account back to it." address=@root.serverSupportEmail)}}
+{{else}}
 {{> InfoBlock info=(tHtml "Contact your server's admin right away: they can move your account back to this address.")}}
+{{/if}}
 {{else if @root.isBrandRenamed}}
 {{> InfoBlock info=(tHtml "Contact your server's admin right away: they can move your account back to this address.")}}
 {{else}}
@@ -64,7 +71,11 @@
 {{else if changedByIdentityProvider}}
 {{> InfoBlock info=(tHtml "If you did not expect this, contact your organization's admin.")}}
 {{else if @root.isSelfHosted}}
+{{#if @root.serverSupportEmail}}
+{{> InfoBlock info=(ttMailtoHtml "If you did not expect this, contact support at {{address}}." address=@root.serverSupportEmail)}}
+{{else}}
 {{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}
+{{/if}}
 {{else if @root.isBrandRenamed}}
 {{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}
 {{else}}

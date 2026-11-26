@@ -116,6 +116,7 @@ export const ON_CALL_SETUP_COPY: {
   emailRow: string;
   phoneRow: string;
   pushRow: string;
+  pushRowWithoutApp: string;
   emailNone: string;
   phoneNone: string;
   pushNone: string;
@@ -134,6 +135,8 @@ export const ON_CALL_SETUP_COPY: {
   whoCanAddBalance: string;
   serverNoTwilio: string;
   serverNoTwilioForAdmin: string;
+  serverNoTwilioWithoutApp: string;
+  serverNoTwilioForAdminWithoutApp: string;
   setUpTwilio: string;
   notReachable: string;
   continueButton: string;
@@ -183,6 +186,7 @@ export const ON_CALL_SETUP_COPY: {
   testSendAnother: string;
   testDidNotGetIt: string;
   testDidNotGetItHelp: string;
+  testDidNotGetItHelpWithoutApp: string;
   testMethodsLink: string;
   summaryTitle: string;
   summaryFirst: string;
@@ -227,6 +231,12 @@ export const ON_CALL_SETUP_COPY: {
   emailRow: translationKey("Email"),
   phoneRow: translationKey("SMS and phone calls"),
   pushRow: translationKey("Mobile app or browser"),
+  /*
+   * The same row where the server's admins took the mobile app away (Admin
+   * Dashboard > Settings > Help and Support, #10945): what it holds, push
+   * notifications, without naming the app.
+   */
+  pushRowWithoutApp: translationKey("Push notifications"),
   emailNone: translationKey("No verified email address."),
   phoneNone: translationKey("No phone number yet."),
   pushNone: translationKey("Not set up."),
@@ -273,6 +283,13 @@ export const ON_CALL_SETUP_COPY: {
   ),
   serverNoTwilioForAdmin: translationKey(
     "This server can't send SMS or make calls yet. Set up Twilio for the server; until then, email and the app still reach you.",
+  ),
+  // The same two, where the server does not offer the mobile app (#10945).
+  serverNoTwilioWithoutApp: translationKey(
+    "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email still reaches you.",
+  ),
+  serverNoTwilioForAdminWithoutApp: translationKey(
+    "This server can't send SMS or make calls yet. Set up Twilio for the server; until then, email still reaches you.",
   ),
   setUpTwilio: translationKey("Set up SMS and calls"),
   notReachable: translationKey(
@@ -382,6 +399,8 @@ export const ON_CALL_SETUP_COPY: {
   testSendAnother: WEBSITE_DOWN_COPY.testSendAnother,
   testDidNotGetIt: WEBSITE_DOWN_COPY.testDidNotGetIt,
   testDidNotGetItHelp: WEBSITE_DOWN_COPY.testDidNotGetItHelp,
+  testDidNotGetItHelpWithoutApp:
+    WEBSITE_DOWN_COPY.testDidNotGetItHelpWithoutApp,
   testMethodsLink: WEBSITE_DOWN_COPY.testMethodsLink,
   summaryTitle: translationKey("Paging is set up"),
   summaryFirst: translationKey("Who is paged"),

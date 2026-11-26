@@ -23,7 +23,7 @@ flowchart TB
 
 - **Il primo gruppo che corrisponde prende il costo.** I gruppi di una vista sono in ordine, e ogni costo va nel primo gruppo le cui regole gli corrispondono, quindi nulla viene contato due volte. I gruppi e la spesa non allocata danno sempre il totale del periodo.
 - **Le regole leggono tutto ciò che un costo porta con sé.** L'account, il cloud, il servizio, la regione, la risorsa e i suoi tag, e ciò che OneUptime sa della risorsa: i suoi team proprietari, le sue etichette, il suo ambiente e la sua app delle piattaforme applicative.
-- **Tutto viene calcolato quando guardi.** Non si scrive nulla per costo. Una regola che cambi ripartisce di nuovo ogni mese che OneUptime conserva, fino a 400 giorni indietro, senza nulla da attendere.
+- **Tutto viene calcolato quando guardi.** Non si scrive nulla per costo. Una regola che cambi ripartisce di nuovo ogni mese che OneUptime conserva, fino a 400 giorni indietro, senza nulla da attendere. Ogni cifra segue il selettore sopra di essa, fatturato, ammortizzato o netto, come in [Costi del cloud](/docs/telemetry/cloud-costs#fatturato-ammortizzato-e-netto), e una voce personalizzata è la stessa su ciascuna base.
 - **Più viste possono ripartire la stessa spesa.** «Per team» e «Per centro di costo» ripartiscono ciascuna tutta la spesa, a modo loro.
 
 ## Prima di iniziare
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-La risposta contiene il `total` di ogni gruppo e la sua composizione (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), le sue cifre per giorno o per mese, il periodo precedente e la composizione della spesa non allocata. `POST /cloud-cost-group/<group ID>/spend` risponde per un solo gruppo.
+La risposta contiene il `total` di ogni gruppo e la sua composizione (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), le sue cifre per giorno o per mese, il periodo precedente e la composizione della spesa non allocata. `POST /cloud-cost-group/<group ID>/spend` risponde per un solo gruppo. Invia `basis` come `billed`, `amortized` o `net` per cifre su quella base; senza, sono su quella del progetto, e il `basis` della risposta dice quale.
 
 ## Limiti
 

@@ -571,6 +571,15 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "StorageArrayOwnerUser",
     "StorageArrayResource",
   ],
+  [ProductKey.XcpNg]: [
+    "XcpNgPool",
+    "XcpNgPoolFeed",
+    "XcpNgPoolLabelRule",
+    "XcpNgPoolOwnerRule",
+    "XcpNgPoolOwnerTeam",
+    "XcpNgPoolOwnerUser",
+    "XcpNgResource",
+  ],
   [ProductKey.Network]: [
     "NetworkAddressName",
     "NetworkAlertPolicy",
@@ -617,8 +626,15 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "CloudAccount",
     "CloudAccountFeed",
     "CloudBudget",
+    // Required tags (#11012).
+    "CloudRequiredTag",
+    "CloudTagCoverageDay",
+    "CloudTagFinding",
+    "CloudTagSetting",
     "CloudConnection",
     "CloudCostRecommendation",
+    "CloudOffHoursSchedule",
+    "CloudSavingsAction",
     AnalyticsTableName.CloudCost,
     // A cloud's resources: App Platforms draws its environments from them.
     "CloudResource",

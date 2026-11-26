@@ -26,6 +26,7 @@ import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
 import Service from "../../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
+import XcpNgPool from "../../../../Models/DatabaseModels/XcpNgPool";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 
 /*
@@ -146,7 +147,9 @@ function describePlace(place: EditPlace): string {
  * in exactly one of them: the one AI rule - an incident's or an alert's in
  * AiRulesTable, a telemetry product's (the Profiler's) in
  * TelemetryAiRulesTable, a Data Security issue's on Data Security → AI in
- * DataSecurityAiRulesTable (#10364) - by triggerEntityType. Each table
+ * DataSecurityAiRulesTable (#10364), a cloud saving's on Cloud → Settings →
+ * Savings AI Rules in CloudSavingsAiRulesTable (#11010) - by
+ * triggerEntityType. Each table
  * reads only its own triggers, so a rule is never edited from two. Held
  * below: every table of the split reads its rows by that column.
  */
@@ -162,6 +165,7 @@ const SPLIT_MODELS: Record<string, SplitModel> = {
       "packages/App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiRulesTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiRulesTable.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Cloud/Savings/CloudSavingsAiRulesTable.tsx",
     ],
   },
   /*
@@ -544,6 +548,7 @@ const MODEL_TYPES: Record<string, { new (): BaseModel }> = {
   OpenStackCloud: OpenStackCloud,
   VMwareVCenter: VMwareVCenter,
   StorageArray: StorageArray,
+  XcpNgPool: XcpNgPool,
   DockerSwarmCluster: DockerSwarmCluster,
   IoTFleet: IoTFleet,
   Service: Service,
@@ -565,6 +570,12 @@ interface DiscoveredResource {
    */
   identity: Array<string>;
   editableIdentity: Array<string>;
+  /*
+   * What the help calls the value telemetry is matched on, in "telemetry
+   * that still reports the old name creates a new ...": a name for most, a
+   * UUID for an XCP-ng pool, whose help would be untrue calling it a name.
+   */
+  identityWord?: string | undefined;
 }
 
 const identified: (
@@ -574,6 +585,7 @@ const identified: (
   pageKey: string,
   identity: Array<string>,
   editableIdentity: Array<string>,
+  identityWord?: string | undefined,
 ) => DiscoveredResource = (
   model: string,
   folder: string,
@@ -581,6 +593,7 @@ const identified: (
   pageKey: string,
   identity: Array<string>,
   editableIdentity: Array<string>,
+  identityWord?: string | undefined,
 ): DiscoveredResource => {
   return {
     model: model,
@@ -589,6 +602,7 @@ const identified: (
     overviewPage: `${PAGES}/${folder}/View/${overview}`,
     identity: identity,
     editableIdentity: editableIdentity,
+    identityWord: identityWord,
   };
 };
 
@@ -728,6 +742,19 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     "StorageArray",
     "Index.tsx",
     "STORAGE_ARRAY_VIEW_SETTINGS",
+  ),
+  /*
+   * An XCP-ng pool is matched on its XAPI UUID (xcp_ng.pool.id), which a
+   * person may change under Advanced, as a Kubernetes cluster's name.
+   */
+  identified(
+    "XcpNgPool",
+    "XcpNg",
+    "Index.tsx",
+    "XCP_NG_POOL_VIEW_SETTINGS",
+    ["poolIdentifier"],
+    ["poolIdentifier"],
+    "UUID",
   ),
   matchedOnName(
     "DockerSwarmCluster",
@@ -1040,7 +1067,7 @@ describe.each(DISCOVERED_RESOURCES)(
 
       for (const column of resource.editableIdentity) {
         expect(use.identityDescriptions[column]).toContain(
-          "telemetry that still reports the old name creates a new",
+          `telemetry that still reports the old ${resource.identityWord || "name"} creates a new`,
         );
       }
     });

@@ -103,6 +103,12 @@ import {
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment, {
@@ -325,6 +331,18 @@ type AttachmentChange = {
    * now and the status it applies. Null when the monitors were not written.
    */
   eventAfterUpdate: Model | null;
+};
+
+// What onBeforeCreate hands to onCreateSuccess.
+type ScheduledMaintenanceCreateCarryForward = {
+  /*
+   * The moment the event's create began, taken before it is written - so
+   * before anything about it can be. Its "Scheduled Maintenance Created"
+   * entry is filed at it, whenever the step that writes it runs: the first
+   * line of its feed, ahead of its first state and its owners, which its
+   * create now writes first (#11188).
+   */
+  feedStartsAt: Date;
 };
 
 export class Service extends ProjectReferencesService<Model> {
@@ -1938,6 +1956,13 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * When the event's feed starts (ScheduledMaintenanceCreateCarryForward):
+     * now, before the event is written and so before any entry about it can
+     * be.
+     */
+    const feedStartsAt: Date = OneUptimeDate.getCurrentDate();
+
     // The owners picked in the form are asked about now, before anything is saved.
     await OwnerRuleAssignment.checkOwnersPickedOnCreate({
       ownerUserService: ScheduledMaintenanceOwnerUserService,
@@ -2092,7 +2117,39 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
       createBy: createBy,
     });
 
-    return { createBy, carryForward: null };
+    const carryForward: ScheduledMaintenanceCreateCarryForward = {
+      feedStartsAt: feedStartsAt,
+    };
+
+    return { createBy, carryForward: carryForward };
+  }
+
+  // When the event's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(onCreate: OnCreate<Model>): Date | undefined {
+    const carryForward: Partial<ScheduledMaintenanceCreateCarryForward> | null =
+      (onCreate.carryForward as Partial<ScheduledMaintenanceCreateCarryForward> | null) ||
+      null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
+  }
+
+  /*
+   * A create: its creator is made an owner of the event as it returns
+   * (autoOwnerOnCreate), which its notification rules wait for a moment
+   * before they are matched (WorkspaceRuleOwnersOnCreate) - also when the
+   * create fails, which leaves nothing to wait for.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
+
+    try {
+      return await super.create(createBy);
+    } finally {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Create);
+    }
   }
 
   @CaptureSpan()
@@ -2245,52 +2302,39 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
      */
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
+    /*
+     * When the event's feed starts (ScheduledMaintenanceCreateCarryForward):
+     * its "Scheduled Maintenance Created" entry is filed at it, whenever the
+     * step below writes it.
+     */
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
+    /*
+     * The event's Slack, Microsoft Teams and Mattermost messages. Its rules
+     * are matched - its channels opened, its "Scheduled Maintenance Created"
+     * posted - once its owners and labels are in, so a rule that asks who
+     * owns it or how it is labelled matches it (#11188): the owners picked on
+     * its create form and its owner rules', its label rules' labels, and its
+     * creator, made its owner as the create returns. Every other message
+     * about it - "Added team Platform to the Scheduled Maintenance as the
+     * owner" - waits for "Scheduled Maintenance Created" until then, on every
+     * App server, and follows it in the order it was made
+     * (WorkspaceCreatedMessageFirst): its channels hear of the event first,
+     * then of what happened to it.
+     */
+    await WorkspaceCreatedMessageFirst.hold({
+      scheduledMaintenanceId: createdItem.id!,
+    });
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
-        try {
-          if (createdItem.projectId && createdItem.id) {
-            membersNotAddedToNewChannels =
-              await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
-                createdItem,
-              );
-          }
-          return Promise.resolve();
-        } catch (error) {
-          logger.error(
-            `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              scheduledMaintenanceId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        try {
-          return await this.createScheduledMaintenanceFeedAsync(
-            scheduledMaintenance,
-          );
-        } catch (error) {
-          logger.error(
-            `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              scheduledMaintenanceId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        // Under "Scheduled Maintenance Created": who could not be added.
-        await ChannelMembersNotAddedNotice.noteAll({
-          projectId: createdItem.projectId,
-          membersNotAdded: membersNotAddedToNewChannels,
-        });
-      })
-      .then(async () => {
+        /*
+         * Its first state, which its feed lists right under "Scheduled
+         * Maintenance Created", ahead of its owners. Not posted to Slack and
+         * Microsoft Teams: "Scheduled Maintenance Created" names it
+         * (WorkspaceStateChangePosting).
+         */
         try {
           return await this.createScheduledMaintenanceStateTimelineAsync(
             createdItem,
@@ -2307,6 +2351,12 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
         }
       })
       .then(async () => {
+        /*
+         * The owners picked on its create form, before its channels are
+         * opened and "Scheduled Maintenance Created" is posted: its rules
+         * match on them, and the channels' setup invites them. Their "owner
+         * added" messages wait for "Scheduled Maintenance Created".
+         */
         try {
           if (
             createdItem.projectId &&
@@ -2358,7 +2408,11 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
         }
       })
       .then(async () => {
-        // Apply label rules: attach matched (and optionally inherited monitor) labels to the event.
+        /*
+         * Apply label rules: attach matched (and optionally inherited
+         * monitor) labels to the event, before its channels are opened so
+         * its rules match on them.
+         */
         try {
           await ScheduledMaintenanceLabelRuleEngineService.applyRulesToScheduledMaintenance(
             createdItem,
@@ -2372,6 +2426,75 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
             } as LogAttributes,
           );
         }
+      })
+      .then(async () => {
+        /*
+         * Its rules are matched from here on, on what it ends up with: the
+         * owners and labels this chain adds are in. Its creator, made its
+         * owner as the create returns, is waited for a moment, in a project
+         * with a rule that asks who owns a maintenance event
+         * (WorkspaceRuleOwnersOnCreate). Never throws.
+         */
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId!,
+          eventType: NotificationRuleEventType.ScheduledMaintenance,
+          recordId: createdItem.id!,
+        });
+      })
+      .then(async () => {
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            membersNotAddedToNewChannels =
+              await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+                createdItem,
+              );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createScheduledMaintenanceFeedAsync(
+            scheduledMaintenance,
+            feedStartsAt,
+          );
+        } catch (error) {
+          logger.error(
+            `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              scheduledMaintenanceId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Under "Scheduled Maintenance Created": who could not be added.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Then what waited for "Scheduled Maintenance Created", in the order
+         * it was made: the owners added above, and anything else posted
+         * about the event meanwhile, on any App server. Never throws.
+         */
+        await WorkspaceCreatedMessageFirst.postHeld({
+          scheduledMaintenanceId: createdItem.id!,
+        });
       })
       .then(async () => {
         try {
@@ -2435,6 +2558,14 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
             scheduledMaintenanceId: createdItem.id?.toString(),
           } as LogAttributes,
         );
+
+        /*
+         * Maybe of "Scheduled Maintenance Created" too: what waited for it
+         * goes out now, rather than once its hold runs out. Never throws.
+         */
+        void WorkspaceCreatedMessageFirst.postHeld({
+          scheduledMaintenanceId: createdItem.id!,
+        });
       });
 
     return createdItem;
@@ -2491,9 +2622,18 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
     }
   }
 
+  /*
+   * The event's "Scheduled Maintenance Created" entry, posted to its Slack,
+   * Microsoft Teams and Mattermost channels as the message that announces
+   * it - ahead of the messages its create held back until it
+   * (WorkspaceCreatedMessageFirst). Filed at `postedAt` when given - when
+   * the event's feed starts - so it is the first line of the feed whenever
+   * it is written.
+   */
   @CaptureSpan()
   private async createScheduledMaintenanceFeedAsync(
     scheduledMaintenance: Model,
+    postedAt?: Date | undefined,
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
@@ -2568,9 +2708,11 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,
         userId: createdByUserId || undefined,
+        ...(postedAt ? { postedAt: postedAt } : {}),
         workspaceNotification: {
           appendMessageBlocks: scheduledMaintenanceCreateMessageBlocks,
           sendWorkspaceNotification: true,
+          announcesRecord: true,
         },
       });
     } catch (error) {

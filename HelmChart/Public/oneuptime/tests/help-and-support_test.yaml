@@ -1,0 +1,197 @@
+# Where the server sends its people for help (#10938): helpAndSupport.*
+# reaches the app as HELP_AND_SUPPORT_*, which seed Admin Dashboard >
+# Settings > Help and Support while nothing is saved there yet. A value that
+# never reached the container would leave a server configured as code on
+# OneUptime's links without a word, so each value is pinned: the defaults,
+# addresses, links and words passed through, true and false, and the pods
+# that seed it - the app, the worker, and the migrate job that seeds a new
+# server's settings the moment they are made.
+suite: help and support
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: leaves every setting on OneUptime's default unless one is set
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_SUPPORT_EMAIL
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_CHAT
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_REQUEST_DEMO
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_GIVE_FEEDBACK
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_HELP_LINK
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_GITHUB
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_MOBILE_APP
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_INVITE_MESSAGE
+            value: ""
+
+  - it: passes addresses and links through as written
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      helpAndSupport.supportEmail: it-help@example.com
+      helpAndSupport.chat: https://example.slack.com/archives/C024BE91L
+      helpAndSupport.giveFeedback: https://help.example.com/feedback?from=oneuptime&team=sre
+      helpAndSupport.helpLink: https://help.example.com/oneuptime
+      helpAndSupport.mobileApp: https://portal.example.com/apps/oneuptime
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_SUPPORT_EMAIL
+            value: it-help@example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_CHAT
+            value: https://example.slack.com/archives/C024BE91L
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_GIVE_FEEDBACK
+            value: https://help.example.com/feedback?from=oneuptime&team=sre
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_HELP_LINK
+            value: https://help.example.com/oneuptime
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_MOBILE_APP
+            value: https://portal.example.com/apps/oneuptime
+
+  - it: hides what is set to hidden
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      helpAndSupport.chat: hidden
+      helpAndSupport.requestDemo: hidden
+      helpAndSupport.gitHub: hidden
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_CHAT
+            value: hidden
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_REQUEST_DEMO
+            value: hidden
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_GITHUB
+            value: hidden
+
+  # A switch written as YAML's own true or false reaches the app as the
+  # word, which the app reads as shown or hidden - never as empty.
+  - it: passes true and false through as words
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      helpAndSupport.requestDemo: false
+      helpAndSupport.gitHub: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_REQUEST_DEMO
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_GITHUB
+            value: "true"
+
+  - it: keeps the sign-in message's words and its lines
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      helpAndSupport.inviteMessage: |-
+        Ask the IT service desk to invite you: "OneUptime access".
+        it-help@example.com or https://help.example.com/oneuptime
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_INVITE_MESSAGE
+            value: "Ask the IT service desk to invite you: \"OneUptime access\".\nit-help@example.com or https://help.example.com/oneuptime"
+
+  - it: reaches the worker, which seeds the settings as it starts
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      helpAndSupport.supportEmail: it-help@example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_SUPPORT_EMAIL
+            value: it-help@example.com
+
+  - it: reaches the migrate job, which seeds a new server's settings as they are made
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set:
+      helpAndSupport.supportEmail: it-help@example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HELP_AND_SUPPORT_SUPPORT_EMAIL
+            value: it-help@example.com

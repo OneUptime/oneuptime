@@ -10,6 +10,7 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionDefinition,
@@ -541,6 +542,8 @@ describe("what the command is written from", () => {
       wafBlocklist: "off",
       // AWS's alone too: Azure has no IAM users of AWS's to read back (#10900).
       securityCaseChecks: "off",
+      // Every cloud's, off until someone lets OneUptime act on savings (#11010).
+      savingsActions: "off",
     });
     // Nothing picked yet: the one account, every setting off.
     expect(readFormCommandSettings(GCP, {})).toEqual({
@@ -549,6 +552,7 @@ describe("what the command is written from", () => {
       dataSecurityResponse: "off",
       wafBlocklist: "off",
       securityCaseChecks: "off",
+      savingsActions: "off",
     });
     // Security case checks picked on AWS: the command grants the reads.
     expect(
@@ -562,6 +566,7 @@ describe("what the command is written from", () => {
       dataSecurityResponse: "off",
       wafBlocklist: "off",
       securityCaseChecks: "on",
+      savingsActions: "off",
     });
   });
 
@@ -620,6 +625,7 @@ describe("what the command is written from", () => {
       dataSecurityResponse: "block",
       wafBlocklist: "off",
       securityCaseChecks: "off",
+      savingsActions: "off",
     });
     // Security case checks are kept too: the access key's user joins their group.
     expect(
@@ -636,7 +642,7 @@ describe("what the command is written from", () => {
     expect(readFormScope(AWS, values)).toBe(CloudConnectionSetupScope.Account);
   });
 
-  test("the first step folds the settings that change the command under it - Data Security's two, the blocklist's and, on AWS, Security case checks; the Credentials step's More fields keeps the rest", () => {
+  test("the first step folds the settings that change the command under it - Savings actions, Data Security's two, the blocklist's and, on AWS, Security case checks; the Credentials step's More fields keeps the rest", () => {
     for (const definition of CloudConnectionCatalog) {
       const command: Array<string> = getCommandSettingFields(definition).map(
         (field: CloudConnectionField): string => {
@@ -660,6 +666,8 @@ describe("what the command is written from", () => {
       expect({ cloud: definition.provider, command }).toEqual({
         cloud: definition.provider,
         command: [
+          // What OneUptime may change for savings, every cloud's (#11010).
+          SAVINGS_ACTIONS_FIELD_KEY,
           DATA_SECURITY_FIELD_KEY,
           DATA_SECURITY_RESPONSE_FIELD_KEY,
           WAF_BLOCKLIST_FIELD_KEY,

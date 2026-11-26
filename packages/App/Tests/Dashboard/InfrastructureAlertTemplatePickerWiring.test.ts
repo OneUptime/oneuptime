@@ -104,6 +104,7 @@ const METRIC_FIELD_TITLES: Record<string, string> = {
   Proxmox: "Proxmox Metric",
   OpenStack: "OpenStack Metric",
   VMware: "VMware Metric",
+  "XCP-ng": "XCP-ng Metric",
   Ceph: "Ceph Metric",
   "Storage Array": "Storage Array Metric",
   IoT: "IoT Metric",
@@ -160,6 +161,12 @@ const TYPES: Array<InfrastructureType> = [
     stepForm: "VMwareMonitor/VMwareMonitorStepForm.tsx",
     picker: "VMwareMonitor/VMwareTemplatePicker.tsx",
     configurationTitle: "VMware Monitor Configuration",
+  },
+  {
+    name: "XCP-ng",
+    stepForm: "XcpNgMonitor/XcpNgMonitorStepForm.tsx",
+    picker: "XcpNgMonitor/XcpNgTemplatePicker.tsx",
+    configurationTitle: "XCP-ng Monitor Configuration",
   },
   {
     name: "Ceph",
@@ -609,6 +616,9 @@ describe("a resource's Recommendations use the picker's category names", () => {
       "Control Plane",
     ],
     [MonitorRecommendationResourceType.VMware, "Host", "ESXi Host"],
+    // An XCP-ng pool's headings are its templates' own words.
+    [MonitorRecommendationResourceType.XcpNg, "VM", "VM"],
+    [MonitorRecommendationResourceType.XcpNg, "Storage", "Storage"],
   ])(
     "%s %s reads %s",
     (

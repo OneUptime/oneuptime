@@ -3,7 +3,18 @@ import {
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
 import { CloudAddedMetric } from "../../../Types/Cloud/CloudAddedMetrics";
-import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
+import {
+  CloudCommitmentKind,
+  CloudCommitmentSummary,
+} from "../../../Types/Cloud/CloudCommitments";
+import {
+  CloudCommitmentFigures,
+  CloudCommitmentPaymentOption,
+  CloudCommitmentScope,
+  CloudCommitmentState,
+} from "../../../Types/Cloud/CloudCommitmentInventory";
+import { CloudCommitmentRecommendationDetails } from "../../../Types/Cloud/CloudCommitmentPlans";
+import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
@@ -299,6 +310,13 @@ export interface CloudConnectionPullState {
    * read Cost Management's limits stop part way reaches the rest next.
    */
   azureCommitmentsReadAt?: Record<string, string> | undefined;
+  /*
+   * Azure: per subscription (lower case), when its actual cost was last
+   * read. Its amortized cost is read at every read of costs, its actual
+   * cost once a day (isAzureActualCostDue), so the bases do not double the
+   * tenant's Cost Management query units.
+   */
+  azureActualCostsReadAt?: Record<string, string> | undefined;
   /*
    * AWS, with Costs per resource on: when Cost Explorer's resource-level
    * costs were last read in full - due again a day later, when the last
@@ -653,7 +671,7 @@ export function keepsAuditRecords(options: CloudChangesOptions): boolean {
 
 /*
  * One day's cost of one series of a connection's account, as the cloud's
- * billing reports it - before credits and refunds.
+ * billing reports it, on each basis (CloudCostBasis).
  */
 export interface CloudCostRecord {
   // The account billed for it: an AWS account, a subscription, a project.
@@ -667,7 +685,15 @@ export interface CloudCostRecord {
   // The resource, as getCloudCostResourceKey keeps it; "" when not one resource.
   resourceId: string;
   currency: string;
+  // Billed: before credits and refunds.
   amount: number;
+  /*
+   * Amortized - commitment fees spread over what they cover - and net -
+   * amortized, less credits, refunds and discounts. Absent means the same
+   * as billed: a cost a cloud draws no such line for.
+   */
+  amortizedAmount?: number | undefined;
+  netAmount?: number | undefined;
   /*
    * The cost's tags (labels, on Google Cloud): the ones its billing names
    * - a Google Cloud billing export's labels - else, for a cost billed to
@@ -705,6 +731,12 @@ export interface CloudCostAccountOutcome {
    * writer brings these days in line for it.
    */
   window?: { start: Date; end: Date } | undefined;
+  /*
+   * The bases this read brought for the account, when not all three: an
+   * Azure subscription read between its daily reads of actual cost brings
+   * amortized and net only. The writer keeps the others as they are.
+   */
+  bases?: Array<CloudCostBasis> | undefined;
 }
 
 export interface CloudCostsOptions extends CloudConnectorCallOptions {
@@ -779,6 +811,12 @@ export interface CloudSavingRecord {
   effort: string;
   // Which recommender said it (CLOUD_SAVINGS_SOURCE_*).
   source: string;
+  /*
+   * For a "commit to use" recommendation, what it would buy - term,
+   * payment option, amount and fees - where the recommender says
+   * (CloudCostRecommendation.commitmentDetails).
+   */
+  commitmentDetails?: CloudCommitmentRecommendationDetails | undefined;
 }
 
 export interface CloudSavingsOptions extends CloudConnectorCallOptions {
@@ -807,6 +845,58 @@ export interface CloudSavingsResult {
   commitments?:
     | Array<{ accountId: string; summary: CloudCommitmentSummary }>
     | undefined;
+  /*
+   * Every commitment the connection could list (CloudCommitmentInventory),
+   * kept as CloudCommitment rows by CloudCommitmentWriter - or why they
+   * could not be listed. Absent from a connector that lists none.
+   */
+  commitmentInventory?: CloudCommitmentInventoryRead | undefined;
+}
+
+/*
+ * One commitment of a connection's cloud, as its reader lists it: kept as
+ * a CloudCommitment row.
+ */
+export interface CloudCommitmentRecord {
+  // The account it is kept on: the one that bought it, else the one read.
+  accountId: string;
+  // The cloud's own id: kept from one read to the next.
+  commitmentId: string;
+  kind: CloudCommitmentKind;
+  name: string;
+  commitmentType: string;
+  covers: string;
+  region: string;
+  scope: CloudCommitmentScope | null;
+  appliesTo: string;
+  termMonths: number | null;
+  paymentOption: CloudCommitmentPaymentOption | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  state: CloudCommitmentState;
+  isAutoRenew: boolean | null;
+  hourlyCommitment: number | null;
+  quantity: number | null;
+  upfrontCost: number | null;
+  recurringHourlyCost: number | null;
+  currency: string;
+  utilizationPercent: number | null;
+  weekUtilizationPercent: number | null;
+  figures: CloudCommitmentFigures | null;
+  // The AWS service a reservation is for: where it is bought again.
+  service?: string | undefined;
+}
+
+export interface CloudCommitmentInventoryRead {
+  records: Array<CloudCommitmentRecord>;
+  /*
+   * Whether every commitment was listed: only then is one no longer listed
+   * removed (a list cut short at its page limit keeps what it had).
+   */
+  complete: boolean;
+  // Whether they could be listed, and why not - or what was left out.
+  state: CloudCostState;
+  message?: string | undefined;
 }
 
 export interface CloudConnector {

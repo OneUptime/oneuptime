@@ -256,6 +256,7 @@ export const TELEMETRY_USAGE_RESOURCE_TYPE_LABELS: Record<string, string> = {
   [ServiceType.StorageArray]: translationKey("Storage Array"),
   [ServiceType.DockerSwarmCluster]: translationKey("Docker Swarm Cluster"),
   [ServiceType.VMwareVCenter]: translationKey("vCenter"),
+  [ServiceType.XcpNgPool]: translationKey("XCP-ng Pool"),
   [ServiceType.IoTDevice]: translationKey("IoT Fleet"),
   [ServiceType.ServerlessFunction]: translationKey("Serverless Function"),
   [ServiceType.CloudResource]: translationKey("Cloud Resource"),

@@ -86,13 +86,13 @@
   "footer": {
     "copyright": "HackerBay, Inc.",
     "helpSupport": "도움말 및 지원",
-    "legal": "법적 고지",
+    "legal": "법적 정보",
     "version": "버전",
     "versionModalTitle": "OneUptime 버전",
     "versionLabel": "버전",
     "commitLabel": "커밋",
-    "versionUnavailable": "버전 데이터를 사용할 수 없습니다",
-    "versionUnavailableWithError": "버전 데이터를 사용할 수 없습니다: {{error}}"
+    "versionUnavailable": "버전 정보를 사용할 수 없습니다",
+    "versionUnavailableWithError": "버전 정보를 사용할 수 없습니다: {{error}}"
   },
   "navbar": {
     "users": "사용자",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Microsoft Teams에서 채팅",
   "Chat with Support": "지원팀과 채팅",
   "Show it": "표시",
+  "From this server's configuration": "이 서버의 구성에서",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "아래 일부 설정은 여기에 아무것도 저장되지 않았을 때 이 서버의 구성(Helm 값 또는 config.env)에서 설정되었습니다. 여기서 변경한 내용은 유지되며, 다시 시작해도 되돌아가지 않습니다.",
+  "Set from {{variable}} in this server's configuration.": "이 서버 구성의 {{variable}}에서 설정되었습니다.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "이 서버 구성의 {{variable}}은(는) 사용되지 않았습니다: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "이 설정은 숨길 수 없습니다. OneUptime 기본값을 유지하려면 비워 두세요.",
+  "Use \"shown\" or \"hidden\".": "\"shown\" 또는 \"hidden\"을 사용하세요.",
   "Support Email": "지원 이메일",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "도움말 › 지원 이메일, \"페이지를 찾을 수 없습니다\"의 \"지원팀에 문의\", 그리고 오류 화면에서 지원 번들을 보내도록 안내하는 주소입니다.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "도움말 › 지원 이메일, \"페이지를 찾을 수 없습니다\"의 \"지원팀에 문의\", 계정 관련 이메일, 그리고 오류 화면에서 지원 번들을 보내도록 안내하는 주소입니다.",
   "Chat": "채팅",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "도움말 › Slack에서 채팅. 직접 지정한 링크는 여는 채팅에 따라 Slack, Microsoft Teams 또는 \"지원팀과 채팅\"으로 이름이 붙습니다.",
   "Request Demo": "데모 요청",

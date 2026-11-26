@@ -1,13 +1,26 @@
 import ObjectID from "../../../../Types/ObjectID";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import {
+  CodeTaskBlocker,
+  CodeTaskBlockerType,
+} from "../../../../Types/AI/CodeTask";
 import CodeFixTaskContext, {
   PerformanceCodeLocation,
   PerformanceFinding,
 } from "../../../../Types/AI/CodeFixTaskContext";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import Exception from "../../../../Types/Exception/Exception";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Span from "../../../../Models/AnalyticsModels/Span";
 import SpanTreeAnalyzer, {
@@ -17,9 +30,12 @@ import {
   getFindingsWorthFixing,
   getTracePerformanceFixOffer,
   MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
   NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
   PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
   PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
   TracePerformanceFixOffer,
   TracePerformanceFixRepository,
@@ -41,8 +57,8 @@ import { ResolvableRepository } from "../../CodeRepository/StackTraceRepoResolve
 import SpanService from "../../../Services/SpanService";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import logger from "../../Logger";
 import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
+import CodeTaskAccess from "../CodeTask/CodeTaskAccess";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import CodeTaskThread from "../CodeTask/CodeTaskThread";
@@ -77,6 +93,29 @@ import CodeTaskThread from "../CodeTask/CodeTaskThread";
  * enqueue time: ClickHouse span retention is short, so by the time the
  * worker claims the run the spans may be gone. The stored evidence IS the
  * task's context.
+ *
+ * WHO MAY START ONE, AND IN WHICH REPOSITORY (#11075): the rule every other
+ * Fix with AI holds to. The person reads the trace (its spans, under their
+ * own permissions), and may use the repository the fix works in, in Code:
+ * read it, and ask OneUptime AI to work in it (CodeTaskAccess - what
+ * changing the repository takes). The create route checked a pick only for
+ * being connected, as root, so a request could name any connected
+ * repository of the project - one the person may not read, or may not ask
+ * AI in - and the page's picker, which offered only the readable ones, was
+ * all that held it back. Now:
+ *
+ *   - a pick is refused, in a sentence that says which of the two is
+ *     missing (or that it is not connected), whatever the page offered;
+ *   - without a pick, the trace's facts are resolved among the connected
+ *     repositories the person may use, never another;
+ *   - and either way the run is held to that one repository, when it is
+ *     queued and again when it starts (CodeFixTaskContext
+ *     .pickedCodeRepositoryId), so it never lands in one the person may
+ *     not use.
+ *
+ * The page offers the button by the same rule: a person who may use none
+ * of the connected repositories is offered nothing, and the picker searches
+ * only the ones they may use.
  */
 
 // Max code.* locations stored — mirrors the resolver's own candidate cap.
@@ -118,6 +157,33 @@ export interface FinishedPerformanceFix {
  */
 export const PERFORMANCE_FIX_ALREADY_DONE_MESSAGE: string =
   "OneUptime AI already worked on a fix for this trace. Open its task in Code to see how it came out, or to take it further.";
+
+// No repository the agent could open the pull request in.
+export const NO_CONNECTED_REPOSITORY_FOR_PERFORMANCE_FIX_MESSAGE: string =
+  "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.";
+
+/*
+ * The connected repositories a person may have a trace's fix made in
+ * (getUsableRepositories, #11075), and what the run's repository is
+ * resolved among for them.
+ */
+export interface TracePerformanceFixRepositoryUse {
+  /*
+   * How many connected repositories OneUptime AI can work in the project
+   * has (getResolvableRepositories), whoever may use them.
+   */
+  connectedCount: number;
+  /*
+   * Of those, the ones the person may read and ask OneUptime AI to work in
+   * - in that list's order.
+   */
+  usable: Array<ResolvableRepository>;
+  /*
+   * Every connected repository, when the person may use each one; those,
+   * when only some; none, when none.
+   */
+  allowance: CodeRepositoryAllowance;
+}
 
 export default class FixPerformanceTaskTrigger {
   /*
@@ -322,22 +388,106 @@ export default class FixPerformanceTaskTrigger {
   }
 
   /*
-   * The repositories a person may pick for a fix no repository was found to
-   * hold for certain: every connected one OneUptime AI can work in
+   * The connected repositories a person may have a trace's fix made in
+   * (#11075): of every one OneUptime AI can work in
    * (CodeRepositoryService.getResolvableRepositories, the candidates the
-   * run's own resolution reads), by name - the first
-   * MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES of them. The suggestion lists
-   * them to say a pick is asked for (more than one); the trace page's picker
-   * searches the server for the pick (#10921), and a pick is checked by
-   * itself (isRepositoryChoice), so one past them is never refused.
+   * run's own resolution reads - every one of them, #11076), those the
+   * person may read and ask OneUptime AI to work in, under their own
+   * permissions: Code's rule (CodeTaskAccess), the one every other Fix with
+   * AI holds its repository to. Read by the candidates' ids, in a read a
+   * batch, however many the project has - never one repository at a time.
    */
-  public static async getRepositoryChoices(
-    projectId: ObjectID,
-  ): Promise<Array<TracePerformanceFixRepository>> {
-    const repositories: Array<ResolvableRepository> =
-      await CodeRepositoryService.getResolvableRepositories(projectId);
+  @CaptureSpan()
+  public static async getUsableRepositories(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TracePerformanceFixRepositoryUse> {
+    const resolvable: Array<ResolvableRepository> =
+      await CodeRepositoryService.getResolvableRepositories(data.projectId);
 
-    return repositories
+    if (resolvable.length === 0) {
+      return { connectedCount: 0, usable: [], allowance: NO_CODE_REPOSITORY };
+    }
+
+    const readable: Array<CodeRepository> =
+      await CodeTaskAccess.listReadableRepositoriesByIds({
+        props: data.props,
+        projectId: data.projectId,
+        repositoryIds: resolvable.map(
+          (repository: ResolvableRepository): string => {
+            return repository.id;
+          },
+        ),
+        select: { _id: true },
+      });
+
+    const readableIds: Set<string> = new Set<string>(
+      readable
+        .map((repository: CodeRepository): string => {
+          return repository.id?.toString().toLowerCase() || "";
+        })
+        .filter(Boolean),
+    );
+
+    const usable: Array<ResolvableRepository> =
+      await CodeTaskAccess.keepAskableRepositories<ResolvableRepository>({
+        props: data.props,
+        projectId: data.projectId,
+        repositories: resolvable.filter(
+          (repository: ResolvableRepository): boolean => {
+            return readableIds.has(repository.id.toLowerCase());
+          },
+        ),
+        getId: (repository: ResolvableRepository): string => {
+          return repository.id;
+        },
+      });
+
+    let allowance: CodeRepositoryAllowance = EVERY_CODE_REPOSITORY;
+
+    if (usable.length === 0) {
+      allowance = NO_CODE_REPOSITORY;
+    } else if (usable.length < resolvable.length) {
+      allowance = {
+        isEveryRepository: false,
+        repositoryIds: usable.map((repository: ResolvableRepository) => {
+          return repository.id.toLowerCase();
+        }),
+      };
+    }
+
+    return { connectedCount: resolvable.length, usable, allowance };
+  }
+
+  /*
+   * What Code's gate says that stops everyone in the project - the bill and
+   * the plan - and so is said before why one person may not use a
+   * repository, as Code says it (CodeTaskGate): a plan below the
+   * repositories' own also reads as "may not edit the repository", which
+   * would send people to an admin who cannot help either.
+   */
+  public static isEveryonesBlocker(
+    blocker: CodeTaskBlocker | null | undefined,
+  ): boolean {
+    return (
+      blocker?.type === CodeTaskBlockerType.SubscriptionUnpaid ||
+      blocker?.type === CodeTaskBlockerType.PlanRequired
+    );
+  }
+
+  /*
+   * The repositories a person may pick for a fix no repository was found to
+   * hold for certain: the connected ones they may use (getUsableRepositories),
+   * by name - the first MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES of them. The
+   * suggestion lists them to say a pick is asked for (more than one); the
+   * trace page's picker searches the server for the pick, held to the same
+   * repositories (#10921, #11075), and a pick is checked by itself
+   * (checkRepositoryPick), so one past them is never refused.
+   */
+  public static getRepositoryChoices(
+    use: TracePerformanceFixRepositoryUse,
+  ): Array<TracePerformanceFixRepository> {
+    return use.usable
       .map(
         (repository: ResolvableRepository): TracePerformanceFixRepository => {
           const name: string =
@@ -365,47 +515,71 @@ export default class FixPerformanceTaskTrigger {
   }
 
   /*
-   * Whether a repository a person picked is one a pick may name: one the
-   * project connected that AI can work in (the choices' rule,
-   * getResolvableRepositories), asked of that one repository - never looked
-   * for among a first page of them (#10921).
+   * Why the person may not have the fix made in the repository they picked,
+   * or null when they may (#11075): one of the project's they may read
+   * (else "not found, or no access" - never whether it exists), may ask
+   * OneUptime AI to work in (what changing it takes), and that is connected
+   * so AI can work in it (getResolvableRepositories' rule). Asked of that
+   * one repository, under the person's own permissions - never looked for
+   * among a first page of them (#10921) - and as an error of its kind.
    */
-  public static async isRepositoryChoice(data: {
+  @CaptureSpan()
+  public static async checkRepositoryPick(data: {
     projectId: ObjectID;
     pickedRepositoryId?: ObjectID | undefined;
-  }): Promise<boolean> {
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Exception | null> {
     const pickedId: string = data.pickedRepositoryId
       ? data.pickedRepositoryId.toString().trim().toLowerCase()
       : "";
 
     if (!ObjectID.isValidUUID(pickedId)) {
-      return false;
+      return new BadDataException(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE);
     }
 
     // Keyed as the database writes an id: lower-cased.
-    return await CodeTaskGate.isRepositoryReachable({
-      projectId: data.projectId,
-      repositoryId: new ObjectID(pickedId),
-    });
+    const repositoryId: ObjectID = new ObjectID(pickedId);
+
+    const readable: CodeRepository | null =
+      await CodeTaskAccess.findReadableRepository({
+        props: data.props,
+        projectId: data.projectId,
+        repositoryId,
+      });
+
+    if (!readable) {
+      return new NotFoundException(PICKED_REPOSITORY_NOT_FOUND_MESSAGE);
+    }
+
+    if (
+      !(await CodeTaskAccess.canAskInRepository({
+        props: data.props,
+        projectId: data.projectId,
+        repositoryId,
+      }))
+    ) {
+      return new NotAuthorizedException(PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE);
+    }
+
+    if (
+      !(await CodeTaskGate.isRepositoryReachable({
+        projectId: data.projectId,
+        repositoryId,
+      }))
+    ) {
+      return new BadDataException(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE);
+    }
+
+    return null;
   }
 
-  /*
-   * The choices, or none when they cannot be read: a pick is then not asked
-   * for, and a run is queued as it was before picks - it finds its
-   * repository when it starts.
-   */
-  private static async readRepositoryChoices(
-    projectId: ObjectID,
-  ): Promise<Array<TracePerformanceFixRepository>> {
-    try {
-      return await FixPerformanceTaskTrigger.getRepositoryChoices(projectId);
-    } catch (error) {
-      logger.warn(
-        `Could not list the repositories a performance fix of project ${projectId.toString()} could be asked in: ${error}`,
-      );
-
-      return [];
-    }
+  // Whether the person may have the fix made in that repository (checkRepositoryPick).
+  public static async isRepositoryChoice(data: {
+    projectId: ObjectID;
+    pickedRepositoryId?: ObjectID | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    return (await FixPerformanceTaskTrigger.checkRepositoryPick(data)) === null;
   }
 
   // The context a FixPerformance run carries: the trace's evidence.
@@ -529,10 +703,27 @@ export default class FixPerformanceTaskTrigger {
      * A fix in flight or done was created with a repository; whether one is
      * still connected does not change what the page should link to.
      */
-    const hasConnectedRepository: boolean =
+    let hasConnectedRepository: boolean =
       activeRun || finishedFix
         ? true
         : await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
+
+    /*
+     * The connected repositories the reader may use in Code (#11075),
+     * weighed only where they decide the answer: no fix yet, and a
+     * repository to work in. None OneUptime AI can work in after all (a
+     * GitHub installation that is no longer the project's) is a repository
+     * to connect, as no repository at all is.
+     */
+    let use: TracePerformanceFixRepositoryUse | null = null;
+
+    if (!activeRun && !finishedFix && hasConnectedRepository) {
+      use = await FixPerformanceTaskTrigger.getUsableRepositories({
+        projectId: data.projectId,
+        props: data.reader,
+      });
+      hasConnectedRepository = use.connectedCount > 0;
+    }
 
     /*
      * Code's gate, asked only where it decides the answer: no fix yet, and
@@ -542,7 +733,7 @@ export default class FixPerformanceTaskTrigger {
     // Whether the trace's facts resolve the repository the run would work in.
     let isRepositoryResolved: boolean = false;
 
-    if (!activeRun && !finishedFix && hasConnectedRepository) {
+    if (use && hasConnectedRepository) {
       const start: CodeFixStart = await CodeFixStartGate.check({
         projectId: data.projectId,
         taskType: CodeFixTaskType.FixPerformance,
@@ -557,7 +748,22 @@ export default class FixPerformanceTaskTrigger {
             worthFixing,
           ),
         }),
+        // Resolved among the repositories the reader may use, as a click is.
+        allowance: use.allowance,
       });
+
+      /*
+       * Repositories are connected, but none the reader may use in Code:
+       * nothing they could do here would start the fix - unless what stops
+       * everyone in the project comes first (the bill, the plan), which the
+       * page says as Code would.
+       */
+      if (
+        use.usable.length === 0 &&
+        !FixPerformanceTaskTrigger.isEveryonesBlocker(start.blocker)
+      ) {
+        return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+      }
 
       blocker = start.blocker
         ? toSuggestionBlocker(
@@ -581,14 +787,14 @@ export default class FixPerformanceTaskTrigger {
 
     /*
      * The fix is offered, but the trace's facts found no repository to hold
-     * its code for certain: the person picks one, from every connected
-     * repository AI can work in - or the run would find none when it starts.
-     * One repository is no choice (the resolver takes it), so a pick is
-     * asked for only between two or more.
+     * its code for certain: the person picks one, from the connected
+     * repositories they may use - or the run would find none when it
+     * starts. One repository is no choice (the fix works in it), so a pick
+     * is asked for only between two or more.
      */
     const repositories: Array<TracePerformanceFixRepository> =
-      offer.offer === SuggestionOffer.Act && !isRepositoryResolved
-        ? await FixPerformanceTaskTrigger.readRepositoryChoices(data.projectId)
+      offer.offer === SuggestionOffer.Act && !isRepositoryResolved && use
+        ? FixPerformanceTaskTrigger.getRepositoryChoices(use)
         : [];
 
     return {
@@ -605,13 +811,17 @@ export default class FixPerformanceTaskTrigger {
   /*
    * Gate and enqueue a FixPerformance CodeFix run for a trace. The caller
    * must already have loaded the spans under the USER's telemetry-read
-   * permissions (the access check) — this method reads and writes as root.
+   * permissions (the access check). The repository the run works in is
+   * held to the ones the person may use in Code, under `props` (#11075);
+   * everything else is read and written as root.
    *
    * Throws naming the failed gate: AI switched off for the project, no
    * finding worth fixing, no GitHub-App repository, a duplicate active
-   * run for the same trace, a fix for it that already did its work, or
-   * what Code's gate says about the run (CodeFixStartGate, as an error of
-   * its kind: the plan and the bill as payment required).
+   * run for the same trace, a fix for it that already did its work, a
+   * repository the person may not use (a pick they may not read or ask AI
+   * in, or none of the connected ones theirs to ask in), or what Code's
+   * gate says about the run (CodeFixStartGate, as an error of its kind:
+   * the plan and the bill as payment required).
    */
   @CaptureSpan()
   public static async createPerformanceFixTaskFromTrace(data: {
@@ -620,6 +830,8 @@ export default class FixPerformanceTaskTrigger {
     spans: Array<AnalyzableSpan>;
     serviceName?: string | undefined;
     userId: ObjectID;
+    // Who clicked, as their request reads: whose repositories the fix may use.
+    props: DatabaseCommonInteractionProps;
     /*
      * The repository the person picked, when the page asked for a pick: no
      * connected repository was found to hold the trace's code for certain.
@@ -661,7 +873,7 @@ export default class FixPerformanceTaskTrigger {
       findings,
       codeLocations: this.collectCodeLocations(data.spans, findings),
       userId: data.userId,
-      isAskedByPerson: true,
+      person: data.props,
       pickedRepositoryId: data.repositoryId,
     });
   }
@@ -721,7 +933,8 @@ export default class FixPerformanceTaskTrigger {
    * The gates both entry points share once the findings are known to be
    * worth fixing: a repository to open the pull request in, at most one
    * run per trace in flight, and no second fix for a trace whose fix did
-   * its work. A person's click is asked what Code's gate says too.
+   * its work. A person's click is held to the repositories they may use in
+   * Code, and asked what Code's gate says too.
    */
   private static async enqueuePerformanceFix(data: {
     projectId: ObjectID;
@@ -730,8 +943,12 @@ export default class FixPerformanceTaskTrigger {
     findings: Array<PerformanceFinding>;
     codeLocations: Array<PerformanceCodeLocation>;
     userId?: ObjectID | undefined;
-    // A person clicked Fix performance with AI: Code's gate is asked.
-    isAskedByPerson?: boolean | undefined;
+    /*
+     * A person clicked Fix performance with AI, as their request reads:
+     * the repository is held to the ones they may use, and Code's gate is
+     * asked.
+     */
+    person?: DatabaseCommonInteractionProps | undefined;
     // The repository the person picked (createPerformanceFixTaskFromTrace).
     pickedRepositoryId?: ObjectID | undefined;
   }): Promise<AIRun> {
@@ -741,7 +958,7 @@ export default class FixPerformanceTaskTrigger {
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+        NO_CONNECTED_REPOSITORY_FOR_PERFORMANCE_FIX_MESSAGE,
       );
     }
 
@@ -781,57 +998,21 @@ export default class FixPerformanceTaskTrigger {
       });
 
     /*
-     * Gate — a repository the person picked is one the project connected
-     * and AI can work in; the run works in it, when it is queued and when
-     * it starts (CodeFixTaskContext.pickedCodeRepositoryId). Any one of
-     * them, however many the project has (#10921): the pick was checked
-     * against the first MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES of them by
-     * name, so a connected repository past them - which the trace page's
-     * picker finds by a search on the server - was refused.
-     */
-    if (data.pickedRepositoryId) {
-      const pickedId: string = data.pickedRepositoryId.toString().toLowerCase();
-
-      if (!(await FixPerformanceTaskTrigger.isRepositoryChoice(data))) {
-        throw new BadDataException(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE);
-      }
-
-      taskContext.pickedCodeRepositoryId = pickedId;
-    }
-
-    /*
      * Gate — what Code's gate says about the repository the run will be
-     * queued on; the run is queued on that very repository.
+     * queued on; the run is queued on that very repository. Only a
+     * person's click asks it: the automatic routing queues the run as it
+     * always has.
      */
     let codeRepositoryId: ObjectID | null | undefined = undefined;
 
-    if (data.isAskedByPerson) {
-      const start: CodeFixStart = await CodeFixStartGate.check({
-        projectId: data.projectId,
-        taskType: CodeFixTaskType.FixPerformance,
-        taskContext,
-      });
-
-      if (start.blocker) {
-        throw CodeTaskGate.toException(start.blocker);
-      }
-
-      /*
-       * Gate — somewhere to work: several repositories are connected, the
-       * trace's facts match none, and the person picked none. The page asks
-       * for the pick first; a run queued without one would find no
-       * repository when it starts.
-       */
-      if (!start.codeRepositoryId && !data.pickedRepositoryId) {
-        const choices: Array<TracePerformanceFixRepository> =
-          await FixPerformanceTaskTrigger.readRepositoryChoices(data.projectId);
-
-        if (choices.length > 1) {
-          throw new BadDataException(PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE);
-        }
-      }
-
-      codeRepositoryId = start.codeRepositoryId;
+    if (data.person) {
+      codeRepositoryId =
+        await FixPerformanceTaskTrigger.decideRepositoryForPerson({
+          projectId: data.projectId,
+          taskContext,
+          person: data.person,
+          pickedRepositoryId: data.pickedRepositoryId,
+        });
     }
 
     return SubjectCodeFixRun.enqueueSubjectCodeFixRun({
@@ -841,5 +1022,105 @@ export default class FixPerformanceTaskTrigger {
       taskContext,
       ...(codeRepositoryId !== undefined ? { codeRepositoryId } : {}),
     });
+  }
+
+  /*
+   * The repository a person's click has the run made in, and queued on
+   * (#11075): the one they picked, when they may use it - else the one the
+   * trace's facts resolve to among the connected repositories they may
+   * use, or the only one of those. The run is held to it when it is queued
+   * and again when it starts (pickedCodeRepositoryId,
+   * getRunRepositoryAllowance), so it is never made in a repository the
+   * person may not use, however the repositories change before it starts.
+   *
+   * Refused, in Code's order: what stops everyone in the project (the bill,
+   * the plan); then why this person may not use the repository - a pick
+   * they may not read, may not ask AI in, or that is not connected, or none
+   * of the connected repositories theirs to ask in; then whatever else
+   * Code's gate says about the repository; then a pick to make, when
+   * several could hold the code and the trace's facts match none.
+   */
+  private static async decideRepositoryForPerson(data: {
+    projectId: ObjectID;
+    taskContext: CodeFixTaskContext;
+    person: DatabaseCommonInteractionProps;
+    pickedRepositoryId?: ObjectID | undefined;
+  }): Promise<ObjectID> {
+    let allowance: CodeRepositoryAllowance = NO_CODE_REPOSITORY;
+    let refusal: Exception | null = null;
+    let usable: Array<ResolvableRepository> = [];
+
+    if (data.pickedRepositoryId) {
+      refusal = await FixPerformanceTaskTrigger.checkRepositoryPick({
+        projectId: data.projectId,
+        pickedRepositoryId: data.pickedRepositoryId,
+        props: data.person,
+      });
+
+      if (!refusal) {
+        // Keyed as the database writes an id: lower-cased.
+        const pickedId: string = data.pickedRepositoryId
+          .toString()
+          .trim()
+          .toLowerCase();
+
+        data.taskContext.pickedCodeRepositoryId = pickedId;
+        allowance = { isEveryRepository: false, repositoryIds: [pickedId] };
+      }
+    } else {
+      const use: TracePerformanceFixRepositoryUse =
+        await FixPerformanceTaskTrigger.getUsableRepositories({
+          projectId: data.projectId,
+          props: data.person,
+        });
+
+      usable = use.usable;
+      allowance = use.allowance;
+
+      if (use.connectedCount === 0) {
+        refusal = new BadDataException(
+          NO_CONNECTED_REPOSITORY_FOR_PERFORMANCE_FIX_MESSAGE,
+        );
+      } else if (use.usable.length === 0) {
+        refusal = new NotAuthorizedException(NO_REPOSITORY_YOU_MAY_USE_MESSAGE);
+      }
+    }
+
+    const start: CodeFixStart = await CodeFixStartGate.check({
+      projectId: data.projectId,
+      taskType: CodeFixTaskType.FixPerformance,
+      taskContext: data.taskContext,
+      allowance,
+    });
+
+    if (
+      start.blocker &&
+      (!refusal || FixPerformanceTaskTrigger.isEveryonesBlocker(start.blocker))
+    ) {
+      throw CodeTaskGate.toException(start.blocker);
+    }
+
+    if (refusal) {
+      throw refusal;
+    }
+
+    /*
+     * Somewhere to work: the pick, the repository the trace's facts resolve
+     * to, or the only one the person may use. Several they may use, and the
+     * trace's facts match none: the page asks for the pick first - a run
+     * queued without one would find no repository when it starts.
+     */
+    const repositoryId: string | null =
+      data.taskContext.pickedCodeRepositoryId ||
+      start.codeRepositoryId?.toString().toLowerCase() ||
+      (usable.length === 1 ? usable[0]!.id.toLowerCase() : null);
+
+    if (!repositoryId) {
+      throw new BadDataException(PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE);
+    }
+
+    data.taskContext.pickedCodeRepositoryId = repositoryId;
+
+    return start.codeRepositoryId || new ObjectID(repositoryId);
   }
 }

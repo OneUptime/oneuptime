@@ -14,6 +14,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -85,6 +86,18 @@ export const RESOURCE_TOPOLOGY_PRODUCTS: ReadonlyArray<ResourceTopologyProduct> 
       modelType: ProxmoxCluster,
       identityAttribute: "proxmox.cluster.name",
       identityColumn: "name",
+    },
+    /*
+     * An XCP-ng pool is known by its XAPI UUID (xcp_ng.pool.id, the pool's
+     * poolIdentifier column), never by its name, which can be empty.
+     */
+    {
+      entityType: EntityType.XcpNgPool,
+      page: PageMap.XCP_NG_POOL_VIEW_TOPOLOGY,
+      linkText: translationKey("Open pool topology"),
+      modelType: XcpNgPool,
+      identityAttribute: "xcp_ng.pool.id",
+      identityColumn: "poolIdentifier",
     },
     {
       entityType: EntityType.OpenStackCloud,

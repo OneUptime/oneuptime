@@ -263,6 +263,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "WebhookLogService.ts",
   "WhatsAppLogService.ts",
   "WorkspaceNotificationLogService.ts",
+  "XcpNgPoolFeedService.ts",
 ];
 
 const PROJECT_ID: ObjectID = new ObjectID(

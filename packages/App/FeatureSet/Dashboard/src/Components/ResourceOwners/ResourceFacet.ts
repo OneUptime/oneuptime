@@ -5,6 +5,7 @@ import {
 } from "./FilterChipDropdownTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import type LinkedTo from "Common/Types/BaseDatabase/LinkedTo";
 
 /*
  * The React-free half of the facet bar's contract.
@@ -141,12 +142,13 @@ export interface ResourceFacet {
    */
   handlesValuelessOperators?: boolean | undefined;
   /**
-   * For facets that filter across *multiple* relationship fields with OR
-   * semantics (e.g. an "Affected Resources" chip spanning monitors / hosts /
-   * services / dockerHosts / kubernetesClusters), supply this resolver. It
-   * receives the current selection and returns the set of parent-row IDs
-   * (e.g. incident IDs) that match. The hook unions these into an
-   * `_id` filter, intersected with the owner filter when both are active.
+   * For a facet whose matches are worked out before the list is read, supply
+   * this resolver. It receives the current selection and returns the set of
+   * parent-row IDs that match. The hook intersects these into an `_id`
+   * filter. The ids are read first, so a list narrowed by them holds at most
+   * what that read returned: a filter the server can answer in the list's
+   * own query (`toLinkedTo` for several relations, OR'd) reaches every
+   * record instead.
    *
    * When set, `toQueryValue` and `queryField` are ignored — the facet
    * never writes directly to a column.
@@ -157,5 +159,22 @@ export interface ResourceFacet {
         values: Array<string>,
         operator: FilterOperator,
       ) => Promise<Array<string>>)
+    | undefined;
+  /**
+   * For a facet over several relations at once, OR'd (the "Affected
+   * Resources" chip: a list's monitors, services, hosts ...): its filter as
+   * the server answers it, in the list's own query - one LinkedTo under
+   * "linkedTo" (Common/Types/BaseDatabase/LinkedTo, #11073) - or null when
+   * the selection filters nothing. Nothing is read first, so the list
+   * pages and counts every record that matches, however many: where
+   * `computeMatchingResourceIds` reads the matching ids first, the first
+   * 10,000 of them.
+   *
+   * When set, `toQueryValue`, `queryField` and `computeMatchingResourceIds`
+   * are ignored. A list's query holds one such filter, so a list has one
+   * facet that sets it.
+   */
+  toLinkedTo?:
+    | ((values: Array<string>, operator: FilterOperator) => LinkedTo | null)
     | undefined;
 }

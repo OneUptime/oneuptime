@@ -85,7 +85,11 @@ function period(
   };
 }
 
-// Cost Explorer: each request answered by the next page.
+/*
+ * Cost Explorer: each request of the billed and amortized read (the one
+ * that leaves credits and refunds out) answered by the next page; the net
+ * read (AwsCostBases reads it in full) answered with nothing.
+ */
 function costExplorer(pages: Array<FakeResponse>): FakeProviderApi {
   let index: number = 0;
 
@@ -93,13 +97,24 @@ function costExplorer(pages: Array<FakeResponse>): FakeProviderApi {
     {
       path: "/",
       host: "ce.us-east-1.amazonaws.com",
-      respond: (): FakeResponse => {
+      respond: (request: DataSourceHttpRequest): FakeResponse => {
+        if (!bodyOf(request)["Filter"]) {
+          return json({ ResultsByTime: [] });
+        }
+
         const page: FakeResponse = pages[Math.min(index, pages.length - 1)]!;
         index++;
         return page;
       },
     },
   ]);
+}
+
+// The requests of the billed and amortized read: the ones with the record-type filter.
+function billedRequests(api: FakeProviderApi): Array<DataSourceHttpRequest> {
+  return api.requests.filter((request: DataSourceHttpRequest): boolean => {
+    return Boolean(bodyOf(request)["Filter"]);
+  });
 }
 
 describe("where AWS answers for costs", () => {
@@ -149,6 +164,10 @@ describe("an account's daily costs from Cost Explorer", () => {
       });
 
     expect(read.complete).toBe(true);
+    /*
+     * The pages answer UnblendedCost alone, and the net read nothing: the
+     * amortized and net figures are nothing (AwsCostBases reads them).
+     */
     expect(read.records).toEqual([
       {
         accountId: "123456789012",
@@ -158,6 +177,8 @@ describe("an account's daily costs from Cost Explorer", () => {
         resourceId: "",
         currency: "USD",
         amount: 120.5,
+        amortizedAmount: 0,
+        netAmount: 0,
       },
       {
         accountId: "123456789012",
@@ -168,6 +189,8 @@ describe("an account's daily costs from Cost Explorer", () => {
         resourceId: "",
         currency: "USD",
         amount: 3.25,
+        amortizedAmount: 0,
+        netAmount: 0,
       },
       {
         accountId: "123456789012",
@@ -177,6 +200,8 @@ describe("an account's daily costs from Cost Explorer", () => {
         resourceId: "",
         currency: "USD",
         amount: 1.1,
+        amortizedAmount: 0,
+        netAmount: 0,
       },
       {
         accountId: "123456789012",
@@ -186,10 +211,14 @@ describe("an account's daily costs from Cost Explorer", () => {
         resourceId: "",
         currency: "USD",
         amount: 7,
+        amortizedAmount: 0,
+        netAmount: 0,
       },
     ]);
 
-    expect(api.requests).toHaveLength(2);
+    // Two pages of the billed and amortized read, and one of the net read.
+    expect(api.requests).toHaveLength(3);
+    expect(billedRequests(api)).toHaveLength(2);
     expect(targetOf(api.requests[0]!)).toBe(
       "AWSInsightsIndexService.GetCostAndUsage",
     );
@@ -201,7 +230,7 @@ describe("an account's daily costs from Cost Explorer", () => {
     expect(first).toMatchObject({
       TimePeriod: { Start: "2026-11-13", End: "2026-11-21" },
       Granularity: "DAILY",
-      Metrics: ["UnblendedCost"],
+      Metrics: ["UnblendedCost", "AmortizedCost"],
       GroupBy: [
         { Type: "DIMENSION", Key: "SERVICE" },
         { Type: "DIMENSION", Key: "REGION" },
@@ -214,6 +243,10 @@ describe("an account's daily costs from Cost Explorer", () => {
     });
     expect(first["NextPageToken"]).toBeUndefined();
     expect(bodyOf(api.requests[1]!)["NextPageToken"]).toBe("page-2");
+    expect(bodyOf(api.requests[2]!)).toMatchObject({
+      Metrics: ["NetAmortizedCost"],
+    });
+    expect(bodyOf(api.requests[2]!)["Filter"]).toBeUndefined();
   });
 
   test("an organization's management account is asked for every account at once, by account and service", async () => {
@@ -282,7 +315,7 @@ describe("an account's daily costs from Cost Explorer", () => {
       });
 
     expect(read.complete).toBe(false);
-    expect(api.requests).toHaveLength(AWS_COST_MAX_PAGES);
+    expect(billedRequests(api)).toHaveLength(AWS_COST_MAX_PAGES);
   });
 
   test("a token the answer repeats ends the read", async () => {
@@ -304,7 +337,7 @@ describe("an account's daily costs from Cost Explorer", () => {
       });
 
     expect(read.complete).toBe(true);
-    expect(api.requests).toHaveLength(2);
+    expect(billedRequests(api)).toHaveLength(2);
   });
 });
 

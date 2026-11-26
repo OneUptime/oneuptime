@@ -36,6 +36,8 @@ const INSERT_COLUMNS: Array<string> = [
   "isOperationallyUp",
   "isAdministrativelyUp",
   "speedInMbps",
+  "fibreChannelPortType",
+  "downReason",
   "lastSeenAt",
   "version",
 ];
@@ -59,6 +61,8 @@ export const INTERFACE_SNAPSHOT_SELECT: Select<Model> = {
   outRateMbps: true,
   utilizationPercent: true,
   errorsPerSecond: true,
+  fibreChannelPortType: true,
+  downReason: true,
   lastSeenAt: true,
 };
 
@@ -181,6 +185,8 @@ export class Service extends DatabaseService<Model> {
             outRateMbps: row.outRateMbps,
             utilizationPercent: row.utilizationPercent,
             errorsPerSecond: row.errorsPerSecond,
+            fibreChannelPortType: row.fibreChannelPortType,
+            downReason: row.downReason,
             lastSeenAt: row.lastSeenAt,
           };
         },
@@ -272,6 +278,8 @@ export class Service extends DatabaseService<Model> {
           row.isOperationallyUp,
           row.isAdministrativelyUp,
           row.speedInMbps,
+          row.fibreChannelPortType,
+          row.downReason,
           row.lastSeenAt,
           /*
            * BaseModel's @VersionColumn is NOT NULL with no database default,
@@ -289,7 +297,8 @@ export class Service extends DatabaseService<Model> {
           "projectId", "networkDeviceId", "interfaceIndex",
           "name", "alias", "macAddress", "interfaceType",
           "isMonitored", "isOperationallyUp", "isAdministrativelyUp",
-          "speedInMbps", "lastSeenAt", "version"
+          "speedInMbps", "fibreChannelPortType", "downReason", "lastSeenAt",
+          "version"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("networkDeviceId", "interfaceIndex") WHERE "deletedAt" IS NULL
@@ -301,6 +310,8 @@ export class Service extends DatabaseService<Model> {
           "isOperationallyUp" = EXCLUDED."isOperationallyUp",
           "isAdministrativelyUp" = EXCLUDED."isAdministrativelyUp",
           "speedInMbps" = EXCLUDED."speedInMbps",
+          "fibreChannelPortType" = EXCLUDED."fibreChannelPortType",
+          "downReason" = EXCLUDED."downReason",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "version" = "NetworkInterface"."version" + 1,
           "updatedAt" = now()
@@ -441,7 +452,7 @@ export class Service extends DatabaseService<Model> {
 
       for (const row of chunk) {
         valueFragments.push(
-          `($${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::boolean, $${paramIndex++}::boolean, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric)`,
+          `($${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::boolean, $${paramIndex++}::boolean, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::character varying, $${paramIndex++}::character varying)`,
         );
 
         params.push(
@@ -457,6 +468,8 @@ export class Service extends DatabaseService<Model> {
           row.outRateMbps,
           row.utilizationPercent,
           row.errorsPerSecond,
+          row.fibreChannelPortType,
+          row.downReason,
         );
       }
 
@@ -474,11 +487,13 @@ export class Service extends DatabaseService<Model> {
           "outRateMbps" = v."outRateMbps",
           "utilizationPercent" = v."utilizationPercent",
           "errorsPerSecond" = v."errorsPerSecond",
+          "fibreChannelPortType" = v."fibreChannelPortType",
+          "downReason" = v."downReason",
           "lastSeenAt" = $2::timestamptz,
           "version" = i."version" + 1,
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
-          AS v("interfaceIndex", "name", "alias", "macAddress", "interfaceType", "isOperationallyUp", "isAdministrativelyUp", "speedInMbps", "inRateMbps", "outRateMbps", "utilizationPercent", "errorsPerSecond")
+          AS v("interfaceIndex", "name", "alias", "macAddress", "interfaceType", "isOperationallyUp", "isAdministrativelyUp", "speedInMbps", "inRateMbps", "outRateMbps", "utilizationPercent", "errorsPerSecond", "fibreChannelPortType", "downReason")
         WHERE
           i."networkDeviceId" = $1
           AND i."interfaceIndex" = v."interfaceIndex"

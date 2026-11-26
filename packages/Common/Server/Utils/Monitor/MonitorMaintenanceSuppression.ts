@@ -73,6 +73,13 @@ export interface MaintainedResourceKeys {
    * parity.
    */
   vmwareVCenters: ResourceKeySet;
+  /*
+   * XCP-ng pools have no `oneuptime.*.id` label stamp either; their
+   * telemetry names them by their XAPI UUID (`xcp_ng.pool.id`), so the
+   * name set holds the pools' poolIdentifier, never their names. The id
+   * set exists for shape parity.
+   */
+  xcpNgPools: ResourceKeySet;
   cephClusters: ResourceKeySet;
   /*
    * Storage arrays, like Proxmox/Ceph clusters, have no `oneuptime.*.id`
@@ -388,6 +395,7 @@ export default class MonitorMaintenanceSuppression {
       { ids: resolved.proxmoxClusterIds, keys: maintained.proxmoxClusters },
       { ids: resolved.openStackCloudIds, keys: maintained.openStackClouds },
       { ids: resolved.vmwareVCenterIds, keys: maintained.vmwareVCenters },
+      { ids: resolved.xcpNgPoolIds, keys: maintained.xcpNgPools },
       { ids: resolved.cephClusterIds, keys: maintained.cephClusters },
       { ids: resolved.storageArrayIds, keys: maintained.storageArrays },
       {
@@ -802,6 +810,10 @@ export default class MonitorMaintenanceSuppression {
           input.maintained.vmwareVCenters.names,
         ) ||
         this.intersects(
+          refs.xcpNgPoolIdentifiers,
+          input.maintained.xcpNgPools.names,
+        ) ||
+        this.intersects(
           refs.cephClusterNames,
           input.maintained.cephClusters.names,
         ) ||
@@ -857,6 +869,8 @@ export default class MonitorMaintenanceSuppression {
       Boolean(maintained.openStackParts?.length) ||
       maintained.vmwareVCenters.ids.size > 0 ||
       maintained.vmwareVCenters.names.size > 0 ||
+      maintained.xcpNgPools.ids.size > 0 ||
+      maintained.xcpNgPools.names.size > 0 ||
       maintained.cephClusters.ids.size > 0 ||
       maintained.cephClusters.names.size > 0 ||
       maintained.storageArrays.ids.size > 0 ||
@@ -876,7 +890,8 @@ export default class MonitorMaintenanceSuppression {
   /*
    * Collect the ids + identifiers of every Host / DockerHost /
    * PodmanHost / KubernetesCluster / ProxmoxCluster / VMwareVCenter /
-   * CephCluster / StorageArray / DockerSwarmCluster / IoTFleet / Service /
+   * XcpNgPool / CephCluster / StorageArray / DockerSwarmCluster / IoTFleet /
+   * Service /
    * DatabaseServer
    * attached to a maintenance event in progress in this project: in its
    * project's ongoing state, or in a state of the project's own placed
@@ -897,6 +912,7 @@ export default class MonitorMaintenanceSuppression {
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
       openStackClouds: { ids: new Set<string>(), names: new Set<string>() },
       vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
+      xcpNgPools: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
       storageArrays: { ids: new Set<string>(), names: new Set<string>() },
       dockerSwarmClusters: {
@@ -937,6 +953,7 @@ export default class MonitorMaintenanceSuppression {
           openStackClouds: { _id: true, name: true },
           openStackParts: true,
           vmwareVCenters: { _id: true, name: true },
+          xcpNgPools: { _id: true, poolIdentifier: true },
           cephClusters: { _id: true, name: true },
           storageArrays: { _id: true, name: true },
           dockerSwarmClusters: { _id: true, name: true },
@@ -1009,6 +1026,14 @@ export default class MonitorMaintenanceSuppression {
           maintained.vmwareVCenters,
           vmwareVCenter._id,
           vmwareVCenter.name,
+        );
+      }
+      for (const xcpNgPool of event.xcpNgPools || []) {
+        // By its XAPI UUID, which its series carry - never by its name.
+        this.addKey(
+          maintained.xcpNgPools,
+          xcpNgPool._id,
+          xcpNgPool.poolIdentifier,
         );
       }
       for (const cephCluster of event.cephClusters || []) {

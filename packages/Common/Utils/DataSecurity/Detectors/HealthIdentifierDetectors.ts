@@ -165,7 +165,7 @@ function isUsDeaNumber(value: string): boolean {
   return sum % 10 === digitAt(value, 8);
 }
 
-export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+const HEALTH_IDENTIFIERS: ReadonlyArray<DataTypeDetector> = [
   /*
    * UK NHS number: the mod 11 check digit. One ten-digit number in eleven
    * passes, so beside a word.
@@ -294,5 +294,14 @@ export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
     },
   },
 ];
+
+/*
+ * Each in every script's digits too (readsDigitsOfEveryScript, #11033): an
+ * NHS number in Arabic-Indic digits passes the same mod 11.
+ */
+export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> =
+  HEALTH_IDENTIFIERS.map((detector: DataTypeDetector): DataTypeDetector => {
+    return { ...detector, readsDigitsOfEveryScript: true };
+  });
 
 export default HEALTH_IDENTIFIER_DETECTORS;

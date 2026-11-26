@@ -124,6 +124,7 @@ describe("MonitorStep.getDefaultMonitorStep telemetry sub-config seeding", () =>
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
       MonitorType.StorageArray,
       MonitorType.IoTDevice,

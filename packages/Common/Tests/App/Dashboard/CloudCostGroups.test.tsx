@@ -28,6 +28,7 @@ import {
   CloudCostSharedSplit,
   CloudCostViewGrouping,
 } from "../../../Types/Cloud/CloudCostAllocation";
+import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import {
   CloudCostRule,
   CloudCostRuleField,
@@ -839,6 +840,7 @@ describe("a view's figures", () => {
   test("as a CSV: a row per group then the unallocated, a name never read as a formula, a credit as a number", () => {
     const csv: string = toCloudCostAllocationCsv(
       allocation({
+        basis: CloudCostBasis.Amortized,
         groups: [
           groupResult({
             id: PAYMENTS,
@@ -858,11 +860,12 @@ describe("a view's figures", () => {
       }),
     );
 
+    // Each row says the basis its figures are on, as finance pulls them.
     expect(csv.split("\n")).toEqual([
-      '"group","group_id","period_start","currency","total","cloud","line_items","shared_in","shared_out"',
-      `"'=HYPERLINK(""x"")","${PAYMENTS}","2026-11-01","USD","743.08","420","0","323.08","0"`,
-      `"Search, ""core""","${SEARCH}","2026-11-01","USD","-60","0","-60","0","0"`,
-      '"Unallocated","","2026-11-01","USD","150","150","0","0","0"',
+      '"group","group_id","period_start","currency","cost_basis","total","cloud","line_items","shared_in","shared_out"',
+      `"'=HYPERLINK(""x"")","${PAYMENTS}","2026-11-01","USD","amortized","743.08","420","0","323.08","0"`,
+      `"Search, ""core""","${SEARCH}","2026-11-01","USD","amortized","-60","0","-60","0","0"`,
+      '"Unallocated","","2026-11-01","USD","amortized","150","150","0","0","0"',
       "",
     ]);
   });
@@ -908,7 +911,10 @@ describe("Where the money goes, by cost group", () => {
     },
   ];
 
-  async function openByGroup(views: Array<CloudCostView>): Promise<void> {
+  async function openByGroup(
+    views: Array<CloudCostView>,
+    basis?: CloudCostBasis,
+  ): Promise<void> {
     // The card opens on its services, read before the groups are asked for.
     getJestSpyOn(AnalyticsModelAPI, "aggregate").mockResolvedValue({
       data: [],
@@ -927,7 +933,7 @@ describe("Where the money goes, by cost group", () => {
       render(
         <MemoryRouter>
           <CloudCostBreakdownCard
-            scope={{ projectId: PROJECT, currency: "USD" }}
+            scope={{ projectId: PROJECT, currency: "USD", basis }}
             accounts={ACCOUNTS}
             isOneAccount={false}
           />
@@ -1020,5 +1026,46 @@ describe("Where the money goes, by cost group", () => {
         );
       }),
     ).toBe(true);
+  });
+
+  test("each group's spend is asked for on the basis the page shows (#11007)", async () => {
+    const view: CloudCostView = new CloudCostView();
+    view._id = VIEW;
+    view.name = "By team";
+
+    const post: jest.SpyInstance<any, any> = getJestSpyOn(
+      API,
+      "post",
+    ).mockResolvedValue({
+      data: allocation({
+        basis: CloudCostBasis.Net,
+        groups: [groupResult({ id: PAYMENTS, name: "Payments", total: 600 })],
+      }),
+    });
+
+    await openByGroup([view], CloudCostBasis.Net);
+
+    expect(String(post.mock.calls[0]![0].url)).toContain(
+      `/cloud-cost-view/${VIEW}/allocation`,
+    );
+    expect(post.mock.calls[0]![0].data).toMatchObject({
+      basis: CloudCostBasis.Net,
+      currency: "USD",
+    });
+  });
+
+  test("a page that names no basis leaves it to the project's", async () => {
+    const view: CloudCostView = new CloudCostView();
+    view._id = VIEW;
+    view.name = "By team";
+
+    const post: jest.SpyInstance<any, any> = getJestSpyOn(
+      API,
+      "post",
+    ).mockResolvedValue({ data: allocation() });
+
+    await openByGroup([view]);
+
+    expect(post.mock.calls[0]![0].data).not.toHaveProperty("basis");
   });
 });

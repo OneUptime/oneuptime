@@ -416,6 +416,11 @@ Alerts for payments:
 | `trapOid` | トラップの OID。SNMP トラップがチェックをトリガーしたときのみ。 | `string` |
 | `trapSourceIp` | トラップの送信元アドレス。SNMP トラップがチェックをトリガーしたときのみ。 | `string` |
 | `trapVarbinds` | トラップの varbind。それぞれ `{oid, value}` の形です。SNMP トラップがチェックをトリガーしたときのみ。 | `Array<Object>` |
+| `trapInterface` | トラップが対象とするインターフェイス。トラップが運ぶ名前、なければデバイスの最後のウォークがそのインデックスに記録した名前。SNMP トラップがチェックをトリガーしたときのみ。 | `string` |
+| `trapAlarmCounter` | RMON アラームのトラップ（MDS のポートモニターのアラーム）で、しきい値を超えたカウンター。ほかのトラップでは空。 | `string` |
+| `trapAlarmDirection` | RMON アラームのトラップで、`rising` または `falling`。ほかのトラップでは空。 | `string` |
+| `trapAlarmValue` | RMON アラームのトラップで、しきい値を超えたときのカウンターの値。ほかのトラップでは空。 | `string` |
+| `trapAlarmThreshold` | RMON アラームのトラップで、カウンターが超えたしきい値。ほかのトラップでは空。 | `string` |
 
 ネットワークデバイスはポーリングのたびに ping され、認証情報があるときだけ SNMP でウォークされます。そのため、**ping だけのデバイスが埋める上記の変数は `isOnline` だけです**。それ以外はすべて SNMP ウォークから得られるため、ウォークがなければ書いたまま残ります。認証情報のないデバイスにも使う可能性のあるテンプレートでは、`{{isOnline}}` とデバイスの名前を先頭に置いてください。各種ポーリングが何を収集するかは、[ネットワークデバイス モニター](/docs/monitor/network-device-monitor#ポーリングが実際に行うこと) を参照してください。
 
@@ -452,7 +457,7 @@ Alerts for payments:
 
 ### メトリクスとインフラストラクチャのモニター
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、ストレージアレイ、IoT デバイス の各モニターには、固有の変数が 1 つあります。
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、XCP-ng、Ceph、ストレージアレイ、IoT デバイス の各モニターには、固有の変数が 1 つあります。
 
 | 変数 | 内容 | 型 |
 | --- | --- | --- |

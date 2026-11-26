@@ -416,6 +416,11 @@ Alerts for payments:
 | `trapOid` | 陷阱的 OID。仅在 SNMP 陷阱触发检查时。 | `string` |
 | `trapSourceIp` | 陷阱的来源地址。仅在 SNMP 陷阱触发检查时。 | `string` |
 | `trapVarbinds` | 陷阱的 varbind，每个形如 `{oid, value}`。仅在 SNMP 陷阱触发检查时。 | `Array<Object>` |
+| `trapInterface` | 陷阱所涉及的接口：陷阱携带的名称，否则为设备上次遍历为其索引记录的名称。仅在 SNMP 陷阱触发检查时。 | `string` |
+| `trapAlarmCounter` | 在 RMON 告警陷阱（MDS 端口监控告警）中，越过阈值的计数器。其他陷阱为空。 | `string` |
+| `trapAlarmDirection` | 在 RMON 告警陷阱中，为 `rising` 或 `falling`。其他陷阱为空。 | `string` |
+| `trapAlarmValue` | 在 RMON 告警陷阱中，计数器越过阈值时的值。其他陷阱为空。 | `string` |
+| `trapAlarmThreshold` | 在 RMON 告警陷阱中，计数器越过的阈值。其他陷阱为空。 | `string` |
 
 网络设备在每次轮询时都会被 ping，只有在有凭据时才会通过 SNMP 遍历，因此 **在上面的变量中，仅支持 ping 的设备只会填写 `isOnline`**：其他所有变量都来自 SNMP 遍历，没有遍历时会原样保留。在可能用于没有凭据的设备的模板中，请以 `{{isOnline}}` 和设备的名称开头。每种轮询收集哪些内容，请参阅 [网络设备监视器](/docs/monitor/network-device-monitor#一次轮询实际做了什么)。
 
@@ -452,7 +457,7 @@ Alerts for payments:
 
 ### 指标和基础设施监视器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、存储阵列 和 IoT 设备 监视器各有一个自己的变量：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、XCP-ng、Ceph、存储阵列 和 IoT 设备 监视器各有一个自己的变量：
 
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |

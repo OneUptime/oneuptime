@@ -25,7 +25,7 @@ Båda tar upp till 100 markerade incidenter. Resultatet säger hur många som la
 
 ## Vad tillägget gör
 
-- **En post i episodens flöde** nämner varje tillagd incident: de första 20 med nummer och titel, sedan hur många till. Den publiceras en gång i episodens Slack- eller Microsoft Teams-kanal, inte en gång per incident. En privat incident nämns bara med sitt nummer.
+- **En post i episodens flöde** nämner varje tillagd incident: de första 20 med nummer och titel, sedan hur många till. Den publiceras en gång i episodens Slack- eller Microsoft Teams-kanal, inte en gång per incident, och för en episod som skapas med dem kommer den där efter episodens skapandemeddelande. En privat incident nämns bara med sitt nummer.
 - **Varje incidents eget flöde** säger vilken episod den lades till i.
 - **Episodens allvarlighetsgrad** höjs till den allvarligaste incident som läggs till i en befintlig episod, och sänks aldrig. En ny episod börjar med den allvarlighetsgrad du väljer.
 - **En löst episod förblir löst.** Att lägga till i den öppnar inte den igen, och ett tillägg ändrar aldrig en incidents status.

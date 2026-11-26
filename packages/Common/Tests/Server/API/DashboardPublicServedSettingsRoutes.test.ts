@@ -299,6 +299,8 @@ const VALID_FILTER_VALUES: Record<string, Array<string>> = {
   "ProxmoxGuestList.statusFilter": ["running", "stopped"],
   "VMwareVirtualMachineList.powerStateFilter": ["on", "off"],
   "VMwareVirtualMachineList.templateFilter": ["exclude", "only"],
+  "XcpNgHostList.statusFilter": ["running", "not-running", "disabled"],
+  "XcpNgVmList.statusFilter": ["running", "not-running"],
   "CephOsdList.stateFilter": ["up", "down", "out"],
   "StorageArrayHardwareList.kindFilter": ["Hardware", "Drive", "Controller"],
   "StorageArrayHardwareList.statusFilter": ["unhealthy"],

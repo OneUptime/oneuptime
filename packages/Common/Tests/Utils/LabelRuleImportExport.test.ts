@@ -219,6 +219,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "workflowDescriptionPattern",
     "workflowLabels",
   ],
+  XcpNgPoolLabelRule: [
+    "xcpNgPoolNamePattern",
+    "xcpNgPoolDescriptionPattern",
+    "xcpNgPoolLabels",
+  ],
 };
 
 describe("portable label rule files", () => {

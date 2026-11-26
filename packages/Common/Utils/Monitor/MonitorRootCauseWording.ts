@@ -111,6 +111,7 @@ const BOLD_LABELS: ReadonlyArray<string> = [
   translationKey("Ceph Cluster Details"),
   translationKey("OpenStack Cloud Details"),
   translationKey("Storage Array Details"),
+  translationKey("XCP-ng Pool Details"),
 ];
 
 // A fact OneUptime lists under a section: "- Request Method: GET".

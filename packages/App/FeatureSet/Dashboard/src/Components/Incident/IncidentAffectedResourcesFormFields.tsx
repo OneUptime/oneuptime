@@ -16,6 +16,7 @@ import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import { ModelFormOnBeforeUpdate } from "Common/UI/Components/Forms/ModelForm";
@@ -141,6 +142,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
               proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
               openStackClouds={values.openStackClouds as Array<OpenStackCloud>}
               vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
+              xcpNgPools={values.xcpNgPools as Array<XcpNgPool>}
               cephClusters={values.cephClusters as Array<CephCluster>}
               storageArrays={values.storageArrays as Array<StorageArray>}
               dockerSwarmClusters={
@@ -159,6 +161,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 "ProxmoxCluster",
                 "OpenStackCloud",
                 "VMwareVCenter",
+                "XcpNgPool",
                 "CephCluster",
                 "StorageArray",
                 "DockerSwarmCluster",
@@ -194,6 +197,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 proxmoxClusters: payload.proxmoxClusters,
                 openStackClouds: payload.openStackClouds,
                 vmwareVCenters: payload.vmwareVCenters,
+                xcpNgPools: payload.xcpNgPools,
                 cephClusters: payload.cephClusters,
                 storageArrays: payload.storageArrays,
                 dockerSwarmClusters: payload.dockerSwarmClusters,
@@ -267,6 +271,15 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
       },
       {
         field: { vmwareVCenters: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { xcpNgPools: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

@@ -46,6 +46,16 @@ export enum CloudResourceFeedEventType {
    */
   AppDeployed = "AppDeployed",
   AppRolledBack = "AppRolledBack",
+  /*
+   * A change for a saving (#11010, CloudSavingsAction): proposed to an
+   * owner, made - by a person's approval, an AI rule or an off-hours
+   * schedule - failed, dismissed, or taken back.
+   */
+  SavingsActionProposed = "SavingsActionProposed",
+  SavingsActionApplied = "SavingsActionApplied",
+  SavingsActionFailed = "SavingsActionFailed",
+  SavingsActionDismissed = "SavingsActionDismissed",
+  SavingsActionUndone = "SavingsActionUndone",
 }
 
 /*

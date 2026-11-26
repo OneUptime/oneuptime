@@ -134,6 +134,7 @@ Lämna det hopfällt så pingas enheten bara: det hopfällda avsnittet säger de
 | SNMP v3 Authentication Key | Lösenfrasen för autentisering. | Med autentisering |
 | SNMP v3 Privacy Protocol | DES, AES eller AES-256. | Med sekretess |
 | SNMP v3 Privacy Key | Lösenfrasen för sekretess (kryptering). | Med sekretess |
+| SNMP v3 Context | Bara för en agent som svarar för flera enheter på en adress, var och en i sin egen kontext: `VF:128` för en logisk Brocade-switch. | Nej |
 :::
 
 Autentiseringsuppgifter som skrivs på enheten vinner över en autentiseringsprofil som valts bredvid dem, och enhetens plats kan också ha en standardprofil. Autentiseringsuppgifter i en profil är krypterade i vila. Autentiseringsuppgifter som skrivs på en enhet är också krypterade i vila och skyddas av samma läsbehörigheter.
@@ -250,6 +251,12 @@ Markera enheter i listan **Enheter** och använd:
 
 Sidan **Enheter** visar en banderoll när projektet har enheter med åsidosättningen med bunden monitor där inget är bundet — enheter som inget avsöker och som inget rapporterar om — och länkar till det urval som åtgärdar dem.
 
+### SNMPv3-kontexter
+
+En agent kan svara för flera enheter på en adress, var och en i sin egen SNMPv3-kontext: ett Brocade-chassi med Virtual Fabrics svarar för varje logisk switch i kontexten `VF:` och dess fabric-ID. Lägg till en enhet per logisk switch på den adressen, med SNMP v3, och ange för var och en dess **SNMP v3-kontext** på dess sida **Inställningar**; en enhet utan kontext frågas i agentens standardkontext. Kontexten hör till enheten, inte till dess inloggningsuppgifter, så den gäller med vilken inloggningsprofil enheten än använder.
+
+En prob från före SNMPv3-kontexter skulle fråga standardkontexten i stället, så tills den är uppdaterad pingar den bara en sådan enhet. Varje SNMPv3-trap nämner också sin kontext och utlöses bara på den enhet som frågas i den kontexten; en trap i en kontext där ingen enhet frågas loggas som omatchad.
+
 ## Platsens standardvärden för övervakning
 
 En [nätverksplats](/docs/monitor/network-sites#standardvärden-för-övervakning) har två standardvärden för enheterna i den. Dess **Default Probe** kopieras till en enhet som skapas på platsen, eller flyttas dit, utan egen sond. Dess **Default SNMP Credential Profile** läses vid varje avsökning av en enhet på platsen som inte har egna autentiseringsuppgifter. Sätt båda på en plats så kan en enhet där läggas till med bara sin adress, och pingas och walkas från sin första avsökning. Guiden om platser beskriver hur långt ned i platsträdet varje standardvärde når.
@@ -303,9 +310,11 @@ I redigeraren **Health OIDs** tillämpar **Vendor Health Template** en färdig u
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU-belastning, totalt och tillgängligt RAM, belastningsgenomsnitt | CPU-kärnor (en rad per kärna, hur plattformen än numrerar dem) |
 | Arista EOS | CPU-belastning, belastningsgenomsnitt, totalt och tillgängligt RAM | — |
+| Brocade Fabric OS (SAN switches) | Switchens tillstånd, firmwareversion, CPU, minne | Switchens status, sensorer (temperatur, fläktar, nätaggregat), utbytbara enheter (FRU:er) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, temperatur, matningsspänning | Fläktar, PoE-portar, redundant nätaggregat |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, ledigt minne, Wi-Fi-klienter, anslutning till cnMaestro | Wi-Fi-radior (band, kanal, bredd, sändeffekt, klienter, brusgolv, airtime, tillstånd), SSID:er |
 | Cisco IOS / IOS-XE | CPU, använt och ledigt minne, temperatur, fläkttillstånd, nätaggregatstillstånd | — |
+| Cisco MDS 9000 (SAN switches) | CPU, minne | Nätaggregat, moduler, fläktlådor, VSAN:er |
 | Dell Force10 / OS9 | CPU, minne | — |
 | Extreme Networks EXOS / Switch Engine | CPU, temperatur, larm för övertemperatur, strömtillstånd | Nätaggregat, fläktar, minne per kortplats, stackmedlemmar |
 | Extreme Networks Fabric Engine / VOSS | vIST-session, antal I-SID:er | Fabric-adjacencies (IS-IS) namngivna efter grannen, CPU och minne per kortplats, temperatursensorer, fläktar, nätaggregat |
@@ -513,6 +522,7 @@ Enhetens `sysObjectID` väljer var mätningarna kommer ifrån: tillverkarens ege
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), med flaggor för signalförlust och sändarfel | Nej |
 | Cambium Networks cnMatrix (4.5 och senare) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nej |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), läst som text: `-inf` betyder inget ljus | Nej |
 | Alla andra enheter | ENTITY-SENSOR-MIB (RFC 3433), matchad till portar via ENTITY-MIB | Nej |
 
 Den första avsökningen läser allt. Senare avsökningar läser bara det som ändras — mätningarna, och de serienummer som avslöjar en utbytt modul — och resten (tröskelvärden, identitet, vilken modul som sitter i vilken port) läses om när en modul sätts i, tas ut eller byts, och minst en gång i timmen. En enhet utan någon av dessa MIB:ar kostar en förfrågan per provad MIB. Läsningen har en egen budget på 20 sekunder, och en läsning som får timeout eller avbryts behåller enhetens senaste bra moduler i stället för att rapportera dem som borta.
@@ -853,6 +863,7 @@ Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar inci
 | SNMP Interface Is Down | Sant när ett administrativt aktiverat gränssnitt är nere i drift. | Utvärderas inte |
 | SNMP Interface Utilization (in %) | Länkutnyttjandet på det mest belastade gränssnittet. | Utvärderas inte |
 | SNMP Interface Errors (per second) | Felfrekvensen på det sämsta gränssnittet. | Utvärderas inte |
+| SNMP Fibre Channel Counter (per second) | En Fibre Channel-räknare för en SAN-switchs portar — CRC-fel, kasserade ramar, kreditförlust och resten — per sekund, på den sämsta porten i omfånget; `*` utlöser ett larm per port. | Utvärderas inte |
 | SNMP Transceiver Not Detected | Sant när en port som hade en modul inte har rapporterat någon under två avsökningar i rad, medan porten är aktiverad. | Utvärderas inte |
 | SNMP Transceiver Past Alarm Threshold | Sant när en moduls mätning ligger vid eller över ett larmtröskelvärde som enheten rapporterar, eller enheten flaggar signalförlust eller sändarfel. | Utvärderas inte |
 | SNMP Transceiver Past Warning Threshold | Samma sak vid varningströskelvärdena; en modul över ett larmtröskelvärde räknas också. | Utvärderas inte |
@@ -1028,6 +1039,9 @@ Incident- och larmmallar på en nätverksenhetsmonitor kan använda dessa variab
 | `{{trapOid}}` | Trapens OID, vid kontroller som en trap utlöste |
 | `{{trapSourceIp}}` | Adressen som trapen kom från, vid kontroller som en trap utlöste |
 | `{{trapVarbinds}}` | De varbinds som trapen bar, var och en med `oid` och `value` |
+| `{{trapInterface}}` | Gränssnittet som en trap gäller: namnet den har med sig, eller det som enhetens genomgång registrerade för dess index |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | Vid ett RMON-larm (ett MDS-port-monitor-larm) räknaren som passerade sitt tröskelvärde, och `rising` eller `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | Vid ett RMON-larm räknarens värde och tröskelvärdet den passerade |
 | `{{tables.<key>.rowCount}}` | Raderna som walkades i en [SNMP-tabell](#snmp-tabeller), efter dess nyckel: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Raderna med en status utanför sina friska värden, var och en med `name`, `index` och `values.<column>` |
 | `{{tables.<key>.rows}}` | Varje rad (upp till 50), var och en med `name`, `index` och `values.<column>`, med kolumnnamn i gemener och mellanslag som `_` |

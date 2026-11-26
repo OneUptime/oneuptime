@@ -97,8 +97,8 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 
 1. **Det får ett nummer och ett tillstånd.** Larmnumret kommer från en räknare per projekt och visas med ditt prefix (`ALT-42`). Larmet börjar i ditt skapandetillstånd, om inte formuläret, API:et, ett arbetsflöde eller Fråga AI valde ett annat.
 2. **Sekretessregler körs först**, så att allt efter dem vet om larmet är privat.
-3. **Flödet och dina chattverktyg får veta.** En post **Larm skapat** skrivs i **Larmflöde**, och kanalerna som dina Slack- och Microsoft Teams-regler anger meddelas; en regel kan skapa en kanal för larmet.
-4. **Ägare och etiketter läggs till**: de som monitorns kriterier eller begäran anger, sedan de från matchande ägar- och etikettregler.
+3. **Ägare och etiketter läggs till**: de som monitorns kriterier eller begäran anger, sedan de från matchande ägar- och etikettregler.
+4. **Flödet och dina chattverktyg får veta.** En post **Larm skapat** skrivs i **Larmflöde** som flödets första post, och kanalerna som dina Slack- och Microsoft Teams-regler anger meddelas; en regel kan skapa en kanal för larmet. Reglerna ser de ägare och etiketter som larmet skapades med, så en regel som frågar vem som äger ett larm, eller vilka etiketter det har, publicerar det också. Det som har sagts om larmet under tiden, till exempel ägarna som just lades till, kommer efter **Larm skapat** i de kanalerna.
 5. **Jourregler lägger till sina policyer**, sedan startar runbook-regler de runbooks som matchar.
 6. **Jourpolicyer körs.** Varje policy på larmet larmar sina personer parallellt; att en misslyckas stoppar inte de andra. Sedan deklarerar den första matchande incidentregeln en incident från larmet, direkt eller när dess väntetid är slut.
 7. **Grupperingsregler lägger det i en episod**, när en av dem matchar. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes).

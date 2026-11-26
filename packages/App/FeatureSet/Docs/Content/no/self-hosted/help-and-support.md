@@ -7,6 +7,7 @@ Rett hjelpen OneUptime tilbyr, mot ditt eget team: støtteadressen, chatten og h
 - [Hva hver innstilling endrer](#hva-hver-innstilling-endrer): Hvert sted, standarden og valgene.
 - [Gi tilbakemelding](#gi-tilbakemelding): Hvor det folk skriver, sendes.
 - [Påloggingsmeldingen](#påloggingsmeldingen): Hvem man skal be om en invitasjon.
+- [Angi dem i konfigurasjonen din](#angi-dem-i-konfigurasjonen-din): Helm-verdier eller `config.env`, for en ny server.
 :::
 
 ## Endre hvor hjelpen går
@@ -28,12 +29,12 @@ Så lenge du ikke endrer et sted, viser det det OneUptime alltid har vist, så e
 
 | Innstilling | Hvor folk ser den | Standard | Egen |
 | --- | --- | --- | --- |
-| **Støtte-e-post** | Hjelp › **Støtte-e-post**, **Kontakt støtte** på siden som ikke ble funnet, og adressen en feilskjerm ber folk sende en støttepakke til | `support@oneuptime.com` | En e-postadresse |
-| **Chat** | Hjelp › **Chat på Slack** | OneUptimes fellesskap på Slack | En lenke. En Slack- eller Microsoft Teams-lenke beholder navnet sitt; alle andre heter **Chat med støtte** |
+| **Støtte-e-post** | Hjelp › **Støtte-e-post**, **Kontakt støtte** på siden som ikke ble funnet, konto-e-poster, og adressen en feilskjerm ber folk sende en støttepakke til | `support@oneuptime.com` | En e-postadresse |
+| **Chat** | Hjelp › **Chat på Slack**, og chatlenken øverst i API-referansen | OneUptimes fellesskap på Slack | En lenke. En Slack- eller Microsoft Teams-lenke beholder navnet sitt; alle andre heter **Chat med støtte** |
 | **Be om demo** | Hjelp › **Be om demo** | Vist | Bare skjult |
 | **Gi tilbakemelding** | Hjelp › **Gi tilbakemelding**, og **Gi tilbakemelding** i Søk | Administratorene av denne serveren | En e-postadresse, eller din egen side |
-| **Hjelp og støtte** | **Hjelp og støtte** i bunnteksten, og **Kontakt** på påloggingssidene | `https://oneuptime.com/support` | En lenke |
-| **Rapporter en feil eller be om en funksjon** | Bunnen av produktmenyen, og den offentlige GitHub-saken som tilbys etter tilbakemelding | Vist | Bare skjult |
+| **Hjelp og støtte** | **Hjelp og støtte** i bunnteksten, **Kontakt** på påloggingssidene, og **Brukerstøtte** øverst i API-referansen | `https://oneuptime.com/support` | En lenke |
+| **Rapporter en feil eller be om en funksjon** | Bunnen av produktmenyen, den offentlige GitHub-saken som tilbys etter tilbakemelding, og GitHub-lenkene i dokumentasjonen og API-referansen | Vist | Bare skjult |
 | **Last ned mobilappen** | **Slik når man meg**, vaktoppsettet, et nytt medlems første steg på Hjem, og **Mobilapper** i **Prosjektinnstillinger** | App Store og Google Play | Din egen side, for eksempel bedriftsportalen i enhetsadministrasjonen din |
 | **Melding til personer som trenger en invitasjon** | Skjermene for enkel pålogging som sier «You need to be invited.» og «No project access.» | OneUptimes setning | Dine egne ord |
 
@@ -41,9 +42,17 @@ Alle innstillinger unntatt meldingen kan også skjules. En lenke begynner med `h
 
 Admin Dashboards egen hjelpemeny, bunntekst og produktmeny beholder OneUptimes lenker: de er for administratorene av denne serveren, som får hjelp med serveren fra OneUptime.
 
+### Konto-e-poster
+
+På en selvhostet server avslutter konto-e-poster, som en invitasjon eller en endret e-postadresse, med å vise folk til administratoren av denne serveren, aldri til OneUptimes støtte. Med en egen støtteadresse nevner de den, som en lenke: «Trenger du hjelp? Skriv til it-help@example.com.» På standard, eller skjult, lyder de som de alltid har gjort.
+
+### Dokumentasjonen og API-referansen
+
+Dokumentasjonen og API-referansen denne serveren viser, følger de samme innstillingene. Med **Rapporter en feil eller be om en funksjon** skjult lenker ingen side til GitHub, og **Var denne siden nyttig?** spørres bare der svaret lagres eller sendes. Topplinjen i API-referansen viser chatten og hjelpesiden du har valgt, eller ingen av dem når de er skjult.
+
 ### Hvem kan lese lenkene dine
 
-Støtteadressen og lenken **Hjelp og støtte** vises også på påloggingssidene, så alle som kan åpne de sidene, kan lese dem. En chatlenke og mobilappens side sendes bare til folk som er pålogget: en chatlenke er ofte en invitasjon inn i arbeidsområdet ditt.
+Støtteadressen og lenken **Hjelp og støtte** vises også på påloggingssidene, så alle som kan åpne de sidene, kan lese dem. En chatlenke og mobilappens side sendes bare til folk som er pålogget: en chatlenke er ofte en invitasjon inn i arbeidsområdet ditt. Av samme grunn viser dokumentasjonen og API-referansen, som alle kan lese, en egen chatlenke bare til noen som er pålogget denne serveren.
 
 ## Gi tilbakemelding
 
@@ -78,6 +87,39 @@ Med din egen side peker hver oppfordring til å laste ned mobilappen dit: én QR
 - **Last ned mobilappen** forsvinner fra et nytt medlems første steg på Hjem, som fortsatt fullføres når personen kan nås og et testoppkall har nådd vedkommende.
 - **Slik når man meg** og vaktoppsettet tilbyr bare nettlesere.
 - **Mobilapper** forsvinner fra **Prosjektinnstillinger**.
+- Overalt der OneUptime ramser opp måtene å nå noen på, som i de veiledede oppsettene, på Hjem, i et teams samsvarsregler og i Spør AI, nevner det ikke lenger appen blant dem.
+
+## Angi dem i konfigurasjonen din
+
+En server som er installert med Helm eller Docker Compose, kan starte med disse innstillingene allerede på plass. Angi dem i `helpAndSupport`-verdiene i Helm-chartet, eller i `config.env` for Docker Compose:
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Helm-verdi | `config.env` | Hva den tar |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | En e-postadresse, eller `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | En lenke, eller `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` eller `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | En e-postadresse, en lenke, eller `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | En lenke, eller `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` eller `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | En lenke, eller `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | Ren tekst |
+
+- De leses når serveren starter, bare så lenge ingenting er lagret under **Hjelp og støtte**. Fra da av er det siden som har innstillingene: en endring som gjøres der, beholdes, og en omstart setter den aldri tilbake.
+- En verdi som endres i konfigurasjonen senere, tas ikke i bruk, og serverens logg sier fra. Endre den på siden.
+- Hver verdi kontrolleres slik siden kontrollerer den. En verdi som ville blitt avvist, som en `javascript:`-lenke, utelates, og siden og serverens logg sier hvorfor. De andre angis likevel.
+- La en verdi stå tom for å beholde OneUptimes standard. `true` og `false` virker også for de to bryterne.
+- Siden markerer hver innstilling som kom fra konfigurasjonen din, til du endrer den.
 
 ## Neste steg
 

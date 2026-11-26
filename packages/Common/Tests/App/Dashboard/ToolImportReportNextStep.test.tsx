@@ -178,6 +178,15 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -471,6 +480,61 @@ describe("an on-call tool's report ends on a test page", () => {
       ]);
     },
   );
+
+  /*
+   * "Make sure everyone can be paged" names the mobile app among the ways
+   * to be paged only where the server offers it (Admin Dashboard >
+   * Settings > Help and Support, #10945).
+   */
+  test("everyone can be paged: a phone number, an email address or the mobile app", async () => {
+    await renderReport(run(ToolImportSource.PagerDuty), ONE_POLICY);
+
+    expect(step(READINESS)).toHaveTextContent(
+      "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
+    );
+  });
+
+  test("on a server without the mobile app: a phone number or an email address, and no app (#10945)", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      await renderReport(run(ToolImportSource.PagerDuty), ONE_POLICY);
+
+      expect(step(READINESS)).toHaveTextContent(
+        "People you invited accept their invitation, then add a phone number or an email address to be paged on.",
+      );
+      expect(step(READINESS)).not.toHaveTextContent("mobile app");
+    } finally {
+      forgetHelpAndSupport();
+    }
+  });
+
+  test("the sentence without the app is worded in every Dashboard language (#10945)", () => {
+    const key: string =
+      "People you invited accept their invitation, then add a phone number or an email address to be paged on.";
+    const withApp: string =
+      "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.";
+
+    for (const file of fs.readdirSync(LOCALES_DIR)) {
+      if (!file.endsWith(".json") || file === "en.json") {
+        continue;
+      }
+
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
+      ) as Record<string, string>;
+
+      expect({
+        file,
+        worded: Boolean(locale[key]) && locale[key] !== key,
+        differs: locale[key] !== locale[withApp],
+      }).toEqual({ file, worded: true, differs: true });
+    }
+  });
 
   test("one policy brought over: the step names it, and offers Test this policy and nothing else", async () => {
     await renderReport(run(ToolImportSource.PagerDuty), ONE_POLICY);

@@ -95,7 +95,7 @@ Elija un **Intervalo de monitoreo**, de **Cada minuto** a **Cada semana**. A los
 
 ### Crear el monitor
 
-Haga clic en **Crear monitor**. Se abre la página del nuevo monitor. Para cambiar sus sondas o su intervalo más adelante, abra **Configuración → Sondas e intervalo** en esa página.
+Haga clic en **Crear monitor**. Se abre la página del nuevo monitor. Slack y Microsoft Teams se enteran de él una vez que se han añadido sus propietarios y etiquetas, así que una regla de notificación que pregunta quién es el propietario de un monitor, o cómo está etiquetado, publica su mensaje de creación, y su primer estado sigue a ese mensaje. Para cambiar sus sondas o su intervalo más adelante, abra **Configuración → Sondas e intervalo** en esa página.
 :::
 
 Todos los demás tipos, excepto Manual, se crean desde el paso **Criterios**.

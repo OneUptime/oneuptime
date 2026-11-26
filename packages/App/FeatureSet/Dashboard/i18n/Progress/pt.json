@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64602,
+    "keys": 65322,
     "untranslated": 8293
   },
   "sameAsEnglish": [
@@ -365,6 +365,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMs",
     "VMware vCenter",
@@ -385,6 +387,7 @@
     "Webhooks",
     "Workers",
     "Workspaces",
+    "Xen Orchestra xo-paris · 3 hosts · 42 VMs",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -444,6 +447,7 @@
     "namespaces",
     "nova-compute",
     "ns",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -456,6 +460,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "payments, search, platform-*",
     "persistent volume claim",
     "pod",
     "pods",

@@ -75,6 +75,13 @@ describe("getDefaultRequestBody", () => {
          * line it logs while it runs the step (#10875).
          */
         "hideSecretValuesInLogs",
+        /*
+         * Only a probe that declares "snmpV3Context" is handed a device
+         * polled in an SNMPv3 context of its own (a Brocade logical
+         * switch's "VF:128"); an older probe would poll the default
+         * logical switch in its place, so it only pings that device.
+         */
+        "snmpV3Context",
       ],
       /*
        * The release this probe runs, from APP_VERSION: kept with its

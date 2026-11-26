@@ -57,6 +57,7 @@ import ServiceOwnerUserService from "../../Services/ServiceOwnerUserService";
 import StatusPageOwnerUserService from "../../Services/StatusPageOwnerUserService";
 import StorageArrayOwnerUserService from "../../Services/StorageArrayOwnerUserService";
 import VMwareVCenterOwnerUserService from "../../Services/VMwareVCenterOwnerUserService";
+import XcpNgPoolOwnerUserService from "../../Services/XcpNgPoolOwnerUserService";
 import WorkflowOwnerUserService from "../../Services/WorkflowOwnerUserService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -210,6 +211,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(StorageArrayOwnerUserService, "storageArrayId"),
       ownerUserTable(VMwareVCenterOwnerUserService, "vmwareVCenterId"),
       ownerUserTable(WorkflowOwnerUserService, "workflowId"),
+      ownerUserTable(XcpNgPoolOwnerUserService, "xcpNgPoolId"),
     ];
   }
 

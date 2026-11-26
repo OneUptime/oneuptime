@@ -1,9 +1,23 @@
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import OneUptimeDate from "Common/Types/Date";
-import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  AcceptedUntilProblem,
+  DEFAULT_ACCEPTANCE_IN_DAYS,
+  getDefaultAcceptedUntil,
+  getIssueAssignWrite,
+  getIssueMoveWrite,
+  IssueAcceptance,
+  IssueAssigneePick,
+  isIssueMoveOffered,
+  ISSUE_MOVE_STATUS,
+  ISSUE_MOVES,
+  IssueMove,
+  MAX_ACCEPTANCE_IN_DAYS,
+  readAcceptedUntilProblem,
+  readIssueStatus,
+} from "Common/Utils/DataSecurity/DataSecurityIssueChanges";
 import {
   PluralTemplate,
   Translator,
@@ -26,22 +40,25 @@ import {
  *
  * Each is one update of the issue through the API, so the server checks the
  * permission and writes the change to the issue's timeline. A move that
- * would leave an issue where it is skips it, saying why.
+ * would leave an issue where it is skips it, saying why. What each writes
+ * is built in Common (Utils/DataSecurity/DataSecurityIssueChanges), where
+ * Ask AI's change_data_security_issue builds the same write (#10378); the
+ * words a person reads stay here.
  */
 
-export enum IssueMove {
-  Accept = "accept",
-  Resolve = "resolve",
-  NotAnIssue = "notAnIssue",
-  Reopen = "reopen",
-}
-
-export const ISSUE_MOVES: ReadonlyArray<IssueMove> = [
-  IssueMove.Resolve,
-  IssueMove.Accept,
-  IssueMove.NotAnIssue,
-  IssueMove.Reopen,
-];
+export {
+  IssueMove,
+  ISSUE_MOVES,
+  ISSUE_MOVE_STATUS,
+  MAX_ACCEPTANCE_IN_DAYS,
+  DEFAULT_ACCEPTANCE_IN_DAYS,
+  readIssueStatus,
+  isIssueMoveOffered,
+  getIssueMoveWrite,
+  getIssueAssignWrite,
+  getDefaultAcceptedUntil,
+};
+export type { IssueAcceptance, IssueAssigneePick };
 
 export const ISSUE_MOVE_TITLES: Record<IssueMove, string> = {
   [IssueMove.Accept]: translationKey("Accept Risk"),
@@ -59,14 +76,6 @@ export const ISSUE_MOVE_ICONS: Record<IssueMove, IconProp> = {
 
 export const ASSIGN_ISSUE: string = translationKey("Assign");
 export const ASSIGN_ISSUE_ICON: IconProp = IconProp.User;
-
-// The status each move leaves an issue in.
-export const ISSUE_MOVE_STATUS: Record<IssueMove, DataSecurityIssueStatus> = {
-  [IssueMove.Accept]: DataSecurityIssueStatus.Accepted,
-  [IssueMove.Resolve]: DataSecurityIssueStatus.Resolved,
-  [IssueMove.NotAnIssue]: DataSecurityIssueStatus.NotAnIssue,
-  [IssueMove.Reopen]: DataSecurityIssueStatus.Open,
-};
 
 /*
  * Why a selected issue was left alone: it is there already. Accept Risk
@@ -167,12 +176,6 @@ export const ISSUE_DELETE_WARNING: string = translationKey(
   "If its check still fails, OneUptime opens it again on the next check. To close it, mark it resolved or not an issue.",
 );
 
-// The longest a risk is accepted for: the server allows a year and a day.
-export const MAX_ACCEPTANCE_IN_DAYS: number = 365;
-
-// Where Accepted Until starts: a quarter from today.
-export const DEFAULT_ACCEPTANCE_IN_DAYS: number = 90;
-
 export const ACCEPTANCE_TOO_LONG: string = translationKey(
   "A risk can be accepted for at most a year.",
 );
@@ -180,41 +183,6 @@ export const ACCEPTANCE_TOO_LONG: string = translationKey(
 export const ACCEPTANCE_IN_THE_PAST: string = translationKey(
   "Pick a date in the future.",
 );
-
-export interface IssueAcceptance {
-  reason: string;
-  until: Date;
-}
-
-export function readIssueStatus(
-  issue: DataSecurityIssue,
-): DataSecurityIssueStatus {
-  return (
-    (issue.status as DataSecurityIssueStatus | undefined) ||
-    DataSecurityIssueStatus.Open
-  );
-}
-
-// Whether a move is offered for an issue where it stands.
-export function isIssueMoveOffered(
-  issue: DataSecurityIssue,
-  move: IssueMove,
-): boolean {
-  const status: DataSecurityIssueStatus = readIssueStatus(issue);
-
-  switch (move) {
-    case IssueMove.Accept:
-    case IssueMove.Resolve:
-      return (
-        status === DataSecurityIssueStatus.Open ||
-        status === DataSecurityIssueStatus.Accepted
-      );
-    case IssueMove.NotAnIssue:
-      return status !== DataSecurityIssueStatus.NotAnIssue;
-    case IssueMove.Reopen:
-      return status !== DataSecurityIssueStatus.Open;
-  }
-}
 
 /*
  * Why a move leaves an issue alone, or null: Accept Risk on an accepted
@@ -229,56 +197,6 @@ export function getIssueMoveSkipReason(
   return already && readIssueStatus(issue) === ISSUE_MOVE_STATUS[move]
     ? already
     : null;
-}
-
-/*
- * What a move writes to the issue: Accept Risk its reason and date, Not an
- * Issue its reason (#10369) - which OneUptime AI learns from which findings
- * are noise (#10372).
- */
-export function getIssueMoveWrite(
-  move: IssueMove,
-  acceptance?: IssueAcceptance | undefined,
-  notAnIssueReason?: string | undefined,
-): JSONObject {
-  if (move === IssueMove.Accept) {
-    return {
-      status: DataSecurityIssueStatus.Accepted,
-      acceptedReason: acceptance?.reason || "",
-      acceptedUntil: acceptance
-        ? OneUptimeDate.toString(acceptance.until)
-        : null,
-    };
-  }
-
-  if (move === IssueMove.NotAnIssue) {
-    const reason: string = (notAnIssueReason || "").trim();
-
-    return reason
-      ? { status: DataSecurityIssueStatus.NotAnIssue, notAnIssueReason: reason }
-      : { status: DataSecurityIssueStatus.NotAnIssue };
-  }
-
-  return { status: ISSUE_MOVE_STATUS[move] };
-}
-
-export interface IssueAssigneePick {
-  userId?: string | undefined;
-  teamId?: string | undefined;
-}
-
-// A person or a team, never both: the one picked replaces the other.
-export function getIssueAssignWrite(pick: IssueAssigneePick): JSONObject {
-  return {
-    assignedToUserId: pick.userId || null,
-    assignedToTeamId: pick.userId ? null : pick.teamId || null,
-  };
-}
-
-export function getDefaultAcceptedUntil(now: Date = new Date()): Date {
-  return OneUptimeDate.getEndOfDay(
-    OneUptimeDate.addRemoveDays(now, DEFAULT_ACCEPTANCE_IN_DAYS),
-  );
 }
 
 /*
@@ -312,26 +230,14 @@ export function getAcceptedUntilProblem(
   until: Date | null,
   now: Date = new Date(),
 ): string | null {
-  if (!until) {
-    return ACCEPTANCE_IN_THE_PAST;
+  switch (readAcceptedUntilProblem(until, now)) {
+    case AcceptedUntilProblem.InThePast:
+      return ACCEPTANCE_IN_THE_PAST;
+    case AcceptedUntilProblem.TooLong:
+      return ACCEPTANCE_TOO_LONG;
+    default:
+      return null;
   }
-
-  const endOfDay: Date = OneUptimeDate.getEndOfDay(until);
-
-  if (endOfDay.getTime() <= now.getTime()) {
-    return ACCEPTANCE_IN_THE_PAST;
-  }
-
-  if (
-    endOfDay.getTime() >
-    OneUptimeDate.getEndOfDay(
-      OneUptimeDate.addRemoveDays(now, MAX_ACCEPTANCE_IN_DAYS),
-    ).getTime()
-  ) {
-    return ACCEPTANCE_TOO_LONG;
-  }
-
-  return null;
 }
 
 // An issue's id, whichever shape it arrived in.

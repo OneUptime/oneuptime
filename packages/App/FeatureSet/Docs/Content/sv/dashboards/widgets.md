@@ -197,6 +197,7 @@ Var och en av de här widgetarna listar resurserna som en agent eller en collect
 | **Podman** | **Värdar**, **Behållare**, **Avbildningar**, **Nätverk**, **Volymer** | Podman-agenten |
 | **Proxmox** | **Noder**, **Gäster** | Proxmox-agenten |
 | **VMware** | **Värdar**, **Virtuella maskiner** | VMware-agenten, eller ett vCenter som du ansluter |
+| **XCP-ng** | **Värdar**, **VM:ar** | XCP-ng-agenten |
 | **Ceph** | **OSD:er**, som en vägg färgad efter tillstånd, och **Pools** | Ceph-agenten |
 | **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Lagringsarray-agenten |
 

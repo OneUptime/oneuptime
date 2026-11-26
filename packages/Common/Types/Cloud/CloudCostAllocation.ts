@@ -8,6 +8,7 @@ import {
   startOfUtcMonth,
   toCloudCostDay,
 } from "./CloudCost";
+import { CloudCostBasis } from "./CloudCostBasis";
 
 /*
  * COST VIEWS, COST GROUPS AND WHAT THEY ALLOCATE.
@@ -712,6 +713,11 @@ export interface CloudCostAllocationResult {
   viewId: string;
   viewName: string;
   currency: string;
+  /*
+   * The cost basis every cloud figure is on (#11007): the one asked for,
+   * else the project's. A line item is the same on every basis.
+   */
+  basis?: CloudCostBasis | undefined;
   interval: CloudCostAllocationInterval;
   // The window read: its first and last day ("2026-11-01").
   start: string;

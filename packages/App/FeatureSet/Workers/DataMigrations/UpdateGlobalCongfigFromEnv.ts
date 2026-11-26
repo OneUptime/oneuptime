@@ -4,6 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
+import HelpAndSupportSeeding from "Common/Server/Utils/HelpAndSupport/HelpAndSupportSeeding";
 
 const WHOLE_NUMBER: RegExp = /^\d+$/;
 
@@ -88,6 +89,16 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
         isRoot: true,
       },
     });
+
+    /*
+     * Where a new server sends its people for help, from its configuration
+     * (helpAndSupport in the Helm chart, HELP_AND_SUPPORT_* in config.env,
+     * #10938), the moment its settings row is made: its first start may run
+     * the startup migration that seeds it (SeedHelpAndSupportFromConfiguration)
+     * before the row exists. Written only while nothing is saved, like that
+     * one, so the two never undo each other.
+     */
+    await HelpAndSupportSeeding.seed();
   }
 
   public override async rollback(): Promise<void> {

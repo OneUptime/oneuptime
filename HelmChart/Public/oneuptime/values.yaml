@@ -1546,6 +1546,41 @@ incomingRequests:
 products:
   onThisServer: everything
 
+# Where this server sends its people for help - Admin Dashboard > Settings >
+# Help and Support - set from here while nothing is saved on that page yet: a
+# new server's first start, or the first start with a value set of a server
+# whose page was never saved. From then on the page holds the settings. A
+# change made there is kept, a restart never sets it back, and a value
+# changed here later is not applied: the server's log says so, and the page
+# is where it changes. Each value is checked as the page checks it (links
+# start with https://, http:// or mailto:); one that would be refused is left
+# out and said in the log. Leave a value empty to keep OneUptime's own.
+# https://oneuptime.com/docs/self-hosted/help-and-support
+helpAndSupport:
+  # Help > Support Email, Contact Support on Page not found, the crash
+  # screen and account emails: an email address, or "hidden".
+  supportEmail: ""
+  # Help > Chat on Slack: a Slack, Microsoft Teams or other chat link, or
+  # "hidden". Shown to signed-in people only.
+  chat: ""
+  # Help > Request Demo: "shown" or "hidden".
+  requestDemo: ""
+  # Help > Give feedback: an email address, a link to a page of your own,
+  # or "hidden".
+  giveFeedback: ""
+  # The footer's Help and Support link, Contact on the sign-in pages and
+  # Support in the API reference: a link, or "hidden".
+  helpLink: ""
+  # OneUptime's GitHub links - Report a Bug or Request a Feature, and the
+  # docs' GitHub links: "shown" or "hidden".
+  gitHub: ""
+  # The Get the mobile app prompts: a link to a page of your own, such as
+  # your device manager's company portal, or "hidden".
+  mobileApp: ""
+  # What single sign-on says to someone who still needs an invitation:
+  # plain text, up to 1000 characters.
+  inviteMessage: ""
+
 # Browser source maps, uploaded from CI so exception stack traces can be shown
 # with original file names and line numbers instead of minified ones.
 #

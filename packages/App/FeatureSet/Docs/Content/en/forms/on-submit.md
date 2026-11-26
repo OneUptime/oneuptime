@@ -75,7 +75,7 @@ An incident declared through a form is an ordinary incident, with a few settings
 
 - **Hidden from status pages.** **Visible on Status Page** is off, and so is **Notify Status Page Subscribers**. Until a responder publishes it, nothing about the incident reaches a status page or a subscriber — apart from a template's monitor status change, above.
 - **Declared by nobody.** The submitter is not a OneUptime user, so no user is recorded as having declared the incident.
-- **Its owners are told.** The owners the settings and the template name are added once the incident's Slack and Microsoft Teams channels exist, and are notified — the incident's **Incident created** notification waits until they are its owners, so it goes to them rather than to the Project Owners.
+- **Its owners are told.** The owners the settings and the template name are added before the incident's Slack and Microsoft Teams channels are created, so your notification rules see them, and are notified — the incident's **Incident created** notification waits until they are its owners, so it goes to them rather than to the Project Owners.
 - **A private note records the submission** — see [The private note](#the-private-note).
 
 Everything that runs for a new incident runs for these too: privacy, owner, label, on-call and runbook rules, on-call policies, and **On Create Incident** workflows. On-call rules match a form's incidents like any others — including on their title and description, which the submitter wrote.
@@ -117,7 +117,7 @@ Because the incident was declared with **Notify Status Page Subscribers** off, p
 
 An alert created through a form is an ordinary alert, made as one created by hand with **Create Alert** is:
 
-- **Its owners are told, once.** The owners the settings name are added once the alert's Slack and Microsoft Teams channels exist, and the alert's **Alert created** notification waits until they are its owners, so it goes to them rather than to the Project Owners — and it is the only notice they get of it.
+- **Its owners are told, once.** The owners the settings name are added before the alert's Slack and Microsoft Teams channels are created, so your notification rules see them, and the alert's **Alert created** notification waits until they are its owners, so it goes to them rather than to the Project Owners — and it is the only notice they get of it.
 - **It starts where you say.** In the usual starting state, unless the **Initial State** setting names a later one. An alert that starts acknowledged or resolved pages nobody: a form for reports that only need a look can say so.
 - **Created by nobody, and not private.** The submitter is not a OneUptime user, so no user is recorded as having created it. A privacy rule can still make it private.
 - **A private note records the submission** — see [The private note](#the-private-note).

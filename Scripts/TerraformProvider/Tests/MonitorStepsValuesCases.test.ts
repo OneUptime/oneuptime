@@ -235,6 +235,15 @@ describe("the monitor step values cases", () => {
     expect(keys.length).toBeGreaterThanOrEqual(12);
 
     /*
+     * An XCP-ng monitor's step keeps its rolling time too, under the type
+     * the server names it by: monitorstepsvalues.go lists it so.
+     */
+    expect(cases.rollingTimeSettings).toContainEqual({
+      monitorType: "XCP-ng",
+      apiKey: "xcpNgMonitor",
+    });
+
+    /*
      * Read where it means one; a metric monitor's falsy one is the default;
      * the rest are kept as written.
      */

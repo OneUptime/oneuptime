@@ -80,6 +80,8 @@ import {
 } from "../../../Components/Cloud/CloudResourceAttention";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import CloudResourceSpendCards from "../../../Components/Cloud/CloudResourceSpendCards";
+import { CloudVmHostCard } from "../../../Components/Cloud/CloudHostLinkCards";
+import { isCloudHostVmType } from "Common/Types/Cloud/CloudHostLink";
 import { getCloudRightSizingProfile } from "Common/Types/Cloud/CloudRightSizing";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { canCloudResourceHaveSecurityEvents } from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
@@ -572,6 +574,16 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           <></>
         )}
       </div>
+
+      {/*
+       * The host this VM is, when OneUptime's host collector runs on it
+       * (#11013): its processes, logs and memory are on the host's page.
+       */}
+      {isCloudHostVmType(provider, type) ? (
+        <CloudVmHostCard cloudResourceId={modelId} />
+      ) : (
+        <></>
+      )}
 
       <CloudResourceInventoryCards resource={r} />
 

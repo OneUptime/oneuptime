@@ -16,6 +16,7 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import {
   AffectedResourceKind,
   AffectedResourceSearchKindResult,
@@ -44,6 +45,7 @@ export const KIND_MODELS: Record<AffectedResourceKind, { new (): BaseModel }> =
     [AffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
     [AffectedResourceKind.OpenStackCloud]: OpenStackCloud,
     [AffectedResourceKind.VMwareVCenter]: VMwareVCenter,
+    [AffectedResourceKind.XcpNgPool]: XcpNgPool,
     [AffectedResourceKind.CephCluster]: CephCluster,
     [AffectedResourceKind.StorageArray]: StorageArray,
     [AffectedResourceKind.DockerSwarmCluster]: DockerSwarmCluster,

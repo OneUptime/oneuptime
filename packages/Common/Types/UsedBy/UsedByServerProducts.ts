@@ -90,6 +90,7 @@ export const USED_BY_ROW_KIND_PRODUCTS: Readonly<
   [UsedByRowKind.ProxmoxCluster]: ProductKey.Proxmox,
   [UsedByRowKind.OpenStackCloud]: ProductKey.OpenStack,
   [UsedByRowKind.VMwareVCenter]: ProductKey.VMware,
+  [UsedByRowKind.XcpNgPool]: ProductKey.XcpNg,
   [UsedByRowKind.CephCluster]: ProductKey.Ceph,
   [UsedByRowKind.StorageArray]: ProductKey.StorageArrays,
   [UsedByRowKind.NetworkDevice]: ProductKey.Network,

@@ -236,6 +236,24 @@ export function getWritePolicy(
 
 const WRITE_POLICY: WritePolicy = getWritePolicy(process.env);
 
+// The policy this server runs with, as its operator set it.
+export function getServerWritePolicy(): WritePolicy {
+  return WRITE_POLICY;
+}
+
+/*
+ * What a caller is told when it calls, by name, a tool the write policy
+ * took off this server: which switch did it, and where the change can
+ * still be made. The tool is not run.
+ */
+export function getWritePolicyRefusal(policy: WritePolicy): string {
+  if (policy.readOnly) {
+    return "This OneUptime server's MCP tools only read (its operator set MCP_READ_ONLY), and this tool makes changes, so it is turned off here. Make the change in OneUptime itself, or ask whoever runs this server.";
+  }
+
+  return "This OneUptime server's MCP tools do not delete anything (its operator set MCP_ALLOW_DESTRUCTIVE to false), and this tool deletes, so it is turned off here. Make the change in OneUptime itself, or ask whoever runs this server.";
+}
+
 const WRITE_OPERATIONS: ReadonlySet<OneUptimeOperation> = new Set([
   OneUptimeOperation.Create,
   OneUptimeOperation.Update,

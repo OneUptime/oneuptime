@@ -95,6 +95,325 @@ const CISCO: SnmpVendorTemplate = {
   ],
 };
 
+/*
+ * ENTITY-MIB's entPhysicalName, read by each FRU row's own index
+ * (rowLabelsByIndex): the name the switch gives a power supply, a fan tray
+ * or a module ("PowerSupply-1", "Fan Module-2"). A director has a thousand
+ * entities, of which these tables need a handful.
+ */
+const ENTITY_PHYSICAL_NAME_OID: string = "1.3.6.1.2.1.47.1.1.1.1.7";
+
+/*
+ * Brocade Fabric OS SAN switches and directors (SW-MIB under
+ * 1.3.6.1.4.1.1588.2.1.1.1, HA-MIB under 1.3.6.1.4.1.1588.2.1.2 and the
+ * Fibre Alliance FCMGMT-MIB under 1.3.6.1.3.94). Checked against SW-MIB,
+ * HA-MIB and FCMGMT-MIB as Fabric OS ships them, and against recorded
+ * walks of real switches.
+ *
+ * Each port's Fibre Channel errors and its optics are not here: they are
+ * read with the interfaces (FibreChannelPortWalker, TransceiverWalker), so
+ * they land on the port's row of the Interfaces page and its Transceivers
+ * card, whether or not this template is applied.
+ *
+ * The FCMGMT-MIB parts (switch status, and the port statistics and optics
+ * read with the interfaces) answer only once the FA-MIB is turned on with
+ * `snmpconfig --set mibCapability`.
+ */
+const BROCADE_FOS: SnmpVendorTemplate = {
+  id: "brocade-fos",
+  label: "Brocade Fabric OS (SAN switches)",
+  description:
+    "Switch status, firmware, CPU and memory, every sensor and field-replaceable unit, and the switch's overall health from SW-MIB, HA-MIB and FCMGMT-MIB. Port errors and optics come with the interfaces.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.1588.2.1.1.1.1.7.0",
+      name: "Switch State",
+      description: "swOperStatus - 1 online, 2 offline, 3 testing, 4 faulty.",
+    },
+    {
+      oid: "1.3.6.1.4.1.1588.2.1.1.1.1.6.0",
+      name: "Firmware Version",
+      description: "swFirmwareVersion - the Fabric OS version running.",
+    },
+    {
+      oid: "1.3.6.1.4.1.1588.2.1.1.1.26.1.0",
+      name: "CPU %",
+      description: "swCpuUsage - CPU utilization.",
+    },
+    {
+      oid: "1.3.6.1.4.1.1588.2.1.1.1.26.6.0",
+      name: "Memory %",
+      description: "swMemUsage - memory utilization.",
+    },
+  ],
+  tables: [
+    {
+      key: "switch_status",
+      name: "Switch Status",
+      description:
+        "connUnitTable (FCMGMT-MIB): the switch's own overall status. Needs the FA-MIB turned on.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: ["1.3.6.1.3.94.1.6.1.20"],
+      columns: [
+        {
+          oid: "1.3.6.1.3.94.1.6.1.6",
+          name: "Status",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: {
+            "1": "unknown",
+            "2": "unused",
+            "3": "ok",
+            "4": "warning",
+            "5": "failed",
+          },
+          healthyValues: ["3"],
+        },
+      ],
+      maxRows: 8,
+    },
+    {
+      key: "sensors",
+      name: "Sensors",
+      description:
+        "swSensorTable: temperature, fan and power supply sensors. A sensor whose slot is empty reads absent.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: ["1.3.6.1.4.1.1588.2.1.1.1.1.22.1.5"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.1588.2.1.1.1.1.22.1.2",
+          name: "Type",
+          valueLabels: { "1": "temperature", "2": "fan", "3": "power supply" },
+        },
+        {
+          oid: "1.3.6.1.4.1.1588.2.1.1.1.1.22.1.3",
+          name: "Status",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: {
+            "1": "unknown",
+            "2": "faulty",
+            "3": "below minimum",
+            "4": "nominal",
+            "5": "above maximum",
+            "6": "absent",
+          },
+          healthyValues: ["4", "6"],
+        },
+        {
+          oid: "1.3.6.1.4.1.1588.2.1.1.1.1.22.1.4",
+          name: "Value",
+          description:
+            "Degrees C for a temperature sensor, RPM for a fan; a power supply reads 1 when it is on.",
+          noReadingValues: ["-2147483648"],
+        },
+      ],
+      maxRows: 64,
+    },
+    {
+      key: "frus",
+      name: "Field-Replaceable Units",
+      description:
+        "fruTable (HA-MIB): blades, power supplies, fans and WWN cards, named by the switch's entity names.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: [ENTITY_PHYSICAL_NAME_OID],
+      rowLabelsByIndex: true,
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.1588.2.1.2.1.5.1.1",
+          name: "Type",
+          valueLabels: {
+            "1": "other",
+            "2": "unknown",
+            "3": "chassis",
+            "4": "control processor",
+            "5": "other control processor",
+            "6": "switch blade",
+            "7": "WWN card",
+            "8": "power supply",
+            "9": "fan",
+            "10": "core blade",
+            "11": "application blade",
+          },
+        },
+        {
+          oid: "1.3.6.1.4.1.1588.2.1.2.1.5.1.2",
+          name: "Status",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: {
+            "1": "other",
+            "2": "unknown",
+            "3": "on",
+            "4": "off",
+            "5": "faulty",
+          },
+          healthyValues: ["3"],
+        },
+      ],
+      maxRows: 64,
+    },
+  ],
+};
+
+/*
+ * Cisco MDS 9000 SAN switches and directors (NX-OS). Its own template
+ * rather than cisco-ios's: MDS answers few of the IOS OIDs, and keeps its
+ * CPU and memory in CISCO-SYSTEM-EXT-MIB, its power supplies, modules and
+ * fan trays in CISCO-ENTITY-FRU-CONTROL-MIB and its VSANs in
+ * CISCO-VSAN-MIB. Checked against Cisco's MIB files and its support list
+ * for NX-OS 9.4(4) on MDS.
+ *
+ * As for Brocade, each interface's Fibre Channel errors (CISCO-FC-FE-MIB)
+ * and its optics (CISCO-ENTITY-SENSOR-MIB) are read with the interfaces.
+ */
+const CISCO_MDS: SnmpVendorTemplate = {
+  id: "cisco-mds",
+  label: "Cisco MDS 9000 (SAN switches)",
+  description:
+    "CPU and memory, power supplies, modules and fan trays, and every VSAN with its state, from the CISCO-SYSTEM-EXT, CISCO-ENTITY-FRU-CONTROL and CISCO-VSAN MIBs. Interface errors and optics come with the interfaces.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.9.9.305.1.1.1.0",
+      name: "CPU %",
+      description: "cseSysCPUUtilization - the active supervisor's CPU.",
+    },
+    {
+      oid: "1.3.6.1.4.1.9.9.305.1.1.2.0",
+      name: "Memory %",
+      description: "cseSysMemoryUtilization - the active supervisor's memory.",
+    },
+  ],
+  tables: [
+    {
+      key: "power_supplies",
+      name: "Power Supplies",
+      description:
+        "cefcFRUPowerStatusTable, named by the switch's entity names.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: [ENTITY_PHYSICAL_NAME_OID],
+      rowLabelsByIndex: true,
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.9.9.117.1.1.2.1.2",
+          name: "Status",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: {
+            "1": "off (other)",
+            "2": "on",
+            "3": "off (admin)",
+            "4": "off (denied)",
+            "5": "off (power)",
+            "6": "off (temperature)",
+            "7": "off (fan)",
+            "8": "failed",
+            "9": "on, fan failed",
+            "10": "off (cooling)",
+            "11": "off (connector rating)",
+            "12": "on, inline power failed",
+          },
+          healthyValues: ["2"],
+        },
+      ],
+      maxRows: 16,
+    },
+    {
+      key: "modules",
+      name: "Modules",
+      description:
+        "cefcModuleTable: supervisors and line cards, named by the switch's entity names.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: [ENTITY_PHYSICAL_NAME_OID],
+      rowLabelsByIndex: true,
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.9.9.117.1.2.1.1.2",
+          name: "Status",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: {
+            "1": "unknown",
+            "2": "ok",
+            "3": "disabled",
+            "4": "ok, diagnostics failed",
+            "5": "booting",
+            "6": "self test",
+            "7": "failed",
+            "8": "missing",
+            "9": "mismatch with parent",
+            "10": "mismatch with configuration",
+            "11": "diagnostics failed",
+            "12": "dormant",
+            "13": "out of service (admin)",
+            "14": "out of service (temperature)",
+            "15": "powered down",
+            "16": "powered up",
+            "17": "power denied",
+            "18": "power cycled",
+            "19": "ok, power over warning",
+            "20": "ok, power over critical",
+            "21": "synchronizing",
+            "22": "upgrading",
+            "23": "ok, authentication failed",
+            "24": "minimum disruption restart",
+            "25": "firmware mismatch",
+            "26": "firmware download succeeded",
+            "27": "firmware download failed",
+          },
+          healthyValues: ["2"],
+        },
+      ],
+      maxRows: 32,
+    },
+    {
+      key: "fan_trays",
+      name: "Fan Trays",
+      description:
+        "cefcFanTrayStatusTable, named by the switch's entity names.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: [ENTITY_PHYSICAL_NAME_OID],
+      rowLabelsByIndex: true,
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.9.9.117.1.4.1.1.1",
+          name: "Status",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: {
+            "1": "unknown",
+            "2": "up",
+            "3": "down",
+            "4": "warning",
+          },
+          healthyValues: ["2"],
+        },
+      ],
+      maxRows: 32,
+    },
+    {
+      /*
+       * Informational: no healthy values, so no "row unhealthy" alert. A
+       * VSAN with no interface up in it is operationally down by design,
+       * and so are the isolated VSANs (4079, 4094) every MDS keeps.
+       */
+      key: "vsans",
+      name: "VSANs",
+      description:
+        "vsanTable: every VSAN with its name and state. A VSAN with no interface up in it is down by design.",
+      kind: SnmpTableKind.Generic,
+      rowLabelColumnOids: ["1.3.6.1.4.1.9.9.282.1.1.3.1.2"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.9.9.282.1.1.3.1.4",
+          name: "Admin State",
+          valueLabels: { "1": "active", "2": "suspended" },
+        },
+        {
+          oid: "1.3.6.1.4.1.9.9.282.1.1.3.1.8",
+          name: "State",
+          valueLabels: { "1": "up", "2": "down" },
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+  ],
+};
+
 const JUNIPER: SnmpVendorTemplate = {
   id: "juniper-junos",
   label: "Juniper Junos",
@@ -1794,9 +2113,11 @@ const TPLINK_OMADA_EAP: SnmpVendorTemplate = {
 export const SnmpVendorTemplates: Array<SnmpVendorTemplate> = [
   HOST_RESOURCES,
   ARISTA,
+  BROCADE_FOS,
   CAMBIUM_CNMATRIX,
   CAMBIUM_WIFI_AP,
   CISCO,
+  CISCO_MDS,
   DELL_FORCE10,
   EXTREME_EXOS,
   EXTREME_FABRIC_ENGINE,
@@ -1882,6 +2203,12 @@ interface DeviceTemplateRule {
   enterprise?: number | undefined;
   // A sysObjectID arc the device's sysObjectID must equal or sit under.
   sysObjectIdPrefix?: string | undefined;
+  /*
+   * sysObjectIDs the device's must equal exactly: product models in an arc
+   * other products share, as Cisco's cevChassis arc holds MDS, Nexus and
+   * Catalyst chassis alike.
+   */
+  sysObjectIds?: ReadonlySet<string> | undefined;
   sysDescrPattern?: RegExp | undefined;
   /*
    * Who makes a device this rule matches, when its enterprise number says
@@ -1910,10 +2237,94 @@ const HIVEOS_ACCESS_POINT_SYS_DESCR: RegExp =
   /^(?:Hive)?AP[\w-]*, (?:HiveOS|IQ Engine)\b/;
 
 /*
+ * Cisco MDS 9000 chassis, as their sysObjectIDs report them: cevChassis
+ * (1.3.6.1.4.1.9.12.3.1.3) values from CISCO-ENTITY-VENDORTYPE-OID-MIB. The
+ * arc holds Nexus and Catalyst chassis too (a Catalyst 9400 is .1913), so
+ * only these exact models are taken for MDS. A model newer than the list
+ * is still recognised by its sysDescr (MDS_SYS_DESCR).
+ */
+const CISCO_CHASSIS_ARC: string = "1.3.6.1.4.1.9.12.3.1.3";
+
+export const CISCO_MDS_CHASSIS_SYS_OBJECT_IDS: ReadonlySet<string> = new Set(
+  [
+    // MDS 9500 directors, and the 9200, 9100 and 9000 switches of SAN-OS.
+    375, // MDS 9506
+    376, // MDS 9509
+    377, // MDS 9513
+    380, // MDS 9216
+    411, // MDS 9140
+    414, // MDS 9120
+    442, // MDS 9216A
+    462, // MDS 9132 (DS-X9132-K9)
+    463, // MDS 9116 (DS-X9116-K9)
+    472, // MDS 9216i
+    514, // MDS 9020
+    587, // MDS 9124
+    601, // Cisco 4Gb Fibre Channel Switch Module for IBM BladeCenter
+    616, // MDS 9134
+    651, // MDS 9222i
+    // Current MDS 9000 switches and directors.
+    1326, // MDS 9250i
+    1327, // MDS 9710
+    1420, // MDS 9706
+    1491, // MDS 9148S
+    1660, // MDS 9396S
+    1683, // MDS 9718
+    1894, // MDS 9132T
+    1895, // MDS 9232U
+    2054, // MDS 9148T
+    2055, // MDS 9396T
+    2402, // MDS 9220i
+    2513, // MDS 9148V
+    2514, // MDS 9124V
+    2549, // MDS 9396V
+    // IBM c-type: MDS sold as IBM Storage Networking.
+    2173, // IBM SAN192C-6 (MDS 9706)
+    2174, // IBM SAN384C-6 (MDS 9710)
+    2175, // IBM SAN768C-6 (MDS 9718)
+    2176, // IBM SAN50C-R (MDS 9250i)
+    2177, // IBM SAN32C-6 (MDS 9132T)
+    2257, // IBM SAN48C (MDS 9148T)
+  ].map((model: number): string => {
+    return `${CISCO_CHASSIS_ARC}.${model}`;
+  }),
+);
+
+/*
+ * An MDS's sysDescr names its platform after the OS: "Cisco NX-OS(tm)
+ * m9100, Software (m9100-s6ek9-mz), Version 8.4(2c), ..." - m9100, m9200,
+ * m9250, m9300, m9700, a letter after some (m9250i) - and "SAN-OS(tm)"
+ * before NX-OS. Nexus says n9000, n7000 or nothing of the kind, and never m9.
+ */
+const MDS_SYS_DESCR: RegExp = /\b(?:NX-OS|SAN-OS)\(tm\) m9\d{3}[a-z]?\b/i;
+
+/*
  * Platforms an enterprise number alone cannot tell apart. Checked before the
  * enterprise map below, in order.
  */
 const DEVICE_TEMPLATE_RULES: Array<DeviceTemplateRule> = [
+  /*
+   * Brocade's Fibre Channel switches and directors (fcSwitch,
+   * 1.3.6.1.4.1.1588.2.1.1): Fabric OS, in switch or Access Gateway mode -
+   * most report the bare 1588.2.1.1.1, newer ones their model under it.
+   * Never the whole of 1588: VDX (1588.2.2) and SLX (1588.3.3) are Ethernet
+   * switches with none of these MIBs.
+   */
+  {
+    templateId: "brocade-fos",
+    sysObjectIdPrefix: "1.3.6.1.4.1.1588.2.1.1",
+  },
+  // Cisco MDS 9000, matched before cisco-ios by its exact models...
+  {
+    templateId: "cisco-mds",
+    sysObjectIds: CISCO_MDS_CHASSIS_SYS_OBJECT_IDS,
+  },
+  // ...and by its sysDescr, for a model newer than the list.
+  {
+    templateId: "cisco-mds",
+    enterprise: 9,
+    sysDescrPattern: MDS_SYS_DESCR,
+  },
   {
     templateId: "extreme-fabric-engine",
     enterprise: 1916,
@@ -2154,6 +2565,10 @@ export default class SnmpVendorTemplateUtil {
         sysObjectId !== rule.sysObjectIdPrefix &&
         !sysObjectId.startsWith(`${rule.sysObjectIdPrefix}.`)
       ) {
+        return false;
+      }
+
+      if (rule.sysObjectIds && !rule.sysObjectIds.has(sysObjectId)) {
         return false;
       }
 

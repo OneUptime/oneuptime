@@ -7,7 +7,7 @@ A Segurança de dados não tem um sistema de acionamento nem uma fila de seguran
 - [Foi uma violação de dados?](#foi-uma-violação-de-dados): Cada exposição Crítica avaliada: por quanto tempo, quem podia lê-la, de quem eram os dados e as leis sobre violações de dados que podem se aplicar.
 - [Alertas e plantão](#alertas-e-plantão): Acione quem estiver de plantão quando um problema Crítico abrir.
 - [Incidentes](#incidentes): Declare um incidente para uma violação que o seu processo de incidentes deve tratar.
-- [Proprietários](#proprietários): Quem é proprietário de cada repositório, definido manualmente ou por regras, e o e-mail que recebem.
+- [Proprietários](#proprietários): Analise um problema, abra um pull request que o corrija, ou pergunte ao Pergunte à IA sobre seus dados e deixe que ele aja, com a sua aprovação.
 - [OneUptime AI](#oneuptime-ai): Explique um problema, abra um pull request que o corrige, ou pergunte sobre os seus dados no Pergunte à IA.
 - [Fechar uma exposição](#fechar-uma-exposição): Bloqueie o acesso público ou pare de compartilhar, a partir de um problema ou de um playbook, e ative uma proteção que falta a partir de um problema.
 :::
@@ -129,7 +129,7 @@ O OneUptime AI também trabalha por conta própria em cada novo problema, como s
 
 ### Pergunte à IA
 
-O **Pergunte à IA** também lê a Segurança de dados. Em qualquer página da Segurança de dados, pergunte quais repositórios guardam números de cartão, o que corrigir primeiro ou quais repositórios uma função poderia acessar se vazasse; na página de um repositório ou de um problema, ele lê esse registro primeiro. Ele responde com três ferramentas de leitura, executadas com as suas próprias permissões:
+**Pergunte à IA** lê a Segurança de dados e age nela com a sua aprovação. Em qualquer página de Segurança de dados, pergunte quais repositórios guardam números de cartão, o que corrigir primeiro ou quais repositórios uma função poderia alcançar se vazasse; na página de um repositório ou de um problema, ele lê esse registro primeiro. Ele lê com estas ferramentas, executadas com as suas próprias permissões:
 
 | Ferramenta | O que lê |
 | --- | --- |
@@ -137,7 +137,22 @@ O **Pergunte à IA** também lê a Segurança de dados. Em qualquer página da S
 | `query_data_security_issues` | Os problemas, os de maior risco primeiro, por status, gravidade, repositório ou verificação - ou um problema com a evidência dele e a correção para a nuvem dele |
 | `query_data_store_access` | Quem pode acessar um repositório, ou todo repositório que uma entidade principal pode acessar |
 
-Elas leem tipos de dados, locais e contagens, nunca as amostras de uma descoberta, mascaradas ou não. O Pergunte à IA não muda nada na Segurança de dados.
+Elas leem tipos de dados, locais e contagens, nunca as amostras de uma descoberta, mascaradas ou não. Mais duas leem aquilo em que o OneUptime AI trabalha: `query_data_security_proposals` lista o que ele propõe, e os tipos de dados que ele encontrou e que as varreduras ainda não procuram, cada um com como foi comprovado e os campos em que está, nunca um valor; `draft_data_security_rule` redige uma regra a partir da sua frase e diz quais repositórios ela abrange hoje. Ela não salva nada.
+
+Pergunte à IA faz o que os botões da Segurança de dados fazem, cada um fazendo exatamente a alteração que o seu botão faz, como você e com as suas permissões:
+
+| Ação | O que faz | Pergunta antes |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Limpar** em uma descoberta na telemetria: a regra de limpeza comprovada e precisa dela | Em **Perguntar antes de agir**, e em todos os modos quando algo lê o que ela oculta |
+| `judge_data_security_finding` | **Confirmar**, ou **Não sensível** com o seu motivo, e o mesmo para as descobertas parecidas | **Não sensível** em todos os modos; **Confirmar** em todos os modos quando um problema crítico aciona alguém no seu projeto |
+| `change_data_security_issue` | **Aceitar o risco** com o seu motivo e uma data final, **Não é um problema** com o seu motivo, **Reabrir** ou **Atribuir** | **Aceitar o risco** e **Não é um problema** em todos os modos |
+| `set_data_store_owners` | Adiciona ou remove os proprietários de um repositório | Em todos os modos |
+| `save_data_security_rule` | Salva uma regra de residência, de proprietário ou de rótulos redigida a partir da sua frase, e aplica uma regra de proprietário ou de rótulos aos repositórios que ela abrange hoje | Em todos os modos |
+| `respond_on_data_store` | Uma ação de resposta pela conexão de nuvem do repositório, como **Bloquear acesso público** | Em todos os modos |
+| `fix_data_security_issue_with_ai` | **Corrigir com IA**: um pull request que alguém revisa e mescla. Uma correção que já está a caminho não é iniciada duas vezes | Em **Perguntar antes de agir** |
+| `decide_data_security_proposal` | **Aprovar** ou **Dispensar** o que o OneUptime AI propõe. Um tipo de dado encontrado é adicionado pelo formulário dele em **Configurações → Tipos de dados**, então aqui ele só pode ser recusado | Em todos os modos |
+
+Cada ação mostra primeiro um cartão que diz, em palavras simples, o que muda, o que para de funcionar e quanto custa. Em **Perguntar antes de agir**, você permite ou pula cada ação. Em **Execução automática**, as ações acima que perguntam em todos os modos continuam esperando por você: elas mudam quem pode alcançar os seus dados, fazem uma descoberta ou um problema deixar de contar, mudam quem é avisado sobre um repositório ou deixariam o OneUptime AI aprovar a própria proposta. Nomes de repositórios, locais de descobertas e evidências vêm das suas nuvens e de qualquer um que escreva nelas, então Pergunte à IA nunca age porque esse texto pede, e cada ação é verificada de novo, com as suas permissões, quando é executada.
 
 ## Fechar uma exposição
 
@@ -196,7 +211,7 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 
 O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, configurações de conformidade, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 
-O [servidor MCP](/docs/ai/mcp-server) tem ferramentas de criar, obter, listar, atualizar, excluir e contar para estes registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule e Data Security Setting. Um assistente de IA pode então perguntar quais repositórios guardam números de cartão, ou o que está aberto em um bucket, com as suas permissões.
+O [servidor MCP](/docs/ai/mcp-server) tem ferramentas de criar, obter, listar, atualizar, excluir e contar para estes registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule e Data Security Setting. Um assistente de IA pode então perguntar quais repositórios guardam números de cartão, ou o que está aberto em um bucket, com as suas permissões. Ele também tem [as ações do Pergunte à IA](#pergunte-à-ia), uma chamada cada, e cada uma faz exatamente a alteração que o seu botão faz, como você. O servidor MCP não pode mostrar um cartão a ninguém, então uma ação sobre a qual o Pergunte à IA pergunta em todos os modos é recusada lá: a resposta diz por quê e nomeia a página do OneUptime em que você faz a alteração.
 
 ## Próximos passos
 

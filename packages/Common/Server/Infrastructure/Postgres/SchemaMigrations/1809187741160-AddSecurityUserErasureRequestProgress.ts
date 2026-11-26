@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * column with no default, which Postgres adds without rewriting the table
  * or scanning it.
  */
-export class AddSecurityUserErasureRequestProgress1809187721160
+export class AddSecurityUserErasureRequestProgress1809187741160
   implements MigrationInterface
 {
-  public name: string = "AddSecurityUserErasureRequestProgress1809187721160";
+  public name: string = "AddSecurityUserErasureRequestProgress1809187741160";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

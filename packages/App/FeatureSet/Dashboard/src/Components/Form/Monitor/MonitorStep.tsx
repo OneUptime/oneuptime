@@ -135,6 +135,10 @@ import VMwareMonitorStepForm from "./VMwareMonitor/VMwareMonitorStepForm";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
+import XcpNgMonitorStepForm from "./XcpNgMonitor/XcpNgMonitorStepForm";
+import MonitorStepXcpNgMonitor, {
+  MonitorStepXcpNgMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import IoTMonitorStepForm from "./IoTMonitor/IoTMonitorStepForm";
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
@@ -168,6 +172,7 @@ import MonitorStepNetworkDeviceMonitor, {
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpVendorTemplateUtil from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   NetworkDeviceCriteriaCatalogue,
@@ -527,6 +532,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     useState<Array<string>>([]);
   const [networkDeviceTableCatalogue, setNetworkDeviceTableCatalogue] =
     useState<Array<NetworkDeviceTableCatalogueEntry>>([]);
+  const [networkDeviceVendorTemplateId, setNetworkDeviceVendorTemplateId] =
+    useState<string | undefined>(undefined);
 
   /*
    * The device the catalogue currently in state was fetched for, rather than
@@ -561,6 +568,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         snmpOids: true,
         snmpTables: true,
         snmpTableSnapshot: true,
+        // What platform it is, for the alerts only that platform has.
+        sysObjectId: true,
+        sysDescr: true,
         oidTemplate: {
           name: true,
           oids: true,
@@ -673,6 +683,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
     return {
       tables: tables,
+      vendorTemplateId: SnmpVendorTemplateUtil.matchDevice({
+        sysObjectId: device?.sysObjectId || undefined,
+        sysDescr: device?.sysDescr || undefined,
+      })?.id,
       oids: effectiveOids.map(
         (entry: SnmpOid): NetworkDeviceOidCatalogueEntry => {
           const isFromTemplate: boolean = normalizedTemplateOids.has(entry.oid);
@@ -702,6 +716,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
           setNetworkDeviceOidCatalogue(catalogue.oids);
           setNetworkDeviceTableCatalogue(catalogue.tables);
+          setNetworkDeviceVendorTemplateId(catalogue.vendorTemplateId);
           setNetworkDeviceInterfaceNames(catalogue.interfaceNames);
           setLoadedCatalogueNetworkDeviceId(selectedNetworkDeviceId);
         })
@@ -861,6 +876,7 @@ return {
       networkDeviceOidCatalogue={networkDeviceOidCatalogue}
       networkDeviceInterfaceNames={networkDeviceInterfaceNames}
       networkDeviceTableCatalogue={networkDeviceTableCatalogue}
+      networkDeviceVendorTemplateId={networkDeviceVendorTemplateId}
       isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
       offlineMonitorStatusId={props.offlineMonitorStatusId}
       monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
@@ -2104,6 +2120,33 @@ return {
             }
             onChange={(value: MonitorStepVMwareMonitor) => {
               monitorStep.setVMwareMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.XcpNg && (
+        <Card
+          title="XCP-ng Monitor Configuration"
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
+        >
+          <XcpNgMonitorStepForm
+            monitorStepXcpNgMonitor={
+              monitorStep.data?.xcpNgMonitor ||
+              MonitorStepXcpNgMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepXcpNgMonitor) => {
+              monitorStep.setXcpNgMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

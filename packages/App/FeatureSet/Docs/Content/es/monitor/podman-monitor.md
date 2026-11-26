@@ -199,7 +199,7 @@ El agente también sigue el archivo `ctr.log` de cada contenedor y envía cada l
 | `resource.container.id` | El ID completo del contenedor. |
 | `resource.container.runtime` | Siempre `podman`. |
 | `attributes["log.iostream"]` | `stdout` o `stderr`. |
-| `severityText` / `severityNumber` | Se lee de una palabra clave de nivel allí donde haya un nivel en la línea (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Una línea sin nivel recurre a su flujo: `stderr` es `ERROR`, `stdout` es `INFO`. |
+| `severityText` / `severityNumber` | Se lee del nivel que menciona la línea, allí donde haya un nivel en ella (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); el traceback de una excepción es `ERROR`. Una línea sin nivel es `INFO` en `stdout`, y no tiene severidad (Sin especificar) en `stderr`. |
 | `body` | La línea que escribió el contenedor. Las líneas que empiezan con un espacio o un corchete de cierre, como las líneas de una traza de pila, se unen a la línea anterior. |
 | `time` | La marca de tiempo de Podman para la línea. |
 

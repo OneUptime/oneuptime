@@ -134,6 +134,7 @@ Déjalo plegado y el dispositivo solo recibe ping: la sección plegada lo dice e
 | Clave de autenticación SNMP v3 | La frase de contraseña de autenticación. | Con autenticación |
 | Protocolo de privacidad SNMP v3 | DES, AES o AES-256. | Con privacidad |
 | Clave de privacidad SNMP v3 | La frase de contraseña de privacidad (cifrado). | Con privacidad |
+| Contexto SNMP v3 | Solo para un agente que responde por varios dispositivos en una misma dirección, cada uno en su propio contexto: el `VF:128` de un switch lógico de Brocade. | No |
 :::
 
 Las credenciales escritas en el dispositivo prevalecen sobre un perfil de credenciales elegido a su lado, y el sitio del dispositivo también puede llevar un perfil predeterminado. Las credenciales de un perfil se cifran en reposo. Las credenciales escritas en un dispositivo también se cifran en reposo, y están protegidas por los mismos permisos de lectura.
@@ -250,6 +251,12 @@ Selecciona dispositivos en la lista **Dispositivos** y usa:
 
 La página **Dispositivos** muestra un aviso cuando el proyecto tiene dispositivos con la anulación con monitor vinculado sin nada vinculado — dispositivos que nada sondea y de los que nada informa — y enlaza a la selección que los corrige.
 
+### Contextos SNMPv3
+
+Un agente puede responder por varios dispositivos en una misma dirección, cada uno en su propio contexto SNMPv3: un chasis Brocade con Virtual Fabrics responde por cada switch lógico en el contexto `VF:` y su ID de fabric. Añade un dispositivo por switch lógico en esa dirección, con SNMP v3, y define en cada uno su **Contexto SNMP v3** en su página **Ajustes**; un dispositivo sin contexto se sondea en el contexto predeterminado del agente. El contexto es del dispositivo, no de sus credenciales, así que vale con cualquier perfil de credenciales que use el dispositivo.
+
+Una sonda anterior a los contextos SNMPv3 sondearía el contexto predeterminado en su lugar, así que hasta que se actualice solo hace ping a ese dispositivo. Cada trap SNMPv3 también nombra su contexto y solo se dispara en el dispositivo sondeado en ese contexto; un trap en un contexto en el que no se sondea ningún dispositivo se registra como no asociado.
+
 ## Valores predeterminados de monitoreo del sitio
 
 Un [sitio de red](/docs/monitor/network-sites#valores-predeterminados-de-monitoreo) lleva dos valores predeterminados para sus dispositivos. Su **Sonda predeterminada** se copia en un dispositivo creado en el sitio, o movido a él, sin sonda propia. Su **Perfil de credenciales SNMP predeterminado** se lee en cada sondeo de un dispositivo del sitio que no tiene credenciales propias. Define los dos en un sitio y un dispositivo de ese sitio se puede añadir solo con su dirección, y recibe ping y se recorre desde su primer sondeo. La guía de sitios explica hasta dónde baja cada valor predeterminado por el árbol de sitios.
@@ -303,9 +310,11 @@ En el editor **OID de salud**, **Plantilla de salud del fabricante** aplica un c
 | --- | --- | --- |
 | Generic (Host Resources MIB) | Carga de CPU, RAM total y disponible, carga media | Núcleos de CPU (una fila por núcleo, como sea que la plataforma los numere) |
 | Arista EOS | Carga de CPU, carga media, RAM total y disponible | — |
+| Brocade Fabric OS (SAN switches) | Estado del switch, versión del firmware, CPU, memoria | Estado del switch, sensores (temperatura, ventiladores, fuentes de alimentación), unidades reemplazables (FRU) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, temperatura, tensión de alimentación | Ventiladores, puertos PoE, fuente de alimentación redundante |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, memoria libre, clientes Wi-Fi, conexión con cnMaestro | Radios Wi-Fi (banda, canal, ancho, potencia de transmisión, clientes, ruido de fondo, tiempo de aire, estado), SSID |
 | Cisco IOS / IOS-XE | CPU, memoria usada y libre, temperatura, estado de los ventiladores, estado de las fuentes | — |
+| Cisco MDS 9000 (SAN switches) | CPU, memoria | Fuentes de alimentación, módulos, bandejas de ventiladores, VSAN |
 | Dell Force10 / OS9 | CPU, memoria | — |
 | Extreme Networks EXOS / Switch Engine | CPU, temperatura, alarma de sobretemperatura, estado de la alimentación | Fuentes de alimentación, ventiladores, memoria por ranura, miembros de la pila |
 | Extreme Networks Fabric Engine / VOSS | Sesión vIST, número de I-SID | Adyacencias de fabric (IS-IS) nombradas por vecino, CPU y memoria por ranura, sensores de temperatura, ventiladores, fuentes de alimentación |
@@ -513,6 +522,7 @@ El `sysObjectID` del dispositivo elige de dónde vienen las lecturas: primero la
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Sí |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), con indicadores de pérdida de señal y fallo del transmisor | No |
 | Cambium Networks cnMatrix (4.5 y posteriores) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | No |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), leído como texto: `-inf` significa que no hay luz | No |
 | Cualquier otro dispositivo | ENTITY-SENSOR-MIB (RFC 3433), asociado a los puertos mediante ENTITY-MIB | No |
 
 El primer sondeo lo lee todo. Los siguientes solo leen lo que cambia — las lecturas, y los números de serie que distinguen un óptico sustituido —, y el resto (umbrales, identidad, qué óptico está en qué puerto) se vuelve a leer cuando se inserta, se retira o se sustituye un óptico, y al menos una vez por hora. Un dispositivo sin ninguna de estas MIB cuesta una solicitud por MIB probada. La lectura tiene su propio presupuesto de 20 segundos, y una lectura que agota el tiempo o se corta conserva los últimos ópticos buenos del dispositivo en lugar de darlos por desaparecidos.
@@ -853,6 +863,7 @@ Los criterios revisan cada resultado de sondeo y cada trap, y abren incidentes o
 | SNMP Interface Is Down | Verdadero cuando una interfaz habilitada administrativamente está caída operativamente. | No se evalúa |
 | SNMP Interface Utilization (in %) | El uso del enlace de la interfaz más cargada. | No se evalúa |
 | SNMP Interface Errors (per second) | La tasa de errores de la peor interfaz. | No se evalúa |
+| SNMP Fibre Channel Counter (per second) | Un contador Fibre Channel de los puertos de un switch SAN — errores de CRC, tramas descartadas, pérdida de crédito y el resto — por segundo, en el peor puerto del alcance; `*` lanza una alerta por puerto. | No se evalúa |
 | SNMP Transceiver Not Detected | Verdadero cuando un puerto que tenía un óptico no ha informado ninguno durante dos sondeos seguidos, mientras el puerto está habilitado. | No se evalúa |
 | SNMP Transceiver Past Alarm Threshold | Verdadero cuando una lectura de un óptico alcanza o supera un umbral de alarma que informa el dispositivo, o el dispositivo señala una pérdida de señal o un fallo del transmisor. | No se evalúa |
 | SNMP Transceiver Past Warning Threshold | Lo mismo con los umbrales de advertencia; un óptico que supera un umbral de alarma también cuenta. | No se evalúa |
@@ -1028,6 +1039,9 @@ Las plantillas de incidentes y alertas de un monitor de dispositivo de red puede
 | `{{trapOid}}` | El OID del trap, en las comprobaciones que disparó un trap |
 | `{{trapSourceIp}}` | La dirección de la que vino el trap, en las comprobaciones que disparó un trap |
 | `{{trapVarbinds}}` | Las varbinds que llevaba el trap, cada una con `oid` y `value` |
+| `{{trapInterface}}` | La interfaz de la que trata un trap: el nombre que lleva, o el que el recorrido del dispositivo registró para su índice |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | En una alarma RMON (una alarma de port-monitor de MDS), el contador que superó su umbral, y `rising` o `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | En una alarma RMON, el valor del contador y el umbral que superó |
 | `{{tables.<key>.rowCount}}` | Las filas recorridas en una [tabla SNMP](#tablas-snmp), por su clave: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Las filas con un estado fuera de sus valores sanos, cada una con `name`, `index` y `values.<column>` |
 | `{{tables.<key>.rows}}` | Cada fila (hasta 50), cada una con `name`, `index` y `values.<column>`, con los nombres de columna en minúsculas y los espacios como `_` |

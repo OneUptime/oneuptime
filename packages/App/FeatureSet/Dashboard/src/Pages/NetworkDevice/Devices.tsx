@@ -176,7 +176,7 @@ import {
   FilterOperator,
 } from "../../Components/ResourceOwners/FilterChipDropdownTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
+import { getNetworkDeviceSnmpFormFields } from "./SnmpConfigFormFields";
 import { getMacAddressFormField } from "./MacAddressFormField";
 import {
   NetworkDeviceAssetFacts,
@@ -1379,7 +1379,7 @@ const NetworkDevices: FunctionComponent<
            * header says that in one sentence instead of asking nine
            * questions.
            */
-          ...getSnmpConfigFormFields({
+          ...getNetworkDeviceSnmpFormFields({
             collapsibleSection: ADD_DEVICE_SNMP_SECTION,
           }),
           {

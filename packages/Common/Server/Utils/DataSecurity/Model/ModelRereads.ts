@@ -4,7 +4,7 @@ import {
   RecognizedEntity,
 } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import logger from "../../Logger";
-import { EntityRecognizer } from "./EntityRecognizer";
+import { EntityRecognizer, recognizeAsWritten } from "./EntityRecognizer";
 import { ModelBudget, ModelStoreBudget } from "./ModelBudget";
 import {
   getNameAddressRecognizer,
@@ -158,10 +158,11 @@ export class ModelRereads implements ModelRecognitions {
     }
 
     try {
+      // Each value as a scan has the model read it: a URL's escapes read (#11034).
       const found: Map<
         string,
         Array<RecognizedEntity>
-      > = await this.recognizer.recognize(texts, this.budget);
+      > = await recognizeAsWritten(this.recognizer, texts, this.budget);
 
       for (const [text, entities] of found) {
         this.found.set(text, entities);

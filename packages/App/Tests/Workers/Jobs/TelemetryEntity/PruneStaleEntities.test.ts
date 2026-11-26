@@ -288,6 +288,7 @@ describe("entity pruning is scoped to discovered rows", () => {
       EntityType.VMwareHost,
       EntityType.VMwareVirtualMachine,
       EntityType.VMwareDatastore,
+      EntityType.XcpNgPool,
     ]) {
       expect(swept).toContain(entityType);
     }
