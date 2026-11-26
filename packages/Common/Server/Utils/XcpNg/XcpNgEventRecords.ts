@@ -12,6 +12,7 @@ import {
   XcpNgMessageState,
 } from "../../../Types/XcpNg/XcpNgPoolEvents";
 import {
+  XcpNgOpenBackupFailure,
   XcpNgOpenMessage,
   XcpNgPoolBackupRunSummary,
 } from "../../../Types/XcpNg/XcpNgPoolEventState";
@@ -342,6 +343,45 @@ export function buildXcpNgBackupLogRecord(data: {
         XcpNgEventLogAttribute.BackupFailedVms,
         listXcpNgFailedVmNames(data.summary),
       ),
+    ],
+  };
+}
+
+/*
+ * A job ran well again for this pool: the record that resolves the alert
+ * an earlier failure of it opened. It carries that failure's own group -
+ * the job's name then, and the VMs that failed then - so it lands on that
+ * alert, whatever the job is called now.
+ */
+export function buildXcpNgBackupResolvedLogRecord(data: {
+  open: XcpNgOpenBackupFailure;
+  summary: XcpNgPoolBackupRunSummary;
+  observedAt: Date;
+}): JSONObject {
+  const ended: Date = new Date(data.summary.endedAt || data.summary.startedAt);
+
+  return {
+    timeUnixNano: toUnixNano(
+      getXcpNgEventRecordTime({
+        eventTime: ended,
+        observedAt: data.observedAt,
+      }),
+    ),
+    observedTimeUnixNano: toUnixNano(data.observedAt),
+    severityNumber: 9,
+    severityText: "INFO",
+    body: {
+      stringValue: data.open.failedVms
+        ? `Backup job ${data.open.jobName} succeeded again: ${data.open.failedVms} backed up.`
+        : `Backup job ${data.open.jobName} succeeded again.`,
+    },
+    attributes: [
+      attribute(XcpNgEventLogAttribute.Kind, XcpNgEventKind.Backup),
+      attribute(XcpNgEventLogAttribute.BackupJobId, data.open.jobId),
+      attribute(XcpNgEventLogAttribute.BackupJobName, data.open.jobName),
+      attribute(XcpNgEventLogAttribute.BackupRunId, data.summary.runId),
+      attribute(XcpNgEventLogAttribute.BackupStatus, XcpNgBackupStatus.Success),
+      attribute(XcpNgEventLogAttribute.BackupFailedVms, data.open.failedVms),
     ],
   };
 }

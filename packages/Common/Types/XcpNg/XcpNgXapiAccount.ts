@@ -80,7 +80,9 @@ export class XcpNgXapiAccountKindUtil {
   }
 
   // Whether XAPI itself keeps the account to reads.
-  public static isReadOnly(kind: XcpNgXapiAccountKind | null | undefined): boolean {
+  public static isReadOnly(
+    kind: XcpNgXapiAccountKind | null | undefined,
+  ): boolean {
     return kind === XcpNgXapiAccountKind.ReadOnly;
   }
 }

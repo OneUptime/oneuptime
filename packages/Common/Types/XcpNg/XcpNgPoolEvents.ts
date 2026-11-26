@@ -239,6 +239,11 @@ export interface XcpNgBackupRun {
   vms: Array<XcpNgBackupVmResult>;
   // The VMs the run included, from its own log (attributes it to pools).
   includedVmIds: Array<string>;
+  /*
+   * The pools it backed up the metadata of (a metadata backup's "pool"
+   * tasks): it is those pools' run though no VM is in it.
+   */
+  includedPoolIds: Array<string>;
   // VMs left out of `vms` to stay within XCP_NG_MAX_BACKUP_VMS_PER_RUN.
   omittedVmCount?: number | undefined;
 }
@@ -265,6 +270,8 @@ export interface XcpNgBackupJobInfo {
   // backup, mirrorBackup, metadataBackup.
   jobType?: string | undefined;
   schedules: Array<XcpNgBackupSchedule>;
+  // A metadata backup's pools, from its `pools` pattern.
+  poolIds?: Array<string> | undefined;
 }
 
 export interface XcpNgMissingPatch {

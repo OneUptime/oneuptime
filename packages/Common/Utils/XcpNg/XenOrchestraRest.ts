@@ -70,7 +70,7 @@ export const XO_POOL_FIELDS: string = "id,name_label,HA_enabled,master";
 export const XO_HOST_FIELDS: string = "id,$pool,name_label,power_state";
 export const XO_BACKUP_LOG_SUMMARY_FIELDS: string =
   "id,jobId,jobName,scheduleId,start,end,status";
-export const XO_BACKUP_JOB_FIELDS: string = "id,name,mode,type";
+export const XO_BACKUP_JOB_FIELDS: string = "id,name,mode,type,pools";
 export const XO_SCHEDULE_FIELDS: string = "id,jobId,cron,timezone,enabled";
 
 // A UUID as XAPI writes it, and Xen Orchestra's ids of its own objects.
@@ -833,6 +833,7 @@ export function readXoBackupRun(json: unknown): XcpNgBackupRun | null {
 
   const vms: Array<XcpNgBackupVmResult> = [];
   const seenVms: Set<string> = new Set<string>();
+  const includedPoolIds: Array<string> = [];
 
   for (const task of readTasks(json["tasks"])) {
     const taskData: Record<string, unknown> = isRecord(task.data)
@@ -851,6 +852,14 @@ export function readXoBackupRun(json: unknown): XcpNgBackupRun | null {
         }`,
       );
       continue;
+    }
+
+    // A metadata backup's pool: the run is that pool's.
+    if (taskData["type"] === "pool") {
+      const poolId: string | null = readXoUuid(taskData["id"]);
+      if (poolId && !includedPoolIds.includes(poolId)) {
+        includedPoolIds.push(poolId);
+      }
     }
 
     if (taskData["type"] !== "VM") {
@@ -956,6 +965,7 @@ export function readXoBackupRun(json: unknown): XcpNgBackupRun | null {
     startedAt: startedAt,
     vms: vms.slice(0, XCP_NG_MAX_BACKUP_VMS_PER_RUN),
     includedVmIds: includedVmIds.slice(0, XCP_NG_MAX_BACKUP_VMS_PER_RUN * 2),
+    includedPoolIds: includedPoolIds,
   };
 
   if (vms.length > XCP_NG_MAX_BACKUP_VMS_PER_RUN) {
@@ -989,6 +999,32 @@ export interface XoBackupJobReading {
   name: string;
   mode: string | null;
   jobType: string | null;
+  // A metadata backup's pools.
+  poolIds: Array<string>;
+}
+
+/*
+ * The pool UUIDs a job's `pools` pattern names, however it is written:
+ * { id: uuid }, { id: { __or: [uuid, ...] } }. Read as every UUID in it.
+ */
+function readPatternUuids(value: unknown, depth: number): Array<string> {
+  if (depth > 4) {
+    return [];
+  }
+  const found: Array<string> = [];
+  const uuid: string | null = readXoUuid(value);
+  if (uuid) {
+    found.push(uuid);
+  } else if (Array.isArray(value)) {
+    for (const entry of value) {
+      found.push(...readPatternUuids(entry, depth + 1));
+    }
+  } else if (isRecord(value)) {
+    for (const entry of Object.values(value)) {
+      found.push(...readPatternUuids(entry, depth + 1));
+    }
+  }
+  return Array.from(new Set(found));
 }
 
 // /rest/v0/backup-jobs: VM, mirror and metadata backup jobs alike.
@@ -1008,6 +1044,7 @@ export function readXoBackupJobs(json: unknown): Array<XoBackupJobReading> {
       name: cleanXoText(entry["name"], 200) || jobId,
       mode: readText(entry["mode"]),
       jobType: readText(entry["type"]),
+      poolIds: readPatternUuids(entry["pools"], 0),
     });
   }
 
@@ -1091,6 +1128,9 @@ export function buildXcpNgBackupJobInfos(data: {
       }
       if (job.jobType) {
         info.jobType = job.jobType;
+      }
+      if (job.poolIds.length > 0) {
+        info.poolIds = job.poolIds;
       }
       return info;
     });

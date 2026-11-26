@@ -107,7 +107,26 @@ export interface XcpNgPoolEventState {
    * disabled since changes it without HA's own state changing.
    */
   haCouldTolerateHostFailure?: boolean | undefined;
+  /*
+   * The backup failures whose alerts are open - one per job and set of VMs
+   * that failed, as the alert names them - closed by the job's next run
+   * that succeeds for this pool.
+   */
+  openBackupFailures?: Array<XcpNgOpenBackupFailure> | undefined;
 }
+
+export interface XcpNgOpenBackupFailure {
+  jobId: string;
+  // As the failed run named it: the alert's group.
+  jobName: string;
+  // The VMs that failed, as xcp_ng.backup.failed_vms wrote them.
+  failedVms: string;
+  // ISO.
+  failedAt: string;
+}
+
+// The open backup failures a pool keeps: one per job and set of VMs.
+export const XCP_NG_MAX_OPEN_BACKUP_FAILURES: number = 200;
 
 // A group of open messages: one alert, cleared once the last is gone.
 export function getXcpNgOpenMessageGroupKey(
@@ -172,6 +191,20 @@ export function readXcpNgPoolEventState(value: unknown): XcpNgPoolEventState {
         ? (backupWatermark as XcpNgBackupWatermark).trackedRuns
         : [],
     };
+  }
+
+  if (Array.isArray(record["openBackupFailures"])) {
+    state.openBackupFailures = (
+      record["openBackupFailures"] as Array<unknown>
+    ).filter((entry: unknown): entry is XcpNgOpenBackupFailure => {
+      return (
+        Boolean(entry) &&
+        typeof entry === "object" &&
+        typeof (entry as XcpNgOpenBackupFailure).jobId === "string" &&
+        typeof (entry as XcpNgOpenBackupFailure).jobName === "string" &&
+        typeof (entry as XcpNgOpenBackupFailure).failedVms === "string"
+      );
+    });
   }
 
   if (typeof record["haCouldTolerateHostFailure"] === "boolean") {

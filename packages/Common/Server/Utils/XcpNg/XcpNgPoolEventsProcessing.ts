@@ -28,10 +28,12 @@ import {
   XcpNgHostPatches,
 } from "../../../Types/XcpNg/XcpNgPoolEvents";
 import {
+  XCP_NG_MAX_OPEN_BACKUP_FAILURES,
   XCP_NG_MAX_POOL_BACKUP_JOBS,
   XCP_NG_MAX_PROBLEM_VMS_PER_RUN,
   XCP_NG_MAX_RUNS_PER_POOL_JOB,
   XcpNgEventSource,
+  XcpNgOpenBackupFailure,
   XcpNgOpenMessage,
   XcpNgPoolBackupJob,
   XcpNgPoolBackupProblemVm,
@@ -69,10 +71,12 @@ import {
   XcpNgDerivedReadings,
   XcpNgEventObject,
   buildXcpNgBackupLogRecord,
+  buildXcpNgBackupResolvedLogRecord,
   buildXcpNgClearedLogRecord,
   buildXcpNgMessageLogRecord,
   describeXcpNgAlarm,
   describeXcpNgBackupRun,
+  listXcpNgFailedVmNames,
 } from "./XcpNgEventRecords";
 
 /*
@@ -349,6 +353,11 @@ export function summarizeXcpNgRunForPool(data: {
   vmNames: Map<string, string>;
   // Whether the job backed up this pool's VMs in an earlier run.
   jobKnownHere: boolean;
+  /*
+   * Whether the run or its job names this pool itself: a metadata backup
+   * of the pool, which has no VM.
+   */
+  poolNamed?: boolean | undefined;
 }): XcpNgPoolBackupRunSummary | null {
   const vms: Array<XcpNgBackupVmResult> = data.run.vms.filter(
     (vm: XcpNgBackupVmResult): boolean => {
@@ -361,7 +370,7 @@ export function summarizeXcpNgRunForPool(data: {
     },
   );
 
-  if (vms.length === 0 && includedHere.length === 0) {
+  if (vms.length === 0 && includedHere.length === 0 && !data.poolNamed) {
     if (!data.run.error || !data.jobKnownHere) {
       return null;
     }
@@ -774,6 +783,15 @@ export function processXcpNgPoolEvents(
             backupJobs.some((job: XcpNgPoolBackupJob): boolean => {
               return job.jobId === run.jobId;
             }),
+          poolNamed:
+            (run.includedPoolIds || []).includes(pool.poolIdentifier) ||
+            Boolean(
+              input.backupJobs
+                ?.find((info: XcpNgBackupJobInfo): boolean => {
+                  return info.jobId === run.jobId;
+                })
+                ?.poolIds?.includes(pool.poolIdentifier),
+            ),
         });
 
       if (!summary) {
@@ -860,6 +878,49 @@ export function processXcpNgPoolEvents(
         }),
       );
 
+      /*
+       * A failure opens an alert per job and set of VMs that failed (the
+       * alert names them); the job's next success for this pool closes
+       * every one of them, each with a record of its own group.
+       */
+      const openFailures: Array<XcpNgOpenBackupFailure> =
+        state.openBackupFailures || [];
+      if (summary.status === XcpNgBackupStatus.Failure) {
+        const failedVms: string = listXcpNgFailedVmNames(summary);
+        if (
+          !openFailures.some((open: XcpNgOpenBackupFailure): boolean => {
+            return open.jobId === run.jobId && open.failedVms === failedVms;
+          })
+        ) {
+          openFailures.push({
+            jobId: run.jobId,
+            jobName: job.name,
+            failedVms: failedVms,
+            failedAt: summary.endedAt || summary.startedAt,
+          });
+        }
+      } else if (summary.status === XcpNgBackupStatus.Success) {
+        for (const open of openFailures) {
+          if (open.jobId === run.jobId) {
+            output.records.push(
+              buildXcpNgBackupResolvedLogRecord({
+                open: open,
+                summary: summary,
+                observedAt: now,
+              }),
+            );
+          }
+        }
+      }
+      state.openBackupFailures = openFailures
+        .filter((open: XcpNgOpenBackupFailure): boolean => {
+          return !(
+            summary.status === XcpNgBackupStatus.Success &&
+            open.jobId === run.jobId
+          );
+        })
+        .slice(-XCP_NG_MAX_OPEN_BACKUP_FAILURES);
+
       if (summary.status === XcpNgBackupStatus.Failure) {
         output.feed.push({
           type: XcpNgPoolFeedEventType.XcpNgPoolBackupFailed,
@@ -918,6 +979,13 @@ export function processXcpNgPoolEvents(
         backupJobs.splice(index, 1);
         if (state.jobVmIds) {
           delete state.jobVmIds[job.jobId];
+        }
+        if (state.openBackupFailures) {
+          state.openBackupFailures = state.openBackupFailures.filter(
+            (open: XcpNgOpenBackupFailure): boolean => {
+              return open.jobId !== job.jobId;
+            },
+          );
         }
         backupJobsChanged = true;
         continue;

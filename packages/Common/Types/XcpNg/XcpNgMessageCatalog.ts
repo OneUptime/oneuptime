@@ -681,8 +681,11 @@ function lookUp(name: string): CatalogEntry | null {
 
 // A priority as XAPI writes one, or null: 1 to 5, whole.
 export function normalizeXcpNgMessagePriority(value: unknown): number | null {
+  if (typeof value !== "number" && typeof value !== "string") {
+    return null;
+  }
   const priority: number =
-    typeof value === "string" ? Number(value.trim()) : Number(value);
+    typeof value === "string" ? Number(value.trim()) : value;
 
   if (
     !Number.isInteger(priority) ||
