@@ -13,11 +13,11 @@ OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링�
 
 Storage Arrays는 모든 벤더에서 같은 방식으로 동작하는 제품입니다. 지원 대상은 다음과 같습니다:
 
-| 어레이 | 에이전트가 읽는 방식 | Collector 구성 |
-| --- | --- | --- |
-| **Pure Storage FlashArray**, Purity//FA 6.7 이상 | 어레이 자체의 OpenMetrics 엔드포인트(`https://<array>/metrics/...?namespace=purefa`). Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.yaml`(기본값) |
-| **Pure Storage FlashArray**, 이전 Purity//FA | Pure의 FlashArray OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fa-exporter` 서비스로 실행합니다 | `otel-collector-config.flasharray-exporter.yaml` |
-| **Pure Storage FlashBlade** | Pure의 FlashBlade OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fb-exporter` 서비스로 실행합니다 | `otel-collector-config.flashblade.yaml` |
+| 어레이 | `storage.system` | 에이전트가 읽는 방식 | Collector 구성 |
+| --- | --- | --- | --- |
+| **Pure Storage FlashArray**, Purity//FA 6.7 이상 | `purestorage.flasharray` | 어레이 자체의 OpenMetrics 엔드포인트(`https://<array>/metrics/...?namespace=purefa`). Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.yaml`(기본값) |
+| **Pure Storage FlashArray**, 이전 Purity//FA | `purestorage.flasharray` | Pure의 FlashArray OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fa-exporter` 서비스로 실행합니다 | `otel-collector-config.flasharray-exporter.yaml` |
+| **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure의 FlashBlade OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fb-exporter` 서비스로 실행합니다 | `otel-collector-config.flashblade.yaml` |
 
 Pure Storage는 2026년 2월에 이름을 **Everpure**로 바꿨습니다. FlashArray, FlashBlade, Purity는 이름을 유지했고 `purefa_*` 및 `purefb_*` 메트릭도 그대로이므로, 이 페이지의 모든 내용은 어느 이름으로 판매된 어레이에도 적용됩니다.
 

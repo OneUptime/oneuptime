@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "اختبار موفّر OIDC هذا",
   "Attach": "إرفاق",
   "Attached Projects": "المشاريع المرتبطة",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "المشاريع التي يُسجّل هذا الموفّر دخول الناس إليها، والفرق التي ينضم إليها القادمون الجدد. إن لم يرتبط بأي مشروع، فهو يعمل لكل مشروع ينتمي إليه الشخص أصلًا.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "ينضم الأشخاص الذين يسجلون الدخول بهذا الموفّر إلى هذه المشاريع، في الفرق المختارة لكل منها. وإن لم يرتبط أي مشروع، فلا يمكن لأي شخص جديد تسجيل الدخول.",
   "No projects attached to this provider.": "لا توجد مشاريع مرتبطة بهذا الموفّر.",
   "Select Project": "اختيار مشروع",
   "Runs JavaScript steps and AI code fixes for every project.": "يشغّل خطوات JavaScript وإصلاحات التعليمات البرمجية بالذكاء الاصطناعي لكل المشاريع.",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "قالب المراقبة هذا لا ينتمي إلى أي مشروع، لذا لا يمكن ربط أي مراقبة به. أنشئ القالب مرة أخرى في هذا المشروع.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "ليس لقالب المراقبة هذا نوع مراقبة، لذا لا يمكن مزامنة مراقباته. أنشئ القالب مرة أخرى بنوع مراقبة.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "تحتاج إعدادات مزامنة القالب إلى نوع المراقبة الخاص بالقالب. اختر نوع المراقبة أولًا، ثم اختر إعدادات المزامنة مرة أخرى.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "لا يمكن لقالب المراقبة مزامنة «{{field}}». اختر من إعدادات مزامنة القالب التي يوفرها القالب، ثم احفظ مرة أخرى."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "لا يمكن لقالب المراقبة مزامنة «{{field}}». اختر من إعدادات مزامنة القالب التي يوفرها القالب، ثم احفظ مرة أخرى.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "لا يمكن لأي شخص جديد تسجيل الدخول بعد. اربط مشروعًا، مع الفرق التي ينضمون إليها، في «المشاريع المرتبطة»."
 }

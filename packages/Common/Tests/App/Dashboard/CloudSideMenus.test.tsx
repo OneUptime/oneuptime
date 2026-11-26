@@ -76,8 +76,10 @@ describe("the Cloud product menu", () => {
       { title: "All Resources", href: `${CLOUD}/resources` },
       { title: "Connect", href: `${CLOUD}/connect` },
     ]);
+    // Who spent it - the cost groups - right under what it cost.
     expect(linksIn("Spend")).toEqual([
       { title: "Costs", href: `${CLOUD}/costs` },
+      { title: "Cost Groups", href: `${CLOUD}/cost-groups` },
       { title: "Savings", href: `${CLOUD}/savings` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
     ]);

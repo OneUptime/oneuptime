@@ -151,7 +151,11 @@ function inlineCodeOf(cell: string): Array<string> {
 describe("Stream CloudWatch Metrics and Logs", () => {
   it("is in the docs, at the end of the Cloud group, linked from the account and resource pages", () => {
     expect(NAV_PAGES).toContain(CLOUD_STREAMING);
+    // After what the accounts cost and who spent it (#11006).
     expect(NAV_PAGES.indexOf(CLOUD_STREAMING)).toBe(
+      NAV_PAGES.indexOf("telemetry/cloud-cost-allocation") + 1,
+    );
+    expect(NAV_PAGES.indexOf("telemetry/cloud-cost-allocation")).toBe(
       NAV_PAGES.indexOf("telemetry/cloud-costs") + 1,
     );
     expect(readPage("en", CLOUD_ACCOUNTS)).toContain(

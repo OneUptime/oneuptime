@@ -1,5 +1,7 @@
 import KeyedConcurrencyLimiter, {
   KeyedConcurrencyLimits,
+  KeyedConcurrencyOrder,
+  KeyedConcurrencyRefusal,
   KeyedConcurrencyRelease,
 } from "../../../Server/Utils/KeyedConcurrencyLimiter";
 import {
@@ -45,6 +47,7 @@ const LIMITS: KeyedConcurrencyLimits = {
 
 function limiterWith(
   limits: Partial<KeyedConcurrencyLimits> = {},
+  order?: KeyedConcurrencyOrder,
 ): KeyedConcurrencyLimiter {
   return new KeyedConcurrencyLimiter({
     limits: { ...LIMITS, ...limits },
@@ -54,7 +57,15 @@ function limiterWith(
     abandonedError: (): Error => {
       return new AbandonedError();
     },
+    order: order,
   });
+}
+
+// Fair share: a freed slot to the key holding the fewest (issue #10819).
+function fairLimiterWith(
+  limits: Partial<KeyedConcurrencyLimits> = {},
+): KeyedConcurrencyLimiter {
+  return limiterWith(limits, KeyedConcurrencyOrder.FewestRunning);
 }
 
 interface Job {
@@ -633,6 +644,248 @@ describe("KeyedConcurrencyLimiter", () => {
       held();
       (await limiter.acquire("q"))();
       expect(limiter.runningCount()).toBe(0);
+    });
+  });
+  /*
+   * Fair share (issue #10819): the probe scheduling limit held one probe to
+   * half its slots whatever the others needed. In "fewest-running" order a
+   * freed slot goes to the waiting key that holds the fewest, so a key alone
+   * may use every slot and keys that compete end up with equal shares.
+   */
+  describe("fewest-running order", () => {
+    test("a key alone may use every slot", async () => {
+      const limiter: KeyedConcurrencyLimiter = fairLimiterWith({
+        maxRunning: 4,
+        maxRunningPerKey: 4,
+      });
+      const order: Array<string> = [];
+      const jobs: Array<Job> = [1, 2, 3, 4, 5, 6].map((index: number): Job => {
+        return launch(limiter, "alone", `alone-${index}`, order);
+      });
+      await settle();
+
+      expect(limiter.runningCount("alone")).toBe(4);
+      expect(limiter.waitingCount("alone")).toBe(2);
+
+      await finishAll(jobs);
+      expect(order).toHaveLength(6);
+    });
+
+    test("a freed slot goes to the waiting key that holds the fewest, not the first to arrive", async () => {
+      const limiter: KeyedConcurrencyLimiter = fairLimiterWith({
+        maxRunning: 4,
+        maxRunningPerKey: 4,
+      });
+      const order: Array<string> = [];
+      const busy: Array<Job> = [1, 2, 3, 4, 5, 6].map((index: number): Job => {
+        return launch(limiter, "busy", `busy-${index}`, order);
+      });
+      const quiet: Job = launch(limiter, "quiet", "quiet-1", order);
+      await settle();
+      expect(order).toEqual(["busy-1", "busy-2", "busy-3", "busy-4"]);
+
+      // busy-5 and busy-6 came first, but busy holds 4 and quiet none.
+      busy[0]!.finish();
+      await settle();
+      expect(order).toEqual([
+        "busy-1",
+        "busy-2",
+        "busy-3",
+        "busy-4",
+        "quiet-1",
+      ]);
+
+      // quiet has nothing waiting: the next slot is busy's, so none idles.
+      busy[1]!.finish();
+      await settle();
+      expect(order).toEqual([
+        "busy-1",
+        "busy-2",
+        "busy-3",
+        "busy-4",
+        "quiet-1",
+        "busy-5",
+      ]);
+
+      await finishAll([...busy, quiet]);
+      expect(order).toHaveLength(7);
+    });
+
+    test("keys that compete end up with equal shares, however many callers each sends", async () => {
+      const limiter: KeyedConcurrencyLimiter = fairLimiterWith({
+        maxRunning: 6,
+        maxRunningPerKey: 6,
+        maxWaiting: 100,
+        maxWaitingPerKey: 100,
+      });
+      const order: Array<string> = [];
+      const jobs: Map<string, Array<Job>> = new Map<string, Array<Job>>();
+
+      // A sends 30 callers, b 12 and c 6, in that order.
+      for (const [key, count] of [
+        ["a", 30],
+        ["b", 12],
+        ["c", 6],
+      ] as Array<[string, number]>) {
+        const list: Array<Job> = [];
+        for (let index: number = 1; index <= count; index++) {
+          list.push(launch(limiter, key, `${key}-${index}`, order));
+        }
+        jobs.set(key, list);
+      }
+      await settle();
+      // The first to arrive took every slot: a was alone.
+      expect(limiter.runningCount("a")).toBe(6);
+
+      // Six of a's callers finish, one at a time: the slots go to b and c.
+      for (let index: number = 0; index < 6; index++) {
+        jobs.get("a")![index]!.finish();
+        await settle();
+      }
+
+      expect([
+        limiter.runningCount("a"),
+        limiter.runningCount("b"),
+        limiter.runningCount("c"),
+      ]).toEqual([2, 2, 2]);
+
+      // And it stays even while all three have callers waiting.
+      for (let round: number = 0; round < 3; round++) {
+        for (const key of ["a", "b", "c"]) {
+          const running: Job | undefined = jobs
+            .get(key)!
+            .find((job: Job): boolean => {
+              return job.started && !job.settled;
+            });
+          running!.finish();
+          await settle();
+        }
+        expect([
+          limiter.runningCount("a"),
+          limiter.runningCount("b"),
+          limiter.runningCount("c"),
+        ]).toEqual([2, 2, 2]);
+      }
+
+      await finishAll([
+        ...jobs.get("a")!,
+        ...jobs.get("b")!,
+        ...jobs.get("c")!,
+      ]);
+      expect(order).toHaveLength(48);
+      expect(limiter.runningCount()).toBe(0);
+    });
+
+    test("between keys that hold as many, the first to arrive starts", async () => {
+      const limiter: KeyedConcurrencyLimiter = fairLimiterWith({
+        maxRunning: 3,
+        maxRunningPerKey: 3,
+      });
+      const order: Array<string> = [];
+      const a1: Job = launch(limiter, "a", "a1", order);
+      const b1: Job = launch(limiter, "b", "b1", order);
+      const c1: Job = launch(limiter, "c", "c1", order);
+      const b2: Job = launch(limiter, "b", "b2", order);
+      const a2: Job = launch(limiter, "a", "a2", order);
+      await settle();
+      expect(order).toEqual(["a1", "b1", "c1"]);
+
+      // a and b each hold one when c1 finishes, and b2 came before a2.
+      c1.finish();
+      await settle();
+      expect(order).toEqual(["a1", "b1", "c1", "b2"]);
+
+      await finishAll([a1, b1, c1, b2, a2]);
+      expect(order).toEqual(["a1", "b1", "c1", "b2", "a2"]);
+    });
+
+    test("a per-key limit below the process's still holds", async () => {
+      const limiter: KeyedConcurrencyLimiter = fairLimiterWith({
+        maxRunning: 4,
+        maxRunningPerKey: 2,
+      });
+      const order: Array<string> = [];
+      const jobs: Array<Job> = [1, 2, 3].map((index: number): Job => {
+        return launch(limiter, "a", `a${index}`, order);
+      });
+      await settle();
+      expect(limiter.runningCount("a")).toBe(2);
+      expect(limiter.waitingCount("a")).toBe(1);
+
+      await finishAll(jobs);
+      expect(order).toEqual(["a1", "a2", "a3"]);
+    });
+
+    test("a caller that leaves is never handed a slot", async () => {
+      const limiter: KeyedConcurrencyLimiter = fairLimiterWith({
+        maxRunning: 1,
+        maxRunningPerKey: 1,
+      });
+      const order: Array<string> = [];
+      const running: Job = launch(limiter, "a", "a1", order);
+      const controller: AbortController = new AbortController();
+      const leaving: Job = launch(limiter, "b", "b1", order, {
+        signal: controller.signal,
+      });
+      const staying: Job = launch(limiter, "c", "c1", order);
+      await settle();
+
+      controller.abort();
+      expect(await refusal(leaving)).toBeInstanceOf(AbandonedError);
+
+      running.finish();
+      await settle();
+      expect(order).toEqual(["a1", "c1"]);
+
+      await finishAll([running, staying]);
+    });
+  });
+
+  describe("why a caller was refused", () => {
+    test("a full queue says so", async () => {
+      const reasons: Array<KeyedConcurrencyRefusal> = [];
+      const limiter: KeyedConcurrencyLimiter = new KeyedConcurrencyLimiter({
+        limits: { ...LIMITS, maxRunning: 1, maxWaiting: 0 },
+        busyError: (reason: KeyedConcurrencyRefusal): Error => {
+          reasons.push(reason);
+          return new BusyError();
+        },
+        abandonedError: (): Error => {
+          return new AbandonedError();
+        },
+      });
+      const held: KeyedConcurrencyRelease = await limiter.acquire("q");
+
+      await expect(limiter.acquire("q")).rejects.toBeInstanceOf(BusyError);
+      expect(reasons).toEqual([KeyedConcurrencyRefusal.QueueFull]);
+      held();
+    });
+
+    test("a wait that runs out says so", async () => {
+      jest.useFakeTimers({ doNotFake: ["nextTick"] });
+
+      try {
+        const reasons: Array<KeyedConcurrencyRefusal> = [];
+        const limiter: KeyedConcurrencyLimiter = new KeyedConcurrencyLimiter({
+          limits: { ...LIMITS, maxRunning: 1, maxWaitMs: 1000 },
+          busyError: (reason: KeyedConcurrencyRefusal): Error => {
+            reasons.push(reason);
+            return new BusyError();
+          },
+          abandonedError: (): Error => {
+            return new AbandonedError();
+          },
+        });
+        const held: KeyedConcurrencyRelease = await limiter.acquire("q");
+        const waiting: Promise<KeyedConcurrencyRelease> = limiter.acquire("q");
+
+        jest.advanceTimersByTime(1000);
+        await expect(waiting).rejects.toBeInstanceOf(BusyError);
+        expect(reasons).toEqual([KeyedConcurrencyRefusal.WaitedTooLong]);
+        held();
+      } finally {
+        jest.useRealTimers();
+      }
     });
   });
 });

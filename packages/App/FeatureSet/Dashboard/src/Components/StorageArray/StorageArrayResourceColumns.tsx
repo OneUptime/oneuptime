@@ -270,7 +270,7 @@ export function getRulesStatusColumn(data: {
 
 export function getStatusColumn(data: {
   title: string;
-  description: string;
+  description?: string | undefined;
 }): Column<StorageArrayResource> {
   return {
     field: { status: true },

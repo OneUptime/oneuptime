@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Test denne OIDC-leverandøren",
   "Attach": "Legg ved",
   "Attached Projects": "Tilknyttede prosjekter",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Prosjektene denne leverandøren logger folk inn i, og teamene nye brukere blir med i. Uten tilknyttede prosjekter fungerer den for alle prosjekter en person allerede hører til.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Personer som logger på med denne leverandøren, blir med i disse prosjektene, i teamene som er valgt for hvert av dem. Er ingen knyttet til, kan ingen nye logge på.",
   "No projects attached to this provider.": "Ingen prosjekter er knyttet til denne leverandøren.",
   "Select Project": "Velg prosjekt",
   "Runs JavaScript steps and AI code fixes for every project.": "Kjører JavaScript-trinn og AI-kodeforbedringer for alle prosjekter.",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Denne monitormalen hører ikke til noe prosjekt, så ingen monitor kan kobles til den. Opprett malen på nytt i dette prosjektet.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Denne monitormalen har ingen monitortype, så monitorene dens kan ikke synkroniseres. Opprett malen på nytt med en monitortype.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Innstillingene for malsynkronisering trenger malens monitortype. Velg monitortypen først, og velg så synkroniseringsinnstillingene på nytt.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitormal kan ikke synkronisere \"{{field}}\". Velg blant innstillingene for malsynkronisering som malen tilbyr, og lagre så på nytt."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitormal kan ikke synkronisere \"{{field}}\". Velg blant innstillingene for malsynkronisering som malen tilbyr, og lagre så på nytt.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Ingen nye kan logge på ennå. Knytt til et prosjekt, med teamene de blir med i, under «Tilknyttede prosjekter»."
 }

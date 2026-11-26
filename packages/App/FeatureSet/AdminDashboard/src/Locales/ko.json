@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "이 OIDC 공급자 테스트",
   "Attach": "첨부",
   "Attached Projects": "연결된 프로젝트",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "이 공급자로 로그인하는 프로젝트와 새 사용자가 들어가는 팀입니다. 연결된 프로젝트가 없으면 사용자가 이미 속한 모든 프로젝트에서 작동합니다.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "이 공급자로 로그인하는 사람은 이 프로젝트에 각각 선택한 팀으로 참여합니다. 연결된 프로젝트가 없으면 새 사용자는 로그인할 수 없습니다.",
   "No projects attached to this provider.": "이 공급자에 연결된 프로젝트가 없습니다.",
   "Select Project": "프로젝트 선택",
   "Runs JavaScript steps and AI code fixes for every project.": "모든 프로젝트의 JavaScript 단계와 AI 코드 수정을 실행합니다.",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "이 모니터 템플릿은 어떤 프로젝트에도 속하지 않아 모니터를 연결할 수 없습니다. 이 프로젝트에서 템플릿을 다시 만드세요.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "이 모니터 템플릿에는 모니터 유형이 없어 해당 모니터를 동기화할 수 없습니다. 모니터 유형을 지정해 템플릿을 다시 만드세요.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "템플릿 동기화 설정에는 템플릿의 모니터 유형이 필요합니다. 먼저 모니터 유형을 선택한 다음 동기화 설정을 다시 선택하세요.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "모니터 템플릿은 \"{{field}}\"을(를) 동기화할 수 없습니다. 템플릿이 제공하는 템플릿 동기화 설정 중에서 선택한 다음 다시 저장하세요."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "모니터 템플릿은 \"{{field}}\"을(를) 동기화할 수 없습니다. 템플릿이 제공하는 템플릿 동기화 설정 중에서 선택한 다음 다시 저장하세요.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "아직 새 사용자는 로그인할 수 없습니다. 연결된 프로젝트에서 참여할 팀과 함께 프로젝트를 연결하세요."
 }

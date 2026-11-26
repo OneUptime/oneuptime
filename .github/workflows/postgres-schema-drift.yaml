@@ -1058,11 +1058,13 @@ jobs:
           Tests/Server/Services/NetworkDevicePollClaimPostgres.test.ts --forceExit
 
       # Clones the migrated MonitorProbe, Monitor and Project tables into an
-      # isolated schema and runs a probe's monitor claim (issue #7194): a read
-      # of the due rows without a lock, then one statement that claims those
-      # still due that nobody else holds. Only a database shows that it skips
-      # a held row, never hands a row to two claims, and passes over a row
-      # another instance claimed between its read and its claim.
+      # isolated schema and runs a probe's monitor claim (issues #7194,
+      # #10819): one statement that takes the due rows nobody else holds
+      # (FOR NO KEY UPDATE SKIP LOCKED) and writes their next runs. Only a
+      # database shows that it skips a held row, never hands a row to two
+      # claims, and - with other claims holding the oldest rows - hands out
+      # the next ones rather than an empty batch, so claims for the same
+      # probe made at once each get a full one.
       - name: Test the monitor probe claim against Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -1074,6 +1076,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
+
+      # Seeds an isolated schema with issue #10819's install - 39,800 monitor
+      # assignments, two days of answered Test Monitor runs - on the migrated
+      # tables and their indexes, and reads the plan of each statement a
+      # probe's requests run: the monitor claim reads its probe's due rows by
+      # index and in proportion to the batch, its check for what it stepped
+      # over goes by key lookups, and the Test Monitor claim reads only the
+      # unanswered tests' partial index. A table read whole fails it.
+      - name: Test the probe dispatch statements' plans on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_DISPATCH_PLAN_TESTS: "true"
+          PROBE_DISPATCH_PLAN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_DISPATCH_PLAN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_DISPATCH_PLAN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProbeDispatchQueryPlansPostgres.test.ts --forceExit
 
       # Checks the migrated MonitorProbe and NetworkDevice tables' indexes and
       # fillfactor, then clones them (with Project, Probe and Monitor) into an
@@ -1530,6 +1551,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/CloudResourceMonitoredSweepsPostgres.test.ts
+          --forceExit
+
+      # Clones the cost groups' tables and the ones their reads join into an
+      # isolated schema: views and groups unique by name, rules that name only
+      # the project's records, fixed splits, line items on an account or a
+      # group, the owner and label facts the raw SQL reads by the key costs
+      # are billed under, the groups a view by owner team makes, and who may
+      # read a group's spend (#11006).
+      - name: Test cost groups against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_COST_GROUP_TESTS: "true"
+          CLOUD_COST_GROUP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_COST_GROUP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_COST_GROUP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudCostGroupsPostgres.test.ts
           --forceExit
 
       # Clones the migrated CloudConnection into an isolated schema and makes
@@ -4381,6 +4421,29 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
 
+      # #11149: whom single sign-on gives an account and which projects it
+      # adds them to, end to end: a browser through OneUptime's sign-in, a
+      # real OpenID Provider on a loopback socket (its authorization
+      # endpoint, one-time codes, PKCE) and signed SAML responses, the
+      # Identity routers on a real Express server and the real services.
+      # The server's own provider makes an account only when an attached
+      # project with teams can take the person, and says why in its log when
+      # it cannot; a sign-in joins people only to the project's own teams;
+      # an address the provider has not verified, or none, makes and signs
+      # in no account. Clones the migrated tables it touches into an
+      # isolated schema.
+      - name: Test whom single sign-on gives an account and which projects, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_SSO_AUTO_PROVISIONING_TESTS: "true"
+          SSO_AUTO_PROVISIONING_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SSO_AUTO_PROVISIONING_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SSO_AUTO_PROVISIONING_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/FeatureSet/Identity/SsoAutoProvisioningPostgres.test.ts --forceExit
+
       # #8199: the incident owner jobs - Created, a state change, a reminder -
       # stopped before an owner's send, during it and before the take, then
       # started again, and two of them at once on connections of their own,
@@ -4432,6 +4495,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # Handing monitors out to probes at issue #10819's scale does not
+      # regress: the benchmark (scripts/benchmark-probe-dispatch.ts) runs three
+      # App replicas, each a process with its own pool, with the real
+      # /monitor/list and /monitor-test/list, probe scheduling limit and
+      # claims, and one probe of 20 replicas of 3 workers asking for the
+      # issue's 39,700 due monitors, all due at once, for 45 seconds. It fails
+      # under 300 monitors a second (121 before the fix, 1,036 after, on a
+      # development machine), on short batches while the backlog is due, on
+      # a busy answer, or on a Test Monitor run not handed out in time. Its
+      # tables are copied into a schema of its own and dropped after.
+      - name: Test probe dispatch throughput at the issue's scale on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROBE_DISPATCH_BENCHMARK_TESTS: "true"
+          PROBE_DISPATCH_BENCHMARK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_DISPATCH_BENCHMARK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_DISPATCH_BENCHMARK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ProbeDispatchThroughputPostgres.test.ts --forceExit
 
       # A Docker host deleted while its agent runs (#5214), end to end: Docker
       # metric batches through the metrics ingest worker, on copies of the

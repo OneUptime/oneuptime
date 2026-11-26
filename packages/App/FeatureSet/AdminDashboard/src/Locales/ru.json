@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Проверить этого поставщика OIDC",
   "Attach": "Прикрепить",
   "Attached Projects": "Привязанные проекты",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Проекты, в которые этот поставщик выполняет вход, и команды, в которые попадают новички. Без привязанных проектов он работает для любого проекта, в котором человек уже состоит.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Люди, входящие через этого поставщика, попадают в эти проекты, в команды, выбранные для каждого из них. Без привязанных проектов новые пользователи не могут войти.",
   "No projects attached to this provider.": "К этому поставщику не привязан ни один проект.",
   "Select Project": "Выбрать проект",
   "Runs JavaScript steps and AI code fixes for every project.": "Выполняет шаги JavaScript и исправления кода с помощью ИИ для всех проектов.",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Этот шаблон монитора не относится ни к одному проекту, поэтому к нему нельзя привязать монитор. Создайте шаблон заново в этом проекте.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "У этого шаблона монитора нет типа монитора, поэтому его мониторы нельзя синхронизировать. Создайте шаблон заново с типом монитора.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Для настроек синхронизации шаблона нужен тип монитора шаблона. Сначала выберите тип монитора, затем снова выберите настройки синхронизации.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Шаблон монитора не может синхронизировать «{{field}}». Выберите из настроек синхронизации, которые предлагает шаблон, и сохраните снова."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Шаблон монитора не может синхронизировать «{{field}}». Выберите из настроек синхронизации, которые предлагает шаблон, и сохраните снова.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Новые пользователи пока не могут войти. Привяжите проект с командами, в которые они попадут, в разделе «Привязанные проекты»."
 }

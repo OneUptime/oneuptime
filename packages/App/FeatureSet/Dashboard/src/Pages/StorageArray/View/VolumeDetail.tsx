@@ -11,7 +11,7 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 
 /*
  * One FlashArray volume. Its series carry the volume's name in the `name`
- * label (purefa_volume_*), which scopes the Metrics tab.
+ * label of its volume series, which scopes the Metrics tab.
  */
 const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,
