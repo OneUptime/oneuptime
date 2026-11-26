@@ -50,7 +50,7 @@ Hver tredje time fjerner OneUptime de fundne elementer, der har været stille l�
 | --- | --- |
 | Pods, deployments, Proxmox-gæster, OpenStack-instanser og virtuelle VMware-maskiner | 1 dag |
 | Kubernetes-noder og -navnerum, Proxmox-noder, OpenStack-hypervisorer, VMware-værter, -klynger og -datastores samt de databaser og fjerntjenester, dine traces kalder | 7 dage |
-| Tjenester, værter, Kubernetes-, Proxmox- og Ceph-klynger, OpenStack-clouds, lagerarrays, vCenters og Docker Swarm-klynger | 30 dage |
+| Tjenester, værter, Kubernetes-, Proxmox- og Ceph-klynger, OpenStack-clouds, lagerarrays, vCenters, XCP-ng-pools og Docker Swarm-klynger | 30 dage |
 
 En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 dage.
 
