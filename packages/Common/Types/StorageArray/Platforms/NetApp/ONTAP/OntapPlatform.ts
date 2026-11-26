@@ -876,7 +876,8 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
         {
           type: "value",
           id: "reading",
-          title: translationKey("Reading"),
+          // A sensor's value: "Reading" is a word for work under way.
+          title: translationKey("Value"),
           value: { detail: "reading", format: "text" },
         },
         { type: "lastSeen" },

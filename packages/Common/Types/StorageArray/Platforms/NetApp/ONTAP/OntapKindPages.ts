@@ -213,7 +213,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
           value: { column: "usedBytes", format: "bytes" },
         },
         {
-          title: translationKey("Free"),
+          title: translationKey("Available"),
           value: { detail: "availableBytes", format: "bytes" },
         },
         {
@@ -389,7 +389,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
       {
         type: "value",
         id: "free",
-        title: translationKey("Free"),
+        title: translationKey("Available"),
         value: { detail: "availableBytes", format: "bytes" },
       },
       DATA_REDUCTION_COLUMN,
@@ -460,7 +460,7 @@ const ONTAP_KIND_PAGES: Partial<Record<string, StorageArrayKindPage>> = {
           value: { column: "usedBytes", format: "bytes" },
         },
         {
-          title: translationKey("Free"),
+          title: translationKey("Available"),
           value: { detail: "availableBytes", format: "bytes" },
         },
         {
