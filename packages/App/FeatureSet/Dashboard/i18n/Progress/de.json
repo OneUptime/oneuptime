@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 2749
+    "keys": 64212,
+    "untranslated": 2759
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -888,9 +888,11 @@
     "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
+    "{{location}} in {{store}}",
     "{{online}} online, {{offline}} offline",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{store}} in {{region}}",
     "{{values}} in {{field}}",
     "{{value}} ms",
     "{{value}} s",

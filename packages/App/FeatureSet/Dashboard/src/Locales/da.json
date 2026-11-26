@@ -63953,9 +63953,6 @@
   "In the most expedient time possible, and within that time after the breach was discovered.": "Så hurtigt som muligt og inden for den frist efter, at bruddet blev opdaget.",
   "Internal Summary": "Internt resumé",
   "It applies to every store found from now on.": "It applies to every store found from now on.",
-  "It covers {{count}} store today, and {{breaking}} break it: {{stores}}": "It covers {{count}} store today, and {{breaking}} break it: {{stores}}",
-  "It covers {{count}} stores today, and {{breaking}} break it: {{stores}}": "It covers {{count}} stores today, and {{breaking}} break it: {{stores}}",
-  "It covers {{count}} stores today, and {{breaking}} break it: {{stores}}_one": "It covers {{count}} store today, and {{breaking}} break it: {{stores}}",
   "It fixes {{count}} issue.": "It fixes {{count}} issue.",
   "It fixes {{count}} issues.": "It fixes {{count}} issues.",
   "It fixes {{count}} issues._one": "It fixes {{count}} issue.",
@@ -64252,5 +64249,8 @@
   "{{owners}} stop being owners of the store: its new issues are no longer emailed to them.": "{{owners}} stop being owners of the store: its new issues are no longer emailed to them.",
   "{{readers}} read {{location}}: they will see it hidden.": "{{readers}} read {{location}}: they will see it hidden.",
   "{{store}} in {{region}}": "{{store}} in {{region}}",
-  "A person who asks Ask AI for a residency, owner or label rule in their own words, or an agent connected through the MCP server.": "A person who asks Ask AI for a residency, owner or label rule in their own words, or an agent connected through the MCP server."
+  "A person who asks Ask AI for a residency, owner or label rule in their own words, or an agent connected through the MCP server.": "A person who asks Ask AI for a residency, owner or label rule in their own words, or an agent connected through the MCP server.",
+  "{{count}} store would break it: {{stores}}": "{{count}} store would break it: {{stores}}",
+  "{{count}} stores would break it: {{stores}}": "{{count}} stores would break it: {{stores}}",
+  "{{count}} stores would break it: {{stores}}_one": "{{count}} store would break it: {{stores}}"
 }

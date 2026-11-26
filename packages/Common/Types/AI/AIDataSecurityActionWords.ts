@@ -268,7 +268,7 @@ export const AI_DATA_SECURITY_ACTION_CHANGES: {
 export const AI_DATA_SECURITY_ACTION_PLURAL_CHANGES: {
   alsoSimilarFindings: PluralTemplate;
   ruleMatchesStores: PluralTemplate;
-  residencyMatchesStores: PluralTemplate;
+  residencyBreakingStores: PluralTemplate;
   ruleMatchesNoStore: PluralTemplate;
   fixesIssues: PluralTemplate;
 } = {
@@ -284,13 +284,10 @@ export const AI_DATA_SECURITY_ACTION_PLURAL_CHANGES: {
     one: translationKey("It matches {{count}} store today: {{stores}}"),
     other: translationKey("It matches {{count}} stores today: {{stores}}"),
   },
-  residencyMatchesStores: {
-    one: translationKey(
-      "It covers {{count}} store today, and {{breaking}} break it: {{stores}}",
-    ),
-    other: translationKey(
-      "It covers {{count}} stores today, and {{breaking}} break it: {{stores}}",
-    ),
+  // A residency rule's stores that keep their data where it does not allow.
+  residencyBreakingStores: {
+    one: translationKey("{{count}} store would break it: {{stores}}"),
+    other: translationKey("{{count}} stores would break it: {{stores}}"),
   },
   ruleMatchesNoStore: {
     one: translationKey("It matches no store you can see today."),

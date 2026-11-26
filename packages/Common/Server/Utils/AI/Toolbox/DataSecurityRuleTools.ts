@@ -90,7 +90,7 @@ import {
   quoted,
   quotedList,
 } from "./DataSecurityActionShared";
-import { citationSentence, countFigure } from "./ReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 import {
   ObservabilityTool,
   PreparedMutation,
@@ -130,6 +130,9 @@ import WidgetBuilder from "./WidgetBuilder";
 
 // The most stores a preview reads, and names on a card.
 const MAX_PREVIEW_STORES: number = 1000;
+
+// The most stores of each kind the draft's answer names to the model; the rest are counted.
+const MAX_STORES_NAMED_FOR_MODEL: number = 20;
 // The most passes Run Now makes for a saved rule, here: the project's stores, a page at a time.
 const MAX_RUN_PASSES: number = 50;
 
@@ -585,25 +588,16 @@ function describeDraft(data: {
           AI_DATA_SECURITY_ACTION_PLURAL_CHANGES.ruleMatchesNoStore,
           0,
         )
-      : draft.kind === DataSecurityRuleKind.Residency
-        ? aiActionPluralSentence(
-            AI_DATA_SECURITY_ACTION_PLURAL_CHANGES.residencyMatchesStores,
-            preview.matched.length,
-            {
-              breaking: countFigure(preview.breaking.length),
-              stores: storesOnCard(
-                preview.breaking.length > 0
-                  ? preview.breaking
-                  : preview.matched,
-                true,
-              ),
-            },
-          )
-        : aiActionPluralSentence(
-            AI_DATA_SECURITY_ACTION_PLURAL_CHANGES.ruleMatchesStores,
-            preview.matched.length,
-            { stores: storesOnCard(preview.matched, false) },
-          );
+      : aiActionPluralSentence(
+          AI_DATA_SECURITY_ACTION_PLURAL_CHANGES.ruleMatchesStores,
+          preview.matched.length,
+          {
+            stores: storesOnCard(
+              preview.matched,
+              draft.kind === DataSecurityRuleKind.Residency,
+            ),
+          },
+        );
 
   if (draft.kind === DataSecurityRuleKind.Residency) {
     const categories: AIActionSentenceValue =
@@ -632,6 +626,16 @@ function describeDraft(data: {
             regions: quotedList(draft.allowedRegions),
           }),
       matches,
+      // Which keep their data where it does not allow, each with its region.
+      ...(preview.breaking.length > 0
+        ? [
+            aiActionPluralSentence(
+              AI_DATA_SECURITY_ACTION_PLURAL_CHANGES.residencyBreakingStores,
+              preview.breaking.length,
+              { stores: storesOnCard(preview.breaking, true) },
+            ),
+          ]
+        : []),
       aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.residencyIssuesOpen),
     );
 
@@ -702,6 +706,45 @@ function describeDraftForModel(data: {
         : ""
     }.`,
   ];
+
+  /*
+   * Which, by name - the stores the card will name - so the answer can say
+   * what the rule means before the person saves it. Names are data.
+   */
+  const named: (stores: Array<PreviewStore>) => string = (
+    stores: Array<PreviewStore>,
+  ): string => {
+    const shown: Array<string> = stores
+      .slice(0, MAX_STORES_NAMED_FOR_MODEL)
+      .map((store: PreviewStore): string => {
+        return store.region
+          ? `${quoted(store.name)} (${store.region})`
+          : quoted(store.name);
+      });
+    const more: number = stores.length - shown.length;
+
+    return `${shown.join(", ")}${more > 0 ? `, and ${more} more` : ""}`;
+  };
+
+  if (data.drafted.draft.kind === DataSecurityRuleKind.Residency) {
+    if (data.preview.breaking.length > 0) {
+      lines.push(`Stores that break it: ${named(data.preview.breaking)}.`);
+    }
+
+    const keeping: Array<PreviewStore> = data.preview.matched.filter(
+      (store: PreviewStore): boolean => {
+        return !data.preview.breaking.some((breaking: PreviewStore) => {
+          return breaking.id === store.id;
+        });
+      },
+    );
+
+    if (keeping.length > 0) {
+      lines.push(`Stores that keep to it: ${named(keeping)}.`);
+    }
+  } else if (data.preview.matched.length > 0) {
+    lines.push(`Stores it matches: ${named(data.preview.matched)}.`);
+  }
 
   if (data.preview.notFound.length > 0) {
     lines.push(
