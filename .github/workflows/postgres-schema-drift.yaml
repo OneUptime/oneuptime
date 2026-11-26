@@ -1553,6 +1553,25 @@ jobs:
           Tests/Server/Services/CloudResourceMonitoredSweepsPostgres.test.ts
           --forceExit
 
+      # Clones the cost groups' tables and the ones their reads join into an
+      # isolated schema: views and groups unique by name, rules that name only
+      # the project's records, fixed splits, line items on an account or a
+      # group, the owner and label facts the raw SQL reads by the key costs
+      # are billed under, the groups a view by owner team makes, and who may
+      # read a group's spend (#11006).
+      - name: Test cost groups against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_COST_GROUP_TESTS: "true"
+          CLOUD_COST_GROUP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_COST_GROUP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_COST_GROUP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudCostGroupsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated CloudConnection into an isolated schema and makes
       # a connection's stream keys at the same moment, every one held at its
       # read until all have read: the compare-and-set over the jsonb

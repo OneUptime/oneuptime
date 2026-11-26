@@ -114,6 +114,7 @@ const WIDEST_LABEL_LINE: Record<string, number> = {
   "telemetry/cloud-azure-waf-blocklist": 26,
   "telemetry/cloud-armor-blocklist": 26,
   "telemetry/cloud-costs": 26,
+  "telemetry/cloud-cost-allocation": 26,
   "telemetry/cloud-resources": 23,
 };
 

@@ -178,6 +178,7 @@ AI 에이전트는 [MCP 서버](/docs/ai/mcp-server)를 통해, 스크립트는 
 ## 다음 단계
 
 :::cards
+- [클라우드 비용 배분](/docs/telemetry/cloud-cost-allocation): 지출을 팀, 제품, 비용 센터별로 나눕니다.
 - [클라우드 계정 연결](/docs/telemetry/cloud-accounts): 다른 계정을 연결하거나 명령을 다시 실행합니다.
 - [클라우드 리소스](/docs/telemetry/cloud-resources): 각 리소스의 메트릭을 직접 운영하는 컬렉터에서.
 - [Kubernetes 비용 관측성](/docs/telemetry/kubernetes-cost): Kubernetes 워크로드별 비용.
