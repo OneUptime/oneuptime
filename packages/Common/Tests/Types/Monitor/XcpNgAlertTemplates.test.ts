@@ -155,7 +155,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     id: "xcp-ng-pool-disconnected",
     category: "Availability",
     severity: "Critical",
-    rollingTime: RollingTime.Past5Minutes,
+    rollingTime: RollingTime.Past10Minutes,
     queries: [
       {
         metricName: "xcp_pool_connected",
@@ -860,10 +860,10 @@ describe("XcpNgAlertTemplates - on the recorded lab", () => {
       PRODUCTION_POOL_ID,
     );
     expect(heartbeat).toBe(1);
-    // Count of rows per minute: one scrape a minute.
+    // Count of rows per minute: one scrape a minute, over the ten minutes.
     expect(
       await evaluateOnLab("xcp-ng-pool-disconnected", {
-        samples_received: steady(1, 5),
+        samples_received: steady(1, 10),
       }),
     ).toEqual({ breached: false, healthy: true });
   });

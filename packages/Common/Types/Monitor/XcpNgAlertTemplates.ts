@@ -268,9 +268,9 @@ export function buildXcpNgFormulaMonitorConfig(args: {
 const poolDisconnectedTemplate: XcpNgAlertTemplate = {
   id: "xcp-ng-pool-disconnected",
   name: "Pool Disconnected",
-  summary: "Xen Orchestra stops reporting the pool for 5 minutes.",
+  summary: "Xen Orchestra stops reporting the pool for 10 minutes.",
   description:
-    "Alert when the pool's connection heartbeat (xcp_pool_connected) stops arriving for five minutes. Xen Orchestra sends it every scrape while it is connected to the pool, and stops - rather than sending 0 - when it loses the pool's master. It also stops when Xen Orchestra itself or the XCP-ng Agent stops, so the incident names all three. One incident for the pool; it resolves when the heartbeat comes back.",
+    "Alert when the pool's connection heartbeat (xcp_pool_connected) stops arriving for ten minutes. Xen Orchestra sends it every scrape while it is connected to the pool, and stops - rather than sending 0 - when it loses the pool's master. It also stops when Xen Orchestra itself or the XCP-ng Agent stops, so the incident names all three. One incident for the pool; it resolves when the heartbeat comes back.",
   category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: XcpNgAlertTemplateArgs): MonitorStep => {
@@ -285,7 +285,12 @@ const poolDisconnectedTemplate: XcpNgAlertTemplate = {
             metricName: XcpNgSeries.PoolConnected,
           },
         ],
-        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Ten minutes, as every Stopped Reporting template counts its
+         * heartbeat: a minute-long scrape that Xen Orchestra answers late,
+         * or a restart of Xen Orchestra or the agent, is not a lost pool.
+         */
+        rollingTime: RollingTime.Past10Minutes,
         // Ungrouped and counted: only a window with no row at all breaches.
         aggregationType: MetricsAggregationType.Count,
       }),
@@ -298,10 +303,10 @@ const poolDisconnectedTemplate: XcpNgAlertTemplate = {
         metricAlias,
         resourceNoun: "XCP-ng pool",
         incidentTitle: `[XCP-ng] Pool Disconnected - ${args.monitorName}`,
-        incidentDescription: `OneUptime has had no word from this XCP-ng pool through Xen Orchestra for five minutes, so its other monitors have nothing to evaluate either. Check, in order: whether Xen Orchestra still shows the pool connected (Settings, Servers) - it loses a pool when the pool master goes down or its address or password changes; whether Xen Orchestra itself is up and its OpenMetrics plugin loaded; and whether the XCP-ng Agent is running and can reach Xen Orchestra and OneUptime (its troubleshoot.sh names the failing step). The incident resolves on its own once the pool is reported again.`,
-        criteriaName: "Pool Disconnected - no heartbeat for 5 minutes",
+        incidentDescription: `OneUptime has had no word from this XCP-ng pool through Xen Orchestra for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether Xen Orchestra still shows the pool connected (Settings, Servers) - it loses a pool when the pool master goes down or its address or password changes; whether Xen Orchestra itself is up and its OpenMetrics plugin loaded; and whether the XCP-ng Agent is running and can reach Xen Orchestra and OneUptime (its troubleshoot.sh names the failing step). The incident resolves on its own once the pool is reported again.`,
+        criteriaName: "Pool Disconnected - no heartbeat for 10 minutes",
         criteriaDescription:
-          "Triggers when the pool sends no xcp_pool_connected data for the whole five-minute window.",
+          "Triggers when the pool sends no xcp_pool_connected data for the whole ten-minute window.",
       }),
     });
   },
@@ -585,8 +590,7 @@ export const XCP_NG_SR_SLOW_LATENCY_SECONDS: number = 0.05;
 const storageRepositorySlowTemplate: XcpNgAlertTemplate = {
   id: "xcp-ng-sr-slow",
   name: "Storage Repository Slow",
-  summary:
-    "I/O to a storage repository takes more than 50 ms for 15 minutes.",
+  summary: "I/O to a storage repository takes more than 50 ms for 15 minutes.",
   description:
     "Alert when I/O to a storage repository takes more than 50 ms on average for 15 minutes (xcp_host_disk_latency_seconds > 0.05, averaged over the hosts that reach it). Every VM with a disk on it feels it. One incident per storage repository.",
   category: "Storage",
