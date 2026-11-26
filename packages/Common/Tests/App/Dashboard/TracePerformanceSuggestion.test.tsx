@@ -48,7 +48,10 @@ import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion
 import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  PICK_REFUSAL_MESSAGES,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
   PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import { CodeRepositoriesQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
@@ -982,6 +985,80 @@ describe("a repository to pick before the fix starts", () => {
     expect(codeRepositories.reads[codeRepositories.reads.length - 1]).toEqual(
       expect.objectContaining({ group: "connected", limit: 50 }),
     );
+  });
+
+  /*
+   * #11075: the route takes a repository only when the person may read it
+   * and ask OneUptime AI to work in it, so the search offers only those -
+   * it offered every connected one the person could read.
+   */
+  test("its search is held, on the server, to the repositories the person may ask OneUptime AI to work in - the ones the fix accepts", async () => {
+    renderStrip({ suggestion: withRepositories() });
+
+    await open();
+    await screen.findByRole("option", { name: /billing/ });
+
+    expect(codeRepositories.reads[codeRepositories.reads.length - 1]).toEqual(
+      expect.objectContaining({ group: "connected", askableOnly: true }),
+    );
+    // Its code is not read to fix a trace: a repository is not held to that.
+    expect(
+      codeRepositories.reads[codeRepositories.reads.length - 1],
+    ).not.toHaveProperty("codeReadableOnly");
+  });
+
+  test.each([
+    ["no longer one the person may read", PICKED_REPOSITORY_NOT_FOUND_MESSAGE],
+    [
+      "no longer one the person may ask OneUptime AI to work in",
+      PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+    ],
+  ])(
+    "a pick the server refused as %s is dropped too, and the fix waits for another (#11075)",
+    async (_name: string, refusal: string) => {
+      const onFix: Mock<(repositoryId?: string | undefined) => void> =
+        jest.fn<(repositoryId?: string | undefined) => void>();
+      const draw: (error: string | null) => React.ReactElement = (
+        error: string | null,
+      ): React.ReactElement => {
+        return (
+          <BrowserRouter>
+            <TracePerformanceSuggestion
+              suggestion={withRepositories()}
+              taskRoute={null}
+              connectRepositoryRoute={CODE_ROUTE}
+              isCreating={false}
+              error={error}
+              onFix={onFix as unknown as (repositoryId?: string) => void}
+            />
+          </BrowserRouter>
+        );
+      };
+      const { rerender } = render(draw(null));
+
+      await pick("checkout-api");
+      expect(screen.getByTestId("trace-fix-performance")).not.toBeDisabled();
+
+      // As the page writes it: after "Could not start the fix:".
+      await act(async () => {
+        rerender(draw(refusal));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-fix-performance")).toBeDisabled();
+      });
+      expect(within(picker()).queryByText("checkout-api")).toBeNull();
+
+      fireEvent.click(screen.getByTestId("trace-fix-performance"));
+      expect(onFix).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the refusals that drop a pick are exactly the ones a person cannot make again", () => {
+    expect(PICK_REFUSAL_MESSAGES).toEqual([
+      PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+      PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+      PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+    ]);
   });
 
   test("a pick the server refused as no longer connected is dropped, and the fix waits for another - any other refusal keeps it", async () => {

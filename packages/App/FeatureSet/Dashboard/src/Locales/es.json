@@ -65869,5 +65869,6 @@
   "{{amount}} an hour": "{{amount}} por hora",
   "{{amount}} at on-demand rates": "{{amount}} a tarifas bajo demanda",
   "{{count}} end within 90 days": "{{count}} terminan en 90 días",
-  "{{count}} end within 90 days_one": "{{count}} termina en 90 días"
+  "{{count}} end within 90 days_one": "{{count}} termina en 90 días",
+  "Another repository": "Otro repositorio"
 }

@@ -65869,5 +65869,6 @@
   "{{amount}} an hour": "每小时 {{amount}}",
   "{{amount}} at on-demand rates": "按需费率下 {{amount}}",
   "{{count}} end within 90 days": "90 天内结束：{{count}}",
-  "{{count}} end within 90 days_one": "90 天内结束：{{count}}"
+  "{{count}} end within 90 days_one": "90 天内结束：{{count}}",
+  "Another repository": "另一个代码仓库"
 }

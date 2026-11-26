@@ -62900,7 +62900,7 @@
   "AI Change Failed": "تغییر هوش مصنوعی ناموفق بود",
   "AI Response": "پاسخ هوش مصنوعی",
   "An id field holding numbers that pass the Luhn check": "فیلد شناسه‌ای با شماره‌هایی که از کنترل Luhn عبور می‌کنند",
-  "Another store": "مخزنی دیگر",
+  "Another store": "مخزن داده‌ای دیگر",
   "Apply to Similar Findings": "اعمال روی یافته‌های مشابه",
   "Confirm it": "تأییدش کنید",
   "Confirm {{count}}": "تأیید {{count}} یافته",
@@ -65869,5 +65869,6 @@
   "{{amount}} an hour": "ساعتی {{amount}}",
   "{{amount}} at on-demand rates": "{{amount}} با نرخ درخواستی",
   "{{count}} end within 90 days": "ظرف ۹۰ روز تمام می‌شوند: {{count}}",
-  "{{count}} end within 90 days_one": "{{count}} تعهد ظرف ۹۰ روز تمام می‌شود"
+  "{{count}} end within 90 days_one": "{{count}} تعهد ظرف ۹۰ روز تمام می‌شود",
+  "Another repository": "مخزن دیگر"
 }

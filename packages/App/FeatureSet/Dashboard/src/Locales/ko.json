@@ -62900,7 +62900,7 @@
   "AI Change Failed": "AI 변경 실패",
   "AI Response": "AI 대응",
   "An id field holding numbers that pass the Luhn check": "Luhn 검사를 통과하는 번호가 담긴 ID 필드",
-  "Another store": "다른 저장소",
+  "Another store": "다른 데이터 저장소",
   "Apply to Similar Findings": "비슷한 발견 사항에 적용",
   "Confirm it": "확인 권장",
   "Confirm {{count}}": "{{count}}개 확인",
@@ -65869,5 +65869,6 @@
   "{{amount}} an hour": "시간당 {{amount}}",
   "{{amount}} at on-demand rates": "온디맨드 요금으로 {{amount}}",
   "{{count}} end within 90 days": "90일 이내 종료: {{count}}",
-  "{{count}} end within 90 days_one": "90일 이내 종료: {{count}}"
+  "{{count}} end within 90 days_one": "90일 이내 종료: {{count}}",
+  "Another repository": "다른 저장소"
 }

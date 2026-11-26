@@ -65869,5 +65869,6 @@
   "{{amount}} an hour": "{{amount}} в час",
   "{{amount}} at on-demand rates": "{{amount}} по ценам по требованию",
   "{{count}} end within 90 days": "Заканчиваются в течение 90 дней: {{count}}",
-  "{{count}} end within 90 days_one": "{{count}} заканчивается в течение 90 дней"
+  "{{count}} end within 90 days_one": "{{count}} заканчивается в течение 90 дней",
+  "Another repository": "Другой репозиторий"
 }

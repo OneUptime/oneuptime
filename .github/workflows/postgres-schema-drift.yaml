@@ -5269,7 +5269,15 @@ jobs:
       # Insights' scope - services, hosts, clusters and the other resources
       # telemetry names - searched by name or identifier and named by id;
       # and Fix with AI's repository choices searched, each held to the
-      # repositories its fix accepts.
+      # repositories its fix accepts, and a trace's fix started only in a
+      # repository the member may use (#11075). #11073: the Affected
+      # Resources chip answered in the list's own query - a monitor's
+      # 10,050 incidents listed and counted, a monitor or a host OR'd,
+      # "is not" keeping the incidents on nothing, an alert's monitor
+      # column, a label's reader kept to their incidents, and a saved pick
+      # named by its id, archived or gone. #11074: which recommended
+      # monitors a resource has, answered past the project's 10,000th
+      # monitor.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 5
         working-directory: packages/Common
@@ -5296,6 +5304,8 @@ jobs:
           Tests/Server/API/LowerPickersSearchPostgres.test.ts
           Tests/Server/API/TelemetryResourceScopeSearchPostgres.test.ts
           Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
+          Tests/Server/API/AffectedResourceFilterPostgres.test.ts
+          Tests/Server/API/MonitorRecommendationCoveragePostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two

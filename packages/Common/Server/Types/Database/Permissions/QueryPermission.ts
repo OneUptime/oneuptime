@@ -17,6 +17,9 @@ import OwnedBy, {
   OWNED_BY_QUERY_KEY,
   OwnedByMatch,
 } from "../../../../Types/BaseDatabase/OwnedBy";
+import LinkedTo, {
+  LINKED_TO_QUERY_KEY,
+} from "../../../../Types/BaseDatabase/LinkedTo";
 import Columns from "../../../../Types/Database/Columns";
 import RelationReadersUtil from "../../../../Types/Database/RelationReadersUtil";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
@@ -499,6 +502,46 @@ export default class QueryPermission {
           ownedBy: query[key] as unknown as OwnedBy,
           props: props,
         });
+
+        continue;
+      }
+
+      /*
+       * THE RECORDS LINKED TO SOME RECORDS (LinkedTo, under "linkedTo",
+       * #11073) is no column either: it filters through each relation it
+       * names, so each is held to what a filter on that column itself is -
+       * a column of the record, which the caller may read.
+       */
+      if (query[key] instanceof LinkedTo) {
+        if (key !== LINKED_TO_QUERY_KEY) {
+          throw new BadDataException(
+            `A filter by linked records goes under "${LINKED_TO_QUERY_KEY}", not "${key}".`,
+          );
+        }
+
+        for (const relation of Object.keys(
+          (query[key] as unknown as LinkedTo).relations,
+        )) {
+          if (excludedColumnNames.includes(relation)) {
+            continue;
+          }
+
+          if (!tableColumns.includes(relation)) {
+            throw new BadDataException(
+              `Invalid column on ${model.singularName} - ${relation}. Column does not exist.`,
+            );
+          }
+
+          if (!canReadOnTheseColumns.columns.includes(relation)) {
+            throw new NotAuthorizedException(
+              ColumnRefusalMessage.getQueryRefusal({
+                column: relation,
+                permissions:
+                  model.getColumnAccessControlFor(relation)?.read || [],
+              }),
+            );
+          }
+        }
 
         continue;
       }
