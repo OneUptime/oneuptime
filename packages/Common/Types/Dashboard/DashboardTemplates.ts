@@ -212,7 +212,8 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Live host and VM inventories with status, host and VM CPU, host memory, storage repository usage and host network throughput, read from Xen Orchestra.",
     icon: IconProp.XcpNg,
     category: DashboardTemplateCategory.Infrastructure,
-    keywords: ["xen", "xen orchestra", "virtualization", "vms"],
+    // Words its name and description do not say ("xen" and "vm" they do).
+    keywords: ["xenserver", "hypervisor", "virtualization"],
   },
   {
     type: DashboardTemplateType.OpenStack,

@@ -400,9 +400,17 @@ describe("the XCP-ng dashboard template", () => {
     expect(template?.name).toBe("XCP-ng Dashboard");
     expect(template?.category).toBe(DashboardTemplateCategory.Infrastructure);
     expect(template?.icon).toBe(IconProp.XcpNg);
-    expect(template?.keywords).toEqual(
-      expect.arrayContaining(["xen", "xen orchestra"]),
-    );
+    /*
+     * Its description already says Xen Orchestra (a search for "xen" finds
+     * it there), so its keywords are the words it does not say: the product
+     * XCP-ng forked from, and what it is.
+     */
+    expect(template?.description).toContain("Xen Orchestra");
+    expect(template?.keywords).toEqual([
+      "xenserver",
+      "hypervisor",
+      "virtualization",
+    ]);
   });
 
   test("is listed right after the VMware card, with the other hypervisors", () => {
