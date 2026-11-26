@@ -60,6 +60,25 @@ function asNetSnmpEngine(engine: {
   return engine as unknown as NetSnmpEngine;
 }
 
+type NetSnmpPrivacyAlgorithm =
+  (typeof snmp.Encryption.algorithms)[keyof typeof snmp.Encryption.algorithms];
+
+// net-snmp keys its privacy algorithms by protocol, and has none for "none".
+function getNetSnmpPrivacyAlgorithm(
+  protocol: snmp.PrivProtocols,
+): NetSnmpPrivacyAlgorithm {
+  const algorithms: Partial<
+    Record<snmp.PrivProtocols, NetSnmpPrivacyAlgorithm>
+  > = snmp.Encryption.algorithms;
+  const algorithm: NetSnmpPrivacyAlgorithm | undefined = algorithms[protocol];
+
+  if (!algorithm) {
+    throw new Error(`net-snmp has no privacy algorithm for ${protocol}`);
+  }
+
+  return algorithm;
+}
+
 const SCOPED_PDU: Buffer = Buffer.from(
   "3027040b8000b98380a1b2c3d4e5f60400a716020429e2c3b50201000201003008300606022b060500",
   "hex",
@@ -69,7 +88,10 @@ describe("RFC 3414 appendix A.3: password to key", () => {
   const engineId: Buffer = Buffer.from("000000000000000000000002", "hex");
 
   test("MD5: Ku and Kul for 'maplesyrup'", () => {
-    const ku: Buffer = UsmCrypto.passwordToKu(SnmpAuthProtocol.MD5, "maplesyrup");
+    const ku: Buffer = UsmCrypto.passwordToKu(
+      SnmpAuthProtocol.MD5,
+      "maplesyrup",
+    );
 
     expect(ku.toString("hex")).toBe("9faf3283884e92834ebc9847d8edd963");
     expect(
@@ -78,11 +100,12 @@ describe("RFC 3414 appendix A.3: password to key", () => {
   });
 
   test("SHA-1: Ku and Kul for 'maplesyrup'", () => {
-    const ku: Buffer = UsmCrypto.passwordToKu(SnmpAuthProtocol.SHA, "maplesyrup");
-
-    expect(ku.toString("hex")).toBe(
-      "9fb5cc0381497b3793528939ff788d5d79145211",
+    const ku: Buffer = UsmCrypto.passwordToKu(
+      SnmpAuthProtocol.SHA,
+      "maplesyrup",
     );
+
+    expect(ku.toString("hex")).toBe("9fb5cc0381497b3793528939ff788d5d79145211");
     expect(
       UsmCrypto.localizeKey(SnmpAuthProtocol.SHA, ku, engineId).toString("hex"),
     ).toBe("6695febc9288e36282235fc7151f128497b38f3f");
@@ -135,7 +158,12 @@ describe("keys are net-snmp's, for every protocol and engine", () => {
   });
 
   test("passphrases whose length does not divide a megabyte repeat across chunks unbroken", () => {
-    for (const passphrase of ["seven77", "ninechars", "x".repeat(1000), "a".repeat(65537)]) {
+    for (const passphrase of [
+      "seven77",
+      "ninechars",
+      "x".repeat(1000),
+      "a".repeat(65537),
+    ]) {
       expect(
         UsmCrypto.localizeKey(
           SnmpAuthProtocol.MD5,
@@ -316,12 +344,15 @@ describe("privacy", () => {
   for (const [authProtocol, netSnmpAuth] of AUTH_PROTOCOLS) {
     for (const [privProtocol, netSnmpPriv] of PRIV_PROTOCOLS) {
       describe(`${authProtocol} / ${privProtocol}`, () => {
-        const engine: { engineID: Buffer; engineBoots: number; engineTime: number } =
-          {
-            engineID: ENGINE_IDS[1]!,
-            engineBoots: 7,
-            engineTime: 123456,
-          };
+        const engine: {
+          engineID: Buffer;
+          engineBoots: number;
+          engineTime: number;
+        } = {
+          engineID: ENGINE_IDS[1]!,
+          engineBoots: 7,
+          engineTime: 123456,
+        };
         const privPassphrase: string = `privacy for ${authProtocol}`;
         const privacyKey: UsmPrivacyKey = UsmCrypto.localizePrivacyKey({
           authProtocol: authProtocol,
@@ -334,7 +365,7 @@ describe("privacy", () => {
           const encrypted: {
             encryptedPdu: Buffer;
             msgPrivacyParameters: Buffer;
-          } = snmp.Encryption.algorithms[netSnmpPriv].encryptPdu(
+          } = getNetSnmpPrivacyAlgorithm(netSnmpPriv).encryptPdu(
             SCOPED_PDU,
             netSnmpPriv,
             privPassphrase,
@@ -366,9 +397,9 @@ describe("privacy", () => {
               scopedPdu: SCOPED_PDU,
             });
 
-          const decrypted: Buffer = snmp.Encryption.algorithms[
-            netSnmpPriv
-          ].decryptPdu(
+          const decrypted: Buffer = getNetSnmpPrivacyAlgorithm(
+            netSnmpPriv,
+          ).decryptPdu(
             encrypted.encrypted,
             netSnmpPriv,
             encrypted.privParameters,

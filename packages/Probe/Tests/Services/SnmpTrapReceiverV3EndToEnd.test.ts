@@ -19,13 +19,7 @@ import {
   SnmpTrapReceiverReport,
   SnmpTrapReceiverUser,
 } from "Common/Types/Probe/SnmpTrapReceiver";
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import dgram from "dgram";
 import snmp from "net-snmp";
 
@@ -235,11 +229,11 @@ afterEach(async () => {
 });
 
 function refusalOf(userName: string): SnmpTrapRefusal | undefined {
-  return harness!.listener.getReport().refusals.find(
-    (refusal: SnmpTrapRefusal) => {
+  return harness!.listener
+    .getReport()
+    .refusals.find((refusal: SnmpTrapRefusal) => {
       return refusal.userName === userName;
-    },
-  );
+    });
 }
 
 describe("every protocol OneUptime's credentials name", () => {
@@ -336,7 +330,7 @@ describe("an inform is forwarded once, however often it is acknowledged", () => 
     socket.on("message", (reply: Buffer) => {
       replies.push(reply);
     });
-    await new Promise((resolve: () => void) => {
+    await new Promise<void>((resolve: () => void) => {
       socket.bind(0, "127.0.0.1", resolve);
     });
 
@@ -363,7 +357,9 @@ describe("refused, counted, never forwarded", () => {
     const sha512: SnmpTrapReceiverUser = PROTOCOL_MATRIX[11]!;
 
     await sendTrap(session(senderUser(sha, { authKey: "a wrong passphrase" })));
-    await sendTrap(session(senderUser(sha512, { privKey: "a wrong privacy one" })));
+    await sendTrap(
+      session(senderUser(sha512, { privKey: "a wrong privacy one" })),
+    );
     await sendTrap(
       session(senderUser({ ...sha, userName: "san-monitor-typo" })),
     );
@@ -388,9 +384,11 @@ describe("refused, counted, never forwarded", () => {
     }
 
     expect(
-      (byUser.get("sha-aes") || []).map((refusal: SnmpTrapRefusal) => {
-        return refusal.reason;
-      }).sort(),
+      (byUser.get("sha-aes") || [])
+        .map((refusal: SnmpTrapRefusal) => {
+          return refusal.reason;
+        })
+        .sort(),
     ).toEqual(
       [
         SnmpTrapRefusalReason.UnsupportedSecurityLevel,
@@ -412,7 +410,9 @@ describe("refused, counted, never forwarded", () => {
 
     await expect(
       sendInform(
-        session(senderUser(PROTOCOL_MATRIX[4]!, { authKey: "a wrong passphrase" })),
+        session(
+          senderUser(PROTOCOL_MATRIX[4]!, { authKey: "a wrong passphrase" }),
+        ),
       ),
     ).rejects.toThrow(/Wrong Digest|incorrect password/i);
 

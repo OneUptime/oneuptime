@@ -125,7 +125,9 @@ const DeviceSnmpTrapRefusals: FunctionComponent<ComponentProps> = (
       }}
       title={
         <div className="space-y-3">
-          <p>{translator.translateText(DEVICE_SNMP_TRAP_REFUSALS_DESCRIPTION)}</p>
+          <p>
+            {translator.translateText(DEVICE_SNMP_TRAP_REFUSALS_DESCRIPTION)}
+          </p>
           <SnmpTrapRefusalList
             refusals={refusals}
             dataTestId="device-snmp-trap-refusal-list"

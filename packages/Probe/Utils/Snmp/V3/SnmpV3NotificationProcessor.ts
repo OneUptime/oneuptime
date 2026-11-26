@@ -697,7 +697,9 @@ export default class SnmpV3NotificationProcessor {
         ? SnmpV3NotificationProcessor.signWith(signer)
         : undefined,
       encrypt: privacyKey
-        ? (plaintext: Buffer): { encrypted: Buffer; privParameters: Buffer } => {
+        ? (
+            plaintext: Buffer,
+          ): { encrypted: Buffer; privParameters: Buffer } => {
             return UsmCrypto.encrypt({
               privacyKey: privacyKey,
               engineBoots: SNMP_ENGINE_BOOTS,

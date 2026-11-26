@@ -6,10 +6,7 @@ import {
 } from "./SnmpTrapReceiverCopy";
 import OneUptimeDate from "Common/Types/Date";
 import { SnmpTrapRefusal } from "Common/Types/Probe/SnmpTrapReceiver";
-import {
-  Translator,
-  composedValue,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 

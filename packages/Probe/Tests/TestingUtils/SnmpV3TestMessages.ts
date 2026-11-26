@@ -146,8 +146,7 @@ export function buildTestV3Message(data: {
     flags: {
       isAuthenticated: isAuthenticated,
       isEncrypted: isEncrypted,
-      isReportable:
-        data.isReportable ?? pduType === BerTag.InformRequestPdu,
+      isReportable: data.isReportable ?? pduType === BerTag.InformRequestPdu,
     },
     engineId: data.engineId,
     engineBoots: engineBoots,

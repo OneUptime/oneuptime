@@ -125,8 +125,10 @@ export default class SnmpTrapReceiverUsers {
         SnmpTrapReceiverUsers.getDeviceAddresses(device);
 
       for (const carrier of carriersByDeviceId.get(deviceId) || []) {
-        const user: SnmpTrapReceiverUser | null =
-          SnmpTrapReceiverUsers.toUser(carrier, deviceId);
+        const user: SnmpTrapReceiverUser | null = SnmpTrapReceiverUsers.toUser(
+          carrier,
+          deviceId,
+        );
 
         if (!user) {
           continue;

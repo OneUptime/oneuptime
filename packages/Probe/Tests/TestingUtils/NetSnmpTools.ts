@@ -52,7 +52,9 @@ function prefixFor(): Array<string> | null {
     return [];
   }
 
-  const image: string = (process.env["NET_SNMP_TOOLS_DOCKER_IMAGE"] || "").trim();
+  const image: string = (
+    process.env["NET_SNMP_TOOLS_DOCKER_IMAGE"] || ""
+  ).trim();
 
   if (image && hasCommand("docker")) {
     return ["docker", "run", "--rm", "--network", "host", image];

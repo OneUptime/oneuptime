@@ -50,6 +50,10 @@ export interface ResolvedSnmpEngineId {
   configuredValueIsInvalid?: boolean | undefined;
 }
 
+// RFC 3411 reserves these two engine IDs.
+const ALL_ZERO_OCTETS: RegExp = /^(00)+$/;
+const ALL_ONE_OCTETS: RegExp = /^(FF)+$/;
+
 export default class SnmpEngine {
   public static deriveEngineId(probeId: string): Buffer {
     const digest: Buffer = crypto
@@ -128,6 +132,6 @@ export default class SnmpEngine {
    * neither can be configured.
    */
   private static isUsableEngineId(hex: string): boolean {
-    return !/^(00)+$/.test(hex) && !/^(FF)+$/.test(hex);
+    return !ALL_ZERO_OCTETS.test(hex) && !ALL_ONE_OCTETS.test(hex);
   }
 }

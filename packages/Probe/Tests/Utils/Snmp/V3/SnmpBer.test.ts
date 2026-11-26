@@ -58,7 +58,9 @@ describe("lengths", () => {
     }).toThrow(BerError);
 
     expect(() => {
-      new BerReader(Buffer.from([0x04, 0x84, 0xff, 0xff, 0xff, 0xff])).readOctetString();
+      new BerReader(
+        Buffer.from([0x04, 0x84, 0xff, 0xff, 0xff, 0xff]),
+      ).readOctetString();
     }).toThrow(BerError);
   });
 
@@ -122,9 +124,7 @@ describe("INTEGER", () => {
     expect(encodeInteger(0)).toEqual(Buffer.from([0x02, 0x01, 0x00]));
     expect(encodeInteger(128)).toEqual(Buffer.from([0x02, 0x02, 0x00, 0x80]));
     expect(encodeInteger(-1)).toEqual(Buffer.from([0x02, 0x01, 0xff]));
-    expect(encodeInteger(-129)).toEqual(
-      Buffer.from([0x02, 0x02, 0xff, 0x7f]),
-    );
+    expect(encodeInteger(-129)).toEqual(Buffer.from([0x02, 0x02, 0xff, 0x7f]));
   });
 
   test("outside SNMP's range, or not whole, is refused when writing", () => {
@@ -240,10 +240,14 @@ describe("NULL, OCTET STRING and constructed values", () => {
 
   test("an OCTET STRING of text or octets", () => {
     expect(
-      new BerReader(encodeOctetString("san-monitor")).readOctetString().toString(),
+      new BerReader(encodeOctetString("san-monitor"))
+        .readOctetString()
+        .toString(),
     ).toBe("san-monitor");
     expect(
-      new BerReader(encodeOctetString(Buffer.from([0, 1, 2]))).readOctetString(),
+      new BerReader(
+        encodeOctetString(Buffer.from([0, 1, 2])),
+      ).readOctetString(),
     ).toEqual(Buffer.from([0, 1, 2]));
   });
 

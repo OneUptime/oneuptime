@@ -83,7 +83,11 @@ describe("replace", () => {
       SAN,
       { ...SAN, userName: "no-key", authKey: undefined },
       { ...SAN, userName: "x".repeat(33) },
-      { ...SAN, userName: "bad-level", securityLevel: "everything" as SnmpSecurityLevel },
+      {
+        ...SAN,
+        userName: "bad-level",
+        securityLevel: "everything" as SnmpSecurityLevel,
+      },
     ]);
 
     expect(table.getUserCount()).toBe(1);
@@ -257,13 +261,23 @@ describe("keys", () => {
       UsmCrypto,
       "passwordToKu",
     );
-    table.getLocalizedKeys(table.getCandidates(name("user-3"), "x")[0]!, ENGINE);
+    table.getLocalizedKeys(
+      table.getCandidates(name("user-3"), "x")[0]!,
+      ENGINE,
+    );
     expect(passwordToKu).not.toHaveBeenCalled();
   });
 
   test("keys localized to engines are kept for the most recent pairs only", () => {
     const table: SnmpV3UserTable = new SnmpV3UserTable();
-    table.replace([{ ...SAN, securityLevel: SnmpSecurityLevel.AuthNoPriv, privKey: undefined, privProtocol: undefined }]);
+    table.replace([
+      {
+        ...SAN,
+        securityLevel: SnmpSecurityLevel.AuthNoPriv,
+        privKey: undefined,
+        privProtocol: undefined,
+      },
+    ]);
     const user: UsmUser = table.getCandidates(name("san-monitor"), "x")[0]!;
     const localizeKey: ReturnType<typeof jest.spyOn> = jest.spyOn(
       UsmCrypto,

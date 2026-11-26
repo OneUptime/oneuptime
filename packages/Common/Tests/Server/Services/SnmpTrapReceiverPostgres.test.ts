@@ -119,8 +119,7 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["SNMP_TRAP_RECEIVER_TEST_DATABASE_HOST"] || "localhost",
+      host: process.env["SNMP_TRAP_RECEIVER_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["SNMP_TRAP_RECEIVER_TEST_DATABASE_PORT"] || "5400",
       ),
@@ -265,7 +264,10 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
     jest.restoreAllMocks();
   });
 
-  async function idsOn(probe: ObjectID, limit: number = 100): Promise<Array<string>> {
+  async function idsOn(
+    probe: ObjectID,
+    limit: number = 100,
+  ): Promise<Array<string>> {
     return (
       await NetworkDeviceService.findDeviceIdsWithSnmpV3OnProbe({
         probeId: probe,
@@ -280,7 +282,10 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
 
   describe("which devices' users a probe is handed", () => {
     test("an SNMPv3 credential on any layer: the device's, its profile's, its site's", async () => {
-      const own: ObjectID = await addDevice({ snmpVersion: "V3", snmpV3Username: "own" });
+      const own: ObjectID = await addDevice({
+        snmpVersion: "V3",
+        snmpV3Username: "own",
+      });
       const viaProfile: ObjectID = await addDevice({
         snmpVersion: "V2c",
         snmpCredentialProfileId: V3_PROFILE.toString(),

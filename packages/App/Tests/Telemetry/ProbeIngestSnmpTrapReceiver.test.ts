@@ -96,11 +96,12 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
  * probe's report.
  */
 
-import "../../FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver";
 import { INVALID_REPORT_MESSAGE } from "../../FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver";
 
-const recordReport: jest.Mock = ProbeService.recordSnmpTrapReceiverReport as unknown as jest.Mock;
-const getUsers: jest.Mock = SnmpTrapReceiverUsers.getUsersForProbe as unknown as jest.Mock;
+const recordReport: jest.Mock =
+  ProbeService.recordSnmpTrapReceiverReport as unknown as jest.Mock;
+const getUsers: jest.Mock =
+  SnmpTrapReceiverUsers.getUsersForProbe as unknown as jest.Mock;
 const responseUtil: {
   sendErrorResponse: jest.Mock;
   sendJsonObjectResponse: jest.Mock;
@@ -193,7 +194,10 @@ afterEach(() => {
 });
 
 test("is held to the probe's own key", () => {
-  const route: { middlewares: Array<RouteStep> } = mockRouter.match("post", URI);
+  const route: { middlewares: Array<RouteStep> } = mockRouter.match(
+    "post",
+    URI,
+  );
 
   expect(route.middlewares).toContain(
     ProbeAuthorization.isAuthorizedServiceMiddleware,
@@ -259,7 +263,9 @@ describe("a report", () => {
 
   test("a receiver that is off is handed no users, and none are read", async () => {
     await call(
-      request({ body: { snmpTrapReceiver: { isEnabled: false, refusals: [] } } }),
+      request({
+        body: { snmpTrapReceiver: { isEnabled: false, refusals: [] } },
+      }),
     );
 
     expect(getUsers).not.toHaveBeenCalled();
@@ -269,7 +275,11 @@ describe("a report", () => {
 
 describe("refused", () => {
   test("a body with no report", async () => {
-    for (const body of [{}, { snmpTrapReceiver: "on" }, { snmpTrapReceiver: { port: 162 } }]) {
+    for (const body of [
+      {},
+      { snmpTrapReceiver: "on" },
+      { snmpTrapReceiver: { port: 162 } },
+    ]) {
       jest.clearAllMocks();
 
       await call(request({ body: body }));
@@ -286,16 +296,18 @@ describe("refused", () => {
   test("a request with no probe", async () => {
     await call(request({ probeId: null, body: { snmpTrapReceiver: REPORT } }));
 
-    expect((responseUtil.sendErrorResponse.mock.calls[0]![2] as Error).message).toBe(
-      "Probe not found",
-    );
+    expect(
+      (responseUtil.sendErrorResponse.mock.calls[0]![2] as Error).message,
+    ).toBe("Probe not found");
     expect(recordReport).not.toHaveBeenCalled();
   });
 
   test("users that cannot be read fail the request, so the probe keeps the ones it has", async () => {
     getUsers.mockRejectedValue(new Error("database unavailable") as never);
 
-    const { next } = await call(request({ body: { snmpTrapReceiver: REPORT } }));
+    const { next } = await call(
+      request({ body: { snmpTrapReceiver: REPORT } }),
+    );
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();

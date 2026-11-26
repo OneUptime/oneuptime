@@ -163,9 +163,11 @@ describe("parseScopedPdu", () => {
     expect(scoped.pduType).toBe(BerTag.TrapV2Pdu);
     expect(scoped.requestId).toBe(-5);
     expect(scoped.varbindList.equals(varbindList)).toBe(true);
-    expect(scoped.varbinds.map((varbind: { oid: string }) => {
-      return varbind.oid;
-    })).toEqual([
+    expect(
+      scoped.varbinds.map((varbind: { oid: string }) => {
+        return varbind.oid;
+      }),
+    ).toEqual([
       "1.3.6.1.2.1.1.3.0",
       "1.3.6.1.6.3.1.1.4.1.0",
       "1.3.6.1.2.1.2.2.1.1.9",
@@ -220,9 +222,8 @@ describe("buildV3Message", () => {
         macLength: 12,
         computeMac: (messageWithZeroedMac: Buffer): Buffer => {
           // The digest is computed over the message with its own octets zeroed.
-          const parsed: ParsedSnmpV3Message = parseV3Message(
-            messageWithZeroedMac,
-          );
+          const parsed: ParsedSnmpV3Message =
+            parseV3Message(messageWithZeroedMac);
           expect(parsed.authParameters.equals(Buffer.alloc(12))).toBe(true);
           return Buffer.from("0102030405060708090a0b0c", "hex");
         },
@@ -252,7 +253,11 @@ describe("buildV3Message", () => {
     expect(() => {
       buildV3Message({
         ...base,
-        flags: { isAuthenticated: true, isEncrypted: false, isReportable: false },
+        flags: {
+          isAuthenticated: true,
+          isEncrypted: false,
+          isReportable: false,
+        },
       });
     }).toThrow();
   });
@@ -267,7 +272,11 @@ describe("buildV3Message", () => {
     const written: Buffer = buildV3Message({
       msgId: 1,
       msgMaxSize: 65507,
-      flags: { isAuthenticated: false, isEncrypted: false, isReportable: false },
+      flags: {
+        isAuthenticated: false,
+        isEncrypted: false,
+        isReportable: false,
+      },
       engineId: ENGINE,
       engineBoots: 1,
       engineTime: 99,

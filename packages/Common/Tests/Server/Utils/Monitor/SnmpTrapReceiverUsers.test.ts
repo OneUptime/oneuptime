@@ -57,7 +57,8 @@ function profile(
   id: ObjectID,
   fields: Record<string, unknown>,
 ): NetworkSnmpCredentialProfile {
-  const model: NetworkSnmpCredentialProfile = new NetworkSnmpCredentialProfile();
+  const model: NetworkSnmpCredentialProfile =
+    new NetworkSnmpCredentialProfile();
   model._id = id.toString();
   model.projectId = PROJECT;
   Object.assign(model, fields);
@@ -121,9 +122,9 @@ afterEach(() => {
 
 describe("toUser: one credential, read as the poller reads it", () => {
   test("an authPriv credential", () => {
-    expect(
-      SnmpTrapReceiverUsers.toUser(device(V3_COLUMNS), "d"),
-    ).toEqual(SAN_MONITOR);
+    expect(SnmpTrapReceiverUsers.toUser(device(V3_COLUMNS), "d")).toEqual(
+      SAN_MONITOR,
+    );
   });
 
   test("spellings the forms and the API write are read the parse() way", () => {
@@ -371,8 +372,16 @@ describe("getUsersForProbe", () => {
     mockLookups({
       devices: [
         device({ ...V3_COLUMNS, hostname: "10.20.0.70" }),
-        device({ ...V3_COLUMNS, hostname: "10.20.0.71", otherAddresses: "10.99.0.71" }),
-        device({ ...V3_COLUMNS, hostname: "10.20.0.72", snmpV3PrivKey: "another" }),
+        device({
+          ...V3_COLUMNS,
+          hostname: "10.20.0.71",
+          otherAddresses: "10.99.0.71",
+        }),
+        device({
+          ...V3_COLUMNS,
+          hostname: "10.20.0.72",
+          snmpV3PrivKey: "another",
+        }),
       ],
     });
 
@@ -390,15 +399,17 @@ describe("getUsersForProbe", () => {
 
   test("a failed profile lookup fails the answer: the probe keeps the users it has", async () => {
     mockLookups({
-      devices: [device({ ...V3_COLUMNS, snmpCredentialProfileId: DEVICE_PROFILE })],
+      devices: [
+        device({ ...V3_COLUMNS, snmpCredentialProfileId: DEVICE_PROFILE }),
+      ],
     });
     jest
       .spyOn(NetworkSnmpCredentialProfileService, "findBy")
       .mockRejectedValue(new Error("connection reset"));
 
-    await expect(
-      SnmpTrapReceiverUsers.getUsersForProbe(PROBE),
-    ).rejects.toThrow("connection reset");
+    await expect(SnmpTrapReceiverUsers.getUsersForProbe(PROBE)).rejects.toThrow(
+      "connection reset",
+    );
   });
 
   test("devices are read in chunks, with the credential columns and their addresses", async () => {
@@ -426,9 +437,11 @@ describe("getUsersForProbe", () => {
 });
 
 test("resolveSnmpV3Carriers leaves out v2c rows and rows with no user name", async () => {
-  jest.spyOn(NetworkSnmpCredentialProfileService, "findBy").mockResolvedValue([
-    profile(DEVICE_PROFILE, { snmpVersion: "V2c", snmpCommunityString: "x" }),
-  ]);
+  jest
+    .spyOn(NetworkSnmpCredentialProfileService, "findBy")
+    .mockResolvedValue([
+      profile(DEVICE_PROFILE, { snmpVersion: "V2c", snmpCommunityString: "x" }),
+    ]);
   jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([]);
 
   const v3WithoutName: NetworkDevice = device({
@@ -437,8 +450,10 @@ test("resolveSnmpV3Carriers leaves out v2c rows and rows with no user name", asy
     snmpCredentialProfileId: DEVICE_PROFILE,
   });
 
-  const carriers: Map<string, Array<SnmpConnectionCredentials>> =
-    await NetworkDeviceHydrationUtil.resolveSnmpV3Carriers([v3WithoutName]);
+  const carriers: Map<
+    string,
+    Array<SnmpConnectionCredentials>
+  > = await NetworkDeviceHydrationUtil.resolveSnmpV3Carriers([v3WithoutName]);
 
   expect(carriers.get(v3WithoutName.id!.toString())).toEqual([]);
 });

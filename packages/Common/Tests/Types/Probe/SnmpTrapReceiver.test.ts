@@ -44,9 +44,9 @@ describe("normalizeEngineId", () => {
     expect(SnmpTrapReceiverUtil.normalizeEngineId(" 0x80:00:1F:88:80 ")).toBe(
       "80001F8880",
     );
-    expect(
-      SnmpTrapReceiverUtil.normalizeEngineId("80 00 1f 88 80-c7.11"),
-    ).toBe("80001F8880C711");
+    expect(SnmpTrapReceiverUtil.normalizeEngineId("80 00 1f 88 80-c7.11")).toBe(
+      "80001F8880C711",
+    );
     expect(SnmpTrapReceiverUtil.normalizeEngineId("AB".repeat(32))).toBe(
       "AB".repeat(32),
     );
@@ -152,9 +152,12 @@ describe("sanitizeReport", () => {
     const report: SnmpTrapReceiverReport | null =
       SnmpTrapReceiverUtil.sanitizeReport({
         isEnabled: true,
-        refusals: Array.from({ length: MAX_REPORTED_SNMP_TRAP_REFUSALS + 20 }, () => {
-          return REFUSAL;
-        }),
+        refusals: Array.from(
+          { length: MAX_REPORTED_SNMP_TRAP_REFUSALS + 20 },
+          () => {
+            return REFUSAL;
+          },
+        ),
       });
 
     expect(report!.refusals).toHaveLength(MAX_REPORTED_SNMP_TRAP_REFUSALS);
@@ -240,10 +243,16 @@ describe("sanitizeUser", () => {
       SnmpTrapReceiverUtil.sanitizeUser({ ...AUTH_PRIV, privKey: "" }),
     ).toBeNull();
     expect(
-      SnmpTrapReceiverUtil.sanitizeUser({ ...AUTH_PRIV, authProtocol: "SHA-3" }),
+      SnmpTrapReceiverUtil.sanitizeUser({
+        ...AUTH_PRIV,
+        authProtocol: "SHA-3",
+      }),
     ).toBeNull();
     expect(
-      SnmpTrapReceiverUtil.sanitizeUser({ ...AUTH_PRIV, privProtocol: undefined }),
+      SnmpTrapReceiverUtil.sanitizeUser({
+        ...AUTH_PRIV,
+        privProtocol: undefined,
+      }),
     ).toBeNull();
   });
 
@@ -300,7 +309,12 @@ describe("sanitizeUser", () => {
 
   test("sanitizeUsers keeps the users and leaves out the rest", () => {
     expect(
-      SnmpTrapReceiverUtil.sanitizeUsers([AUTH_PRIV, null, "x", { userName: "" }]),
+      SnmpTrapReceiverUtil.sanitizeUsers([
+        AUTH_PRIV,
+        null,
+        "x",
+        { userName: "" },
+      ]),
     ).toEqual([AUTH_PRIV]);
     expect(SnmpTrapReceiverUtil.sanitizeUsers("users")).toEqual([]);
   });

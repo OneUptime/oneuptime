@@ -90,7 +90,11 @@ describe("refusals", () => {
   test("are listed most recent first, at most MAX_REPORTED_SNMP_TRAP_REFUSALS", () => {
     const refusals: SnmpTrapRefusals = new SnmpTrapRefusals();
 
-    for (let index: number = 0; index < MAX_REPORTED_SNMP_TRAP_REFUSALS + 5; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_REPORTED_SNMP_TRAP_REFUSALS + 5;
+      index++
+    ) {
       refusals.record({
         sourceAddress: `10.0.${Math.floor(index / 250)}.${(index % 250) + 1}`,
         reason: SnmpTrapRefusalReason.UnknownUser,
@@ -157,7 +161,10 @@ describe("refusals", () => {
         return `${refusal.sourceAddress} ${refusal.userName}`;
       }),
     ).toEqual(
-      expect.arrayContaining(["10.20.0.5 someone-else", "10.20.0.6 san-monitor"]),
+      expect.arrayContaining([
+        "10.20.0.5 someone-else",
+        "10.20.0.6 san-monitor",
+      ]),
     );
     expect(refusals.list(T0)).toHaveLength(2);
   });
@@ -196,7 +203,10 @@ describe("recent informs", () => {
     expect(informs.isFirstSeen(inform)).toBe(true);
     expect(informs.isFirstSeen({ ...inform, nowMs: T0 + 5000 })).toBe(false);
     expect(
-      informs.isFirstSeen({ ...inform, nowMs: T0 + INFORM_RETRY_WINDOW_MS + 1 }),
+      informs.isFirstSeen({
+        ...inform,
+        nowMs: T0 + INFORM_RETRY_WINDOW_MS + 1,
+      }),
     ).toBe(true);
   });
 
@@ -219,7 +229,12 @@ describe("recent informs", () => {
     const informs: RecentInforms = new RecentInforms();
 
     for (let index: number = 0; index < MAX_INFORMS + 10; index++) {
-      informs.isFirstSeen({ sender: "a", requestId: index, varbinds: "", nowMs: T0 });
+      informs.isFirstSeen({
+        sender: "a",
+        requestId: index,
+        varbinds: "",
+        nowMs: T0,
+      });
     }
 
     expect(informs.size()).toBe(MAX_INFORMS);

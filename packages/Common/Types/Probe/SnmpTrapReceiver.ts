@@ -158,6 +158,7 @@ const MAX_SNMP_KEY_LENGTH: number = 1024;
 
 const ENGINE_ID_HEX: RegExp = /^[0-9A-F]+$/;
 const LISTEN_ERROR: RegExp = /^E[A-Z]{2,30}$/;
+const HEX_PREFIX: RegExp = /^0x/i;
 
 export default class SnmpTrapReceiverUtil {
   /*
@@ -174,7 +175,7 @@ export default class SnmpTrapReceiverUtil {
 
     let hex: string = value.trim().replace(/[\s:.-]/g, "");
 
-    if (/^0x/i.test(hex)) {
+    if (HEX_PREFIX.test(hex)) {
       hex = hex.substring(2);
     }
 

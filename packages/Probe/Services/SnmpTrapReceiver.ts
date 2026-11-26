@@ -331,11 +331,9 @@ export class SnmpTrapListener {
             return;
           }
 
-          this.handleCommunityNotification(notification).catch(
-            (err: Error) => {
-              logger.error(`SNMP trap forward failed: ${err}`);
-            },
-          );
+          this.handleCommunityNotification(notification).catch((err: Error) => {
+            logger.error(`SNMP trap forward failed: ${err}`);
+          });
         },
       ) as unknown as { close: () => void };
 
@@ -356,7 +354,9 @@ export class SnmpTrapListener {
         return;
       }
 
-      logger.error(`Could not start SNMP trap receiver on port ${port}: ${err}`);
+      logger.error(
+        `Could not start SNMP trap receiver on port ${port}: ${err}`,
+      );
     }
   }
 

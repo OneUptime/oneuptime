@@ -403,8 +403,10 @@ export default class NetworkDeviceHydrationUtil {
         }),
       );
 
-    const carriersByDeviceId: Map<string, Array<SnmpConnectionCredentials>> =
-      new Map();
+    const carriersByDeviceId: Map<
+      string,
+      Array<SnmpConnectionCredentials>
+    > = new Map();
 
     for (const device of devices) {
       if (!device.id) {

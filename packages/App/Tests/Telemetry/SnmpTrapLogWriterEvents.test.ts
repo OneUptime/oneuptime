@@ -498,8 +498,6 @@ describe("who sent it, and how", () => {
   });
 
   test("a v2c trap's row gains nothing", () => {
-    expect(SnmpTrapLogWriter.getSenderAttributes(trap(COLD_START))).toEqual(
-      {},
-    );
+    expect(SnmpTrapLogWriter.getSenderAttributes(trap(COLD_START))).toEqual({});
   });
 });

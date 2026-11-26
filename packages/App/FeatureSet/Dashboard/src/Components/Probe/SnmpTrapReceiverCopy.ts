@@ -39,7 +39,8 @@ export const SNMP_TRAPS_FACT_LABELS: {
   lastReceived: translationKey("Last Trap"),
 };
 
-export const SNMP_TRAPS_LISTENS_ON: string = translationKey("UDP port {{port}}");
+export const SNMP_TRAPS_LISTENS_ON: string =
+  translationKey("UDP port {{port}}");
 
 export const SNMP_TRAPS_ENGINE_ID_HINT: string = translationKey(
   "A device that sends SNMPv3 informs authenticates them with this engine ID. Most find it by themselves; on Cisco IOS, enter it with snmp-server engineID remote, followed by the probe's address and this ID.",
@@ -154,5 +155,4 @@ export const DEVICE_SNMP_TRAP_EDIT_CREDENTIALS: string = translationKey(
   "Edit SNMP Credentials",
 );
 
-export const DEVICE_SNMP_TRAP_VIEW_PROBE: string =
-  translationKey("View Probe");
+export const DEVICE_SNMP_TRAP_VIEW_PROBE: string = translationKey("View Probe");

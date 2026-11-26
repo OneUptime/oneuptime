@@ -410,13 +410,15 @@ export function encodeNull(): Buffer {
   return Buffer.from([BerTag.Null, 0x00]);
 }
 
+const DECIMAL_SUBIDENTIFIER: RegExp = /^\d+$/;
+
 export function encodeOid(oid: string): Buffer {
   const parts: Array<number> = oid
     .trim()
     .replace(/^\./, "")
     .split(".")
     .map((part: string): number => {
-      if (!/^\d+$/.test(part)) {
+      if (!DECIMAL_SUBIDENTIFIER.test(part)) {
         throw new BerError(`"${oid}" is not an OBJECT IDENTIFIER`);
       }
 

@@ -52,7 +52,9 @@ import {
 jest.setTimeout(180000);
 
 const tools: NetSnmpTools | null = findNetSnmpTools();
-const describeWithTools: typeof describe = tools ? describe : describe.skip;
+const describeWithTools: typeof describe.skip = tools
+  ? describe
+  : describe.skip;
 
 const LINK_DOWN: string = "1.3.6.1.6.3.1.1.5.3";
 const LINK_UP: string = "1.3.6.1.6.3.1.1.5.4";
@@ -232,7 +234,19 @@ describeWithTools("SNMPv3 traps and informs from Net-SNMP's tools", () => {
   ): Promise<NetSnmpToolResult> {
     return tools!.run(
       "snmpinform",
-      ["-t", "2", "-r", "1", ...args, target(), "", trapOid, IF_INDEX, "i", "7"],
+      [
+        "-t",
+        "2",
+        "-r",
+        "1",
+        ...args,
+        target(),
+        "",
+        trapOid,
+        IF_INDEX,
+        "i",
+        "7",
+      ],
       60000,
     );
   }
@@ -251,64 +265,74 @@ describeWithTools("SNMPv3 traps and informs from Net-SNMP's tools", () => {
   });
 
   describe("authPriv traps raise what a v2c trap raises", () => {
-    for (const user of [SAN_MONITOR, SHA256_AES256, SHA512_AES256]) {
-      test(`${user.authProtocol}/${user.privProtocol}`, async () => {
-        if (!supports(user)) {
-          return;
-        }
+    test.each(
+      [SAN_MONITOR, SHA256_AES256, SHA512_AES256].map(
+        (user: SnmpTrapReceiverUser): [string, SnmpTrapReceiverUser] => {
+          return [`${user.authProtocol}/${user.privProtocol}`, user];
+        },
+      ),
+    )("%s", async (_label: string, user: SnmpTrapReceiverUser) => {
+      if (!supports(user)) {
+        return;
+      }
 
-        const result: NetSnmpToolResult = await sendTrap([
-          ...v3Args(user),
-          "-e",
-          DEVICE_ENGINE_ID,
-        ]);
-        expect(result.exitCode).toBe(0);
+      const result: NetSnmpToolResult = await sendTrap([
+        ...v3Args(user),
+        "-e",
+        DEVICE_ENGINE_ID,
+      ]);
+      expect(result.exitCode).toBe(0);
 
-        await harness.waitForForwarded(1);
-        const trap: SnmpTrap = harness.forwarded[0]!;
+      await harness.waitForForwarded(1);
+      const trap: SnmpTrap = harness.forwarded[0]!;
 
-        expect(trap.trapOid).toBe(LINK_DOWN);
-        expect(trap.snmpVersion).toBe("3");
-        expect(trap.isInform).toBe(false);
-        expect(trap.securityName).toBe(user.userName);
-        expect(trap.securityLevel).toBe(SnmpSecurityLevel.AuthPriv);
-        expect(trap.sourceIpAddress).toBe("127.0.0.1");
-        expect(trap.engineId).toBe("80001F88804F6E6555707469");
-        expect(trap.varbinds).toEqual(
-          expect.arrayContaining([
-            { oid: "1.3.6.1.6.3.1.1.4.1.0", value: LINK_DOWN },
-            { oid: IF_INDEX, value: "7" },
-          ]),
-        );
-      });
-    }
+      expect(trap.trapOid).toBe(LINK_DOWN);
+      expect(trap.snmpVersion).toBe("3");
+      expect(trap.isInform).toBe(false);
+      expect(trap.securityName).toBe(user.userName);
+      expect(trap.securityLevel).toBe(SnmpSecurityLevel.AuthPriv);
+      expect(trap.sourceIpAddress).toBe("127.0.0.1");
+      expect(trap.engineId).toBe("80001F88804F6E6555707469");
+      expect(trap.varbinds).toEqual(
+        expect.arrayContaining([
+          { oid: "1.3.6.1.6.3.1.1.4.1.0", value: LINK_DOWN },
+          { oid: IF_INDEX, value: "7" },
+        ]),
+      );
+    });
   });
 
   describe("DES privacy, on OpenSSL 3", () => {
-    for (const user of [MD5_DES, SHA_DES]) {
-      test(`${user.authProtocol}/DES`, async () => {
-        const result: NetSnmpToolResult = await sendTrap([
-          ...v3Args(user),
-          "-e",
-          DEVICE_ENGINE_ID,
-        ]);
+    test.each(
+      [MD5_DES, SHA_DES].map(
+        (user: SnmpTrapReceiverUser): [string, SnmpTrapReceiverUser] => {
+          return [`${user.authProtocol}/DES`, user];
+        },
+      ),
+    )("%s", async (_label: string, user: SnmpTrapReceiverUser) => {
+      const result: NetSnmpToolResult = await sendTrap([
+        ...v3Args(user),
+        "-e",
+        DEVICE_ENGINE_ID,
+      ]);
 
-        /*
-         * A Net-SNMP built on OpenSSL 3 without its legacy provider cannot
-         * encrypt DES itself: then there is nothing to receive.
-         */
-        if (result.exitCode !== 0) {
-          expect(`${result.stderr}${result.stdout}`).toMatch(/DES|encrypt|cipher|unsupported/i);
-          return;
-        }
-
-        await harness.waitForForwarded(1);
-        expect(harness.forwarded[0]!.securityName).toBe(user.userName);
-        expect(harness.forwarded[0]!.securityLevel).toBe(
-          SnmpSecurityLevel.AuthPriv,
+      /*
+       * A Net-SNMP built on OpenSSL 3 without its legacy provider cannot
+       * encrypt DES itself: then there is nothing to receive.
+       */
+      if (result.exitCode !== 0) {
+        expect(`${result.stderr}${result.stdout}`).toMatch(
+          /DES|encrypt|cipher|unsupported/i,
         );
-      });
-    }
+        return;
+      }
+
+      await harness.waitForForwarded(1);
+      expect(harness.forwarded[0]!.securityName).toBe(user.userName);
+      expect(harness.forwarded[0]!.securityLevel).toBe(
+        SnmpSecurityLevel.AuthPriv,
+      );
+    });
   });
 
   test("an authNoPriv trap", async () => {
@@ -385,7 +409,9 @@ describeWithTools("SNMPv3 traps and informs from Net-SNMP's tools", () => {
 
   describe("v1 and v2c traps are taken as before", () => {
     test("v2c", async () => {
-      expect((await sendTrap(["-v", "2c", "-c", "any-community"])).exitCode).toBe(0);
+      expect(
+        (await sendTrap(["-v", "2c", "-c", "any-community"])).exitCode,
+      ).toBe(0);
       await harness.waitForForwarded(1);
       expect(harness.forwarded[0]!.snmpVersion).toBe("2c");
       expect(harness.forwarded[0]!.trapOid).toBe(LINK_DOWN);
@@ -439,9 +465,7 @@ describeWithTools("SNMPv3 traps and informs from Net-SNMP's tools", () => {
         userName: "fabric-sha256",
       };
 
-      await sendTrap(
-        v3Args(wrongAuth, { authKey: "not-the-passphrase" }),
-      );
+      await sendTrap(v3Args(wrongAuth, { authKey: "not-the-passphrase" }));
       await harness.settle();
 
       expect(harness.forwarded).toHaveLength(0);
@@ -463,14 +487,7 @@ describeWithTools("SNMPv3 traps and informs from Net-SNMP's tools", () => {
     });
 
     test("a trap sent without the encryption its user is configured for", async () => {
-      await sendTrap([
-        "-v",
-        "3",
-        "-u",
-        "san-monitor",
-        "-l",
-        "noAuthNoPriv",
-      ]);
+      await sendTrap(["-v", "3", "-u", "san-monitor", "-l", "noAuthNoPriv"]);
       await harness.settle();
 
       expect(harness.forwarded).toHaveLength(0);
@@ -483,15 +500,8 @@ describeWithTools("SNMPv3 traps and informs from Net-SNMP's tools", () => {
       const engine: string = "0x80001F888011223344556677";
 
       expect(
-        (
-          await sendTrap([
-            ...v3Args(AUTH_ONLY),
-            "-e",
-            engine,
-            "-Z",
-            "7,50000",
-          ])
-        ).exitCode,
+        (await sendTrap([...v3Args(AUTH_ONLY), "-e", engine, "-Z", "7,50000"]))
+          .exitCode,
       ).toBe(0);
       await harness.waitForForwarded(1);
       expect(harness.forwarded).toHaveLength(1);

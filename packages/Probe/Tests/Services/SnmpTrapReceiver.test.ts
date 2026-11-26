@@ -365,7 +365,10 @@ describe("SnmpTrapReceiver.parseNotification, with net-snmp's types", () => {
 
   it("an Opaque is hex, always", () => {
     expect(
-      typedValueOf(snmp.ObjectType.Opaque, Buffer.from("9f780441200000", "hex")),
+      typedValueOf(
+        snmp.ObjectType.Opaque,
+        Buffer.from("9f780441200000", "hex"),
+      ),
     ).toBe("9F 78 04 41 20 00 00");
   });
 

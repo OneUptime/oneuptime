@@ -106,7 +106,7 @@ export async function startSnmpTrapListenerHarness(options?: {
       const deadline: number = Date.now() + timeoutMs;
 
       while (forwarded.length < count && Date.now() < deadline) {
-        await new Promise((resolve: () => void) => {
+        await new Promise<void>((resolve: () => void) => {
           const timer: ReturnType<typeof setTimeout> = setTimeout(
             resolve,
             Math.max(1, deadline - Date.now()),

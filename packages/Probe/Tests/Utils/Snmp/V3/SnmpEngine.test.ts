@@ -123,10 +123,10 @@ describe("the engine's time", () => {
   test("is the seconds since 2020: the same across restarts and replicas", () => {
     expect(SnmpEngine.getEngineTime(SNMP_ENGINE_TIME_EPOCH_MS)).toBe(0);
     expect(SnmpEngine.getEngineTime(SNMP_ENGINE_TIME_EPOCH_MS + 1999)).toBe(1);
-    expect(
-      SnmpEngine.getEngineTime(Date.UTC(2026, 10, 24, 0, 0, 0)),
-    ).toBe(
-      Math.floor((Date.UTC(2026, 10, 24, 0, 0, 0) - SNMP_ENGINE_TIME_EPOCH_MS) / 1000),
+    expect(SnmpEngine.getEngineTime(Date.UTC(2026, 10, 24, 0, 0, 0))).toBe(
+      Math.floor(
+        (Date.UTC(2026, 10, 24, 0, 0, 0) - SNMP_ENGINE_TIME_EPOCH_MS) / 1000,
+      ),
     );
   });
 

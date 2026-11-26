@@ -126,7 +126,10 @@ const ProbeSnmpTraps: FunctionComponent<ComponentProps> = (
 
   if (!report) {
     return card(
-      <p className="text-sm text-gray-600" data-testid="probe-snmp-traps-not-reported">
+      <p
+        className="text-sm text-gray-600"
+        data-testid="probe-snmp-traps-not-reported"
+      >
         {translator.translateText(SNMP_TRAPS_NOT_REPORTED)}
       </p>,
     );

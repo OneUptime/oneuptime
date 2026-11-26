@@ -263,10 +263,11 @@ describe("when there is no answer, the receiver keeps its users", () => {
   });
 
   test("an answer after a failure is taken, and the next failure is said again", async () => {
-    let answer: () => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> =
-      () => {
-        return failed(503);
-      };
+    let answer: () => Promise<
+      HTTPResponse<JSONObject> | HTTPErrorResponse
+    > = () => {
+      return failed(503);
+    };
     const run: Harness = harness(() => {
       return answer();
     });

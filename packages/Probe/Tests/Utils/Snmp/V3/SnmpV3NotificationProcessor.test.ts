@@ -305,34 +305,44 @@ beforeEach(() => {
 });
 
 describe("traps at every security level and with every protocol", () => {
-  for (const credential of PRIV_CREDENTIALS) {
-    test(`authPriv ${credential.authProtocol}/${credential.privProtocol}`, () => {
-      const notification: SnmpV3Notification = accepted(
-        processor.process(
-          buildTestV3Message({
-            credential: credential,
-            engineId: DEVICE_ENGINE_ID,
-          }),
-          DEVICE,
-        ),
-      );
+  test.each(
+    PRIV_CREDENTIALS.map(
+      (credential: TestCredential): [string, TestCredential] => {
+        return [
+          `${credential.authProtocol}/${credential.privProtocol}`,
+          credential,
+        ];
+      },
+    ),
+  )("authPriv %s", (_label: string, credential: TestCredential) => {
+    const notification: SnmpV3Notification = accepted(
+      processor.process(
+        buildTestV3Message({
+          credential: credential,
+          engineId: DEVICE_ENGINE_ID,
+        }),
+        DEVICE,
+      ),
+    );
 
-      expect(notification.isInform).toBe(false);
-      expect(notification.userName).toBe(credential.userName);
-      expect(notification.securityLevel).toBe(SnmpSecurityLevel.AuthPriv);
-      expect(notification.senderEngineId.equals(DEVICE_ENGINE_ID)).toBe(true);
-      expect(notification.varbinds).toEqual([
-        { oid: "1.3.6.1.2.1.1.3.0", type: BerTag.TimeTicks, value: 4242 },
-        { oid: SNMP_TRAP_OID_OID, type: BerTag.Oid, value: LINK_DOWN_OID },
-        { oid: "1.3.6.1.2.1.2.2.1.1.3", type: BerTag.Integer, value: 3 },
-      ]);
-    });
-  }
+    expect(notification.isInform).toBe(false);
+    expect(notification.userName).toBe(credential.userName);
+    expect(notification.securityLevel).toBe(SnmpSecurityLevel.AuthPriv);
+    expect(notification.senderEngineId.equals(DEVICE_ENGINE_ID)).toBe(true);
+    expect(notification.varbinds).toEqual([
+      { oid: "1.3.6.1.2.1.1.3.0", type: BerTag.TimeTicks, value: 4242 },
+      { oid: SNMP_TRAP_OID_OID, type: BerTag.Oid, value: LINK_DOWN_OID },
+      { oid: "1.3.6.1.2.1.2.2.1.1.3", type: BerTag.Integer, value: 3 },
+    ]);
+  });
 
   test("authNoPriv", () => {
     const notification: SnmpV3Notification = accepted(
       processor.process(
-        buildTestV3Message({ credential: AUTH_ONLY, engineId: DEVICE_ENGINE_ID }),
+        buildTestV3Message({
+          credential: AUTH_ONLY,
+          engineId: DEVICE_ENGINE_ID,
+        }),
         DEVICE,
       ),
     );
@@ -381,7 +391,10 @@ describe("traps at every security level and with every protocol", () => {
           contextName: "vf-128",
           varbinds: [
             ...linkDownVarbinds(),
-            { oid: "1.3.6.1.4.1.1588.2.1.1.1.6.2.1.36", value: textValue("port 7 down") },
+            {
+              oid: "1.3.6.1.4.1.1588.2.1.1.1.6.2.1.36",
+              value: textValue("port 7 down"),
+            },
             {
               oid: "1.3.6.1.2.1.2.2.1.6.7",
               value: textValue(Buffer.from("001b21aabbcc", "hex")),
@@ -399,9 +412,20 @@ describe("traps at every security level and with every protocol", () => {
             },
             {
               oid: "1.3.6.1.2.1.2.2.1.10.7",
-              value: Buffer.from([BerTag.Counter32, 5, 0, 0xff, 0xff, 0xff, 0xff]),
+              value: Buffer.from([
+                BerTag.Counter32,
+                5,
+                0,
+                0xff,
+                0xff,
+                0xff,
+                0xff,
+              ]),
             },
-            { oid: "1.3.6.1.4.1.9.9.1", value: Buffer.from([BerTag.NoSuchObject, 0]) },
+            {
+              oid: "1.3.6.1.4.1.9.9.1",
+              value: Buffer.from([BerTag.NoSuchObject, 0]),
+            },
             { oid: "1.3.6.1.4.1.9.9.2", value: Buffer.from([BerTag.Null, 0]) },
           ],
         }),
@@ -421,9 +445,21 @@ describe("traps at every security level and with every protocol", () => {
         type: BerTag.OctetString,
         value: Buffer.from("001b21aabbcc", "hex"),
       },
-      { oid: "1.3.6.1.2.1.31.1.1.1.6.7", type: BerTag.Counter64, value: counter64 },
-      { oid: "1.3.6.1.2.1.4.20.1.1.10.0.0.1", type: BerTag.IpAddress, value: "10.0.0.1" },
-      { oid: "1.3.6.1.2.1.2.2.1.10.7", type: BerTag.Counter32, value: 4294967295 },
+      {
+        oid: "1.3.6.1.2.1.31.1.1.1.6.7",
+        type: BerTag.Counter64,
+        value: counter64,
+      },
+      {
+        oid: "1.3.6.1.2.1.4.20.1.1.10.0.0.1",
+        type: BerTag.IpAddress,
+        value: "10.0.0.1",
+      },
+      {
+        oid: "1.3.6.1.2.1.2.2.1.10.7",
+        type: BerTag.Counter32,
+        value: 4294967295,
+      },
       { oid: "1.3.6.1.4.1.9.9.1", type: BerTag.NoSuchObject, value: null },
       { oid: "1.3.6.1.4.1.9.9.2", type: BerTag.Null, value: null },
     ]);
@@ -431,8 +467,15 @@ describe("traps at every security level and with every protocol", () => {
 });
 
 describe("informs are acknowledged", () => {
-  for (const credential of [...PRIV_CREDENTIALS, AUTH_ONLY]) {
-    test(`${credential.userName}: a Response, signed and encrypted as the inform came, from the probe's engine`, () => {
+  test.each(
+    [...PRIV_CREDENTIALS, AUTH_ONLY].map(
+      (credential: TestCredential): [string, TestCredential] => {
+        return [credential.userName, credential];
+      },
+    ),
+  )(
+    "%s: a Response, signed and encrypted as the inform came, from the probe's engine",
+    (_label: string, credential: TestCredential) => {
       const outcome: SnmpV3Outcome = processor.process(
         buildTestV3Message({
           credential: credential,
@@ -468,8 +511,8 @@ describe("informs are acknowledged", () => {
       expect(scopedPdu.errorStatus).toBe(0);
       expect(scopedPdu.contextName.toString()).toBe("ctx");
       expect(scopedPdu.varbinds).toEqual(notification.varbinds);
-    });
-  }
+    },
+  );
 
   test("a noAuthNoPriv inform is acknowledged in the clear", () => {
     const outcome: SnmpV3Outcome = processor.process(
@@ -618,7 +661,10 @@ describe("refusals", () => {
       refusedFor(
         processor.process(
           buildTestV3Message({
-            credential: { ...SAN_MONITOR, authPassphrase: "not-the-passphrase" },
+            credential: {
+              ...SAN_MONITOR,
+              authPassphrase: "not-the-passphrase",
+            },
             engineId: DEVICE_ENGINE_ID,
           }),
           DEVICE,
@@ -661,7 +707,10 @@ describe("refusals", () => {
       refusedFor(
         processor.process(
           buildTestV3Message({
-            credential: { ...SAN_MONITOR, privPassphrase: "not-the-privacy-one" },
+            credential: {
+              ...SAN_MONITOR,
+              privPassphrase: "not-the-privacy-one",
+            },
             engineId: DEVICE_ENGINE_ID,
           }),
           DEVICE,
@@ -795,7 +844,11 @@ describe("refusals", () => {
 });
 
 describe("the time window", () => {
-  function trapAt(boots: number, time: number, engineId: Buffer = DEVICE_ENGINE_ID): SnmpV3Outcome {
+  function trapAt(
+    boots: number,
+    time: number,
+    engineId: Buffer = DEVICE_ENGINE_ID,
+  ): SnmpV3Outcome {
     return processor.process(
       buildTestV3Message({
         credential: AUTH_ONLY,
@@ -908,8 +961,12 @@ describe("the time window", () => {
     }
 
     test("150 seconds either way is in it", () => {
-      accepted(informAt(SNMP_ENGINE_BOOTS, probeTime() - SNMP_TIME_WINDOW_SECONDS));
-      accepted(informAt(SNMP_ENGINE_BOOTS, probeTime() + SNMP_TIME_WINDOW_SECONDS));
+      accepted(
+        informAt(SNMP_ENGINE_BOOTS, probeTime() - SNMP_TIME_WINDOW_SECONDS),
+      );
+      accepted(
+        informAt(SNMP_ENGINE_BOOTS, probeTime() + SNMP_TIME_WINDOW_SECONDS),
+      );
     });
 
     test("more is not, and the sender is told the probe's time in a SIGNED report it can trust", () => {
@@ -994,7 +1051,10 @@ describe("nothing in a refused message is read past its user name", () => {
       refusedFor(
         processor.process(
           buildTestV3Message({
-            credential: { ...SAN_MONITOR, authPassphrase: "not-the-passphrase" },
+            credential: {
+              ...SAN_MONITOR,
+              authPassphrase: "not-the-passphrase",
+            },
             engineId: DEVICE_ENGINE_ID,
           }),
           DEVICE,
@@ -1078,13 +1138,14 @@ describe("what is not a notification, or not an SNMPv3 message at all", () => {
     });
   });
 
-  for (const [name, pduType] of [
+  test.each([
     ["a GetRequest", BerTag.GetRequestPdu],
     ["a Response", BerTag.ResponsePdu],
     ["a Report", BerTag.ReportPdu],
     ["a SetRequest", BerTag.SetRequestPdu],
-  ] as Array<[string, number]>) {
-    test(`${name}, even signed, is not a notification`, () => {
+  ] as Array<[string, number]>)(
+    "%s, even signed, is not a notification",
+    (_name: string, pduType: number) => {
       expect(
         processor.process(
           buildTestV3Message({
@@ -1097,8 +1158,8 @@ describe("what is not a notification, or not an SNMPv3 message at all", () => {
           DEVICE,
         ),
       ).toEqual({ kind: "ignored", why: "notANotification" });
-    });
-  }
+    },
+  );
 
   test("a trap with the reportable flag a sender should not set is still a trap", () => {
     accepted(
@@ -1170,7 +1231,10 @@ describe("users replaced while it runs", () => {
     expect(
       refusedFor(
         processor.process(
-          buildTestV3Message({ credential: newcomer, engineId: DEVICE_ENGINE_ID }),
+          buildTestV3Message({
+            credential: newcomer,
+            engineId: DEVICE_ENGINE_ID,
+          }),
           DEVICE,
         ),
       ),
@@ -1180,7 +1244,10 @@ describe("users replaced while it runs", () => {
 
     accepted(
       processor.process(
-        buildTestV3Message({ credential: newcomer, engineId: DEVICE_ENGINE_ID }),
+        buildTestV3Message({
+          credential: newcomer,
+          engineId: DEVICE_ENGINE_ID,
+        }),
         DEVICE,
       ),
     );
@@ -1252,7 +1319,10 @@ describe("users replaced while it runs", () => {
     expect(
       refusedFor(
         processor.process(
-          buildTestV3Message({ credential: NO_AUTH, engineId: DEVICE_ENGINE_ID }),
+          buildTestV3Message({
+            credential: NO_AUTH,
+            engineId: DEVICE_ENGINE_ID,
+          }),
           DEVICE,
         ),
       ),

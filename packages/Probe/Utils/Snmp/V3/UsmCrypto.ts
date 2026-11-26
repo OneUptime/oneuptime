@@ -96,9 +96,7 @@ export default class UsmCrypto {
       throw new Error("An SNMPv3 passphrase cannot be empty");
     }
 
-    const hash: crypto.Hash = crypto.createHash(
-      AUTH_ALGORITHMS[protocol].hash,
-    );
+    const hash: crypto.Hash = crypto.createHash(AUTH_ALGORITHMS[protocol].hash);
 
     /*
      * Whole repetitions of the passphrase, about 64 KB of them: hashed chunk
