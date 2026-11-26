@@ -26,6 +26,7 @@
 enum StorageSystem {
   PureStorageFlashArray = "purestorage.flasharray",
   PureStorageFlashBlade = "purestorage.flashblade",
+  DellPowerScale = "dell.powerscale",
 }
 
 export default StorageSystem;

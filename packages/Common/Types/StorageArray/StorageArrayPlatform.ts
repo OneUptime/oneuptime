@@ -378,6 +378,13 @@ export interface StorageArrayAgentConfig {
   exampleEndpoint: string;
   // The exporter sidecar it needs; null for an endpoint the array serves.
   exporterService: string | null;
+  /*
+   * Whether the collector itself talks TLS to the array, so the setup asks
+   * whether to verify its certificate. Left out, that is whenever there is
+   * no exporter (the collector scrapes the array's own HTTPS endpoint);
+   * false for a platform read another way, such as over SNMP.
+   */
+  talksTlsToArray?: boolean | undefined;
   // The array kind in sentences ("FlashArray").
   arrayNoun: string;
 }
