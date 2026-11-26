@@ -314,7 +314,9 @@ const ConditionRow: FunctionComponent<{
     >
       <div className="w-full sm:w-48">
         <Dropdown
+          // The field's label, in the reader's words already (getFieldLabel).
           ariaLabel={getFieldLabel(condition.field, translator)}
+          isAriaLabelTranslated={true}
           dataTestId="cloud-cost-condition-field"
           options={fieldOptions}
           value={fieldOptions.find((option: DropdownOption): boolean => {
