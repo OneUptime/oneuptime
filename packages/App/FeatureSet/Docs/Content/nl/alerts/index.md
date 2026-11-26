@@ -97,8 +97,8 @@ Zodra een waarschuwing wordt aangemaakt, doorloopt OneUptime deze stappen, in de
 
 1. **Ze krijgt een nummer en een status.** Het waarschuwingsnummer komt van een teller per project en wordt met je voorvoegsel getoond (`ALT-42`). De waarschuwing begint in je aanmaakstatus, tenzij het formulier, de API, een workflow of AI vragen een andere koos.
 2. **Privacyregels draaien eerst**, zodat alles daarna weet of de waarschuwing privé is.
-3. **De feed en je chattools horen ervan.** Een vermelding **Waarschuwing aangemaakt** wordt in **Waarschuwingsfeed** geschreven, en de kanalen die je Slack- en Microsoft Teams-regels noemen, worden ingelicht; een regel kan een kanaal voor de waarschuwing aanmaken.
-4. **Eigenaren en labels worden toegevoegd**: die welke de criteria van de monitor of het verzoek noemen, daarna die van overeenkomende eigenaars- en labelregels.
+3. **Eigenaren en labels worden toegevoegd**: die welke de criteria van de monitor of het verzoek noemen, daarna die van overeenkomende eigenaars- en labelregels.
+4. **De feed en je chattools horen ervan.** Een vermelding **Waarschuwing aangemaakt** wordt als eerste vermelding in **Waarschuwingsfeed** geschreven, en de kanalen die je Slack- en Microsoft Teams-regels noemen, worden ingelicht; een regel kan een kanaal voor de waarschuwing aanmaken. De regels zien de eigenaren en labels waarmee de waarschuwing is aangemaakt, dus een regel die vraagt wie eigenaar is van een waarschuwing, of welke labels ze heeft, plaatst haar ook. Wat er intussen over de waarschuwing is gezegd, zoals de zojuist toegevoegde eigenaren, volgt in die kanalen op **Waarschuwing aangemaakt**.
 5. **Bereikbaarheidsregels voegen hun beleid toe**, daarna starten runbook-regels de runbooks die overeenkomen.
 6. **Bereikbaarheidsbeleid draait.** Elk beleid op de waarschuwing roept zijn mensen tegelijk op; als er één faalt, stopt dat de andere niet. Daarna meldt de eerste passende incidentregel een incident uit de waarschuwing, meteen of zodra de wachttijd om is.
 7. **Groeperingsregels plaatsen haar in een episode**, wanneer er een overeenkomt. Zie [Waarschuwingsepisoden en groeperingsregels](/docs/alerts/episodes).

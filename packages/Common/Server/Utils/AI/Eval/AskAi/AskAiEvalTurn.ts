@@ -101,6 +101,10 @@ import TeamService from "../../../../Services/TeamService";
 import ActiveMonitorLimit from "../../../Billing/ActiveMonitorLimit";
 import UserLanguage from "../../../Notification/UserLanguage";
 import ServerProducts from "../../../ServerProducts/ServerProducts";
+import {
+  answerDataSecurityFromProject,
+  readDataSecurityProject,
+} from "./AskAiEvalDataSecurity";
 import ServerSendingStatus from "../../../ServerSending/ServerSendingStatus";
 import AiContextReader from "../../AiContext/AiContextReader";
 import ChatAgentRunner from "../../Chat/ChatAgentRunner";
@@ -349,6 +353,16 @@ export function readProject(
   project: AskAiEvalProject,
   toolName: string,
 ): string {
+  // Data Security's reads, in a project that holds customer data (#10378).
+  const dataSecurity: string | null = readDataSecurityProject(
+    project,
+    toolName,
+  );
+
+  if (dataSecurity !== null) {
+    return dataSecurity;
+  }
+
   switch (toolName) {
     case "query_monitors":
       return JSON.stringify({
@@ -534,6 +548,7 @@ export default class AskAiEvalTurnRunner {
         language: data.language,
       });
       this.answerFromProject(patches, project);
+      answerDataSecurityFromProject(patches, project);
       this.answerReadsFromProject(patches, project);
 
       const props: DatabaseCommonInteractionProps = getAskingProps(project);

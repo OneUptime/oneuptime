@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "آزمایش این ارائه‌دهنده OIDC",
   "Attach": "پیوست",
   "Attached Projects": "پروژه‌های پیوست‌شده",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "پروژه‌هایی که این ارائه‌دهنده افراد را به آن‌ها وارد می‌کند، و تیم‌هایی که تازه‌واردان به آن‌ها می‌پیوندند. اگر پروژه‌ای پیوست نشده باشد، برای هر پروژه‌ای که فرد از قبل عضو آن است کار می‌کند.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "کسانی که با این ارائه‌دهنده وارد می‌شوند به این پروژه‌ها می‌پیوندند، در تیم‌هایی که برای هر کدام انتخاب شده است. اگر پروژه‌ای پیوست نشده باشد، هیچ فرد تازه‌ای نمی‌تواند وارد شود.",
   "No projects attached to this provider.": "هیچ پروژه‌ای به این ارائه‌دهنده پیوست نشده است.",
   "Select Project": "انتخاب پروژه",
   "Runs JavaScript steps and AI code fixes for every project.": "گام‌های JavaScript و اصلاح‌های کد با هوش مصنوعی را برای همه پروژه‌ها اجرا می‌کند.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "گفتگو در Microsoft Teams",
   "Chat with Support": "گفتگو با پشتیبانی",
   "Show it": "نمایشش دهید",
+  "From this server's configuration": "از پیکربندی این سرور",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "برخی از تنظیمات زیر، زمانی که هنوز چیزی اینجا ذخیره نشده بود، از پیکربندی این سرور (مقادیر Helm یا config.env) تنظیم شدند. تغییری که اینجا بدهید حفظ می‌شود: راه‌اندازی دوباره هرگز آن را برنمی‌گرداند.",
+  "Set from {{variable}} in this server's configuration.": "از {{variable}} در پیکربندی این سرور تنظیم شده است.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} در پیکربندی این سرور به کار نرفت: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "این تنظیم را نمی‌توان پنهان کرد. برای ماندن روی پیش‌فرض OneUptime، آن را خالی بگذارید.",
+  "Use \"shown\" or \"hidden\".": "از \"shown\" یا \"hidden\" استفاده کنید.",
   "Support Email": "ایمیل پشتیبانی",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "راهنما › ایمیل پشتیبانی، «تماس با پشتیبانی» در «صفحه پیدا نشد»، و نشانی‌ای که صفحهٔ خطا از افراد می‌خواهد بستهٔ پشتیبانی را به آن بفرستند.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "راهنما › ایمیل پشتیبانی، «تماس با پشتیبانی» در «صفحه پیدا نشد»، ایمیل‌های مربوط به حساب، و نشانی‌ای که صفحهٔ خطا از افراد می‌خواهد بستهٔ پشتیبانی را به آن بفرستند.",
   "Chat": "گفتگو",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "راهنما › گفتگو در Slack. پیوند خودتان به نام گفتگویی که باز می‌کند نامیده می‌شود: Slack، Microsoft Teams یا «گفتگو با پشتیبانی».",
   "Request Demo": "درخواست دمو",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "این قالب مانیتور به هیچ پروژه‌ای تعلق ندارد، پس هیچ مانیتوری را نمی‌توان به آن پیوند داد. قالب را در این پروژه دوباره بسازید.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "این قالب مانیتور نوع مانیتور ندارد، پس مانیتورهایش همگام‌سازی نمی‌شوند. قالب را با یک نوع مانیتور دوباره بسازید.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "تنظیمات همگام‌سازی قالب به نوع مانیتور قالب نیاز دارد. اول نوع مانیتور را انتخاب کنید و سپس تنظیمات همگام‌سازی را دوباره انتخاب کنید.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "قالب مانیتور نمی‌تواند «{{field}}» را همگام‌سازی کند. از میان تنظیمات همگام‌سازی قالب که قالب ارائه می‌دهد انتخاب کنید و سپس دوباره ذخیره کنید."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "قالب مانیتور نمی‌تواند «{{field}}» را همگام‌سازی کند. از میان تنظیمات همگام‌سازی قالب که قالب ارائه می‌دهد انتخاب کنید و سپس دوباره ذخیره کنید.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "هنوز هیچ فرد تازه‌ای نمی‌تواند وارد شود. در «پروژه‌های پیوست‌شده» پروژه‌ای را همراه با تیم‌هایی که به آن‌ها می‌پیوندند پیوست کنید."
 }

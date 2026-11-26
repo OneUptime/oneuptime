@@ -85,8 +85,8 @@
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
-    "helpSupport": "Справка и поддержка",
-    "legal": "Правовые вопросы",
+    "helpSupport": "Помощь и поддержка",
+    "legal": "Юридическая информация",
     "version": "Версия",
     "versionModalTitle": "Версия OneUptime",
     "versionLabel": "Версия",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Проверить этого поставщика OIDC",
   "Attach": "Прикрепить",
   "Attached Projects": "Привязанные проекты",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Проекты, в которые этот поставщик выполняет вход, и команды, в которые попадают новички. Без привязанных проектов он работает для любого проекта, в котором человек уже состоит.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Люди, входящие через этого поставщика, попадают в эти проекты, в команды, выбранные для каждого из них. Без привязанных проектов новые пользователи не могут войти.",
   "No projects attached to this provider.": "К этому поставщику не привязан ни один проект.",
   "Select Project": "Выбрать проект",
   "Runs JavaScript steps and AI code fixes for every project.": "Выполняет шаги JavaScript и исправления кода с помощью ИИ для всех проектов.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Чат в Microsoft Teams",
   "Chat with Support": "Чат с поддержкой",
   "Show it": "Показывать",
+  "From this server's configuration": "Из конфигурации этого сервера",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Некоторые настройки ниже заданы из конфигурации этого сервера (значения Helm или config.env), пока здесь ничего не было сохранено. Изменение, внесённое здесь, сохраняется: перезапуск никогда его не отменит.",
+  "Set from {{variable}} in this server's configuration.": "Задано из {{variable}} в конфигурации этого сервера.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} в конфигурации этого сервера не использовано: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Эту настройку нельзя скрыть. Оставьте её пустой, чтобы сохранить значение OneUptime по умолчанию.",
+  "Use \"shown\" or \"hidden\".": "Используйте \"shown\" или \"hidden\".",
   "Support Email": "Email поддержки",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Справка › Email поддержки, «Связаться с поддержкой» на странице «Страница не найдена» и адрес, на который экран ошибки просит отправить пакет поддержки.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Справка › Email поддержки, «Связаться с поддержкой» на странице «Страница не найдена», письма об учётной записи и адрес, на который экран ошибки просит отправить пакет поддержки.",
   "Chat": "Чат",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Справка › Чат в Slack. Собственная ссылка называется по чату, который она открывает: Slack, Microsoft Teams или «Чат с поддержкой».",
   "Request Demo": "Запросить демо",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Этот шаблон монитора не относится ни к одному проекту, поэтому к нему нельзя привязать монитор. Создайте шаблон заново в этом проекте.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "У этого шаблона монитора нет типа монитора, поэтому его мониторы нельзя синхронизировать. Создайте шаблон заново с типом монитора.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Для настроек синхронизации шаблона нужен тип монитора шаблона. Сначала выберите тип монитора, затем снова выберите настройки синхронизации.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Шаблон монитора не может синхронизировать «{{field}}». Выберите из настроек синхронизации, которые предлагает шаблон, и сохраните снова."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Шаблон монитора не может синхронизировать «{{field}}». Выберите из настроек синхронизации, которые предлагает шаблон, и сохраните снова.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Новые пользователи пока не могут войти. Привяжите проект с командами, в которые они попадут, в разделе «Привязанные проекты»."
 }

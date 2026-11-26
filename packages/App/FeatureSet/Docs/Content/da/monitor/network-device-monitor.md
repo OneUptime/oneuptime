@@ -901,7 +901,7 @@ Når du har tilføjet pakken, vælger du alvorsgrader og vagtpolitikker for hver
 
 ## SNMP-traps
 
-Polling fanger et problem ved næste polling; traps fanger det på sekunder. Hver sonde kører en SNMP-trapmodtager, der tager imod v1- og v2c-traps og -informs og videresender dem til OneUptime.
+Polling fanger et problem ved næste polling; traps fanger det på sekunder. Hver sonde kører en SNMP-trapmodtager, der tager imod v1-, v2c- og v3-traps og -informs og videresender dem til OneUptime. Den kvitterer for hver inform, så enheden holder op med at sende den igen.
 
 ```mermaid title="Fra en trap til en hændelse"
 flowchart TB
@@ -925,6 +925,7 @@ Modtageren er slået til som standard og lytter på UDP 162. Konfigurér den på
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Sæt til `false` for at slå trapmodtageren fra. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | Den UDP-port, modtageren lytter på. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Hvor mange traps den videresender pr. minut, før den smider resten væk. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | Sondens SNMPv3-engine-ID i hex (5 til 32 oktetter). Sæt den kun for at beholde engine-ID'et for en modtager, som denne sonde erstatter. | Afledt af sondens ID |
 
 Hvis sonden kører i Docker, så publicér UDP-porten, så traps kan nå den:
 
@@ -940,6 +941,42 @@ Peg derefter dine enheders trapdestination mod sonden; på Cisco IOS for eksempe
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3-traps og -informs
+
+En SNMPv3-trap er signeret, og som regel krypteret, med en brugers nøgler, så en sonde tager kun imod en fra en bruger, den kender: SNMPv3-loginoplysningerne for de enheder, der er tildelt den. Hver enheds egne SNMP-loginoplysninger, dens loginprofil og dens lokations standard tæller alle, så en enhed, der polles over v2c, kan stadig sende sine traps som lokationens SNMPv3-bruger. Der skal ikke sættes noget op på sonden:
+
+1. Giv enheden, dens loginprofil eller dens lokation den SNMPv3-bruger, som enheden sender sine traps som: brugernavn, sikkerhedsniveau og protokoller til godkendelse og privatliv med deres adgangsfraser (se [SNMP-loginoplysninger og loginprofiler](#snmp-loginoplysninger-og-loginprofiler)).
+2. Peg enhedens SNMPv3-traps mod sonden. På Cisco IOS for eksempel:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime giver hver sonde SNMPv3-brugerne for dens egne enheder hvert tredivte sekund, så ændrede loginoplysninger, en ændret profil eller en enhed, der flyttes til en anden sonde, gælder inden for et minut, mens modtageren bliver ved med at lytte. Loginoplysningerne forbliver krypteret i hvile, som ved polling, og sonden holder dem kun i hukommelsen og logger dem aldrig. Et projekts brugere når aldrig et andet projekts sonde.
+
+Modtageren tager imod de protokoller, som polling bruger: MD5, SHA-1, SHA-256 og SHA-512 til godkendelse og DES, AES-128 og AES-256 til privatliv. En trap skal komme med mindst den sikkerhed, dens bruger er sat op til: en authPriv-brugers traps afvises, hvis de kommer ugodkendte eller ukrypterede.
+
+**Traps, informs og sondens engine-ID.** En trap godkendes med enhedens eget SNMP-engine-ID, så der er intet at sætte op. En inform godkendes med sondens engine-ID, som de fleste enheder selv finder. Nogle skal have det tastet ind: På Cisco IOS skal du angive `snmp-server engineID remote <probe-ip> <engine-id>`, før du opretter brugeren. Åbn **Monitorer → Indstillinger → Sonder**, og vælg sonden: Dens kort **SNMP-traps** viser engine-ID'et, så det kan kopieres. Det er afledt af sondens ID og forbliver derfor det samme på tværs af genstarter, opgraderinger og replikaer af sonden; sæt `PROBE_SNMP_ENGINE_ID` for at vælge et andet.
+
+Informs kvitteres, både for v2c og v3. En inform, der sendes igen, fordi dens kvittering gik tabt, kvitteres igen og registreres én gang.
+
+**Tidsvinduet.** Ligesom `snmptrapd` fra Net-SNMP afviser modtageren en trap, hvis engine-boots og -tid går mere end 150 sekunder tilbage i forhold til enhedens seneste trap: en afspillet eller forsinket kopi, eller en enhed, der genstartede uden at tælle genstarten i sine engine-boots. En inform skal ligge inden for 150 sekunder af sondens egen tid.
+
+**Afviste SNMPv3-traps** sendes aldrig videre, og intet af deres indhold gemmes eller logges: kun hvor de kom fra, hvilken bruger de blev sendt som, og hvorfor. Sondens kort **SNMP-traps** viser dem fra det seneste døgn, fx “12 SNMPv3-traps fra 10.20.0.5 mislykkedes: ukendt bruger “san-monitor””, hver med det, der skal ændres. En enheds sider **Oversigt** og **Protokoller** siger det samme, når adressen er en af enhedens egne. En trap, der tages imod fra den adresse som den bruger, rydder det.
+
+| Årsag | Hvad der skal ændres |
+| --- | --- |
+| Ukendt bruger | Ingen enhed på sonden har en SNMPv3-bruger med det navn. Føj den til enhedens loginoplysninger, dens loginprofil eller dens lokations standard, eller ret navnet på enheden. |
+| Forkert adgangsfrase eller protokol til godkendelse | Gør enhedens adgangsfrase og protokol til godkendelse ens med dem, OneUptime har for brugeren. |
+| Forkert adgangsfrase eller protokol til privatliv | Gør enhedens adgangsfrase og protokol til privatliv ens med dem, OneUptime har for brugeren. |
+| Uden for tidsvinduet | Enhedens engine-ur gik baglæns. Dens traps tages imod igen, så snart den tæller en genstart i sine engine-boots. |
+| Sendt til et andet engine-ID | En inform blev sendt til et andet engine-ID end sondens. Giv enheden sondens engine-ID. |
+| Mindre sikkerhed, end brugeren er sat op til | Indstil enhedens sikkerhedsniveau for traps til det, OneUptime har for brugeren. |
+
+I trap-historikken siger en SNMPv3-trap, hvad der ankom, ved siden af dens OID og varbinds: version 3, den bruger, den blev godkendt som, om den også var krypteret, og engine-ID'et for den enhed, der sendte den.
+
 ### Sådan knyttes traps til monitorer
 
 Traps matches gennem enhedsinventaret:
@@ -948,7 +985,7 @@ Traps matches gennem enhedsinventaret:
 2. OneUptime leder efter de netværksenheder, der er tildelt den sonde, hvis værtsnavn, eller en af hvis **Andre adresser**, er trappens kilde-IP-adresse.
 3. Trappen logges i enhedens traphistorik, og hver netværksenheds-monitor på en matchende enhed vurderer den mod sine kriterier, typisk et filter **SNMP-trap modtaget (trap-OID)**.
 
-Matchning sker på adresse, ikke på loginoplysninger, så en enhed kun med ping kan stadig modtage traps: en enhed, du ikke har læseloginoplysninger til, kan stadig sende dem. Registrér enheden med den adresse, den sender traps fra, eller tilføj den adresse til dens **Andre adresser** på dens side **Indstillinger**. Generiske SNMPv1-traps (coldStart, linkDown, linkUp og så videre) omsættes til deres standard-SNMPv2-notifikations-OID'er, så linkDown matcher trap-OID `1.3.6.1.6.3.1.1.5.3` uanset SNMP-version.
+Matchning sker på adresse, ikke på loginoplysninger, så en enhed kun med ping kan stadig modtage v1- og v2c-traps: en enhed, du ikke har læseloginoplysninger til, kan stadig sende dem. En SNMPv3-trap kræver desuden den bruger, den er signeret med (se [SNMPv3-traps og -informs](#snmpv3-traps-og-informs)), og matches derefter på sin adresse på samme måde. Registrér enheden med den adresse, den sender traps fra, eller tilføj den adresse til dens **Andre adresser** på dens side **Indstillinger**. Generiske SNMPv1-traps (coldStart, linkDown, linkUp og så videre) omsættes til deres standard-SNMPv2-notifikations-OID'er, så linkDown matcher trap-OID `1.3.6.1.6.3.1.1.5.3` uanset SNMP-version.
 
 #### Eksempel: opret en hændelse ved linkDown
 
@@ -1176,6 +1213,13 @@ Når enhederne alle er der, men monitorerne ikke er: enheder og monitorer er ads
 - Publicér og tillad UDP 162 hele vejen til sonden, eller porten i `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Tjek, at enhedens værtsnavn, eller en af dens **Andre adresser**, er den adresse, den sender traps fra: det er sådan, traps matches til enheder.
 - Tjek sondens logs for bind-fejl: porten er i brug, eller der mangler rettigheder til en port under 1024.
+:::
+
+:::details SNMPv3-traps afvises
+- Åbn **Monitorer → Indstillinger → Sonder**, og vælg sonden: Dens kort **SNMP-traps** viser hver afvist kilde med årsag og det, der skal ændres.
+- SNMPv3-brugeren skal høre til en enhed, der er tildelt den sonde: dens egne loginoplysninger, dens loginprofil eller dens lokations standard. En bruger på en enhed, der er tildelt en anden sonde, tæller ikke.
+- En inform kræver desuden sondens engine-ID, som vises på samme kort. En enhed, der har fået et forkert, står som afsender til et andet engine-ID.
+- Efter en ændring tager sonden de nye brugere i brug inden for et minut.
 :::
 
 :::details Test SNMP fra sondens netværk

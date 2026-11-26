@@ -47,6 +47,7 @@ import {
 } from "../../../../../Types/DataSecurity/RecordOfProcessing";
 import { ExposureDraftPart } from "../../../../../Types/DataSecurity/ExposureAssessment";
 import { ExposureEvalExposure } from "./DataSecurityExposureEvalSet";
+import { DataSecurityRuleKind } from "../../../../../Types/DataSecurity/DataSecurityRuleDraft";
 
 /*
  * A CASE OF THE DATA SECURITY EVAL (#10365): ONE INPUT A FEATURE WOULD
@@ -446,6 +447,31 @@ export interface ExposureAssessmentEvalCase extends DataSecurityEvalCaseBase {
   };
 }
 
+/*
+ * A rule from a person's sentence (#10378): the words, the project's
+ * labels and teams by name, and what the draft must be - its kind, the
+ * regions it allows and refuses, what its patterns match and miss, and
+ * who and what it names. A sentence that holds no rule must draft none.
+ */
+export interface RuleFromSentenceEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftRuleFromSentence;
+  sentence: string;
+  labels: Array<string>;
+  teams: Array<string>;
+  expect: {
+    kind: DataSecurityRuleKind | null;
+    allowsRegions?: Array<string> | undefined;
+    refusesRegions?: Array<string> | undefined;
+    dataCategories?: Array<DataCategory> | undefined;
+    subjectCountries?: Array<string> | undefined;
+    // Store names its name pattern must match, and must not.
+    matchesStoreNames?: Array<string> | undefined;
+    missesStoreNames?: Array<string> | undefined;
+    owners?: Array<string> | undefined;
+    labelsToAdd?: Array<string> | undefined;
+  };
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FindingVerdictEvalCase
@@ -463,4 +489,5 @@ export type DataSecurityEvalCase =
   | AuditEvidenceEvalCase
   | DraftDataTypesEvalCase
   | DescribeDataTypeEvalCase
-  | ExposureAssessmentEvalCase;
+  | ExposureAssessmentEvalCase
+  | RuleFromSentenceEvalCase;

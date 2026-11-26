@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Tester ce fournisseur OIDC",
   "Attach": "Joindre",
   "Attached Projects": "Projets associés",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Les projets auxquels ce fournisseur connecte les personnes, et les équipes que rejoignent les nouveaux venus. Sans projet associé, il fonctionne pour chaque projet dont une personne fait déjà partie.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Les personnes qui se connectent avec ce fournisseur rejoignent ces projets, dans les équipes choisies pour chacun. Sans projet associé, aucune nouvelle personne ne peut se connecter.",
   "No projects attached to this provider.": "Aucun projet n'est associé à ce fournisseur.",
   "Select Project": "Sélectionner un projet",
   "Runs JavaScript steps and AI code fixes for every project.": "Exécute les étapes JavaScript et les corrections de code par l'IA pour chaque projet.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Discuter sur Microsoft Teams",
   "Chat with Support": "Discuter avec le support",
   "Show it": "Afficher",
+  "From this server's configuration": "Depuis la configuration de ce serveur",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Certains réglages ci-dessous ont été définis à partir de la configuration de ce serveur (valeurs Helm ou config.env) tant que rien n'était enregistré ici. Une modification faite ici est conservée : un redémarrage ne la défait jamais.",
+  "Set from {{variable}} in this server's configuration.": "Défini à partir de {{variable}} dans la configuration de ce serveur.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} dans la configuration de ce serveur n'a pas été utilisé : {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Ce réglage ne peut pas être masqué. Laissez-le vide pour garder la valeur par défaut de OneUptime.",
+  "Use \"shown\" or \"hidden\".": "Utilisez \"shown\" ou \"hidden\".",
   "Support Email": "E-mail de support",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Aide › E-mail de support, « Contacter le support » sur la page « Page introuvable », et l'adresse à laquelle un écran d'erreur demande d'envoyer un pack de support.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Aide › E-mail de support, « Contacter le support » sur la page « Page introuvable », les e-mails liés au compte, et l'adresse à laquelle un écran d'erreur demande d'envoyer un pack de support.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Aide › Discuter sur Slack. Votre propre lien porte le nom du chat qu'il ouvre : Slack, Microsoft Teams ou « Discuter avec le support ».",
   "Request Demo": "Demander une démo",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Ce modèle de moniteur n'appartient à aucun projet : aucun moniteur ne peut donc y être lié. Recréez le modèle dans ce projet.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Ce modèle de moniteur n'a pas de type de moniteur : ses moniteurs ne peuvent donc pas être synchronisés. Recréez le modèle avec un type de moniteur.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Les paramètres de synchronisation du modèle nécessitent le type de moniteur du modèle. Choisissez d'abord le type de moniteur, puis choisissez à nouveau les paramètres de synchronisation.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modèle de moniteur ne peut pas synchroniser « {{field}} ». Choisissez parmi les paramètres de synchronisation que propose le modèle, puis enregistrez à nouveau."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modèle de moniteur ne peut pas synchroniser « {{field}} ». Choisissez parmi les paramètres de synchronisation que propose le modèle, puis enregistrez à nouveau.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Les nouvelles personnes ne peuvent pas encore se connecter. Associez un projet, avec les équipes qu'elles rejoignent, dans « Projets associés »."
 }

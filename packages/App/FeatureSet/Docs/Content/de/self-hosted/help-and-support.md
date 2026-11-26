@@ -7,6 +7,7 @@ Richten Sie die Hilfe, die OneUptime anbietet, auf Ihr eigenes Team aus: die Sup
 - [Was jede Einstellung ändert](#was-jede-einstellung-ändert): Jede Stelle, ihr Standard und ihre Optionen.
 - [Feedback geben](#feedback-geben): Wohin gesendet wird, was Personen schreiben.
 - [Die Anmeldenachricht](#die-anmeldenachricht): Wen man um eine Einladung bittet.
+- [Die Einstellungen aus Ihrer Konfiguration festlegen](#die-einstellungen-aus-ihrer-konfiguration-festlegen): Helm-Werte oder `config.env`, für einen neuen Server.
 :::
 
 ## Ändern, wohin die Hilfe führt
@@ -28,12 +29,12 @@ Solange Sie eine Stelle nicht ändern, zeigt sie, was OneUptime schon immer zeig
 
 | Einstellung | Wo Personen sie sehen | Standard | Eigene Einstellung |
 | --- | --- | --- | --- |
-| **Support-E-Mail** | Hilfe › **Support-E-Mail**, **Support kontaktieren**, wenn eine Seite nicht gefunden wird, und die Adresse, an die Personen auf einem Fehlerbildschirm ein Support-Paket senden sollen | `support@oneuptime.com` | Eine E-Mail-Adresse |
-| **Chat** | Hilfe › **Chat auf Slack** | Die OneUptime-Community auf Slack | Ein Link. Ein Link zu Slack oder Microsoft Teams behält seinen Namen; jeder andere heißt **Chat mit dem Support** |
+| **Support-E-Mail** | Hilfe › **Support-E-Mail**, **Support kontaktieren**, wenn eine Seite nicht gefunden wird, E-Mails zum Konto und die Adresse, an die Personen auf einem Fehlerbildschirm ein Support-Paket senden sollen | `support@oneuptime.com` | Eine E-Mail-Adresse |
+| **Chat** | Hilfe › **Chat auf Slack** und der Chat-Link oben in der API-Referenz | Die OneUptime-Community auf Slack | Ein Link. Ein Link zu Slack oder Microsoft Teams behält seinen Namen; jeder andere heißt **Chat mit dem Support** |
 | **Demo anfordern** | Hilfe › **Demo anfordern** | Angezeigt | Nur ausgeblendet |
 | **Feedback geben** | Hilfe › **Feedback geben** und **Feedback geben** in der Suche | Die Admins dieses Servers | Eine E-Mail-Adresse oder eine eigene Seite |
-| **Hilfe und Support** | **Hilfe und Support** in der Fußzeile und **Kontakt** auf den Anmeldeseiten | `https://oneuptime.com/support` | Ein Link |
-| **Fehler melden oder Feature anfordern** | Der untere Rand des Produktmenüs und das öffentliche GitHub-Issue, das nach einem Feedback angeboten wird | Angezeigt | Nur ausgeblendet |
+| **Hilfe und Support** | **Hilfe und Support** in der Fußzeile, **Kontakt** auf den Anmeldeseiten und **Support** oben in der API-Referenz | `https://oneuptime.com/support` | Ein Link |
+| **Fehler melden oder Feature anfordern** | Der untere Rand des Produktmenüs, das öffentliche GitHub-Issue, das nach einem Feedback angeboten wird, und die GitHub-Links der Dokumentation und der API-Referenz | Angezeigt | Nur ausgeblendet |
 | **Mobile App herunterladen** | **Wie ich erreichbar bin**, die Einrichtung der Bereitschaft, die ersten Schritte eines neuen Mitglieds auf der Startseite und **Mobile Apps** in den **Projekteinstellungen** | Der App Store und Google Play | Eine eigene Seite, etwa das Unternehmensportal Ihrer Geräteverwaltung |
 | **Nachricht für Personen, die eine Einladung brauchen** | Die Single-Sign-On-Bildschirme, die „You need to be invited.“ und „No project access.“ sagen | Der Satz von OneUptime | Ihre eigenen Worte |
 
@@ -41,9 +42,17 @@ Jede Einstellung außer der Nachricht lässt sich auch ausblenden. Ein Link begi
 
 Das eigene Hilfemenü, die Fußzeile und das Produktmenü des Admin Dashboards behalten die Links von OneUptime, denn sie richten sich an die Admins dieses Servers, die Hilfe zum Server von OneUptime bekommen.
 
+### E-Mails zum Konto
+
+Auf einem selbst gehosteten Server verweisen E-Mails zum Konto, etwa zu einer Einladung oder zu einer geänderten E-Mail-Adresse, am Ende an den Admin dieses Servers, nie an den Support von OneUptime. Ist eine eigene Support-Adresse festgelegt, nennen sie diese als Link: „Brauchen Sie Hilfe? Schreiben Sie an it-help@example.com.“ Beim Standard oder wenn die Einstellung ausgeblendet ist, lauten sie wie bisher.
+
+### Die Dokumentation und die API-Referenz
+
+Die Dokumentation und die API-Referenz, die dieser Server ausliefert, folgen denselben Einstellungen. Ist **Fehler melden oder Feature anfordern** ausgeblendet, verlinkt keine Seite auf GitHub, und die Frage **War diese Seite hilfreich?** wird nur dort gestellt, wo ihre Antwort aufbewahrt oder gesendet wird. Die obere Leiste der API-Referenz zeigt den Chat und die Hilfeseite, die Sie gewählt haben, oder keines von beiden, wenn sie ausgeblendet sind.
+
 ### Wer Ihre Links lesen kann
 
-Die Support-Adresse und der Link **Hilfe und Support** erscheinen auch auf den Anmeldeseiten, sodass jeder, der diese Seiten öffnen kann, sie lesen kann. Ein Chat-Link und die Seite der mobilen App werden nur an angemeldete Personen gesendet: Ein Chat-Link ist oft eine Einladung in Ihren Workspace.
+Die Support-Adresse und der Link **Hilfe und Support** erscheinen auch auf den Anmeldeseiten, sodass jeder, der diese Seiten öffnen kann, sie lesen kann. Ein Chat-Link und die Seite der mobilen App werden nur an angemeldete Personen gesendet: Ein Chat-Link ist oft eine Einladung in Ihren Workspace. Aus demselben Grund zeigen die Dokumentation und die API-Referenz, die jeder lesen kann, einen eigenen Chat-Link nur jemandem, der bei diesem Server angemeldet ist.
 
 ## Feedback geben
 
@@ -78,6 +87,39 @@ Mit einer eigenen Seite zeigt jede Aufforderung, die mobile App herunterzuladen,
 - **Mobile App herunterladen** verschwindet aus den ersten Schritten eines neuen Mitglieds auf der Startseite, die trotzdem abgeschlossen werden, sobald die Person erreichbar ist und eine Test-Alarmierung sie erreicht hat.
 - **Wie ich erreichbar bin** und die Einrichtung der Bereitschaft bieten nur Browser an.
 - **Mobile Apps** verschwindet aus den **Projekteinstellungen**.
+- Überall, wo OneUptime aufzählt, wie man jemanden erreichen kann, etwa in den geführten Einrichtungen, auf der Startseite, in den Compliance-Regeln eines Teams und in KI fragen, wird die App nicht mehr genannt.
+
+## Die Einstellungen aus Ihrer Konfiguration festlegen
+
+Bei einem Server, der mit Helm oder Docker Compose installiert wird, können diese Einstellungen schon beim Start festgelegt sein. Legen Sie sie im Helm-Chart in den Werten unter `helpAndSupport` fest oder bei Docker Compose in `config.env`:
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Helm-Wert | `config.env` | Erlaubte Werte |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | Eine E-Mail-Adresse oder `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | Ein Link oder `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` oder `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | Eine E-Mail-Adresse, ein Link oder `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | Ein Link oder `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` oder `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | Ein Link oder `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | Reiner Text |
+
+- Die Werte werden beim Start des Servers gelesen, aber nur, solange unter **Hilfe und Support** noch nichts gespeichert wurde. Von da an gelten die Einstellungen der Seite: Eine dort vorgenommene Änderung bleibt erhalten, und ein Neustart setzt sie nie zurück.
+- Ein Wert, der später in der Konfiguration geändert wird, wird nicht übernommen, und das Log des Servers weist darauf hin. Ändern Sie ihn auf der Seite.
+- Jeder Wert wird so geprüft, wie die Seite ihn prüft. Ein Wert, der abgelehnt würde, etwa ein `javascript:`-Link, wird ausgelassen, und die Seite und das Log des Servers nennen den Grund. Die übrigen werden trotzdem gesetzt.
+- Lassen Sie einen Wert leer, um den Standard von OneUptime zu behalten. Für die beiden Schalter funktionieren auch `true` und `false`.
+- Die Seite kennzeichnet jede Einstellung, die aus Ihrer Konfiguration stammt, bis Sie sie ändern.
 
 ## Nächste Schritte
 

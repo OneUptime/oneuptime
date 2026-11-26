@@ -171,7 +171,7 @@ Noen raske regler:
 - Trinnet **Detaljer** følger malens **Egendefinerte felt ved opprettelse**, som [beskrevet ovenfor](#detaljer-dine-egendefinerte-hendelsesfelt).
 - Verdier i egendefinerte felt slås sammen ett felt om gangen. En mals verdier fyller ut de egendefinerte feltene hendelsen erklæres uten; en verdi som er satt i trinnet **Detaljer** eller sendt i forespørselens `customFields`, vinner alltid — `0`, `false` og `null` inkludert. Et felt som kopieres fra et egendefinert monitorfelt, får fortsatt monitorens verdi.
 - En eksisterende mals verdier i egendefinerte felt står på kortet **Egendefinerte felt**, ved siden av de andre kortene.
-- Malens **Eiere** legges til når hendelsens Slack- og Microsoft Teams-kanaler finnes, slik at en varslingsregel som inviterer hendelsens eiere til en ny kanal, også inviterer dem. Å erklære fra en mal i dashbordet legger dem til uten varslingen «du er lagt til»; et [skjema](/docs/forms/on-submit) med en mal gir dem beskjed og holder hendelsens varsling **Hendelse opprettet** tilbake til de er lagt til, slik at det går til dem og ikke til Prosjekteiere.
+- Malens **Eiere** legges til før hendelsens Slack- og Microsoft Teams-kanaler opprettes, slik at en varslingsregel som spør hvem som eier hendelsen, samsvarer med dem, og en regel som inviterer hendelsens eiere til en ny kanal, også inviterer dem. Å erklære fra en mal i dashbordet legger dem til uten varslingen «du er lagt til»; et [skjema](/docs/forms/on-submit) med en mal gir dem beskjed og holder hendelsens varsling **Hendelse opprettet** tilbake til de er lagt til, slik at det går til dem og ikke til Prosjekteiere.
 
 ## Erklær automatisk fra monitorkriterier
 

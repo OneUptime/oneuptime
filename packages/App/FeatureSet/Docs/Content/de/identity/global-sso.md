@@ -78,7 +78,7 @@ flowchart TB
 
 - **Keine Projekte zugewiesen (alle Projekte / zuerst einladen):** Benutzer können sich mit dem Anbieter anmelden und **jedes Projekt, in dem sie schon Mitglied sind**, erreichen. Neue Benutzer werden **nicht** automatisch angelegt – ein Benutzer muss zuerst in ein Projekt eingeladen werden. Nutzen Sie das für unternehmensweites SSO, wenn Mitgliedschaften anderswo verwaltet werden.
 
-- **Projekte zugewiesen (automatische Bereitstellung):** Öffnen Sie den Anbieter und weisen Sie über die Tabelle **Verknüpfte Projekte** ein oder mehrere Projekte zu, jeweils mit einer Reihe von Standard-Teams. Benutzer, die sich anmelden, werden bei der ersten Anmeldung **automatisch bereitgestellt**: in diese Projekte aufgenommen und den Standard-Teams hinzugefügt. Ein zugewiesenes Projekt beginnt mit seinem Mitglieder-Team; wählen Sie andere Teams, wenn neue Benutzer mit anderem Zugriff starten sollen. Fügen Sie jeweils ein Projekt + Teams hinzu, um die Liste aufzubauen; um eine Zuweisung zu ändern, löschen Sie sie und fügen Sie sie erneut hinzu.
+- **Projekte zugewiesen (automatische Bereitstellung):** Öffnen Sie den Anbieter und weisen Sie über die Tabelle **Verknüpfte Projekte** ein oder mehrere Projekte zu, jeweils mit einer Reihe von Standard-Teams. Benutzer, die sich anmelden, werden **automatisch bereitgestellt**, also in diese Projekte aufgenommen und den Standard-Teams hinzugefügt: Neue bei ihrer ersten Anmeldung und Personen, die schon ein Konto haben, etwa eines, das Sie von Hand angelegt haben, bei ihrer nächsten. Ein zugewiesenes Projekt beginnt mit seinem Mitglieder-Team; wählen Sie andere Teams, wenn neue Benutzer mit anderem Zugriff starten sollen. Ein zugewiesenes Projekt ohne Teams nimmt niemanden auf. Fügen Sie jeweils ein Projekt + Teams hinzu, um die Liste aufzubauen; um eine Zuweisung zu ändern, löschen Sie sie und fügen Sie sie erneut hinzu.
 
 Wer bereits Mitglied eines zugewiesenen Projekts ist, behält dort seine Teams.
 
@@ -89,7 +89,7 @@ Zwei Fragen am Anbieter ändern das, eingeklappt unter **Weitere Felder**. Jede 
 | **Personen ohne Konto** | **Erhalten bei der ersten Anmeldung ein Konto**: Sie treten den zugewiesenen Projekten bei; ist keines zugewiesen, müssen sie zuerst eingeladen werden. **Müssen zuerst eingeladen werden**: Personen müssen in ein Projekt eingeladen sein, bevor sie sich mit diesem Anbieter anmelden können, auch wenn Projekte zugewiesen sind. |
 | **Wo diese Anmeldung als SSO zählt** | **Jedes Projekt**: Projekte, die SSO verlangen, akzeptieren eine Anmeldung mit diesem Anbieter. **Nur zugewiesene Projekte**: Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. |
 
-Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.
+Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen: Keine der beiden Antworten nimmt jemanden in ein Projekt auf. Solange kein Projekt mit Teams zugewiesen ist, steht auf der Seite des Anbieters unter **Personen ohne Konto**, dass sich neue Personen noch nicht anmelden können.
 
 ## E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat
 
@@ -166,7 +166,7 @@ Zwei Änderungen daran, wer sich anmelden kann, werden nacheinander geprüft. Wi
 ## Fehlerbehebung
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Die Person hat noch kein OneUptime-Konto, und der Anbieter legt keines an: Entweder sind ihm keine Projekte zugewiesen, oder **Personen ohne Konto** steht auf **Müssen zuerst eingeladen werden**. Laden Sie die Person in ein Projekt ein oder weisen Sie dem Anbieter ein Projekt zu.
+Die Person hat noch kein OneUptime-Konto, und der Anbieter legt keines an: Entweder ist ihm kein Projekt mit Teams zugewiesen, oder **Personen ohne Konto** steht auf **Müssen zuerst eingeladen werden**. Laden Sie die Person in ein Projekt ein oder weisen Sie dem Anbieter ein Projekt mit den Teams zu, denen sie beitritt. Das Log des Servers sagt, welcher der beiden Gründe vorliegt, ohne die Person zu nennen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

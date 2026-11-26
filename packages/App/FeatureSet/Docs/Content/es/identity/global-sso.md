@@ -78,7 +78,7 @@ flowchart TB
 
 - **Sin proyectos adjuntos (todos los proyectos / invitar primero):** los usuarios pueden iniciar sesión con el proveedor y llegar a **cualquier proyecto del que ya sean miembros**. Los usuarios nuevos **no** se crean automáticamente: primero hay que invitar al usuario a un proyecto. Úsalo para un SSO de toda la empresa cuando las membresías se gestionan en otro sitio.
 
-- **Proyectos adjuntos (aprovisionamiento automático):** Abre el proveedor y usa la tabla **Proyectos vinculados** para adjuntar uno o más proyectos, cada uno con un conjunto de equipos predeterminados. Los usuarios que inician sesión se **aprovisionan automáticamente** en esos proyectos y se agregan a los equipos predeterminados en el primer inicio de sesión. Un proyecto que adjuntas empieza con su equipo de miembros; elige otros equipos si los recién llegados deben empezar con otro acceso. Agrega un proyecto + equipos a la vez para construir la lista; para cambiar un adjunto, elimínalo y vuelve a agregarlo.
+- **Proyectos adjuntos (aprovisionamiento automático):** Abre el proveedor y usa la tabla **Proyectos vinculados** para adjuntar uno o más proyectos, cada uno con un conjunto de equipos predeterminados. Los usuarios que inician sesión se **aprovisionan automáticamente** en esos proyectos y se agregan a los equipos predeterminados: alguien nuevo, en su primer inicio de sesión, y alguien que ya tiene cuenta, como una que creaste a mano, en el siguiente. Un proyecto que adjuntas empieza con su equipo de miembros; elige otros equipos si los recién llegados deben empezar con otro acceso. Un proyecto adjunto sin equipos no agrega a nadie. Agrega un proyecto + equipos a la vez para construir la lista; para cambiar un adjunto, elimínalo y vuelve a agregarlo.
 
 Quien ya es miembro de un proyecto adjunto conserva los equipos que tiene allí.
 
@@ -89,7 +89,7 @@ Dos preguntas del proveedor cambian esto, plegadas en **Más campos**. Cada una 
 | **Personas sin cuenta** | **Obtienen una en su primer inicio de sesión**: se unen a los proyectos adjuntos; si no hay ninguno adjunto, primero deben ser invitadas. **Deben ser invitadas primero**: las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. |
 | **Dónde cuenta este inicio de sesión como SSO** | **Todos los proyectos**: los proyectos que exigen SSO aceptan un inicio de sesión con este proveedor. **Solo los proyectos adjuntos**: iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. |
 
-Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
+Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados: ninguna de las dos respuestas añade a nadie a un proyecto. Mientras no se haya adjuntado ningún proyecto con equipos, la página del proveedor indica en **Personas sin cuenta** que todavía no puede iniciar sesión nadie nuevo.
 
 ## Direcciones de correo que tu proveedor de identidad no ha verificado
 
@@ -166,7 +166,7 @@ Dos cambios sobre quién puede iniciar sesión se comprueban uno tras otro. Si s
 ## Solución de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene proyectos adjuntos, o **Personas sin cuenta** está en **Deben ser invitadas primero**. Invítala a un proyecto o adjunta un proyecto al proveedor.
+La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene adjunto ningún proyecto con equipos, o **Personas sin cuenta** está en **Deben ser invitadas primero**. Invítala a un proyecto o adjunta al proveedor un proyecto, con los equipos a los que se une. El log del servidor indica cuál de los dos motivos es, sin nombrar a la persona.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

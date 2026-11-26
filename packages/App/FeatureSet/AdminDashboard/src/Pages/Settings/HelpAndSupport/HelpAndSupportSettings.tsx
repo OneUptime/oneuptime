@@ -1,4 +1,5 @@
 import {
+  HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID,
   HELP_AND_SUPPORT_PAGE_TEST_ID,
   HELP_CARDS,
   HELP_ITEM_COPY,
@@ -33,6 +34,10 @@ import {
   getSupportEmailAddress,
 } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import { HelpAndSupportAnswer } from "Common/Types/HelpAndSupport/HelpAndSupportAnswer";
+import {
+  HelpAndSupportSeedProblem,
+  getHelpAndSupportSeedSourceName,
+} from "Common/Types/HelpAndSupport/HelpAndSupportSeed";
 import {
   InviteMessageParagraph,
   InviteMessagePart,
@@ -377,6 +382,76 @@ const SignInPreview: FunctionComponent<{
         </div>
       </div>
     </figure>
+  );
+};
+
+/*
+ * WHAT CAME FROM THE SERVER'S CONFIGURATION (#10938): once, above the
+ * cards, that some settings were set from the Helm chart's values or
+ * config.env while nothing was saved here, and that a change made here is
+ * kept; and each value the configuration sets that would be refused, with
+ * why. Nothing at all on a server whose configuration sets none.
+ */
+const FromConfigurationNotice: FunctionComponent<{
+  answer: HelpAndSupportAnswer;
+}> = (props: { answer: HelpAndSupportAnswer }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const say: (key: string) => string = (key: string): string => {
+    return translator.translateText(key) || key;
+  };
+  const isSeeded: boolean = props.answer.seededItems.length > 0;
+
+  if (!isSeeded && props.answer.seedProblems.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <div
+      role="note"
+      className="mb-6 rounded-lg bg-indigo-50 px-4 py-3 ring-1 ring-inset ring-indigo-100"
+      data-testid={HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}
+    >
+      <div className="flex items-start gap-3">
+        <Icon
+          icon={IconProp.ServerStack}
+          className="mt-0.5 h-5 w-5 flex-none text-indigo-500"
+        />
+        <div className="min-w-0 space-y-1 text-sm">
+          <p className="font-medium text-indigo-900">
+            {say(HelpAndSupportCopy.fromConfigurationTitle)}
+          </p>
+          {isSeeded ? (
+            <p
+              className="text-indigo-800"
+              data-testid={`${HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}-description`}
+            >
+              {say(HelpAndSupportCopy.fromConfigurationDescription)}
+            </p>
+          ) : (
+            <></>
+          )}
+          {props.answer.seedProblems.map(
+            (problem: HelpAndSupportSeedProblem): ReactElement => {
+              return (
+                <p
+                  key={problem.item}
+                  className="break-words text-amber-800"
+                  data-testid={`${HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}-${problem.item}-not-used`}
+                >
+                  {translator.translateTemplate(
+                    HelpAndSupportCopy.variableNotUsed,
+                    {
+                      variable: getHelpAndSupportSeedSourceName(problem.item),
+                      problem: say(problem.problem),
+                    },
+                  )}
+                </p>
+              );
+            },
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -735,6 +810,18 @@ const HelpAndSupportSettings: FunctionComponent = (): ReactElement => {
         ) : (
           <></>
         )}
+        {answer.seededItems.includes(item) ? (
+          <p
+            className="text-xs text-gray-500"
+            data-testid={`${getHelpItemTestId(item)}-from-configuration`}
+          >
+            {translator.translateTemplate(HelpAndSupportCopy.setFromVariable, {
+              variable: getHelpAndSupportSeedSourceName(item),
+            })}
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -840,6 +927,7 @@ const HelpAndSupportSettings: FunctionComponent = (): ReactElement => {
 
   return (
     <div data-testid={HELP_AND_SUPPORT_PAGE_TEST_ID}>
+      <FromConfigurationNotice answer={answer} />
       {HELP_CARDS.map(renderCard)}
       {editing ? (
         <HelpItemDialog

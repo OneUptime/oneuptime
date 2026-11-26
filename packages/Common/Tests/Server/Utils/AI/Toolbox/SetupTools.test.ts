@@ -1577,6 +1577,54 @@ describe("set_up_paging", () => {
     );
   });
 
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10945): a push that cannot reach the
+   * person names this browser, never the app.
+   */
+  test("push not set up, on a server without the mobile app: this browser, never the app", () => {
+    const without: Array<string> = describeReachForPerson({
+      asked: [SetupReachMethod.Push],
+      readiness: readiness({ verified: [] }),
+      isMobileAppOffered: false,
+    }).map((sentence: AIActionSentence): string => {
+      return actionTitleText(sentence) || "";
+    });
+
+    expect(without).toEqual([
+      "Push notifications are not set up for you yet. Register this browser in Notification Methods to get them.",
+    ]);
+    expect(without.join(" ")).not.toContain("mobile app");
+  });
+
+  test("push not set up, where the server offers the app or does not say: the app, as before", () => {
+    for (const isMobileAppOffered of [true, undefined]) {
+      expect(
+        describeReachForPerson({
+          asked: [SetupReachMethod.Push],
+          readiness: readiness({ verified: [] }),
+          isMobileAppOffered: isMobileAppOffered,
+        }).map((sentence: AIActionSentence) => {
+          return actionTitleText(sentence);
+        }),
+      ).toEqual([
+        "The mobile app is not set up for you yet. Set it up from Notification Methods to get push notifications.",
+      ]);
+    }
+  });
+
+  test("a verified push device says nothing, whether or not the server offers the app", () => {
+    for (const isMobileAppOffered of [true, false]) {
+      expect(
+        describeReachForPerson({
+          asked: [SetupReachMethod.Push],
+          readiness: readiness({ verified: [ReadinessMethodType.Push] }),
+          isMobileAppOffered: isMobileAppOffered,
+        }),
+      ).toEqual([]);
+    }
+  });
+
   test("a verified number says nothing; nothing at all reaching you is said", () => {
     expect(
       describeReachForPerson({

@@ -97,8 +97,8 @@ The moment an alert is created, OneUptime works through these steps, in this ord
 
 1. **It gets a number and a state.** The alert number comes from a per-project counter, shown with your prefix (`ALT-42`). The alert starts in your created state unless the form, the API, a workflow or Ask AI picked another.
 2. **Privacy rules run first**, so everything after them sees whether the alert is private.
-3. **The feed and your chat tools hear of it.** An **Alert Created** entry is written to the **Alert Feed**, and the channels your Slack and Microsoft Teams rules name are told; a rule can create a channel for the alert.
-4. **Owners and labels are added**: the ones the monitor's criteria or the request names, then those of matching owner and label rules.
+3. **Owners and labels are added**: the ones the monitor's criteria or the request names, then those of matching owner and label rules.
+4. **The feed and your chat tools hear of it.** An **Alert Created** entry is written to the **Alert Feed**, as its first entry, and the channels your Slack and Microsoft Teams rules name are told; a rule can create a channel for the alert. The rules see the owners and labels the alert was created with, so a rule that asks who owns an alert, or how it is labelled, posts it too. Whatever was said about the alert meanwhile, such as the owners just added, follows **Alert Created** in those channels.
 5. **On-call rules add their policies**, then runbook rules start the runbooks that match.
 6. **On-call policies run.** Every policy on the alert pages its people in parallel; one failing does not stop the others. Then the first incident rule that matches declares an incident from the alert, right away or once its wait is up.
 7. **Grouping rules put it into an episode**, when one matches. See [Alert Episodes & Grouping Rules](/docs/alerts/episodes).

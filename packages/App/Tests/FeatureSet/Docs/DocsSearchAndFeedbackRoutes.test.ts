@@ -2,6 +2,14 @@
 import DocsFeatureSet from "../../../FeatureSet/Docs/Index";
 import { DocsSearchAnswer } from "../../../FeatureSet/Docs/Utils/DocsSearch";
 import DocsFeedbackStore from "../../../FeatureSet/Docs/Utils/DocsFeedbackStore";
+import DocsSiteLinksStore from "Common/Server/Utils/HelpAndSupport/DocsSiteLinksStore";
+import {
+  DocsSiteLinks,
+  HelpChoice,
+  HelpItem,
+  getDefaultHelpAndSupportSettings,
+  getDocsSiteLinks,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
 import { ProductFeedbackSubmission } from "Common/Types/ProductFeedback/ProductFeedback";
 import Express, {
   ExpressApplication,
@@ -498,6 +506,77 @@ describe("Was this page helpful?, where the server's admins keep the answers (#7
     const html: string = await pageHtml("/docs/en/monitor/website-monitor");
 
     expect(html).toContain('data-feedback-mode="local"');
+  }, 600000);
+});
+
+/*
+ * A server whose admins hid OneUptime's GitHub (Admin Dashboard > Settings >
+ * Help and Support, #10940), through the reader the App hands the docs: no
+ * GitHub in the header, no Edit on GitHub, no GitHub issue after a no, and
+ * no question where its answer would go nowhere.
+ */
+describe("a docs page on a server whose admins hid OneUptime's GitHub (#10940)", () => {
+  const hidden: DocsSiteLinks = getDocsSiteLinks(
+    {
+      ...getDefaultHelpAndSupportSettings(),
+      [HelpItem.GitHub]: { choice: HelpChoice.Hidden, value: null },
+    },
+    { isSignedIn: false },
+  );
+
+  beforeEach(() => {
+    DocsSiteLinksStore.useReader(async (): Promise<DocsSiteLinks> => {
+      return hidden;
+    });
+  });
+
+  afterAll(() => {
+    DocsSiteLinksStore.useReader(null);
+  });
+
+  it("links to no GitHub, and asks nothing where nothing is posted", async () => {
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).not.toContain('href="https://github.com/oneuptime/oneuptime"');
+    expect(html).not.toContain("docs-editcard");
+    expect(html).not.toContain("https://github.com/OneUptime/oneuptime/issues");
+    expect(html).not.toContain('<section class="docs-feedback"');
+  }, 600000);
+
+  it("where the admins keep the answers, asks and offers what went wrong, with no GitHub issue", async () => {
+    isKeepingOn = true;
+
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).toContain('data-feedback-mode="keep"');
+    expect(html).toContain('data-feedback-reason="unclear"');
+    expect(html).not.toContain("data-feedback-github");
+    expect(html).not.toContain("github.com");
+  }, 600000);
+
+  it("its 404 page links to no GitHub either", async () => {
+    const response: Response = await fetch(
+      `${origin}/docs/en/monitor/no-such-page-anywhere`,
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain(
+      'href="https://github.com/oneuptime/oneuptime"',
+    );
+  }, 600000);
+
+  it("a server on its defaults links to GitHub as it always did", async () => {
+    DocsSiteLinksStore.useReader(async (): Promise<DocsSiteLinks> => {
+      return getDocsSiteLinks(getDefaultHelpAndSupportSettings(), {
+        isSignedIn: false,
+      });
+    });
+
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).toContain('href="https://github.com/oneuptime/oneuptime"');
+    expect(html).toContain("docs-editcard");
+    expect(html).toContain("data-feedback-github");
   }, 600000);
 });
 

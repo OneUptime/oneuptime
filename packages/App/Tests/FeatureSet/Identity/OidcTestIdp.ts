@@ -144,13 +144,80 @@ export interface IdpOptions {
   advertiseEndSessionEndpoint?: boolean | undefined;
   // Return an OAuth error from the token endpoint instead of tokens.
   tokenError?: { error: string; description: string } | undefined;
+  /*
+   * The redirect URIs registered for the client. With them the provider
+   * serves its authorization endpoint as a real one does (OpenID Connect
+   * Core 3.1.2): /authorize checks the client and the redirect URI,
+   * keeps the request's nonce and PKCE challenge under a one-time code,
+   * and sends the browser back to the redirect URI with the code and the
+   * request's state. /token then takes only a code it issued, once, from
+   * the same client - its secret checked - and redirect URI, with the
+   * verifier that answers the challenge (RFC 7636), and writes the
+   * request's nonce into the ID token. Without them /authorize is not
+   * served and /token answers any code, as the suites that build the
+   * callback's request themselves expect.
+   */
+  registeredRedirectUris?: Array<string> | undefined;
+  // The client secret /token checks, with registeredRedirectUris.
+  clientSecret?: string | undefined;
+}
+
+// What /authorize was asked, as the provider kept it.
+export interface AuthorizationRequest {
+  clientId: string | undefined;
+  redirectUri: string | undefined;
+  responseType: string | undefined;
+  scope: string | undefined;
+  state: string | undefined;
+  nonce: string | undefined;
+  codeChallenge: string | undefined;
+  codeChallengeMethod: string | undefined;
+  prompt: string | undefined;
 }
 
 export interface TestIdp {
   issuerUrl: string;
   jwksKey: IdpKeyPair;
   tokenRequests: Array<TokenRequest>;
+  authorizationRequests: Array<AuthorizationRequest>;
   close: () => Promise<void>;
+}
+
+// A code /authorize issued, and the request it answers.
+interface IssuedCode {
+  request: AuthorizationRequest;
+  isRedeemed: boolean;
+}
+
+// The S256 challenge a PKCE verifier answers (RFC 7636 4.6).
+export function pkceChallengeOf(verifier: string): string {
+  return base64Url(crypto.createHash("sha256").update(verifier).digest());
+}
+
+// The client id and secret a token request authenticated with.
+function readClientAuthentication(
+  req: IncomingMessage,
+  params: URLSearchParams,
+): { clientId: string | undefined; clientSecret: string | undefined } {
+  const header: string | undefined = req.headers["authorization"];
+
+  if (header && header.toLowerCase().startsWith("basic ")) {
+    const decoded: string = Buffer.from(
+      header.slice("basic ".length),
+      "base64",
+    ).toString();
+    const separator: number = decoded.indexOf(":");
+
+    return {
+      clientId: decodeURIComponent(decoded.slice(0, separator)),
+      clientSecret: decodeURIComponent(decoded.slice(separator + 1)),
+    };
+  }
+
+  return {
+    clientId: params.get("client_id") ?? undefined,
+    clientSecret: params.get("client_secret") ?? undefined,
+  };
 }
 
 const DEFAULT_SUBJECT: string = "00u1a2b3c4D5E6F7g8h9";
@@ -162,6 +229,11 @@ const DEFAULT_SUBJECT: string = "00u1a2b3c4D5E6F7g8h9";
 export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
   const jwksKey: IdpKeyPair = getSharedJwksKey();
   const tokenRequests: Array<TokenRequest> = [];
+  const authorizationRequests: Array<AuthorizationRequest> = [];
+  const issuedCodes: Map<string, IssuedCode> = new Map<string, IssuedCode>();
+  const isAuthorizationServed: boolean = Boolean(
+    options.registeredRedirectUris,
+  );
 
   let issuerUrl: string = "";
 
@@ -192,7 +264,9 @@ export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
     });
   };
 
-  const buildIdToken: () => string = (): string => {
+  const buildIdToken: (authorization?: AuthorizationRequest) => string = (
+    authorization?: AuthorizationRequest,
+  ): string => {
     if (options.rawIdToken !== undefined) {
       return options.rawIdToken;
     }
@@ -206,6 +280,8 @@ export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
       exp: nowSeconds + 3600,
       iat: nowSeconds,
       ...(options.idTokenClaims ?? {}),
+      // The nonce of the authorization request the code answers.
+      ...(authorization?.nonce ? { nonce: authorization.nonce } : {}),
     };
 
     /*
@@ -274,6 +350,68 @@ export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
         });
       }
 
+      if (pathname === "/authorize" && isAuthorizationServed) {
+        const query: URLSearchParams = new URLSearchParams(
+          (req.url || "").split("?")[1] || "",
+        );
+
+        const request: AuthorizationRequest = {
+          clientId: query.get("client_id") ?? undefined,
+          redirectUri: query.get("redirect_uri") ?? undefined,
+          responseType: query.get("response_type") ?? undefined,
+          scope: query.get("scope") ?? undefined,
+          state: query.get("state") ?? undefined,
+          nonce: query.get("nonce") ?? undefined,
+          codeChallenge: query.get("code_challenge") ?? undefined,
+          codeChallengeMethod: query.get("code_challenge_method") ?? undefined,
+          prompt: query.get("prompt") ?? undefined,
+        };
+
+        authorizationRequests.push(request);
+
+        /*
+         * An unknown client or an unregistered redirect URI is answered
+         * here, never sent on: the browser could be sent anywhere.
+         */
+        if (
+          request.clientId !== options.clientId ||
+          !request.redirectUri ||
+          !(options.registeredRedirectUris || []).includes(request.redirectUri)
+        ) {
+          return sendJson(res, 400, {
+            error: "invalid_request",
+            error_description: "Unknown client or redirect URI.",
+          });
+        }
+
+        const back: globalThis.URL = new globalThis.URL(request.redirectUri);
+
+        if (
+          request.responseType !== "code" ||
+          !(request.scope || "").split(" ").includes("openid") ||
+          !request.codeChallenge ||
+          request.codeChallengeMethod !== "S256"
+        ) {
+          back.searchParams.set("error", "invalid_request");
+          back.searchParams.set(
+            "error_description",
+            "A code request needs the openid scope and an S256 PKCE challenge.",
+          );
+        } else {
+          const code: string = base64Url(crypto.randomBytes(24));
+          issuedCodes.set(code, { request: request, isRedeemed: false });
+          back.searchParams.set("code", code);
+        }
+
+        if (request.state) {
+          back.searchParams.set("state", request.state);
+        }
+
+        res.writeHead(302, { location: back.toString() });
+        res.end();
+        return;
+      }
+
       if (pathname === "/token") {
         readBody(req)
           .then((rawBody: string) => {
@@ -297,12 +435,47 @@ export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
               });
             }
 
+            let authorization: AuthorizationRequest | undefined = undefined;
+
+            if (isAuthorizationServed) {
+              const issued: IssuedCode | undefined = issuedCodes.get(
+                params.get("code") || "",
+              );
+              const client: {
+                clientId: string | undefined;
+                clientSecret: string | undefined;
+              } = readClientAuthentication(req, params);
+              const verifier: string = params.get("code_verifier") || "";
+
+              if (
+                params.get("grant_type") !== "authorization_code" ||
+                !issued ||
+                issued.isRedeemed ||
+                client.clientId !== options.clientId ||
+                (options.clientSecret !== undefined &&
+                  client.clientSecret !== options.clientSecret) ||
+                params.get("redirect_uri") !== issued.request.redirectUri ||
+                !verifier ||
+                pkceChallengeOf(verifier) !== issued.request.codeChallenge
+              ) {
+                return sendJson(res, 400, {
+                  error: "invalid_grant",
+                  error_description:
+                    "The code, the client, the redirect URI or the verifier is not the one this code was issued for.",
+                });
+              }
+
+              // A code is good once (RFC 6749 4.1.2).
+              issued.isRedeemed = true;
+              authorization = issued.request;
+            }
+
             return sendJson(res, 200, {
               access_token: TEST_ACCESS_TOKEN,
               token_type: "Bearer",
               expires_in: 3600,
               scope: "openid email profile",
-              id_token: buildIdToken(),
+              id_token: buildIdToken(authorization),
             });
           })
           .catch(() => {
@@ -335,6 +508,7 @@ export async function startTestIdp(options: IdpOptions): Promise<TestIdp> {
     issuerUrl,
     jwksKey,
     tokenRequests,
+    authorizationRequests,
     close: (): Promise<void> => {
       return new Promise<void>((resolve: () => void) => {
         server.closeAllConnections();

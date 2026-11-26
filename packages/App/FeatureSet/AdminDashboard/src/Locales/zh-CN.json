@@ -75,7 +75,7 @@
     "userProfile": "用户资料"
   },
   "help": {
-    "supportEmail": "支持电子邮件",
+    "supportEmail": "支持邮箱",
     "chatSlack": "在 Slack 上聊天",
     "requestDemo": "请求演示"
   },
@@ -85,7 +85,7 @@
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
-    "helpSupport": "帮助与支持",
+    "helpSupport": "帮助和支持",
     "legal": "法律",
     "version": "版本",
     "versionModalTitle": "OneUptime 版本",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "测试此 OIDC 提供商",
   "Attach": "添加附件",
   "Attached Projects": "已关联的项目",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "此提供商为用户登录的项目，以及新用户加入的团队。未关联任何项目时，它适用于用户已加入的每个项目。",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "通过此提供商登录的人员会加入这些项目，进入为每个项目选定的团队。未关联任何项目时，新用户无法登录。",
   "No projects attached to this provider.": "此提供商未关联任何项目。",
   "Select Project": "选择项目",
   "Runs JavaScript steps and AI code fixes for every project.": "为所有项目运行 JavaScript 步骤和 AI 代码修复。",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "在 Microsoft Teams 上聊天",
   "Chat with Support": "与支持团队聊天",
   "Show it": "显示它",
+  "From this server's configuration": "来自此服务器的配置",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "下方部分设置是在此处尚未保存任何内容时，根据此服务器的配置（Helm 值或 config.env）设置的。你在此处所做的更改会被保留：重启永远不会将其改回。",
+  "Set from {{variable}} in this server's configuration.": "根据此服务器配置中的 {{variable}} 设置。",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "未使用此服务器配置中的 {{variable}}：{{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "此设置无法隐藏。留空即可保留 OneUptime 的默认值。",
+  "Use \"shown\" or \"hidden\".": "请使用 \"shown\" 或 \"hidden\"。",
   "Support Email": "支持邮箱",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "帮助 › 支持邮箱、“找不到页面”上的“联系支持团队”，以及错误屏幕请用户发送支持包的地址。",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "帮助 › 支持邮箱、“找不到页面”上的“联系支持团队”、账户相关邮件，以及错误屏幕请用户发送支持包的地址。",
   "Chat": "聊天",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "帮助 › 在 Slack 上聊天。您自己的链接以它打开的聊天工具命名：Slack、Microsoft Teams 或“与支持团队聊天”。",
   "Request Demo": "请求演示",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此监视器模板不属于任何项目，因此无法将监视器关联到它。请在此项目中重新创建该模板。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此监视器模板没有监视器类型，因此无法同步其监视器。请使用监视器类型重新创建该模板。",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "模板同步设置需要模板的监视器类型。请先选择监视器类型，然后重新选择同步设置。",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "监视器模板无法同步 “{{field}}”。请从模板提供的模板同步设置中选择，然后重新保存。"
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "监视器模板无法同步 “{{field}}”。请从模板提供的模板同步设置中选择，然后重新保存。",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "暂时还没有新用户可以登录。请在“已关联的项目”中关联一个项目，并选择他们加入的团队。"
 }

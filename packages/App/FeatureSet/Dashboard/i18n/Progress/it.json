@@ -634,6 +634,7 @@
     "{{rate}}/min",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{store}} in {{region}}",
     "{{up}}/{{count}} OSD up",
     "{{values}} in {{field}}",
     "{{value}} ms",

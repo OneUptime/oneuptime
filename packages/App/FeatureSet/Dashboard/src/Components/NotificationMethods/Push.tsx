@@ -31,9 +31,9 @@ import {
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
 import {
-  BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserPushError,
   BrowserPushProblem,
+  getBrowserPushProblemMessage,
   getDefaultDeviceName,
   getThisBrowserDeviceId,
   readBrowserIdentity,
@@ -292,7 +292,11 @@ const Push: () => JSX.Element = (): ReactElement => {
   const openRegisterDeviceModal: () => void = (): void => {
     const problem: BrowserPushProblem | null = getProblemBeforeAsking();
 
-    setError(problem ? BROWSER_PUSH_PROBLEM_MESSAGES[problem] : "");
+    setError(
+      problem
+        ? getBrowserPushProblemMessage(problem, mobileAppOffer !== null)
+        : "",
+    );
     setShowRegisterDeviceModal(true);
   };
 
@@ -314,7 +318,7 @@ const Push: () => JSX.Element = (): ReactElement => {
     const problem: BrowserPushProblem | null = getProblemBeforeAsking();
 
     if (problem) {
-      setError(BROWSER_PUSH_PROBLEM_MESSAGES[problem]);
+      setError(getBrowserPushProblemMessage(problem, mobileAppOffer !== null));
       return;
     }
 
@@ -338,7 +342,7 @@ const Push: () => JSX.Element = (): ReactElement => {
     } catch (err: unknown) {
       setError(
         err instanceof BrowserPushError
-          ? err.message
+          ? getBrowserPushProblemMessage(err.problem, mobileAppOffer !== null)
           : API.getFriendlyMessage(err),
       );
     } finally {

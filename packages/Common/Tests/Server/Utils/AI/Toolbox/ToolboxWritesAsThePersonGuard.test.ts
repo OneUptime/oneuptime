@@ -61,6 +61,18 @@ const WRITER_MODULES: Array<RegExp> = [
   /\/SRE\/InvestigationQueue$/,
   // A repository's host - GitHub, GitLab, Forgejo or Gitea - by its writer.
   /\/CodeRepository\/CodeHost\/CodeHostWriter$/,
+  /*
+   * Data Security's buttons, as Ask AI's actions press them (#10378): a
+   * record's write as the CRUD route makes it, the server code of Scrub It,
+   * Fix it from here's responses and Fix with AI, OneUptime AI's proposals,
+   * Apply to Similar, a saved rule's run and the cloud responses.
+   */
+  /\/Database\/CrudRouteWrites$/,
+  /\/DataSecurity\/DataSecurityButtons$/,
+  /\/DataSecurity\/DataSecurityAiProposals$/,
+  /\/DataSecurity\/FindingApplyToSimilar$/,
+  /\/DataSecurity\/DataSecurityResponse$/,
+  /\/Rules\/RuleRun\/RuleRunner$/,
 ];
 
 /*
@@ -87,6 +99,10 @@ const OTHER_READS: Record<string, string> = {
     "Hands out the writer of a GitHub repository, through its GitHub App installation; writes nothing.",
   "CodeHostWriters.openForRepository":
     "Hands out the writer of a GitLab, Forgejo or Gitea repository, through its connection; writes nothing.",
+  "DataSecurityButtons.readFixOnItsWay":
+    "Whether a fix for the issue is already on its way (a task writing, opened or waiting), read as the person before Fix with AI's card (#10378); writes nothing.",
+  "FindingApplyToSimilar.listSimilar":
+    "The findings like one a decision also settles, read as the person for Apply to Similar's card (#10378); writes nothing.",
   "PayAsYouGoBillingService.canUsePayAsYouGo":
     "Whether the project may incur usage charges on OneUptime Cloud (a card on file, a reseller's or a marketplace plan), asked before a setup action's card (#6829); reads the payment setup and keeps the answer in memory, writes nothing.",
 };
@@ -245,6 +261,38 @@ function declaredIn(node: ts.Node): string | undefined {
   }
 
   return undefined;
+}
+
+/*
+ * A service handed to a record's write as the CRUD route makes it:
+ * `CrudRouteWrites.update({ service: DataStoreFindingService, ..., props:
+ * ctx.props })` (#10378). The write is the CrudRouteWrites call, recorded
+ * with the props it passes; the service only says which table it writes.
+ */
+const CRUD_ROUTE_WRITES: string = "CrudRouteWrites";
+
+function isServiceHandedToCrudWrite(node: ts.Identifier): boolean {
+  const property: ts.Node = node.parent;
+
+  if (
+    !ts.isPropertyAssignment(property) ||
+    property.initializer !== node ||
+    property.name.getText() !== "service"
+  ) {
+    return false;
+  }
+
+  const options: ts.Node = property.parent;
+  const call: ts.Node = options.parent;
+
+  return (
+    ts.isObjectLiteralExpression(options) &&
+    ts.isCallExpression(call) &&
+    call.arguments[0] === options &&
+    ts.isPropertyAccessExpression(call.expression) &&
+    ts.isIdentifier(call.expression.expression) &&
+    call.expression.expression.text === CRUD_ROUTE_WRITES
+  );
 }
 
 // The OTHER_READS entries a scan met.
@@ -528,7 +576,7 @@ function scanSource(file: string, sourceText: string): FileScan {
               declaredIn: declaredIn(node),
             });
           }
-        } else {
+        } else if (!isServiceHandedToCrudWrite(node)) {
           unseenCalls.push(
             `${file}:${lineOf(sourceFile, node)}: uses ${parent.getText()} other than to call one of ${node.text}'s methods - call it there`,
           );
@@ -947,6 +995,58 @@ export const SneakyTool: ObservabilityTool = {
     );
     expect(result.unseenCalls[2]).toContain(
       "Snippet.ts:8: calls IncidentServiceClass",
+    );
+  });
+
+  test("D: a service handed to a record's write as the CRUD route makes it is that write's, held to its props (#10378)", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        'import CrudRouteWrites from "../../Database/CrudRouteWrites";\n' +
+        `export const JudgeTool: ObservabilityTool = {
+  name: "judge",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await CrudRouteWrites.update({ service: IncidentService, entityType: Incident, id: args.id, data: {}, props: ctx.props });
+    await CrudRouteWrites.update({ service: IncidentService, entityType: Incident, id: args.id, data: {}, props: { isRoot: true } });
+    await CrudRouteWrites.delete({ service: IncidentService, id: args.id });
+  },
+};
+`,
+    );
+
+    expect(result.unseenCalls).toEqual([]);
+    expect(result.notAsThePerson).toHaveLength(2);
+    expect(result.notAsThePerson[0]).toContain(
+      "Snippet.ts:8: CrudRouteWrites.update",
+    );
+    expect(result.notAsThePerson[1]).toContain(
+      "Snippet.ts:9: CrudRouteWrites.delete",
+    );
+    expect(result.writingTools).toEqual(["judge"]);
+  });
+
+  test("D: a service handed to anything but a record's write is still unseen (#10378)", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        'import CrudRouteWrites from "../../Database/CrudRouteWrites";\n' +
+        `async function writeWith(options: JSONObject): Promise<void> {}
+export const SneakyTool: ObservabilityTool = {
+  name: "sneaky",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await writeWith({ service: IncidentService, props: ctx.props });
+    await CrudRouteWrites.update({ entityType: IncidentService, props: ctx.props });
+  },
+};
+`,
+    );
+
+    expect(result.unseenCalls).toHaveLength(2);
+    expect(result.unseenCalls[0]).toContain(
+      "Snippet.ts:8: uses service: IncidentService other than to call one of IncidentService's methods",
+    );
+    expect(result.unseenCalls[1]).toContain(
+      "Snippet.ts:9: uses entityType: IncidentService other than to call one of IncidentService's methods",
     );
   });
 

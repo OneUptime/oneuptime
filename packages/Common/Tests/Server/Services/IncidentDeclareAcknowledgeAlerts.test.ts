@@ -133,6 +133,8 @@ type CarriedForward = {
    * for a declare from alerts, as these make it, and false without alerts.
    */
   carryOverAlertOwners: boolean;
+  // When its feed starts, taken before it is written (#10911): any moment.
+  feedStartsAt: unknown;
 };
 
 /*
@@ -146,6 +148,7 @@ const NOTHING_CARRIED: CarriedForward = {
   alertIdsToAcknowledge: [],
   declaredByAlertIncidentRuleName: null,
   carryOverAlertOwners: false,
+  feedStartsAt: expect.any(Date),
 };
 
 type AuthorizeArgs = {
@@ -778,6 +781,7 @@ function carried(
     alertIdsToAcknowledge: alertIdsToAcknowledge,
     declaredByAlertIncidentRuleName: null,
     carryOverAlertOwners: alertIds.length > 0,
+    feedStartsAt: expect.any(Date),
   };
 }
 
@@ -860,6 +864,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "alertIdsToLink",
       "carryOverAlertOwners",
       "declaredByAlertIncidentRuleName",
+      "feedStartsAt",
       "startingStage",
     ]);
     // A member's declaration names no alert incident rule.
@@ -939,6 +944,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "alertIdsToLink",
       "carryOverAlertOwners",
       "declaredByAlertIncidentRuleName",
+      "feedStartsAt",
       "startingStage",
     ]);
     // A member's declaration names no alert incident rule.
@@ -1225,6 +1231,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       alertIdsToAcknowledge: [],
       declaredByAlertIncidentRuleName: null,
       carryOverAlertOwners: true,
+      feedStartsAt: expect.any(Date),
     });
   });
 
@@ -1444,6 +1451,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       alertIdsToAcknowledge: [],
       declaredByAlertIncidentRuleName: null,
       carryOverAlertOwners: true,
+      feedStartsAt: expect.any(Date),
     });
     expect(counter).toHaveBeenCalledTimes(1);
 

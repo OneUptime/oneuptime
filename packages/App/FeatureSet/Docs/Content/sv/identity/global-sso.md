@@ -78,7 +78,7 @@ flowchart TB
 
 - **Inga projekt anslutna (alla projekt / inbjudan först):** Användare kan logga in med leverantören och nå **alla projekt de redan är medlemmar i**. Nya användare skapas **inte** automatiskt — en användare måste först bjudas in till ett projekt. Använd detta för företagsövergripande SSO där medlemskap hanteras på annat håll.
 
-- **Projekt anslutna (automatisk etablering):** Öppna leverantören och använd tabellen **Kopplade projekt** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **etableras automatiskt** i dessa projekt och läggs till i standardteamen vid första inloggningen. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, ta bort den och lägg till den igen.
+- **Projekt anslutna (automatisk etablering):** Öppna leverantören och använd tabellen **Kopplade projekt** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **etableras automatiskt** i dessa projekt och läggs till i standardteamen: en ny person vid sin första inloggning, och en person som redan har ett konto, till exempel ett som du har skapat manuellt, vid nästa. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Ett anslutet projekt utan team lägger inte till någon. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, ta bort den och lägg till den igen.
 
 Den som redan är medlem i ett anslutet projekt behåller sina team där.
 
@@ -89,7 +89,7 @@ Två frågor på leverantören ändrar detta, hopfällda under **Fler fält**. V
 | **Personer utan konto** | **Får ett vid sin första inloggning**: de går med i de anslutna projekten; är inget anslutet måste de först bjudas in. **Måste bjudas in först**: personer måste vara inbjudna till ett projekt innan de kan logga in med den här leverantören, även när projekt är anslutna. |
 | **Var den här inloggningen räknas som SSO** | **Alla projekt**: projekt som kräver SSO godtar en inloggning med den här leverantören. **Bara anslutna projekt**: inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. |
 
-Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till.
+Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till: inget av de två svaren lägger till någon i ett projekt. Så länge inget projekt med team är anslutet står det på leverantörens sida under **Personer utan konto** att inga nya kan logga in än.
 
 ## E-postadresser som din identitetsleverantör inte har verifierat
 
@@ -166,7 +166,7 @@ Två ändringar av vem som kan logga in kontrolleras efter varandra. Sparas en a
 ## Felsökning
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har ännu inget OneUptime-konto, och leverantören skapar inget: antingen är inga projekt anslutna till den, eller så står **Personer utan konto** på **Måste bjudas in först**. Bjud in personen till ett projekt, eller anslut ett projekt till leverantören.
+Personen har ännu inget OneUptime-konto, och leverantören skapar inget: antingen är inget projekt med team anslutet till den, eller så står **Personer utan konto** på **Måste bjudas in först**. Bjud in personen till ett projekt, eller anslut ett projekt till leverantören, med de team personen går med i. Serverns logg visar vilket av de två skälen det är, utan att nämna personen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

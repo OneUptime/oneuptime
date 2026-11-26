@@ -24,6 +24,9 @@ import CodeRepositoryService from "../../../Server/Services/CodeRepositoryServic
 import DataSecurityCustomDataTypeService from "../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityIssueFeedService from "../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
+import AIRunService from "../../../Server/Services/AIRunService";
+import DataSecurityIssueGroupService from "../../../Server/Services/DataSecurityIssueGroupService";
+import DataStoreService from "../../../Server/Services/DataStoreService";
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -253,6 +256,20 @@ beforeEach(() => {
   ]);
   useInMemoryTable(asService(DataStoreFindingService), []);
   useInMemoryTable(asService(DataSecurityCustomDataTypeService), []);
+  /*
+   * No fix of the issue on its way yet (#10378): a second press while one
+   * is being written, open or waiting starts nothing.
+   */
+  useInMemoryTable(asService(AIRunService), []);
+  useInMemoryTable(asService(DataSecurityIssueGroupService), []);
+  useInMemoryTable(asService(DataStoreService), [
+    {
+      _id: STORE_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "acme-card-exports",
+      kind: "AWS S3 Bucket",
+    },
+  ]);
 
   // The gate's sources, as the world says.
   jest

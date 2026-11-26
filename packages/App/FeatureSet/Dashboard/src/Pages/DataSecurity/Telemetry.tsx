@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { getConfirmFindingWrite } from "Common/Utils/DataSecurity/DataStoreFindingDecisions";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AppLink from "../../Components/AppLink/AppLink";
 import {
@@ -532,10 +533,11 @@ const DataSecurityTelemetryPage: FunctionComponent<
         onError: ErrorFunction,
       ): Promise<void> => {
         try {
+          // The write Ask AI's judge_data_security_finding makes too (#10378).
           await ModelAPI.updateById<DataStoreFinding>({
             modelType: DataStoreFinding,
             id: new ObjectID(finding._id!.toString()),
-            data: { isConfirmed: true },
+            data: getConfirmFindingWrite(),
           });
           onCompleteAction();
           setRefreshCount((count: number): number => {

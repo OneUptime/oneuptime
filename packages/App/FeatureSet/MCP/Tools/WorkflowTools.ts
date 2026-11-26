@@ -25,6 +25,12 @@ import {
   handleSetupTool,
   isSetupTool,
 } from "./SetupTools";
+import {
+  DATA_SECURITY_TOOL_DEFINITIONS,
+  DataSecurityToolDefinition,
+  handleDataSecurityTool,
+  isDataSecurityTool,
+} from "./DataSecurityTools";
 import McpCredentialUtil, {
   McpCredential,
   McpCredentialInput,
@@ -267,6 +273,23 @@ function getWorkflowToolDefinitions(): Array<WorkflowToolDefinition> {
       ...WORKFLOW_TOOL_DEFINITIONS,
       getMoveInListToolDefinition(),
       ...SETUP_TOOL_DEFINITIONS,
+      /*
+       * Ask AI's Data Security actions and their two reads (#10378, #10889):
+       * one that changes a store in its cloud, or opens a pull request,
+       * reaches outside the project.
+       */
+      ...DATA_SECURITY_TOOL_DEFINITIONS.map(
+        (definition: DataSecurityToolDefinition): WorkflowToolDefinition => {
+          return {
+            name: definition.name,
+            title: definition.title,
+            description: definition.description,
+            inputSchema: definition.inputSchema,
+            readOnly: definition.readOnly,
+            pointsOutside: definition.reachesOutside === true,
+          };
+        },
+      ),
     ];
   }
 
@@ -383,6 +406,10 @@ export async function handleWorkflowTool(
     default:
       if (isSetupTool(toolName)) {
         return handleSetupTool(toolName, args, credential);
+      }
+
+      if (isDataSecurityTool(toolName)) {
+        return handleDataSecurityTool(toolName, args, credential);
       }
 
       throw new Error(`Unknown workflow tool: ${toolName}`);

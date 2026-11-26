@@ -359,6 +359,25 @@ De server heeft ook de instelacties van AI vragen, één aanroep per actie: wat 
 
 Ze handelen als jij, aangemeld met OAuth: een API-sleutel van een project kan de acht die iets maken niet gebruiken. Je client vraagt het je voor elk ervan, en het antwoord zegt wat er is gemaakt. Wat ontbreekt, zoals een recht, een adres of ruimte in het abonnement, wordt gezegd voordat er iets wordt gemaakt.
 
+## Hulpmiddelen voor Gegevensbeveiliging
+
+De server heeft ook [de Gegevensbeveiligingsacties van AI vragen](/docs/data-security/integrations#ai-vragen), elk één aanroep. Elk voert precies de wijziging door die zijn knop in Gegevensbeveiliging doorvoert, als u en met uw rechten, na dezelfde controles:
+
+- **`query_data_security_proposals`**: wat OneUptime AI voorstelt en op een persoon wacht, de riskantste eerst. Met `which: "data-types"` de gegevenstypen die het heeft gevonden en waar scans nog niet naar zoeken: van elk de naam, de categorie en de gevoeligheid, hoe het is aangetoond, en de gegevensopslagen en velden waarin het staat, nooit een waarde. Het verandert niets
+- **`draft_data_security_rule`**: een uit een zin opgestelde residentie-, eigenaars- of labelregel, zoals ‘persoonsgegevens uit de EU moeten in de EU blijven’, met de gegevensopslagen die hij vandaag dekt. Het verandert niets
+- **`scrub_data_security_finding`**: **Opschonen** voor een bevinding in de telemetrie
+- **`judge_data_security_finding`**: **Bevestigen**, of **Niet gevoelig** met een reden, en hetzelfde voor vergelijkbare bevindingen
+- **`change_data_security_issue`**: **Heropenen**, **Toewijzen**, **Risico accepteren** of **Geen probleem**
+- **`set_data_store_owners`**: de eigenaren van een gegevensopslag, toegevoegd of verwijderd
+- **`save_data_security_rule`**: een regel die `draft_data_security_rule` heeft opgesteld
+- **`respond_on_data_store`**: een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Openbare toegang blokkeren**
+- **`fix_data_security_issue_with_ai`**: **Oplossen met AI**, een pull request die iemand beoordeelt en samenvoegt
+- **`decide_data_security_proposal`**: **Goedkeuren** of **Verbergen** voor een voorstel
+
+AI vragen vraagt een persoon vóór sommige hiervan in elke modus, op een kaart die zegt wat er verandert, wat niet meer werkt en wat het kost: reageren op een gegevensopslag, **Niet gevoelig**, **Risico accepteren**, **Geen probleem**, de eigenaren van een gegevensopslag wijzigen, een regel opslaan, over een voorstel beslissen, een opschoning die iets leest, en **Bevestigen** in een project dat iemand alarmeert bij een kritiek probleem. Deze server kan u die kaart niet tonen, dus weigert hij die, zegt waarom en noemt de pagina in OneUptime waar u de wijziging doorvoert. Niets draait ooit zonder die kaart.
+
+De andere handelen als u, aangemeld met OAuth: een API-sleutel van een project kan ze niet gebruiken en gebruikt alleen de twee die niets veranderen. Op een zelf gehoste server laat `MCP_READ_ONLY=true` alleen de hulpmiddelen over die niets veranderen, en weigert `MCP_ALLOW_DESTRUCTIVE=false` het verwijderen van de eigenaren van een gegevensopslag, wat ze wist.
+
 ## Telemetrie opvragen
 
 Logs, metrieken, traces (spans), uitzonderingen, monitorlogs en de andere soorten telemetrie komen als alleen-lezen-tools `list_` en `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` en hun `count_`-tegenhangers). Telemetrie komt binnen via OpenTelemetry, dus er zijn geen aanmaaktools.
