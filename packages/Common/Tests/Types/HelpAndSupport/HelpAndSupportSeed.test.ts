@@ -16,6 +16,7 @@ import {
   HelpAndSupportSeedProblems,
   SEEDED_ITEMS_KEY,
   getHelpAndSupportHelmValue,
+  getHelpAndSupportSeedSourceName,
   getUnappliedSeedItems,
   readHelpAndSupportSeed,
   readSeededItems,
@@ -98,6 +99,15 @@ describe("the variables", () => {
     );
     expect(getHelpAndSupportHelmValue(HelpItem.GitHub)).toBe(
       "helpAndSupport.gitHub",
+    );
+  });
+
+  test("the page names both, since either may have set a setting", () => {
+    expect(getHelpAndSupportSeedSourceName(HelpItem.Chat)).toBe(
+      "HELP_AND_SUPPORT_CHAT (helpAndSupport.chat)",
+    );
+    expect(getHelpAndSupportSeedSourceName(HelpItem.InviteMessage)).toBe(
+      "HELP_AND_SUPPORT_INVITE_MESSAGE (helpAndSupport.inviteMessage)",
     );
   });
 

@@ -73,6 +73,17 @@ export const getHelpAndSupportHelmValue: (item: HelpItem) => string = (
 };
 
 /*
+ * Where the page says a setting was set from: its variable and its Helm
+ * value, "HELP_AND_SUPPORT_CHAT (helpAndSupport.chat)". The server cannot
+ * tell which of the two set it, and each admin knows the one they wrote.
+ */
+export const getHelpAndSupportSeedSourceName: (item: HelpItem) => string = (
+  item: HelpItem,
+): string => {
+  return `${HELP_AND_SUPPORT_SEED_VARIABLES[item]} (${getHelpAndSupportHelmValue(item)})`;
+};
+
+/*
  * Where the settings keep which items were seeded and not changed since:
  * beside the items, under a key no item has, so every reader of the
  * settings (readHelpAndSupportSettings) passes over it.

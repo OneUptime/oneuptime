@@ -35,8 +35,8 @@ import {
 } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import { HelpAndSupportAnswer } from "Common/Types/HelpAndSupport/HelpAndSupportAnswer";
 import {
-  HELP_AND_SUPPORT_SEED_VARIABLES,
   HelpAndSupportSeedProblem,
+  getHelpAndSupportSeedSourceName,
 } from "Common/Types/HelpAndSupport/HelpAndSupportSeed";
 import {
   InviteMessageParagraph,
@@ -441,7 +441,7 @@ const FromConfigurationNotice: FunctionComponent<{
                   {translator.translateTemplate(
                     HelpAndSupportCopy.variableNotUsed,
                     {
-                      variable: problem.variable,
+                      variable: getHelpAndSupportSeedSourceName(problem.item),
                       problem: say(problem.problem),
                     },
                   )}
@@ -816,7 +816,7 @@ const HelpAndSupportSettings: FunctionComponent = (): ReactElement => {
             data-testid={`${getHelpItemTestId(item)}-from-configuration`}
           >
             {translator.translateTemplate(HelpAndSupportCopy.setFromVariable, {
-              variable: HELP_AND_SUPPORT_SEED_VARIABLES[item],
+              variable: getHelpAndSupportSeedSourceName(item),
             })}
           </p>
         ) : (

@@ -1010,14 +1010,15 @@ describe("what came from the server's configuration", () => {
         `${getHelpItemTestId(HelpItem.SupportEmail)}-from-configuration`,
       ),
     ).toHaveTextContent(
-      "Set from HELP_AND_SUPPORT_SUPPORT_EMAIL in this server's configuration.",
+      "Set from HELP_AND_SUPPORT_SUPPORT_EMAIL (helpAndSupport.supportEmail) in this server's configuration.",
     );
+    // Named by its config.env variable and its Helm value: either may have set it.
     expect(
       screen.getByTestId(
         `${getHelpItemTestId(HelpItem.GitHub)}-from-configuration`,
       ),
     ).toHaveTextContent(
-      "Set from HELP_AND_SUPPORT_GITHUB in this server's configuration.",
+      "Set from HELP_AND_SUPPORT_GITHUB (helpAndSupport.gitHub) in this server's configuration.",
     );
 
     for (const item of HELP_ITEMS) {
@@ -1132,7 +1133,7 @@ describe("what came from the server's configuration", () => {
         `${HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}-chat-not-used`,
       ),
     ).toHaveTextContent(
-      `HELP_AND_SUPPORT_CHAT in this server's configuration was not used: ${HelpAndSupportProblems.linkScheme}`,
+      `HELP_AND_SUPPORT_CHAT (helpAndSupport.chat) in this server's configuration was not used: ${HelpAndSupportProblems.linkScheme}`,
     );
     expect(
       screen.getByTestId(
@@ -1175,7 +1176,7 @@ describe("what came from the server's configuration", () => {
         `${getHelpItemTestId(HelpItem.SupportEmail)}-from-configuration`,
       ),
     ).toHaveTextContent(
-      "Aus HELP_AND_SUPPORT_SUPPORT_EMAIL in der Konfiguration dieses Servers gesetzt.",
+      "Aus HELP_AND_SUPPORT_SUPPORT_EMAIL (helpAndSupport.supportEmail) in der Konfiguration dieses Servers gesetzt.",
     );
   });
 });
