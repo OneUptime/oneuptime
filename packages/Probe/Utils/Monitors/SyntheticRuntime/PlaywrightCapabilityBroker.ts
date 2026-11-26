@@ -1,4 +1,4 @@
-import { BrowserContext, Page } from "playwright";
+import { BrowserContext, Frame, Page, Request } from "playwright";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import crypto from "crypto";
 import {
@@ -40,7 +40,10 @@ import {
 } from "./RpcProtocol";
 import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
 import { getTimedOutPageScreenshotName } from "Common/Utils/Monitor/SyntheticTimedOutPageScreenshot";
-import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import SyntheticEgressProxy, {
+  SYNTHETIC_EGRESS_REFUSAL_HEADER,
+  SyntheticEgressRequestAgents,
+} from "./SyntheticEgressProxy";
 
 type HostObject = Record<string, unknown>;
 
@@ -71,6 +74,12 @@ interface BrokerOptions {
   signal: AbortSignal;
   onRuntimeReady: () => void;
   /*
+   * The check's egress proxy, started: every request of the script's axios
+   * (and its http and https facades) goes through it, held to the probe's
+   * egress policy, as the browser's requests are (GHSA-9rx7-vwfj-whp7).
+   */
+  egress: SyntheticEgressProxy;
+  /*
    * Where oneuptime.getTotpCode's codes come from (issue #9703): the run's
    * one-time code secrets, held on this side. The sandbox only ever gets a
    * code. Absent, the run has none, and asking for one says so.
@@ -83,6 +92,28 @@ const MAX_VIEWPORT_DIMENSION: number = 4_096;
 const MAX_VIEWPORT_PIXELS: number = 16_000_000;
 const HTTP_URL_PATTERN: RegExp = /^https?:\/\//i;
 const REGEXP_FLAGS_PATTERN: RegExp = /^[dgimsuvy]*$/;
+// Proxy-Authorization, Proxy-Connection: the egress proxy's headers, never a script's.
+const PROXY_HEADER_PATTERN: RegExp = /^proxy-/i;
+
+/*
+ * Page and frame methods that navigate. When the egress proxy is why one
+ * failed, the script is told the proxy's reason (navigateThroughEgress).
+ */
+const NAVIGATION_METHODS: ReadonlySet<string> = new Set([
+  "goBack",
+  "goForward",
+  "goto",
+  "reload",
+  "waitForNavigation",
+]);
+
+/*
+ * How a browser reports a request whose proxy tunnel failed: Chromium's
+ * net::ERR_TUNNEL_CONNECTION_FAILED, Firefox's NS_ERROR_PROXY_FORBIDDEN,
+ * NS_ERROR_PROXY_BAD_GATEWAY and the like.
+ */
+const TUNNEL_FAILURE_PATTERN: RegExp =
+  /ERR_TUNNEL_CONNECTION_FAILED|NS_ERROR_PROXY_/;
 
 const LOCATOR_CHAIN_METHODS: ReadonlySet<string> = new Set([
   "and",
@@ -402,6 +433,7 @@ export default class PlaywrightCapabilityBroker {
   private readonly internalPages: ReadonlySet<Page>;
   private readonly signal: AbortSignal;
   private readonly onRuntimeReady: () => void;
+  private readonly egress: SyntheticEgressProxy;
   private readonly capabilities: Map<string, CapabilityRecord> = new Map();
   private readonly capabilityIds: WeakMap<HostObject, string> = new WeakMap();
   private readonly screenshotsById: Map<string, Buffer> = new Map();
@@ -427,6 +459,7 @@ export default class PlaywrightCapabilityBroker {
     this.internalPages = options.internalPages ?? new Set<Page>();
     this.signal = options.signal;
     this.onRuntimeReady = options.onRuntimeReady;
+    this.egress = options.egress;
     this.totpCodes = options.totpCodes ?? new TotpCodeIssuer({ secrets: {} });
 
     this.runtimeCapability = this.registerCapability(
@@ -707,11 +740,167 @@ export default class PlaywrightCapabilityBroker {
       throw new Error(`Playwright method '${request.method}' is unavailable.`);
     }
 
+    const navigatedFrame: Frame | null = NAVIGATION_METHODS.has(request.method)
+      ? this.frameOf(target, targetType)
+      : null;
+
+    if (navigatedFrame) {
+      return await this.navigateThroughEgress({
+        frame: navigatedFrame,
+        target,
+        method: method as (...args: unknown[]) => unknown,
+        args: decodedArgs,
+      });
+    }
+
     return await Reflect.apply(
       method as (...args: unknown[]) => unknown,
       target,
       decodedArgs,
     );
+  }
+
+  /*
+   * A navigation, told in the egress proxy's words when the proxy is why it
+   * failed (GHSA-9rx7-vwfj-whp7). The browser reports an https request the
+   * proxy refused or could not carry only as a failed tunnel, and lands an
+   * http one on the proxy's own 403 or 502 as though the site had answered;
+   * the script is told what the axios bridge would tell it instead: "Monitor
+   * target host X is not allowed: ..." or "... could not be reached.".
+   *
+   * Only the navigation's own request counts: the frame's document request
+   * or a hop of its redirects, whose tunnel failed, matched to the tunnel
+   * the proxy refused to that host and port during this call - or the
+   * proxy's own answer, marked, on the response the navigation returns.
+   * Any other failure - a timeout, a certificate, a subresource's refusal on
+   * the same host - is reported as the browser reported it.
+   */
+  private async navigateThroughEgress(data: {
+    frame: Frame;
+    target: HostObject;
+    method: (...args: unknown[]) => unknown;
+    args: unknown[];
+  }): Promise<unknown> {
+    const page: Page = data.frame.page();
+    const since: number = this.egress.getBrowserFailureSequence();
+    // The frame's navigation requests whose proxy tunnel failed, in order.
+    const failedTunnels: Array<string> = [];
+    const onRequestFailed: (request: Request) => void = (
+      request: Request,
+    ): void => {
+      try {
+        if (
+          request.isNavigationRequest() &&
+          request.frame() === data.frame &&
+          TUNNEL_FAILURE_PATTERN.test(request.failure()?.errorText || "")
+        ) {
+          failedTunnels.push(request.url());
+        }
+      } catch {
+        // A request with no frame (a service worker's) navigates nothing.
+      }
+    };
+
+    page.on("requestfailed", onRequestFailed);
+
+    try {
+      let result: unknown;
+
+      try {
+        result = await Reflect.apply(data.method, data.target, data.args);
+      } catch (error: unknown) {
+        for (const url of [...failedTunnels].reverse()) {
+          const target: string | null = SyntheticEgressProxy.targetOfUrl(url);
+          const failure: string | undefined = target
+            ? this.egress.findBrowserFailure({
+                afterSequence: since,
+                target,
+                kind: "tunnel",
+              })
+            : undefined;
+
+          if (failure) {
+            throw new Error(failure);
+          }
+        }
+
+        throw error;
+      }
+
+      const refusal: string | undefined = this.readEgressRefusal(result, since);
+
+      if (refusal) {
+        throw new Error(refusal);
+      }
+
+      return result;
+    } finally {
+      page.off("requestfailed", onRequestFailed);
+    }
+  }
+
+  // The frame a page or frame method navigates, or null for anything else.
+  private frameOf(
+    target: HostObject,
+    targetType: PlaywrightCapabilityType,
+  ): Frame | null {
+    try {
+      if (targetType === "page") {
+        return (target as unknown as Page).mainFrame();
+      }
+      if (targetType === "frame") {
+        const frame: Frame = target as unknown as Frame;
+        // Reached for here, so a frame without a page is not navigated as one.
+        frame.page();
+        return frame;
+      }
+    } catch {
+      // Not a Playwright page or frame: called as it is.
+    }
+    return null;
+  }
+
+  /*
+   * The egress proxy's reason, when a navigation's response is the proxy's
+   * own answer rather than the site's: it carries the proxy's marker,
+   * written for the response's own host and port during this navigation
+   * (readRefusalMarker). A page can read a marker and a site can echo it,
+   * but not for its own response.
+   */
+  private readEgressRefusal(
+    result: unknown,
+    since: number,
+  ): string | undefined {
+    if (!result || typeof result !== "object") {
+      return undefined;
+    }
+
+    const headers: unknown = (result as { headers?: unknown }).headers;
+    const url: unknown = (result as { url?: unknown }).url;
+
+    if (typeof headers !== "function" || typeof url !== "function") {
+      return undefined;
+    }
+
+    let marker: unknown;
+    let responseUrl: unknown;
+
+    try {
+      marker = (Reflect.apply(headers, result, []) as Record<string, unknown>)[
+        SYNTHETIC_EGRESS_REFUSAL_HEADER
+      ];
+      responseUrl = Reflect.apply(url, result, []);
+    } catch {
+      return undefined;
+    }
+
+    return typeof marker === "string" && typeof responseUrl === "string"
+      ? this.egress.readRefusalMarker({
+          value: marker,
+          url: responseUrl,
+          afterSequence: since,
+        })
+      : undefined;
   }
 
   private applyLocatorChainStep(
@@ -1284,9 +1473,20 @@ export default class PlaywrightCapabilityBroker {
       config.data = bridgeRequest.data;
     }
     if (isRecord(requestedConfig["headers"])) {
-      config.headers = requestedConfig["headers"] as NonNullable<
-        AxiosRequestConfig["headers"]
+      /*
+       * A proxy's own headers are the egress proxy's to send: one from the
+       * script would only be read as the request's own sign-in there.
+       */
+      const headers: Record<string, unknown> = Object.create(null) as Record<
+        string,
+        unknown
       >;
+      for (const [name, value] of Object.entries(requestedConfig["headers"])) {
+        if (!PROXY_HEADER_PATTERN.test(name)) {
+          headers[name] = value;
+        }
+      }
+      config.headers = headers as NonNullable<AxiosRequestConfig["headers"]>;
     }
     if (isRecord(requestedConfig["params"])) {
       config.params = requestedConfig["params"];
@@ -1302,34 +1502,93 @@ export default class PlaywrightCapabilityBroker {
       };
     }
 
+    /*
+     * Through the check's egress proxy, never directly (GHSA-9rx7-vwfj-whp7):
+     * it asks the egress guard about the host of this request and of every
+     * redirect axios follows, connects only to an address it approved, and
+     * goes through the operator's outbound proxy itself, with the proxy's
+     * real user name and password (#10442). axios's own proxy is off, so the
+     * environment's proxy settings cannot route around it.
+     */
+    const agents: SyntheticEgressRequestAgents =
+      this.egress.createRequestAgents();
+    config.proxy = false;
+    config.httpAgent = agents.httpAgent;
+    config.httpsAgent = agents.httpsAgent;
+    /*
+     * Every request axios makes - the first, and each redirect it follows -
+     * is counted, so what comes back can be checked against what the egress
+     * proxy carried (assertSentThroughEgress).
+     */
+    let requestsMade: number = 1;
+    config.beforeRedirect = (): void => {
+      requestsMade += 1;
+    };
+
     try {
-      /*
-       * Through the outbound proxy the probe's environment names, or
-       * directly, as every request of the probe goes (OutboundProxyAgents):
-       * never through a proxy axios reads itself, which sent the proxy's
-       * password percent-encoded (#10442).
-       */
-      const response: AxiosResponse = await axios.request(
-        OutboundProxyAgents.routeAxiosRequest(config),
-      );
+      let response: AxiosResponse;
+
+      try {
+        response = await axios.request(config);
+      } catch (error: unknown) {
+        /*
+         * A refusal, or a host the egress proxy could not reach, is the
+         * script's error - as a refused or unreachable host always was -
+         * never the proxy's own answer dressed up as the target's.
+         */
+        this.throwEgressFailure(agents);
+
+        if (axios.isAxiosError(error) && error.response) {
+          this.assertSentThroughEgress(agents, requestsMade);
+          return {
+            __oneuptimeAxiosError: true,
+            data: error.response.data,
+            headers: this.copyHeaders(error.response.headers),
+            message: error.message,
+            status: error.response.status,
+            statusText: error.response.statusText,
+          };
+        }
+        throw error;
+      }
+
+      this.throwEgressFailure(agents);
+      this.assertSentThroughEgress(agents, requestsMade);
+
       return {
         data: response.data,
         headers: this.copyHeaders(response.headers),
         status: response.status,
         statusText: response.statusText,
       };
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response) {
-        return {
-          __oneuptimeAxiosError: true,
-          data: error.response.data,
-          headers: this.copyHeaders(error.response.headers),
-          message: error.message,
-          status: error.response.status,
-          statusText: error.response.statusText,
-        };
-      }
-      throw error;
+    } finally {
+      agents.release();
+    }
+  }
+
+  private throwEgressFailure(agents: SyntheticEgressRequestAgents): void {
+    const failure: string | undefined = agents.takeFailure();
+
+    if (failure) {
+      throw new Error(failure);
+    }
+  }
+
+  /*
+   * Fails closed: a response is handed to the script only when the egress
+   * proxy carried every request axios made for it. Should a Node, axios or
+   * agent change ever send a request - or one redirect hop - around the
+   * proxy, its answer is withheld here rather than read back from wherever
+   * it went.
+   */
+  private assertSentThroughEgress(
+    agents: SyntheticEgressRequestAgents,
+    requestsMade: number,
+  ): void {
+    if (agents.requestsSeen() < requestsMade) {
+      throw new Error(
+        "The probe did not hand back this request's response: the request did not go through the probe's egress checks.",
+      );
     }
   }
 

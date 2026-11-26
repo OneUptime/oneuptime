@@ -250,7 +250,11 @@ describe("a service's recommended monitors", () => {
 
     expect(plan).toHaveLength(1);
     expect(plan[0]!.monitor.name).toBe("checkout - Error Burst");
-    expect(plan[0]!.miscDataProps).toEqual({});
+    /*
+     * No owners, and its name is OneUptime's: numbered rather than refused
+     * where the project requires unique names (#10761).
+     */
+    expect(plan[0]!.miscDataProps).toEqual({ numbersTakenName: true });
 
     // Alerts only: every criteria that opens something opens an alert.
     for (const step of plan[0]!.monitor.monitorSteps?.data

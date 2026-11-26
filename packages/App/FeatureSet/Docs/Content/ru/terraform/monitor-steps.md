@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` и `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` и `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Повторные попытки, когда скрипт завершается ошибкой: `0` запускает его один раз. |
+| `do_not_sync_fields` | list(string) | Шаблоны мониторов | Поля, которые каждый монитор, созданный из шаблона, оставляет своими, когда шаблон синхронизирует с ним свои шаги, например `monitorDestination` или `dnsMonitor.queryName`: те, что перечисляет его карточка **Настройки синхронизации шаблона**. |
 | `criteria` | list (обязательный) | Все | Как оценивается каждый результат: см. [Атрибуты критерия](#атрибуты-критерия). |
 
 ### Настройки каждого типа монитора
 
-Типы мониторов, у которых есть что настроить помимо адреса, хранят свои настройки (запрос к логам, подключение к базе данных, кластер для наблюдения) в собственном атрибуте, в виде сырого JSON, записанного через `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` и `probe_status_monitor`.
+Типы мониторов, у которых есть что настроить помимо адреса, хранят свои настройки (запрос к логам, подключение к базе данных, кластер для наблюдения) в собственном атрибуте, в виде сырого JSON, записанного через `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` и `probe_status_monitor`.
 
 Их JSON такой же, как в панели управления, с ключами в camelCase. ID внутри него записывается так, как его записывает API: `{ _type = "ObjectID", value = "..." }`. Монитор Logs, который считает ошибки одного сервиса:
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### Инциденты и оповещения
 
-Элемент `incidents` принимает `title` и `description` (оба обязательны), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` и `is_private`. Элемент `alerts` принимает то же самое, с `alert_severity_id` и `auto_resolve_alert` и без `show_incident_on_status_page`.
+Элемент `incidents` принимает `title` и `description` (оба обязательны), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` и `is_private`. Элемент `alerts` принимает то же самое, с `alert_severity_id` и `auto_resolve_alert` и без `show_incident_on_status_page` и `incident_member_roles`. `incident_member_roles` даёт людям роль в каждом инциденте, который открывает критерий, например руководителя инцидента: один `{ role_id, user_id }` на человека и роль.
 
 Этот критерий переводит монитор в offline, открывает инцидент, который вызывает политику дежурства, и закрывает его, когда сайт возвращается:
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## Монитор без шагов
 
 `monitor_steps` необязателен, но у монитора, созданного без него, нет критериев, по которым оценивать результат: зонды пропускают монитор без шагов, и он остаётся в статусе, с которого начал. Ваш state хранит атрибут пустым, и план остаётся чистым. Ручному монитору шаги никогда не нужны: его статус вы задаёте сами. Любому другому типу нужен хотя бы один шаг, чтобы что-то проверять.
+
+## Что сохраняет apply
+
+Apply, который меняет `monitor_steps`, отправляет шаги целиком, и OneUptime заменяет ими шаги, которые хранит. Настройка, которую ваша конфигурация может записать и не записывает, удаляется, как показывает plan. Два вида настроек вместо этого сохраняются так, как их хранит OneUptime, потому что никакой plan не может их показать. Apply сначала читает шаги, которые хранит OneUptime, и завершается ошибкой, ничего не записав, если не может их прочитать.
+
+Настройка, для которой у провайдера нет атрибута, например `snmpMonitor`, который ещё хранят шаги выведенного из употребления типа монитора SNMP, или настройка, которая есть в более новом OneUptime и которую ваша версия провайдера ещё не знает, остаётся на своём шаге, критерии, инциденте или оповещении. Каждая сопоставляется так, как OneUptime сопоставляет их, чтобы сохранить их ID: шаг — по позиции, критерий — по имени, а инцидент или оповещение — по заголовку, иначе по позиции. Когда ваша конфигурация убирает этот шаг, критерий, инцидент или оповещение, настройка уходит вместе с ним.
+
+Настройка, которую вы записываете через `jsonencode()`, например `dns_monitor`, `incident_grouping` или `metric_monitor_options` фильтра, сравнивается по тому, что она записывает. OneUptime может хранить в ней больше — собственное значение по умолчанию или ключ, заданный в панели управления: это не изменение, и apply это сохраняет. Ключ, который вы убираете из `jsonencode()`, удаляется. В списке то, что OneUptime хранит сверх того, сохраняется поэлементно, пока в списке столько же элементов, сколько в списке OneUptime.
 
 ## Формат передачи
 

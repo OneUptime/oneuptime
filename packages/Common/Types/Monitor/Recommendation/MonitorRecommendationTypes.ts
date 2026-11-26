@@ -35,6 +35,8 @@ export enum MonitorRecommendationResourceType {
   Proxmox = "Proxmox",
   OpenStack = "OpenStack",
   VMware = "VMware",
+  // An XCP-ng pool (the XcpNgPool model), scoped by its XAPI UUID.
+  XcpNg = "XcpNg",
   Ceph = "Ceph",
   /*
    * A storage array (the StorageArray model). Its recommendation set depends
@@ -236,8 +238,8 @@ export interface MonitorRecommendationContext {
    * A storage array's platform — its `storageSystem`, a StorageSystem value
    * such as "purestorage.flasharray". It selects the templates whose metrics
    * that platform exports (`getStorageArrayAlertTemplatesForSystem`): a
-   * FlashBlade never sends a purefa_* series, so a FlashArray template on it
-   * would never fire. Like a database's engine there is no platform-agnostic
+   * FlashBlade never sends a FlashArray's series, so a FlashArray template
+   * on it would never fire. Like a database's engine there is no platform-agnostic
    * subset, so `null` / `undefined` (not reported yet) and a platform
    * OneUptime ships no templates for are offered nothing.
    */
@@ -397,6 +399,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   clusterIdentifier -> Kubernetes, DockerSwarm, Proxmox, Ceph
  *   cloudIdentifier   -> OpenStack
  *   vcenterIdentifier -> VMware
+ *   poolIdentifier    -> XCP-ng
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice
  *   arrayIdentifier   -> Storage array

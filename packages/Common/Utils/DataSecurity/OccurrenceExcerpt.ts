@@ -5,7 +5,9 @@ import {
 } from "../../Types/DataSecurity/DataSecurityApiTypes";
 import BUILT_IN_DETECTORS, { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { getHintedDataTypeIds } from "./FieldNameHints";
-import { maskValue } from "./Masking";
+import { maskModelFoundValue, maskValue } from "./Masking";
+import { RecognizedEntity } from "./Model/RecognizedEntity";
+import { QUERY_NAME_DATA_TYPE_ID } from "./QueryStringNames";
 import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
 
 /*
@@ -29,6 +31,12 @@ import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
  *    with control characters (a terminal's colour codes) taken out.
  *  - The cut never falls inside a sensitive value: a value the edge would
  *    cut is taken whole, so half of one is never shown unmasked.
+ *  - A value the names-and-addresses model read (#10926) is cut around the
+ *    name or the street address it found, as the scan found it, and every
+ *    other name and address it found is masked too: a person's name beside
+ *    a street address is never shown. Without what the model found, a
+ *    finding of a type with no pattern of its own is the whole value,
+ *    masked.
  */
 
 // How much of the value before the finding's data, and after it, is kept.
@@ -53,6 +61,20 @@ interface MarkedMatch {
   end: number;
   dataTypeId: string;
   kind: DataSecurityOccurrenceExcerptPartKind;
+  // Found by the names-and-addresses model: masked as its samples are.
+  fromModel?: boolean | undefined;
+}
+
+/*
+ * A match as the excerpt shows it: masked as a finding's samples are - what
+ * the model found as its samples are too, its first character and a fixed
+ * mask (Masking.maskModelFoundValue), so an excerpt never shows more of a
+ * name or a street address than a sample does.
+ */
+function maskMatch(match: MarkedMatch, text: string): string {
+  return match.fromModel
+    ? maskModelFoundValue(text)
+    : maskValue(match.dataTypeId, text);
 }
 
 function isWhitespace(code: number): boolean {
@@ -198,6 +220,11 @@ export function buildOccurrenceExcerpt(data: {
   field?: string | undefined;
   event?: string | undefined;
   options?: OccurrenceExcerptOptions | undefined;
+  /*
+   * What the names-and-addresses model found in this very value, at its
+   * places in it, when the model read it (Model/ModelRereads.ts).
+   */
+  recognized?: ReadonlyArray<RecognizedEntity> | undefined;
 }): DataSecurityOccurrenceExcerpt {
   const value: string = data.value;
   const options: OccurrenceExcerptOptions = data.options || {};
@@ -239,15 +266,32 @@ export function buildOccurrenceExcerpt(data: {
     return excerpt;
   };
 
+  const recognized: ReadonlyArray<RecognizedEntity> = data.recognized || [];
+  // What the model found of the finding's own type.
+  const ownRecognized: Array<RecognizedEntity> = recognized.filter(
+    (entity: RecognizedEntity): boolean => {
+      return entity.dataTypeId === data.dataTypeId;
+    },
+  );
+
+  // A person's name: one a URL's query parameter names too (#11034).
+  const readsQueryStringNames: boolean =
+    data.dataTypeId === QUERY_NAME_DATA_TYPE_ID;
+
   // The finding's own data, found as the scan found it.
   const own: Array<MarkedMatch> =
-    ownDetectors.length > 0
-      ? findSensitiveValues(value, {
-          detectors: ownDetectors,
-          hintedDataTypeIds: hinted,
-          disabledDataTypeIds: options.disabledDataTypeIds,
-          allowedValues: options.allowedValues,
-        })
+    ownDetectors.length > 0 || ownRecognized.length > 0 || readsQueryStringNames
+      ? findSensitiveValues(
+          value,
+          {
+            detectors: ownDetectors,
+            hintedDataTypeIds: hinted,
+            disabledDataTypeIds: options.disabledDataTypeIds,
+            allowedValues: options.allowedValues,
+            readsQueryStringNames,
+          },
+          ownRecognized,
+        )
           .filter((match: TextMatch): boolean => {
             return match.dataTypeId === data.dataTypeId && !match.isTestValue;
           })
@@ -257,35 +301,49 @@ export function buildOccurrenceExcerpt(data: {
               end: match.end,
               dataTypeId: match.dataTypeId,
               kind: DataSecurityOccurrenceExcerptPartKind.Match,
+              fromModel: match.fromModel === true,
             };
           })
       : [];
 
   if (own.length === 0) {
-    // Found by its shape or its field's name: the whole value is the data.
+    /*
+     * Found by its shape or its field's name: the whole value is the data -
+     * masked as the model's samples are, for a value the model read.
+     */
     return named([
       {
         kind: DataSecurityOccurrenceExcerptPartKind.Match,
-        text: maskValue(data.dataTypeId, value.trim()),
+        text: data.recognized
+          ? maskModelFoundValue(value)
+          : maskValue(data.dataTypeId, value.trim()),
       },
     ]);
   }
 
-  // Every other sensitive value, of any type, whatever the project turned off.
+  /*
+   * Every other sensitive value, of any type, whatever the project turned
+   * off - every name and address the model found among them.
+   */
   const others: Array<MarkedMatch> = withoutOverlaps(
     own,
-    findSensitiveValues(value, {
-      detectors:
-        customDetectors.length > 0
-          ? [...BUILT_IN_DETECTORS, ...customDetectors]
-          : BUILT_IN_DETECTORS,
-      hintedDataTypeIds: hinted,
-    }).map((match: TextMatch): MarkedMatch => {
+    findSensitiveValues(
+      value,
+      {
+        detectors:
+          customDetectors.length > 0
+            ? [...BUILT_IN_DETECTORS, ...customDetectors]
+            : BUILT_IN_DETECTORS,
+        hintedDataTypeIds: hinted,
+      },
+      recognized,
+    ).map((match: TextMatch): MarkedMatch => {
       return {
         start: match.start,
         end: match.end,
         dataTypeId: match.dataTypeId,
         kind: DataSecurityOccurrenceExcerptPartKind.Masked,
+        fromModel: match.fromModel === true,
       };
     }),
   );
@@ -358,7 +416,7 @@ export function buildOccurrenceExcerpt(data: {
     addText(value.slice(position, match.start));
     parts.push({
       kind: match.kind,
-      text: maskValue(match.dataTypeId, value.slice(match.start, match.end)),
+      text: maskMatch(match, value.slice(match.start, match.end)),
     });
     position = match.end;
   }

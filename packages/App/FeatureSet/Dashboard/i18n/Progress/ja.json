@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 1422
+    "keys": 65322,
+    "untranslated": 1442
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -274,6 +274,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID",
     "VMID {{vmid}}",
     "VMware VM",
@@ -342,6 +344,7 @@
     "npm test",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",

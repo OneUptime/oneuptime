@@ -23,6 +23,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Toast from "Common/UI/Utils/Toast";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { ReactElement, useRef, useState } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -30,9 +31,9 @@ import {
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
 import {
-  BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserPushError,
   BrowserPushProblem,
+  getBrowserPushProblemMessage,
   getDefaultDeviceName,
   getThisBrowserDeviceId,
   readBrowserIdentity,
@@ -291,7 +292,11 @@ const Push: () => JSX.Element = (): ReactElement => {
   const openRegisterDeviceModal: () => void = (): void => {
     const problem: BrowserPushProblem | null = getProblemBeforeAsking();
 
-    setError(problem ? BROWSER_PUSH_PROBLEM_MESSAGES[problem] : "");
+    setError(
+      problem
+        ? getBrowserPushProblemMessage(problem, mobileAppOffer !== null)
+        : "",
+    );
     setShowRegisterDeviceModal(true);
   };
 
@@ -313,7 +318,7 @@ const Push: () => JSX.Element = (): ReactElement => {
     const problem: BrowserPushProblem | null = getProblemBeforeAsking();
 
     if (problem) {
-      setError(BROWSER_PUSH_PROBLEM_MESSAGES[problem]);
+      setError(getBrowserPushProblemMessage(problem, mobileAppOffer !== null));
       return;
     }
 
@@ -337,7 +342,7 @@ const Push: () => JSX.Element = (): ReactElement => {
     } catch (err: unknown) {
       setError(
         err instanceof BrowserPushError
-          ? err.message
+          ? getBrowserPushProblemMessage(err.problem, mobileAppOffer !== null)
           : API.getFriendlyMessage(err),
       );
     } finally {
@@ -764,6 +769,15 @@ const Push: () => JSX.Element = (): ReactElement => {
           closeButtonText="Close"
           isLoading={isSendingTestNotification}
           error={testNotificationError || undefined}
+          /*
+           * What failed is the Send Test Notification the person pressed, as its
+           * button names it: the title names no action (#7680).
+           */
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Send Test Notification") ||
+              "Send Test Notification",
+          )}
           onClose={() => {
             setRegisteredBrowser(null);
             setTestNotificationError("");

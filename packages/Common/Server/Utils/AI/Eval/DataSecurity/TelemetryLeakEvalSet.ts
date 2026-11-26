@@ -6,18 +6,28 @@ import {
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import {
   TelemetryLeakFixDecision,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakPlace,
   TelemetryLeakSignal,
   decideTelemetryLeakFix,
-  getTelemetryLeakSignal,
+  getRumSessionKey,
+  getTelemetryLeakSignalOf,
   getTelemetryLeakStartFiles,
 } from "../../../../../Types/DataSecurity/TelemetryLeakFix";
 import { getScrubTarget } from "../../../../../Types/DataSecurity/TelemetryScrubTarget";
 import { JSONObject } from "../../../../../Types/JSON";
 import { buildTelemetryLeakTemplate } from "../../../../../Utils/DataSecurity/TelemetryLeakTemplate";
 import { ResolvableRepository } from "../../../CodeRepository/StackTraceRepoResolver";
-import { readLeakPlaces } from "../../../DataSecurity/Telemetry/TelemetryLeakPlaces";
+import {
+  readLeakPlaces,
+  resolveRumStacks,
+} from "../../../DataSecurity/Telemetry/TelemetryLeakPlaces";
+import SourceMapResolver from "../../../Telemetry/SourceMapResolver";
+import {
+  MinifiedStackFrame,
+  ResolvedStackFrame,
+} from "../../../../../Types/Telemetry/SourceMap";
 import {
   TelemetryLeakRepositoryGroup,
   TelemetryLeakToPlace,
@@ -56,6 +66,12 @@ import { FixEvalFileCheck } from "./DataSecurityEvalCase";
  *     handed that very request, fixes the repository, and a check never in
  *     the repository says the data no longer leaves the service.
  *
+ * A RUM application's cases (#10933) are a web application's front-end
+ * code: a browser log whose record holds a minified JavaScript stack,
+ * which the application's recorded source map resolves to the original
+ * file and line, and a session the page identifies by the customer's
+ * email, found by the session recorder call that gave it.
+ *
  * No value here is a customer's, and no secret is written as one: a key
  * is put together where it is used (fakeKey), so no scanner reads one here.
  */
@@ -84,11 +100,18 @@ export interface RecordedTelemetryLeakFinding {
   leadsTo: Array<{ file: string; line: number }>;
   // The values the records hold: none may reach the request.
   values: Array<string>;
+  /*
+   * A RUM application's: the source map its build uploaded for the bundle
+   * its records' stacks name, which resolves them to the original files.
+   */
+  sourceMap?: { bundlePath: string; content: string } | undefined;
 }
 
 export interface TelemetryLeakEvalCase {
   id: string;
   title: string;
+  // A service's, unless it is a RUM application's front end (#10933).
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceId: string;
   serviceName: string;
   // The repository the service's code is in: path to content.
@@ -971,12 +994,271 @@ const TEMPLATE_ONLY: TelemetryLeakEvalCase = {
   },
 };
 
+/*
+ * ---------------------------------------------------------------------------
+ * 6. A web application logs a declined payment with the customer's email:
+ *    its browser log's minified stack, resolved through the bundle's
+ *    source map, leads to the original file and line (#10933).
+ * ---------------------------------------------------------------------------
+ */
+
+const PAYMENT_JS: string = [
+  '"use strict";',
+  "",
+  'const { logger } = require("../telemetry");',
+  "",
+  "// Pays for the cart, and says so when the card is declined.",
+  "function pay(cart, customer) {",
+  "  if (cart.total > customer.limit) {",
+  '    logger.warn("Payment declined", { "user.email": customer.email, "cart.total": cart.total });',
+  "",
+  "    return { paid: false };",
+  "  }",
+  "",
+  "  return { paid: true };",
+  "}",
+  "",
+  "module.exports = { pay };",
+  "",
+].join("\n");
+
+// The base64 digits of a source map's numbers (VLQ): each fits one digit here.
+const VLQ_DIGITS: string =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// A small, non-negative number as a source map writes it.
+function vlq(value: number): string {
+  return VLQ_DIGITS.charAt(value * 2);
+}
+
+/*
+ * The source map the web application's build uploaded for its bundle: the
+ * bundle's first line, first column, is the original file's logger.warn
+ * call in pay().
+ */
+const PAYMENT_SOURCE_MAP: string = JSON.stringify({
+  version: 3,
+  file: "app.3f9c1e.js",
+  sources: ["webpack://storefront-web/./src/checkout/payment.js"],
+  names: ["pay"],
+  mappings: [
+    vlq(0),
+    vlq(0),
+    vlq(lineOf(PAYMENT_JS, "logger.warn") - 1),
+    vlq(4),
+    vlq(0),
+  ].join(""),
+});
+
+const RUM_LOG_STACK: TelemetryLeakEvalCase = {
+  id: "browser-log-email-found-through-a-source-map",
+  title:
+    "A web application logs a declined payment with the customer's email, from a minified bundle",
+  ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+  serviceId: "5e000000-0000-4000-8000-000000000006",
+  serviceName: "storefront-web",
+  files: {
+    "package.json": PACKAGE_JSON("storefront-web"),
+    "src/telemetry.js": TELEMETRY_JS,
+    "src/checkout/payment.js": PAYMENT_JS,
+    "test/payment.test.js": [
+      '"use strict";',
+      "",
+      'const test = require("node:test");',
+      'const assert = require("node:assert");',
+      'const { pay } = require("../src/checkout/payment");',
+      "",
+      'test("a card over its limit is declined", () => {',
+      '  assert.deepStrictEqual(pay({ total: 120 }, { limit: 100, email: "a@example.org" }), { paid: false });',
+      "});",
+      "",
+    ].join("\n"),
+  },
+  findings: [
+    {
+      findingId: "f1000000-0000-4000-8000-000000000008",
+      issueId: "15000000-0000-4000-8000-000000000601",
+      dataStoreId: "51000000-0000-4000-8000-000000000601",
+      storeKind: DataStoreKind.TelemetrySessionReplays,
+      checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+      location: "logs.attributes.user.email",
+      dataTypeId: "email-address",
+      rows: [
+        {
+          recordTime: at(600),
+          readLogId: "a1b2c3d4-0000-4000-8000-000000000601",
+          readBody: "Payment declined",
+          // The page holds the customer's email in its path and a coupon in its query.
+          readUrlFull:
+            "https://shop.example.com/checkout/ada.l@example.com/pay?coupon=SPRING10",
+          readStackTrace: [
+            "Error: Payment declined",
+            "    at pay (https://shop.example.com/assets/app.3f9c1e.js:1:1)",
+          ].join("\n"),
+          readServiceVersion: "web-1.4.2",
+        },
+      ],
+      leadsTo: [
+        {
+          file: "src/checkout/payment.js",
+          line: lineOf(PAYMENT_JS, "logger.warn"),
+        },
+      ],
+      values: ["ada.l@example.com", "SPRING10"],
+      sourceMap: {
+        bundlePath: "assets/app.3f9c1e.js",
+        content: PAYMENT_SOURCE_MAP,
+      },
+    },
+  ],
+  expectStrategy: TelemetryLeakFixStrategy.CallSites,
+  expect: [
+    {
+      path: "src/checkout/payment.js",
+      mustMatch: ["logger\\.warn\\("],
+      mustNotMatch: ['"user\\.email"\\s*:\\s*customer\\.email'],
+    },
+  ],
+  check: [
+    'const telemetry = load("src/telemetry.js");',
+    'const { pay } = load("src/checkout/payment.js");',
+    "telemetry.reset();",
+    'assert.deepStrictEqual(pay({ total: 120 }, { limit: 100, email: "ada.l@example.com" }), { paid: false }, "a card over its limit is no longer declined");',
+    'assert.strictEqual(telemetry.exported.logs.length, 1, "the decline is no longer logged");',
+    'assert.ok(!JSON.stringify(telemetry.exported).includes("ada.l@example.com"), "the email address still reaches the browser log");',
+  ].join("\n"),
+  solution: {
+    "src/checkout/payment.js": PAYMENT_JS.replace(
+      '"user.email": customer.email, ',
+      "",
+    ),
+  },
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * 7. A web application identifies its sessions by the customer's email: found
+ *    by the session recorder call that gave it (#10933).
+ * ---------------------------------------------------------------------------
+ */
+
+const SESSION_JS: string = [
+  '"use strict";',
+  "",
+  'const recorder = require("./recorder");',
+  "",
+  "// Starts recording the signed-in customer's session.",
+  "function startSession(customer) {",
+  "  recorder.identify(customer.email, { plan: customer.plan });",
+  "}",
+  "",
+  "module.exports = { startSession };",
+  "",
+].join("\n");
+
+// The session recorder as the page loads it: who each session belongs to.
+const RECORDER_JS: string = [
+  '"use strict";',
+  "",
+  "const sessions = [];",
+  "",
+  "function identify(userRef, traits) {",
+  "  sessions.push({ userRef, traits: { ...(traits || {}) } });",
+  "}",
+  "",
+  "function reset() {",
+  "  sessions.length = 0;",
+  "}",
+  "",
+  "module.exports = { identify, sessions, reset };",
+  "",
+].join("\n");
+
+const RUM_SESSION_IDENTIFY: TelemetryLeakEvalCase = {
+  id: "session-identified-by-the-customers-email",
+  title:
+    "A web application identifies the customer's recorded session by their email",
+  ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+  serviceId: "5e000000-0000-4000-8000-000000000007",
+  serviceName: "storefront-web",
+  files: {
+    "package.json": PACKAGE_JSON("storefront-web"),
+    "src/session.js": SESSION_JS,
+    "src/recorder.js": RECORDER_JS,
+    "test/session.test.js": [
+      '"use strict";',
+      "",
+      'const test = require("node:test");',
+      'const assert = require("node:assert");',
+      'const recorder = require("../src/recorder");',
+      'const { startSession } = require("../src/session");',
+      "",
+      'test("a signed-in session is identified", () => {',
+      "  recorder.reset();",
+      '  startSession({ id: "c-1", email: "a@example.org", plan: "pro" });',
+      "  assert.strictEqual(recorder.sessions.length, 1);",
+      "});",
+      "",
+    ].join("\n"),
+  },
+  findings: [
+    {
+      findingId: "f1000000-0000-4000-8000-000000000009",
+      issueId: "15000000-0000-4000-8000-000000000701",
+      dataStoreId: "51000000-0000-4000-8000-000000000701",
+      storeKind: DataStoreKind.TelemetrySessionReplays,
+      checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+      location: "sessions.identifiedUserLabel",
+      dataTypeId: "email-address",
+      rows: [
+        {
+          recordTime: at(700),
+          readSessionId: "s-7f3c",
+          readPage:
+            "https://shop.example.com/account/ada.l@example.com/settings?tab=billing",
+        },
+      ],
+      leadsTo: [
+        {
+          file: "src/session.js",
+          line: lineOf(SESSION_JS, "recorder.identify"),
+        },
+      ],
+      values: ["ada.l@example.com"],
+    },
+  ],
+  expectStrategy: TelemetryLeakFixStrategy.CallSites,
+  expect: [
+    {
+      path: "src/session.js",
+      mustMatch: ["identify\\("],
+      mustNotMatch: ["identify\\(customer\\.email"],
+    },
+  ],
+  check: [
+    'const recorder = load("src/recorder.js");',
+    'const { startSession } = load("src/session.js");',
+    "recorder.reset();",
+    'startSession({ id: "c-4821", email: "ada.l@example.com", plan: "pro" });',
+    'assert.strictEqual(recorder.sessions.length, 1, "the session is no longer identified");',
+    'assert.ok(!JSON.stringify(recorder.sessions).includes("ada.l@example.com"), "the email address still identifies the session");',
+  ].join("\n"),
+  solution: {
+    "src/session.js": SESSION_JS.replace(
+      "recorder.identify(customer.email,",
+      "recorder.identify(customer.id,",
+    ),
+  },
+};
+
 export const TELEMETRY_LEAK_EVAL_SET: ReadonlyArray<TelemetryLeakEvalCase> = [
   SPAN_AND_LOG,
   TWENTY_PLACES,
   SECRET_IN_EXCEPTION,
   METRIC_ATTRIBUTE,
   TEMPLATE_ONLY,
+  RUM_LOG_STACK,
+  RUM_SESSION_IDENTIFY,
 ];
 
 // The source a telemetry store's records are read from: what the locator reads a row as.
@@ -988,7 +1270,40 @@ const SOURCE_OF_SIGNAL: Readonly<
   [TelemetryLeakSignal.Exceptions]: TelemetrySampleSource.Exceptions,
   [TelemetryLeakSignal.AiCalls]: TelemetrySampleSource.AiConversations,
   [TelemetryLeakSignal.Metrics]: TelemetrySampleSource.Metrics,
+  [TelemetryLeakSignal.RumLogs]: TelemetrySampleSource.RumLogs,
+  [TelemetryLeakSignal.RumSpans]: TelemetrySampleSource.RumSpans,
+  [TelemetryLeakSignal.RumSessions]: TelemetrySampleSource.RumSessions,
 };
+
+/*
+ * A RUM finding's records with their stacks resolved through its recorded
+ * source map, as the locator resolves them through the uploaded ones
+ * (resolveRumStacks): copies, so the case keeps what was recorded.
+ */
+export async function resolveTelemetryLeakEvalRows(
+  finding: RecordedTelemetryLeakFinding,
+): Promise<Array<JSONObject>> {
+  const rows: Array<JSONObject> = finding.rows.map(
+    (row: JSONObject): JSONObject => {
+      return { ...row };
+    },
+  );
+  const sourceMap: { bundlePath: string; content: string } | undefined =
+    finding.sourceMap;
+
+  if (sourceMap) {
+    await resolveRumStacks({
+      rows,
+      resolve: async (data: {
+        frames: Array<MinifiedStackFrame>;
+      }): Promise<Array<ResolvedStackFrame>> => {
+        return SourceMapResolver.resolveFrames(data.frames, [sourceMap]);
+      },
+    });
+  }
+
+  return rows;
+}
 
 export interface LocatedTelemetryLeakEvalCase {
   group: TelemetryLeakRepositoryGroup;
@@ -997,24 +1312,30 @@ export interface LocatedTelemetryLeakEvalCase {
   request: DataSecurityAiCodeRequest;
 }
 
-// A case's findings as leaks: each one's records read as the locator reads them.
+/*
+ * A case's findings as leaks: each one's records read as the locator reads
+ * them - their stacks resolved first, when the rows are handed in so.
+ */
 export function readTelemetryLeakEvalLeaks(
   testCase: TelemetryLeakEvalCase,
+  rowsOf?:
+    | ((finding: RecordedTelemetryLeakFinding) => Array<JSONObject>)
+    | undefined,
 ): Array<TelemetryLeakToPlace> {
   const namer: DataTypeNamer = DataTypeNamer.withoutCustomTypes();
 
   return testCase.findings.map(
     (finding: RecordedTelemetryLeakFinding): TelemetryLeakToPlace => {
-      const signal: TelemetryLeakSignal = getTelemetryLeakSignal(
-        finding.storeKind,
-      )!;
-      const key: string | undefined = getScrubTarget(
+      const signal: TelemetryLeakSignal = getTelemetryLeakSignalOf(
         finding.storeKind,
         finding.location,
-      )?.key;
+      )!;
+      const key: string | undefined =
+        getScrubTarget(finding.storeKind, finding.location)?.key ||
+        getRumSessionKey(finding.location);
       const places: Array<TelemetryLeakPlace> = readLeakPlaces({
         source: SOURCE_OF_SIGNAL[signal],
-        rows: finding.rows,
+        rows: rowsOf ? rowsOf(finding) : finding.rows,
         location: finding.location,
         templateOf: (text: string): string => {
           return buildTelemetryLeakTemplate(text, {
@@ -1063,6 +1384,7 @@ function requestOf(data: {
   startFiles: Array<string>;
 }): DataSecurityAiCodeRequest {
   return buildTelemetryLeakFixRequest({
+    ownerKind: data.testCase.ownerKind,
     serviceName: data.testCase.serviceName,
     folder: data.folder || undefined,
     strategy: data.decision.strategy,
@@ -1083,8 +1405,22 @@ function requestOf(data: {
 export async function locateTelemetryLeakEvalCase(
   testCase: TelemetryLeakEvalCase,
 ): Promise<LocatedTelemetryLeakEvalCase> {
-  const leaks: Array<TelemetryLeakToPlace> =
-    readTelemetryLeakEvalLeaks(testCase);
+  // A RUM finding's stacks resolved through its recorded source map, as the product resolves them.
+  const resolved: Map<string, Array<JSONObject>> = new Map();
+
+  for (const finding of testCase.findings) {
+    resolved.set(
+      finding.findingId,
+      await resolveTelemetryLeakEvalRows(finding),
+    );
+  }
+
+  const leaks: Array<TelemetryLeakToPlace> = readTelemetryLeakEvalLeaks(
+    testCase,
+    (finding: RecordedTelemetryLeakFinding): Array<JSONObject> => {
+      return resolved.get(finding.findingId) || finding.rows;
+    },
+  );
   const repository: ResolvableRepository = repositoryOf(testCase);
   const groups: Array<TelemetryLeakRepositoryGroup> =
     await chooseTelemetryLeakRepositories({
@@ -1217,6 +1553,16 @@ export function findPlaceInFiles(data: {
 
     finders.push((line: string): boolean => {
       return line.includes(name);
+    });
+  }
+
+  // A session recorder call (#10933): where the page calls it, never where it is defined.
+  if (place.recorderCall) {
+    const call: string = `${place.recorderCall}(`;
+    const definition: string = `function ${place.recorderCall}(`;
+
+    finders.push((line: string): boolean => {
+      return line.includes(call) && !line.includes(definition);
     });
   }
 

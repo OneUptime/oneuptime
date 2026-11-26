@@ -41,7 +41,7 @@ Servern är tillståndslös: den utfärdar inga sessions-id:n och varje begäran
 - **Schemalagt underhåll**: skapa och hantera underhållshändelser.
 - **Telemetri**: fråga efter loggar, mätvärden, spår, undantag, monitorloggar, säkerhetshändelser med mera, endast läsning.
 
-Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 56 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. En sorts post utan något fält som du kan ändra när den väl har skapats, som en incidents koppling till ett larm, har inget verktyg för att uppdatera. Skrivskyddade verktyg har `readOnlyHint` och varje verktyg som ändrar något har `destructiveHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. `openWorldHint` markerar verktygen som når utanför ditt projekt: verktygen för publika statussidor; de ändringar som visas på en statussida och skickas till dess prenumeranter, som en ny incident, en ändring av dess tillstånd eller en publik anteckning; inbjudningar, som mejlas till personer som ännu inte behöver vara med i ditt projekt; och de verktyg som skapar eller ändrar en monitor, ett datalager eller ett BI-verktyg, eftersom OneUptime sedan kontaktar adressen du anger. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
+Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 59 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. En sorts post utan något fält som du kan ändra när den väl har skapats, som en incidents koppling till ett larm, har inget verktyg för att uppdatera. Skrivskyddade verktyg har `readOnlyHint` och varje verktyg som ändrar något har `destructiveHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. `openWorldHint` markerar verktygen som når utanför ditt projekt: verktygen för publika statussidor; de ändringar som visas på en statussida och skickas till dess prenumeranter, som en ny incident, en ändring av dess tillstånd eller en publik anteckning; inbjudningar, som mejlas till personer som ännu inte behöver vara med i ditt projekt; och de verktyg som skapar eller ändrar en monitor, ett datalager eller ett BI-verktyg, eftersom OneUptime sedan kontaktar adressen du anger. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
 
 ## Innan du börjar
 
@@ -359,6 +359,25 @@ Servern har också Fråga AI:s inställningsåtgärder, ett anrop var: det du st
 
 De agerar som du, inloggad med OAuth: en API-nyckel för ett projekt kan inte använda de åtta som skapar något. Din klient frågar dig före var och en av dem, och dess svar säger vad som skapades. Det som saknas, till exempel en behörighet, en adress eller plats i abonnemanget, sägs innan något skapas.
 
+## Verktyg för Datasäkerhet
+
+Servern har också [Fråga AI:s åtgärder för Datasäkerhet](/docs/data-security/integrations#fråga-ai), ett anrop var. Var och en gör exakt den ändring som dess knapp gör i Datasäkerhet, som du och med dina behörigheter, efter samma kontroller:
+
+- **`query_data_security_proposals`**: det som OneUptime AI föreslår och som väntar på en person, de mest riskabla först. Med `which: "data-types"` de datatyper det har hittat som genomsökningar ännu inte letar efter: namn, kategori och känslighet för var och en, hur den bevisades och datalagren och fälten den finns i, aldrig ett värde. Den ändrar ingenting
+- **`draft_data_security_rule`**: en hemvist-, ägar- eller etikettregel skriven utifrån en mening, som ”personuppgifter från EU måste stanna i EU”, med de datalager den träffar i dag. Den ändrar ingenting
+- **`scrub_data_security_finding`**: **Rensa** för ett fynd i telemetrin
+- **`judge_data_security_finding`**: **Bekräfta**, eller **Inte känsligt** med en motivering, och detsamma för liknande fynd
+- **`change_data_security_issue`**: **Öppna igen**, **Tilldela**, **Acceptera risk** eller **Inte ett problem**
+- **`set_data_store_owners`**: ett datalagers ägare, tillagda eller borttagna
+- **`save_data_security_rule`**: en regel som `draft_data_security_rule` har skrivit
+- **`respond_on_data_store`**: en responsåtgärd via datalagrets molnanslutning, som **Blockera offentlig åtkomst**
+- **`fix_data_security_issue_with_ai`**: **Åtgärda med AI**, en pull request som någon granskar och slår ihop
+- **`decide_data_security_proposal`**: **Godkänn** eller **Dölj** för ett förslag
+
+Fråga AI frågar en person före några av dessa i alla lägen, på ett kort som säger vad som ändras, vad som slutar fungera och vad det kostar: att reagera på ett datalager, **Inte känsligt**, **Acceptera risk**, **Inte ett problem**, att ändra ett datalagers ägare, att spara en regel, att besluta om ett förslag, en rensning som något läser, och **Bekräfta** i ett projekt som larmar någon vid ett kritiskt problem. Den här servern kan inte visa dig det kortet, så den avvisar dem, säger varför och nämner sidan i OneUptime där du gör ändringen. Ingenting körs någonsin utan det.
+
+De andra agerar som du, inloggad med OAuth: En projekt-API-nyckel kan inte använda dem och använder bara de två som inte ändrar något. På en egen server lämnar `MCP_READ_ONLY=true` bara kvar verktygen som inte ändrar något, och `MCP_ALLOW_DESTRUCTIVE=false` avvisar att ta bort ett datalagers ägare, vilket raderar dem.
+
 ## Fråga efter telemetri
 
 Loggar, mätvärden, spår (spans), undantag, monitorloggar och de andra sorterna av telemetri finns som skrivskyddade verktyg `list_` och `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` och deras `count_`-tvillingar). Telemetri kommer in via OpenTelemetry, så det finns inga skapandeverktyg.
@@ -509,7 +528,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Säkerhet | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Datasäkerhet | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Dataobserverbarhet | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| Moln | Cloud Budget, Required Tag |
+| Moln | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View, Required Tag |
 
 | Område | Telemetri med bara verktyg för att lista och räkna |
 | --- | --- |

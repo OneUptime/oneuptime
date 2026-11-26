@@ -197,6 +197,7 @@ Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale 
 | **Podman** | **Hôtes**, **Conteneurs**, **Images**, **Réseaux**, **Volumes** | L'agent Podman |
 | **Proxmox** | **Nœuds**, **Invités** | L'agent Proxmox |
 | **VMware** | **Hôtes**, **Machines virtuelles** | L'agent VMware, ou un vCenter que vous connectez |
+| **XCP-ng** | **Hôtes**, **VM** | L'agent XCP-ng |
 | **Ceph** | **OSDs**, en mur coloré selon l'état, et **Pools** | L'agent Ceph |
 | **Baies de stockage** | **Volumes**, et **Matériel** en mur coloré selon le statut | L'agent Baie de stockage |
 

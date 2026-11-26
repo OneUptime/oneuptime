@@ -2,6 +2,16 @@ import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIss
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
+import DataSecurityAiProposal from "../../../../Models/DatabaseModels/DataSecurityAiProposal";
+import {
+  DataTypeDraft,
+  DataTypeProof,
+  DataTypeProposalPlan,
+  describeShare,
+  getElsewhereMatchShare,
+  getGroupMatchShare,
+  getOfferedDraft,
+} from "../../../../Utils/DataSecurity/DataTypeProposal";
 import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import { MAX_DESCRIBE_SENTENCE_LENGTH } from "../../../../Types/DataSecurity/DataTypeDescribe";
 import {
@@ -62,6 +72,7 @@ import {
   MAX_PLACES_PER_TELEMETRY_LEAK,
   MAX_TELEMETRY_LEAKS_PER_FIX,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakFrame,
   TelemetryLeakPlace,
@@ -1149,6 +1160,113 @@ export function issueListRow(
       status: issue.status || "",
       firstDetectedAt: toIso(issue.firstDetectedAt),
       ...issueGroupFields(group, marks),
+    },
+    marks,
+  );
+}
+
+/*
+ * A proposal of OneUptime AI's, as query_data_security_proposals reads it
+ * (#10364, #10889): what kind of change it is, where it stands, its title
+ * and its risk, and what it is about by ID. Never its plan, its Markdown or
+ * its result: they hold what the customer's clouds named.
+ */
+export type AiProposalRowRecord = Pick<
+  DataSecurityAiProposal,
+  | "id"
+  | "_id"
+  | "kind"
+  | "status"
+  | "title"
+  | "riskScore"
+  | "dataSecurityIssueId"
+  | "dataStoreId"
+  | "createdAt"
+>;
+
+// The most fields of a found data type its row lists.
+export const MAX_PROPOSAL_FIELDS: number = 20;
+
+export function proposalRow(proposal: AiProposalRowRecord): JSONObject {
+  const marks: AiInputMarks = new AiInputMarks();
+
+  return withMarks(
+    {
+      dataSecurityAiProposalId: (proposal.id || proposal._id)?.toString() || "",
+      kind: proposal.kind || "",
+      status: proposal.status || "",
+      title: customerTextForRow(
+        proposal.title,
+        MAX_ISSUE_VALUE_LENGTH,
+        "title",
+        marks,
+      ),
+      riskScore: proposal.riskScore || 0,
+      dataSecurityIssueId: proposal.dataSecurityIssueId?.toString() || "",
+      dataStoreId: proposal.dataStoreId?.toString() || "",
+      proposedAt: toIso(proposal.createdAt),
+    },
+    marks,
+  );
+}
+
+/*
+ * A data type OneUptime AI found that scans do not look for yet (#10371,
+ * #10889): the draft offered - its name, category and sensitivity - how it
+ * was proven, in shares and counts, and the stores and fields it is in, by
+ * their locations. Never a value, a shape of one, a pattern or an example.
+ */
+export function dataTypeProposalRow(data: {
+  proposal: AiProposalRowRecord;
+  plan: DataTypeProposalPlan;
+}): JSONObject {
+  const marks: AiInputMarks = new AiInputMarks();
+  const offered: DataTypeDraft = getOfferedDraft(data.plan);
+  const proof: DataTypeProof | undefined = data.plan.proof;
+  const fields: Array<{ storeName: string; location: string }> = (
+    proof?.fields ||
+    data.plan.fields ||
+    []
+  ).map((field: { storeName: string; location: string }) => {
+    return { storeName: field.storeName, location: field.location };
+  });
+
+  return withMarks(
+    {
+      ...proposalRow(data.proposal),
+      dataType: customerTextForRow(
+        offered.name,
+        MAX_ISSUE_VALUE_LENGTH,
+        "dataType",
+        marks,
+      ),
+      category: offered.category || "",
+      sensitivity: offered.sensitivity || "",
+      proof: proof
+        ? `Matches ${describeShare(getGroupMatchShare(proof))} of the values in these ${proof.fieldsCounted} fields, and ${describeShare(getElsewhereMatchShare(proof))} of values elsewhere in the same stores.`
+        : "Still being checked on the stores' next scans.",
+      fieldCount: data.plan.fieldCount || fields.length,
+      storeCount: data.plan.storeCount || 0,
+      fields: fields
+        .slice(0, MAX_PROPOSAL_FIELDS)
+        .map(
+          (field: { storeName: string; location: string }, index: number) => {
+            return {
+              store: customerTextForRow(
+                field.storeName,
+                MAX_ISSUE_VALUE_LENGTH,
+                `fields[${index}].store`,
+                marks,
+              ),
+              location: customerTextForRow(
+                field.location,
+                MAX_ISSUE_VALUE_LENGTH,
+                `fields[${index}].location`,
+                marks,
+              ),
+            };
+          },
+        ),
     },
     marks,
   );
@@ -3408,6 +3526,19 @@ function telemetryLeakPlaceFacts(
       `${path}.template`,
       marks,
     ),
+    // A RUM application's (#10933): the page it was written on, the session recorder call that gave it.
+    page: customerText(
+      place.page,
+      MAX_FINDING_LOCATION_LENGTH,
+      `${path}.page`,
+      marks,
+    ),
+    recorderCall: customerText(
+      place.recorderCall,
+      MAX_WORD_LENGTH,
+      `${path}.recorderCall`,
+      marks,
+    ),
     frames: (place.frames || []).map(
       (frame: TelemetryLeakFrame, index: number): string => {
         const file: string = customerText(
@@ -3485,6 +3616,8 @@ function telemetryLeakFacts(
  */
 export function buildFixTelemetryLeaksRequest(data: {
   instruction: string;
+  // A service's, unless it is a RUM application's front end (#10933).
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceName: string;
   folder?: string | undefined;
   strategy: TelemetryLeakFixStrategy;
@@ -3510,13 +3643,19 @@ export function buildFixTelemetryLeaksRequest(data: {
     const marks: AiInputMarks = new AiInputMarks();
     const hasRedactionStep: boolean =
       data.strategy !== TelemetryLeakFixStrategy.CallSites;
+    const isApplication: boolean =
+      data.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
+    const owner: string = customerText(
+      data.serviceName,
+      MAX_ISSUE_VALUE_LENGTH,
+      isApplication ? "application" : "service",
+      marks,
+    );
     const facts: JSONObject = withoutEmpty({
-      service: customerText(
-        data.serviceName,
-        MAX_ISSUE_VALUE_LENGTH,
-        "service",
-        marks,
-      ),
+      // A web application's code runs in the browser: its front end is what changes.
+      ...(isApplication
+        ? { application: owner, runsIn: "browser" }
+        : { service: owner }),
       folder: customerText(
         data.folder,
         MAX_FINDING_LOCATION_LENGTH,
@@ -4708,6 +4847,88 @@ export function buildDescribeDataTypePrompt(data: {
   });
 }
 
+// The longest sentence a rule is drafted from, and the most of each name list it is told.
+export const MAX_RULE_SENTENCE_LENGTH: number = 1_000;
+export const MAX_RULE_DRAFT_NAMES: number = 200;
+// The longest a label's or a team's name is told.
+const MAX_RULE_DRAFT_NAME_LENGTH: number = 100;
+
+// A cloud region a rule can name, with where it keeps its data.
+export interface AiRuleDraftRegion {
+  region: string;
+  cloud: string;
+  country: string | null;
+  isInEea: boolean;
+}
+
+// A rule drafted once more: what was wrong with the last draft, in OneUptime's words.
+export interface AiRuleDraftRetry {
+  problem: string;
+}
+
+/*
+ * A Data Security rule drafted from a person's sentence (#10378): the
+ * sentence; the kinds of personal data and the cloud regions a rule can
+ * name - OneUptime's own catalogs, each region with the country it keeps
+ * its data in - and the names of the project's labels and teams, which the
+ * customer wrote and which a rule can name. Never a store, a finding or
+ * anything found in one, and never who is in the project: OneUptime finds
+ * the people a sentence names after the draft.
+ */
+export function buildRuleFromSentencePrompt(data: {
+  instructions: string;
+  sentence: string;
+  dataCategories: ReadonlyArray<string>;
+  regions: ReadonlyArray<AiRuleDraftRegion>;
+  labels: ReadonlyArray<string>;
+  teams: ReadonlyArray<string>;
+  retry?: AiRuleDraftRetry | undefined;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+  const names: (
+    values: ReadonlyArray<string>,
+    path: string,
+  ) => Array<string> = (
+    values: ReadonlyArray<string>,
+    path: string,
+  ): Array<string> => {
+    return values
+      .slice(0, MAX_RULE_DRAFT_NAMES)
+      .map((value: string, index: number): string => {
+        return customerText(
+          value,
+          MAX_RULE_DRAFT_NAME_LENGTH,
+          `${path}[${index}]`,
+          marks,
+        );
+      })
+      .filter((name: string): boolean => {
+        return name.length > 0;
+      });
+  };
+
+  return prompt({
+    feature: DataSecurityAiFeature.DraftRuleFromSentence,
+    instructions: data.instructions,
+    facts: withoutEmpty({
+      sentence: customerText(
+        data.sentence,
+        MAX_RULE_SENTENCE_LENGTH,
+        "sentence",
+        marks,
+      ),
+      dataCategories: [...data.dataCategories],
+      cloudRegions: data.regions.map((region: AiRuleDraftRegion): string => {
+        return `${region.region} (${region.cloud}, ${region.country || "several countries"}${region.isInEea ? ", EEA" : ""})`;
+      }),
+      labels: names(data.labels, "labels"),
+      teams: names(data.teams, "teams"),
+      previousDraft: data.retry ? { problem: data.retry.problem } : undefined,
+    }),
+    marks,
+  });
+}
+
 /*
  * ---------------------------------------------------------------------------
  * An exposure's assessment (#10377): what plain code worked out, as facts
@@ -4981,6 +5202,9 @@ const DataSecurityAiInput: {
   issueListRow: typeof issueListRow;
   storeIssueRow: typeof storeIssueRow;
   issueRow: typeof issueRow;
+  proposalRow: typeof proposalRow;
+  dataTypeProposalRow: typeof dataTypeProposalRow;
+  buildRuleFromSentencePrompt: typeof buildRuleFromSentencePrompt;
   analysisFacts: typeof analysisFacts;
   buildAnalyzeIssuePrompt: typeof buildAnalyzeIssuePrompt;
   buildSuggestFieldTypesPrompt: typeof buildSuggestFieldTypesPrompt;
@@ -5028,6 +5252,9 @@ const DataSecurityAiInput: {
   issueListRow,
   storeIssueRow,
   issueRow,
+  proposalRow,
+  dataTypeProposalRow,
+  buildRuleFromSentencePrompt,
   analysisFacts,
   buildAnalyzeIssuePrompt,
   buildSuggestFieldTypesPrompt,

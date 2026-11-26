@@ -8,6 +8,7 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
 import ObjectID from "../../Types/ObjectID";
 import { getAllEnvVars } from "../EnvironmentConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import type { LiveUsageAuthorization } from "../Types/Billing/LiveUsageAuthorization";
 import BillingService from "./BillingService";
 import ProjectService from "./ProjectService";
 import PromoCodeService from "./PromoCodeService";
@@ -63,20 +64,12 @@ const AUTHORIZATION_CACHE_TTL_IN_MS: number = 60_000;
 const LIVE_AUTHORIZATION_REUSE_WINDOW_IN_MS: number =
   AUTHORIZATION_CACHE_TTL_IN_MS;
 
-declare const liveUsageAuthorizationBrand: unique symbol;
-
-/**
- * Proof that a project's payment setup was read live a moment ago. Only
- * authorizeUsageNow mints one: the brand is not exported and has no runtime
- * value, so any other way of making one is a visible cast. It is honoured
- * only for the project it names, and only inside
- * LIVE_AUTHORIZATION_REUSE_WINDOW_IN_MS.
+/*
+ * The token authorizeUsageNow mints (Types/Billing/LiveUsageAuthorization):
+ * exported here as it always was, for the services, plans and tests that
+ * read it from this service.
  */
-export interface LiveUsageAuthorization {
-  readonly projectId: string;
-  readonly decidedAt: number;
-  readonly [liveUsageAuthorizationBrand]: true;
-}
+export type { LiveUsageAuthorization };
 
 export class Service {
   private authorizedProjects: InMemoryTTLCache<

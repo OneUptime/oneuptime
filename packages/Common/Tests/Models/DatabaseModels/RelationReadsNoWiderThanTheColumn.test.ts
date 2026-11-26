@@ -423,6 +423,17 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
         "name",
         "otelCollectorStatus",
       ],
+      XcpNgPool: [
+        "agentLastSeenAt",
+        "agentVersion",
+        "description",
+        "lastSeenAt",
+        "name",
+        "otelCollectorStatus",
+        "poolIdentifier",
+        "reportedName",
+        "xenOrchestraName",
+      ],
     },
   },
   {
@@ -949,7 +960,7 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
       },
     );
 
-    expect(heldToOwnRead.length).toBe(42);
+    expect(heldToOwnRead.length).toBe(44);
     expect(heldToOwnRead).toEqual(
       expect.arrayContaining([
         "sensitivity",
@@ -970,6 +981,9 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
         "contentScanStatus",
         "purpose",
         "retention",
+        // The record of processing's lawful basis and the people it is about (#10375).
+        "legalBasis",
+        "dataSubjects",
         "description",
       ]),
     );
@@ -1047,7 +1061,7 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
       return RelationReadersUtil.isHeldToItsOwnRead(metadata);
     }) as Array<TableColumnMetadata>;
 
-    expect(heldToOwnRead.length).toBe(42);
+    expect(heldToOwnRead.length).toBe(44);
 
     // The column metadata is the model's own: planted off, and put back.
     for (const metadata of heldToOwnRead) {
@@ -1070,10 +1084,17 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
           "DataAlert.dataStore reads DataStore.exposure for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
           "DataWarehouseJob.dataStore reads DataStore.riskScore for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
           "DataSecurityIssue.dataStore reads DataStore.cloudAccountNumber for ReadDataSecurityIssue",
+          // The record of processing's, added since 17.1.0 (#10375).
+          "DataAsset.dataStore reads DataStore.dataSubjects for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "DataSecurityIssue.dataStore reads DataStore.legalBasis for ReadDataSecurityIssue",
         ]),
       );
-      // Each of the 42, through each of the nine relations that reach a store.
-      expect(unrecorded.length).toBe(42 * 9);
+      /*
+       * Each of the 44 - the 42 of 17.1.0, with the legal basis and the
+       * people it is about - through each of the nine relations that reach
+       * a store.
+       */
+      expect(unrecorded.length).toBe(44 * 9);
     } finally {
       for (const metadata of heldToOwnRead) {
         metadata.relationReaders = RelationReaders.ColumnReaders;

@@ -111,7 +111,7 @@ Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email 
 | Jeder andere Datentyp, den ein Muster allein findet, etwa ein GitHub-Token | Eine Regel **Benutzerdefinierter Regex** aus den eigenen Mustern des Datentyps. Ein Geheimnis wird geschwärzt. |
 | Einer Ihrer eigenen Datentypen, mit einem Muster | Dieses Muster, nur in dem Attribut, in dem er gefunden wurde |
 | Ein Datentyp, der sich durch die Wörter um ihn herum unterscheidet, etwa eine Bankleitzahl | Seine Form, nur in dem Attribut, in dem er gefunden wurde |
-| Ein Datentyp, der anhand des Feldnamens gefunden wird, etwa der Name einer Person unter `customer_name`, oder ein Wert unter einem Schlüssel, der ein Geheimnis benennt | Eine Regel **Benannte Attribute**, die den ganzen Wert dieses Attributs verbirgt |
+| Ein Datentyp, der anhand des Feldnamens gefunden wird, etwa der Name einer Person unter `customer_name` oder unter dem Parameter `full_name` einer URL, oder ein Wert unter einem Schlüssel, der ein Geheimnis benennt | Eine Regel **Benannte Attribute**, die den ganzen Wert dieses Attributs verbirgt |
 | Ein Wert unter einem Schlüssel, der sensibel aussieht, wo nichts Engeres ihn verbirgt | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
 | Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs, die den Datentyp enthalten, durch `[REDACTED]` ersetzt. Für eine IP-Adresse, eine E-Mail-Adresse oder eine Kartennummer ist ihr Filter **Entspricht Mustertyp** mit diesem Typ, der findet, was eine Regel für Logs oder Traces mit diesem **Mustertyp** findet, darunter IPv6-Adressen und Werte, die prozentkodiert oder in einer anderen Schrift geschrieben sind. Für einen anderen Datentyp ist es das eigene Muster des Typs, und wo kein Muster den Datentyp findet, ersetzt die Regel jeden Wert des Attributs |
 
@@ -170,7 +170,7 @@ Bevor OneUptime AI beginnt, liest Datensicherheit die Einträge, in denen jedes 
 
 - **Ein Span oder ein KI-Aufruf**: die Datei, Zeile und Funktion, die seine Attribute `code.*` nennen, und der Name des Spans.
 - **Eine Ausnahme**: ihre eigenen obersten Frames, die im Code des Dienstes.
-- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`.
+- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`, und jedes Wort, von dem ihre Einträge nicht nachweisen, dass der Code es geschrieben hat, etwa der Name einer Person, durch `<value>` ersetzt: `Payment declined for Maria Gonzalez`, aus einem einzigen Eintrag gelesen, wird zu `Payment declined for <value>`. Der Name eines Spans und der Name einer Metrik werden auf dieselbe Weise gelesen.
 - **Eine Metrik**: der Name der Metrik.
 - **Jedes Leck**: sein Attributschlüssel, etwa `user.email`, den der Code meist unverändert schreibt.
 
@@ -200,6 +200,15 @@ Jedes Problem, das der Pull Request behebt, behält ihn: Seine Karte **Behebung*
 Ein Geheimnis braucht mehr als eine Codekorrektur: Der Code verhindert nur neue Kopien, und das Geheimnis funktioniert weiterhin. Der Pull Request, die Zeitleiste des Problems und seine Karte **Behebung** sagen, dass es rotiert werden muss, und die Karte listet auf, wo es gesehen wurde.
 
 Mit **An neuen Problemen arbeiten** schlägt OneUptime AI die Korrektur jedes Dienstes auch von sich aus vor, den riskantesten Dienst zuerst, unter **Datensicherheit → KI** und beim riskantesten Problem des Dienstes. Standardmäßig wartet sie auf Sie. Eine KI-Regel der Datensicherheit, die **Behebung** für das riskanteste Problem des Dienstes auf **Automatisch** setzt, öffnet den Pull Request ohne Nachfrage, in einem Repository, über das etwas entschieden hat. **Max. offene Korrektur-Pull-Requests** des Repositorys begrenzt beides: Ist die Grenze erreicht, wartet ein Pull Request, den eine Regel öffnen würde, auf Sie, und kein neuer Korrektur-Pull-Request wird geöffnet, bis einer zusammengeführt oder geschlossen ist.
+
+### Das Frontend einer RUM-Anwendung
+
+**Mit KI beheben** bei einem Problem in der Sitzungswiedergabe tut dasselbe für eine RUM-Anwendung: ein Pull Request, nach dem ihr Frontend-Code kein Leck mehr sendet, das OneUptime noch in ihren Browser-Protokollen, ihren Browser-Spans und den Details ihrer Sitzungen sieht. Wo jedes Leck geschrieben wird, ergibt sich aus den Datensätzen, in denen es gesehen wurde, gelesen innerhalb von OneUptime:
+
+- **Ein Browser-Protokoll oder -Span**: die Datei, Zeile und Funktion, zu der sein JavaScript-Stack über die Source Maps aufgelöst wird, die Ihre Builds hochgeladen haben (siehe [Source Maps](/docs/telemetry/source-maps)), sonst seine `code.*`-Attribute; die Zeile des Protokolls oder der Name des Spans als Vorlage; und die Seite, auf der es geschrieben wurde, nur mit ihrem Pfad, jede ID und jeder Wert darin maskiert.
+- **Die Benutzerdetails einer Sitzung**: der `identify()`-Aufruf des Sitzungsrecorders, der sie übergeben hat, und die Seite, auf der die Sitzung begann.
+
+Der Pull Request geht an das Repository, das diese Dateien enthält, sonst an das, das die meisten der Dateien enthält, die die Source Maps des neuesten Releases nennen, sonst an das Repository, das wie der **App-Bezeichner** der Anwendung heißt, oder an das einzige des Projekts; entscheidet nichts, wählen Sie. Er ändert den Browser-Code an jeder Stelle, wobei der Benutzer einer Sitzung über eine undurchsichtige ID identifiziert wird und nie über eine E-Mail-Adresse, oder fügt einen Schwärzungsschritt dort hinzu, wo die Anwendung ihre Browser-Telemetrie einrichtet. Die Aufzeichnung einer Sitzung wird nie gelesen, und der Coding-Agent liest nichts von Ihrer Telemetrie. Jedes Problem wird als **Im Code korrigiert** gelöst, sobald das neue Release der Anwendung die Daten nicht mehr sendet. OneUptime AI schlägt die Korrektur einer Anwendung noch nicht von sich aus vor: Fordern Sie sie mit **Mit KI beheben** an.
 
 ## Diese Metrik verwerfen
 

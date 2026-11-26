@@ -4,6 +4,14 @@ import LogScrubPatternType from "../Log/LogScrubPatternType";
 import TraceScrubAction from "../Trace/TraceScrubAction";
 import TraceScrubField from "../Trace/TraceScrubField";
 import TraceScrubPatternType from "../Trace/TraceScrubPatternType";
+import { hasDigitBeyondAscii } from "../../Utils/DataSecurity/DigitReadings";
+import {
+  mergeRanges,
+  ReadingNeeds,
+  TextRange,
+  TextReading,
+  TextReadings,
+} from "../../Utils/DataSecurity/TextReadings";
 import LinearRegExp from "../../Utils/LinearRegExp/LinearRegExp";
 import {
   getLinearRegExp,
@@ -354,13 +362,16 @@ export function scrubRegExpFromRanges(data: {
 /*
  * THE BUILT-IN PATTERNS' VALUE MATCHERS, WRITTEN ONCE (#10433).
  *
- * What an Email, Credit Card, SSN or Phone Number rule finds in a value:
- * the log and trace engines scrub with these (App/FeatureSet/Telemetry/
- * Services/LogScrubRuleService.ts, TraceScrubRuleService.ts), and the
- * lookup of what reads a value a rule would hide asks them of the values a
- * monitor or a saved view looks for (Utils/Telemetry/ScrubRuleFieldReads) -
- * one definition, so the answer is what ingest does. Each is used through
- * scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
+ * What an Email, Credit Card, SSN or Phone Number rule's own pattern finds
+ * in a value. A rule hides these and, beside them, what Data Security's
+ * detectors call that type (Utils/Telemetry/ScrubBuiltInPatterns.ts: #10935
+ * and #10960 for emails and cards, #11025 and #11030 for phone and Social
+ * Security numbers) - the code every place a rule runs compiles it with:
+ * the log and trace engines (App/FeatureSet/Telemetry/Services/
+ * LogScrubRuleService.ts, TraceScrubRuleService.ts), and the lookup of
+ * what reads a value a rule would hide (Utils/Telemetry/
+ * ScrubRuleFieldReads), so the answer is what ingest does. Each is used
+ * through scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
  *
  * IP Address is not here: its matches are what Data Security's own
  * detectors call an IP address (Utils/Telemetry/ScrubIpAddress, #10393).
@@ -480,11 +491,119 @@ export function getRegexSyntaxErrorReason(error: unknown): string {
   return message.replace(REGEX_SYNTAX_ERROR_PREFIX, "").trim() || message;
 }
 
+// The readings a custom pattern runs in beside the text as written.
+const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+};
+
+/*
+ * A CUSTOM PATTERN, IN EVERY READING OF A VALUE (#11031, #11033).
+ *
+ * A Custom Regex rule - one a person wrote, or the one "Scrub it" makes
+ * from a data type's own patterns (TelemetryScrubCoverage's
+ * buildScrubPatternForDataType) - finds its pattern in the text as it is
+ * written, and in the readings Data Security's detectors read it in
+ * (Utils/DataSecurity/TextReadings): with its percent-escapes read, so a
+ * redirect's token after an encoded "=" (%3Dghp_...) or an AWS secret
+ * whose "/" is %2F is hidden; and with every script's digits read by their
+ * values, so an IBAN or a national ID number in Arabic-Indic or fullwidth
+ * digits is. Each match is placed on the characters the text writes it
+ * with, escapes and all, and what two readings share is one match. So a
+ * finding the detectors make in a reading, the rule made from their
+ * patterns hides there.
+ *
+ * A text with no escape and no digit beyond ASCII - nearly every one - has
+ * no other reading, and is read exactly as before. A match of no text in
+ * another reading hides nothing, and is left out.
+ */
+class ReadingsScrubRegExp implements ScrubRegExp {
+  public readonly source: string;
+  public readonly flags: string;
+  private readonly written: ScrubRegExp;
+
+  public constructor(written: ScrubRegExp) {
+    this.written = written;
+    this.source = written.source;
+    this.flags = written.flags;
+  }
+
+  // The text's readings, the text as written first: one when it has no other.
+  private static readingsOf(text: string): Array<TextReading> | null {
+    if (text.indexOf("%") === -1 && !hasDigitBeyondAscii(text)) {
+      return null;
+    }
+
+    const readings: Array<TextReading> = new TextReadings(text).readingsFor(
+      CUSTOM_PATTERN_READINGS,
+    );
+
+    return readings.length > 1 ? readings : null;
+  }
+
+  public test(text: string): boolean {
+    if (this.written.test(text)) {
+      return true;
+    }
+
+    return ReadingsScrubRegExp.readingsOf(text) !== null
+      ? this.matchRanges(text).length > 0
+      : false;
+  }
+
+  public replace(
+    text: string,
+    replacer: (matchedText: string) => string,
+  ): string {
+    if (ReadingsScrubRegExp.readingsOf(text) === null) {
+      return this.written.replace(text, replacer);
+    }
+
+    const ranges: Array<[number, number]> = this.matchRanges(text);
+    const pieces: Array<string> = [];
+    let copiedUpTo: number = 0;
+
+    for (const [start, end] of ranges) {
+      pieces.push(
+        text.slice(copiedUpTo, start),
+        replacer(text.slice(start, end)),
+      );
+      copiedUpTo = end;
+    }
+
+    pieces.push(text.slice(copiedUpTo));
+
+    return pieces.join("");
+  }
+
+  public matchRanges(text: string): Array<[number, number]> {
+    const readings: Array<TextReading> | null =
+      ReadingsScrubRegExp.readingsOf(text);
+
+    if (readings === null) {
+      return this.written.matchRanges(text);
+    }
+
+    const found: Array<TextRange> = [];
+
+    for (const reading of readings) {
+      for (const [start, end] of this.written.matchRanges(reading.text)) {
+        if (end > start) {
+          found.push([reading.toWritten(start), reading.toWritten(end)]);
+        }
+      }
+    }
+
+    return mergeRanges(found);
+  }
+}
+
 /**
  * A custom pattern compiled the way ingest compiles it - ingest calls this -
  * or null when it cannot be: empty, not a regular expression, or one the
  * linear-time matcher cannot run (a back-reference). A rule whose pattern
- * compiles to null scrubs nothing.
+ * compiles to null scrubs nothing. It reads a value as written and in
+ * every reading Data Security's detectors read it in (ReadingsScrubRegExp).
  *
  * Compiled now, so a pattern that cannot run is known now - unless the work
  * allowance of the batch under way is spent (Utils/LinearRegExp/PatternWork.ts):
@@ -514,7 +633,7 @@ export function compileScrubRuleCustomRegex(
     }
   }
 
-  return new CustomScrubRegExp(handle);
+  return new ReadingsScrubRegExp(new CustomScrubRegExp(handle));
 }
 
 /**

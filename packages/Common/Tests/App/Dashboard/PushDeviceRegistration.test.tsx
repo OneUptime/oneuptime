@@ -89,6 +89,7 @@ jest.mock("react-i18next", () => {
 import PushMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Push";
 import {
   BROWSER_PUSH_PROBLEM_MESSAGES,
+  BROWSER_PUSH_PROBLEM_MESSAGES_WITHOUT_APP,
   BrowserPushProblem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -98,6 +99,15 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const USER_ID: string = "7f000000-0000-4000-8000-0000000000a1";
 const PROJECT_ID: string = "7f000000-0000-4000-8000-0000000000b1";
@@ -975,6 +985,62 @@ describe("when this browser cannot be registered, the dialog says why and what t
     });
 
     expect(registerCalls()).toHaveLength(0);
+  });
+
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10945): an iPhone's way out is its Home
+   * Screen, and the dialog does not offer the app.
+   */
+  test("Safari on an iPhone, on a server without the mobile app: the Home Screen, and no app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      defineOn(
+        window.navigator,
+        "userAgent",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+      );
+      delete (window as unknown as Record<string, unknown>)["PushManager"];
+      delete (window as unknown as Record<string, unknown>)["Notification"];
+
+      render(<PushMethods />);
+
+      const modal: HTMLElement = await openRegisterDialog();
+
+      expect(
+        screen.getByText(
+          BROWSER_PUSH_PROBLEM_MESSAGES_WITHOUT_APP[
+            BrowserPushProblem.NeedsHomeScreen
+          ]!,
+        ),
+      ).toBeVisible();
+      expect(modal).not.toHaveTextContent("OneUptime On-Call app");
+
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Register Device" }),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            BROWSER_PUSH_PROBLEM_MESSAGES_WITHOUT_APP[
+              BrowserPushProblem.NeedsHomeScreen
+            ]!,
+          ),
+        ).toBeVisible();
+      });
+      expect(screen.getByTestId("modal")).not.toHaveTextContent(
+        "OneUptime On-Call app",
+      );
+      expect(registerCalls()).toHaveLength(0);
+    } finally {
+      forgetHelpAndSupport();
+    }
   });
 
   test("a push service that refuses, as Chrome does in an incognito window", async () => {

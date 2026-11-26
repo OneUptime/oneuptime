@@ -25,6 +25,7 @@ import {
 } from "../../../../Types/CloudConnection/AzureWafBlocklist";
 import { JSONObject } from "../../../../Types/JSON";
 import { CloudInventoryItem } from "../CloudConnectorTypes";
+import { KqlText, kql, kqlLines } from "./AzureKql";
 
 /*
  * AN AZURE SUBSCRIPTION'S INVENTORY, from one Azure Resource Graph query:
@@ -42,7 +43,7 @@ import { CloudInventoryItem } from "../CloudConnectorTypes";
  * balancer or an application gateway sends traffic to the interfaces,
  * scale sets and apps in its backend pools.
  *
- * The query projects only the fields kept (AZURE_INVENTORY_QUERY), so a
+ * The query projects only the fields kept (buildAzureInventoryQuery), so a
  * subscription of thousands of resources is a few pages, and nothing a
  * resource's properties hold beyond them - a connection string, an app
  * setting - ever leaves Azure. Monitoring Reader may run it: Resource
@@ -139,78 +140,90 @@ export const AZURE_LISTED_ONLY_TYPES: ReadonlyArray<string> = [
 ];
 
 /*
- * The query. Types are the catalog's own (letters, dots and slashes only),
- * so they go into the query as they are.
+ * The query. Each type is placed as a literal of its own (AzureKql), as
+ * Resource Graph writes types: lowercased.
  */
-export function buildAzureInventoryQuery(): string {
-  const types: string = [
+export function buildAzureInventoryQuery(): KqlText {
+  const types: Array<string> = [
     ...AZURE_RESOURCE_TYPES.map(
       (descriptor: CloudResourceTypeDescriptor): string => {
         return descriptor.type;
       },
     ),
     ...AZURE_INVENTORY_ONLY_QUERY_TYPES,
-  ]
-    .map((type: string): string => {
-      return `'${type.toLowerCase()}'`;
-    })
-    .join(", ");
+  ].map((type: string): string => {
+    return type.toLowerCase();
+  });
 
-  return [
-    "Resources",
-    `| where type in~ (${types})`,
-    "| project id, name, type, location, resourceGroup, subscriptionId, tags, kind, managedBy,",
-    "  skuName = tostring(sku.name), skuTier = tostring(sku.tier),",
-    "  provisioningState = tostring(properties.provisioningState),",
-    "  state = tostring(properties.state),",
-    "  vmSize = tostring(properties.hardwareProfile.vmSize),",
-    "  vmId = tostring(properties.vmId),",
-    "  powerState = tostring(properties.extended.instanceView.powerState.displayStatus),",
-    "  osType = tostring(properties.storageProfile.osDisk.osType),",
-    "  version = tostring(properties.version),",
-    "  serverFarmId = tostring(properties.serverFarmId),",
-    "  virtualMachineId = tostring(properties.virtualMachine.id),",
-    "  ipConfigurationId = tostring(properties.ipConfiguration.id),",
-    "  ipConfigurations = properties.ipConfigurations,",
-    "  defaultHostName = tostring(properties.defaultHostName),",
-    "  hostNames = properties.hostNames,",
-    "  fullyQualifiedDomainName = tostring(properties.fullyQualifiedDomainName),",
-    "  fqdn = tostring(properties.fqdn),",
-    "  dnsFqdn = tostring(properties.dnsSettings.fqdn),",
-    "  ipAddress = tostring(properties.ipAddress),",
-    "  hostName = tostring(properties.hostName),",
-    "  documentEndpoint = tostring(properties.documentEndpoint),",
-    "  gatewayUrl = tostring(properties.gatewayUrl),",
-    "  ingressFqdn = tostring(properties.configuration.ingress.fqdn),",
-    "  primaryWeb = tostring(properties.primaryEndpoints.web),",
-    "  primaryBlob = tostring(properties.primaryEndpoints.blob),",
-    "  cname = tostring(properties.cname),",
+  return kqlLines([
+    kql`Resources`,
+    kql`| where type in~ (${types})`,
+    kql`| project id, name, type, location, resourceGroup, subscriptionId, tags, kind, managedBy,`,
+    kql`  skuName = tostring(sku.name), skuTier = tostring(sku.tier),`,
+    kql`  provisioningState = tostring(properties.provisioningState),`,
+    kql`  state = tostring(properties.state),`,
+    kql`  vmSize = tostring(properties.hardwareProfile.vmSize),`,
+    kql`  vmId = tostring(properties.vmId),`,
+    kql`  powerState = tostring(properties.extended.instanceView.powerState.displayStatus),`,
+    kql`  osType = tostring(properties.storageProfile.osDisk.osType),`,
+    kql`  version = tostring(properties.version),`,
+    kql`  serverFarmId = tostring(properties.serverFarmId),`,
+    kql`  virtualMachineId = tostring(properties.virtualMachine.id),`,
+    kql`  ipConfigurationId = tostring(properties.ipConfiguration.id),`,
+    kql`  ipConfigurations = properties.ipConfigurations,`,
+    kql`  defaultHostName = tostring(properties.defaultHostName),`,
+    kql`  hostNames = properties.hostNames,`,
+    kql`  fullyQualifiedDomainName = tostring(properties.fullyQualifiedDomainName),`,
+    kql`  fqdn = tostring(properties.fqdn),`,
+    kql`  dnsFqdn = tostring(properties.dnsSettings.fqdn),`,
+    kql`  ipAddress = tostring(properties.ipAddress),`,
+    kql`  hostName = tostring(properties.hostName),`,
+    kql`  documentEndpoint = tostring(properties.documentEndpoint),`,
+    kql`  gatewayUrl = tostring(properties.gatewayUrl),`,
+    kql`  ingressFqdn = tostring(properties.configuration.ingress.fqdn),`,
+    kql`  primaryWeb = tostring(properties.primaryEndpoints.web),`,
+    kql`  primaryBlob = tostring(properties.primaryEndpoints.blob),`,
+    kql`  cname = tostring(properties.cname),`,
     // Where it runs, besides a network interface's subnets.
-    "  virtualNetworkSubnetId = tostring(properties.virtualNetworkSubnetId),",
-    "  subnetId = tostring(properties.subnet.id),",
-    "  gatewayIPConfigurations = properties.gatewayIPConfigurations,",
-    "  frontendIPConfigurations = properties.frontendIPConfigurations,",
-    "  agentPoolProfiles = properties.agentPoolProfiles,",
-    "  networkInterfaceConfigurations = properties.virtualMachineProfile.networkProfile.networkInterfaceConfigurations,",
-    "  infrastructureSubnetId = tostring(properties.vnetConfiguration.infrastructureSubnetId),",
+    kql`  virtualNetworkSubnetId = tostring(properties.virtualNetworkSubnetId),`,
+    kql`  subnetId = tostring(properties.subnet.id),`,
+    kql`  gatewayIPConfigurations = properties.gatewayIPConfigurations,`,
+    kql`  frontendIPConfigurations = properties.frontendIPConfigurations,`,
+    kql`  agentPoolProfiles = properties.agentPoolProfiles,`,
+    kql`  networkInterfaceConfigurations = properties.virtualMachineProfile.networkProfile.networkInterfaceConfigurations,`,
+    kql`  infrastructureSubnetId = tostring(properties.vnetConfiguration.infrastructureSubnetId),`,
     // What guards it, what it is part of and what it is attached to.
-    "  networkSecurityGroupId = tostring(properties.networkSecurityGroup.id),",
-    "  managedEnvironmentId = coalesce(tostring(properties.managedEnvironmentId), tostring(properties.environmentId)),",
-    "  elasticPoolId = tostring(properties.elasticPoolId),",
-    "  natGatewayId = tostring(properties.natGateway.id),",
+    kql`  networkSecurityGroupId = tostring(properties.networkSecurityGroup.id),`,
+    kql`  managedEnvironmentId = coalesce(tostring(properties.managedEnvironmentId), tostring(properties.environmentId)),`,
+    kql`  elasticPoolId = tostring(properties.elasticPoolId),`,
+    kql`  natGatewayId = tostring(properties.natGateway.id),`,
     // A virtual network lists its subnets too: only a NAT gateway's are read.
-    "  natGatewaySubnets = iff(type =~ 'microsoft.network/natgateways', properties.subnets, dynamic(null)),",
+    kql`  natGatewaySubnets = iff(type =~ 'microsoft.network/natgateways', properties.subnets, dynamic(null)),`,
     // What it sends traffic to.
-    "  privateLinkServiceConnections = properties.privateLinkServiceConnections,",
-    "  manualPrivateLinkServiceConnections = properties.manualPrivateLinkServiceConnections,",
-    "  gatewayBackendPools = iff(type =~ 'microsoft.network/applicationgateways', properties.backendAddressPools, dynamic(null)),",
+    kql`  privateLinkServiceConnections = properties.privateLinkServiceConnections,`,
+    kql`  manualPrivateLinkServiceConnections = properties.manualPrivateLinkServiceConnections,`,
+    kql`  gatewayBackendPools = iff(type =~ 'microsoft.network/applicationgateways', properties.backendAddressPools, dynamic(null)),`,
     // A network security group's own rules; a cluster's node resource group.
-    "  securityRules = iff(type =~ 'microsoft.network/networksecuritygroups', properties.securityRules, dynamic(null)),",
-    "  nodeResourceGroup = tostring(properties.nodeResourceGroup),",
+    kql`  securityRules = iff(type =~ 'microsoft.network/networksecuritygroups', properties.securityRules, dynamic(null)),`,
+    kql`  nodeResourceGroup = tostring(properties.nodeResourceGroup),`,
     // A managed disk's size; nothing for any other type.
-    "  diskSizeGB = iff(type =~ 'microsoft.compute/disks', tolong(properties.diskSizeGB), long(null))",
-  ].join("\n");
+    kql`  diskSizeGB = iff(type =~ 'microsoft.compute/disks', tolong(properties.diskSizeGB), long(null))`,
+  ]);
 }
+
+/*
+ * The most rows Resource Graph's mv-expand makes of one row: its query
+ * language page caps the row limit at 2,000, and expands only 128 when a
+ * query states none - a network of more subnets would lose the rest.
+ */
+export const AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS: number = 2000;
+
+/*
+ * Each subnet row's count of its virtual network's subnets. Azure lets a
+ * network hold 3,000, more than Resource Graph expands of one row: a row
+ * counting more says its network's subnets were not all listed.
+ */
+export const AZURE_NETWORK_SUBNET_COUNT_FIELD: string = "networkSubnetCount";
 
 /*
  * The subnets, read out of their virtual networks (#9375): Azure lists a
@@ -218,21 +231,96 @@ export function buildAzureInventoryQuery(): string {
  * row each, shaped as the main query's rows are, with only what a subnet
  * is: its ranges, its network security group and its route table - never
  * the interfaces it lists, which would make a large network's rows heavy.
+ *
+ * mv-expand names what it expands first and its row limit last. 16.0.0
+ * wrote `mv-expand limit 2000 subnet = ...`, which Resource Graph refused
+ * (ParserFailure, line 3, character 18), and no subnet was listed (#11142).
  */
-export function buildAzureSubnetQuery(): string {
-  return [
-    "Resources",
-    "| where type =~ 'microsoft.network/virtualnetworks'",
-    "| mv-expand limit 2000 subnet = properties.subnets",
-    "| where isnotempty(tostring(subnet.id))",
-    "| project id = tostring(subnet.id), name = strcat(name, '/', tostring(subnet.name)), type = 'microsoft.network/virtualnetworks/subnets', location, resourceGroup, subscriptionId,",
-    "  provisioningState = tostring(subnet.properties.provisioningState),",
-    "  addressPrefix = tostring(subnet.properties.addressPrefix),",
-    "  addressPrefixes = subnet.properties.addressPrefixes,",
-    "  networkSecurityGroupId = tostring(subnet.properties.networkSecurityGroup.id),",
-    "  routeTableId = tostring(subnet.properties.routeTable.id),",
-    "  delegations = subnet.properties.delegations",
-  ].join("\n");
+export function buildAzureSubnetQuery(): KqlText {
+  return kqlLines([
+    kql`Resources`,
+    kql`| where type =~ ${AZURE_VIRTUAL_NETWORK_TYPE.toLowerCase()}`,
+    kql`| mv-expand subnet = properties.subnets limit ${AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS}`,
+    kql`| where isnotempty(tostring(subnet.id))`,
+    kql`| project id = tostring(subnet.id), name = strcat(name, '/', tostring(subnet.name)), type = ${AZURE_SUBNET_TYPE.toLowerCase()}, location, resourceGroup, subscriptionId,`,
+    kql`  provisioningState = tostring(subnet.properties.provisioningState),`,
+    kql`  addressPrefix = tostring(subnet.properties.addressPrefix),`,
+    kql`  addressPrefixes = subnet.properties.addressPrefixes,`,
+    kql`  networkSecurityGroupId = tostring(subnet.properties.networkSecurityGroup.id),`,
+    kql`  routeTableId = tostring(subnet.properties.routeTable.id),`,
+    kql`  delegations = subnet.properties.delegations,`,
+    kql`  networkSubnetCount = array_length(properties.subnets)`,
+  ]);
+}
+
+/*
+ * The virtual networks whose subnets the subnet query could not all list -
+ * more than AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS of them - each once, by
+ * its name, with how many it holds: the most first.
+ */
+export function getAzureNetworksPastExpandedRows(
+  rows: ReadonlyArray<JSONObject>,
+): Array<{ name: string; subnets: number }> {
+  const networks: Map<string, { name: string; subnets: number }> = new Map();
+
+  for (const row of rows) {
+    const subnets: unknown = row[AZURE_NETWORK_SUBNET_COUNT_FIELD];
+
+    if (
+      typeof subnets !== "number" ||
+      !(subnets > AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS)
+    ) {
+      continue;
+    }
+
+    const id: string = text(row, "id");
+    const network: string = getAzureParentResourceId(id) || id;
+    // A subnet row is named "<network>/<subnet>".
+    const name: string = text(row, "name").split("/")[0] || network;
+
+    networks.set(network.toLowerCase(), { name, subnets });
+  }
+
+  return [...networks.values()].sort(
+    (
+      a: { name: string; subnets: number },
+      b: { name: string; subnets: number },
+    ): number => {
+      return b.subnets - a.subnets || a.name.localeCompare(b.name);
+    },
+  );
+}
+
+// Networks one warning names before "and N more".
+const MAX_NAMED_NETWORKS: number = 5;
+
+// What an inventory says of the networks whose subnets were not all listed.
+export function describeAzureNetworksPastExpandedRows(
+  networks: ReadonlyArray<{ name: string; subnets: number }>,
+): string {
+  const most: number = AZURE_RESOURCE_GRAPH_MAX_EXPANDED_ROWS;
+  const why: string = "the most Resource Graph lists of one network";
+
+  if (networks.length === 0) {
+    return "";
+  }
+
+  if (networks.length === 1) {
+    return `The virtual network ${networks[0]!.name} has ${networks[0]!.subnets} subnets: the first ${most} are listed, ${why}.`;
+  }
+
+  const named: string = networks
+    .slice(0, MAX_NAMED_NETWORKS)
+    .map((network: { name: string; subnets: number }): string => {
+      return `${network.name} ${network.subnets}`;
+    })
+    .join(", ");
+  const more: string =
+    networks.length > MAX_NAMED_NETWORKS
+      ? ` and ${networks.length - MAX_NAMED_NETWORKS} more`
+      : "";
+
+  return `${networks.length} virtual networks have more than ${most} subnets (${named}${more}): the first ${most} of each are listed, ${why}.`;
 }
 
 function text(row: JSONObject, key: string): string {

@@ -8,6 +8,7 @@ import {
 import { DataTypeDetector } from "./Detector";
 import { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { getHintedDataTypeIds } from "./FieldNameHints";
+import { isFreeTextFieldName } from "./FreeTextFieldNames";
 import { DataTypeTally, DataTypeTallyJSON } from "./FindingTally";
 import { maskValue } from "./Masking";
 import { ModelRecognitions, RecognizedEntity } from "./Model/RecognizedEntity";
@@ -38,8 +39,10 @@ import {
  * when the name matches and the field has values; its values are checked
  * only for plausibility (NAME_VALUE_SHAPES), which lifts it to High.
  *
- * The values of a free-text field - and of a log body, an exception message
- * or a prompt, which a scan marks `readWithModel` - are also what the
+ * The values of a free-text field - of a log body, an exception message or
+ * a prompt, which a scan marks `readWithModel`, and of a field whose name
+ * says a person wrote free text in it however short its values are, a
+ * note or a comment (FreeTextFieldNames, #10927) - are also what the
  * names-and-addresses model reads (Server/Utils/DataSecurity/Model): its
  * findings, handed in as `recognitions`, are matches like any other, and
  * keep the confidence each earned on its own, as in free text, however few
@@ -167,12 +170,21 @@ export function isFreeTextValues(values: ReadonlyArray<string>): boolean {
   return totalLength / values.length > FREE_TEXT_AVERAGE_LENGTH;
 }
 
-// Whether the names-and-addresses model reads a field of these values.
+/*
+ * Whether the names-and-addresses model reads a field of these values: one
+ * marked for it, one of free text, or one named for free text whatever its
+ * values' length - a note, a comment (FreeTextFieldNames).
+ */
 export function isReadByModel(
   values: ReadonlyArray<string>,
   options: Pick<FieldClassifierOptions, "readWithModel">,
+  fieldPath?: string | undefined,
 ): boolean {
-  return options.readWithModel === true || isFreeTextValues(values);
+  return (
+    options.readWithModel === true ||
+    isFreeTextValues(values) ||
+    isFreeTextFieldName(fieldPath)
+  );
 }
 
 /*
@@ -183,11 +195,16 @@ export function isReadByModel(
  */
 export function getValuesForModel(
   rawValues: ReadonlyArray<unknown>,
-  options: Pick<FieldClassifierOptions, "readWithModel"> = {},
+  options: Pick<FieldClassifierOptions, "readWithModel"> & {
+    // The field's path, for a field named for free text.
+    fieldPath?: string | undefined;
+  } = {},
 ): Array<string> {
   const values: Array<string> = readScannableValues(rawValues).values;
 
-  return isReadByModel(values, options) ? chooseValuesForModel(values) : [];
+  return isReadByModel(values, options, options.fieldPath)
+    ? chooseValuesForModel(values)
+    : [];
 }
 
 // Of a field's values the model reads, the ones it reads: different, in order, capped.
@@ -303,14 +320,17 @@ export function classifyField(
 
   // What the model found in this field's values, when it reads the field.
   const recognitions: ModelRecognitions | undefined =
-    options.recognitions && isReadByModel(values, options)
+    options.recognitions && isReadByModel(values, options, fieldPath)
       ? options.recognitions
       : undefined;
   // The values it reads: no others are looked up.
   const valuesForModel: Set<string> = recognitions
     ? new Set(chooseValuesForModel(values))
     : new Set();
-  // By type, the highest confidence a match the model found earned alone.
+  /*
+   * By type, the highest confidence a match earned alone: one the model
+   * found, or one a URL's query parameter named for it (#11034).
+   */
   const modelConfidences: Map<string, DataConfidence> = new Map();
 
   const maxMatchedValueIndexes: number = Math.max(
@@ -431,7 +451,7 @@ export function classifyField(
       });
       typesCounted.add(match.dataTypeId);
 
-      if (match.fromModel && !match.isTestValue) {
+      if ((match.fromModel || match.fromFieldName) && !match.isTestValue) {
         const known: DataConfidence | undefined = modelConfidences.get(
           match.dataTypeId,
         );
@@ -505,7 +525,8 @@ export function classifyField(
     /*
      * A name or an address the model found in a log body keeps what it
      * earned on its own, as in free text: one in five hundred short log
-     * lines is still a person's name.
+     * lines is still a person's name. So does one a URL's query parameter
+     * names (full_name=...): one in five hundred URLs is still a person's.
      */
     if (modelConfidence) {
       confidence = higherConfidence(confidence, modelConfidence);

@@ -26,6 +26,7 @@ import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 import React, { ReactElement, useRef, useState } from "react";
 import Select from "../../../Types/BaseDatabase/Select";
 
@@ -368,6 +369,8 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={error}
           title={`Duplicate Error`}
+          // What failed is the Duplicate the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(translator, duplicateTitle)}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

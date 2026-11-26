@@ -140,7 +140,7 @@ config = {
 | 欄位 | 作用 | 預設值 |
 | --- | --- | --- |
 | **Runner** | 位於 **更多欄位** 中。執行此步驟的 Runner。只有這個 Runner 可以認領該工作。全域 Runner 只執行 JavaScript 步驟。 | 您設定的專案預設 Runner |
-| **Bash 指令碼** | 指令碼。輸出（stdout 和 stderr）最多記錄 50 KB，非零的結束代碼會使步驟失敗。 | — |
+| **Bash 指令碼** | 指令碼。輸出（stdout 和 stderr）最多記錄 50 KB，非零的結束代碼會使步驟失敗。它在 Runner 的環境中執行，但不帶 Runner 自己的 `ONEUPTIME_RUNNER_` 設定，包括其金鑰；即使腳本仍印出金鑰，也會儲存為 `[REDACTED]` 。 | — |
 | **執行逾時** | Runner 在以 `SIGKILL` 終止指令碼之前允許它執行的時間。若步驟確實需要幾分鐘，請調高此值。 | 30 秒 |
 | **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
 
@@ -195,7 +195,7 @@ systemctl status nginx --no-pager
 | --- | --- |
 | **Runner** | 位於 **更多欄位** 中。執行 kubectl 的 Runner。它必須能連到叢集的 API 伺服器。未選擇 Runner 的步驟在專案預設 Runner 上執行。 |
 | **Kubeconfig** | 保存叢集 kubeconfig 的機密變數，或 **Runner 自身的存取權限** ：使用 Runner 自己的 kubeconfig，或在叢集內執行時使用其服務帳戶。Runner 會把 kubeconfig 寫入只有它能讀取的檔案，並在指令碼結束時刪除。 |
-| **指令碼** | kubectl 指令。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。 |
+| **指令碼** | kubectl 指令。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。與 Bash 步驟的腳本一樣，它執行時不帶 Runner 自己的 `ONEUPTIME_RUNNER_` 設定。 |
 | **執行逾時** | Runner 在用 `SIGKILL` 停止指令碼之前允許它執行的時長。預設 30 秒。 |
 | **領取逾時** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
 

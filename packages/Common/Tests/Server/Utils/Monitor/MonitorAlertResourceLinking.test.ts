@@ -160,6 +160,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     iotFleetIds: [],
     databaseServerIds: [],
     storageArrayIds: [],
+    xcpNgPoolIds: [],
     cloudResourceIds: [],
     networkDeviceIds: [],
   };
@@ -894,6 +895,7 @@ describe("Alerts link the resources their series identifies", () => {
     resourceContext = {
       ...emptyResourceContext(),
       storageArrayIds: ["array-1"],
+      xcpNgPoolIds: [],
     };
 
     await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({

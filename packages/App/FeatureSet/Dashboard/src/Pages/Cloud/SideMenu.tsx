@@ -80,9 +80,10 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * What the accounts cost, from each cloud's own billing; the ways to
-     * spend less, from each cloud's own recommender; and the budgets that
-     * alert before a month costs more than it should.
+     * What the accounts cost, from each cloud's own billing, and who spent
+     * it (cost groups); the ways to spend less, from each cloud's own
+     * recommender; and the budgets that alert before a month costs more
+     * than it should.
      */
     {
       title: "Spend",
@@ -96,6 +97,20 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Billing,
         },
+        /*
+         * Who spent it: the spend sorted into teams, products and cost
+         * centers by cost views and their groups, and the custom line items
+         * added to it for chargeback.
+         */
+        {
+          link: {
+            title: "Cost Groups",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_COST_GROUPS] as Route,
+            ),
+          },
+          icon: IconProp.RectangleStack,
+        },
         {
           link: {
             title: "Savings",
@@ -104,6 +119,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.ArrowTrendingDown,
+        },
+        /*
+         * Off-hours schedules (#11010): non-production resources stopped
+         * outside working hours, and started again.
+         */
+        {
+          link: {
+            title: "Schedules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_SCHEDULES] as Route,
+            ),
+          },
+          icon: IconProp.Moon,
         },
         {
           link: {
@@ -150,6 +178,16 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+        // What OneUptime AI may do with a saving on its own (#11010).
+        {
+          link: {
+            title: "Savings AI Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
         },
       ],
     },

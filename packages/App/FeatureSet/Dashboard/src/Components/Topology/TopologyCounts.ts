@@ -109,6 +109,10 @@ const COUNT_TEMPLATES: Readonly<Record<EntityType, PluralTemplate>> = {
     one: "{{count}} storage array",
     other: "{{count}} storage arrays",
   },
+  [EntityType.XcpNgPool]: {
+    one: "{{count}} XCP-ng pool",
+    other: "{{count}} XCP-ng pools",
+  },
   [EntityType.VMwareVCenter]: {
     one: "{{count}} vCenter",
     other: "{{count}} vCenters",

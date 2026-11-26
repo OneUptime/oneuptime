@@ -169,10 +169,16 @@ describe("CloudAccountFeed", () => {
     );
   });
 
-  test("its events are how the account came to OneUptime, and what changed since", () => {
+  test("its events are how the account came to OneUptime, what changed since, and the changes made for savings", () => {
     expect(Object.values(CloudAccountFeedEventType)).toEqual([
       "CloudAccountCreated",
       "CloudAccountUpdated",
+      // A change for a saving, from proposed to undone (#11010).
+      "SavingsActionProposed",
+      "SavingsActionApplied",
+      "SavingsActionFailed",
+      "SavingsActionDismissed",
+      "SavingsActionUndone",
     ]);
 
     // Stored verbatim: a value that drifts from its key orphans every row.

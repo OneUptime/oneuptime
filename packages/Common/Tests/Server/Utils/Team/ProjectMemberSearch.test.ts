@@ -1,4 +1,5 @@
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import ProjectMemberSearch, {
   PROJECT_MEMBER_SEARCH_READ_LIMIT,
 } from "../../../../Server/Utils/Team/ProjectMemberSearch";
@@ -403,6 +404,11 @@ describe("the search", () => {
     ).toEqual([]);
   });
 
+  /*
+   * Search escapes a typed % or _ itself (QueryHelper.search, #10545), so
+   * each read searches the text as typed: escaped here as well, "50%" was
+   * looked for as "50\%" and found nobody.
+   */
   test("what was typed is matched literally: a % or _ is no wildcard", async () => {
     await ProjectMemberSearch.search({
       projectId: PROJECT_ID,
@@ -413,7 +419,7 @@ describe("the search", () => {
     for (const call of userCalls()) {
       const column: string = Object.keys(call.query["user"] as JSONObject)[0]!;
       expect((call.query["user"] as JSONObject)[column]).toEqual(
-        new Search("50\\%\\_off\\\\"),
+        new Search("50%_off\\"),
       );
     }
 
@@ -422,7 +428,18 @@ describe("the search", () => {
       calls().find((call: FindByCall): boolean => {
         return call.query["inviteeName"] !== undefined;
       })!.query["inviteeName"],
-    ).toEqual(new Search("50\\%\\_off\\\\"));
+    ).toEqual(new Search("50%_off\\"));
+
+    // ...which the query serializer makes a LIKE pattern escaped once.
+    expect(
+      Object.values(
+        (
+          QueryHelper.search("50%_off\\") as unknown as {
+            objectLiteralParameters: Record<string, unknown>;
+          }
+        ).objectLiteralParameters,
+      ),
+    ).toEqual(["%50\\%\\_off\\\\%"]);
   });
 
   test("one person found by name and by email, and on several teams, is one result, best match first", async () => {

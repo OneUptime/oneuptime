@@ -27,6 +27,7 @@ import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../Types/CloudConnectio
 import { RESPONDER_ON_RULE_ALREADY_REFUSALS } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import { DISCOVERY_SCAN_PROBE_OFFLINE_REFUSAL } from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
 import { PULL_REQUEST_LINK_REFUSALS } from "../../Types/SecurityCase/SecurityCasePullRequestLink";
+import { ISSUE_PULL_REQUEST_ALREADY_LINKED } from "../../Types/DataSecurity/DataSecurityIssuePullRequestLink";
 import { PLAN_REQUIRED_REFUSAL } from "../../Types/Billing/PlanRequiredRefusal";
 import { UNIQUE_VALUE_TAKEN_REFUSAL } from "../../Types/Database/UniqueValueTaken";
 
@@ -153,6 +154,12 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
    * Pull Request dialog says it.
    */
   ...PULL_REQUEST_LINK_REFUSALS,
+  /*
+   * A pull request a person linked to a Data Security issue as its fix
+   * (#10831): the refusals it shares with a case's are above; this one
+   * names the issue.
+   */
+  ISSUE_PULL_REQUEST_ALREADY_LINKED,
   /*
    * A feature the project's plan does not include, with the plan it needs
    * (#7276): every plan-gated button, form and dialog meets it.

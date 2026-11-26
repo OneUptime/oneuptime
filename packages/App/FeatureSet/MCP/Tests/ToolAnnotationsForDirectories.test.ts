@@ -106,6 +106,17 @@ const OUTSIDE_ADDRESS_WORKFLOW_TOOLS: Array<string> = [
   "set_up_website_monitoring",
 ];
 
+/*
+ * The tools written by hand that change something in a system outside
+ * OneUptime, through a connection the project made (#10378): a response on
+ * a data store changes the store's settings in its cloud account, and Fix
+ * with AI opens a pull request in the project's repository.
+ */
+const OUTSIDE_SYSTEM_WORKFLOW_TOOLS: Array<string> = [
+  "respond_on_data_store",
+  "fix_data_security_issue_with_ai",
+];
+
 // The longest tool name the Claude Connectors Directory accepts.
 const MAX_TOOL_NAME_LENGTH: number = 64;
 
@@ -272,7 +283,7 @@ describe("every tool carries the title and the hints MCP directories ask for", (
     }
   });
 
-  test("a tool is open-world exactly when it reads public status pages, publishes what it writes, points OneUptime at an address outside it, or emails outside the project", () => {
+  test("a tool is open-world exactly when it reads public status pages, publishes what it writes, points OneUptime at an address outside it, emails outside the project, or changes a cloud account or a repository", () => {
     const openWorld: Array<string> = listed()
       .filter((tool: Tool): boolean => {
         return tool.annotations?.openWorldHint === true;
@@ -286,6 +297,7 @@ describe("every tool carries the title and the hints MCP directories ask for", (
           PUBLISHING_WORKFLOW_TOOLS.includes(tool.name) ||
           MAILING_WORKFLOW_TOOLS.includes(tool.name) ||
           OUTSIDE_ADDRESS_WORKFLOW_TOOLS.includes(tool.name) ||
+          OUTSIDE_SYSTEM_WORKFLOW_TOOLS.includes(tool.name) ||
           (tool.annotations?.readOnlyHint === false &&
             isPublishedTable(tool.tableName)) ||
           // Making or changing one, not deleting it.

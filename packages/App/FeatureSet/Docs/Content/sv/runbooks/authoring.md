@@ -140,7 +140,7 @@ Ett bash-skript som körs med `bash -c <script>` på en [runbook-agent](/docs/ru
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
 | **Runner** | Under **Fler fält**. Den Runner som kör steget. Bara den Runnern får ta jobbet. Globala Runners kör bara JavaScript-steg. | Projektets standard-Runner, om du har angett en |
-| **Bash-skript** | Skriptet. Output (stdout och stderr) registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. | — |
+| **Bash-skript** | Skriptet. Output (stdout och stderr) registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. Det körs med Runnerns miljö, utan Runnerns egna `ONEUPTIME_RUNNER_`-inställningar, nyckeln inräknad; en nyckel som ett skript ändå skriver ut sparas som `[REDACTED]`. | — |
 | **Tidsgräns för körning** | Hur länge Runnern låter skriptet köra innan den dödar det med `SIGKILL`. Höj den för steg som av goda skäl tar minuter. | 30 sekunder |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
@@ -195,7 +195,7 @@ Kör kubectl-kommandon mot ett kluster. Skriptet körs med bash på Runnern, som
 | --- | --- |
 | **Runner** | Under **Fler fält**. Den Runner som kör kubectl. Den måste kunna nå klustrets API-server. Ett steg som inte väljer någon körs på projektets standard-Runner. |
 | **Kubeconfig** | Den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst**: Runnerns egen kubeconfig, eller dess tjänstkonto när den körs i klustret. Runnern skriver en kubeconfig till en fil som bara den kan läsa, och tar bort den när skriptet slutar. |
-| **Skript** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
+| **Skript** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. Precis som skriptet i ett Bash-steg körs det utan Runnerns egna `ONEUPTIME_RUNNER_`-inställningar. |
 | **Tidsgräns för körning** | Hur länge Runnern låter skriptet köras innan den stoppar det med `SIGKILL`. Standard 30 sekunder. |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 

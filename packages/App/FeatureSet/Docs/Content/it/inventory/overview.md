@@ -50,7 +50,7 @@ Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a
 | --- | --- |
 | Pod, deployment, guest Proxmox, istanze OpenStack e macchine virtuali VMware | 1 giorno |
 | Nodi e namespace Kubernetes, nodi Proxmox, hypervisor OpenStack, host, cluster e datastore VMware, e i database e i servizi remoti chiamati dalle tue tracce | 7 giorni |
-| Servizi, host, cluster Kubernetes, Proxmox e Ceph, cloud OpenStack, array di storage, vCenters e cluster Docker Swarm | 30 giorni |
+| Servizi, host, cluster Kubernetes, Proxmox e Ceph, cloud OpenStack, array di storage, vCenters, pool XCP-ng e cluster Docker Swarm | 30 giorni |
 
 Una relazione che OneUptime ha scoperto viene rimossa quando non viene rivista per 30 giorni.
 

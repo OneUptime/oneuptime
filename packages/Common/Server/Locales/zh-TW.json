@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "一位專案擁有者清除了您的 {{product}} 帳戶中儲存的登入設定。",
   "A backup code was used to confirm it's you in your {{product}} account": "您的 {{product}} 帳戶中有人用備用代碼確認了是您本人",
   "A backup code was used to confirm it's you.": "有人用備用代碼確認了是您本人。",
   "A backup code was used to sign in to your account.": "有人用備用代碼登入了您的帳戶。",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "此事件的一則備註已更新。最新內容如下：",
   "A note on this scheduled event has been updated. Here is the latest version:": "此排定事件的一則備註已更新。最新內容如下：",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "影響您所訂閱服務的一起事件已發布事後分析報告。",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "一位專案擁有者清除了您的 {{product}} 帳戶中儲存的登入設定。",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "伺服器管理員已將您的 {{product}} 帳戶的電子郵件地址從此地址變更為新地址。",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "伺服器管理員清除了您的 {{product}} 帳戶中儲存的登入設定。",
   "A server admin made this the email address of your {{product}} account.": "伺服器管理員已將此地址設為您的 {{product}} 帳戶的電子郵件地址。",
@@ -268,7 +268,9 @@
   "More than {{percent}}% of the AI's answers were bad.": "超過 {{percent}}% 的 AI 回答不佳。",
   "Need help?": "需要協助？",
   "Need help? Ask your server's admin.": "需要協助？請聯絡您的伺服器管理員。",
+  "Need help? Ask {{inviter}}, who invited you, or write to {{address}}.": "需要協助？請聯絡邀請您的 {{inviter}}，或寄信至 {{address}}。",
   "Need help? Ask {{inviter}}, who invited you, or your server's admin.": "需要協助？請聯絡邀請您的 {{inviter}}，或您的伺服器管理員。",
+  "Need help? Write to {{address}}.": "需要協助？請寄信至 {{address}}。",
   "New Alert Episode {{number}}: {{title}}": "新的警示片段 {{number}}：{{title}}",
   "New Alert Episode: {{title}}": "新的警示片段：{{title}}",
   "New Alert {{number}}: {{title}}": "新的警示 {{number}}：{{title}}",

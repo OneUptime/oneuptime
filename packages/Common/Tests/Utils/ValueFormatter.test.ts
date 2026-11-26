@@ -3,6 +3,10 @@ import ValueFormatter, {
   ValueFormatterOptions,
 } from "../../Utils/ValueFormatter";
 import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
+import {
+  XcpNgMetricDefinition,
+  getAllXcpNgMetrics,
+} from "../../Types/Monitor/XcpNgMetricCatalog";
 import { getNumberLocale } from "../../Types/DateLanguage";
 
 describe("ValueFormatter", () => {
@@ -280,6 +284,56 @@ describe("ValueFormatter", () => {
      * "Percent" axis, on the very page that also showed it at 91.55% of
      * its CPU limit. Reverting the guard flips every assertion below.
      */
+    /*
+     * Xen Orchestra's CPU, run-state and I/O-wait series are [0, 1] shares of
+     * time under names that say nothing of it (xcp_vm_cpu_usage). Read from
+     * the catalog, so a share added there without a name here fails, and so
+     * does a byte, second or count series read as a percentage.
+     */
+    test("every XCP-ng series the catalog calls a ratio is a fraction, and no other XCP-ng series is", () => {
+      const metrics: Array<XcpNgMetricDefinition> = getAllXcpNgMetrics();
+      const ratios: Array<string> = metrics
+        .filter((metric: XcpNgMetricDefinition): boolean => {
+          return metric.unit === "ratio";
+        })
+        .map((metric: XcpNgMetricDefinition): string => {
+          return metric.metricName;
+        });
+
+      expect(ratios).toEqual(
+        expect.arrayContaining([
+          "xcp_host_cpu_average",
+          "xcp_vm_cpu_usage",
+          "xcp_vm_runstate_full_contention",
+          "xcp_vm_disk_iowait",
+        ]),
+      );
+
+      for (const metric of metrics) {
+        expect({
+          metricName: metric.metricName,
+          isFraction: ValueFormatter.isFractionMetric(metric.metricName),
+        }).toEqual({
+          metricName: metric.metricName,
+          isFraction: metric.unit === "ratio",
+        });
+      }
+    });
+
+    test("an XCP-ng share is matched by its whole name, whatever its case", () => {
+      expect(ValueFormatter.isFractionMetric("XCP_VM_CPU_USAGE")).toBe(true);
+      expect(ValueFormatter.isFractionMetric(" xcp_host_cpu_average ")).toBe(
+        true,
+      );
+      // Not a share: a name that merely starts like one.
+      expect(ValueFormatter.isFractionMetric("xcp_vm_cpu_usage_total")).toBe(
+        false,
+      );
+      expect(ValueFormatter.isFractionMetric("my_xcp_vm_cpu_usage")).toBe(
+        false,
+      );
+    });
+
     test("the two kubeletstats cores gauges are NOT fractions", () => {
       expect(ValueFormatter.isFractionMetric("k8s.pod.cpu.utilization")).toBe(
         false,

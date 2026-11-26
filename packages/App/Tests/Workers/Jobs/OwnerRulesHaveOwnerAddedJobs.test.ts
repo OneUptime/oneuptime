@@ -258,6 +258,33 @@ describe("every owner rule's Notify Owners", () => {
     },
   );
 
+  test("tells an XCP-ng pool's new owners, by a job of its own, as a Proxmox cluster's (#10995)", () => {
+    const file: string = "XcpNgPoolOwners/SendOwnerAddedNotification.ts";
+
+    expect(rules).toContain("XcpNgPoolOwnerRule");
+    expect(ownerAddedJobOf("XcpNgPoolOwnerRule", jobs)).toBe(file);
+
+    const source: string = jobs.find(
+      (job: { file: string; source: string }): boolean => {
+        return job.file === file;
+      },
+    )!.source;
+
+    expect(source).toContain("runResourceOwnerAddedJob<XcpNgPool>({");
+    expect(source).toContain(
+      'jobName: "XcpNgPoolOwner:SendOwnerAddedNotification",',
+    );
+    expect(source).toContain(
+      "kind: OwnerNotificationKind.XcpNgPoolOwnerAdded,",
+    );
+    expect(source).toContain('ownerTableName: "XcpNgPoolOwnerUser",');
+    expect(source).toContain('recordIdColumn: "xcpNgPoolId",');
+    // Under the setting every other infrastructure owner is told under.
+    expect(source).toContain(
+      "NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION",
+    );
+  });
+
   test("the shared job tells through tellOwnersAdded and takes up what a stopped run left", () => {
     const shared: string = fs.readFileSync(
       path.join(WORKERS, "Utils/ResourceOwnersAdded.ts"),

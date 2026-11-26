@@ -262,23 +262,39 @@ function isCaSin(digits: string): boolean {
   );
 }
 
+/*
+ * US Social Security number as AAA-GG-SSSS: the SSA's area, group and
+ * serial rules, and nothing else - no check digit. The groups make it worth
+ * showing (Low) even with no word around it. In every script's digits too
+ * (#11030): ١٢٣-٤٥-٦٧٨٩ is the same number.
+ */
+const US_SSN_GROUPED_DETECTOR: DataTypeDetector = {
+  dataTypeId: "us-ssn",
+  quickCheck: hasDigit,
+  pattern: US_SSN_GROUPED_PATTERN,
+  normalize: digitsOnly,
+  validate: isUsSsn,
+  keywords: US_SSN_KEYWORDS,
+  confidenceWithoutContext: DataConfidence.Low,
+  specificity: 1,
+  isTestValue: US_SSN_SAMPLES,
+  readsDigitsOfEveryScript: true,
+};
+
+/*
+ * WHAT DATA SECURITY CALLS A SOCIAL SECURITY NUMBER ON ITS OWN: one in its
+ * groups, set apart by dashes, dots or spaces. An SSN scrub rule hides what
+ * this finds, as well as what its own pattern does (Utils/Telemetry/
+ * ScrubBuiltInPatterns.ts, #11030). Nine digits in a row are an SSN only
+ * beside a word that says so, which a rule reading one value at a time does
+ * not weigh.
+ */
+export const US_SSN_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  US_SSN_GROUPED_DETECTOR,
+];
+
 const NORTH_AMERICA: ReadonlyArray<DataTypeDetector> = [
-  /*
-   * US Social Security number as AAA-GG-SSSS: the SSA's area, group and
-   * serial rules, and nothing else - no check digit. The groups make it
-   * worth showing (Low) even with no word around it.
-   */
-  {
-    dataTypeId: "us-ssn",
-    quickCheck: hasDigit,
-    pattern: US_SSN_GROUPED_PATTERN,
-    normalize: digitsOnly,
-    validate: isUsSsn,
-    keywords: US_SSN_KEYWORDS,
-    confidenceWithoutContext: DataConfidence.Low,
-    specificity: 1,
-    isTestValue: US_SSN_SAMPLES,
-  },
+  US_SSN_GROUPED_DETECTOR,
   /*
    * An SSN as nine bare digits: the same rules, but nine digits are
    * everywhere, so only beside a word that says SSN.
@@ -294,6 +310,8 @@ const NORTH_AMERICA: ReadonlyArray<DataTypeDetector> = [
     confidenceWithoutContext: DataConfidence.Low,
     specificity: 1,
     isTestValue: US_SSN_SAMPLES,
+    // In every script's digits too, as US_SSN_GROUPED_DETECTOR.
+    readsDigitsOfEveryScript: true,
   },
   /*
    * US ITIN, 9XX-GG-SSSS: always a 9 first, and a group the IRS issues in
@@ -2940,6 +2958,15 @@ const PASSPORT_NUMBER_DETECTOR: DataTypeDetector = {
   isTestValue: sampleValues(["C01X00T47"]),
 };
 
+/*
+ * Every government ID read in every script's digits too
+ * (readsDigitsOfEveryScript, #11033), as a card is (#10960) and a Social
+ * Security number is (#11030): a TC Kimlik in Arabic-Indic digits, a CPF
+ * in fullwidth ones, a passport number in Persian ones. A number is the
+ * same number whatever script its digits are written in - its check digit,
+ * its birth date and the words it needs around it prove it the same way -
+ * and it is placed on the very characters it is written with.
+ */
 export const GOVERNMENT_ID_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ...NORTH_AMERICA,
   ...UNITED_KINGDOM,
@@ -2950,6 +2977,8 @@ export const GOVERNMENT_ID_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ...ASIA,
   ...OCEANIA_AND_RUSSIA,
   PASSPORT_NUMBER_DETECTOR,
-];
+].map((detector: DataTypeDetector): DataTypeDetector => {
+  return { ...detector, readsDigitsOfEveryScript: true };
+});
 
 export default GOVERNMENT_ID_DETECTORS;

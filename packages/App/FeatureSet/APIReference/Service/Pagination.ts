@@ -2,7 +2,10 @@ import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
-import { buildRenderContext } from "../Utils/RenderContext";
+import {
+  ReferencePageRenderContext,
+  buildPageRenderContext,
+} from "../Utils/RenderContext";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -16,7 +19,7 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
+    const ctx: ReferencePageRenderContext = await buildPageRenderContext(req);
     const pageData: Dictionary<unknown> = {};
 
     pageData["responseCode"] = await LocalCache.getOrSetString(

@@ -14,6 +14,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import SetupActionAPI from "Common/Server/API/SetupActionAPI";
+import DataSecurityActionAPI from "Common/Server/API/DataSecurityActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -222,6 +223,7 @@ import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import StorageArrayResourceAPI from "Common/Server/API/StorageArrayResourceAPI";
+import XcpNgResourceAPI from "Common/Server/API/XcpNgResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -510,6 +512,12 @@ import StorageArrayOwnerRuleService, {
 import StorageArrayLabelRuleService, {
   Service as StorageArrayLabelRuleServiceType,
 } from "Common/Server/Services/StorageArrayLabelRuleService";
+import XcpNgPoolOwnerRuleService, {
+  Service as XcpNgPoolOwnerRuleServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerRuleService";
+import XcpNgPoolLabelRuleService, {
+  Service as XcpNgPoolLabelRuleServiceType,
+} from "Common/Server/Services/XcpNgPoolLabelRuleService";
 
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
@@ -671,6 +679,12 @@ import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectio
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
+import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
+import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
+import CloudCostLineItemService, {
+  Service as CloudCostLineItemServiceType,
+} from "Common/Server/Services/CloudCostLineItemService";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
 import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
@@ -726,6 +740,9 @@ import SecurityCaseAiActionService, {
 import SecurityCasePullRequestService, {
   Service as SecurityCasePullRequestServiceType,
 } from "Common/Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService, {
+  Service as DataSecurityIssuePullRequestServiceType,
+} from "Common/Server/Services/DataSecurityIssuePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1100,6 +1117,9 @@ import CephClusterService, {
 import StorageArrayService, {
   Service as StorageArrayServiceType,
 } from "Common/Server/Services/StorageArrayService";
+import XcpNgPoolService, {
+  Service as XcpNgPoolServiceType,
+} from "Common/Server/Services/XcpNgPoolService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -1142,6 +1162,12 @@ import StorageArrayOwnerTeamService, {
 import StorageArrayOwnerUserService, {
   Service as StorageArrayOwnerUserServiceType,
 } from "Common/Server/Services/StorageArrayOwnerUserService";
+import XcpNgPoolOwnerTeamService, {
+  Service as XcpNgPoolOwnerTeamServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService, {
+  Service as XcpNgPoolOwnerUserServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerUserService";
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
@@ -1708,6 +1734,8 @@ import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerR
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import StorageArrayOwnerRule from "Common/Models/DatabaseModels/StorageArrayOwnerRule";
 import StorageArrayLabelRule from "Common/Models/DatabaseModels/StorageArrayLabelRule";
+import XcpNgPoolOwnerRule from "Common/Models/DatabaseModels/XcpNgPoolOwnerRule";
+import XcpNgPoolLabelRule from "Common/Models/DatabaseModels/XcpNgPoolLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -1828,6 +1856,9 @@ import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerU
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import XcpNgPoolOwnerTeam from "Common/Models/DatabaseModels/XcpNgPoolOwnerTeam";
+import XcpNgPoolOwnerUser from "Common/Models/DatabaseModels/XcpNgPoolOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
@@ -2000,6 +2031,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -2124,6 +2156,10 @@ import StorageArrayFeed from "Common/Models/DatabaseModels/StorageArrayFeed";
 import StorageArrayFeedService, {
   Service as StorageArrayFeedServiceType,
 } from "Common/Server/Services/StorageArrayFeedService";
+import XcpNgPoolFeed from "Common/Models/DatabaseModels/XcpNgPoolFeed";
+import XcpNgPoolFeedService, {
+  Service as XcpNgPoolFeedServiceType,
+} from "Common/Server/Services/XcpNgPoolFeedService";
 import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
 import DatabaseServerFeedService, {
   Service as DatabaseServerFeedServiceType,
@@ -2174,6 +2210,11 @@ import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecom
 import CloudCostRecommendationService, {
   Service as CloudCostRecommendationServiceType,
 } from "Common/Server/Services/CloudCostRecommendationService";
+import CloudOffHoursSchedule from "Common/Models/DatabaseModels/CloudOffHoursSchedule";
+import CloudOffHoursScheduleService, {
+  Service as CloudOffHoursScheduleServiceType,
+} from "Common/Server/Services/CloudOffHoursScheduleService";
+import CloudSavingsAPI from "Common/Server/API/CloudSavingsAPI";
 import CloudResourceFeedService, {
   Service as CloudResourceFeedServiceType,
 } from "Common/Server/Services/CloudResourceFeedService";
@@ -2878,6 +2919,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArrayFeed, StorageArrayFeedServiceType>(
         StorageArrayFeed,
         StorageArrayFeedService,
+      ).getRouter(),
+    );
+
+    // XCP-ng pool feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolFeed, XcpNgPoolFeedServiceType>(
+        XcpNgPoolFeed,
+        XcpNgPoolFeedService,
       ).getRouter(),
     );
 
@@ -3720,6 +3770,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerRule, XcpNgPoolOwnerRuleServiceType>(
+        XcpNgPoolOwnerRule,
+        XcpNgPoolOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolLabelRule, XcpNgPoolLabelRuleServiceType>(
+        XcpNgPoolLabelRule,
+        XcpNgPoolLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerOwnerRule, DatabaseServerOwnerRuleServiceType>(
         DatabaseServerOwnerRule,
         DatabaseServerOwnerRuleService,
@@ -3947,6 +4013,29 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     /*
+     * Cost views and their groups: the spend sorted into teams, products
+     * and cost centers, read through /cloud-cost-view/:id/allocation and
+     * /cloud-cost-group/:id/spend; and the custom line items added to it.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostViewAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostGroupAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostLineItem, CloudCostLineItemServiceType>(
+        CloudCostLineItem,
+        CloudCostLineItemService,
+      ).getRouter(),
+    );
+
+    /*
      * Required tags (#11012): the tags the clouds' resources must carry,
      * how the project is told about a new resource without one, the new
      * resources found, and each account's daily count. The last two are
@@ -3987,6 +4076,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudCostRecommendation, CloudCostRecommendationServiceType>(
         CloudCostRecommendation,
         CloudCostRecommendationService,
+      ).getRouter(),
+    );
+
+    /*
+     * The changes OneUptime proposes and makes for savings (#11010): read
+     * here, and asked for, approved, dismissed and undone through the
+     * savings routes; written only by those and the workers.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudSavingsAPI().getRouter(),
+    );
+
+    // Off-hours schedules that stop non-production resources (#11010).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudOffHoursSchedule, CloudOffHoursScheduleServiceType>(
+        CloudOffHoursSchedule,
+        CloudOffHoursScheduleService,
       ).getRouter(),
     );
 
@@ -4235,6 +4343,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StorageArrayResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new XcpNgResourceAPI().getRouter(),
     );
 
     app.use(
@@ -4927,6 +5040,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityCasePullRequest, SecurityCasePullRequestServiceType>(
         SecurityCasePullRequest,
         SecurityCasePullRequestService,
+      ).getRouter(),
+    );
+
+    /*
+     * A person's own pull request, linked to a Data Security issue as its
+     * fix (#10831): linked and taken off by who may change the issue, read
+     * by its readers - the issue's Linked pull requests. What it says of
+     * the pull request, and how production proved it, is OneUptime's.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestServiceType
+      >(
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestService,
       ).getRouter(),
     );
 
@@ -6669,6 +6799,30 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPool, XcpNgPoolServiceType>(
+        XcpNgPool,
+        XcpNgPoolService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerTeam, XcpNgPoolOwnerTeamServiceType>(
+        XcpNgPoolOwnerTeam,
+        XcpNgPoolOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerUser, XcpNgPoolOwnerUserServiceType>(
+        XcpNgPoolOwnerUser,
+        XcpNgPoolOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServer, DatabaseServerServiceType>(
         DatabaseServer,
         DatabaseServerService,
@@ -8001,6 +8155,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * server's outcome-level tools (#7241).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
+
+    /*
+     * Ask AI's Data Security actions, one call each, outside the chat: the
+     * MCP server's scrub, judge, accept, owners, rule and response tools
+     * (#10378).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DataSecurityActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

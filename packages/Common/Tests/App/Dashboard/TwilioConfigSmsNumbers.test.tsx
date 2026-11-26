@@ -309,6 +309,7 @@ import TwilioConfigDefaultCopy from "../../../../App/FeatureSet/Dashboard/src/Co
 import TwilioConfigVoiceCopy from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigVoiceCopy";
 import API from "../../../UI/Utils/API/API";
 import Toast, { ToastItem } from "../../../UI/Utils/Toast";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import {
@@ -466,6 +467,17 @@ beforeEach(() => {
   capturedModels = [];
   tableProps = [];
   Toast.dismissAll();
+
+  /*
+   * A Twilio config's name is one of its kind in its project, so its form asks
+   * the server, a moment after the config is named, whether another config has
+   * the name (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 /*

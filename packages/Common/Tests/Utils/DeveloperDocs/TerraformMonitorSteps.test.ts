@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { printHclExpression } from "../../../Utils/DeveloperDocs/Hcl";
 import {
   FILTER_JSON_OPTIONS,
+  MONITOR_STEP_SUB_CONFIGS,
   MonitorStepsHclContext,
   monitorStepsToHcl,
 } from "../../../Utils/DeveloperDocs/TerraformMonitorSteps";
@@ -842,6 +843,48 @@ describe("raw-JSON sub-configs (TestMonitorStepsFromAPIMapsInjectedSubConfigs)",
       convert(envelope([step({ requestType: "GET", logMonitor: "nope" })])),
     ).toEqual([{ request_type: "GET" }]);
   });
+
+  /*
+   * An XCP-ng monitor's pool is its XAPI UUID, and its filters are the
+   * scope, UUID and host name the worker reads: the provider keeps all of
+   * it in xcp_ng_monitor, so applying an exported monitor watches the same
+   * pool and the same objects.
+   */
+  test("an XCP-ng monitor's step is written to xcp_ng_monitor with jsonencode, exactly as stored", () => {
+    const xcpNgMonitor: Record<string, unknown> = {
+      poolIdentifier: "6b3e4a1c-2f9d-4e8b-a7c5-0d1e2f3a4b5c",
+      resourceFilters: { scope: "host", hostName: "xcp-host-01" },
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      rollingTime: "Past 5 Minutes",
+    };
+
+    expect(
+      convert(envelope([step({ requestType: "GET", xcpNgMonitor })])),
+    ).toEqual([
+      {
+        request_type: "GET",
+        xcp_ng_monitor: { call: "jsonencode", args: [xcpNgMonitor] },
+      },
+    ]);
+  });
+
+  test("XCP-ng's attribute sits beside the other hypervisors', named as the provider names it", () => {
+    const names: Array<string> = MONITOR_STEP_SUB_CONFIGS.map(
+      (config: { attributeName: string }): string => {
+        return config.attributeName;
+      },
+    );
+
+    expect(
+      MONITOR_STEP_SUB_CONFIGS.find((config: { apiKey: string }): boolean => {
+        return config.apiKey === "xcpNgMonitor";
+      })?.attributeName,
+    ).toBe("xcp_ng_monitor");
+    expect(names.indexOf("xcp_ng_monitor")).toBe(
+      names.indexOf("vmware_monitor") + 1,
+    );
+    expect(new Set(names).size).toBe(names.length);
+  });
 });
 
 /*
@@ -1087,6 +1130,195 @@ describe("raw-JSON filter options", () => {
     expect(printed.split("custom_code_monitor_options").length - 1).toBe(2);
     // The server's step id stays out, as everywhere else.
     expect(printed).not.toContain("server-generated-step-id");
+  });
+});
+
+/*
+ * The three settings the provider writes since #10984: a Security Events
+ * step's query, what a template's monitors keep when it syncs, and the
+ * people an incident template gives a role. Without them the export left
+ * them out, and the configuration it wrote would have removed them.
+ */
+describe("settings the provider writes since #10984", () => {
+  test("a Security Events step's query is written with jsonencode, exactly as stored", () => {
+    const query: Record<string, unknown> = {
+      attributes: {},
+      messageContains: "Failed password",
+      severityNames: ["High"],
+      classNames: ["Authentication"],
+      telemetryServiceIds: [],
+      lastXSecondsOfEvents: 300,
+      watchlistFilters: [],
+    };
+
+    expect(convert(envelope([step({ securityEventsMonitor: query })]))).toEqual(
+      [{ security_events_monitor: { call: "jsonencode", args: [query] } }],
+    );
+  });
+
+  test("a template's sync fields are written as a list, and none as no attribute", () => {
+    expect(
+      convert(
+        envelope([
+          step({
+            requestType: "GET",
+            doNotSyncFields: ["monitorDestination", "requestHeaders"],
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        request_type: "GET",
+        do_not_sync_fields: ["monitorDestination", "requestHeaders"],
+      },
+    ]);
+    expect(
+      convert(envelope([step({ requestType: "GET", doNotSyncFields: [] })])),
+    ).toEqual([{ request_type: "GET" }]);
+  });
+
+  test("an incident's roles are written one { role_id, user_id } per person and role, from strings or ObjectID wrappers", () => {
+    const converted: HclTestValue = convert(
+      envelope([
+        step({
+          monitorCriteria: criteriaEnvelope([
+            {
+              name: "Offline",
+              incidents: [
+                {
+                  title: "Down",
+                  description: "The site is down.",
+                  incidentMemberRoles: [
+                    {
+                      roleId: "a1000000-0000-4000-8000-000000000001",
+                      userId: "a1000000-0000-4000-8000-000000000002",
+                    },
+                    {
+                      roleId: {
+                        _type: "ObjectID",
+                        value: "a1000000-0000-4000-8000-000000000001",
+                      },
+                      userId: {
+                        _type: "ObjectID",
+                        value: "a1000000-0000-4000-8000-000000000003",
+                      },
+                    },
+                    // Without its user: left out, as the provider leaves it.
+                    { roleId: "a1000000-0000-4000-8000-000000000001" },
+                  ],
+                },
+              ],
+              alerts: [
+                {
+                  title: "Down",
+                  description: "The site is down.",
+                  incidentMemberRoles: [
+                    {
+                      roleId: "a1000000-0000-4000-8000-000000000001",
+                      userId: "a1000000-0000-4000-8000-000000000002",
+                    },
+                  ],
+                },
+              ],
+            },
+          ]),
+        }),
+      ]),
+    );
+
+    expect(converted).toEqual([
+      {
+        criteria: [
+          {
+            name: "Offline",
+            incidents: [
+              {
+                title: "Down",
+                description: "The site is down.",
+                incident_member_roles: [
+                  {
+                    role_id: "a1000000-0000-4000-8000-000000000001",
+                    user_id: "a1000000-0000-4000-8000-000000000002",
+                  },
+                  {
+                    role_id: "a1000000-0000-4000-8000-000000000001",
+                    user_id: "a1000000-0000-4000-8000-000000000003",
+                  },
+                ],
+              },
+            ],
+            // An alert has no roles: the provider has no such attribute on one.
+            alerts: [{ title: "Down", description: "The site is down." }],
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("an incident whose roles are all incomplete writes none", () => {
+    expect(
+      convert(
+        envelope([
+          step({
+            monitorCriteria: criteriaEnvelope([
+              {
+                name: "Offline",
+                incidents: [
+                  {
+                    title: "Down",
+                    description: "The site is down.",
+                    incidentMemberRoles: [{ userId: "u" }, "not a role"],
+                  },
+                ],
+              },
+            ]),
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        criteria: [
+          {
+            name: "Offline",
+            incidents: [{ title: "Down", description: "The site is down." }],
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("each role names its role and person in a comment when the page knows them", () => {
+    const printed: string = printHclExpression(
+      monitorStepsToHcl(
+        envelope([
+          step({
+            monitorCriteria: criteriaEnvelope([
+              {
+                name: "Offline",
+                incidents: [
+                  {
+                    title: "Down",
+                    description: "The site is down.",
+                    incidentMemberRoles: [
+                      { roleId: "role-1", userId: "user-1" },
+                    ],
+                  },
+                ],
+              },
+            ]),
+          }),
+        ]),
+        {
+          ...context(),
+          describeId: (id: string): string | undefined => {
+            return { "role-1": "Incident Commander", "user-1": "Ada" }[id];
+          },
+        },
+      )!,
+    );
+
+    expect(printed).toContain('role_id = "role-1" # Incident Commander');
+    expect(printed).toContain('user_id = "user-1" # Ada');
   });
 });
 

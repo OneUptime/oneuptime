@@ -37,6 +37,7 @@ import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import ServiceService from "../../../Services/ServiceService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../Services/XcpNgPoolService";
 import FindBy from "../../../Types/Database/FindBy";
 import { toAffectedResourceStub } from "../../AffectedResources/AffectedResourceLists";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -180,6 +181,11 @@ const READERS: Readonly<
   [AiAffectedResourceKind.VMwareVCenter]: {
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return VMwareVCenterService.findBy(data as never);
+    },
+  },
+  [AiAffectedResourceKind.XcpNgPool]: {
+    findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
+      return XcpNgPoolService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.CephCluster]: {

@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-Een instelling die iemand in OneUptime aan de stappen van een monitor toevoegt, en die je configuratie niet schrijft, is wel een verschil: het volgende plan toont dat `monitor_steps` verandert, en de apply die volgt verwijdert de instelling, zoals het plan zegt. Schrijf haar ook in je configuratie om haar te houden.
+Een instelling die iemand in OneUptime aan de stappen van een monitor toevoegt, en die je configuratie niet schrijft, is wel een verschil: het volgende plan toont dat `monitor_steps` verandert, en de apply die volgt verwijdert de instelling, zoals het plan zegt. Schrijf haar ook in je configuratie om haar te houden. Een instelling waarvoor de provider geen attribuut heeft, en een sleutel die OneUptime bewaart in een instelling die je met `jsonencode()` schrijft, zijn geen verschil, en een apply houdt ze: zie [Monitorstappen](/docs/terraform/monitor-steps).
 
 ## Labels en andere lijsten waar OneUptime ook aan toevoegt
 

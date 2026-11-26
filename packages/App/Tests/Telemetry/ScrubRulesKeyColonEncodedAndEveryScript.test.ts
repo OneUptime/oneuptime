@@ -23,6 +23,7 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
 import {
+  buildScrubPatternForDataType,
   CoveringScrubRule,
   isFindingScrubbed,
 } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
@@ -43,6 +44,7 @@ import {
   findSensitiveValues,
   TextMatch,
 } from "Common/Utils/DataSecurity/TextScanner";
+import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
 import {
   afterEach,
   beforeEach,
@@ -64,7 +66,12 @@ import {
  *     (张伟@acmecorp.io, почта@пример.рф, #10960), by an Email Address rule
  *     - the encoded address as written, and the rest of the URL kept;
  *   - a card in fullwidth, Arabic-Indic or Persian digits, or typed in two
- *     scripts (#10960), by a Credit Card rule.
+ *     scripts (#10960), by a Credit Card rule;
+ *   - an international phone number in the groups people write it in - its
+ *     calling code in parentheses, its trunk prefix, no-break spaces - one
+ *     in a percent-encoded URL, and one in another script's digits (#11025,
+ *     #11030), by a Phone Number rule; and a Social Security number set
+ *     apart by dots or in another script's digits, by an SSN rule.
  *
  * Every place a rule runs compiles its pattern in one place
  * (Common/Utils/Telemetry/ScrubBuiltInPatterns, on Data Security's own
@@ -96,6 +103,35 @@ interface Written {
   written: string;
   reads: string;
   mask: string;
+  // A Custom Regex rule's pattern: the one "Scrub it" makes for the type (#11031, #11033).
+  customRegex?: string | undefined;
+}
+
+// The Custom Regex rule "Scrub it" makes for a data type, from its own patterns.
+function scrubItPatternOf(dataTypeId: string): string {
+  const pattern: string | null = buildScrubPatternForDataType(dataTypeId);
+
+  expect(pattern).not.toBeNull();
+
+  return pattern!;
+}
+
+// A made-up GitHub token, put together where it is used.
+const GITHUB_TOKEN: string = [
+  "ghp",
+  "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ",
+].join("_");
+
+// Made-up numbers each check digit proves: an IBAN, a CPF, a TC Kimlik number.
+const IBAN: string = "DE47370400440532013077";
+const CPF: string = "471.392.865-82";
+const TCKN: string = "17492638550";
+
+// A digit string written in the digits of the script whose zero is given.
+function inScriptOf(digits: string, zero: number): string {
+  return digits.replace(/[0-9]/g, (digit: string): string => {
+    return String.fromCharCode(zero + Number(digit));
+  });
 }
 
 const WRITTEN: Array<Written> = [
@@ -143,6 +179,25 @@ const WRITTEN: Array<Written> = [
     written: "jane%2Bnews%40acmecorp.io",
     reads: "jane+news@acmecorp.io",
     mask: "j***@***.io",
+  },
+  // #11032
+  {
+    label: "an email address whose accented name's bytes are percent-encoded",
+    patternType: LogScrubPatternType.Email,
+    dataTypeId: "email-address",
+    before: "GET /signup?email=",
+    written: "jos%C3%A9%40acmecorp.io",
+    reads: "josé@acmecorp.io",
+    mask: "j***@***.io",
+  },
+  {
+    label: "an email address whose domain in another script is percent-encoded",
+    patternType: LogScrubPatternType.Email,
+    dataTypeId: "email-address",
+    before: "GET /verify?address=",
+    written: "jane%40%E4%BE%8B%E3%81%88.jp",
+    reads: "jane@例え.jp",
+    mask: "j***@***.jp",
   },
   {
     label: "an email address in Han letters",
@@ -198,6 +253,150 @@ const WRITTEN: Array<Written> = [
     reads: "4532 0151 1283 0366",
     mask: "****-****-****-0366",
   },
+  // #11025, #11030
+  {
+    label: "an international phone number",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "SMS to ",
+    written: "+49 30 81234567",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "one the US pattern only half hid",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "SMS to ",
+    written: "+44 161 321 4567",
+    reads: "+44 161 321 4567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "one with its calling code in parentheses and its trunk prefix",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "call ",
+    written: "+44 (0)20 8123 4567",
+    reads: "+44 (0)20 8123 4567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "one set apart by no-break spaces",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "call ",
+    written: "+33\u00A06\u00A081\u00A023\u00A045\u00A067",
+    reads: "+33\u00A06\u00A081\u00A023\u00A045\u00A067",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a phone number in a percent-encoded URL",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /callback?phone=",
+    written: "%2B49%2030%2081234567",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a phone number in Arabic-Indic digits",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "رقم الهاتف ",
+    written: "+٤٩ ٣٠ ٨١٢٣٤٥٦٧",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  // #11032: each fullwidth digit's UTF-8 bytes percent-encoded.
+  {
+    label: "a phone number in fullwidth digits, percent-encoded",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /callback?phone=",
+    written: encodeURIComponent("+４９ ３０ ８１２３４５６７"),
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a North American number in fullwidth digits",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "電話：",
+    written: "(４１５) ３２１-８７３１",
+    reads: "(415) 321-8731",
+    mask: "***-***-8731",
+  },
+  {
+    label: "a Social Security number set apart by dots",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "ssn ",
+    written: "536.22.8731",
+    reads: "536.22.8731",
+    mask: "***-**-8731",
+  },
+  {
+    label: "a Social Security number in Arabic-Indic digits",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "SSN: ",
+    written: "٥٣٦-٢٢-٨٧٣١",
+    reads: "536-22-8731",
+    mask: "***-**-8731",
+  },
+  // #11031: Scrub It's Custom Regex rule for a token reads a value's escapes.
+  {
+    label: "a GitHub token after an encoded = (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "github-token",
+    before: "GET /cb?next=%2Fhome%3Ftoken%3D",
+    written: GITHUB_TOKEN,
+    reads: GITHUB_TOKEN,
+    mask: maskKeepingEnds(GITHUB_TOKEN),
+    customRegex: scrubItPatternOf("github-token"),
+  },
+  {
+    label: "a GitHub token whose own _ is escaped (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "github-token",
+    before: "GET /cb?state=",
+    written: GITHUB_TOKEN.replace(/_/g, "%5F"),
+    reads: GITHUB_TOKEN,
+    mask: maskKeepingEnds(GITHUB_TOKEN),
+    customRegex: scrubItPatternOf("github-token"),
+  },
+  // #11033: and every script's digits, for an IBAN or a national ID number.
+  {
+    label: "an IBAN in Arabic-Indic digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "iban",
+    before: "IBAN ",
+    written: inScriptOf(IBAN, 0x0660),
+    reads: IBAN,
+    mask: maskKeepingEnds(IBAN),
+    customRegex: scrubItPatternOf("iban"),
+  },
+  {
+    label: "a CPF in fullwidth digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "br-cpf",
+    before: "CPF ",
+    written: inScriptOf(CPF, 0xff10),
+    reads: CPF,
+    mask: maskKeepingEnds(CPF),
+    customRegex: scrubItPatternOf("br-cpf"),
+  },
+  {
+    label: "a TC Kimlik number in Persian digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "tr-tckn",
+    before: "TC Kimlik No ",
+    written: inScriptOf(TCKN, 0x06f0),
+    reads: TCKN,
+    mask: maskKeepingEnds(TCKN),
+    customRegex: scrubItPatternOf("tr-tckn"),
+  },
 ];
 
 const ACTIONS: Array<string> = [
@@ -221,8 +420,21 @@ const KEPT: Array<[string, string]> = [
   [LogScrubPatternType.IPAddress, "ip:fe80::1"],
   [LogScrubPatternType.Email, "GET /search?q=jane%40&n=1"],
   [LogScrubPatternType.Email, "@用户 你好"],
+  // UTF-8 escapes that spell no address (#11032).
+  [LogScrubPatternType.Email, "GET /assets/%E5%BC%A0%402x.png"],
+  [LogScrubPatternType.Email, "GET /q?name=caf%C3%A9%40%C3"],
   [LogScrubPatternType.CreditCard, "order ４１１１ １１１１"],
   [LogScrubPatternType.CreditCard, "رقم ٤٢"],
+  // What only looks like a phone or Social Security number (#11025, #11030).
+  [LogScrubPatternType.PhoneNumber, "delta +51.507217 out of range"],
+  [LogScrubPatternType.PhoneNumber, "at UTC +1 2026-11-24 10:15:00"],
+  [LogScrubPatternType.PhoneNumber, "build v1.2.3+build.5"],
+  [LogScrubPatternType.PhoneNumber, "counted +1 2 3 4 5 6 7 8"],
+  [LogScrubPatternType.PhoneNumber, "دلتا +٥١.٥٠٧٢١٧"],
+  [LogScrubPatternType.PhoneNumber, "GET /assets/logo%2B2x.png"],
+  [LogScrubPatternType.SSN, "ref 536.22.8731.01"],
+  [LogScrubPatternType.SSN, "ssn 666.22.8731"],
+  [LogScrubPatternType.SSN, "ref ٥٣٦.٢٢.٨٧٣١.٠١"],
 ];
 
 type OtlpAttribute = { key: string; value: { stringValue: string } };
@@ -230,12 +442,19 @@ type OtlpAttribute = { key: string; value: { stringValue: string } };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type IngestTestMethods = Record<string, any>;
 
-function regexOf(service: unknown, patternType: string): ScrubRegExp {
+function regexOf(
+  service: unknown,
+  patternType: string,
+  customRegex?: string | undefined,
+): ScrubRegExp {
   const regex: ScrubRegExp | null = (
     service as {
-      getRegexForPattern: (patternType: string) => ScrubRegExp | null;
+      getRegexForPattern: (
+        patternType: string,
+        customRegex?: string,
+      ) => ScrubRegExp | null;
     }
-  ).getRegexForPattern(patternType);
+  ).getRegexForPattern(patternType, customRegex);
 
   expect(regex).not.toBeNull();
 
@@ -246,6 +465,7 @@ function logRules(
   patternType: string,
   action: string,
   fields: string = LogScrubField.Both,
+  customRegex?: string | undefined,
 ): never {
   const rule: LogScrubRule = new LogScrubRule();
   rule.name = "Scrub";
@@ -254,8 +474,15 @@ function logRules(
   rule.scrubAction = action;
   rule.fieldsToScrub = fields;
 
+  if (customRegex) {
+    rule.customRegex = customRegex;
+  }
+
   return [
-    { rule: rule, regex: regexOf(LogScrubRuleService, patternType) },
+    {
+      rule: rule,
+      regex: regexOf(LogScrubRuleService, patternType, customRegex),
+    },
   ] as never;
 }
 
@@ -263,6 +490,7 @@ function traceRules(
   patternType: string,
   action: string,
   fields: string = TraceScrubField.All,
+  customRegex?: string | undefined,
 ): never {
   const rule: TraceScrubRule = new TraceScrubRule();
   rule.name = "Scrub";
@@ -271,8 +499,15 @@ function traceRules(
   rule.scrubAction = action;
   rule.fieldsToScrub = fields;
 
+  if (customRegex) {
+    rule.customRegex = customRegex;
+  }
+
   return [
-    { rule: rule, regex: regexOf(TraceScrubRuleService, patternType) },
+    {
+      rule: rule,
+      regex: regexOf(TraceScrubRuleService, patternType, customRegex),
+    },
   ] as never;
 }
 
@@ -334,7 +569,12 @@ describe("the log engine", () => {
             "http.request.body": JSON.stringify({ note: value, n: 1 }),
           },
         },
-        logRules(written.patternType, action),
+        logRules(
+          written.patternType,
+          action,
+          LogScrubField.Both,
+          written.customRegex,
+        ),
       );
       const hidden: string = `${written.before}${expectedOf(written, action)}`;
 
@@ -415,7 +655,12 @@ describe("the trace engine", () => {
       expect(
         TraceScrubRuleService.scrubSpan(
           spanRow(`${written.before}${written.written}`),
-          traceRules(written.patternType, action),
+          traceRules(
+            written.patternType,
+            action,
+            TraceScrubField.All,
+            written.customRegex,
+          ),
         ),
       ).toEqual(spanRow(hidden));
     },
@@ -434,7 +679,12 @@ describe("the trace engine", () => {
             exceptionType: `Error ${value}`,
             attributes: { "event.detail": value },
           },
-          traceRules(written.patternType, action, TraceScrubField.Events),
+          traceRules(
+            written.patternType,
+            action,
+            TraceScrubField.Events,
+            written.customRegex,
+          ),
         );
 
       expect(content).toEqual({
@@ -465,7 +715,12 @@ describe("the trace engine", () => {
           events: [],
           links: [],
         },
-        traceRules(written.patternType, LogScrubAction.Redact),
+        traceRules(
+          written.patternType,
+          LogScrubAction.Redact,
+          TraceScrubField.All,
+          written.customRegex,
+        ),
       );
 
       expect(
@@ -489,6 +744,8 @@ describe("a session replay, which the log rules scrub", () => {
       const rules: Array<CompiledScrubRule> = logRules(
         written.patternType,
         action,
+        LogScrubField.Both,
+        written.customRegex,
       ) as unknown as Array<CompiledScrubRule>;
 
       await SessionReplayScrubService.scrubEvents(events, rules);
@@ -514,6 +771,7 @@ describe("Data Security's coverage is true for each", () => {
         signal: "log",
         patternType: written.patternType,
         fieldsToScrub: LogScrubField.Both,
+        ...(written.customRegex ? { customRegex: written.customRegex } : {}),
       };
       const body: string = `${written.before}${written.written} done`;
 
@@ -532,7 +790,12 @@ describe("Data Security's coverage is true for each", () => {
       for (const action of ACTIONS) {
         const row: JSONObject = LogScrubRuleService.scrubLog(
           { body, attributes: {} },
-          logRules(written.patternType, action),
+          logRules(
+            written.patternType,
+            action,
+            LogScrubField.Both,
+            written.customRegex,
+          ),
         );
 
         expect([
@@ -633,6 +896,8 @@ describe("through log and trace ingest", () => {
           // The exception's group: not what these tests read.
         },
       );
+    // No exceptions table here: its lookup fails at once, tried again at once.
+    jest.spyOn(ExceptionUtil, "pauseBeforeLookupRetry").mockResolvedValue();
     jest.spyOn(TelemetryIngestionDisabled, "isDisabled").mockReturnValue(false);
   }
 
@@ -791,5 +1056,212 @@ describe("through log and trace ingest", () => {
     );
     expect(JSON.stringify(row)).not.toContain("2a00:1450");
     expect(JSON.stringify(exceptionRows[0])).not.toContain("٤٥٣٢");
+  });
+
+  test("Scrub It's rules hide a log's token after an encoded = and its IBAN in Arabic-Indic digits, the token hashed as the token it reads as (#11031, #11033)", async () => {
+    setupIngest({
+      logRules: [
+        ...(logRules(
+          LogScrubPatternType.Custom,
+          LogScrubAction.Hash,
+          LogScrubField.Both,
+          scrubItPatternOf("github-token"),
+        ) as unknown as Array<unknown>),
+        ...(logRules(
+          LogScrubPatternType.Custom,
+          LogScrubAction.Redact,
+          LogScrubField.Both,
+          scrubItPatternOf("iban"),
+        ) as unknown as Array<unknown>),
+      ] as never,
+    });
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      request({
+        resourceLogs: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeLogs: [
+              {
+                scope: {},
+                logRecords: [
+                  {
+                    timeUnixNano: `${Date.now()}000000`,
+                    severityNumber: 9,
+                    body: {
+                      stringValue: `GET /login?next=%2Fcb%3Ftoken%3D${GITHUB_TOKEN}&x=1 302`,
+                    },
+                    attributes: [
+                      attribute("payout.iban", inScriptOf(IBAN, 0x0660)),
+                      attribute(
+                        "oauth.state",
+                        GITHUB_TOKEN.replace(/_/g, "%5F"),
+                      ),
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(logRows).toHaveLength(1);
+
+    const row: JSONObject = logRows[0]!;
+    const attributes: JSONObject = row["attributes"] as JSONObject;
+    const token: string = ScrubHashToken.ofValue({
+      projectId: PROJECT_ID,
+      value: GITHUB_TOKEN,
+    });
+
+    // One token for the key, however it is written.
+    expect(row["body"]).toBe(
+      `GET /login?next=%2Fcb%3Ftoken%3D${token}&x=1 302`,
+    );
+    expect(attributes["oauth.state"]).toBe(token);
+    expect(attributes["payout.iban"]).toBe("[REDACTED]");
+    expect(JSON.stringify(row)).not.toContain(GITHUB_TOKEN.slice(4, 20));
+  });
+
+  test("a log's international, encoded and other-script phone numbers are stored as the token of the number they read as (#11025, #11030)", async () => {
+    setupIngest({
+      logRules: logRules(LogScrubPatternType.PhoneNumber, LogScrubAction.Hash),
+    });
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      request({
+        resourceLogs: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeLogs: [
+              {
+                scope: {},
+                logRecords: [
+                  {
+                    timeUnixNano: `${Date.now()}000000`,
+                    severityNumber: 9,
+                    body: {
+                      stringValue:
+                        "GET /callback?phone=%2B49%2030%2081234567&step=2 200",
+                    },
+                    attributes: [
+                      attribute("user.phone", "+٤٩ ٣٠ ٨١٢٣٤٥٦٧"),
+                      attribute("sms.to", "+49 30 81234567"),
+                      attribute("geo.delta", "+51.507217"),
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(logRows).toHaveLength(1);
+
+    const row: JSONObject = logRows[0]!;
+    const attributes: JSONObject = row["attributes"] as JSONObject;
+    const plain: string = ScrubHashToken.ofValue({
+      projectId: PROJECT_ID,
+      value: "+49 30 81234567",
+    });
+
+    // One token for the number, however it is written.
+    expect(row["body"]).toBe(`GET /callback?phone=${plain}&step=2 200`);
+    expect(attributes["user.phone"]).toBe(plain);
+    expect(attributes["sms.to"]).toBe(plain);
+    // And a decimal is no phone number.
+    expect(attributes["geo.delta"]).toBe("+51.507217");
+    expect(JSON.stringify(row)).not.toContain("81234567");
+    expect(JSON.stringify(row)).not.toContain("٨١٢٣٤٥٦٧");
+  });
+
+  test("a span's and its exception's international phone numbers and Social Security numbers are hidden (#11025, #11030)", async () => {
+    setupIngest({
+      traceRules: [
+        ...(traceRules(
+          LogScrubPatternType.PhoneNumber,
+          LogScrubAction.Redact,
+        ) as unknown as Array<unknown>),
+        ...(traceRules(
+          LogScrubPatternType.SSN,
+          LogScrubAction.Mask,
+        ) as unknown as Array<unknown>),
+      ] as never,
+    });
+
+    const nowNano: string = `${Date.now()}000000`;
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      request({
+        resourceSpans: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeSpans: [
+              {
+                scope: {},
+                spans: [
+                  {
+                    traceId: "0af7651916cd43dd8448eb211c80319c",
+                    spanId: "b7ad6b7169203332",
+                    parentSpanId: "",
+                    name: "POST /notify",
+                    kind: 2,
+                    startTimeUnixNano: nowNano,
+                    endTimeUnixNano: nowNano,
+                    status: {
+                      code: 2,
+                      message: "SMS to +44 161 321 4567 failed",
+                    },
+                    attributes: [
+                      attribute("http.request.method", "POST"),
+                      attribute("customer.ssn", "536.22.8731"),
+                    ],
+                    events: [
+                      {
+                        name: "exception",
+                        timeUnixNano: nowNano,
+                        attributes: [
+                          attribute(
+                            "exception.message",
+                            "SMS to +44 (0)20 8123 4567 for ssn ٥٣٦-٢٢-٨٧٣١ failed",
+                          ),
+                          attribute("exception.type", "SmsDeliveryError"),
+                          attribute(
+                            "exception.stacktrace",
+                            "SmsDeliveryError\n    at notify (notify.js:10:5)",
+                          ),
+                        ],
+                      },
+                    ],
+                    links: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(spanRows).toHaveLength(1);
+
+    const row: JSONObject = spanRows[0]!;
+
+    // The whole number, where the US pattern alone hid "161 321 4567".
+    expect(row["statusMessage"]).toBe("SMS to [REDACTED] failed");
+    expect((row["attributes"] as JSONObject)["customer.ssn"]).toBe(
+      "***-**-8731",
+    );
+    expect(exceptionRows).toHaveLength(1);
+    expect(exceptionRows[0]!["message"]).toBe(
+      "SMS to [REDACTED] for ssn ***-**-8731 failed",
+    );
+    expect(JSON.stringify(row)).not.toContain("+44");
+    expect(JSON.stringify(exceptionRows[0])).not.toContain("8123");
+    expect(JSON.stringify(exceptionRows[0])).not.toContain("٥٣٦");
   });
 });

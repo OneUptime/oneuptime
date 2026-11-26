@@ -23,10 +23,10 @@ import CompliancePaperSection from "../../../Components/DataSecurity/ComplianceP
 import {
   PaperworkExportNames,
   downloadMarkdown,
-  downloadMarkdownPdf,
   getImpactAssessmentExportNames,
   getImpactAssessmentMarkdown,
 } from "../../../Components/DataSecurity/CompliancePaperworkExport";
+import { downloadMarkdownPdf } from "../../../Components/DataSecurity/CompliancePaperworkPdfDownload";
 import DataSecurityApi from "../../../Components/DataSecurity/DataSecurityApi";
 import { describeTransfer } from "../../../Components/DataSecurity/StoreRecord";
 import LeaveWithoutSavingQuestion from "../../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";

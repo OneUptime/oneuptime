@@ -44,6 +44,7 @@ import CheckWindowCounts, {
 import PreviousCheckComparison, {
   PreviousCheckReads,
 } from "./Criteria/PreviousCheckComparison";
+import DnsAnswerFingerprint from "./DnsAnswerFingerprint";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import CriteriaRecovery, {
@@ -172,6 +173,8 @@ import MetricMonitorResponse, {
   CephResourceBreakdown,
   StorageArrayAffectedResource,
   StorageArrayResourceBreakdown,
+  XcpNgAffectedResource,
+  XcpNgResourceBreakdown,
   DockerSwarmAffectedResource,
   DockerSwarmResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -197,6 +200,11 @@ import MonitorStepStorageArrayMonitor, {
   StorageArrayResourceFilters,
 } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MonitorStepXcpNgMonitor, {
+  XcpNgResourceFilters,
+} from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
+import { getXcpNgMetricByMetricName } from "../../../Types/Monitor/XcpNgMetricCatalog";
+import { XcpNgScope } from "../../../Types/XcpNg/XcpNgTelemetry";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
@@ -204,10 +212,10 @@ import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStack
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
-import { StorageSystemUtil } from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
@@ -219,6 +227,7 @@ import PlatformResourceIdentity, {
   OpenStackResourceIdentity,
   StorageArrayResourceIdentity,
   VMwareResourceIdentity,
+  XcpNgResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
@@ -317,7 +326,8 @@ type PlatformName =
   | "vmware"
   | "dockerSwarm"
   | "ceph"
-  | "storageArray";
+  | "storageArray"
+  | "xcpNg";
 
 interface CriteriaMetricTargetComponent {
   alias: string;
@@ -1600,6 +1610,14 @@ ${incomingRequestGrouping.rootCauseNote}
       diskPaths: diskPaths,
       reads: input.matchHistory
         ? PreviousCheckReads.forMatchHistoryReads(input.matchHistory.reads)
+        : undefined,
+      // A DNS answer is compared as one, by its fingerprint (#10905).
+      dnsAnswer: CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        input.criteriaFilter.checkOn,
+      )
+        ? DnsAnswerFingerprint.read(
+            (input.dataToProcess as ProbeMonitorResponse).dnsResponse,
+          )
         : undefined,
       isMetOnThisCheck: async (): Promise<boolean> => {
         const check: CriteriaFilterCheck | undefined =
@@ -3188,6 +3206,11 @@ ${incomingRequestGrouping.rootCauseNote}
       return MonitorCriteriaEvaluator.buildStorageArrayRootCauseContext(input);
     }
 
+    // Handle XCP-ng monitors with pool resource context
+    if (input.monitor.monitorType === MonitorType.XcpNg) {
+      return MonitorCriteriaEvaluator.buildXcpNgRootCauseContext(input);
+    }
+
     // Handle generic Metric monitors with metric identity + breaching series
     if (
       input.monitor.monitorType === MonitorType.Metrics &&
@@ -4472,6 +4495,8 @@ ${incomingRequestGrouping.rootCauseNote}
       case "storageArray":
         return getStorageArrayMetric(input.metricName, input.attributes)
           ?.friendlyName;
+      case "xcpNg":
+        return getXcpNgMetricByMetricName(input.metricName)?.friendlyName;
       default:
         return undefined;
     }
@@ -7620,39 +7645,20 @@ ${incomingRequestGrouping.rootCauseNote}
 
   /*
    * The kind of object the `name` label of a storage array metric names,
-   * from the metric's family: purefa_volume_* series name volumes,
-   * purefb_file_systems_* file systems, and so on. Null for a family whose
-   * `name` is no inventory object (purefa_volume_group_* names a volume
-   * group) or that OneUptime does not know.
+   * from the metric's family on its platform
+   * (StorageArrayPlatform.metricFamilies): a volume family's series name
+   * volumes, a file system family's file systems, and so on. Null for a
+   * family whose `name` is no inventory object (a volume group) or that
+   * no platform describes.
    */
   private static getStorageArrayObjectKind(
     metricName: string,
+    storageSystem?: string | null | undefined,
   ): StorageArrayResourceKind | null {
-    if (metricName.startsWith("purefa_volume_group_")) {
-      return null;
-    }
-
-    const families: Array<[string, StorageArrayResourceKind]> = [
-      ["purefa_volume_", StorageArrayResourceKind.Volume],
-      ["purefa_host_", StorageArrayResourceKind.Host],
-      ["purefa_pod_", StorageArrayResourceKind.Pod],
-      ["purefa_hw_controller_", StorageArrayResourceKind.Controller],
-      ["purefa_hw_", StorageArrayResourceKind.Hardware],
-      ["purefa_drive_", StorageArrayResourceKind.Drive],
-      ["purefa_network_interface_", StorageArrayResourceKind.NetworkInterface],
-      ["purefa_directory_", StorageArrayResourceKind.Directory],
-      ["purefb_file_systems_", StorageArrayResourceKind.FileSystem],
-      ["purefb_buckets_", StorageArrayResourceKind.Bucket],
-      ["purefb_hardware_", StorageArrayResourceKind.Hardware],
-    ];
-
-    for (const [prefix, kind] of families) {
-      if (metricName.startsWith(prefix)) {
-        return kind;
-      }
-    }
-
-    return null;
+    return StorageArrayPlatformRegistry.getObjectKindForMetricName(
+      metricName,
+      storageSystem,
+    ) as StorageArrayResourceKind | null;
   }
 
   /*
@@ -7832,9 +7838,9 @@ ${incomingRequestGrouping.rootCauseNote}
 
     /*
      * Keep the rows that satisfy the criteria that just matched, worst
-     * first, top 10 — NOT simply the non-zero rows. A FlashBlade component
-     * that stops reporting healthy fires on purefb_hardware_health `< 1`,
-     * so its zero rows are the whole point of the incident.
+     * first, top 10 — NOT simply the non-zero rows. A component whose
+     * health series reads 1 while healthy fires on `< 1` (a FlashBlade's
+     * hardware), so its zero rows are the whole point of the incident.
      */
     const rows: Array<
       PlatformAffectedRow<StorageArrayResourceIdentity>
@@ -7866,7 +7872,7 @@ ${incomingRequestGrouping.rootCauseNote}
 
     /*
      * Skip the list when no row carries any object label (array-wide
-     * series like purefa_array_space_utilization) — it would add nothing.
+     * series like the array's capacity used) — it would add nothing.
      */
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<StorageArrayResourceIdentity>) => {
@@ -7917,6 +7923,310 @@ ${incomingRequestGrouping.rootCauseNote}
                           MonitorCriteriaEvaluator.renderAffectedRowValue(row),
                       },
                     );
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<MarkdownText> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            mdText`- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
+      }
+    }
+
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
+  }
+
+  /*
+   * What kind of an XCP-ng pool's object a row is, from the `xcp_ng.scope`
+   * ingest stamps on each of its datapoints, and the name label of that
+   * kind.
+   */
+  private static getXcpNgObjectKind(resource: XcpNgResourceIdentity): {
+    kind: string;
+    name: string | undefined;
+  } {
+    switch (resource.scope) {
+      case XcpNgScope.Host:
+        return { kind: "Host", name: resource.hostName };
+      case XcpNgScope.VM:
+        return { kind: "VM", name: resource.vmName };
+      case XcpNgScope.StorageRepository:
+        return {
+          kind: "Storage Repository",
+          name: resource.storageRepositoryName,
+        };
+      case XcpNgScope.VDI:
+        return { kind: "Virtual Disk", name: resource.vdiName };
+      case XcpNgScope.Xostor:
+        return { kind: "XOSTOR", name: resource.storageRepositoryName };
+      case XcpNgScope.Pool:
+        return { kind: "Pool", name: undefined };
+      default:
+        break;
+    }
+
+    // A monitor grouped by Xen Orchestra's labels names no scope.
+    if (resource.vdiName) {
+      return { kind: "Virtual Disk", name: resource.vdiName };
+    }
+
+    if (resource.vmName) {
+      return { kind: "VM", name: resource.vmName };
+    }
+
+    if (resource.storageRepositoryName) {
+      return {
+        kind: "Storage Repository",
+        name: resource.storageRepositoryName,
+      };
+    }
+
+    if (resource.hostName) {
+      return { kind: "Host", name: resource.hostName };
+    }
+
+    return { kind: "Object", name: undefined };
+  }
+
+  /*
+   * One object of an XCP-ng pool as an "Affected Resources" list item:
+   * what it is (a host, a VM, a storage repository, a virtual disk), its
+   * name next to its UUID, and where it sits.
+   */
+  private static getXcpNgAffectedResourceEntry(input: {
+    resource: XcpNgResourceIdentity;
+    poolIdentifier: string;
+    value: MarkdownValue;
+  }): AffectedResourceListEntry {
+    const resource: XcpNgResourceIdentity = input.resource;
+    const object: { kind: string; name: string | undefined } =
+      MonitorCriteriaEvaluator.getXcpNgObjectKind(resource);
+
+    let kind: string = object.kind;
+    let name: MarkdownText =
+      resource.scope === XcpNgScope.Pool
+        ? FeedMarkdown.empty()
+        : AffectedResourceList.codeWithId({
+            name: object.name,
+            id: resource.objectId,
+          });
+
+    if (name.isEmpty()) {
+      // Nothing narrower than the pool: a series for all of it.
+      kind = "Pool";
+      name = AffectedResourceList.code(input.poolIdentifier);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // Where a VM runs, and what a virtual disk belongs to.
+    if (resource.hostName && kind !== "Host" && kind !== "Pool") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (resource.vmName && kind !== "VM" && kind !== "Pool") {
+      details.push({
+        label: "VM",
+        value: AffectedResourceList.code(resource.vmName),
+      });
+    }
+
+    if (
+      resource.storageRepositoryName &&
+      kind !== "Storage Repository" &&
+      kind !== "XOSTOR" &&
+      kind !== "Pool"
+    ) {
+      details.push({
+        label: "Storage Repository",
+        value: AffectedResourceList.code(resource.storageRepositoryName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildXcpNgRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): MarkdownText | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // XCP-ng pool context
+    const xcpNgMonitor: MonitorStepXcpNgMonitor | undefined =
+      input.monitorStep.data?.xcpNgMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: XcpNgResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.xcpNgResourceBreakdowns,
+        target: target,
+      });
+
+    const poolIdentifier: string =
+      breakdown?.poolIdentifier ||
+      (typeof xcpNgMonitor?.poolIdentifier === "string"
+        ? xcpNgMonitor.poolIdentifier.trim()
+        : "") ||
+      "Unknown";
+
+    const sections: Array<MarkdownText> = [];
+
+    if (xcpNgMonitor || breakdown) {
+      const poolDetails: Array<MarkdownText> = [];
+      poolDetails.push(mdText`- Pool: ${poolIdentifier}`);
+      poolDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "xcpNg",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: xcpNgMonitor?.metricViewConfig?.queryConfigs?.[0]
+            ?.metricQueryData?.filterData?.metricName as string | undefined,
+        }),
+      );
+
+      const filterLabels: Record<keyof XcpNgResourceFilters, string> = {
+        scope: "Scope Filter",
+        xcpNgId: "Object Filter",
+        hostName: "Host Filter",
+      };
+
+      for (const filterKey of Object.keys(filterLabels) as Array<
+        keyof XcpNgResourceFilters
+      >) {
+        const filterValue: unknown = xcpNgMonitor?.resourceFilters?.[filterKey];
+
+        if (typeof filterValue === "string" && filterValue.trim()) {
+          // A filter is text the monitor's author typed.
+          poolDetails.push(
+            mdText`- ${filterLabels[filterKey]}: ${filterValue.trim()}`,
+          );
+        }
+      }
+
+      poolDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
+      sections.push(
+        mdText`**XCP-ng Pool Details**\n${FeedMarkdown.join(poolDetails, "\n")}`,
+      );
+    }
+
+    // Affected resources: a ranked list of the pool's hosts, VMs and SRs
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The objects the matched criteria breached, worst first, top 10 - not
+     * simply the non-zero rows. Host Offline fires on
+     * `xcp_ng.host.running < 1`, so the zero rows ARE the halted hosts.
+     */
+    const rows: Array<PlatformAffectedRow<XcpNgResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        XcpNgResourceIdentity,
+        XcpNgAffectedResource
+      >({
+        platform: "xcpNg",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: XcpNgResourceIdentity): boolean => {
+          return Boolean(
+            identity.objectId ||
+              identity.hostName ||
+              identity.vmName ||
+              identity.storageRepositoryName ||
+              identity.vdiName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.xcpNg,
+        withContext: PlatformResourceIdentity.withXcpNgContext,
+      });
+
+    /*
+     * Skip the list when no row names an object (pool-wide series such as
+     * xcp_pool_connected) - it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<XcpNgResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.objectId ||
+            row.identity.hostName ||
+            row.identity.vmName ||
+            row.identity.storageRepositoryName ||
+            row.identity.vdiName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<XcpNgResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getXcpNgAffectedResourceEntry({
+                      resource: row.identity,
+                      poolIdentifier: poolIdentifier,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
               },
             ),
         }),

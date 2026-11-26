@@ -1,5 +1,7 @@
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import Alert, { AlertType } from "../Alerts/Alert";
+import { getLoadWhatFailed } from "../../Utils/DialogWhatFailed";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
 import { BasicFormHandle, FormProps } from "../Forms/BasicForm";
@@ -60,6 +62,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
 
   const hasSteps: boolean = Boolean(
@@ -96,7 +99,16 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
   const formRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
     props.formRef || ownFormRef;
 
+  /*
+   * Why the record the form edits could not be read (ModelForm's onError):
+   * the form is put away, and the dialog says so - once, in its own alert,
+   * where it was said twice, a second alert under the first with the same
+   * words - starting with what failed when nobody explained it: "The
+   * monitor could not be loaded." (#7680).
+   */
   const [error, setError] = useState<string>("");
+  const singularName: string =
+    new props.modelType().singularName?.trim() || "Item";
 
   const footer: SteppedModalFooter = getSteppedModalFooter({
     hasSteps: hasSteps,
@@ -141,6 +153,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
       onSubmit={footer.onSubmit}
       secondaryButton={footer.secondaryButton}
       error={error}
+      errorWhatFailed={getLoadWhatFailed(translator, singularName)}
     >
       {!error ? (
         <OpenFormSectionsContext.Provider
@@ -192,8 +205,6 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
       ) : (
         <></>
       )}
-
-      {error ? <Alert title={error} type={AlertType.DANGER} /> : <></>}
     </Modal>
   );
 };

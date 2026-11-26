@@ -111,7 +111,7 @@ A regra recebe o nome do que oculta, como "Data Security: Email address in log a
 | Qualquer outro tipo de dados que um padrão encontra sozinho, como um token do GitHub | Uma regra **Regex personalizado** feita a partir dos próprios padrões do tipo de dados. Um segredo é suprimido. |
 | Um dos seus próprios tipos de dados, com um padrão | Esse padrão, só no atributo em que foi encontrado |
 | Um tipo de dados que se distingue pelas palavras ao redor, como um número de roteamento bancário | O formato dele, só no atributo em que foi encontrado |
-| Um tipo de dados encontrado pelo nome do campo, como o nome de uma pessoa sob `customer_name`, ou um valor sob uma chave que nomeia um segredo | Uma regra **Atributos nomeados**, que oculta o valor inteiro desse atributo |
+| Um tipo de dados encontrado pelo nome do campo, como o nome de uma pessoa sob `customer_name` ou sob o parâmetro `full_name` de uma URL, ou um valor sob uma chave que nomeia um segredo | Uma regra **Atributos nomeados**, que oculta o valor inteiro desse atributo |
 | Um valor sob uma chave que parece sensível, quando nada mais estreito o oculta | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
 | Qualquer tipo de dados no atributo de uma métrica | Uma regra de pipeline de métricas **Ocultar Atributo** para o serviço, que substitui por `[REDACTED]` os valores do atributo que contêm o tipo de dados. Para um endereço IP, um endereço de e-mail ou um número de cartão, o filtro dela é **Corresponde ao tipo de padrão** com esse tipo, que encontra o que uma regra de logs ou de traces desse **Tipo de padrão** encontra, incluindo endereços IPv6 e valores com codificação percentual ou noutra escrita. Para outro tipo de dados, é o próprio padrão do tipo, e quando nenhum padrão encontra o tipo de dados, a regra substitui todo valor do atributo |
 
@@ -170,7 +170,7 @@ Antes que o OneUptime AI comece, a Segurança de dados lê de novo, dentro do On
 
 - **Um span ou uma chamada de IA**: o arquivo, a linha e a função que seus atributos `code.*` nomeiam, e o nome do span.
 - **Uma exceção**: seus próprios frames do topo, os do código do serviço.
-- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`.
+- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`, e cada palavra que seus registros não provam que o código escreveu, como o nome de uma pessoa, por `<value>`: `Payment declined for Maria Gonzalez`, lida de um só registro, passa a ser `Payment declined for <value>`. O nome de um span e o nome de uma métrica são lidos da mesma forma.
 - **Uma métrica**: o nome da métrica.
 - **Qualquer vazamento**: sua chave de atributo, como `user.email`, que o código costuma escrever como está.
 
@@ -200,6 +200,15 @@ Cada problema que o pull request corrige o mantém: seu cartão **Como corrigir*
 Um segredo precisa de mais que uma correção no código: o código só impede novas cópias, e o segredo continua funcionando. O pull request, a linha do tempo do problema e seu cartão **Como corrigir** dizem para fazer a rotação dele, e o cartão lista onde ele foi visto.
 
 Com **Trabalhar em problemas novos** ativado, o OneUptime AI também propõe por conta própria a correção de cada serviço, o serviço mais arriscado primeiro, em **Segurança de dados → IA** e no problema mais arriscado do serviço. Por padrão, ela espera por você. Uma regra de IA da Segurança de dados que define **Correção** como **Automaticamente** para o problema mais arriscado do serviço abre o pull request sem perguntar, em um repositório que algo decidiu. **Máximo de pull requests de correção abertas** do repositório limita os dois: no limite, um pull request que uma regra abriria espera por você, e nenhum pull request de correção novo é aberto até que um seja mesclado ou fechado.
+
+### O front-end de uma aplicação RUM
+
+**Corrigir com IA** em um problema de replay de sessão faz o mesmo para uma aplicação RUM: um só pull request que faz o código front-end dela parar de enviar cada vazamento que o OneUptime ainda vê nos registros do navegador, nos spans do navegador e nos detalhes das sessões dela. Onde cada vazamento é escrito vem dos registros em que ele foi visto, lidos dentro do OneUptime:
+
+- **Um registro ou span do navegador**: o arquivo, a linha e a função a que a pilha JavaScript dele se resolve pelos source maps que seus builds enviaram (veja [Source Maps](/docs/telemetry/source-maps)), senão os atributos `code.*` dele; a linha do registro ou o nome do span como modelo; e a página em que ele foi escrito, só pelo caminho, com cada ID e cada valor mascarados.
+- **Os detalhes de usuário de uma sessão**: a chamada `identify()` do gravador de sessões que os deu, e a página em que a sessão começou.
+
+O pull request vai para o repositório que contém esses arquivos; senão, para o que contém a maioria dos arquivos que os source maps da versão mais recente nomeiam; senão, para o repositório com o nome do **Identificador do app** da aplicação, ou para o único do projeto; quando nada decide, você escolhe. Ele muda o código do navegador em cada lugar, onde o usuário de uma sessão é identificado por um ID opaco e nunca por um e-mail, ou adiciona uma etapa de ocultação onde a aplicação configura a telemetria do navegador. A gravação de uma sessão nunca é lida, e o agente de código não lê nada da sua telemetria. Cada problema é resolvido como **Corrigido no código** assim que a nova versão da aplicação deixa de enviar os dados. O OneUptime AI ainda não propõe sozinho a correção de uma aplicação: peça-a com **Corrigir com IA**.
 
 ## Descartar esta métrica
 

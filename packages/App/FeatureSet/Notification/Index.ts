@@ -20,6 +20,7 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import StatusPageCarriedLogo from "Common/Server/Utils/StatusPage/StatusPageCarriedLogo";
+import HelpAndSupportServerSettings from "Common/Server/Utils/HelpAndSupport/HelpAndSupportServerSettings";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import ServerEmailLogWriter from "Common/Server/Utils/ServerSending/ServerEmailLogWriter";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
@@ -42,6 +43,15 @@ const NotificationFeatureSet: FeatureSet = {
         return StatusPageCarriedLogo.readAddress(address);
       },
     );
+
+    /*
+     * An account email names the server's own support address, where its
+     * admins set one (Admin Dashboard > Settings > Help and Support,
+     * #10941), read from the copy every page is served from.
+     */
+    MailService.nameServerSupportAddressWith((): Promise<string | null> => {
+      return HelpAndSupportServerSettings.getOwnSupportEmail();
+    });
 
     /*
      * How the server's own emails, SMS and calls go is written down

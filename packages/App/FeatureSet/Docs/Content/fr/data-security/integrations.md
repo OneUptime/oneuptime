@@ -7,7 +7,7 @@ Sécurité des données n'a pas son propre système d'astreinte ni sa propre fil
 - [S'agit-il d'une violation de données ?](#sagit-il-dune-violation-de-données): Chaque exposition Critique évaluée : combien de temps, qui pouvait lire les données, à qui elles appartenaient, et les lois sur les violations de données qui peuvent s'appliquer.
 - [Alertes et astreinte](#alertes-et-astreinte): Prévenir la personne d'astreinte quand un problème Critique s'ouvre.
 - [Incidents](#incidents): Déclarer un incident pour une violation de données que votre processus de gestion des incidents doit prendre en charge.
-- [Propriétaires](#propriétaires): Qui possède chaque magasin de données, défini à la main ou par des règles, et l'e-mail qu'ils reçoivent.
+- [Propriétaires](#propriétaires): Analysez un problème, ouvrez une pull request qui le corrige, ou interrogez Demander à l'IA sur vos données et laissez-la agir, avec votre accord.
 - [OneUptime AI](#oneuptime-ai): Expliquer un problème, ouvrir une pull request qui le corrige, ou interroger Demander à l'IA sur vos données.
 - [Fermer une exposition](#fermer-une-exposition): Bloquer l'accès public ou cesser le partage, depuis un problème ou un playbook, et activer une protection manquante depuis un problème.
 :::
@@ -129,7 +129,7 @@ OneUptime AI travaille aussi de lui-même sur chaque nouveau problème, comme vo
 
 ### Demander à l'IA
 
-**Demander à l'IA** lit aussi Sécurité des données. Sur n'importe quelle page de Sécurité des données, demandez quels magasins de données contiennent des numéros de carte, quoi corriger en premier, ou quels magasins de données un rôle pourrait atteindre s'il fuitait ; sur la page d'un magasin de données ou d'un problème, elle lit d'abord cet enregistrement. Elle répond avec trois outils de lecture, exécutés avec vos propres autorisations :
+**Demander à l'IA** lit la Sécurité des données, et y agit avec votre accord. Sur n'importe quelle page de la Sécurité des données, demandez quels magasins contiennent des numéros de carte, quoi corriger en premier, ou quels magasins un rôle pourrait atteindre s'il fuitait ; sur la page d'un magasin ou d'un problème, elle lit d'abord cet enregistrement. Elle lit avec ces outils, exécutés avec vos propres autorisations :
 
 | Outil | Ce qu'il lit |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI travaille aussi de lui-même sur chaque nouveau problème, comme vo
 | `query_data_security_issues` | Les problèmes, les plus risqués d'abord, par statut, gravité, magasin de données ou contrôle - ou un problème avec sa preuve et la correction pour son cloud |
 | `query_data_store_access` | Qui peut accéder à un magasin de données, ou chaque magasin de données qu'un principal peut atteindre |
 
-Ils lisent des types de données, des emplacements et des comptages, jamais les échantillons d'une détection, masqués ou non. Demander à l'IA ne modifie rien dans Sécurité des données.
+Ils lisent des types de données, des emplacements et des décomptes, jamais les échantillons d'une détection, masqués ou non. Deux autres lisent ce sur quoi OneUptime AI travaille : `query_data_security_proposals` liste ce qu'elle propose, et les types de données qu'elle a trouvés et que les analyses ne recherchent pas encore, chacun avec la façon dont il a été prouvé et les champs où il se trouve, jamais une valeur ; `draft_data_security_rule` rédige une règle à partir de votre phrase et indique quels magasins elle couvre aujourd'hui. Il n'enregistre rien.
+
+Demander à l'IA fait ce que font les boutons de la Sécurité des données, chacun en apportant exactement la modification que fait son bouton, en votre nom et avec vos autorisations :
+
+| Action | Ce qu'elle fait | Vous demande d'abord |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Nettoyer** une détection dans la télémétrie : sa règle de nettoyage prouvée et étroite | En **Demander avant d'agir**, et dans tous les modes quand quelque chose lit ce qu'elle masque |
+| `judge_data_security_finding` | **Confirmer**, ou **Non sensible** avec votre raison, et de même pour les détections semblables | **Non sensible** dans tous les modes ; **Confirmer** dans tous les modes quand un problème critique alerte quelqu'un dans votre projet |
+| `change_data_security_issue` | **Accepter le risque** avec votre raison et une date de fin, **Pas un problème** avec votre raison, **Rouvrir** ou **Attribuer** | **Accepter le risque** et **Pas un problème** dans tous les modes |
+| `set_data_store_owners` | Ajoute ou retire les propriétaires d'un magasin | Dans tous les modes |
+| `save_data_security_rule` | Enregistre une règle de résidence, de propriétaire ou d'étiquettes rédigée à partir de votre phrase, et applique une règle de propriétaire ou d'étiquettes aux magasins qu'elle couvre aujourd'hui | Dans tous les modes |
+| `respond_on_data_store` | Une action de réponse via la connexion cloud du magasin, comme **Bloquer l'accès public** | Dans tous les modes |
+| `fix_data_security_issue_with_ai` | **Corriger avec l'IA** : une pull request que quelqu'un relit et fusionne. Une correction déjà en route n'est pas lancée deux fois | En **Demander avant d'agir** |
+| `decide_data_security_proposal` | **Approuver** ou **Masquer** ce que propose OneUptime AI. Un type de données trouvé s'ajoute depuis son formulaire dans **Paramètres → Types de données**, ici il ne peut donc qu'être refusé | Dans tous les modes |
+
+Chaque action montre d'abord une carte qui dit, en mots simples, ce qui change, ce qui cesse de fonctionner et ce qu'elle coûte. En **Demander avant d'agir**, vous autorisez ou ignorez chaque action. En **Exécution automatique**, les actions ci-dessus qui demandent dans tous les modes vous attendent toujours : elles changent qui peut atteindre vos données, font cesser de compter une détection ou un problème, changent qui est informé d'un magasin, ou laisseraient OneUptime AI approuver sa propre proposition. Les noms de magasins, les emplacements des détections et les preuves viennent de vos clouds et de quiconque y écrit, donc Demander à l'IA n'agit jamais parce qu'un tel texte le lui demande, et chaque action est revérifiée, avec vos autorisations, au moment où elle s'exécute.
 
 ## Fermer une exposition
 
@@ -158,7 +173,7 @@ Tout ce que conserve Sécurité des données est un enregistrement de l'API OneU
 | Enregistrements | Chemin d'API |
 | --- | --- |
 | Les magasins de données, leurs chronologies, leurs détections, qui peut y accéder et chaque identité qui le peut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Les problèmes, leurs chronologies et les flux de données | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Les problèmes, leurs chronologies, leurs pull requests liées et les flux de données | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Les analyses | `/data-security-scan` |
 | Les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité et les règles de résidence | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Les paramètres du projet | `/data-security-setting` |
@@ -196,7 +211,7 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 
 Le [fournisseur Terraform](/docs/terraform/index) a une ressource pour chaque sorte d'enregistrement que vous créez - les magasins de données que vous ajoutez vous-même, les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité, les règles de résidence, les règles de propriétaire et d'étiquettes - nommée d'après l'enregistrement, comme `oneuptime_residency_rule`.
 
-Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour ces enregistrements : Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule et Data Security Setting. Un assistant IA peut alors demander quels magasins de données contiennent des numéros de carte, ou ce qui est ouvert sur un bucket, avec vos autorisations.
+Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour ces enregistrements : Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule et Data Security Setting. Un assistant IA peut alors demander quels magasins de données contiennent des numéros de carte, ou ce qui est ouvert sur un bucket, avec vos autorisations. Il dispose aussi des [actions de Demander à l'IA](#demander-à-lia), un appel chacune, chacune apportant exactement la modification que fait son bouton, en votre nom. Le serveur MCP ne peut montrer de carte à personne, donc une action pour laquelle Demander à l'IA demande dans tous les modes y est refusée : la réponse dit pourquoi, et nomme la page de OneUptime où vous faites la modification.
 
 ## Prochaines étapes
 

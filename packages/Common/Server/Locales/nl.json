@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "Een Projecteigenaar heeft de aanmeldinstellingen gewist die in uw {{product}}-account waren opgeslagen.",
   "A backup code was used to confirm it's you in your {{product}} account": "Met een back-upcode van uw {{product}}-account is bevestigd dat u het bent",
   "A backup code was used to confirm it's you.": "Met een back-upcode is bevestigd dat u het bent.",
   "A backup code was used to sign in to your account.": "Met een back-upcode is aangemeld bij uw account.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "Er is een notitie bij dit incident bijgewerkt. Dit is de nieuwste versie:",
   "A note on this scheduled event has been updated. Here is the latest version:": "Er is een notitie bij deze geplande gebeurtenis bijgewerkt. Dit is de nieuwste versie:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "Er is een post-mortemrapport gepubliceerd voor een incident dat diensten raakte waarop u bent geabonneerd.",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "Een projecteigenaar heeft de aanmeldinstellingen gewist die in uw {{product}}-account waren opgeslagen.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "Een serverbeheerder heeft het e-mailadres van uw {{product}}-account van dit adres in een nieuw adres gewijzigd.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "Een serverbeheerder heeft de aanmeldinstellingen gewist die in uw {{product}}-account waren opgeslagen.",
   "A server admin made this the email address of your {{product}} account.": "Een serverbeheerder heeft dit adres ingesteld als het e-mailadres van uw {{product}}-account.",
@@ -268,7 +268,9 @@
   "More than {{percent}}% of the AI's answers were bad.": "Meer dan {{percent}}% van de antwoorden van de AI waren slecht.",
   "Need help?": "Hulp nodig?",
   "Need help? Ask your server's admin.": "Hulp nodig? Vraag het uw serverbeheerder.",
+  "Need help? Ask {{inviter}}, who invited you, or write to {{address}}.": "Hulp nodig? Vraag het {{inviter}}, die u heeft uitgenodigd, of schrijf naar {{address}}.",
   "Need help? Ask {{inviter}}, who invited you, or your server's admin.": "Hulp nodig? Vraag het {{inviter}}, die u heeft uitgenodigd, of uw serverbeheerder.",
+  "Need help? Write to {{address}}.": "Hulp nodig? Schrijf naar {{address}}.",
   "New Alert Episode {{number}}: {{title}}": "Nieuwe waarschuwingsepisode {{number}}: {{title}}",
   "New Alert Episode: {{title}}": "Nieuwe waarschuwingsepisode: {{title}}",
   "New Alert {{number}}: {{title}}": "Nieuwe waarschuwing {{number}}: {{title}}",

@@ -18,6 +18,7 @@ import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Green, Gray500 } from "Common/Types/BrandColors";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -277,6 +278,15 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
           submitButtonText={translationKey("Turn On")}
           isLoading={isTurningOn}
           error={previewError || undefined}
+          /*
+           * What failed is the Preview and Turn On the person pressed, as its
+           * button names it: the title names no action (#7680).
+           */
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Preview and Turn On") ||
+              "Preview and Turn On",
+          )}
           disableSubmitButton={!preview.answer.isProjectInCloud}
           onClose={() => {
             setPreview(null);

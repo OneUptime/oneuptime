@@ -659,10 +659,13 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   /*
    * How the pool is shared, the first thing to check when sign-ins time out
    * while jobs or probes are busy, or when probes are answered busy (issue
-   * #7920). Small integers, set only when the defaults were overridden.
+   * #7920), and the Test Monitor lane's own (#10819), the first thing to
+   * check when Test Monitor runs time out. Small integers, set only when the
+   * defaults were overridden.
    */
   "DATABASE_MAX_QUEUE_JOB_CONNECTIONS",
   "PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS",
+  "PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS",
   "CLICKHOUSE_HOST",
   "CLICKHOUSE_PORT",
   "CLICKHOUSE_DATABASE",

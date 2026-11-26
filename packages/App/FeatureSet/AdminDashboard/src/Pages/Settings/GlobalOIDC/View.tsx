@@ -17,8 +17,6 @@ import {
 } from "Common/UI/Components/Sso/OidcProviderFormFields";
 import { getPostLogoutRedirectUri } from "Common/Types/SSO/IdentityProviderSignOut";
 import {
-  getSsoGlobalReachAnswerTitle,
-  getSsoGlobalSignUpAnswerTitle,
   getSsoProviderFormSteps,
   SSO_GLOBAL_REACH_TITLE,
   SSO_GLOBAL_SIGN_UP_TITLE,
@@ -38,13 +36,32 @@ import ProjectScopedTeamsPicker, {
   resolveProjectIdFromFormValue,
   selectedTeamIdsFromFormValue,
 } from "../../../Components/GlobalProvider/ProjectScopedTeamsPicker";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import {
+  GlobalProviderReachAnswer,
+  GlobalProviderSignUpAnswer,
+  canAttachmentsTakeNewcomers,
+} from "../../../Components/GlobalProvider/GlobalProviderAnswers";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const GlobalOIDCView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  /*
+   * Whether an attached project takes people who sign in for the first
+   * time, as the Attached Projects table below last read it: null until it
+   * has (GlobalProviderAnswers).
+   */
+  const [attachmentsTakeNewcomers, setAttachmentsTakeNewcomers] = useState<
+    boolean | null
+  >(null);
 
   const redirectURI: string = `${HTTP_PROTOCOL}${HOST}/identity/global-oidc-callback/${modelId.toString()}`;
 
@@ -183,7 +200,9 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               /*
                * The two questions the edit form asks, answered in its
                * words (SSO_GLOBAL_SIGN_UP_CHOICES, SSO_GLOBAL_REACH_CHOICES)
-               * rather than as two Yes/No switches.
+               * rather than as two Yes/No switches, each with the line
+               * that says what it does - and, while nobody new can get an
+               * account, the line that says so (#11149).
                */
               {
                 field: {
@@ -192,7 +211,12 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 title: SSO_GLOBAL_SIGN_UP_TITLE,
                 fieldType: FieldType.Element,
                 getElement: (item: GlobalOIDC): ReactElement => {
-                  return <span>{t(getSsoGlobalSignUpAnswerTitle(item))}</span>;
+                  return (
+                    <GlobalProviderSignUpAnswer
+                      provider={item}
+                      attachmentsTakeNewcomers={attachmentsTakeNewcomers}
+                    />
+                  );
                 },
               },
               {
@@ -202,7 +226,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 title: SSO_GLOBAL_REACH_TITLE,
                 fieldType: FieldType.Element,
                 getElement: (item: GlobalOIDC): ReactElement => {
-                  return <span>{t(getSsoGlobalReachAnswerTitle(item))}</span>;
+                  return <GlobalProviderReachAnswer provider={item} />;
                 },
               },
               {
@@ -317,9 +341,18 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           cardProps={{
             title: "Attached Projects",
             description:
-              "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.",
+              "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.",
           }}
           noItemsMessage={"No projects attached to this provider."}
+          // Whether nobody new can sign in, for the answer above.
+          onFetchSuccess={(
+            rows: Array<GlobalOIDCProject>,
+            totalCount: number,
+          ): void => {
+            setAttachmentsTakeNewcomers(
+              canAttachmentsTakeNewcomers(rows, totalCount),
+            );
+          }}
           showRefreshButton={true}
           filters={[]}
           /*

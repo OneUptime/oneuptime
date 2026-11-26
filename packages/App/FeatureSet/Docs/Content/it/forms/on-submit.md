@@ -75,7 +75,7 @@ Un incidente dichiarato tramite un modulo è un incidente normale, con alcune im
 
 - **Nascosto dalle pagine di stato.** **Visibile sulla pagina di stato** è disattivato, e così **Notifica gli iscritti alla pagina di stato**. Finché un responder non lo pubblica, nulla dell'incidente raggiunge una pagina di stato o un iscritto — a parte il cambio di stato del monitor di un modello, descritto sopra.
 - **Dichiarato da nessuno.** Il mittente non è un utente di OneUptime, quindi nessun utente risulta come chi ha dichiarato l'incidente.
-- **I suoi proprietari vengono avvisati.** I proprietari indicati dalle impostazioni e dal modello vengono aggiunti non appena esistono i canali Slack e Microsoft Teams dell'incidente, e ricevono la notifica — la notifica **Incidente creato** dell'incidente aspetta che siano i suoi proprietari, così arriva a loro invece che ai Proprietari del progetto.
+- **I suoi proprietari vengono avvisati.** I proprietari indicati dalle impostazioni e dal modello vengono aggiunti prima che siano creati i canali Slack e Microsoft Teams dell'incidente, così le tue regole di notifica li vedono, e ricevono la notifica — la notifica **Incidente creato** dell'incidente aspetta che siano i suoi proprietari, così arriva a loro invece che ai Proprietari del progetto.
 - **Una nota privata registra l'invio** — vedi [La nota privata](#la-nota-privata).
 
 Tutto ciò che viene eseguito per un nuovo incidente viene eseguito anche per questi: le regole di privacy, di proprietari, di etichette, di reperibilità e di runbook, le policy di reperibilità e i flussi di lavoro **Alla creazione: Incidente**. Le regole di reperibilità corrispondono agli incidenti di un modulo come a qualsiasi altro — anche sul loro titolo e sulla loro descrizione, scritti dal mittente.
@@ -117,7 +117,7 @@ Poiché l'incidente è stato dichiarato con **Notifica gli iscritti alla pagina 
 
 Un avviso creato tramite un modulo è un avviso normale, creato allo stesso modo di uno creato a mano con **Crea avviso**:
 
-- **I suoi proprietari vengono informati, una volta.** I proprietari indicati dalle impostazioni vengono aggiunti non appena esistono i canali Slack e Microsoft Teams dell'avviso, e la notifica **Avviso creato** dell'avviso aspetta che siano i suoi proprietari, così arriva a loro invece che ai Proprietari del progetto — ed è l'unico messaggio che ne ricevono.
+- **I suoi proprietari vengono informati, una volta.** I proprietari indicati dalle impostazioni vengono aggiunti prima che siano creati i canali Slack e Microsoft Teams dell'avviso, così le tue regole di notifica li vedono, e la notifica **Avviso creato** dell'avviso aspetta che siano i suoi proprietari, così arriva a loro invece che ai Proprietari del progetto — ed è l'unico messaggio che ne ricevono.
 - **Parte da dove dici tu.** Nello stato iniziale abituale, a meno che l'impostazione **Stato iniziale** non ne indichi uno successivo. Un avviso che parte riconosciuto o risolto non chiama nessuno: un modulo per segnalazioni che richiedono solo un'occhiata può impostarlo così.
 - **Creato da nessuno, e non privato.** Il mittente non è un utente di OneUptime, quindi nessun utente risulta come chi l'ha creato. Una regola di privacy può comunque renderlo privato.
 - **Una nota privata registra l'invio** — vedi [La nota privata](#la-nota-privata).

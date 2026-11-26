@@ -508,11 +508,25 @@ describe("the menu paths", () => {
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
       /*
-       * What the accounts cost, how to spend less, the budgets, and the
-       * tags the spend is told apart by (#11012).
+       * What the accounts cost and how it is shared out, how to spend less,
+       * the off-hours schedules, the budgets, and the tags the spend is
+       * told apart by (#11012).
        */
-      { title: "Spend", items: ["Costs", "Savings", "Budgets", "Tags"] },
-      { title: "Settings", items: ["Owner Rules", "Label Rules"] },
+      {
+        title: "Spend",
+        items: [
+          "Costs",
+          "Cost Groups",
+          "Savings",
+          "Schedules",
+          "Budgets",
+          "Tags",
+        ],
+      },
+      {
+        title: "Settings",
+        items: ["Owner Rules", "Label Rules", "Savings AI Rules"],
+      },
       { title: "Advanced", items: ["Archived"] },
     ]);
     expect(menuSections(APP_PLATFORMS_SIDE_MENU)).toEqual([

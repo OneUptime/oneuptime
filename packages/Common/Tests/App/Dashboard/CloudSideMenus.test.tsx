@@ -76,9 +76,13 @@ describe("the Cloud product menu", () => {
       { title: "All Resources", href: `${CLOUD}/resources` },
       { title: "Connect", href: `${CLOUD}/connect` },
     ]);
+    // Who spent it - the cost groups - right under what it cost.
     expect(linksIn("Spend")).toEqual([
       { title: "Costs", href: `${CLOUD}/costs` },
+      { title: "Cost Groups", href: `${CLOUD}/cost-groups` },
       { title: "Savings", href: `${CLOUD}/savings` },
+      // Non-production resources stopped outside working hours (#11010).
+      { title: "Schedules", href: `${CLOUD}/schedules` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
       // The required tags and how much of the spend carries them (#11012).
       { title: "Tags", href: `${CLOUD}/tags` },
@@ -86,6 +90,11 @@ describe("the Cloud product menu", () => {
     expect(linksIn("Settings")).toEqual([
       { title: "Owner Rules", href: `${CLOUD}/settings/owner-rules` },
       { title: "Label Rules", href: `${CLOUD}/settings/label-rules` },
+      // What OneUptime AI may do with a saving on its own (#11010).
+      {
+        title: "Savings AI Rules",
+        href: `${CLOUD}/settings/savings-ai-rules`,
+      },
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Archived", href: `${CLOUD}/archived` },

@@ -1163,17 +1163,13 @@ function EventNotes<TNote extends BaseModel>(
            * reference to give when the server failed (#6836); any other is
            * in the reader's language, read the way it is written. The
            * heading above says what failed, so the explanation does not say
-           * it again, and the reference's row is centred as the lines around
-           * it are. It was the message as API.getFriendlyMessage words it:
-           * English on every page, and on a Persian one with its full stop
-           * at its start.
+           * it again, and the reference's line is centred as the lines
+           * around it are (ErrorReference). It was the message as
+           * API.getFriendlyMessage words it: English on every page, and on a
+           * Persian one with its full stop at its start.
            */}
           <p className="mt-1 max-w-md text-sm text-gray-500">
-            <ErrorMessageText
-              message={loadError}
-              hideWhatFailed={true}
-              isCentered={true}
-            />
+            <ErrorMessageText message={loadError} hideWhatFailed={true} />
           </p>
           <button
             ref={tryAgainButtonRef}

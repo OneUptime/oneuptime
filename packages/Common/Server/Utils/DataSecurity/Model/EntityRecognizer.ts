@@ -2,6 +2,10 @@ import {
   ModelRecognitions,
   RecognizedEntity,
 } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
+import {
+  ModelReading,
+  readingForModel,
+} from "../../../../Utils/DataSecurity/Model/ModelTextReading";
 import { ModelStoreBudget } from "./ModelBudget";
 
 /*
@@ -26,6 +30,67 @@ export interface EntityRecognizer {
     texts: ReadonlyArray<string>,
     budget: ModelStoreBudget,
   ): Promise<Map<string, Array<RecognizedEntity>>>;
+}
+
+/*
+ * What a recogniser finds in texts as the model reads them - a URL's escapes
+ * read, a "+" between letters a space (ModelTextReading, #11034) - each
+ * name and address placed on the characters its text writes it with,
+ * escapes and all, by text as written: what every scan and every read of a
+ * finding's records again asks the model (ModelScan, ModelRereads), so the
+ * two find the same in the same value. Texts that read alike are read once.
+ */
+export async function recognizeAsWritten(
+  recognizer: EntityRecognizer,
+  texts: ReadonlyArray<string>,
+  budget: ModelStoreBudget,
+): Promise<Map<string, Array<RecognizedEntity>>> {
+  const readings: Map<string, ModelReading> = new Map();
+  const toRead: Array<string> = [];
+  const asked: Set<string> = new Set();
+
+  for (const text of texts) {
+    const reading: ModelReading = readingForModel(text);
+
+    readings.set(text, reading);
+
+    if (!asked.has(reading.text)) {
+      asked.add(reading.text);
+      toRead.push(reading.text);
+    }
+  }
+
+  const found: Map<
+    string,
+    Array<RecognizedEntity>
+  > = await recognizer.recognize(toRead, budget);
+  const placed: Map<string, Array<RecognizedEntity>> = new Map();
+
+  for (const text of texts) {
+    const reading: ModelReading = readings.get(text)!;
+    const entities: Array<RecognizedEntity> | undefined = found.get(
+      reading.text,
+    );
+
+    if (!entities) {
+      continue;
+    }
+
+    placed.set(
+      text,
+      reading.text === text
+        ? entities
+        : entities.map((entity: RecognizedEntity): RecognizedEntity => {
+            return {
+              ...entity,
+              start: reading.toWritten(entity.start),
+              end: reading.toWritten(entity.end),
+            };
+          }),
+    );
+  }
+
+  return placed;
 }
 
 // What a recogniser found, as the classifiers look it up.

@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "O que foi enviado era grande demais para o servidor aceitar, por isso a operação não terminou. Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "O que foi enviado passa dos 50 MB que o OneUptime aceita em uma requisição, por isso a operação não terminou. Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
   "This did not finish.": "A operação não terminou.",
+  "The {{itemName}} was not deleted.": "Não foi excluído: {{itemName}}.",
+  "“{{action}}” did not finish.": "A operação \"{{action}}\" não terminou.",
   "The server ran into a problem it could not explain.": "O servidor teve um problema que não conseguiu explicar.",
   "The OneUptime server did not answer.": "O servidor do OneUptime não respondeu.",
   "OneUptime could not be reached.": "Não foi possível contactar o OneUptime.",

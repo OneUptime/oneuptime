@@ -85,6 +85,7 @@ import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StorageArrayOwnerTeam from "../../Models/DatabaseModels/StorageArrayOwnerTeam";
 import TeamOwnerTeam from "../../Models/DatabaseModels/TeamOwnerTeam";
 import VMwareVCenterOwnerTeam from "../../Models/DatabaseModels/VMwareVCenterOwnerTeam";
+import XcpNgPoolOwnerTeam from "../../Models/DatabaseModels/XcpNgPoolOwnerTeam";
 import Workflow from "../../Models/DatabaseModels/Workflow";
 import WorkflowOwnerTeam from "../../Models/DatabaseModels/WorkflowOwnerTeam";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
@@ -204,6 +205,7 @@ import StatusPageService from "./StatusPageService";
 import StorageArrayService from "./StorageArrayService";
 import TeamService from "./TeamService";
 import VMwareVCenterService from "./VMwareVCenterService";
+import XcpNgPoolService from "./XcpNgPoolService";
 import WorkflowService from "./WorkflowService";
 
 /*
@@ -1144,6 +1146,12 @@ export const TEAM_OWNED_OTHER_PLANS: Array<
     ownerTeamModel: VMwareVCenterOwnerTeam,
     ownerColumn: "vmwareVCenterId",
     rowKind: UsedByRowKind.VMwareVCenter,
+  }),
+  ownedByTeam({
+    service: asService(XcpNgPoolService),
+    ownerTeamModel: XcpNgPoolOwnerTeam,
+    ownerColumn: "xcpNgPoolId",
+    rowKind: UsedByRowKind.XcpNgPool,
   }),
   ownedByTeam({
     service: asService(CephClusterService),

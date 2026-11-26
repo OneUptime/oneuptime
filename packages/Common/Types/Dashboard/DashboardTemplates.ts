@@ -53,6 +53,7 @@ export enum DashboardTemplateType {
   Host = "Host",
   Proxmox = "Proxmox",
   VMware = "VMware",
+  XcpNg = "XcpNg",
   OpenStack = "OpenStack",
   Ceph = "Ceph",
   StorageArray = "StorageArray",
@@ -203,6 +204,16 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     icon: IconProp.VMware,
     category: DashboardTemplateCategory.Infrastructure,
     keywords: ["vsphere", "virtualization", "vms"],
+  },
+  {
+    type: DashboardTemplateType.XcpNg,
+    name: "XCP-ng Dashboard",
+    description:
+      "Live host and VM inventories with status, host and VM CPU, host memory, storage repository usage and host network throughput, read from Xen Orchestra.",
+    icon: IconProp.XcpNg,
+    category: DashboardTemplateCategory.Infrastructure,
+    // Words its name and description do not say ("xen" and "vm" they do).
+    keywords: ["xenserver", "hypervisor", "virtualization"],
   },
   {
     type: DashboardTemplateType.OpenStack,
@@ -974,6 +985,58 @@ function createVMwareVirtualMachineListComponent(data: {
       maxRows: data.maxRows ?? 20,
       powerStateFilter: data.powerStateFilter,
       templateFilter: data.templateFilter,
+    },
+  };
+}
+
+function createXcpNgHostListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  sort?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.XcpNgHostList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      ...(data.sort ? { sort: data.sort } : {}),
+    },
+  };
+}
+
+function createXcpNgVmListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.XcpNgVmList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
     },
   };
 }
@@ -4539,6 +4602,181 @@ function createVMwareDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createXcpNgDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - Host / VM counts come from the Postgres inventory list widgets
+   *   (XcpNgResource), never from Sum-of-gauge Value widgets: Xen
+   *   Orchestra's status series (xcp_host_status, xcp_vm_status) re-emit 1
+   *   on every scrape, so summing them across the dashboard window
+   *   multiplies (objects x scrapes), the failure the Kubernetes / Proxmox
+   *   templates document. The list-widget headers show the true current
+   *   counts; the VM list leaves the control domains (dom0) out.
+   *
+   * - Xen Orchestra already turns XAPI's readings into their final unit:
+   *   CPU as a 0 to 1 ratio, memory and storage in bytes, and network in
+   *   bytes per second. The network series are typed counters but carry
+   *   per-second rates (XCP_NG_RATE_TYPED_AS_COUNTER_SERIES), which the
+   *   agent stores as gauges, so nothing here needs transformAsRate - a
+   *   rate taken of a rate would chart nonsense.
+   *
+   * - Host charts fan out per host on Xen Orchestra's `host_name` label,
+   *   and the storage chart per storage repository on `sr_name`, both
+   *   datapoint attributes. The network charts average each interface
+   *   (PIF): a sum would add up every scrape in an interval too.
+   *
+   * - The XCP-ng Agent reads metrics only, so there is no logs widget.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "XCP-ng Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createXcpNgHostListComponent({
+      title: "Hosts",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+      // Hosts that are not running, then disabled ones, on top.
+      sort: WORST_STATUS_FIRST,
+    }),
+    createXcpNgVmListComponent({
+      title: "VMs",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Resource Usage",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 6-8: Host CPU and memory, one line per host
+    createChartComponent({
+      title: "Host CPU Usage",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "xcp_host_cpu_average",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU ratio",
+        groupByAttributeKeys: ["host_name"],
+      },
+    }),
+    createChartComponent({
+      title: "Host Memory Free",
+      chartType: DashboardChartType.Area,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "xcp_host_memory_free_bytes",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Free memory",
+        legendUnit: "bytes",
+        groupByAttributeKeys: ["host_name"],
+      },
+    }),
+
+    // Rows 9-11: VM CPU and storage repository usage
+    createChartComponent({
+      title: "VM CPU Usage (avg across VMs)",
+      chartType: DashboardChartType.Line,
+      top: 9,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "xcp_vm_cpu_usage",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU ratio",
+      },
+    }),
+    createChartComponent({
+      title: "Storage Repository Used",
+      chartType: DashboardChartType.Line,
+      top: 9,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "xcp_sr_physical_usage_bytes",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Used",
+        legendUnit: "bytes",
+        groupByAttributeKeys: ["sr_name"],
+      },
+    }),
+
+    // Rows 12-14: Host network throughput (rates already, per interface)
+    createChartComponent({
+      title: "Host Network Receive (avg per interface)",
+      chartType: DashboardChartType.Area,
+      top: 12,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "xcp_host_network_receive_bytes_total",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Received",
+        legendUnit: "bytes/s",
+      },
+    }),
+    createChartComponent({
+      title: "Host Network Transmit (avg per interface)",
+      chartType: DashboardChartType.Area,
+      top: 12,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "xcp_host_network_transmit_bytes_total",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Sent",
+        legendUnit: "bytes/s",
+      },
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "pool",
+      label: "XCP-ng Pool",
+      attributeKey: "resource.xcp_ng.pool.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 15),
+  };
+}
+
 function createDockerSwarmDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -4879,8 +5117,8 @@ function createStorageArrayDashboardConfig(): DashboardViewConfig {
    *   the same reasoning the Ceph / Kubernetes templates use for their
    *   inventory widgets.
    *
-   * - Every metric widget reads a FlashArray series (purefa_*) built by
-   *   storageArrayMetricConfig from the catalog. Pure puts read, write and
+   * - Every metric widget reads a FlashArray series built by
+   *   storageArrayMetricConfig from the catalog, by its catalog id. Pure puts read, write and
    *   queue figures on ONE metric name, told apart only by the `dimension`
    *   label, so every query pins its dimension, and read and write share a
    *   chart as two queries rather than being two charts of one series.
@@ -4890,13 +5128,13 @@ function createStorageArrayDashboardConfig(): DashboardViewConfig {
    *   nothing is transformAsRate'd (unlike the Ceph template's cumulative
    *   ceph_pool_*_bytes counters) and nothing Sums a gauge.
    *
-   * - purefa_alerts_open is one series per open alert, valued 1, so a Sum
+   * - The open alerts series is one series per open alert, valued 1, so a Sum
    *   would count each alert once per scrape in the bucket. The alerts
    *   chart takes the Max per severity instead: 1 while at least one alert
    *   of that severity is open — the reading the critical and warning alert
    *   templates fire on.
    *
-   * - purefa_array_space_utilization is already a percent (0-100), not a
+   * - The array's space utilization is already a percent (0-100), not a
    *   [0, 1] fraction, and the data reduction ratio is the N of "N:1".
    */
   const components: Array<DashboardBaseComponent> = [
@@ -5448,6 +5686,8 @@ export function getTemplateConfig(
       return createProxmoxDashboardConfig();
     case DashboardTemplateType.VMware:
       return createVMwareDashboardConfig();
+    case DashboardTemplateType.XcpNg:
+      return createXcpNgDashboardConfig();
     case DashboardTemplateType.OpenStack:
       return createOpenStackDashboardConfig();
     case DashboardTemplateType.Ceph:

@@ -2,8 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import { ScrubRegExp } from "../../../Types/Telemetry/ScrubRule";
 import { DIGIT_ZEROS } from "../../../Utils/DataSecurity/DigitReadings";
-import { EMAIL_ADDRESS_DETECTORS } from "../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import {
+  EMAIL_ADDRESS_DETECTORS,
+  PHONE_NUMBER_DETECTORS,
+} from "../../../Utils/DataSecurity/Detectors/ContactDetectors";
 import { CARD_NUMBER_DETECTORS } from "../../../Utils/DataSecurity/Detectors/FinancialDetectors";
+import { US_SSN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/GovernmentIdDetectors";
 import {
   findSensitiveValues,
   TextMatch,
@@ -13,13 +17,15 @@ import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
- * AN EMAIL ADDRESS OR CARD RULE, AND THE SCANNER, READ A TEXT IN TIME IN LINE
- * WITH ITS LENGTH, WHATEVER WAYS THEY READ IT (#10935, #10960).
+ * AN EMAIL ADDRESS, CARD, PHONE NUMBER OR SSN RULE, AND THE SCANNER, READ A
+ * TEXT IN TIME IN LINE WITH ITS LENGTH, WHATEVER WAYS THEY READ IT (#10935,
+ * #10960, #11030).
  *
  * The Email Address rule reads a text as written and with its escapes read,
  * with its own pattern and the email detectors - one of them of Unicode's
  * classes; the Credit Card rule with each script's digits read alone and
- * all of them together. Each runs over every record of a project with such
+ * all of them together; the Phone Number rule both ways, and the SSN rule
+ * with every script's digits. Each runs over every record of a project with such
  * a rule, at ingest, over text an application - or an attacker - writes.
  * Each pattern is bounded and starts a run of its characters once, and each
  * reading of a text is made once: 400,000 characters of each awkward text,
@@ -82,6 +88,46 @@ const CARD_CASES: Array<[string, string]> = [
   ],
 ];
 
+const PHONE_CASES: Array<[string, string]> = [
+  ["plus signs without end", repeat("+", LENGTH)],
+  ["plus signs and digits", repeat("+4", LENGTH)],
+  ["a plus sign and digits without end", "+4" + repeat("4", LENGTH)],
+  ["a plus sign and groups without end", "+44 " + repeat("12 ", LENGTH)],
+  ["a plus sign and groups of one", "+1 " + repeat("2 ", LENGTH)],
+  ["a plus sign and dots", "+1" + repeat(".2", LENGTH)],
+  ["a plus sign and open parentheses", "+1 " + repeat("(2", LENGTH)],
+  ["a plus sign and no-break spaces", "+44" + repeat("\u00A012", LENGTH)],
+  ["encoded plus signs without end", repeat("%2B", LENGTH)],
+  ["encoded plus signs and spaces", repeat("%2B4%20", LENGTH)],
+  ["plus signs encoded twice", repeat("%252B44", LENGTH)],
+  ["dates after an offset", repeat("+1 2026-11-24 ", LENGTH)],
+  ["decimals without end", repeat("+51.507217 ", LENGTH)],
+  ["a plus sign and fullwidth digits", "+" + repeat("４ ", LENGTH)],
+  [
+    "plus signs and every script's digits",
+    repeat(`+${EVERY_SCRIPT_DIGITS} `, LENGTH),
+  ],
+  ["numbers back to back", repeat("+44 20 7946 0958 ", LENGTH)],
+  [
+    "North American numbers back to back in Arabic-Indic digits",
+    repeat("٤١٥-٥٥٥-٢٦٧١ ", LENGTH),
+  ],
+  ["UK mobiles back to back", repeat("07911 123456 ", LENGTH)],
+];
+
+const SSN_CASES: Array<[string, string]> = [
+  ["groups and dashes without end", repeat("123-", LENGTH)],
+  ["digits and dashes", repeat("1-", LENGTH)],
+  ["groups and dots", repeat("123.45.", LENGTH)],
+  ["fullwidth groups and spaces", repeat("１２３ ", LENGTH)],
+  ["every script's digits in turn", repeat(EVERY_SCRIPT_DIGITS, LENGTH)],
+  ["Social Security numbers back to back", repeat("536-22-8731 ", LENGTH)],
+  [
+    "Social Security numbers back to back in Arabic-Indic digits",
+    repeat("٥٣٦-٢٢-٨٧٣١ ", LENGTH),
+  ],
+];
+
 describe("an Email Address rule", () => {
   const regex: ScrubRegExp = compileBuiltInScrubPattern(
     LogScrubPatternType.Email,
@@ -139,6 +185,57 @@ describe("a Credit Card rule", () => {
   });
 });
 
+describe.each([
+  ["a Phone Number rule", LogScrubPatternType.PhoneNumber, PHONE_CASES],
+  ["an SSN rule", LogScrubPatternType.SSN, SSN_CASES],
+] as Array<[string, string, Array<[string, string]>]>)(
+  "%s",
+  (_rule: string, patternType: string, cases: Array<[string, string]>) => {
+    const regex: ScrubRegExp = compileBuiltInScrubPattern(patternType)!;
+
+    test.each(cases)(
+      "reads %s in time in line with its length",
+      (_label: string, text: string) => {
+        const timed: FastestRun<string> = fastestRun({
+          run: (): string => {
+            return regex.replace(text, (): string => {
+              return "[REDACTED]";
+            });
+          },
+          limitInMs: LIMIT_IN_MS,
+        });
+
+        expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+      },
+    );
+  },
+);
+
+describe("a Phone Number and an SSN rule over a long text of them", () => {
+  test("hide every one, and keep the rest", () => {
+    const unit: string =
+      "to %2B49%2030%2012345678 and +٤٤ ١٦١ ٣٢١ ٤٥٦٧, ssn ٥٣٦-٢٢-٨٧٣١ at +51.507217; ";
+    const text: string = repeat(unit, unit.length * 1000);
+    const phone: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.PhoneNumber,
+    )!;
+    const ssn: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.SSN,
+    )!;
+    const scrubbed: string = ssn.replace(
+      phone.replace(text, (): string => {
+        return "[P]";
+      }),
+      (): string => {
+        return "[S]";
+      },
+    );
+    const left: string = "to [P] and [P], ssn [S] at +51.507217; ";
+
+    expect(scrubbed).toBe(repeat(left, left.length * 1000));
+  });
+});
+
 describe("Data Security's scanner, reading the same texts", () => {
   test.each(EMAIL_CASES)(
     "reads %s for email addresses in time in line with its length",
@@ -163,6 +260,38 @@ describe("Data Security's scanner, reading the same texts", () => {
         run: (): number => {
           return findSensitiveValues(text, {
             detectors: CARD_NUMBER_DETECTORS,
+          }).length;
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
+
+  test.each(PHONE_CASES)(
+    "reads %s for phone numbers in time in line with its length",
+    (_label: string, text: string) => {
+      const timed: FastestRun<number> = fastestRun({
+        run: (): number => {
+          return findSensitiveValues(text, {
+            detectors: PHONE_NUMBER_DETECTORS,
+          }).length;
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
+
+  test.each(SSN_CASES)(
+    "reads %s for Social Security numbers in time in line with its length",
+    (_label: string, text: string) => {
+      const timed: FastestRun<number> = fastestRun({
+        run: (): number => {
+          return findSensitiveValues(text, {
+            detectors: US_SSN_DETECTORS,
           }).length;
         },
         limitInMs: LIMIT_IN_MS,

@@ -1,4 +1,5 @@
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
+import { getNotSensitiveFindingWrite } from "Common/Utils/DataSecurity/DataStoreFindingDecisions";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -74,13 +75,11 @@ const StoreNotSensitiveModal: FunctionComponent<ComponentProps> = (
               ? (values["reason"] as string).trim()
               : "";
 
+          // The write Ask AI's judge_data_security_finding makes too (#10378).
           await ModelAPI.updateById<DataStoreFinding>({
             modelType: DataStoreFinding,
             id: props.findingId,
-            data: {
-              isSuppressed: true,
-              suppressedReason: reason,
-            },
+            data: getNotSensitiveFindingWrite(reason),
           });
 
           setIsSubmitting(false);

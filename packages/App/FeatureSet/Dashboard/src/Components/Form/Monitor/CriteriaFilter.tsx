@@ -193,12 +193,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   >([]);
 
   useEffect(() => {
+    /*
+     * The check's own conditions, and for a DNS answer compared with the
+     * previous check only "different from it" and "the same" (#10905).
+     */
     setFilterTypeOptions(
-      criteriaFilter?.checkOn
-        ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
-            criteriaFilter?.checkOn,
-          )
-        : [],
+      CriteriaFilterUiUtil.getFilterTypeOptions({
+        criteriaFilter: criteriaFilter,
+        monitorType: props.monitorType,
+      }),
     );
     setValuePlaceholder(
       criteriaFilter?.checkOn
@@ -356,7 +359,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
    * Collect metric variables from whichever metric-shaped monitor sub-config is
    * populated on this step (metricMonitor, hostMonitor, kubernetesMonitor,
    * dockerMonitor, dockerSwarmMonitor, podmanMonitor, proxmoxMonitor,
-   * vmwareMonitor, cephMonitor, iotMonitor). Centralized in MonitorStepMetricViewConfigUtil so
+   * vmwareMonitor, xcpNgMonitor, cephMonitor, iotMonitor). Centralized in MonitorStepMetricViewConfigUtil so
    * a new metric-shaped monitor type can't silently leave this dropdown empty.
    */
   const metricViewConfig: MetricsViewConfig | undefined =

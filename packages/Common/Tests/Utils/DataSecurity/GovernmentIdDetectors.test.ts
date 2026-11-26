@@ -764,6 +764,38 @@ describe("the rules of each ID", () => {
     expect(findings("us-ssn", "SSN: 536-22 1234")).toEqual([]);
   });
 
+  /*
+   * #11030: an SSN in another script's digits is the same number, found by
+   * the scanner - which reads every script's digits for these detectors -
+   * and so hidden by an SSN rule, on the characters it is written with.
+   */
+  test("an SSN in another script's digits is found as one in ASCII is, by the same rules", () => {
+    const ssnsIn: (text: string) => Array<string> = (
+      text: string,
+    ): Array<string> => {
+      return findSensitiveValues(text)
+        .filter((match: TextMatch): boolean => {
+          return match.dataTypeId === "us-ssn" && !match.isTestValue;
+        })
+        .map((match: TextMatch): string => {
+          return text.slice(match.start, match.end);
+        });
+    };
+
+    expect(ssnsIn("SSN: ٥٣٦-٢٢-١٢٣٤")).toEqual(["٥٣٦-٢٢-١٢٣٤"]);
+    expect(ssnsIn("SSN: ۵۳۶.۲۲.۱۲۳۴")).toEqual(["۵۳۶.۲۲.۱۲۳۴"]);
+    expect(ssnsIn("ssn ５３６ ２２ １２３４ on file")).toEqual([
+      "５３６ ２２ １２３４",
+    ]);
+    // Nine bare digits, beside the word, as in ASCII.
+    expect(ssnsIn("SSN ٥٣٦٢٢١٢٣٤ on file")).toEqual(["٥٣٦٢٢١٢٣٤"]);
+    expect(ssnsIn("Order ٥٣٦٢٢١٢٣٤ shipped")).toEqual([]);
+    // The SSA's rules, and no longer chain, in any script.
+    expect(ssnsIn("SSN: ٦٦٦-٢٢-١٢٣٤")).toEqual([]);
+    expect(ssnsIn("SSN: ٥٣٦-٠٠-١٢٣٤")).toEqual([]);
+    expect(ssnsIn("SSN: ٥٣٦-٢٢-١٢٣٤-٥٦")).toEqual([]);
+  });
+
   test("the advertising range is no SSN (9xx) but is an ITIN sample", () => {
     expect(scanType("us-ssn", "SSN 987-65-4320")).toEqual([]);
     expect(samples("us-itin", "ITIN 987-65-4320")).toEqual(["987654320"]);

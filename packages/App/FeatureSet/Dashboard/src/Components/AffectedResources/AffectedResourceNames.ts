@@ -1,9 +1,9 @@
 /*
  * The names an Affected Resources cell lists, in the order it lists them
  * (AffectedResourcesCell): the monitors first, then hosts, network devices,
- * Kubernetes clusters, Docker and Podman hosts, Proxmox clusters, vCenters, Ceph
- * clusters, storage arrays, Docker Swarm clusters, IoT fleets, databases,
- * cloud resources, network sites, services and SLOs.
+ * Kubernetes clusters, Docker and Podman hosts, Proxmox clusters, vCenters,
+ * XCP-ng pools, Ceph clusters, storage arrays, Docker Swarm clusters, IoT
+ * fleets, databases, cloud resources, network sites, services and SLOs.
  *
  * A list's CSV export writes these for its Affected Resources column, so the
  * file names a row's resources the way the row draws them. The alerts list
@@ -30,6 +30,7 @@ export interface AffectedResourceLists {
   proxmoxClusters?: Array<NamedResource> | undefined;
   openStackClouds?: Array<NamedResource> | undefined;
   vmwareVCenters?: Array<NamedResource> | undefined;
+  xcpNgPools?: Array<NamedResource> | undefined;
   cephClusters?: Array<NamedResource> | undefined;
   storageArrays?: Array<NamedResource> | undefined;
   dockerSwarmClusters?: Array<NamedResource> | undefined;
@@ -54,6 +55,7 @@ export const AFFECTED_RESOURCE_LIST_ORDER: ReadonlyArray<
   "proxmoxClusters",
   "openStackClouds",
   "vmwareVCenters",
+  "xcpNgPools",
   "cephClusters",
   "storageArrays",
   "dockerSwarmClusters",

@@ -133,6 +133,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.Proxmox]: PayloadKind.Telemetry,
   [MonitorType.OpenStack]: PayloadKind.Telemetry,
   [MonitorType.VMware]: PayloadKind.Telemetry,
+  [MonitorType.XcpNg]: PayloadKind.Telemetry,
   [MonitorType.Ceph]: PayloadKind.Telemetry,
   [MonitorType.StorageArray]: PayloadKind.Telemetry,
   [MonitorType.IoTDevice]: PayloadKind.Telemetry,

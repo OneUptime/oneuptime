@@ -1945,14 +1945,28 @@ export default class ValueFormatter {
     }
 
     /*
-     * Same for a storage array's data reduction ratio (Pure's
-     * `purefa_array_space_data_reduction_ratio`,
-     * `purefb_file_systems_space_data_reduction_ratio`, ...): logical over
-     * physical space, so 4.2 means 4.2:1 — never "420.00%".
+     * Same for a storage array's data reduction ratio (a Pure array's
+     * array, volume and file system `..._space_data_reduction_ratio`
+     * series): logical over physical space, so 4.2 means 4.2:1 — never
+     * "420.00%".
      */
     const dataReductionRatio: RegExp = /data_reduction_ratio$/i;
     if (dataReductionRatio.test(metricName.trim())) {
       return false;
+    }
+
+    /*
+     * Xen Orchestra's CPU, run-state and I/O-wait series (XcpNgMetricCatalog's
+     * "ratio" entries: xcp_host_cpu_average, xcp_vm_cpu_usage,
+     * xcp_vm_runstate_full_contention, xcp_vm_disk_iowait, ...) are [0, 1]
+     * shares of time whose names say nothing of it - XAPI's own names, kept
+     * as Xen Orchestra documents them - so they are named here, and read as
+     * the percentages they are.
+     */
+    const xcpNgShareOfTime: RegExp =
+      /^xcp_(host_cpu_average|host_cpu_core_usage|vm_cpu_usage|vm_cpu_core_usage|vm_runstate_[a-z_]+|host_disk_iowait|vm_disk_iowait)$/i;
+    if (xcpNgShareOfTime.test(metricName.trim())) {
+      return true;
     }
 
     const fractionMetricSuffixRegex: RegExp =

@@ -111,7 +111,7 @@ La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: 
 | Tout autre type de données qu'un motif trouve à lui seul, comme un jeton GitHub | Une règle **Regex personnalisée** construite à partir des motifs propres au type de données. Un secret est caviardé. |
 | L'un de vos propres types de données, avec un motif | Ce motif, uniquement dans l'attribut où il a été trouvé |
 | Un type de données qui se distingue par les mots qui l'entourent, comme un numéro de routage bancaire | Sa forme, uniquement dans l'attribut où il a été trouvé |
-| Un type de données trouvé d'après le nom du champ, comme le nom d'une personne sous `customer_name`, ou une valeur sous une clé qui nomme un secret | Une règle **Attributs nommés**, qui masque la valeur entière de cet attribut |
+| Un type de données trouvé d'après le nom du champ, comme le nom d'une personne sous `customer_name` ou sous le paramètre `full_name` d'une URL, ou une valeur sous une clé qui nomme un secret | Une règle **Attributs nommés**, qui masque la valeur entière de cet attribut |
 | Une valeur sous une clé qui semble sensible, là où rien de plus étroit ne la masque | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
 | Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut qui contiennent le type de données. Pour une adresse IP, une adresse e-mail ou un numéro de carte, son filtre est **Correspond au type de modèle** avec ce type, qui trouve ce que trouve une règle de journaux ou de traces de ce **Type de modèle**, y compris les adresses IPv6 et les valeurs encodées en pourcentage ou écrites dans une autre écriture. Pour un autre type de données, c'est le propre motif du type, et quand aucun motif ne trouve ce type de données, la règle remplace chaque valeur de l'attribut |
 
@@ -170,7 +170,7 @@ Avant que OneUptime AI ne commence, la Sécurité des données relit, dans OneUp
 
 - **Un span ou un appel d'IA** : le fichier, la ligne et la fonction que nomment ses attributs `code.*`, et le nom du span.
 - **Une exception** : ses propres frames du haut de la pile, celles du code du service.
-- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`.
+- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`, et chaque mot dont ses enregistrements ne prouvent pas que le code l'a écrit, comme le nom d'une personne, remplacé par `<value>` : `Payment declined for Maria Gonzalez`, lu dans un seul enregistrement, devient `Payment declined for <value>`. Le nom d'un span et le nom d'une métrique sont lus de la même façon.
 - **Une métrique** : le nom de la métrique.
 - **Toute fuite** : sa clé d'attribut, par exemple `user.email`, que le code écrit généralement telle quelle.
 
@@ -200,6 +200,15 @@ Chaque problème que la pull request corrige la garde : sa carte **Comment corri
 Un secret demande plus qu'une correction du code : le code n'empêche que les nouvelles copies, et le secret fonctionne toujours. La pull request, la chronologie du problème et sa carte **Comment corriger** disent de le faire tourner, et la carte liste où il a été vu.
 
 Avec **Travailler sur les nouveaux problèmes** activé, OneUptime AI propose aussi de lui-même la correction de chaque service, le service le plus risqué d'abord, dans **Sécurité des données → IA** et sur le problème le plus risqué du service. Par défaut, elle vous attend. Une règle d'IA de la Sécurité des données qui règle **Correction** sur **Automatiquement** pour le problème le plus risqué du service ouvre la pull request sans demander, dans un dépôt que quelque chose a décidé. **Nombre max de demandes de tirage de correctifs ouvertes** du dépôt plafonne les deux : au plafond, une pull request qu'une règle ouvrirait vous attend, et aucune nouvelle pull request de correction ne s'ouvre avant qu'une ne soit fusionnée ou fermée.
+
+### Le front-end d'une application RUM
+
+**Corriger avec l'IA** sur un problème de relecture de session fait de même pour une application RUM : une seule pull request qui empêche son code front-end d'envoyer chaque fuite que OneUptime voit encore dans ses journaux du navigateur, ses spans du navigateur et les détails de ses sessions. L'endroit où chaque fuite est écrite vient des enregistrements où elle a été vue, relus au sein de OneUptime :
+
+- **Un journal ou un span du navigateur** : le fichier, la ligne et la fonction auxquels sa pile JavaScript se résout grâce aux source maps envoyées par vos builds (voir [Source Maps](/docs/telemetry/source-maps)), sinon ses attributs `code.*` ; la ligne du journal ou le nom du span comme modèle ; et la page où il a été écrit, par son seul chemin, chaque identifiant et chaque valeur masqués.
+- **Les détails d'utilisateur d'une session** : l'appel `identify()` de l'enregistreur de sessions qui les a donnés, et la page où la session a commencé.
+
+La pull request va au dépôt qui contient ces fichiers, sinon à celui qui contient le plus de fichiers nommés par les source maps de la dernière version, sinon au dépôt nommé comme l'**Identifiant de l'application**, ou au seul dépôt du projet ; quand rien ne décide, vous choisissez. Elle modifie le code du navigateur à chaque endroit, où l'utilisateur d'une session est identifié par un identifiant opaque et jamais par un e-mail, ou ajoute une étape de masquage là où l'application configure sa télémétrie du navigateur. L'enregistrement d'une session n'est jamais lu, et l'agent de code ne lit rien de votre télémétrie. Chaque problème est résolu comme **Corrigé dans le code** dès que la nouvelle version de l'application n'envoie plus les données. OneUptime AI ne propose pas encore de lui-même le correctif d'une application : demandez-le avec **Corriger avec l'IA**.
 
 ## Abandonner cette métrique
 

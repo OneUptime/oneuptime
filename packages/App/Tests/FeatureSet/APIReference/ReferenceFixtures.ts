@@ -12,6 +12,7 @@ import {
   ReferenceNavSection,
 } from "../../../FeatureSet/APIReference/Utils/Navigation";
 import { ModelDocumentation } from "../../../FeatureSet/APIReference/Utils/Resources";
+import { DocsSiteLinks } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import ejs from "ejs";
 import path from "path";
 
@@ -355,6 +356,11 @@ export interface RenderOptions {
   dir?: string | undefined;
   showMasterAdminApis?: boolean;
   enableGoogleTagManager?: boolean;
+  /*
+   * What the top bar and footer link to (#10940), as the services hand it;
+   * left out, the page is rendered as one that was never handed it.
+   */
+  helpLinks?: DocsSiteLinks | null | undefined;
 }
 
 /** Render a page through the real layout, exactly as the services do. */
@@ -396,6 +402,9 @@ export async function renderPage(
       searchIndex: buildSearchIndex(navSections),
       pager: findAdjacentPages(navSections, fixture.slug),
       currentLocation: findNavLocation(navSections, fixture.slug),
+      ...(options && "helpLinks" in options
+        ? { helpLinks: options.helpLinks }
+        : {}),
     },
     { views: [VIEWS_ROOT] },
   )) as string;

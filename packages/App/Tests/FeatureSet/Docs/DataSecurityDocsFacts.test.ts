@@ -31,6 +31,11 @@ import {
   isTestStreetAddress,
   UNSURE_SCORE,
 } from "Common/Utils/DataSecurity/Model/RecognizedEntity";
+import { isFreeTextFieldName } from "Common/Utils/DataSecurity/FreeTextFieldNames";
+import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
+import { readableForModel } from "Common/Utils/DataSecurity/Model/ModelTextReading";
+import { maskUnprovenWords } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
+import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
   CARD_LINE,
@@ -237,7 +242,9 @@ import {
   maskValue,
 } from "Common/Utils/DataSecurity/Masking";
 import {
+  findSensitiveValues,
   MAX_SCANNED_TEXT_LENGTH,
+  TextMatch,
   WINDOW_OVERLAP,
   WINDOW_SIZE,
 } from "Common/Utils/DataSecurity/TextScanner";
@@ -1433,6 +1440,203 @@ describe("Sensitive Data Types", () => {
       ).toContain('title="What Data Security Reads"');
       expect(model).toContain(
         "**Test It** runs in your browser, without the model",
+      );
+    });
+
+    /*
+     * The follow-ups of #10373 (#10926-#10931): a finding's records and
+     * proofs, a short field named for free text, the model's turns, the
+     * warnings in the reader's language, and why Test It has no model.
+     */
+    it("lists a finding's records and proves its rules with the model, in up to 20 seconds of its time", () => {
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/ModelBudget.ts`,
+          "REREAD_MODEL_TIME_IN_MS",
+        ),
+      ).toBe(20_000);
+      expect(model).toContain(
+        "they are read again with the model, up to 20 seconds of its time each time",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingOccurrences.tsx",
+        ),
+      ).toContain("cannot run on this server just now");
+    });
+
+    it("reads a short field only when its name says a person wrote free text in it, as measured", () => {
+      type ShortRuleScores = {
+        catalogValuesRead: number;
+        catalogFalseFindings?: number;
+        falseFindingsPerThousandNegatives: number;
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+      const short: string = section(page, "### Short values");
+      const measured: {
+        namedForFreeText: ShortRuleScores;
+        atLeastFourWords: ShortRuleScores;
+      } = JSON.parse(
+        source(
+          "Common/Tests/Server/Utils/DataSecurity/Model/ShortFreeTextBaseline.json",
+        ),
+      );
+      const set: { fields: Array<{ kind: string; values: Array<string> }> } =
+        JSON.parse(
+          source(
+            "Common/Tests/Utils/DataSecurity/Model/ShortFreeTextTestSet.json",
+          ),
+        );
+      const values: Array<string> = set.fields.flatMap(
+        (field: { values: Array<string> }): Array<string> => {
+          return field.values;
+        },
+      );
+      const marked: (mark: string) => number = (mark: string): number => {
+        return values.reduce((total: number, value: string): number => {
+          return total + value.split(mark).length - 1;
+        }, 0);
+      };
+      const ruleRow: (
+        label: string,
+        scores: ShortRuleScores,
+      ) => Array<string> = (
+        label: string,
+        scores: ShortRuleScores,
+      ): Array<string> => {
+        const all: Record<string, Record<string, number>> = scores.languages[
+          "all"
+        ] as Record<string, Record<string, number>>;
+
+        return [
+          label,
+          String(scores.catalogValuesRead),
+          (all["person-name"]?.["precision"] as number).toFixed(2),
+          (all["person-name"]?.["recall"] as number).toFixed(2),
+          (all["postal-address"]?.["precision"] as number).toFixed(2),
+          String(Math.round(scores.falseFindingsPerThousandNegatives)),
+        ];
+      };
+      const [rules, languages] = tables(short);
+
+      expect(short).toContain(
+        `on ${set.fields.length} columns of a database in the seven languages, ${values.length} values in all`,
+      );
+      expect(short).toContain(
+        `holding ${marked("[[N:")} names and ${marked("[[A:")} street addresses`,
+      );
+      expect(short).toContain(
+        `read ${measured.atLeastFourWords.catalogValuesRead} of the catalog's values and made ${measured.atLeastFourWords.catalogFalseFindings} false names of them`,
+      );
+      expect(rows(rules)).toEqual([
+        ruleRow(
+          "Fields of four or more words (not chosen)",
+          measured.atLeastFourWords,
+        ),
+        ruleRow(
+          "Fields named for free text (chosen)",
+          measured.namedForFreeText,
+        ),
+      ]);
+      expect(rows(languages)).toEqual(
+        scoreRows(measured.namedForFreeText.languages),
+      );
+
+      // Its examples: brands and characters in the catalog's values.
+      const catalog: Array<string> = set.fields
+        .filter((field: { kind: string }): boolean => {
+          return field.kind === "catalog";
+        })
+        .flatMap((field: { values: Array<string> }): Array<string> => {
+          return field.values;
+        });
+
+      for (const name of ["Ralph Lauren", "Tom Sawyer"]) {
+        expect({
+          name,
+          inCatalog: catalog.some((value: string): boolean => {
+            return value.includes(name);
+          }),
+        }).toEqual({ name, inCatalog: true });
+        expect(short).toContain(`\`${name}\``);
+      }
+
+      // And the field names it gives, read and not read as it says.
+      for (const fieldPath of [
+        "delivery_note",
+        "comentario",
+        "Lieferhinweis",
+        "opmerking",
+        "orders.delivery_note",
+      ]) {
+        expect({ fieldPath, read: isFreeTextFieldName(fieldPath) }).toEqual({
+          fieldPath,
+          read: true,
+        });
+        expect(model).toContain(`\`${fieldPath}\``);
+      }
+
+      for (const fieldPath of ["notes.author", "message_id"]) {
+        expect({ fieldPath, read: isFreeTextFieldName(fieldPath) }).toEqual({
+          fieldPath,
+          read: false,
+        });
+        expect(short).toContain(`\`${fieldPath}\``);
+      }
+    });
+
+    it("gives every table and object its turn at the model's time", () => {
+      expect(source(`${MODEL_DIRECTORY}/ModelTurns.ts`)).toContain(
+        "export function rotateForModel",
+      );
+      expect(model).toContain(
+        "every table and object takes its turn, however much free text the store holds",
+      );
+    });
+
+    it("shows a scan's warnings, these among them, in the reader's language", () => {
+      const fence: string = only(
+        scanMarkdown(model).fences.filter((item: { lang: string }) => {
+          return item.lang === "text";
+        }),
+      ).code;
+
+      for (const line of fence.trim().split("\n")) {
+        expect({ line, read: readScanWarning(line) !== null }).toEqual({
+          line,
+          read: true,
+        });
+      }
+
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx",
+        ),
+      ).toContain("translateScanWarning(");
+      expect(model).toContain(
+        "every other warning of a content or telemetry scan, in the reader's language",
+      );
+    });
+
+    it("says why Test It runs without the model, and the box says it too", () => {
+      const modelBytes: number = manifest.files.reduce(
+        (total: number, file: { bytes: number }): number => {
+          return total + file.bytes;
+        },
+        0,
+      );
+
+      // The model's own files, and the runtime's WebAssembly on top.
+      expect(Math.round(modelBytes / 1_000_000)).toBeLessThan(113);
+      expect(model).toContain(
+        "The model would add about 113 MB to download, 67 MB compressed, and about 440 MB to the tab's memory, so it runs only in the scanner.",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/DataTypes.tsx",
+        ),
+      ).toContain(
+        "It runs only in the scanner, so what it finds is not shown here.",
       );
     });
   });
@@ -3851,9 +4055,13 @@ describe("Data Security Integrations", () => {
     expect(prompt).toContain(
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
     );
-    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "return buildDataSecurityFixRequest(",
-    );
+    /*
+     * Fix with AI's button and Ask AI's action build the request in one
+     * place (DataSecurityButtons.fixIssueWithAi, #10378).
+     */
+    expect(
+      source("Common/Server/Utils/DataSecurity/DataSecurityButtons.ts"),
+    ).toContain("return buildDataSecurityFixRequest(");
     // The request is what the Code task it starts is asked (#10362, #10365).
     expect(
       source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
@@ -3865,9 +4073,9 @@ describe("Data Security Integrations", () => {
     expect(prompt).toContain(
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
-    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await DataSecurityAiReads.readPlaces({ projectId, issue })",
-    );
+    expect(
+      source("Common/Server/Utils/DataSecurity/DataSecurityButtons.ts"),
+    ).toContain("await DataSecurityAiReads.readPlaces({");
     expect(section(page, "## OneUptime AI")).toContain(
       "For a telemetry issue it asks for a change to the code of the service that writes the data instead",
     );
@@ -3895,6 +4103,123 @@ describe("Data Security Integrations", () => {
     expect(
       source("Common/Models/DatabaseModels/DataStoreOwnerRule.ts"),
     ).toContain('title: "Cloud Tag Pattern"');
+  });
+});
+
+/*
+ * HOW A VALUE IS READ, AND WHAT A LEAK'S TEMPLATE KEEPS (#11031-#11034,
+ * #11098): what the Data types page says a scan reads - a URL's escapes, a
+ * character's UTF-8 bytes too, a person's name a URL's query parameter
+ * names, a URL as the model reads it - and what the Telemetry page says a
+ * template keeps of a line read from one record, held to the code.
+ */
+describe("What a value is read as, and what a leak's template keeps", () => {
+  const lineOf: (page: string, start: string) => string = (
+    page: string,
+    start: string,
+  ): string => {
+    const line: string | undefined = english(page)
+      .split("\n")
+      .find((each: string): boolean => {
+        return each.startsWith(start);
+      });
+
+    expect({ page, start, found: line !== undefined }).toEqual({
+      page,
+      start,
+      found: true,
+    });
+
+    return line || "";
+  };
+
+  function foundWhole(value: string, dataTypeId: string): string | null {
+    const match: TextMatch | undefined = findSensitiveValues(value).find(
+      (each: TextMatch): boolean => {
+        return each.dataTypeId === dataTypeId;
+      },
+    );
+
+    return match ? value.slice(match.start, match.end) : null;
+  }
+
+  it("finds each value the paragraph on how people write a value names, whole, as it is written", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "A value is also read as people write it.",
+    );
+
+    for (const [value, dataTypeId] of [
+      ["jane%40example.com", "email-address"],
+      ["jos%C3%A9%40example.com", "email-address"],
+      ["４１１１ １１１１ １１１１ １１１１", "credit-card-number"],
+      ["张伟@example.com", "email-address"],
+      ["почта@пример.рф", "email-address"],
+    ] as Array<[string, string]>) {
+      expect(paragraph).toContain(`\`${value}\``);
+      expect({ value, found: foundWhole(value, dataTypeId) }).toEqual({
+        value,
+        found: value,
+      });
+    }
+  });
+
+  it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "Some data types cannot be told by their values:",
+    );
+    const url: string = "/contacts?full_name=Jos%C3%A9%20Garc%C3%ADa";
+    const [name] = findSensitiveValues(url).filter(
+      (match: TextMatch): boolean => {
+        return match.dataTypeId === "person-name";
+      },
+    );
+
+    expect(paragraph).toContain(`\`${url}\``);
+    expect(paragraph).toContain(
+      "A parameter named only `name` is left to the model.",
+    );
+    expect(url.slice(name!.start, name!.end)).toBe("Jos%C3%A9%20Garc%C3%ADa");
+    expect(name!.normalized).toBe("José García");
+    expect(name!.confidence).toBe(DataConfidence.High);
+    expect(
+      findSensitiveValues("/contacts?name=Jos%C3%A9%20Garc%C3%ADa").filter(
+        (match: TextMatch): boolean => {
+          return match.dataTypeId === "person-name";
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("hands the model a URL as a URL reads, its escapes read and a + between letters a space (#11034)", () => {
+    const bullet: string = lineOf(DATA_TYPES, "- **What it reads.**");
+
+    expect(bullet).toContain("`/profile?name=Jos%C3%A9%20Garc%C3%ADa`");
+    expect(readableForModel("/profile?name=Jos%C3%A9%20Garc%C3%ADa")).toBe(
+      "/profile?name=José García",
+    );
+    expect(readableForModel("full_name=Lars+Eriksson")).toBe(
+      "full_name=Lars Eriksson",
+    );
+  });
+
+  it("masks every word a line read from one record does not prove is the code's, as the page's example (#11098)", () => {
+    const bullet: string = lineOf(TELEMETRY, "- **A log line**:");
+
+    expect(bullet).toContain(
+      "`Payment declined for Maria Gonzalez`, read from one record, is `Payment declined for <value>`",
+    );
+    expect(
+      maskUnprovenWords("Payment declined for Maria Gonzalez", {
+        isAligned: false,
+      }),
+    ).toBe("Payment declined for <value>");
+    // The page's other example keeps every word: each is the code's.
+    expect(bullet).toContain("`User <Email address> signed up`");
+    expect(
+      maskUnprovenWords("User <Email address> signed up", { isAligned: false }),
+    ).toBe("User <Email address> signed up");
   });
 });
 

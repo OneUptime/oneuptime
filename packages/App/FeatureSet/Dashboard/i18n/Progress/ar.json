@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 63890,
+    "keys": 65322,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -368,6 +368,7 @@
     "npm test",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",

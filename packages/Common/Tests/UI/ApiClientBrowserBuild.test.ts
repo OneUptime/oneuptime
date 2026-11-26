@@ -22,6 +22,12 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * (packages/Common/package.json's "browser" field), which leaves every
  * request as it is.
  *
+ * A tunnel OneUptime's outbound proxy refused is said in words that name
+ * its answer and not its address (Utils/ProxyTunnelRefusal), which only a
+ * server meets: a browser build takes ProxyTunnelRefusal.browser.ts in its
+ * place, which finds no such refusal, so a page does not download the words
+ * for one with every request it sends.
+ *
  * Built as the Dashboard builds (the shared esbuild config, for
  * production), with the API client as the entry (Helpers/FirstLoadBuild).
  */
@@ -33,6 +39,10 @@ const NOT_BUILT: ReadonlyArray<[string, string]> = [
   ],
   ["the server's proxy agents", "Server/Utils/OutboundProxyAgents.ts"],
   ["the server's proxy rules", "Server/Utils/OutboundProxy.ts"],
+  [
+    "the words of a tunnel the outbound proxy refused, which only a server meets",
+    "Utils/ProxyTunnelRefusal.ts",
+  ],
 ];
 
 let built: FirstLoadBuild | null = null;
@@ -57,6 +67,13 @@ describe("a browser build of the API client", () => {
   test("routes its requests with the browser's twin, which leaves each as it is", () => {
     expect(
       inputsUnder(built!.firstLoad, "Utils/OutboundRequestRouting.browser.ts")
+        .length,
+    ).toBe(1);
+  });
+
+  test("reads a failed request with the proxy refusal's browser twin, which finds none", () => {
+    expect(
+      inputsUnder(built!.firstLoad, "Utils/ProxyTunnelRefusal.browser.ts")
         .length,
     ).toBe(1);
   });

@@ -103,6 +103,16 @@ RUN mkdir /usr/src
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN npm ci --no-audit --no-fund
+# Of ONNX Runtime's WebAssembly package, only what Data Security's
+# names-and-addresses model's thread loads in Node.js (15 MB of its 146), as
+# the App's image has it: the prune below keeps the package (see there), and
+# this image never runs its builds for browsers and GPUs. Nothing is fetched:
+# the sidecar never scans, and the image has none of the model's files.
+# Before Common's sources, so a change to them does not slim it again.
+# Scripts/Docker/FetchDataSecurityModel.js.
+COPY ./Scripts/Docker/FetchDataSecurityModel.js /tmp/FetchDataSecurityModel.js
+RUN node /tmp/FetchDataSecurityModel.js --runtime /usr/src/Common/node_modules/onnxruntime-web \
+    && rm /tmp/FetchDataSecurityModel.js
 COPY ./packages/Common /usr/src/Common
 
 ENV PRODUCTION=true
@@ -128,8 +138,15 @@ RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/ap
 # TypeScript: it runs the JavaScript compiled above, and the check after the
 # prune holds it to that), and without Common's and the sidecar's tests or the
 # type-check's output. npm's download cache stays behind in this stage.
+#
+# The sidecar's imports reach, through Common's DatabaseService, the code that
+# starts Data Security's names-and-addresses model in a worker thread of its
+# own (NameAddressModelThread.ts): the walk cannot tell that this image never
+# scans, so it walks the thread's file (NameAddressModelWorker.cjs, which
+# alone requires ONNX Runtime) as another entry, and lets the file that
+# starts it through as an entry loader, as the App's image does.
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
-RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --package /usr/src/Common \
+RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --entry-loader /usr/src/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \
     && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests \

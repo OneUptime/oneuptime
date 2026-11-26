@@ -16,14 +16,23 @@
 
 import FixSensitiveDataInTelemetryTaskHandler from "../../TaskHandlers/FixSensitiveDataInTelemetryTaskHandler";
 import { SubjectTaskDetails } from "../../Utils/BackendAPI";
+import { buildTelemetryLeakFixRequest } from "Common/Server/Utils/AI/DataSecurity/DataSecurityTelemetryFixPrompt";
+import { readLeakPlaces } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryLeakPlaces";
+import { TelemetrySampleSource } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetrySampleSource";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import { TelemetryLeakFixTaskContext } from "Common/Types/AI/CodeFixTaskContext";
+import DataTypeNamer from "Common/Types/DataSecurity/DataTypeNamer";
 import {
+  TelemetryLeakFixDecision,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakHandling,
+  TelemetryLeakPlace,
   TelemetryLeakSignal,
+  decideTelemetryLeakFix,
 } from "Common/Types/DataSecurity/TelemetryLeakFix";
+import { buildTelemetryLeakTemplate } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
 import { describe, expect, test } from "@jest/globals";
 
 interface HandlerSeam {
@@ -295,6 +304,84 @@ describe("the pull request", () => {
     expect(body).not.toContain("src/signup.js:12");
   });
 
+  /*
+   * #11098: a line read from one record - a person's name in it that no
+   * detector names - placed as the locator places it and written into the
+   * request as the server writes it. The name reaches neither the agent nor
+   * the pull request, even from an agent that quotes every template it was
+   * handed in its summary.
+   */
+  test("a line read from one record with a name in it: the name is in neither the agent's request nor the pull request", () => {
+    const namer: DataTypeNamer = DataTypeNamer.withoutCustomTypes();
+    const places: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.Logs,
+      rows: [
+        {
+          readFile1: "/usr/src/app/src/payments.js",
+          readLine1: "31",
+          readBody:
+            "Payment declined for Ottilie Quarrington (ottilie.q@northwind-mail.com)",
+        },
+      ],
+      location: "body",
+      templateOf: (text: string): string => {
+        return buildTelemetryLeakTemplate(text, {
+          nameOf: (dataTypeId: string): string => {
+            return namer.nameOf(dataTypeId);
+          },
+        });
+      },
+    });
+    const decision: TelemetryLeakFixDecision = decideTelemetryLeakFix([
+      {
+        ...leakOf({
+          signal: TelemetryLeakSignal.Logs,
+          location: "body",
+          key: undefined,
+          places,
+        }),
+      },
+    ]);
+    const context: TelemetryLeakFixTaskContext = fix({
+      leaks: decision.leaks,
+      placeCount: decision.placeCount,
+      strategy: decision.strategy,
+      startFiles: ["src/payments.js"],
+    });
+    const request: string = buildTelemetryLeakFixRequest({
+      serviceName: context.serviceName,
+      strategy: decision.strategy,
+      placeCount: decision.placeCount,
+      leaks: decision.leaks,
+      redactionKeys: decision.redactionKeys,
+      redactionDataTypes: decision.redactionDataTypes,
+      startFiles: context.startFiles,
+    }).text;
+    const prompt: string = handler.buildPrompt(
+      details({ ...context, request }),
+      null,
+    );
+    // An agent that quotes every template it was handed, against its instructions.
+    const quoted: string = decision.leaks
+      .flatMap((leak: TelemetryLeakFixLeak): Array<string> => {
+        return leak.places.map((place: TelemetryLeakPlace): string => {
+          return place.template || "";
+        });
+      })
+      .join("\n");
+    const body: string = handler.buildPullRequestBody(
+      details({ ...context, request }),
+      `Masked the value at ${quoted}`,
+    );
+
+    expect(quoted).toContain("Payment declined for <value>");
+    expect(prompt).toContain("Payment declined for <value>");
+
+    for (const sent of [request, prompt, body]) {
+      expect(sent).not.toMatch(/ottilie|quarrington/i);
+    }
+  });
+
   test("a secret is to be rotated, said on the pull request", () => {
     const body: string = handler.buildPullRequestBody(
       details(
@@ -365,5 +452,210 @@ describe("the pull request", () => {
     expect(handler.buildPullRequestBody(details(null), "")).not.toContain(
       "### Issues it fixes",
     );
+  });
+});
+
+/*
+ * A RUM APPLICATION'S FRONT END (#10933): the same recipe, in the browser's
+ * words - the browser code that sets an attribute or logs a line, the
+ * session recorder's identify() given an opaque reference, a redaction
+ * step where the browser sets up its telemetry - starting from the
+ * original files its source maps name. Never a value, a page's address or
+ * a template on the pull request; a service's fix says none of it.
+ */
+describe("a RUM application's fix, in its front-end code", () => {
+  const PAGE: string = "/checkout/<value>/pay";
+
+  function applicationFix(
+    data: Partial<TelemetryLeakFixTaskContext> = {},
+  ): TelemetryLeakFixTaskContext {
+    return fix({
+      ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+      serviceId: "a9000000-0000-4000-8000-000000000001",
+      serviceName: "Storefront",
+      title: "Stop Storefront sending sensitive data from the browser",
+      request:
+        'Stop the web application "Storefront" sending sensitive data from the browser - in its browser logs, its browser spans and the details its sessions carry - in one change.',
+      leaks: [
+        leakOf({
+          signal: TelemetryLeakSignal.RumLogs,
+          location: "logs.attributes.user.email",
+          key: "user.email",
+          places: [
+            {
+              filePath: "src/checkout/payment.js",
+              lineNumber: 8,
+              functionName: "pay",
+              page: PAGE,
+              recordCount: 3,
+            },
+          ],
+        }),
+        leakOf({
+          issueId: "15000000-0000-4000-8000-000000000102",
+          signal: TelemetryLeakSignal.RumSessions,
+          location: "sessions.identifiedUserLabel",
+          key: undefined,
+          places: [
+            { recorderCall: "identify", page: "/account", recordCount: 2 },
+          ],
+        }),
+      ],
+      issues: [
+        {
+          issueId: "15000000-0000-4000-8000-000000000101",
+          title: "Sensitive data is reaching your telemetry",
+          checkId: "sensitive-data-in-telemetry",
+          signal: TelemetryLeakSignal.RumLogs,
+          issueUrl:
+            "https://oneuptime.example/dashboard/p/data-security/issues/15000000-0000-4000-8000-000000000101",
+        },
+      ],
+      startFiles: ["src/checkout/payment.js"],
+      ...data,
+    });
+  }
+
+  test("the agent is a front-end engineer, starting from the original files the source maps name", () => {
+    const prompt: string = handler.buildPrompt(details(applicationFix()), null);
+
+    expect(prompt).toContain(
+      "You are a senior front-end engineer stopping a web application sending sensitive data from the browser.",
+    );
+    expect(prompt).toContain('the web application "Storefront"');
+    expect(prompt).toContain("as the application's source maps name them");
+    expect(prompt).toContain("`src/checkout/payment.js` - start there.");
+    expect(prompt).toContain(
+      "the page it was written on, the session recorder call that gave it",
+    );
+    expect(prompt).not.toContain(
+      "You are a senior engineer stopping a service",
+    );
+  });
+
+  test("at a session's user details, identify() with an opaque reference - never an email - and a page's attribute left off", () => {
+    const prompt: string = handler.buildPrompt(details(applicationFix()), null);
+
+    expect(prompt).toContain(
+      'For each leak whose "fix" is "CallSite": change the browser code',
+    );
+    expect(prompt).toContain(
+      "call the session recorder's identify() with an opaque reference to the user, never an email or a name",
+    );
+    expect(prompt).toContain(
+      "where an attribute the page attaches to the session holds it, stop attaching it",
+    );
+  });
+
+  test("a redaction step where the browser sets up its telemetry, and the session recorder's mask class", () => {
+    const prompt: string = handler.buildPrompt(
+      details(
+        applicationFix({
+          strategy: TelemetryLeakFixStrategy.RedactionStep,
+          placeCount: 9,
+          redactionKeys: ["user.email"],
+          redactionDataTypes: ["Email address"],
+        }),
+      ),
+      "web",
+    );
+
+    expect(
+      prompt.startsWith(
+        "The application's front-end code is in the `web` directory.",
+      ),
+    ).toBe(true);
+    expect(prompt).toContain(
+      "a span processor or a log record processor of the OpenTelemetry web SDK",
+    );
+    expect(prompt).toContain("`oneuptime-mask` class");
+    expect(prompt).toContain(
+      '"redactionStep.dataTypesInText" in log lines and span names',
+    );
+    expect(prompt).not.toContain(
+      "a log formatter or the logger's configuration",
+    );
+  });
+
+  test("its title, commit and pull request say the browser - with each issue linked, and never a page or a value", () => {
+    expect(handler.buildPullRequestTitle(details(applicationFix()))).toBe(
+      "fix: Stop Storefront sending sensitive data from the browser",
+    );
+    expect(handler.buildCommitMessage(details(applicationFix()))).toContain(
+      "Stops 2 leaks of sensitive data into the application's browser telemetry",
+    );
+
+    const body: string = handler.buildPullRequestBody(
+      details(applicationFix()),
+      "Identified the user by id, and left the email off the log.",
+    );
+
+    expect(body).toContain(
+      "## Stop Storefront sending sensitive data from the browser",
+    );
+    expect(body).toContain(
+      "so the data no longer leaves the browser in a log line, a span or a session's details",
+    );
+    expect(body).toContain(
+      "| Email address | `user.email` in browser logs | Fixed where it is written |",
+    );
+    expect(body).toContain(
+      "| Email address | sessions.identifiedUserLabel of sessions | Fixed where it is written |",
+    );
+    expect(body).toContain(
+      "- [Sensitive data is reaching your telemetry (browser logs)](https://oneuptime.example/dashboard/p/data-security/issues/15000000-0000-4000-8000-000000000101)",
+    );
+    expect(body).toContain(
+      "[See the application's issues in OneUptime](https://oneuptime.example/dashboard/p/data-security/issues)",
+    );
+    expect(body).toContain(
+      "Fixed in code once the application's new release stops sending the data",
+    );
+    expect(body).not.toContain(PAGE);
+    expect(body).not.toContain("/account");
+    expect(body).not.toContain("writing sensitive data to its telemetry");
+  });
+
+  test("a secret sent from the browser is to be rotated", () => {
+    expect(
+      handler.buildPullRequestBody(
+        details(applicationFix({ hasSecrets: true })),
+        "",
+      ),
+    ).toContain(
+      "A secret was written to this application's browser telemetry.",
+    );
+  });
+
+  test("a service's fix says none of the browser's words", () => {
+    const texts: Array<string> = [
+      handler.buildPrompt(details(fix()), null),
+      handler.buildPullRequestBody(details(fix()), ""),
+      handler.buildCommitMessage(details(fix())),
+    ];
+
+    for (const text of texts) {
+      expect(text).not.toContain("browser");
+      expect(text).not.toContain("identify()");
+      expect(text).not.toContain("front-end");
+    }
+  });
+
+  test("the owner its context names survives the trip to the Runner; anything else is a service's", () => {
+    expect(
+      FixSensitiveDataInTelemetryTaskHandler.isApplication(
+        FixSensitiveDataInTelemetryTaskHandler.fixOf(details(applicationFix())),
+      ),
+    ).toBe(true);
+    expect(
+      FixSensitiveDataInTelemetryTaskHandler.isApplication(
+        FixSensitiveDataInTelemetryTaskHandler.fixOf(
+          details({
+            ...applicationFix(),
+            ownerKind: "Robot" as TelemetryLeakFixOwnerKind,
+          }),
+        ),
+      ),
+    ).toBe(false);
   });
 });

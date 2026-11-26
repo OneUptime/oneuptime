@@ -111,7 +111,7 @@ For the second, turn on **Recover only when a condition of its own is met** with
 
 ### Comparing a check with the previous one
 
-**Previous Check** compares each check with the previous check of the same probe, and of the same disk for a disk's usage. **For the last** is how long ago that check may be, so make it longer than the monitoring interval. It is offered for the same filters as **Count**.
+**Previous Check** compares each check with the previous check of the same probe, and of the same disk for a disk's usage. **For the last** is how long ago that check may be, so make it longer than the monitoring interval. It is offered for the same filters as **Count**, and for **DNS Record Value**, which compares the whole DNS answer with the previous check's, with **Not Equal To** or **Equal To**: see [When the DNS answer changes](/docs/monitor/dns-monitor#when-the-dns-answer-changes).
 
 A measured value, such as a response time, matches when it is more than the change set under **Change From the Previous Check** above the previous check, with **Greater Than**, or below it, with **Less Than**. The change is an **Amount in the check's own unit**, such as 200 ms, or a **Percent of the previous check**, such as 50%, and 0 matches any rise or fall. **Equal To** and **Not Equal To** compare with the previous value itself.
 

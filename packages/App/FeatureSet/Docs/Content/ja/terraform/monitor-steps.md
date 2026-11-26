@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet`、`Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` と `Firefox`。 |
 | `retry_count_on_error` | number | Synthetic | スクリプトが失敗したときの再試行回数。`0` なら一度だけ実行します。 |
+| `do_not_sync_fields` | list(string) | モニターテンプレート | テンプレートがステップを同期するときに、テンプレートから作られた各モニターが自分の値として残すフィールドです。たとえば `monitorDestination` や `dnsMonitor.queryName` で、テンプレートの **テンプレートの同期設定** カードに一覧されるものです。 |
 | `criteria` | list (必須) | すべて | 各結果の判定のしかた: [条件の属性](#条件の属性) を参照。 |
 
 ### モニタータイプごとの設定
 
-アドレス以外にも設定することがあるモニタータイプは、その設定 (ログのクエリ、データベース接続、監視するクラスターなど) を専用の属性に、`jsonencode()` で書いた生の JSON として持ちます: `log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor`、`probe_status_monitor`。
+アドレス以外にも設定することがあるモニタータイプは、その設定 (ログのクエリ、データベース接続、監視するクラスターなど) を専用の属性に、`jsonencode()` で書いた生の JSON として持ちます: `log_monitor`、`security_events_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`xcp_ng_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor`、`probe_status_monitor`。
 
 その JSON はダッシュボードのものと同じで、キーは camelCase です。中の ID は、API と同じく `{ _type = "ObjectID", value = "..." }` と書きます。1 つのサービスのエラーを数える Logs モニターの例です。
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### インシデントとアラート
 
-`incidents` の項目は、`title` と `description` (どちらも必須)、`incident_severity_id`、`auto_resolve_incident`、`remediation_notes`、`on_call_policy_ids`、`label_ids`、`owner_team_ids`、`owner_user_ids`、`show_incident_on_status_page`、`is_private` を受け付けます。`alerts` の項目も同じものを受け付けますが、`alert_severity_id` と `auto_resolve_alert` があり、`show_incident_on_status_page` はありません。
+`incidents` の項目は、`title` と `description` (どちらも必須)、`incident_severity_id`、`auto_resolve_incident`、`remediation_notes`、`on_call_policy_ids`、`label_ids`、`owner_team_ids`、`owner_user_ids`、`incident_member_roles`、`show_incident_on_status_page`、`is_private` を受け付けます。`alerts` の項目も同じものを受け付けますが、`alert_severity_id` と `auto_resolve_alert` があり、`show_incident_on_status_page` と `incident_member_roles` はありません。`incident_member_roles` は、条件が開く各インシデントで人にロールを与えます。たとえばインシデントコマンダーです。人とロールごとに `{ role_id, user_id }` を 1 つ書きます。
 
 この条件はモニターを offline にし、オンコールポリシーを呼び出すインシデントを開き、サイトが戻ったらそれを解決します。
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## ステップのないモニター
 
 `monitor_steps` は省略できますが、これなしで作成したモニターには結果を判定する条件がありません。プローブはステップのないモニターを飛ばし、モニターは開始時のステータスのままになります。state ではこの属性は空のままで、プランもきれいなままです。手動モニターにはステップは必要ありません。ステータスは自分で設定します。それ以外のタイプは、何かをチェックするために少なくとも 1 つのステップが必要です。
+
+## apply が残すもの
+
+`monitor_steps` を変更する apply はステップ全体を送り、OneUptime は保持しているステップをそれで置き換えます。構成で書けるのに書かれていない設定は、plan が示すとおり削除されます。ただし 2 種類の設定は、plan に表示できないため、OneUptime が保持しているとおりに残されます。apply はまず OneUptime が保持しているステップを読み、読めなければ何も書かずに失敗します。
+
+プロバイダーに属性がない設定、たとえば廃止された SNMP モニタータイプのステップがまだ保持している `snmpMonitor` や、新しい OneUptime にはあってもお使いのバージョンのプロバイダーがまだ知らない設定は、そのステップ、条件、インシデント、アラートに残ります。それぞれは、OneUptime が ID を保つために対応付けるのと同じ方法で対応付けられます。ステップは位置で、条件は名前で、インシデントやアラートはタイトルで、それ以外は位置で対応付けます。構成からそのステップ、条件、インシデント、アラートを取り除くと、設定も一緒に消えます。
+
+`jsonencode()` で書く設定、たとえば `dns_monitor`、`incident_grouping`、フィルターの `metric_monitor_options` は、書いた内容で比較されます。OneUptime がその中にさらに多くを保持していることがあります。OneUptime 自身の既定値や、ダッシュボードで設定されたキーです。これは変更ではなく、apply もそれを残します。`jsonencode()` から取り除いたキーは削除されます。リストの中では、リストの項目数が OneUptime のリストと同じである限り、OneUptime が余分に保持しているものが項目ごとに残されます。
 
 ## 通信フォーマット
 

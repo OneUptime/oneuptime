@@ -17,6 +17,7 @@ import CreatedByUser from "../Utils/Database/CreatedByUser";
 import IncidentMemberService from "./IncidentMemberService";
 import IncidentRoleService from "./IncidentRoleService";
 import TeamMemberService from "./TeamMemberService";
+import OnCallPolicyIncidentRole from "../Utils/OnCall/OnCallPolicyIncidentRole";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -1317,24 +1318,50 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
       return;
     }
 
-    // Check if this user is already assigned to the incident (with any role)
-    const existingMembership: IncidentMember | null =
-      await IncidentMemberService.findOneBy({
+    /*
+     * Somebody who holds a role on the incident already keeps it, and is
+     * not made its commander too: a Scribe who resolves it stays its Scribe.
+     * Except a role an on-call policy gave them when it paged them about it
+     * (OnCallPolicyIncidentRole): being paged is not taking a part, so the
+     * Responder their page made them who acknowledges first takes command,
+     * as anybody who acknowledges first does.
+     */
+    const existingMemberships: Array<IncidentMember> =
+      await IncidentMemberService.findBy({
         query: {
           incidentId: data.incidentId,
           userId: data.userId,
         },
         select: {
           _id: true,
+          incidentRoleId: true,
         },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
         props: {
           isRoot: true,
         },
       });
 
-    if (existingMembership) {
-      // User is already assigned to this incident, don't assign again
-      return;
+    if (existingMemberships.length > 0) {
+      const roleIdsGivenByPages: Set<string> =
+        await OnCallPolicyIncidentRole.getRoleIdsGivenByPages({
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          userId: data.userId,
+        });
+
+      const holdsRoleOfTheirOwn: boolean = existingMemberships.some(
+        (membership: IncidentMember): boolean => {
+          return !roleIdsGivenByPages.has(
+            membership.incidentRoleId?.toString().toLowerCase() || "",
+          );
+        },
+      );
+
+      if (holdsRoleOfTheirOwn) {
+        return;
+      }
     }
 
     /*

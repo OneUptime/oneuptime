@@ -2064,6 +2064,31 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: SERVER_PRODUCTS
   value: {{ default "everything" (($.Values.products | default dict).onThisServer) | squote }}
 
+{{- /*
+  Where the server sends its people for help (#10938): each seeds Admin
+  Dashboard > Settings > Help and Support while nothing is saved there yet,
+  checked as the page checks it. The page holds the settings from then on,
+  and a restart never overwrites a change made there. Empty leaves a setting
+  on OneUptime's default; true and false read as shown and hidden.
+*/}}
+{{- $helpAndSupport := ($.Values.helpAndSupport | default dict) }}
+- name: HELP_AND_SUPPORT_SUPPORT_EMAIL
+  value: {{ include "oneuptime.envValue" $helpAndSupport.supportEmail }}
+- name: HELP_AND_SUPPORT_CHAT
+  value: {{ include "oneuptime.envValue" $helpAndSupport.chat }}
+- name: HELP_AND_SUPPORT_REQUEST_DEMO
+  value: {{ include "oneuptime.envValue" $helpAndSupport.requestDemo }}
+- name: HELP_AND_SUPPORT_GIVE_FEEDBACK
+  value: {{ include "oneuptime.envValue" $helpAndSupport.giveFeedback }}
+- name: HELP_AND_SUPPORT_HELP_LINK
+  value: {{ include "oneuptime.envValue" $helpAndSupport.helpLink }}
+- name: HELP_AND_SUPPORT_GITHUB
+  value: {{ include "oneuptime.envValue" $helpAndSupport.gitHub }}
+- name: HELP_AND_SUPPORT_MOBILE_APP
+  value: {{ include "oneuptime.envValue" $helpAndSupport.mobileApp }}
+- name: HELP_AND_SUPPORT_INVITE_MESSAGE
+  value: {{ include "oneuptime.envValue" $helpAndSupport.inviteMessage }}
+
 - name: DISABLE_UPDATE_CHECK
   value: {{ default false $.Values.updateCheck.disabled | squote }}
 

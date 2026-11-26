@@ -405,6 +405,9 @@ import "./Jobs/Ceph/CleanupStaleResources";
 // Storage array disconnection sweeper + inventory cleanup.
 import "./Jobs/StorageArray/CleanupStaleResources";
 
+// XCP-ng pool disconnection sweeper + inventory cleanup.
+import "./Jobs/XcpNg/CleanupStaleResources";
+
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
 
@@ -417,6 +420,9 @@ import "./Jobs/Cloud/ReadCloudConnections";
 // Azure connections' streams: their event hubs read every minute.
 import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
+import "./Jobs/Cloud/MakeCloudCostGroups";
+// Changes for savings stepped, and off-hours schedules run (#11010).
+import "./Jobs/Cloud/CloudSavingsJobs";
 import "./Jobs/Cloud/WatchCloudTags";
 // What still reads a metric its cloud deprecates, moved again every hour.
 import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";
@@ -448,6 +454,7 @@ import "./Jobs/OpenStackCloudOwners/SendOwnerAddedNotification";
 import "./Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
 import "./Jobs/CephClusterOwners/SendOwnerAddedNotification";
 import "./Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "./Jobs/XcpNgPoolOwners/SendOwnerAddedNotification";
 import "./Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "./Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "./Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";

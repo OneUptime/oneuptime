@@ -25,6 +25,10 @@ const FLASHARRAY_ID: string = "58000000-0000-4000-8000-000000000001";
 const FLASHBLADE_ID: string = "58000000-0000-4000-8000-000000000002";
 const FLASHARRAY_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${FLASHARRAY_ID}`;
 const FLASHBLADE_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${FLASHBLADE_ID}`;
+// An array of Acme, the test-only platform the fixture registers (#11000).
+const ACME_ID: string = "58000000-0000-4000-8000-000000000003";
+const ACME_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${ACME_ID}`;
+const ACME_INVENTORY_PATH: string = `${ACME_PATH}/inventory/Aggregate`;
 
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
 const TABLET: { width: number; height: number } = { width: 768, height: 1024 };
@@ -619,6 +623,91 @@ test.describe("on a phone, a tablet and beside the side menu, nothing is cut and
       await expectNoSidewaysScroll(page);
       await screenshot(page, `volumes-${size.width}`);
     }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A platform registered in the preview alone
+ * ---------------------------------------------------------------------------
+ */
+test.describe("a platform no page knows: Acme's tab, counts and inventory page", () => {
+  test("its own kind gets a tab with its count, opening the inventory page that lists it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "", ACME_PATH);
+    // Both kinds counted from the array's per-kind counts.
+    await expect(page.getByTestId("resource-hero-identity")).toContainText(
+      "acme-prod-01",
+    );
+    await expect(page.getByText("2 volumes").first()).toBeVisible();
+    await expect(page.getByText("3 aggregates").first()).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(
+      /FlashArray|FlashBlade|Purity/,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "acme-overview-1280");
+
+    const tab: Locator = page.getByRole("link", { name: /Aggregates/ }).first();
+    await expect(tab).toContainText("3");
+    await tab.click();
+    await expect(page).toHaveURL(new RegExp(`${ACME_INVENTORY_PATH}$`));
+    for (const name of ["aggr1", "aggr2", "aggr3"]) {
+      await expect(listRow(page, name)).toBeVisible();
+    }
+    // The page's place, in the breadcrumbs: the array, then Inventory.
+    const breadcrumbs: Locator = page.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+    await expect(
+      breadcrumbs.getByRole("link", { name: "acme-prod-01" }),
+    ).toHaveAttribute("href", ACME_PATH);
+    await expect(breadcrumbs.getByRole("listitem").last()).toHaveText(
+      "Inventory",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "acme-inventory-1280");
+  });
+
+  test("the inventory page at 390, dark, in German and right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // On a phone the list is cards, not rows.
+    await page.setViewportSize(PHONE);
+    await page.goto(ACME_INVENTORY_PATH);
+    await expect(page.getByText("aggr1").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "acme-inventory-390");
+
+    await page.setViewportSize(LAPTOP);
+    await page.goto(withQuery(ACME_INVENTORY_PATH, "theme=dark"));
+    await expect(listRow(page, "aggr1")).toBeVisible();
+    await screenshot(page, "acme-inventory-dark-1280");
+
+    await page.goto(withQuery(ACME_INVENTORY_PATH, "lang=de"));
+    await expect(listRow(page, "aggr1")).toBeVisible();
+    await expect(page.locator("body")).toContainText(GERMAN["Status"]!);
+    await screenshot(page, "acme-inventory-german-1280");
+
+    await page.goto(withQuery(ACME_INVENTORY_PATH, "lang=fa"));
+    await expect(listRow(page, "aggr1")).toBeVisible();
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "acme-inventory-persian-1280");
+    await page.setViewportSize(PHONE);
+    await page.goto(withQuery(ACME_INVENTORY_PATH, "lang=fa"));
+    await expect(page.getByText("aggr1").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "acme-inventory-persian-390");
   });
 });
 

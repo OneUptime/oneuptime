@@ -241,6 +241,30 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a pull request a person links to a Data Security issue is refused
+   * (#10831): the issue holds ten already, was set aside, or has it linked
+   * already. The server refuses in English, and the Link Pull Request
+   * dialog says each in the reader's language; the refusals a security
+   * case's links share are read from Types/SecurityCase. Only the words the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
+    kind: "keys",
+  },
+  /*
+   * What a Data Security scan could not read (#10930): each warning a
+   * content scan, the telemetry scan and the names-and-addresses model
+   * write, and the formats they name, as a scan's details draw them in the
+   * reader's language. The server writes the same file's English into the
+   * scan. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -306,6 +330,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * show them as written there.
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
+  /*
+   * Acting on savings (#11010): each change's name and sentence, how it is
+   * undone, why one is not offered, its status and what the bill showed;
+   * a resource's environment; what an AI rule for savings does and why
+   * OneUptime AI proposed a change - as Cloud > Savings, its dialogs and
+   * the savings rules draw them. Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudSavingsAction.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Types/Cloud/CloudSavingsAi.ts", kind: "keys" },
   /*
    * A managed device's status - Online, Offline, Provisioning and the rest -
    * as Inventory > Managed Devices and a device's Inventory page draw it.
@@ -1138,6 +1178,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What Ask AI's Data Security actions say on their cards (#10378): what
+   * each changes, what stops working, what it costs and why it asks in
+   * every mode. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIDataSecurityActionWords.ts",
+    kind: "keys",
+  },
+  /*
    * What Ask AI's tables and its Sources chips say beside their data - a
    * table's title and line, the cells that are OneUptime's words, a
    * chip's label (issues #7977, #7979, #7980) - which the chat says in the
@@ -1194,6 +1243,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
     kind: "keys",
   },
+  /*
+   * Each storage platform's catalog and the words its pages say (#11000):
+   * its metric names and descriptions, its Resource Usage cards, its
+   * hardware tables, its monitor filters, its setup guide options and the
+   * words of the kinds only it has. Only the text the files mark is read.
+   */
+  {
+    directory: "packages/Common/Types/StorageArray/Platforms",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
     kind: "keys",
@@ -1246,6 +1305,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
     kind: "keys",
   },
   /*

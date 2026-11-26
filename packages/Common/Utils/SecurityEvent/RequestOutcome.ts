@@ -9,7 +9,7 @@ import {
   readClientAddressEvidence,
   resolveClientAddress,
 } from "./ClientAddressTrust";
-import { pickEventUser } from "./ScrubbedUser";
+import { locateHashedUserField, pickEventUser } from "./ScrubbedUser";
 
 /*
  * HOW FAR A REQUEST GOT, read from what OneUptime holds about it: the status
@@ -236,6 +236,12 @@ export interface RequestTraceAssessment {
   client: ClientAddressReading;
   userAgent: string;
   userId: string;
+  /*
+   * Where the server span held its user, when that is what a Hash rule
+   * left: `attributes.<key>` (ScrubbedUser.locateHashedUserField, #11045).
+   * "" otherwise.
+   */
+  userField?: string | undefined;
   durationMs: number;
   exception: RequestTraceException | undefined;
   database: RequestTraceDatabaseEvidence | undefined;
@@ -513,6 +519,15 @@ export function assessRequestTrace(data: {
     outcome = SecurityEventRequestOutcome.Errored;
   }
 
+  // Past a user attribute a scrub rule redacted, to one it left whole (#10435).
+  const userId: string = serverSpan
+    ? pickEventUser(
+        REQUEST_SPAN_ATTRIBUTE_KEYS.userId.map((key: string): string => {
+          return readSpanAttribute(serverSpan, [key]);
+        }),
+      )
+    : "";
+
   return {
     outcome,
     serverSpanId: serverSpan?.spanId || "",
@@ -529,13 +544,13 @@ export function assessRequestTrace(data: {
     userAgent: serverSpan
       ? readSpanAttribute(serverSpan, REQUEST_SPAN_ATTRIBUTE_KEYS.userAgent)
       : "",
-    // Past a user attribute a scrub rule redacted, to one it left whole (#10435).
-    userId: serverSpan
-      ? pickEventUser(
-          REQUEST_SPAN_ATTRIBUTE_KEYS.userId.map((key: string): string => {
-            return readSpanAttribute(serverSpan, [key]);
-          }),
-        )
+    userId,
+    userField: serverSpan
+      ? locateHashedUserField({
+          hashed: userId,
+          attributes: serverSpan.attributes,
+          preferredKeys: REQUEST_SPAN_ATTRIBUTE_KEYS.userId,
+        })
       : "",
     durationMs,
     exception,

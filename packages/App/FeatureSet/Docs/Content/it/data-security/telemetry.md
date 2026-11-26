@@ -111,7 +111,7 @@ La regola prende il nome da ciò che nasconde, come «Data Security: Email addre
 | Qualsiasi altro tipo di dati che un pattern trova da solo, come un token GitHub | Una regola **Regex personalizzata** creata dai pattern propri del tipo di dati. Un segreto viene oscurato. |
 | Uno dei tuoi tipi di dati, con un pattern | Quel pattern, solo nell'attributo in cui è stato trovato |
 | Un tipo di dati che si distingue per le parole che lo circondano, come un routing number | La sua forma, solo nell'attributo in cui è stato trovato |
-| Un tipo di dati trovato dal nome del campo, come il nome di una persona sotto `customer_name`, o un valore sotto una chiave che indica un segreto | Una regola **Attributi indicati**, che nasconde l'intero valore di quell'attributo |
+| Un tipo di dati trovato dal nome del campo, come il nome di una persona sotto `customer_name` o sotto il parametro `full_name` di un URL, o un valore sotto una chiave che indica un segreto | Una regola **Attributi indicati**, che nasconde l'intero valore di quell'attributo |
 | Un valore sotto una chiave che sembra sensibile, dove nulla di più ristretto lo nasconde | Una regola **Chiavi di attributi sensibili**, che oscura l'intero valore di ogni attributo del genere |
 | Qualsiasi tipo di dati nell'attributo di una metrica | Una regola della pipeline delle metriche **Oscura attributo** per il servizio, che sostituisce con `[REDACTED]` i valori dell'attributo che contengono il tipo di dati. Per un indirizzo IP, un indirizzo email o un numero di carta, il suo filtro è **Corrisponde al tipo di pattern** con quel tipo, che trova ciò che trova una regola di log o di tracce di quel **Tipo di pattern**, compresi gli indirizzi IPv6 e i valori codificati in percentuale o in un'altra scrittura. Per un altro tipo di dati, è il pattern proprio del tipo, e quando nessun pattern trova il tipo di dati, la regola sostituisce ogni valore dell'attributo |
 
@@ -170,7 +170,7 @@ Prima che OneUptime AI inizi, Sicurezza dei dati rilegge, dentro OneUptime, i re
 
 - **Uno span o una chiamata di IA**: il file, la riga e la funzione che nominano i suoi attributi `code.*`, e il nome dello span.
 - **Un'eccezione**: i suoi frame più alti, quelli nel codice del servizio.
-- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`.
+- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`, e ogni parola che i suoi record non dimostrano sia stata scritta dal codice, come il nome di una persona, sostituita da `<value>`: `Payment declined for Maria Gonzalez`, letto da un solo record, diventa `Payment declined for <value>`. Il nome di uno span e il nome di una metrica vengono letti allo stesso modo.
 - **Una metrica**: il nome della metrica.
 - **Qualsiasi fuga**: la sua chiave di attributo, ad esempio `user.email`, che il codice di solito scrive così com'è.
 
@@ -200,6 +200,15 @@ Ogni problema che la pull request corregge la conserva: la sua scheda **Come cor
 Un segreto richiede più di una correzione nel codice: il codice ferma solo le nuove copie, e il segreto funziona ancora. La pull request, la cronologia del problema e la sua scheda **Come correggere** dicono di ruotarlo, e la scheda elenca dove è stato visto.
 
 Con **Lavora sui nuovi problemi** attivo, OneUptime AI propone anche da sola la correzione di ogni servizio, prima il servizio più a rischio, in **Sicurezza dei dati → IA** e sul problema più a rischio del servizio. Per impostazione predefinita ti aspetta. Una regola di IA di Sicurezza dei dati che imposta **Correzione** su **Automaticamente** per il problema più a rischio del servizio apre la pull request senza chiedere, in un repository che qualcosa ha deciso. **Numero massimo di pull request di correzione aperte** del repository limita entrambe: al limite, una pull request che una regola aprirebbe ti aspetta, e non si apre nessuna nuova pull request di correzione finché una non viene unita o chiusa.
+
+### Il front-end di un'applicazione RUM
+
+**Correggi con l'IA** su un problema di Session Replay fa lo stesso per un'applicazione RUM: una sola pull request che impedisce al suo codice front-end di inviare ogni fuga che OneUptime vede ancora nei suoi log del browser, nei suoi span del browser e nei dettagli delle sue sessioni. Dove viene scritta ogni fuga lo dicono i record in cui è stata vista, riletti dentro OneUptime:
+
+- **Un log o uno span del browser**: il file, la riga e la funzione a cui il suo stack JavaScript si risolve tramite le source map caricate dalle tue build (vedi [Source Maps](/docs/telemetry/source-maps)), altrimenti i suoi attributi `code.*`; la riga del log o il nome dello span come modello; e la pagina su cui è stato scritto, solo per il suo percorso, con ogni ID e ogni valore mascherati.
+- **I dettagli utente di una sessione**: la chiamata `identify()` del registratore delle sessioni che li ha forniti, e la pagina in cui la sessione è iniziata.
+
+La pull request va al repository che contiene quei file, altrimenti a quello che contiene la maggior parte dei file nominati dalle source map dell'ultima release, altrimenti al repository chiamato come l'**Identificatore app** dell'applicazione, o all'unico del progetto; quando niente decide, scegli tu. Cambia il codice del browser in ogni punto, dove l'utente di una sessione è identificato da un ID opaco e mai da un'email, oppure aggiunge un passaggio di oscuramento dove l'applicazione configura la sua telemetria del browser. La registrazione di una sessione non viene mai letta, e l'agente di codice non legge nulla della tua telemetria. Ogni problema si risolve come **Corretto nel codice** appena la nuova release dell'applicazione non invia più i dati. OneUptime AI non propone ancora da sé la correzione di un'applicazione: chiedila con **Correggi con l'IA**.
 
 ## Scarta questa metrica
 

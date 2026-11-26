@@ -227,6 +227,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) DataStoreFinding": Why.FollowOn,
   },
   /*
+   * Scrub It, which its route and Ask AI's action both press (#10378): the
+   * scrub rule is made through its own service and recorded there, and the
+   * finding marked scrubbed follows from it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityButtons.ts": {
+    "DataSecurityButtons.scrubFinding DataStoreFinding": Why.FollowOn,
+  },
+  /*
    * A proposal of OneUptime AI's made or undone (#10364): the scrub rules
    * it makes or deletes are recorded where they are, and a finding marked
    * scrubbed, or not, follows from them - as Scrub It's own route does.
@@ -470,6 +478,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
+    // MERGE_COUNTS_BY_KIND_SQL: each kind's count as a batch reports it (#11000).
+    "(module) StorageArray": Why.Reported,
   },
   "packages/Common/Server/Services/VMwareVCenterService.ts": {
     "Service.attachLabels VMwareVCenter": Why.Reported,
@@ -477,6 +487,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
+  },
+  "packages/Common/Server/Services/XcpNgPoolService.ts": {
+    "Service.attachLabels XcpNgPool": Why.Reported,
   },
   "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
     "AiAgentResetAuditLog.record *": Why.Recorded,
@@ -578,6 +591,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "TableHealthIngest.updateAsset DataAsset": Why.Reported,
     "TableHealthIngest.writeNewPersonalDataColumns DataStore": Why.Reported,
   },
+  /*
+   * What production showed of a person's linked fix of a Data Security
+   * issue (#10831): the production check's verdict and what it measured
+   * before, written as OneUptime AI's fixes' are - a check's result.
+   */
+  "packages/Common/Server/Utils/AI/CodeFix/FixProductionVerifier.ts": {
+    "FixProductionVerifier.writeFix DataSecurityIssuePullRequest": Why.Reported,
+  },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityDiscovery.ts": {
     "DataSecurityDiscovery.archiveGone DataStore": Why.Reported,
     "DataSecurityDiscovery.ensureTelemetryStore DataStore": Why.Reported,
@@ -603,6 +624,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    * fix's watch read in the service's telemetry, noted on the issue for the
    * reconciler, which reopens it with its Timeline line.
    */
+  /*
+   * What the code host says of a pull request a person linked to a Data
+   * Security issue as its fix (#10831): its state and merge commit, and
+   * the production check it waits for once merged. Linking it and taking
+   * it off are on the issue's timeline and audited.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityLinkedFixes.ts": {
+    "(module) DataSecurityIssuePullRequest": Why.Reported,
+  },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": {
     "DataSecurityIssueResolutions.markCameBack DataSecurityIssue": Why.Reported,
   },
@@ -800,8 +830,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    */
   "packages/Common/Server/Utils/SecurityCase/SecurityCasePullRequestFollower.ts":
     {
-      "SecurityCasePullRequestFollower.followOne SecurityCasePullRequest":
-        Why.Reported,
+      // Written by the one follower of linked pull requests (LinkedPullRequestFollower).
+      "(module) SecurityCasePullRequest": Why.Reported,
     },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,

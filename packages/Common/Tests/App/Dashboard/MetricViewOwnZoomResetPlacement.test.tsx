@@ -202,6 +202,7 @@ import PodmanMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Comp
 import ProxmoxMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMonitorStepForm";
 import OpenStackMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
+import XcpNgMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMonitorStepForm";
 import CephMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephMonitorStepForm";
 import IoTMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMonitorStepForm";
 import { TimeRangeZoomProvider } from "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
@@ -220,6 +221,7 @@ import { MonitorStepPodmanMonitorUtil } from "../../../Types/Monitor/MonitorStep
 import { MonitorStepProxmoxMonitorUtil } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import { MonitorStepOpenStackMonitorUtil } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepVMwareMonitorUtil } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
 import { MonitorStepCephMonitorUtil } from "../../../Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepIoTMonitorUtil } from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import ObjectID from "../../../Types/ObjectID";
@@ -505,6 +507,13 @@ const FORM_CASES: Array<FormCase> = [
     VMwareMonitorStepForm,
     "monitorStepVMwareMonitor",
     MonitorStepVMwareMonitorUtil.getDefault(),
+    true,
+  ),
+  formCase(
+    "XCP-ng",
+    XcpNgMonitorStepForm,
+    "monitorStepXcpNgMonitor",
+    MonitorStepXcpNgMonitorUtil.getDefault(),
     true,
   ),
   formCase(

@@ -111,7 +111,7 @@ De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email addres
 | Elk ander gegevenstype dat een patroon zelf vindt, zoals een GitHub-token | Een regel **Aangepaste reguliere expressie**, gemaakt van de eigen patronen van het gegevenstype. Een geheim wordt weggelakt. |
 | Een van je eigen gegevenstypen, met een patroon | Dat patroon, alleen in het attribuut waarin het is gevonden |
 | Een gegevenstype dat door de woorden eromheen te onderscheiden is, zoals een routingnummer | Zijn vorm, alleen in het attribuut waarin het is gevonden |
-| Een gegevenstype dat op de naam van het veld wordt gevonden, zoals de naam van een persoon onder `customer_name`, of een waarde onder een sleutel die een geheim noemt | Een regel **Benoemde attributen**, die de hele waarde van dat attribuut verbergt |
+| Een gegevenstype dat op de naam van het veld wordt gevonden, zoals de naam van een persoon onder `customer_name` of onder de parameter `full_name` van een URL, of een waarde onder een sleutel die een geheim noemt | Een regel **Benoemde attributen**, die de hele waarde van dat attribuut verbergt |
 | Een waarde onder een sleutel die gevoelig lijkt, waar niets smallers haar verbergt | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
 | Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut die het gegevenstype bevatten vervangt door `[REDACTED]`. Voor een IP-adres, een e-mailadres of een kaartnummer is het filter **Komt overeen met patroontype** met dat type, dat vindt wat een regel voor logs of traces met dat **Patroontype** vindt, waaronder IPv6-adressen en waarden die procentgecodeerd of in een ander schrift staan. Voor een ander gegevenstype is het het eigen patroon van het type, en wanneer geen patroon het gegevenstype vindt, vervangt de regel elke waarde van het attribuut |
 
@@ -170,7 +170,7 @@ Voordat OneUptime AI begint, leest Gegevensbeveiliging de records waarin elk lek
 
 - **Een span of een AI-aanroep**: het bestand, de regel en de functie die zijn attributen `code.*` noemen, en de naam van de span.
 - **Een uitzondering**: zijn eigen bovenste frames, die in de code van de service.
-- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`.
+- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`, en elk woord waarvan zijn records niet bewijzen dat de code het schreef, zoals de naam van een persoon, door `<value>`: `Payment declined for Maria Gonzalez`, gelezen uit één record, wordt `Payment declined for <value>`. De naam van een span en de naam van een metriek worden op dezelfde manier gelezen.
 - **Een metriek**: de naam van de metriek.
 - **Elk lek**: zijn attribuutsleutel, zoals `user.email`, die de code meestal letterlijk schrijft.
 
@@ -200,6 +200,15 @@ Elk probleem dat de pull request oplost, bewaart hem: de kaart **Zo lost u het o
 Een geheim heeft meer nodig dan een codecorrectie: de code stopt alleen nieuwe kopieën, en het geheim werkt nog. De pull request, de tijdlijn van het probleem en de kaart **Zo lost u het op** zeggen dat het moet worden geroteerd, en de kaart somt op waar het is gezien.
 
 Met **Aan nieuwe problemen werken** aan stelt OneUptime AI ook uit zichzelf de correctie van elke service voor, de riskantste service eerst, onder **Gegevensbeveiliging → AI** en bij het riskantste probleem van de service. Standaard wacht die op jou. Een AI-regel van Gegevensbeveiliging die **Herstel** voor het riskantste probleem van de service op **Automatisch** zet, opent de pull request zonder te vragen, in een repository waarover iets heeft beslist. **Max. open fix-pull-requests** van de repository begrenst beide: bij de grens wacht een pull request die een regel zou openen op jou, en gaat er geen nieuwe correctie-pull-request open totdat er een is samengevoegd of gesloten.
+
+### De front-end van een RUM-applicatie
+
+**Oplossen met AI** bij een probleem in sessieherhalingen doet hetzelfde voor een RUM-applicatie: één pull request die de front-endcode ervan elk lek laat stoppen dat OneUptime nog ziet in de browserlogboeken, de browserspans en de details van de sessies. Waar elk lek wordt geschreven, komt uit de records waarin het werd gezien, binnen OneUptime gelezen:
+
+- **Een browserlogboek of -span**: het bestand, de regel en de functie waarnaar de JavaScript-stack ervan verwijst via de source maps die je builds hebben geüpload (zie [Source Maps](/docs/telemetry/source-maps)), anders de `code.*`-attributen; de regel van het logboek of de naam van de span als sjabloon; en de pagina waarop het werd geschreven, alleen het pad ervan, met elke ID en elke waarde gemaskeerd.
+- **De gebruikersdetails van een sessie**: de `identify()`-aanroep van de sessierecorder die ze gaf, en de pagina waarop de sessie begon.
+
+De pull request gaat naar de repository met die bestanden, anders naar de repository met de meeste bestanden die de source maps van de nieuwste release noemen, anders naar de repository die heet zoals de **App-identifier** van de applicatie, of naar de enige van het project; als niets beslist, kies jij. Hij wijzigt de browsercode op elke plek, waarbij de gebruiker van een sessie wordt geïdentificeerd met een ondoorzichtige ID en nooit met een e-mailadres, of voegt één redactiestap toe waar de applicatie haar browsertelemetrie instelt. De opname van een sessie wordt nooit gelezen, en de codeeragent leest niets van je telemetrie. Elk probleem wordt opgelost als **Hersteld in de code** zodra de nieuwe release van de applicatie de gegevens niet meer verstuurt. OneUptime AI stelt de oplossing van een applicatie nog niet uit zichzelf voor: vraag erom met **Oplossen met AI**.
 
 ## Deze metriek verwerpen
 

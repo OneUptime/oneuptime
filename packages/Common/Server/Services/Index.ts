@@ -146,6 +146,12 @@ import StorageArrayLabelRuleService from "./StorageArrayLabelRuleService";
 import StorageArrayOwnerRuleService from "./StorageArrayOwnerRuleService";
 import StorageArrayOwnerTeamService from "./StorageArrayOwnerTeamService";
 import StorageArrayOwnerUserService from "./StorageArrayOwnerUserService";
+import XcpNgPoolService from "./XcpNgPoolService";
+import XcpNgResourceService from "./XcpNgResourceService";
+import XcpNgPoolLabelRuleService from "./XcpNgPoolLabelRuleService";
+import XcpNgPoolOwnerRuleService from "./XcpNgPoolOwnerRuleService";
+import XcpNgPoolOwnerTeamService from "./XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService from "./XcpNgPoolOwnerUserService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
@@ -205,6 +211,7 @@ import DockerHostFeedService from "./DockerHostFeedService";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import CephClusterFeedService from "./CephClusterFeedService";
 import StorageArrayFeedService from "./StorageArrayFeedService";
+import XcpNgPoolFeedService from "./XcpNgPoolFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
@@ -442,6 +449,7 @@ import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
 import SecurityCasePullRequestService from "./SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService from "./DataSecurityIssuePullRequestService";
 import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
@@ -623,11 +631,16 @@ import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
+import CloudCostGroupService from "./CloudCostGroupService";
+import CloudCostLineItemService from "./CloudCostLineItemService";
+import CloudCostViewService from "./CloudCostViewService";
 import CloudRequiredTagService from "./CloudRequiredTagService";
 import CloudTagCoverageDayService from "./CloudTagCoverageDayService";
 import CloudTagFindingService from "./CloudTagFindingService";
 import CloudTagSettingService from "./CloudTagSettingService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
+import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
+import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -822,6 +835,12 @@ const services: Array<BaseService> = [
   StorageArrayOwnerRuleService,
   StorageArrayOwnerTeamService,
   StorageArrayOwnerUserService,
+  XcpNgPoolService,
+  XcpNgResourceService,
+  XcpNgPoolLabelRuleService,
+  XcpNgPoolOwnerRuleService,
+  XcpNgPoolOwnerTeamService,
+  XcpNgPoolOwnerUserService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
@@ -870,6 +889,7 @@ const services: Array<BaseService> = [
   DockerSwarmClusterFeedService,
   CephClusterFeedService,
   StorageArrayFeedService,
+  XcpNgPoolFeedService,
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
@@ -1081,6 +1101,7 @@ const services: Array<BaseService> = [
   SecurityCaseTaskService,
   SecurityCaseStepCheckService,
   SecurityCasePullRequestService,
+  DataSecurityIssuePullRequestService,
   SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
@@ -1247,11 +1268,16 @@ const services: Array<BaseService> = [
   CloudAccountService,
   CloudAccountFeedService,
   CloudBudgetService,
+  CloudCostViewService,
+  CloudCostGroupService,
+  CloudCostLineItemService,
   CloudRequiredTagService,
   CloudTagCoverageDayService,
   CloudTagFindingService,
   CloudTagSettingService,
   CloudCostRecommendationService,
+  CloudOffHoursScheduleService,
+  CloudSavingsActionService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,

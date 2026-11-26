@@ -21,7 +21,7 @@ import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaIn
 import { CriteriaIncident } from "../../../../Types/Monitor/CriteriaIncident";
 import { CriteriaAlert } from "../../../../Types/Monitor/CriteriaAlert";
 import { getDatabaseEnginesWithAlertTemplates } from "../../../../Types/Monitor/DatabaseAlertTemplates";
-import { StorageSystemUtil } from "../../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../../Types/StorageArray/StorageSystemUtil";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*

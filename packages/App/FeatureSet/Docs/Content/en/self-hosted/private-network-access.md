@@ -12,7 +12,7 @@ This page explains how to allow it, deliberately and narrowly. Three switches de
 | --- | --- | --- |
 | Workflows, project webhooks, on-call user webhooks | The **API server**'s environment | Private addresses refused |
 | Data sources, LLM providers, SMTP servers, OIDC discovery and other connections | The **API server**'s environment | Private addresses allowed |
-| API, Website, External Status Page and Custom JavaScript Code **monitors** | The **probe**'s own environment | Private addresses refused |
+| API, Website, External Status Page, Custom JavaScript Code and Synthetic **monitors** | The **probe**'s own environment | Private addresses refused |
 
 ```mermaid title="Three switches, each for its own kind of connection"
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
         Outbound["Data sources,<br/>LLM providers,<br/>SMTP and other<br/>connections"]
     end
     subgraph Probe["Each probe"]
-        Monitors["API, Website,<br/>External Status<br/>Page and Custom<br/>JavaScript<br/>Code monitors"]
+        Monitors["API, Website,<br/>External Status<br/>Page, Custom<br/>JavaScript Code<br/>and Synthetic<br/>monitors"]
     end
     Private["Your private<br/>network"]
     Webhooks -->|"off by default"| Private
@@ -30,7 +30,7 @@ flowchart LR
     Monitors -->|"off by default"| Private
 ```
 
-Network-native monitor types such as Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Database Health, Synthetic and Network Path use their own transports. The setting on this page governs the HTTP transports that return arbitrary response content to a project: API, Website, External Status Page and Custom JavaScript Code monitors.
+Network-native monitor types such as Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Database Health and Network Path use their own transports. The setting on this page governs the requests that return arbitrary response content to a project: API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors, a Synthetic monitor's browser and its script's HTTP requests alike.
 
 :::cards
 - [Webhooks and workflows](#webhooks-and-workflows): Allow a webhook to post into your network.
@@ -146,7 +146,7 @@ Behind an outbound proxy, the connections made over HTTP go through it, as webho
 
 ## Probes and monitors
 
-Four monitor types are affected: **API**, **Website**, **External Status Page** and **Custom JavaScript Code**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space. API, Website and External Status Page monitors validate and pin DNS results for every connection and revalidate each redirect; Custom JavaScript Code applies the same address policy in its sandbox bridge.
+Five monitor types are affected: **API**, **Website**, **External Status Page**, **Custom JavaScript Code** and **Synthetic**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space. API, Website and External Status Page monitors validate and pin DNS results for every connection and revalidate each redirect; Custom JavaScript Code applies the same address policy in its sandbox bridge; a Synthetic monitor's browser and its script's HTTP requests all go out through a proxy on the probe that applies it to every page, request, WebSocket and redirect, connecting only to the address it checked; a navigation it refuses fails with the reason as the script's error, and is named in the run's log.
 
 The switch is read by the **probe process from its own environment**, not from the API server's, and every probe reads it: the ones bundled with Docker Compose, the ones the Helm chart deploys, and any [custom probe](/docs/probe/custom-probe) you run yourself. Whoever deploys a probe controls its environment, and they are the party who knows which network that probe can see — a custom probe is usually a different machine, often run by a different person, and it never reads the API server's configuration.
 
@@ -189,7 +189,7 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — a private (custom) probe ran the monitor, and its switch is off. Note that this is set on the probe, not on the API server.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — a bundled (global) probe ran the monitor, and its switch is off. Turn it on for that probe as described above if every project on the instance may reach that network; otherwise select a private probe on the monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — a global probe with `BILLING_ENABLED=true` in its environment ran the monitor. Auto-registered global probes stay public-only there, whatever their switch says; deploy a private probe inside the target's network and select it on the monitor.
-- _"Monitor target host ... could not be reached."_ — an API, Website or External Status Page monitor whose target is a **hostname** reports this when the name resolves to a refused address as well as when DNS fails, so a monitor cannot be used to map which internal names exist. The error details shown with it mention `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` either way; they do not say which case applied. If the name points at a private address, check the probe's startup log for its private-network policy; when it is off, the fix is the same as for the messages above. With `LOG_LEVEL=DEBUG`, the probe also logs the exact reason for each refused name.
+- _"Monitor target host ... could not be reached."_ — an API, Website, External Status Page or Synthetic monitor whose target is a **hostname** reports this when the name resolves to a refused address as well as when DNS fails, so a monitor cannot be used to map which internal names exist. The error details shown with it mention `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` either way; they do not say which case applied. If the name points at a private address, check the probe's startup log for its private-network policy; when it is off, the fix is the same as for the messages above. With `LOG_LEVEL=DEBUG`, the probe also logs the exact reason for each refused name.
 - _"Request URL could not be reached."_ — the same rule for a **Custom JavaScript Code** monitor: a script that requests a **hostname** gets this both when the name resolves to a refused address and when DNS fails. With `LOG_LEVEL=DEBUG`, the probe logs the exact reason.
 - _"Webhook URL could not be reached."_ or, from a workflow, _"Request URL could not be reached."_ — the instance runs with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (or `BILLING_ENABLED=true`), so a refused **hostname** is not explained: it either resolved to a refused address or did not resolve at all. With `LOG_LEVEL=DEBUG`, the app or worker logs which one, and the address.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — the target is in the forbidden tier. For a webhook, name the exact host or CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` if you really need it. For a monitor, there is no override.
@@ -200,7 +200,7 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 Opening this up is a real change to what your OneUptime instance can be made to reach, so it is worth being deliberate about:
 
 - **Prefer the allowlist to the blanket boolean.** Naming `mattermost.internal` is a much smaller grant than opening every RFC-1918 address.
-- **Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.** Treat membership in those projects accordingly.
+- **Anyone who can author a workflow or an API, Website, External Status Page, Custom JavaScript Code or Synthetic monitor, or add a status page subscriber, can reach anything you allowed.** Treat membership in those projects accordingly.
 - **The response body comes back.** A workflow API component returns the status, headers and body into the workflow log, so an allowed host is readable, not just writable.
 - **Redirects are never followed** on webhook requests, so an allowed public host cannot bounce the server to an internal one on a second hop.
 - **OneUptime connects to the address it checked.** A webhook's host name is looked up once, when its URL is checked, and the request goes to an address that lookup approved, so a name that answers differently a moment later (DNS rebinding) is never connected to. TLS still checks the certificate against the name in the URL.

@@ -8,6 +8,12 @@ import MetricPipelineRuleFilterCondition, {
 } from "../../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import MetricPipelineRuleType from "../../../Types/Metrics/MetricPipelineRuleType";
 import { ScrubRegExp } from "../../../Types/Telemetry/ScrubRule";
+import { hasDigitBeyondAscii } from "../../../Utils/DataSecurity/DigitReadings";
+import {
+  ReadingNeeds,
+  TextReading,
+  TextReadings,
+} from "../../../Utils/DataSecurity/TextReadings";
 import LinearRegExp from "../../../Utils/LinearRegExp/LinearRegExp";
 import { compileBuiltInScrubPattern } from "../../../Utils/Telemetry/ScrubBuiltInPatterns";
 import { getLinearRegExp } from "../../../Utils/LinearRegExp/PatternCache";
@@ -111,6 +117,51 @@ function getCompiledRegex(
 
     return null;
   }
+}
+
+/*
+ * The rule types that hide what their filters match: they drop the row, or
+ * remove or redact an attribute.
+ */
+const HIDING_RULE_TYPES: ReadonlySet<MetricPipelineRuleType> = new Set([
+  MetricPipelineRuleType.Drop,
+  MetricPipelineRuleType.RedactAttribute,
+  MetricPipelineRuleType.RemoveAttribute,
+]);
+
+// The readings a hiding rule's pattern also tries a value in.
+const PATTERN_READINGS: ReadingNeeds = {
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+};
+
+/*
+ * Whether a pattern matches a value in a reading beside the value as
+ * written - its percent-escapes read, every script's digits read by their
+ * values (Utils/DataSecurity/TextReadings, #11031, #11033) - as a Custom
+ * Regex log or trace rule reads one. Asked only of a rule that hides, for
+ * Matches Regex: so the metric rule "Scrub it" makes from a data type's
+ * patterns (a token, an IBAN) hides a value Data Security finds encoded or
+ * in another script's digits, and no rule ever hides less than it did -
+ * Does Not Match Regex, and a Filter, Sample or Rename rule, read the value
+ * as written alone, as before.
+ */
+function matchesInOtherReadings(re: LinearRegExp, value: string): boolean {
+  if (value.indexOf("%") === -1 && !hasDigitBeyondAscii(value)) {
+    return false;
+  }
+
+  const readings: Array<TextReading> = new TextReadings(value).readingsFor(
+    PATTERN_READINGS,
+  );
+
+  for (let index: number = 1; index < readings.length; index++) {
+    if (re.test(readings[index]!.text)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /*
@@ -443,7 +494,12 @@ export default class MetricPipelineEngine {
             return false;
           }
 
-          matched = re.test(actual);
+          matched =
+            re.test(actual) ||
+            (conditionType ===
+              MetricPipelineRuleFilterConditionType.MatchesRegex &&
+              HIDING_RULE_TYPES.has(rule.ruleType as MetricPipelineRuleType) &&
+              matchesInOtherReadings(re, actual));
         } catch (error: unknown) {
           if (!(error instanceof PatternWorkLimitError)) {
             throw error;

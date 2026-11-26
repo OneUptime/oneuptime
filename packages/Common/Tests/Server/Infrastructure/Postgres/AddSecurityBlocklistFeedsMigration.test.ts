@@ -124,13 +124,28 @@ function declaredColumns(model: unknown): Array<string> {
 }
 
 // The model's own indexes (@Index on the class).
+function modelIndexes(model: unknown): Array<IndexMetadataArgs> {
+  return getMetadataArgsStorage().indices.filter(
+    (index: IndexMetadataArgs): boolean => {
+      return index.target === model && Array.isArray(index.columns);
+    },
+  );
+}
+
+/*
+ * The indexes the model declares for the schema builder to keep. One
+ * declared with UNSYNCHRONIZED_INDEX (synchronize: false) is a migration's
+ * of its own, named on the model only so the builder leaves it be: a
+ * feed's unique name key, which 1809187640010-AddUniqueNameIndexes builds
+ * (#10761) - not this migration.
+ */
 function declaredIndexes(model: unknown): Array<{
   columns: Array<string>;
   unique: boolean;
 }> {
-  return getMetadataArgsStorage()
-    .indices.filter((index: IndexMetadataArgs): boolean => {
-      return index.target === model && Array.isArray(index.columns);
+  return modelIndexes(model)
+    .filter((index: IndexMetadataArgs): boolean => {
+      return index.synchronize !== false;
     })
     .map((index: IndexMetadataArgs) => {
       return {
@@ -326,6 +341,21 @@ describe("AddSecurityBlocklistFeeds migration - what it makes", () => {
         expect(made!.startsWith("CREATE UNIQUE INDEX")).toBe(index.unique);
       }
     }
+
+    // The one index of theirs another migration owns: a feed's unique name key (#10761).
+    expect(
+      [SecurityBlocklistFeed, SecurityBlocklistFeedFetch].flatMap(
+        (model: unknown): Array<string> => {
+          return modelIndexes(model)
+            .filter((index: IndexMetadataArgs): boolean => {
+              return index.synchronize === false;
+            })
+            .map((index: IndexMetadataArgs): string => {
+              return String(index.name);
+            });
+        },
+      ),
+    ).toEqual(["IDX_SECURITYBLOCKLISTFEED_PROJECT_NAME_KEY"]);
   });
 
   test("a feed goes with its project, and its fetches with the feed", async () => {

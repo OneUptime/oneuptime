@@ -259,6 +259,41 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 6. Open de link in de kaart **SSO-aanmeldlink** en kies de provider, om u er via aan te melden voordat u voor het project SSO verplicht.
 :::
 
+## E-mailadressen die uw identiteitsprovider niet heeft geverifieerd
+
+Een aanmelding via OpenID Connect vindt het OneUptime-account van de persoon aan de hand van het e-mailadres dat uw identiteitsprovider stuurt, en kan met dat adres een account aanmaken. Sommige providers laten mensen een adres op hun eigen account zetten zonder te bewijzen dat het van hen is, en zeggen dat in de standaardclaim `email_verified`. Daarom meldt OneUptime niemand aan met een adres waarvan uw provider zegt dat hij het niet heeft geverifieerd: iemand kan het adres van een ander op zijn account hebben gezet om zich als die persoon aan te melden.
+
+| `email_verified` | De aanmelding |
+| --- | --- |
+| `true`, of `"true"` en `1` | Gaat door |
+| Niet verstuurd, zoals bij Microsoft Entra ID en AD FS | Gaat door |
+| `false`, of `"false"` en `0` | Wordt geweigerd |
+| Iets anders, zoals `"yes"` | Wordt geweigerd: OneUptime kan het niet zeggen |
+
+- De regel geldt voor elk account, op het web en in de mobiele app: een bestaand account, ook dat van een beheerder, en een account dat de aanmelding zou aanmaken. Een geweigerde aanmelding maakt geen account aan, voegt niemand toe aan een team, accepteert geen uitnodiging en verstuurt geen e-mail.
+- OneUptime leest `email_verified` waar het adres vandaan kwam, het ID-token of het userinfo-endpoint, en alleen als het adres de claim `email` is. Een provider die is ingesteld om het adres in een andere claim te sturen, zoals `preferred_username` of `upn`, meldt mensen aan zoals voorheen, dus gebruik een claim die uw mensen niet zelf kunnen wijzigen.
+- De persoon ziet "Your identity provider did not confirm your email address.", en wordt gevraagd het adres bij uw identiteitsprovider te verifiëren, of u te vragen het daar als geverifieerd te markeren, en zich dan opnieuw aan te melden. De mobiele app toont `provider_email_not_verified` met hetzelfde advies. Als een account het adres heeft, leggen de auditlogboeken van zijn projecten de poging vast als een mislukte aanmelding.
+- SAML-providers lezen `email_verified` niet, en de OpenID Connect-providers van statuspagina's, dashboards en formulieren ook niet; die melden mensen aan als hun eigen privégebruikers.
+
+Providers die de adressen verifiëren die ze sturen, zoals Google en Okta, melden mensen aan zoals voorheen. authentik en Keycloak kunnen een wijziging nodig hebben:
+
+:::tabs
+@tab authentik
+authentik 2025.10 en later stuurt met zijn standaard scope-mapping voor `email` voor iedereen `email_verified` als `false`, dus via authentik meldt niemand zich aan tot u die mapping vervangt, zoals de handleiding van authentik [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/) beschrijft:
+
+1. Klik in **Customization** > **Property Mappings** op **New Property Mapping**, kies **Scope Mapping** en klik op **Next**.
+2. Geef de mapping een naam, zet **Scope name** op `email`, vul de **Expression** uit de handleiding in die past bij hoe de adressen van uw mensen worden geverifieerd, en klik op **Finish**.
+3. Open de provider van uw applicatie, vervang in **Scopes** de standaardmapping voor `email` door de uwe en sla de provider op.
+
+Stuur niet voor elk adres `true` zolang mensen hun eigen adres in authentik kunnen wijzigen: de mapping zou dan instaan voor elk adres dat iemand op zijn account zet. Versies vóór 2025.10 sturen voor elk adres `true`, dus laat mensen daar hun eigen adres niet wijzigen.
+@tab Keycloak
+Keycloak stuurt `email_verified` als `false` voor mensen van wie het het adres niet heeft geverifieerd: mensen die een beheerder heeft aangemaakt met **Email verified** uit, en mensen die zich hebben geregistreerd of hun adres hebben gewijzigd terwijl **Verify email** uit stond.
+
+- Om ze het te laten verifiëren, zet u **Verify email** aan in **Realm settings** > **Login** > **Email settings**. Keycloak vraagt dan elk van hen bij de volgende aanmelding hun adres met een e-mail te verifiëren, dus de realm heeft een ingestelde mailserver nodig.
+- Om zelf in te staan voor het adres van één persoon, zet u **Email verified** aan op diens pagina in Keycloak en klikt u op **Save**.
+- Voor mensen uit LDAP of Active Directory zet u **Trust Email** aan in de **Advanced settings** van de provider in **User federation**. Keycloak markeert een adres dan als geverifieerd wanneer het de persoon importeert: zet **Email verified** aan voor de mensen die het eerder heeft geïmporteerd.
+:::
+
 ## Ook afmelden bij de identiteitsprovider
 
 Afmelden bij OneUptime laat iemand aangemeld bij de identiteitsprovider, dus op een gedeelde computer, zoals een NOC-scherm of een kiosk, komt de volgende persoon die op de aanmeldpagina de provider kiest binnen als degene die wegging. Zet bij een SAML- of OIDC-provider **Ook afmelden bij de identiteitsprovider** aan onder **Meer velden** om bij een afmelding bij OneUptime ook de sessie bij de provider te beëindigen. Het staat standaard uit: op een persoonlijke laptop zou het iemand ook afmelden bij elke andere app die de provider gebruikt. Het geldt voor mensen die zich na het aanzetten in een browser aanmelden; de mobiele app meldt alleen af bij OneUptime.
@@ -456,6 +491,10 @@ Met elk antwoord van uw IdP wordt maar één keer aangemeld. Na het aanmelden te
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID heeft iemand aangemeld met het e-mailadres van een account dat via deze provider aan een andere object-ID is gekoppeld: iemand anders heeft het adres nu in Entra ID, of het Entra ID-account van de persoon is opnieuw aangemaakt. OneUptime weigert de aanmelding, zodat wie het adres hierna krijgt het account niet kan gebruiken. Is het account van deze persoon, verwijder hem dan uit het project en voeg hem opnieuw toe: bij zijn volgende aanmelding wordt het account aan zijn nieuwe object-ID gekoppeld.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Uw OpenID Connect-provider stuurde `email_verified` als `false`, of als iets dat true noch false is, dus OneUptime heeft niemand aangemeld. Laat het adres verifiëren bij uw identiteitsprovider, of markeer het daar als geverifieerd, en meld u opnieuw aan. [E-mailadressen die uw identiteitsprovider niet heeft geverifieerd](#e-mailadressen-die-uw-identiteitsprovider-niet-heeft-geverifieerd) zegt wat u in authentik en Keycloak wijzigt.
 :::
 
 :::details Aanmelden mislukt met een handtekening- of certificaatfout

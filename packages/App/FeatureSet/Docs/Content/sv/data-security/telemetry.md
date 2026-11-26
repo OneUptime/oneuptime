@@ -111,7 +111,7 @@ Regeln namnges efter det den döljer, till exempel ”Data Security: Email addre
 | Varje annan datatyp som ett mönster hittar på egen hand, till exempel en GitHub-token | En regel av typen **Anpassad regex**, skapad av datatypens egna mönster. En hemlighet döljs helt. |
 | En av dina egna datatyper, med ett mönster | Det mönstret, bara i attributet där det hittades |
 | En datatyp som skiljs ut genom orden runt den, till exempel ett routingnummer | Dess form, bara i attributet där den hittades |
-| En datatyp som hittas utifrån fältets namn, till exempel en persons namn under `customer_name`, eller ett värde under en nyckel som nämner en hemlighet | En regel av typen **Namngivna attribut**, som döljer hela värdet i det attributet |
+| En datatyp som hittas utifrån fältets namn, till exempel en persons namn under `customer_name` eller under en URL:s parameter `full_name`, eller ett värde under en nyckel som nämner en hemlighet | En regel av typen **Namngivna attribut**, som döljer hela värdet i det attributet |
 | Ett värde under en nyckel som ser känslig ut, där inget smalare döljer det | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
 | Varje datatyp i ett mätvärdes attribut | En pipelineregel för mätvärden av typen **Maskera attribut** för tjänsten, som ersätter de av attributets värden som innehåller datatypen med `[REDACTED]`. För en IP-adress, en e-postadress eller ett kortnummer är dess filter **Matchar mönstertyp** med den typen, som hittar det som en regel för loggar eller spår med den **Mönstertyp** hittar, däribland IPv6-adresser och värden som är procentkodade eller i ett annat skriftsystem. För en annan datatyp är det typens eget mönster, och där inget mönster hittar datatypen ersätter regeln varje värde i attributet |
 
@@ -170,7 +170,7 @@ Innan OneUptime AI börjar läser Datasäkerhet om posterna som varje läcka set
 
 - **Ett span eller ett AI-anrop**: filen, raden och funktionen som dess attribut `code.*` nämner, och spannets namn.
 - **Ett undantag**: dess egna översta ramar, de i tjänstens kod.
-- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`.
+- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`, och varje ord som dess poster inte bevisar att koden skrev, till exempel en persons namn, av `<value>`: `Payment declined for Maria Gonzalez`, läst från en enda post, blir `Payment declined for <value>`. Ett spans namn och ett mätvärdes namn läses på samma sätt.
 - **Ett mätvärde**: mätvärdets namn.
 - **Varje läcka**: dess attributnyckel, till exempel `user.email`, som koden oftast skriver som den är.
 
@@ -200,6 +200,15 @@ Varje problem som pull requesten åtgärdar behåller den: kortet **Så åtgärd
 En hemlighet behöver mer än en kodändring: koden stoppar bara nya kopior, och hemligheten fungerar fortfarande. Pull requesten, problemets tidslinje och kortet **Så åtgärdar du det** säger att den ska roteras, och kortet listar var den setts.
 
 Med **Arbeta med nya problem** påslaget föreslår OneUptime AI också på egen hand varje tjänsts åtgärd, den mest riskfyllda tjänsten först, under **Datasäkerhet → AI** och på tjänstens mest riskfyllda problem. Som standard väntar den på dig. En AI-regel i Datasäkerhet som sätter **Åtgärd** till **Automatiskt** för tjänstens mest riskfyllda problem öppnar pull requesten utan att fråga, i ett arkiv som något har avgjort. Arkivets **Max antal öppna pull requests med korrigeringar** begränsar båda: vid gränsen väntar en pull request som en regel skulle öppna på dig, och ingen ny pull request med korrigeringar öppnas förrän en har sammanfogats eller stängts.
+
+### Frontenden i en RUM-applikation
+
+**Åtgärda med AI** på ett problem i sessionsuppspelningar gör detsamma för en RUM-applikation: en pull request som får dess frontendkod att sluta skicka varje läcka som OneUptime fortfarande ser i dess webbläsarloggar, dess webbläsarspans och dess sessioners detaljer. Var varje läcka skrivs kommer från posterna den sågs i, lästa inuti OneUptime:
+
+- **En webbläsarlogg eller ett webbläsarspan**: filen, raden och funktionen som dess JavaScript-stack löses upp till via de source maps som dina byggen har laddat upp (se [Source Maps](/docs/telemetry/source-maps)), annars dess `code.*`-attribut; loggens rad eller spannets namn som mall; och sidan den skrevs på, bara med sin sökväg, med varje ID och varje värde maskerat.
+- **En sessions användardetaljer**: sessionsinspelarens `identify()`-anrop som gav dem, och sidan som sessionen började på.
+
+Pull requesten går till den lagringsplats som innehåller de filerna, annars till den som innehåller flest av de filer som den senaste versionens source maps nämner, annars till den lagringsplats som heter som applikationens **App-identifierare**, eller till projektets enda; när inget avgör väljer du. Den ändrar webbläsarkoden på varje ställe, där en sessions användare identifieras med ett ogenomskinligt ID och aldrig med en e-postadress, eller lägger till ett redigeringssteg där applikationen konfigurerar sin webbläsartelemetri. En sessions inspelning läses aldrig, och kodagenten läser inget av din telemetri. Varje problem löses som **Åtgärdat i koden** så snart applikationens nya version inte längre skickar datan. OneUptime AI föreslår ännu inte en applikations åtgärd på egen hand: be om den med **Åtgärda med AI**.
 
 ## Kassera det här mätvärdet
 

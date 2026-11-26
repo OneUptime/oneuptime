@@ -5,11 +5,15 @@ import {
   DataTypeInfo,
 } from "../../../Types/DataSecurity/DataTypeCatalog";
 import { DataTypeDetector } from "../../../Utils/DataSecurity/Detector";
-import { getBuiltInDetectorsOf } from "../../../Utils/DataSecurity/Detectors/Index";
+import BUILT_IN_DETECTORS, {
+  getBuiltInDetectorsOf,
+} from "../../../Utils/DataSecurity/Detectors/Index";
+import { QUERY_NAME_DATA_TYPE_ID } from "../../../Utils/DataSecurity/QueryStringNames";
 import { sha256 } from "../../../Utils/DataSecurity/Sha256";
 import {
   findSensitiveValues,
   TextMatch,
+  TextScanOptions,
 } from "../../../Utils/DataSecurity/TextScanner";
 import CharacterSet from "../../../Utils/LinearRegExp/CharacterSet";
 import { parsePattern } from "../../../Utils/LinearRegExp/Parser";
@@ -288,6 +292,17 @@ function draw(node: SyntaxNode): string {
 }
 
 // Whether the type's own detectors find exactly this value, sure enough to count.
+/*
+ * A type's own reading of a text: its detectors - and for a person's name,
+ * which has none, a URL's query parameter named for one (#11034).
+ */
+function ownReadingOf(dataTypeId: string): TextScanOptions {
+  return {
+    detectors: getBuiltInDetectorsOf(dataTypeId),
+    readsQueryStringNames: dataTypeId === QUERY_NAME_DATA_TYPE_ID,
+  };
+}
+
 function isFoundAlone(
   dataTypeId: string,
   text: string,
@@ -295,26 +310,26 @@ function isFoundAlone(
 ): boolean {
   const start: number = text.indexOf(value);
 
-  return findSensitiveValues(text, {
-    detectors: getBuiltInDetectorsOf(dataTypeId),
-  }).some((match: TextMatch) => {
-    return (
-      match.dataTypeId === dataTypeId &&
-      match.start <= start &&
-      match.end >= start + value.length &&
-      match.confidence !== DataConfidence.Low &&
-      !match.isTestValue
-    );
-  });
+  return findSensitiveValues(text, ownReadingOf(dataTypeId)).some(
+    (match: TextMatch) => {
+      return (
+        match.dataTypeId === dataTypeId &&
+        match.start <= start &&
+        match.end >= start + value.length &&
+        match.confidence !== DataConfidence.Low &&
+        !match.isTestValue
+      );
+    },
+  );
 }
 
 // Whether the type's own detectors find anything at all in the text.
 function isRefusedAlone(dataTypeId: string, text: string): boolean {
-  return findSensitiveValues(text, {
-    detectors: getBuiltInDetectorsOf(dataTypeId),
-  }).every((match: TextMatch) => {
-    return match.dataTypeId !== dataTypeId || match.isTestValue;
-  });
+  return findSensitiveValues(text, ownReadingOf(dataTypeId)).every(
+    (match: TextMatch) => {
+      return match.dataTypeId !== dataTypeId || match.isTestValue;
+    },
+  );
 }
 
 function isSure(match: TextMatch): boolean {
@@ -1158,10 +1173,15 @@ const CORPUS: Record<string, CorpusEntry> = buildCorpus(CORPUS_SEED);
  * email address in a percent-encoded URL (jane.doe%40acmecorp.io, #10935),
  * an email address in another script (张伟@acmecorp.io, почта@пример.рф,
  * #10960) and a card number in fullwidth, Arabic-Indic or Persian digits,
- * or two scripts at once (#10960) - each with near misses of the same
- * writing that are no value: a clock or a link-local address after a key,
- * an image asset's name encoded, an address with no top-level domain, a
- * card a check digit off. Labelled apart from the corpus, which draws two
+ * or two scripts at once (#10960); a phone number in a percent-encoded URL
+ * or in another script's digits, and an international one in parentheses,
+ * after its trunk prefix or typeset with no-break spaces, and a Social
+ * Security number in another script's digits (#11025, #11030) - each with
+ * near misses of the same writing that are no value: a clock or a
+ * link-local address after a key, an image asset's name encoded, an
+ * address with no top-level domain, a card a check digit off, a decimal, a
+ * count, a time zone beside a date, an SSN's area no one is issued or a
+ * longer chain of groups. Labelled apart from the corpus, which draws two
  * values of each type from its detectors' shapes, and held to a precision
  * and a recall of 1: every value found as its type, and nothing else found.
  * Each case draws from a stream of its own, so the corpus draws as before.
@@ -1221,7 +1241,191 @@ function drawnDomain(): string {
   return `${fake(LOWER, 5 + random(5))}.${["io", "com", "net", "de"][random(4)]}`;
 }
 
-const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
+/*
+ * A national number of `digits` digits that is no placeholder (no digit run
+ * all alike, no counting up or down) and no number set aside for fiction.
+ */
+function drawnDigitsOf(digits: number, first: string = ""): string {
+  for (;;) {
+    const drawn: string = first + fake(DIGITS, digits - first.length);
+
+    if (
+      drawn.split("").some((digit: string): boolean => {
+        return digit !== drawn[0];
+      }) &&
+      !"01234567890".includes(drawn) &&
+      !"98765432109".includes(drawn) &&
+      !drawn.startsWith("555")
+    ) {
+      return drawn;
+    }
+  }
+}
+
+// A North American exchange: 200 to 999, no N11 service code, no 555.
+function drawnExchange(): string {
+  for (;;) {
+    const exchange: string = String(200 + random(800));
+
+    if (!exchange.endsWith("11") && exchange !== "555") {
+      return exchange;
+    }
+  }
+}
+
+// A Social Security number by the SSA's rules: area, group and serial.
+function drawnSsn(): string {
+  const area: number = 1 + random(665);
+  const group: number = 1 + random(99);
+  const serial: number = 1 + random(9999);
+
+  return `${String(area).padStart(3, "0")}-${String(group).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
+}
+
+const READING_CASES_OF: Readonly<
+  Record<string, (corpus: Record<string, CorpusEntry>) => CorpusEntry>
+> = {
+  // #11030
+  "phone-number: in a percent-encoded URL": (): CorpusEntry => {
+    const berlin: string = `%2B49%2030%20${drawnDigitsOf(8, "2")}`;
+    const paris: string = `%2B33%206%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /callback?phone=${berlin} HTTP/1.1 200`,
+          berlin,
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/notify?mobile=${paris}&step=2", "batch": "nightly"}`,
+          paris,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /assets/${fake(LOWER, 6)}%2B2x.png HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/search?delta=%2B${10 + random(80)}.${drawnDigitsOf(6)}&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11030
+  "phone-number: in another script's digits": (): CorpusEntry => {
+    const berlin: string = inScript(
+      `+49 30 ${drawnDigitsOf(8, "2")}`,
+      ARABIC_INDIC_ZERO,
+    );
+    const london: string = inScript(
+      `+44 161 ${drawnDigitsOf(3, "3")} ${drawnDigitsOf(4)}`,
+      PERSIAN_ZERO,
+    );
+    const sanFrancisco: string = inScript(
+      `(415) ${drawnExchange()}-${drawnDigitsOf(4)}`,
+      FULLWIDTH_ZERO,
+    );
+
+    return {
+      positives: [
+        labelled("phone-number", `رقم الهاتف ${berlin}`, berlin),
+        labelled("phone-number", `شماره تلفن ${london}`, london),
+        labelled("phone-number", `電話番号：${sanFrancisco}`, sanFrancisco),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `دلتا ${inScript(`+${10 + random(80)}.${drawnDigitsOf(6)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `العدد ${inScript("+1 2 3 4 5 6 7 8", ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11025
+  "phone-number: international, as people write them": (): CorpusEntry => {
+    const inParentheses: string = `(+44) 20 ${drawnDigitsOf(4, "8")} ${drawnDigitsOf(4)}`;
+    const withTrunk: string = `+44 (0)20 ${drawnDigitsOf(4, "8")} ${drawnDigitsOf(4)}`;
+    const typeset: string = `+33\u00A06\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO sms sent to ${inParentheses} ok`,
+          inParentheses.slice(1),
+        ),
+        labelled(
+          "phone-number",
+          `{"contact": "${withTrunk}", "batch": "nightly"}`,
+          withTrunk,
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO call forwarded to ${typeset} ok`,
+          typeset,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO tick at UTC +1 2026-11-${10 + random(18)} ${10 + random(13)}:${10 + random(50)}:00 ok`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO delta +${10 + random(80)}.${drawnDigitsOf(6)} out of range`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO counted +1 2 3 4 5 6 7 8 ok`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11030
+  "us-ssn: in another script's digits": (): CorpusEntry => {
+    const arabic: string = inScript(drawnSsn(), ARABIC_INDIC_ZERO);
+    const fullwidth: string = inScript(
+      drawnSsn().split("-").join(" "),
+      FULLWIDTH_ZERO,
+    );
+
+    return {
+      positives: [
+        labelled("us-ssn", `SSN: ${arabic}`, arabic),
+        labelled(
+          "us-ssn",
+          `{"ssn": "${fullwidth}", "batch": "nightly"}`,
+          fullwidth,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `SSN: ${inScript(`666-${drawnSsn().slice(4)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `SSN: ${inScript(`${drawnSsn()}-${drawnDigitsOf(2)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
   // #10936
   "ip-address: right after a key's colon": (): CorpusEntry => {
     const first: string = drawnIpv6();
@@ -1286,6 +1490,112 @@ const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
       ],
     };
   },
+  // #11031: each the corpus's own drawn value, written into a redirect's encoded URL.
+  "secrets: in a percent-encoded URL": (
+    corpus: Record<string, CorpusEntry>,
+  ): CorpusEntry => {
+    const valueOf: (dataTypeId: string) => string = (
+      dataTypeId: string,
+    ): string => {
+      return corpus[dataTypeId]!.positives[0]!.value;
+    };
+    const github: string = valueOf("github-token");
+    const stripe: string = valueOf("stripe-secret-key");
+    const slack: string = valueOf("slack-token");
+    const awsKey: string = valueOf("aws-access-key-id");
+    const jwt: string = valueOf("json-web-token");
+
+    return {
+      positives: [
+        labelled(
+          "github-token",
+          `2026-10-27T10:15:02Z INFO GET /login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Ftoken%3D${github} HTTP/1.1 302`,
+          github,
+        ),
+        labelled(
+          "stripe-secret-key",
+          `{"url": "/pay?return=%2Fdone%3Fkey%3D${stripe}&step=2", "batch": "nightly"}`,
+          stripe,
+        ),
+        labelled(
+          "slack-token",
+          `2026-10-27T10:15:02Z INFO GET /hook?next=%2Fapi%3Ftoken%3D${slack} HTTP/1.1 200`,
+          slack,
+        ),
+        labelled(
+          "aws-access-key-id",
+          `{"url": "/s3?credential%3D${awsKey}%2F20261027%2Feu-west-1", "batch": "nightly"}`,
+          awsKey,
+        ),
+        labelled(
+          "json-web-token",
+          `2026-10-27T10:15:02Z INFO GET /sso?next=%2Fcb%3Fid_token%3D${jwt} HTTP/1.1 302`,
+          jwt,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "github-token",
+          `2026-10-27T10:15:02Z INFO GET /login?next=%2Fcb%3Ftoken%3D${github.slice(0, 12)} HTTP/1.1 302`,
+          "",
+        ),
+        labelled(
+          "stripe-secret-key",
+          `{"url": "/assets/sk%5Flive%5F${fake(LOWER, 6)}.png", "batch": "nightly"}`,
+          "",
+        ),
+        labelled(
+          "aws-access-key-id",
+          `{"url": "/s3?credential%3D${awsKey.slice(0, 12)}%2F20261027", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11032
+  "email-address: its characters' UTF-8 bytes percent-encoded":
+    (): CorpusEntry => {
+      const accented: string = `${fake(LOWER, 3)}${encodeURIComponent(fake(LATIN_ACCENTED, 1))}${fake(LOWER, 3)}%40${drawnDomain()}`;
+      const han: string = `${encodeURIComponent(fake(HAN, 2 + random(2)))}%40${drawnDomain()}`;
+      const domain: string = `${fake(LOWER, 5)}@${encodeURIComponent(fake(HAN, 2 + random(2)))}.jp`;
+
+      return {
+        positives: [
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /signup?email=${accented} HTTP/1.1 200`,
+            accented,
+          ),
+          labelled(
+            "email-address",
+            `{"url": "/invite?to=${han}&step=2", "batch": "nightly"}`,
+            han,
+          ),
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /verify?address=${domain} HTTP/1.1 200`,
+            domain,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /assets/${encodeURIComponent(fake(HAN, 2))}%402x.png HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "email-address",
+            `{"url": "/search?q=${encodeURIComponent(fake(HAN, 3))}%40&step=2", "batch": "nightly"}`,
+            "",
+          ),
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /q?name=caf%C3%A9%40%C3 HTTP/1.1 200`,
+            "",
+          ),
+        ],
+      };
+    },
   // #10960
   "email-address: in another script": (): CorpusEntry => {
     const han: string = `${fake(HAN, 2 + random(2))}@${drawnDomain()}`;
@@ -1363,17 +1673,130 @@ const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
       ],
     };
   },
+  /*
+   * #11034: a person's name in a URL's query string, under a parameter
+   * named as a column of names would be, written as a URL writes it -
+   * escaped, a character's UTF-8 bytes too, a "+" for a space, in another
+   * script. Not under a parameter named "name" alone, a product's, nor a
+   * value no one is called: the model reads those.
+   */
+  "person-name: in a URL's query string, by the parameter's name":
+    (): CorpusEntry => {
+      const given: string = `${fake(UPPER, 1)}${fake(LOWER, 4 + random(4))}`;
+      const family: string = `${fake(UPPER, 1)}${fake(LOWER, 5 + random(5))}`;
+      const accented: string = `${given}%20${fake(UPPER, 1)}${fake(LOWER, 3)}${encodeURIComponent(fake(LATIN_ACCENTED, 1))}${fake(LOWER, 2)}`;
+      const plus: string = `${given}+${family}`;
+      const han: string = encodeURIComponent(fake(HAN, 2 + random(2)));
+
+      return {
+        positives: [
+          labelled(
+            "person-name",
+            `2026-10-27T10:15:02Z INFO GET /profile?full_name=${accented}&tab=orders HTTP/1.1 200`,
+            accented,
+          ),
+          labelled(
+            "person-name",
+            `{"url": "/api/contacts?customer_name=${plus}&source=import", "batch": "nightly"}`,
+            plus,
+          ),
+          labelled(
+            "person-name",
+            `2026-10-27T10:15:02Z INFO GET /patients?patient_name=${han}&page=2 HTTP/1.1 200`,
+            han,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "person-name",
+            `2026-10-27T10:15:02Z INFO GET /profile?name=${accented}&tab=orders HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "person-name",
+            `{"url": "/shop?product_name=${given}%20${family}&sort[last_name]=desc", "batch": "nightly"}`,
+            "",
+          ),
+          labelled(
+            "person-name",
+            `2026-10-27T10:15:02Z INFO GET /download?fname=${fake(LOWER, 6)}.pdf&first_name=null HTTP/1.1 200`,
+            "",
+          ),
+        ],
+      };
+    },
 };
 
-function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
-  const cases: Record<string, CorpusEntry> = {};
+/*
+ * #11033: every type whose detectors read every script's digits, its own
+ * drawn values and near misses written in another script's digits -
+ * Arabic-Indic and fullwidth for the values, Persian for the near misses,
+ * the words around them as they were. A number is the same number in any
+ * script's digits, so each value is found as its type, and each near miss
+ * - a check digit off, a digit too many - refused, as in ASCII.
+ */
+const ASCII_DIGIT: RegExp = /[0-9]/;
 
-  for (const [name, build] of Object.entries(READING_CASES_OF)) {
-    random = seededRandom(seedOf(corpusSeed, `readings:${name}`));
-    cases[name] = build();
+const EVERY_SCRIPT_TYPES: ReadonlyArray<string> = Array.from(
+  new Set(
+    BUILT_IN_DETECTORS.filter((detector: DataTypeDetector): boolean => {
+      return detector.readsDigitsOfEveryScript === true;
+    }).map((detector: DataTypeDetector): string => {
+      return detector.dataTypeId;
+    }),
+  ),
+).sort();
+
+function everyScriptCases(
+  corpus: Record<string, CorpusEntry>,
+): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+  const valueZeros: ReadonlyArray<number> = [ARABIC_INDIC_ZERO, FULLWIDTH_ZERO];
+
+  for (const dataTypeId of EVERY_SCRIPT_TYPES) {
+    const entry: CorpusEntry | undefined = corpus[dataTypeId];
+
+    if (!entry) {
+      continue;
+    }
+
+    cases[`${dataTypeId}: its values in another script's digits`] = {
+      positives: entry.positives.map(
+        (positive: Labelled, index: number): Labelled => {
+          const zero: number = valueZeros[index % valueZeros.length]!;
+
+          return labelled(
+            positive.dataTypeId,
+            inScript(positive.text, zero),
+            inScript(positive.value, zero),
+          );
+        },
+      ),
+      nearMisses: entry.nearMisses.map((nearMiss: Labelled): Labelled => {
+        return labelled(
+          nearMiss.dataTypeId,
+          inScript(nearMiss.text, PERSIAN_ZERO),
+          "",
+        );
+      }),
+    };
   }
 
   return cases;
+}
+
+function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+  // The corpus of this seed: what the cases built from its values read.
+  const corpus: Record<string, CorpusEntry> =
+    corpusSeed === CORPUS_SEED ? CORPUS : buildCorpus(corpusSeed);
+
+  for (const [name, build] of Object.entries(READING_CASES_OF)) {
+    random = seededRandom(seedOf(corpusSeed, `readings:${name}`));
+    cases[name] = build(corpus);
+  }
+
+  return { ...cases, ...everyScriptCases(corpus) };
 }
 
 const READING_CASES: Record<string, CorpusEntry> =
@@ -1649,7 +2072,7 @@ describe("values written the ways the detectors now read them too", () => {
    * A precision and a recall of 1: every labelled value found as its type,
    * and nothing else - no near miss, no other type - found in any of them.
    */
-  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960)", () => {
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034)", () => {
     const readingScores: Scores = score(READING_CASES);
     const wrong: Array<string> = [];
 
@@ -1662,6 +2085,50 @@ describe("values written the ways the detectors now read them too", () => {
       missed: [],
     });
     expect(readingScores.found).toBe(readingScores.positives);
+  });
+
+  test("writes every type read in every script's digits in another script's digits (#11033)", () => {
+    expect(EVERY_SCRIPT_TYPES).toEqual(
+      expect.arrayContaining([
+        "iban",
+        "us-bank-routing-number",
+        "us-ssn",
+        "phone-number",
+        "credit-card-number",
+        "br-cpf",
+        "tr-tckn",
+        "in-aadhaar",
+        "es-dni",
+        "uk-nhs-number",
+        "us-npi",
+        "passport-number",
+      ]),
+    );
+
+    const written: Array<string> = EVERY_SCRIPT_TYPES.filter(
+      (dataTypeId: string): boolean => {
+        return Boolean(CORPUS[dataTypeId]);
+      },
+    );
+
+    expect(written.length).toBeGreaterThan(60);
+
+    for (const dataTypeId of written) {
+      const entry: CorpusEntry =
+        READING_CASES[`${dataTypeId}: its values in another script's digits`]!;
+
+      expect([dataTypeId, entry.positives.length >= 2]).toEqual([
+        dataTypeId,
+        true,
+      ]);
+      // In another script's digits indeed: no ASCII digit is left in a value.
+      for (const positive of entry.positives) {
+        expect([dataTypeId, ASCII_DIGIT.test(positive.value)]).toEqual([
+          dataTypeId,
+          false,
+        ]);
+      }
+    }
   });
 
   test("draws each case from a stream of its own, the same for the same seed", () => {

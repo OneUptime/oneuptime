@@ -150,6 +150,15 @@ import PermissionGate, {
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import Name from "../../../Types/Name";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const PROJECT_ID: string = "65f00000000000000000eeee";
 const STATUS_PAGE_ID: string = "65f0000000000000000e0001";
@@ -583,6 +592,62 @@ describe("the phone and the app, while only email pages them", () => {
       ),
     ).toHaveLength(1);
   });
+
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10945): the offer is still the on-call
+   * setup, and its sentence names the phone only.
+   */
+  test("on a server whose admins took the mobile app away, the offer names the phone only", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      fetchMock.mockResolvedValue(finished({ canBePagedByPhoneOrApp: false }));
+      await draw();
+
+      const offer: HTMLElement = screen.getByTestId(
+        `getting-started-task-${WELCOME_MORE_PHONE_KEY}`,
+      );
+
+      expect(offer).toHaveTextContent(
+        WELCOME_MORE_COPY.phoneDescriptionWithoutApp,
+      );
+      expect(offer).not.toHaveTextContent("mobile app");
+      expect(offer).toHaveTextContent(WELCOME_MORE_COPY.phoneTitle);
+
+      await press(`getting-started-task-${WELCOME_MORE_PHONE_KEY}`);
+
+      expect(navigatedTo()).toBe(phoneRoute);
+    } finally {
+      forgetHelpAndSupport();
+    }
+  });
+
+  test("a page of the server's own for the app still names the app, as OneUptime's stores do", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: {
+          choice: HelpChoice.Link,
+          value: "https://portal.example.com/oneuptime",
+        },
+      }),
+    );
+
+    try {
+      fetchMock.mockResolvedValue(finished({ canBePagedByPhoneOrApp: false }));
+      await draw();
+
+      expect(
+        screen.getByTestId(`getting-started-task-${WELCOME_MORE_PHONE_KEY}`),
+      ).toHaveTextContent(WELCOME_MORE_COPY.phoneDescription);
+    } finally {
+      forgetHelpAndSupport();
+    }
+  });
 });
 
 /*
@@ -853,6 +918,7 @@ describe("in the reader's language", () => {
       WELCOME_MORE_COPY.description,
       WELCOME_MORE_COPY.phoneTitle,
       WELCOME_MORE_COPY.phoneDescription,
+      WELCOME_MORE_COPY.phoneDescriptionWithoutApp,
       WELCOME_GAP_COPY.invitationNotAccepted,
     ];
 

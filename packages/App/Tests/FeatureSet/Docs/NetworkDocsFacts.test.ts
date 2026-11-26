@@ -902,7 +902,14 @@ describe("the Network Device Monitor page: receivers on the probe", () => {
         "How many traps it forwards per minute before dropping the rest.",
         `\`${probeDefault("PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE")}\``,
       ],
+      [
+        "`PROBE_SNMP_ENGINE_ID`",
+        "The probe's SNMPv3 engine ID, in hex (5 to 32 octets). Set it only to keep the engine ID of a receiver this probe replaces.",
+        "Derived from the probe's ID",
+      ],
     ]);
+    // Unset, the SNMPv3 engine ID is derived from the probe's ID (#11005).
+    expect(PROBE_CONFIG).toContain('process.env["PROBE_SNMP_ENGINE_ID"]');
   });
 
   it("names the ports the probe takes traps, syslog and flows on, syslog over UDP and TCP on one port", () => {

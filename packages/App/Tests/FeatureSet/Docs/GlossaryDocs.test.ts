@@ -207,6 +207,7 @@ const MENU_PRODUCTS: Record<string, GlossaryTerm> = {
   proxmoxTitle: GlossaryTerm.Infrastructure,
   openstackTitle: GlossaryTerm.Infrastructure,
   vmwareTitle: GlossaryTerm.Infrastructure,
+  xcpNgTitle: GlossaryTerm.Infrastructure,
   cephTitle: GlossaryTerm.Infrastructure,
   storageArraysTitle: GlossaryTerm.Infrastructure,
   iotTitle: GlossaryTerm.Infrastructure,

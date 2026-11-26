@@ -42,7 +42,7 @@ Contano solo i risultati di livello Alto e Medio: rendono sensibile un archivio 
 
 Quando due tipi di dati rivendicano gli stessi caratteri, vince il risultato più sicuro: la confidenza più alta, poi il rilevatore le cui regole dimostrano di più, poi la corrispondenza più lunga.
 
-Un valore viene letto anche come lo scrivono le persone. Le sequenze di escape percentuali di un URL vengono lette, quindi un indirizzo IP o un indirizzo email in una query string, come `jane%40example.com`, viene trovato. Le cifre di un numero di carta vengono lette in qualsiasi scrittura, come le cifre a larghezza piena (`４１１１ １１１１ １１１１ １１１１`) o le cifre arabo-indiche, prima ogni scrittura da sola e poi insieme. Un indirizzo email viene trovato in qualsiasi scrittura, come `张伟@example.com` o `почта@пример.рф`, e un indirizzo IPv6 subito dopo i due punti di una chiave, come `ip:2001:db8::1`. Ogni risultato è il valore così come è scritto, quindi una regola di pulizia lo nasconde lì.
+Un valore viene letto anche come lo scrivono le persone. Le sequenze di escape percentuali di un URL vengono lette, compresi i byte UTF-8 di un carattere, quindi vengono trovati un indirizzo IP, un indirizzo email come `jane%40example.com` o `jos%C3%A9%40example.com`, un token o una chiave in una query string. Le cifre di un numero vengono lette in qualsiasi scrittura, come le cifre a larghezza piena (`４１１１ １１１１ １１１１ １１１１`) o le cifre arabo-indiche, prima ogni scrittura da sola e poi insieme: un numero di carta, un numero di telefono, un numero di Social Security USA, un IBAN, un routing number, un numero d'identità nazionale o un identificativo sanitario come un numero NHS. Un indirizzo email viene trovato in qualsiasi scrittura, come `张伟@example.com` o `почта@пример.рф`, e un indirizzo IPv6 subito dopo i due punti di una chiave, come `ip:2001:db8::1`. Ogni risultato è il valore così come è scritto, quindi una regola di pulizia lo nasconde lì.
 
 Un valore lungo viene letto in finestre di 64 KB che si sovrappongono di 4 KB, così un valore viene trovato intero ovunque si trovi, e di un singolo valore si leggono al massimo 4 MB.
 
@@ -60,7 +60,7 @@ Un campo i cui valori superano in media gli 80 caratteri è testo libero - note,
 
 Il nome di un campo viene diviso in parole - `customerEmail`, `customer_email` e `customer-email` sono tutti «customer email» - e il suggerimento sul nome di un tipo corrisponde quando le sue parole compaiono in quell'ordine, una accanto all'altra: «date of birth» corrisponde a `customer_date_of_birth`, non a `birth_city`. Solo l'ultima parte di un percorso con punti è il nome proprio del campo, insieme alla parte che la precede quando l'ultima è una parola generica come `number`, `id` o `value`: `customer.address.city` non è un indirizzo stradale, e `card.number` è comunque un numero di carta.
 
-Alcuni tipi di dati non si riconoscono dai loro valori: nessun pattern distingue il nome di una persona da una via, o una religione da qualsiasi altra parola. Questi vengono trovati solo dal nome del campo, quando il campo ha dei valori: Nome della persona, Nome utente, Genere, Nazionalità, Informazioni sanitarie, Origine razziale o etnica, Convinzioni religiose, Orientamento sessuale, Opinioni politiche, Appartenenza sindacale, Dati biometrici, Dati genetici e Precedenti penali. Un nome, un nome utente, un genere o una nazionalità è allora Alto quando il 60% o più dei valori sembra tale, e altrimenti Medio. Nel testo libero, i nomi delle persone e gli indirizzi stradali vengono trovati anche da un piccolo modello: vedi [Nomi e indirizzi stradali nel testo libero](#nomi-e-indirizzi-stradali-nel-testo-libero).
+Alcuni tipi di dati non si riconoscono dai loro valori: nessun pattern distingue il nome di una persona da una via, o una religione da qualsiasi altra parola. Questi vengono trovati solo dal nome del campo, quando il campo ha dei valori: Nome della persona, Nome utente, Genere, Nazionalità, Informazioni sanitarie, Origine razziale o etnica, Convinzioni religiose, Orientamento sessuale, Opinioni politiche, Appartenenza sindacale, Dati biometrici, Dati genetici e Precedenti penali. Un nome, un nome utente, un genere o una nazionalità è allora Alto quando il 60% o più dei valori sembra tale, e altrimenti Medio. Nel testo libero, i nomi delle persone e gli indirizzi stradali vengono trovati anche da un piccolo modello: vedi [Nomi e indirizzi stradali nel testo libero](#nomi-e-indirizzi-stradali-nel-testo-libero). Il nome di una persona viene trovato anche nella query string di un URL, sotto un parametro chiamato come si chiamerebbe un campo del genere, ad esempio `full_name` in `/contacts?full_name=Jos%C3%A9%20Garc%C3%ADa`: il suo valore viene letto come lo scrive un URL, è Alto quando sembra un nome, e viene trovato dove è scritto, sequenze di escape comprese. Un parametro chiamato solo `name` viene lasciato al modello.
 
 Un campo il cui nome dice che contiene una password - `password`, `passwordHash`, `pwd`, non `password_changed_at` - dovrebbe contenere un hash: bcrypt, argon2, scrypt, PBKDF2 o un altro schema che un archivio usa di solito. I valori vuoti, i segnaposto come `********` e i valori cifrati vengono messi da parte. Quando tra i restanti quelli che non sono hash sono più di quelli che lo sono, il campo contiene le password stesse, che nessun pattern può vedere, e l'archivio non supera [Le password sono conservate in chiaro](/docs/data-security/checks-and-issues#igiene-dei-dati).
 
@@ -76,11 +76,12 @@ Ogni tipo che OneUptime AI nomina è un risultato di livello Basso, contrassegna
 
 Nessun pattern distingue il nome di una persona da qualsiasi altra parola. Per questo il testo libero - una nota di supporto, una riga di log, un messaggio di eccezione, un prompt - viene letto anche da un piccolo modello linguistico che vi trova i nomi delle persone e gli indirizzi stradali. Il modello gira all'interno dello scanner, sui worker di OneUptime e sulle tue sonde: il testo non lascia mai lo scanner, mentre gira non viene scaricato nulla e non viene scritto alcun prompt. Non è OneUptime AI, e gli interruttori di OneUptime AI non lo attivano né lo disattivano: lo fa **Individua nomi e indirizzi stradali**.
 
-- **Cosa legge.** Un campo i cui valori superano in media gli 80 caratteri e, nella telemetria, ogni corpo di log, messaggio di eccezione, stack trace e conversazione IA, per quanto breve. Legge fino a 100 valori diversi di un campo, 32 KB di testo in tutto, e fino a 16 KB di un singolo valore.
+- **Cosa legge.** Un campo i cui valori superano in media gli 80 caratteri; un campo il cui nome dice che una persona vi scrive del testo libero, per quanto brevi siano i suoi valori, come `delivery_note`, `comentario`, `Lieferhinweis` o `opmerking` (vedi [Valori brevi](#valori-brevi)); e, nella telemetria, ogni corpo di log, messaggio di eccezione, stack trace e conversazione IA, per quanto breve. Legge fino a 100 valori diversi di un campo, 32 KB di testo in tutto, e fino a 16 KB di un singolo valore. Un URL in ciò che legge viene letto come un URL: le sue sequenze di escape percentuali vengono lette, e un `+` tra due lettere viene letto come uno spazio, quindi il nome in `/profile?name=Jos%C3%A9%20Garc%C3%ADa` viene trovato, e nascosto così come è scritto.
 - **Cosa trova.** Un **Nome della persona** (`person-name`) e un **Indirizzo stradale** (`postal-address`): un luogo che il modello legge accanto a un numero civico, come `14 Calle Mayor`, con il codice postale e la città che lo seguono. Una città o un paese da soli non sono un indirizzo stradale.
 - **Quanto è sicuro.** Un nome o un indirizzo trovato dal modello è Medio da solo. È Alto quando il nome del campo dice che contiene nomi o indirizzi, o quando lo dicono parole vicine, come «customer», «Kunde» o «dirección». È Basso quando il modello non ne è sicuro, con un punteggio inferiore a 0,6. Ciascuno mantiene la confidenza che ha ottenuto da solo, quindi un nome tra mille righe di log resta Medio.
 - **Valori di test.** Segnaposto come `Jane Doe`, `John Smith`, `Max Mustermann` e `123 Main Street` vengono contati a parte, come i valori di test di ogni tipo.
 - **Cosa conserva.** I suoi campioni sono mascherati come quelli di un nome trovato dal nome di un campo: il primo carattere e quattro asterischi, `M****`. Non se ne calcolano mai le impronte. Nella pagina **Contenuto** dell'archivio, un risultato di questo tipo riporta **Trovato nel testo libero dal modello dello scanner**.
+- **I suoi record, e le sue regole.** Un risultato trovato dal modello elenca i record in cui è stato trovato, con ogni riga tagliata attorno al nome o all'indirizzo e ogni nome e indirizzo che contiene mascherati, e **Ripulisci** dimostra una regola su quei record, come per ogni risultato: vengono riletti con il modello, con fino a 20 secondi del suo tempo ogni volta. Un record per cui non ha avuto tempo non è elencato, e l'elenco dice per quanti valori non ha avuto tempo. Dove il modello non può girare, l'elenco lo dice, e nessuna regola per il risultato viene dimostrata.
 
 | Modello | Licenza | Dimensione | Revisione | Lingue valutate |
 | --- | --- | --- | --- | --- |
@@ -123,11 +124,36 @@ Ecco i quattro modelli misurati su quel set di test, uno dopo l'altro sulla stes
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Valori brevi
+
+Un campo breve viene letto solo quando il suo nome dice che una persona vi scrive del testo libero. La regola è stata misurata prima di essere scelta, su 49 colonne di un database nelle sette lingue, 588 valori in tutto: nomi di prodotti, titoli, etichette, qualifiche e nomi di negozi, dove il nome di un marchio, di un personaggio o di una via non è un risultato, e brevi note di consegna, commenti dell'assistenza e osservazioni dei clienti con 91 nomi e 28 indirizzi stradali. Leggere ogni campo di quattro o più parole, la prima regola considerata, ha letto 108 valori del catalogo e ne ha ricavato 53 nomi falsi, come `Ralph Lauren` nel nome di una polo e `Tom Sawyer` nel titolo di un libro:
+
+| Regola | Valori del catalogo letti | Nomi: precisione | Nomi: richiamo | Indirizzi: precisione | Falsi risultati ogni 1.000 |
+| --- | --- | --- | --- | --- | --- |
+| Campi di quattro o più parole (non scelta) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Campi il cui nome indica testo libero (scelta) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+La regola scelta, per lingua. Un test blocca questi punteggi, e la soglia con cui è stato scelto il modello:
+
+| Lingua | Nomi: precisione | Nomi: richiamo | Indirizzi: precisione | Indirizzi: richiamo |
+| --- | --- | --- | --- | --- |
+| Inglese | 1,00 | 1,00 | 1,00 | 1,00 |
+| Spagnolo | 1,00 | 1,00 | 1,00 | 1,00 |
+| Tedesco | 1,00 | 1,00 | 1,00 | 1,00 |
+| Francese | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italiano | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portoghese | 0,86 | 0,92 | 1,00 | 1,00 |
+| Olandese | 1,00 | 1,00 | 1,00 | 1,00 |
+| Tutte e sette | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Conta il nome del campo stesso: `orders.delivery_note` viene letto, `notes.author` no, e nemmeno un nome che finisce con un id, un conteggio, un tipo, uno stato o una data, come `message_id`. Una descrizione non viene letta per il suo nome: quella di un prodotto è testo di catalogo.
+
 ### Dove gira e quanto costa
 
 - **In ogni immagine.** L'immagine App, che esegue i worker, e l'immagine della sonda contengono il modello, il suo vocabolario e il runtime, comprese le immagini air-gapped e Iron Bank: circa 114 MB su disco. Vengono scaricati quando l'immagine viene costruita, da una revisione fissata, e verificati con il loro SHA-256. Durante una scansione non viene scaricato nulla.
 - **Memoria.** Viene caricato la prima volta che una scansione ne ha bisogno, una volta per processo: circa 550 MB, rilasciati dopo 10 minuti senza scansioni.
 - **Tempo.** Su un core, tra 30 secondi e un minuto ogni 1.000 valori lunghi quanto una riga di log, e circa 9 minuti ogni 1.000 valori di 1.200 caratteri. Una scansione del contenuto di un archivio gli concede fino a 2 minuti. La scansione oraria della telemetria gli concede fino a 1 minuto in tutto e 6 secondi per archivio, a un gruppo diverso di archivi ogni ora.
+- **A turno.** Il modello di ogni scansione dei contenuti riparte da dove si è fermato quello della precedente: dalla prima tabella o dal primo container di cui non ha letto il testo libero, e con gli oggetti di un bucket per cui non ha avuto tempo, che vengono riletti prima di ogni altro. Ciò che ha iniziato e non ha potuto finire non torna primo, così niente trattiene il suo tempo scansione dopo scansione, e ogni tabella e ogni oggetto ha il suo turno, per quanto testo libero contenga l'archivio dati.
 - **Quando il suo tempo si esaurisce**, la scansione si conclude con ciò che il modello ha letto, e i suoi avvisi dicono quanti valori di testo libero ha letto, mai cosa contengono. Un worker o una sonda senza il modello esegue la scansione come prima e dice perché:
 
 ```text
@@ -135,7 +161,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Individua nomi e indirizzi stradali** è attivo in ogni progetto: le scansioni del contenuto di bucket, database e dataset BigQuery leggono il testo libero con il modello, sui worker e sulle sonde. **Individua nomi e indirizzi stradali nella telemetria**, subito sotto, è disattivato: leggere una sola volta ogni corpo di log, eccezione e conversazione di un progetto molto attivo con 200 servizi richiede circa 48 minuti di un core, e il minuto all'ora della scansione ne legge circa il 4%. Attivalo perché ogni scansione oraria ne legga una parte. Entrambi si trovano su **Sicurezza dei dati → Impostazioni → Impostazioni di scansione**, sotto **Cosa legge Sicurezza dei dati**. La casella **Testalo** funziona nel tuo browser, senza il modello: lì non compare ciò che il modello troverebbe.
+I dettagli di una scansione mostrano questi avvisi, e ogni altro avviso di una scansione dei contenuti o della telemetria, nella lingua di chi legge.
+
+**Individua nomi e indirizzi stradali** è attivo in ogni progetto: le scansioni del contenuto di bucket, database e dataset BigQuery leggono il testo libero con il modello, sui worker e sulle sonde. **Individua nomi e indirizzi stradali nella telemetria**, subito sotto, è disattivato: leggere una sola volta ogni corpo di log, eccezione e conversazione di un progetto molto attivo con 200 servizi richiede circa 48 minuti di un core, e il minuto all'ora della scansione ne legge circa il 4%. Attivalo perché ogni scansione oraria ne legga una parte. Entrambi si trovano su **Sicurezza dei dati → Impostazioni → Impostazioni di scansione**, sotto **Cosa legge Sicurezza dei dati**. La casella **Testalo** funziona nel tuo browser, senza il modello: lì non compare ciò che il modello troverebbe. Il modello aggiungerebbe circa 113 MB da scaricare, 67 MB compressi, e circa 440 MB alla memoria della scheda, quindi gira solo nello scanner.
 
 ## Sensibilità
 

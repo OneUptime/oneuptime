@@ -21,7 +21,10 @@ import {
  * CLUSTER. Both replicas end up with the token back in the person's
  * events, everything else about those events and everybody else's
  * events as they were, and no vault row of the person - while somebody
- * else's stays.
+ * else's stays. The Detection Findings a rule wrote about the person
+ * (#11044) are read through the Distributed table and changed ON CLUSTER
+ * the same way: the token in the person's place on both replicas, and
+ * nothing either replica keeps of the mutation naming them.
  *
  * Opt-in: it needs the cluster, which the docker compose file beside the
  * erasure suite starts (Tests/Workers/Fixtures/ClickhouseKeeperCluster):
@@ -76,10 +79,22 @@ import SecurityUserVaultService, {
 } from "Common/Server/Services/SecurityUserVaultService";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import SecurityUserErasureEvents from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureEvents";
+import SecurityUserErasureFindings, {
+  FINDING_USER_ERASED_ATTRIBUTE,
+  FindingsScanResult,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureFindings";
 import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  DETECTION_FINDING_CLASS_NAME,
+  DETECTION_FINDING_CLASS_UID,
+  DETECTION_GROUP_VALUE_ATTRIBUTE,
+  DETECTION_MATCH_COUNT_ATTRIBUTE,
+  DETECTION_RULE_NAME_ATTRIBUTE,
+  DETECTION_SUMMARY_ATTRIBUTE,
+} from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   ERASED_USER_ATTRIBUTES,
@@ -87,6 +102,7 @@ import {
   ScrubbedUserRole,
   USER_ERASED_ON_REQUEST,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
+import { ErasedName } from "Common/Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import AnalyticsTableManagement from "../../FeatureSet/Workers/Utils/AnalyticsDatabase/TableManegement";
 
 const endpoint: string | undefined =
@@ -448,5 +464,212 @@ integration("an erasure on a replicated cluster", () => {
     );
 
     expect(histogram).toEqual([{ severityName: "Medium", c: "2" }]);
+  });
+
+  /*
+   * #11044: the Detection Findings a rule wrote about the person, read
+   * through the Distributed table and changed by a mutation on the local
+   * tables, ON CLUSTER - both replicas end up with the token where the
+   * person was, and nothing ClickHouse keeps of the mutation, on either
+   * replica, names them.
+   */
+  test("the person comes out of the Detection Findings a rule wrote about them, on both replicas; somebody else's stay", async () => {
+    const aliceToken: string = tokenOf(ALICE);
+    const authZeroAlice: string = `auth0|${ALICE}`;
+
+    function findingRow(data: {
+      uid: string;
+      ruleName: string;
+      groupValue: string;
+      observables: Array<string>;
+      summary?: string | undefined;
+    }): JSONObject {
+      const time: Date = OneUptimeDate.addRemoveMinutes(new Date(), -2);
+      const attributes: Record<string, string> = {
+        [DETECTION_RULE_NAME_ATTRIBUTE]: data.ruleName,
+        [DETECTION_MATCH_COUNT_ATTRIBUTE]: "5",
+        [DETECTION_GROUP_VALUE_ATTRIBUTE]: data.groupValue,
+        ...(data.summary
+          ? { [DETECTION_SUMMARY_ATTRIBUTE]: data.summary }
+          : {}),
+      };
+
+      return {
+        _id: ObjectID.generate().toString(),
+        projectId: PROJECT_ID.toString(),
+        primaryEntityId: SOURCE_ID.toString(),
+        primaryEntityType: ServiceType.OpenTelemetry,
+        time: OneUptimeDate.toClickhouseDateTime64(time),
+        createdAt: OneUptimeDate.toClickhouseDateTime(time),
+        eventUid: data.uid,
+        classUid: DETECTION_FINDING_CLASS_UID,
+        className: DETECTION_FINDING_CLASS_NAME,
+        severityId: 4,
+        severityName: "High",
+        statusName: "New",
+        vendorName: "OneUptime",
+        productName: "OneUptime Detections",
+        ruleId: data.uid,
+        ruleName: data.ruleName,
+        message: `Detection: ${data.ruleName} — ${data.groupValue} (5 events${data.summary ? `; ${data.summary}` : ""})`,
+        observables: data.observables,
+        attributes,
+        attributeKeys: Object.keys(attributes),
+        retentionDate: OneUptimeDate.toClickhouseDateTime(
+          OneUptimeDate.addRemoveDays(new Date(), 30),
+        ),
+      };
+    }
+
+    await (
+      SecurityEventService as AnalyticsDatabaseService<SecurityEvent>
+    ).insertJsonRows(
+      [
+        findingRow({
+          uid: "finding-alice",
+          ruleName: "Brute force",
+          groupValue: ALICE,
+          observables: [ALICE, "203.0.113.7"],
+        }),
+        findingRow({
+          uid: "finding-new-user",
+          ruleName: "First sign-in",
+          groupValue: "203.0.113.7",
+          observables: ["203.0.113.7", authZeroAlice, BOB],
+          summary: `First principalUser in 7 days: ${authZeroAlice}, ${BOB}`,
+        }),
+        findingRow({
+          uid: "finding-bob",
+          ruleName: "Brute force",
+          groupValue: BOB,
+          observables: [BOB],
+        }),
+      ],
+      {
+        clickhouseSettings: {
+          wait_for_async_insert: 1,
+          insert_distributed_sync: 1,
+        },
+      },
+    );
+
+    await waitUntil("both replicas hold the findings", async () => {
+      const held: Array<JSONObject> = await rows(
+        `SELECT hostName() AS replica, toString(count()) AS c FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE className = '${DETECTION_FINDING_CLASS_NAME}' GROUP BY replica`,
+      );
+
+      return (
+        held.length === REPLICAS.length &&
+        held.every((row: JSONObject): boolean => {
+          return Number(row["c"]) === 3;
+        })
+      );
+    });
+
+    const names: Array<ErasedName> = [
+      { named: ALICE, hashed: aliceToken },
+      { named: authZeroAlice, hashed: `auth0|${aliceToken}` },
+    ];
+    const found: FindingsScanResult =
+      await SecurityUserErasureFindings.findNamingFindings({
+        projectId: PROJECT_ID,
+        names,
+      });
+
+    expect(found.rewrites).toHaveLength(2);
+
+    // As an install sends it: a mutation on the local table, ON CLUSTER.
+    expect(
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId: PROJECT_ID,
+        rewrites: found.rewrites,
+      }),
+    ).toBe(2);
+
+    const findingsQuery: string = `SELECT hostName() AS replica, eventUid, message, observables, attributes, attributeKeys FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE className = '${DETECTION_FINDING_CLASS_NAME}' ORDER BY replica, eventUid`;
+
+    await waitUntil("both replicas apply the findings' change", async () => {
+      const findings: Array<JSONObject> = await rows(findingsQuery);
+
+      return (
+        findings.length === REPLICAS.length * 3 &&
+        findings
+          .filter((row: JSONObject): boolean => {
+            return row["eventUid"] !== "finding-bob";
+          })
+          .every((row: JSONObject): boolean => {
+            return !JSON.stringify(row).includes(ALICE);
+          })
+      );
+    });
+
+    for (const row of await rows(findingsQuery)) {
+      const attributes: Record<string, string> = row["attributes"] as Record<
+        string,
+        string
+      >;
+
+      if (row["eventUid"] === "finding-alice") {
+        expect(row["message"]).toBe(
+          `Detection: Brute force — ${aliceToken} (5 events)`,
+        );
+        expect(row["observables"]).toEqual([aliceToken, "203.0.113.7"]);
+        expect(attributes[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(aliceToken);
+      }
+
+      if (row["eventUid"] === "finding-new-user") {
+        expect(row["message"]).toBe(
+          `Detection: First sign-in — 203.0.113.7 (5 events; First principalUser in 7 days: auth0|${aliceToken}, ${BOB})`,
+        );
+        expect(row["observables"]).toEqual([
+          "203.0.113.7",
+          `auth0|${aliceToken}`,
+          BOB,
+        ]);
+        expect(attributes[DETECTION_SUMMARY_ATTRIBUTE]).toBe(
+          `First principalUser in 7 days: auth0|${aliceToken}, ${BOB}`,
+        );
+      }
+
+      if (row["eventUid"] === "finding-bob") {
+        expect(row["message"]).toBe(
+          `Detection: Brute force — ${BOB} (5 events)`,
+        );
+        expect(row["observables"]).toEqual([BOB]);
+        expect(attributes[FINDING_USER_ERASED_ATTRIBUTE]).toBeUndefined();
+        continue;
+      }
+
+      expect(attributes[FINDING_USER_ERASED_ATTRIBUTE]).toBe(
+        USER_ERASED_ON_REQUEST,
+      );
+      expect((row["attributeKeys"] as Array<string>).sort()).toEqual(
+        Object.keys(attributes).sort(),
+      );
+    }
+
+    expect(
+      await SecurityUserErasureFindings.isAnyFindingNaming({
+        projectId: PROJECT_ID,
+        names,
+      }),
+    ).toBe(false);
+
+    // What both replicas keep of the mutations: ids, tokens and lengths, never the person.
+    const commands: Array<JSONObject> = await rows(
+      `SELECT hostName() AS replica, command FROM clusterAllReplicas('${CLUSTER}', system.mutations) WHERE database = '${database}'`,
+    );
+
+    expect(
+      new Set(
+        commands.map((row: JSONObject): unknown => {
+          return row["replica"];
+        }),
+      ).size,
+    ).toBe(REPLICAS.length);
+
+    for (const row of commands) {
+      expect(String(row["command"]).toLowerCase()).not.toContain("alice");
+    }
   });
 });

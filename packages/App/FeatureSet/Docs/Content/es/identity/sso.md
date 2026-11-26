@@ -259,6 +259,41 @@ Un proyecto también puede iniciar sesión mediante un proveedor OpenID Connect,
 6. Abre el enlace de la tarjeta **Enlace de inicio de sesión con SSO** y elige el proveedor, para iniciar sesión con él antes de exigir SSO en el proyecto.
 :::
 
+## Direcciones de correo que tu proveedor de identidad no ha verificado
+
+Un inicio de sesión con OpenID Connect encuentra la cuenta de OneUptime de la persona por la dirección de correo que envía tu proveedor de identidad, y puede crear una cuenta con esa dirección. Algunos proveedores dejan que las personas pongan una dirección en su propia cuenta sin demostrar que es suya, y lo indican en la claim estándar `email_verified`. Por eso OneUptime no inicia la sesión de nadie con una dirección que tu proveedor dice no haber verificado: alguien podría haber puesto la dirección de otra persona en su cuenta para iniciar sesión como ella.
+
+| `email_verified` | El inicio de sesión |
+| --- | --- |
+| `true`, o `"true"` y `1` | Continúa |
+| No se envía, como en Microsoft Entra ID y AD FS | Continúa |
+| `false`, o `"false"` y `0` | Se rechaza |
+| Cualquier otro valor, como `"yes"` | Se rechaza: OneUptime no puede saberlo |
+
+- La regla vale para cada cuenta, en la web y en la app móvil: una que existe, incluida la de un administrador, y una que el inicio de sesión crearía. Un inicio de sesión rechazado no crea ninguna cuenta, no añade a nadie a un equipo, no acepta ninguna invitación y no envía ningún correo.
+- OneUptime lee `email_verified` de donde vino la dirección, el token de ID o el endpoint userinfo, y solo cuando la dirección es la claim `email`. Un proveedor configurado para enviar la dirección en otra claim, como `preferred_username` o `upn`, inicia la sesión de las personas como antes, así que usa una claim que tus usuarios no puedan cambiar por sí mismos.
+- La persona ve "Your identity provider did not confirm your email address.", y se le pide que verifique su dirección con tu proveedor de identidad, o que te pida marcarla allí como verificada, y que luego vuelva a iniciar sesión. La app móvil muestra `provider_email_not_verified` con el mismo consejo. Cuando una cuenta tiene esa dirección, los registros de auditoría de sus proyectos anotan el intento como un inicio de sesión fallido.
+- Los proveedores SAML no leen `email_verified`, ni tampoco los proveedores OpenID Connect de las páginas de estado, los paneles y los formularios, que inician la sesión de las personas como sus propios usuarios privados.
+
+Los proveedores que verifican las direcciones que envían, como Google y Okta, inician la sesión de las personas como antes. authentik y Keycloak pueden necesitar un cambio:
+
+:::tabs
+@tab authentik
+authentik 2025.10 y posteriores envía `email_verified` como `false` para todos con su mapeo de alcance `email` predeterminado, así que nadie inicia sesión a través de él hasta que sustituyas ese mapeo, como describe la guía de authentik [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/):
+
+1. En **Customization** > **Property Mappings**, haz clic en **New Property Mapping**, selecciona **Scope Mapping** y haz clic en **Next**.
+2. Ponle un nombre al mapeo, establece **Scope name** en `email`, introduce la **Expression** de la guía que corresponda a cómo se verifican las direcciones de tus usuarios y haz clic en **Finish**.
+3. Abre el proveedor de tu aplicación, sustituye en **Scopes** el mapeo `email` predeterminado por el tuyo y guarda el proveedor.
+
+No envíes `true` para cada dirección mientras las personas puedan cambiar su propia dirección en authentik: el mapeo respondería por cualquier dirección que alguien ponga en su cuenta. Las versiones anteriores a 2025.10 envían `true` para cada dirección, así que no dejes que las personas cambien allí su propia dirección.
+@tab Keycloak
+Keycloak envía `email_verified` como `false` para las personas cuya dirección no ha verificado: las que un administrador creó con **Email verified** desactivado, y las que se registraron o cambiaron su dirección mientras **Verify email** estaba desactivado.
+
+- Para que la verifiquen, activa **Verify email** en **Realm settings** > **Login** > **Email settings**. Keycloak pide entonces a cada una que verifique su dirección con un correo la próxima vez que inicie sesión, así que el realm necesita un servidor de correo configurado.
+- Para responder tú mismo por la dirección de una persona, activa **Email verified** en su página de Keycloak y haz clic en **Save**.
+- Para las personas que vienen de LDAP o Active Directory, activa **Trust Email** en los **Advanced settings** del proveedor en **User federation**. Keycloak marca entonces una dirección como verificada cuando importa a la persona: activa **Email verified** para las personas que importó antes.
+:::
+
 ## Cerrar sesión también en el proveedor de identidad
 
 Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido, como una pantalla del NOC o un quiosco, la siguiente persona que elige el proveedor en la página de inicio de sesión entra como la que se fue. En un proveedor SAML u OIDC, activa **Cerrar sesión también en el proveedor de identidad** en **Más campos** para que cerrar sesión en OneUptime también termine la sesión en el proveedor. Está desactivado por defecto: en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor. Se aplica a las personas que inician sesión en un navegador después de activarlo; la aplicación móvil solo cierra la sesión en OneUptime.
@@ -456,6 +491,10 @@ Cada respuesta de tu IdP inicia sesión una sola vez. Volver atrás en el navega
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID inició la sesión de alguien con la dirección de correo de una cuenta que está vinculada, mediante este proveedor, a otro ID de objeto: otra persona tiene ahora esa dirección en Entra ID, o la cuenta de Entra ID de la persona se volvió a crear. OneUptime rechaza el inicio de sesión, para que quien tenga después esa dirección no pueda usar la cuenta. Si la cuenta es de esa persona, quítala del proyecto y vuelve a añadirla: su siguiente inicio de sesión vinculará la cuenta a su nuevo ID de objeto.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Tu proveedor OpenID Connect envió `email_verified` como `false`, o como algo que no es ni true ni false, así que OneUptime no inició la sesión de nadie. Haz que se verifique la dirección en tu proveedor de identidad, o márcala allí como verificada, y vuelve a iniciar sesión. [Direcciones de correo que tu proveedor de identidad no ha verificado](#direcciones-de-correo-que-tu-proveedor-de-identidad-no-ha-verificado) indica qué cambiar en authentik y Keycloak.
 :::
 
 :::details El inicio de sesión falla con un error de firma o de certificado

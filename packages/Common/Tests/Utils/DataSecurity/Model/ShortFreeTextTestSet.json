@@ -1,0 +1,936 @@
+{
+ "description": "Short database values in seven languages, for #10927: should the scanner's names-and-addresses model read fields whose values are short? Catalog-like columns (product names, titles, labels, job titles and store names) where a person's or a place's name is a brand's, a character's or a street's and no finding, and short note columns (delivery notes, support comments, customer remarks) with the people's names [[N:...]] and street addresses [[A:...]] they hold marked. Written for OneUptime; every person and address is made up.",
+ "fields": [
+  {
+   "language": "en",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "Stainless Steel Water Bottle 750 ml",
+    "Ralph Lauren Slim Fit Polo Shirt",
+    "Calvin Klein Cotton Boxer Briefs 3-Pack",
+    "Tommy Hilfiger Classic Baseball Cap",
+    "Dr. Martens 1460 Smooth Leather Boots",
+    "Jack Daniel's Tennessee Whiskey 70cl",
+    "Ben & Jerry's Cookie Dough Ice Cream 465ml",
+    "Paul Smith Signature Stripe Wallet",
+    "Wireless Optical Mouse M185",
+    "Organic Green Tea, 20 Bags",
+    "Kids' Waterproof Rain Jacket, Age 6",
+    "Johnnie Walker Black Label 12 Year Old"
+   ]
+  },
+  {
+   "language": "en",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter and the Goblet of Fire",
+    "The Adventures of Tom Sawyer",
+    "Pride and Prejudice",
+    "Charlie and the Chocolate Factory",
+    "The Talented Mr. Ripley",
+    "Oliver Twist",
+    "Jane Eyre",
+    "Bridget Jones's Diary",
+    "The Lord of the Rings: The Two Towers",
+    "Abbey Road (Remastered)",
+    "A Brief History of Time",
+    "Rebecca"
+   ]
+  },
+  {
+   "language": "en",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "Out of stock",
+    "Kitchen & dining",
+    "Pending approval",
+    "Ready to ship",
+    "Gift ideas under £20",
+    "Returned to sender",
+    "Back in stock soon",
+    "Garden furniture",
+    "Awaiting payment",
+    "Clearance",
+    "Bestsellers",
+    "Shipped"
+   ]
+  },
+  {
+   "language": "en",
+   "name": "staff.job_title",
+   "kind": "catalog",
+   "values": [
+    "Senior Software Engineer",
+    "Head of Customer Success",
+    "Regional Sales Manager, North West",
+    "Warehouse Operative (Nights)",
+    "Finance Director",
+    "Junior Graphic Designer",
+    "Store Manager",
+    "Customer Service Advisor",
+    "Data Protection Officer",
+    "Assistant Buyer, Womenswear",
+    "Delivery Driver",
+    "Marketing Executive"
+   ]
+  },
+  {
+   "language": "en",
+   "name": "orders.delivery_note",
+   "kind": "notes",
+   "values": [
+    "Leave the parcel with [[N:Tom Fletcher]] at number 14",
+    "Ring twice, side door",
+    "Deliver to [[A:12 Elm Grove]], not the shop",
+    "If out, leave with [[N:Sunita Patel]] next door",
+    "Please do not leave in the porch",
+    "Back gate code 4471",
+    "Ask for [[N:Gareth]] at reception",
+    "Use the entrance on [[A:3 Mill Lane]]",
+    "Fragile, handle with care",
+    "Signature required from [[N:Hannah Clarke]]",
+    "Deliver after 5pm on weekdays",
+    "Parcel for [[N:Owen Hughes]], flat 2"
+   ]
+  },
+  {
+   "language": "en",
+   "name": "tickets.comment",
+   "kind": "notes",
+   "values": [
+    "Called [[N:Jonas Becker]] about the late invoice",
+    "Customer wants a refund",
+    "Refund approved for [[N:Emily Carter]], [[A:27 Station Road]], Leeds",
+    "Card declined twice, asked to retry tomorrow",
+    "[[N:Liam O'Brien]] says the item arrived damaged",
+    "Resent the confirmation email",
+    "Escalated to [[N:Priya Shah]] in billing",
+    "Duplicate order, cancelled one",
+    "Address updated to [[A:8 Queen Street]], Bristol",
+    "Waiting for the courier to confirm",
+    "Spoke to [[N:Daniel]], he will call back Monday",
+    "Discount code applied manually"
+   ]
+  },
+  {
+   "language": "en",
+   "name": "crm.remarks",
+   "kind": "notes",
+   "values": [
+    "Met [[N:Sarah Mitchell]] at the trade fair",
+    "Prefers email",
+    "VIP since 2019",
+    "Do not call before 10am",
+    "Introduced by [[N:Mark Evans]]",
+    "Interested in the annual plan",
+    "Renewal due in March",
+    "Asked for a quote for 40 seats",
+    "[[N:Rachel Turner]] is the new contact",
+    "Unsubscribed from newsletters",
+    "Speaks French and German",
+    "Pays by bank transfer only"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "Botella de agua de acero inoxidable 750 ml",
+    "Polo de algodón Ralph Lauren slim fit",
+    "Vaqueros Calvin Klein slim azul oscuro",
+    "Gorra clásica Tommy Hilfiger",
+    "Botas Dr. Martens 1460 de piel",
+    "Whisky Jack Daniel's 70 cl",
+    "Chaqueta de punto Massimo Dutti",
+    "Camisa Pedro del Hierro manga larga",
+    "Ratón inalámbrico óptico M185",
+    "Té verde ecológico, 20 bolsitas",
+    "Chubasquero infantil impermeable, talla 6",
+    "Aceite de oliva virgen extra 1 l"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter y el cáliz de fuego",
+    "Don Quijote de la Mancha",
+    "Las aventuras de Tom Sawyer",
+    "Cien años de soledad",
+    "La sombra del viento",
+    "Marianela",
+    "Platero y yo",
+    "Fortunata y Jacinta",
+    "Manolito Gafotas",
+    "Mafalda: todas las tiras",
+    "El amor en los tiempos del cólera",
+    "La casa de Bernarda Alba"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "Agotado",
+    "Cocina y comedor",
+    "Pendiente de aprobación",
+    "Listo para enviar",
+    "Ideas de regalo por menos de 20 €",
+    "Devuelto al remitente",
+    "Vuelve pronto",
+    "Muebles de jardín",
+    "Pendiente de pago",
+    "Liquidación",
+    "Más vendidos",
+    "Enviado"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "stores.store_name",
+   "kind": "catalog",
+   "values": [
+    "Tienda Gran Vía",
+    "Outlet Las Rozas",
+    "Tienda Paseo de Gracia",
+    "Almacén Getafe",
+    "Tienda Calle Serrano",
+    "Córner El Corte Inglés Castellana",
+    "Tienda Plaza Mayor",
+    "Punto de recogida Atocha",
+    "Tienda Rambla de Catalunya",
+    "Tienda Avenida de la Constitución",
+    "Outlet Puerto Venecia",
+    "Tienda Calle Larios"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "pedidos.nota_entrega",
+   "kind": "notes",
+   "values": [
+    "Dejar el paquete a [[N:Lucía Fernández]], en el 3º B",
+    "Llamar dos veces, puerta lateral",
+    "Entregar en [[A:Calle Mayor 14]], no en la tienda",
+    "Si no estoy, dejar con [[N:Carmen Ruiz]], la vecina",
+    "No dejar en el portal",
+    "Código del portal 4471",
+    "Preguntar por [[N:Javier]] en recepción",
+    "Entrar por [[A:Calle del Prado 3]]",
+    "Frágil, manejar con cuidado",
+    "Firma obligatoria de [[N:Andrés Molina]]",
+    "Entregar después de las 17:00",
+    "Paquete para [[N:Elena Navarro]], 2º izquierda"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "tickets.comentario",
+   "kind": "notes",
+   "values": [
+    "Llamé a [[N:Jorge Martín]] por la factura atrasada",
+    "El cliente quiere un reembolso",
+    "Reembolso aprobado para [[N:María González]], [[A:Calle Mayor 14]], Madrid",
+    "Tarjeta rechazada dos veces, reintentar mañana",
+    "[[N:Pablo Ortega]] dice que el artículo llegó roto",
+    "Reenviado el correo de confirmación",
+    "Escalado a [[N:Marta Delgado]] de facturación",
+    "Pedido duplicado, cancelado uno",
+    "Dirección cambiada a [[A:Avenida de América 22]], Madrid",
+    "Esperando confirmación del transportista",
+    "Hablé con [[N:Sergio]], llamará el lunes",
+    "Código de descuento aplicado a mano"
+   ]
+  },
+  {
+   "language": "es",
+   "name": "crm.observaciones",
+   "kind": "notes",
+   "values": [
+    "Conocí a [[N:Laura Sánchez]] en la feria",
+    "Prefiere correo electrónico",
+    "Cliente VIP desde 2019",
+    "No llamar antes de las 10",
+    "Recomendado por [[N:Raúl Iglesias]]",
+    "Interesado en el plan anual",
+    "Renovación en marzo",
+    "Pidió presupuesto para 40 puestos",
+    "[[N:Cristina Vega]] es el nuevo contacto",
+    "Dado de baja del boletín",
+    "Habla francés e inglés",
+    "Paga solo por transferencia"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "Edelstahl-Trinkflasche 750 ml",
+    "Ralph Lauren Poloshirt Slim Fit",
+    "Calvin Klein Boxershorts 3er-Pack",
+    "Tommy Hilfiger Baseballkappe",
+    "Hugo Boss Bottled Eau de Toilette 100 ml",
+    "Dr. Martens 1460 Glattlederstiefel",
+    "Marc O'Polo Strickpullover aus Wolle",
+    "Kabellose Maus M185",
+    "Bio-Grüntee, 20 Beutel",
+    "Regenjacke für Kinder, Größe 116",
+    "Jack Daniel's Tennessee Whiskey 0,7 l",
+    "Haribo Goldbären 200 g"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter und der Feuerkelch",
+    "Die Abenteuer des Tom Sawyer",
+    "Pippi Langstrumpf",
+    "Emil und die Detektive",
+    "Effi Briest",
+    "Die Leiden des jungen Werthers",
+    "Momo",
+    "Jim Knopf und Lukas der Lokomotivführer",
+    "Der kleine Prinz",
+    "Das Parfum",
+    "Buddenbrooks",
+    "Heidi"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "Ausverkauft",
+    "Küche & Esszimmer",
+    "Freigabe ausstehend",
+    "Versandbereit",
+    "Geschenkideen unter 20 €",
+    "An Absender zurück",
+    "Bald wieder da",
+    "Gartenmöbel",
+    "Zahlung ausstehend",
+    "Sale",
+    "Bestseller",
+    "Versendet"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "staff.job_title",
+   "kind": "catalog",
+   "values": [
+    "Senior Softwareentwickler (m/w/d)",
+    "Leitung Kundenerfolg",
+    "Regionalvertriebsleiter Süd",
+    "Lagermitarbeiter Nachtschicht",
+    "Finanzvorstand",
+    "Junior Grafikdesignerin",
+    "Filialleitung",
+    "Kundenservice-Berater",
+    "Datenschutzbeauftragter",
+    "Assistenz Einkauf Damenmode",
+    "Auslieferungsfahrer",
+    "Marketing Manager"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "bestellungen.lieferhinweis",
+   "kind": "notes",
+   "values": [
+    "Paket bitte bei [[N:Jonas Becker]] im 2. Stock abgeben",
+    "Zweimal klingeln, Seiteneingang",
+    "Lieferung an [[A:Hauptstraße 5]], nicht an den Laden",
+    "Falls nicht da, bei [[N:Petra Schneider]] nebenan",
+    "Nicht vor der Haustür abstellen",
+    "Tor-Code 4471",
+    "Am Empfang nach [[N:Lukas]] fragen",
+    "Eingang über [[A:Lindenweg 3]]",
+    "Zerbrechlich, vorsichtig behandeln",
+    "Unterschrift von [[N:Sabine Wagner]] erforderlich",
+    "Lieferung werktags ab 17 Uhr",
+    "Paket für [[N:Felix Hoffmann]], Hinterhaus"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "tickets.kommentar",
+   "kind": "notes",
+   "values": [
+    "[[N:Stefan Braun]] wegen der verspäteten Rechnung angerufen",
+    "Kunde möchte eine Rückerstattung",
+    "Erstattung genehmigt für [[N:Anna Müller]], [[A:Gartenstraße 27]], Leipzig",
+    "Karte zweimal abgelehnt, morgen erneut versuchen",
+    "[[N:Tobias Klein]] sagt, die Ware kam beschädigt an",
+    "Bestätigungsmail erneut gesendet",
+    "An [[N:Julia Fischer]] in der Buchhaltung eskaliert",
+    "Doppelte Bestellung, eine storniert",
+    "Adresse geändert auf [[A:Bahnhofstraße 8]], Bremen",
+    "Warten auf Rückmeldung des Kuriers",
+    "Mit [[N:Markus]] gesprochen, ruft Montag zurück",
+    "Rabattcode manuell angewendet"
+   ]
+  },
+  {
+   "language": "de",
+   "name": "crm.bemerkungen",
+   "kind": "notes",
+   "values": [
+    "[[N:Katrin Weber]] auf der Messe getroffen",
+    "Bevorzugt E-Mail",
+    "VIP-Kunde seit 2019",
+    "Nicht vor 10 Uhr anrufen",
+    "Empfohlen von [[N:Michael Schulz]]",
+    "Interesse am Jahresabo",
+    "Verlängerung im März fällig",
+    "Angebot für 40 Lizenzen angefragt",
+    "[[N:Laura Koch]] ist die neue Ansprechpartnerin",
+    "Newsletter abbestellt",
+    "Spricht Französisch und Englisch",
+    "Zahlt nur per Überweisung"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "Gourde en acier inoxydable 750 ml",
+    "Polo Ralph Lauren coupe ajustée",
+    "Jean Calvin Klein slim bleu foncé",
+    "Casquette Tommy Hilfiger classique",
+    "Eau de toilette Jean Paul Gaultier Le Male 125 ml",
+    "Bottines Dr. Martens 1460 en cuir",
+    "Sac Agnès b. en toile",
+    "Souris sans fil M185",
+    "Thé vert bio, 20 sachets",
+    "Imperméable enfant, taille 6 ans",
+    "Whisky Jack Daniel's 70 cl",
+    "Crème Nivea Soft 200 ml"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter et la Coupe de feu",
+    "Les Aventures de Tom Sawyer",
+    "Madame Bovary",
+    "Le Comte de Monte-Cristo",
+    "Le Petit Prince",
+    "Astérix le Gaulois",
+    "Les Misérables",
+    "Tintin au Tibet",
+    "Le Petit Nicolas",
+    "Bel-Ami",
+    "Thérèse Raquin",
+    "Les Trois Mousquetaires"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "En rupture de stock",
+    "Cuisine et salle à manger",
+    "En attente de validation",
+    "Prêt à expédier",
+    "Idées cadeaux à moins de 20 €",
+    "Retourné à l'expéditeur",
+    "Bientôt de retour",
+    "Mobilier de jardin",
+    "En attente de paiement",
+    "Soldes",
+    "Meilleures ventes",
+    "Expédié"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "stores.store_name",
+   "kind": "catalog",
+   "values": [
+    "Boutique Champs-Élysées",
+    "Magasin Rue de Rivoli",
+    "Outlet La Vallée Village",
+    "Entrepôt Gennevilliers",
+    "Boutique Place Bellecour",
+    "Corner Galeries Lafayette Haussmann",
+    "Boutique Vieux-Port",
+    "Point retrait Gare de Lyon",
+    "Magasin Rue Sainte-Catherine",
+    "Boutique Avenue Jean-Médecin",
+    "Magasin Grand-Place Lille",
+    "Boutique Rue du Faubourg Saint-Honoré"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "commandes.note_livraison",
+   "kind": "notes",
+   "values": [
+    "Laisser le colis à [[N:Camille Martin]], au 2e étage",
+    "Sonner deux fois, porte de côté",
+    "Livrer au [[A:22 rue de la Paix]], pas au magasin",
+    "Si absent, déposer chez [[N:Sophie Bernard]], la voisine",
+    "Ne pas laisser devant la porte",
+    "Digicode 4471",
+    "Demander [[N:Julien]] à l'accueil",
+    "Entrée par le [[A:3 rue des Lilas]]",
+    "Fragile, manipuler avec soin",
+    "Signature de [[N:Antoine Dubois]] obligatoire",
+    "Livrer après 17 h en semaine",
+    "Colis pour [[N:Claire Moreau]], bâtiment B"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "tickets.commentaire",
+   "kind": "notes",
+   "values": [
+    "Appelé [[N:Nicolas Petit]] pour la facture en retard",
+    "Le client veut un remboursement",
+    "Remboursement accordé à [[N:Marie Lefèvre]], [[A:14 avenue Victor Hugo]], Lyon",
+    "Carte refusée deux fois, réessayer demain",
+    "[[N:Thomas Roux]] dit que l'article est arrivé abîmé",
+    "E-mail de confirmation renvoyé",
+    "Transmis à [[N:Isabelle Fournier]] à la facturation",
+    "Commande en double, une annulée",
+    "Adresse changée pour le [[A:8 rue Nationale]], Tours",
+    "En attente de confirmation du transporteur",
+    "Parlé à [[N:Hugo]], il rappelle lundi",
+    "Code promo appliqué manuellement"
+   ]
+  },
+  {
+   "language": "fr",
+   "name": "crm.remarques",
+   "kind": "notes",
+   "values": [
+    "Rencontré [[N:Aurélie Girard]] au salon",
+    "Préfère l'e-mail",
+    "Client VIP depuis 2019",
+    "Ne pas appeler avant 10 h",
+    "Recommandé par [[N:Pierre Lambert]]",
+    "Intéressé par l'offre annuelle",
+    "Renouvellement en mars",
+    "Devis demandé pour 40 postes",
+    "[[N:Céline Mercier]] est le nouveau contact",
+    "Désabonné de la newsletter",
+    "Parle anglais et allemand",
+    "Paie uniquement par virement"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "Borraccia in acciaio inox 750 ml",
+    "Polo Ralph Lauren slim fit",
+    "Jeans Calvin Klein slim blu scuro",
+    "Cappellino Tommy Hilfiger classico",
+    "Profumo Giorgio Armani Acqua di Giò 100 ml",
+    "Stivali Dr. Martens 1460 in pelle",
+    "Borsa Furla Metropolis piccola",
+    "Mouse wireless M185",
+    "Tè verde biologico, 20 bustine",
+    "Impermeabile bambino, taglia 6 anni",
+    "Whisky Jack Daniel's 70 cl",
+    "Caffè Lavazza Qualità Rossa 250 g"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter e il calice di fuoco",
+    "Le avventure di Pinocchio",
+    "Le avventure di Tom Sawyer",
+    "I promessi sposi",
+    "Il nome della rosa",
+    "Il Gattopardo",
+    "Il commissario Montalbano",
+    "Cuore",
+    "Il barone rampante",
+    "La coscienza di Zeno",
+    "Marcovaldo",
+    "Il piccolo principe"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "Esaurito",
+    "Cucina e sala da pranzo",
+    "In attesa di approvazione",
+    "Pronto per la spedizione",
+    "Idee regalo sotto i 20 €",
+    "Restituito al mittente",
+    "Presto di nuovo disponibile",
+    "Arredo giardino",
+    "In attesa di pagamento",
+    "Saldi",
+    "Più venduti",
+    "Spedito"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "staff.job_title",
+   "kind": "catalog",
+   "values": [
+    "Sviluppatore software senior",
+    "Responsabile Customer Success",
+    "Responsabile vendite area Nord",
+    "Magazziniere turno notte",
+    "Direttore finanziario",
+    "Grafico junior",
+    "Responsabile di negozio",
+    "Addetto servizio clienti",
+    "Responsabile protezione dati",
+    "Assistente buyer donna",
+    "Autista consegne",
+    "Marketing specialist"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "ordini.note_consegna",
+   "kind": "notes",
+   "values": [
+    "Lasciare il pacco a [[N:Giulia Romano]], secondo piano",
+    "Suonare due volte, porta laterale",
+    "Consegnare in [[A:Via Roma 12]], non al negozio",
+    "Se assente, lasciare a [[N:Francesca Bruno]], la vicina",
+    "Non lasciare davanti alla porta",
+    "Codice cancello 4471",
+    "Chiedere di [[N:Matteo]] alla reception",
+    "Ingresso da [[A:Via Garibaldi 3]]",
+    "Fragile, maneggiare con cura",
+    "Firma obbligatoria di [[N:Alessandro Ricci]]",
+    "Consegnare dopo le 17 nei giorni feriali",
+    "Pacco per [[N:Chiara Colombo]], scala B"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "ticket.commento",
+   "kind": "notes",
+   "values": [
+    "Chiamato [[N:Luca Esposito]] per la fattura in ritardo",
+    "Il cliente vuole un rimborso",
+    "Rimborso approvato per [[N:Sara Conti]], [[A:Corso Vittorio Emanuele 27]], Torino",
+    "Carta rifiutata due volte, riprovare domani",
+    "[[N:Davide Greco]] dice che l'articolo è arrivato rotto",
+    "Email di conferma reinviata",
+    "Inoltrato a [[N:Elena Marino]] in amministrazione",
+    "Ordine duplicato, uno annullato",
+    "Indirizzo cambiato in [[A:Via Dante 8]], Milano",
+    "In attesa di conferma del corriere",
+    "Parlato con [[N:Paolo]], richiama lunedì",
+    "Codice sconto applicato a mano"
+   ]
+  },
+  {
+   "language": "it",
+   "name": "crm.osservazioni",
+   "kind": "notes",
+   "values": [
+    "Conosciuto [[N:Valentina Gallo]] alla fiera",
+    "Preferisce l'email",
+    "Cliente VIP dal 2019",
+    "Non chiamare prima delle 10",
+    "Segnalato da [[N:Roberto Fontana]]",
+    "Interessato al piano annuale",
+    "Rinnovo a marzo",
+    "Chiesto preventivo per 40 postazioni",
+    "[[N:Federica Moretti]] è il nuovo referente",
+    "Disiscritto dalla newsletter",
+    "Parla inglese e tedesco",
+    "Paga solo con bonifico"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "Garrafa de aço inoxidável 750 ml",
+    "Polo Ralph Lauren slim fit",
+    "Calça jeans Calvin Klein slim azul escuro",
+    "Boné clássico Tommy Hilfiger",
+    "Perfume Hugo Boss Bottled 100 ml",
+    "Botas Dr. Martens 1460 em couro",
+    "Camisa Massimo Dutti manga longa",
+    "Rato sem fios M185",
+    "Chá verde biológico, 20 saquetas",
+    "Impermeável de criança, tamanho 6",
+    "Whisky Jack Daniel's 70 cl",
+    "Azeite virgem extra Gallo 750 ml"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter e o Cálice de Fogo",
+    "As Aventuras de Tom Sawyer",
+    "Dom Casmurro",
+    "Os Maias",
+    "Memórias Póstumas de Brás Cubas",
+    "O Primo Basílio",
+    "Ensaio sobre a Cegueira",
+    "Turma da Mônica: o filme",
+    "Capitães da Areia",
+    "O Principezinho",
+    "Gabriela, Cravo e Canela",
+    "A Hora da Estrela"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "Esgotado",
+    "Cozinha e sala de jantar",
+    "Aguarda aprovação",
+    "Pronto para envio",
+    "Ideias de presente até 20 €",
+    "Devolvido ao remetente",
+    "De volta em breve",
+    "Mobiliário de jardim",
+    "Aguarda pagamento",
+    "Promoções",
+    "Mais vendidos",
+    "Enviado"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "stores.store_name",
+   "kind": "catalog",
+   "values": [
+    "Loja Avenida da Liberdade",
+    "Loja Rua Augusta",
+    "Outlet Freeport Alcochete",
+    "Armazém Carregado",
+    "Loja Rua de Santa Catarina",
+    "Loja Chiado",
+    "Loja Avenida dos Aliados",
+    "Ponto de recolha Cais do Sodré",
+    "Loja Centro Colombo",
+    "Loja NorteShopping",
+    "Loja Praça do Comércio",
+    "Loja Rua do Carmo"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "pedidos.observacao_entrega",
+   "kind": "notes",
+   "values": [
+    "Deixar a encomenda com a [[N:Inês Costa]], 2.º esquerdo",
+    "Tocar duas vezes, porta lateral",
+    "Entregar na [[A:Rua Augusta 12]], não na loja",
+    "Se ausente, deixar com a [[N:Ana Ferreira]], a vizinha",
+    "Não deixar à porta",
+    "Código do portão 4471",
+    "Perguntar pelo [[N:Tiago]] na receção",
+    "Entrada pela [[A:Rua das Flores 3]]",
+    "Frágil, manusear com cuidado",
+    "Assinatura obrigatória de [[N:Rui Almeida]]",
+    "Entregar depois das 17h nos dias úteis",
+    "Encomenda para [[N:Beatriz Santos]], bloco B"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "tickets.comentario",
+   "kind": "notes",
+   "values": [
+    "Liguei ao [[N:João Pereira]] por causa da fatura em atraso",
+    "O cliente quer reembolso",
+    "Reembolso aprovado para [[N:Mariana Rodrigues]], [[A:Avenida da República 27]], Lisboa",
+    "Cartão recusado duas vezes, tentar amanhã",
+    "[[N:Pedro Carvalho]] diz que o artigo chegou partido",
+    "Email de confirmação reenviado",
+    "Encaminhado para a [[N:Sofia Martins]] da faturação",
+    "Encomenda duplicada, uma cancelada",
+    "Morada alterada para [[A:Rua de Cedofeita 8]], Porto",
+    "À espera da confirmação da transportadora",
+    "Falei com o [[N:Miguel]], liga na segunda",
+    "Código de desconto aplicado manualmente"
+   ]
+  },
+  {
+   "language": "pt",
+   "name": "crm.observacoes",
+   "kind": "notes",
+   "values": [
+    "Conheci a [[N:Joana Ribeiro]] na feira",
+    "Prefere email",
+    "Cliente VIP desde 2019",
+    "Não ligar antes das 10h",
+    "Recomendado pelo [[N:Nuno Barbosa]]",
+    "Interessado no plano anual",
+    "Renovação em março",
+    "Pediu orçamento para 40 lugares",
+    "A [[N:Carla Lopes]] é o novo contacto",
+    "Cancelou a newsletter",
+    "Fala inglês e francês",
+    "Paga só por transferência"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "products.product_name",
+   "kind": "catalog",
+   "values": [
+    "RVS drinkfles 750 ml",
+    "Ralph Lauren polo slim fit",
+    "Calvin Klein boxershorts 3-pack",
+    "Tommy Hilfiger pet klassiek",
+    "Hugo Boss Bottled eau de toilette 100 ml",
+    "Dr. Martens 1460 leren laarzen",
+    "Scotch & Soda overhemd lange mouw",
+    "Draadloze muis M185",
+    "Biologische groene thee, 20 zakjes",
+    "Regenjas voor kinderen, maat 116",
+    "Jack Daniel's whiskey 70 cl",
+    "Douwe Egberts koffiebonen 500 g"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "catalog.title",
+   "kind": "catalog",
+   "values": [
+    "Harry Potter en de vuurbeker",
+    "De avonturen van Tom Sawyer",
+    "Max Havelaar",
+    "Pluk van de Petteflet",
+    "Het achterhuis",
+    "De ontdekking van de hemel",
+    "Kruimeltje",
+    "Abeltje",
+    "Nijntje in de speeltuin",
+    "Turks fruit",
+    "De kleine prins",
+    "Karakter"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "categories.label",
+   "kind": "catalog",
+   "values": [
+    "Uitverkocht",
+    "Koken en tafelen",
+    "Wacht op goedkeuring",
+    "Klaar voor verzending",
+    "Cadeau-ideeën onder 20 euro",
+    "Retour afzender",
+    "Binnenkort weer op voorraad",
+    "Tuinmeubelen",
+    "Wacht op betaling",
+    "Uitverkoop",
+    "Bestsellers",
+    "Verzonden"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "staff.job_title",
+   "kind": "catalog",
+   "values": [
+    "Senior softwareontwikkelaar",
+    "Hoofd klantsucces",
+    "Regiomanager verkoop Noord",
+    "Magazijnmedewerker nachtdienst",
+    "Financieel directeur",
+    "Junior grafisch ontwerper",
+    "Filiaalmanager",
+    "Klantenservicemedewerker",
+    "Functionaris gegevensbescherming",
+    "Assistent-inkoper damesmode",
+    "Bezorger",
+    "Marketingmedewerker"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "bestellingen.bezorgopmerking",
+   "kind": "notes",
+   "values": [
+    "Pakket afgeven bij [[N:Sanne de Vries]], 2e verdieping",
+    "Twee keer aanbellen, zijdeur",
+    "Bezorgen op [[A:Kerkstraat 14]], niet in de winkel",
+    "Bij afwezigheid afgeven bij [[N:Femke Bakker]], de buurvrouw",
+    "Niet voor de deur zetten",
+    "Code poort 4471",
+    "Bij de receptie naar [[N:Daan]] vragen",
+    "Ingang via [[A:Molenweg 3]]",
+    "Breekbaar, voorzichtig behandelen",
+    "Handtekening van [[N:Ruud Visser]] verplicht",
+    "Doordeweeks na 17.00 uur bezorgen",
+    "Pakket voor [[N:Lotte Jansen]], achterhuis"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "tickets.opmerking",
+   "kind": "notes",
+   "values": [
+    "[[N:Pieter Smit]] gebeld over de late factuur",
+    "Klant wil zijn geld terug",
+    "Terugbetaling goedgekeurd voor [[N:Eva Meijer]], [[A:Dorpsstraat 27]], Utrecht",
+    "Kaart twee keer geweigerd, morgen opnieuw proberen",
+    "[[N:Bram de Boer]] zegt dat het artikel beschadigd aankwam",
+    "Bevestigingsmail opnieuw verstuurd",
+    "Doorgezet naar [[N:Anouk Mulder]] van de administratie",
+    "Dubbele bestelling, één geannuleerd",
+    "Adres gewijzigd naar [[A:Stationsweg 8]], Leiden",
+    "Wacht op bevestiging van de koerier",
+    "Gesproken met [[N:Joost]], belt maandag terug",
+    "Kortingscode handmatig toegepast"
+   ]
+  },
+  {
+   "language": "nl",
+   "name": "crm.notities",
+   "kind": "notes",
+   "values": [
+    "[[N:Marloes Hendriks]] ontmoet op de beurs",
+    "Voorkeur voor e-mail",
+    "VIP-klant sinds 2019",
+    "Niet bellen voor 10 uur",
+    "Aangeraden door [[N:Wouter Peters]]",
+    "Interesse in het jaarabonnement",
+    "Verlenging in maart",
+    "Offerte gevraagd voor 40 plekken",
+    "[[N:Iris van Dijk]] is de nieuwe contactpersoon",
+    "Afgemeld voor de nieuwsbrief",
+    "Spreekt Frans en Duits",
+    "Betaalt alleen per overschrijving"
+   ]
+  }
+ ]
+}

@@ -502,7 +502,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     /*
      * An infrastructure monitor (Host, Kubernetes, Docker, Podman, Docker
-     * Swarm, Proxmox, VMware, Ceph, Storage Array, IoT Device) is online
+     * Swarm, Proxmox, VMware, XCP-ng, Ceph, Storage Array, IoT Device) is online
      * while its agent sends data: Has Data on the first query, whatever the
      * values. These types used to share the Metrics monitor's pair below,
      * "any value above 0 is online, any value of 0 is offline" - and a
@@ -3343,6 +3343,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     if (minutes > MAX_COUNTED_WINDOW_IN_MINUTES) {
       return `${name} looks back at most ${MAX_COUNTED_WINDOW_IN_MINUTES}\u00A0minutes (7\u00A0days) for the previous check.`;
+    }
+
+    /*
+     * A DNS answer is the same as the previous check's or not (#10905): it
+     * takes Equal To or Not Equal To, and no change from it.
+     */
+    const answerFilterTypes: Array<FilterType> | null =
+      CriteriaFilterUtil.getPreviousCheckFilterTypes(filter.checkOn);
+
+    if (answerFilterTypes) {
+      return filter.filterType && answerFilterTypes.includes(filter.filterType)
+        ? null
+        : `${name} compares the whole DNS answer with the previous check's, with ${answerFilterTypes.join(" or ")}, not ${filter.filterType}.`;
     }
 
     /*

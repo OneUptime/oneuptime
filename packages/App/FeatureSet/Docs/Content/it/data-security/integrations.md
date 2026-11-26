@@ -7,7 +7,7 @@ Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza
 - [È stata una violazione dei dati?](#è-stata-una-violazione-dei-dati): Ogni esposizione Critica valutata: per quanto tempo, chi poteva leggere i dati, di chi erano e le leggi sulle violazioni dei dati che possono applicarsi.
 - [Avvisi e reperibilità](#avvisi-e-reperibilità): Chiama chi è di reperibilità quando si apre un problema Critico.
 - [Incidenti](#incidenti): Dichiara un incidente per una violazione di cui deve occuparsi il tuo processo di gestione degli incidenti.
-- [Proprietari](#proprietari): Chi possiede ogni archivio, impostato a mano o tramite regole, e l'email che riceve.
+- [Proprietari](#proprietari): Analizza un problema, apri una pull request che lo corregge, oppure interroga Chiedi all'IA sui tuoi dati e lasciala agire, con la tua approvazione.
 - [OneUptime AI](#oneuptime-ai): Spiega un problema, apri una pull request che lo corregge, o fai domande sui tuoi dati a Chiedi all'IA.
 - [Chiudere un'esposizione](#chiudere-unesposizione): Blocca l'accesso pubblico o interrompi la condivisione, da un problema o da un playbook, e attiva una protezione mancante da un problema.
 :::
@@ -129,7 +129,7 @@ OneUptime AI lavora anche da sola su ogni nuovo problema, come consentono le tue
 
 ### Chiedi all'IA
 
-**Chiedi all'IA** legge anche Sicurezza dei dati. In qualsiasi pagina di Sicurezza dei dati, chiedi quali archivi contengono numeri di carta, cosa correggere per primo, o quali archivi potrebbe raggiungere un ruolo se trapelasse; nella pagina di un archivio o di un problema legge prima quel record. Risponde con tre strumenti di lettura, eseguiti con i tuoi permessi:
+**Chiedi all'IA** legge la Sicurezza dei dati e vi agisce con la tua approvazione. In qualsiasi pagina della Sicurezza dei dati, chiedi quali archivi contengono numeri di carta, cosa correggere per primo o quali archivi potrebbe raggiungere un ruolo se trapelasse; nella pagina di un archivio o di un problema legge prima quel record. Legge con questi strumenti, eseguiti con i tuoi permessi:
 
 | Strumento | Cosa legge |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI lavora anche da sola su ogni nuovo problema, come consentono le tue
 | `query_data_security_issues` | I problemi, i più rischiosi per primi, per stato, gravità, archivio o controllo - oppure un problema con la sua prova e la correzione per il suo cloud |
 | `query_data_store_access` | Chi può raggiungere un archivio, oppure ogni archivio che un principal può raggiungere |
 
-Leggono tipi di dati, posizioni e conteggi, mai i campioni di un risultato, mascherati o no. Chiedi all'IA non cambia nulla in Sicurezza dei dati.
+Leggono tipi di dati, posizioni e conteggi, mai i campioni di un rilevamento, mascherati o no. Altri due leggono ciò su cui lavora OneUptime AI: `query_data_security_proposals` elenca ciò che propone, e i tipi di dati che ha trovato e che le scansioni non cercano ancora, ciascuno con il modo in cui è stato provato e i campi in cui si trova, mai un valore; `draft_data_security_rule` scrive una regola dalla tua frase e dice quali archivi copre oggi. Non salva nulla.
+
+Chiedi all'IA fa ciò che fanno i pulsanti della Sicurezza dei dati, ciascuno apportando esattamente la modifica che apporta il suo pulsante, a tuo nome e con i tuoi permessi:
+
+| Azione | Cosa fa | Ti chiede prima |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Ripulisci** su un rilevamento nella telemetria: la sua regola di pulizia provata e precisa | In **Chiedi prima di agire**, e in ogni modalità quando qualcosa legge ciò che nasconde |
+| `judge_data_security_finding` | **Conferma**, o **Non sensibile** con il tuo motivo, e lo stesso per i rilevamenti simili | **Non sensibile** in ogni modalità; **Conferma** in ogni modalità quando un problema critico avvisa qualcuno nel tuo progetto |
+| `change_data_security_issue` | **Accetta il rischio** con il tuo motivo e una data di fine, **Non è un problema** con il tuo motivo, **Riapri** o **Assegna** | **Accetta il rischio** e **Non è un problema** in ogni modalità |
+| `set_data_store_owners` | Aggiunge o rimuove i proprietari di un archivio | In ogni modalità |
+| `save_data_security_rule` | Salva una regola di residenza, del proprietario o delle etichette scritta dalla tua frase, e applica una regola del proprietario o delle etichette agli archivi che copre oggi | In ogni modalità |
+| `respond_on_data_store` | Un'azione di risposta tramite la connessione cloud dell'archivio, come **Blocca l'accesso pubblico** | In ogni modalità |
+| `fix_data_security_issue_with_ai` | **Correggi con l'IA**: una pull request che qualcuno esamina e unisce. Una correzione già in arrivo non viene avviata due volte | In **Chiedi prima di agire** |
+| `decide_data_security_proposal` | **Approva** o **Nascondi** ciò che propone OneUptime AI. Un tipo di dati trovato si aggiunge dal suo modulo in **Impostazioni → Tipi di dati**, quindi qui può solo essere rifiutato | In ogni modalità |
+
+Ogni azione mostra prima una scheda che dice, con parole semplici, cosa cambia, cosa smette di funzionare e quanto costa. In **Chiedi prima di agire** consenti o salti ogni azione. In **Esecuzione automatica**, le azioni qui sopra che chiedono in ogni modalità ti aspettano comunque: cambiano chi può raggiungere i tuoi dati, fanno smettere di contare un rilevamento o un problema, cambiano chi viene avvisato di un archivio, o lascerebbero che OneUptime AI approvi la propria proposta. I nomi degli archivi, le posizioni dei rilevamenti e le prove arrivano dai tuoi cloud e da chiunque vi scriva, quindi Chiedi all'IA non agisce mai perché un testo del genere glielo chiede, e ogni azione viene ricontrollata, con i tuoi permessi, quando viene eseguita.
 
 ## Chiudere un'esposizione
 
@@ -158,7 +173,7 @@ Tutto ciò che conserva Sicurezza dei dati è un record dell'API di OneUptime, l
 | Record | Percorso API |
 | --- | --- |
 | Archivi dati, le loro cronologie, i loro risultati, chi può raggiungerli e ogni identità che può farlo | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problemi, le loro cronologie e i flussi di dati | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problemi, le loro cronologie, le loro pull request collegate e i flussi di dati | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scansioni | `/data-security-scan` |
 | Tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Le impostazioni del progetto | `/data-security-setting` |
@@ -196,7 +211,7 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 
 Il [provider Terraform](/docs/terraform/index) ha una risorsa per ogni tipo di record che crei - archivi dati che aggiungi tu, tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità, regole di residenza, regole del proprietario e regole etichette - che prende il nome dal record, come `oneuptime_residency_rule`.
 
-Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare, aggiornare, eliminare e contare questi record: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule e Data Security Setting. Un assistente IA può allora chiedere, con i tuoi permessi, quali archivi contengono numeri di carta, o cosa è aperto su un bucket.
+Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare, aggiornare, eliminare e contare questi record: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule e Data Security Setting. Un assistente IA può allora chiedere, con i tuoi permessi, quali archivi contengono numeri di carta, o cosa è aperto su un bucket. Ha anche [le azioni di Chiedi all'IA](#chiedi-allia), una chiamata ciascuna, e ciascuna apporta esattamente la modifica che apporta il suo pulsante, a tuo nome. Il server MCP non può mostrare una scheda a nessuno, quindi un'azione per cui Chiedi all'IA chiede in ogni modalità lì viene rifiutata: la risposta dice perché e nomina la pagina di OneUptime in cui apporti la modifica.
 
 ## Passaggi successivi
 

@@ -106,6 +106,51 @@ Cada una ejecuta Node.js, que ajusta su heap al límite de memoria de su contene
 
 El chart incluye **KEDA**, para que la app, los workers, las sondas y el Runner global escalen según su cola de trabajo pendiente. Activa `keda.enabled` junto con el `keda.enabled` propio de cada servicio (por ejemplo, `app.keda.enabled`). En un clúster que todavía no tiene KEDA, la primera instalación necesita una pasada adicional: consulta la [guía de KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) del chart. Los servicios que KEDA no gestiona pueden usar en su lugar un escalador automático por CPU o memoria (`autoscaling`).
 
+## Ejecutar muchos monitores
+
+Cada worker de cada sonda pide a los pods de la aplicación, por lotes, los monitores que toca comprobar, y cada monitor pendiente va a exactamente uno de ellos. Todos los monitores que se comprueban cada minuto vencen a la vez al comienzo de cada minuto, así que lo que importa es lo rápido que se reparten los monitores de un minuto entero. Las cifras de abajo se midieron con 39.700 monitores (28.200 comprobados cada minuto y 11.500 cada cinco minutos) en una sonda de 20 réplicas, con cada sentencia de la base de datos 50 o 100 ms más lenta que en una máquina sin carga, como en una base de datos ocupada.
+
+### Repartir los monitores en lotes más grandes
+
+Sube el límite de recogida de cada sonda (`monitorFetchLimit` en el chart de Helm, `PROBE_MONITOR_FETCH_LIMIT` en los demás casos) de 10 a 50. Cada petición reparte entonces cinco veces más monitores por más o menos el mismo coste. Con tres pods de la aplicación y sentencias 50 ms más lentas, los 28.200 monitores de cada minuto se repartieron en 19 segundos, frente a 44 con un límite de 10, y los 39.700 que vencen cada cinco minutos en 19 segundos, frente a 57. Una réplica de la sonda ejecuta entonces hasta workers × límite de recogida comprobaciones a la vez, 150 con 3 workers: dale la memoria para ellas, o añade réplicas.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### Dejar el límite de planificación en su valor por defecto
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) es cuántas peticiones de sondas atiende a la vez cada pod de la aplicación: una quinta parte de su pool de la base de datos, 10 de 50. Cada pod tiene el suyo, así que los pods de la aplicación que añades traen el suyo. Con los 39.700 pendientes a la vez y sentencias 100 ms más lentas, una sonda recibió 313 monitores por segundo de un pod de la aplicación, 659 de tres y 763 de seis, y subir el límite a 20 añadió un 7 %. Una sonda sola puede usar todas las plazas de un pod, y las sondas que compiten se las reparten de forma justa. Las ejecuciones de Test Monitor tienen 2 plazas propias, así que una prueba llega a una sonda dentro de su ciclo de diez segundos, por ocupados que estén los monitores. Sube el límite solo si las peticiones de sondas esperan una plaza una y otra vez mientras la base de datos tiene margen, y sube con él el pool de la base de datos del pod.
+
+### Una sonda o muchas
+
+Pon cada monitor en las sondas desde las que necesita comprobar. Cada monitor pendiente va a una sola réplica de su sonda, por muchas réplicas que pidan a la vez, así que una sonda con muchas réplicas se mantiene al día igual que muchas sondas. Cuando los monitores van con retraso y ninguna petición espera una plaza, faltan sondas: añade réplicas, o deja que KEDA escale cada sonda según los monitores que tiene pendientes.
+
+### Escalar según lo que esperan las sondas
+
+`/metrics/probe-scheduling`, en el puerto de la aplicación, suma la vista de cada pod de la aplicación del último minuto. Escala los pods de la aplicación según su `queueDepth` con KEDA, además de por CPU y memoria, y avisa cuando los monitores se reparten con retraso:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Campo | Qué indica |
+| --- | --- |
+| `queueDepth` | Las peticiones de sondas que esperan una plaza ahora, en todos los pods de la aplicación. Por encima de 0 durante minutos: añade pods de la aplicación. |
+| `slotWaitP95Ms` | Cuánto esperaron las peticiones una plaza, en el pod de la aplicación más ocupado. |
+| `refusalsPerMinute` | Las peticiones de sondas a las que se respondió que el servidor estaba ocupado. |
+| `dispatchLagP95Seconds` | Con cuánto retraso se repartieron los monitores, desde el momento en que su intervalo los hizo vencer. Cerca de tu intervalo más corto mientras ninguna petición espera: añade réplicas de sondas. |
+| `monitorsLateByAnIntervalPerMinute` | Los monitores repartidos con un intervalo entero de retraso: comprobaciones que se saltaron. |
+| `monitorTestWaitP95Seconds` | Cuánto esperaron las ejecuciones de Test Monitor a una sonda. |
+
 ## Niveles iniciales
 
 Elige como punto de partida el nivel más cercano a tu entorno, luego observa el uso real (`kubectl top pods`, el crecimiento del disco de ClickHouse y PostgreSQL) y ajusta.

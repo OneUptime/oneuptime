@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 2749
+    "keys": 65322,
+    "untranslated": 2766
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -630,6 +630,7 @@
     "Tablet",
     "Tabs",
     "Tag",
+    "Tag {{key}}",
     "Tags",
     "Tags ({{count}})",
     "Task · 31% CPU · 380 MB",
@@ -707,6 +708,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID",
     "VMID {{vmid}}",
     "VMs",
@@ -801,6 +804,7 @@
     "npm test",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -856,6 +860,7 @@
     "user@company.com",
     "vApp {{name}}",
     "vCPUs",
+    "vCPUs/Threads",
     "vCenter",
     "vSphere Client",
     "warn",
@@ -889,9 +894,11 @@
     "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
+    "{{location}} in {{store}}",
     "{{online}} online, {{offline}} offline",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{store}} in {{region}}",
     "{{values}} in {{field}}",
     "{{value}} ms",
     "{{value}} s",

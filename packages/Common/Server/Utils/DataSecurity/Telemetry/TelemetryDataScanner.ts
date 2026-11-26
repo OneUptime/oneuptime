@@ -78,6 +78,10 @@ import {
 } from "../Model/ModelScan";
 import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import {
+  ScanWarningKey,
+  writeScanWarning,
+} from "../../../../Types/DataSecurity/ScanWarnings";
+import {
   describeUnplacedAttribute,
   shareUnplacedAttributes,
 } from "./TelemetryUnplacedAttributes";
@@ -464,8 +468,9 @@ export type TelemetryOwnersNotScanned = ReadonlyMap<
   ReadonlySet<string>
 >;
 
-export const RESTRICTED_CONVERSATIONS_WARNING: string =
-  "Not read: this service holds a company AI tool's conversations, which only Project Owners and Project Admins may read, and findings are read by everyone with access to Data Security.";
+export const RESTRICTED_CONVERSATIONS_WARNING: string = writeScanWarning(
+  "telemetryRestrictedConversations",
+);
 
 export interface TelemetryReadWindow {
   projectId: ObjectID;
@@ -2411,6 +2416,29 @@ function ownerNoun(source: SourceDefinition): string {
   return source.owner === "service" ? "service" : "RUM application";
 }
 
+// What a store's warning says when its records could not be read this scan, by its source.
+const UNREAD_SOURCE_WARNINGS: Readonly<
+  Partial<Record<TelemetrySampleSource, ScanWarningKey>>
+> = {
+  [TelemetrySampleSource.Logs]: "telemetryServiceLogsUnread",
+  [TelemetrySampleSource.Traces]: "telemetryServiceSpansUnread",
+  [TelemetrySampleSource.Exceptions]: "telemetryServiceExceptionsUnread",
+  [TelemetrySampleSource.AiConversations]: "telemetryServiceAiCallsUnread",
+  [TelemetrySampleSource.RumLogs]: "telemetryApplicationLogsUnread",
+  [TelemetrySampleSource.RumSpans]: "telemetryApplicationSpansUnread",
+  [TelemetrySampleSource.RumSessions]: "telemetryApplicationSessionsUnread",
+  [TelemetrySampleSource.Metrics]: "telemetryServiceMetricsUnread",
+};
+
+// "Could not read this service's logs in this scan; ...", for a source's store.
+export function getUnreadSourceWarning(source: SourceDefinition): string {
+  const key: ScanWarningKey | undefined = UNREAD_SOURCE_WARNINGS[source.source];
+
+  return key
+    ? writeScanWarning(key)
+    : `Could not read this ${ownerNoun(source)}'s ${source.label} in this scan; the next scan reads them again.`;
+}
+
 function isPastDeadline(options: ContentScanOptions): boolean {
   const deadline: Date | undefined = options.limits.deadline;
 
@@ -2534,9 +2562,7 @@ async function sampleSource(
 
     for (const owner of readable) {
       const sample: StoreSample = sampleOf(context, source, owner.ownerId);
-      sample.warn(
-        `Could not read this ${ownerNoun(source)}'s ${source.label} in this scan; the next scan reads them again.`,
-      );
+      sample.warn(getUnreadSourceWarning(source));
       sample.isComplete = false;
     }
 
@@ -2750,10 +2776,7 @@ async function sampleMetrics(
         `DataSecurity: could not list the metrics of project ${projectId}:`,
       );
       logger.warn(retryError);
-      warnOwners(
-        "Could not read this service's metrics in this scan; the next scan reads them again.",
-        ownerIds,
-      );
+      warnOwners(writeScanWarning("telemetryServiceMetricsUnread"), ownerIds);
       return;
     }
   }
@@ -2844,7 +2867,7 @@ async function sampleMetrics(
 
     if (isPastDeadline(context.options) || context.bytesLeft <= 0) {
       warnOwners(
-        "The scan read as much as it may this time: some of this service's metrics were not read.",
+        writeScanWarning("telemetryMetricsOutOfBudget"),
         new Set(
           reads
             .slice(index)
@@ -2883,10 +2906,7 @@ async function sampleMetrics(
         `DataSecurity: could not sample the metrics of project ${projectId}:`,
       );
       logger.warn(error);
-      warnOwners(
-        "Could not read some of this service's metrics in this scan; the next scan reads them again.",
-        chunkOwners,
-      );
+      warnOwners(writeScanWarning("telemetrySomeMetricsUnread"), chunkOwners);
       continue;
     }
 
@@ -3181,7 +3201,9 @@ function toResult(data: {
         `DataSecurity: could not classify ${field.path} of ${sample.kind} ${sample.ownerId}:`,
       );
       logger.warn(error);
-      sample.warn(`Could not classify ${field.path}.`);
+      sample.warn(
+        writeScanWarning("telemetryCouldNotClassify", { location: field.path }),
+      );
       sample.isComplete = false;
       continue;
     }
@@ -3250,22 +3272,24 @@ function toResult(data: {
 
   if (data.isDeletedOwner) {
     sample.warn(
-      sample.isRumApplication
-        ? "No RUM application with this ID exists any more; its telemetry is kept until its retention ends."
-        : "No service with this ID exists any more; its telemetry is kept until its retention ends.",
+      writeScanWarning(
+        sample.isRumApplication
+          ? "telemetryApplicationGone"
+          : "telemetryServiceGone",
+      ),
     );
   }
 
   if (sample.tooManyLocations) {
     sample.warn(
-      `More than ${TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE} different attributes: the ones after them were not read.`,
+      writeScanWarning("telemetryTooManyAttributes", {
+        max: TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE,
+      }),
     );
   }
 
   if (sample.outOfBudget) {
-    sample.warn(
-      "The scan read as much as it may this time: part of this sample was not classified.",
-    );
+    sample.warn(writeScanWarning("telemetrySampleOutOfBudget"));
     sample.isComplete = false;
   }
 

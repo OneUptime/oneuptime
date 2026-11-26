@@ -42,7 +42,7 @@ Bara fynd med konfidens Hög och Medel räknas: de gör ett datalager känsligt 
 
 När två datatyper gör anspråk på samma tecken vinner det säkrare fyndet: den högre konfidensen, sedan detektorn vars egna regler bevisar mer, sedan den längre matchningen.
 
-Ett värde läses också som människor skriver det. En URL:s procentkodade tecken läses, så att en IP-adress eller en e-postadress i en frågesträng, till exempel `jane%40example.com`, hittas. Ett kortnummers siffror läses i alla skriftsystem, till exempel siffror med full bredd (`４１１１ １１１１ １１１１ １１１１`) eller arabisk-indiska siffror, först varje skriftsystem för sig och sedan tillsammans. En e-postadress hittas i alla skriftsystem, till exempel `张伟@example.com` eller `почта@пример.рф`, och en IPv6-adress direkt efter en nyckels kolon, till exempel `ip:2001:db8::1`. Varje fynd är värdet som det är skrivet, så att en rensningsregel döljer det där.
+Ett värde läses också som människor skriver det. En URL:s procentkodade tecken läses, även ett teckens UTF-8-byte, så att en IP-adress, en e-postadress, till exempel `jane%40example.com` eller `jos%C3%A9%40example.com`, eller en token eller en nyckel i en frågesträng hittas. Ett nummers siffror läses i alla skriftsystem, till exempel siffror med full bredd (`４１１１ １１１１ １１１１ １１１１`) eller arabisk-indiska siffror, först varje skriftsystem för sig och sedan tillsammans: ett kortnummer, ett telefonnummer, ett amerikanskt Social Security-nummer, ett IBAN, ett routingnummer, ett nationellt ID-nummer eller en hälsoidentifierare, till exempel ett NHS-nummer. En e-postadress hittas i alla skriftsystem, till exempel `张伟@example.com` eller `почта@пример.рф`, och en IPv6-adress direkt efter en nyckels kolon, till exempel `ip:2001:db8::1`. Varje fynd är värdet som det är skrivet, så att en rensningsregel döljer det där.
 
 Ett långt värde läses i fönster på 64 KB som överlappar med 4 KB, så att ett värde hittas helt var det än står, och högst 4 MB av ett värde läses.
 
@@ -60,7 +60,7 @@ Ett fält vars värden i genomsnitt är längre än 80 tecken är fritext - ante
 
 Ett fälts namn delas upp i ord - `customerEmail`, `customer_email` och `customer-email` blir alla "customer email" - och en typs namntips matchar när dess ord förekommer i den ordningen, bredvid varandra: "date of birth" matchar `customer_date_of_birth`, inte `birth_city`. Bara den sista delen av en sökväg med punkter är fältets eget namn, tillsammans med delen före den när den sista är ett generiskt ord som `number`, `id` eller `value`: `customer.address.city` är inte en gatuadress, och `card.number` är fortfarande ett kortnummer.
 
-Vissa datatyper kan inte avgöras utifrån sina värden: inget mönster skiljer en persons namn från en gata, eller en religion från vilket annat ord som helst. De här hittas bara utifrån fältets namn, när fältet har värden: Personnamn, Användarnamn, Kön, Nationalitet, Hälsoinformation, Ras eller etniskt ursprung, Religiös övertygelse, Sexuell läggning, Politisk åsikt, Fackföreningsmedlemskap, Biometriska data, Genetiska data och Brottsregister. Ett namn, ett användarnamn, ett kön eller en nationalitet får då Hög när 60 % eller mer av värdena ser ut som ett sådant, och annars Medel. I fritext hittas personnamn och gatuadresser också av en liten modell: se [Namn och gatuadresser i fritext](#namn-och-gatuadresser-i-fritext).
+Vissa datatyper kan inte avgöras utifrån sina värden: inget mönster skiljer en persons namn från en gata, eller en religion från vilket annat ord som helst. De här hittas bara utifrån fältets namn, när fältet har värden: Personnamn, Användarnamn, Kön, Nationalitet, Hälsoinformation, Ras eller etniskt ursprung, Religiös övertygelse, Sexuell läggning, Politisk åsikt, Fackföreningsmedlemskap, Biometriska data, Genetiska data och Brottsregister. Ett namn, ett användarnamn, ett kön eller en nationalitet får då Hög när 60 % eller mer av värdena ser ut som ett sådant, och annars Medel. I fritext hittas personnamn och gatuadresser också av en liten modell: se [Namn och gatuadresser i fritext](#namn-och-gatuadresser-i-fritext). En persons namn hittas också i en URL:s frågesträng, under en parameter som heter som ett sådant fält skulle heta, till exempel `full_name` i `/contacts?full_name=Jos%C3%A9%20Garc%C3%ADa`: dess värde läses som en URL skriver det, det får Hög när det ser ut som ett namn, och det hittas där det är skrivet, med escape-tecknen. En parameter som bara heter `name` lämnas åt modellen.
 
 Ett fält vars namn säger att det innehåller ett lösenord - `password`, `passwordHash`, `pwd`, inte `password_changed_at` - bör innehålla en hash: bcrypt, argon2, scrypt, PBKDF2 eller ett annat schema som ett datalager sannolikt använder. Tomma värden, platshållare som `********` och krypterade värden läggs åt sidan. När fler av resten inte är hashar än är det, innehåller fältet själva lösenorden, som inget mönster kan se, och datalagret underkänns i [Lösenord lagras i klartext](/docs/data-security/checks-and-issues#datahygien).
 
@@ -74,13 +74,14 @@ Varje typ som OneUptime AI nämner är ett fynd med Låg, markerat **Föreslagen
 
 ## Namn och gatuadresser i fritext
 
-Inget mönster skiljer en persons namn från vilket annat ord som helst. Därför läses fritext - en supportanteckning, en loggrad, ett undantagsmeddelande, en prompt - också av en liten språkmodell som hittar personnamn och gatuadresser. Modellen körs inne i skannern, på OneUptimes workers och på dina prober: texten lämnar aldrig skannern, inget laddas ned medan den körs och ingen prompt skrivs. Den är inte OneUptime AI, och OneUptime AI:s reglage slår inte på eller av den: det gör **Hitta namn och gatuadresser**.
+Inget mönster skiljer en persons namn från vilket annat ord som helst. Därför läses fritext - en supportanteckning, en loggrad, ett undantagsmeddelande, en prompt - också av en liten språkmodell som hittar personnamn och gatuadresser. Modellen körs inne i skannern, på OneUptimes workers och på dina sonder: texten lämnar aldrig skannern, inget laddas ned medan den körs och ingen prompt skrivs. Den är inte OneUptime AI, och OneUptime AI:s reglage slår inte på eller av den: det gör **Hitta namn och gatuadresser**.
 
-- **Vad den läser.** Ett fält vars värden i snitt är längre än 80 tecken, och i telemetri varje loggtext, undantagsmeddelande, stackspårning och AI-konversation, hur kort den än är. Den läser upp till 100 olika värden i ett fält, 32 KB text sammanlagt, och upp till 16 KB av ett värde.
+- **Vad den läser.** Ett fält vars värden i snitt är längre än 80 tecken; ett fält vars namn säger att en person skriver fritext i det, hur korta värdena än är, till exempel `delivery_note`, `comentario`, `Lieferhinweis` eller `opmerking` (se [Korta värden](#korta-värden)); och i telemetri varje loggtext, undantagsmeddelande, stackspårning och AI-konversation, hur kort den än är. Den läser upp till 100 olika värden i ett fält, 32 KB text sammanlagt, och upp till 16 KB av ett värde. En URL i det den läser läses som en URL: dess procentkodade tecken läses, och ett `+` mellan två bokstäver som ett mellanslag, så att namnet i `/profile?name=Jos%C3%A9%20Garc%C3%ADa` hittas, och döljs som det är skrivet.
 - **Vad den hittar.** Ett **Personnamn** (`person-name`) och en **Gatuadress** (`postal-address`): en plats som modellen läser intill ett husnummer, till exempel `14 Calle Mayor`, med postnumret och orten som följer. En ort eller ett land ensamt är ingen gatuadress.
 - **Hur säker den är.** Ett namn eller en adress som modellen hittar är Medel i sig. Det är Hög när fältets namn säger att fältet innehåller namn eller adresser, eller när ord i närheten gör det, som "customer", "Kunde" eller "dirección". Det är Låg när modellen är osäker, med ett värde under 0,6. Var och en behåller den konfidens den fick på egen hand, så ett namn bland tusen loggrader är fortfarande Medel.
 - **Testvärden.** Platshållare som `Jane Doe`, `John Smith`, `Max Mustermann` och `123 Main Street` räknas för sig, som varje typs testvärden.
 - **Vad den sparar.** Proverna maskeras som för ett namn som hittats från fältets namn: första tecknet och fyra stjärnor, `M****`. De får aldrig något fingeravtryck. På datalagrets sida **Innehåll** står det **Hittat i fritext av skannerns modell** vid ett sådant fynd.
+- **Dess poster, och dess regler.** Ett fynd den gjorde visar posterna det hittades i, med varje rad kapad runt namnet eller adressen och varje namn och adress i den maskerade, och **Rensa** bevisar en regel på de posterna, som för alla fynd: de läses igen med modellen, med upp till 20 sekunder av dess tid varje gång. En post den inte hann med visas inte, och listan säger hur många värden den inte hann med. Där modellen inte kan köras säger listan det, och ingen regel för fyndet bevisas.
 
 | Modell | Licens | Storlek | Revision | Uppmätta språk |
 | --- | --- | --- | --- | --- |
@@ -123,19 +124,46 @@ De fyra modeller som mättes, på den skrivna testuppsättningen, en efter en p�
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Korta värden
+
+Ett kort fält läses bara när dess namn säger att en person skriver fritext i det. Regeln mättes innan den valdes, på 49 kolumner i en databas på de sju språken, 588 värden sammanlagt: produktnamn, titlar, etiketter, yrkestitlar och butiksnamn, där ett varumärkes, en figurs eller en gatas namn inte är ett fynd, och korta leveransanteckningar, supportkommentarer och kundanmärkningar med 91 namn och 28 gatuadresser. Att läsa varje fält med fyra eller fler ord, den första regeln som övervägdes, läste 108 av katalogens värden och gjorde 53 falska namn av dem, som `Ralph Lauren` i en pikétröjas namn och `Tom Sawyer` i en boks titel:
+
+| Regel | Katalogvärden lästa | Namn: precision | Namn: recall | Adresser: precision | Felaktiga fynd per 1 000 |
+| --- | --- | --- | --- | --- | --- |
+| Fält med fyra eller fler ord (inte vald) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Fält vars namn säger fritext (vald) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+Den valda regeln, per språk. Ett test håller fast vid dessa resultat, och ribban modellen valdes efter:
+
+| Språk | Namn: precision | Namn: recall | Adresser: precision | Adresser: recall |
+| --- | --- | --- | --- | --- |
+| Engelska | 1,00 | 1,00 | 1,00 | 1,00 |
+| Spanska | 1,00 | 1,00 | 1,00 | 1,00 |
+| Tyska | 1,00 | 1,00 | 1,00 | 1,00 |
+| Franska | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italienska | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portugisiska | 0,86 | 0,92 | 1,00 | 1,00 |
+| Nederländska | 1,00 | 1,00 | 1,00 | 1,00 |
+| Alla sju | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Fältets eget namn räknas: `orders.delivery_note` läses, `notes.author` gör det inte, och inte heller ett namn som slutar på ett id, ett antal, en typ, en status eller en tid, som `message_id`. En beskrivning läses inte för sitt namn: en produkts är katalogtext.
+
 ### Var den körs, och vad den kostar
 
-- **I varje avbild.** App-avbilden, som kör dina workers, och Probe-avbilden har modellen, dess ordförråd och körmiljön med sig, även luftgapade avbilder och Iron Bank-avbilder: cirka 114 MB på disk. De hämtas när avbilden byggs, från en fastlåst revision, och kontrolleras mot sin SHA-256. Inget laddas ned medan en skanning körs.
+- **I varje avbild.** App-avbilden, som kör dina workers, och sondavbilden har modellen, dess ordförråd och körmiljön med sig, även luftgapade avbilder och Iron Bank-avbilder: cirka 114 MB på disk. De hämtas när avbilden byggs, från en fastlåst revision, och kontrolleras mot sin SHA-256. Inget laddas ned medan en skanning körs.
 - **Minne.** Den läses in första gången en skanning behöver den, en gång per process: cirka 550 MB, som lämnas tillbaka efter 10 minuter utan skanning.
 - **Tid.** På en kärna mellan 30 sekunder och en minut per 1 000 värden av en loggrads längd, och cirka 9 minuter per 1 000 värden på 1 200 tecken. En innehållsskanning av ett datalager ger den upp till 2 minuter. Telemetriskanningen varje timme ger den upp till 1 minut totalt och 6 sekunder per datalager, till en ny uppsättning datalager varje timme.
-- **När tiden tar slut** avslutas skanningen med det modellen hann läsa, och dess varningar säger hur många av fritextvärdena den läste, aldrig vad. En worker eller en probe utan modellen skannar som förut och säger varför:
+- **Turordning.** Modellen i varje innehållsskanning börjar där den förra stannade: vid den första tabellen eller containern vars fritext den inte läste, och med objekten i en bucket som den inte hann med, som läses igen före alla andra. Det den började på och inte kunde slutföra tas inte först igen, så inget håller fast dess tid skanning efter skanning, och varje tabell och varje objekt får sin tur, hur mycket fritext datalagret än har.
+- **När tiden tar slut** avslutas skanningen med det modellen hann läsa, och dess varningar säger hur många av fritextvärdena den läste, aldrig vad. En worker eller en sond utan modellen skannar som förut och säger varför:
 
 ```text
 Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Hitta namn och gatuadresser** är på i varje projekt: innehållsskanningar av buckets, databaser och BigQuery-dataset läser fritext med modellen, på workers och på prober. **Hitta namn och gatuadresser i telemetri**, under det, är av: att en gång läsa varje loggtext, undantag och konversation i ett livligt projekt med 200 tjänster tar cirka 48 minuter på en kärna, och skanningens minut i timmen läser cirka 4 % av det. Slå på det för att låta varje timskanning läsa en del av dem. Båda finns under **Datasäkerhet → Inställningar → Skanningsinställningar**, i **Vad Datasäkerhet läser**. **Testa** körs i din webbläsare, utan modellen: det modellen skulle hitta visas inte där.
+En skannings detaljer visar dessa, och alla andra varningar från en innehålls- eller telemetriskanning, på läsarens språk.
+
+**Hitta namn och gatuadresser** är på i varje projekt: innehållsskanningar av buckets, databaser och BigQuery-dataset läser fritext med modellen, på workers och på sonder. **Hitta namn och gatuadresser i telemetri**, under det, är av: att en gång läsa varje loggtext, undantag och konversation i ett livligt projekt med 200 tjänster tar cirka 48 minuter på en kärna, och skanningens minut i timmen läser cirka 4 % av det. Slå på det för att låta varje timskanning läsa en del av dem. Båda finns under **Datasäkerhet → Inställningar → Skanningsinställningar**, i **Vad Datasäkerhet läser**. **Testa** körs i din webbläsare, utan modellen: det modellen skulle hitta visas inte där. Modellen skulle lägga till cirka 113 MB att ladda ner, 67 MB komprimerat, och cirka 440 MB i flikens minne, så den körs bara i skannern.
 
 ## Känslighet
 

@@ -44,6 +44,8 @@ import DashboardPodmanNetworkListComponentUtil from "../../../../Utils/Dashboard
 import DashboardPodmanVolumeListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardPodmanVolumeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
 import DashboardProxmoxNodeListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
+import DashboardXcpNgHostListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardXcpNgVmListComponent";
 import DashboardProductAnalyticsFunnelComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import DashboardSecurityEventsFlowComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
@@ -160,6 +162,8 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
   [DashboardComponentType.VMwareHostList]: DashboardVMwareHostListComponentUtil,
   [DashboardComponentType.VMwareVirtualMachineList]:
     DashboardVMwareVirtualMachineListComponentUtil,
+  [DashboardComponentType.XcpNgHostList]: DashboardXcpNgHostListComponentUtil,
+  [DashboardComponentType.XcpNgVmList]: DashboardXcpNgVmListComponentUtil,
   [DashboardComponentType.DockerSwarmNodeList]:
     DashboardDockerSwarmNodeListComponentUtil,
   [DashboardComponentType.DockerSwarmServiceList]:

@@ -73,6 +73,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
@@ -2555,6 +2556,17 @@ async function handleApi(method, options) {
           "service",
         ],
       });
+    }
+  }
+
+  /*
+   * A form's name, asked about as it is typed - a new cloud's, a budget's
+   * (#10761): no other record of its kind in the project has it.
+   */
+  if (method === "GET") {
+    const names = answerUniqueNames({ url });
+    if (names) {
+      return ok(names);
     }
   }
 

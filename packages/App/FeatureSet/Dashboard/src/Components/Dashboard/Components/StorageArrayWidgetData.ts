@@ -1,6 +1,5 @@
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
 import {
   STORAGE_ARRAY_CRITICAL_COMPONENT_STATUSES,
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,

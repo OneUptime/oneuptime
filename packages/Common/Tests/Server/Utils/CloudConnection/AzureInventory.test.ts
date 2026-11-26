@@ -42,7 +42,7 @@ const RG: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg-prod`;
 const VM_ID: string = `${RG}/providers/Microsoft.Compute/virtualMachines/vm-web-1`;
 
 describe("the query", () => {
-  const query: string = buildAzureInventoryQuery();
+  const query: string = buildAzureInventoryQuery().toString();
 
   test("asks only for the types the catalog knows, each once", () => {
     for (const descriptor of AZURE_RESOURCE_TYPES) {
@@ -258,7 +258,7 @@ describe("a row", () => {
    */
   test("a managed disk keeps its size, read only for a disk", () => {
     expect(AZURE_INVENTORY_PROPERTIES).toContain("diskSizeGB");
-    expect(buildAzureInventoryQuery()).toContain(
+    expect(buildAzureInventoryQuery().toString()).toContain(
       "diskSizeGB = iff(type =~ 'microsoft.compute/disks', tolong(properties.diskSizeGB), long(null))",
     );
 

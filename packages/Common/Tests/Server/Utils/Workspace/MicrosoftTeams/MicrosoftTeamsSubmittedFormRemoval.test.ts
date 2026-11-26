@@ -146,9 +146,18 @@ import {
   MicrosoftTeamsPublicNoteApprovalActionType,
   MicrosoftTeamsRemediationActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
+  MicrosoftTeamsSecurityPlaybookApprovalActionType,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsRemediationActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Remediation";
 import MicrosoftTeamsPublicNoteApprovalActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/PublicNoteApproval";
+import MicrosoftTeamsSecurityPlaybookApprovalActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/SecurityPlaybookApproval";
+import { SecurityPlaybookApprovalRound } from "../../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookApprovalReader";
+import WorkspaceSecurityPlaybookApproval from "../../../../../Server/Utils/Workspace/WorkspaceSecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApprovalActions, {
+  SecurityPlaybookApprovalPressAnswer,
+  SecurityPlaybookApprovalPressOutcome,
+} from "../../../../../Server/Utils/Workspace/WorkspaceSecurityPlaybookApprovalActions";
+import { SecurityPlaybookApprovalAnswerKind } from "../../../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
 import { PublicNoteKind } from "../../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
 import WorkspacePublicNoteApproval, {
   PUBLIC_NOTE_REJECT_REASON_FIELD,
@@ -268,6 +277,39 @@ const PUBLIC_NOTE_REJECTED: PublicNoteApprovalPressAnswer = {
     text: "You rejected a public note",
   },
 };
+
+/*
+ * A playbook step waiting for approval (#10341), as its card's buttons
+ * carry it, signed: Approve Some's card submits it with its boxes.
+ */
+const PLAYBOOK_APPROVAL_ROUND: SecurityPlaybookApprovalRound = {
+  projectId: PROJECT_ID,
+  runId: new ObjectID("5e000000-0000-4000-8000-000000000002"),
+  securityCaseId: new ObjectID("5e000000-0000-4000-8000-000000000003"),
+  stepIndex: 0,
+  stepId: "contain",
+  targetsDigest: "Qx7Lp0aZ3vN8sT2wY5cR1e",
+};
+
+// What approving the ones left ticked answers; its words are pinned in the approval's own tests.
+const PLAYBOOK_STEP_APPROVED: SecurityPlaybookApprovalPressAnswer = {
+  outcome: SecurityPlaybookApprovalPressOutcome.Decided,
+  answer: {
+    markdown: "✅ You approved this playbook step for **db-02**.",
+    text: "You approved this playbook step",
+  },
+  language: "en",
+};
+
+/*
+ * A press the playbook engine could not act on is answered by the handler
+ * itself - nothing was decided, and where to decide instead - never by the
+ * bot's catch.
+ */
+const PLAYBOOK_COULD_NOT_CHECK: { markdown: string; text: string } =
+  WorkspaceSecurityPlaybookApprovalActions.getAnswer({
+    kind: SecurityPlaybookApprovalAnswerKind.CouldNotCheck,
+  });
 
 const NOTE: string = "Rolled back the 14:02 deploy; the error rate is normal.";
 
@@ -494,7 +536,8 @@ type HandlerFamily =
   | "incident episode"
   | "scheduled maintenance"
   | "remediation"
-  | "public note approval";
+  | "public note approval"
+  | "security playbook approval";
 
 /*
  * THE INCIDENT CARD'S MENU (…). Each of its cards, submitted, acts on the
@@ -1437,6 +1480,67 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
       };
     },
   },
+  /*
+   * Approve Some's card of a playbook step's targets (#10341, b7406d75682):
+   * its Approve approves the ones left ticked, and the card is removed once
+   * it has, as left on screen it would invite another press.
+   */
+  {
+    name: "security playbook step: Approve Some's Approve, one target unticked",
+    family: "security playbook approval",
+    actionType:
+      MicrosoftTeamsSecurityPlaybookApprovalActionType.SubmitApproveSomeSecurityPlaybookStep,
+    actionValue: WorkspaceSecurityPlaybookApproval.encodeValue(
+      PLAYBOOK_APPROVAL_ROUND,
+    ),
+    fields: { approveTarget0: "false", approveTarget1: "true" },
+    confirmation: menuConfirmation(
+      PLAYBOOK_STEP_APPROVED.answer.markdown,
+      PLAYBOOK_STEP_APPROVED.answer.text,
+    ),
+    failureReply: menuConfirmation(
+      PLAYBOOK_COULD_NOT_CHECK.markdown,
+      PLAYBOOK_COULD_NOT_CHECK.text,
+    ),
+    stubWrite: (failure?: Error): WriteCheck => {
+      const press: SpyInstance<
+        typeof WorkspaceSecurityPlaybookApprovalActions.press
+      > = jest
+        .spyOn(WorkspaceSecurityPlaybookApprovalActions, "press")
+        .mockImplementation(
+          (): Promise<SecurityPlaybookApprovalPressAnswer> => {
+            return writeOutcome(PLAYBOOK_STEP_APPROVED, failure);
+          },
+        );
+
+      return (): void => {
+        expect(press).toHaveBeenCalledTimes(1);
+        expect(press).toHaveBeenCalledWith(
+          expect.objectContaining({
+            actionType:
+              MicrosoftTeamsSecurityPlaybookApprovalActionType.SubmitApproveSomeSecurityPlaybookStep,
+            // The step's round, as the value was signed.
+            round: PLAYBOOK_APPROVAL_ROUND,
+            // Approved by the member.
+            userId: USER_ID,
+            projectId: PROJECT_ID,
+            from: WorkspaceType.MicrosoftTeams,
+          }),
+        );
+
+        /*
+         * The boxes as the card sent them: the first unticked. Approve
+         * Some hands them on; without them the engine reads none ticked.
+         */
+        const isTicked: ((field: string) => boolean) | undefined =
+          press.mock.calls[0]![0].isTicked;
+
+        expect(isTicked).toBeInstanceOf(Function);
+        expect(isTicked?.("approveTarget0")).toBe(false);
+        expect(isTicked?.("approveTarget1")).toBe(true);
+      };
+    },
+  },
 ];
 
 const CREATE_FORMS: ReadonlyArray<SubmittedForm> = SUBMITTED_FORMS.filter(
@@ -1523,6 +1627,16 @@ function failureLogCalls(
     ];
   }
 
+  // A press the playbook engine could not act on is logged, and answered, by its handler.
+  if (form.family === "security playbook approval") {
+    return [
+      [
+        `MicrosoftTeamsSecurityPlaybookApprovalActions: could not act on ${form.actionType}: ${reason}`,
+        { projectId: PROJECT_ID.toString() },
+      ],
+    ];
+  }
+
   const attributes: LogAttributes = {
     actionType: form.actionType,
     projectId: PROJECT_ID.toString(),
@@ -1544,6 +1658,7 @@ const FAMILY_SOURCE_FILES: Record<HandlerFamily, string> = {
   "scheduled maintenance": "Actions/ScheduledMaintenance.ts",
   remediation: "Actions/Remediation.ts",
   "public note approval": "Actions/PublicNoteApproval.ts",
+  "security playbook approval": "Actions/SecurityPlaybookApproval.ts",
 };
 
 // The submit's value: the card's action data plus what the user filled in.
@@ -1674,6 +1789,19 @@ const HANDLERS: Record<HandlerFamily, SubmitHandler> = {
     return MicrosoftTeamsPublicNoteApprovalActions.handle(
       botActionArguments(form, turnContext),
     );
+  },
+  "security playbook approval": (
+    form: SubmittedForm,
+    turnContext: TurnContext,
+  ): Promise<void> => {
+    return MicrosoftTeamsSecurityPlaybookApprovalActions.handle({
+      actionType: form.actionType,
+      actionValue: form.actionValue,
+      value: submitValue(form),
+      projectId: PROJECT_ID,
+      oneUptimeUserId: USER_ID,
+      turnContext: turnContext,
+    });
   },
 };
 

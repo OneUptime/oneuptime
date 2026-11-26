@@ -78,7 +78,7 @@ flowchart TB
 
 - **Ingen projekter tilknyttet (alle projekter / invitation først):** Brugere kan logge ind med udbyderen og nå **ethvert projekt, de allerede er medlem af**. Nye brugere oprettes **ikke** automatisk — en bruger skal først inviteres til et projekt. Brug det til virksomhedsdækkende SSO, hvor medlemskaber styres andetsteds.
 
-- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Tilknyttede projekter** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
+- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Tilknyttede projekter** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene: en ny person ved sit første login, og en person, der allerede har en konto, for eksempel en, du har oprettet manuelt, ved sit næste. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Et tilknyttet projekt uden teams tilføjer ingen. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
 
 En person, der allerede er medlem af et tilknyttet projekt, beholder sine teams der.
 
@@ -89,7 +89,13 @@ To spørgsmål på udbyderen ændrer dette, foldet sammen under **Flere felter**
 | **Personer uden en konto** | **Får en ved deres første login**: de bliver medlem af de tilknyttede projekter; er ingen tilknyttet, skal de først inviteres. **Skal inviteres først**: personer skal være inviteret til et projekt, før de kan logge ind med denne udbyder, også når der er tilknyttede projekter. |
 | **Hvor dette login tæller som SSO** | **Alle projekter**: projekter, der kræver SSO, accepterer et login med denne udbyder. **Kun tilknyttede projekter**: login med denne udbyder opfylder kun SSO-kravet i de projekter, der er tilknyttet den, så personer, der allerede er logget ind, kan miste adgangen til andre projekter. |
 
-Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes.
+Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes: ingen af de to svar føjer nogen til et projekt. Så længe der ikke er tilknyttet noget projekt med teams, står der på udbyderens side under **Personer uden en konto**, at ingen nye kan logge ind endnu.
+
+## E-mailadresser, som din identitetsudbyder ikke har bekræftet
+
+En global OpenID Connect-udbyder finder den konto, den logger ind, ud fra den e-mailadresse, den sender, ligesom et projekts udbyder, og master-admins' konti findes på samme måde. Derfor logger den ingen ind med en adresse, som udbyderen siger, at den ikke har bekræftet, med et claim `email_verified` på `false` eller på noget, der hverken er true eller false. Ellers kunne nogen sætte en master-admins adresse på sin konto hos udbyderen og logge ind på hele instansen som vedkommende. En udbyder, der sender `email_verified` som `true` eller slet ikke sender det, som Microsoft Entra ID, logger folk ind som før.
+
+Via authentik 2025.10 og nyere logger ingen ind, før du ændrer dens scope-mapping for `email`, og via Keycloak ingen, hvis adresse den ikke har bekræftet. Hvad du skal ændre dér, hvad der stadig logger ind, og hvad personen ser, står på siden [SSO](/docs/identity/sso#e-mailadresser-som-din-identitetsudbyder-ikke-har-bekræftet). Master-admins med en adgangskode kan logge ind med den imens, på `/accounts/admin-login`, så længe hele instansen kræver SSO.
 
 ## Log også ud af identitetsudbyderen
 
@@ -160,7 +166,7 @@ To ændringer af, hvem der kan logge ind, kontrolleres efter hinanden. Gemmes de
 ## Fejlfinding
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har endnu ingen OneUptime-konto, og udbyderen opretter ingen: enten er der ingen projekter tilknyttet den, eller **Personer uden en konto** står på **Skal inviteres først**. Invitér personen til et projekt, eller tilknyt et projekt til udbyderen.
+Personen har endnu ingen OneUptime-konto, og udbyderen opretter ingen: enten er der intet projekt med teams tilknyttet den, eller **Personer uden en konto** står på **Skal inviteres først**. Invitér personen til et projekt, eller tilknyt et projekt til udbyderen med de teams, personen kommer med i. Serverens log viser, hvilken af de to grunde det er, uden at nævne personen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -183,6 +189,10 @@ For en SAML-udbyder er svarets audience ikke udbyderens **Issuer (Entity ID)**: 
 Hvert svar fra din identitetsudbyder logger kun ind én gang og kun inden for få minutter, efter at det blev udstedt: derefter afvises det med "SAML response has expired". Log ind igen. Hvis svarene bliver ved med at udløbe, så kontrollér urene på denne server og hos din identitetsudbyder.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect-udbyderen sendte `email_verified` som `false` eller som noget, der hverken er true eller false, så OneUptime loggede ingen ind, heller ikke en master-admin. Få adressen bekræftet hos din identitetsudbyder, eller markér den som bekræftet dér, og log ind igen. Se [E-mailadresser, som din identitetsudbyder ikke har bekræftet](#e-mailadresser-som-din-identitetsudbyder-ikke-har-bekræftet).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, et link sendt på e-mail, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO for at logge ind** fra på **Single sign-on**.
 :::
@@ -193,4 +203,5 @@ Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle
 - [SSO](/docs/identity/sso): Opsæt et projekts egen SAML- eller OIDC-udbyder.
 - [SCIM](/docs/identity/scim): Lad din identitetsudbyder tilføje og fjerne personer automatisk.
 - [Brugere, teams og tilladelser](/docs/permissions/index): Hvad de teams, nye personer kommer med i, giver dem lov til.
+- [Hjælp og support](/docs/self-hosted/help-and-support): Fortæl folk, der har brug for en invitation, hvem de skal spørge.
 :::

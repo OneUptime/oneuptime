@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities and a machine's model, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities, a machine's model and the compliance paperwork's words, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -119,6 +119,7 @@ describe("the keys that name their meaning", () => {
         "Capabilities (Linux capabilities)",
         "Catching up (device manager connection)",
         "Change (schema change)",
+        "Children (people)",
         "Created (import result)",
         "Deleted (invoice status)",
         "Expired (block)",
@@ -136,6 +137,7 @@ describe("the keys that name their meaning", () => {
         "Open (pull request)",
         "Open (status)",
         "Push (push notification)",
+        "Recipients (of data)",
         "Screen (app screen)",
         "Table (database object)",
         "Test (dbt test)",
@@ -146,6 +148,8 @@ describe("the keys that name their meaning", () => {
         "Valid (OAuth token)",
         "View (database object)",
         "Waiting (device manager connection)",
+        "What it is (store identity)",
+        "Write (own words)",
       ].sort(),
     );
     expect(getWordOfMeaningKey(VIEW)).toBe("View");
@@ -219,6 +223,19 @@ describe("the keys that name their meaning", () => {
       "Capabilities",
     );
     expect(getWordOfMeaningKey("Capabilities")).toBeUndefined();
+    /*
+     * #10375: the compliance paperwork's words that meant something else
+     * there (a category of people's Children, a record's Recipients, the
+     * Write button), and the fact of what a store is, whose bare words head
+     * the docs' comparison tables.
+     */
+    expect(getWordOfMeaningKey("Children (people)")).toBe("Children");
+    expect(getWordOfMeaningKey("Recipients (of data)")).toBe("Recipients");
+    expect(getWordOfMeaningKey("Write (own words)")).toBe("Write");
+    expect(getWordOfMeaningKey("What it is (store identity)")).toBe(
+      "What it is",
+    );
+    expect(getWordOfMeaningKey("What it is")).toBeUndefined();
   });
 
   test("are no other text, not even one shaped like them: it reads as it is written", () => {

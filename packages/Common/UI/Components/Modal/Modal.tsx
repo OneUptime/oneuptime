@@ -3,6 +3,7 @@ import { isDialogAside } from "./DialogAside";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
@@ -98,7 +99,9 @@ export interface ComponentProps {
   /*
    * What the dialog was doing, in the reader's language - "Couldn't delete
    * the note." - said first when the error is one nobody explained
-   * (ModalBody).
+   * (ModalBody). Left out, the dialog names itself by its title: "“Rotate
+   * Verification Code” did not finish." (DialogWhatFailed, #7680). A dialog
+   * whose title names no action - "Error", "Test Failed" - says it here.
    */
   errorWhatFailed?: string | undefined;
   isBodyLoading?: boolean | undefined;
@@ -965,7 +968,10 @@ const Modal: FunctionComponent<ComponentProps> = (
               <div ref={contentInnerRef}>
                 <ModalBody
                   error={props.error}
-                  whatFailed={props.errorWhatFailed}
+                  whatFailed={
+                    props.errorWhatFailed ||
+                    getDialogWhatFailed(translator, translatedTitle)
+                  }
                 >
                   {!props.isBodyLoading ? (
                     /*

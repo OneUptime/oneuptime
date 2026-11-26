@@ -42,7 +42,7 @@ Nur Funde mit Konfidenz Hoch oder Mittel zählen: Sie machen einen Datenspeicher
 
 Beanspruchen zwei Datentypen dieselben Zeichen, gewinnt der sicherere Fund: die höhere Konfidenz, dann der Detektor, dessen eigene Regeln mehr beweisen, dann der längere Treffer.
 
-Ein Wert wird auch so gelesen, wie Menschen ihn schreiben. Die Prozent-Escapes einer URL werden gelesen, sodass eine IP-Adresse oder eine E-Mail-Adresse in einem Query-String, etwa `jane%40example.com`, gefunden wird. Die Ziffern einer Kartennummer werden in jeder Schrift gelesen, etwa Ziffern voller Breite (`４１１１ １１１１ １１１１ １１１１`) oder arabisch-indische Ziffern, jede Schrift zuerst für sich und dann zusammen. Eine E-Mail-Adresse wird in jeder Schrift gefunden, etwa `张伟@example.com` oder `почта@пример.рф`, und eine IPv6-Adresse direkt nach dem Doppelpunkt eines Schlüssels, etwa `ip:2001:db8::1`. Jeder Fund ist der Wert, wie er geschrieben ist, sodass eine Bereinigungsregel ihn dort verbirgt.
+Ein Wert wird auch so gelesen, wie Menschen ihn schreiben. Die Prozent-Escapes einer URL werden gelesen, auch für die UTF-8-Bytes eines Zeichens, sodass eine IP-Adresse, eine E-Mail-Adresse wie `jane%40example.com` oder `jos%C3%A9%40example.com`, ein Token oder ein Schlüssel in einem Query-String gefunden wird. Die Ziffern einer Nummer werden in jeder Schrift gelesen, etwa Ziffern voller Breite (`４１１１ １１１１ １１１１ １１１１`) oder arabisch-indische Ziffern, jede Schrift zuerst für sich und dann zusammen: eine Kartennummer, eine Telefonnummer, eine US-Sozialversicherungsnummer, eine IBAN, eine Bankleitzahl (Routing Number), eine nationale Ausweisnummer oder eine Gesundheitskennung wie eine NHS-Nummer. Eine E-Mail-Adresse wird in jeder Schrift gefunden, etwa `张伟@example.com` oder `почта@пример.рф`, und eine IPv6-Adresse direkt nach dem Doppelpunkt eines Schlüssels, etwa `ip:2001:db8::1`. Jeder Fund ist der Wert, wie er geschrieben ist, sodass eine Bereinigungsregel ihn dort verbirgt.
 
 Ein langer Wert wird in Fenstern von 64 KB gelesen, die sich um 4 KB überlappen, sodass ein Wert ganz gefunden wird, wo immer er steht, und von einem Wert werden höchstens 4 MB gelesen.
 
@@ -60,7 +60,7 @@ Ein Feld, dessen Werte im Schnitt länger als 80 Zeichen sind, ist Freitext - No
 
 Der Name eines Felds wird in Wörter zerlegt - `customerEmail`, `customer_email` und `customer-email` sind alle „customer email“ - und der Namenshinweis eines Typs passt, wenn seine Wörter in dieser Reihenfolge direkt nebeneinander vorkommen: „date of birth“ passt auf `customer_date_of_birth`, nicht auf `birth_city`. Nur der letzte Teil eines Pfads mit Punkten ist der eigene Name des Felds, zusammen mit dem Teil davor, wenn der letzte ein allgemeines Wort wie `number`, `id` oder `value` ist: `customer.address.city` ist keine Straßenadresse, und `card.number` ist trotzdem eine Kartennummer.
 
-Manche Datentypen lassen sich nicht an ihren Werten erkennen: Kein Muster unterscheidet den Namen einer Person von einer Straße oder eine Religion von irgendeinem anderen Wort. Diese werden allein anhand des Feldnamens gefunden, wenn das Feld Werte hat: Personenname, Benutzername, Geschlecht, Staatsangehörigkeit, Gesundheitsinformationen, Rassische oder ethnische Herkunft, Religiöse Überzeugung, Sexuelle Orientierung, Politische Meinung, Gewerkschaftszugehörigkeit, Biometrische Daten, Genetische Daten und Vorstrafen. Ein Name, ein Benutzername, ein Geschlecht oder eine Staatsangehörigkeit ist dann Hoch, wenn 60 % oder mehr der Werte danach aussehen, und sonst Mittel. In Freitext findet zusätzlich ein kleines Modell Namen und Anschriften von Personen: siehe [Namen und Anschriften in Freitext](#namen-und-anschriften-in-freitext).
+Manche Datentypen lassen sich nicht an ihren Werten erkennen: Kein Muster unterscheidet den Namen einer Person von einer Straße oder eine Religion von irgendeinem anderen Wort. Diese werden allein anhand des Feldnamens gefunden, wenn das Feld Werte hat: Personenname, Benutzername, Geschlecht, Staatsangehörigkeit, Gesundheitsinformationen, Rassische oder ethnische Herkunft, Religiöse Überzeugung, Sexuelle Orientierung, Politische Meinung, Gewerkschaftszugehörigkeit, Biometrische Daten, Genetische Daten und Vorstrafen. Ein Name, ein Benutzername, ein Geschlecht oder eine Staatsangehörigkeit ist dann Hoch, wenn 60 % oder mehr der Werte danach aussehen, und sonst Mittel. In Freitext findet zusätzlich ein kleines Modell Namen und Anschriften von Personen: siehe [Namen und Anschriften in Freitext](#namen-und-anschriften-in-freitext). Der Name einer Person wird auch im Query-String einer URL gefunden, unter einem Parameter, der so heißt, wie ein solches Feld heißen würde, etwa `full_name` in `/contacts?full_name=Jos%C3%A9%20Garc%C3%ADa`: Sein Wert wird so gelesen, wie eine URL ihn schreibt, er ist Hoch, wenn er wie ein Name aussieht, und er wird dort gefunden, wo er geschrieben ist, samt seinen Escape-Sequenzen. Ein Parameter, der nur `name` heißt, bleibt dem Modell überlassen.
 
 Ein Feld, dessen Name sagt, dass es ein Passwort enthält - `password`, `passwordHash`, `pwd`, nicht `password_changed_at` -, sollte einen Hash enthalten: bcrypt, argon2, scrypt, PBKDF2 oder ein anderes Verfahren, das ein Datenspeicher wahrscheinlich nutzt. Leere Werte, Platzhalter wie `********` und verschlüsselte Werte werden beiseitegelegt. Sind vom Rest mehr Werte keine Hashes als Hashes, enthält das Feld die Passwörter selbst, die kein Muster sehen kann, und der Datenspeicher besteht [Passwörter werden im Klartext gespeichert](/docs/data-security/checks-and-issues#datenhygiene) nicht.
 
@@ -76,11 +76,12 @@ Jeder Typ, den OneUptime AI nennt, ist ein Fund mit Konfidenz Niedrig, markiert 
 
 Kein Muster unterscheidet den Namen einer Person von irgendeinem anderen Wort. Deshalb liest zusätzlich ein kleines Sprachmodell Freitext - eine Support-Notiz, eine Logzeile, eine Ausnahmenachricht, einen Prompt - und findet darin Namen und Anschriften von Personen. Das Modell läuft im Scanner, auf den Workern von OneUptime und auf Ihren Sonden: Der Text verlässt den Scanner nie, nichts wird heruntergeladen, solange es läuft, und es wird kein Prompt geschrieben. Es ist nicht OneUptime AI, und die Schalter von OneUptime AI schalten es weder ein noch aus: Das tut **Namen und Anschriften finden**.
 
-- **Was es liest.** Jedes Feld, dessen Werte im Schnitt länger als 80 Zeichen sind, und in der Telemetrie jeden Log-Body, jede Ausnahmenachricht, jeden Stacktrace und jede KI-Unterhaltung, egal wie kurz. Es liest bis zu 100 verschiedene Werte eines Felds, insgesamt 32 KB Text, und von einem einzelnen Wert bis zu 16 KB.
+- **Was es liest.** Jedes Feld, dessen Werte im Schnitt länger als 80 Zeichen sind; jedes Feld, dessen Name sagt, dass eine Person Freitext hineingeschrieben hat, egal wie kurz seine Werte sind, etwa `delivery_note`, `comentario`, `Lieferhinweis` oder `opmerking` (siehe [Kurze Werte](#kurze-werte)); und in der Telemetrie jeden Log-Body, jede Ausnahmenachricht, jeden Stacktrace und jede KI-Unterhaltung, egal wie kurz. Es liest bis zu 100 verschiedene Werte eines Felds, insgesamt 32 KB Text, und von einem einzelnen Wert bis zu 16 KB. Eine URL in dem, was es liest, wird als URL gelesen: Ihre Prozent-Escapes werden gelesen und ein `+` zwischen zwei Buchstaben als Leerzeichen, sodass der Name in `/profile?name=Jos%C3%A9%20Garc%C3%ADa` gefunden und so verborgen wird, wie er geschrieben ist.
 - **Was es findet.** Die Datentypen **Personenname** (`person-name`) und **Anschrift** (`postal-address`). Als Anschrift gilt eine Ortsangabe, die das Modell neben einer Hausnummer liest, etwa `14 Calle Mayor`, samt der Postleitzahl und der Stadt, die darauf folgen. Eine Stadt oder ein Land allein ist keine Anschrift.
 - **Wie sicher es ist.** Ein Name oder eine Anschrift, die das Modell findet, ist für sich allein Mittel. Hoch ist der Fund, wenn der Name des Felds sagt, dass das Feld Namen oder Anschriften enthält, oder wenn Wörter in der Nähe das sagen, etwa „customer“, „Kunde“ oder „dirección“. Niedrig ist er, wenn sich das Modell nicht sicher ist, bei einem Score unter 0,6. Jeder Fund behält die Konfidenz, die er für sich erzielt hat, sodass ein einzelner Name unter tausend Logzeilen trotzdem Mittel ist.
 - **Testwerte.** Platzhalter wie `Jane Doe`, `John Smith`, `Max Mustermann` und `123 Main Street` werden getrennt gezählt, wie die Testwerte jedes Typs.
 - **Was es behält.** Seine Stichproben werden maskiert wie bei einem Namen, der anhand des Feldnamens gefunden wurde: das erste Zeichen und vier Sternchen, `M****`. Sie fließen nie in Fingerabdrücke ein. Auf der Seite **Inhalt** des Datenspeichers steht bei einem solchen Fund **Vom Modell des Scanners in Freitext gefunden**.
+- **Seine Einträge und seine Regeln.** Ein Fund, den es gemacht hat, listet die Einträge auf, in denen er gefunden wurde, jede Zeile auf den Namen oder die Anschrift zugeschnitten und jeder Name und jede Anschrift darin maskiert, und Bereinigen weist an diesen Einträgen eine Regel nach, wie bei jedem Fund: Sie werden mit dem Modell erneut gelesen, jedes Mal mit bis zu 20 Sekunden seiner Zeit. Ein Eintrag, für den es keine Zeit hatte, wird nicht aufgelistet, und die Liste sagt, für wie viele Werte es keine Zeit hatte. Wo das Modell nicht laufen kann, sagt die Liste das, und für den Fund wird keine Regel nachgewiesen.
 
 | Modell | Lizenz | Größe | Revision | Gemessene Sprachen |
 | --- | --- | --- | --- | --- |
@@ -123,11 +124,36 @@ Die vier gemessenen Modelle auf dem eigens geschriebenen Testset, nacheinander a
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Kurze Werte
+
+Ein kurzes Feld wird nur gelesen, wenn sein Name sagt, dass eine Person Freitext hineingeschrieben hat. Die Regel wurde gemessen, bevor sie gewählt wurde, an 49 Spalten einer Datenbank in den sieben Sprachen, insgesamt 588 Werte: Produktnamen, Titel, Labels, Berufsbezeichnungen und Ladennamen, in denen der Name einer Marke, einer Figur oder einer Straße kein Fund ist, und kurze Lieferhinweise, Support-Kommentare und Kundenanmerkungen mit 91 Namen und 28 Anschriften. Die erste erwogene Regel, jedes Feld mit vier oder mehr Wörtern zu lesen, las 108 Werte des Katalogs und machte daraus 53 falsche Namen, etwa `Ralph Lauren` im Namen eines Poloshirts und `Tom Sawyer` im Titel eines Buchs:
+
+| Regel | Gelesene Katalogwerte | Namen: Precision | Namen: Recall | Anschriften: Precision | Falsche Funde pro 1.000 |
+| --- | --- | --- | --- | --- | --- |
+| Felder mit vier oder mehr Wörtern (nicht gewählt) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Felder, deren Name auf Freitext hinweist (gewählt) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+Die gewählte Regel, nach Sprache. Ein Test schreibt diese Werte fest, ebenso die Anforderungen, nach denen das Modell gewählt wurde:
+
+| Sprache | Namen: Precision | Namen: Recall | Anschriften: Precision | Anschriften: Recall |
+| --- | --- | --- | --- | --- |
+| Englisch | 1,00 | 1,00 | 1,00 | 1,00 |
+| Spanisch | 1,00 | 1,00 | 1,00 | 1,00 |
+| Deutsch | 1,00 | 1,00 | 1,00 | 1,00 |
+| Französisch | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italienisch | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portugiesisch | 0,86 | 0,92 | 1,00 | 1,00 |
+| Niederländisch | 1,00 | 1,00 | 1,00 | 1,00 |
+| Alle sieben | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Es zählt der Name des Felds selbst: `orders.delivery_note` wird gelesen, `notes.author` nicht, und ebenso wenig ein Name, der auf eine ID, eine Anzahl, einen Typ, einen Status oder eine Zeit endet, etwa `message_id`. Eine Beschreibung wird nicht wegen ihres Namens gelesen: Die eines Produkts ist Katalogtext.
+
 ### Wo es läuft und was es kostet
 
 - **In jedem Image.** Das App-Image, das die Worker ausführt, und das Sonden-Image enthalten das Modell, sein Vokabular und die Runtime, die Air-Gapped- und Iron-Bank-Images eingeschlossen: etwa 114 MB auf der Festplatte. Die Dateien werden beim Bau des Images aus einer festgelegten Revision geladen und gegen ihren SHA-256-Hash geprüft. Während ein Scan läuft, wird nichts heruntergeladen.
 - **Arbeitsspeicher.** Das Modell wird geladen, wenn ein Scan es zum ersten Mal braucht, einmal pro Prozess: etwa 550 MB, die nach 10 Minuten ohne Scan wieder freigegeben werden.
 - **Zeit.** Auf einem Kern zwischen 30 Sekunden und einer Minute pro 1.000 Werte von der Länge einer Logzeile und etwa 9 Minuten pro 1.000 Werte mit 1.200 Zeichen. Ein Inhaltsscan eines Datenspeichers gibt ihm bis zu 2 Minuten. Der stündliche Telemetrie-Scan gibt ihm insgesamt bis zu 1 Minute, pro Datenspeicher 6 Sekunden, jede Stunde für eine andere Auswahl von Datenspeichern.
+- **Reihum.** Das Modell jedes Inhaltsscans beginnt dort, wo das des letzten aufgehört hat: bei der ersten Tabelle oder dem ersten Container mit Freitext, den es nicht gelesen hat, und mit den Objekten eines Buckets, für die es keine Zeit hatte und die vor allen anderen erneut gelesen werden. Was es angefangen und nicht zu Ende gelesen hat, wird nicht noch einmal als Erstes genommen, sodass nichts die Zeit des Modells Scan für Scan belegt und jede Tabelle und jedes Objekt an die Reihe kommt, egal wie viel Freitext der Datenspeicher enthält.
 - **Wenn seine Zeit abläuft**, endet der Scan mit dem, was das Modell bis dahin gelesen hat, und die Warnungen des Scans sagen, wie viele der Freitextwerte es gelesen hat, nie, was darin stand. Ein Worker oder eine Sonde ohne Modell scannt wie bisher und sagt, warum:
 
 ```text
@@ -135,7 +161,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Namen und Anschriften finden** ist in jedem Projekt eingeschaltet: Inhaltsscans von Buckets, Datenbanken und BigQuery-Datasets lesen Freitext mit dem Modell, auf Workern wie auf Sonden. Die Einstellung darunter, **Namen und Anschriften in der Telemetrie finden**, ist ausgeschaltet: Jeden Log-Body, jede Ausnahme und jede Unterhaltung eines Projekts mit hohem Datenaufkommen und 200 Diensten einmal zu lesen, dauert auf einem Kern etwa 48 Minuten, und die eine Minute pro Stunde, die der Scan hat, liest etwa 4 % davon. Schalten Sie sie ein, damit jeder stündliche Scan einen Teil davon liest. Beide finden Sie unter **Datensicherheit → Einstellungen → Scan-Einstellungen**, im Abschnitt **Was Datensicherheit liest**. **Testen** läuft in Ihrem Browser, ohne das Modell: Was das Modell finden würde, wird dort nicht angezeigt.
+Die Details eines Scans zeigen diese und jede andere Warnung eines Inhalts- oder Telemetrie-Scans in der Sprache des Lesers.
+
+**Namen und Anschriften finden** ist in jedem Projekt eingeschaltet: Inhaltsscans von Buckets, Datenbanken und BigQuery-Datasets lesen Freitext mit dem Modell, auf Workern wie auf Sonden. Die Einstellung darunter, **Namen und Anschriften in der Telemetrie finden**, ist ausgeschaltet: Jeden Log-Body, jede Ausnahme und jede Unterhaltung eines Projekts mit hohem Datenaufkommen und 200 Diensten einmal zu lesen, dauert auf einem Kern etwa 48 Minuten, und die eine Minute pro Stunde, die der Scan hat, liest etwa 4 % davon. Schalten Sie sie ein, damit jeder stündliche Scan einen Teil davon liest. Beide finden Sie unter **Datensicherheit → Einstellungen → Scan-Einstellungen**, im Abschnitt **Was Datensicherheit liest**. **Testen** läuft in Ihrem Browser, ohne das Modell: Was das Modell finden würde, wird dort nicht angezeigt. Das Modell würde dem Download etwa 113 MB hinzufügen, komprimiert 67 MB, und dem Arbeitsspeicher des Tabs etwa 440 MB, deshalb läuft es nur im Scanner.
 
 ## Sensibilität
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8033
+    "keys": 65322,
+    "untranslated": 8050
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -143,7 +143,10 @@
     "SHA256",
     "SLI %",
     "SLOs",
+    "SNMP inform",
     "SNMP trap",
+    "SNMPv3 inform",
+    "SNMPv3 trap",
     "SQL Server",
     "SSH",
     "ScheduledMaintenance",
@@ -175,6 +178,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -216,6 +221,7 @@
     "mm",
     "name",
     "nova-compute",
+    "office-hours",
     "oneuptime",
     "oneuptime-check",
     "oneuptime-checks",

@@ -1353,7 +1353,13 @@
   "/dashboard/:projectId/cloud/costs": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/cost-groups": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/savings": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/schedules": [
     "cloud"
   ],
   "/dashboard/:projectId/cloud/budgets": [
@@ -1366,6 +1372,9 @@
     "cloud"
   ],
   "/dashboard/:projectId/cloud/settings/label-rules": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/settings/savings-ai-rules": [
     "cloud"
   ],
   "/dashboard/:projectId/cloud/archived": [
@@ -1484,6 +1493,39 @@
   ],
   "/dashboard/:projectId/vmware/developer/ai-assistants": [
     "vmware"
+  ],
+  "/dashboard/:projectId/xcp-ng": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/documentation": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/settings/owner-rules": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/settings/label-rules": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/settings/rules-audit-logs": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/archived": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/terraform": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/crossplane": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/api": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/cli": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/ai-assistants": [
+    "xcp-ng"
   ],
   "/dashboard/:projectId/ceph": [
     "ceph"

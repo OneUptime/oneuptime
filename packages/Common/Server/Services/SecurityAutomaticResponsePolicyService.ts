@@ -4,6 +4,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import SecurityAutomaticResponse from "../Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
 import SecurityAutomaticResponseRules from "../Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRules";
@@ -387,7 +388,12 @@ export class Service extends ProjectReferencesService<Model> {
     const props: DatabaseCommonInteractionProps = onCreate.createBy.props;
 
     if (isPerson(props) && props.userId) {
-      onCreate.createBy.data.createdByUserId = props.userId;
+      // The ID column, and no other name of it to be stored instead.
+      RelationIdUtil.stamp(
+        onCreate.createBy.data as unknown as Record<string, unknown>,
+        ["createdByUserId", "createdByUser"],
+        props.userId,
+      );
     }
   }
 

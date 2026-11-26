@@ -15,7 +15,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 
 | Page                     | What you do there                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
+| **Incident State**       | Add, rename, recolor and reorder the states an incident moves through, and choose whether incidents declared by hand start acknowledged. Off by default. |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
@@ -82,7 +82,7 @@ flowchart TB
     merge --> incident
 ```
 
-- **In the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users. Its **Details** step follows the template's [custom fields on create](#custom-fields-on-create). The owners become the incident's owners without being notified, once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too.
+- **In the dashboard** — the **Create from Template** button on the incidents list opens a **Select Incident Template** picker, and the declare page reads the template from the `incidentTemplateId` query string parameter, then pre-fills the form with the template plus its owner teams and owner users. Its **Details** step follows the template's [custom fields on create](#custom-fields-on-create). The owners become the incident's owners without being notified, before the incident's Slack and Microsoft Teams channels are created, so a notification rule that asks who owns the incident matches them, and one that invites incident owners to a new channel invites them too.
 - **On the server** — a [form](/docs/forms/on-submit#the-incident-template) that has an **Incident Template**, and a workflow's **Create One Incident** step with an **Incident Template** picked, declare the incident from the template on the server. The step reads the template as a Project Admin of the workflow's project, so a template from another project, or one that was deleted, is refused, and on a plan that doesn't include incident templates the step is refused with the plan it needs. The template's owners become the incident's owners, as they do on the dashboard. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 
 An incident declared on the server records the template in `createdIncidentTemplateId`. Only OneUptime sets that column, for a form or a workflow step that names a template: an API key or a signed-in user cannot, and a request that sends `createdIncidentTemplateId` is refused. To declare from a template over the API, read it from `/api/incident-templates` and send its values in the request.

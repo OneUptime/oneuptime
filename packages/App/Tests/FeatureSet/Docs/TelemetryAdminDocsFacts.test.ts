@@ -2394,8 +2394,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         "4111 1111 1111 1111",
         "４１１１ １１１１ １１１１ １１１１",
       ],
-      [LogScrubPatternType.SSN]: ["123-45-6789"],
-      [LogScrubPatternType.PhoneNumber]: ["555-123-4567"],
+      // In another script's digits too (#11030).
+      [LogScrubPatternType.SSN]: ["123-45-6789", "１２３-４５-６７８９"],
+      // An international one too (#11025).
+      [LogScrubPatternType.PhoneNumber]: ["555-123-4567", "+44 20 7946 0958"],
       /*
        * Public ones: a private address is no one's, and is kept (#10393). One
        * group each side of "::" is an address too (#10466).
@@ -2447,6 +2449,62 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     // A custom pattern is matched with its case, and only with the g flag.
     expect(SCRUB_RULE_REGEX_FLAGS).toBe("g");
+  });
+
+  /*
+   * #11025, #11030: what the SSN and Phone Number rows say beside their
+   * examples - each written the other ways the row names, and what the
+   * Phone Number rule leaves.
+   */
+  it("hides a Social Security number and a phone number the ways their rows say, and leaves what is no phone number", () => {
+    const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
+    const rowOf: (label: string) => string = (label: string): string => {
+      return rows.find((row: Array<string>): boolean => {
+        return unbold(row[0] as string) === label;
+      })![1] as string;
+    };
+    const leftOf: (patternType: string, value: string) => string = (
+      patternType: string,
+      value: string,
+    ): string => {
+      return (getRegexForPattern(patternType) as ScrubRegExp).replace(
+        value,
+        (): string => {
+          return "";
+        },
+      );
+    };
+
+    expect(rowOf("SSN (Social Security Number)")).toContain(
+      "also set apart by dots or spaces and in another script's digits",
+    );
+    for (const value of ["536.22.8731", "536 22 8731", "٥٣٦-٢٢-٨٧٣١"]) {
+      expect({ value, left: leftOf(LogScrubPatternType.SSN, value) }).toEqual({
+        value,
+        left: "",
+      });
+    }
+
+    expect(rowOf("Phone Number")).toContain(
+      "international ones in the groups people write them in, also in a percent-encoded URL and in another script's digits, but not a decimal, a time zone's offset or a version",
+    );
+    for (const value of [
+      "+49 30 123456",
+      "+44 (0)20 7946 0958",
+      "%2B44%2020%207946%200958",
+      "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+    ]) {
+      expect({
+        value,
+        left: leftOf(LogScrubPatternType.PhoneNumber, value),
+      }).toEqual({ value, left: "" });
+    }
+    for (const value of ["+51.507217", "UTC +1 2026-11-24", "v1.2.3+build.5"]) {
+      expect({
+        value,
+        left: leftOf(LogScrubPatternType.PhoneNumber, value),
+      }).toEqual({ value, left: value });
+    }
   });
 
   it("redacts, masks or hashes the example as the page shows, and redacts unless told otherwise", () => {
@@ -2628,6 +2686,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "2001:db8::1",
       "jane%40example.com",
       "jane@example.com",
+      "jos%C3%A9%40example.com",
+      "josé@example.com",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
@@ -2647,6 +2707,31 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(scrubbedBody("jane%40example.com", [emailHash])).toBe(
       scrubbedBody("jane@example.com", [emailHash]),
+    );
+    // Its letters' UTF-8 bytes percent-encoded too (#11032).
+    expect(scrubbedBody("jos%C3%A9%40example.com", [emailHash])).toBe(
+      scrubbedBody("josé@example.com", [emailHash]),
+    );
+
+    // What a Custom Regex rule finds, by what it reads (#11031, #11033).
+    const customHash: { rule: LogScrubRule; regex: ScrubRegExp } = {
+      rule: scrubRule(LogScrubPatternType.Custom, LogScrubAction.Hash).rule,
+      regex: getRegexForPattern(
+        LogScrubPatternType.Custom,
+        "\\+44 \\d{2} \\d{4} \\d{4}",
+      ) as ScrubRegExp,
+    };
+
+    customHash.rule.customRegex = "\\+44 \\d{2} \\d{4} \\d{4}";
+    customHash.rule.projectId = projectId;
+
+    for (const written of ["%2B44%2020%207946%200958", "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨"]) {
+      expect(scrubbedBody(written, [customHash])).toBe(
+        scrubbedBody("+44 20 7946 0958", [customHash]),
+      );
+    }
+    expect(item).toContain(
+      "what a **Custom Regex** rule finds, by what it reads",
     );
     expect(
       scrubbedBody("４１１１ １１１１ １１１１ １１１１", [cardHash]),
@@ -2681,6 +2766,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "user@例え.jp",
       "jane%40example.com",
       "/signup?email=jane%40example.com",
+      "jos%C3%A9%40example.com",
     ]);
     expect(item).toContain(
       "**Mask** reads such an address decoded, so it keeps its first letter and the end of its domain",
@@ -2691,6 +2777,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "josé@example.com",
       "user@例え.jp",
       "jane%40example.com",
+      // Its letters' UTF-8 bytes percent-encoded too (#11032).
+      "jos%C3%A9%40example.com",
     ]) {
       expect({ address, stored: scrubbedBody(address, redact) }).toEqual({
         address,
@@ -2734,6 +2822,60 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Mask),
       ]),
     ).toBe("****-****-****-1111");
+  });
+
+  it("hides what the Custom Regex list item says a custom pattern finds, encoded or in another script's digits, and masks it as it reads (#11031, #11033)", () => {
+    const item: string = listItemOf(
+      page,
+      "A Custom Regex rule reads a value as Data Security reads it.",
+    );
+    const codes: Array<string> = inlineCodes(item);
+
+    expect(codes).toEqual([
+      "\\+44 \\d{2} \\d{4} \\d{4}",
+      "%2B44%2020%207946%200958",
+      "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+    ]);
+
+    const pattern: string = codes[0]!;
+    const customOf: (action: string) => {
+      rule: LogScrubRule;
+      regex: ScrubRegExp;
+    } = (action: string): { rule: LogScrubRule; regex: ScrubRegExp } => {
+      const custom: { rule: LogScrubRule; regex: ScrubRegExp } = {
+        rule: scrubRule(LogScrubPatternType.Custom, action).rule,
+        regex: getRegexForPattern(
+          LogScrubPatternType.Custom,
+          pattern,
+        ) as ScrubRegExp,
+      };
+
+      custom.rule.customRegex = pattern;
+
+      return custom;
+    };
+
+    expect(checkScrubRuleCustomRegex(pattern)).toBeNull();
+
+    for (const written of codes.slice(1)) {
+      expect({
+        written,
+        stored: scrubbedBody(`GET /callback?to=${written}&step=2`, [
+          customOf(LogScrubAction.Redact),
+        ]),
+      }).toEqual({
+        written,
+        stored: "GET /callback?to=[REDACTED]&step=2",
+      });
+      // Masked as it reads: its first and last characters, in ASCII digits.
+      expect(scrubbedBody(written, [customOf(LogScrubAction.Mask)])).toBe(
+        scrubbedBody("+44 20 7946 0958", [customOf(LogScrubAction.Mask)]),
+      );
+    }
+
+    expect(item).toContain(
+      "The **Custom Regex** rules **Scrub It** makes for other data types, such as a GitHub token or an IBAN, read a value the same ways.",
+    );
   });
 
   it("says every pattern rule but the two that read keys reads only the attributes it lists under More fields, as the form draws it (#10751)", () => {
@@ -3594,12 +3736,13 @@ describe("Topology (telemetry/topology)", () => {
 
   it("names every resource that has a Topology page of its own, and each page is in its side menu", () => {
     expect(page).toContain(
-      "A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, an OpenStack cloud and a storage array each have a **Topology** page of their own.",
+      "A vCenter, an XCP-ng pool, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, an OpenStack cloud and a storage array each have a **Topology** page of their own.",
     );
 
-    // Each of the ten is a page of the resource, under Topology in its side menu.
+    // Each of the eleven is a page of the resource, under Topology in its side menu.
     for (const [menu, key] of [
       ["VMware", "VMWARE_VCENTER_VIEW_TOPOLOGY"],
+      ["XcpNg", "XCP_NG_POOL_VIEW_TOPOLOGY"],
       ["Kubernetes", "KUBERNETES_CLUSTER_VIEW_TOPOLOGY"],
       ["Host", "HOST_VIEW_TOPOLOGY"],
       ["Docker", "DOCKER_HOST_VIEW_TOPOLOGY"],
@@ -3623,7 +3766,7 @@ describe("Topology (telemetry/topology)", () => {
       );
     }
 
-    // The ten are the ones the master map links into, and no others.
+    // The eleven are the ones the master map links into, and no others.
     const links: string = readDashboardSource(
       "Components/ResourceTopology/ResourceTopologyLinks.ts",
     );
@@ -3640,6 +3783,7 @@ describe("Topology (telemetry/topology)", () => {
         "PROXMOX_CLUSTER_VIEW_TOPOLOGY",
         "STORAGE_ARRAY_VIEW_TOPOLOGY",
         "VMWARE_VCENTER_VIEW_TOPOLOGY",
+        "XCP_NG_POOL_VIEW_TOPOLOGY",
       ].sort(),
     );
   });
@@ -3712,12 +3856,13 @@ describe("Topology (telemetry/topology)", () => {
         "Open cloud topology",
         "Open cluster topology",
         "Open host topology",
+        "Open pool topology",
         "Open storage array topology",
         "Open vCenter topology",
       ].sort(),
     );
     expect(page).toContain(
-      "**Open in Topology** opens the resource on **Infrastructure**, and its **Open vCenter topology**, **Open cluster topology**, **Open host topology** or **Open storage array topology** button leads back.",
+      "**Open in Topology** opens the resource on **Infrastructure**, and its **Open vCenter topology**, **Open pool topology**, **Open cluster topology**, **Open host topology** or **Open storage array topology** button leads back.",
     );
     expect(
       readDashboardSource("Components/Topology/InfrastructureExplorer.tsx"),

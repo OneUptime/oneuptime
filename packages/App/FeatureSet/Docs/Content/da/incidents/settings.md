@@ -15,7 +15,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 
 | Side                         | Hvad du gør der                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Hændelsesstatus**          | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på de tilstande, en hændelse går igennem. |
+| **Hændelsesstatus**          | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på de tilstande, en hændelse går igennem, og vælge, om hændelser erklæret i hånden starter som bekræftede. Slået fra som standard. |
 | **Hændelsesalvor**           | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på alvorsgraderne.                     |
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
@@ -82,7 +82,7 @@ flowchart TB
     merge --> incident
 ```
 
-- **I dashboardet** — knappen **Opret fra skabelon** i listen over hændelser åbner en vælger **Vælg hændelsesskabelon**, og erklæringssiden læser skabelonen fra forespørgselsparameteren `incidentTemplateId` og udfylder derefter formularen med skabelonen plus dens ejerteams og ejerbrugere. Dens trin **Detaljer** følger skabelonens [brugerdefinerede felter ved oprettelse](#brugerdefinerede-felter-ved-oprettelse). Ejerne bliver hændelsens ejere uden at få besked, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem.
+- **I dashboardet** — knappen **Opret fra skabelon** i listen over hændelser åbner en vælger **Vælg hændelsesskabelon**, og erklæringssiden læser skabelonen fra forespørgselsparameteren `incidentTemplateId` og udfylder derefter formularen med skabelonen plus dens ejerteams og ejerbrugere. Dens trin **Detaljer** følger skabelonens [brugerdefinerede felter ved oprettelse](#brugerdefinerede-felter-ved-oprettelse). Ejerne bliver hændelsens ejere uden at få besked, før hændelsens Slack- og Microsoft Teams-kanaler oprettes, så en notifikationsregel, der spørger, hvem der ejer hændelsen, matcher dem, og en regel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem.
 - **På serveren** — en [formular](/docs/forms/on-submit#hændelsesskabelonen), der har en **Hændelsesskabelon**, og en arbejdsgangs trin **Opret Hændelse (én post)** med en valgt **Hændelsesskabelon** erklærer hændelsen fra skabelonen på serveren. Trinnet læser skabelonen som Projektadministrator for arbejdsgangens projekt, så en skabelon fra et andet projekt, eller en, der er slettet, afvises, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, det kræver. Skabelonens ejere bliver hændelsens ejere, som i dashboardet. Se [Erklær en hændelse ud fra en skabelon](/docs/workflows/components#erklær-en-hændelse-ud-fra-en-skabelon).
 
 En hændelse, der erklæres på serveren, registrerer skabelonen i `createdIncidentTemplateId`. Kun OneUptime sætter den kolonne, for en formular eller et arbejdsgangstrin, der nævner en skabelon: en API-nøgle eller en indlogget bruger kan ikke, og en anmodning, der sender `createdIncidentTemplateId`, afvises. For at erklære fra en skabelon via API'et læser du den fra `/api/incident-templates` og sender dens værdier i anmodningen.
