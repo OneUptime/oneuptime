@@ -146,7 +146,8 @@ describe("a VM's xenStoreData, other config and boot arguments", () => {
     type: "VM",
     name_label: "app-02",
     power_state: "Halted",
-    PV_args: "graphical utf8 -- passwd=Hunter2Root ks=http://deploy:Kick4rt@10.0.0.9/ks.cfg",
+    PV_args:
+      "graphical utf8 -- passwd=Hunter2Root ks=http://deploy:Kick4rt@10.0.0.9/ks.cfg",
     other: {
       base_template_name: "Debian Bookworm 12",
       "install-repository": "http://mirror:M1rr0rPass@deb.example.lan/debian",
@@ -159,7 +160,8 @@ describe("a VM's xenStoreData, other config and boot arguments", () => {
       "vm-data/user-data":
         "#cloud-config\nchpasswd:\n  list: |\n    root:CloudInitRoot1\n",
       "vm-data/root-password": "XenStoreRoot2",
-      "vm-data/ssh-key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl",
+      "vm-data/ssh-key":
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl",
       "vm-data/vendor-data": "vendor-secret-blob",
       "vm-data/network-config": "wifi: { psk: W1f1Secret }",
     },
@@ -391,9 +393,12 @@ describe("linear time", () => {
   });
 
   test("many short tokens and URLs in one answer", () => {
-    const answer: string = Array.from({ length: 5000 }, (_: unknown, i: number) => {
-      return `line ${i}: https://u${i}@h${i}/ ${XO_TOKEN}`;
-    }).join("\n");
+    const answer: string = Array.from(
+      { length: 5000 },
+      (_: unknown, i: number) => {
+        return `line ${i}: https://u${i}@h${i}/ ${XO_TOKEN}`;
+      },
+    ).join("\n");
     const started: number = Date.now();
     const out: string = redact(answer);
 

@@ -524,6 +524,15 @@ function readQuotedString(cursor: FilterCursor): string | null {
   throw new FilterSyntaxError("a quoted string is not closed");
 }
 
+// A back-reference (\1, \k<name>).
+const BACK_REFERENCE_REGEX: RegExp = /\\[1-9]|\\k</;
+
+// The last character of a quantifier, before a lazy "?".
+const QUANTIFIER_END_REGEX: RegExp = /[*+?}]/;
+
+// The first character of a quantifier, after a group.
+const QUANTIFIER_START_REGEX: RegExp = /[*+{?]/;
+
 /*
  * A regular expression that could take Xen Orchestra's server unbounded
  * time on a long string: a quantified group that itself holds a quantifier
@@ -534,7 +543,7 @@ function describeUnsafeRegex(pattern: string): string | null {
     return `a regular expression of at most ${MAX_XO_FILTER_REGEX_CHARS} characters`;
   }
 
-  if (/\\[1-9]|\\k</.test(pattern)) {
+  if (BACK_REFERENCE_REGEX.test(pattern)) {
     return "a regular expression without back-references";
   }
 
@@ -576,7 +585,10 @@ function describeUnsafeRegex(pattern: string): string | null {
       const previous: string = i > 0 ? pattern.charAt(i - 1) : "";
 
       // "(?:", "(?=", ... and a lazy "*?" are not quantifiers of their own.
-      if (ch === "?" && (previous === "(" || /[*+?}]/.test(previous))) {
+      if (
+        ch === "?" &&
+        (previous === "(" || QUANTIFIER_END_REGEX.test(previous))
+      ) {
         continue;
       }
 
@@ -591,7 +603,7 @@ function describeUnsafeRegex(pattern: string): string | null {
       const opening: { quantified: boolean } | undefined = openings.pop();
       const next: string = pattern.charAt(i + 1);
 
-      if (opening && opening.quantified && /[*+{?]/.test(next)) {
+      if (opening && opening.quantified && QUANTIFIER_START_REGEX.test(next)) {
         return "a regular expression without a repeated group that repeats itself, such as (a+)+";
       }
 
@@ -1103,12 +1115,18 @@ const OBJECT_ACTIVITY_COLLECTIONS: ReadonlyArray<string> = [
 ];
 
 const SUB_READS: Readonly<Record<string, XoSubRead>> = {
-  alarms: { params: COLLECTION_PARAMS, collections: OBJECT_ACTIVITY_COLLECTIONS },
+  alarms: {
+    params: COLLECTION_PARAMS,
+    collections: OBJECT_ACTIVITY_COLLECTIONS,
+  },
   messages: {
     params: COLLECTION_PARAMS,
     collections: OBJECT_ACTIVITY_COLLECTIONS,
   },
-  tasks: { params: COLLECTION_PARAMS, collections: OBJECT_ACTIVITY_COLLECTIONS },
+  tasks: {
+    params: COLLECTION_PARAMS,
+    collections: OBJECT_ACTIVITY_COLLECTIONS,
+  },
   vdis: {
     params: COLLECTION_PARAMS,
     collections: ["vms", "vm-controllers", "vm-snapshots", "vm-templates"],
@@ -1137,11 +1155,13 @@ const ID_RULES: Readonly<Record<string, XoIdRule>> = {
   },
   "backup-logs": {
     regex: LOG_ID_REGEX,
-    expected: "a backup log id as Xen Orchestra lists it, such as 1753776067468",
+    expected:
+      "a backup log id as Xen Orchestra lists it, such as 1753776067468",
   },
   "restore-logs": {
     regex: LOG_ID_REGEX,
-    expected: "a restore log id as Xen Orchestra lists it, such as 1753776067468",
+    expected:
+      "a restore log id as Xen Orchestra lists it, such as 1753776067468",
   },
 };
 
@@ -1440,7 +1460,8 @@ const FORBIDDEN_ROOTS: Readonly<Record<string, string>> = {
   v2v: "importing VMs from another hypervisor is never allowed, so there is nothing to read there",
   mcp: "Xen Orchestra's MCP server is not something the agent calls: it calls the REST API itself",
   docs: "the REST API's own documentation is not something the agent reads",
-  "gui-routes": "Xen Orchestra's interface routes are not something the agent reads",
+  "gui-routes":
+    "Xen Orchestra's interface routes are not something the agent reads",
   dashboard:
     "Xen Orchestra's own dashboard is for administrators; read this pool's at pools/<uuid>/dashboard",
   ping: "the agent checks Xen Orchestra itself; there is nothing to read at ping",
@@ -1489,8 +1510,7 @@ const NEVER_HOST_ACTIONS: Readonly<Record<string, string>> = {
     "powering a host on is never allowed: it is a human's call, and it changes how the pool's VMs are placed",
   detach:
     "ejecting a host from its pool is never allowed: it changes what the pool is",
-  forget:
-    "forgetting a host is never allowed: it changes what the pool is",
+  forget: "forgetting a host is never allowed: it changes what the pool is",
   management_reconfigure:
     "changing a host's management interface is never allowed: it is the host's configuration, and a mistake cuts the host off",
   move_management_ip:
@@ -1634,9 +1654,11 @@ const REFUSED_GLOBAL_FLAGS: Readonly<Record<string, string>> = {
     "the agent always checks Xen Orchestra's certificate, so --allowUnauthorized is never used",
   "--au":
     "the agent always checks Xen Orchestra's certificate, so --au is never used",
-  "--url": "the agent only talks to its own Xen Orchestra, so --url is never used",
+  "--url":
+    "the agent only talks to its own Xen Orchestra, so --url is never used",
   "-u": "the agent only talks to its own Xen Orchestra, so -u is never used",
-  "--json": "the agent always prints Xen Orchestra's answer as JSON: drop --json",
+  "--json":
+    "the agent always prints Xen Orchestra's answer as JSON: drop --json",
 };
 
 // ---- Analysis ----------------------------------------------------------------
@@ -2036,7 +2058,9 @@ function analyzeXcpNgArgv(rawArgv: unknown): XoAnalysis {
     return deny(
       words.problem ||
         `name the path after xo-cli rest ${command}, such as xo-cli rest ${command} ${
-          isRead ? "vms fields=name_label,power_state" : "vms/<uuid>/actions/start"
+          isRead
+            ? "vms fields=name_label,power_state"
+            : "vms/<uuid>/actions/start"
         }`,
     );
   }
@@ -2164,7 +2188,11 @@ function analyzeRead(path: XoPath, params: Array<XoParam>): XoAnalysis {
     ? SUB_READS[sub]
     : undefined;
 
-  if (segments.length === 3 && subRead && subRead.collections.includes(collection)) {
+  if (
+    segments.length === 3 &&
+    subRead &&
+    subRead.collections.includes(collection)
+  ) {
     return readOf(subRead.params, objectScope);
   }
 
@@ -2232,7 +2260,9 @@ function analyzePost(path: XoPath, params: Array<XoParam>): XoAnalysis {
     return deny(
       `"${shorten(actionName)}" is not an action OneUptime AI may take on ${collection}: it may ${Object.keys(
         actions,
-      ).join(", ")} (${collection}/<uuid>/actions/<action>). ${XCP_NG_ACTIONS_SUMMARY}`,
+      ).join(
+        ", ",
+      )} (${collection}/<uuid>/actions/<action>). ${XCP_NG_ACTIONS_SUMMARY}`,
     );
   }
 
@@ -2375,7 +2405,8 @@ export function parseXcpNgCommand(
 // ---- Targets -------------------------------------------------------------------
 
 // "<kind>/<uuid glob>", or a UUID glob alone.
-const TARGET_ENTRY_REGEX: RegExp = /^(?:(vm|pbd|host|schedule|\*)\/)?([0-9a-f*-]+)$/i;
+const TARGET_ENTRY_REGEX: RegExp =
+  /^(?:(vm|pbd|host|schedule|\*)\/)?([0-9a-f*-]+)$/i;
 
 function splitTarget(target: string): { kind: string; id: string } | null {
   const slash: number = target.indexOf("/");

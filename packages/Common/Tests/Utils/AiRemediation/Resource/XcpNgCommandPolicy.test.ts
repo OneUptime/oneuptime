@@ -210,9 +210,9 @@ describe("module shape", () => {
     expect(info.identityEnvVars).toEqual(["XCP_NG_POOL_ID"]);
     expect(info.defaultIdentityPlaceholders).toEqual([]);
     expect(isIdentityResolvedByAgent(AiResourceType.XcpNgPool)).toBe(true);
-    expect(
-      ResourceCommandPolicy.getToolPolicy(AiResourceType.XcpNgPool),
-    ).toBe(XcpNgCommandPolicy);
+    expect(ResourceCommandPolicy.getToolPolicy(AiResourceType.XcpNgPool)).toBe(
+      XcpNgCommandPolicy,
+    );
   });
 
   test.each([
@@ -291,9 +291,9 @@ describe("grammar: xo-cli and its rest command", () => {
     expect(XcpNgCommandPolicy.evaluateArgv(["pvesh", "get", "/"]).tier).toBe(
       ResourceCommandTier.Denied,
     );
-    expect(
-      XcpNgCommandPolicy.evaluateArgv(["xe", "vm-list"]).reason,
-    ).toContain('starts with "xo-cli"');
+    expect(XcpNgCommandPolicy.evaluateArgv(["xe", "vm-list"]).reason).toContain(
+      'starts with "xo-cli"',
+    );
   });
 
   test("the dispatcher refuses other programs for an XCP-ng pool", () => {
@@ -371,11 +371,14 @@ describe("grammar: xo-cli and its rest command", () => {
     ["put", `xo-cli rest put vms/${VM}/tags/prod`, /HTTP PUT/],
     ["del", `xo-cli rest del vms/${VM}`, /deletes/],
     ["delete", `xo-cli rest delete vms/${VM}`, /deleting anything/],
-  ])("rest %s is never allowed", (_: string, command: string, reason: RegExp) => {
-    const why: string = expectDenied(command, reason);
+  ])(
+    "rest %s is never allowed",
+    (_: string, command: string, reason: RegExp) => {
+      const why: string = expectDenied(command, reason);
 
-    expect(why).toContain(XCP_NG_ACTIONS_SUMMARY);
-  });
+      expect(why).toContain(XCP_NG_ACTIONS_SUMMARY);
+    },
+  );
 
   test("an unknown rest command is refused", () => {
     expectDenied("xo-cli rest list vms", /not an xo-cli rest command/);
@@ -490,10 +493,7 @@ describe("grammar: parameters", () => {
   });
 
   test("a json: value is refused", () => {
-    expectDenied(
-      "xo-cli rest get vms 'filter=json:{\"a\":1}'",
-      /plain text/,
-    );
+    expectDenied("xo-cli rest get vms 'filter=json:{\"a\":1}'", /plain text/);
   });
 
   test("a parameter given twice is refused", () => {
@@ -504,11 +504,27 @@ describe("grammar: parameters", () => {
   });
 
   test.each([
-    ["--output", "xo-cli rest get vms --output vms.json", /never writes it to a file/],
+    [
+      "--output",
+      "xo-cli rest get vms --output vms.json",
+      /never writes it to a file/,
+    ],
     ["-o", "xo-cli rest get vms -o x", /never writes it to a file/],
-    ["--output=", "xo-cli rest get vms --output=x", /never writes it to a file/],
-    ["--input", `xo-cli rest post vms/${VM}/actions/snapshot --input x`, /name=value words/],
-    ["-i", `xo-cli rest post vms/${VM}/actions/snapshot -i x`, /name=value words/],
+    [
+      "--output=",
+      "xo-cli rest get vms --output=x",
+      /never writes it to a file/,
+    ],
+    [
+      "--input",
+      `xo-cli rest post vms/${VM}/actions/snapshot --input x`,
+      /name=value words/,
+    ],
+    [
+      "-i",
+      `xo-cli rest post vms/${VM}/actions/snapshot -i x`,
+      /name=value words/,
+    ],
     ["a short flag", "xo-cli rest get vms -x", /one name=value word/],
   ])("%s is refused", (_: string, command: string, reason: RegExp) => {
     expectDenied(command, reason);
@@ -517,13 +533,24 @@ describe("grammar: parameters", () => {
   test.each([
     ["ndjson", "xo-cli rest get vms ndjson=true", /as JSON/],
     ["markdown", "xo-cli rest get vms markdown=true", /as JSON/],
-    ["sync", `xo-cli rest post vms/${VM}/actions/start sync=true`, /waits for it itself/],
+    [
+      "sync",
+      `xo-cli rest post vms/${VM}/actions/start sync=true`,
+      /waits for it itself/,
+    ],
     ["wait", `xo-cli rest get tasks/${TASK} wait=true`, /answers at once/],
     ["watch", "xo-cli rest get tasks watch=true", /answers at once/],
-    ["an unknown name", "xo-cli rest get vms sort=name_label", /its parameters are fields, filter, limit/],
-  ])("%s is refused with its reason", (_: string, command: string, reason: RegExp) => {
-    expectDenied(command, reason);
-  });
+    [
+      "an unknown name",
+      "xo-cli rest get vms sort=name_label",
+      /its parameters are fields, filter, limit/,
+    ],
+  ])(
+    "%s is refused with its reason",
+    (_: string, command: string, reason: RegExp) => {
+      expectDenied(command, reason);
+    },
+  );
 
   test("the words of a parameter value are kept as they are", () => {
     expect(
@@ -590,7 +617,8 @@ describe("grammar: what an argv may be", () => {
         .reason,
     ).toContain("single line");
     expect(
-      XcpNgCommandPolicy.evaluateArgv(["xo-cli", "rest", "get", "vms\0"]).reason,
+      XcpNgCommandPolicy.evaluateArgv(["xo-cli", "rest", "get", "vms\0"])
+        .reason,
     ).toContain("single line");
   });
 
@@ -624,7 +652,13 @@ describe("grammar: what an argv may be", () => {
       ["xo-cli", "rest", "get", "vms", 'filter="'],
       ["xo-cli", "rest", "get", "vms", "filter=/"],
       ["xo-cli", "rest", "get", "vms", "filter=/(/"],
-      ["xo-cli", "rest", "post", "vms/x/actions/start", "hostId=" + "x".repeat(3000)],
+      [
+        "xo-cli",
+        "rest",
+        "post",
+        "vms/x/actions/start",
+        "hostId=" + "x".repeat(3000),
+      ],
     ];
 
     for (const value of garbage) {
@@ -639,35 +673,40 @@ describe("grammar: what an argv may be", () => {
 });
 
 describe("reads: collections", () => {
-  test.each(XO_POOL_COLLECTIONS.map((c: string) => [c]))(
-    "the pool's %s are read for this pool only",
-    (collection: string) => {
-      expectRead(
-        `xo-cli rest get ${collection} fields=name_label filter=name_label:x limit=5`,
-      );
+  test.each(
+    XO_POOL_COLLECTIONS.map((c: string) => {
+      return [c];
+    }),
+  )("the pool's %s are read for this pool only", (collection: string) => {
+    expectRead(
+      `xo-cli rest get ${collection} fields=name_label filter=name_label:x limit=5`,
+    );
 
-      const built: XenOrchestraApiRequest = request(
-        `xo-cli rest get ${collection} fields=name_label filter=name_label:x limit=5`,
-      );
+    const built: XenOrchestraApiRequest = request(
+      `xo-cli rest get ${collection} fields=name_label filter=name_label:x limit=5`,
+    );
 
-      expect(built).toEqual({
-        method: "GET",
-        path: `/${collection}`,
-        query: { fields: "name_label", filter: "name_label:x", limit: "5" },
-        body: null,
-        scope: { kind: "collection" },
-        change: null,
-      });
-    },
-  );
+    expect(built).toEqual({
+      method: "GET",
+      path: `/${collection}`,
+      query: { fields: "name_label", filter: "name_label:x", limit: "5" },
+      body: null,
+      scope: { kind: "collection" },
+      change: null,
+    });
+  });
 
-  test.each(XO_OWN_COLLECTIONS.map((c: string) => [c]))(
+  test.each(
+    XO_OWN_COLLECTIONS.map((c: string) => {
+      return [c];
+    }),
+  )(
     "Xen Orchestra's %s are read as Xen Orchestra keeps them",
     (collection: string) => {
       expectRead(`xo-cli rest get ${collection} filter=status:failure limit=5`);
-      expect(
-        request(`xo-cli rest get ${collection} limit=5`).scope,
-      ).toEqual({ kind: "none" });
+      expect(request(`xo-cli rest get ${collection} limit=5`).scope).toEqual({
+        kind: "none",
+      });
     },
   );
 
@@ -696,7 +735,12 @@ describe("reads: collections", () => {
     ["fields=name_label,po:wer", /letters, digits/],
     [`fields=${"a".repeat(65)}`, /at most 64 characters/],
     [
-      `fields=${Array.from({ length: MAX_XO_FIELDS + 1 }, (_: unknown, i: number) => `f${i}`).join(",")}`,
+      `fields=${Array.from(
+        { length: MAX_XO_FIELDS + 1 },
+        (_: unknown, i: number) => {
+          return `f${i}`;
+        },
+      ).join(",")}`,
       /at most 40 property names/,
     ],
     ["limit=0", /a whole number from 1 to 5000/],
@@ -724,7 +768,11 @@ describe("reads: collections", () => {
 });
 
 describe("reads: one object", () => {
-  test.each(XO_POOL_COLLECTIONS.map((c: string) => [c]))(
+  test.each(
+    XO_POOL_COLLECTIONS.map((c: string) => {
+      return [c];
+    }),
+  )(
     "one of the pool's %s is read with its pool checked",
     (collection: string) => {
       expectRead(`xo-cli rest get ${collection}/${VM}`);
@@ -745,12 +793,15 @@ describe("reads: one object", () => {
     ["backup-logs", BACKUP_LOG],
     ["restore-logs", BACKUP_LOG],
     ["schedules", SCHEDULE],
-  ])("one of Xen Orchestra's %s is read by its id", (collection: string, id: string) => {
-    expectRead(`xo-cli rest get ${collection}/${id}`);
-    expect(request(`xo-cli rest get ${collection}/${id}`).scope).toEqual({
-      kind: "none",
-    });
-  });
+  ])(
+    "one of Xen Orchestra's %s is read by its id",
+    (collection: string, id: string) => {
+      expectRead(`xo-cli rest get ${collection}/${id}`);
+      expect(request(`xo-cli rest get ${collection}/${id}`).scope).toEqual({
+        kind: "none",
+      });
+    },
+  );
 
   test.each([
     [`vms/${VM.toUpperCase()}`, /write it in lower case/],
@@ -771,7 +822,10 @@ describe("reads: one object", () => {
       `xo-cli rest get vms/${VM} fields=name_label`,
       /it takes no parameters/,
     );
-    expectDenied(`xo-cli rest get tasks/${TASK} limit=1`, /it takes no parameters/);
+    expectDenied(
+      `xo-cli rest get tasks/${TASK} limit=1`,
+      /it takes no parameters/,
+    );
   });
 
   test("a sub-read without an object names none", () => {
@@ -812,7 +866,9 @@ describe("reads: what belongs to an object", () => {
   test.each([["vms"], ["vm-controllers"], ["vm-snapshots"], ["vm-templates"]])(
     "%s/<uuid>/vdis is read",
     (collection: string) => {
-      expectRead(`xo-cli rest get ${collection}/${VM}/vdis fields=name_label,size`);
+      expectRead(
+        `xo-cli rest get ${collection}/${VM}/vdis fields=name_label,size`,
+      );
     },
   );
 
@@ -843,13 +899,16 @@ describe("reads: what belongs to an object", () => {
     },
   );
 
-  test.each([["pools"], ["vms"]])("%s/<uuid>/dashboard is read", (collection: string) => {
-    expectRead(`xo-cli rest get ${collection}/${POOL}/dashboard`);
-    expectDenied(
-      `xo-cli rest get ${collection}/${POOL}/dashboard ndjson=true`,
-      /as JSON/,
-    );
-  });
+  test.each([["pools"], ["vms"]])(
+    "%s/<uuid>/dashboard is read",
+    (collection: string) => {
+      expectRead(`xo-cli rest get ${collection}/${POOL}/dashboard`);
+      expectDenied(
+        `xo-cli rest get ${collection}/${POOL}/dashboard ndjson=true`,
+        /as JSON/,
+      );
+    },
+  );
 
   test.each([["pools"], ["hosts"]])(
     "%s/<uuid>/missing_patches is read",
@@ -1187,9 +1246,15 @@ describe("filters: Xen Orchestra's grammar", () => {
         ],
       },
     ],
-  ])("%s parses as complex-matcher reads it", (input: string, tree: unknown) => {
-    expect(parseXenOrchestraFilter(input)).toEqual({ node: tree, problem: null });
-  });
+  ])(
+    "%s parses as complex-matcher reads it",
+    (input: string, tree: unknown) => {
+      expect(parseXenOrchestraFilter(input)).toEqual({
+        node: tree,
+        problem: null,
+      });
+    },
+  );
 
   test.each([
     ["", /empty/],
@@ -1205,7 +1270,8 @@ describe("filters: Xen Orchestra's grammar", () => {
     ["!", /cannot be read/],
     ["#x", /cannot be read/],
   ])("%s does not parse", (input: string, problem: RegExp) => {
-    const parsed: XenOrchestraFilterParseResult = parseXenOrchestraFilter(input);
+    const parsed: XenOrchestraFilterParseResult =
+      parseXenOrchestraFilter(input);
 
     expect(parsed.node).toBeNull();
     expect(parsed.problem).toMatch(problem);
@@ -1229,7 +1295,8 @@ describe("filters: Xen Orchestra's grammar", () => {
       ).problem,
     ).toContain(`at most ${MAX_XO_FILTER_DEPTH} levels`);
     expect(
-      parseXenOrchestraFilter(`${"!".repeat(MAX_XO_FILTER_DEPTH + 1)}a?`).problem,
+      parseXenOrchestraFilter(`${"!".repeat(MAX_XO_FILTER_DEPTH + 1)}a?`)
+        .problem,
     ).toContain(`at most ${MAX_XO_FILTER_DEPTH} levels`);
     expect(
       parseXenOrchestraFilter(
@@ -1247,13 +1314,16 @@ describe("filters: Xen Orchestra's grammar", () => {
     ["(a)\\1", /back-references/],
     ["(?<n>a)\\k<n>", /back-references/],
     [`${"a".repeat(MAX_XO_FILTER_REGEX_CHARS + 1)}`, /at most 128 characters/],
-  ])("the regular expression /%s/ is refused", (pattern: string, problem: RegExp) => {
-    const parsed: XenOrchestraFilterParseResult = parseXenOrchestraFilter(
-      `name_label:/${pattern}/`,
-    );
+  ])(
+    "the regular expression /%s/ is refused",
+    (pattern: string, problem: RegExp) => {
+      const parsed: XenOrchestraFilterParseResult = parseXenOrchestraFilter(
+        `name_label:/${pattern}/`,
+      );
 
-    expect(parsed.problem).toMatch(problem);
-  });
+      expect(parsed.problem).toMatch(problem);
+    },
+  );
 
   test.each([
     ["^web"],
@@ -1265,7 +1335,9 @@ describe("filters: Xen Orchestra's grammar", () => {
     ["\\d{2,4}"],
     ["^(web|api)\\d+$"],
   ])("the regular expression /%s/ is allowed", (pattern: string) => {
-    expect(parseXenOrchestraFilter(`name_label:/${pattern}/`).problem).toBeNull();
+    expect(
+      parseXenOrchestraFilter(`name_label:/${pattern}/`).problem,
+    ).toBeNull();
   });
 });
 
@@ -1342,9 +1414,9 @@ describe("filters: never on a secret", () => {
   });
 
   test("a secret one level down is refused too", () => {
-    expect(describeXenOrchestraFilterProblem(filterOf("memory:(password:x)"))).toMatch(
-      /names a credential/,
-    );
+    expect(
+      describeXenOrchestraFilterProblem(filterOf("memory:(password:x)")),
+    ).toMatch(/names a credential/);
     expect(
       describeXenOrchestraFilterProblem(filterOf("object:(device_config:x)")),
     ).toMatch(/free-form configuration/);
@@ -1392,10 +1464,13 @@ describe("filters: never on a secret", () => {
     ["jobName:/nightly/ status:failure"],
     ["name:VM_STARTED"],
     ["time:>1764100000"],
-  ])("a filter on named, harmless properties is allowed: %s", (input: string) => {
-    expect(describeXenOrchestraFilterProblem(filterOf(input))).toBeNull();
-    expectRead(`xo-cli rest get vms 'filter=${input}'`);
-  });
+  ])(
+    "a filter on named, harmless properties is allowed: %s",
+    (input: string) => {
+      expect(describeXenOrchestraFilterProblem(filterOf(input))).toBeNull();
+      expectRead(`xo-cli rest get vms 'filter=${input}'`);
+    },
+  );
 });
 
 describe("writes: safe changes", () => {
@@ -1438,7 +1513,8 @@ describe("writes: safe changes", () => {
     expect(built.body).toEqual({ hostId: HOST });
     expect(built.change?.privileges).toEqual(["vm:start", "host:allow-vm"]);
     expect(
-      evaluate(`xo-cli rest post vms/${VM}/actions/start hostId=${HOST}`).reason,
+      evaluate(`xo-cli rest post vms/${VM}/actions/start hostId=${HOST}`)
+        .reason,
     ).toContain(`on host ${HOST}`);
     expectDenied(
       `xo-cli rest post vms/${VM}/actions/start hostId=xcp-prod-01`,
@@ -1486,7 +1562,11 @@ describe("writes: safe changes", () => {
       `xo-cli rest post pbds/${PBD}/actions/plug`,
     );
 
-    expect(built.scope).toEqual({ kind: "object", collection: "pbds", id: PBD });
+    expect(built.scope).toEqual({
+      kind: "object",
+      collection: "pbds",
+      id: PBD,
+    });
     expect(built.change).toEqual({
       collection: "pbds",
       id: PBD,
@@ -1558,12 +1638,13 @@ describe("writes: riskier changes", () => {
     expect(result.reason).toContain('named "before fix"');
     expect(result.reason).toContain("never does");
     expect(
-      request(`xo-cli rest post vms/${VM}/actions/snapshot 'name_label=before fix'`)
-        .body,
+      request(
+        `xo-cli rest post vms/${VM}/actions/snapshot 'name_label=before fix'`,
+      ).body,
     ).toEqual({ name_label: "before fix" });
-    expect(
-      request(`xo-cli rest post vms/${VM}/actions/snapshot`).body,
-    ).toEqual({});
+    expect(request(`xo-cli rest post vms/${VM}/actions/snapshot`).body).toEqual(
+      {},
+    );
     expectDenied(
       `xo-cli rest post vms/${VM}/actions/snapshot name_label=${"a".repeat(MAX_XO_SNAPSHOT_NAME_CHARS + 1)}`,
       /a name of 1 to 128 characters/,
@@ -1588,7 +1669,8 @@ describe("writes: riskier changes", () => {
     expect(result.targets).toEqual([`host/${HOST}`]);
     expect(result.reason).toContain("HA may place VMs");
     expect(
-      request(`xo-cli rest post hosts/${HOST}/actions/enable`).change?.alreadyWhen,
+      request(`xo-cli rest post hosts/${HOST}/actions/enable`).change
+        ?.alreadyWhen,
     ).toEqual({ property: "enabled", values: [true] });
   });
 
@@ -1628,10 +1710,7 @@ describe("writes: always a human", () => {
   });
 
   test("a migration needs its destination, within the pool only", () => {
-    expectDenied(
-      `xo-cli rest post vms/${VM}/actions/migrate`,
-      /needs hostId=/,
-    );
+    expectDenied(`xo-cli rest post vms/${VM}/actions/migrate`, /needs hostId=/);
     expectDenied(
       `xo-cli rest post vms/${VM}/actions/migrate hostId=${OTHER_HOST} srId=${SR}`,
       /within the pool/,
@@ -1754,12 +1833,19 @@ describe("writes: never", () => {
     expectDenied(`xo-cli rest post ${path}`, reason);
   });
 
-  test.each([["vms"], ["srs"], ["backup-jobs"], ["schedules"], ["pools"], ["hosts"]])(
-    "creating %s is never allowed",
-    (collection: string) => {
-      expectDenied(`xo-cli rest post ${collection}`, /creating .* is never allowed/);
-    },
-  );
+  test.each([
+    ["vms"],
+    ["srs"],
+    ["backup-jobs"],
+    ["schedules"],
+    ["pools"],
+    ["hosts"],
+  ])("creating %s is never allowed", (collection: string) => {
+    expectDenied(
+      `xo-cli rest post ${collection}`,
+      /creating .* is never allowed/,
+    );
+  });
 
   test.each([
     ["users"],
@@ -1889,7 +1975,9 @@ describe("the allowlist", () => {
 
   test("a change that always asks a person is refused as an entry", () => {
     expect(
-      problem(`xo-cli rest post vms/${VM}/actions/migrate hostId=${OTHER_HOST}`),
+      problem(
+        `xo-cli rest post vms/${VM}/actions/migrate hostId=${OTHER_HOST}`,
+      ),
     ).toContain("a human always decides");
     expect(
       problem(`xo-cli rest post hosts/${HOST}/actions/restart_toolstack`),
@@ -1952,7 +2040,13 @@ describe("the write scope", () => {
   });
 
   test("a protected VM is protected by its UUID alone, its target or a glob", () => {
-    for (const entry of [VM, `vm/${VM}`, "vm/e8a5*", "e8a5b2c1-*", VM.toUpperCase()]) {
+    for (const entry of [
+      VM,
+      `vm/${VM}`,
+      "vm/e8a5*",
+      "e8a5b2c1-*",
+      VM.toUpperCase(),
+    ]) {
       expect(refusal({ result: reboot, protectedTargets: [entry] })).toContain(
         "which the XCP-ng AI agent protects",
       );
@@ -1977,7 +2071,9 @@ describe("the write scope", () => {
     expect(refusal({ result: plug, writeTargets: ["vm/*"] })).toContain(
       "outside the targets",
     );
-    expect(refusal({ result: plug, writeTargets: ["vm/*", "pbd/*"] })).toBeNull();
+    expect(
+      refusal({ result: plug, writeTargets: ["vm/*", "pbd/*"] }),
+    ).toBeNull();
     expect(refusal({ result: reboot, writeTargets: [VM] })).toBeNull();
     expect(refusal({ result: reboot, writeTargets: [`vm/${VM}`] })).toBeNull();
     expect(refusal({ result: reboot, writeTargets: [OTHER_HOST] })).toContain(
@@ -1989,13 +2085,23 @@ describe("the write scope", () => {
     const describe: (entry: string) => string | null = (
       entry: string,
     ): string | null => {
-      return (XcpNgCommandPolicy.describeTargetEntryProblem as (
-        entry: string,
-      ) => string | null)(entry);
+      return (
+        XcpNgCommandPolicy.describeTargetEntryProblem as (
+          entry: string,
+        ) => string | null
+      )(entry);
     };
 
-    for (const entry of ["xoa", "web-01", "Xen Orchestra", "vm/web-01", "vdi/*"]) {
-      expect(describe(entry)).toContain("names nothing the XCP-ng AI agent changes");
+    for (const entry of [
+      "xoa",
+      "web-01",
+      "Xen Orchestra",
+      "vm/web-01",
+      "vdi/*",
+    ]) {
+      expect(describe(entry)).toContain(
+        "names nothing the XCP-ng AI agent changes",
+      );
     }
 
     for (const entry of ["101", "abc", "vm/dead"]) {
@@ -2047,27 +2153,28 @@ describe("parse and judge are one analysis", () => {
     "xo-cli vm.start id=x",
   ];
 
-  test.each(CORPUS.map((c: string) => [c]))(
-    "%s: a request exactly when the policy allows it",
-    (command: string) => {
-      const result: ResourceCommandPolicyResult = evaluate(command);
-      const parsed: XcpNgCommandParseResult = parse(command);
+  test.each(
+    CORPUS.map((c: string) => {
+      return [c];
+    }),
+  )("%s: a request exactly when the policy allows it", (command: string) => {
+    const result: ResourceCommandPolicyResult = evaluate(command);
+    const parsed: XcpNgCommandParseResult = parse(command);
 
-      if (result.tier === ResourceCommandTier.Denied) {
-        expect(parsed.request).toBeUndefined();
-        expect(parsed.errorMessage).toBe(result.reason);
-        return;
-      }
+    if (result.tier === ResourceCommandTier.Denied) {
+      expect(parsed.request).toBeUndefined();
+      expect(parsed.errorMessage).toBe(result.reason);
+      return;
+    }
 
-      expect(parsed.errorMessage).toBeUndefined();
-      expect(parsed.request?.method).toBe(
-        result.tier === ResourceCommandTier.Read ? "GET" : "POST",
-      );
-      expect(parsed.request?.change === null).toBe(
-        result.tier === ResourceCommandTier.Read,
-      );
-    },
-  );
+    expect(parsed.errorMessage).toBeUndefined();
+    expect(parsed.request?.method).toBe(
+      result.tier === ResourceCommandTier.Read ? "GET" : "POST",
+    );
+    expect(parsed.request?.change === null).toBe(
+      result.tier === ResourceCommandTier.Read,
+    );
+  });
 
   test("the request handed out is a copy: changing it changes nothing next time", () => {
     const command: string = `xo-cli rest post vms/${VM}/actions/start hostId=${HOST}`;
@@ -2116,6 +2223,11 @@ describe("parse and judge are one analysis", () => {
     );
 
     expect(result.program).toBe("xo-cli");
-    expect(result.args).toEqual(["rest", "get", "/rest/v0/vms/", "fields=name_label"]);
+    expect(result.args).toEqual([
+      "rest",
+      "get",
+      "/rest/v0/vms/",
+      "fields=name_label",
+    ]);
   });
 });

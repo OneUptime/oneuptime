@@ -244,6 +244,19 @@ export const RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV: string =
 export const RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV: string =
   "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET";
 /*
+ * An XCP-ng AI agent's Xen Orchestra tokens, two of them. Every read uses
+ * the first: a token of a user holding a copy of Xen Orchestra's built-in
+ * Read only role, which the agent checks before it runs anything, so Xen
+ * Orchestra itself refuses any change a read could make. A fix uses the
+ * second, a token of a user whose role allows only what fixes do, and only
+ * for the change itself. Without it the agent stays read-only whatever else
+ * is set. Neither ever leaves the agent: OneUptime never receives them.
+ */
+export const RESOURCE_AI_XO_READ_TOKEN_ENV: string =
+  "ONEUPTIME_AI_XO_READ_TOKEN";
+export const RESOURCE_AI_XO_WRITE_TOKEN_ENV: string =
+  "ONEUPTIME_AI_XO_WRITE_TOKEN";
+/*
  * Google Cloud only: where the agent runs, as its setup command started it
  * (GcpCloudAiAgentHost). The VM's startup script sets compute-engine; Cloud
  * Run says so itself (K_SERVICE). The agent reports it with its posture

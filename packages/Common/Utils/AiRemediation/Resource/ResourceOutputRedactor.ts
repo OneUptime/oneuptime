@@ -3178,7 +3178,8 @@ function maskXenOrchestraSecretBlocks(lines: Array<string>): number {
 
     for (let inner: number = index + 1; inner < lines.length; inner++) {
       const innerLine: string = lines[inner] as string;
-      const innerIndent: number = innerLine.length - innerLine.trimStart().length;
+      const innerIndent: number =
+        innerLine.length - innerLine.trimStart().length;
 
       if (innerLine.trim() === "" || innerIndent <= indent) {
         index = inner - 1;
@@ -3226,7 +3227,10 @@ function maskXenOrchestraTokens(text: string): { text: string; count: number } {
 
     const start: number = index;
 
-    while (index < text.length && isXenOrchestraTokenCharacter(text.charAt(index))) {
+    while (
+      index < text.length &&
+      isXenOrchestraTokenCharacter(text.charAt(index))
+    ) {
       index++;
     }
 
