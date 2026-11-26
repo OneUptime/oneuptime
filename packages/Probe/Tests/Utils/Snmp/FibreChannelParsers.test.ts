@@ -265,7 +265,7 @@ describe("mapBrocadePortsToInterfaces", () => {
 
   test("rows whose index is no port index are skipped", () => {
     const mapped: Map<string, number> = mapBrocadePortsToInterfaces({
-      portRows: table({ "0": onlinePort("0"), "x": onlinePort("1") }),
+      portRows: table({ "0": onlinePort("0"), x: onlinePort("1") }),
       interfaces: candidates([
         [0x40000000, "0/0"],
         [0x40000001, "0/1"],
@@ -463,8 +463,9 @@ describe("parseBrocadeFibreChannelPorts", () => {
 
 describe("ciscoDownReason", () => {
   test("the switch's own words first", () => {
-    expect(ciscoDownReason({ 7: 7, 8: text("Link failure or not-connected") }))
-      .toBe("Link failure or not-connected");
+    expect(
+      ciscoDownReason({ 7: 7, 8: text("Link failure or not-connected") }),
+    ).toBe("Link failure or not-connected");
   });
 
   test("none(2) is an interface that is not down", () => {
@@ -563,7 +564,7 @@ describe("parseCiscoFibreChannelPorts", () => {
         errorRows: table({
           [FC1_1.toString()]: { 6: 1 },
           "999": { 6: 1 },
-          "abc": { 6: 1 },
+          abc: { 6: 1 },
         }),
         interfaces: interfaces,
       });

@@ -807,9 +807,7 @@ export default class NetworkDeviceWalkUtil {
       if (walked.fibreChannel) {
         if (walked.fibreChannel.counters) {
           copy["fibreChannel"] = {
-            counters: JSON.parse(
-              JSON.stringify(walked.fibreChannel.counters),
-            ),
+            counters: JSON.parse(JSON.stringify(walked.fibreChannel.counters)),
           };
         } else {
           delete copy["fibreChannel"];

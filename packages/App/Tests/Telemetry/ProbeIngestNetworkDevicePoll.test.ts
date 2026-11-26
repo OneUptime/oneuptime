@@ -2057,7 +2057,9 @@ describe("POST /probe/network-device/list: devices polled in an SNMPv3 context",
 
   test("a probe that cannot even ping is handed none of them", async () => {
     const inContext: ObjectID = ObjectID.generate();
-    deviceService.claimDevicesForPolling.mockResolvedValue([inContext] as never);
+    deviceService.claimDevicesForPolling.mockResolvedValue([
+      inContext,
+    ] as never);
     deviceService.findBy.mockResolvedValue([
       logicalSwitch(inContext, "VF:20"),
     ] as never);

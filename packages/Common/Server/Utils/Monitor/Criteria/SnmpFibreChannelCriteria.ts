@@ -37,9 +37,7 @@ export default class SnmpFibreChannelCriteria {
 
     // A rate is a fraction as often as not: the threshold keeps its decimals.
     const threshold: number | null =
-      CompareCriteria.convertMetricThresholdToNumber(
-        data.criteriaFilter.value,
-      );
+      CompareCriteria.convertMetricThresholdToNumber(data.criteriaFilter.value);
 
     if (!counter || threshold === null) {
       return null;
@@ -125,8 +123,7 @@ export default class SnmpFibreChannelCriteria {
 
       if (!worst || rate > worst.rate) {
         worst = {
-          name:
-            snmpInterface.name || `ifIndex ${snmpInterface.interfaceIndex}`,
+          name: snmpInterface.name || `ifIndex ${snmpInterface.interfaceIndex}`,
           rate: rate,
         };
       }

@@ -319,6 +319,9 @@ const OPERATING_SYSTEM_RULES: ReadonlyArray<RoleRule> = [
 // Brocade's Fibre Channel switch arc (Brocade-REG-MIB fcSwitch).
 const BROCADE_FIBRE_CHANNEL_ARC: string = "1.3.6.1.4.1.1588.2.1.1";
 
+// An MDS model newer than the list: "cisco nx-os(tm) m9300, software ...".
+const MDS_SYS_DESCR: RegExp = /\b(?:nx-os|san-os)\(tm\) m9\d{3}/;
+
 /*
  * Tier 2 — sysObjectId enterprise arcs, for vendors that only make one
  * kind of box. Deliberately short: a vendor with a mixed catalogue (Cisco,
@@ -554,9 +557,8 @@ export function classifyDeviceRole(
 /**
  * Whether a device is a Fibre Channel (SAN) switch: a Brocade Fabric OS
  * switch or director, or a Cisco MDS 9000, by its sysObjectID - and, for an
- * MDS model newer than OneUptime knows, its sysDescr. A SAN switch is a
- * switch whose ports carry storage traffic: the pages say so, and its
- * recommended alerts are the Fibre Channel ones.
+ * MDS model newer than OneUptime knows, its sysDescr. Either is a switch,
+ * though its description seldom says so (an MDS's never does).
  */
 export function isFibreChannelSwitch(signals: DeviceRoleSignals): boolean {
   const sysObjectId: string = SnmpOidListUtil.normalizeOid(signals.sysObjectId);
@@ -571,7 +573,7 @@ export function isFibreChannelSwitch(signals: DeviceRoleSignals): boolean {
 
   return (
     sysObjectId.startsWith("1.3.6.1.4.1.9.") &&
-    /\b(?:nx-os|san-os)\(tm\) m9\d{3}/.test(normalize(signals.sysDescr))
+    MDS_SYS_DESCR.test(normalize(signals.sysDescr))
   );
 }
 

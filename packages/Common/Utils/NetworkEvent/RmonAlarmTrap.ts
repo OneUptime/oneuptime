@@ -150,6 +150,8 @@ const INTERFACE_COUNTER_NAMES: ReadonlyMap<string, string> = new Map<
 
 // An interface index is a positive 32-bit integer (InterfaceIndex, RFC 2863).
 const INTERFACE_INDEX: RegExp = /^[1-9]\d{0,9}$/;
+
+const DIGITS_ONLY: RegExp = /^\d+$/;
 const MAX_INTERFACE_INDEX: number = 2147483647;
 
 /*
@@ -218,7 +220,7 @@ function joinHalves(
     return low;
   }
 
-  if (!/^\d+$/.test(low) || !/^\d+$/.test(high)) {
+  if (!DIGITS_ONLY.test(low) || !DIGITS_ONLY.test(high)) {
     return low;
   }
 
@@ -271,10 +273,7 @@ export default class RmonAlarmTrapUtil {
 
     const alarm: RmonAlarm = { direction: direction };
 
-    const variable: string | undefined = valueOf(
-      varbinds,
-      column(c.variable),
-    );
+    const variable: string | undefined = valueOf(varbinds, column(c.variable));
 
     if (variable) {
       alarm.variableOid = withoutLeadingDot(variable);

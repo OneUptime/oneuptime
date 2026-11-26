@@ -26,9 +26,7 @@ interface FakeAccess {
   walked: Array<string>;
 }
 
-function fakeAccess(
-  tables: Record<string, SnmpTableRows | Error>,
-): FakeAccess {
+function fakeAccess(tables: Record<string, SnmpTableRows | Error>): FakeAccess {
   const walked: Array<string> = [];
 
   return {
@@ -229,7 +227,9 @@ describe("collect", () => {
       rows[index.toString()] = { "6": 0 };
     }
 
-    const fake: FakeAccess = fakeAccess({ [CISCO_FC_IF_ERROR_TABLE_OID]: rows });
+    const fake: FakeAccess = fakeAccess({
+      [CISCO_FC_IF_ERROR_TABLE_OID]: rows,
+    });
 
     await expect(
       FibreChannelPortWalker.collect({
@@ -249,14 +249,11 @@ describe("isTimeout", () => {
     ["Error", "deadline passed", true],
     ["Error", "noSuchName", false],
     ["Error", "", false],
-  ])(
-    "%s: %s",
-    (name: string, message: string, isTimeout: boolean) => {
-      const error: Error = new Error(message);
-      error.name = name;
-      expect(FibreChannelPortWalker.isTimeout(error)).toBe(isTimeout);
-    },
-  );
+  ])("%s: %s", (name: string, message: string, isTimeout: boolean) => {
+    const error: Error = new Error(message);
+    error.name = name;
+    expect(FibreChannelPortWalker.isTimeout(error)).toBe(isTimeout);
+  });
 
   test("not an error at all", () => {
     expect(FibreChannelPortWalker.isTimeout(undefined)).toBe(false);

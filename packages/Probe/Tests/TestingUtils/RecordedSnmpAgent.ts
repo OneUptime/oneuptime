@@ -132,7 +132,9 @@ function typeOf(tag: string): number {
 
 function counter64(value: bigint): Buffer {
   const buffer: Buffer = Buffer.alloc(8);
-  buffer.writeBigUInt64BE(((value % TWO_TO_THE_64) + TWO_TO_THE_64) % TWO_TO_THE_64);
+  buffer.writeBigUInt64BE(
+    ((value % TWO_TO_THE_64) + TWO_TO_THE_64) % TWO_TO_THE_64,
+  );
   return buffer;
 }
 
@@ -275,9 +277,7 @@ export default class RecordedSnmpAgent {
     const recorded: RecordedSnmpAgent = new RecordedSnmpAgent(agent, port);
     recorded.load(agent.getMib(), fs.readFileSync(options.recording, "utf8"));
 
-    for (const [context, recording] of Object.entries(
-      options.contexts || {},
-    )) {
+    for (const [context, recording] of Object.entries(options.contexts || {})) {
       const mib: AgentMib = snmp.createMib() as unknown as AgentMib;
       recorded.load(mib, fs.readFileSync(recording, "utf8"));
       recorded.contextMibs.set(context, mib);

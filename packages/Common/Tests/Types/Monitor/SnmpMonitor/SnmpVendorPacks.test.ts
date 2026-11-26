@@ -486,10 +486,7 @@ describe("SAN switch packs", () => {
     ])(
       "%s %s: its status column knows what healthy is (%j)",
       (id: string, key: string, healthy: Array<string>) => {
-        const statuses: Array<Array<string> | undefined> = tableOf(
-          id,
-          key,
-        )
+        const statuses: Array<Array<string> | undefined> = tableOf(id, key)
           .columns.filter((column: SnmpTableColumn) => {
             return column.role === SnmpTableColumnRole.Status;
           })
@@ -537,8 +534,7 @@ describe("SAN switch packs", () => {
         expect(table.rowLabelColumnOids).toEqual([ENT_PHYSICAL_NAME]);
         // Kept through the validation a device's saved tables go through.
         expect(
-          SnmpTableListUtil.validateTable(table, id)
-            .rowLabelsByIndex,
+          SnmpTableListUtil.validateTable(table, id).rowLabelsByIndex,
         ).toBe(true);
 
         const request: SnmpTableWalkRequest = walkRequest(id, key);
@@ -555,9 +551,7 @@ describe("SAN switch packs", () => {
       );
 
       expect(request.labelOids).toBeUndefined();
-      expect(request.columnOids).toContain(
-        "1.3.6.1.4.1.1588.2.1.1.1.1.22.1.5",
-      );
+      expect(request.columnOids).toContain("1.3.6.1.4.1.1588.2.1.1.1.1.22.1.5");
     });
 
     it("the VSAN table reads as many rows as a table may: an MDS has up to 256 VSANs", () => {
@@ -617,14 +611,17 @@ describe("SAN switch packs", () => {
       [2513, "9148V"],
       [2514, "9124V"],
       [2549, "9396V"],
-    ])("MDS by its chassis sysObjectID alone: .%s (MDS %s)", (model: number) => {
-      const sysObjectId: string = `1.3.6.1.4.1.9.12.3.1.3.${model}`;
+    ])(
+      "MDS by its chassis sysObjectID alone: .%s (MDS %s)",
+      (model: number) => {
+        const sysObjectId: string = `1.3.6.1.4.1.9.12.3.1.3.${model}`;
 
-      expect(CISCO_MDS_CHASSIS_SYS_OBJECT_IDS.has(sysObjectId)).toBe(true);
-      expect(
-        SnmpVendorTemplateUtil.matchDevice({ sysObjectId: sysObjectId })?.id,
-      ).toBe("cisco-mds");
-    });
+        expect(CISCO_MDS_CHASSIS_SYS_OBJECT_IDS.has(sysObjectId)).toBe(true);
+        expect(
+          SnmpVendorTemplateUtil.matchDevice({ sysObjectId: sysObjectId })?.id,
+        ).toBe("cisco-mds");
+      },
+    );
 
     it.each([
       "Cisco NX-OS(tm) m9100, Software (m9100-s6ek9-mz), Version 8.4(2c), RELEASE SOFTWARE Copyright (c) 2002-2020 by Cisco Systems, Inc.",
@@ -667,14 +664,17 @@ describe("SAN switch packs", () => {
       // A name that mentions MDS is not an MDS's sysDescr.
       ["1.3.6.1.4.1.9.1.1208", "Cisco IOS Software, for the MDS 9148 lab"],
       ["1.3.6.1.4.1.9.1.1208", "Cisco NX-OS(tm) m91, Software"],
-    ])("stays on cisco-ios: %s, %s", (sysObjectId: string, sysDescr: string) => {
-      expect(
-        SnmpVendorTemplateUtil.matchDevice({
-          sysObjectId: sysObjectId,
-          sysDescr: sysDescr,
-        })?.id,
-      ).toBe("cisco-ios");
-    });
+    ])(
+      "stays on cisco-ios: %s, %s",
+      (sysObjectId: string, sysDescr: string) => {
+        expect(
+          SnmpVendorTemplateUtil.matchDevice({
+            sysObjectId: sysObjectId,
+            sysDescr: sysDescr,
+          })?.id,
+        ).toBe("cisco-ios");
+      },
+    );
 
     it("no Nexus chassis is in the MDS list", () => {
       for (const nexus of [612, 777, 932, 1084, 1147, 1409, 1410]) {

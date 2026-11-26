@@ -45,6 +45,8 @@ export const MAX_FIBRE_CHANNEL_PORT_ROWS: number = 2048;
 const BROCADE_FIBRE_CHANNEL_ARC: string = "1.3.6.1.4.1.1588.2.1.1";
 const CISCO_ARC: string = "1.3.6.1.4.1.9";
 
+const TIMEOUT_TEXT_REGEX: RegExp = /time(d)?\s?out|time budget|deadline/i;
+
 export enum FibreChannelSource {
   Brocade = "Brocade",
   Cisco = "Cisco",
@@ -235,7 +237,7 @@ export default class FibreChannelPortWalker {
     const error: Error | undefined = err as Error | undefined;
     return (
       error?.name === "RequestTimedOutError" ||
-      /time(d)?\s?out|time budget|deadline/i.test(error?.message || "")
+      TIMEOUT_TEXT_REGEX.test(error?.message || "")
     );
   }
 }

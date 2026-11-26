@@ -237,8 +237,7 @@ afterAll(() => {
 
 describe("a Brocade switch is recognised by itself", () => {
   test("its sysObjectID and sysDescr pick the Brocade Fabric OS pack", () => {
-    const sysObjectId: string | undefined =
-      firstPoll!.systemInfo?.sysObjectId;
+    const sysObjectId: string | undefined = firstPoll!.systemInfo?.sysObjectId;
 
     expect(sysObjectId).toBe("1.3.6.1.4.1.1588.2.1.1.1");
     expect(firstPoll!.systemInfo?.sysDescr).toBe("Fibre Channel Switch.");

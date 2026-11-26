@@ -346,7 +346,9 @@ export default class NetworkDeviceMetricUtil {
             continue;
           }
 
-          if (fibreChannelPoints >= NetworkDeviceMetricUtil.maxFibreChannelPoints) {
+          if (
+            fibreChannelPoints >= NetworkDeviceMetricUtil.maxFibreChannelPoints
+          ) {
             break;
           }
 

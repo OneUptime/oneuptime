@@ -383,11 +383,12 @@ const CISCO_MDS_ITEMS: Array<NetworkDeviceAlertPackItem> = [
       "A port-monitor policy on the switch saw a counter cross its threshold (an RMON rising or falling alarm), on the interface the title names.",
     title:
       "Port monitor: {{trapAlarmCounter}} {{trapAlarmDirection}} on {{trapInterface}}",
-    filters: [...RMON_RISING_ALARM_TRAP_OIDS, ...RMON_FALLING_ALARM_TRAP_OIDS].map(
-      (trapOid: string) => {
-        return trapReceived(trapOid);
-      },
-    ),
+    filters: [
+      ...RMON_RISING_ALARM_TRAP_OIDS,
+      ...RMON_FALLING_ALARM_TRAP_OIDS,
+    ].map((trapOid: string) => {
+      return trapReceived(trapOid);
+    }),
     filterCondition: FilterCondition.Any,
     createIncidents: false,
     createAlerts: true,
@@ -499,9 +500,8 @@ export default class NetworkDeviceAlertPackUtil {
   ): Array<NetworkDeviceAlertPackItem> {
     const vendor:
       | { items: Array<NetworkDeviceAlertPackItem>; replaces: Array<string> }
-      | undefined = NetworkDeviceAlertPackUtil.getVendorAlerts(
-      vendorTemplateId,
-    );
+      | undefined =
+      NetworkDeviceAlertPackUtil.getVendorAlerts(vendorTemplateId);
 
     return [
       ...PACK.filter((item: NetworkDeviceAlertPackItem) => {
@@ -641,68 +641,66 @@ export default class NetworkDeviceAlertPackUtil {
     return NetworkDeviceAlertPackUtil.getPackItems(
       context?.tables,
       context?.vendorTemplateId,
-    ).map(
-      (item: NetworkDeviceAlertPackItem) => {
-        const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-        instance.data = {
-          id: ObjectID.generate().toString(),
-          monitorStatusId: context?.downMonitorStatusId,
-          filterCondition: item.filterCondition || FilterCondition.All,
-          // A copy: the pack's filters are shared by every instance built.
-          filters: item.filters.map((filter: CriteriaFilter) => {
-            return {
-              ...filter,
-              ...(filter.snmpMonitorOptions
-                ? { snmpMonitorOptions: { ...filter.snmpMonitorOptions } }
-                : {}),
-            };
-          }),
-          /*
-           * One incident for an item that declares incidents, one alert for
-           * one that raises alerts. They used to be left empty for the user
-           * to fill in, but the form gave an empty list no row to fill in
-           * and saving checked nothing in it - so "Device unreachable" and
-           * "Interface down" changed the monitor's status and paged nobody.
-           */
-          incidents: item.createIncidents
-            ? [
-                {
-                  id: ObjectID.generate().toString(),
-                  title: item.title || item.name,
-                  description: item.description,
-                  incidentSeverityId: context?.incidentSeverityId,
-                  autoResolveIncident: true,
-                  onCallPolicyIds: [],
-                },
-              ]
-            : [],
-          alerts: item.createAlerts
-            ? [
-                {
-                  id: ObjectID.generate().toString(),
-                  title: item.title || item.name,
-                  description: item.description,
-                  alertSeverityId: context?.alertSeverityId,
-                  autoResolveAlert: true,
-                  onCallPolicyIds: [],
-                },
-              ]
-            : [],
-          createAlerts: item.createAlerts,
-          createIncidents: item.createIncidents,
-          /*
-           * Never claim to change monitor status without a status to change
-           * to — a caller that passes no context would otherwise produce
-           * criteria that "change" the monitor to an undefined status.
-           */
-          changeMonitorStatus:
-            item.createIncidents && Boolean(context?.downMonitorStatusId),
-          isEnabled: true,
-          name: item.name,
-          description: item.description,
-        };
-        return instance;
-      },
-    );
+    ).map((item: NetworkDeviceAlertPackItem) => {
+      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+      instance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: context?.downMonitorStatusId,
+        filterCondition: item.filterCondition || FilterCondition.All,
+        // A copy: the pack's filters are shared by every instance built.
+        filters: item.filters.map((filter: CriteriaFilter) => {
+          return {
+            ...filter,
+            ...(filter.snmpMonitorOptions
+              ? { snmpMonitorOptions: { ...filter.snmpMonitorOptions } }
+              : {}),
+          };
+        }),
+        /*
+         * One incident for an item that declares incidents, one alert for
+         * one that raises alerts. They used to be left empty for the user
+         * to fill in, but the form gave an empty list no row to fill in
+         * and saving checked nothing in it - so "Device unreachable" and
+         * "Interface down" changed the monitor's status and paged nobody.
+         */
+        incidents: item.createIncidents
+          ? [
+              {
+                id: ObjectID.generate().toString(),
+                title: item.title || item.name,
+                description: item.description,
+                incidentSeverityId: context?.incidentSeverityId,
+                autoResolveIncident: true,
+                onCallPolicyIds: [],
+              },
+            ]
+          : [],
+        alerts: item.createAlerts
+          ? [
+              {
+                id: ObjectID.generate().toString(),
+                title: item.title || item.name,
+                description: item.description,
+                alertSeverityId: context?.alertSeverityId,
+                autoResolveAlert: true,
+                onCallPolicyIds: [],
+              },
+            ]
+          : [],
+        createAlerts: item.createAlerts,
+        createIncidents: item.createIncidents,
+        /*
+         * Never claim to change monitor status without a status to change
+         * to — a caller that passes no context would otherwise produce
+         * criteria that "change" the monitor to an undefined status.
+         */
+        changeMonitorStatus:
+          item.createIncidents && Boolean(context?.downMonitorStatusId),
+        isEnabled: true,
+        name: item.name,
+        description: item.description,
+      };
+      return instance;
+    });
   }
 }

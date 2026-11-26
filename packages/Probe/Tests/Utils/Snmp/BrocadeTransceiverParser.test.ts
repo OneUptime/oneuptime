@@ -225,7 +225,9 @@ describe("parseBrocadeSfpTransceivers", () => {
           [`${UNIT}.1`]: sfp(["36", "3291.6", "7.042", "-2.9", "-2.3"]),
         }),
         portRows: PORTS,
-        unitPortRows: table({ [`${UNIT}.1`]: { 8: transmitter, 9: moduleType } }),
+        unitPortRows: table({
+          [`${UNIT}.1`]: { 8: transmitter, 9: moduleType },
+        }),
         interfaces: INTERFACES,
       });
 

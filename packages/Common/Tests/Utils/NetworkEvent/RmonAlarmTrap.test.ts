@@ -285,10 +285,20 @@ describe("mdsInterfaceName", () => {
     expect(RmonAlarmTrapUtil.mdsInterfaceName(interfaceIndex)).toBe(name);
   });
 
-  test.each([0, 1, 0x1000001, 0x0fff000, 0x2000000, 0x4000000 + 256, 0x5000000])(
+  test.each([
+    0,
+    1,
+    0x1000001,
+    0x0fff000,
+    0x2000000,
+    0x4000000 + 256,
+    0x5000000,
+  ])(
     "ifIndex %s is no interface by MDS numbering",
     (interfaceIndex: number) => {
-      expect(RmonAlarmTrapUtil.mdsInterfaceName(interfaceIndex)).toBeUndefined();
+      expect(
+        RmonAlarmTrapUtil.mdsInterfaceName(interfaceIndex),
+      ).toBeUndefined();
     },
   );
 });
@@ -342,7 +352,9 @@ describe("describeInterface and describe", () => {
         variableOid: "1.3.6.1.4.1.9.9.109.1.1.1.1.7.1",
         value: "97",
       }),
-    ).toBe("1.3.6.1.4.1.9.9.109.1.1.1.1.7.1 rose past its threshold (value 97)");
+    ).toBe(
+      "1.3.6.1.4.1.9.9.109.1.1.1.1.7.1 rose past its threshold (value 97)",
+    );
     expect(
       RmonAlarmTrapUtil.describe({ direction: RmonAlarmDirection.Falling }),
     ).toBe("An RMON alarm fell back below its threshold");

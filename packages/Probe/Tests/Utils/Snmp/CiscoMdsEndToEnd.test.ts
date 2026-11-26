@@ -339,8 +339,9 @@ describe("each fc interface, joined by its ifIndex", () => {
 
   test("every error counter of fcIfErrorTable, in its 64-bit column where there is one", () => {
     expect(
-      Object.keys(interfaceAt(firstPoll!, fc(2)).fibreChannel?.counters || {})
-        .sort(),
+      Object.keys(
+        interfaceAt(firstPoll!, fc(2)).fibreChannel?.counters || {},
+      ).sort(),
     ).toEqual(
       [
         FibreChannelCounter.BbCreditZero,
@@ -425,9 +426,9 @@ describe("a minute later: errors and slow drain, per second", () => {
 
   test("an RMON alarm on that interface's credit loss names it the way the walk does", () => {
     // The port-monitor alarm for fcIfCreditLoss on fc1/5.
-    expect(
-      RmonAlarmTrapUtil.mdsInterfaceName(fc(5)),
-    ).toBe(interfaceAt(ratedPoll!, fc(5)).name);
+    expect(RmonAlarmTrapUtil.mdsInterfaceName(fc(5))).toBe(
+      interfaceAt(ratedPoll!, fc(5)).name,
+    );
     expect(RmonAlarmTrapUtil.mdsInterfaceName(PORT_CHANNEL_1)).toBe(
       interfaceAt(ratedPoll!, PORT_CHANNEL_1).name,
     );

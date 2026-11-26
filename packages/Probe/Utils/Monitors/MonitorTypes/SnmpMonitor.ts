@@ -1613,9 +1613,8 @@ export default class SnmpMonitor {
       isTruncated = true;
     }
 
-    const keptRows: Array<
-      [string, Record<string, string | number | null>]
-    > = Array.from(rowsByIndex.entries()).slice(0, maxRows);
+    const keptRows: Array<[string, Record<string, string | number | null>]> =
+      Array.from(rowsByIndex.entries()).slice(0, maxRows);
 
     /*
      * Name columns read by each row's own index (labelOids): a GET of
@@ -1630,15 +1629,14 @@ export default class SnmpMonitor {
       deadlineAt: deadlineAt,
     });
 
-    const rows: Array<SnmpTableResultRow> = keptRows
-      .map(
-        ([index, values]: [
-          string,
-          Record<string, string | number | null>,
-        ]): SnmpTableResultRow => {
-          return { index: index, values: values };
-        },
-      );
+    const rows: Array<SnmpTableResultRow> = keptRows.map(
+      ([index, values]: [
+        string,
+        Record<string, string | number | null>,
+      ]): SnmpTableResultRow => {
+        return { index: index, values: values };
+      },
+    );
 
     return {
       key: table.key,

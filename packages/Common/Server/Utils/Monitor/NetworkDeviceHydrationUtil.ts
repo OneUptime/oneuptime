@@ -679,9 +679,10 @@ export default class NetworkDeviceHydrationUtil {
      */
     snmpV3ContextName?: string | null | undefined;
   }): MonitorStepSnmpMonitor {
-    const snmpVersion: SnmpVersion = NetworkDeviceHydrationUtil.parseSnmpVersion(
-      data.credentials.snmpVersion || undefined,
-    );
+    const snmpVersion: SnmpVersion =
+      NetworkDeviceHydrationUtil.parseSnmpVersion(
+        data.credentials.snmpVersion || undefined,
+      );
     const snmpV3Auth: SnmpV3Auth | undefined =
       NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.credentials);
     const contextName: string | undefined =

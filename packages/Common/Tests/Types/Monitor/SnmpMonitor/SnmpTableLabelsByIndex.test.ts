@@ -82,9 +82,9 @@ describe("rowLabelsByIndex", () => {
   });
 
   test("the probe walks the status column and looks the names up by index", () => {
-    const [request] = SnmpTableListUtil.toWalkRequests([
-      powerSupplies(),
-    ]) as [SnmpTableWalkRequest];
+    const [request] = SnmpTableListUtil.toWalkRequests([powerSupplies()]) as [
+      SnmpTableWalkRequest,
+    ];
 
     expect(request.columnOids).toEqual([POWER_STATUS]);
     expect(request.labelOids).toEqual([ENT_PHYSICAL_NAME]);
@@ -100,9 +100,9 @@ describe("rowLabelsByIndex", () => {
     });
 
     expect(SnmpTableListUtil.getLabelLookupOids(table)).toEqual([]);
-    expect(
-      SnmpTableListUtil.toWalkRequests([table])[0]?.columnOids,
-    ).toContain(ENT_PHYSICAL_NAME);
+    expect(SnmpTableListUtil.toWalkRequests([table])[0]?.columnOids).toContain(
+      ENT_PHYSICAL_NAME,
+    );
   });
 
   test("without it, a table walks its name columns as it always did", () => {

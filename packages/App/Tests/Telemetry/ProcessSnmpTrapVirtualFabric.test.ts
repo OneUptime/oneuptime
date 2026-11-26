@@ -136,21 +136,25 @@ function monitorWatching(deviceId: ObjectID): Monitor {
   return monitor;
 }
 
-const DEFAULT_SWITCH: NetworkDevice = logicalSwitch("fabric-a (FID 128)", undefined);
-const LOGICAL_SWITCH_20: NetworkDevice = logicalSwitch("fabric-b (FID 20)", "VF:20");
+const DEFAULT_SWITCH: NetworkDevice = logicalSwitch(
+  "fabric-a (FID 128)",
+  undefined,
+);
+const LOGICAL_SWITCH_20: NetworkDevice = logicalSwitch(
+  "fabric-b (FID 20)",
+  "VF:20",
+);
 
 let writeUnmatched: AnyMock;
 let writeMatched: AnyMock;
 let findMonitors: AnyMock;
 
 function chassisHas(devices: Array<NetworkDevice>): void {
-  jest
-    .spyOn(NetworkDeviceService, "findBy")
-    .mockImplementation((async (data: {
-      query: Record<string, unknown>;
-    }): Promise<Array<NetworkDevice>> => {
-      return data.query["hostname"] === CHASSIS ? devices : [];
-    }) as never);
+  jest.spyOn(NetworkDeviceService, "findBy").mockImplementation((async (data: {
+    query: Record<string, unknown>;
+  }): Promise<Array<NetworkDevice>> => {
+    return data.query["hostname"] === CHASSIS ? devices : [];
+  }) as never);
 
   const monitors: Array<Monitor> = devices.map((device: NetworkDevice) => {
     return monitorWatching(device.id!);
