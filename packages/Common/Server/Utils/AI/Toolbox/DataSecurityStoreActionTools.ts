@@ -478,7 +478,7 @@ export const SetDataStoreOwnersTool: ObservabilityTool = {
 
     if (!dataStoreId) {
       throw new BadDataException(
-        "dataStoreId must be a data store's ID. List stores with query_data_stores first.",
+        "The dataStoreId given is not a data store's ID. List stores with query_data_stores first.",
       );
     }
 
