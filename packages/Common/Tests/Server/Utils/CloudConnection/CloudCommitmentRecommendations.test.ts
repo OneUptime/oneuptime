@@ -369,7 +369,7 @@ describe("Google Cloud's billing export, on each basis", () => {
   test("amortized takes the commitments' credits off the charge, net every credit", () => {
     const query: string = buildGcpBillingExportQuery(TABLE);
 
-    expect(query).toContain("SUM(cost) AS cost,");
+    expect(query).toContain("SUM(cost) AS billed_cost,");
     expect(query).toContain(
       `WHERE credit.type IN (${GCP_AMORTIZED_CREDIT_TYPES.map(
         (type: string): string => {
@@ -382,7 +382,7 @@ describe("Google Cloud's billing export, on each basis", () => {
     );
     // A group whose three figures are all nothing is no row.
     expect(query).toContain(
-      "HAVING cost != 0 OR amortized_cost != 0 OR net_cost != 0",
+      "HAVING billed_cost != 0 OR amortized_cost != 0 OR net_cost != 0",
     );
   });
 
