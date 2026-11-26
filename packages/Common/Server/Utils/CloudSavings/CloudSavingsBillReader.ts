@@ -179,6 +179,7 @@ export default class CloudSavingsBillReader {
           },
           select: {
             _id: true,
+            projectId: true,
             cloudAccountId: true,
             cloudResourceId: true,
             provider: true,
@@ -213,7 +214,12 @@ export default class CloudSavingsBillReader {
   }): Promise<boolean> {
     const action: CloudSavingsAction = data.action;
 
-    if (!action.id || !action.appliedAt || !action.cloudAccountId) {
+    if (
+      !action.id ||
+      !action.projectId ||
+      !action.appliedAt ||
+      !action.cloudAccountId
+    ) {
       return false;
     }
 
@@ -239,7 +245,7 @@ export default class CloudSavingsBillReader {
     if (keys.length > 0) {
       const result: Results = await CloudCostService.executeQuery(
         CloudSavingsBillReader.buildCostStatement({
-          projectId: action.projectId || new ObjectID(""),
+          projectId: action.projectId,
           cloudAccountId: action.cloudAccountId,
           keys,
           windows,

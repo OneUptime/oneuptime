@@ -453,10 +453,11 @@ export default class CloudSavingsActions {
       owners: owners.users,
       ownerTeams: owners.teams,
       approvedBy: CloudSavingsOwners.hasOwners(owners) ? "owners" : "admins",
-      canApprove: CloudSavingsOwners.canApprove({
+      canApprove: await CloudSavingsOwners.isApprover({
         props: data.props,
         owners,
         projectId: data.projectId,
+        cloudResourceId: recommendation.cloudResourceId,
       }),
       canRequest: CloudSavingsOwners.canRequest({
         props: data.props,
@@ -635,11 +636,12 @@ export default class CloudSavingsActions {
     });
 
     if (
-      !CloudSavingsOwners.canApprove({
+      !(await CloudSavingsOwners.isApprover({
         props: data.props,
         owners,
         projectId: data.projectId,
-      })
+        cloudResourceId: created.cloudResourceId,
+      }))
     ) {
       await writeCloudSavingsFeed({
         event: CloudSavingsFeedEvent.Proposed,
@@ -779,6 +781,12 @@ export default class CloudSavingsActions {
     ) {
       throw CloudSavingsActions.refuseApprover(owners);
     }
+
+    await CloudSavingsOwners.assertMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      cloudResourceId: action.cloudResourceId,
+    });
 
     const now: Date = data.runner?.now || OneUptimeDate.getCurrentDate();
     const first: string = action.firstApprovedByUserId?.toString() || "";
@@ -990,6 +998,12 @@ export default class CloudSavingsActions {
       throw CloudSavingsActions.refuseApprover(owners);
     }
 
+    await CloudSavingsOwners.assertMayChangeResource({
+      props: data.props,
+      projectId: data.projectId,
+      cloudResourceId: action.cloudResourceId,
+    });
+
     const now: Date = data.runner?.now || OneUptimeDate.getCurrentDate();
     const claimed: number = await CloudSavingsActionService.attemptTransition({
       actionId: action.id!,
@@ -1020,20 +1034,30 @@ export default class CloudSavingsActions {
    * ---------------------------------------------------------------------------
    */
 
-  // A proposal for an owner, from a rule (or the project's defaults).
+  /*
+   * A proposal for an owner, from a rule (or the project's defaults), with
+   * why it is proposed rather than made: the approval card shows it.
+   */
   public static async propose(data: {
     projectId: ObjectID;
     saving: CloudSavingContext;
     rule?: { id?: string | undefined; name?: string | undefined } | undefined;
+    reason?: string | undefined;
   }): Promise<CloudSavingsAction> {
+    const action: CloudSavingsAction = CloudSavingsActions.buildAction({
+      projectId: data.projectId,
+      saving: data.saving,
+      origin: CloudSavingsActionOrigin.Rule,
+      finalSnapshot: true,
+      rule: data.rule,
+    });
+
+    if (data.reason) {
+      action.summary = clampText(data.reason, ColumnLength.LongText);
+    }
+
     const created: CloudSavingsAction = await CloudSavingsActionService.create({
-      data: CloudSavingsActions.buildAction({
-        projectId: data.projectId,
-        saving: data.saving,
-        origin: CloudSavingsActionOrigin.Rule,
-        finalSnapshot: true,
-        rule: data.rule,
-      }),
+      data: action,
       props: { isRoot: true },
     });
 

@@ -307,6 +307,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
   /*
+   * Acting on savings (#11010): each change's name and sentence, how it is
+   * undone, why one is not offered, its status and what the bill showed;
+   * a resource's environment; what an AI rule for savings does and why
+   * OneUptime AI proposed a change - as Cloud > Savings, its dialogs and
+   * the savings rules draw them. Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudSavingsAction.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Types/Cloud/CloudSavingsAi.ts", kind: "keys" },
+  /*
    * A managed device's status - Online, Offline, Provisioning and the rest -
    * as Inventory > Managed Devices and a device's Inventory page draw it.
    * Only the names the file marks are read: the server words nothing here.

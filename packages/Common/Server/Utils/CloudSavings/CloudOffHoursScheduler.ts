@@ -5,8 +5,10 @@ import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import CloudSavingsAction from "../../../Models/DatabaseModels/CloudSavingsAction";
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
+  CLOUD_OFF_HOURS_DEFAULT_TIMEZONE,
   CloudOffHoursHours,
   getNextCloudOffHoursChange,
   isWithinCloudWorkingHours,
@@ -73,6 +75,11 @@ import CloudSavingsActionRunner, {
  * schedule says so on its page. Nor is one whose account's connection does
  * not allow Savings actions. A stop that ended saves the hours the
  * resource did not run (CloudSavingsAction.savedHours).
+ *
+ * A stop is never left for good because its schedule went: a schedule
+ * turned off stops nothing more, and starts what it stopped when its
+ * working hours begin, as it would have; what a deleted schedule stopped
+ * is started at once (startLeftStops).
  */
 
 // The resource types a schedule stops, and the change it makes to each.
@@ -152,7 +159,7 @@ const SCHEDULE_SELECT: { [key: string]: true } = {
 
 function hoursOf(schedule: CloudOffHoursSchedule): CloudOffHoursHours {
   return {
-    timezone: schedule.timezone || "UTC",
+    timezone: schedule.timezone || CLOUD_OFF_HOURS_DEFAULT_TIMEZONE,
     workingDays: schedule.workingDays,
     startTime: schedule.startTime || "",
     stopTime: schedule.stopTime || "",
@@ -211,7 +218,147 @@ export default class CloudOffHoursScheduler {
       }
     }
 
+    try {
+      acted += await CloudOffHoursScheduler.startLeftStops(options);
+    } catch (error) {
+      logger.error(
+        `Off-hours schedules: stops whose schedule went could not be started: ${error}`,
+      );
+    }
+
     return acted;
+  }
+
+  /*
+   * The stops no enabled schedule will start: those of a schedule turned
+   * off, started when its working hours begin, and those of a deleted
+   * schedule, started at once. Returns how many were started.
+   */
+  public static async startLeftStops(
+    options: CloudSavingsRunnerOptions = {},
+  ): Promise<number> {
+    const now: Date = options.now || OneUptimeDate.getCurrentDate();
+    let started: number = 0;
+
+    const orphans: Array<CloudSavingsAction> =
+      await CloudSavingsActionService.findBy({
+        query: {
+          origin: CloudSavingsActionOrigin.Schedule,
+          status: CloudSavingsActionStatus.Applied,
+          cloudOffHoursScheduleId: new IsNull(),
+        },
+        select: { _id: true },
+        skip: 0,
+        limit: CLOUD_OFF_HOURS_MAX_RESOURCES,
+        props: { isRoot: true },
+      });
+
+    started += await CloudOffHoursScheduler.startStops({
+      stops: orphans,
+      now,
+      options,
+    });
+
+    const turnedOff: Array<CloudOffHoursSchedule> =
+      await CloudOffHoursScheduleService.findBy({
+        query: { isEnabled: false },
+        select: SCHEDULE_SELECT,
+        skip: 0,
+        limit: CLOUD_OFF_HOURS_SCHEDULES_PER_RUN,
+        props: { isRoot: true },
+      });
+
+    for (const schedule of turnedOff) {
+      if (!schedule.id || !isWithinCloudWorkingHours(hoursOf(schedule), now)) {
+        continue;
+      }
+
+      started += await CloudOffHoursScheduler.startStops({
+        stops: await CloudOffHoursScheduler.readStops(schedule),
+        now,
+        options,
+      });
+    }
+
+    return started;
+  }
+
+  // The stops a schedule made that still stand.
+  private static async readStops(
+    schedule: CloudOffHoursSchedule,
+  ): Promise<Array<CloudSavingsAction>> {
+    return await CloudSavingsActionService.findBy({
+      query: {
+        projectId: schedule.projectId!,
+        cloudOffHoursScheduleId: schedule.id!,
+        origin: CloudSavingsActionOrigin.Schedule,
+        status: CloudSavingsActionStatus.Applied,
+      },
+      select: { _id: true },
+      skip: 0,
+      limit: CLOUD_OFF_HOURS_MAX_RESOURCES,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * Starts each stop again: claimed (Applied to Undoing) so a person's
+   * Undo at the same moment and this never both act, then stepped.
+   * Returns how many started, or are starting.
+   */
+  private static async startStops(data: {
+    stops: Array<CloudSavingsAction>;
+    now: Date;
+    options: CloudSavingsRunnerOptions;
+    summary?: CloudOffHoursRunSummary | undefined;
+  }): Promise<number> {
+    let started: number = 0;
+
+    for (const stop of data.stops) {
+      if (!stop.id) {
+        continue;
+      }
+
+      const claimed: number = await CloudSavingsActionService.attemptTransition(
+        {
+          actionId: stop.id,
+          fromStatuses: [CloudSavingsActionStatus.Applied],
+          set: {
+            status: CloudSavingsActionStatus.Undoing,
+            undoProgress: { from: CloudSavingsActionStatus.Applied },
+            nextStepAt: data.now,
+          },
+        },
+      );
+
+      if (claimed === 0) {
+        continue;
+      }
+
+      await CloudSavingsActionRunner.advance(stop.id, data.options);
+
+      const after: CloudSavingsAction | null =
+        await CloudSavingsActionService.findOneById({
+          id: stop.id,
+          select: { status: true },
+          props: { isRoot: true },
+        });
+
+      if (
+        after?.status === CloudSavingsActionStatus.Ended ||
+        after?.status === CloudSavingsActionStatus.Undoing
+      ) {
+        started++;
+
+        if (data.summary) {
+          data.summary.started++;
+        }
+      } else if (data.summary) {
+        data.summary.failed++;
+      }
+    }
+
+    return started;
   }
 
   /*
@@ -449,6 +596,11 @@ export default class CloudOffHoursScheduler {
       return null;
     }
 
+    // A schedule turned off is startLeftStops' to finish.
+    if (schedule.isEnabled === false) {
+      return null;
+    }
+
     const hours: CloudOffHoursHours = hoursOf(schedule);
     const runningNow: boolean = isWithinCloudWorkingHours(hours, now);
     const last: JSONObject = (schedule.lastRunSummary || {}) as JSONObject;
@@ -543,8 +695,11 @@ export default class CloudOffHoursScheduler {
         continue;
       }
 
-      // A resource already stopped by a schedule, or being changed, is left to it.
-      const open: CloudSavingsAction | null =
+      /*
+       * A resource being changed - by anyone - or already stopped by a
+       * schedule is left to that change.
+       */
+      const changing: CloudSavingsAction | null =
         await CloudSavingsActionService.findOneBy({
           query: {
             projectId: data.schedule.projectId!,
@@ -552,15 +707,25 @@ export default class CloudOffHoursScheduler {
             status: new Includes([
               CloudSavingsActionStatus.Applying,
               CloudSavingsActionStatus.Undoing,
-              CloudSavingsActionStatus.Applied,
             ]),
-            origin: CloudSavingsActionOrigin.Schedule,
           },
           select: { _id: true },
           props: { isRoot: true },
         });
+      const stoppedByASchedule: CloudSavingsAction | null = changing?.id
+        ? null
+        : await CloudSavingsActionService.findOneBy({
+            query: {
+              projectId: data.schedule.projectId!,
+              cloudResourceId: entry.resource.id!,
+              status: CloudSavingsActionStatus.Applied,
+              origin: CloudSavingsActionOrigin.Schedule,
+            },
+            select: { _id: true },
+            props: { isRoot: true },
+          });
 
-      if (open?.id) {
+      if (changing?.id || stoppedByASchedule?.id) {
         continue;
       }
 
@@ -636,55 +801,12 @@ export default class CloudOffHoursScheduler {
     now: Date;
     options: CloudSavingsRunnerOptions;
   }): Promise<void> {
-    const stopped: Array<CloudSavingsAction> =
-      await CloudSavingsActionService.findBy({
-        query: {
-          projectId: data.schedule.projectId!,
-          cloudOffHoursScheduleId: data.schedule.id!,
-          origin: CloudSavingsActionOrigin.Schedule,
-          status: CloudSavingsActionStatus.Applied,
-        },
-        select: { _id: true },
-        skip: 0,
-        limit: CLOUD_OFF_HOURS_MAX_RESOURCES,
-        props: { isRoot: true },
-      });
-
-    for (const action of stopped) {
-      const claimed: number = await CloudSavingsActionService.attemptTransition(
-        {
-          actionId: action.id!,
-          fromStatuses: [CloudSavingsActionStatus.Applied],
-          set: {
-            status: CloudSavingsActionStatus.Undoing,
-            undoProgress: { from: CloudSavingsActionStatus.Applied },
-            nextStepAt: data.now,
-          },
-        },
-      );
-
-      if (claimed === 0) {
-        continue;
-      }
-
-      await CloudSavingsActionRunner.advance(action.id!, data.options);
-
-      const after: CloudSavingsAction | null =
-        await CloudSavingsActionService.findOneById({
-          id: action.id!,
-          select: { status: true },
-          props: { isRoot: true },
-        });
-
-      if (
-        after?.status === CloudSavingsActionStatus.Ended ||
-        after?.status === CloudSavingsActionStatus.Undoing
-      ) {
-        data.summary.started++;
-      } else {
-        data.summary.failed++;
-      }
-    }
+    await CloudOffHoursScheduler.startStops({
+      stops: await CloudOffHoursScheduler.readStops(data.schedule),
+      now: data.now,
+      options: data.options,
+      summary: data.summary,
+    });
   }
 
   // The hours the schedule's stops stand for this month, ended or standing.

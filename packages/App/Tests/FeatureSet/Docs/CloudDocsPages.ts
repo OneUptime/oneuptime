@@ -218,6 +218,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
      * each language's Dashboard draws them.
      */
     "Storage Blob Data Reader",
+    // The Azure role the connection's Savings actions grant (#11010).
+    "OneUptime Savings Actions",
   ],
   [CLOUD_COSTS]: [
     "Cost Management Reader",
@@ -361,6 +363,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Every day's spend.",
     "An account's costs.",
     "A resource's cost.",
+    "What was saved.",
   ],
   [CLOUD_RESOURCES]: [
     "The provider already measures your resources.",

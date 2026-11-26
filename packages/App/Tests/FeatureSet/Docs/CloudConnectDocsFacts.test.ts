@@ -69,6 +69,7 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   RESOURCE_COSTS_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -118,6 +119,17 @@ import {
   getCloudCommitmentKindLabel,
 } from "Common/Types/Cloud/CloudCommitments";
 import { ELASTIC_BEANSTALK_ENVIRONMENT_TAG } from "Common/Types/Cloud/CloudPlatformCosts";
+import {
+  AWS_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS,
+  AWS_SAVINGS_ACTIONS_POLICY_NAME,
+  AWS_SAVINGS_ACTIONS_RESIZE_ACTIONS,
+  AZURE_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS,
+  AZURE_SAVINGS_ACTIONS_RESIZE_ACTIONS,
+  AZURE_SAVINGS_ACTIONS_ROLE,
+  GCP_SAVINGS_ACTIONS_CLEAN_UP_PERMISSIONS,
+  GCP_SAVINGS_ACTIONS_RESIZE_PERMISSIONS,
+  GCP_SAVINGS_ACTIONS_ROLE_ID,
+} from "Common/Types/CloudConnection/CloudSavingsActionsAccess";
 import {
   CLOUD_COST_ANOMALY_ACCOUNT_RATIO,
   CLOUD_COST_ANOMALY_BASELINE_DAYS,
@@ -1215,6 +1227,73 @@ describe("Connect a Cloud Account", () => {
     expect(getRoleWithoutExternalIdMessage(projectId)).toContain(
       heading.replace(":::details The role", "This role"),
     );
+  });
+
+  /*
+   * Savings actions (#11010): each choice as the form names it, and every
+   * action it grants, as the setup commands grant them.
+   */
+  it("says what each Savings actions choice lets OneUptime change, and lists every action it grants", () => {
+    const savings: string = section("Savings actions");
+    const field: { title: string; options?: Array<{ label: string }> } =
+      definition(CloudProvider.AWS).configFields.find(
+        (candidate: { key: string }): boolean => {
+          return candidate.key === SAVINGS_ACTIONS_FIELD_KEY;
+        },
+      ) as { title: string; options?: Array<{ label: string }> };
+    const [choices, grants] = tables(savings) as [
+      Array<Array<string>>,
+      Array<Array<string>>,
+    ];
+    const actionsOf: (cell: string) => Array<string> = (
+      cell: string,
+    ): Array<string> => {
+      return cell
+        .split(",")
+        .map((action: string): string => {
+          return action.split("`").join("").trim();
+        })
+        .sort();
+    };
+
+    expect(savings).toContain(`**${field.title}**`);
+    expect(
+      choices.slice(1).map((row: Array<string>): string => {
+        return (row[0] as string).split("*").join("");
+      }),
+    ).toEqual(
+      (field.options || []).map((option: { label: string }): string => {
+        return option.label;
+      }),
+    );
+    expect(savings).toContain(`\`${AWS_SAVINGS_ACTIONS_POLICY_NAME}\``);
+    expect(savings).toContain(`**${AZURE_SAVINGS_ACTIONS_ROLE}**`);
+    expect(savings).toContain(`\`${GCP_SAVINGS_ACTIONS_ROLE_ID}\``);
+    expect(
+      grants.slice(1).map((row: Array<string>): Array<unknown> => {
+        return [
+          row[0],
+          actionsOf(row[1] as string),
+          actionsOf(row[2] as string),
+        ];
+      }),
+    ).toEqual([
+      [
+        "AWS",
+        [...AWS_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS, "ec2:CreateTags"].sort(),
+        [...AWS_SAVINGS_ACTIONS_RESIZE_ACTIONS].sort(),
+      ],
+      [
+        "Azure",
+        [...AZURE_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS].sort(),
+        [...AZURE_SAVINGS_ACTIONS_RESIZE_ACTIONS].sort(),
+      ],
+      [
+        "Google Cloud",
+        [...GCP_SAVINGS_ACTIONS_CLEAN_UP_PERMISSIONS].sort(),
+        [...GCP_SAVINGS_ACTIONS_RESIZE_PERMISSIONS].sort(),
+      ],
+    ]);
   });
 
   it("names the form's fields, buttons and menu as the dashboard draws them", () => {

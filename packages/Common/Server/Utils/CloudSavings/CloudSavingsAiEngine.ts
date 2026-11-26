@@ -10,7 +10,8 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
-  CLOUD_SAVINGS_AI_SAVINGS_PER_PROJECT_PER_DAY,
+  CLOUD_SAVINGS_AI_REASON_SENTENCES,
+  CLOUD_SAVINGS_AI_SAVINGS_PER_READ,
   CloudSavingsAiAutonomy,
   CloudSavingsAiDecision,
   CloudSavingsAiRuleFacts,
@@ -52,10 +53,14 @@ import CloudSavingsActions, { CloudSavingContext } from "./CloudSavingsActions";
  * (CloudSavingsActionRunner), so a read never waits on a cloud's change.
  */
 
-// A dismissed saving is not proposed again for this long.
+/*
+ * A saving a person said no to - dismissed, or undone - is not proposed or
+ * made again for this long; nor one whose change failed, so a refusal is
+ * not asked again every read.
+ */
 export const CLOUD_SAVINGS_AI_DISMISSED_QUIET_DAYS: number = 30;
 
-// The statuses a saving is not proposed again in: open, or dismissed lately.
+// The statuses a saving is not proposed again in: open, in effect, or said no to lately.
 const NOT_AGAIN: Array<CloudSavingsActionStatus> = [
   CloudSavingsActionStatus.Proposed,
   CloudSavingsActionStatus.Applying,
@@ -63,7 +68,54 @@ const NOT_AGAIN: Array<CloudSavingsActionStatus> = [
   CloudSavingsActionStatus.Applied,
   CloudSavingsActionStatus.AppliedWithoutAsking,
   CloudSavingsActionStatus.Dismissed,
+  CloudSavingsActionStatus.Undone,
+  CloudSavingsActionStatus.Failed,
 ];
+
+// When a change that keeps its saving quiet ended: dismissed, undone or failed.
+export function getCloudSavingsQuietSince(
+  action: CloudSavingsAction,
+): Date | null {
+  const at: Date | undefined =
+    action.status === CloudSavingsActionStatus.Dismissed
+      ? action.dismissedAt
+      : action.status === CloudSavingsActionStatus.Undone
+        ? action.undoneAt
+        : action.status === CloudSavingsActionStatus.Failed
+          ? action.failedAt
+          : undefined;
+
+  return at ? new Date(at) : null;
+}
+
+/*
+ * Whether a saving with these earlier changes is left alone this time: one
+ * is open or stands, or one was said no to (or failed) in the quiet days.
+ */
+export function isCloudSavingQuiet(data: {
+  earlier: Array<CloudSavingsAction>;
+  now: Date;
+}): boolean {
+  const quietSince: Date = OneUptimeDate.addRemoveDays(
+    data.now,
+    -CLOUD_SAVINGS_AI_DISMISSED_QUIET_DAYS,
+  );
+
+  return data.earlier.some((action: CloudSavingsAction): boolean => {
+    if (
+      action.status !== CloudSavingsActionStatus.Dismissed &&
+      action.status !== CloudSavingsActionStatus.Undone &&
+      action.status !== CloudSavingsActionStatus.Failed
+    ) {
+      return true;
+    }
+
+    const endedAt: Date | null = getCloudSavingsQuietSince(action);
+
+    // One with no date is read as just now: never asked again by mistake.
+    return !endedAt || endedAt.getTime() >= quietSince.getTime();
+  });
+}
 
 export interface CloudSavingsAiOutcome {
   proposed: number;
@@ -251,10 +303,6 @@ export default class CloudSavingsAiEngine {
   }): Promise<void> {
     const accounts: Map<string, CloudAccount> = new Map();
     const connections: Map<string, CloudConnection | null> = new Map();
-    const quietSince: Date = OneUptimeDate.addRemoveDays(
-      data.now,
-      -CLOUD_SAVINGS_AI_DISMISSED_QUIET_DAYS,
-    );
     let changesThisHour: number =
       await CloudSavingsAiEngine.countChangesWithoutAskingThisHour({
         projectId: data.projectId,
@@ -263,7 +311,7 @@ export default class CloudSavingsAiEngine {
     let decided: number = 0;
 
     for (const recommendation of data.recommendations) {
-      if (decided >= CLOUD_SAVINGS_AI_SAVINGS_PER_PROJECT_PER_DAY) {
+      if (decided >= CLOUD_SAVINGS_AI_SAVINGS_PER_READ) {
         return;
       }
 
@@ -296,22 +344,21 @@ export default class CloudSavingsAiEngine {
             recommendationId: recommendation.recommendationId,
             status: new Includes(NOT_AGAIN),
           },
-          select: { _id: true, status: true, dismissedAt: true },
+          select: {
+            _id: true,
+            status: true,
+            dismissedAt: true,
+            undoneAt: true,
+            failedAt: true,
+          },
+          // The latest: an old no never hides a newer change.
+          sort: { createdAt: SortOrder.Descending },
           skip: 0,
           limit: 5,
           props: { isRoot: true },
         });
-      const isQuiet: boolean = earlier.some(
-        (action: CloudSavingsAction): boolean => {
-          return (
-            action.status !== CloudSavingsActionStatus.Dismissed ||
-            (action.dismissedAt !== undefined &&
-              new Date(action.dismissedAt).getTime() >= quietSince.getTime())
-          );
-        },
-      );
 
-      if (isQuiet) {
+      if (isCloudSavingQuiet({ earlier, now: data.now })) {
         continue;
       }
 
@@ -342,6 +389,7 @@ export default class CloudSavingsAiEngine {
           projectId: data.projectId,
           saving,
           rule,
+          reason: CLOUD_SAVINGS_AI_REASON_SENTENCES[decision.reason],
         });
         data.outcome.proposed++;
       } else if (decision.autonomy === CloudSavingsAiAutonomy.WithoutAsking) {

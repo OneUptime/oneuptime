@@ -35,10 +35,13 @@ const ACCOUNT_IDENTITY_DETAILS: Array<ModelDetailField<CloudAccount>> = [
 
 /*
  * Whether the account is production (#11010). Off-hours schedules and AI
- * rules for savings act only on resources known not to be production: a
- * resource's own environment tag says so first, and where it has none, its
- * account's word here does. Not set, nothing is assumed - the account's
- * resources are left running and every saving waits for a person.
+ * rules for savings act only on resources known not to be production
+ * (Types/Cloud/CloudResourceEnvironment), and production wins: an account
+ * marked Production keeps all its resources out of their reach, whatever
+ * their tags say; one marked Non-production lets in those whose own tags
+ * and labels do not say production. Not known, nothing is assumed - the
+ * account's untagged resources are left running and every saving on them
+ * waits for a person.
  */
 const ENVIRONMENT_OPTIONS: Array<DropdownOption> =
   CLOUD_RESOURCE_ENVIRONMENTS.map(
@@ -113,7 +116,7 @@ const CloudAccountSettings: FunctionComponent<
         cardProps={{
           title: "Environment",
           description:
-            "Off-hours schedules and AI rules stop and change only resources known not to be production. A resource's own environment tag wins over this.",
+            "Schedules and AI rules change only resources known not to be production. Production wins: if the account or a tag says it, it is.",
         }}
         isEditable={true}
         editButtonText="Edit"

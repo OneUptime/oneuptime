@@ -124,10 +124,11 @@ export const CLOUD_SAVINGS_AI_MAX_MONTHLY_LIMIT: number = 10000000;
 export const CLOUD_SAVINGS_AI_CHANGES_WITHOUT_ASKING_PER_HOUR: number = 10;
 
 /*
- * The savings a project's rules are read for in a day, at most: a read that
- * finds thousands at once never runs the project's proposals dry.
+ * The savings decided in one read of a project's savings, at most - the
+ * largest first: a read that finds thousands at once does not bury the
+ * owners in proposals.
  */
-export const CLOUD_SAVINGS_AI_SAVINGS_PER_PROJECT_PER_DAY: number = 200;
+export const CLOUD_SAVINGS_AI_SAVINGS_PER_READ: number = 200;
 
 // What the decision reads off a savings rule.
 export interface CloudSavingsAiRuleFacts {

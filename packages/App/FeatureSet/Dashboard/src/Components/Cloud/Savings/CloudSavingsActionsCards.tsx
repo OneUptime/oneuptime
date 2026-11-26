@@ -652,9 +652,21 @@ export const CloudSavingsWaitingCard: FunctionComponent<CardProps> = (
           hideOnMobile: true,
           getElement: (item: CloudSavingsAction): ReactElement => {
             return (
-              <span className="text-sm text-gray-700">
+              <div className="min-w-0 text-sm text-gray-700">
                 <bdi>{getCloudSavingsByWhom(item, translator)}</bdi>
-              </span>
+                {/*
+                 * Why OneUptime AI proposed it rather than making it: the
+                 * sentence its decision kept (CloudSavingsAi's reasons).
+                 */}
+                {item.origin === CloudSavingsActionOrigin.Rule &&
+                item.summary ? (
+                  <div className="mt-0.5 text-xs text-gray-500">
+                    {translator.translateText(item.summary) || item.summary}
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
             );
           },
         },

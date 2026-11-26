@@ -1,3 +1,4 @@
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import CloudResourceOwnerTeam from "../../../Models/DatabaseModels/CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "../../../Models/DatabaseModels/CloudResourceOwnerUser";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
@@ -7,9 +8,15 @@ import {
   CloudSavingsPerson,
   CloudSavingsTeam,
 } from "../../../Types/Cloud/CloudSavingsApiTypes";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import CloudResourceOwnerTeamService from "../../Services/CloudResourceOwnerTeamService";
+import CloudResourceService from "../../Services/CloudResourceService";
+import ModelPermission from "../../Types/Database/Permissions/Index";
+import Query from "../../Types/Database/Query";
 import CloudResourceOwnerUserService from "../../Services/CloudResourceOwnerUserService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import CallerPermission from "../Permission/CallerPermission";
@@ -27,7 +34,15 @@ import CallerPermission from "../Permission/CallerPermission";
  * The same rule for production and for everything else: no AI rule makes
  * a change to production (CloudSavingsAi), so a production change is
  * always a person's - and that person is its owner.
+ *
+ * And an approver must be allowed to edit the resource itself - its edit
+ * permissions, label-scoped as a CRUD update of it is - as an AI fix's
+ * approver must for every resource the fix changes: the change is made as
+ * OneUptime, so owning a resource one may only view approves nothing.
  */
+
+export const CLOUD_SAVINGS_MAY_NOT_EDIT_RESOURCE: string =
+  "You may not edit this cloud resource, so you cannot approve or undo a change to it. Ask someone who may edit it.";
 
 // At most this many owners are named on a dialog or a card.
 export const CLOUD_SAVINGS_MAX_OWNERS_NAMED: number = 50;
@@ -170,6 +185,98 @@ export default class CloudSavingsOwners {
       data.props,
       CLOUD_SAVINGS_UNOWNED_APPROVER_PERMISSIONS,
       { projectId: data.projectId },
+    );
+  }
+
+  /*
+   * Throws unless the person may edit the resource, as a CRUD update of it
+   * would check: its edit permissions, label-scoped, and their Owned scope.
+   * A saving about a resource OneUptime does not hold takes the edit
+   * permissions alone.
+   */
+  public static async assertMayChangeResource(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    cloudResourceId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    if (!CloudSavingsOwners.canRequest(data)) {
+      throw new NotAuthorizedException(CLOUD_SAVINGS_MAY_NOT_EDIT_RESOURCE);
+    }
+
+    if (!data.cloudResourceId) {
+      return;
+    }
+
+    try {
+      const permitted: Query<CloudResource> =
+        await ModelPermission.checkUpdateQueryPermissions(
+          CloudResource,
+          { _id: data.cloudResourceId.toString(), projectId: data.projectId },
+          {},
+          {
+            ...data.props,
+            tenantId: data.projectId,
+            isMultiTenantRequest: false,
+          },
+        );
+      const resource: CloudResource | null =
+        await CloudResourceService.findOneBy({
+          query: permitted,
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      if (!resource) {
+        throw new NotAuthorizedException(CLOUD_SAVINGS_MAY_NOT_EDIT_RESOURCE);
+      }
+    } catch (error) {
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof NotAuthenticatedException ||
+        error instanceof NotFoundException
+      ) {
+        throw new NotAuthorizedException(CLOUD_SAVINGS_MAY_NOT_EDIT_RESOURCE);
+      }
+
+      throw error;
+    }
+  }
+
+  // Whether the person may edit the resource (assertMayChangeResource).
+  public static async mayChangeResource(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    cloudResourceId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    try {
+      await CloudSavingsOwners.assertMayChangeResource(data);
+      return true;
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Whether the person approves a change to the resource: one who may
+   * approve it (canApprove) and may edit it (assertMayChangeResource).
+   */
+  public static async isApprover(data: {
+    props: DatabaseCommonInteractionProps;
+    owners: CloudResourceOwners;
+    projectId: ObjectID;
+    cloudResourceId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    return (
+      CloudSavingsOwners.canApprove(data) &&
+      (await CloudSavingsOwners.mayChangeResource(data))
     );
   }
 

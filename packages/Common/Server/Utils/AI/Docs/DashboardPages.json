@@ -7619,9 +7619,32 @@
       "reserved instances",
       "azure advisor",
       "cost optimization hub",
-      "recommender"
+      "recommender",
+      "apply savings",
+      "stop idle instances",
+      "delete unattached volumes",
+      "gp3"
     ],
     "path": "/dashboard/:projectId/cloud/savings",
+    "kind": "page"
+  },
+  {
+    "title": "Schedules",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "off-hours schedules",
+      "off hours",
+      "instance scheduler",
+      "stop instances at night",
+      "start stop schedule",
+      "non-production",
+      "dev environments",
+      "parking"
+    ],
+    "path": "/dashboard/:projectId/cloud/schedules",
     "kind": "page"
   },
   {
@@ -7664,6 +7687,22 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/cloud/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Savings AI Rules",
+    "where": [
+      "Cloud",
+      "Settings"
+    ],
+    "keywords": [
+      "ai rules for savings",
+      "automatic savings",
+      "act without asking",
+      "savings limit",
+      "auto remediation"
+    ],
+    "path": "/dashboard/:projectId/cloud/settings/savings-ai-rules",
     "kind": "page"
   },
   {

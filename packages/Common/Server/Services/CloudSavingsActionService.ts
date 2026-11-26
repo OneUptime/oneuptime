@@ -63,6 +63,27 @@ export class Service extends ProjectReferencesService<CloudSavingsAction> {
   }
 
   /*
+   * A change that saves nothing a month by its own count is still a
+   * change: an off-hours stop's saving is its hours, so it is written with
+   * 0 - which the required-column check would read as missing.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "monthlySavings" &&
+      typeof value === "number" &&
+      Number.isFinite(value) &&
+      value >= 0
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
+  /*
    * A change of state, claimed: returns the rows changed - 0 means someone
    * else acted on it first, or it changed since it was read.
    */

@@ -29,6 +29,9 @@ export const CLOUD_OFF_HOURS_DEFAULT_DAYS: ReadonlyArray<DayOfWeek> = [
 export const CLOUD_OFF_HOURS_DEFAULT_START: string = "08:00";
 export const CLOUD_OFF_HOURS_DEFAULT_STOP: string = "19:00";
 
+// The zone a schedule's hours are read in when it names none.
+export const CLOUD_OFF_HOURS_DEFAULT_TIMEZONE: string = "UTC";
+
 // The week in the order a person reads it, Monday first.
 export const CLOUD_OFF_HOURS_WEEK: ReadonlyArray<DayOfWeek> = [
   DayOfWeek.Monday,

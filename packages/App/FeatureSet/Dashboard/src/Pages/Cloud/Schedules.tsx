@@ -7,6 +7,7 @@ import {
   CLOUD_OFF_HOURS_DEFAULT_DAYS,
   CLOUD_OFF_HOURS_DEFAULT_START,
   CLOUD_OFF_HOURS_DEFAULT_STOP,
+  CLOUD_OFF_HOURS_DEFAULT_TIMEZONE,
   CLOUD_OFF_HOURS_WEEK,
   readCloudOffHoursClock,
   readCloudOffHoursDays,
@@ -275,7 +276,9 @@ const CloudSchedules: FunctionComponent<
                     <bdi>{`${item.startTime || ""}–${item.stopTime || ""}`}</bdi>
                   </div>
                   <div className="text-xs text-gray-500">
-                    <bdi>{item.timezone || "UTC"}</bdi>
+                    <bdi>
+                      {item.timezone || CLOUD_OFF_HOURS_DEFAULT_TIMEZONE}
+                    </bdi>
                   </div>
                 </div>
               );
@@ -302,7 +305,7 @@ const CloudSchedules: FunctionComponent<
               const time: string = next
                 ? OneUptimeDate.getDateAsFormattedStringInTimezone({
                     date: next,
-                    timezone: item.timezone || "UTC",
+                    timezone: item.timezone || CLOUD_OFF_HOURS_DEFAULT_TIMEZONE,
                     showWeekday: true,
                     hideYear: true,
                   })

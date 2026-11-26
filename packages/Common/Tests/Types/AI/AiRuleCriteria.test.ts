@@ -158,7 +158,7 @@ describe("isAiRuleTriggerEntity", () => {
 describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
-      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue.";
+      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue, CloudSaving.";
 
     expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
       expected,
