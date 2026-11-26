@@ -40,6 +40,8 @@ export interface CloudRequiredTagRule {
   allowedValues: Array<string>;
   // The CloudAccount row it is for; null for every account.
   cloudAccountId: string | null;
+  // What the tag is for, as the project wrote it: told in the emails.
+  description?: string | undefined;
 }
 
 // What a resource lacks of one required tag.

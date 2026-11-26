@@ -363,6 +363,7 @@ export default class CloudTagWatcher {
           setting,
           state,
           accounts,
+          rules,
           now: data.now,
         });
       result.emailsSent = told.emails;
@@ -775,6 +776,7 @@ export default class CloudTagWatcher {
     setting: CloudTagSetting;
     state: CloudTagWatchState;
     accounts: Array<WatchedAccount>;
+    rules: Array<CloudRequiredTagRule>;
     now: Date;
   }): Promise<{ emails: number; alerts: number }> {
     const emailEachResource: boolean = data.setting.emailEachResource === true;
@@ -884,6 +886,7 @@ export default class CloudTagWatcher {
         projectId: data.projectId,
         recipients,
         emailEachResource,
+        rules: data.rules,
       });
     }
 

@@ -11,8 +11,11 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { getCloudProviderLabel } from "../../../Types/Cloud/CloudPlatform";
 import {
+  CloudRequiredTagRule,
   CloudTagProblem,
   CloudTagSuggestionSource,
+  getCloudRequiredTagsForAccount,
+  normalizeCloudTagKey,
 } from "../../../Types/Cloud/CloudRequiredTags";
 import { getCloudResourceTypeDisplayName } from "../../../Types/Cloud/CloudResourceCatalog";
 import { CloudTagMissingJSON } from "../../../Types/Cloud/CloudTagCoverage";
@@ -141,10 +144,50 @@ export function getCloudTagEmailSubject(
   return `${count(notices.length, "new cloud resource is", "new cloud resources are")} missing required tags`;
 }
 
+/*
+ * What each tag the resources lack is for, as the project described it,
+ * in a line each: "team: The team that pays for the resource." The rule
+ * each resource's account requires (an account's own replaces the
+ * project's), once for each key and purpose.
+ */
+export function getCloudTagPurposes(data: {
+  notices: Array<CloudTagNotice>;
+  rules: ReadonlyArray<CloudRequiredTagRule>;
+}): Array<string> {
+  const lines: Array<string> = [];
+
+  for (const notice of data.notices) {
+    const rules: Array<CloudRequiredTagRule> = getCloudRequiredTagsForAccount(
+      data.rules,
+      notice.accountRowId?.toString() || null,
+    );
+
+    for (const item of notice.missing) {
+      const rule: CloudRequiredTagRule | undefined = rules.find(
+        (candidate: CloudRequiredTagRule): boolean => {
+          return (
+            normalizeCloudTagKey(candidate.key) ===
+            normalizeCloudTagKey(item.key)
+          );
+        },
+      );
+      const purpose: string = (rule?.description || "").trim();
+      const line: string = `${rule?.key || item.key}: ${purpose}`;
+
+      if (purpose && !lines.includes(line)) {
+        lines.push(line);
+      }
+    }
+  }
+
+  return lines;
+}
+
 // The email's body, as HTML: every value escaped.
 export function getCloudTagEmailHtml(data: {
   notices: Array<CloudTagNotice>;
   tagsLink: URL | null;
+  rules?: ReadonlyArray<CloudRequiredTagRule> | undefined;
 }): string {
   const shown: Array<CloudTagNotice> = data.notices.slice(
     0,
@@ -195,6 +238,20 @@ export function getCloudTagEmailHtml(data: {
       SafeHtml.escape(
         `And ${count(data.notices.length - shown.length, "more", "more")}.`,
       ),
+    );
+  }
+
+  const purposes: Array<string> = getCloudTagPurposes({
+    notices: shown,
+    rules: data.rules || [],
+  });
+
+  if (purposes.length > 0) {
+    paragraphs.push(
+      [
+        SafeHtml.escape("What the tags are for:"),
+        ...purposes.map(SafeHtml.escape),
+      ].join(" <br/> "),
     );
   }
 
@@ -492,6 +549,8 @@ export default class CloudTagNotifier {
     projectId: ObjectID;
     recipients: Array<CloudTagRecipient>;
     emailEachResource: boolean;
+    // The project's required tags, for what each is for.
+    rules?: ReadonlyArray<CloudRequiredTagRule> | undefined;
   }): Promise<number> {
     const tagsLink: URL | null = await CloudTagNotifier.getTagsLink(
       data.projectId,
@@ -519,7 +578,11 @@ export default class CloudTagNotifier {
               templateType: EmailTemplateType.SimpleMessage,
               vars: {
                 subject,
-                message: getCloudTagEmailHtml({ notices, tagsLink }),
+                message: getCloudTagEmailHtml({
+                  notices,
+                  tagsLink,
+                  rules: data.rules,
+                }),
               },
               subject,
               isSubjectLiteral: true,
