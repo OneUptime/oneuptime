@@ -76,16 +76,22 @@ describe("the Cloud product menu", () => {
       { title: "All Resources", href: `${CLOUD}/resources` },
       { title: "Connect", href: `${CLOUD}/connect` },
     ]);
-    // Who spent it - the cost groups - right under what it cost.
+    /*
+     * Who spent it - the cost groups - right under what it cost; the
+     * commitments that paid for some of it beside the ways to spend less.
+     */
     expect(linksIn("Spend")).toEqual([
       { title: "Costs", href: `${CLOUD}/costs` },
       { title: "Cost Groups", href: `${CLOUD}/cost-groups` },
       { title: "Savings", href: `${CLOUD}/savings` },
+      { title: "Commitments", href: `${CLOUD}/commitments` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
     ]);
+    // The cost basis the pages open on, and when commitments alert, last.
     expect(linksIn("Settings")).toEqual([
       { title: "Owner Rules", href: `${CLOUD}/settings/owner-rules` },
       { title: "Label Rules", href: `${CLOUD}/settings/label-rules` },
+      { title: "Cost Settings", href: `${CLOUD}/settings/costs` },
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Archived", href: `${CLOUD}/archived` },

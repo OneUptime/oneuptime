@@ -597,6 +597,8 @@ export async function fetchCloudCostBreakdown(data: {
           startDate: data.scope.startDate,
           endDate: data.scope.endDate,
           currency: data.scope.currency,
+          // Each group's spend on the basis the page shows, as every other breakdown is.
+          basis: data.scope.basis,
           cloudAccountIds: data.scope.cloudAccountIds,
         },
       });

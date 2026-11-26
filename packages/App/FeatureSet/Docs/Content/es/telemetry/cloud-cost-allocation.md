@@ -23,7 +23,7 @@ flowchart TB
 
 - **El primer grupo que coincide se lleva el costo.** Los grupos de una vista tienen un orden, y cada costo va al primer grupo cuyas reglas coinciden con él, así que nada se cuenta dos veces. Los grupos y el gasto sin asignar siempre suman el total del periodo.
 - **Las reglas leen todo lo que lleva un costo.** La cuenta, la nube, el servicio, la región, el recurso y sus etiquetas, y lo que OneUptime sabe del recurso: sus equipos propietarios, sus etiquetas de OneUptime, su entorno y su aplicación de plataformas de aplicaciones.
-- **Todo se calcula al mirar.** No se guarda nada por costo. Una regla que cambias vuelve a asignar cada mes que OneUptime conserva, hasta 400 días atrás, sin nada que esperar.
+- **Todo se calcula al mirar.** No se guarda nada por costo. Una regla que cambias vuelve a asignar cada mes que OneUptime conserva, hasta 400 días atrás, sin nada que esperar. Cada cifra sigue al selector que tiene encima, facturado, amortizado o neto, como en [Costos en la nube](/docs/telemetry/cloud-costs#facturado-amortizado-y-neto), y una partida personalizada es la misma en cada base.
 - **Varias vistas pueden asignar el mismo gasto.** «Por equipo» y «Por centro de costo» asignan todo el gasto, cada una a su manera.
 
 ## Antes de empezar
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-La respuesta trae el `total` de cada grupo y de qué se compone (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), sus cifras por día o por mes, el periodo anterior, y de qué se compone el gasto sin asignar. `POST /cloud-cost-group/<group ID>/spend` responde para un solo grupo.
+La respuesta trae el `total` de cada grupo y de qué se compone (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), sus cifras por día o por mes, el periodo anterior, y de qué se compone el gasto sin asignar. `POST /cloud-cost-group/<group ID>/spend` responde para un solo grupo. Envía `basis` como `billed`, `amortized` o `net` para cifras en esa base; sin él, están en la del proyecto, y el `basis` de la respuesta dice cuál.
 
 ## Límites
 

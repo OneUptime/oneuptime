@@ -4,6 +4,7 @@ import {
   CloudCostAllocationResult,
   CloudCostSharedSplit,
 } from "Common/Types/Cloud/CloudCostAllocation";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -20,6 +21,7 @@ import {
   CLOUD_COST_PERIOD_OPTIONS,
   CloudCostPeriod,
 } from "../CloudCostBreakdown";
+import { CloudCostBasisPill } from "../CloudCostBasis";
 import { BREAKDOWN_TOTAL } from "../CloudCostBreakdownCard";
 import { formatCloudMoney } from "../CloudCostWords";
 import {
@@ -48,6 +50,8 @@ export interface ComponentProps {
   viewId: ObjectID;
   period: CloudCostPeriod;
   onPeriodChange: (period: CloudCostPeriod) => void;
+  // The cost basis asked for: the pill says the one the figures came back on.
+  basis?: CloudCostBasis | undefined;
   allocation: CloudCostAllocationResult | null;
   error: string;
   onRetry: () => void;
@@ -113,10 +117,16 @@ const CloudCostSpendByGroupCard: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const shownBasis: CloudCostBasis | undefined =
+    allocation?.basis || props.basis;
+
   return (
     <Card
       title={SPEND_BY_GROUP_TITLE}
       description={SPEND_BY_GROUP_DESCRIPTION}
+      rightElement={
+        shownBasis ? <CloudCostBasisPill basis={shownBasis} /> : undefined
+      }
       buttons={
         allocation
           ? [
