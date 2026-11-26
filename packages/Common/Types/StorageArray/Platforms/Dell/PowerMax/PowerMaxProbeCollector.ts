@@ -20,6 +20,7 @@ const POWERMAX_PROBE_COLLECTOR: StorageArrayProbeCollector = {
   docsPath: "/docs/telemetry/storage-arrays#dell-powermax",
   words: {
     connectTitle: translationKey("Connect Unisphere"),
+    offerQuestion: translationKey("Monitoring Dell PowerMax?"),
     listDescription: translationKey(
       "Unisphere for PowerMax servers a probe reads your PowerMax arrays from. Connect one with a read-only account, and every array it manages appears in Storage Arrays.",
     ),

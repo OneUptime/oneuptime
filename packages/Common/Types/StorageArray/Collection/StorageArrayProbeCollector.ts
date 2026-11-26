@@ -45,6 +45,12 @@ export interface StorageArrayProbeCollector {
   words: {
     // The Connect button and form: "Connect Unisphere".
     connectTitle: string;
+    /*
+     * The question the Storage Arrays list asks before its Connect link,
+     * for someone about to install the agent instead: "Monitoring Dell
+     * PowerMax?"
+     */
+    offerQuestion: string;
     // The list of connections, one line: what they are for.
     listDescription: string;
     addressTitle: string;

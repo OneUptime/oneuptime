@@ -24,6 +24,8 @@ import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import StorageArrayCollectedByCard from "../../../Components/StorageArray/Connection/StorageArrayCollectedByCard";
+import StorageArrayProbeCollectors from "Common/Types/StorageArray/Collection/StorageArrayProbeCollectors";
 import { getStorageArrayConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -1643,8 +1645,20 @@ const StorageArrayOverview: FunctionComponent<
     >
       {renderHero()}
 
-      {/* How to connect it, while it is not connected */}
-      {storageArray ? (
+      {/*
+       * How it is connected: an array a probe reads from its management
+       * server says through which connection, and whether that works
+       * (#11004); an agent's array, how to connect it while it is not.
+       */}
+      {storageArray &&
+      StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem) ? (
+        <div className="mb-5">
+          <StorageArrayCollectedByCard
+            storageSystem={storageArray.storageSystem as string}
+            systemId={storageArray.systemId}
+          />
+        </div>
+      ) : storageArray ? (
         <ResourceConnectionGuideCard
           status={storageArray.otelCollectorStatus as string | undefined}
           lastSeenAt={storageArray.lastSeenAt}

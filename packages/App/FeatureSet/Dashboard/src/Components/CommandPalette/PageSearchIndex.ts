@@ -4190,6 +4190,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Storage Arrays",
         pages: [
           allListPage(PageMap.STORAGE_ARRAYS, "All Storage Arrays"),
+          // The Unisphere servers a probe reads arrays from (#11004).
+          {
+            page: PageMap.STORAGE_ARRAYS_CONNECTIONS,
+            title: "Connections",
+            icon: IconProp.Link,
+            keywords: [
+              "unisphere",
+              "powermax",
+              "dell",
+              "connect unisphere",
+              "storage connections",
+            ],
+          },
           documentation(PageMap.STORAGE_ARRAYS_DOCUMENTATION),
         ],
       },

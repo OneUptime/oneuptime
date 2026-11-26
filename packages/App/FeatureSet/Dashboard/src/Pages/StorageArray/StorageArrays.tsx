@@ -59,6 +59,14 @@ import TableEmptyValue, {
 } from "Common/UI/Components/Table/TableEmptyValue";
 import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
 import { getStorageArrayCapacityUsage } from "./Utils/StorageArrayHealth";
+import StorageArrayConnectOffer, {
+  canConnect,
+  getConnectRoute,
+} from "../../Components/StorageArray/Connection/StorageArrayConnectOffer";
+import StorageArrayProbeCollectors from "Common/Types/StorageArray/Collection/StorageArrayProbeCollectors";
+import { StorageArrayProbeCollector } from "Common/Types/StorageArray/Collection/StorageArrayProbeCollector";
+import Navigation from "Common/UI/Utils/Navigation";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 
 /*
  * Pure raises its own capacity alerts at 80% and 90% used, so the bar turns
@@ -180,11 +188,32 @@ const StorageArrays: FunctionComponent<
   }
 
   /*
+   * The platforms a probe reads from their management server (#11004):
+   * Connect Unisphere opens the Connections page's Connect form, and one
+   * connection adds every array it manages.
+   */
+  const connectButtons: Array<CardButtonSchema> = canConnect()
+    ? StorageArrayProbeCollectors.getAll().map(
+        (collector: StorageArrayProbeCollector): CardButtonSchema => {
+          return {
+            title: collector.words.connectTitle,
+            icon: IconProp.Link,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            onClick: () => {
+              Navigation.navigate(getConnectRoute(collector));
+            },
+          };
+        },
+      )
+    : [];
+
+  /*
    * An array is added by pointing the agent at it (Add Storage Array): the
    * guide asks for the array's name, writes it into the commands, and the
    * array registers itself under it when the agent connects. There is no
    * form: an array typed in by hand would only wait for telemetry that
-   * nothing sends.
+   * nothing sends. A PowerMax is added by connecting the Unisphere that
+   * manages it instead (connectButtons).
    */
   return (
     <Fragment>
@@ -228,7 +257,7 @@ const StorageArrays: FunctionComponent<
         cardProps={{
           title: "Storage Arrays",
           description:
-            "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array.",
+            "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array, or connect a Unisphere to add every Dell PowerMax it manages.",
           buttons: [
             {
               title: STORAGE_ARRAY_ONBOARDING.addTitle,
@@ -238,6 +267,7 @@ const StorageArrays: FunctionComponent<
                 setIsAddArrayOpen(true);
               },
             },
+            ...connectButtons,
           ],
         }}
         showViewIdButton={true}
@@ -554,6 +584,7 @@ const StorageArrays: FunctionComponent<
               setIsAddArrayOpen(true);
             },
           }}
+          actionsNote={<StorageArrayConnectOffer />}
         />
       )}
       {isAddArrayOpen && (

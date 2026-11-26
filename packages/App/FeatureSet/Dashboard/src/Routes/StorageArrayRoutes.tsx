@@ -15,6 +15,8 @@ import StorageArraysSettingsOwnerRules from "../Pages/StorageArray/Settings/Owne
 import StorageArraysSettingsLabelRules from "../Pages/StorageArray/Settings/LabelRules";
 import StorageArrayRulesAuditLogs from "../Pages/StorageArray/Settings/RulesAuditLogs";
 import StorageArraysArchived from "../Pages/StorageArray/Archived";
+import StorageArrayConnections from "../Pages/StorageArray/Connections";
+import StorageArrayConnectionView from "../Pages/StorageArray/ConnectionView";
 import StorageArrayOverview from "../Pages/StorageArray/View/Index";
 import StorageArrayVolumes from "../Pages/StorageArray/View/Volumes";
 import StorageArrayVolumeDetail from "../Pages/StorageArray/View/VolumeDetail";
@@ -165,6 +167,30 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
             <StorageArraysArchived
               {...props}
               pageRoute={RouteMap[PageMap.STORAGE_ARRAYS_ARCHIVED] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTIONS] || ""
+          }
+          element={
+            <StorageArrayConnections
+              {...props}
+              pageRoute={RouteMap[PageMap.STORAGE_ARRAYS_CONNECTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW] || ""
+          }
+          element={
+            <StorageArrayConnectionView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW] as Route
+              }
             />
           }
         />
