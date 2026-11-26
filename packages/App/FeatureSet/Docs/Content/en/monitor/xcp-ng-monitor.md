@@ -105,7 +105,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 
 | Template | Category | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- | --- |
-| Pool Disconnected | Availability | Critical | `xcp_pool_connected`, Count over the whole pool, past 5 minutes | No data for the whole window | Data arrives again |
+| Pool Disconnected | Availability | Critical | `xcp_pool_connected`, Count over the whole pool, past 10 minutes | No data for the whole window | Data arrives again |
 | Host Offline | Availability | Critical | `xcp_ng.host.running` for `xcp_ng.scope = host`, Min per `xcp_ng.id`, past 5 minutes | Below 1 | At 1 |
 | VM Stopped | VM | Warning | `xcp_ng.vm.stopped_after_running` for `xcp_ng.scope = vm`, Min per `xcp_ng.id`, past 5 minutes | Above 0 | At 0 |
 | Storage Repository Near Full | Storage | Critical | `xcp_sr_physical_usage_bytes` ÷ `xcp_sr_physical_size_bytes` × 100 for `xcp_ng.scope = sr` (both Sum), per `xcp_ng.id`, past 5 minutes | Above 90% | At or below 81% |
@@ -118,7 +118,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
-- **Pool Disconnected** fires when `xcp_pool_connected` stops arriving for five minutes. Xen Orchestra sends it on every scrape while it is connected to the pool, and stops sending it, rather than sending 0, when it loses the pool's master; it also stops when Xen Orchestra, its plugin or the XCP-ng Agent stops, or the agent loses its route to OneUptime. It resolves when the series comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
+- **Pool Disconnected** fires when `xcp_pool_connected` stops arriving for ten minutes. Xen Orchestra sends it on every scrape while it is connected to the pool, and stops sending it, rather than sending 0, when it loses the pool's master; it also stops when Xen Orchestra, its plugin or the XCP-ng Agent stops, or the agent loses its route to OneUptime. It resolves when the series comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Host Offline** reads `xcp_ng.host.running`, which OneUptime derives from `xcp_host_status`: 0 while Xen Orchestra reports the host Halted, or its state Unknown because the pool master lost contact with it. The VMs that ran on the host are down too unless HA restarted them elsewhere.
 - **VM Stopped** reads `xcp_ng.vm.stopped_after_running`: 1 while a VM that ran in the last 24 hours is Halted or Paused. A VM switched off for more than a day counts as off on purpose and stops alerting, a suspended VM never alerts, and control domains and templates are left out.
 - **Host Disabled** fires for a host that stays disabled for 30 minutes: in maintenance mode, or left disabled by an evacuation. XAPI starts no VM on it and HA cannot fail over to it. Thirty minutes lets a planned reboot or update pass without a page.

@@ -105,7 +105,7 @@ Un critère ne se déclenche que si la condition tient à chaque minute de sa fe
 
 | Modèle | Catégorie | Gravité | Surveille | Déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- | --- |
-| Pool Disconnected | Disponibilité | Critique | `xcp_pool_connected`, Count sur tout le pool, 5 dernières minutes | Aucune donnée sur toute la fenêtre | Les données reviennent |
+| Pool Disconnected | Disponibilité | Critique | `xcp_pool_connected`, Count sur tout le pool, 10 dernières minutes | Aucune donnée sur toute la fenêtre | Les données reviennent |
 | Host Offline | Disponibilité | Critique | `xcp_ng.host.running` pour `xcp_ng.scope = host`, Min par `xcp_ng.id`, 5 dernières minutes | Sous 1 | À 1 |
 | VM Stopped | VM | Avertissement | `xcp_ng.vm.stopped_after_running` pour `xcp_ng.scope = vm`, Min par `xcp_ng.id`, 5 dernières minutes | Au-dessus de 0 | À 0 |
 | Storage Repository Near Full | Stockage | Critique | `xcp_sr_physical_usage_bytes` ÷ `xcp_sr_physical_size_bytes` × 100 pour `xcp_ng.scope = sr` (les deux en Somme), par `xcp_ng.id`, 5 dernières minutes | Au-dessus de 90 % | 81 % ou moins |
@@ -118,7 +118,7 @@ Un critère ne se déclenche que si la condition tient à chaque minute de sa fe
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
-- **Pool Disconnected** se déclenche quand `xcp_pool_connected` cesse d'arriver pendant cinq minutes. Xen Orchestra l'envoie à chaque collecte tant qu'il est connecté au pool, et cesse de l'envoyer, plutôt que d'envoyer 0, quand il perd le maître du pool ; elle cesse aussi quand Xen Orchestra, son plugin ou l'agent XCP-ng s'arrête, ou que l'agent perd sa route vers OneUptime. Il se résout quand la série revient. Quand les données s'arrêtent, les autres modèles n'ont rien à comparer et gardent leur dernier statut : c'est donc celui-ci qui vous prévient.
+- **Pool Disconnected** se déclenche quand `xcp_pool_connected` cesse d'arriver pendant dix minutes. Xen Orchestra l'envoie à chaque collecte tant qu'il est connecté au pool, et cesse de l'envoyer, plutôt que d'envoyer 0, quand il perd le maître du pool ; elle cesse aussi quand Xen Orchestra, son plugin ou l'agent XCP-ng s'arrête, ou que l'agent perd sa route vers OneUptime. Il se résout quand la série revient. Quand les données s'arrêtent, les autres modèles n'ont rien à comparer et gardent leur dernier statut : c'est donc celui-ci qui vous prévient.
 - **Host Offline** lit `xcp_ng.host.running`, que OneUptime dérive de `xcp_host_status` : 0 tant que Xen Orchestra rapporte l'hôte Halted, ou son état Unknown parce que le maître du pool a perdu le contact avec lui. Les VM qui tournaient sur l'hôte sont tombées elles aussi, sauf si HA les a redémarrées ailleurs.
 - **VM Stopped** lit `xcp_ng.vm.stopped_after_running` : 1 tant qu'une VM qui a tourné au cours des dernières 24 heures est Halted ou Paused. Une VM éteinte depuis plus d'un jour est considérée comme éteinte exprès et cesse d'alerter, une VM suspendue (Suspended) n'alerte jamais, et les domaines de contrôle et les modèles de VM sont laissés de côté.
 - **Host Disabled** se déclenche pour un hôte qui reste désactivé pendant 30 minutes : en mode maintenance, ou laissé désactivé par une évacuation. XAPI ne démarre aucune VM dessus et HA ne peut pas basculer vers lui. Trente minutes laissent passer un redémarrage ou une mise à jour planifiés sans alerte.
