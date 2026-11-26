@@ -142,6 +142,43 @@ describe("the words of erasing a person", () => {
     expect(unworded).toEqual([]);
   });
 
+  /*
+   * The help dialog draws the markdown it is handed as it is, so the page
+   * hands it the reader's wording: a German reader read the English help
+   * while the locale held a German one.
+   */
+  test("the help dialog is handed the reader's own wording of the help", () => {
+    const headingsOf: (markdown: string) => Array<string> = (
+      markdown: string,
+    ): Array<string> => {
+      return (markdown.match(/^## .*$/gm) || []).map(
+        (heading: string): string => {
+          return heading.replace(/[\u00A0\u202F]/g, " ").trim();
+        },
+      );
+    };
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const handed: string = Copy.getErasureHelpMarkdown(
+        dashboardTranslator(language),
+      );
+      const worded: string =
+        readDashboardLocale(language)[Copy.ERASURE_HELP_MARKDOWN] || "";
+
+      expect({ language, headings: headingsOf(handed) }).toEqual({
+        language,
+        headings: headingsOf(worded),
+      });
+    }
+
+    expect(Copy.getErasureHelpMarkdown(dashboardTranslator("de"))).not.toBe(
+      Copy.ERASURE_HELP_MARKDOWN,
+    );
+    expect(Copy.getErasureHelpMarkdown(dashboardTranslator("de"))).toContain(
+      "## ",
+    );
+  });
+
   test("the help keeps its three headings and its lists in every language", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const help: string =
