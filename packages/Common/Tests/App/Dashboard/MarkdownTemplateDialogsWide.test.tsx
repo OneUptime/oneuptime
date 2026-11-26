@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   act,
   cleanup,
@@ -18,6 +25,7 @@ import Route from "../../../Types/API/Route";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
@@ -271,8 +279,23 @@ async function walkToTheEditor(
   throw new Error("the form never reached its Markdown editor");
 }
 
+beforeEach(() => {
+  /*
+   * A template's name is one of its kind in a project while the project
+   * requires unique names, so a create form asks the server, a moment
+   * after a name is typed, whether another template has it
+   * (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
+});
+
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 describe("template tables that create with a Markdown editor", () => {

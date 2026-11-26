@@ -132,7 +132,8 @@ export interface FieldForModel {
 
 /*
  * The model's reading of the fields it reads (getValuesForModel: free-text
- * fields, and those marked readWithModel), within the store's budget.
+ * fields, those named for free text, and those marked readWithModel),
+ * within the store's budget.
  */
 export async function recognizeFields(
   context: ModelScanContext | undefined,
@@ -148,6 +149,7 @@ export async function recognizeFields(
   for (const field of fields) {
     for (const value of getValuesForModel(field.values, {
       readWithModel: field.readWithModel,
+      fieldPath: field.path,
     })) {
       texts.push(value);
     }

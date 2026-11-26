@@ -11,6 +11,10 @@ import {
   getUnexplainedServerErrorMessage,
   UNEXPLAINED_ERROR_MESSAGES,
 } from "../../../../Types/Exception/UnexplainedError";
+import {
+  getReferenceAlignment,
+  getWordsAlignment,
+} from "../../../Helpers/ReferenceLineAlignment";
 
 /*
  * A table's sentence under its title is drawn by the piece every error's
@@ -105,8 +109,6 @@ const expectSharedWords: (
     expect(props.message).toBe(description);
     expect(props.hideWhatFailed).toBe(true);
     expect(props.whatFailed).toBeUndefined();
-    // Its reference's row is where it always was, at the lines' start.
-    expect(props.isCentered).toBeUndefined();
   }
 
   return words;
@@ -131,6 +133,27 @@ describe("a table's sentence under its title", () => {
       expect(within(words).queryByTestId("error-what-failed")).toBeNull();
     },
   );
+
+  /*
+   * The title, the sentence and Try again are centred, and so is the
+   * reference under them: it sat at the lines' start, about 150px off their
+   * centre, since nothing told the row to centre (#7622). Its line takes the
+   * empty state's alignment itself now (ErrorReference).
+   */
+  test("for a failure with its reference, centres the reference under the centred lines", () => {
+    const words: HTMLElement = expectSharedWords(
+      renderFailedTable(getUnexplainedServerErrorMessage(REFERENCE)),
+      getUnexplainedServerErrorMessage(REFERENCE),
+    );
+
+    const reference: HTMLElement = within(words).getByTestId("error-reference");
+
+    expect(reference).toHaveTextContent(REFERENCE);
+    expect(getReferenceAlignment(reference)).toBe("center");
+    expect(
+      getWordsAlignment(within(words).getByTestId("error-why-and-next")),
+    ).toBe("center");
+  });
 
   test("for words of their own, is ErrorMessageText's line", () => {
     const description: string = "Ask your administrator for access.";

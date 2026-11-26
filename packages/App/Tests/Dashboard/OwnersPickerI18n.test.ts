@@ -69,8 +69,13 @@ const NEW_STRINGS: Array<string> = [
   "Who owns this event. They are notified when its status changes.",
   // The Owners card, and what the settings pages say on it.
   "No owners yet",
-  "People and teams who own this probe. They are alerted when its status changes.",
-  "Add a teammate or a team so they are alerted when this probe's status changes.",
+  /*
+   * A probe's owners are also alerted once when it falls a major release
+   * behind, and the Project Owners while it has none (#9977). The empty
+   * card's sentence is the shorter one that fits under a label.
+   */
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.",
+  "Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.",
   "People and teams who own this runner. They are alerted when its status changes.",
   "Add a teammate or a team so they are alerted when this runner's status changes.",
   "People and teams who own every incident declared from this template. They are added as the incident's owners and notified.",
@@ -81,9 +86,12 @@ const NEW_STRINGS: Array<string> = [
 
 /*
  * Keys only the two dropdowns, the two owner tables and the old bulk dialog
- * used. None is drawn any more, so none is kept in the locales.
+ * used, and the probe's Owners card's words before it named a major release
+ * behind (#9977). None is drawn any more, so none is kept in the locales.
  */
 const RETIRED_STRINGS: Array<string> = [
+  "People and teams who own this probe. They are alerted when its status changes.",
+  "Add a teammate or a team so they are alerted when this probe's status changes.",
   "Owner - Teams",
   "Owner - Users",
   "Owners (Teams)",

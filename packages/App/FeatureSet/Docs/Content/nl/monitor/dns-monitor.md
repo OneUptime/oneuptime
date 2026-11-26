@@ -118,7 +118,7 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **DNS is online** en **DNS-reactietijd (in ms)**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **DNS is online**, **DNS-reactietijd (in ms)** en **DNS-recordwaarde**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**. Voor **DNS-recordwaarde** is de enige keuze **Vorige controle**: zie [Wanneer het DNS-antwoord verandert](#wanneer-het-dns-antwoord-verandert).
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
@@ -126,7 +126,7 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 | **Aantal**, **Percentage**, **Statuswijzigingen** | Hoeveel controles aan de voorwaarde voldeden, hun aandeel, of hoe vaak ze wisselden tussen wel en niet voldoen, wordt vergeleken met het getal dat eronder is ingesteld. |
-| **Vorige controle** | Deze controle, vergeleken met de vorige controle van de sonde zoals ingesteld onder **Verschil met de vorige controle**: bijvoorbeeld een reactietijd die meer dan 50% hoger ligt. Een filter dat waar of onwaar is, voldoet bij de controle die aan de voorwaarde begon te voldoen. |
+| **Vorige controle** | Deze controle, vergeleken met de vorige controle van de sonde zoals ingesteld onder **Verschil met de vorige controle**: bijvoorbeeld een reactietijd die meer dan 50% hoger ligt. Een filter dat waar of onwaar is, voldoet bij de controle die aan de voorwaarde begon te voldoen. **DNS-recordwaarde** vergelijkt het hele antwoord: zie hieronder. |
 
 De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
 
@@ -138,11 +138,26 @@ De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens
 | **Trigger** | De ontbrekende gegevens tellen als het probleem. | Controles waarbij stilte zelf een storing is. |
 | **Treat As Zero** | Het venster wordt vergeleken als één enkele nul. | Tellers waarbij geen gebeurtenissen echt nul betekent. |
 
+### Wanneer het DNS-antwoord verandert
+
+Om te horen wanneer het antwoord voor een naam verandert, zoals een adres dat is verhuisd, een vervangen mailserver of een record dat is bijgekomen of verdwenen, vergelijkt u **DNS-recordwaarde** met de vorige controle:
+
+1. Voeg een filter toe met **DNS-recordwaarde** en **Niet gelijk aan**.
+2. Vink **Evalueer deze criteria over een bepaalde periode** aan. **Vorige controle** is voor dit filter de enige keuze onder **Evalueren**, en heeft geen waarde nodig.
+3. Kies onder **Voor de laatste** hoe lang geleden de vorige controle mag zijn: langer dan het monitoringinterval.
+
+Het antwoord wordt als geheel vergeleken: alle records van het type, zonder hun TTL. Dezelfde records in een andere volgorde zijn hetzelfde antwoord, en een naam met andere hoofdletters en kleine letters ook, omdat DNS-namen niet hoofdlettergevoelig zijn. Een toegevoegd, verwijderd of gewijzigd record geeft een ander antwoord. **Gelijk aan** voldoet in het omgekeerde geval, bij een antwoord dat gelijk is aan dat van de vorige controle, voor criteria die moeten gelden zolang het antwoord stabiel is.
+
+Het antwoord van elke sonde wordt vergeleken met het vorige antwoord van die sonde, en dat van elke stap met dat van zichzelf, dus een naam die in verschillende regio's anders antwoordt, is geen verandering. Een controle die geen antwoord krijgt, omdat de naam niet wordt omgezet of de query een time-out krijgt, wordt niet vergeleken: daarvoor is het filter **DNS is online**. De volgende controle die een antwoord krijgt, wordt vergeleken met het laatste antwoord ervoor, als dat binnen **Voor de laatste** valt. Zonder vorig antwoord in het venster, zoals bij de eerste controle van de monitor, beslist **Als geen gegevens**, zoals bij elke vergelijking met de vorige controle.
+
+Het incident of de waarschuwing zegt wat het antwoord was en wat het nu is: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Voorbeeldcriteria
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
 | Offline wanneer de naam niet meer wordt omgezet | **DNS is online** | **Onwaar** | — |
+| Waarschuwen wanneer het antwoord voor een naam verandert | **DNS-recordwaarde**, geëvalueerd over **Vorige controle** | **Niet gelijk aan** | — |
 | Waarschuwen wanneer het enige `A`-record van een naam verandert | **DNS-recordwaarde** | **Niet gelijk aan** | `93.184.216.34` |
 | Waarschuwen wanneer een `MX`-record buiten uw domein wijst | **DNS-recordwaarde** | **Bevat niet** | `example.com` |
 | DNS als verminderd markeren wanneer het traag is | **DNS-reactietijd (in ms)** | **Groter dan** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Houd het standaard offline-criterium bovenaan: **DNS is online** / **Onwaar**.
 2. Voeg daaronder een criterium toe met **DNS-recordwaarde** / **Gelijk aan** / de verwachte waarde, dat de monitor als **Operationeel** markeert.
 3. Voeg daaronder een criterium toe met **DNS is online** / **Waar**, dat de monitor als **Offline** markeert en een incident meldt. Het komt alleen overeen met antwoorden die de waarde niet hebben.
+:::
+
+:::details Criteria die het antwoord met de vorige controle vergelijken, gaan bij elke controle af
+De server geeft bij elke query een ander deel van een grote pool records terug, zoals sommige namen met load balancing doen. Elk van die antwoorden is een andere set records. Vraag in **DNS-server (optioneel)** een server die de hele pool teruggeeft, of controleer in plaats daarvan op de waarde die u verwacht met **DNS-recordwaarde** / **Gelijk aan**.
 :::
 
 :::details DNSSEC is geldig komt nooit overeen

@@ -17,6 +17,11 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import {
+  PAYMENT_PROVIDER_REFUSED_MESSAGE,
+  getPaymentNotCompletedMessage,
+  isPaymentProviderError,
+} from "../Utils/Billing/PaymentProviderRefusal";
 import BaseAPI from "./BaseAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -55,27 +60,6 @@ const PAYMENT_INTENT_STATUSES_NEEDING_CUSTOMER: Array<
  */
 const PENDING_PAYMENT_REFUSAL: RegExp = /pending payments? waiting to clear/i;
 
-const ENDS_WITH_PUNCTUATION: RegExp = /[.!?]$/;
-
-interface PaymentProviderError {
-  type: string;
-  code?: string | undefined;
-  message?: string | undefined;
-}
-
-type IsPaymentProviderErrorFunction = (
-  err: unknown,
-) => err is PaymentProviderError;
-
-// Stripe SDK errors carry a type such as StripeCardError.
-const isPaymentProviderError: IsPaymentProviderErrorFunction = (
-  err: unknown,
-): err is PaymentProviderError => {
-  const type: unknown = (err as { type?: unknown } | null)?.type;
-
-  return typeof type === "string" && type.startsWith("Stripe");
-};
-
 type IsPendingPaymentRefusalFunction = (err: unknown) => boolean;
 
 const isPendingPaymentRefusal: IsPendingPaymentRefusalFunction = (
@@ -98,8 +82,10 @@ type ToPayInvoiceErrorFunction = (data: ToPayInvoiceErrorData) => unknown;
 /*
  * A raw StripeError reaching the error handler becomes an opaque 500
  * "Server Error", so provider errors are turned into a message the customer
- * can act on. Anything that is not a provider error is already one of ours
- * (no payment method, provider unreachable) and is passed through untouched.
+ * can act on, in the words a balance added to by hand uses too
+ * (Utils/Billing/PaymentProviderRefusal). Anything that is not a provider
+ * error is already one of ours (no payment method, provider unreachable)
+ * and is passed through untouched.
  */
 const toPayInvoiceError: ToPayInvoiceErrorFunction = (
   data: ToPayInvoiceErrorData,
@@ -113,19 +99,13 @@ const toPayInvoiceError: ToPayInvoiceErrorFunction = (
       data.paymentError.message ||
       data.paymentIntent?.lastPaymentErrorMessage ||
       ""
-    ).trim() || "The payment provider did not accept this payment.";
+    ).trim() || PAYMENT_PROVIDER_REFUSED_MESSAGE;
 
   if (!data.suggestNewPaymentMethod) {
     return new BadDataException(providerMessage);
   }
 
-  const sentence: string = ENDS_WITH_PUNCTUATION.test(providerMessage)
-    ? providerMessage
-    : `${providerMessage}.`;
-
-  return new BadDataException(
-    `Your payment could not be completed: ${sentence} Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.`,
-  );
+  return new BadDataException(getPaymentNotCompletedMessage(providerMessage));
 };
 
 export default class UserAPI extends BaseAPI<

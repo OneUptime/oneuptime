@@ -13,8 +13,11 @@ import AlertService from "../../../../Server/Services/AlertService";
 import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
 import ResourceAiAccessService from "../../../../Server/Services/ResourceAiAccessService";
 import PostedRootCause from "../../../../Server/Utils/AI/SRE/PostedRootCause";
-import { READ_TOOL_OUTPUT_TOOL_NAME } from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
+import ToolOutputPager, {
+  READ_TOOL_OUTPUT_TOOL_NAME,
+} from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
 import { ChatExtraTool } from "../../../../Server/Utils/AI/Chat/ChatAgentRunner";
+import ChatInfrastructureAccess from "../../../../Server/Utils/AI/Chat/ChatInfrastructureAccess";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -620,6 +623,32 @@ describe("InvestigationThread.buildTurnContext", () => {
     expect(context.title).toBe("Incident #42: Node memory at 93%");
     // No reachable cluster or resource: no command tools, no pager.
     expect(context.extraTools).toEqual([]);
+  });
+
+  /*
+   * The turn's other tools - the project's external MCP servers' (#10879) -
+   * page their long answers with the pager the command tools page with, so
+   * one read_tool_output reads all of them.
+   */
+  test("hands the turn the pager its command tools page with", async () => {
+    installLookups({});
+    const buildTools: jest.SpyInstance = jest.spyOn(
+      ChatInfrastructureAccess,
+      "buildTools",
+    );
+
+    const context: InvestigationThreadTurnContext =
+      await InvestigationThread.buildTurnContext({
+        projectId: PROJECT_ID,
+        subject: INCIDENT_SUBJECT,
+        aiRunId: ObjectID.generate(),
+        props: ASKER_PROPS,
+      });
+
+    expect(context.outputPager).toBeInstanceOf(ToolOutputPager);
+    expect(
+      (buildTools.mock.calls[0]![0] as { outputPager?: unknown }).outputPager,
+    ).toBe(context.outputPager);
   });
 
   test("looks up the investigation for this incident only", async () => {

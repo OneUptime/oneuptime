@@ -293,6 +293,8 @@ test.describe("connecting Azure", () => {
         // Data Security's levels, under More fields: off until chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
+        // The blocklist in Azure WAF, under More fields: off until turned on.
+        wafBlocklist: "off",
       },
       secrets: { clientSecret: PASSWORD },
     });
@@ -426,6 +428,12 @@ test.describe("one paste, whatever the cloud", () => {
         // Data Security's levels, under More fields: off until chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
+        /*
+         * The blocklist in AWS WAF and security case checks, under More
+         * fields: off until turned on.
+         */
+        wafBlocklist: "off",
+        securityCaseChecks: "off",
       },
       secrets: {},
     });
@@ -808,6 +816,12 @@ test.describe("Data Security's settings, under the command", () => {
       resourceCosts: "off",
       dataSecurity: "off",
       dataSecurityResponse: "block",
+      /*
+       * Settings the connection was saved before: saved as the form shows
+       * them, off.
+       */
+      wafBlocklist: "off",
+      securityCaseChecks: "off",
     });
   });
 

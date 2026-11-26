@@ -115,8 +115,8 @@ IGNORED VALUES: {{ join ", " $ignoredPrivateNetworkValues }}
 
 billing.enabled is true, so these chart probes -- global probes shared by every
 project on this instance -- stay public-only: their API, Website, External
-Status Page and Custom JavaScript Code monitors still refuse private network
-addresses, and each probe logs a warning at startup. To monitor an internal
+Status Page, Custom JavaScript Code and Synthetic monitors still refuse private
+network addresses, and each probe logs a warning at startup. To monitor an internal
 target, deploy a private probe on that network and select it on the monitor.
 {{- else }}
 

@@ -11,13 +11,16 @@ import ts from "typescript";
  * Common/Server/Utils/StatusPage/StatusPageVisibilityQuery). A read that asks
  * the switch alone shows a private record, so this fails on one:
  *
- *   - every IncidentEpisodeService read in StatusPageAPI.ts passes its query
- *     through StatusPageVisibilityQuery.shownEpisodes;
- *   - every IncidentService read in StatusPageAPI.ts and StatusPageService.ts
- *     passes its query through StatusPageVisibilityQuery (shownIncidents, or
- *     notPrivateIncidents where an incident only links an episode). Their
- *     display queries and counts go through IncidentStatusPageScope, which
- *     applies the rule itself (pinned by its own suites);
+ *   - every IncidentEpisodeService read in StatusPageAPI.ts and
+ *     StatusPageEpisodeIncidents.ts passes its query through
+ *     StatusPageVisibilityQuery.shownEpisodes;
+ *   - every IncidentService read in StatusPageAPI.ts, StatusPageService.ts
+ *     and StatusPageEpisodeIncidents.ts passes its query through
+ *     StatusPageVisibilityQuery (shownIncidents, or notPrivateIncidents
+ *     where an incident only links an episode). Their display queries and
+ *     counts, and an episode's incidents (#10767), go through
+ *     IncidentStatusPageScope, which applies the rule itself (pinned by its
+ *     own suites), so none of them reads an incident directly today;
  *   - every ScheduledMaintenanceService read there passes its query through
  *     StatusPageVisibilityQuery.shownScheduledMaintenance (Visible on Status
  *     Page on, and published: ScheduledMaintenancePublicationOneRule holds
@@ -44,6 +47,8 @@ const PACKAGES_DIR: string = path.resolve(__dirname, "..", "..");
 const STATUS_PAGE_FILES: Array<string> = [
   "Common/Server/API/StatusPageAPI.ts",
   "Common/Server/Services/StatusPageService.ts",
+  // An episode's incidents where the page groups them, and its episodes (#10767).
+  "Common/Server/Utils/StatusPage/StatusPageEpisodeIncidents.ts",
 ];
 
 // What each read must pass its query through, per service.
@@ -397,18 +402,36 @@ describe("A status page shows an incident or an episode by one rule: visible, an
   test("the scan sees the reads it is about (it would catch one)", () => {
     const scan: ReadScan = scanStatusPageReads(STATUS_PAGE_FILES[0]!);
 
-    // Episode lists, the overview count and list, member incidents, attachments.
+    // Episode lists, the overview count and list, attachments.
     expect(scan.reads.length).toBeGreaterThanOrEqual(7);
     expect(
       scan.reads.filter((finding: Finding): boolean => {
         return finding.text.startsWith("IncidentEpisodeService.");
       }).length,
     ).toBeGreaterThanOrEqual(5);
+    /*
+     * The page's incidents, its lists, its one incident and an episode's
+     * members, are read through IncidentStatusPageScope (#10767): the
+     * scan sees those calls, where an IncidentService read would be.
+     */
     expect(
-      scan.reads.filter((finding: Finding): boolean => {
-        return finding.text.startsWith("IncidentService.");
-      }).length,
+      scanSwitchUse(STATUS_PAGE_FILES[0]!).ruleCalls.filter(
+        (call: string): boolean => {
+          return (
+            call === "IncidentStatusPageScope.findIncidentsForStatusPage" ||
+            call === "IncidentStatusPageScope.findOneIncidentForStatusPage"
+          );
+        },
+      ).length,
     ).toBeGreaterThanOrEqual(2);
+    // An episode's own read where its incidents are listed.
+    expect(
+      scanStatusPageReads(STATUS_PAGE_FILES[2]!).reads.filter(
+        (finding: Finding): boolean => {
+          return finding.text.startsWith("IncidentEpisodeService.");
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(1);
     // The event list and its future events, by id, the overview's two, the note attachment.
     expect(
       scan.reads.filter((finding: Finding): boolean => {

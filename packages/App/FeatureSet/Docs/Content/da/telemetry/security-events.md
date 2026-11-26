@@ -65,6 +65,7 @@ flowchart TB
 | **Noteskabeloner** | Indstillinger | Færdig tekst til de noter, dit team skriver på sine sager |
 | **Nummerering** | Indstillinger | Teksten foran sagsnumrene og det nummer, den næste sag får |
 | **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
+| **Sletteanmodninger** | Indstillinger | Personer, der er slettet efter anmodning, og hvad hver sletning ændrede |
 
 **Detektioner**, **AI**, **Forbindelser** og **Indstillinger**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.
 
@@ -246,7 +247,7 @@ Slå **Netværksflows** til under **Dine OneUptime-data** på **Forbindelser**, 
 - området for hver af dens opdagelser, mens scanningen kører;
 - de værter og porte, dens monitorer tjekker.
 
-Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig.
+Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig. En brugerdefineret sonde uden værtens netværk, som en Kubernetes-pod eller en container på et Docker-bridgenetværk, genkendes også på værtens adresser, som `PROBE_HOST_IP_ADDRESSES` giver den: indtil den har dem, forlader dens forespørgsler maskinen fra en adresse, den ikke genkendes på, og rapporteres som sweeps. Se [Hvad en sonde sender, når den melder sig](/docs/probe/custom-probe#hvad-en-sonde-sender-når-den-melder-sig).
 
 ### Forbind et sikkerhedsprodukt
 
@@ -352,6 +353,8 @@ En regel, der hasher, gemmer adressen til Sikkerhedsbegivenheder, så begivenhed
 En detektionsregel, der tæller pr. adresse, bør tælle pr. `principalIp` eller `targetIp`, som navngiver adressen bag tokenet fra en regel, der hasher, sådan som regelbibliotekets regler gør. Et formats eget adressefelt, såsom `openstack.audit.initiator_address` eller `asa.src_ip`, indeholder kun en adresse, der stod i loggen, så det forbliver tomt, overalt hvor en scrub-regel skjulte en.
 
 En regel, der sletter eller maskerer en bruger, skjuler den på samme måde: Hvor begivenheden ville navngive brugeren, siger **Kildebruger** eller **Målbruger**, at en scrub-regel skjulte den. Hvor Sikkerhedsbegivenheder læser en bruger, gemmer en regel, der hasher, brugeren til den: en requests `enduser.id` eller `user.id`, et AI-kalds bruger og en bruger, som en loglinje navngiver, såsom en cloud-auditlogs principal. Så begivenheden navngiver brugeren bag tokenet, en sag om brugeren navngiver kontoen, og en playbook kan handle på den som på enhver anden bruger. Det, reglen efterlod, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finde brugeren i dine logs og traces, som kun indeholder tokenet. Et token, som der ikke er gemt nogen bruger for, såsom et, der blev lavet, før tokens havde en nøgle, forbliver begivenhedens bruger: Regler tæller det som én konto, og ingen playbook handler på det.
+
+Hændelsens panel siger det under den bruger, den nævner i **Kildebruger** og **Målbruger**: »Hashet i dine protokoller som …«, eller »Hashet i dine spor som …« for en hændelse læst fra dine traces, hvor … er tokenet. Tokenet er et link, der søger efter det i dine logs eller traces, fra en dag før hændelsen til en dag efter. En bruger, der er slettet efter anmodning, viser i stedet **Slettet efter anmodning**, og hændelsen viser vedkommendes token: se [Slet en person](#slet-en-person).
 
 ## Udforsk sikkerhedsbegivenheder
 
@@ -747,6 +750,30 @@ Alt i Sikkerhedshændelser, der læser tidligere hændelser, læser kun de hænd
 - En hunt, hvis **Tidsinterval** er længere end hændelserne opbevares, finder intet ældre, og dens formular siger det.
 
 **Projektindstillinger → Telemetri og APM → Dataopbevaring** viser de aktiverede regler, der kigger længere tilbage end dens **Standardopbevaring (dage)**. For at dække dem skal du opbevare hændelser længere, med **Skift opbevaring** under en regel, eller forkorte en regels tidsrum til det, der opbevares. OneUptime opbevarer 15 dage, medmindre du ændrer det, fordi opbevaringen bestemmer, hvad din telemetri koster, og hvor længe persondata i hændelser, såsom adresser og brugernavne, opbevares. En ny opbevaring gælder for hændelser, der ankommer fra da af, så reglerne ser længere tilbage, efterhånden som de hændelser bliver ældre.
+
+## Slet en person
+
+Når nogen beder dig slette deres data, for eksempel efter GDPR artikel 17, så slet dem i **Sikkerhedshændelser → Indstillinger → Sletteanmodninger**. Vælg **Slet person**, og indtast deres bruger-id eller e-mailadresse, som dine logs indeholdt det, før din Hash-scrubbingregel skjulte det, eller det token, en hændelse viser i stedet. En e-mailadresse slettes også med små bogstaver. Angiv din egen reference under **Reference**, for eksempel anmodningens ticketnummer, aldrig personens navn.
+
+Hvad anmodningen gør:
+
+- Inden for et minut holder Sikkerhedshændelser op med at nævne personen. Brugerboksen afviser fra da af deres tokens, så ingen hændelse, sag eller playbook nævner dem igen, heller ikke når en senere hændelse bærer det samme token: den hændelse beholder tokenet som sin bruger, som for ethvert token uden en gemt bruger. At gemme et token, der kommer igen, ville nævne personen igen, og det er netop det, de har bedt dig om at stoppe.
+- Inden for få minutter sletter den boksens poster om dem og sætter tokenet tilbage på deres plads i de hændelser, der nævnte dem via boksen: **Kildebruger**, **Målbruger**, observables og attributter. Den fjerner dem fra titler, entiteter og gemte hændelser i sager og detektioner og fra entitetsrisiko.
+- En playbook-kørsel eller en handling fra OneUptime AI, der venter på godkendelse til at handle på dem, trækkes tilbage og siger hvorfor.
+
+Hver anmodning viser sin status, **I kø**, **Sletter**, **Slettet** eller **Mislykkedes**, og hvad den ændrede: de slettede boksposter, de hændelser og sager, der ikke længere nævner dem, og de tilbagetrukne forslag. Sletningen begynder to minutter efter, at anmodningen er indsendt, når ingen OneUptime-server længere nævner personen, og en anmodning viser først **Slettet**, når hver ændring er anvendt. En anmodning, der fejler, prøves igen; efter fem forsøg viser den **Mislykkedes** med årsagen, og projektets ejere får en e-mail. Sikkerhedshændelser nægter stadig at nævne personen, og at indsende anmodningen igen prøver igen.
+
+Hvad den lader være:
+
+- Det, mennesker har skrevet: noter, afslutningsnoter, opgaver, beviser, brugerdefinerede felter og det, OneUptime AI har skrevet om en sag.
+- Hændelser, der nævnte personen, fordi dine logs indeholdt dem i klartekst, og dine logs og traces selv, som kun indeholder tokenet.
+- De Detection Finding-hændelser, som en regel skrev om dem, hvis besked og observables kan nævne dem, indtil din telemetriopbevaring sletter dem.
+- Allerede sendte notifikationer, incidenter og alarmer, som en detektion åbnede, en sags aktivitet, eksporter, backups og auditloggen.
+- På en selvhostet OneUptime, hvis `ENCRYPTION_SECRET` er ændret, tokens lavet før ændringen: slet hvert af dem via det token, en hændelse viser.
+
+Anmodningen gemmer, hvem der indsendte den og hvornår, din reference og personens tokens, som boksen bliver ved med at afvise dem med. Bruger-id'et eller e-mailadressen gemmes krypteret, hvor ingen side, eksport eller API kan læse det, og slettes, når sletningen er færdig; ClickHouse får kun nogensinde tokens. Anmodninger kan ikke redigeres eller slettes: de er din dokumentation for sletningen.
+
+Projektejere, Projektadministratorer, Sikkerhedsadministratorer og alle med Create Security Erasure Request, for eksempel din databeskyttelsesrådgiver, kan indsende en anmodning, fra siden eller via API'ets `/security-user-erasure-request`. Alle sikkerhedsroller kan læse dem.
 
 ## Fejlfinding
 

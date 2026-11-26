@@ -602,13 +602,20 @@ describe("SecurityEventConnectionFormModal (Cloudflare)", () => {
     await reachCredentials();
     await pasteToken();
 
-    expect(
-      await screen.findAllByText(
-        "Cloudflare did not accept the API token: Invalid API Token (1000).",
-        {},
-        SETTLED,
-      ),
-    ).toHaveLength(2);
+    /*
+     * Each picker says the refusal under itself, and each reads on a timer of
+     * its own. The refusal here comes back at once, and a failed request is
+     * forgotten, so the picker whose timer comes second asks again, and its
+     * refusal can be drawn a moment after the first picker's: wait for both.
+     */
+    await waitFor((): void => {
+      expect(
+        screen.getAllByText(
+          "Cloudflare did not accept the API token: Invalid API Token (1000).",
+        ),
+      ).toHaveLength(2);
+    }, SETTLED);
+    const asked: number = choicesRequests().length;
 
     choicesAnswer = () => {
       return new HTTPResponse(200, choices() as unknown as JSONObject, {});
@@ -618,7 +625,7 @@ describe("SecurityEventConnectionFormModal (Cloudflare)", () => {
     });
 
     await waitFor((): void => {
-      expect(choicesRequests()).toHaveLength(2);
+      expect(choicesRequests()).toHaveLength(asked + 1);
     }, SETTLED);
   });
 

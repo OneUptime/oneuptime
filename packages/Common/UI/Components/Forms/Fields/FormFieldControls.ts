@@ -1,5 +1,6 @@
 import { loadCodeEditor } from "../../CodeEditor/LazyCodeEditor";
 import { loadYamlEditor } from "../../CodeEditor/LazyYamlEditor";
+import { loadEntityDropdown } from "../../EntityDropdown/LazyEntityDropdown";
 import { loadFilePicker } from "../../FilePicker/LazyFilePicker";
 import { loadMarkdownEditor } from "../../Markdown.tsx/LazyMarkdownEditor";
 import { loadPeoplePicker } from "../../PeoplePicker/LazyPeoplePicker";
@@ -40,6 +41,36 @@ export const getLoadControl: (
   return (fieldType && LOAD_CONTROL[fieldType]) || null;
 };
 
+// A field as a form holds it, for what its control is.
+export interface FieldWithControl {
+  fieldType?: FormFieldSchemaType | undefined;
+  // Set on a dropdown that picks records rather than from a fixed list.
+  dropdownModal?: { type?: unknown } | undefined;
+}
+
+/*
+ * The control a field draws with, or none for a field whose control is part
+ * of the first load: by its type, and for a dropdown that picks records (a
+ * dropdownModal, which FormField draws as the entity dropdown) the entity
+ * dropdown, whose file is its own as well. A dropdown from a fixed list draws
+ * with the first load's Dropdown.
+ */
+export const getFieldLoadControl: (
+  field: FieldWithControl,
+) => LoadControlFunction | null = (
+  field: FieldWithControl,
+): LoadControlFunction | null => {
+  if (
+    (field.fieldType === FormFieldSchemaType.Dropdown ||
+      field.fieldType === FormFieldSchemaType.MultiSelectDropdown) &&
+    field.dropdownModal?.type
+  ) {
+    return loadEntityDropdown;
+  }
+
+  return getLoadControl(field.fieldType);
+};
+
 /*
  * Loads the controls these fields draw with, however far off the fields are:
  * on a step not reached yet, or hidden until another answer shows them. So a
@@ -47,16 +78,12 @@ export const getLoadControl: (
  * to say, once it is drawn: it asks again then, and says so if it still cannot.
  */
 export const loadFormFieldControls: (
-  fields: ReadonlyArray<{ fieldType?: FormFieldSchemaType | undefined }>,
-) => void = (
-  fields: ReadonlyArray<{ fieldType?: FormFieldSchemaType | undefined }>,
-): void => {
+  fields: ReadonlyArray<FieldWithControl>,
+) => void = (fields: ReadonlyArray<FieldWithControl>): void => {
   const asked: Set<LoadControlFunction> = new Set<LoadControlFunction>();
 
   for (const field of fields) {
-    const loadControl: LoadControlFunction | null = getLoadControl(
-      field.fieldType,
-    );
+    const loadControl: LoadControlFunction | null = getFieldLoadControl(field);
 
     if (loadControl && !asked.has(loadControl)) {
       asked.add(loadControl);
@@ -75,7 +102,7 @@ export const loadFormFieldControls: (
 export const loadAllFormFieldControls: () => Promise<void> =
   async (): Promise<void> => {
     await Promise.all(
-      Object.values(LOAD_CONTROL).map(
+      [...Object.values(LOAD_CONTROL), loadEntityDropdown].map(
         (loadControl: LoadControlFunction): Promise<unknown> => {
           return loadControl();
         },

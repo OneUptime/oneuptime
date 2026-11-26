@@ -227,6 +227,8 @@ A finalidade de cada um é "Segurança das redes e da informação (considerando
 
 Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre de endereços, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, o cofre de usuários, enquanto uma regra ativada de qualquer outro padrão faz isso, e cada um por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
 
+Para apagar uma pessoa de “Cofre de usuários de segurança”, e dos eventos e casos que a nomeiam por meio dele, registre uma solicitação de apagamento: veja [Apagar uma pessoa](/docs/telemetry/security-events#apagar-uma-pessoa).
+
 ## Avaliações de impacto
 
 O Artigo 35 do RGPD exige uma avaliação de impacto sobre a proteção de dados antes de um tratamento suscetível de implicar um elevado risco. A Segurança de dados diz quais repositórios precisam de uma: um repositório que guarda categorias especiais de dados, como dados de saúde, dados sobre muitas pessoas (cerca de 100.000 registros ou mais), ou dados que saem dos países dos titulares.

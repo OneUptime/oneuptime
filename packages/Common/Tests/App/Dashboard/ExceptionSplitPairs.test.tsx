@@ -20,17 +20,28 @@ import {
 import { EXCEPTION_LIST_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionListRead";
 import {
   MAX_EXCEPTIONS_SPLIT_FROM_A_PAGE,
+  SPLIT_BY_SCRUB_RULE_PARAM,
+  SPLIT_BY_SCRUB_RULE_PARAM_VALUE,
+  SPLIT_FINGERPRINT_SELECT,
   SPLIT_FROM_ONE_SELECT,
   SPLIT_ONE_SELECT,
+  countSplitExceptions,
+  getOccurrenceFingerprints,
+  getSplitExceptionsQuery,
   getSplitPairExceptionIds,
   idOf,
+  readSplitExceptionFingerprints,
   readSplitPairExceptionIds,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionSplitPairs";
+import { MAX_SCOPED_FINGERPRINTS } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionsAttributeScope";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../../UI/Utils/Project";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
 
 /*
@@ -411,5 +422,261 @@ describe("the exceptions list, wired", () => {
     expect(viewer.replace(/\s+/g, " ")).toMatch(
       /readSplitPairExceptionIds\(exceptions\)[\s\S]*?\}, \[exceptions\]\);/,
     );
+  });
+});
+
+/*
+ * The list's filter for them, Split by a scrub rule (#11026): what it
+ * counts, what it reads for the chart, and how the chart's fingerprints
+ * are worked out. What the list does with them is
+ * ExceptionsSplitByScrubRule.test.
+ */
+describe("what the filter for a project's split pairs reads", () => {
+  const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
+
+  interface ReadArgs {
+    modelType: unknown;
+    query: Record<string, unknown>;
+    select: unknown;
+    limit: number;
+    skip: number;
+    sort: Record<string, unknown>;
+  }
+
+  let listMock: Mock<(args: ReadArgs) => Promise<unknown>>;
+  let countMock: Mock<(args: ReadArgs) => Promise<number>>;
+
+  beforeEach(() => {
+    listMock = jest.fn<(args: ReadArgs) => Promise<unknown>>();
+    countMock = jest.fn<(args: ReadArgs) => Promise<number>>();
+    jest.spyOn(ModelAPI, "getList").mockImplementation(((args: ReadArgs) => {
+      return listMock(args);
+    }) as never);
+    jest.spyOn(ModelAPI, "count").mockImplementation(((args: ReadArgs) => {
+      return countMock(args);
+    }) as never);
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function reads(): Array<ReadArgs> {
+    return listMock.mock.calls.map((call: Array<unknown>): ReadArgs => {
+      return call[0] as ReadArgs;
+    });
+  }
+
+  function withFingerprint(
+    id: string,
+    fingerprint: string,
+  ): TelemetryException {
+    return exception(id, { fingerprint });
+  }
+
+  test("the address bar's word for it is split=scrub-rule", () => {
+    expect(SPLIT_BY_SCRUB_RULE_PARAM).toBe("split");
+    expect(SPLIT_BY_SCRUB_RULE_PARAM_VALUE).toBe("scrub-rule");
+  });
+
+  test("the exceptions it lists are the project's split ones: splitFromTelemetryExceptionId set, nothing else", () => {
+    const query: Record<string, unknown> = getSplitExceptionsQuery() as Record<
+      string,
+      unknown
+    >;
+
+    expect(Object.keys(query).sort()).toEqual([
+      "projectId",
+      "splitFromTelemetryExceptionId",
+    ]);
+    expect(query["splitFromTelemetryExceptionId"]).toBeInstanceOf(NotNull);
+    expect(String(query["projectId"])).toBe(PROJECT_ID);
+    // In any state, last seen at any time; merged ones are the server's to leave out.
+    expect(query).not.toHaveProperty("isResolved");
+    expect(query).not.toHaveProperty("lastSeenAt");
+    expect(query).not.toHaveProperty("mergedIntoTelemetryExceptionId");
+  });
+
+  test("with no project picked, it still asks for the split ones only", () => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
+
+    const query: Record<string, unknown> = getSplitExceptionsQuery() as Record<
+      string,
+      unknown
+    >;
+
+    expect(Object.keys(query)).toEqual(["splitFromTelemetryExceptionId"]);
+  });
+
+  test("it is counted with one count of that query", async () => {
+    countMock.mockResolvedValue(3);
+
+    expect(await countSplitExceptions()).toBe(3);
+    expect(countMock).toHaveBeenCalledTimes(1);
+    const args: ReadArgs = countMock.mock.calls[0]![0];
+    expect(args.modelType).toBe(TelemetryException);
+    expect(args.query["splitFromTelemetryExceptionId"]).toBeInstanceOf(NotNull);
+    expect(String(args.query["projectId"])).toBe(PROJECT_ID);
+    expect(listMock).not.toHaveBeenCalled();
+  });
+
+  test("a project with none counts 0, and a count that fails is null: no filter either way", async () => {
+    countMock.mockResolvedValue(0);
+    expect(await countSplitExceptions()).toBe(0);
+
+    countMock.mockRejectedValue(new Error("Server Error"));
+    expect(await countSplitExceptions()).toBeNull();
+  });
+
+  test("the chart's fingerprints: the split ones', then those merged into them, by id, each once", async () => {
+    listMock.mockImplementation(async (args: ReadArgs) => {
+      if ("mergedIntoTelemetryExceptionId" in args.query) {
+        return {
+          data: [
+            withFingerprint(THIRD_ID, "fp-merged-into-split"),
+            // A former fingerprint of the split one, which is merged into it.
+            withFingerprint(PLAIN_ID, "fp-split-before-rekey"),
+            withFingerprint(SECOND_SPLIT_ID, "fp-split"),
+          ],
+          count: 3,
+        };
+      }
+      return {
+        data: [
+          withFingerprint(SPLIT_ID, "fp-split"),
+          withFingerprint(SECOND_SPLIT_ID, "fp-second-split"),
+          // A row without its fingerprint names no occurrence.
+          exception(SPLIT_FROM_ID),
+        ],
+        count: 3,
+      };
+    });
+
+    expect(await readSplitExceptionFingerprints()).toEqual([
+      "fp-split",
+      "fp-second-split",
+      "fp-merged-into-split",
+      "fp-split-before-rekey",
+    ]);
+
+    expect(reads()).toHaveLength(2);
+    const [splitOnes, mergedIn] = reads() as [ReadArgs, ReadArgs];
+    expect(splitOnes.modelType).toBe(TelemetryException);
+    expect(splitOnes.query["splitFromTelemetryExceptionId"]).toBeInstanceOf(
+      NotNull,
+    );
+    expect(String(splitOnes.query["projectId"])).toBe(PROJECT_ID);
+    expect(splitOnes.select).toBe(SPLIT_FINGERPRINT_SELECT);
+    expect(splitOnes.limit).toBe(MAX_SCOPED_FINGERPRINTS);
+    expect(splitOnes.skip).toBe(0);
+    expect(splitOnes.sort).toEqual({ _id: SortOrder.Ascending });
+
+    const ids: Includes = mergedIn.query[
+      "mergedIntoTelemetryExceptionId"
+    ] as Includes;
+    expect(ids).toBeInstanceOf(Includes);
+    expect(ids.values).toEqual([SPLIT_ID, SECOND_SPLIT_ID, SPLIT_FROM_ID]);
+    expect(mergedIn.select).toBe(SPLIT_FINGERPRINT_SELECT);
+    expect(mergedIn.limit).toBe(MAX_SCOPED_FINGERPRINTS);
+    expect(SPLIT_FINGERPRINT_SELECT).toEqual({ _id: true, fingerprint: true });
+  });
+
+  test("a project with no split one reads nothing more, and narrows the chart to nothing", async () => {
+    listMock.mockResolvedValue({ data: [], count: 0 });
+
+    expect(await readSplitExceptionFingerprints()).toEqual([]);
+    expect(reads()).toHaveLength(1);
+  });
+
+  test("a read that fails is no fingerprint at all, never every exception", async () => {
+    listMock.mockRejectedValue(new Error("Server Error"));
+    expect(await readSplitExceptionFingerprints()).toEqual([]);
+
+    listMock.mockReset();
+    listMock.mockImplementation(async (args: ReadArgs) => {
+      if ("mergedIntoTelemetryExceptionId" in args.query) {
+        throw new Error("Server Error");
+      }
+      return { data: [withFingerprint(SPLIT_ID, "fp-split")], count: 1 };
+    });
+    expect(await readSplitExceptionFingerprints()).toEqual([]);
+  });
+});
+
+describe("the fingerprints the chart and the facet counts read occurrences of", () => {
+  test("none narrow them while nothing asks to", () => {
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: null,
+        splitFingerprints: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("an instance scope alone: its own, as before the filter", () => {
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: ["fp-a", "fp-b"],
+        splitFingerprints: null,
+      }),
+    ).toEqual(["fp-a", "fp-b"]);
+    // One that matched nothing still narrows them, to nothing.
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: [],
+        splitFingerprints: null,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the filter alone: the split exceptions'", () => {
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: null,
+        splitFingerprints: ["fp-split", "fp-merged-in"],
+      }),
+    ).toEqual(["fp-split", "fp-merged-in"]);
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: null,
+        splitFingerprints: [],
+      }),
+    ).toEqual([]);
+  });
+
+  test("both: what both keep, in the scope's order", () => {
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: ["fp-c", "fp-split", "fp-a", "fp-merged-in"],
+        splitFingerprints: ["fp-merged-in", "fp-split", "fp-other-split"],
+      }),
+    ).toEqual(["fp-split", "fp-merged-in"]);
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: ["fp-a"],
+        splitFingerprints: ["fp-split"],
+      }),
+    ).toEqual([]);
+  });
+
+  test("never hands back the list it was given", () => {
+    const scope: Array<string> = ["fp-a"];
+    const split: Array<string> = ["fp-split"];
+
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: scope,
+        splitFingerprints: null,
+      }),
+    ).not.toBe(scope);
+    expect(
+      getOccurrenceFingerprints({
+        scopeFingerprints: null,
+        splitFingerprints: split,
+      }),
+    ).not.toBe(split);
   });
 });

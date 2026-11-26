@@ -65,6 +65,7 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Plantillas de notas** | Ajustes | Texto listo para usar en las notas que tu equipo escribe en sus casos |
 | **Numeración** | Ajustes | El texto delante de los números de caso y el número que recibe el próximo caso |
 | **Puntuación de riesgo** | Ajustes | Si el riesgo de una entidad abre un caso, con qué riesgo, y cuánto importa cada entidad |
+| **Solicitudes de borrado** | Ajustes | Las personas borradas a petición, y lo que cambió cada borrado |
 
 **Detecciones**, **IA**, **Conexiones** y **Ajustes**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
 
@@ -246,7 +247,7 @@ Activa **Flujos de red**, en **Tus datos de OneUptime** de **Conexiones**, y los
 - el rango de cada uno de sus descubrimientos, mientras el escaneo está en marcha;
 - los hosts y puertos que comprueban sus monitores.
 
-Se guarda como un evento informativo, `oneuptime-probe-traffic`, que nombra la sonda, y ninguna regla lo lee. **Flujos de red** indica cuántos se apartaron en el último día, con **Verlas**. Cualquier otra cosa desde la dirección de una sonda se cuenta como el tráfico de cualquiera, y un barrido o escaneo que va más allá del trabajo de la sonda se notifica, nombrando la sonda. Una sonda se reconoce por la dirección desde la que se registra y por las direcciones de sus propias interfaces de red, que enumera cada vez que se registra.
+Se guarda como un evento informativo, `oneuptime-probe-traffic`, que nombra la sonda, y ninguna regla lo lee. **Flujos de red** indica cuántos se apartaron en el último día, con **Verlas**. Cualquier otra cosa desde la dirección de una sonda se cuenta como el tráfico de cualquiera, y un barrido o escaneo que va más allá del trabajo de la sonda se notifica, nombrando la sonda. Una sonda se reconoce por la dirección desde la que se registra y por las direcciones de sus propias interfaces de red, que enumera cada vez que se registra. Una sonda personalizada sin red del host, como un pod de Kubernetes o un contenedor en una red bridge de Docker, se reconoce también por las direcciones de su host, que le indica `PROBE_HOST_IP_ADDRESSES`: hasta que las tiene, sus sondeos salen desde una dirección por la que no se la reconoce y se notifican como barridos. Consulte [Qué envía una sonda cuando se comunica](/docs/probe/custom-probe#qué-envía-una-sonda-cuando-se-comunica).
 
 ### Conectar un producto de seguridad
 
@@ -352,6 +353,8 @@ Una regla que aplica hash guarda la dirección para Eventos de seguridad, así q
 Una regla de detección que cuenta por dirección debería contar por `principalIp` o `targetIp`, como hacen las reglas de la Biblioteca de reglas, porque esos campos nombran la dirección que hay detrás del token de una regla que aplica hash. El campo de dirección propio de un formato, como `openstack.audit.initiator_address` o `asa.src_ip`, solo contiene una dirección que escribió el registro, así que queda vacío allí donde una regla de depuración ocultó una.
 
 Una regla que borra o enmascara un usuario lo oculta del mismo modo: allí donde el evento nombraría al usuario, **Usuario de origen** o **Usuario de destino** dice que una regla de depuración lo ocultó. Donde Eventos de seguridad lee un usuario, una regla que aplica hash le guarda el usuario: el `enduser.id` o el `user.id` de una solicitud, el usuario de una llamada de IA y el usuario que nombra una línea de registro, como la entidad principal de un registro de auditoría de la nube. Así, el evento nombra al usuario detrás del token, un caso sobre él nombra la cuenta y un playbook puede actuar sobre ella como sobre cualquier otro usuario. Lo que dejó la regla está en `oneuptime.principal_user_hashed_as` o en `oneuptime.target_user_hashed_as`, para que encuentres al usuario en tus registros y trazas, que solo contienen el token. Un token sin usuario guardado, como uno creado antes de que los tokens tuvieran una clave, sigue siendo el usuario del evento: las reglas lo cuentan como una sola cuenta y ningún playbook actúa sobre él.
+
+El panel del evento lo indica bajo el usuario que nombra en **Usuario de origen** y **Usuario de destino**: «Con hash en sus registros como …», o «Con hash en sus trazas como …» en un evento leído de sus trazas, donde … es el token. El token es un enlace que lo busca en sus registros o trazas, desde un día antes del evento hasta un día después. Un usuario borrado a petición muestra **Borrada a petición** en su lugar, y el evento muestra su token: consulte [Borrar a una persona](#borrar-a-una-persona).
 
 ## Explorar los eventos de seguridad
 
@@ -747,6 +750,30 @@ Todo lo que en Eventos de seguridad lee eventos pasados lee solo los eventos que
 - Una cacería cuyo **Intervalo de tiempo** es más largo que lo que se conservan los eventos no encuentra nada más antiguo, y su formulario lo dice.
 
 **Ajustes del proyecto → Telemetría y APM → Retención de datos** lista las reglas activadas que miran más atrás que su **Retención predeterminada (días)**. Para cubrirlas, conserva los eventos más tiempo, con **Cambiar retención** bajo una regla, o acorta el intervalo de una regla a lo que se conserva. OneUptime conserva 15 días salvo que lo cambies, porque la retención fija lo que cuesta tu telemetría y cuánto tiempo se guardan los datos personales de los eventos, como direcciones y nombres de usuario. Una nueva retención se aplica a los eventos que llegan desde entonces, así que las reglas ven más atrás a medida que esos eventos envejecen.
+
+## Borrar a una persona
+
+Cuando alguien le pida que borre sus datos, por ejemplo en virtud del artículo 17 del RGPD, bórrelo en **Eventos de seguridad → Ajustes → Solicitudes de borrado**. Seleccione **Borrar persona** e introduzca su ID de usuario o su dirección de correo electrónico tal como la tenían sus registros antes de que su regla de depuración Hash la ocultara, o el token que un evento muestra en su lugar. Una dirección de correo electrónico también se borra en minúsculas. Añada su propia referencia en **Referencia**, como el número de ticket de la solicitud, nunca el nombre de la persona.
+
+Qué hace la solicitud:
+
+- En menos de un minuto, la persona deja de ser nombrada. Desde entonces, la bóveda de usuarios rechaza sus tokens, así que ningún evento, caso o playbook vuelve a nombrarla, aunque un evento posterior lleve el mismo token: ese evento conserva el token como su usuario, como cualquier token sin usuario guardado. Guardar un token que vuelve nombraría de nuevo a la persona, que es justo lo que le pidió que dejara de hacer.
+- En pocos minutos, elimina las entradas de la bóveda sobre ella y vuelve a poner el token en su lugar en los eventos que la nombraban a través de la bóveda: **Usuario de origen**, **Usuario de destino**, los observables y los atributos. La quita de los títulos, entidades y eventos guardados de los casos y las detecciones, y del riesgo de entidades.
+- Una ejecución de playbook o una acción de OneUptime AI que espera aprobación para actuar sobre ella se retira, e indica por qué.
+
+Cada solicitud muestra su estado, **En cola**, **Borrando**, **Borrada** o **Fallido**, y lo que cambió: las entradas de la bóveda eliminadas, los eventos y casos que dejaron de nombrarla y las propuestas retiradas. El borrado empieza dos minutos después de presentar la solicitud, cuando ningún servidor de OneUptime nombra ya a la persona, y una solicitud muestra **Borrada** solo cuando se ha aplicado cada cambio. Una solicitud que falla se vuelve a intentar; tras cinco intentos muestra **Fallido** con el motivo, y los propietarios del proyecto reciben un correo electrónico. La persona sigue sin ser nombrada, y presentar de nuevo la solicitud la reintenta.
+
+Qué deja:
+
+- Lo que escribieron las personas: notas, notas de cierre, tareas, evidencias, campos personalizados y lo que OneUptime AI escribió sobre un caso.
+- Los eventos que nombraban a la persona porque sus registros la tenían en claro, y sus propios registros y trazas, que solo contienen el token.
+- Los eventos Detection Finding que una regla escribió sobre ella, cuyo mensaje y observables pueden nombrarla, hasta que su retención de telemetría los elimine.
+- Las notificaciones ya enviadas, los incidentes y alertas que abrió una detección, la actividad de un caso, las exportaciones, las copias de seguridad y el registro de auditoría.
+- En un OneUptime autoalojado cuyo `ENCRYPTION_SECRET` cambió, los tokens creados antes del cambio: borre cada uno por el token que muestra un evento.
+
+La solicitud conserva quién la presentó y cuándo, su referencia y los tokens de la persona, con los que la bóveda sigue rechazándola. El ID de usuario o la dirección de correo electrónico se guarda cifrado, donde ninguna página, exportación ni API puede leerlo, y se borra cuando termina el borrado; ClickHouse solo recibe los tokens. Las solicitudes no se pueden editar ni eliminar: son su registro del borrado.
+
+Los Propietarios del proyecto, los Administradores del proyecto, los Administradores de seguridad y cualquiera con Create Security Erasure Request, como su delegado de protección de datos, pueden presentar una solicitud, desde la página o mediante `/security-user-erasure-request` de la API. Todos los roles de seguridad pueden leerlas.
 
 ## Solución de problemas
 

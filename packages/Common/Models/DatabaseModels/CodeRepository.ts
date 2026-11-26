@@ -485,13 +485,16 @@ export default class CodeRepository extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadCodeRepository,
     ],
+    /*
+     * What a project's Runner runs for the repository: written by those who
+     * write a runbook's steps that run - Runbook.steps' update list
+     * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditCodeRepository,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
     ],
   })
   @TableColumn({
@@ -528,13 +531,16 @@ export default class CodeRepository extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadCodeRepository,
     ],
+    /*
+     * What a project's Runner runs for the repository: written by those who
+     * write a runbook's steps that run - Runbook.steps' update list
+     * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditCodeRepository,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
     ],
   })
   @TableColumn({
@@ -571,13 +577,16 @@ export default class CodeRepository extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadCodeRepository,
     ],
+    /*
+     * What a project's Runner runs for the repository: written by those who
+     * write a runbook's steps that run - Runbook.steps' update list
+     * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditCodeRepository,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
     ],
   })
   @TableColumn({
@@ -616,6 +625,13 @@ export default class CodeRepository extends BaseModel {
    * (Runner.isProjectDefault) when it has one - unless it picked the Global
    * Runner itself (isGlobalRunnerPicked, below) - and otherwise runs on a
    * global Runner.
+   *
+   * Picking it, like setting the commands above, decides what runs on the
+   * project's Runners, so it takes what writing a runbook step that runs
+   * takes: these columns' update lists are Runbook.steps', and a create that
+   * picks a Runner is refused for anyone else
+   * (Types/CodeRepository/CodeRepositoryRunnerAuthoring,
+   * CodeRepositoryService.assertMayWriteWhatRunnersRun).
    */
   @ColumnAccessControl({
     create: [
@@ -636,13 +652,16 @@ export default class CodeRepository extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadCodeRepository,
     ],
+    /*
+     * What a project's Runner runs for the repository: written by those who
+     * write a runbook's steps that run - Runbook.steps' update list
+     * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditCodeRepository,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
     ],
   })
   @TableColumn({
@@ -686,13 +705,16 @@ export default class CodeRepository extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadCodeRepository,
     ],
+    /*
+     * What a project's Runner runs for the repository: written by those who
+     * write a runbook's steps that run - Runbook.steps' update list
+     * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditCodeRepository,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
     ],
   })
   @Index()
@@ -730,13 +752,16 @@ export default class CodeRepository extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadCodeRepository,
     ],
+    /*
+     * What a project's Runner runs for the repository: written by those who
+     * write a runbook's steps that run - Runbook.steps' update list
+     * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditCodeRepository,
+      Permission.EditRunbook,
+      Permission.RunbookAdmin,
     ],
   })
   /*

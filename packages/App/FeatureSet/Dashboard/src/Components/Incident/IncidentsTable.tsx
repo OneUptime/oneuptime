@@ -80,7 +80,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import LiveDuration from "../EventView/LiveDuration";
 import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import Dictionary from "Common/Types/Dictionary";
 import {
   CreateFromRecordAddress,
@@ -119,6 +119,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in English (a key), said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [showIncidentTemplateModal, setShowIncidentTemplateModal] =
     useState<boolean>(false);
   const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
@@ -463,6 +468,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             });
           setIncidentStates(result.data);
         } catch (err) {
+          setErrorWhatFailed(
+            translationKey("The incident states could not be loaded."),
+          );
           setError(API.getFriendlyMessage(err));
         }
       };
@@ -491,6 +499,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
         setIncidentTemplates(listResult.data);
       } catch (err) {
+        setErrorWhatFailed(
+          translationKey("The incident templates could not be loaded."),
+        );
         setError(API.getFriendlyMessage(err));
       }
 
@@ -1093,6 +1104,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={
+            errorWhatFailed
+              ? translator.translateText(errorWhatFailed) || errorWhatFailed
+              : undefined
+          }
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");

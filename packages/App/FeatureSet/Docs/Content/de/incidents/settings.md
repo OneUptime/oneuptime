@@ -15,7 +15,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 
 | Seite                         | Was Sie dort tun                                                                                   |
 | ----------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Vorfallsstatus**            | Die Status, die ein Vorfall durchläuft, hinzufügen, umbenennen, neu einfärben und neu anordnen.    |
+| **Vorfallsstatus**            | Die Status, die ein Vorfall durchläuft, hinzufügen, umbenennen, neu einfärben und neu anordnen, und wählen, ob von Hand gemeldete Vorfälle bestätigt beginnen. Standardmäßig aus. |
 | **Vorfallsschweregrad**       | Schweregrade hinzufügen, umbenennen, neu einfärben und neu anordnen.                               |
 | **Vorfall-Vorlagen**          | Einen ganzen Vorfall vorausfüllen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
 | **Notiz-Vorlagen**            | Wiederverwendbarer Text für öffentliche und private Notizen.                                       |

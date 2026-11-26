@@ -178,7 +178,8 @@ const HELD_RELATIONS: Record<string, Array<string>> = {
   AutoRemediationDecision: ["alert -> Alert", "incident -> Incident"],
   DataAlert: ["alert -> Alert", "causeAlert -> Alert"],
   DataSecurityIssue: ["alert -> Alert", "incident -> Incident"],
-  FormSubmission: ["incident -> Incident"],
+  // An incident or, since forms create alerts (#10760, PR #10888), an alert.
+  FormSubmission: ["alert -> Alert", "incident -> Incident"],
   Incident: ["incidentEpisode -> IncidentEpisode"],
   OnCallDutyPolicyExecutionLogTimeline: [
     "onCallDutyPolicyExecutionLog -> OnCallDutyPolicyExecutionLog",
@@ -441,7 +442,10 @@ describe("which relations are held", () => {
       "incident -> Incident",
     ]);
     expect(relationsOf(SecurityCase)).toEqual(["incident -> Incident"]);
-    expect(relationsOf(FormSubmission)).toEqual(["incident -> Incident"]);
+    expect(relationsOf(FormSubmission)).toEqual([
+      "alert -> Alert",
+      "incident -> Incident",
+    ]);
     expect(relationsOf(RumSessionReplayView)).toEqual([
       "linkedIncident -> Incident",
     ]);

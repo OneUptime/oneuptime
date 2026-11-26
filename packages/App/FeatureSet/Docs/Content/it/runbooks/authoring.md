@@ -140,7 +140,7 @@ Uno script bash, eseguito con `bash -c <script>` su un [agente di runbook](/docs
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
 | **Runner** | Sotto **Altri campi**. Il Runner che esegue il passaggio. Solo quel Runner può prendere in carico il lavoro. I Runner globali eseguono solo passaggi JavaScript. | Il Runner predefinito del progetto, se ne hai impostato uno |
-| **Script Bash** | Lo script. L'output (stdout e stderr) viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. | — |
+| **Script Bash** | Lo script. L'output (stdout e stderr) viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. Viene eseguito con l'ambiente del Runner, senza le impostazioni `ONEUPTIME_RUNNER_` proprie del Runner, chiave compresa; una chiave che uno script stampa comunque viene salvata come `[REDACTED]`. | — |
 | **Timeout di esecuzione** | Quanto tempo il Runner lascia girare lo script prima di terminarlo con `SIGKILL`. Aumentalo per i passaggi che richiedono legittimamente minuti. | 30 secondi |
 | **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
 
@@ -195,7 +195,7 @@ Eseguire comandi kubectl su un cluster. Lo script viene eseguito con bash sul Ru
 | --- | --- |
 | **Runner** | Sotto **Altri campi**. Il Runner che esegue kubectl. Deve poter raggiungere il server API del cluster. Un passaggio che non ne sceglie nessuno viene eseguito sul Runner predefinito del progetto. |
 | **Kubeconfig** | La variabile segreta che contiene il kubeconfig del cluster, oppure **L'accesso proprio del Runner**: il kubeconfig del Runner, o il suo service account quando gira nel cluster. Il Runner scrive un kubeconfig in un file che solo lui può leggere, e lo rimuove quando lo script termina. |
-| **Script** | I comandi kubectl. L'output viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. |
+| **Script** | I comandi kubectl. L'output viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. Come lo script di un passaggio Bash, viene eseguito senza le impostazioni `ONEUPTIME_RUNNER_` proprie del Runner. |
 | **Timeout di esecuzione** | Per quanto tempo il Runner lascia girare lo script prima di fermarlo con `SIGKILL`. Predefinito 30 secondi. |
 | **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. 2 minuti per impostazione predefinita. |
 

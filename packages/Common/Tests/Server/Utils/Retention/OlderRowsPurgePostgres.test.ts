@@ -354,12 +354,15 @@ describePostgres("the purge by age, on Postgres", () => {
         [schema],
       );
 
-    expect(copied).toEqual(
-      expect.arrayContaining([
-        { table: "UserSession", referencedTable: "User" },
-        { table: "ShortLink", referencedTable: "User" },
-      ]),
-    );
+    /*
+     * A session goes with its user; a user names who invited them
+     * (createdByUserId). A short link names nobody: its only key to "User",
+     * who deleted it, went with that column (#10469).
+     */
+    expect(copied).toEqual([
+      { table: "User", referencedTable: "User" },
+      { table: "UserSession", referencedTable: "User" },
+    ]);
   });
 
   test("the sessions are kept 30 days past the expiry of their refresh token, on every installation", () => {

@@ -12,10 +12,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -34,7 +30,6 @@ import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
   NO_PROFILE_FIX_SUGGESTION,
   ProfileFixReason,
-  ProfileFixRepository,
   ProfileFixSuggestion,
 } from "Common/Utils/Suggestions/ProfileFixSuggestion";
 import PageMap from "../../Utils/PageMap";
@@ -42,6 +37,7 @@ import { PROFILE_KIND_NOUNS } from "../../Utils/ProfilesView";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import CodeRepositorySearchField from "../Code/CodeRepositorySearchField";
 import CodeTaskHiddenNotice from "../Code/CodeTaskHiddenNotice";
 import {
   FIX_CONNECT_REPOSITORY,
@@ -66,7 +62,12 @@ import {
   FIX_STRIP_ACTION_ROW_CLASS_NAME,
   FIX_STRIP_BUTTON_CLASS_NAME,
   FIX_STRIP_PICKER_CLASS_NAME,
+  TELEMETRY_AI_FIX_COPY,
 } from "../TelemetryAi/TelemetryAiFixCopy";
+
+// The repository field's own test id: its search box, or its value once picked.
+export const PROFILE_FIX_REPOSITORY_PICKER_TEST_ID: string =
+  "profiles-fix-repository-picker";
 
 /*
  * "FIX WITH AI", ONLY WHERE IT APPLIES, SAYING WHY.
@@ -344,18 +345,12 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
       return <CodeBlockerNotice blocker={suggestion.blocker} isInline={true} />;
     }
 
-    const repositoryOptions: Array<DropdownOption> =
-      suggestion.repositories.map(
-        (repository: ProfileFixRepository): DropdownOption => {
-          return {
-            value: repository.id,
-            label: repository.name,
-            isUserContent: true,
-          };
-        },
-      );
-
-    // Side by side only where the strip is wide enough (TelemetryAiFixCopy).
+    /*
+     * Side by side only where the strip is wide enough (TelemetryAiFixCopy).
+     * The pick is searched on the server among the repositories the fix
+     * works in - connected, whose code OneUptime reads, that the person may
+     * ask OneUptime AI to work in (#10921) - never one long fixed list.
+     */
     return (
       <div className={FIX_STRIP_ACTION_CONTAINER_CLASS_NAME}>
         <div className={FIX_STRIP_ACTION_ROW_CLASS_NAME}>
@@ -370,20 +365,17 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
               >
                 {translator.translateText(FIX_PICK_REPOSITORY)}
               </p>
-              <Dropdown
-                options={repositoryOptions}
-                value={repositoryOptions.find(
-                  (option: DropdownOption): boolean => {
-                    return option.value === pickedRepositoryId;
-                  },
-                )}
-                placeholder={FIX_PICK_REPOSITORY_PLACEHOLDER}
-                ariaLabelledby="profiles-fix-repository-label"
+              <CodeRepositorySearchField
+                value={pickedRepositoryId || null}
+                isAskableOnly={true}
+                isCodeReadableOnly={true}
                 isClearable={false}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setPickedRepositoryId(value ? value.toString() : "");
+                placeholder={FIX_PICK_REPOSITORY_PLACEHOLDER}
+                emptyListText={TELEMETRY_AI_FIX_COPY.noAskableRepository}
+                ariaLabelledby="profiles-fix-repository-label"
+                dataTestId={PROFILE_FIX_REPOSITORY_PICKER_TEST_ID}
+                onChange={(repositoryId: string | null) => {
+                  setPickedRepositoryId(repositoryId || "");
                 }}
               />
             </div>

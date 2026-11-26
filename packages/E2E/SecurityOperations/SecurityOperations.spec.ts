@@ -14,6 +14,7 @@ import {
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import { MITRE_TACTIC_TECHNIQUES } from "Common/Types/SecurityEvent/MitreAttack";
+import { LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN } from "Common/Types/Database/RecordActor";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
@@ -2783,6 +2784,9 @@ test.describe("the case queue", () => {
 
 const SPRAY_CASE_ID: string = "20000000-0000-4000-8000-000000000142";
 
+// The row across the foot of the case's figures: its record line, no figure.
+const CASE_FIGURES_FOOTER: string = "[data-testid='event-stat-bar-footer']";
+
 /*
  * A case's pages, as its side menu lists them: the section, the entry, the
  * address under the case's own (its Overview is the case's address), and
@@ -3869,10 +3873,14 @@ test.describe("a case", () => {
     }
 
     /*
-     * Read once, for every page: no page read the case again. The project's
-     * own fields are read by their card, as every record's are - only the
-     * case's customFields, on the two pages that show them: the Overview and
-     * Custom Fields.
+     * Read once, for every page: no page read the case again. Beside that
+     * read, a part of a page reads only the columns it draws, as every
+     * record's parts do: the project's own fields read the case's
+     * customFields, on the two pages that show them - the Overview and
+     * Custom Fields - and, on the Overview alone, the line at the foot of
+     * its figures reads who created and who last modified the case
+     * (#10461), and the notice that OneUptime AI is on a case reads whether
+     * it holds this one (#10353).
      */
     expect(
       (await fixture(page)).listRequests.length,
@@ -3898,8 +3906,30 @@ test.describe("a case", () => {
         return request.select.join(",") === "customFields";
       },
     );
-    expect(caseReads.length - fieldReads.length).toBe(1);
+    const activityReads: Array<{ select: Array<string> }> = caseReads.filter(
+      (request: { select: Array<string> }): boolean => {
+        return request.select.includes(LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN);
+      },
+    );
+    const holdReads: Array<{ select: Array<string> }> = caseReads.filter(
+      (request: { select: Array<string> }): boolean => {
+        return request.select.includes("aiHoldOutcome");
+      },
+    );
+    expect(
+      caseReads.length -
+        fieldReads.length -
+        activityReads.length -
+        holdReads.length,
+    ).toBe(1);
     expect(fieldReads).toHaveLength(2);
+    expect(activityReads).toHaveLength(1);
+    expect(activityReads[0]!.select).not.toContain("title");
+    expect(
+      holdReads.map((request: { select: Array<string> }): Array<string> => {
+        return request.select;
+      }),
+    ).toEqual([["_id", "aiHoldOutcome", "aiHoldUntil"]]);
 
     // The case's crumb opens its Overview.
     await page
@@ -4921,13 +4951,19 @@ test.describe("a case", () => {
       for (const step of await steps.getByRole("listitem").all()) {
         stepBoxes.push(await boxOf(step));
       }
-      for (const figure of await figures.locator(":scope > div").all()) {
+      /*
+       * The figures are the bar's cells: the row across its foot - the
+       * case's record line (#10461) - is no figure, and spans every column.
+       */
+      for (const figure of await figures
+        .locator(`:scope > div:not(${CASE_FIGURES_FOOTER})`)
+        .all()) {
         figureBoxes.push(await boxOf(figure));
       }
 
       // No word of a step's name or a figure's label split across two lines.
       const brokenWords: Array<string> = await page.evaluate(
-        (): Array<string> => {
+        (footer: string): Array<string> => {
           const broken: Array<string> = [];
           const names: Array<Element> = [
             ...Array.from(
@@ -4937,7 +4973,7 @@ test.describe("a case", () => {
             ),
             ...Array.from(
               document.querySelectorAll(
-                "[role='group'][aria-label='Case figures'] > div > div:first-child > span",
+                `[role='group'][aria-label='Case figures'] > div:not(${footer}) > div:first-child > span`,
               ),
             ),
           ];
@@ -4969,6 +5005,7 @@ test.describe("a case", () => {
 
           return broken;
         },
+        CASE_FIGURES_FOOTER,
       );
 
       expect(brokenWords, `words split across lines at ${width}`).toEqual([]);

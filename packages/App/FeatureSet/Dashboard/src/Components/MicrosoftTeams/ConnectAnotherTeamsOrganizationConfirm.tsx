@@ -25,7 +25,7 @@ export const CONNECT_ANOTHER_TEAMS_ORGANIZATION_TITLE: string = translationKey(
 
 export const CONNECT_ANOTHER_TEAMS_ORGANIZATION_WARNING: string =
   translationKey(
-    "OneUptime disconnects this project from its Microsoft 365 organization first: it stops posting to that organization's channels, and every member's Microsoft Teams account is disconnected. Rules and summaries are kept. Then a Microsoft 365 admin of the other organization grants consent.",
+    "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
   );
 
 export const CONNECT_ANOTHER_TEAMS_ORGANIZATION_BUTTON: string = translationKey(

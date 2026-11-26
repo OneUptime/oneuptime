@@ -726,6 +726,9 @@ import SecurityCaseAiActionService, {
 import SecurityCasePullRequestService, {
   Service as SecurityCasePullRequestServiceType,
 } from "Common/Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService, {
+  Service as DataSecurityIssuePullRequestServiceType,
+} from "Common/Server/Services/DataSecurityIssuePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1022,6 +1025,9 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
+import SecurityUserErasureRequestService, {
+  Service as SecurityUserErasureRequestServiceType,
+} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1785,6 +1791,7 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -1996,6 +2003,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -4878,6 +4886,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * A person's own pull request, linked to a Data Security issue as its
+     * fix (#10831): linked and taken off by who may change the issue, read
+     * by its readers - the issue's Linked pull requests. What it says of
+     * the pull request, and how production proved it, is OneUptime's.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestServiceType
+      >(
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestService,
+      ).getRouter(),
+    );
+
     // A case's evidence, and the route its files download through.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -6255,6 +6280,18 @@ const BaseAPIFeatureSet: FeatureSet = {
         RumSessionErasureRequest,
         RumSessionErasureRequestServiceType
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
+    );
+
+    // Erasing one person from Security Events' user vault (#10908).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestServiceType
+      >(
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestService,
+      ).getRouter(),
     );
 
     app.use(

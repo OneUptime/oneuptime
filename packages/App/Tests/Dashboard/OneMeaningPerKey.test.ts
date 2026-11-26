@@ -506,6 +506,39 @@ describe("one meaning per key", () => {
   });
 
   /*
+   * A data store's compliance paperwork titles the fact of what the store
+   * is "What it is" (COMPLIANCE_FACT_KIND_TITLES, #10375), worded for a
+   * store: French "Ce qu'il est", for le magasin. The bare phrase heads a
+   * row of the docs' comparison tables (an alert beside an incident, a
+   * maintenance event beside an announcement), which each language words
+   * as its sentence needs. As a key of the Dashboard it held those tables
+   * to the paperwork's words, and AlertDocsTranslations and
+   * ScheduledMaintenanceDocsTranslations failed.
+   */
+  test("a data store's What it is is its own key, looked up only by the compliance facts' titles, and the bare phrase is no key", () => {
+    expect(MEANING_KEYS).toContain("What it is (store identity)");
+    expect(getWordOfMeaningKey("What it is (store identity)")).toBe(
+      "What it is",
+    );
+    expect(filesLookingUp("What it is (store identity)")).toEqual([
+      "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    ]);
+    expect(filesLookingUp("What it is")).toEqual([]);
+    expect(readLocale("en")["What it is"]).toBeUndefined();
+
+    // Every language words it, as it worded the bare phrase for a store.
+    for (const language of LANGUAGES) {
+      const worded: string | undefined =
+        readLocale(language)["What it is (store identity)"];
+
+      expect({
+        language,
+        worded: Boolean(worded) && worded !== "What it is (store identity)",
+      }).toEqual({ language, worded: true });
+    }
+  });
+
+  /*
    * #8343: a data alert's Why This Happened card headed each likely cause
    * with its stored kind, looked up as it was stored. Each kind has its
    * name in DataAlertCauseWords; "Deploy" and "Database" are nouns

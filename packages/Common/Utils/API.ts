@@ -12,6 +12,11 @@ import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import BadDataException from "../Types/Exception/BadDataException";
 import ReauthenticationRequiredException from "../Types/Exception/ReauthenticationRequiredException";
+import UnreadableAnswerException from "../Types/Exception/UnreadableAnswerException";
+import {
+  ERROR_REFERENCE_FIELD,
+  readErrorReference,
+} from "../Types/Exception/UnexplainedError";
 import { JSONArray, JSONObject } from "../Types/JSON";
 import axios, {
   AxiosError,
@@ -820,15 +825,7 @@ export default class API {
         throw new APIException("No response received from server.");
       }
 
-      result.headers = await this.onResponseSuccessHeaders(
-        result.headers as Dictionary<string>,
-      );
-
-      const response: HTTPResponse<T> = new HTTPResponse<T>(
-        result.status,
-        result.data,
-        result.headers as Dictionary<string>,
-      );
+      const response: HTTPResponse<T> = await this.readAnswer<T>(result);
 
       this.notifyRequestComplete(options, {
         method: method,
@@ -858,7 +855,15 @@ export default class API {
       };
 
       if (!axios.isAxiosError(error)) {
-        if (error instanceof BadDataException) {
+        /*
+         * An answer that could not be read keeps what it is (#8413): the
+         * browser says it as a failure nobody explained, which a copy of
+         * its words in a plain APIException never was.
+         */
+        if (
+          error instanceof BadDataException ||
+          error instanceof UnreadableAnswerException
+        ) {
           this.notifyRequestComplete(options, {
             ...baseOutcome,
             error: error,
@@ -1201,13 +1206,73 @@ export default class API {
     });
   }
 
+  /*
+   * The answer to a request that worked, read: its headers
+   * (onResponseSuccessHeaders, where the UI keeps the permissions they
+   * carry) and its body (HTTPResponse). Whatever throws while it is read is
+   * an UnreadableAnswerException (#8413), with the answer's status and
+   * whatever reference its body names - never a plain APIException with a
+   * copy of the words thrown, which the browser drew as they came: "Array
+   * is not iterable" where Telemetry Usage's projects should have been
+   * (#7794).
+   */
+  private static async readAnswer<
+    T extends
+      | JSONObject
+      | JSONArray
+      | BaseModel
+      | Array<BaseModel>
+      | AnalyticsBaseModel
+      | Array<AnalyticsBaseModel>,
+  >(result: AxiosResponse): Promise<HTTPResponse<T>> {
+    try {
+      result.headers = await this.onResponseSuccessHeaders(
+        result.headers as Dictionary<string>,
+      );
+
+      return new HTTPResponse<T>(
+        result.status,
+        result.data,
+        result.headers as Dictionary<string>,
+      );
+    } catch (readError) {
+      throw UnreadableAnswerException.fromReadError(readError, {
+        statusCode: result.status,
+        body: result.data,
+      });
+    }
+  }
+
+  /*
+   * The answer to a request the server refused or failed, read
+   * (HTTPErrorResponse). A body that throws while it is read (#8413) is a
+   * body that says nothing: the answer keeps its status, which says what
+   * kind of failure it was - a 401 still ends the session, a 500 is a
+   * failure nobody explained - and the reference the body names for the
+   * server's log lines, when it names one. The words its reader threw are
+   * never what the page says.
+   */
+  private static readErrorAnswer(response: AxiosResponse): HTTPErrorResponse {
+    try {
+      return new HTTPErrorResponse(
+        response.status,
+        response.data as JSONObject | JSONArray,
+        response.headers as Dictionary<string>,
+      );
+    } catch {
+      const reference: string | null = readErrorReference(response.data);
+
+      return new HTTPErrorResponse(
+        response.status,
+        reference ? { [ERROR_REFERENCE_FIELD]: reference } : {},
+        response.headers as Dictionary<string>,
+      );
+    }
+  }
+
   private static getErrorResponse(error: AxiosError): HTTPErrorResponse {
     if (error.response) {
-      return new HTTPErrorResponse(
-        error.response.status,
-        error.response.data as JSONObject | JSONArray,
-        error.response.headers as Dictionary<string>,
-      );
+      return API.readErrorAnswer(error.response);
     }
 
     // get url from error

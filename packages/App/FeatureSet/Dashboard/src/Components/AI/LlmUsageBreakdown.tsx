@@ -12,11 +12,7 @@ import React, {
   useState,
 } from "react";
 import Service from "Common/Models/DatabaseModels/Service";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -60,6 +56,12 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import { ENTITY_DROPDOWN_NOT_FOUND_LABEL } from "Common/UI/Components/EntityDropdown/EntityDropdownNotFound";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
 
 const DEFAULT_WINDOW_DAYS: number = 7;
 
@@ -238,9 +240,13 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
 
   const [usage, setUsage] = useState<LlmUsageState>(EMPTY_STATE);
 
-  const [telemetryServices, setTelemetryServices] = useState<Array<Service>>(
-    [],
-  );
+  /*
+   * The services the page names - the Service dimension's rows, and the
+   * services counted from their usage metrics - read by their ids as each
+   * table lands (TelemetryServicesOnPage): never the project's first 10,000
+   * by name, past which a service's row read as its bare id (#10921).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
 
   const [range, setRange] = useState<InBetween<Date>>(() => {
     return new InBetween<Date>(
@@ -270,57 +276,6 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       { id: "share", cellNumber: 8 },
     ],
   });
-
-  /*
-   * Service names, loaded once. A raw primaryEntityId ObjectID in a
-   * manager-facing leaderboard tells nobody anything, so the same
-   * ModelAPI.getList + ServiceElement pattern the LLM Calls table uses
-   * resolves it to the service's name and colour.
-   */
-  useEffect(() => {
-    let cancelled: boolean = false;
-
-    const loadServices: () => Promise<void> = async (): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-      if (!projectId) {
-        return;
-      }
-
-      try {
-        const result: ListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId: projectId,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-        if (!cancelled) {
-          setTelemetryServices(result.data || []);
-        }
-      } catch {
-        /*
-         * Non-critical. The leaderboard still renders; the service dimension
-         * falls back to showing the raw id rather than failing the page.
-         */
-      }
-    };
-
-    void loadServices();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled: boolean = false;
@@ -376,7 +331,43 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
     };
   }, [range, dimension]);
 
+  /*
+   * The services the table on screen names, read by their ids: the rows of
+   * the Service dimension, and the few services named as counted from their
+   * usage metrics. A manager-facing leaderboard tells nobody anything with
+   * a raw id.
+   */
+  const serviceIdsOnPage: Array<string> = useMemo(() => {
+    return [
+      ...(dimension.key === LlmUsageDimension.Service
+        ? usage.rows.map((row: LlmUsageGroup): string => {
+            return row.key || "";
+          })
+        : []),
+      ...usage.metricServiceIds.slice(0, NAMED_METRIC_SERVICES),
+    ];
+  }, [usage, dimension.key]);
+
+  useEffect(() => {
+    void servicesOnPage.readServicesOf(serviceIdsOnPage);
+  }, [serviceIdsOnPage]);
+
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  /*
+   * Whether a service the page names is gone: read by its id, and no
+   * service answered. A read that failed says nothing of it.
+   */
+  const isServiceGone: (serviceId: string) => boolean = (
+    serviceId: string,
+  ): boolean => {
+    return (
+      ObjectID.isValidUUID(serviceId) &&
+      !servicesOnPage.error &&
+      !servicesOnPage.isReading(serviceId) &&
+      !servicesOnPage.getService(serviceId)
+    );
+  };
 
   // A service id as the reader knows it: its name, else the id itself.
   const getServiceName: (serviceId: string, sentence: Translator) => string = (
@@ -389,11 +380,15 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       );
     }
 
-    const telemetryService: Service | undefined = telemetryServices.find(
-      (service: Service): boolean => {
-        return service.id?.toString() === serviceId;
-      },
-    );
+    const telemetryService: Service | undefined =
+      servicesOnPage.getService(serviceId);
+
+    if (!telemetryService && isServiceGone(serviceId)) {
+      return (
+        sentence.translateText(ENTITY_DROPDOWN_NOT_FOUND_LABEL) ||
+        ENTITY_DROPDOWN_NOT_FOUND_LABEL
+      );
+    }
 
     return (
       TelemetryServiceUtil.getServiceDisplayName(
@@ -448,17 +443,33 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
         );
       }
 
-      const telemetryService: Service | undefined = telemetryServices.find(
-        (service: Service): boolean => {
-          return service.id?.toString() === row.key;
-        },
+      const telemetryService: Service | undefined = servicesOnPage.getService(
+        row.key,
       );
 
       if (telemetryService) {
         return <ServiceElement service={telemetryService} />;
       }
 
-      // The service was deleted, or the list request failed. Show the id.
+      // Its service's name is on its way: never a bare id meanwhile.
+      if (servicesOnPage.isReading(row.key)) {
+        return <InlineValueSkeleton widthClassName="w-24" />;
+      }
+
+      // Read by its id, and no service answered: deleted since.
+      if (isServiceGone(row.key)) {
+        return (
+          <span
+            className="text-sm italic text-gray-500"
+            title={row.key}
+            data-testid="llm-usage-service-not-found"
+          >
+            {translator.translateText(ENTITY_DROPDOWN_NOT_FOUND_LABEL)}
+          </span>
+        );
+      }
+
+      // The read failed: the id, which still says which service it was.
       return <span className="font-mono text-xs text-gray-500">{row.key}</span>;
     }
 

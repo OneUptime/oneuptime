@@ -263,6 +263,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
           store.openError({
             rowKey: rowKey,
             message: message,
+            actionTitle: button.title,
             openedFrom: openedFrom,
           });
         }

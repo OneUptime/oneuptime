@@ -22,7 +22,10 @@
  * that code (`destination`, `statusCode`): wordStatus() words it, and
  * describe() reads it as it reads Node's.
  *
- * Browser-safe: the API client reads it, on a server and in a browser.
+ * The API client reads it on a server. A browser build takes
+ * ProxyTunnelRefusal.browser.ts in its place (the "browser" field of
+ * packages/Common/package.json): a browser's requests never go through
+ * OneUptime's outbound proxy, so it meets no such refusal.
  */
 
 export const PROXY_TUNNEL_ERROR_CODE: string = "ERR_PROXY_TUNNEL";

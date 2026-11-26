@@ -29,6 +29,15 @@ import ObjectID from "../../../Types/ObjectID";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
 import Permission from "../../../Types/Permission";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseService from "../../../Server/Services/DatabaseService";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { customDomainCaller } from "../API/CustomDomainCallers";
+import {
+  InMemoryTable,
+  useInMemoryTable,
+} from "../TestingUtils/InMemoryRepository";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * A cloud connection that saves is one the read loop can use: the
@@ -165,6 +174,8 @@ describe("validateSettings", () => {
         dataSecurityResponse: "off",
         // Nor does the blocklist write AWS WAF (#10344).
         wafBlocklist: "off",
+        // Nor does a security case read its IAM changes back (#10900).
+        securityCaseChecks: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },
@@ -687,6 +698,124 @@ describe("a connection that enforces the blocklist in AWS WAF", () => {
 });
 
 /*
+ * A delete of connections, through the delete itself. Its hook reads the
+ * connections the delete removes and holds the delete to them
+ * (findRowsAndHoldDeleteToThem): each connection it checks is one it
+ * deletes, and none it deletes goes unchecked. A teammate's delete was
+ * kept to the rows they may delete before the hook already. One made as
+ * OneUptime, or by a master admin, was read by its bare query: every
+ * project's rows, past the delete's window, while the delete itself stays
+ * in the request's project.
+ */
+describe("deleting connections that may enforce the blocklist", () => {
+  const OTHER_PROJECT: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+  const THEIR_CONNECTION: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  const REFUSED: string =
+    "This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then delete this connection.";
+  let table: InMemoryTable;
+  let counted: jest.SpiedFunction<
+    typeof SecurityBlockCloudWafService.countForConnection
+  >;
+
+  function owner(): DatabaseCommonInteractionProps {
+    return {
+      ...customDomainCaller({
+        permissions: [Permission.ProjectOwner],
+        projectId: PROJECT,
+      }),
+      ...ON_HIGHEST_PLAN,
+    };
+  }
+
+  // OneUptime itself, deleting in one project.
+  function oneUptimeIn(projectId: ObjectID): DatabaseCommonInteractionProps {
+    return { isRoot: true, tenantId: projectId };
+  }
+
+  function row(id: ObjectID, projectId: ObjectID): Record<string, unknown> {
+    return {
+      _id: id.toString(),
+      projectId: projectId.toString(),
+      name: "AWS production",
+      provider: CloudProvider.AWS,
+      version: 1,
+    };
+  }
+
+  async function remove(
+    id: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<number> {
+    return await CloudConnectionService.deleteBy({
+      query: { _id: id.toString() } as never,
+      limit: 10,
+      skip: 0,
+      props,
+    });
+  }
+
+  beforeEach(() => {
+    table = useInMemoryTable(
+      CloudConnectionService as unknown as DatabaseService<BaseModel>,
+      [],
+    );
+    // Every connection enforces the blocklist in one web ACL.
+    counted = jest
+      .spyOn(SecurityBlockCloudWafService, "countForConnection")
+      .mockResolvedValue(1 as never);
+  });
+
+  test.each([
+    ["a teammate", owner],
+    [
+      "OneUptime",
+      (): DatabaseCommonInteractionProps => {
+        return oneUptimeIn(PROJECT);
+      },
+    ],
+  ])(
+    "%s deleting one of the project's own is refused while a web ACL uses it, and it stays",
+    async (_who: string, props: () => DatabaseCommonInteractionProps) => {
+      table.rows.push(row(CONNECTION, PROJECT));
+
+      await expect(remove(CONNECTION, props())).rejects.toThrow(REFUSED);
+      expect(table.deletes).toEqual([]);
+    },
+  );
+
+  test("with no web ACL left, it is deleted", async () => {
+    table.rows.push(row(CONNECTION, PROJECT));
+    counted.mockResolvedValue(0 as never);
+
+    await remove(CONNECTION, owner());
+
+    expect(table.deletes).toEqual([CONNECTION.toString()]);
+  });
+
+  test("a teammate's delete naming another project's connection reads, refuses and removes nothing", async () => {
+    table.rows.push(row(THEIR_CONNECTION, OTHER_PROJECT));
+
+    await remove(THEIR_CONNECTION, owner());
+
+    expect(counted).not.toHaveBeenCalled();
+    expect(table.deletes).toEqual([]);
+  });
+
+  test("OneUptime deleting in one project is never refused over another project's connection, which it does not remove", async () => {
+    table.rows.push(row(THEIR_CONNECTION, OTHER_PROJECT));
+
+    await remove(THEIR_CONNECTION, oneUptimeIn(PROJECT));
+
+    expect(counted).not.toHaveBeenCalled();
+    expect(table.deletes).toEqual([]);
+  });
+});
+
+/*
  * Azure WAF (#10348) and Cloud Armor (#10349) the same way: a connection
  * whose policies enforce the blocklist keeps its setting, and stays, until
  * each policy is removed - which takes OneUptime's rules out of it - and
@@ -856,6 +985,8 @@ describe("getConnectorSettings", () => {
         dataSecurity: "off",
         dataSecurityResponse: "off",
         wafBlocklist: "off",
+        // Nor does a security case read its IAM changes back (#10900).
+        securityCaseChecks: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },

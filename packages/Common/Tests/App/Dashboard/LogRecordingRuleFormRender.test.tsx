@@ -678,24 +678,31 @@ describe("Logs > Settings > Recording Rules", () => {
   });
 
   test("lists the project's services to limit the rule to", async () => {
+    const serviceReads: () => number = (): number => {
+      return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return (call[0] as { modelType?: unknown }).modelType === Service;
+      }).length;
+    };
+
     await openCreateForm();
 
-    expect(
-      getListMock.mock.calls.some((call: Array<unknown>): boolean => {
-        return (call[0] as { modelType?: unknown }).modelType === Service;
-      }),
-    ).toBe(true);
+    /*
+     * The services are searched on the server as the field opens
+     * (TELEMETRY_SERVICE_PICKER, #10646), never read when the form does.
+     */
+    expect(serviceReads()).toBe(0);
 
     await act(async (): Promise<void> => {
-      fireEvent.keyDown(
+      fireEvent.click(
         within(dialog()).getByRole("combobox", { name: "Services" }),
-        { key: "ArrowDown", code: "ArrowDown" },
       );
     });
 
     await act(async (): Promise<void> => {
       fireEvent.click(await screen.findByRole("option", { name: "checkout" }));
     });
+
+    expect(serviceReads()).toBeGreaterThan(0);
 
     await nameRule("Checkout logs");
     await submit();

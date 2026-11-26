@@ -113,8 +113,14 @@ import {
   canAddProjectBalance,
   getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
+  isPaymentMethodNeededFirst,
 } from "../../ProjectBalance/ProjectBalanceAccess";
 import { ADD_TO_BALANCE_AMOUNT_TITLE } from "../../ProjectBalance/ProjectBalanceCopy";
+import AddPaymentMethodFirstModal from "../../ProjectBalance/AddPaymentMethodFirstModal";
+import {
+  ProjectPaymentMethodsState,
+  useProjectPaymentMethods,
+} from "../../../Utils/ProjectPaymentMethods";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageMap from "../../../Utils/PageMap";
@@ -330,6 +336,14 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const [showRecharge, setShowRecharge] = useState<boolean>(false);
   const [isRecharging, setIsRecharging] = useState<boolean>(false);
   const [rechargeError, setRechargeError] = useState<string>("");
+  /*
+   * Add to Balance pressed on a project with no payment method: what it
+   * needs first, before any amount (#11053). Whether it has one is the
+   * count the Dashboard already made, so the step asks nothing more.
+   */
+  const [showAddPaymentMethodFirst, setShowAddPaymentMethodFirst] =
+    useState<boolean>(false);
+  const paymentMethods: ProjectPaymentMethodsState = useProjectPaymentMethods();
 
   // Step 2: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -985,6 +999,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 buttonStyle={ButtonStyleType.NORMAL}
                 dataTestId="on-call-setup-add-balance"
                 onClick={() => {
+                  // No payment method yet: say so before asking for an amount.
+                  if (
+                    isPaymentMethodNeededFirst({
+                      paymentMethods: paymentMethods,
+                      marketplace: getCurrentProjectBillingMarketplace(),
+                    })
+                  ) {
+                    setShowAddPaymentMethodFirst(true);
+                    return;
+                  }
+
                   setRechargeError("");
                   setShowRecharge(true);
                 }}
@@ -1331,6 +1356,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           }}
         />
       </div>
+      {showAddPaymentMethodFirst ? (
+        <AddPaymentMethodFirstModal
+          balance={ProjectBalanceType.SmsOrCall}
+          onClose={() => {
+            setShowAddPaymentMethodFirst(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {showRecharge ? (
         <BasicFormModal
           title={ON_CALL_SETUP_COPY.addBalance}

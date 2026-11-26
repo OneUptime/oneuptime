@@ -420,7 +420,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         ownerUserModelType={ProbeOwnerUser}
         ownerTeamModelType={ProbeOwnerTeam}
         description="People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime."
-        emptyDescription="Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted."
+        emptyDescription="Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted."
       />
 
       <ResetObjectID<Probe>

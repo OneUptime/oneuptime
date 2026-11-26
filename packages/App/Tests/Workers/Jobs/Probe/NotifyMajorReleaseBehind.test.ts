@@ -140,6 +140,14 @@ interface Sent {
   pushTitle: string;
   pushBody: string;
   pushUrl: string | undefined;
+  // What WhatsApp is handed (#10913): its template, and what fills it.
+  whatsApp:
+    | {
+        templateKey: string;
+        templateVariables: Record<string, string>;
+        body: string;
+      }
+    | undefined;
 }
 
 interface World {
@@ -441,6 +449,11 @@ function standWorld(): void {
         body: string;
         clickAction?: string;
       };
+      whatsAppMessage?: {
+        templateKey: string;
+        templateVariables: Record<string, string>;
+        body: string;
+      };
     }): Promise<void> => {
       if (world.failsFor.has(input.userId.toString())) {
         throw new Error("The mail server refused.");
@@ -458,6 +471,7 @@ function standWorld(): void {
         pushTitle: input.pushNotificationMessage.title,
         pushBody: input.pushNotificationMessage.body,
         pushUrl: input.pushNotificationMessage.clickAction,
+        whatsApp: input.whatsAppMessage,
       });
     }) as never);
 
@@ -603,6 +617,25 @@ describe("a probe a major release behind", () => {
     );
     expect(sent[0]!.sms).toContain(DOCS_LINK);
     expect(sent[0]!.pushUrl).toBe(sent[0]!.vars["viewProbeLink"]);
+    /*
+     * WhatsApp is handed the notice through its own approved template
+     * (#10913), every variable filled, its link the probe's page - so the
+     * WhatsApp switch on the Probes card's row sends it.
+     */
+    expect(sent[0]!.whatsApp).toBeDefined();
+    expect(sent[0]!.whatsApp!.templateKey).toBe(
+      "oneuptime_probe_major_release_behind_owner_notification",
+    );
+    expect(sent[0]!.whatsApp!.templateVariables).toEqual({
+      probe_name: "office-probe",
+      probe_version: "17.2.0",
+      major_releases_behind: "1 major release",
+      server_version: "18.0.0",
+      probe_link: sent[0]!.vars["viewProbeLink"],
+    });
+    expect(sent[0]!.whatsApp!.body).toBe(
+      `Probe office-probe runs 17.2.0, 1 major release behind OneUptime 18.0.0, which it reports to. See what it misses and how to update it using ${String(sent[0]!.vars["viewProbeLink"])} on the OneUptime dashboard.`,
+    );
     // Nobody else: the project's owners are told only of a probe with no owners.
     expect(world.sent).toHaveLength(1);
   });

@@ -190,6 +190,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import TimezoneUtil from "../../../UI/Utils/Timezone";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getJestSpyOn } from "../../Spy";
 import {
   getByTextOutsideFoldedHeaders,
@@ -275,6 +276,16 @@ beforeEach(() => {
       navigateCalls.push(String(route));
     },
   );
+
+  /*
+   * Once typing stops, the form asks the server whether another schedule
+   * has the name typed (DuplicateNameNotice, #10761): none has it here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 
   getListMock.mockImplementation(async (params: any): Promise<any> => {
     const query: Record<string, unknown> = params.query || {};

@@ -91,6 +91,12 @@ Dos preguntas del proveedor cambian esto, plegadas en **Más campos**. Cada una 
 
 Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
 
+## Direcciones de correo que tu proveedor de identidad no ha verificado
+
+Un proveedor OpenID Connect global encuentra la cuenta en la que inicia sesión por la dirección de correo que envía, como el proveedor de un proyecto, y las cuentas de los administradores maestros se encuentran igual. Por eso no inicia la sesión de nadie con una dirección que el proveedor dice no haber verificado, con una claim `email_verified` de `false` o de algo que no es ni true ni false. De lo contrario, alguien podría poner la dirección de un administrador maestro en su cuenta del proveedor e iniciar sesión en toda la instancia como él. Un proveedor que envía `email_verified` como `true`, o no la envía, como Microsoft Entra ID, inicia la sesión de las personas como antes.
+
+Con authentik 2025.10 y posteriores, nadie inicia sesión hasta que cambies su mapeo de alcance `email`, y con Keycloak, nadie cuya dirección no haya verificado. Qué cambiar allí, qué sigue iniciando sesión y qué ve la persona están en la página [SSO](/docs/identity/sso#direcciones-de-correo-que-tu-proveedor-de-identidad-no-ha-verificado). Los administradores maestros con contraseña pueden iniciar sesión con ella mientras tanto, en `/accounts/admin-login` mientras toda la instancia exija SSO.
+
 ## Cerrar sesión también en el proveedor de identidad
 
 Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido la siguiente persona que inicia sesión con ese proveedor entra como la que se fue. En un proveedor SAML u OpenID Connect, haz clic en **Editar configuración** y activa **Cerrar sesión también en el proveedor de identidad** en **Más campos**: cerrar sesión en OneUptime termina entonces también la sesión en el proveedor, y el proveedor devuelve el navegador a OneUptime. Está desactivado por defecto, porque en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor.
@@ -183,6 +189,10 @@ En un proveedor SAML, la respuesta se creó para otra aplicación: su audience n
 Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo durante unos minutos después de emitirse: después se rechaza con "SAML response has expired". Vuelve a iniciar sesión. Si las respuestas siguen caducando, comprueba los relojes de este servidor y de tu proveedor de identidad.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+El proveedor OpenID Connect envió `email_verified` como `false`, o como algo que no es ni true ni false, así que OneUptime no inició la sesión de nadie, tampoco la de un administrador maestro. Haz que se verifique la dirección en tu proveedor de identidad, o márcala allí como verificada, y vuelve a iniciar sesión. Consulta [Direcciones de correo que tu proveedor de identidad no ha verificado](#direcciones-de-correo-que-tu-proveedor-de-identidad-no-ha-verificado).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso, un enlace enviado por correo, Google o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
 :::
@@ -193,4 +203,5 @@ Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, cl
 - [SSO](/docs/identity/sso): Configurar el proveedor SAML u OIDC propio de un proyecto.
 - [SCIM](/docs/identity/scim): Deja que tu proveedor de identidad añada y quite personas automáticamente.
 - [Usuarios, equipos y permisos](/docs/permissions/index): Lo que permiten hacer los equipos a los que se unen los recién llegados.
+- [Ayuda y soporte](/docs/self-hosted/help-and-support): Decir a las personas que necesitan una invitación a quién pedirla.
 :::

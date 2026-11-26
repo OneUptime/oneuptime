@@ -14,6 +14,7 @@ Båda använder samma monitortyp. Det som skiljer dem åt är kriterierna du kon
 - [Skicka ett heartbeat](#skicka-ett-heartbeat): Från curl, cron, Node.js, Python eller Go.
 - [Larma när anropen slutar](#markera-som-offline-om-inget-heartbeat-kommit-på-10-minuter-ett-dödmansgrepp): Gör monitorn till ett dödmansgrepp.
 - [Ta emot larm](#ta-emot-larm-från-ett-annat-system): En incident per larm från Alertmanager eller Grafana.
+- [Publicera i Slack utan att kalla in någon](#publicera-i-slack-utan-att-kalla-in-någon): Meddela en kanal, och kalla in jouren bara utanför arbetstid.
 - [Prenumerera på SNS eller Event Grid](#prenumerera-på-amazon-sns-eller-azure-event-grid): Bekräfta prenumerationen med ett klick.
 :::
 
@@ -421,6 +422,32 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 ### Genomarbetat exempel
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
+
+## Publicera i Slack utan att kalla in någon
+
+En stagingmiljö, eller en produkt vars problem kan vänta, kan vilja få en förfrågan publicerad i en chattkanal utan att kalla in någon. Ett larm som inte nämner någon jourpolicy gör just det: det publiceras i Slack, Microsoft Teams eller Mattermost via projektets arbetsyteregler och startar ingen eskalering.
+
+:::steps
+1. Öppna kriteriet och slå på **När filter matchar, skapa ett larm.** under **Åtgärder**. Lämna dess **Jourpolicyer** tomma.
+2. Skriv in det förfrågan säger i larmet, till exempel `{{requestBody.commonAnnotations.summary}}` i dess beskrivning. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
+3. Lägg till en regel för den här monitorns larm under **Larm → Arbetsyta → Slack** och slå på **Publicera i befintliga kanaler**. Slack måste först vara [anslutet till projektet](/docs/workspace-connections/slack).
+:::
+
+Ett larm som inte nämner någon jourpolicy kan ändå kalla in någon via projektets regler. Kontrollera att ingen regel under **Larm → Regler → Jourregler** kallar in någon för de här larmen, och att ingen regel under **Larm → Regler → Incidentregler** deklarerar en incident utifrån dem.
+
+För att publicera utan att skapa ett larm slår du bara på **När filter matchar, ändra monitorstatus.** och lägger regeln under **Monitorer → Arbetsyta → Slack** i stället. Kanalen får då bara veta att monitorns status ändrades, utan något från förfrågan, och bara när den ändras: fler förfrågningar medan monitorn redan har den statusen publicerar ingenting.
+
+### Kalla in jouren bara utanför arbetstid
+
+Två kriterier med samma filter delar veckan mellan sig, i den här ordningen:
+
+1. Det första publicerar under arbetstid. Slå på **Utvärdera det här kriteriet bara vissa dagar och tider** under dess **Inställningar**, och välj dagarna, tiderna och **Tidszon**. Dess larm nämner ingen jourpolicy.
+2. Det andra kallar in jouren resten av tiden. Det har inga tider, och dess larm nämner din jourpolicy.
+
+Det första kriteriet som matchar en förfrågan avgör vad som händer. Utanför sina tider hoppas det första kriteriet över, så det andra matchar på natten och under helger, och bara då kallas någon in. Se [Bara vissa dagar och tider](/docs/monitor/criteria-and-statuses#bara-vissa-dagar-och-tider).
+
+- En förfrågan bedöms när den kommer, efter tiderna som de är då. Ett problem som börjar kl. 16:55 kallar in någon efter kl. 17:00 bara om avsändaren skickar det igen, som Alertmanager gör en gång per `repeat_interval`.
+- Ett larm med **Lös larm automatiskt** påslaget löses när en förfrågan matchar ett annat kriterium. Den första förfrågan efter att arbetstiden börjat matchar det första kriteriet, så den löser nattens larm och öppnar ett som inte kallar in någon. Låt **Lös larm automatiskt** vara avslaget på det andra kriteriets larm för att hålla det öppet tills någon löser det.
 
 ## Tjänster som kontrollerar URL:en först
 

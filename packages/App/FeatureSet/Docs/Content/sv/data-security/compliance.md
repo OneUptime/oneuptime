@@ -227,6 +227,8 @@ Syftet med vart och ett är "Nät- och informationssäkerhet (GDPR skäl 49)". F
 
 Ett datalager visas så länge ditt projekt sparar dess data: adressvalvet så länge en aktiverad IP-adressregel hashar loggar eller spår som Säkerhetshändelser läser, användarvalvet så länge en aktiverad regel med något annat mönster gör det, och vart och ett i 31 dagar efter det (se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). När dess data är borta arkiveras datalagret, och det kommer tillbaka med ditt syfte och din lagringstid om datan gör det.
 
+För att radera en person från ”Säkerhetsanvändarvalv”, och från händelserna och ärendena som nämner dem genom det, skickar du in en raderingsbegäran: se [Radera en person](/docs/telemetry/security-events#radera-en-person).
+
 ## Konsekvensbedömningar
 
 GDPR artikel 35 kräver en konsekvensbedömning avseende dataskydd före en behandling som sannolikt leder till en hög risk. Datasäkerhet anger vilka datalager som behöver en: ett datalager som innehåller särskilda kategorier av personuppgifter, till exempel hälsodata, data om många personer (omkring 100 000 poster eller fler), eller data som lämnar de registrerades länder.

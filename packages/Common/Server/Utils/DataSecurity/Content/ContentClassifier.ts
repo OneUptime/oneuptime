@@ -210,14 +210,15 @@ const KEY_VALUE_NAMES: ReadonlySet<string> = new Set([
   ".s3cfg",
 ]);
 
-interface BinarySignature {
+export interface BinarySignature {
+  // As a scan's warning names it: one of SCAN_FORMAT_NAMES (Types/DataSecurity/ScanWarnings).
   format: string;
   bytes: ReadonlyArray<number>;
   offset?: number;
 }
 
 // The magic numbers of formats that are not text.
-const BINARY_SIGNATURES: ReadonlyArray<BinarySignature> = [
+export const BINARY_SIGNATURES: ReadonlyArray<BinarySignature> = [
   { format: "PNG image", bytes: [0x89, 0x50, 0x4e, 0x47] },
   { format: "JPEG image", bytes: [0xff, 0xd8, 0xff] },
   { format: "GIF image", bytes: [0x47, 0x49, 0x46, 0x38] },

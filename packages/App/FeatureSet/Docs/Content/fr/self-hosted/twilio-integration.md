@@ -147,6 +147,21 @@ Ce qu'aucune configuration par défaut n'envoie part comme il partirait sans con
 
 Les pages de statut ne proposent que les configurations qui envoient des SMS, et **Envoyer un SMS de test** et **Envoyer un appel de test** n'apparaissent que pour ce qu'une configuration envoie. Toute configuration existante est réglée sur **Appels et SMS**, comme avant. Dans l'API et Terraform, le choix est le champ `usedFor`, et une configuration sans les numéros que son choix demande est refusée.
 
+### La voix avec laquelle parlent les appels
+
+Les appels parlent avec la voix que votre compte Twilio utilise par défaut : la voix Basic gratuite de Twilio, sauf si vous en avez choisi une autre dans la Twilio Console. Selon Twilio, ses voix Basic ne sont pas destinées à une utilisation en production, donc chaque compte peut parler à la place avec l'une de ces voix neuronales. Choisissez celle du compte de toute l'installation dans la carte **Voix des appels**, sous **Admin Dashboard > Paramètres > Appel et SMS**, et celle d'une configuration de projet dans **Voix des appels**, sous **Plus de champs**.
+
+| Voix | Fournisseur | Comment elle sonne |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Anglais américain, voix féminine |
+| `Polly.Matthew-Neural` | Amazon Polly | Anglais américain, voix masculine |
+| `Polly.Amy-Neural` | Amazon Polly | Anglais britannique, voix féminine |
+| `Polly.Brian-Neural` | Amazon Polly | Anglais britannique, voix masculine |
+| `Google.en-US-Neural2-F` | Google | Anglais américain, voix féminine |
+| `Google.en-US-Neural2-J` | Google | Anglais américain, voix masculine |
+
+Chaque appel passé par le compte parle avec cette voix : les appels d'astreinte et la réponse à la touche sur laquelle vous appuyez, le message laissé sur la messagerie vocale, les codes de vérification, **Envoyer un appel de test** et les messages d'accueil d'une politique d'appels entrants. Avec ces voix, un numéro comme `INC-42` est épelé en SSML, ce qui sonne plus naturel que les lettres espacées que reçoivent les autres voix. Twilio facture ces voix au compte qui passe l'appel : $0.0032 par tranche de 100 caractères en novembre 2026, moins de 2 cents US pour un appel d'astreinte. Voir [la tarification des appels vocaux de Twilio](https://www.twilio.com/en-us/voice/pricing/us). Laissez **Voix des appels** vide pour garder la voix par défaut du compte. Dans l'API et Terraform, la voix est le champ `twilioCallVoice`, et une voix absente du tableau est refusée.
+
 ### Messagerie vocale des appels d'astreinte
 
 Pour Twilio, un appel auquel la messagerie vocale répond est décroché, comme un appel auquel une personne répond. Chaque appel d'astreinte demande donc à Twilio, en arrière-plan, si une personne ou la messagerie vocale a répondu, avec la [détection de répondeur](https://www.twilio.com/docs/voice/answering-machine-detection) : une personne qui décroche entend l'alerte tout de suite. Un appel auquel la messagerie vocale répond compte comme non décroché, comme un appel qui sonne sans réponse, et l'alerte continue comme pour un appel manqué. Dès que l'annonce se termine, OneUptime laisse un court message avec ce que disait l'appel. Le journal de l'appel indique si un message a été laissé, tout comme le fil de l'incident : « Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left. »

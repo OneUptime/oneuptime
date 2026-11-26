@@ -28,6 +28,8 @@ export const PROJECT_TWILIO_CONFIG_SELECT: Select<ProjectCallSMSConfig> = {
   twilioPrimaryPhoneNumber: true,
   twilioSecondaryPhoneNumbers: true,
   twilioSmsPhoneNumbers: true,
+  // The voice its calls speak with (Types/Call/CallVoice, #10948).
+  twilioCallVoice: true,
 };
 
 /*
@@ -52,6 +54,12 @@ export const GLOBAL_TWILIO_CONFIG_SELECT: Select<GlobalConfig> = {
   twilioPrimaryPhoneNumber: true,
   twilioSecondaryPhoneNumbers: true,
   twilioSmsPhoneNumbers: true,
+  /*
+   * The voice its calls speak with (Types/Call/CallVoice, #10948): chosen
+   * in the Admin Dashboard even while the GLOBAL_TWILIO_ environment
+   * variables set the account.
+   */
+  twilioCallVoice: true,
 };
 
 /*

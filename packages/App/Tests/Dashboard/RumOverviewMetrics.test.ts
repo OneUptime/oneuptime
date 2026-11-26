@@ -848,12 +848,16 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
     });
 
     /*
-     * all spans (then/catch), web vitals (then/catch), INP by route
-     * (then/catch, chained off web vitals), page loads (then/catch),
+     * all spans (then/catch), web vitals (then/catch), the newest web vital
+     * (then/catch, chained off web vitals when the range has none), INP by
+     * route (then/catch, chained off web vitals), page loads (then/catch),
      * signals (then/catch), the newest exception (then/catch, chained off
-     * signals when the range has none), sessions (then/catch).
+     * signals when the range has none), sessions (then/catch), and the
+     * sessions with an error, for the empty Exceptions chart (then/catch).
+     * The newest web vital and the sessions with an error say why a card is
+     * empty (#6379).
      */
-    expect(stateWriters).toBe(14);
+    expect(stateWriters).toBe(18);
   });
 
   test("page loads are two requests for the documentLoad span, waited on together", () => {

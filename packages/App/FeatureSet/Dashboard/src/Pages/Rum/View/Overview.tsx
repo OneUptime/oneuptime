@@ -508,14 +508,16 @@ const RumApplicationOverview: FunctionComponent<
                 now: OneUptimeDate.getCurrentDate(),
               })
                 .then((at: Date | null) => {
-                  if (isCurrent()) {
-                    setNewestWebVital({ at, failed: false });
+                  if (!isCurrent()) {
+                    return;
                   }
+                  setNewestWebVital({ at, failed: false });
                 })
                 .catch(() => {
-                  if (isCurrent()) {
-                    setNewestWebVital({ at: null, failed: true });
+                  if (!isCurrent()) {
+                    return;
                   }
+                  setNewestWebVital({ at: null, failed: true });
                 });
             }
 

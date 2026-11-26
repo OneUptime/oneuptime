@@ -147,6 +147,21 @@ Det, som ingen standard sender, går ud, som det ville uden en konfiguration: s�
 
 Statussider tilbyder kun de konfigurationer, der sender SMS, og **Send test-SMS** og **Send testopkald** vises kun for det, en konfiguration sender. Alle eksisterende konfigurationer er som før sat til **Opkald og SMS**. Gennem API'et og Terraform er valget feltet `usedFor`, og en konfiguration uden de numre, dens valg kræver, afvises.
 
+### Den stemme, opkaldene taler med
+
+Opkald taler med den stemme, din Twilio-konto bruger som standard: Twilios gratis Basic-stemme, medmindre du har valgt en anden i Twilio Console. Ifølge Twilio er Basic-stemmerne ikke beregnet til brug i produktion, så hver konto kan i stedet tale med en af disse neurale stemmer. Stemmen til kontoen for hele installationen vælger du i kortet **Stemme til opkald** på **Admin Dashboard > Indstillinger > Opkald og SMS**, og stemmen til en projektkonfiguration i **Stemme til opkald** under **Flere felter**.
+
+| Stemme | Udbyder | Sådan lyder den |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikansk engelsk, kvindelig stemme |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikansk engelsk, mandlig stemme |
+| `Polly.Amy-Neural` | Amazon Polly | Britisk engelsk, kvindelig stemme |
+| `Polly.Brian-Neural` | Amazon Polly | Britisk engelsk, mandlig stemme |
+| `Google.en-US-Neural2-F` | Google | Amerikansk engelsk, kvindelig stemme |
+| `Google.en-US-Neural2-J` | Google | Amerikansk engelsk, mandlig stemme |
+
+Alle opkald gennem kontoen taler med denne stemme: vagtopkald og svaret på den tast, du trykker på, beskeden, der lægges på telefonsvareren, bekræftelseskoder, **Send testopkald** og velkomstbeskederne i en politik for indgående opkald. Med disse stemmer staves et nummer som `INC-42` med SSML, hvilket lyder mere naturligt end de bogstaver med mellemrum, som andre stemmer får. Twilio tager betaling for disse stemmer på den konto, der foretager opkaldet: $0.0032 for hver 100 tegn i november 2026, under 2 amerikanske cent for et vagtopkald. Se [Twilios priser på taleopkald](https://www.twilio.com/en-us/voice/pricing/us). Lad **Stemme til opkald** være tom for at beholde kontoens standardstemme. Gennem API'et og Terraform er stemmen feltet `twilioCallVoice`, og en stemme, der ikke står i tabellen, afvises.
+
 ### Telefonsvarer ved vagtopkald
 
 For Twilio er et opkald, som telefonsvareren tager, besvaret, ligesom et opkald, en person tager. Derfor spørger hvert vagtopkald Twilio i baggrunden, om en person eller telefonsvareren tog det, med [telefonsvarergenkendelse](https://www.twilio.com/docs/voice/answering-machine-detection): Den, der tager telefonen, hører alarmen med det samme. Et opkald, som telefonsvareren tager, tæller som ubesvaret, ligesom et opkald, der ringer ud, og alarmen fortsætter som ved et ubesvaret opkald. Så snart velkomstbeskeden slutter, lægger OneUptime en kort besked med det, opkaldet sagde. Opkaldets log siger, om der blev lagt en besked, og det gør hændelsens feed også: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

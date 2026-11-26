@@ -259,6 +259,41 @@ Un progetto può anche accedere tramite un provider OpenID Connect, come Google 
 6. Apri il link della scheda **Link di accesso SSO** e scegli il provider, per accedere tramite esso prima di richiedere l'SSO per il progetto.
 :::
 
+## Indirizzi email che il tuo provider di identità non ha verificato
+
+Un accesso con OpenID Connect trova l'account OneUptime della persona tramite l'indirizzo email che il tuo provider di identità invia, e può creare un account con quell'indirizzo. Alcuni provider permettono alle persone di mettere un indirizzo sul proprio account senza dimostrare che è loro, e lo dicono nel claim standard `email_verified`. Per questo OneUptime non fa accedere nessuno con un indirizzo che il tuo provider dice di non aver verificato: qualcuno potrebbe aver messo l'indirizzo di un'altra persona sul proprio account per accedere al suo posto.
+
+| `email_verified` | L'accesso |
+| --- | --- |
+| `true`, oppure `"true"` e `1` | Prosegue |
+| Non inviato, come fanno Microsoft Entra ID e AD FS | Prosegue |
+| `false`, oppure `"false"` e `0` | Viene rifiutato |
+| Qualsiasi altro valore, come `"yes"` | Viene rifiutato: OneUptime non può stabilirlo |
+
+- La regola vale per ogni account, sul web e nell'app mobile: uno che esiste, compreso quello di un amministratore, e uno che l'accesso creerebbe. Un accesso rifiutato non crea alcun account, non aggiunge nessuno a un team, non accetta alcun invito e non invia alcuna email.
+- OneUptime legge `email_verified` da dove è arrivato l'indirizzo, il token ID o l'endpoint userinfo, e solo quando l'indirizzo è il claim `email`. Un provider configurato per inviare l'indirizzo in un altro claim, come `preferred_username` o `upn`, fa accedere le persone come prima, quindi usa un claim che le tue persone non possono cambiare da sole.
+- La persona vede "Your identity provider did not confirm your email address.", e le viene chiesto di verificare il proprio indirizzo presso il tuo provider di identità, o di chiederti di segnarlo lì come verificato, e poi di accedere di nuovo. L'app mobile mostra `provider_email_not_verified` con lo stesso consiglio. Quando un account ha quell'indirizzo, i log di audit dei suoi progetti registrano il tentativo come un accesso non riuscito.
+- I provider SAML non leggono `email_verified`, e nemmeno i provider OpenID Connect delle pagine di stato, delle dashboard e dei moduli, che fanno accedere le persone come loro utenti privati.
+
+I provider che verificano gli indirizzi che inviano, come Google e Okta, fanno accedere le persone come prima. authentik e Keycloak possono richiedere una modifica:
+
+:::tabs
+@tab authentik
+authentik 2025.10 e versioni successive invia `email_verified` come `false` per tutti con la sua mappatura di ambito `email` predefinita, quindi nessuno accede tramite authentik finché non sostituisci quella mappatura, come descrive la guida di authentik [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/):
+
+1. In **Customization** > **Property Mappings**, fai clic su **New Property Mapping**, seleziona **Scope Mapping** e fai clic su **Next**.
+2. Dai un nome alla mappatura, imposta **Scope name** su `email`, inserisci l'**Expression** della guida adatta a come vengono verificati gli indirizzi delle tue persone e fai clic su **Finish**.
+3. Apri il provider della tua applicazione, sostituisci in **Scopes** la mappatura `email` predefinita con la tua e salva il provider.
+
+Non inviare `true` per ogni indirizzo finché le persone possono cambiare il proprio indirizzo in authentik: la mappatura garantirebbe qualsiasi indirizzo che qualcuno mette sul proprio account. Le versioni precedenti alla 2025.10 inviano `true` per ogni indirizzo, quindi lì non lasciare che le persone cambino il proprio indirizzo.
+@tab Keycloak
+Keycloak invia `email_verified` come `false` per le persone di cui non ha verificato l'indirizzo: quelle che un amministratore ha creato con **Email verified** disattivato, e quelle che si sono registrate o hanno cambiato indirizzo mentre **Verify email** era disattivato.
+
+- Per farglielo verificare, attiva **Verify email** in **Realm settings** > **Login** > **Email settings**. Keycloak chiede allora a ciascuna di verificare il proprio indirizzo con un'email al prossimo accesso, quindi il realm ha bisogno di un server di posta configurato.
+- Per garantire tu stesso l'indirizzo di una persona, attiva **Email verified** nella sua pagina in Keycloak e fai clic su **Save**.
+- Per le persone da LDAP o Active Directory, attiva **Trust Email** nelle **Advanced settings** del provider in **User federation**. Keycloak segna allora un indirizzo come verificato quando importa la persona: attiva **Email verified** per le persone che ha importato prima.
+:::
+
 ## Uscire anche dal provider di identità
 
 Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso, come uno schermo del NOC o un chiosco, la persona successiva che sceglie il provider nella pagina di accesso entra al posto di chi se n'è andato. Su un provider SAML o OIDC, attiva **Esci anche dal provider di identità** in **Altri campi** perché l'uscita da OneUptime chiuda anche la sessione presso il provider. È disattivato per impostazione predefinita: su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider. Vale per le persone che accedono da un browser dopo che è stato attivato; l'app mobile esce solo da OneUptime.
@@ -456,6 +491,10 @@ Ogni risposta del tuo IdP fa accedere una sola volta. Tornare indietro nel brows
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID ha fatto accedere qualcuno con l'indirizzo email di un account collegato, tramite questo provider, a un altro ID oggetto: ora l'indirizzo appartiene a un'altra persona in Entra ID, oppure l'account Entra ID della persona è stato ricreato. OneUptime rifiuta l'accesso, così chi avrà in seguito quell'indirizzo non può usare l'account. Se l'account è davvero di quella persona, rimuovila dal progetto e aggiungila di nuovo: il suo accesso successivo collegherà l'account al suo nuovo ID oggetto.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Il tuo provider OpenID Connect ha inviato `email_verified` come `false`, o come qualcosa che non è né true né false, quindi OneUptime non ha fatto accedere nessuno. Fai verificare l'indirizzo presso il tuo provider di identità, o segnalo lì come verificato, e accedi di nuovo. [Indirizzi email che il tuo provider di identità non ha verificato](#indirizzi-email-che-il-tuo-provider-di-identità-non-ha-verificato) spiega cosa cambiare in authentik e Keycloak.
 :::
 
 :::details L'accesso non riesce con un errore di firma o di certificato

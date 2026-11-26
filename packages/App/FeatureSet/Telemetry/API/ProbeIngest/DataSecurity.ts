@@ -31,6 +31,7 @@ import {
 import { ContentScanResult } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
 import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import DataTypeProving from "Common/Server/Utils/DataSecurity/DataTypeProving";
+import { readModelResumeAt } from "Common/Server/Utils/DataSecurity/Model/ModelTurns";
 import { ShadowDraft } from "Common/Utils/DataSecurity/ShadowCount";
 import Express, {
   ExpressRequest,
@@ -245,6 +246,14 @@ export function buildStoreWork(data: {
     fingerprintKey: getFingerprintKey(data.store.projectId),
     // The project's names-and-addresses switch: the probe runs its own model.
     findNamesAndAddresses: data.settings.isModelScanEnabled !== false,
+    // Where its model's turn starts: where the last scan's stopped (#10928).
+    ...(readModelResumeAt(data.store.contentScanState as JSONObject | undefined)
+      ? {
+          modelResumeAt: readModelResumeAt(
+            data.store.contentScanState as JSONObject | undefined,
+          )!,
+        }
+      : {}),
     shadowDataTypes: data.shadowDataTypes || [],
   };
 }
@@ -319,6 +328,7 @@ router.post(
           kind: true,
           probeConnectionVariable: true,
           scanExclusions: true,
+          contentScanState: true,
         },
         limit: claimed.length,
         skip: 0,

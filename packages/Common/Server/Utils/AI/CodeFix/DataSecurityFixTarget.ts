@@ -1,4 +1,5 @@
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import DataSecurityIssuePullRequest from "../../../../Models/DatabaseModels/DataSecurityIssuePullRequest";
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import {
@@ -44,6 +45,12 @@ import DataStoreService from "../../../Services/DataStoreService";
  * store's issue is a leak in the code that writes it (TelemetryLeak), any
  * other a store's configuration (StoreConfiguration), however the task
  * was asked. Every read is held to the run's project.
+ *
+ * A person's own pull request, linked to an issue (#10831,
+ * DataSecurityIssuePullRequest), is followed the same way: its issue is
+ * its target, its check picked from the issue's store when it was linked,
+ * and the person who linked it stands where an AI fix's asker does. It has
+ * no task in Code.
  */
 
 // The most issues one fix is followed for: a group's, at most.
@@ -54,8 +61,8 @@ const ROOT: { isRoot: true } = { isRoot: true };
 export interface DataSecurityFixTargetRead {
   check: FixProductionCheck;
   issueIds: Array<ObjectID>;
-  // The task's first turn: what Code opens.
-  taskId: ObjectID;
+  // The task's first turn: what Code opens. A person's linked pull request has none.
+  taskId?: ObjectID | undefined;
   // The person who asked for the fix - the pull request's author, to OneUptime.
   askedByUserId?: ObjectID | undefined;
 }
@@ -208,6 +215,67 @@ export default class DataSecurityFixTarget {
         }),
       taskId: new ObjectID(idOf(task)),
       askedByUserId: task.userId || undefined,
+    };
+  }
+
+  /*
+   * The issues a followed fix is for: OneUptime AI's, from the task its run
+   * is a turn of; a person's linked pull request's, its issue - when it
+   * still exists in the fix's project.
+   */
+  public static async readOfFix(fix: {
+    aiRunId?: ObjectID | undefined;
+    dataSecurityIssueId?: ObjectID | undefined;
+    projectId?: ObjectID | undefined;
+    productionCheck?: FixProductionCheck | undefined;
+    createdByUserId?: ObjectID | undefined;
+  }): Promise<DataSecurityFixTargetRead | null> {
+    if (fix.dataSecurityIssueId) {
+      return await DataSecurityFixTarget.readLink(
+        fix as DataSecurityIssuePullRequest,
+      );
+    }
+
+    return fix.aiRunId ? await DataSecurityFixTarget.read(fix.aiRunId) : null;
+  }
+
+  // A person's linked pull request's issue, and the check it was linked with.
+  public static async readLink(
+    link: Pick<
+      DataSecurityIssuePullRequest,
+      | "projectId"
+      | "dataSecurityIssueId"
+      | "productionCheck"
+      | "createdByUserId"
+    >,
+  ): Promise<DataSecurityFixTargetRead | null> {
+    if (!link.projectId || !link.dataSecurityIssueId) {
+      return null;
+    }
+
+    const issue: DataSecurityIssue | null =
+      await DataSecurityIssueService.findOneBy({
+        query: {
+          _id: link.dataSecurityIssueId.toString(),
+          projectId: link.projectId,
+        },
+        select: { _id: true, dataStoreId: true },
+        props: ROOT,
+      });
+
+    if (!issue || !idOf(issue)) {
+      return null;
+    }
+
+    return {
+      check:
+        link.productionCheck ||
+        (await DataSecurityFixTarget.checkOfStore({
+          projectId: link.projectId,
+          dataStoreId: issue.dataStoreId,
+        })),
+      issueIds: [new ObjectID(idOf(issue))],
+      askedByUserId: link.createdByUserId || undefined,
     };
   }
 

@@ -184,16 +184,21 @@ export function groupNotesByDay<T>(data: {
   for (const note of data.notes) {
     const date: Date | null = data.getDate(note);
 
+    /*
+     * Keys, looked up where the feed draws them (tx): "Yesterday" and "Date
+     * unknown" were in no locale, so a Persian or a German feed headed its
+     * notes of the day before "YESTERDAY", in English.
+     */
     let key: string = UNDATED_GROUP_KEY;
-    let label: string = "Date unknown";
+    let label: string = translationKey("Date unknown");
 
     if (date) {
       key = OneUptimeDate.getDateAsLocalFormattedString(date, true);
 
       if (OneUptimeDate.areOnTheSameLocalDay(date, data.now)) {
-        label = "Today";
+        label = translationKey("Today");
       } else if (OneUptimeDate.areOnTheSameLocalDay(date, yesterday)) {
-        label = "Yesterday";
+        label = translationKey("Yesterday");
       } else {
         label = key;
       }

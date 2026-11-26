@@ -47,11 +47,13 @@ import {
 } from "../../../Types/CodeRepository/ProductionReview";
 import {
   ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataUtil,
   SensitiveDataAiNoteCode,
   SensitiveDataLeakKind,
   SensitiveDataSink,
 } from "../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
+import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../../Types/SecuritySeverity";
 import Link from "../../../Types/Link";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -1197,6 +1199,215 @@ describe("the Sensitive data section (#10376)", () => {
     drawReview(report());
 
     expect(screen.queryByTestId("production-review-sensitive-data")).toBeNull();
+  });
+
+  /*
+   * What Data Security knows of a migration's table (#10779), for a reader
+   * of Data Security: the store the table is in, what of it the new column
+   * inherits, the columns that already hold the same data, and how many
+   * more stores hold a table of that name.
+   */
+  function column(
+    change: Partial<ProductionReviewLeakJSON> = {},
+  ): ProductionReviewLeakJSON {
+    return leak({
+      key: "column-key",
+      kind: SensitiveDataLeakKind.Migration,
+      checkId: "new-personal-data-column",
+      sink: undefined,
+      path: "db/migrations/20261124_add_customer_ssn.sql",
+      line: 1,
+      subject: "customer_ssn",
+      where: "customers",
+      dataTypeIds: ["us-ssn"],
+      dataTypeNames: ["US Social Security number"],
+      sensitivity: DataSensitivity.Restricted,
+      text: "Adds the column `customer_ssn` to `customers`, whose name says it holds a US Social Security number.",
+      fix: "Store it only if you must, encrypted or tokenized.",
+      suggestion: undefined,
+      production: {
+        store: {
+          dataStoreId: "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1c",
+          name: "orders-db",
+          sensitivity: DataSensitivity.Restricted,
+          dataTypeNames: ["US Social Security number"],
+          exposure: DataStoreExposure.InternetReachable,
+          isNotEncryptedAtRest: true,
+        },
+        table: {
+          name: "public.customers",
+          dataTypeNames: ["US Social Security number", "Email address"],
+          sameData: [
+            {
+              location: "public.customers.ssn_last4",
+              dataTypeName: "US Social Security number",
+              lastSeenAt: minutesAgo(120),
+            },
+          ],
+          otherStoreCount: 2,
+        },
+      },
+      ...change,
+    });
+  }
+
+  function sectionOf(points: Array<ProductionReviewLeakJSON>): {
+    points: Array<ProductionReviewLeakJSON>;
+    moreCount: number;
+    droppedCount: number;
+    isFailOn: boolean;
+    isAiRead: boolean;
+  } {
+    return {
+      points,
+      moreCount: 0,
+      droppedCount: 0,
+      isFailOn: false,
+      isAiRead: false,
+    };
+  }
+
+  test("a migration's table: the store it is in, what the column inherits, the column that holds the same data (#10779)", () => {
+    drawReview(report({ sensitiveData: sectionOf([column()]) }));
+
+    const table: HTMLElement = screen.getByTestId(
+      "production-review-sensitive-data-table",
+    );
+
+    expect(table).toHaveTextContent(
+      "The table public.customers is in the store orders-db, which holds Restricted data.",
+    );
+    expect(
+      within(table).getByRole("link", { name: "orders-db" }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining("8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1c"),
+    );
+    expect(
+      within(table).getByTestId("production-review-sensitive-data-exposure"),
+    ).toHaveTextContent(
+      "That store accepts connections from the internet, and the new column would be in it.",
+    );
+    expect(
+      within(table).getByTestId(
+        "production-review-sensitive-data-not-encrypted",
+      ),
+    ).toHaveTextContent(
+      "That store is not encrypted at rest, so the new column would not be either.",
+    );
+
+    const same: HTMLElement = within(table).getByTestId(
+      "production-review-sensitive-data-same-data",
+    );
+
+    expect(same).toHaveTextContent("The table already holds the same data");
+    expect(same).toHaveTextContent("public.customers.ssn_last4");
+    expect(same).toHaveTextContent("US Social Security number");
+    expect(
+      within(table).getByTestId(
+        "production-review-sensitive-data-other-stores",
+      ),
+    ).toHaveTextContent(
+      "2 more stores of the project hold a table of this name.",
+    );
+    // A migration's store is where its table is, never "It is the store".
+    expect(table).not.toHaveTextContent("It is the store");
+  });
+
+  test("a table with other data than the new column's: what its columns hold, and nothing it does not know", () => {
+    drawReview(
+      report({
+        sensitiveData: sectionOf([
+          column({
+            production: {
+              store: {
+                dataStoreId: "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1c",
+                name: "orders-db",
+                sensitivity: DataSensitivity.Confidential,
+                dataTypeNames: [],
+              },
+              table: {
+                name: "public.customers",
+                dataTypeNames: ["Email address", "Phone number"],
+                sameData: [],
+                otherStoreCount: 1,
+              },
+            },
+          }),
+        ]),
+      }),
+    );
+
+    const table: HTMLElement = screen.getByTestId(
+      "production-review-sensitive-data-table",
+    );
+
+    expect(table).toHaveTextContent("Data Security found Email address");
+    expect(table).toHaveTextContent("Phone number");
+    expect(table).toHaveTextContent("in its columns.");
+    expect(table).toHaveTextContent(
+      "1 more store of the project holds a table of this name.",
+    );
+    expect(
+      screen.queryByTestId("production-review-sensitive-data-exposure"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("production-review-sensitive-data-not-encrypted"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("production-review-sensitive-data-same-data"),
+    ).toBeNull();
+  });
+
+  test.each([
+    [
+      DataStoreExposure.Public,
+      "Anyone on the internet can read that store, so they could read the new column too.",
+    ],
+    [
+      DataStoreExposure.OtherAccounts,
+      "Accounts outside yours can reach that store, so they could reach the new column too.",
+    ],
+  ])(
+    "a store %s says so in its words",
+    (exposure: DataStoreExposure, words: string) => {
+      drawReview(
+        report({
+          sensitiveData: sectionOf([
+            column({
+              production: {
+                ...column().production,
+                store: { ...column().production!.store!, exposure },
+              },
+            }),
+          ]),
+        }),
+      );
+
+      expect(
+        screen.getByTestId("production-review-sensitive-data-exposure"),
+      ).toHaveTextContent(words);
+    },
+  );
+
+  test("a reader who may not read Data Security: the migration's point as the diff says it, none of its table", () => {
+    drawReview(
+      report({
+        sensitiveData: ProductionReviewSensitiveDataUtil.withoutProduction(
+          sectionOf([column()]),
+        ),
+      }),
+    );
+
+    expect(
+      screen.getByTestId("production-review-sensitive-data-point"),
+    ).toHaveTextContent("Adds the column customer_ssn to customers");
+    expect(
+      screen.queryByTestId("production-review-sensitive-data-table"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("production-review-sensitive-data"),
+    ).not.toHaveTextContent("orders-db");
   });
 });
 

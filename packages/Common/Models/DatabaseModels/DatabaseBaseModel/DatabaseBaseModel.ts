@@ -7,6 +7,7 @@ import RecordActorType, {
 } from "../../../Types/Database/RecordActor";
 import { CREATED_BY_USER_ID_COLUMN } from "../../../Types/Database/UserAttribution";
 import type User from "../User";
+import { getUserModelType } from "./UserModelType";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
 import { getCachedDefaultAuditLogOn } from "../../../Types/AuditLog/AuditLogCoverage";
@@ -110,21 +111,6 @@ function getVanillaModel(modelType: {
 
   return vanillaModel;
 }
-
-/*
- * The User model, read when the relation to whoever last changed a record
- * is first resolved - never imported at the top. User extends this class,
- * so a top-level import of it here makes an import cycle in which, whenever
- * this file is loaded first, User's file runs while this class is still
- * undefined, and `class User extends undefined` throws. DatabaseService reads
- * AuditLogService the same way, for the same reason.
- */
-const getUserModelType: () => { new (): DatabaseBaseModel } = (): {
-  new (): DatabaseBaseModel;
-} => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-  return require("../User").default;
-};
 
 /*
  * Who may read what created a record and what last changed it (#10290):
@@ -308,6 +294,9 @@ export default class DatabaseBaseModel extends BaseEntity {
    * scan of each, and would make every user's deletion set this to null in
    * every table - each a full scan, as nothing indexes it. A person no longer
    * in OneUptime reads as no one (the relation finds no user).
+   *
+   * User extends this class, so the relation reads it when first resolved,
+   * never from an import here (UserModelType).
    */
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({

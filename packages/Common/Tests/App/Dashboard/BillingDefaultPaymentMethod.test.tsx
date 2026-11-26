@@ -1,9 +1,12 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React, { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import Billing from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Billing";
+import ProjectPaymentMethods, {
+  ProjectPaymentMethodsState,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectPaymentMethods";
 import ProjectUtil from "../../../UI/Utils/Project";
 import Navigation from "../../../UI/Utils/Navigation";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
@@ -1051,6 +1054,83 @@ describe("Billing page: choosing the payment method autopay charges", () => {
       await screen.findByTestId("payment-methods-table");
       expect(retrieveSetupIntentMock).not.toHaveBeenCalled();
       expect(setDefaultPostMock).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * What the page counts, the rest of the Dashboard knows (#11053): Add to
+   * Balance on the other pages says a payment method is needed first while
+   * the project has none, and the header's Add Card Details follows. Each
+   * count here is of the payment methods just read from the payment
+   * provider, so a card added here is known there at once, with no reload.
+   */
+  describe("the count the rest of the Dashboard reads", () => {
+    beforeEach(() => {
+      ProjectPaymentMethods.reset();
+    });
+
+    afterEach(() => {
+      ProjectPaymentMethods.reset();
+    });
+
+    it("a project with none: the Dashboard knows it has none", async () => {
+      tableRows = [];
+      getListMock.mockResolvedValue({ data: [], count: 0 });
+      countMock.mockResolvedValue(0);
+      renderBilling();
+      await screen.findByTestId("payment-methods-table");
+
+      await waitFor(() => {
+        expect(ProjectPaymentMethods.getState(projectId)).toBe(
+          ProjectPaymentMethodsState.None,
+        );
+      });
+    });
+
+    it("a card added here is known at once, before any reload", async () => {
+      tableRows = [];
+      getListMock.mockResolvedValue({ data: [], count: 0 });
+      countMock.mockResolvedValue(0);
+      renderBilling();
+      await screen.findByTestId("payment-methods-table");
+
+      await waitFor(() => {
+        expect(ProjectPaymentMethods.getCount(projectId)).toBe(0);
+      });
+
+      // The card is saved: the page reads the project's cards again.
+      getListMock.mockResolvedValue({ data: [], count: 1 });
+      countMock.mockResolvedValue(1);
+      await openAddPaymentMethodAndSave();
+
+      await waitFor(() => {
+        expect(ProjectPaymentMethods.getState(projectId)).toBe(
+          ProjectPaymentMethodsState.Some,
+        );
+      });
+    });
+
+    it("the table's count after it lists the cards is passed on too", async () => {
+      renderBilling();
+      await screen.findByTestId("payment-methods-table");
+
+      countMock.mockResolvedValue(3);
+
+      await act(async () => {
+        await (lastTableProps?.["onFetchSuccess"] as () => Promise<void>)();
+      });
+
+      expect(ProjectPaymentMethods.getCount(projectId)).toBe(3);
+    });
+
+    it("a count that could not be read leaves what was known", async () => {
+      ProjectPaymentMethods.setCount({ projectId: projectId, count: 1 });
+      getListMock.mockRejectedValue(new Error("Network error"));
+      countMock.mockRejectedValue(new Error("Network error"));
+      renderBilling();
+      await screen.findByTestId("payment-methods-table");
+
+      expect(ProjectPaymentMethods.getCount(projectId)).toBe(1);
     });
   });
 });

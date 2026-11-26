@@ -1,7 +1,7 @@
-import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import Link from "../Link/Link";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import ErrorReference from "./ErrorReference";
 import WhereToLookWords from "./WhereToLookWords";
 import {
   ErrorInSentenceWords,
@@ -202,25 +202,10 @@ export const ErrorInSentence: FunctionComponent<ErrorInSentenceProps> = (
         {words.reference ? (
           <>
             {" "}
-            <span
-              className="inline-flex items-center gap-1 whitespace-nowrap align-middle"
-              data-testid="error-reference"
-            >
-              <span>
-                <code
-                  dir="ltr"
-                  className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-900"
-                >
-                  {words.reference}
-                </code>
-                {words.fullStop}
-              </span>
-              <CopyTextButton
-                textToBeCopied={words.reference}
-                size="xs"
-                iconOnly={true}
-              />
-            </span>
+            <ErrorReference
+              reference={words.reference}
+              fullStopInSentence={words.fullStop}
+            />
           </>
         ) : (
           <></>

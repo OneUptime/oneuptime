@@ -8,6 +8,7 @@ import { runBash } from "../Utils/RunBash";
 import JavaScriptSandbox from "../Utils/JavaScriptSandbox/SandboxProcess";
 import { getJavaScriptStepOutcome } from "../Utils/JavaScriptSandbox/JavaScriptStepResult";
 import { redactSecretValues } from "Common/Types/Runbook/SecretOutputRedaction";
+import { redactRunnerOwnCredentials } from "../Utils/RunnerCredentialRedaction";
 import { KUBECONFIG_CREDENTIAL_TYPE } from "Common/Types/Runbook/RunnerFeatures";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
@@ -40,7 +41,9 @@ interface ExecResult {
  * a value a caller sent can neither run as a command nor replace PATH,
  * LD_PRELOAD or anything else the shell or this Runner reads. Without
  * inputs - an older server, or a step type that takes none - the step gets
- * the Runner's environment as it always did.
+ * the Runner's environment as it always did. Either way RunBash takes the
+ * Runner's own settings out of it - its id and key among them
+ * (RunnerOwnEnvironment) - before the script runs.
  */
 export function getBashEnvironment(
   job: Pick<ClaimedJob, "inputs" | "trigger">,
@@ -92,6 +95,34 @@ export function redactJobResult(
           errorMessage: redactSecretValues(result.errorMessage, secretValues),
         }
       : {}),
+  };
+}
+
+/*
+ * A step's result with the Runner's own credentials - its key above all -
+ * replaced by [REDACTED], in its output and its error, before anything
+ * leaves this host (RunnerCredentialRedaction). A step runs without them in
+ * its environment, but as this Runner's user, and one that read the key
+ * from elsewhere and printed it would hand it to everyone who reads the
+ * run. The server does the same again with the key the result is sent with.
+ */
+export function redactRunnerCredentialsFromResult(
+  result: ExecResult,
+): ExecResult {
+  const output: string = redactRunnerOwnCredentials(result.output);
+  const errorMessage: string | undefined =
+    typeof result.errorMessage === "string"
+      ? redactRunnerOwnCredentials(result.errorMessage)
+      : undefined;
+
+  if (output === result.output && errorMessage === result.errorMessage) {
+    return result;
+  }
+
+  return {
+    ...result,
+    output: output,
+    ...(errorMessage !== undefined ? { errorMessage: errorMessage } : {}),
   };
 }
 
@@ -896,9 +927,8 @@ export default class Executor {
         `Executing ${job.stepType} job ${job.jobId} (step ${job.stepId})`,
       );
 
-      const result: ExecResult = redactJobResult(
-        await runStep({ job, lease }),
-        job,
+      const result: ExecResult = redactRunnerCredentialsFromResult(
+        redactJobResult(await runStep({ job, lease }), job),
       );
 
       await deliverResult({ job, result, lease });

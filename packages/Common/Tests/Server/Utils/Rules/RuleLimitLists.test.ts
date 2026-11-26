@@ -259,7 +259,8 @@ describe("RuleLimitLists", () => {
   });
 
   test("a list is one of its rule kind's, and of the records it holds", () => {
-    expect(lists.length).toBe(155);
+    // 156: the latest, an AI rule's data store labels (#10494).
+    expect(lists.length).toBe(156);
 
     for (const list of lists) {
       expect(getRuleLimitListsOf(list.ruleTable)).toContain(list);

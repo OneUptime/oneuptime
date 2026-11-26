@@ -2,6 +2,7 @@ import "../TestingUtils/Init";
 import { mockRouter } from "./Helpers";
 import AuditLogAPI from "../../../Server/API/AuditLogAPI";
 import { AuditLogService } from "../../../Server/Services/AuditLogService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import AuditLogRelatedNames from "../../../Server/Utils/AuditLog/AuditLogRelatedNames";
 import {
   ExpressRequest,
@@ -9,6 +10,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
@@ -140,6 +142,19 @@ beforeEach(() => {
   mockRouter.routes = [];
   service = new AuditLogService();
   new AuditLogAPI(service);
+
+  /*
+   * The project's plan, as the database answers it. Where billing is on -
+   * Common Test's config.env has BILLING_ENABLED=true - the caller's props
+   * read their project's plan (CommonAPI's getDatabaseCommonInteractionProps,
+   * CallerPlan), and with no database here that read refused with "Database
+   * not connected" before the route ran. The highest plan, paid, so that no
+   * plan decides what is asked here.
+   */
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
 });
 
 afterEach(() => {

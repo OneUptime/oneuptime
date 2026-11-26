@@ -35,6 +35,8 @@ import TraceScrubEngine, {
   ExceptionContent,
 } from "../../Telemetry/ScrubEngine/TraceScrubEngine";
 import { ContentScanOptions } from "../DataSecurityScanTypes";
+import { ModelRereads } from "../Model/ModelRereads";
+import { RecognizerAvailability } from "../Model/NameAddressRecognizer";
 import {
   capsOf,
   classifierOptionsOf,
@@ -99,6 +101,17 @@ import {
  * with (Telemetry/MetricPipelineEngine). Session replays are not proven, so
  * their rules never are - Scrub It still makes them, and OneUptime AI only
  * proposes them.
+ *
+ * A finding the names-and-addresses model made is proven as any other, with
+ * the model (#10926): it is handed the values at the place before and after
+ * the rule, record by record, the finding's own records first, within the
+ * time it has for a read (Model/ModelRereads.ts) - one plan's rules share
+ * it, each value read once. What it found in a value says whether the value holds the data;
+ * a value it had no time for, or whose value after the rule it had no time
+ * for, is not counted at all, so a proof never takes a value the model did
+ * not read for one that holds nothing. Where the model cannot run, such a
+ * finding's rules cannot be proven (ModelUnavailable). Still no prompt: the
+ * model is the scanner's own, inside OneUptime.
  */
 
 // The records of each store kind this proves log and trace rules on: the records such a rule scrubs.
@@ -118,6 +131,8 @@ export interface ScrubProofFinding {
   // The records the last scan kept with the finding.
   sampleRecords?: ReadonlyArray<FindingSampleRecord> | undefined;
   lastSeenAt?: Date | null | undefined;
+  // The names-and-addresses model made it (DataStoreFinding.isFoundByModel).
+  isFoundByModel?: boolean | undefined;
 }
 
 // The rule being proven, as it would be saved.
@@ -141,6 +156,11 @@ export enum ScrubProofFailure {
   NothingToProveOn = "NothingToProveOn",
   // The rule cannot run: a pattern that does not compile, keys that name nothing.
   RuleScrubsNothing = "RuleScrubsNothing",
+  /*
+   * The names-and-addresses model made the finding, and cannot run on this
+   * server just now: only it can tell the data in a value.
+   */
+  ModelUnavailable = "ModelUnavailable",
 }
 
 export interface ScrubProofOutcome {
@@ -376,11 +396,14 @@ function valuesAt(data: {
 
 /*
  * Whether a value holds no sensitive data the project's scan would find:
- * classified at the place with every detector, the project's own too.
+ * classified at the place with every detector, the project's own too - and,
+ * for a finding the model made, with what the model found in it: a value
+ * that names a person holds data, whatever its patterns say.
  */
 function buildCleanValueTest(data: {
   location: string;
   options: ContentScanOptions;
+  model?: ModelRereads | null | undefined;
 }): (value: string) => boolean {
   const classifierOptions: FieldClassifierOptions = classifierOptionsOf(
     data.options,
@@ -390,6 +413,7 @@ function buildCleanValueTest(data: {
     return !classifyField(data.location, [value], {
       ...classifierOptions,
       maxMatchedValueIndexes: 0,
+      ...(data.model ? { recognitions: data.model, readWithModel: true } : {}),
     }).some((classification: FieldClassification): boolean => {
       return (
         classification.valuesWithMatch > 0 &&
@@ -533,6 +557,47 @@ function scrubCopy(data: {
   });
 }
 
+// A record's values at the place before the rule, and as the rule leaves them.
+interface ValuesBeforeAndAfter {
+  before: Array<string>;
+  after: Array<string>;
+}
+
+/*
+ * The model to read a finding's values with: the one a plan's rules share,
+ * else one of its own - or null for a finding the model did not make.
+ */
+async function modelForProof(data: {
+  finding: ScrubProofFinding;
+  model?: ModelRereads | null | undefined;
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
+}): Promise<ModelRereads | null> {
+  if (data.model !== undefined) {
+    return data.model;
+  }
+
+  return await ModelRereads.forFinding({
+    isFoundByModel: data.finding.isFoundByModel,
+    getRecognizer: data.getRecognizer,
+  });
+}
+
+/*
+ * Whether the model judged a value: it read it whole - or there is nothing
+ * in it to read. Every value is judged where there is no model.
+ */
+function isJudged(
+  model: ModelRereads | null,
+  value: string | undefined,
+): boolean {
+  return (
+    !model ||
+    value === undefined ||
+    value.trim().length === 0 ||
+    model.isRead(value)
+  );
+}
+
 /*
  * The rows of a place, each as a rule leaves it, counted into a proof:
  * the values that held the data and still do, and the others it changed.
@@ -550,7 +615,18 @@ async function countAtPlace(data: {
   readRows: ScrubProofRowReader;
   // A row of the read, as the rule leaves it, in the shape the scanner reads.
   scrubRow: (row: JSONObject) => JSONObject;
+  // The model a plan's rules share, for a finding it made (null: none).
+  model?: ModelRereads | null | undefined;
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
 }): Promise<ScrubProofOutcome> {
+  const proof: ScrubRuleProof = data.proof;
+  const model: ModelRereads | null = await modelForProof(data);
+
+  // Only the model tells the data in a value: where it cannot run, nothing is proven.
+  if (model && !model.isAvailable) {
+    return failed(proof, ScrubProofFailure.ModelUnavailable);
+  }
+
   const source: SourceDefinition = getTelemetrySource(data.plan.source);
   const caps: TelemetrySampleCaps = capsOf(source, data.options);
   const read: ReadRows | null = await readRows({
@@ -562,7 +638,6 @@ async function countAtPlace(data: {
     now: data.now,
     readRows: data.readRows,
   });
-  const proof: ScrubRuleProof = data.proof;
 
   if (!read) {
     return failed(proof, ScrubProofFailure.CouldNotRead);
@@ -573,42 +648,43 @@ async function countAtPlace(data: {
       dataTypeId: data.finding.dataTypeId,
       location: data.finding.location,
       options: data.options,
+      model,
     },
   );
   const isClean: (value: string) => boolean = buildCleanValueTest({
     location: data.finding.location,
     options: data.options,
+    model,
   });
-  // A type found by the field's name is "found" in any value there: a placeholder holds none of it.
+  /*
+   * A type found by the field's name is "found" in any value there: a
+   * placeholder holds none of it. Not so for what the model found: a line
+   * whose street address a rule left as [REDACTED] still names the person
+   * in it, and the model, reading what the rule left, says so.
+   */
   const isFoundByName: boolean =
-    getBuiltInDataType(data.finding.dataTypeId)?.foundBy === "name";
+    !model && getBuiltInDataType(data.finding.dataTypeId)?.foundBy === "name";
 
   proof.findingRecordsRead = read.findingRecordsRead;
   proof.recordsRead = read.rows.length;
 
-  for (const row of read.rows) {
-    const before: Array<string> = valuesAt({
-      row,
-      source: data.plan.source,
-      caps,
-      location: data.finding.location,
-    });
+  const count: (values: ValuesBeforeAndAfter) => void = (
+    values: ValuesBeforeAndAfter,
+  ): void => {
+    values.before.forEach((value: string, index: number): void => {
+      const left: string | undefined = values.after[index];
 
-    if (before.length === 0) {
-      continue;
-    }
-
-    const after: Array<string> = valuesAt({
-      row: data.scrubRow(row),
-      source: data.plan.source,
-      caps,
-      location: data.finding.location,
-    });
-
-    before.forEach((value: string, index: number): void => {
-      const left: string | undefined = after[index];
+      // A value the model had no time for is not counted: it is not known to hold nothing.
+      if (!isJudged(model, value)) {
+        return;
+      }
 
       if (holdsTheData(value)) {
+        // Nor one whose value after the rule it had no time for.
+        if (left !== value && !isJudged(model, left)) {
+          return;
+        }
+
         proof.valuesWithData++;
 
         const stillHolds: boolean =
@@ -631,10 +707,73 @@ async function countAtPlace(data: {
         }
       }
     });
+  };
+
+  /*
+   * Record by record, the finding's own first. With the model, each
+   * record's values are read before the next record's - what they held,
+   * then what the rule left of those that held the data - so every value
+   * counted was judged whole, and once its time is spent no record after
+   * is counted.
+   */
+  for (const row of read.rows) {
+    const before: Array<string> = valuesAt({
+      row,
+      source: data.plan.source,
+      caps,
+      location: data.finding.location,
+    });
+
+    if (before.length === 0) {
+      continue;
+    }
+
+    const values: ValuesBeforeAndAfter = {
+      before,
+      after: valuesAt({
+        row: data.scrubRow(row),
+        source: data.plan.source,
+        caps,
+        location: data.finding.location,
+      }),
+    };
+
+    if (model) {
+      await model.read(values.before);
+
+      // What the rule left of each value that held the data.
+      await model.read(
+        values.before
+          .map((value: string, index: number): string | null => {
+            const left: string | undefined = values.after[index];
+
+            return left !== undefined &&
+              left !== value &&
+              model.isRead(value) &&
+              holdsTheData(value)
+              ? left
+              : null;
+          })
+          .filter((left: string | null): left is string => {
+            return left !== null;
+          }),
+      );
+    }
+
+    count(values);
+
+    if (model && (model.isOutOfTime || !model.isAvailable)) {
+      break;
+    }
   }
 
   if (proof.valuesWithData === 0) {
-    return failed(proof, ScrubProofFailure.NothingToProveOn);
+    return failed(
+      proof,
+      model && !model.isAvailable
+        ? ScrubProofFailure.ModelUnavailable
+        : ScrubProofFailure.NothingToProveOn,
+    );
   }
 
   return {
@@ -669,6 +808,13 @@ export async function proveScrubRule(data: {
   now?: Date | undefined;
   // Stands in for the database in a test.
   readRows?: ScrubProofRowReader | undefined;
+  /*
+   * For a finding the model made: the model a plan's rules share, so each
+   * value is read once for all of them. One of its own when absent.
+   */
+  model?: ModelRereads | null | undefined;
+  // Stands in for the process's model in a test.
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
 }): Promise<ScrubProofOutcome> {
   const now: Date = data.now || OneUptimeDate.getCurrentDate();
   const proof: ScrubRuleProof = emptyProof({
@@ -709,6 +855,8 @@ export async function proveScrubRule(data: {
     proof,
     now,
     readRows: data.readRows || readRowsWithRunner,
+    model: data.model,
+    getRecognizer: data.getRecognizer,
     scrubRow: (row: JSONObject): JSONObject => {
       return toReadRow({
         row,
@@ -781,6 +929,8 @@ export async function proveMetricScrubRule(data: {
   options: ContentScanOptions;
   now?: Date | undefined;
   readRows?: ScrubProofRowReader | undefined;
+  model?: ModelRereads | null | undefined;
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
 }): Promise<ScrubProofOutcome> {
   const now: Date = data.now || OneUptimeDate.getCurrentDate();
   const serviceId: string = data.rule.serviceId?.toString() || "";
@@ -822,6 +972,8 @@ export async function proveMetricScrubRule(data: {
     proof,
     now,
     readRows: data.readRows || readRowsWithRunner,
+    model: data.model,
+    getRecognizer: data.getRecognizer,
     scrubRow: (row: JSONObject): JSONObject => {
       return scrubMetricRow(row, data.rule);
     },
@@ -833,7 +985,9 @@ export async function proveMetricScrubRule(data: {
  * records, then the newest of its service - those that hold its data type
  * first: what OneUptime AI's shapes are made from (TelemetryScrubShapes).
  * They never leave the server. Null when the records could not be read, or
- * the place is in records no rule is proven on.
+ * the place is in records no rule is proven on - or, for a finding the
+ * model made, where the model cannot run. A value the model had no time
+ * for is in neither list.
  */
 export async function readScrubPlaceValues(data: {
   projectId: ObjectID;
@@ -842,6 +996,8 @@ export async function readScrubPlaceValues(data: {
   options: ContentScanOptions;
   now?: Date | undefined;
   readRows?: ScrubProofRowReader | undefined;
+  model?: ModelRereads | null | undefined;
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
 }): Promise<{ holding: Array<string>; others: Array<string> } | null> {
   const plan: OccurrencePlan | null = planOccurrenceRead(
     data.finding.kind,
@@ -849,6 +1005,12 @@ export async function readScrubPlaceValues(data: {
   );
 
   if (!plan || !PROVABLE_SOURCES.has(plan.source)) {
+    return null;
+  }
+
+  const model: ModelRereads | null = await modelForProof(data);
+
+  if (model && !model.isAvailable) {
     return null;
   }
 
@@ -873,20 +1035,33 @@ export async function readScrubPlaceValues(data: {
       dataTypeId: data.finding.dataTypeId,
       location: data.finding.location,
       options: data.options,
+      model,
     },
   );
   const holding: Array<string> = [];
   const others: Array<string> = [];
+  const values: Array<string> = read.rows.flatMap(
+    (row: JSONObject): Array<string> => {
+      return valuesAt({
+        row,
+        source: plan.source,
+        caps,
+        location: data.finding.location,
+      });
+    },
+  );
 
-  for (const row of read.rows) {
-    for (const value of valuesAt({
-      row,
-      source: plan.source,
-      caps,
-      location: data.finding.location,
-    })) {
-      (holdsTheData(value) ? holding : others).push(value);
+  // The finding's own records' values first, as many as the model has time for.
+  if (model) {
+    await model.read(values);
+  }
+
+  for (const value of values) {
+    if (!isJudged(model, value)) {
+      continue;
     }
+
+    (holdsTheData(value) ? holding : others).push(value);
   }
 
   return { holding, others };

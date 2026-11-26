@@ -31,10 +31,17 @@ import {
   ROLE_FOLLOWED_BY_LEVEL,
   SHARED_TABLE_DECISIONS,
   SharedTableReach,
+  COLUMNS_KEPT_FROM_LEVELS,
+  ColumnKeptFromLevels,
+  isColumnKeptFromLevels,
   withProductLevels,
   withProductLevelsOf,
   withProductLevelsOnLists,
 } from "../../../Types/Product/ProductLevels";
+import {
+  CODE_REPOSITORY_COMMAND_COLUMNS,
+  CODE_REPOSITORY_RUNNER_COLUMNS,
+} from "../../../Types/CodeRepository/CodeRepositoryRunnerAuthoring";
 import {
   getProductsOfRecordTable,
   PRODUCT_RECORD_TABLES,
@@ -156,6 +163,8 @@ function levelsTheRuleAdds(list: ListOfModel): Array<Permission> {
     operation: list.operation,
     permissions: declared,
     tableList: list.tableList,
+    // A column whose list takes no level for the operation (COLUMNS_KEPT_FROM_LEVELS).
+    column: list.where === "table" ? undefined : list.where,
   })
     .filter((permission: Permission): boolean => {
       return isProductLevelPermission(permission);
@@ -917,6 +926,175 @@ describe("the rule, on every list of every model", () => {
         permissions: admins,
       }),
     ).toBe(admins);
+  });
+
+  test("every column kept from levels is a column of a product's table, decided for operations a column has, with why", () => {
+    const wrong: Array<string> = [];
+
+    for (const [tableName, columns] of Object.entries(
+      COLUMNS_KEPT_FROM_LEVELS,
+    )) {
+      if (getProductsWithLevelsOnTable(tableName).length === 0) {
+        wrong.push(`${tableName}: no product with levels reaches it`);
+      }
+
+      for (const [column, kept] of Object.entries(columns) as Array<
+        [string, ColumnKeptFromLevels]
+      >) {
+        const isColumn: boolean = LISTS.some((list: ListOfModel): boolean => {
+          return list.tableName === tableName && list.where === column;
+        });
+
+        if (!isColumn) {
+          wrong.push(`${tableName}.${column}: no such column`);
+        }
+
+        if (kept.operations.length === 0) {
+          wrong.push(`${tableName}.${column}: no operation`);
+        }
+
+        for (const operation of kept.operations) {
+          if (!["create", "read", "update"].includes(operation)) {
+            wrong.push(`${tableName}.${column}: ${operation} is no column's`);
+          }
+        }
+
+        if (kept.reason.trim().length < 40) {
+          wrong.push(`${tableName}.${column}: says too little of why`);
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  test("a code repository's commands and Runner are changed by no Code level, and read by every one", () => {
+    const kept: Array<string> = [
+      ...CODE_REPOSITORY_COMMAND_COLUMNS,
+      ...CODE_REPOSITORY_RUNNER_COLUMNS,
+    ];
+
+    expect(
+      Object.keys(COLUMNS_KEPT_FROM_LEVELS["CodeRepository"]!).sort(),
+    ).toEqual([...kept].sort());
+
+    for (const column of kept) {
+      const listOf: (operation: Operation) => Array<Permission> = (
+        operation: Operation,
+      ): Array<Permission> => {
+        return (
+          LISTS.find((list: ListOfModel): boolean => {
+            return (
+              list.tableName === "CodeRepository" &&
+              list.where === column &&
+              list.operation === operation
+            );
+          })?.permissions || []
+        );
+      };
+
+      // Changed by Project Admin and the Runbooks roles alone.
+      expect({ column, update: listOf("update") }).toEqual({
+        column,
+        update: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.EditRunbook,
+          Permission.RunbookAdmin,
+        ],
+      });
+
+      // Read, and given an empty value on a create, as the rest of the table.
+      expect(listOf("read")).toEqual(
+        expect.arrayContaining([
+          Permission.CodeAdmin,
+          Permission.CodeMember,
+          Permission.CodeViewer,
+        ]),
+      );
+      expect(listOf("create")).toEqual(
+        expect.arrayContaining([Permission.CodeAdmin, Permission.CodeMember]),
+      );
+
+      expect(
+        isColumnKeptFromLevels({
+          tableName: "CodeRepository",
+          column,
+          operation: "update",
+        }),
+      ).toBe(true);
+      expect(
+        isColumnKeptFromLevels({
+          tableName: "CodeRepository",
+          column,
+          operation: "read",
+        }),
+      ).toBe(false);
+    }
+
+    // The repository's other settings are still Code Admin's to change.
+    expect(
+      LISTS.find((list: ListOfModel): boolean => {
+        return (
+          list.tableName === "CodeRepository" &&
+          list.where === "name" &&
+          list.operation === "update"
+        );
+      })?.permissions,
+    ).toEqual(
+      expect.arrayContaining([Permission.CodeAdmin, Permission.CodeMember]),
+    );
+  });
+
+  test("a column kept from levels is answered for itself, not for another column of its table", () => {
+    const declared: Array<Permission> = [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+    ];
+    const table: Array<Permission> = [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ];
+
+    expect(
+      withProductLevels({
+        tableName: "CodeRepository",
+        operation: "update",
+        permissions: declared,
+        tableList: table,
+        column: "setupCommand",
+      }),
+    ).toBe(declared);
+
+    expect(
+      withProductLevels({
+        tableName: "CodeRepository",
+        operation: "update",
+        permissions: declared,
+        tableList: table,
+        column: "name",
+      }),
+    ).toEqual([...declared, Permission.CodeAdmin]);
+
+    // A name that is no column, or an object's own key, keeps nothing.
+    for (const column of ["constructor", "__proto__", "toString", ""]) {
+      expect(
+        isColumnKeptFromLevels({
+          tableName: "CodeRepository",
+          column,
+          operation: "update",
+        }),
+      ).toBe(false);
+    }
+
+    expect(
+      isColumnKeptFromLevels({
+        tableName: "constructor",
+        column: "setupCommand",
+        operation: "update",
+      }),
+    ).toBe(false);
   });
 
   test("a Runner's key, which claims its jobs with their secrets, is read by no level", () => {

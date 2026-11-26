@@ -10,7 +10,6 @@ import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -24,17 +23,13 @@ import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
-import Host from "Common/Models/DatabaseModels/Host";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import ProfileUtil from "../../Utils/ProfileUtil";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
@@ -131,15 +126,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [attributesError, setAttributesError] = React.useState<string>("");
 
-  const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
-
   /*
    * The services the shown rows name, read by their ids as each page of
    * rows arrives - never the project's first 10,000 by name, past which a
    * service's row lost its name and its colour (#10764).
    */
   const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
-  const [hosts, setHosts] = React.useState<Array<Host>>([]);
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     useState<boolean>(false);
@@ -164,25 +156,17 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Sources on the loaded page that neither the services read by their ids
-   * nor the Host list can name — RUM applications, clusters, serverless
-   * functions, hosts past the per-project cap. Captured from the table's own
-   * fetch so the cells, which render synchronously, can show names once one
-   * lookup lands.
+   * Sources on the loaded page that the services read by their ids do not
+   * name — hosts, RUM applications, clusters, serverless functions. Captured
+   * from the table's own fetch so the cells, which render synchronously, can
+   * show names once one lookup lands. A host-level (eBPF) profile's host is
+   * named here too, by its id: the table read the project's first 10,000
+   * hosts by name for them, and one past them was named this way anyway
+   * (#10921).
    */
   const [unnamedEntityRefs, setUnnamedEntityRefs] = useState<
     Array<ProfileEntityRef>
   >([]);
-
-  const knownEntityIds: Set<string> = useMemo(() => {
-    const ids: Set<string> = new Set<string>();
-    for (const host of hosts) {
-      if (host.id) {
-        ids.add(host.id.toString());
-      }
-    }
-    return ids;
-  }, [hosts]);
 
   const handleProfilesFetched: (profiles: Array<Profile>) => Promise<void> =
     useCallback(
@@ -208,7 +192,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           );
 
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        const knownIds: Set<string> = new Set<string>(knownEntityIds);
+        const knownIds: Set<string> = new Set<string>();
 
         for (const profile of profiles) {
           const id: string = profile.primaryEntityId?.toString() || "";
@@ -236,36 +220,26 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           },
         );
       },
-      [knownEntityIds, servicesOnPage.readServicesOf],
+      [servicesOnPage.readServicesOf],
     );
 
   /*
-   * What the services the page's rows name, or the loaded Host list, call
-   * the `?serviceId=` deep-link id, if anything; otherwise the shared
-   * resolver names it below, by its id. A host-level (eBPF) source is
-   * linked here by its Host id.
+   * What the services the page's rows name call the `?serviceId=` deep-link
+   * id, if anything; otherwise the shared resolver names it below, by its
+   * id - a host-level (eBPF) source, linked here by its Host id, too.
    */
   const deepLinkedService: Service | undefined =
     servicesOnPage.getService(serviceIdFilter);
-  const serviceFilterListNames: {
-    serviceName: string | undefined;
-    hostName: string | undefined;
-  } = useMemo(() => {
+  const deepLinkedServiceName: string | undefined = useMemo(() => {
     if (!serviceIdFilter) {
-      return { serviceName: undefined, hostName: undefined };
+      return undefined;
     }
-    const host: Host | undefined = hosts.find((candidate: Host): boolean => {
-      return candidate.id?.toString() === serviceIdFilter;
-    });
-    return {
-      // The stand-in for telemetry that named no service, in the reader's words.
-      serviceName: TelemetryServiceUtil.getServiceDisplayName(
-        deepLinkedService?.name,
-        translator,
-      ),
-      hostName: host ? host.name || host.hostIdentifier : undefined,
-    };
-  }, [serviceIdFilter, deepLinkedService, hosts, translator.language]);
+    // The stand-in for telemetry that named no service, in the reader's words.
+    return TelemetryServiceUtil.getServiceDisplayName(
+      deepLinkedService?.name,
+      translator,
+    );
+  }, [serviceIdFilter, deepLinkedService, translator.language]);
 
   /*
    * One lookup for every name this table shows: the page's unnamed sources
@@ -273,42 +247,28 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
    * deep-link chip, whose id may not be a Service at all.
    */
   const entityIdsToResolve: Array<string> = useMemo(() => {
-    /*
-     * Wait for the Host list: until it lands every host id looks unnamed,
-     * and a deep link to a loaded Host would be looked up for nothing.
-     */
-    if (isPageLoading) {
-      return [];
-    }
     const ids: Array<string> = unnamedEntityRefs.map(
       (ref: ProfileEntityRef): string => {
         return ref.id;
       },
     );
     /*
-     * Skip the lookup only when the chip can name the id from the lists by
-     * itself. `knownEntityIds` is the wrong test here: it also holds a Host
-     * with neither name nor identifier, which the chip cannot print.
+     * Skip the lookup only when the services read by their ids name the
+     * chip's id by themselves.
      */
-    const isChipNamedByLists: boolean = Boolean(
+    const isChipNamedByServices: boolean = Boolean(
       serviceIdFilter &&
         getProfileServiceFilterChipDisplay({
           serviceId: serviceIdFilter,
-          serviceName: serviceFilterListNames.serviceName,
-          hostName: serviceFilterListNames.hostName,
+          serviceName: deepLinkedServiceName,
           nameMap: undefined,
         }).isResolved,
     );
-    if (serviceIdFilter && !isChipNamedByLists) {
+    if (serviceIdFilter && !isChipNamedByServices) {
       ids.push(serviceIdFilter);
     }
     return ids;
-  }, [
-    isPageLoading,
-    unnamedEntityRefs,
-    serviceIdFilter,
-    serviceFilterListNames,
-  ]);
+  }, [unnamedEntityRefs, serviceIdFilter, deepLinkedServiceName]);
 
   const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
     return buildProfileEntityTypeHints(unnamedEntityRefs);
@@ -390,41 +350,6 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     });
   }, [props.entityKeys, props.entityKeyDisplays]);
 
-  const loadHosts: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsPageLoading(true);
-
-      /*
-       * Hosts resolve names for host-level (eBPF) profiles, which carry
-       * a Host id — not a Service id — in primaryEntityId. Failure here
-       * is non-fatal: the table still renders, falling back to the
-       * entity-type label for those rows.
-       */
-      try {
-        const hostsResponse: ListResult<Host> = await ModelAPI.getList({
-          modelType: Host,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            name: true,
-            hostIdentifier: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-        setHosts(hostsResponse.data || []);
-      } catch {
-        setHosts([]);
-      }
-    } finally {
-      setIsPageLoading(false);
-    }
-  };
-
   /*
    * Profiles without a service.name are tagged with the projectId
    * (ServiceType.Unknown) and have no Service row: the filter offers them
@@ -476,10 +401,6 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     }
   };
 
-  useEffect(() => {
-    void loadHosts();
-  }, []);
-
   const handleAdvancedFiltersToggle: (show: boolean) => void = (
     show: boolean,
   ): void => {
@@ -491,8 +412,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The deep-link chip names the source once it is known — the loaded
-   * Service and Host lists first, then the shared resolver — instead of an
+   * The deep-link chip names the source once it is known — the services
+   * read by their ids first, then the shared resolver — instead of an
    * 8-character id prefix nobody can read.
    */
   const serviceFilterChip: {
@@ -502,8 +423,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   } | null = serviceIdFilter
     ? getProfileServiceFilterChipDisplay({
         serviceId: serviceIdFilter,
-        serviceName: serviceFilterListNames.serviceName,
-        hostName: serviceFilterListNames.hostName,
+        serviceName: deepLinkedServiceName,
         nameMap: entityNames,
       })
     : null;
@@ -552,10 +472,6 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     serviceIdFilter,
     profileTypeFilter,
   });
-
-  if (isPageLoading) {
-    return <PageSkeleton shape="table" />;
-  }
 
   return (
     <Fragment>
@@ -821,28 +737,11 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 const entityType: string =
                   profile.primaryEntityType?.toString() || "";
 
-                if (entityType === ServiceType.Host) {
-                  const host: Host | undefined = hosts.find((h: Host) => {
-                    return h.id?.toString() === entityId;
-                  });
-                  if (host) {
-                    return (
-                      <div className="flex flex-col">
-                        <span className="text-sm text-gray-900">
-                          {host.name || host.hostIdentifier}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {translator.translateText("Host")}
-                        </span>
-                      </div>
-                    );
-                  }
-                }
-
                 /*
-                 * Every other source (RUM application, cluster, serverless
-                 * function, …) is named by the shared resolver. Until — or
-                 * unless — it resolves, the type label over a short id.
+                 * Every other source (a host, a RUM application, a cluster,
+                 * a serverless function, …) is named by the shared resolver,
+                 * by its id, its kind in the reader's words under its name.
+                 * Until — or unless — it resolves, the kind over a short id.
                  */
                 const source: ProfileEntityDisplay = getProfileEntityDisplay({
                   entityId,
@@ -853,11 +752,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 if (source.isResolved) {
                   return (
                     <div className="flex flex-col">
+                      {/* What its owner named it, drawn as written. */}
                       <span className="text-sm text-gray-900" title={entityId}>
                         {source.primary}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {source.typeLabel}
+                        {translator.translateText(source.typeLabel)}
                       </span>
                     </div>
                   );
@@ -866,7 +766,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 return (
                   <div className="flex flex-col">
                     <span className="text-sm text-gray-900">
-                      {source.primary}
+                      {translator.translateText(source.primary)}
                     </span>
                     {source.shortId && (
                       <span

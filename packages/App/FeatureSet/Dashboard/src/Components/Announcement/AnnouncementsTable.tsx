@@ -31,7 +31,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getAnnouncementCreateQueryParams } from "./AnnouncementForm";
 import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
@@ -84,6 +84,11 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in English (a key), said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [showAnnouncementTemplateModal, setShowAnnouncementTemplateModal] =
     useState<boolean>(false);
 
@@ -108,6 +113,9 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
 
         setAnnouncementTemplates(listResult.data);
       } catch (err) {
+        setErrorWhatFailed(
+          translationKey("The announcement templates could not be loaded."),
+        );
         setError(API.getFriendlyMessage(err));
       }
 
@@ -341,6 +349,11 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={
+            errorWhatFailed
+              ? translator.translateText(errorWhatFailed) || errorWhatFailed
+              : undefined
+          }
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");
