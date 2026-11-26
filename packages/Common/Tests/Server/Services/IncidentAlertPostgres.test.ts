@@ -399,7 +399,6 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
         // confdeltype: c = CASCADE, n = SET NULL
         ["alertId", "Alert", "c"],
         ["createdByUserId", "User", "n"],
-        ["deletedByUserId", "User", "n"],
         ["incidentId", "Incident", "c"],
         ["projectId", "Project", "c"],
       ]);

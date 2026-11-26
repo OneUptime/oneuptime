@@ -66,7 +66,10 @@ export const MESSAGE_VIEW: string =
  *     made would be. A blocked account and an administrator's are refused,
  *     with one refusal for both. Neither can look like a sign-in that went
  *     through, which a self-hosted server's provider has always been able to
- *     tell apart.
+ *     tell apart. An address with no account gets one only when the
+ *     provider has teams of its project to put them in; without, it is told
+ *     "No teams added.", as an account in none of the project's teams is,
+ *     and nothing is made (#11149).
  *
  * The reason is logged on the server, and a refused account's own projects
  * record it in their audit logs (FailedSignInAuditLog), as before.
@@ -80,6 +83,12 @@ export enum ProjectSsoGateOutcome {
   CheckEmail = "check-email",
   // A self-hosted server's one refusal, for a blocked account or an administrator's.
   Refused = "refused",
+  /*
+   * A self-hosted server's answer to an address with no account when the
+   * provider has no teams of its project to put someone new in: "No teams
+   * added.", which a member of no team of the project is told too (#11149).
+   */
+  NoTeams = "no-teams",
 }
 
 // Why a sign-in did not go through: logged, never shown.
@@ -88,6 +97,7 @@ export enum ProjectSsoGateReason {
   NotConfirmed = "the account has not confirmed this project's single sign-on from its mailbox",
   Blocked = "the account is blocked",
   Administrator = "the account is a OneUptime administrator's",
+  NoTeams = "no account uses the address yet, and the provider has no teams of its project to add someone new to",
 }
 
 export interface ProjectSsoGateDecision {
@@ -162,6 +172,14 @@ export default class ProjectSsoSignInGate {
     kind: ProjectSsoKind;
     providerId: ObjectID;
     origin?: RequestOrigin | undefined;
+    /*
+     * Whether the provider has teams of its project to put someone new in
+     * (SsoTeamMembership.getProjectTeams). Without, a self-hosted server
+     * makes no account for an address that has none: the sign-in could
+     * only turn them away with "No teams added." and leave the account
+     * behind (#11149).
+     */
+    canAddNewcomers: boolean;
   }): Promise<ProjectSsoGateDecision> {
     const user: User | null = await UserService.findOneBy({
       query: { email: data.email },
@@ -380,6 +398,7 @@ export default class ProjectSsoSignInGate {
     user: User | null;
     email: Email;
     name: Name | null;
+    canAddNewcomers: boolean;
   }): Promise<ProjectSsoGateDecision> {
     const user: User | null = data.user;
 
@@ -410,6 +429,20 @@ export default class ProjectSsoSignInGate {
         user: user,
         isNewUser: false,
         reason: null,
+      };
+    }
+
+    /*
+     * Nowhere to put them: no account is made, and they are told what a
+     * member of none of the project's teams is told. The answer comes no
+     * slower than that member's, so it says nothing of the address.
+     */
+    if (!data.canAddNewcomers) {
+      return {
+        outcome: ProjectSsoGateOutcome.NoTeams,
+        user: null,
+        isNewUser: false,
+        reason: ProjectSsoGateReason.NoTeams,
       };
     }
 

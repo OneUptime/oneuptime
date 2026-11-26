@@ -138,6 +138,33 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
         "Six checkboxes that answer one question - which of these split the rule's episodes - in two columns of three rows: monitor, severity, title, the two label sets and connected services. The step shows only for a Custom mix; a split would ask one question on two pages.",
     };
   }),
+  /*
+   * Create Ingestion Key, from Settings and from every setup guide's key
+   * picker: one list of fields for every door (Dashboard Components/
+   * Telemetry/IngestionKeyForm), each door's own under a condition on the
+   * key type it pins, which the scan reads all at once. A Mobile key's
+   * required app name came in with the Mobile key (#6457).
+   */
+  ...(
+    [
+      [
+        `${DASHBOARD}/Components/Telemetry/IngestionKeySelector.tsx`,
+        "ModelFormModal: Create Ingestion Key",
+      ],
+      [
+        `${DASHBOARD}/Pages/Settings/TelemetryIngestionKeys.tsx`,
+        "ModelTable: Settings > Telemetry Ingestion Keys",
+      ],
+    ] as Array<[string, string]>
+  ).map(([file, form]: [string, string]): ListedStep => {
+    return {
+      file: file,
+      form: form,
+      step: "key",
+      reason:
+        "Each door's fields in one list, under the key type it pins, so a door shows four rows at most: Settings shows Name, Key Type, the app's Pinned Service Name once Mobile is picked, and More fields; a Browser guide Name, Allowed Origins and More fields (Description, Pinned Service Name); a Mobile guide Name, the app's Pinned Service Name and More fields; a Server guide Name and More fields. The three Pinned Service Names are one door's each, never two on screen together - Common Tests/App/Dashboard/IngestionKeyForm.test.ts pins every door's fields.",
+    };
+  }),
 ];
 
 const VIRTUAL_ROOT: string = "/repo";

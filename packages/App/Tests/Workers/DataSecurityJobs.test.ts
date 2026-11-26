@@ -21,9 +21,10 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * Workers/Index.ts is load-bearing, and a job the dictionary does not know
  * - or knows under a name a cron also uses - fails silently. The REAL
  * RunCron, JobDictionary and queue helpers (Utils/DataSecurity/
- * DataSecurityJobs) run here; only the queue underneath them, the runner,
- * discovery and the evaluator are stood in for, so what each cron queues
- * and what each job runs can be read back.
+ * DataSecurityJobs) run here; only the queue underneath them and the work
+ * each job hands to - the runner, discovery, the evaluator and OneUptime
+ * AI's runs - are stood in for, so what each cron queues and what each job
+ * runs can be read back.
  */
 
 const mockAddJob: jest.Mock = jest.fn(() => {
@@ -38,6 +39,18 @@ const mockReadConnection: jest.Mock = jest.fn();
 const mockDiscoverProject: jest.Mock = jest.fn();
 const mockEvaluateProject: jest.Mock = jest.fn();
 const mockSuggestForStore: jest.Mock = jest.fn();
+const mockListProvingProjectIds: jest.Mock = jest.fn();
+const mockDiscoverDataTypes: jest.Mock = jest.fn();
+const mockJudgeStore: jest.Mock = jest.fn();
+const mockTuneScans: jest.Mock = jest.fn();
+const mockAiEvaluateIssue: jest.Mock = jest.fn();
+const mockSendOwnerNotice: jest.Mock = jest.fn();
+const mockProposeStoreOwners: jest.Mock = jest.fn();
+const mockProposeOwnerRules: jest.Mock = jest.fn();
+const mockDraftRecords: jest.Mock = jest.fn();
+const mockAssessExposure: jest.Mock = jest.fn();
+const mockGroupIssues: jest.Mock = jest.fn();
+const mockProposeTelemetryFixes: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
@@ -95,6 +108,140 @@ jest.mock("Common/Server/Utils/AI/DataSecurity/FieldSuggestion", () => {
   };
 });
 
+/*
+ * The work the later jobs hand to (#10364 - #10377): each module's own
+ * exports stay, and only the class a job calls is stood in for.
+ */
+jest.mock("Common/Server/Utils/DataSecurity/DataTypeProving", () => {
+  return {
+    ...jest.requireActual("Common/Server/Utils/DataSecurity/DataTypeProving"),
+    __esModule: true,
+    default: { listProvingProjectIds: mockListProvingProjectIds },
+  };
+});
+
+jest.mock("Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
+    ),
+    __esModule: true,
+    default: { runForProject: mockDiscoverDataTypes },
+  };
+});
+
+jest.mock("Common/Server/Utils/AI/DataSecurity/FindingVerdicts", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/AI/DataSecurity/FindingVerdicts",
+    ),
+    __esModule: true,
+    default: { judgeStore: mockJudgeStore },
+  };
+});
+
+jest.mock("Common/Server/Utils/AI/DataSecurity/DataSecurityScanTuning", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityScanTuning",
+    ),
+    __esModule: true,
+    default: { proposeForProject: mockTuneScans },
+  };
+});
+
+jest.mock("Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine",
+    ),
+    __esModule: true,
+    default: { evaluateIssue: mockAiEvaluateIssue },
+  };
+});
+
+jest.mock("Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice",
+    ),
+    __esModule: true,
+    default: { send: mockSendOwnerNotice },
+  };
+});
+
+jest.mock(
+  "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun",
+  () => {
+    return {
+      ...jest.requireActual(
+        "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun",
+      ),
+      __esModule: true,
+      default: { run: mockProposeStoreOwners },
+    };
+  },
+);
+
+jest.mock(
+  "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
+  () => {
+    return {
+      ...jest.requireActual(
+        "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
+      ),
+      __esModule: true,
+      default: { proposeForProject: mockProposeOwnerRules },
+    };
+  },
+);
+
+jest.mock(
+  "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
+  () => {
+    return {
+      ...jest.requireActual(
+        "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
+      ),
+      __esModule: true,
+      default: { run: mockDraftRecords },
+    };
+  },
+);
+
+jest.mock("Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun",
+    ),
+    __esModule: true,
+    default: { run: mockAssessExposure },
+  };
+});
+
+jest.mock("Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper", () => {
+  return {
+    ...jest.requireActual(
+      "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper",
+    ),
+    __esModule: true,
+    default: { groupProject: mockGroupIssues },
+  };
+});
+
+jest.mock(
+  "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals",
+  () => {
+    return {
+      ...jest.requireActual(
+        "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals",
+      ),
+      __esModule: true,
+      default: { proposeForProject: mockProposeTelemetryFixes },
+    };
+  },
+);
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -113,12 +260,23 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import { DATA_SECURITY_TURN_TIME_LIMIT_IN_MS } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import {
+  DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
+  DATA_SECURITY_ASSESS_EXPOSURE_JOB,
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
   DATA_SECURITY_DISCOVER_PROJECT_JOB,
+  DATA_SECURITY_DRAFT_RECORDS_JOB,
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  DATA_SECURITY_GROUP_ISSUES_JOB,
+  DATA_SECURITY_JUDGE_FINDINGS_JOB,
+  DATA_SECURITY_NOTIFY_OWNERS_JOB,
+  DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
+  DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
   DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
+  DATA_SECURITY_TUNE_SCANS_JOB,
 } from "Common/Server/Utils/DataSecurity/DataSecurityJobs";
 import JobDictionary from "../../FeatureSet/Workers/Utils/JobDictionary";
 import "../../FeatureSet/Workers/Jobs/DataSecurity/DataSecurityJobs";
@@ -178,6 +336,24 @@ const CRONS: Array<CronCase> = [
     schedule: EVERY_DAY,
     timeoutInMs: 10 * MINUTE_IN_MS,
   },
+  // The drafts of the project's own data types whose proving time ran out (#10371).
+  {
+    name: "DataSecurity:DecideDataTypes",
+    schedule: EVERY_HOUR,
+    timeoutInMs: 10 * MINUTE_IN_MS,
+  },
+  // Owners for the stores new today (#10374).
+  {
+    name: "DataSecurity:ProposeStoreOwners",
+    schedule: EVERY_DAY,
+    timeoutInMs: 10 * MINUTE_IN_MS,
+  },
+  // Each project's record of processing, drafted (#10375).
+  {
+    name: "DataSecurity:DraftRecordsOfProcessing",
+    schedule: EVERY_DAY,
+    timeoutInMs: 10 * MINUTE_IN_MS,
+  },
 ];
 
 const QUEUE_JOBS: Array<{ name: string; timeoutInMs: number }> = [
@@ -200,6 +376,44 @@ const QUEUE_JOBS: Array<{ name: string; timeoutInMs: number }> = [
     name: DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
     timeoutInMs: 5 * MINUTE_IN_MS,
   },
+  {
+    name: DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+    timeoutInMs: 10 * MINUTE_IN_MS,
+  },
+  { name: DATA_SECURITY_JUDGE_FINDINGS_JOB, timeoutInMs: 5 * MINUTE_IN_MS },
+  { name: DATA_SECURITY_TUNE_SCANS_JOB, timeoutInMs: 5 * MINUTE_IN_MS },
+  { name: DATA_SECURITY_AI_EVALUATE_ISSUE_JOB, timeoutInMs: 5 * MINUTE_IN_MS },
+  { name: DATA_SECURITY_NOTIFY_OWNERS_JOB, timeoutInMs: 5 * MINUTE_IN_MS },
+  {
+    name: DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+    timeoutInMs: 15 * MINUTE_IN_MS,
+  },
+  { name: DATA_SECURITY_DRAFT_RECORDS_JOB, timeoutInMs: 30 * MINUTE_IN_MS },
+  { name: DATA_SECURITY_ASSESS_EXPOSURE_JOB, timeoutInMs: 5 * MINUTE_IN_MS },
+  {
+    name: DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
+    timeoutInMs: 5 * MINUTE_IN_MS,
+  },
+  { name: DATA_SECURITY_GROUP_ISSUES_JOB, timeoutInMs: 10 * MINUTE_IN_MS },
+  {
+    name: DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+    timeoutInMs: 10 * MINUTE_IN_MS,
+  },
+];
+
+// What the jobs after the first six hand their work to, each stood in for.
+const LATER_JOBS_WORK: Array<jest.Mock> = [
+  mockDiscoverDataTypes,
+  mockJudgeStore,
+  mockTuneScans,
+  mockAiEvaluateIssue,
+  mockSendOwnerNotice,
+  mockProposeStoreOwners,
+  mockProposeOwnerRules,
+  mockDraftRecords,
+  mockAssessExposure,
+  mockGroupIssues,
+  mockProposeTelemetryFixes,
 ];
 
 const WORKERS_DIR: string = path.resolve(__dirname, "../../FeatureSet/Workers");
@@ -238,6 +452,8 @@ beforeEach(() => {
     mockDiscoverProject,
     mockEvaluateProject,
     mockSuggestForStore,
+    mockListProvingProjectIds,
+    ...LATER_JOBS_WORK,
   ]) {
     mock.mockReset();
   }
@@ -251,6 +467,11 @@ beforeEach(() => {
   mockDiscoverProject.mockResolvedValue(0 as never);
   mockEvaluateProject.mockResolvedValue(undefined as never);
   mockSuggestForStore.mockResolvedValue({ asked: 0, written: 0 } as never);
+  mockListProvingProjectIds.mockResolvedValue([] as never);
+
+  for (const mock of LATER_JOBS_WORK) {
+    mock.mockResolvedValue(undefined as never);
+  }
 });
 
 describe("Data Security jobs: wired into the worker at all", () => {
@@ -444,6 +665,61 @@ describe("Data Security jobs: what each cron queues", () => {
     ]);
   });
 
+  test("DecideDataTypes queues a data type discovery for each project with drafts being proven, and decides nothing itself", async () => {
+    mockListProvingProjectIds.mockResolvedValue([PROJECT_B] as never);
+
+    await runCron("DataSecurity:DecideDataTypes");
+
+    expect(mockListProvingProjectIds).toHaveBeenCalledTimes(1);
+    expect(mockListProjectIds).not.toHaveBeenCalled();
+    expect(mockDiscoverDataTypes).not.toHaveBeenCalled();
+    expect(queuedSinceReset()).toEqual([
+      [
+        DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+        { projectId: PROJECT_B.toString() },
+        `data-security-data-types-${PROJECT_B.toString()}`,
+      ],
+    ]);
+  });
+
+  test("ProposeStoreOwners queues one owner proposal per project, and proposes nothing itself", async () => {
+    await runCron("DataSecurity:ProposeStoreOwners");
+
+    expect(mockListProjectIds).toHaveBeenCalledTimes(1);
+    expect(mockProposeStoreOwners).not.toHaveBeenCalled();
+    expect(queuedSinceReset()).toEqual([
+      [
+        DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+        { projectId: PROJECT_A.toString() },
+        `data-security-owners-${PROJECT_A.toString()}`,
+      ],
+      [
+        DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+        { projectId: PROJECT_B.toString() },
+        `data-security-owners-${PROJECT_B.toString()}`,
+      ],
+    ]);
+  });
+
+  test("DraftRecordsOfProcessing queues one draft of each project's record of processing, and drafts nothing itself", async () => {
+    await runCron("DataSecurity:DraftRecordsOfProcessing");
+
+    expect(mockListProjectIds).toHaveBeenCalledTimes(1);
+    expect(mockDraftRecords).not.toHaveBeenCalled();
+    expect(queuedSinceReset()).toEqual([
+      [
+        DATA_SECURITY_DRAFT_RECORDS_JOB,
+        { projectId: PROJECT_A.toString() },
+        `data-security-record-drafts-${PROJECT_A.toString()}`,
+      ],
+      [
+        DATA_SECURITY_DRAFT_RECORDS_JOB,
+        { projectId: PROJECT_B.toString() },
+        `data-security-record-drafts-${PROJECT_B.toString()}`,
+      ],
+    ]);
+  });
+
   test("a cron with nothing due queues nothing", async () => {
     mockListProjectIds.mockResolvedValue([] as never);
 
@@ -554,6 +830,68 @@ describe("Data Security jobs: what each queue job runs", () => {
     ).not.toContain(DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB);
   });
 
+  test("DiscoverDataTypes finds and decides the data types of the project its payload names", async () => {
+    await JobDictionary.getJobFunction(DATA_SECURITY_DISCOVER_DATA_TYPES_JOB)(
+      jobOf({ projectId: PROJECT_A.toString() }),
+    );
+
+    expect(mockDiscoverDataTypes).toHaveBeenCalledTimes(1);
+    expect(
+      String(
+        (mockDiscoverDataTypes.mock.calls[0]![0] as { projectId: ObjectID })
+          .projectId,
+      ),
+    ).toBe(PROJECT_A.toString());
+  });
+
+  test("ProposeStoreOwners proposes owners for the stores of the project its payload names, or of the cloud connection it names", async () => {
+    await JobDictionary.getJobFunction(DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB)(
+      jobOf({ projectId: PROJECT_A.toString() }),
+    );
+    await JobDictionary.getJobFunction(DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB)(
+      jobOf({
+        projectId: PROJECT_B.toString(),
+        cloudConnectionId: CONNECTION_ID.toString(),
+      }),
+    );
+
+    expect(
+      mockProposeStoreOwners.mock.calls.map(
+        (call: Array<unknown>): Array<string | undefined> => {
+          const asked: {
+            projectId: ObjectID;
+            cloudConnectionId?: ObjectID | undefined;
+          } = call[0] as {
+            projectId: ObjectID;
+            cloudConnectionId?: ObjectID | undefined;
+          };
+
+          return [
+            asked.projectId.toString(),
+            asked.cloudConnectionId?.toString(),
+          ];
+        },
+      ),
+    ).toEqual([
+      [PROJECT_A.toString(), undefined],
+      [PROJECT_B.toString(), CONNECTION_ID.toString()],
+    ]);
+  });
+
+  test("DraftRecords drafts the record of processing of the project its payload names", async () => {
+    await JobDictionary.getJobFunction(DATA_SECURITY_DRAFT_RECORDS_JOB)(
+      jobOf({ projectId: PROJECT_B.toString() }),
+    );
+
+    expect(mockDraftRecords).toHaveBeenCalledTimes(1);
+    expect(
+      String(
+        (mockDraftRecords.mock.calls[0]![0] as { projectId: ObjectID })
+          .projectId,
+      ),
+    ).toBe(PROJECT_B.toString());
+  });
+
   test("a payload without the valid ids a job needs runs nothing; a project job needs only the project's", async () => {
     const payloads: Array<QueueJob | undefined> = [
       undefined,
@@ -577,6 +915,34 @@ describe("Data Security jobs: what each queue job runs", () => {
     expect(mockScanStore).not.toHaveBeenCalled();
     expect(mockReadConnection).not.toHaveBeenCalled();
     expect(mockSuggestForStore).not.toHaveBeenCalled();
+
+    // The later jobs: a project's ran for the two payloads with a valid project.
+    expect({
+      discoverDataTypes: mockDiscoverDataTypes.mock.calls.length,
+      tuneScans: mockTuneScans.mock.calls.length,
+      proposeStoreOwners: mockProposeStoreOwners.mock.calls.length,
+      draftRecords: mockDraftRecords.mock.calls.length,
+      proposeOwnerRules: mockProposeOwnerRules.mock.calls.length,
+      groupIssues: mockGroupIssues.mock.calls.length,
+      proposeTelemetryFixes: mockProposeTelemetryFixes.mock.calls.length,
+      // A store's, an issue's, a held email's and a case's need their own ids too.
+      judgeFindings: mockJudgeStore.mock.calls.length,
+      aiEvaluateIssue: mockAiEvaluateIssue.mock.calls.length,
+      notifyOwners: mockSendOwnerNotice.mock.calls.length,
+      assessExposure: mockAssessExposure.mock.calls.length,
+    }).toEqual({
+      discoverDataTypes: 2,
+      tuneScans: 2,
+      proposeStoreOwners: 2,
+      draftRecords: 2,
+      proposeOwnerRules: 2,
+      groupIssues: 2,
+      proposeTelemetryFixes: 2,
+      judgeFindings: 0,
+      aiEvaluateIssue: 0,
+      notifyOwners: 0,
+      assessExposure: 0,
+    });
   });
 
   test("a job whose work fails fails, so the queue sees it", async () => {

@@ -396,6 +396,11 @@ describe("the ordered lists' APIs", () => {
         "BaseAPI",
         "ArchivableValueAPI",
         "CustomFieldDefinitionAPI",
+        /*
+         * The log and trace drop filters' (#10436): BaseAPI's routes, with a
+         * warning added to a create or update made with an API key.
+         */
+        "DropFilterAPI",
       ].filter((api: string): boolean => {
         return compact.includes(`new${api}<${model},${model}ServiceType>`);
       });

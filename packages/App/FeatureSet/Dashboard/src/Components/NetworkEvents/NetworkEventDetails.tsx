@@ -17,6 +17,11 @@ import {
   NetworkQuickAction,
   getNetworkQuickActionRoute,
 } from "../Network/NetworkQuickActions";
+import {
+  getSnmpTrapReportedAs,
+  getSnmpTrapSecurity,
+  getSnmpTrapUser,
+} from "./SnmpTrapReportedAs";
 import AppLink from "../AppLink/AppLink";
 import { getNetworkEventAlertRoute } from "../../Utils/NetworkEventMonitorPrefill";
 import Route from "Common/Types/API/Route";
@@ -64,12 +69,16 @@ const FACT_LABELS: {
   device: string;
   kind: string;
   reportedAs: string;
+  snmpUser: string;
+  security: string;
   sentFrom: string;
 } = {
   when: translationKey("When"),
   device: translationKey("Device"),
   kind: translationKey("Kind"),
   reportedAs: translationKey("Reported as"),
+  snmpUser: translationKey("SNMPv3 user"),
+  security: translationKey("Security"),
   sentFrom: translationKey("Sent from"),
 };
 
@@ -183,13 +192,36 @@ const NetworkEventDetails: FunctionComponent<ComponentProps> = (
   facts.push({
     label: FACT_LABELS.reportedAs,
     value: row.isSnmpTrap
-      ? translator.translateText("SNMP trap") || ""
+      ? translator.translateText(getSnmpTrapReportedAs(row.attributes)) || ""
       : row.vendor
         ? translator.translateTemplate("Syslog, {{vendor}} format", {
             vendor: row.vendor,
           })
         : translator.translateText("Syslog") || "",
   });
+
+  /*
+   * An SNMPv3 trap says who it came as and how, as a v1 or v2c trap says its
+   * version: the user the probe authenticated it as, and whether it was
+   * encrypted too.
+   */
+  const snmpUser: string | undefined = row.isSnmpTrap
+    ? getSnmpTrapUser(row.attributes)
+    : undefined;
+  const snmpSecurity: string | undefined = row.isSnmpTrap
+    ? getSnmpTrapSecurity(row.attributes)
+    : undefined;
+
+  if (snmpUser) {
+    facts.push({ label: FACT_LABELS.snmpUser, value: snmpUser });
+  }
+
+  if (snmpSecurity) {
+    facts.push({
+      label: FACT_LABELS.security,
+      value: translator.translateText(snmpSecurity) || "",
+    });
+  }
 
   if (row.sourceIp && row.sourceIp !== row.device) {
     facts.push({ label: FACT_LABELS.sentFrom, value: row.sourceIp });

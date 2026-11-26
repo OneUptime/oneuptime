@@ -68,11 +68,16 @@
  * The side menu counts the open cases and the playbook runs waiting for
  * approval beside Cases and Playbook Runs; both answer 0.
  *
+ * Connections' More settings (Trusted Proxies, Trusted Automatically, Access
+ * Logs) read the project by its id, and what is trusted without being listed
+ * (POST /security-trusted-proxies/automatic): a new project's settings, and
+ * nothing trusted beyond the private addresses.
+ *
  * Every read is recorded on window.__securityEventsEmptyStatesFixture:
  * listRequests (analytics lists carry analytics: true), countRequests,
- * aggregateRequests, apiRequests, creates, and unhandled: anything the
- * fixture does not model (a model table, an analytics query or an API URL).
- * The spec asserts `unhandled` is empty.
+ * itemRequests, aggregateRequests, apiRequests, creates, and unhandled:
+ * anything the fixture does not model (a model table, an analytics query or
+ * an API URL). The spec asserts `unhandled` is empty.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -102,6 +107,7 @@ import RouteMap, {
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -122,6 +128,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import {
+  AUTOMATIC_TRUSTED_PROXIES_PATH,
+  automaticTrustedProxiesToJSON,
+  NO_AUTOMATIC_TRUSTED_PROXIES,
+} from "Common/Types/SecurityEvent/AutomaticTrustedProxies";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -543,6 +554,7 @@ const fixture = {
   cloudAudit,
   listRequests: [],
   countRequests: [],
+  itemRequests: [],
   aggregateRequests: [],
   apiRequests: [],
   creates: [],
@@ -563,9 +575,18 @@ function tableName(modelType) {
   return new modelType().tableName;
 }
 
+/*
+ * The project, with the settings Connections' More settings read of it
+ * (#10416, #10546, #10548) as a new project has them: Trusted Proxies lists
+ * none, its own load balancers are trusted (on unless turned off), and its
+ * access logs are not read for X-Forwarded-For (off unless turned on).
+ */
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,
   name: "Acme Commerce",
+  securityTrustedProxies: null,
+  securityTrustOwnLoadBalancers: true,
+  securityReadAccessLogForwardedFor: false,
 });
 
 /*
@@ -656,11 +677,22 @@ AnalyticsModelAPI.getCommonHeaders = () => {
   return { tenantid: PROJECT_ID };
 };
 
+/*
+ * One record is read by its id: the project, by Connections' More settings
+ * - Trusted Proxies' list and the Trusted Automatically and Access Logs
+ * switches, each card its own read.
+ */
 ModelAPI.getItem = async (options) => {
-  fixture.unhandled.push({
-    kind: "getItem",
-    modelName: tableName(options.modelType),
+  const modelName = tableName(options.modelType);
+  fixture.itemRequests.push({
+    modelName,
+    id: String(options.id),
+    select: serialize(options.select),
   });
+  if (modelName === tableName(Project) && String(options.id) === PROJECT_ID) {
+    return project;
+  }
+  fixture.unhandled.push({ kind: "getItem", modelName });
   return null;
 };
 
@@ -1010,6 +1042,28 @@ async function handleApi(method, options) {
     parsed.pathname.endsWith("/telemetry/security-events/get-attributes")
   ) {
     return new HTTPResponse(200, { attributes: [] }, {});
+  }
+
+  /*
+   * Trusted Automatically's details (#10546): what is trusted without being
+   * listed. A new project has connected no edge and its cloud accounts list
+   * no load balancer of its own; a reader who may not read cloud resources -
+   * a Security Viewer - is told only that they could not be listed, as the
+   * server tells them (Server/API/SecurityTrustedProxiesAPI).
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith(AUTOMATIC_TRUSTED_PROXIES_PATH)
+  ) {
+    return new HTTPResponse(
+      200,
+      automaticTrustedProxiesToJSON(
+        new CloudResource().hasReadPermissions(rolePermissions)
+          ? NO_AUTOMATIC_TRUSTED_PROXIES
+          : { ...NO_AUTOMATIC_TRUSTED_PROXIES, areLoadBalancersRead: false },
+      ),
+      {},
+    );
   }
 
   // ?events=one's drawer, its Connected tab: what the event names.

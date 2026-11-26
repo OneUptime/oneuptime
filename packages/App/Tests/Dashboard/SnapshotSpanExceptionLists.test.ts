@@ -532,10 +532,12 @@ describe("ExceptionsViewer hosts a stored exception-instance query", () => {
      * sentinel and would come back empty BY DESIGN. Rendering that as the
      * empty state would flash "No exceptions found" on an incident card and
      * then fill in. Since issue #4709 the list is not read at all until the
-     * fingerprints are in (holdsReads), and reads as loading meanwhile.
+     * fingerprints are in (holdsReads), and reads as loading meanwhile. So
+     * for the split exceptions' fingerprints Split by a scrub rule narrows
+     * the chart by (#11026).
      */
     expect(EXCEPTIONS_VIEWER).toContain(
-      "const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;",
+      "const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope || isResolvingSplitScope;",
     );
     expect(EXCEPTIONS_VIEWER).toContain("isLoading={isLoading || holdsReads}");
   });

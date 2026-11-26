@@ -583,12 +583,39 @@ describe("one client, every route", () => {
       }).toEqual({ url: routeUnderTest.url, status: 429 });
     }
 
-    // Said once, with the address, and no key.
-    expect(mockWarnings).toEqual([
+    /*
+     * Said once, with the address, and no key. Beside it, each route writes
+     * its count of the requests it refused, a line a minute a route
+     * (ClientRefusalLog, #10768): those name the route and the refusal's
+     * words, and no key either.
+     */
+    expect(
+      mockWarnings.filter((line: string): boolean => {
+        return !line.startsWith("Refused ");
+      }),
+    ).toEqual([
       `ClusterKeyAuthorization: ${from} sent more than ${WRONG_CLUSTER_KEYS_PER_ADDRESS} different wrong cluster keys in ${
         WRONG_CLUSTER_KEY_WINDOW_SECONDS / 60
       } minutes, so its requests are refused until the window ends (wrong cluster key limit)`,
     ]);
+
+    const keysSent: Array<string> = ["one-too-many", installation.rightKey];
+
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
+      keysSent.push(`guess-${guess}`);
+    }
+
+    expect(
+      mockWarnings.filter((line: string): boolean => {
+        return keysSent.some((key: string): boolean => {
+          return line.includes(key);
+        });
+      }),
+    ).toEqual([]);
   });
 });
 

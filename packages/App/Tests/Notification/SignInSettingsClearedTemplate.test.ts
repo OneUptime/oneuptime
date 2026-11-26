@@ -88,7 +88,7 @@ const RESET_LINK_LINE: string =
   "The password reset link sent to you, which no longer works";
 
 const UNNAMED_OWNER_LINE: string =
-  "A project owner cleared the sign-in settings saved on your OneUptime account.";
+  "A Project Owner cleared the sign-in settings saved on your OneUptime account.";
 
 const data: (
   overrides?: Partial<SignInSettingsClearedEmailData>,

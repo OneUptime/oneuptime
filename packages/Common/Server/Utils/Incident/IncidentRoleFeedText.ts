@@ -23,6 +23,9 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
  *     to Incident INC-18";
  *   - a monitor whose criteria give its incidents people in roles: "Monitor
  *     API Health added Deane Looi as Responder to Incident INC-18";
+ *   - an on-call policy that gives the people it pages a role
+ *     (OnCallPolicyIncidentRole): "On-Call Policy Payments Primary added
+ *     Deane Looi as Service Owner to Incident INC-18";
  *   - OneUptime itself, making the first person to change an incident's
  *     state its Incident Commander: "Deane Looi became the Incident
  *     Commander of Incident INC-18 when they changed its state to
@@ -53,6 +56,14 @@ export type IncidentRoleAssignmentCause =
       // A monitor's criteria that give the incidents it declares roles.
       kind: "monitor";
       monitorName: string;
+    }
+  | {
+      /*
+       * An on-call policy that gives the people it pages a role on the
+       * incident or episode it pages them about (OnCallPolicyIncidentRole).
+       */
+      kind: "onCallPolicy";
+      policyName: string;
     };
 
 // Where the cause rides in miscDataProps.
@@ -147,6 +158,10 @@ export default class IncidentRoleFeedText {
 
     if (cause?.kind === "monitor" && cause.monitorName.trim()) {
       return mdText`👤 Monitor **${cause.monitorName.trim()}** added **${input.person}** as **${input.roleName}** to ${input.incident}.`;
+    }
+
+    if (cause?.kind === "onCallPolicy" && cause.policyName.trim()) {
+      return mdText`👤 On-Call Policy **${cause.policyName.trim()}** added **${input.person}** as **${input.roleName}** to ${input.incident}.`;
     }
 
     const workflowName: string = getWorkflowName(input);
@@ -296,6 +311,14 @@ export default class IncidentRoleFeedText {
       cause["monitorName"].trim()
     ) {
       return { kind: "monitor", monitorName: cause["monitorName"] };
+    }
+
+    if (
+      cause["kind"] === "onCallPolicy" &&
+      typeof cause["policyName"] === "string" &&
+      cause["policyName"].trim()
+    ) {
+      return { kind: "onCallPolicy", policyName: cause["policyName"] };
     }
 
     return null;

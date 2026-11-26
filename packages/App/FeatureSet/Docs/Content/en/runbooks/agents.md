@@ -90,7 +90,7 @@ To turn the bundled one off, set `GLOBAL_RUNNER_REPLICAS=0` in Docker Compose's 
 ## Before you begin
 
 - **A host with Docker** inside your infrastructure, that can reach your OneUptime URL over HTTPS and the systems your steps act on.
-- **A role that creates Runners.** Project Owner, Project Admin, Project Member and Runbook Admin can create one. Only a Project Owner, Project Admin or Runbook Admin can see a Runner's key, which the setup command contains.
+- **A role that creates Runners.** Project Owner, Project Admin, Project Member and Runbook Admin can create one. Only a Project Owner, Project Admin or Runbook Admin can see a Runner's key, which the setup command contains. Only they can choose a Runner's key, too: a Runner anyone else creates gets a key OneUptime generates, and creating it does not show them the key.
 
 ## Install a Runner
 

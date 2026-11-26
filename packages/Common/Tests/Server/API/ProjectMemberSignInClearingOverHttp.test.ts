@@ -42,6 +42,7 @@ import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Project from "../../../Models/DatabaseModels/Project";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import { SignInSettingsClearedAuditEvent } from "../../../Types/AuditLog/AuditLogSignInSettingsCleared";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Email from "../../../Types/Email";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
@@ -497,6 +498,19 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(true);
+  /*
+   * The project's plan, as the database answers it. Where billing is on -
+   * Common Test's config.env has BILLING_ENABLED=true - every request a
+   * member makes in a project reads it (CommonAPI's
+   * getDatabaseCommonInteractionProps, CallerPlan), and the projects' rows
+   * stood in for below carry none: each route answered 400, "Project does
+   * not have any plans", before it ran. The highest plan, paid, so that no
+   * plan decides what is asked here.
+   */
+  getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
   getJestSpyOn(
     ProjectService,
     "getRequireSsoWithSsoProviderId",

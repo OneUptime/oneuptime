@@ -382,6 +382,132 @@ describe("the search for a hashed user's token", () => {
     }
   });
 
+  /*
+   * #11045: the user vault reads a user from more than a log's body and a
+   * span's enduser.id - a span's user.id, an AI call's user, a log line's
+   * attribute - and the event says which. The search looks there, for the
+   * token inside the field as well as being all of it.
+   */
+  function containsToken(token: string): string {
+    return `~"${token}"`;
+  }
+
+  function traceSearchOf(route: Route): string {
+    return queryOf(route).get("search") || "";
+  }
+
+  test.each([
+    ["a request's enduser.id", "enduser.id"],
+    ["a request's user.id", "user.id"],
+    [
+      "an AI call's user, from the attribute it was copied from",
+      "langfuse.user.id",
+    ],
+    [
+      "an AI call's user, from a resource's attribute",
+      "resource.user.account_uuid",
+    ],
+  ])(
+    "a span's user read from %s is searched for in that attribute",
+    (_place: string, key: string) => {
+      const search: ReturnType<typeof Links.getHashedUserSearch> =
+        Links.getHashedUserSearch({
+          hashed: TOKEN,
+          signal: Links.HashedUserSignal.Trace,
+          field: `attributes.${key}`,
+          time: TIME,
+        });
+
+      expect(search!.field).toBe(`attributes.${key}`);
+      expect(pathOf(search!.route)).toMatch(/\/traces$/);
+      expect(traceSearchOf(search!.route)).toBe(
+        `@${key}:${containsToken(TOKEN)}`,
+      );
+      expect(queryOf(search!.route).get("filters")).toBeNull();
+      expect(new Date(queryOf(search!.route).get("start")!).getTime()).toBe(
+        TIME.getTime() - DAY_IN_MS,
+      );
+    },
+  );
+
+  test("a span's user with no field said - an event named before fields were kept - is searched for in enduser.id, as before", () => {
+    for (const field of [undefined, "", "body", "nonsense"]) {
+      const search: ReturnType<typeof Links.getHashedUserSearch> =
+        Links.getHashedUserSearch({
+          hashed: TOKEN,
+          signal: Links.HashedUserSignal.Trace,
+          field,
+          time: TIME,
+        });
+
+      expect(search!.field).toBe(`attributes.${Links.TRACE_USER_ATTRIBUTE}`);
+      expect(traceSearchOf(search!.route)).toBe(
+        `@${Links.TRACE_USER_ATTRIBUTE}:${containsToken(TOKEN)}`,
+      );
+    }
+  });
+
+  test("a span attribute no search token can name rides a filter chip with the same contains value", () => {
+    const search: ReturnType<typeof Links.getHashedUserSearch> =
+      Links.getHashedUserSearch({
+        hashed: TOKEN,
+        signal: Links.HashedUserSignal.Trace,
+        field: "attributes.user name:id",
+        time: TIME,
+      });
+
+    expect(traceSearchOf(search!.route)).toBe("");
+    expect(JSON.parse(queryOf(search!.route).get("filters") || "[]")).toEqual([
+      ["attributes.user name:id", containsToken(TOKEN)],
+    ]);
+  });
+
+  test("a log line's user read from an attribute is searched for in that attribute, not the body", () => {
+    const search: ReturnType<typeof Links.getHashedUserSearch> =
+      Links.getHashedUserSearch({
+        hashed: TOKEN,
+        signal: Links.HashedUserSignal.Log,
+        field: "attributes.openstack.user_name",
+        time: TIME,
+      });
+
+    expect(search!.field).toBe("attributes.openstack.user_name");
+    expect(pathOf(search!.route)).toMatch(/\/logs$/);
+    expect(filtersOf(search!.route)).toEqual([
+      ["attributes.openstack.user_name", [containsToken(TOKEN)]],
+    ]);
+  });
+
+  test("a log line's user read from the body, or with no field said, is searched for in the body", () => {
+    for (const field of [undefined, "", "body"]) {
+      const search: ReturnType<typeof Links.getHashedUserSearch> =
+        Links.getHashedUserSearch({
+          hashed: `auth0|${TOKEN}`,
+          signal: Links.HashedUserSignal.Log,
+          field,
+          time: TIME,
+        });
+
+      expect(search!.field).toBe("body");
+      expect(filtersOf(search!.route)).toEqual([["body", [TOKEN]]]);
+    }
+  });
+
+  test("the token is searched for, never what else the rule left around it", () => {
+    const search: ReturnType<typeof Links.getHashedUserSearch> =
+      Links.getHashedUserSearch({
+        hashed: `CORP\\${TOKEN}`,
+        signal: Links.HashedUserSignal.Trace,
+        field: "attributes.user.id",
+        time: TIME,
+      });
+
+    expect(search!.hashed).toBe(`CORP\\${TOKEN}`);
+    expect(traceSearchOf(search!.route)).toBe(
+      `@user.id:${containsToken(TOKEN)}`,
+    );
+  });
+
   test("what a rule that redacts or masks left, or no token at all, has no search", () => {
     for (const hashed of [
       "",

@@ -531,13 +531,17 @@ describe("every language says it on the English page's lines", () => {
         anchor: headingAnchor(language, DECLARING, DECLARED_LATER),
       },
     ]);
+    /*
+     * Ask AI, and where an incident declared by hand that pages no one
+     * starts acknowledged (#11137).
+     */
     expect(
       linksOn(language, DECLARING, DECLARING_LATER).map(
         (link: DocsPageLink): string => {
           return link.page;
         },
       ),
-    ).toEqual(["ai/ask-ai"]);
+    ).toEqual(["ai/ask-ai", "incidents/states-and-severities"]);
 
     // The commands, as typed, on the lines that name them.
     expect(askAi[CHAT_APPS]).toContain("`/oneuptime incident`");

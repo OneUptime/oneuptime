@@ -33,7 +33,7 @@ Ett namn används en gång, oavsett stora och små bokstäver, bland projektets 
 
 ## Innan du börjar
 
-- **En roll som hanterar variabler.** Projektägare och Projektadministratör, eller behörigheten **Create Runbook Variable**. Runbook-administratör läser variabler för att välja dem i de steg den skriver, men ändrar dem inte.
+- **En roll som hanterar variabler.** Projektägare och Projektadministratör, eller behörigheten **Create Runbook Variable**. Runbook-administratör läser variabler för att välja dem i de steg den skriver, men ändrar dem inte. Ett arbetsflöde ändrar dem bara när det körs som Projektägare eller som en anpassad roll med de här behörigheterna: se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 - **En plan som innehåller dem.** På OneUptime Cloud kräver runbook-variabler planen **Growth** eller högre.
 
 ## Skapa en variabel
@@ -84,6 +84,8 @@ Ett [SSH-steg](/docs/runbooks/authoring#ssh) väljer under **Logga in med** den 
 @tab Kubeconfig
 Ett [kubectl-steg](/docs/runbooks/authoring#kubectl) väljer under **Kubeconfig** den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst** för att använda Runnerns.
 :::
+
+Ett värde fylls i exakt så som det är skrivet, där referensen står, så den som kan ändra en variabel ändrar vad varje steg som nämner den kör. Ge behörigheterna som ändrar variabler bara till personer som du skulle låta skriva de stegen. Värden utifrån OneUptime, som det ett webhook-anrop skickar, når i stället ett Bash-steg som miljövariabler, aldrig som en del av dess skript: se [Värden som ett webhook-anrop skickar](/docs/runbooks/triggers#värden-som-ett-webhook-anrop-skickar).
 
 På en runbooks sida **Steg** listar varje skript och varje HTTP-begäran under **Variabler – klicka för att kopiera** de variabler som deras steg kan använda, och redigeraren säger till när ett steg nämner en variabel som inte finns, eller en hemlighet som dess Runner inte får använda.
 

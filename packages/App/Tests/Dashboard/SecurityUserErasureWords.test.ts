@@ -65,6 +65,13 @@ const SENTENCES: ReadonlyArray<string> = [
   UserCopy.ERASED_ON_REQUEST_DETAIL,
 ];
 
+/*
+ * "Detection Finding", as every language writes the class's name: kept in
+ * English, some with a hyphen ("Detection-Finding-Ereignisse"). A named
+ * constant, so the linter's rules do not fight over an inline literal.
+ */
+const NAMES_A_FINDING: RegExp = /Detection.?Finding/;
+
 const PLURALS: ReadonlyArray<PluralTemplate> = [
   Copy.VAULT_ENTRIES_DELETED,
   Copy.EVENTS_UNNAMED,
@@ -144,11 +151,43 @@ describe("the words of erasing a person", () => {
         language,
         headings: 3,
       });
-      // Three things it does, four it leaves, two the request keeps.
+      /*
+       * Three things it does, three it leaves, two the request keeps. The
+       * Detection Findings a rule wrote about the person are no longer left
+       * (#11044): what it does names them.
+       */
       expect({ language, bullets: help.match(/^- /gm)?.length }).toEqual({
         language,
-        bullets: 9,
+        bullets: 8,
       });
+    }
+  });
+
+  test("the help says an erasure takes the person out of the Detection Findings, and no longer that it leaves them (#11044)", () => {
+    const [does, leaves]: Array<string> =
+      Copy.ERASURE_HELP_MARKDOWN.split("## What it leaves");
+
+    expect(does).toContain(
+      "puts the token back in the events it named them in and in the Detection Findings a rule wrote about them",
+    );
+    expect(leaves).not.toContain("Detection Finding");
+
+    // Every language says it where English does, in the second list item.
+    for (const language of DASHBOARD_LANGUAGES) {
+      const help: string =
+        readDashboardLocale(language)[Copy.ERASURE_HELP_MARKDOWN] || "";
+      const items: Array<string> = help.match(/^- .*$/gm) || [];
+
+      expect({
+        language,
+        names: NAMES_A_FINDING.test(items[1] || ""),
+      }).toEqual({ language, names: true });
+      expect({
+        language,
+        leaves: items.slice(3, 6).some((item: string): boolean => {
+          return NAMES_A_FINDING.test(item);
+        }),
+      }).toEqual({ language, leaves: false });
     }
   });
 

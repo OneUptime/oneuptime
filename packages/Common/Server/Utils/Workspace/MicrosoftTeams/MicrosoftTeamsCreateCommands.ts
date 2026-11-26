@@ -23,6 +23,7 @@ import AIService from "../../../Services/AIService";
 import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../WorkspaceIncidentFromAlert";
+import WorkspaceIncidentDeclaredByHand from "../WorkspaceIncidentDeclaredByHand";
 import WorkspaceIncidentSubscriberNotification, {
   WorkspaceNotifySubscribersField,
 } from "../WorkspaceIncidentSubscriberNotification";
@@ -111,6 +112,7 @@ export default class MicrosoftTeamsCreateCommands {
     let isAffectedResourcesOffered: boolean = false;
     let isAiEnabled: boolean = false;
     let isNotifyTickedByDefault: boolean | null = null;
+    let isDeclaredByHandAcknowledged: boolean = false;
 
     try {
       /*
@@ -127,6 +129,7 @@ export default class MicrosoftTeamsCreateCommands {
         isAffectedResourcesOffered,
         isAiEnabled,
         isNotifyTickedByDefault,
+        isDeclaredByHandAcknowledged,
       ] = await Promise.all([
         MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
           projectId,
@@ -147,6 +150,12 @@ export default class MicrosoftTeamsCreateCommands {
           projectId: projectId,
           props: props,
         }),
+        /*
+         * Whether an incident declared here with no on-call policy starts
+         * acknowledged (Incidents > Settings > Incident State): the
+         * policies' hint says so (WorkspaceIncidentDeclaredByHand).
+         */
+        WorkspaceIncidentDeclaredByHand.readIsOn(projectId),
       ]);
     } catch (error) {
       await this.replyFormCouldNotLoad({
@@ -218,6 +227,10 @@ export default class MicrosoftTeamsCreateCommands {
             : {}),
           declaringAlert: declaringAlert,
           notifySubscribers: notifySubscribers,
+          onCallPoliciesHint:
+            WorkspaceIncidentDeclaredByHand.getOnCallPoliciesHint(
+              isDeclaredByHandAcknowledged,
+            ),
         });
       },
     });

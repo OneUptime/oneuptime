@@ -693,6 +693,57 @@ describe("secrets in command output", () => {
       delete process.env["ONEUPTIME_GIT_ACCESS_TOKEN"];
     }
   });
+
+  /*
+   * Not the key alone: every setting of the Runner's own, and the other
+   * credentials it may hold, as every command a Runner runs for a project
+   * (RunnerOwnEnvironment). What an operator put there for builds stays -
+   * which is also what shows the command's environment is built from this
+   * process's: jest gives each test file its own copy of process.env, and a
+   * command that inherited the real one would see neither.
+   */
+  test("no setting of the Runner's own reaches a model-composed command; the operator's toolchain settings do", async () => {
+    const workspace: string = makeWorkspace();
+    const settings: Record<string, string> = {
+      ONEUPTIME_RUNNER_NAME: "prod-eu-west-1",
+      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "true",
+      ONEUPTIME_INGESTION_KEY: "telemetry-ingestion-key-0123456789",
+      ONEUPTIME_SECRET: "the-servers-cluster-secret-0123456789",
+      ACME_BUILD_MIRROR: "mirror.internal",
+    };
+
+    for (const [name, value] of Object.entries(settings)) {
+      process.env[name] = value;
+    }
+
+    try {
+      scriptToolsThenSummary([
+        toolCall("run_command", {
+          command:
+            'echo "runner=[${ONEUPTIME_RUNNER_ID}${ONEUPTIME_RUNNER_NAME}${ONEUPTIME_RUNNER_ENABLE_CODE_FIXES}] ingest=[${ONEUPTIME_INGESTION_KEY}] secret=[${ONEUPTIME_SECRET}] mirror=[${ACME_BUILD_MIRROR}] ci=[${CI}]"; env | grep -c "^ONEUPTIME_RUNNER_" || true',
+        }),
+      ]);
+
+      const result: CodeAgentResult = await runAgent(workspace);
+      const output: string = toolOutputs(result, "run_command").join("\n");
+
+      /*
+       * The mirror's value reached the command: what it printed is redacted
+       * at capture, as every value of the Runner's environment is
+       * (SecretRedactor), so it reads by its name.
+       */
+      expect(output).toContain(
+        "runner=[] ingest=[] secret=[] mirror=[[redacted:ACME_BUILD_MIRROR]] ci=[true]",
+      );
+      expect(output).not.toContain("telemetry-ingestion-key-0123456789");
+      expect(output).not.toContain("the-servers-cluster-secret-0123456789");
+      expect(output).toMatch(/\n0\b/);
+    } finally {
+      for (const name of Object.keys(settings)) {
+        delete process.env[name];
+      }
+    }
+  });
 });
 
 describe("command lifetime", () => {

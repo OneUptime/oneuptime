@@ -217,6 +217,8 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
 import {
+  CodeRepositoryListGroup,
+  CodeRepositoryListOrder,
   CodeTaskBlockerType,
   CodeTaskContextType,
   CodeTaskFileStatus,
@@ -225,6 +227,7 @@ import {
   CodeTaskStateUtil,
   CodeTaskStepKind,
   CodeTaskTitle,
+  MAX_CODE_REPOSITORIES_PER_PAGE,
   MAX_EARLIER_TURNS_PER_READ,
 } from "Common/Types/AI/CodeTask";
 import {
@@ -233,6 +236,10 @@ import {
   CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE,
 } from "Common/Types/AI/CodeTaskTryAgain";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import {
+  matchesCodeRepositorySearch,
+  readCodeRepositorySearch,
+} from "Common/Types/CodeRepository/CodeRepositorySearch";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
   LlmProviderFallbackReason,
@@ -3170,6 +3177,34 @@ function listSummaryOf(task) {
   return summary;
 }
 
+/*
+ * A row's repository - its name and where it is hosted - on a list across
+ * repositories, as the server names it by the repository's id (#10764).
+ */
+function withRowRepository(summary) {
+  const repository = summary.codeRepositoryId
+    ? repositories.find((item) => {
+        return item.id.toLowerCase() === summary.codeRepositoryId.toLowerCase();
+      })
+    : null;
+  if (!repository) {
+    return summary;
+  }
+  const connection = repository.connectionId
+    ? connectionById(repository.connectionId)
+    : null;
+  return {
+    ...summary,
+    repository: {
+      name: repository.name,
+      provider: repository.provider || CodeRepositoryType.GitHub,
+      ...(connection && connection.hostProduct
+        ? { hostProduct: connection.hostProduct }
+        : {}),
+    },
+  };
+}
+
 function mayTryAgain(summary) {
   if (
     summary.state !== CodeTaskState.Failed &&
@@ -3511,6 +3546,124 @@ function contextItemsOf(inputs) {
   });
 }
 
+// A repository as a list draws it: what it is, how it connects, its tasks at a glance.
+function repositoryListItem(repository) {
+  return {
+    ...withProductionReview(repository),
+    stats: statsOf(repository.id),
+  };
+}
+
+// A whole number from a body, held between its bounds, as the server reads one.
+function readWholeNumber(raw, defaultValue, min, max) {
+  const value =
+    typeof raw === "number" && Number.isFinite(raw)
+      ? Math.floor(raw)
+      : defaultValue;
+  return Math.min(max, Math.max(min, value));
+}
+
+/*
+ * A page of the repositories, as POST /code-task/repositories answers it
+ * (CodeTaskRepositoryList, #10764): every repository read by name, as the
+ * database orders them, searched (CodeRepositorySearch), in one of the two
+ * lists or both, ordered by name or by activity - those AI can work in
+ * first when both are asked for - and paged; with how many the list holds,
+ * what is true of them all and how many of each list the search finds.
+ */
+function repositoriesPage(body) {
+  const search = readCodeRepositorySearch(body.search);
+  const group = Object.values(CodeRepositoryListGroup).includes(body.group)
+    ? body.group
+    : null;
+  const order =
+    body.order === CodeRepositoryListOrder.Activity
+      ? CodeRepositoryListOrder.Activity
+      : CodeRepositoryListOrder.Name;
+  const skip = readWholeNumber(body.skip, 0, 0, Number.MAX_SAFE_INTEGER);
+  const limit = readWholeNumber(
+    body.limit,
+    MAX_CODE_REPOSITORIES_PER_PAGE,
+    1,
+    MAX_CODE_REPOSITORIES_PER_PAGE,
+  );
+
+  const byName = [...repositories].sort((left, right) => {
+    return (
+      left.name.localeCompare(right.name) || left.id.localeCompare(right.id)
+    );
+  });
+  const found = byName.filter((repository) => {
+    return matchesCodeRepositorySearch(repository, search);
+  });
+  const listed = found.filter((repository) => {
+    if (group === CodeRepositoryListGroup.Connected) {
+      return repository.isConnected;
+    }
+    if (group === CodeRepositoryListGroup.NotConnected) {
+      return !repository.isConnected;
+    }
+    return true;
+  });
+  const activityOf = (repository) => {
+    const lastActivityAt = statsOf(repository.id).lastActivityAt;
+    return lastActivityAt ? new Date(lastActivityAt).getTime() : 0;
+  };
+  const ordered = listed
+    .map((repository, index) => {
+      return { repository, index };
+    })
+    .sort((left, right) => {
+      if (
+        group === null &&
+        left.repository.isConnected !== right.repository.isConnected
+      ) {
+        return left.repository.isConnected ? -1 : 1;
+      }
+      if (order === CodeRepositoryListOrder.Activity) {
+        const byActivity =
+          activityOf(right.repository) - activityOf(left.repository);
+        if (byActivity !== 0) {
+          return byActivity;
+        }
+      }
+      return left.index - right.index;
+    })
+    .map((item) => {
+      return item.repository;
+    });
+  const notConnected = byName.filter((repository) => {
+    return !repository.isConnected;
+  });
+  const foundConnected = found.filter((repository) => {
+    return repository.isConnected;
+  }).length;
+
+  return {
+    repositories: ordered.slice(skip, skip + limit).map(repositoryListItem),
+    count: listed.length,
+    facts: {
+      total: byName.length,
+      connected: byName.length - notConnected.length,
+      notConnected: notConnected.length,
+      areAllOnGitHub: byName.every(isOnGitHub),
+      isAnyOnGitHub: byName.some(isOnGitHub),
+      areAllNotConnectedOnGitHub: notConnected.every(isOnGitHub),
+      isAnyNotConnectedOnGitHub: notConnected.some(isOnGitHub),
+    },
+    matches: {
+      connected: foundConnected,
+      notConnected: found.length - foundConnected,
+    },
+    tasksWithoutRepositoryCount:
+      params.get("other") === "1"
+        ? tasks.filter((task) => {
+            return !task.repositoryId;
+          }).length
+        : 0,
+  };
+}
+
 async function answer(path, body) {
   const repositoriesMatch = path === "/repositories";
   if (repositoriesMatch) {
@@ -3518,21 +3671,29 @@ async function answer(path, body) {
     if (failParam === "repositories") {
       return refused(500, "The repositories could not be read right now.");
     }
+    return new HTTPResponse(200, repositoriesPage(body), {});
+  }
+
+  /*
+   * Repositories by their ids, as the server reads them (#10764): the
+   * project's, in its order. An id of no repository of the project's is
+   * left out, as one the reader may not read.
+   */
+  if (path === "/repositories-by-id") {
+    if (!Array.isArray(body.repositoryIds)) {
+      return refused(400, "repositoryIds must be a list of repository ids.");
+    }
+    const ids = body.repositoryIds.map((id) => {
+      return String(id).toLowerCase();
+    });
     return new HTTPResponse(
       200,
       {
-        repositories: repositories.map((repository) => {
-          return {
-            ...withProductionReview(repository),
-            stats: statsOf(repository.id),
-          };
-        }),
-        tasksWithoutRepositoryCount:
-          params.get("other") === "1"
-            ? tasks.filter((task) => {
-                return !task.repositoryId;
-              }).length
-            : 0,
+        repositories: repositories
+          .filter((repository) => {
+            return ids.includes(repository.id.toLowerCase());
+          })
+          .map(repositoryListItem),
       },
       {},
     );
@@ -3635,7 +3796,12 @@ async function answer(path, body) {
     return new HTTPResponse(
       200,
       {
-        tasks: sorted.slice(skip, skip + limit).map(listSummaryOf),
+        tasks: sorted.slice(skip, skip + limit).map((task) => {
+          // A list across repositories says which repository each row is in.
+          return body.allRepositories
+            ? withRowRepository(listSummaryOf(task))
+            : listSummaryOf(task);
+        }),
         totalCount: sorted.length,
         skip,
         limit,

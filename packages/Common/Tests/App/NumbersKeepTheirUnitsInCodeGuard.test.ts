@@ -106,6 +106,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
     SERVER_LOG,
+  // That the emails of a sign-in settings clear were not all queued in time (#10750).
+  "packages/Common/Server/Utils/SignInSettingsClearedEmail.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Aws/AwsDefaultCredentialChain.ts":
     "a credential chain's failure, logged and stored on the connection",
   "packages/Common/Server/Utils/CloudConnection/Kafka/KafkaClient.ts":

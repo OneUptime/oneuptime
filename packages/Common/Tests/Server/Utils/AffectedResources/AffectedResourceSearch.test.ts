@@ -5,6 +5,7 @@ import AffectedResourceSearch, {
 } from "../../../../Server/Utils/AffectedResources/AffectedResourceSearch";
 import logger from "../../../../Server/Utils/Logger";
 import ColumnPermissions from "../../../../Server/Types/Database/Permissions/ColumnPermission";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../../Models/DatabaseModels/Host";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
@@ -374,8 +375,21 @@ describe("buildKindQuery - the project's resources, not archived, with the text 
 
     expect(multi).toBeInstanceOf(MultiSearch);
     expect(multi.fields).toEqual(["name", "hostname"]);
-    // A % or _ someone typed is not a wildcard, nor a backslash an escape.
-    expect(multi.value).toBe("50\\%\\_off\\\\x");
+    /*
+     * A % or _ someone typed is not a wildcard, nor a backslash an escape:
+     * the text goes as typed, and the search escapes it once
+     * (QueryHelper.multiSearch, #10545).
+     */
+    expect(multi.value).toBe("50%_off\\x");
+    expect(
+      Object.values(
+        (
+          QueryHelper.multiSearch(multi.fields, multi.value) as unknown as {
+            objectLiteralParameters: Record<string, unknown>;
+          }
+        ).objectLiteralParameters,
+      ),
+    ).toEqual(["%50\\%\\_off\\\\x%"]);
     expect(query["isArchived"]).toBe(false);
   });
 
@@ -393,9 +407,8 @@ describe("buildKindQuery - the project's resources, not archived, with the text 
 
     expect(query["_multiFieldSearch"]).toBeUndefined();
     expect(query["name"]).toBeInstanceOf(StartsWith);
-    expect((query["name"] as unknown as StartsWith<string>).value).toBe(
-      "sw\\_1",
-    );
+    // As typed: StartsWith escapes the _ itself (QueryHelper.startsWith).
+    expect((query["name"] as unknown as StartsWith<string>).value).toBe("sw_1");
     expect(query["projectId"]).toBe(PROJECT_ID);
     expect(query["isArchived"]).toBe(false);
     // The kind's own query is left as it was.

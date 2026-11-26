@@ -141,6 +141,53 @@ const DELIBERATE: Array<{
   },
 ];
 
+/*
+ * A column whose update list names another record's Edit permission on
+ * purpose: the column is written by those who may write that other
+ * record's part, as well as the record's own editors - the record's check
+ * asks for one of its own permissions first, and the column's for the
+ * other record's. The record's own Edit permission is left off the
+ * column's list for the same reason: alone, it may not write the column.
+ * Each entry says why, and must still match a list (below).
+ */
+const ANOTHER_RECORDS_EDITORS: Array<{
+  tableName: string;
+  column: string;
+  permission: Permission;
+  reason: string;
+}> = [
+  "setupCommand",
+  "buildCommand",
+  "testCommand",
+  "runner",
+  "runnerId",
+  "isGlobalRunnerPicked",
+].map((column: string) => {
+  return {
+    tableName: "CodeRepository",
+    column: column,
+    permission: Permission.EditRunbook,
+    reason:
+      "What a project's Runner runs for a repository - its commands, and which Runner runs them - is written by those who write a runbook's steps that run (Runbook.steps' update list): Edit Runbook beside the repository's own Edit Code Repository, which the record's check asks. Edit Code Repository alone may not write it (Types/CodeRepository/CodeRepositoryRunnerAuthoring).",
+  };
+});
+
+function isAnotherRecordsEditor(
+  tableName: string | null,
+  where: string,
+  permission?: Permission,
+): boolean {
+  return ANOTHER_RECORDS_EDITORS.some(
+    (entry: { tableName: string; column: string; permission: Permission }) => {
+      return (
+        entry.tableName === tableName &&
+        `${entry.tableName}.${entry.column}` === where &&
+        (permission === undefined || entry.permission === permission)
+      );
+    },
+  );
+}
+
 function isDeliberate(
   tableName: string | null,
   permission: Permission,
@@ -264,7 +311,8 @@ describe("update permission lists", () => {
         for (const permission of list.permissions) {
           if (
             isRecordPermission(permission) &&
-            !recordList.includes(permission)
+            !recordList.includes(permission) &&
+            !isAnotherRecordsEditor(list.tableName, list.where, permission)
           ) {
             foreign.push(`${list.where}: ${permission}`);
           }
@@ -302,7 +350,10 @@ describe("update permission lists", () => {
           },
         );
 
-        if (!isOpenBelowAdmins) {
+        if (
+          !isOpenBelowAdmins ||
+          isAnotherRecordsEditor(list.tableName, list.where)
+        ) {
           continue;
         }
 
@@ -319,6 +370,29 @@ describe("update permission lists", () => {
     }
 
     expect(lockedOut).toEqual([]);
+  });
+
+  test("every column written by another record's editors still names them, and says why", () => {
+    for (const entry of ANOTHER_RECORDS_EDITORS) {
+      const model: ModelWithAccessLists = findModel(entry.tableName);
+      const list: UpdateList | undefined = columnUpdateLists(model).find(
+        (candidate: UpdateList) => {
+          return candidate.where === `${entry.tableName}.${entry.column}`;
+        },
+      );
+
+      expect({ entry: entry.column, named: list?.permissions }).toEqual({
+        entry: entry.column,
+        named: expect.arrayContaining([entry.permission]),
+      });
+      // And not the record's own Edit permission, which alone may not write it.
+      expect(list?.permissions).not.toEqual(
+        expect.arrayContaining(
+          recordUpdateList(model).permissions.filter(isRecordPermission),
+        ),
+      );
+      expect(entry.reason.length).toBeGreaterThan(40);
+    }
   });
 
   test("every deliberate exception still matches a list, and says why", () => {

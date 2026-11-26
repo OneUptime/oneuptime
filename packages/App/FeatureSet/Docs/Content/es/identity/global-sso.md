@@ -78,7 +78,7 @@ flowchart TB
 
 - **Sin proyectos adjuntos (todos los proyectos / invitar primero):** los usuarios pueden iniciar sesión con el proveedor y llegar a **cualquier proyecto del que ya sean miembros**. Los usuarios nuevos **no** se crean automáticamente: primero hay que invitar al usuario a un proyecto. Úsalo para un SSO de toda la empresa cuando las membresías se gestionan en otro sitio.
 
-- **Proyectos adjuntos (aprovisionamiento automático):** Abre el proveedor y usa la tabla **Proyectos vinculados** para adjuntar uno o más proyectos, cada uno con un conjunto de equipos predeterminados. Los usuarios que inician sesión se **aprovisionan automáticamente** en esos proyectos y se agregan a los equipos predeterminados en el primer inicio de sesión. Un proyecto que adjuntas empieza con su equipo de miembros; elige otros equipos si los recién llegados deben empezar con otro acceso. Agrega un proyecto + equipos a la vez para construir la lista; para cambiar un adjunto, elimínalo y vuelve a agregarlo.
+- **Proyectos adjuntos (aprovisionamiento automático):** Abre el proveedor y usa la tabla **Proyectos vinculados** para adjuntar uno o más proyectos, cada uno con un conjunto de equipos predeterminados. Los usuarios que inician sesión se **aprovisionan automáticamente** en esos proyectos y se agregan a los equipos predeterminados: alguien nuevo, en su primer inicio de sesión, y alguien que ya tiene cuenta, como una que creaste a mano, en el siguiente. Un proyecto que adjuntas empieza con su equipo de miembros; elige otros equipos si los recién llegados deben empezar con otro acceso. Un proyecto adjunto sin equipos no agrega a nadie. Agrega un proyecto + equipos a la vez para construir la lista; para cambiar un adjunto, elimínalo y vuelve a agregarlo.
 
 Quien ya es miembro de un proyecto adjunto conserva los equipos que tiene allí.
 
@@ -89,7 +89,13 @@ Dos preguntas del proveedor cambian esto, plegadas en **Más campos**. Cada una 
 | **Personas sin cuenta** | **Obtienen una en su primer inicio de sesión**: se unen a los proyectos adjuntos; si no hay ninguno adjunto, primero deben ser invitadas. **Deben ser invitadas primero**: las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. |
 | **Dónde cuenta este inicio de sesión como SSO** | **Todos los proyectos**: los proyectos que exigen SSO aceptan un inicio de sesión con este proveedor. **Solo los proyectos adjuntos**: iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. |
 
-Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
+Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados: ninguna de las dos respuestas añade a nadie a un proyecto. Mientras no se haya adjuntado ningún proyecto con equipos, la página del proveedor indica en **Personas sin cuenta** que todavía no puede iniciar sesión nadie nuevo.
+
+## Direcciones de correo que tu proveedor de identidad no ha verificado
+
+Un proveedor OpenID Connect global encuentra la cuenta en la que inicia sesión por la dirección de correo que envía, como el proveedor de un proyecto, y las cuentas de los administradores maestros se encuentran igual. Por eso no inicia la sesión de nadie con una dirección que el proveedor dice no haber verificado, con una claim `email_verified` de `false` o de algo que no es ni true ni false. De lo contrario, alguien podría poner la dirección de un administrador maestro en su cuenta del proveedor e iniciar sesión en toda la instancia como él. Un proveedor que envía `email_verified` como `true`, o no la envía, como Microsoft Entra ID, inicia la sesión de las personas como antes.
+
+Con authentik 2025.10 y posteriores, nadie inicia sesión hasta que cambies su mapeo de alcance `email`, y con Keycloak, nadie cuya dirección no haya verificado. Qué cambiar allí, qué sigue iniciando sesión y qué ve la persona están en la página [SSO](/docs/identity/sso#direcciones-de-correo-que-tu-proveedor-de-identidad-no-ha-verificado). Los administradores maestros con contraseña pueden iniciar sesión con ella mientras tanto, en `/accounts/admin-login` mientras toda la instancia exija SSO.
 
 ## Cerrar sesión también en el proveedor de identidad
 
@@ -160,7 +166,7 @@ Dos cambios sobre quién puede iniciar sesión se comprueban uno tras otro. Si s
 ## Solución de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene proyectos adjuntos, o **Personas sin cuenta** está en **Deben ser invitadas primero**. Invítala a un proyecto o adjunta un proyecto al proveedor.
+La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene adjunto ningún proyecto con equipos, o **Personas sin cuenta** está en **Deben ser invitadas primero**. Invítala a un proyecto o adjunta al proveedor un proyecto, con los equipos a los que se une. El log del servidor indica cuál de los dos motivos es, sin nombrar a la persona.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -183,6 +189,10 @@ En un proveedor SAML, la respuesta se creó para otra aplicación: su audience n
 Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo durante unos minutos después de emitirse: después se rechaza con "SAML response has expired". Vuelve a iniciar sesión. Si las respuestas siguen caducando, comprueba los relojes de este servidor y de tu proveedor de identidad.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+El proveedor OpenID Connect envió `email_verified` como `false`, o como algo que no es ni true ni false, así que OneUptime no inició la sesión de nadie, tampoco la de un administrador maestro. Haz que se verifique la dirección en tu proveedor de identidad, o márcala allí como verificada, y vuelve a iniciar sesión. Consulta [Direcciones de correo que tu proveedor de identidad no ha verificado](#direcciones-de-correo-que-tu-proveedor-de-identidad-no-ha-verificado).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso, un enlace enviado por correo, Google o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
 :::
@@ -193,4 +203,5 @@ Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, cl
 - [SSO](/docs/identity/sso): Configurar el proveedor SAML u OIDC propio de un proyecto.
 - [SCIM](/docs/identity/scim): Deja que tu proveedor de identidad añada y quite personas automáticamente.
 - [Usuarios, equipos y permisos](/docs/permissions/index): Lo que permiten hacer los equipos a los que se unen los recién llegados.
+- [Ayuda y soporte](/docs/self-hosted/help-and-support): Decir a las personas que necesitan una invitación a quién pedirla.
 :::

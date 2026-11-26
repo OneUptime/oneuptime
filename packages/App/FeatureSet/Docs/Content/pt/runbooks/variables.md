@@ -33,7 +33,7 @@ Um nome é usado uma única vez, sem diferenciar maiúsculas de minúsculas, ent
 
 ## Antes de começar
 
-- **Uma função que gerencia variáveis.** Proprietário do projeto e Administrador do projeto, ou a permissão **Create Runbook Variable**. Administrador de runbooks lê as variáveis, para escolhê-las nas etapas que escreve, mas não as altera.
+- **Uma função que gerencia variáveis.** Proprietário do projeto e Administrador do projeto, ou a permissão **Create Runbook Variable**. Administrador de runbooks lê as variáveis, para escolhê-las nas etapas que escreve, mas não as altera. Um workflow só as altera quando é executado como Proprietário do projeto ou como uma função personalizada que tenha essas permissões: veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 - **Um plano que as inclua.** No OneUptime Cloud, as variáveis de runbook precisam do plano **Growth** ou superior.
 
 ## Criar uma variável
@@ -84,6 +84,8 @@ Uma [etapa SSH](/docs/runbooks/authoring#ssh) escolhe em **Entrar com** a variá
 @tab Kubeconfig
 Uma [etapa kubectl](/docs/runbooks/authoring#kubectl) escolhe em **Kubeconfig** a variável secreta que guarda o kubeconfig do cluster, ou **O acesso próprio do Runner** para usar o do Runner.
 :::
+
+Um valor é inserido exatamente como está escrito, onde está a referência, então quem pode alterar uma variável altera o que executa cada etapa que a nomeia. Dê as permissões que alteram variáveis só às pessoas que você deixaria escrever essas etapas. Valores de fora do OneUptime, como o que uma chamada ao webhook envia, chegam em vez disso a uma etapa Bash como variáveis de ambiente, nunca como parte do script dela: veja [Valores que uma chamada ao webhook envia](/docs/runbooks/triggers#valores-que-uma-chamada-ao-webhook-envia).
 
 Na página **Etapas** de um runbook, cada script e cada requisição HTTP listam em **Variáveis — clique para copiar** as variáveis que sua etapa pode usar, e o editor avisa quando uma etapa nomeia uma variável que não existe, ou um segredo que seu Runner não pode usar.
 

@@ -901,7 +901,7 @@ Dopo aver aggiunto il pacchetto, scegli come sempre le gravità e le policy di r
 
 ## Trap SNMP
 
-Il polling rileva un problema al polling successivo; i trap lo rilevano in pochi secondi. Ogni sonda esegue un ricevitore di trap SNMP che accetta trap e inform v1 e v2c e li inoltra a OneUptime.
+Il polling rileva un problema al polling successivo; i trap lo rilevano in pochi secondi. Ogni sonda esegue un ricevitore di trap SNMP che accetta trap e inform v1, v2c e v3 e li inoltra a OneUptime. Conferma ogni inform, così il dispositivo smette di inviarlo di nuovo.
 
 ```mermaid title="Da un trap a un incidente"
 flowchart TB
@@ -925,6 +925,7 @@ Il ricevitore è attivo per impostazione predefinita e ascolta su UDP 162. Confi
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Impostala su `false` per disattivare il ricevitore di trap. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | La porta UDP su cui ascolta il ricevitore. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Quanti trap inoltra al minuto prima di scartare il resto. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | L'ID del motore SNMPv3 della sonda, in esadecimale (da 5 a 32 ottetti). Impostalo solo per mantenere l'ID del motore di un ricevitore che questa sonda sostituisce. | Ricavato dall'ID della sonda |
 
 Se la sonda gira in Docker, pubblica la porta UDP perché i trap possano raggiungerla:
 
@@ -940,6 +941,42 @@ Poi punta la destinazione dei trap dei tuoi dispositivi verso la sonda; su Cisco
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### Trap e inform SNMPv3
+
+Un trap SNMPv3 è firmato, e di solito cifrato, con le chiavi di un utente, quindi una sonda lo accetta solo da un utente che conosce: le credenziali SNMPv3 dei dispositivi assegnati a essa. Contano le credenziali SNMP proprie di ogni dispositivo, il suo profilo di credenziali e il profilo predefinito del suo sito, quindi un dispositivo interrogato in v2c può comunque inviare i suoi trap come utente SNMPv3 del sito. Sulla sonda non va configurato nulla:
+
+1. Assegna al dispositivo, al suo profilo di credenziali o al suo sito l'utente SNMPv3 con cui il dispositivo invia i trap: nome utente, livello di sicurezza e protocolli e passphrase di autenticazione e di privacy (vedi [Credenziali SNMP e profili di credenziali](#credenziali-snmp-e-profili-di-credenziali)).
+2. Indirizza i trap SNMPv3 del dispositivo alla sonda. Su Cisco IOS, per esempio:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime consegna a ogni sonda gli utenti SNMPv3 dei suoi dispositivi ogni trenta secondi, quindi una credenziale modificata, un profilo modificato o un dispositivo spostato su un'altra sonda vale entro un minuto, mentre il ricevitore continua ad ascoltare. Le credenziali restano cifrate a riposo, come per il polling, e la sonda le tiene solo in memoria e non le registra mai. Gli utenti di un progetto non raggiungono mai la sonda di un altro progetto.
+
+Il ricevitore accetta i protocolli del polling: autenticazione MD5, SHA-1, SHA-256 e SHA-512, e privacy DES, AES-128 e AES-256. Un trap deve arrivare con almeno la sicurezza per cui è configurato il suo utente: i trap di un utente authPriv vengono rifiutati se arrivano non autenticati o non cifrati.
+
+**Trap, inform e ID del motore della sonda.** Un trap è autenticato con l'ID del motore SNMP del dispositivo stesso, quindi non c'è nulla da configurare. Un inform è autenticato con l'ID del motore della sonda, che la maggior parte dei dispositivi trova da sé. Alcuni hanno bisogno che venga digitato: su Cisco IOS, inserisci `snmp-server engineID remote <probe-ip> <engine-id>` prima di creare l'utente. Apri **Monitor → Impostazioni → Sonde** e scegli la sonda: la sua scheda **Trap SNMP** mostra l'ID del motore da copiare. È ricavato dall'ID della sonda, quindi resta lo stesso dopo riavvii, aggiornamenti e tra le repliche della sonda; imposta `PROBE_SNMP_ENGINE_ID` per sceglierne un altro.
+
+Gli inform vengono confermati, sia in v2c sia in v3. Un inform inviato di nuovo perché la sua conferma è andata persa viene confermato di nuovo e registrato una volta sola.
+
+**La finestra temporale.** Come `snmptrapd` di Net-SNMP, il ricevitore rifiuta un trap i cui boot e il cui tempo del motore tornano indietro di oltre 150 secondi rispetto all'ultimo trap del dispositivo: una copia ripetuta o in ritardo, oppure un dispositivo riavviato senza contare il riavvio nei boot del motore. Un inform deve essere entro 150 secondi dal tempo della sonda stessa.
+
+**I trap SNMPv3 rifiutati** non vengono mai inoltrati e nulla di ciò che contenevano viene conservato o registrato: solo da dove sono arrivati, con quale utente sono stati inviati e perché. La scheda **Trap SNMP** della sonda elenca quelli dell'ultimo giorno, per esempio «12 trap SNMPv3 da 10.20.0.5 non sono riusciti: utente sconosciuto «san-monitor»», ciascuno con ciò che va cambiato. Le pagine **Panoramica** e **Log** di un dispositivo dicono lo stesso quando l'indirizzo è uno dei suoi. Un trap accettato da quell'indirizzo con quell'utente lo cancella.
+
+| Motivo | Cosa cambiare |
+| --- | --- |
+| Utente sconosciuto | Nessun dispositivo della sonda ha un utente SNMPv3 con quel nome. Aggiungilo alle credenziali del dispositivo, al suo profilo di credenziali o al profilo predefinito del suo sito, oppure correggi il nome sul dispositivo. |
+| Passphrase o protocollo di autenticazione errati | Rendi la passphrase e il protocollo di autenticazione del dispositivo uguali a quelli che OneUptime ha per quell'utente. |
+| Passphrase o protocollo di privacy errati | Rendi la passphrase e il protocollo di privacy del dispositivo uguali a quelli che OneUptime ha per quell'utente. |
+| Fuori dalla finestra temporale | L'orologio del motore del dispositivo è tornato indietro. I suoi trap tornano a essere accettati appena conta un riavvio nei boot del motore. |
+| Inviato a un altro ID del motore | Un inform è stato inviato a un ID del motore diverso da quello della sonda. Dai al dispositivo l'ID del motore della sonda. |
+| Meno sicurezza di quella configurata per l'utente | Imposta il livello di sicurezza dei trap del dispositivo su quello che OneUptime ha per l'utente. |
+
+Nella cronologia dei trap, un trap SNMPv3 dice cosa è arrivato, accanto al suo OID e ai suoi varbind: la versione 3, l'utente con cui è stato autenticato, se era anche cifrato e l'ID del motore del dispositivo che l'ha inviato.
+
 ### Come i trap vengono abbinati ai monitor
 
 I trap vengono abbinati tramite l'inventario dei dispositivi:
@@ -948,7 +985,7 @@ I trap vengono abbinati tramite l'inventario dei dispositivi:
 2. OneUptime cerca i dispositivi di rete assegnati a quella sonda il cui hostname, o uno dei cui **Altri indirizzi**, è l'indirizzo IP di origine del trap.
 3. Il trap viene registrato nella cronologia dei trap del dispositivo, e ogni monitor del dispositivo di rete su un dispositivo corrispondente lo valuta rispetto ai suoi criteri, di solito un filtro **Trap SNMP ricevuta (OID della trap)**.
 
-L'abbinamento avviene per indirizzo, non per credenziali, quindi anche un dispositivo solo ping può ricevere trap: un dispositivo per cui non hai credenziali di lettura può comunque inviarli. Registra il dispositivo con l'indirizzo da cui invia i trap, o aggiungi quell'indirizzo ai suoi **Altri indirizzi** nella sua pagina **Impostazioni**. I trap generici SNMPv1 (coldStart, linkDown, linkUp e così via) vengono convertiti nei loro OID di notifica SNMPv2 standard, quindi linkDown corrisponde all'OID di trap `1.3.6.1.6.3.1.1.5.3` qualunque sia la versione SNMP.
+L'abbinamento avviene per indirizzo, non per credenziali, quindi anche un dispositivo solo ping può ricevere trap v1 e v2c: un dispositivo per cui non hai credenziali di lettura può comunque inviarli. Un trap SNMPv3 ha bisogno anche dell'utente con cui è firmato (vedi [Trap e inform SNMPv3](#trap-e-inform-snmpv3)), e poi viene abbinato per indirizzo allo stesso modo. Registra il dispositivo con l'indirizzo da cui invia i trap, o aggiungi quell'indirizzo ai suoi **Altri indirizzi** nella sua pagina **Impostazioni**. I trap generici SNMPv1 (coldStart, linkDown, linkUp e così via) vengono convertiti nei loro OID di notifica SNMPv2 standard, quindi linkDown corrisponde all'OID di trap `1.3.6.1.6.3.1.1.5.3` qualunque sia la versione SNMP.
 
 #### Esempio: aprire un incidente su linkDown
 
@@ -1176,6 +1213,13 @@ Quando i dispositivi ci sono tutti ma i monitor no: dispositivi e monitor sono l
 - Pubblica e consenti UDP 162 fino alla sonda, o la porta indicata in `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Controlla che l'hostname del dispositivo, o uno dei suoi **Altri indirizzi**, sia l'indirizzo da cui invia i trap: è così che i trap vengono abbinati ai dispositivi.
 - Controlla nei log della sonda gli errori di bind: la porta già in uso, o nessun privilegio per una porta sotto la 1024.
+:::
+
+:::details I trap SNMPv3 vengono rifiutati
+- Apri **Monitor → Impostazioni → Sonde** e scegli la sonda: la sua scheda **Trap SNMP** elenca ogni origine rifiutata con il motivo e ciò che va cambiato.
+- L'utente SNMPv3 deve appartenere a un dispositivo assegnato a quella sonda: le sue credenziali, il suo profilo di credenziali o il profilo predefinito del suo sito. Un utente di un dispositivo assegnato a un'altra sonda non conta.
+- Un inform ha bisogno anche dell'ID del motore della sonda, mostrato nella stessa scheda. Un dispositivo a cui ne è stato dato uno sbagliato risulta come se inviasse a un altro ID del motore.
+- Dopo una modifica, la sonda applica i nuovi utenti entro un minuto.
 :::
 
 :::details Testare SNMP dalla rete della sonda

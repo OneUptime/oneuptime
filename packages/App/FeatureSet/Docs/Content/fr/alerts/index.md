@@ -31,7 +31,7 @@ Les deux enregistrent un problème, et les deux peuvent alerter la personne d'as
 
 |                                    | Alerte                                                 | Incident                                          |
 | ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
-| **Ce que c'est**                   | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés | Un problème qui touche vos utilisateurs, comme une panne |
+| **Ce qu'il est**                   | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés | Un problème qui touche vos utilisateurs, comme une panne |
 | **Sur les pages de statut**        | Jamais                                                 | Peut s'afficher, et prévient les abonnés          |
 | **Notes**                          | Notes privées, réservées aux personnes qui peuvent voir l'alerte            | Notes publiques pour les clients, et notes privées |
 | **États de départ**                | **Identifié**, **Pris en compte**, **Résolu**          | **Identifié**, **Pris en compte**, **Résolu**     |

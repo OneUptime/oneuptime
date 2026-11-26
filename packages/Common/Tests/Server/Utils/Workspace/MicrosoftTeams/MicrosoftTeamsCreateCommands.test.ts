@@ -64,6 +64,9 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceIncidentDeclaredByHand, {
+  WORKSPACE_DECLARED_BY_HAND_TEXT,
+} from "../../../../../Server/Utils/Workspace/WorkspaceIncidentDeclaredByHand";
 import { WorkspaceCommandName } from "../../../../../Server/Utils/Workspace/WorkspaceCommands";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
@@ -1080,6 +1083,15 @@ beforeEach((): void => {
    * read of the database, which nothing connects here.
    */
   everyServerProductIsOn();
+  /*
+   * Whether the project starts incidents declared by hand acknowledged
+   * (WorkspaceIncidentDeclaredByHand): read with the card's other reads,
+   * and not what these tests are about - off, as every project starts.
+   * WorkspaceIncidentDeclaredByHand.test and the card tests pin it.
+   */
+  jest
+    .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+    .mockResolvedValue(false);
 
   senderLookupSpy = jest
     .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
@@ -2134,6 +2146,40 @@ describe("create incident", (): void => {
     });
     expect(incidentCardSpy).not.toHaveBeenCalled();
     expect(errorLogSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Read with the card's other reads: while the project starts incidents
+   * declared by hand acknowledged (#11137), the card is built with the note
+   * its on-call policies carry - and with none otherwise.
+   */
+  test("the card is built with the on-call policies' note while the project starts incidents declared by hand acknowledged", async (): Promise<void> => {
+    const readSpy: SpyInstance<
+      typeof WorkspaceIncidentDeclaredByHand.readIsOn
+    > = jest
+      .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+      .mockResolvedValue(true);
+
+    const teams: FakeTeams = await runCommand({ profile: INCIDENT });
+
+    expectSends(teams, { attempted: 1, delivered: 1 });
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    expect(readSpy.mock.calls[0]![0]).toBe(PROJECT_ID);
+    expect(incidentCardSpy).toHaveBeenCalled();
+    for (const call of incidentCardSpy.mock.calls) {
+      expect(call[0].onCallPoliciesHint).toBe(
+        WORKSPACE_DECLARED_BY_HAND_TEXT.onCallPoliciesHint,
+      );
+    }
+  });
+
+  test("and without it while the switch is off", async (): Promise<void> => {
+    await runCommand({ profile: INCIDENT });
+
+    expect(incidentCardSpy).toHaveBeenCalled();
+    for (const call of incidentCardSpy.mock.calls) {
+      expect(call[0].onCallPoliciesHint).toBeUndefined();
+    }
   });
 
   test("a project without incident severities, with no dashboard URL known: names that page in words", async (): Promise<void> => {

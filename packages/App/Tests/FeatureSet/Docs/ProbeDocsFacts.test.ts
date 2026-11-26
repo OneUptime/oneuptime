@@ -1551,13 +1551,13 @@ describe("the Incoming Request Ingress page", () => {
       "if (Buffer.isBuffer(body)) {\n    return body;\n  }",
     );
     /*
-     * OneUptime's parsers hold each route to its limit (RequestBodyLimit):
-     * an incoming request monitor's, under each prefix, is the large
-     * routes' 50 MiB, and the probe's listener counts a JSON body against
-     * the same.
+     * OneUptime's parsers hold each route to its limit (RequestBodyLimit),
+     * which StartServer hands them (AppBodyParsers): an incoming request
+     * monitor's, under each prefix, is the large routes' 50 MiB, and the
+     * probe's listener counts a JSON body against the same.
      */
     expect(appParsers).toContain(
-      "const limit: RequestBodyLimit = getRequestBodyLimit(req.path);",
+      "AppBodyParsers.read(req, res, next, getRequestBodyLimit(req.path));",
     );
 
     for (const path of [

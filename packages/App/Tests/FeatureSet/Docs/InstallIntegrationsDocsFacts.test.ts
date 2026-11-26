@@ -47,6 +47,11 @@ import MicrosoftTeamsCloudUtil, {
   MicrosoftTeamsCloud,
   MicrosoftTeamsCloudHosts,
 } from "Common/Types/Workspace/MicrosoftTeamsCloud";
+import {
+  ConnectionShares,
+  computeConnectionShares,
+} from "Common/Server/Utils/Database/ConnectionShares";
+import { aggregateProbeScheduling } from "Common/Server/Utils/Probe/ProbeSchedulingFleetMetrics";
 import { describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -146,6 +151,8 @@ const SOURCES: Record<string, string> = {
   postgresDataSource: `${COMMON_SERVER}/Infrastructure/Postgres/DataSourceOptions.ts`,
   chartValues: `${CHART}/values.yaml`,
   chartHelpers: `${CHART}/templates/_helpers.tpl`,
+  chartApp: `${CHART}/templates/app.yaml`,
+  chartProbe: `${CHART}/templates/probe.yaml`,
   chartManifest: `${CHART}/Chart.yaml`,
   cnpgScheduledBackup: `${CHART}/templates/postgresql-cnpg-scheduledbackup.yaml`,
   logModel: "packages/Common/Models/AnalyticsModels/Log.ts",
@@ -651,6 +658,19 @@ function valueAt(root: unknown, dottedPath: string): unknown {
   }
 
   return node;
+}
+
+// The dotted path of every value a parsed YAML document sets.
+function leafPaths(node: unknown, prefix: string = ""): Array<string> {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return prefix ? [prefix] : [];
+  }
+
+  return Object.entries(node as Record<string, unknown>).flatMap(
+    ([key, child]: [string, unknown]): Array<string> => {
+      return leafPaths(child, prefix ? `${prefix}.${key}` : key);
+    },
+  );
 }
 
 // A step of a GitHub Actions job, as far as the Node.js check reads it.
@@ -2505,6 +2525,76 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     expect(page).toContain(
       "(16 GB of memory, 8 cores and 400 GB of disk recommended)",
     );
+  });
+
+  /*
+   * Running many monitors (#10819): the settings it names are the chart's,
+   * the defaults it moves from or keeps are the chart's and the app's, and
+   * its table is what /metrics/probe-scheduling answers with.
+   */
+  it("for many monitors, names the chart's settings and defaults, and the fields /metrics/probe-scheduling answers with", () => {
+    const section: string = sectionOf(page, "## Running many monitors");
+
+    // The fetch limit it raises, and the workers it multiplies.
+    expect(valueAt(values, "probes.one.monitorFetchLimit")).toBe(10);
+    expect(valueAt(values, "probes.one.monitoringWorkers")).toBe(3);
+    expect(readSource("chartProbe")).toMatch(
+      /- name: PROBE_MONITOR_FETCH_LIMIT\s+value: \{\{ \$val\.monitorFetchLimit \| squote \}\}/,
+    );
+    expect(section).toContain(
+      "(`monitorFetchLimit` in the Helm chart, `PROBE_MONITOR_FETCH_LIMIT` elsewhere) from 10 to 50",
+    );
+    expect(section).toContain("150 with 3 workers");
+
+    // The limit it keeps: a fifth of a pod's pool of 50; the Test Monitor lane's 2.
+    const shares: ConnectionShares = computeConnectionShares({
+      poolSize: 50,
+      receivesIngressTraffic: true,
+    });
+
+    expect(shares.probeSchedulingMaxConcurrentRequests).toBe(10);
+    expect(shares.probeSchedulingMaxConcurrentMonitorTestRequests).toBe(2);
+    expect(readSource("chartApp")).toMatch(
+      /- name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS\s+value: \{\{ \$\.Values\.app\.probeSchedulingMaxConcurrentRequests \| squote \}\}/,
+    );
+    expect(section).toContain(
+      "`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`)",
+    );
+    expect(section).toContain("a fifth of its database pool, 10 of 50");
+    expect(section).toContain("Test Monitor runs have 2 slots of their own");
+
+    // Every value its YAML sets is one the chart has.
+    const blocks: Array<string> = fencedBlocks(section, "yaml");
+
+    expect(blocks).toHaveLength(2);
+
+    for (const block of blocks) {
+      for (const valuePath of leafPaths(jsYaml.load(block))) {
+        expect({
+          valuePath,
+          inChart: valueAt(values, valuePath) !== undefined,
+        }).toEqual({ valuePath, inChart: true });
+      }
+    }
+
+    // Each field of its table is one the endpoint answers with.
+    const answered: Array<string> = Object.keys(
+      aggregateProbeScheduling([], true),
+    );
+    const fields: Array<string> = tableRows(section)
+      .slice(1)
+      .map((cells: Array<string>): string => {
+        return unwrap(cells[0] as string);
+      });
+
+    expect(fields).toHaveLength(6);
+
+    for (const field of fields) {
+      expect({ field, answered: answered.includes(field) }).toEqual({
+        field,
+        answered: true,
+      });
+    }
   });
 });
 

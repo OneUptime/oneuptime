@@ -90,7 +90,7 @@ Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `conf
 ## Voordat u begint
 
 - **Een host met Docker** in uw infrastructuur, die uw OneUptime-URL via HTTPS bereikt en de systemen waarop uw stappen werken.
-- **Een rol die Runners maakt.** Projecteigenaar, Projectbeheerder, Projectlid en Runbookbeheerder kunnen er een maken. Alleen een Projecteigenaar, Projectbeheerder of Runbookbeheerder ziet de sleutel van een Runner, die in de installatieopdracht staat.
+- **Een rol die Runners maakt.** Projecteigenaar, Projectbeheerder, Projectlid en Runbookbeheerder kunnen er een maken. Alleen een Projecteigenaar, Projectbeheerder of Runbookbeheerder ziet de sleutel van een Runner, die in de installatieopdracht staat. Alleen zij kunnen ook de sleutel van een Runner kiezen: een Runner die iemand anders maakt, krijgt een sleutel die OneUptime genereert, en het maken ervan toont hun de sleutel niet.
 
 ## Een Runner installeren
 

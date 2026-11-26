@@ -219,6 +219,10 @@ Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisning
 
 :::details Én feil vises som flere unntak
 Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, eller etter en melding uten kort-, Social Security- og telefonnumre, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**. En scrub-regel deler ikke et unntak: det grupperes etter det det sa før reglene kjørte. Et unntak funnet i logger som en regel delte i to i en tidligere versjon av OneUptime, forblir delt. Så snart en ny forekomst kommer, er begge merket **Delt** i listen over unntak, og siden til hvert av dem nevner det andre: der gjør **Slå sammen unntak** dem til ett igjen, uten OneUptime AI. Det eldste av de to beholdes, og **Del opp** angrer det.
+
+Slå på **Delt av en scrub-regel** ved siden av **Tildelt meg** for å vise bare disse parene: hvert par står da én gang i listen, ved unntaket regelen delte fra, og diagrammet og tallene i sidepanelet teller bare de unntakene. Knappen vises med antallet så lenge prosjektet har et par å slå sammen, og lagrede visninger og lenker husker den.
+
+Når OneUptime ikke kan lese hvilket unntak en forekomst hører til, prøver det igjen og teller forekomsten så snart det kan: det lager aldri et unntak nummer to for en feil det allerede har. Et unntak som en tidligere versjon av OneUptime laget to ganger på den måten, der det andre varslet som et nytt unntak, slås sammen med det første igjen ved neste forekomst: det eldste beholdes, ingenting varsler, og **Del opp** angrer det.
 :::
 
 :::details Et unntaks fingeravtrykk endret seg

@@ -22,13 +22,13 @@ import type {
   ReadinessTeam,
   ResponderSource,
   UserReadiness,
-} from "Common/Server/Services/OnCallReadinessService";
+} from "Common/Types/OnCallDutyPolicy/OnCallReadiness";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The browser-side view of the readiness contract.
  *
- * These are type-only imports from the server service on purpose. The previous
+ * These are the very types the server answers in, on purpose. The previous
  * surface of this kind (the team compliance status table, now
  * ee/Dashboard/TeamCompliance/TeamComplianceStatusTable.tsx)
  * hand-copied its response interface and typed the fetch `any` end to end, so
@@ -37,13 +37,19 @@ import { joinList } from "Common/UI/Utils/ListSeparator";
  * wire types from the real ones means a field added, removed or retyped on
  * OnCallReadinessService breaks this build instead of quietly rendering blanks.
  *
- * `import type` (never a value import) matters just as much: the enums live in a
- * server module that transitively pulls in TypeORM, the database models and the
- * whole service layer. A value import would drag all of that into the dashboard
- * bundle. Type-only imports are erased at compile time, so the three literal
- * unions below are reconstructed from the enums with template-literal types and
- * the runtime constants are declared against those unions — renaming an enum
- * member server-side still fails this file to compile.
+ * They come from Common/Types/OnCallDutyPolicy/OnCallReadiness, which the
+ * service answers in, never from the service itself: TypeScript puts in a
+ * program the file a type comes from, even through `import type`, and the
+ * service's file pulls in TypeORM, the database models and the whole service
+ * layer. Read from it, they held this Dashboard's type check, and ee's
+ * Dashboard and UI tests', to most of Common/Server, and ran ee's UI tests out
+ * of Node's default heap on the 17.3.0 release.
+ *
+ * `import type` (never a value import) still keeps the enums out of the
+ * dashboard bundle: type-only imports are erased at compile time, so the three
+ * literal unions below are reconstructed from the enums with template-literal
+ * types and the runtime constants are declared against those unions —
+ * renaming an enum member server-side still fails this file to compile.
  */
 
 export type ReadinessStatusValue = `${ReadinessStatus}`;

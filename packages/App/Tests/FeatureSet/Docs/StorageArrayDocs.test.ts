@@ -11,9 +11,8 @@ import {
   getAllStorageArrayMetrics,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { StorageArrayNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import {
@@ -259,6 +258,29 @@ function pinnedFilters(metric: StorageArrayMetricDefinition): Array<string> {
  * which is what docker-compose.yml passes to the collector (env_file) and
  * reads for itself (the config to mount, the profile to start).
  */
+/*
+ * The address and token variables of install.sh's PLATFORMS table (#11000):
+ * each line's fourth and fifth |-separated fields, each once, in order.
+ */
+function platformVariables(): Array<string> {
+  const table: RegExpMatchArray | null = readAgentFile("install.sh").match(
+    /^PLATFORMS="\n([\s\S]*?)\n"$/m,
+  );
+
+  expect(table).not.toBeNull();
+
+  const names: Array<string> = [];
+  for (const line of (table as RegExpMatchArray)[1]!.split("\n")) {
+    const fields: Array<string> = line.split("|");
+    for (const name of [fields[3], fields[4]]) {
+      if (name && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
 function dotenvVariables(): Array<string> {
   const heredoc: RegExpMatchArray | null = readAgentFile("install.sh").match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
@@ -268,8 +290,12 @@ function dotenvVariables(): Array<string> {
 
   return (heredoc as RegExpMatchArray)[1]!
     .split("\n")
-    .map((line: string): string => {
-      return line.split("=")[0] as string;
+    .flatMap((line: string): Array<string> => {
+      // The table's variables, which one function writes.
+      if (line === "$(platform_env_lines)") {
+        return platformVariables();
+      }
+      return [line.split("=")[0] as string];
     });
 }
 

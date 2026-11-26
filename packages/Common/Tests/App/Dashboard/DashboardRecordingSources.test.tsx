@@ -120,13 +120,18 @@ describe("FormRefusals", () => {
 });
 
 describe("ModelForm and a server that refuses", () => {
-  test("reports the refusal where it shows the server's message, and nothing on success", () => {
+  test("reports the refusal where it shows the server's message, and nothing on success or when the person called the submit back", () => {
     const source: string = fs.readFileSync(
       path.join(__dirname, "../../../UI/Components/Forms/ModelForm.tsx"),
       "utf8",
     );
+    /*
+     * A hook that asked the person first and was told no throws
+     * FormSubmitCancelled (#10436): nothing was sent, so nothing was
+     * refused - the form says nothing, and reports nothing.
+     */
     const refusal: RegExpMatchArray | null = source.match(
-      /catch \(err\) \{\n\s*const message: string = API\.getFriendlyMessage\(err\);\n\s*setError\(message\);\n\s*props\.onSubmitError\?\.\(message\);\n\s*FormRefusals\.report\(FormRefusalKind\.Refused\);\n\s*\}/,
+      /catch \(err\) \{\n(?:\s*\/\*(?:[^*]|\*(?!\/))*\*\/\n)?\s*if \(!FormSubmitCancelled\.isCancelled\(err\)\) \{\n\s*const message: string = API\.getFriendlyMessage\(err\);\n\s*setError\(message\);\n\s*props\.onSubmitError\?\.\(message\);\n\s*FormRefusals\.report\(FormRefusalKind\.Refused\);\n\s*\}\n\s*\}/,
     );
 
     expect(refusal).not.toBeNull();

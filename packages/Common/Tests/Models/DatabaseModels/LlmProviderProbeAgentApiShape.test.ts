@@ -4,6 +4,7 @@ import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../../Types/JSON";
+import Permission from "../../../Types/Permission";
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import { TerraformResource } from "../../../../../Scripts/TerraformProvider/Core/Types";
@@ -87,13 +88,31 @@ describe("an LLM provider in the API reference", () => {
     expect(properties("LlmProviderReadSchema")["hasAdditionalParams"]).toEqual(
       expect.objectContaining({ readOnly: true }),
     );
+    /*
+     * A read-only field's description is its own words, without the
+     * permissions sentence a writable field carries (#10527): readOnly says
+     * it takes no value. Who may read it is who may read the provider.
+     */
+    const description: string = String(
+      properties("LlmProviderReadSchema")["hasAdditionalParams"]?.[
+        "description"
+      ] || "",
+    );
+
+    expect(description).toContain("Whether Additional Parameters are saved.");
+    expect(description).not.toContain("Permissions -");
     expect(
-      String(
-        properties("LlmProviderReadSchema")["hasAdditionalParams"]?.[
-          "description"
-        ] || "",
-      ),
-    ).toContain("Read: [Project Owner, Project Admin, Project Member, Viewer");
+      new LlmProvider().getColumnAccessControlForAllColumns()[
+        "hasAdditionalParams"
+      ]?.read,
+    ).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+      ]),
+    );
 
     expect(
       shapeKeys(ModelSchema.getCreateModelSchema({ modelType: LlmProvider })),

@@ -1,7 +1,13 @@
-import DuplicateNameNotice from "../DuplicateNameNotice";
+/*
+ * Type-only on purpose: the one place the warning is loaded is the import()
+ * below (duplicateNameNotice).
+ */
+import type DuplicateNameNotice from "../DuplicateNameNotice";
+import type { ComponentProps as DuplicateNameNoticeProps } from "../DuplicateNameNotice";
 import Field, { FieldFooterProps } from "../Types/Field";
 import Fields from "../Types/Fields";
 import FormValues from "../Types/FormValues";
+import { LazyLibrary, useLazyLibrary } from "../../../Utils/LazyLibrary";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   getProjectNameRule,
@@ -9,7 +15,7 @@ import {
 } from "../../../../Types/Database/ProjectNameRule";
 import { isNameTakenRefusal } from "../../../../Types/Database/UniqueName";
 import ObjectID from "../../../../Types/ObjectID";
-import React, { ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * A FORM'S NAME FIELD, FOR A KIND WITH A NAME OF ITS OWN IN A PROJECT
@@ -31,6 +37,36 @@ import React, { ReactElement } from "react";
  * kind whose names repeat, or outside a project (the Admin Dashboard),
  * keeps its fields as they are.
  */
+
+/*
+ * The warning - with the API it asks about a name and the kinds a project
+ * can require unique names for - is a file of its own, loaded by the first
+ * form that draws a name field it watches, as the field is drawn. Every page
+ * with a form reaches ModelForm, and a status page's forms and the sign-in
+ * pages' have no such field (about 1.6 KiB gzipped of each one's first load,
+ * packages/Common/Scripts/first-load-budgets.js). The warning waits for
+ * typing to stop before it asks anything (DUPLICATE_NAME_CHECK_DELAY_IN_MS),
+ * so it has arrived by then; until it has, nothing is drawn, as before an
+ * answer.
+ */
+const duplicateNameNotice: LazyLibrary<typeof DuplicateNameNotice> =
+  new LazyLibrary<typeof DuplicateNameNotice>(
+    async (): Promise<typeof DuplicateNameNotice> => {
+      return (await import("../DuplicateNameNotice")).default;
+    },
+  );
+
+const LazyDuplicateNameNotice: FunctionComponent<DuplicateNameNoticeProps> = (
+  props: DuplicateNameNoticeProps,
+): ReactElement => {
+  const Notice: typeof DuplicateNameNotice | null = useLazyLibrary(
+    duplicateNameNotice,
+    true,
+  );
+
+  // A warning that did not load leaves the form as it is: it only helps.
+  return Notice ? <Notice {...props} /> : <></>;
+};
 
 // The column a field writes, as ModelForm reads it.
 const getFieldColumn: <TBaseModel extends BaseModel>(
@@ -115,7 +151,7 @@ export const withDuplicateNameNotice: <TBaseModel extends BaseModel>(data: {
         return (
           <>
             {getFooterElement?.(values, error, footer)}
-            <DuplicateNameNotice
+            <LazyDuplicateNameNotice
               tableName={tableName}
               singularName={singularName}
               name={(values as Record<string, unknown>)[rule.column]}

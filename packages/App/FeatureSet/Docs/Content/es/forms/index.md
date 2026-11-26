@@ -19,12 +19,12 @@ flowchart TB
     page -->|Enviar| checks["Protecciones y<br/>comprobación de respuestas"]
     checks --> submission["Envío, guardado<br/>con el formulario"]
     submission --> target{"Cada envío crea"}
-    target -->|Incidente| incident["Incidente, oculto<br/>en las páginas de estado"]
-    target -->|Alerta| alert["Alerta, para que la revisen<br/>sus propietarios"]
-    target -->|Mantenimiento programado| event["Evento de mantenimiento,<br/>oculto salvo que se indique"]
+    target -->|Incidente| incident["Incidente, oculto<br/>en las páginas<br/>de estado"]
+    target -->|Alerta| alert["Alerta, para<br/>que la revisen<br/>sus propietarios"]
+    target -->|Mantenimiento programado| event["Evento de<br/>mantenimiento, oculto<br/>salvo que se indique"]
     incident --> response["Se ejecutan las políticas<br/>de guardia y las reglas"]
     alert --> response
-    incident --> note["Nota privada: quién lo envió,<br/>otras respuestas"]
+    incident --> note["Nota privada:<br/>quién lo envió,<br/>otras respuestas"]
     alert --> note
     event --> note
 ```

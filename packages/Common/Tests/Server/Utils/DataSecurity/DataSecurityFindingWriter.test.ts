@@ -513,6 +513,43 @@ describe("recordContentScan: findings", () => {
     expect(after.matchCount).toBe(40);
   });
 
+  test("a finding the names-and-addresses model made says so, until a scan finds it by a pattern", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.orders.notes", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+              foundByModel: true,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    expect(findingAt("person-name", "public.orders.notes").isFoundByModel).toBe(
+      true,
+    );
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.orders.notes", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    expect(findingAt("person-name", "public.orders.notes").isFoundByModel).toBe(
+      false,
+    );
+  });
+
   test("every column written is a column of DataStoreFinding", async () => {
     const columns: Set<string> = new Set(
       Object.keys(getTableColumns(new DataStoreFinding())),

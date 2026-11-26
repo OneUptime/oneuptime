@@ -66,9 +66,9 @@ const ALLOWED: Array<Allowed> = [
     reason: "VMware vCenter refusing the probe's credentials.",
   },
   {
-    phrase: /^Login URL$|\bOpen at login\b|\bon device login\b/gi,
+    phrase: /^Login URL$|^Login$|\bOpen at login\b|\bon device login\b/gi,
     reason:
-      "Another product's own label, quoted in the docs as it reads there: Microsoft Entra's Login URL, macOS's Open at Login, Windows signing in to the device.",
+      "Another product's own label, quoted in the docs as it reads there: Microsoft Entra's Login URL, the Login tab of Keycloak's realm settings, which holds its Verify email switch (GHSA-8gwc-w386-fh6w), macOS's Open at Login, Windows signing in to the device.",
   },
   {
     phrase: /\bSingle Logout\b/g,

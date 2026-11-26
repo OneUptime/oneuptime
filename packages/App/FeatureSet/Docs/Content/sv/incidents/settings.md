@@ -15,7 +15,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 
 | Sida                         | Vad du gör där                                                                               |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Incidentstatus**           | Lägga till, byta namn på, byta färg på och ändra ordningen på tillstånden som en incident går igenom. |
+| **Incidentstatus**           | Lägga till, byta namn på, byta färg på och ändra ordningen på tillstånden som en incident går igenom, och välja om incidenter som deklareras för hand ska börja som bekräftade. Avslaget som standard. |
 | **Incidentallvar**           | Lägga till, byta namn på, byta färg på och ändra ordningen på allvarlighetsgraderna.         |
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |

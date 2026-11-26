@@ -7,6 +7,7 @@ import SsoTeamMembership, {
 } from "../../../FeatureSet/Identity/Utils/SsoTeamMembership";
 import AuditLogService from "Common/Server/Services/AuditLogService";
 import Errors from "Common/Server/Utils/Errors";
+import logger from "Common/Server/Utils/Logger";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -42,6 +43,23 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
   };
 });
 
+/*
+ * Which of the teams handed are the project's own (#11149): by default
+ * every one of them (./SsoProjectTeamsStandIn); a test names the others.
+ */
+const teamFindBy: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/TeamService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: (...args: Array<unknown>): unknown => {
+        return teamFindBy(...args);
+      },
+    },
+  };
+});
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "72000000-0000-4000-8000-000000000001",
 );
@@ -67,12 +85,37 @@ async function addToTeams(): Promise<SsoTeamMembershipOutcome> {
 }
 
 let recordCreate: jest.SpyInstance;
+let warn: jest.SpyInstance;
 let order: Array<string>;
+
+// The teams the stand-in says are not the project's: another's, or deleted.
+let notTheProjects: Array<string> = [];
 
 beforeEach(() => {
   jest.clearAllMocks();
   jest.restoreAllMocks();
   order = [];
+  notTheProjects = [];
+  teamFindBy.mockImplementation(
+    (findBy: { query: Record<string, unknown> }): Promise<Array<unknown>> => {
+      const standIn: typeof import("./SsoProjectTeamsStandIn") =
+        jest.requireActual("./SsoProjectTeamsStandIn");
+
+      return Promise.resolve(
+        standIn
+          .readQueriedIds(findBy.query["_id"])
+          .filter((id: string): boolean => {
+            return !notTheProjects.includes(id.toLowerCase());
+          })
+          .map((id: string): unknown => {
+            return { _id: id, projectId: findBy.query["projectId"] };
+          }),
+      );
+    },
+  );
+  warn = jest.spyOn(logger, "warn").mockImplementation((): never => {
+    return undefined as never;
+  });
   teamMemberCreate.mockImplementation(
     async (createBy: { data: TeamMember }): Promise<TeamMember> => {
       order.push(`joined ${createBy.data.teamId?.toString()}`);
@@ -171,15 +214,138 @@ describe("SsoTeamMembership.addToTeams", () => {
     expect(teamMemberCreate).toHaveBeenCalledTimes(2);
   });
 
-  test("no teams: nothing to add", async () => {
+  test("no teams: NoTeams, nothing read and nothing written", async () => {
+    for (const none of [[], null, undefined]) {
+      await expect(
+        SsoTeamMembership.addToTeams({
+          projectId: PROJECT_ID,
+          userId: USER_ID,
+          teams: none,
+        }),
+      ).resolves.toBe(SsoTeamMembershipOutcome.NoTeams);
+    }
+
+    expect(teamFindBy).not.toHaveBeenCalled();
+    expect(teamMemberCreate).not.toHaveBeenCalled();
+    expect(recordCreate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A sign-in through one project's provider never reaches another project
+ * (#11149). A provider's teams are held to its project when it is saved,
+ * but one saved before that rule kept its teams, and a team can be deleted
+ * after it was picked. A membership of this project in a team of another
+ * would put the person on that team's on-call and notifications, which
+ * read a team's members by the team alone.
+ */
+describe("only the project's own teams take them", () => {
+  test("reads the teams by their ids and the project, once, as OneUptime's own read", async () => {
+    await expect(addToTeams()).resolves.toBe(SsoTeamMembershipOutcome.Added);
+
+    expect(teamFindBy).toHaveBeenCalledTimes(1);
+
+    const findBy: {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = teamFindBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    };
+
+    const standIn: typeof import("./SsoProjectTeamsStandIn") =
+      jest.requireActual("./SsoProjectTeamsStandIn");
+
+    expect(standIn.readQueriedIds(findBy.query["_id"])).toEqual(
+      TEAM_IDS.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+    expect(String(findBy.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(findBy.props).toEqual({ isRoot: true });
+  });
+
+  test("a team that is not the project's is left out, the rest are joined in order, and the server's log says so without naming anyone", async () => {
+    notTheProjects = [TEAM_IDS[1]!.toString()];
+
+    await expect(addToTeams()).resolves.toBe(SsoTeamMembershipOutcome.Added);
+
+    expect(order).toEqual([
+      `joined ${TEAM_IDS[0]!.toString()}`,
+      `recorded ${TEAM_IDS[0]!.toString()}`,
+      `joined ${TEAM_IDS[2]!.toString()}`,
+      `recorded ${TEAM_IDS[2]!.toString()}`,
+    ]);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    const line: string = String(warn.mock.calls[0]![0]);
+
+    expect(line).toContain(PROJECT_ID.toString());
+    expect(line).toContain("1 team(s) that are not teams of the project");
+    expect(line).not.toContain(USER_ID.toString());
+  });
+
+  test("none of them the project's: NoTeams, and nothing is written or recorded", async () => {
+    notTheProjects = TEAM_IDS.map((id: ObjectID): string => {
+      return id.toString();
+    });
+
+    await expect(addToTeams()).resolves.toBe(SsoTeamMembershipOutcome.NoTeams);
+
+    expect(teamMemberCreate).not.toHaveBeenCalled();
+    expect(recordCreate).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  test("a team named twice, in any case, is joined once", async () => {
     await expect(
       SsoTeamMembership.addToTeams({
         projectId: PROJECT_ID,
         userId: USER_ID,
-        teams: [],
+        teams: [
+          new Team(TEAM_IDS[0]!),
+          new Team(new ObjectID(TEAM_IDS[0]!.toString().toUpperCase())),
+          new Team(TEAM_IDS[1]!),
+        ],
       }),
     ).resolves.toBe(SsoTeamMembershipOutcome.Added);
-    expect(teamMemberCreate).not.toHaveBeenCalled();
+
+    expect(order).toEqual([
+      `joined ${TEAM_IDS[0]!.toString()}`,
+      `recorded ${TEAM_IDS[0]!.toString()}`,
+      `joined ${TEAM_IDS[1]!.toString()}`,
+      `recorded ${TEAM_IDS[1]!.toString()}`,
+    ]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test("getProjectTeams keeps the project's own, in the order handed, and reads nothing for none", async () => {
+    notTheProjects = [TEAM_IDS[0]!.toString()];
+
+    const kept: Array<Team> = await SsoTeamMembership.getProjectTeams({
+      projectId: PROJECT_ID,
+      teams: [...teams()].reverse(),
+    });
+
+    expect(
+      kept.map((team: Team): string => {
+        return team.id!.toString();
+      }),
+    ).toEqual([TEAM_IDS[2]!.toString(), TEAM_IDS[1]!.toString()]);
+
+    teamFindBy.mockClear();
+
+    for (const none of [[], null, undefined]) {
+      await expect(
+        SsoTeamMembership.getProjectTeams({
+          projectId: PROJECT_ID,
+          teams: none,
+        }),
+      ).resolves.toEqual([]);
+    }
+
+    expect(teamFindBy).not.toHaveBeenCalled();
   });
 });
 

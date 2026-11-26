@@ -21,6 +21,7 @@ import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
 import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
+import SyncSnmpTrapReceiver from "./Jobs/SnmpTrap/SyncSnmpTrapReceiver";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
 import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
 import FetchOpenStackChecks from "./Jobs/OpenStack/FetchOpenStackChecks";
@@ -212,6 +213,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();
+
+      /*
+       * Every thirty seconds: the receiver reported to OneUptime - on or
+       * off, its SNMPv3 engine ID and the SNMPv3 traps it refused - and the
+       * SNMPv3 users of this probe's devices handed back to it.
+       */
+      SyncSnmpTrapReceiver();
 
       /*
        * Syslog receiver: UDP and TCP 5140. On unless

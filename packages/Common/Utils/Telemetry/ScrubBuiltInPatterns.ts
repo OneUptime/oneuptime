@@ -5,8 +5,12 @@ import {
   scrubRegExpFromBuiltIn,
   scrubRegExpFromRanges,
 } from "../../Types/Telemetry/ScrubRule";
-import { EMAIL_ADDRESS_DETECTORS } from "../DataSecurity/Detectors/ContactDetectors";
+import {
+  EMAIL_ADDRESS_DETECTORS,
+  PHONE_NUMBER_DETECTORS,
+} from "../DataSecurity/Detectors/ContactDetectors";
 import { CARD_NUMBER_DETECTORS } from "../DataSecurity/Detectors/FinancialDetectors";
+import { US_SSN_DETECTORS } from "../DataSecurity/Detectors/GovernmentIdDetectors";
 import {
   findDetectorRanges,
   findInEveryReading,
@@ -45,12 +49,29 @@ import ScrubIpAddress from "./ScrubIpAddress";
  *    and with every script's digits read by their values - a card in
  *    fullwidth, Arabic-Indic or Persian digits (#10960) - and every card
  *    the card detectors find, an American Express number's 15 digits
- *    among them.
+ *    among them;
+ *  - Phone Number: its own pattern's matches - North American numbers -
+ *    and every phone number the detectors find on its own (#11025,
+ *    #11030): an international one, +44 20 7946 0958 or +49 30 123456, in
+ *    the groups people write it in, a North American one as people write
+ *    it, and a UK mobile; each in the text as written, with its
+ *    percent-escapes read (/callback?phone=%2B44%2020%207946%200958) and
+ *    with every script's digits read. What only looks like one is left: an
+ *    order number, a timestamp or a time zone's offset, a version, a
+ *    decimal or a coordinate (ContactDetectors, isWrittenAsPhoneNumber);
+ *  - SSN: its own pattern's matches, 123-45-6789, and every Social
+ *    Security number the detectors find on its own - in its groups set
+ *    apart by dots or spaces too, by the SSA's rules - each in the text as
+ *    written and with every script's digits read (#11030).
  *
  * Each pattern's own matches are kept, so a rule hides everything it hid
  * before. What two readings or the pattern and a detector share is one
  * match, hidden whole, and placed on the characters the text writes it
- * with, escapes and all. SSN and Phone Number keep their patterns alone.
+ * with, escapes and all. A value the detectors call a phone number or a
+ * Social Security number only beside a word that names it - a national
+ * number with no other shape, nine digits in a row - is hidden only where
+ * the rule's own pattern finds it: a rule reads one value, not the words
+ * around a finding.
  *
  * In time in line with the text's length: each pattern and detector is
  * bounded, and each reading of a text is made once.
@@ -65,6 +86,10 @@ const EMAIL_PATTERN: RegExp =
   SCRUB_RULE_BUILT_IN_PATTERNS[LogScrubPatternType.Email]!;
 const CREDIT_CARD_PATTERN: RegExp =
   SCRUB_RULE_BUILT_IN_PATTERNS[LogScrubPatternType.CreditCard]!;
+const PHONE_NUMBER_PATTERN: RegExp =
+  SCRUB_RULE_BUILT_IN_PATTERNS[LogScrubPatternType.PhoneNumber]!;
+const SSN_PATTERN: RegExp =
+  SCRUB_RULE_BUILT_IN_PATTERNS[LogScrubPatternType.SSN]!;
 
 /*
  * Where an Email Address rule's matches are: its pattern's, as written and
@@ -118,6 +143,57 @@ export function findCardNumberRanges(text: string): Array<TextRange> {
 }
 
 /*
+ * Where a Phone Number rule's matches are: its pattern's, as written, with
+ * the text's percent-escapes read and with every script's digits read by
+ * their values, and every phone number the detectors find on its own,
+ * ranges two of them share made one.
+ */
+export function findPhoneNumberRanges(text: string): Array<TextRange> {
+  if (!text) {
+    return [];
+  }
+
+  const readings: TextReadings = new TextReadings(text);
+
+  return mergeRanges([
+    ...findInEveryReading({
+      text,
+      needs: { readsPercentEncoded: true, readsDigitsOfEveryScript: true },
+      findIn: (reading: string): Array<TextRange> => {
+        return patternRanges(PHONE_NUMBER_PATTERN, reading);
+      },
+      readings,
+    }),
+    ...findDetectorRanges(PHONE_NUMBER_DETECTORS, text, readings),
+  ]);
+}
+
+/*
+ * Where an SSN rule's matches are: its pattern's, as written and with
+ * every script's digits read by their values, and every Social Security
+ * number the detectors find on its own, ranges two of them share made one.
+ */
+export function findSsnRanges(text: string): Array<TextRange> {
+  if (!text) {
+    return [];
+  }
+
+  const readings: TextReadings = new TextReadings(text);
+
+  return mergeRanges([
+    ...findInEveryReading({
+      text,
+      needs: { readsDigitsOfEveryScript: true },
+      findIn: (reading: string): Array<TextRange> => {
+        return patternRanges(SSN_PATTERN, reading);
+      },
+      readings,
+    }),
+    ...findDetectorRanges(US_SSN_DETECTORS, text, readings),
+  ]);
+}
+
+/*
  * A built-in pattern as a rule runs it - or null for a pattern type no
  * table lists (a custom pattern, a key-targeted rule): those are compiled
  * where their rule is.
@@ -139,6 +215,18 @@ export function compileBuiltInScrubPattern(
         source: CREDIT_CARD_PATTERN.source,
         flags: CREDIT_CARD_PATTERN.flags,
         findRanges: findCardNumberRanges,
+      });
+    case LogScrubPatternType.PhoneNumber:
+      return scrubRegExpFromRanges({
+        source: PHONE_NUMBER_PATTERN.source,
+        flags: PHONE_NUMBER_PATTERN.flags,
+        findRanges: findPhoneNumberRanges,
+      });
+    case LogScrubPatternType.SSN:
+      return scrubRegExpFromRanges({
+        source: SSN_PATTERN.source,
+        flags: SSN_PATTERN.flags,
+        findRanges: findSsnRanges,
       });
     default: {
       /*

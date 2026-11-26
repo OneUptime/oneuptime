@@ -2404,7 +2404,12 @@ test.describe("code repositories and pull requests", () => {
     await expect(page.getByRole("option")).toHaveCount(1);
     await page.getByRole("option", { name: /^billing/ }).click();
     await page.keyboard.press("Escape");
-    await expect(repositoryChips(dialog)).toHaveText(["billing", "checkout"]);
+    /*
+     * The chips in the order they were picked, as the rule holds them: the
+     * field searches the server (#10764), so it no longer holds the whole
+     * list to put its chips in.
+     */
+    await expect(repositoryChips(dialog)).toHaveText(["checkout", "billing"]);
 
     await create(page, dialog);
 

@@ -354,7 +354,7 @@ A detection rule that counts per address should count per `principalIp` or `targ
 
 A rule that redacts or masks a user hides them the same way: where the event would name the user, **Principal User** or **Target User** says a scrub rule hid them. Where Security Events reads a user, a rule that hashes keeps the user for it: a request's `enduser.id` or `user.id`, an AI call's user, and a user a log line names, such as a cloud audit log's principal. So the event names the user behind the token, a case about them names the account, and a playbook can act on it as on any other user. What the rule left is in `oneuptime.principal_user_hashed_as` or `oneuptime.target_user_hashed_as`, so you can find the user in your logs and traces, which hold only the token. A token with no user kept for it, such as one made before tokens had a key, stays the event's user: rules count it as one account, and no playbook acts on it.
 
-The event's panel says so under the user it names in **Principal User** and **Target User**: "Hashed in your logs as" the token, or "Hashed in your traces as" it for an event read from your traces. The token is a link that searches your logs or traces for it, from a day before the event to a day after. A user erased on request reads **Erased on request** instead, and the event shows their token: see [Erase a person](#erase-a-person).
+The event's panel says so under the user it names in **Principal User** and **Target User**: "Hashed in your logs as" the token, or "Hashed in your traces as" it for a user read from your traces. The token is a link that searches your logs or traces for it, from a day before the event to a day after, in the field the user was read from: a log line's body or one of its attributes, or a span's attribute, such as `user.id` or an AI call's user. That field is in `oneuptime.principal_user_hashed_field` or `oneuptime.target_user_hashed_field`. A user erased on request reads **Erased on request** instead, and the event shows their token: see [Erase a person](#erase-a-person).
 
 ## Explore security events
 
@@ -758,7 +758,7 @@ When someone asks you to erase their data, for example under GDPR Article 17, er
 What it does:
 
 - Within a minute, Security Events stops naming the person. The user vault refuses their tokens from then on, so no event, case or playbook names them again, even when a later event carries the same token: that event keeps the token as its user, as for any token with no user kept for it. Keeping a token that comes back would name the person again, which is what they asked you to stop.
-- Within a few minutes, it deletes the vault's entries of them and puts the token back in their place in the events that named them through the vault: **Principal User**, **Target User**, the observables and the attributes. It takes them out of the titles, entities and kept events of cases and detections, and out of entity risk.
+- Within a few minutes, it deletes the vault's entries of them and puts the token back in their place in the events that named them through the vault: **Principal User**, **Target User**, the observables and the attributes. It does the same in the Detection Findings a detection rule or a threat intel feed wrote about them, in their message, observables and attributes, and marks each of those findings with `oneuptime.finding_user_erased`. It takes them out of the titles, entities and kept events of cases and detections, and out of entity risk.
 - A playbook run or an action of OneUptime AI that waits for approval to act on them is withdrawn, and says why.
 
 Each request shows its status, **Queued**, **Erasing**, **Erased** or **Failed**, and what it changed: the vault entries deleted, the events and cases unnamed and the proposals withdrawn. Erasing starts two minutes after the request is filed, once every OneUptime server has stopped naming the person, and a request reads **Erased** only when every change has been applied. A request that fails is tried again, and after five attempts it reads **Failed** with the reason, and the project's Owners are emailed. Security Events still refuses to name the person, and filing the request again retries it.
@@ -766,12 +766,11 @@ Each request shows its status, **Queued**, **Erasing**, **Erased** or **Failed**
 What it leaves:
 
 - What people wrote: notes, closing notes, tasks, evidence, custom fields and what OneUptime AI wrote about a case.
-- Events that named the person because your logs held them in clear, and your logs and traces themselves, which hold only the token.
-- The Detection Finding events a rule wrote about them, whose message and observables can name them, until your telemetry retention deletes them.
+- Events that named the person because your logs, or a product you connected, held them in clear, and your logs and traces themselves, which hold only the token.
 - Notifications already sent, incidents and alerts a detection opened, a case's activity, exports, backups and the audit log.
 - On a self-hosted OneUptime whose `ENCRYPTION_SECRET` changed, tokens made before the change: erase each one by the token an event shows.
 
-The request keeps who filed it and when, your reference and the person's tokens, which is how the vault goes on refusing them. The user ID or email address is stored encrypted, where no page, export or API can read it, and is wiped once the erasure is done; ClickHouse is only ever sent the tokens. Requests can't be edited or deleted: they are your record of the erasure.
+The request keeps who filed it and when, your reference and the person's tokens, which is how the vault goes on refusing them. The user ID or email address, and the names the erasure finds the person under, are stored encrypted, where no page, export or API can read them, and are wiped once the erasure is done; ClickHouse is only ever sent the tokens. Requests can't be edited or deleted: they are your record of the erasure.
 
 Project Owners, Project Admins, Security Admins and anyone with Create Security Erasure Request, such as your privacy officer, can file a request, from the page or through the API's `/security-user-erasure-request`. Every Security role can read them.
 

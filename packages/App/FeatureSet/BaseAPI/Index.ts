@@ -671,6 +671,12 @@ import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectio
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
+import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
+import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
+import CloudCostLineItemService, {
+  Service as CloudCostLineItemServiceType,
+} from "Common/Server/Services/CloudCostLineItemService";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
 import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
@@ -3934,6 +3940,29 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudBudget, CloudBudgetServiceType>(
         CloudBudget,
         CloudBudgetService,
+      ).getRouter(),
+    );
+
+    /*
+     * Cost views and their groups: the spend sorted into teams, products
+     * and cost centers, read through /cloud-cost-view/:id/allocation and
+     * /cloud-cost-group/:id/spend; and the custom line items added to it.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostViewAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostGroupAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostLineItem, CloudCostLineItemServiceType>(
+        CloudCostLineItem,
+        CloudCostLineItemService,
       ).getRouter(),
     );
 
