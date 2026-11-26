@@ -1936,6 +1936,8 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpTransceiverPastWarningThreshold ||
           i.value === CheckOn.SnmpTransceiverRxPowerDrop ||
           i.value === CheckOn.SnmpTransceiverReading ||
+          // A SAN switch's Fibre Channel counters, port by port.
+          i.value === CheckOn.SnmpFibreChannelCounterPerSecond ||
           i.value === CheckOn.SnmpTableValue ||
           i.value === CheckOn.SnmpTableRowIsUnhealthy ||
           i.value === CheckOn.SnmpTableRowCount ||
@@ -2550,7 +2552,9 @@ export default class CriteriaFilterUtil {
      */
     if (
       checkOn === CheckOn.SnmpTransceiverReading ||
-      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop ||
+      // A Fibre Channel counter's rate: so many a second.
+      checkOn === CheckOn.SnmpFibreChannelCounterPerSecond
     ) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -3538,6 +3542,11 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpTransceiverRxPowerDrop) {
       return "2";
+    }
+
+    // Credit loss above none at all; CRC errors above one in ten seconds.
+    if (checkOn === CheckOn.SnmpFibreChannelCounterPerSecond) {
+      return "0.1";
     }
 
     if (checkOn === CheckOn.DnsResponseTime) {

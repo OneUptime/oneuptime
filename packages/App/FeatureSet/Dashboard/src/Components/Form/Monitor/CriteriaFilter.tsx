@@ -49,6 +49,11 @@ import {
   TransceiverReadingKind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { TRANSCEIVER_READING_COLUMN_TITLES } from "../../NetworkDevice/TransceiverViewModel";
+import {
+  FIBRE_CHANNEL_COUNTERS,
+  FIBRE_CHANNEL_COUNTER_TITLES,
+  FibreChannelCounter,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import Button, {
   ButtonSize,
@@ -492,6 +497,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         },
                       }
                     : {}),
+                  // And for a Fibre Channel counter: CRC errors first.
+                  ...(checkOn === CheckOn.SnmpFibreChannelCounterPerSecond
+                    ? {
+                        snmpMonitorOptions: {
+                          fibreChannelCounter: FibreChannelCounter.CrcErrors,
+                        },
+                      }
+                    : {}),
                 });
               }}
             />
@@ -712,6 +725,61 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       snmpMonitorOptions: {
                         ...criteriaFilter?.snmpMonitorOptions,
                         transceiverReading: value?.toString() || undefined,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            );
+          })()}
+
+        {criteriaFilter?.checkOn === CheckOn.SnmpFibreChannelCounterPerSecond &&
+          (() => {
+            /*
+             * Which of the port's Fibre Channel counters this criteria
+             * compares. A new one starts on CRC errors (see the Filter Type
+             * above); one saved without a counter is not evaluated, and shows
+             * the placeholder until one is picked.
+             */
+            const counterOptions: Array<DropdownOption> =
+              FIBRE_CHANNEL_COUNTERS.map(
+                (counter: FibreChannelCounter): DropdownOption => {
+                  return {
+                    value: counter,
+                    label:
+                      translator.translateText(
+                        FIBRE_CHANNEL_COUNTER_TITLES[counter],
+                      ) || FIBRE_CHANNEL_COUNTER_TITLES[counter],
+                  };
+                },
+              );
+
+            const savedCounter: string =
+              criteriaFilter?.snmpMonitorOptions?.fibreChannelCounter || "";
+
+            const selectedCounterOption: DropdownOption | undefined =
+              counterOptions.find((option: DropdownOption) => {
+                return option.value === savedCounter;
+              });
+
+            return (
+              <div className="mt-1" data-testid="fibre-channel-counter-picker">
+                <FieldLabelElement
+                  title="Fibre Channel Counter"
+                  description="Which of the port's counters to compare, per second: errors, discards, or credit loss when a slow device stops returning credit."
+                />
+                <FilterDropdown
+                  value={selectedCounterOption}
+                  options={counterOptions}
+                  placeholder="Choose a counter"
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      snmpMonitorOptions: {
+                        ...criteriaFilter?.snmpMonitorOptions,
+                        fibreChannelCounter: value?.toString() || undefined,
                       },
                     });
                   }}

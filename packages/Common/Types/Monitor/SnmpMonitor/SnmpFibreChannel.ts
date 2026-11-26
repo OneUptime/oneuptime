@@ -23,6 +23,8 @@
  *                     (per second)" works on a Fibre Channel port too.
  */
 
+import { translationKey } from "../../Translator";
+
 // IANAifType fibreChannel(56): how IF-MIB marks a Fibre Channel port.
 export const FIBRE_CHANNEL_IF_TYPE: number = 56;
 
@@ -82,40 +84,50 @@ export const FIBRE_CHANNEL_ERROR_COUNTERS: Array<FibreChannelCounter> = [
 
 export const FIBRE_CHANNEL_COUNTER_TITLES: Record<FibreChannelCounter, string> =
   {
-    [FibreChannelCounter.CrcErrors]: "CRC Errors",
-    [FibreChannelCounter.InvalidTransmissionWords]:
+    [FibreChannelCounter.CrcErrors]: translationKey("CRC Errors"),
+    [FibreChannelCounter.InvalidTransmissionWords]: translationKey(
       "Invalid Transmission Words",
-    [FibreChannelCounter.LinkFailures]: "Link Failures",
-    [FibreChannelCounter.LossOfSync]: "Loss of Sync",
-    [FibreChannelCounter.LossOfSignal]: "Loss of Signal",
-    [FibreChannelCounter.Discards]: "Discards",
-    [FibreChannelCounter.TimeoutDiscards]: "Timeout Discards",
-    [FibreChannelCounter.CreditLoss]: "Credit Loss",
-    [FibreChannelCounter.BbCreditZero]: "BB Credit Zero",
+    ),
+    [FibreChannelCounter.LinkFailures]: translationKey("Link Failures"),
+    [FibreChannelCounter.LossOfSync]: translationKey("Loss of Sync"),
+    [FibreChannelCounter.LossOfSignal]: translationKey("Loss of Signal"),
+    [FibreChannelCounter.Discards]: translationKey("Discards"),
+    [FibreChannelCounter.TimeoutDiscards]: translationKey("Timeout Discards"),
+    [FibreChannelCounter.CreditLoss]: translationKey("Credit Loss"),
+    [FibreChannelCounter.BbCreditZero]: translationKey("BB Credit Zero"),
   };
 
 export const FIBRE_CHANNEL_COUNTER_DESCRIPTIONS: Record<
   FibreChannelCounter,
   string
 > = {
-  [FibreChannelCounter.CrcErrors]:
+  [FibreChannelCounter.CrcErrors]: translationKey(
     "Frames received with a bad CRC: usually a dirty connector, a damaged cable or a failing optic.",
-  [FibreChannelCounter.InvalidTransmissionWords]:
+  ),
+  [FibreChannelCounter.InvalidTransmissionWords]: translationKey(
     "Encoding errors on the link: poor signal quality, often from the optic or the cable.",
-  [FibreChannelCounter.LinkFailures]:
+  ),
+  [FibreChannelCounter.LinkFailures]: translationKey(
     "Times the link failed and was brought back up.",
-  [FibreChannelCounter.LossOfSync]:
+  ),
+  [FibreChannelCounter.LossOfSync]: translationKey(
     "Times the receiver lost synchronization with the signal.",
-  [FibreChannelCounter.LossOfSignal]:
+  ),
+  [FibreChannelCounter.LossOfSignal]: translationKey(
     "Times the receiver lost the light altogether.",
-  [FibreChannelCounter.Discards]:
+  ),
+  [FibreChannelCounter.Discards]: translationKey(
     "Frames the port dropped, for example class 3 frames that could not be delivered.",
-  [FibreChannelCounter.TimeoutDiscards]:
+  ),
+  [FibreChannelCounter.TimeoutDiscards]: translationKey(
     "Frames dropped because they waited too long for credit: a sign of a slow-draining device.",
-  [FibreChannelCounter.CreditLoss]:
+  ),
+  [FibreChannelCounter.CreditLoss]: translationKey(
     "Link resets because the attached port stopped returning buffer credit: a slow-draining device.",
-  [FibreChannelCounter.BbCreditZero]:
+  ),
+  [FibreChannelCounter.BbCreditZero]: translationKey(
     "Times the port's transmit credit ran out. Normal in small numbers; a steep rise means congestion.",
+  ),
 };
 
 /*
@@ -145,21 +157,21 @@ export const FIBRE_CHANNEL_PORT_TYPE_TITLES: Record<
   FibreChannelPortType,
   string
 > = {
-  [FibreChannelPortType.E]: "E-Port",
-  [FibreChannelPortType.TE]: "TE-Port",
-  [FibreChannelPortType.EX]: "EX-Port",
-  [FibreChannelPortType.F]: "F-Port",
-  [FibreChannelPortType.TF]: "TF-Port",
-  [FibreChannelPortType.FL]: "FL-Port",
-  [FibreChannelPortType.N]: "N-Port",
-  [FibreChannelPortType.NP]: "NP-Port",
-  [FibreChannelPortType.TNP]: "TNP-Port",
-  [FibreChannelPortType.NL]: "NL-Port",
-  [FibreChannelPortType.G]: "G-Port",
-  [FibreChannelPortType.D]: "D-Port",
-  [FibreChannelPortType.SD]: "SD-Port",
-  [FibreChannelPortType.Auto]: "Auto",
-  [FibreChannelPortType.Other]: "Other",
+  [FibreChannelPortType.E]: translationKey("E-Port"),
+  [FibreChannelPortType.TE]: translationKey("TE-Port"),
+  [FibreChannelPortType.EX]: translationKey("EX-Port"),
+  [FibreChannelPortType.F]: translationKey("F-Port"),
+  [FibreChannelPortType.TF]: translationKey("TF-Port"),
+  [FibreChannelPortType.FL]: translationKey("FL-Port"),
+  [FibreChannelPortType.N]: translationKey("N-Port"),
+  [FibreChannelPortType.NP]: translationKey("NP-Port"),
+  [FibreChannelPortType.TNP]: translationKey("TNP-Port"),
+  [FibreChannelPortType.NL]: translationKey("NL-Port"),
+  [FibreChannelPortType.G]: translationKey("G-Port"),
+  [FibreChannelPortType.D]: translationKey("D-Port"),
+  [FibreChannelPortType.SD]: translationKey("SD-Port"),
+  [FibreChannelPortType.Auto]: translationKey("Auto"),
+  [FibreChannelPortType.Other]: translationKey("Other"),
 };
 
 /*
@@ -237,7 +249,9 @@ export default class SnmpFibreChannelUtil {
     return parsed ? FIBRE_CHANNEL_PORT_TYPE_TITLES[parsed] : undefined;
   }
 
-  public static isInterSwitchLink(portType: string | null | undefined): boolean {
+  public static isInterSwitchLink(
+    portType: string | null | undefined,
+  ): boolean {
     const parsed: FibreChannelPortType | undefined =
       SnmpFibreChannelUtil.parsePortType(portType);
 

@@ -237,6 +237,66 @@ const isV3WithPriv: (item: FormValues<SnmpConfigModelFields>) => boolean = (
   return isSnmpV3WithPriv(toRevealSource(item));
 };
 
+/*
+ * A device's SNMP fields carry one more than a discovery scan's or a
+ * credential profile's: the SNMPv3 context it is polled in, which says which
+ * logical switch the device is (a Brocade Virtual Fabric's "VF:128"), not
+ * who reads it - so it is the device's alone, and those forms never ask it.
+ */
+export interface SnmpDeviceConfigModelFields extends SnmpConfigModelFields {
+  snmpV3ContextName?: string | undefined;
+}
+
+export const SNMP_V3_CONTEXT_FIELD_TITLE: string = "SNMP v3 Context";
+
+/*
+ * The device forms' SNMP fields: the shared ones, with the v3 context after
+ * the v3 keys and before the port. Only shown for v3, and optional: nearly
+ * every agent answers in its default context.
+ */
+export function getNetworkDeviceSnmpFormFields(
+  options?: SnmpConfigFormFieldOptions,
+): Fields<SnmpDeviceConfigModelFields> {
+  const shared: Fields<SnmpDeviceConfigModelFields> =
+    getSnmpConfigFormFields(options);
+
+  const contextField: Field<SnmpDeviceConfigModelFields> = {
+    field: {
+      snmpV3ContextName: true,
+    },
+    title: SNMP_V3_CONTEXT_FIELD_TITLE,
+    fieldType: FormFieldSchemaType.Text,
+    required: false,
+    placeholder: "VF:128",
+    description:
+      "Only for a switch that answers each logical switch in its own context: a Brocade Virtual Fabric's is VF: and its fabric ID.",
+    showIf: isV3,
+    ...(options?.stepId ? { stepId: options.stepId } : {}),
+    ...(options?.collapsibleSection
+      ? {
+          collapsibleSection:
+            options.collapsibleSection as unknown as FormFieldCollapsibleSection<SnmpDeviceConfigModelFields>,
+        }
+      : {}),
+  };
+
+  const portIndex: number = shared.findIndex(
+    (field: Field<SnmpDeviceConfigModelFields>): boolean => {
+      return Boolean(field.field && "snmpPort" in field.field);
+    },
+  );
+
+  if (portIndex < 0) {
+    return [...shared, contextField];
+  }
+
+  return [
+    ...shared.slice(0, portIndex),
+    contextField,
+    ...shared.slice(portIndex),
+  ];
+}
+
 export function getSnmpConfigFormFields(
   options?: SnmpConfigFormFieldOptions,
 ): Fields<SnmpConfigModelFields> {
