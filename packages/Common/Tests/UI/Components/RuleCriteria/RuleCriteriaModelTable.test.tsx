@@ -401,9 +401,10 @@ More details stay here.
      * Observability's Owner Rules page lists pipeline owner rules beside its
      * table ones (#6548), with the shared owner rule help. 83 with Data
      * Security's AI rules (Data Security -> AI), which, as the other AI rules
-     * forms, have no help panel.
+     * forms, have no help panel; 84 with the AI rules for savings (Cloud ->
+     * Settings -> Savings AI Rules, #11010), which have none either.
      */
-    expect(staticRuleFormFiles).toHaveLength(83);
+    expect(staticRuleFormFiles).toHaveLength(84);
     expect(helpFormFiles).toHaveLength(77);
     /*
      * 68, the five episode rule help texts that now have the heading too,

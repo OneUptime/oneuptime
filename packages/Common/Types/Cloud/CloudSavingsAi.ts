@@ -1,3 +1,9 @@
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import FilterCondition from "../Filter/FilterCondition";
+import {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../Rules/RuleCriteria";
 import { translationKey } from "../Translator";
 import { CloudProvider } from "./CloudPlatform";
 import {
@@ -90,8 +96,10 @@ export const CLOUD_SAVINGS_AI_MONTHLY_LIMIT_COLUMN: string =
 
 /*
  * What a savings rule matches on: each a JSON column of the rule, empty for
- * any. Read by doesCloudSavingsAiRuleMatch, and held to the savings
- * trigger by AiRuleCriteria.
+ * any, and the fields its versioned conditions (criteria) name - the
+ * conditions builder of its form, the API's and Terraform's. Read by
+ * doesCloudSavingsAiRuleMatch, and held to the savings trigger by
+ * AiRuleCriteria.
  */
 export const CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS: ReadonlyArray<string> = [
   "cloudSavingActionGroups",
@@ -134,6 +142,8 @@ export const CLOUD_SAVINGS_AI_SAVINGS_PER_READ: number = 200;
 export interface CloudSavingsAiRuleFacts {
   _id?: unknown;
   name?: unknown;
+  // Its versioned conditions, when it has them: they win over the columns.
+  criteria?: unknown;
   cloudSavingAutonomy?: unknown;
   cloudSavingActionGroups?: unknown;
   cloudSavingEnvironments?: unknown;
@@ -150,10 +160,37 @@ export interface CloudSavingsAiSaving {
   undo: CloudSavingsActionUndo;
 }
 
+/*
+ * A value as a rule's list holds it: a text, or - as the criteria matcher
+ * hands a condition's values to the columns' matcher - a record that holds
+ * it as its id.
+ */
+function readListValue(value: unknown): string {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (value && typeof value === "object") {
+    const row: { _id?: unknown; id?: unknown } = value as {
+      _id?: unknown;
+      id?: unknown;
+    };
+    const held: unknown = row._id ?? row.id;
+
+    return typeof held === "string"
+      ? held.trim()
+      : held
+        ? String(held).trim()
+        : "";
+  }
+
+  return "";
+}
+
 function readList(value: unknown): Array<string> {
   return Array.isArray(value)
-    ? value.filter((item: unknown): item is string => {
-        return typeof item === "string";
+    ? value.map(readListValue).filter((item: string): boolean => {
+        return item.length > 0;
       })
     : [];
 }
@@ -195,7 +232,8 @@ export function getCloudSavingsAiRuleGroups(
   );
 }
 
-export function doesCloudSavingsAiRuleMatch(
+// Whether a rule's columns cover a saving: each list empty for any.
+export function doesCloudSavingsAiRuleColumnsMatch(
   rule: CloudSavingsAiRuleFacts,
   saving: CloudSavingsAiSaving,
 ): boolean {
@@ -212,11 +250,15 @@ export function doesCloudSavingsAiRuleMatch(
     return false;
   }
 
-  const environments: Array<string> = readList(rule.cloudSavingEnvironments);
+  const environments: Array<string> = readList(
+    rule.cloudSavingEnvironments,
+  ).map((environment: string): string => {
+    return environment.toLowerCase();
+  });
 
   if (
     environments.length > 0 &&
-    !environments.includes(String(saving.environment))
+    !environments.includes(String(saving.environment).toLowerCase())
   ) {
     return false;
   }
@@ -233,6 +275,123 @@ export function doesCloudSavingsAiRuleMatch(
   );
 
   return group !== null && groups.includes(group);
+}
+
+/*
+ * Whether a savings rule covers a saving: its versioned conditions when it
+ * has them, read through the one criteria matcher every rule uses
+ * (RuleCriteriaMatcher) over the same columns - else its columns. A rule
+ * with neither covers every saving.
+ */
+export function doesCloudSavingsAiRuleMatch(
+  rule: CloudSavingsAiRuleFacts,
+  saving: CloudSavingsAiSaving,
+): boolean {
+  return RuleCriteriaMatcher.matchesWithLegacySync({
+    rule: rule,
+    legacyFields: CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS as ReadonlyArray<
+      Extract<keyof CloudSavingsAiRuleFacts, string>
+    >,
+    emptyResult: true,
+    matchesLegacyRule: (legacyRule: CloudSavingsAiRuleFacts): boolean => {
+      return doesCloudSavingsAiRuleColumnsMatch(legacyRule, saving);
+    },
+  });
+}
+
+// A rule's conditions on the savings fields, when it has versioned ones.
+function readCriteriaFilters(rule: CloudSavingsAiRuleFacts): {
+  filterCondition: FilterCondition;
+  filters: Array<RuleCriteriaFilter>;
+} | null {
+  const criteria: unknown = rule.criteria;
+
+  if (!criteria || typeof criteria !== "object" || Array.isArray(criteria)) {
+    return null;
+  }
+
+  const filters: unknown = (criteria as { filters?: unknown }).filters;
+
+  if (!Array.isArray(filters)) {
+    return null;
+  }
+
+  return {
+    filterCondition:
+      (criteria as { filterCondition?: unknown }).filterCondition ===
+      FilterCondition.Any
+        ? FilterCondition.Any
+        : FilterCondition.All,
+    filters: filters.filter((filter: unknown): filter is RuleCriteriaFilter => {
+      return (
+        Boolean(filter) &&
+        typeof filter === "object" &&
+        typeof (filter as { field?: unknown }).field === "string"
+      );
+    }),
+  };
+}
+
+/*
+ * The changes, environments and clouds a rule covers, as lists - empty for
+ * any - to say on its row: its columns, or its conditions when each is a
+ * plain "has any of" that every saving must meet. Null when its conditions
+ * say more than lists can (an "or", a "has none of"): its row says it
+ * matches conditions.
+ */
+export interface CloudSavingsAiRuleLists {
+  groups: Array<string>;
+  environments: Array<string>;
+  providers: Array<string>;
+}
+
+export function getCloudSavingsAiRuleLists(
+  rule: CloudSavingsAiRuleFacts,
+): CloudSavingsAiRuleLists | null {
+  const read: {
+    filterCondition: FilterCondition;
+    filters: Array<RuleCriteriaFilter>;
+  } | null = readCriteriaFilters(rule);
+
+  if (!read) {
+    return {
+      groups: readList(rule.cloudSavingActionGroups),
+      environments: readList(rule.cloudSavingEnvironments),
+      providers: readList(rule.cloudSavingProviders),
+    };
+  }
+
+  const lists: Record<string, Array<string> | null> = {
+    cloudSavingActionGroups: null,
+    cloudSavingEnvironments: null,
+    cloudSavingProviders: null,
+  };
+
+  for (const filter of read.filters) {
+    if (
+      read.filterCondition !== FilterCondition.All ||
+      filter.operator !== RuleCriteriaOperator.HasAnyOf ||
+      !(filter.field in lists)
+    ) {
+      return null;
+    }
+
+    const values: Array<string> = readList(filter.value);
+    const before: Array<string> | null = lists[filter.field] ?? null;
+
+    // Two conditions on one field: a saving meets both.
+    lists[filter.field] = before
+      ? before.filter((value: string): boolean => {
+          return values.includes(value);
+        })
+      : values;
+  }
+
+  return {
+    groups: lists["cloudSavingActionGroups"] || [],
+    environments: lists["cloudSavingEnvironments"] || [],
+    providers: lists["cloudSavingProviders"] || [],
+  };
 }
 
 /*
@@ -492,19 +651,58 @@ export function getCloudSavingsAiRuleProblem(
     ],
   ];
 
+  const listProblem: (title: string) => string = (title: string): string => {
+    return `${title} must be a list of: ${
+      title === "Cloud Saving: Changes"
+        ? CLOUD_SAVINGS_ACTION_GROUPS.join(", ")
+        : title === "Cloud Saving: Environments"
+          ? CLOUD_RESOURCE_ENVIRONMENTS.join(", ")
+          : Object.values(CloudProvider).join(", ")
+    }.`;
+  };
+
   for (const [title, value, isKnown] of lists) {
     if (value === undefined || value === null) {
       continue;
     }
 
     if (!Array.isArray(value) || value.length > 20 || !value.every(isKnown)) {
-      return `${title} must be a list of: ${
-        title === "Cloud Saving: Changes"
-          ? CLOUD_SAVINGS_ACTION_GROUPS.join(", ")
-          : title === "Cloud Saving: Environments"
-            ? CLOUD_RESOURCE_ENVIRONMENTS.join(", ")
-            : Object.values(CloudProvider).join(", ")
-      }.`;
+      return listProblem(title);
+    }
+  }
+
+  // A condition on a savings field names what its column would hold.
+  const criteria: {
+    filterCondition: FilterCondition;
+    filters: Array<RuleCriteriaFilter>;
+  } | null = readCriteriaFilters(values);
+  const conditionFields: Record<string, [string, (value: unknown) => boolean]> =
+    {
+      cloudSavingActionGroups: ["Cloud Saving: Changes", lists[0]![2]],
+      cloudSavingEnvironments: ["Cloud Saving: Environments", lists[1]![2]],
+      cloudSavingProviders: ["Cloud Saving: Clouds", lists[2]![2]],
+    };
+
+  for (const filter of criteria?.filters || []) {
+    const known: [string, (value: unknown) => boolean] | undefined =
+      conditionFields[filter.field];
+
+    if (!known) {
+      continue;
+    }
+
+    if (
+      ![
+        RuleCriteriaOperator.HasAnyOf,
+        RuleCriteriaOperator.HasAllOf,
+        RuleCriteriaOperator.HasNoneOf,
+      ].includes(filter.operator) ||
+      !Array.isArray(filter.value) ||
+      filter.value.length === 0 ||
+      filter.value.length > 20 ||
+      !filter.value.every(known[1])
+    ) {
+      return listProblem(known[0]);
     }
   }
 
@@ -522,16 +720,63 @@ export function getCloudSavingsAiRuleProblem(
     }
   }
 
-  const environments: Array<string> = readList(values.cloudSavingEnvironments);
-
   if (
     getCloudSavingsAiRuleAutonomy(values) ===
       CloudSavingsAiAutonomy.WithoutAsking &&
-    environments.length > 0 &&
-    !environments.includes(CloudResourceEnvironment.NonProduction)
+    !canCoverNonProduction(values)
   ) {
     return CLOUD_SAVINGS_AI_RULE_NEVER_ACTS_MESSAGE;
   }
 
   return null;
+}
+
+/*
+ * Whether a rule can cover a non-production resource at all: the only kind
+ * OneUptime AI acts on without asking. Its conditions when it has them -
+ * every one must hold, so one on the environment that leaves
+ * non-production out leaves it out - else its column.
+ */
+function canCoverNonProduction(values: CloudSavingsAiRuleFacts): boolean {
+  const criteria: {
+    filterCondition: FilterCondition;
+    filters: Array<RuleCriteriaFilter>;
+  } | null = readCriteriaFilters(values);
+
+  if (!criteria) {
+    const environments: Array<string> = readList(
+      values.cloudSavingEnvironments,
+    );
+
+    return (
+      environments.length === 0 ||
+      environments.includes(CloudResourceEnvironment.NonProduction)
+    );
+  }
+
+  if (criteria.filterCondition !== FilterCondition.All) {
+    return true;
+  }
+
+  return criteria.filters.every((filter: RuleCriteriaFilter): boolean => {
+    if (filter.field !== "cloudSavingEnvironments") {
+      return true;
+    }
+
+    const environments: Array<string> = readList(filter.value);
+    const named: boolean = environments.includes(
+      CloudResourceEnvironment.NonProduction,
+    );
+
+    if (filter.operator === RuleCriteriaOperator.HasNoneOf) {
+      return !named;
+    }
+
+    if (filter.operator === RuleCriteriaOperator.HasAllOf) {
+      // A resource is in one environment: all of several is none.
+      return named && environments.length === 1;
+    }
+
+    return named;
+  });
 }

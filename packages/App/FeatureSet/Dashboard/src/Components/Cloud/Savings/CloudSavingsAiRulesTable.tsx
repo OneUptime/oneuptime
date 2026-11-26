@@ -17,15 +17,19 @@ import {
   CLOUD_SAVINGS_AI_AUTONOMY_LABELS,
   CLOUD_SAVINGS_AI_DEFAULT_MONTHLY_LIMIT,
   CloudSavingsAiAutonomy,
+  CloudSavingsAiRuleLists,
   getCloudSavingsAiRuleAutonomy,
   getCloudSavingsAiRuleLimit,
+  getCloudSavingsAiRuleLists,
 } from "Common/Types/Cloud/CloudSavingsAi";
+import RuleCriteriaSubject from "Common/Types/Rules/RuleCriteriaSubject";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { RULE_CRITERIA_SUBJECT_COPY } from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -136,10 +140,21 @@ export function getSavingsRuleMatchText(
       : translator.translateText(none) || none;
   };
   const providers: Array<DropdownOption> = getCloudProviderOptions();
+  const lists: CloudSavingsAiRuleLists | null = getCloudSavingsAiRuleLists(
+    rule,
+  );
+
+  // Conditions that say more than lists can: the builder's own words.
+  if (!lists) {
+    const matching: string =
+      RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.CloudSavings].matching;
+
+    return translator.translateText(matching) || matching;
+  }
 
   return [
     words(
-      (rule.cloudSavingActionGroups || []).map((group: string): string => {
+      lists.groups.map((group: string): string => {
         return (
           CLOUD_SAVINGS_ACTION_GROUP_LABELS[group as CloudSavingsActionGroup] ||
           group
@@ -148,7 +163,7 @@ export function getSavingsRuleMatchText(
       RULES_EVERY_CHANGE,
     ),
     words(
-      (rule.cloudSavingEnvironments || []).map(
+      lists.environments.map(
         (environment: string): string => {
           return (
             CLOUD_RESOURCE_ENVIRONMENT_LABELS[
@@ -160,7 +175,7 @@ export function getSavingsRuleMatchText(
       RULES_ANY_ENVIRONMENT,
     ),
     words(
-      (rule.cloudSavingProviders || []).map((provider: string): string => {
+      lists.providers.map((provider: string): string => {
         return String(
           providers.find((option: DropdownOption): boolean => {
             return option.value === provider;
@@ -206,6 +221,8 @@ const CloudSavingsAiRulesTable: FunctionComponent = (): ReactElement | null => {
       }}
       selectMoreFields={{
         isEnabled: true,
+        // What a row says it covers: its conditions, or its columns while it has none.
+        criteria: true,
         cloudSavingAutonomy: true,
         cloudSavingMonthlyLimit: true,
         cloudSavingActionGroups: true,
@@ -272,12 +289,15 @@ const CloudSavingsAiRulesTable: FunctionComponent = (): ReactElement | null => {
           },
         },
       ]}
+      // "All savings" or "Only savings that match conditions".
+      ruleCriteriaSubject={RuleCriteriaSubject.CloudSavings}
       /*
-       * As every AI rule's form: which savings, then what OneUptime AI
-       * may do with them, then the rule's name.
+       * As every AI rule's form: which savings - the conditions builder,
+       * drawn from the match fields below - then what OneUptime AI may do
+       * with them, then the rule's name.
        */
       formSteps={[
-        { title: MATCH_STEP, id: "match" },
+        { title: MATCH_STEP, id: "match-criteria" },
         { title: AUTONOMY_STEP, id: "autonomy" },
         { title: "Name", id: "name" },
       ]}
@@ -286,7 +306,7 @@ const CloudSavingsAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { cloudSavingActionGroups: true },
           hideColumnDescription: true,
           title: "Changes",
-          stepId: "match",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: GROUP_OPTIONS,
           required: false,
@@ -297,7 +317,7 @@ const CloudSavingsAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { cloudSavingEnvironments: true },
           hideColumnDescription: true,
           title: "Environments",
-          stepId: "match",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: ENVIRONMENT_OPTIONS,
           required: false,
@@ -308,7 +328,7 @@ const CloudSavingsAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { cloudSavingProviders: true },
           hideColumnDescription: true,
           title: "Clouds",
-          stepId: "match",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: getCloudProviderOptions().map(
             (option: DropdownOption): DropdownOption => {

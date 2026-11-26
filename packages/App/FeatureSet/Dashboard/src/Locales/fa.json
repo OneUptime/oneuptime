@@ -64709,5 +64709,7 @@
   "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "تأییدشده آغاز می‌شوند و کسی را فرانمی‌خوانند، حتی با قواعد آنکال، مگر اینکه اعلام‌کننده سیاست آنکالی را برای فراخواندن انتخاب کند.",
   "They start in the created state and page their on-call policies, as every new incident does.": "مانند هر حادثه جدید، در وضعیت ساخته‌شده آغاز می‌شوند و سیاست‌های آنکالشان اجرا می‌شود.",
   "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "اگر هیچ‌کدام انتخاب نشود، حادثه تأییدشده آغاز می‌شود، چون خودتان پیگیر آن هستید، و کسی را فرانمی‌خواند.",
-  "Inventory Counts": "شمارش موجودی"
+  "Inventory Counts": "شمارش موجودی",
+  "All savings": "همه صرفه‌جویی‌ها",
+  "Only savings that match conditions": "فقط آن دسته از صرفه‌جویی‌ها که با شرط‌ها مطابقت دارند"
 }

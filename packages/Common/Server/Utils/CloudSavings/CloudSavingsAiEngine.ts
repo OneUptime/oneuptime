@@ -96,7 +96,8 @@ export function isCloudSavingQuiet(data: {
   earlier: Array<CloudSavingsAction>;
   now: Date;
 }): boolean {
-  const quietSince: Date = OneUptimeDate.addRemoveDays(
+  // The quiet days are a length of time, the same on every server's clock.
+  const quietSince: Date = OneUptimeDate.addRemoveDurationInDays(
     data.now,
     -CLOUD_SAVINGS_AI_DISMISSED_QUIET_DAYS,
   );
@@ -139,6 +140,8 @@ export default class CloudSavingsAiEngine {
           select: {
             _id: true,
             name: true,
+            // The conditions the form's builder and the API write; the columns while it has none.
+            criteria: true,
             cloudSavingAutonomy: true,
             cloudSavingActionGroups: true,
             cloudSavingEnvironments: true,
@@ -155,6 +158,7 @@ export default class CloudSavingsAiEngine {
         return {
           _id: rule.id?.toString(),
           name: rule.name,
+          criteria: rule.criteria,
           cloudSavingAutonomy: rule.cloudSavingAutonomy,
           cloudSavingActionGroups: rule.cloudSavingActionGroups,
           cloudSavingEnvironments: rule.cloudSavingEnvironments,

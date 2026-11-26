@@ -28,8 +28,11 @@ describe("RULE_CRITERIA_SUBJECT_COPY", () => {
     expect(Object.keys(RULE_CRITERIA_SUBJECT_COPY).sort()).toEqual(
       [...SUBJECTS].sort(),
     );
-    // With Data Security's issues (#10364), which its AI rules are about.
-    expect(SUBJECTS.length).toBe(37);
+    /*
+     * With Data Security's issues (#10364), which its AI rules are about, and
+     * the savings the AI rules for savings are about (#11010).
+     */
+    expect(SUBJECTS.length).toBe(38);
   });
 
   test.each(SUBJECTS)(

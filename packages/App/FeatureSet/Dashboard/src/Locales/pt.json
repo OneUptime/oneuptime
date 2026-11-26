@@ -64709,5 +64709,7 @@
   "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.",
   "They start in the created state and page their on-call policies, as every new incident does.": "They start in the created state and page their on-call policies, as every new incident does.",
   "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "With none picked, the incident starts acknowledged, as you are on it, and pages no one.",
-  "Inventory Counts": "Contagens do inventário"
+  "Inventory Counts": "Contagens do inventário",
+  "All savings": "Todas as economias",
+  "Only savings that match conditions": "Somente as economias que atendem às condições"
 }

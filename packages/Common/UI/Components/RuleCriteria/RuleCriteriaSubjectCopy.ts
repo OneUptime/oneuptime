@@ -176,6 +176,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All issues"),
     matching: translationKey("Only issues that match conditions"),
   },
+  [RuleCriteriaSubject.CloudSavings]: {
+    all: translationKey("All savings"),
+    matching: translationKey("Only savings that match conditions"),
+  },
 };
 
 /*

@@ -23,8 +23,15 @@ import {
   getCloudSavingsAiRuleAutonomy,
   getCloudSavingsAiRuleGroups,
   getCloudSavingsAiRuleLimit,
+  getCloudSavingsAiRuleLists,
   getCloudSavingsAiRuleProblem,
 } from "../../../Types/Cloud/CloudSavingsAi";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 
 /*
  * AI RULES FOR SAVINGS (#11010): what OneUptime AI does with a saving it
@@ -75,6 +82,22 @@ function decide(
     saving: saving(facts),
     changesWithoutAskingThisHour,
   });
+}
+
+// Conditions as the form's builder and the API write them: every one, or any.
+function criteriaOf(
+  filters: Array<RuleCriteriaFilter>,
+  filterCondition: FilterCondition = FilterCondition.All,
+): RuleCriteria {
+  return {
+    schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+    filterCondition,
+    filters,
+  };
+}
+
+function hasAnyOf(field: string, value: Array<string>): RuleCriteriaFilter {
+  return { field, operator: RuleCriteriaOperator.HasAnyOf, value };
 }
 
 describe("decideCloudSavingsAi: with no savings rule", () => {
@@ -525,6 +548,264 @@ describe("getCloudSavingsAiRuleProblem", () => {
         cloudSavingEnvironments: [CloudResourceEnvironment.Production],
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * A rule's versioned conditions (criteria): the form's conditions builder
+ * writes them, as the API and Terraform may, and they are read through the
+ * criteria matcher every rule uses. A rule saved before it had any keeps
+ * working from its columns.
+ */
+describe("a savings rule's conditions", () => {
+  const stopsInNonProduction: RuleCriteria = criteriaOf([
+    hasAnyOf("cloudSavingActionGroups", [CloudSavingsActionGroup.Stop]),
+    hasAnyOf("cloudSavingEnvironments", [
+      CloudResourceEnvironment.NonProduction,
+    ]),
+  ]);
+
+  test("every condition must hold: a non-production stop, never a resize or production", () => {
+    const covering: CloudSavingsAiRuleFacts = rule("Conditions", {
+      criteria: stopsInNonProduction,
+    });
+
+    expect(doesCloudSavingsAiRuleMatch(covering, saving())).toBe(true);
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        covering,
+        saving({ kind: CloudSavingsActionKind.ResizeInstance }),
+      ),
+    ).toBe(false);
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        covering,
+        saving({ environment: CloudResourceEnvironment.Production }),
+      ),
+    ).toBe(false);
+  });
+
+  test("they win over the columns a rule still holds", () => {
+    const covering: CloudSavingsAiRuleFacts = rule("Conditions", {
+      criteria: stopsInNonProduction,
+      // Columns an older save left: read only while the rule has no conditions.
+      cloudSavingActionGroups: [CloudSavingsActionGroup.Resize],
+    });
+
+    expect(doesCloudSavingsAiRuleMatch(covering, saving())).toBe(true);
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        covering,
+        saving({ kind: CloudSavingsActionKind.ResizeInstance }),
+      ),
+    ).toBe(false);
+  });
+
+  test("any condition may hold, when the rule says any", () => {
+    const either: CloudSavingsAiRuleFacts = rule("Either", {
+      criteria: criteriaOf(
+        [
+          hasAnyOf("cloudSavingActionGroups", [
+            CloudSavingsActionGroup.ChangeVolumeType,
+          ]),
+          hasAnyOf("cloudSavingProviders", [CloudProvider.GCP]),
+        ],
+        FilterCondition.Any,
+      ),
+    });
+
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        either,
+        saving({ kind: CloudSavingsActionKind.ChangeVolumeType }),
+      ),
+    ).toBe(true);
+    expect(
+      doesCloudSavingsAiRuleMatch(either, saving({ provider: CloudProvider.GCP })),
+    ).toBe(true);
+    expect(doesCloudSavingsAiRuleMatch(either, saving())).toBe(false);
+  });
+
+  test("has none of: every environment but the ones named", () => {
+    const notProduction: CloudSavingsAiRuleFacts = rule("Not production", {
+      criteria: criteriaOf([
+        {
+          field: "cloudSavingEnvironments",
+          operator: RuleCriteriaOperator.HasNoneOf,
+          value: [CloudResourceEnvironment.Production],
+        },
+      ]),
+    });
+
+    expect(doesCloudSavingsAiRuleMatch(notProduction, saving())).toBe(true);
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        notProduction,
+        saving({ environment: CloudResourceEnvironment.Production }),
+      ),
+    ).toBe(false);
+  });
+
+  test("no condition: every saving, as a rule with empty columns", () => {
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        rule("Everything", { criteria: criteriaOf([]) }),
+        saving({ kind: CloudSavingsActionKind.ReleaseAddress }),
+      ),
+    ).toBe(true);
+  });
+
+  test("a condition on a field no savings rule has matches nothing", () => {
+    expect(
+      doesCloudSavingsAiRuleMatch(
+        rule("Monitors", {
+          criteria: criteriaOf([hasAnyOf("monitors", ["anything"])]),
+        }),
+        saving(),
+      ),
+    ).toBe(false);
+  });
+
+  test("they decide what is made, under the same limits", () => {
+    const rules: Array<CloudSavingsAiRuleFacts> = [
+      rule("Conditions", {
+        criteria: stopsInNonProduction,
+        cloudSavingMonthlyLimit: 100,
+      }),
+    ];
+
+    expect(decide(rules).autonomy).toBe(CloudSavingsAiAutonomy.WithoutAsking);
+    expect(decide(rules, { monthlySavings: 150 })).toMatchObject({
+      autonomy: CloudSavingsAiAutonomy.Suggest,
+      reason: CloudSavingsAiReason.OverLimit,
+    });
+    // A resize is no saving the rule covers: with rules, nothing is done.
+    expect(
+      decide(rules, { kind: CloudSavingsActionKind.ResizeInstance }),
+    ).toMatchObject({
+      autonomy: CloudSavingsAiAutonomy.Off,
+      reason: CloudSavingsAiReason.NoMatchingRule,
+    });
+  });
+
+  test("a row reads the lists its conditions or its columns hold", () => {
+    expect(
+      getCloudSavingsAiRuleLists(
+        rule("Columns", {
+          cloudSavingActionGroups: [CloudSavingsActionGroup.Stop],
+          cloudSavingProviders: [CloudProvider.Azure],
+        }),
+      ),
+    ).toEqual({
+      groups: [CloudSavingsActionGroup.Stop],
+      environments: [],
+      providers: [CloudProvider.Azure],
+    });
+    expect(
+      getCloudSavingsAiRuleLists(
+        rule("Conditions", { criteria: stopsInNonProduction }),
+      ),
+    ).toEqual({
+      groups: [CloudSavingsActionGroup.Stop],
+      environments: [CloudResourceEnvironment.NonProduction],
+      providers: [],
+    });
+    // Two conditions on one field: the savings both cover.
+    expect(
+      getCloudSavingsAiRuleLists(
+        rule("Twice", {
+          criteria: criteriaOf([
+            hasAnyOf("cloudSavingProviders", [
+              CloudProvider.AWS,
+              CloudProvider.GCP,
+            ]),
+            hasAnyOf("cloudSavingProviders", [CloudProvider.GCP]),
+          ]),
+        }),
+      )?.providers,
+    ).toEqual([CloudProvider.GCP]);
+  });
+
+  test("conditions lists cannot say are left to the builder's words", () => {
+    expect(
+      getCloudSavingsAiRuleLists(
+        rule("Either", {
+          criteria: criteriaOf(
+            [hasAnyOf("cloudSavingProviders", [CloudProvider.GCP])],
+            FilterCondition.Any,
+          ),
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      getCloudSavingsAiRuleLists(
+        rule("Not production", {
+          criteria: criteriaOf([
+            {
+              field: "cloudSavingEnvironments",
+              operator: RuleCriteriaOperator.HasNoneOf,
+              value: [CloudResourceEnvironment.Production],
+            },
+          ]),
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("a rule's conditions are held to known values, as its columns are", () => {
+    expect(
+      getCloudSavingsAiRuleProblem({
+        criteria: stopsInNonProduction,
+        cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking,
+      }),
+    ).toBeNull();
+    expect(
+      getCloudSavingsAiRuleProblem({
+        criteria: criteriaOf([hasAnyOf("cloudSavingActionGroups", ["Reboot"])]),
+      }),
+    ).toMatch(/^Cloud Saving: Changes must be a list of: /);
+    expect(
+      getCloudSavingsAiRuleProblem({
+        criteria: criteriaOf([
+          {
+            field: "cloudSavingProviders",
+            operator: RuleCriteriaOperator.Contains,
+            value: "aws",
+          },
+        ]),
+      }),
+    ).toMatch(/^Cloud Saving: Clouds must be a list of: /);
+  });
+
+  test("a rule that acts without asking must leave non-production in its conditions", () => {
+    for (const environments of [
+      criteriaOf([
+        hasAnyOf("cloudSavingEnvironments", [
+          CloudResourceEnvironment.Production,
+        ]),
+      ]),
+      criteriaOf([
+        {
+          field: "cloudSavingEnvironments",
+          operator: RuleCriteriaOperator.HasNoneOf,
+          value: [CloudResourceEnvironment.NonProduction],
+        },
+      ]),
+    ]) {
+      expect(
+        getCloudSavingsAiRuleProblem({
+          criteria: environments,
+          cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking,
+        }),
+      ).toBe(CLOUD_SAVINGS_AI_RULE_NEVER_ACTS_MESSAGE);
+      // Proposing them is fine: a person decides each.
+      expect(
+        getCloudSavingsAiRuleProblem({
+          criteria: environments,
+          cloudSavingAutonomy: CloudSavingsAiAutonomy.Suggest,
+        }),
+      ).toBeNull();
+    }
   });
 });
 

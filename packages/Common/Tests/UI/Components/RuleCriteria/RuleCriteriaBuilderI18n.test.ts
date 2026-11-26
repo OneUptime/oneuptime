@@ -165,7 +165,8 @@ describe("the conditions builder in every dashboard language", () => {
     expect(BUILDER_STRINGS).toContain("Match all");
     expect(BUILDER_STRINGS).toContain("Is in");
     expect(BUILDER_STRINGS).toContain("Applies to");
-    expect(APPLIES_TO_STRINGS).toHaveLength(76);
+    // With the AI rules for savings' two (#11010).
+    expect(APPLIES_TO_STRINGS).toHaveLength(78);
     expect(BUILDER_STRINGS).toContain("All incidents");
     expect(BUILDER_STRINGS).toContain("Only incidents that match conditions");
     expect(BUILDER_STRINGS).toContain("Only data stores that match conditions");
