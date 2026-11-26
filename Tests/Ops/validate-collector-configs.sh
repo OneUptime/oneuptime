@@ -180,6 +180,15 @@ ENV_ARGS=(
   -e "PURE_FB_ENDPOINT=flashblade.example.com"
   -e "PURE_FB_API_TOKEN=validate-only"
   -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
+  # Dell PowerScale (the snmp receiver, one per node): the endpoint parses as
+  # udp://host:161, and the pipeline runs the receivers install.sh lists -
+  # here the cluster's, the quotas' and three nodes'.
+  -e "POWERSCALE_ENDPOINT=10.20.0.11"
+  -e "POWERSCALE_SNMP_COMMUNITY=validate-only"
+  -e "POWERSCALE_NODE_1=10.20.0.11"
+  -e "POWERSCALE_NODE_2=10.20.0.12"
+  -e "POWERSCALE_NODE_3=[fd00::13]"
+  -e "POWERSCALE_SNMP_RECEIVERS=[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]"
   # The XCP-ng Agent (a prometheus receiver scraping Xen Orchestra's
   # OpenMetrics plugin). The scheme has to be http or https and the target
   # parse as host:port - so give them the shapes install.sh writes. Its
@@ -372,6 +381,7 @@ STORAGE_ARRAY_AGENT_CONFIGS=(
   otel-collector-config.yaml
   otel-collector-config.flasharray-exporter.yaml
   otel-collector-config.flashblade.yaml
+  otel-collector-config.powerscale.yaml
 )
 
 for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do

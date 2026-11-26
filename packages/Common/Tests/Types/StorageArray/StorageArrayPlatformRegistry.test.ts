@@ -28,8 +28,13 @@ import {
  * rules, so a new platform is checked here without a test of its own.
  */
 
+import DellPowerScalePlatform from "../../../Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform";
+
 const FLASHARRAY: string = StorageSystem.PureStorageFlashArray;
 const FLASHBLADE: string = StorageSystem.PureStorageFlashBlade;
+const POWERSCALE: string = StorageSystem.DellPowerScale;
+// The platforms OneUptime ships, in their order.
+const SHIPPED: Array<string> = [FLASHARRAY, FLASHBLADE, POWERSCALE];
 
 afterEach(() => {
   // Each test that registers a platform leaves the registry as shipped.
@@ -49,14 +54,14 @@ function systemsOf(
 }
 
 describe("the shipped platforms", () => {
-  test("are Pure Storage's FlashArray and FlashBlade, in that order", () => {
-    expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
-      FLASHARRAY,
-      FLASHBLADE,
-    ]);
+  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerScale, in that order", () => {
+    expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual(
+      SHIPPED,
+    );
     expect(BUILT_IN_STORAGE_ARRAY_PLATFORMS).toEqual([
       PureStorageFlashArrayPlatform,
       PureStorageFlashBladePlatform,
+      DellPowerScalePlatform,
     ]);
   });
 
@@ -312,10 +317,19 @@ describe.each(
       expect(table.description).not.toBe("");
       expect(table.noItemsMessage).not.toBe("");
     }
+    /*
+     * The kinds whose status decides its hardware health: the shared
+     * physical parts unless it names its own, which may be a kind of its own
+     * (a PowerScale node), but always one it reports.
+     */
     for (const kind of platform.hardwareKinds || STORAGE_ARRAY_HARDWARE_KINDS) {
-      expect(
-        Object.values(StorageArrayResourceKind) as Array<string>,
-      ).toContain(kind);
+      if (!platform.hardwareKinds) {
+        expect(
+          Object.values(StorageArrayResourceKind) as Array<string>,
+        ).toContain(kind);
+        continue;
+      }
+      expect(platform.kinds).toContain(kind);
     }
   });
 
@@ -364,8 +378,7 @@ describe("registering a platform at runtime", () => {
     StorageArrayPlatformRegistry.register(ACME_PLATFORM);
 
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
-      FLASHARRAY,
-      FLASHBLADE,
+      ...SHIPPED,
       ACME_STORAGE_SYSTEM,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 1);
@@ -394,10 +407,9 @@ describe("registering a platform at runtime", () => {
 
     StorageArrayPlatformRegistry.unregister(ACME_STORAGE_SYSTEM);
 
-    expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
-      FLASHARRAY,
-      FLASHBLADE,
-    ]);
+    expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual(
+      SHIPPED,
+    );
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 2);
     expect(
       StorageArrayPlatformRegistry.getPlatform(ACME_STORAGE_SYSTEM),
@@ -412,7 +424,9 @@ describe("registering a platform at runtime", () => {
     const before: number = StorageArrayPlatformRegistry.getVersion();
     StorageArrayPlatformRegistry.unregister("netapp.ontap");
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
-    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(2);
+    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(
+      SHIPPED.length,
+    );
   });
 
   test("a series family of the array's own platform wins over an earlier platform's", () => {
@@ -453,7 +467,9 @@ describe("registering a platform at runtime", () => {
       'Storage array platform acme.array cannot be registered: "purefa" already names purestorage.flasharray',
     );
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
-    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(2);
+    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(
+      SHIPPED.length,
+    );
   });
 
   test("registering it twice is refused", () => {

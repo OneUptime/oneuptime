@@ -12,6 +12,8 @@ import {
 import StorageArrayExtractors from "../../../../../Server/Utils/Telemetry/StorageArray/StorageArrayExtractors";
 import FlashArrayExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashArrayExtractor";
 import FlashBladeExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashBladeExtractor";
+import PowerScaleExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerScaleExtractor";
+import DellPowerScalePlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform";
 import {
   STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   deriveStorageArrayCountsByKind,
@@ -75,13 +77,17 @@ function row(
 }
 
 describe("the shipped extractors", () => {
-  test("are FlashArray's and FlashBlade's, one for each shipped platform", () => {
+  test("are FlashArray's, FlashBlade's and PowerScale's, one for each shipped platform", () => {
     expect(StorageArrayExtractors.getExtractors()).toEqual([
       FlashArrayExtractor,
       FlashBladeExtractor,
+      PowerScaleExtractor,
     ]);
     expect(FlashArrayExtractor.storageSystem).toBe(FLASHARRAY);
     expect(FlashBladeExtractor.storageSystem).toBe(FLASHBLADE);
+    expect(PowerScaleExtractor.storageSystem).toBe(
+      StorageSystem.DellPowerScale,
+    );
     for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
       expect(
         StorageArrayExtractors.getExtractor(platform.storageSystem)
@@ -97,6 +103,7 @@ describe("the shipped extractors", () => {
   });
 
   test("a second extractor for a platform is refused", () => {
+    const before: number = StorageArrayExtractors.getExtractors().length;
     expect(() => {
       StorageArrayExtractors.register({
         storageSystem: FLASHARRAY,
@@ -105,7 +112,7 @@ describe("the shipped extractors", () => {
     }).toThrow(
       "A storage array extractor for purestorage.flasharray is already registered",
     );
-    expect(StorageArrayExtractors.getExtractors()).toHaveLength(2);
+    expect(StorageArrayExtractors.getExtractors()).toHaveLength(before);
   });
 });
 
@@ -114,6 +121,7 @@ describe("the ingest's gate", () => {
     const names: Array<string> = [
       ...PureStorageFlashArrayPlatform.snapshotMetricNames,
       ...PureStorageFlashBladePlatform.snapshotMetricNames,
+      ...DellPowerScalePlatform.snapshotMetricNames,
     ];
     expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
       [...names].sort(),

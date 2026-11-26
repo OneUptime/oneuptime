@@ -38,6 +38,7 @@ import CompareCriteria from "../../../Server/Utils/Monitor/Criteria/CompareCrite
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { POWERSCALE_SERIES } from "../../Helpers/StorageArray/PowerScale/PowerScaleCapture";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
@@ -62,6 +63,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
+const PS: StorageSystem = StorageSystem.DellPowerScale;
 
 /*
  * The labels of every series a template reads, from the exporters'
@@ -172,6 +174,11 @@ const SERIES_LABELS: Record<string, Record<string, Array<string> | null>> = {
       "provisioned",
     ],
   },
+  /*
+   * Dell PowerScale's, from the agent's collector config and ISILON-MIB,
+   * held to the recorded capture (PowerScaleCapture.test.ts).
+   */
+  ...POWERSCALE_SERIES,
 };
 
 /*
@@ -185,6 +192,8 @@ const STATE_IN_A_LABEL_METRICS: Set<string> = new Set<string>([
   "purefa_hw_component_status",
   "purefa_drive_capacity_bytes",
   "purefa_host_connectivity_info",
+  // A PowerScale drive's status is a label of its size series.
+  "powerscale_drive_size_bytes",
 ]);
 
 /*
@@ -195,6 +204,15 @@ const STATE_IN_A_LABEL_METRICS: Set<string> = new Set<string>([
  */
 const BINARY_FLAG_METRICS: Set<string> = new Set<string>([
   "purefb_hardware_health",
+  /*
+   * OneFS's health (0 ok, 1 attention, 2 down, 3 invalid), a node's
+   * read-only flag and a count of offline nodes: codes and small whole
+   * numbers, which recover at the very line they fire on.
+   */
+  "powerscale_cluster_health",
+  "powerscale_node_health",
+  "powerscale_node_read_only",
+  "powerscale_cluster_offline_nodes",
 ]);
 
 interface Threshold {
@@ -279,7 +297,12 @@ function stoppedReportingTemplate(
     rollingTime: RollingTime.Past10Minutes,
     aggregation: MetricsAggregationType.Count,
     alias: "samples_received",
-    metricName: system === FA ? "purefa_info" : "purefb_info",
+    metricName:
+      system === FA
+        ? "purefa_info"
+        : system === FB
+          ? "purefb_info"
+          : "powerscale_cluster_health",
     attributes: {},
     groupBy: null,
     // A count is never negative: this fires only through its no-data policy.
@@ -289,7 +312,178 @@ function stoppedReportingTemplate(
   };
 }
 
+// A Dell PowerScale template: a code or a level, never a state label.
+function powerScaleTemplate(
+  expectation: Omit<
+    TemplateExpectation,
+    "system" | "attributes" | "treatNoDataAsZero"
+  > & {
+    attributes?: Record<string, string> | undefined;
+    treatNoDataAsZero?: boolean | undefined;
+  },
+): TemplateExpectation {
+  return {
+    ...expectation,
+    system: PS,
+    attributes: expectation.attributes || {},
+    treatNoDataAsZero: expectation.treatNoDataAsZero || false,
+  };
+}
+
+const POWERSCALE_TEMPLATES: Array<TemplateExpectation> = [
+  stoppedReportingTemplate("powerscale-cluster-stopped-reporting", PS),
+  powerScaleTemplate({
+    id: "powerscale-cluster-needs-attention",
+    category: "Array Health",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "cluster_health",
+    metricName: "powerscale_cluster_health",
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-cluster-down",
+    category: "Array Health",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "cluster_health",
+    metricName: "powerscale_cluster_health",
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThanOrEqualTo, value: 2 },
+    recoverFilterType: FilterType.LessThan,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-node-offline",
+    category: "Hardware",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "offline_nodes",
+    metricName: "powerscale_cluster_offline_nodes",
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-node-needs-attention",
+    category: "Hardware",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "node_health",
+    metricName: "powerscale_node_health",
+    groupBy: "node",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-node-read-only",
+    category: "Hardware",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "node_read_only",
+    metricName: "powerscale_node_read_only",
+    groupBy: "node",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-drive-dead",
+    category: "Hardware",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Count,
+    alias: "dead_drives",
+    metricName: "powerscale_drive_size_bytes",
+    attributes: { status: "DEAD" },
+    groupBy: "drive",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-drive-smartfailed",
+    category: "Hardware",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Count,
+    alias: "smartfailed_drives",
+    metricName: "powerscale_drive_size_bytes",
+    attributes: { status: "SMARTFAIL" },
+    groupBy: "drive",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-capacity-high",
+    category: "Capacity",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "capacity_used_percent",
+    metricName: "powerscale_ifs_used_percent",
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThan, value: 80 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-capacity-critical",
+    category: "Capacity",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "capacity_used_percent",
+    metricName: "powerscale_ifs_used_percent",
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThan, value: 90 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-quota-near-limit",
+    category: "Capacity",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "quota_used_percent",
+    metricName: "powerscale_quota_used_percent",
+    groupBy: "quota",
+    fire: { filterType: FilterType.GreaterThan, value: 90 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-quota-full",
+    category: "Capacity",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "quota_used_percent",
+    metricName: "powerscale_quota_used_percent",
+    groupBy: "quota",
+    fire: { filterType: FilterType.GreaterThanOrEqualTo, value: 100 },
+    recoverFilterType: FilterType.LessThan,
+  }),
+  powerScaleTemplate({
+    id: "powerscale-protocol-latency-high",
+    category: "Performance",
+    severity: "Warning",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "protocol_latency_usec",
+    metricName: "powerscale_protocol_latency_microseconds",
+    groupBy: "protocol",
+    fire: { filterType: FilterType.GreaterThan, value: 20000 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+  }),
+];
+
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
+  ...POWERSCALE_TEMPLATES,
   stoppedReportingTemplate("purefa-array-stopped-reporting", FA),
   stoppedReportingTemplate("purefb-array-stopped-reporting", FB),
   alertTemplate("purefa-critical-alerts", FA, "critical"),
@@ -555,6 +749,7 @@ const TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
 const STOPPED_REPORTING_IDS: Array<string> = [
   "purefa-array-stopped-reporting",
   "purefb-array-stopped-reporting",
+  "powerscale-cluster-stopped-reporting",
 ];
 
 const PER_OBJECT_TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
@@ -579,10 +774,14 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("ships twenty templates: twelve FlashArray, eight FlashBlade, each led by its heartbeat", () => {
-    expect(ALL_TEMPLATES).toHaveLength(20);
+  test("ships thirty-three templates: twelve FlashArray, eight FlashBlade, thirteen PowerScale, each led by its heartbeat", () => {
+    expect(ALL_TEMPLATES).toHaveLength(33);
     expect(getStorageArrayAlertTemplatesForSystem(FA)).toHaveLength(12);
     expect(getStorageArrayAlertTemplatesForSystem(FB)).toHaveLength(8);
+    expect(getStorageArrayAlertTemplatesForSystem(PS)).toHaveLength(13);
+    expect(getStorageArrayAlertTemplatesForSystem(PS)[0]!.id).toBe(
+      "powerscale-cluster-stopped-reporting",
+    );
     expect(getStorageArrayAlertTemplatesForSystem(FA)[0]!.id).toBe(
       "purefa-array-stopped-reporting",
     );
@@ -596,13 +795,15 @@ describe("StorageArrayAlertTemplates - registry", () => {
       expect(template.id).toMatch(
         systemOf(template) === FA
           ? /^purefa-[a-z0-9-]+$/
-          : /^purefb-[a-z0-9-]+$/,
+          : systemOf(template) === FB
+            ? /^purefb-[a-z0-9-]+$/
+            : /^powerscale-[a-z0-9-]+$/,
       );
     }
   });
 
   test("template names are unique within a platform", () => {
-    for (const system of [FA, FB]) {
+    for (const system of [FA, FB, PS]) {
       const names: Array<string> = getStorageArrayAlertTemplatesForSystem(
         system,
       ).map((t: StorageArrayAlertTemplate) => {
@@ -650,7 +851,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
   });
 
   test("getStorageArrayAlertTemplatesForSystem returns only that platform's templates", () => {
-    for (const system of [FA, FB]) {
+    for (const system of [FA, FB, PS]) {
       for (const template of getStorageArrayAlertTemplatesForSystem(system)) {
         expect(template.storageSystems).toEqual([system]);
       }
@@ -1058,7 +1259,8 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
       const recover: CriteriaFilter = filtersOf(online)[0]!;
 
       const above: boolean =
-        expectation.fire.filterType === FilterType.GreaterThan;
+        expectation.fire.filterType === FilterType.GreaterThan ||
+        expectation.fire.filterType === FilterType.GreaterThanOrEqualTo;
       const breached: number = above
         ? expectation.fire.value * 2 + 1
         : expectation.fire.value / 2;
@@ -1258,7 +1460,7 @@ describe("StorageArrayAlertTemplates - FlashBlade hardware health code (regressi
     expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual(["name"]);
   });
 
-  test("it is the only binary-coded template, and the only `< 1` threshold", () => {
+  test("it is Pure's only binary-coded template, and the only `< 1` threshold", () => {
     for (const other of ALL_TEMPLATES) {
       const step: MonitorStep = other.getMonitorStep(buildArgs());
       const usesLessThanOne: boolean = filtersOf(
@@ -1267,6 +1469,10 @@ describe("StorageArrayAlertTemplates - FlashBlade hardware health code (regressi
         return f.filterType === FilterType.LessThan && f.value === 1;
       });
       expect(usesLessThanOne).toBe(other.id === "purefb-hardware-unhealthy");
+      // PowerScale's health codes are binary-coded too (BINARY_FLAG_METRICS).
+      if (systemOf(other) === PS) {
+        continue;
+      }
       expect(isBinaryFlagTemplate(step)).toBe(
         other.id === "purefb-hardware-unhealthy",
       );

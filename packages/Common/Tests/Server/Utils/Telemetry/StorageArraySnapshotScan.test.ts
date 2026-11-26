@@ -528,21 +528,31 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * Pure's families of the allow-list: the platforms after Pure hold their
+ * own (Dell PowerScale's in PowerScaleExtractor.test.ts).
+ */
+const PURE_SNAPSHOT_METRIC_NAMES: Array<string> = [
+  ...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
+].filter((metricName: string): boolean => {
+  return /^pure(fa|fb)_/.test(metricName);
+});
+
 describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
-  test("every allow-listed family is a real Pure exporter series", () => {
-    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+  test("every allow-listed Pure family is a real Pure exporter series", () => {
+    for (const metricName of PURE_SNAPSHOT_METRIC_NAMES) {
       expect(PURE_LABELS[metricName]).toBeDefined();
       expect(metricName).toMatch(/^pure(fa|fb)_[a-z0-9_]+$/);
     }
   });
 
-  test("allow-lists exactly the families the scan maps", () => {
+  test("allow-lists exactly the Pure families the scan maps", () => {
     const expected: Array<string> = Object.keys(PURE_LABELS).filter(
       (metricName: string) => {
         return !NOT_ALLOW_LISTED.includes(metricName);
       },
     );
-    expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
+    expect([...PURE_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
       [...expected].sort(),
     );
   });

@@ -257,6 +257,12 @@ export interface StorageArrayInsightsSection {
   icon: IconProp;
   metricIds: Array<string>;
   groupByObject?: boolean | undefined;
+  /*
+   * The label to split every chart of the card by, for series of the whole
+   * array that are still told apart by one (a PowerScale protocol's
+   * `protocol`): what groupByObject does by each metric's object label.
+   */
+  groupByLabel?: string | undefined;
 }
 
 /*

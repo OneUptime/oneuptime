@@ -261,6 +261,7 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerscale.yaml",
       "systemd/oneuptime-storage-array-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],

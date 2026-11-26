@@ -44,6 +44,8 @@ interface TableLine {
   noun: string;
   menu: string;
   readHow: string;
+  // A setup step of the platform's own (a function of install.sh), or "".
+  setup: string;
 }
 
 interface ComposeFile {
@@ -66,7 +68,11 @@ function installTable(): Array<TableLine> {
     })
     .map((line: string): TableLine => {
       const fields: Array<string> = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 9 });
+      // Nine fields, and a tenth for a platform with a setup step of its own.
+      expect({
+        line,
+        fields: fields.length === 10 ? 9 : fields.length,
+      }).toEqual({ line, fields: 9 });
       return {
         config: fields[0]!,
         system: fields[1]!,
@@ -77,6 +83,7 @@ function installTable(): Array<TableLine> {
         noun: fields[6]!,
         menu: fields[7]!,
         readHow: fields[8]!,
+        setup: fields[9] && fields[9] !== "-" ? fields[9] : "",
       };
     });
 }
@@ -136,10 +143,17 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         tokenVariable: entry.config.tokenVariable,
         noun: entry.config.arrayNoun,
         // Only a collector that talks to the array itself asks about its TLS.
-        tlsToArray: entry.config.exporterService === null ? "yes" : "no",
+        tlsToArray:
+          (entry.config.talksTlsToArray ?? entry.config.exporterService === null)
+            ? "yes"
+            : "no",
       });
       expect(line!.menu).not.toBe("");
       expect(line!.readHow).not.toBe("");
+      // A setup step the line names is a function of the script.
+      if (line!.setup) {
+        expect(readAgentFile("install.sh")).toContain(`\n${line!.setup}() {\n`);
+      }
     },
   );
 });

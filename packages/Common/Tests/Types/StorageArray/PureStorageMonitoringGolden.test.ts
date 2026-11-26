@@ -170,6 +170,29 @@ interface EvaluatorPrivate {
 const Evaluator: EvaluatorPrivate =
   MonitorCriteriaEvaluator as unknown as EvaluatorPrivate;
 
+/*
+ * Pure's own entries of what every platform shares (the catalog, the
+ * templates, Recommendations, the systems): the platforms after Pure add
+ * theirs, and none of that changes how a Pure array is watched.
+ */
+function isPureSystem(system: string): boolean {
+  return system === FA || system === FB;
+}
+
+function isPureMetric(metric: StorageArrayMetricDefinition): boolean {
+  return (metric.storageSystems as Array<string>).every(isPureSystem);
+}
+
+function isPureTemplate(template: StorageArrayAlertTemplate): boolean {
+  return (template.storageSystems as Array<string>).every(isPureSystem);
+}
+
+function isPureRecommendation(recommendation: MonitorRecommendation): boolean {
+  const template: StorageArrayAlertTemplate | undefined =
+    getStorageArrayAlertTemplateById(recommendation.templateId);
+  return template ? isPureTemplate(template) : true;
+}
+
 function computeGolden(): JSONObject {
   const systems: JSONObject = {};
   for (const input of SYSTEM_INPUTS) {
@@ -182,13 +205,16 @@ function computeGolden(): JSONObject {
       isFlashArray: StorageSystemUtil.isFlashArray(input),
       isFlashBlade: StorageSystemUtil.isFlashBlade(input),
       kinds: StorageArrayResourceKindUtil.getKindsForSystem(input),
-      metricCount: getStorageArrayMetricsForSystem(input).length,
-      metricIds: getStorageArrayMetricsForSystem(input).map(
-        (metric: StorageArrayMetricDefinition): string => {
+      metricCount:
+        getStorageArrayMetricsForSystem(input).filter(isPureMetric).length,
+      metricIds: getStorageArrayMetricsForSystem(input)
+        .filter(isPureMetric)
+        .map((metric: StorageArrayMetricDefinition): string => {
           return metric.id;
-        },
-      ),
-      templates: getStorageArrayAlertTemplatesForSystem(input).map(
+        }),
+      templates: getStorageArrayAlertTemplatesForSystem(input)
+        .filter(isPureTemplate)
+        .map(
         (template: StorageArrayAlertTemplate): JSONObject => {
           return {
             id: template.id,
@@ -201,7 +227,9 @@ function computeGolden(): JSONObject {
       recommendations: MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.StorageArray,
         { storageSystem: input },
-      ).map((recommendation: MonitorRecommendation): JSONObject => {
+      )
+        .filter(isPureRecommendation)
+        .map((recommendation: MonitorRecommendation): JSONObject => {
         const template: StorageArrayAlertTemplate | undefined =
           getStorageArrayAlertTemplateById(recommendation.templateId);
         return {
@@ -227,7 +255,9 @@ function computeGolden(): JSONObject {
   }
 
   const prefixes: JSONObject = {};
-  for (const system of StorageSystemUtil.getAllSystems()) {
+  for (const system of StorageSystemUtil.getAllSystems().filter(
+    isPureSystem,
+  )) {
     prefixes[system] = StorageSystemUtil.getMetricPrefix(system);
   }
 
@@ -253,7 +283,7 @@ function computeGolden(): JSONObject {
   }
 
   const metrics: Array<StorageArrayMetricDefinition> =
-    getAllStorageArrayMetrics();
+    getAllStorageArrayMetrics().filter(isPureMetric);
 
   const metricNames: Array<string> = Array.from(
     new Set(
@@ -291,11 +321,11 @@ function computeGolden(): JSONObject {
       label: getStorageArrayMetricCategoryLabel(
         category as StorageArrayMetricCategory,
       ),
-      metricIds: getStorageArrayMetricsByCategory(category).map(
-        (metric: StorageArrayMetricDefinition): string => {
+      metricIds: getStorageArrayMetricsByCategory(category)
+        .filter(isPureMetric)
+        .map((metric: StorageArrayMetricDefinition): string => {
           return metric.id;
-        },
-      ),
+        }),
     };
   }
 
@@ -314,8 +344,9 @@ function computeGolden(): JSONObject {
     }
   }
 
-  const templates: Array<JSONObject> = getAllStorageArrayAlertTemplates().map(
-    (template: StorageArrayAlertTemplate): JSONObject => {
+  const templates: Array<JSONObject> = getAllStorageArrayAlertTemplates()
+    .filter(isPureTemplate)
+    .map((template: StorageArrayAlertTemplate): JSONObject => {
       return {
         id: template.id,
         name: template.name,
@@ -343,17 +374,21 @@ function computeGolden(): JSONObject {
   ] as Array<StorageArrayAlertTemplateCategory>) {
     templateCategories[category] = getStorageArrayAlertTemplatesByCategory(
       category,
-    ).map((template: StorageArrayAlertTemplate): string => {
-      return template.id;
-    });
+    )
+      .filter(isPureTemplate)
+      .map((template: StorageArrayAlertTemplate): string => {
+        return template.id;
+      });
   }
 
   const allRecommendations: Array<string> =
     MonitorRecommendationCatalog.getAllPossibleRecommendations(
       MonitorRecommendationResourceType.StorageArray,
-    ).map((recommendation: MonitorRecommendation): string => {
-      return recommendation.recommendationId;
-    });
+    )
+      .filter(isPureRecommendation)
+      .map((recommendation: MonitorRecommendation): string => {
+        return recommendation.recommendationId;
+      });
 
   const objectKinds: JSONObject = {};
   for (const name of [
@@ -417,7 +452,7 @@ function computeGolden(): JSONObject {
   }
 
   return {
-    allSystems: StorageSystemUtil.getAllSystems(),
+    allSystems: StorageSystemUtil.getAllSystems().filter(isPureSystem),
     systems,
     prefixes,
     platformOfMetric,

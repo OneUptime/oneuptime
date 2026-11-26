@@ -166,6 +166,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       PURE_FA_API_TOKEN: `'${FA_TOKEN}'`,
       PURE_FB_ENDPOINT: "''",
       PURE_FB_API_TOKEN: "''",
+      POWERSCALE_ENDPOINT: "''",
+      POWERSCALE_SNMP_COMMUNITY: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     });
     // It holds the array's API token.
@@ -176,7 +178,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(run.output).not.toContain(FA_TOKEN);
   });
 
-  test("downloads the compose file and all three configs, so switching the array type is an .env edit", () => {
+  test("downloads the compose file and every config, so switching the array type is an .env edit", () => {
     const dir = scratch();
     const run = install(dir, {
       env: {
@@ -196,6 +198,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerscale.yaml",
     ]) {
       expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
         fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
@@ -233,6 +236,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       `${served}/otel-collector-config.yaml`,
       `${served}/otel-collector-config.flasharray-exporter.yaml`,
       `${served}/otel-collector-config.flashblade.yaml`,
+      `${served}/otel-collector-config.powerscale.yaml`,
     ]);
     expect(run.output).toContain(
       `If nothing shows up: curl -fsSL ${served}/troubleshoot.sh | bash -s -- -d ${run.installDir}`,
@@ -266,6 +270,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerscale.yaml",
     ]) {
       expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
         fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
@@ -537,6 +542,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerscale.yaml",
     ];
     const CONFIGS = AGENT_FILES.filter((file) => {
       return file.startsWith("otel-collector-config");

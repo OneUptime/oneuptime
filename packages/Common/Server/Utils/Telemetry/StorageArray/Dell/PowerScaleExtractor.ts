@@ -4,11 +4,9 @@ import DellPowerScalePlatform, {
   POWERSCALE_QUOTA_KIND,
 } from "../../../../../Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform";
 import {
-  SCRAPE_ENDPOINT_LABEL,
   StorageArrayExtractor,
   StorageArrayResourceBufferEntry,
   StorageArraySeries,
-  markScrapedEndpoint,
   markStorageArrayKindComplete,
 } from "../StorageArrayExtractor";
 
@@ -30,8 +28,11 @@ import {
  *     <n>"), fans, sensors and ports.
  *
  * A cluster's poll is the complete list of its nodes and a quotas' poll of
- * its quotas. A node's poll lists only its own drives, sensors and ports,
- * so it completes no kind.
+ * its quotas (StorageArrayPlatform.scrapeEndpoints says so): the extractor
+ * marks each complete from the series themselves - the configured nodes
+ * listed, a quota's usage - so a poll that lists nothing never zeroes a
+ * count. A node's poll lists only its own drives, sensors and ports, so it
+ * completes no kind.
  */
 
 // OneFS's health, cluster and node alike.
@@ -152,11 +153,6 @@ function readClusterHealth(series: StorageArraySeries): void {
 
   // The cluster's own poll: its health is the whole of its alert list.
   array.sawAlerts = true;
-  markScrapedEndpoint(
-    array,
-    series.label(SCRAPE_ENDPOINT_LABEL),
-    DellPowerScalePlatform,
-  );
 
   const health: number = Math.trunc(series.value);
   if (health > 0) {

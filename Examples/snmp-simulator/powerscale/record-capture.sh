@@ -79,7 +79,7 @@ import json
 import sys
 
 # 26 November 2026, 09:00 UTC, in nanoseconds: every datapoint's time.
-CAPTURE_TIME = "1795770000000000000"
+CAPTURE_TIME = "1795683600000000000"
 
 source, output = sys.argv[1], sys.argv[2]
 resource_metrics = []

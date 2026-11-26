@@ -138,7 +138,8 @@ export const POWERSCALE_INSIGHTS_SECTIONS: Array<StorageArrayInsightsSection> =
         "powerscale-protocol-out",
         "powerscale-protocol-in",
       ],
-      groupByObject: true,
+      // A protocol is no object of the array's: its series say it in `protocol`.
+      groupByLabel: "protocol",
     },
     {
       key: "nodes",

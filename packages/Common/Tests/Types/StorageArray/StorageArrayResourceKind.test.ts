@@ -1,5 +1,6 @@
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { describe, expect, test } from "@jest/globals";
@@ -101,9 +102,23 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
         covered.add(kind);
       }
     }
-    expect([...covered].sort()).toEqual(
-      [...StorageArrayResourceKindUtil.getAllKinds()].sort(),
-    );
+    // Every shared kind is some platform's...
+    const shared: Array<string> = Object.values(StorageArrayResourceKind);
+    expect(
+      [...covered]
+        .filter((kind: string): boolean => {
+          return shared.includes(kind);
+        })
+        .sort(),
+    ).toEqual([...StorageArrayResourceKindUtil.getAllKinds()].sort());
+    // ...and every other kind a platform reports is worded by it.
+    for (const kind of covered) {
+      if (!shared.includes(kind)) {
+        expect(StorageArrayPlatformRegistry.getKindDefinition(kind)?.kind).toBe(
+          kind,
+        );
+      }
+    }
   });
 
   test.each([

@@ -59,6 +59,18 @@ const GOLDEN_PATH: string = path.join(
 
 const ARRAY_ID: string = "5a7e0000-0000-4000-8000-0000000011a0";
 
+/*
+ * Pure's families of the scan's allow-list: the platforms after Pure add
+ * theirs (Dell PowerScale's powerscale_*), which a Pure array never sends.
+ */
+const PURE_SNAPSHOT_METRIC_NAMES: Set<string> = new Set(
+  Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).filter(
+    (metricName: string): boolean => {
+      return /^pure(fa|fb)_/.test(metricName);
+    },
+  ),
+);
+
 interface CapturedBatchSeries {
   series: CapturedSeries;
   jobLabels: Record<string, string>;
@@ -405,7 +417,7 @@ function computeGolden(): Omit<GoldenFile, "note"> {
   }
 
   return {
-    snapshotMetricNames: Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).sort(),
+    snapshotMetricNames: Array.from(PURE_SNAPSHOT_METRIC_NAMES).sort(),
     componentStatuses,
     systemResolution,
     cases,
@@ -486,7 +498,7 @@ describe("a Pure Storage array's metrics become what they became before #11000",
       });
 
     // Every family the scan reads is in the captures at least once.
-    expect(new Set(read)).toEqual(new Set(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES));
+    expect(new Set(read)).toEqual(PURE_SNAPSHOT_METRIC_NAMES);
     expect(passedOver.length).toBeGreaterThan(0);
   });
 });

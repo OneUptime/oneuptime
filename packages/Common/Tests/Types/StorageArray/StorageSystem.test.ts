@@ -38,10 +38,11 @@ const FLASHBLADE_ALIASES: Array<string> = [
 ];
 
 describe("StorageSystem enum", () => {
-  test("carries exactly the two launch platforms with vendor.product values", () => {
+  test("carries the two launch platforms and Dell PowerScale, with vendor.product values", () => {
     expect(Object.entries(StorageSystem)).toEqual([
       ["PureStorageFlashArray", "purestorage.flasharray"],
       ["PureStorageFlashBlade", "purestorage.flashblade"],
+      ["DellPowerScale", "dell.powerscale"],
     ]);
   });
 
@@ -49,6 +50,7 @@ describe("StorageSystem enum", () => {
     expect(StorageSystemUtil.getAllSystems()).toEqual([
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
+      StorageSystem.DellPowerScale,
     ]);
   });
 
@@ -233,7 +235,16 @@ describe("StorageSystemUtil.fromMetricName", () => {
 });
 
 describe("StorageSystemUtil display helpers", () => {
-  test("display, short and vendor names of the launch platforms", () => {
+  test("display, short and vendor names of the shipped platforms", () => {
+    expect(
+      StorageSystemUtil.getDisplayName(StorageSystem.DellPowerScale),
+    ).toBe("Dell PowerScale");
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerScale)).toBe(
+      "PowerScale",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerScale)).toBe(
+      "Dell",
+    );
     expect(
       StorageSystemUtil.getDisplayName(StorageSystem.PureStorageFlashArray),
     ).toBe("Pure Storage FlashArray");
@@ -246,9 +257,14 @@ describe("StorageSystemUtil display helpers", () => {
     expect(
       StorageSystemUtil.getShortName(StorageSystem.PureStorageFlashBlade),
     ).toBe("FlashBlade");
-    for (const system of StorageSystemUtil.getAllSystems()) {
+    for (const system of [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.PureStorageFlashBlade,
+    ]) {
       // Product names are unchanged by the Everpure rename.
       expect(StorageSystemUtil.getVendorName(system)).toBe("Pure Storage");
+    }
+    for (const system of StorageSystemUtil.getAllSystems()) {
       expect(StorageSystemUtil.getDisplayName(system)).toContain(
         StorageSystemUtil.getShortName(system),
       );

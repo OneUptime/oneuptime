@@ -13,6 +13,10 @@ import {
 import { StorageArrayResourceScope } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import { STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES } from "../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import {
+  POWERSCALE_SERIES,
+  PowerScaleSeriesLabels,
+} from "../../Helpers/StorageArray/PowerScale/PowerScaleCapture";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -29,6 +33,8 @@ import { describe, expect, test } from "@jest/globals";
  * calls (pure-fa-openmetrics-exporter, which Purity//FA's native endpoint
  * mirrors, and pure-fb-openmetrics-exporter): label name -> the values the
  * exporter emits, or null for a free-form label (an object's name).
+ * POWERSCALE_SERIES is Dell PowerScale's, from the agent's collector config
+ * and ISILON-MIB, held to the recorded capture (PowerScaleCapture.test.ts).
  */
 
 type SeriesLabels = Record<string, Array<string> | null>;
@@ -308,8 +314,22 @@ const PURE_SERIES: Record<string, SeriesLabels> = {
 const ALL_METRICS: Array<StorageArrayMetricDefinition> =
   getAllStorageArrayMetrics();
 
+// Every platform's series, label by label.
+const SERIES: Record<string, SeriesLabels | PowerScaleSeriesLabels> = {
+  ...PURE_SERIES,
+  ...POWERSCALE_SERIES,
+};
+
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
+const PS: StorageSystem = StorageSystem.DellPowerScale;
+
+// The prefix a platform's catalog ids carry.
+const ID_PREFIXES: Record<string, string> = {
+  [FA]: "purefa-",
+  [FB]: "purefb-",
+  [PS]: "powerscale-",
+};
 
 function onlySystem(metric: StorageArrayMetricDefinition): StorageSystem {
   expect(metric.storageSystems).toHaveLength(1);
@@ -350,9 +370,10 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     expect(new Set(ids).size).toBe(ids.length);
 
     for (const metric of ALL_METRICS) {
-      const prefix: string = onlySystem(metric) === FA ? "purefa-" : "purefb-";
-      expect(metric.id).toMatch(/^pure(fa|fb)-[a-z0-9-]+$/);
-      expect(metric.id.startsWith(prefix)).toBe(true);
+      const prefix: string | undefined = ID_PREFIXES[onlySystem(metric)];
+      expect(prefix).toBeDefined();
+      expect(metric.id).toMatch(/^[a-z0-9]+-[a-z0-9-]+$/);
+      expect(metric.id.startsWith(prefix!)).toBe(true);
     }
   });
 
@@ -365,20 +386,20 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     }
   });
 
-  test("every metric name is one the snapshot scan or Pure's exporters know", () => {
+  test("every metric name is one the snapshot scan or its platform's series know", () => {
     for (const metric of ALL_METRICS) {
       expect(
-        PURE_SERIES[metric.metricName] !== undefined ||
+        SERIES[metric.metricName] !== undefined ||
           STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metric.metricName),
       ).toBe(true);
       // Every catalog metric is documented here, label by label.
-      expect(PURE_SERIES[metric.metricName]).toBeDefined();
+      expect(SERIES[metric.metricName]).toBeDefined();
     }
   });
 
   test("every pinned attribute is a label the series carries, with a value the exporter emits", () => {
     for (const metric of ALL_METRICS) {
-      const labels: SeriesLabels = PURE_SERIES[metric.metricName]!;
+      const labels: SeriesLabels = SERIES[metric.metricName]!;
       for (const [key, value] of Object.entries(pinned(metric))) {
         // Datapoint labels are stored bare in ClickHouse.
         expect(key.startsWith("resource.")).toBe(false);
@@ -578,6 +599,33 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       }
       if (name === "purefb_hardware_health") {
         // 1 healthy, 2 unused, 0 unhealthy: a state code, not a quantity.
+        return undefined;
+      }
+      // Dell PowerScale's names say their unit the OpenTelemetry way.
+      if (name.endsWith("_bytes_per_second")) {
+        return "bytes/s";
+      }
+      if (name.endsWith("_operations_per_second")) {
+        return "ops/s";
+      }
+      if (name.endsWith("_microseconds")) {
+        return "µs";
+      }
+      if (name.endsWith("_percent")) {
+        return "%";
+      }
+      if (name.endsWith("_rpm")) {
+        return "rpm";
+      }
+      if (
+        [
+          "powerscale_cluster_health",
+          "powerscale_node_health",
+          "powerscale_node_read_only",
+          "powerscale_interface_status",
+        ].includes(name)
+      ) {
+        // OneFS's health, a read-only flag, IF-MIB's port state: codes.
         return undefined;
       }
       return "count";
@@ -815,23 +863,23 @@ describe("StorageArrayMetricCatalog - getStorageArrayMetric (filter-aware lookup
 });
 
 describe("StorageArrayMetricCatalog - per-platform picker", () => {
-  test("a FlashArray sees only FlashArray metrics, a FlashBlade only FlashBlade ones", () => {
-    const fa: Array<StorageArrayMetricDefinition> =
-      getStorageArrayMetricsForSystem(FA);
-    const fb: Array<StorageArrayMetricDefinition> =
-      getStorageArrayMetricsForSystem(FB);
-
-    expect(fa.length).toBeGreaterThan(0);
-    expect(fb.length).toBeGreaterThan(0);
-    for (const metric of fa) {
-      expect(metric.storageSystems).toContain(FA);
-      expect(metric.metricName.startsWith("purefa_")).toBe(true);
+  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerScale PowerScale's", () => {
+    let total: number = 0;
+    for (const [system, prefix] of [
+      [FA, "purefa_"],
+      [FB, "purefb_"],
+      [PS, "powerscale_"],
+    ] as Array<[StorageSystem, string]>) {
+      const metrics: Array<StorageArrayMetricDefinition> =
+        getStorageArrayMetricsForSystem(system);
+      expect(metrics.length).toBeGreaterThan(0);
+      for (const metric of metrics) {
+        expect(metric.storageSystems).toContain(system);
+        expect(metric.metricName.startsWith(prefix)).toBe(true);
+      }
+      total += metrics.length;
     }
-    for (const metric of fb) {
-      expect(metric.storageSystems).toContain(FB);
-      expect(metric.metricName.startsWith("purefb_")).toBe(true);
-    }
-    expect(fa.length + fb.length).toBe(ALL_METRICS.length);
+    expect(total).toBe(ALL_METRICS.length);
   });
 
   test.each([
@@ -977,7 +1025,7 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
       expect({ id: metric.id, label }).toEqual({
         id: metric.id,
         label:
-          label && Object.keys(PURE_SERIES[metric.metricName]!).includes(label)
+          label && Object.keys(SERIES[metric.metricName]!).includes(label)
             ? label
             : "<a label the series carries>",
       });
