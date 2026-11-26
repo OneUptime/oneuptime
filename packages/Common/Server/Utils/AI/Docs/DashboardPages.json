@@ -7637,6 +7637,27 @@
     "kind": "page"
   },
   {
+    "title": "Cost Groups",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cost allocation",
+      "chargeback",
+      "showback",
+      "cost views",
+      "cost centers",
+      "unallocated",
+      "shared costs",
+      "perspectives",
+      "cost categories",
+      "custom line items"
+    ],
+    "path": "/dashboard/:projectId/cloud/cost-groups",
+    "kind": "page"
+  },
+  {
     "title": "Savings",
     "where": [
       "Cloud",
