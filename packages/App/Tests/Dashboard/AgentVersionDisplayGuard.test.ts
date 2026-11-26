@@ -130,6 +130,13 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Settings.tsx": [
     "XcpNgAgent",
   ],
+  /*
+   * An XCP-ng pool's Overview: in its hero, where the pool is read from,
+   * and in its Pool Details.
+   */
+  "packages/App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Index.tsx": [
+    "XcpNgAgent",
+  ],
   "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Index.tsx": [
     "IoTExporter",
   ],

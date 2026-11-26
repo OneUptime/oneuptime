@@ -10,6 +10,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import OneUptimeDate from "Common/Types/Date";
 import { AutoRefreshInterval } from "Common/Types/Dashboard/DashboardViewConfig";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -481,7 +483,7 @@ const XcpNgPoolOverview: FunctionComponent<
      * upgrade it).
      */
     const xenOrchestraName: string = (pool.xenOrchestraName || "").trim();
-    const hasAgentVersion: boolean = Boolean((pool.agentVersion || "").trim());
+    const hasAgentVersion: boolean = Boolean(pool.agentVersion);
     const xenOrchestraSlot: ReactElement = (
       <span className="font-medium text-gray-700">
         <bdi>{xenOrchestraName}</bdi>
@@ -1112,8 +1114,19 @@ const XcpNgPoolOverview: FunctionComponent<
         id="xcp-ng-pool-overview"
         title="Pool Details"
         refresher={detailsRefresher}
-        settingsRoute={routes.settingsRoute}
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.XCP_NG_POOL_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
         facts={[
+          // The UUID its telemetry is matched by (resource.xcp_ng.pool.id).
+          {
+            field: {
+              poolIdentifier: true,
+            },
+            title: "Pool UUID",
+            fieldType: FieldType.Text,
+          },
           {
             field: {
               xenOrchestraName: true,
@@ -1126,13 +1139,6 @@ const XcpNgPoolOverview: FunctionComponent<
               reportedName: true,
             },
             title: "Name in Xen Orchestra",
-            fieldType: FieldType.Text,
-          },
-          {
-            field: {
-              poolIdentifier: true,
-            },
-            title: "Pool UUID",
             fieldType: FieldType.Text,
           },
           {
