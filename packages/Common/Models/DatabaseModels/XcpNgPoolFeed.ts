@@ -39,6 +39,11 @@ export enum XcpNgPoolFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
+  // #10996 / #10997: what XAPI and Xen Orchestra say of the pool.
+  XcpNgPoolMessage = "XcpNgPoolMessage",
+  XcpNgPoolMasterChanged = "XcpNgPoolMasterChanged",
+  XcpNgPoolHaChanged = "XcpNgPoolHaChanged",
+  XcpNgPoolBackupFailed = "XcpNgPoolBackupFailed",
 }
 
 @EnableDocumentation()

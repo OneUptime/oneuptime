@@ -24,6 +24,11 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
+  XcpNgPoolBackupJob,
+  XcpNgPoolEventReadStatus,
+  XcpNgPoolEventState,
+} from "../../Types/XcpNg/XcpNgPoolEventState";
+import {
   Column,
   Entity,
   Index,
@@ -939,6 +944,320 @@ export default class XcpNgPool extends BaseModel {
     },
   })
   public storageUsedBytes?: number = undefined;
+
+  /*
+   * ---- #10997: high availability, the master, alarms, patches, backups ----
+   *
+   * Read by a probe - through Xen Orchestra's REST API with a Read only
+   * token, or straight from the pool's XAPI - never by the XCP-ng Agent,
+   * whose OpenMetrics plugin carries none of it: every column below stays
+   * empty for a pool only the agent reads, and the pool's pages say so.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "HA Enabled",
+    description:
+      "Whether the pool's high availability is on, as a probe last read it from Xen Orchestra or XAPI. Empty until read.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isHaEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "HA Host Failures To Tolerate",
+    description:
+      "How many host failures HA is set to tolerate (ha_host_failures_to_tolerate). Read straight from XAPI only: Xen Orchestra's REST API does not report it.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public haHostFailuresToTolerate?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "HA Plan Exists For",
+    description:
+      "How many host failures HA's current plan can still survive with every protected VM restarted (ha_plan_exists_for). Read straight from XAPI only.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public haPlanExistsFor?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "HA Overcommitted",
+    description:
+      "Whether HA can no longer guarantee to restart the protected VMs after the host failures it is set to tolerate (ha_overcommitted). Read straight from XAPI only.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isHaOvercommitted?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Pool Master UUID",
+    description:
+      "The XAPI UUID of the host that is the pool master, as a probe last read it. A change of master lands on the pool's feed.",
+    example: "b61a5c92-700e-4966-a13b-00633f03eea8",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public masterHostExternalId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Alarms Read At",
+    description:
+      "When a probe last read the pool's alarms, HA and master. Empty while nothing reads them (the XCP-ng Agent cannot).",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public eventsReadAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Backups Read At",
+    description:
+      "When a probe last read Xen Orchestra's backup logs for the pool. Empty while nothing reads them: XAPI knows nothing of Xen Orchestra's backups.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public backupsReadAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Patches Checked At",
+    description:
+      "When a probe last asked Xen Orchestra which patches the pool's hosts miss, every six hours.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public patchesCheckedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Event Read Status",
+    description:
+      "How the pool's alarms and backups are read (Xen Orchestra or XAPI) and what the last read could not read, in words.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public eventReadStatus?: XcpNgPoolEventReadStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Backup Jobs",
+    description:
+      "Each Xen Orchestra backup job that backs up this pool's VMs, with how often it runs and its last runs for this pool: succeeded, failed, skipped or interrupted, and the VMs that failed and why.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public backupJobs?: Array<XcpNgPoolBackupJob> = undefined;
+
+  /*
+   * Where reading the pool's events stands - the watermarks a probe starts
+   * from, the messages whose alerts are open - kept by the server so a
+   * probe that restarts neither loses nor repeats one. Never served.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Event State",
+    description:
+      "Internal: where reading the pool's alarms and backups stands. Written and read by OneUptime only.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public eventState?: XcpNgPoolEventState = undefined;
 
   @ColumnAccessControl({
     create: [
