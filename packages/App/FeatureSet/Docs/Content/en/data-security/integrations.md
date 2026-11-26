@@ -8,7 +8,7 @@ Data Security does not run a pager or a security queue of its own. It hands what
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
 - [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
-- [OneUptime AI](#oneuptime-ai): Analyze an issue, open a pull request that fixes it, or ask Ask AI about your data.
+- [OneUptime AI](#oneuptime-ai): Analyze an issue, open a pull request that fixes it, or ask Ask AI about your data and have it act, with your approval.
 - [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook, and turn on a missing protection from an issue.
 :::
 
@@ -129,7 +129,7 @@ OneUptime AI also works on each new issue on its own, as your AI rules allow: se
 
 ### Ask AI
 
-**Ask AI** reads Data Security too. On any Data Security page, ask which stores hold card numbers, what to fix first, or which stores a role could reach if it leaked; on a store's or an issue's page it reads that record first. It answers with three read tools, run with your own permissions:
+**Ask AI** reads Data Security, and acts on it with your approval. On any Data Security page, ask which stores hold card numbers, what to fix first, or which stores a role could reach if it leaked; on a store's or an issue's page it reads that record first. It reads with these tools, run with your own permissions:
 
 | Tool | What it reads |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI also works on each new issue on its own, as your AI rules allow: se
 | `query_data_security_issues` | The issues, riskiest first, by status, severity, store or check - or one issue with its evidence and the fix for its cloud |
 | `query_data_store_access` | Who can reach a store, or every store one principal can reach |
 
-They read data types, locations and counts, never a finding's samples, masked or not. Ask AI changes nothing in Data Security.
+They read data types, locations and counts, never a finding's samples, masked or not. Two more read what OneUptime AI works on: `query_data_security_proposals` lists what it proposes, and the data types it found that scans do not look for yet, each with how it was proven and the fields it is in, never a value; `draft_data_security_rule` drafts a rule from your sentence and says which stores it matches today. It saves nothing.
+
+Ask AI does what Data Security's buttons do, each by making the very change its button makes, as you and with your permissions:
+
+| Action | What it does | Asks you first |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Scrub It** on a finding in telemetry: its proven, narrow scrub rule | In **Ask to act**, and in every mode when something reads what it hides |
+| `judge_data_security_finding` | **Confirm**, or **Not Sensitive** with your reason, and the same for the findings like it | **Not Sensitive** in every mode; **Confirm** in every mode when a Critical issue pages someone in your project |
+| `change_data_security_issue` | **Accept Risk** with your reason and an end date, **Not an Issue** with your reason, **Reopen** or **Assign** | **Accept Risk** and **Not an Issue** in every mode |
+| `set_data_store_owners` | Adds or removes a store's owners | In every mode |
+| `save_data_security_rule` | Saves a residency, owner or label rule drafted from your sentence, and applies an owner or a label rule to the stores it matches today | In every mode |
+| `respond_on_data_store` | A response action through the store's cloud connection, such as **Block Public Access** | In every mode |
+| `fix_data_security_issue_with_ai` | **Fix with AI**: a pull request for someone to review and merge. A fix already on its way is not started twice | In **Ask to act** |
+| `decide_data_security_proposal` | **Approve** or **Dismiss** on what OneUptime AI proposes. A data type it found is added on its form in **Settings → Data Types**, so here it can only be turned down | In every mode |
+
+Each action first shows a card that says, in plain words, what changes, what stops working and what it costs. In **Ask to act** you allow or skip every action. In **Auto-run**, the actions above that ask in every mode still wait for you: they change who can reach your data, stop a finding or an issue counting, change who is told about a store, or would let OneUptime AI approve its own proposal. Store names, finding locations and evidence come from your clouds and from anyone who writes to them, so Ask AI never acts because such text asks it to, and every action is checked again, with your permissions, when it runs.
 
 ## Close an exposure
 
@@ -196,7 +211,7 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, compliance settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 
-The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions.
+The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions. It also has [Ask AI's actions](#ask-ai), one call each, each making the very change its button makes, as you. The MCP server cannot show anyone a card, so an action that Ask AI asks about in every mode is refused there: the answer says why, and names the page in OneUptime where you make the change.
 
 ## Next steps
 

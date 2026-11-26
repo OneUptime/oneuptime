@@ -157,6 +157,20 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "publish_status_page",
   "add_monitors_to_status_page",
   "who_is_told",
+  /*
+   * Ask AI's Data Security actions, one call each, and their two reads
+   * (Tests/DataSecurityTools, #10378, #10889).
+   */
+  "query_data_security_proposals",
+  "draft_data_security_rule",
+  "scrub_data_security_finding",
+  "judge_data_security_finding",
+  "change_data_security_issue",
+  "set_data_store_owners",
+  "save_data_security_rule",
+  "respond_on_data_store",
+  "fix_data_security_issue_with_ai",
+  "decide_data_security_proposal",
 ];
 
 describe("WorkflowTools", () => {
@@ -940,15 +954,17 @@ describe("WorkflowTools", () => {
   });
 
   describe("isReadOnlyWorkflowTool", () => {
-    it("marks whoami, a table's freshness and lineage, and who is told, and only those, as tools that only read", () => {
+    it("marks whoami, a table's freshness and lineage, who is told, and Data Security's proposals and rule drafts, and only those, as tools that only read", () => {
       expect(
         WORKFLOW_TOOL_NAMES.filter((name: string): boolean => {
           return isReadOnlyWorkflowTool(name);
         }).sort(),
       ).toEqual([
+        "draft_data_security_rule",
         "get_data_table_freshness",
         "get_data_table_lineage",
         "oneuptime_whoami",
+        "query_data_security_proposals",
         "who_is_told",
       ]);
     });
