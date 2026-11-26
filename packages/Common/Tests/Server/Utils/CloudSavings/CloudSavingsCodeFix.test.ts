@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { SpyInstance } from "jest-mock";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
@@ -210,7 +217,9 @@ describe("the request a Code task is asked", () => {
         managedAs: "Terraform",
         monthlySavings: "60.00 USD",
       }),
-    ).toContain("Resize the instance api-1 (i-0abc) from m5.2xlarge to m5.xlarge.");
+    ).toContain(
+      "Resize the instance api-1 (i-0abc) from m5.2xlarge to m5.xlarge.",
+    );
 
     expect(
       getCloudSavingsCodeFixRequest({
@@ -342,10 +351,14 @@ describe("whether a resource is declared in code, and where", () => {
 
 describe("a saving made in code", () => {
   let readSaving: SpyInstance<typeof CloudSavingsActions.readSaving>;
-  let getDeclaredInCode: SpyInstance<typeof CloudSavingsActions.getDeclaredInCode>;
+  let getDeclaredInCode: SpyInstance<
+    typeof CloudSavingsActions.getDeclaredInCode
+  >;
   let apply: SpyInstance<typeof CloudSavingsActions.apply>;
   let canRequest: SpyInstance<typeof CloudSavingsOwners.canRequest>;
-  let getReadableRepository: SpyInstance<typeof CodeTaskAccess.getReadableRepository>;
+  let getReadableRepository: SpyInstance<
+    typeof CodeTaskAccess.getReadableRepository
+  >;
   let canAskInRepository: SpyInstance<typeof CodeTaskAccess.canAskInRepository>;
   let assertCanStart: SpyInstance<typeof CodeTaskGate.assertCanStart>;
   let startTask: SpyInstance<typeof CodeTaskRuns.start>;
@@ -396,7 +409,10 @@ describe("a saving made in code", () => {
   });
 
   async function refusal(
-    data?: Partial<{ props: DatabaseCommonInteractionProps; codeRepositoryId: unknown }>,
+    data?: Partial<{
+      props: DatabaseCommonInteractionProps;
+      codeRepositoryId: unknown;
+    }>,
   ): Promise<string> {
     try {
       await CloudSavingsCodeFix.start({
@@ -414,11 +430,13 @@ describe("a saving made in code", () => {
   }
 
   test("a resource declared in Terraform gets a pull request, as the person, and nothing in the cloud changes", async () => {
-    const result: CloudSavingsFixInCodeResult = await CloudSavingsCodeFix.start({
-      props: PROPS,
-      projectId: PROJECT_ID,
-      cloudCostRecommendationId: RECOMMENDATION_ID,
-    });
+    const result: CloudSavingsFixInCodeResult = await CloudSavingsCodeFix.start(
+      {
+        props: PROPS,
+        projectId: PROJECT_ID,
+        cloudCostRecommendationId: RECOMMENDATION_ID,
+      },
+    );
 
     expect(result).toEqual({
       aiRunId: "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
@@ -458,12 +476,14 @@ describe("a saving made in code", () => {
   });
 
   test("the repository the person picks wins over the one OneUptime found", async () => {
-    const result: CloudSavingsFixInCodeResult = await CloudSavingsCodeFix.start({
-      props: PROPS,
-      projectId: PROJECT_ID,
-      cloudCostRecommendationId: RECOMMENDATION_ID,
-      codeRepositoryId: PICKED_REPOSITORY_ID,
-    });
+    const result: CloudSavingsFixInCodeResult = await CloudSavingsCodeFix.start(
+      {
+        props: PROPS,
+        projectId: PROJECT_ID,
+        cloudCostRecommendationId: RECOMMENDATION_ID,
+        codeRepositoryId: PICKED_REPOSITORY_ID,
+      },
+    );
 
     expect(getReadableRepository.mock.calls[0]![0].repositoryId).toEqual(
       new ObjectID(PICKED_REPOSITORY_ID),
@@ -489,7 +509,9 @@ describe("a saving made in code", () => {
 
   test("no one signed in: refused before anything is read", async () => {
     expect(
-      await refusal({ props: { tenantId: PROJECT_ID } as DatabaseCommonInteractionProps }),
+      await refusal({
+        props: { tenantId: PROJECT_ID } as DatabaseCommonInteractionProps,
+      }),
     ).toBe("Sign in to open a pull request.");
     expect(readSaving).not.toHaveBeenCalled();
     expect(startTask).not.toHaveBeenCalled();

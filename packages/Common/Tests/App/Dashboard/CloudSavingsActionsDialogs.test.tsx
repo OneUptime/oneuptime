@@ -91,7 +91,9 @@ const RECOMMENDATION_ID: ObjectID = new ObjectID(
 );
 const ENGLISH: Translator = createTranslator(undefined, "en");
 
-function offerOf(overrides: Partial<CloudSavingsOffer> = {}): CloudSavingsOffer {
+function offerOf(
+  overrides: Partial<CloudSavingsOffer> = {},
+): CloudSavingsOffer {
   return {
     cloudCostRecommendationId: RECOMMENDATION_ID.toString(),
     provider: CloudProvider.AWS,
@@ -107,7 +109,9 @@ function offerOf(overrides: Partial<CloudSavingsOffer> = {}): CloudSavingsOffer 
     connectionState: CloudSavingsConnectionState.Ready,
     environment: CloudResourceEnvironment.NonProduction,
     environmentSource: CloudEnvironmentSource.Tag,
-    owners: [{ userId: "70000000-0000-4000-8000-000000000071", name: "Alice Owner" }],
+    owners: [
+      { userId: "70000000-0000-4000-8000-000000000071", name: "Alice Owner" },
+    ],
     ownerTeams: [],
     approvedBy: "owners",
     canApprove: true,
@@ -166,9 +170,9 @@ describe("Apply, for a saving OneUptime makes", () => {
         CLOUD_SAVINGS_ACTION_TITLES[CloudSavingsActionKind.StopInstance],
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("cloud-savings-apply-sentence")).toHaveTextContent(
-      "Stops orders-dev.",
-    );
+    expect(
+      screen.getByTestId("cloud-savings-apply-sentence"),
+    ).toHaveTextContent("Stops orders-dev.");
     expect(screen.getByTestId("cloud-savings-apply-saves")).toHaveTextContent(
       "$61.33",
     );
@@ -237,9 +241,9 @@ describe("Apply, for a saving OneUptime makes", () => {
       }),
     );
 
-    expect(screen.getByTestId("cloud-savings-apply-undo")).not.toHaveTextContent(
-      "cannot be undone",
-    );
+    expect(
+      screen.getByTestId("cloud-savings-apply-undo"),
+    ).not.toHaveTextContent("cannot be undone");
 
     // The toggle, as a person turns the final snapshot off.
     await act(async () => {
@@ -299,9 +303,9 @@ describe("Apply, for a resource declared in code", () => {
     );
 
     expect(submitButton()).toHaveTextContent(APPLY_PULL_REQUEST_BUTTON);
-    expect(screen.getByTestId("cloud-savings-apply-in-cloud")).toHaveTextContent(
-      APPLY_IN_CLOUD_BUTTON,
-    );
+    expect(
+      screen.getByTestId("cloud-savings-apply-in-cloud"),
+    ).toHaveTextContent(APPLY_IN_CLOUD_BUTTON);
     expect(
       screen.getByText(
         "Declared in Terraform: change it in code, or the next deploy puts it back. OneUptime AI opens a pull request in acme/infra.",
@@ -405,9 +409,7 @@ describe("what acting on savings came to", () => {
     ["waitingCount"],
     ["scheduledHoursThisMonth"],
   ])("anything done - %s - draws it", (field: string) => {
-    expect(
-      hasCloudSavingsActivity({ ...NOTHING_DONE, [field]: 1 }),
-    ).toBe(true);
+    expect(hasCloudSavingsActivity({ ...NOTHING_DONE, [field]: 1 })).toBe(true);
   });
 
   test("what the bill shows first, then what is being checked, what waits and the hours schedules stopped", async () => {
@@ -428,7 +430,9 @@ describe("what acting on savings came to", () => {
       );
     });
 
-    const strip: HTMLElement = screen.getByTestId("cloud-savings-actions-strip");
+    const strip: HTMLElement = screen.getByTestId(
+      "cloud-savings-actions-strip",
+    );
 
     expect(strip).toHaveTextContent("Saved this month");
     expect(strip).toHaveTextContent("$123.45");

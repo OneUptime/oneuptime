@@ -77,7 +77,8 @@ function quoted(code: string): Set<string> {
 const AWS_IAM_ACTION: RegExp = /^(ec2|rds):[A-Z][A-Za-z]+$/;
 const AZURE_RBAC_ACTION: RegExp = /^Microsoft\.[A-Za-z]+\/[A-Za-z/]+$/;
 // A permission, never the API it belongs to ("compute.googleapis.com").
-const GCP_PERMISSION: RegExp = /^compute\.(?!googleapis\.)[a-zA-Z]+\.[a-zA-Z]+$/;
+const GCP_PERMISSION: RegExp =
+  /^compute\.(?!googleapis\.)[a-zA-Z]+\.[a-zA-Z]+$/;
 
 function sorted(values: Iterable<string>): Array<string> {
   return Array.from(new Set(values)).sort();

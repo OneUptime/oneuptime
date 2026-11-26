@@ -621,7 +621,10 @@ describe("a savings rule's conditions", () => {
       ),
     ).toBe(true);
     expect(
-      doesCloudSavingsAiRuleMatch(either, saving({ provider: CloudProvider.GCP })),
+      doesCloudSavingsAiRuleMatch(
+        either,
+        saving({ provider: CloudProvider.GCP }),
+      ),
     ).toBe(true);
     expect(doesCloudSavingsAiRuleMatch(either, saving())).toBe(false);
   });

@@ -140,9 +140,8 @@ export function getSavingsRuleMatchText(
       : translator.translateText(none) || none;
   };
   const providers: Array<DropdownOption> = getCloudProviderOptions();
-  const lists: CloudSavingsAiRuleLists | null = getCloudSavingsAiRuleLists(
-    rule,
-  );
+  const lists: CloudSavingsAiRuleLists | null =
+    getCloudSavingsAiRuleLists(rule);
 
   // Conditions that say more than lists can: the builder's own words.
   if (!lists) {
@@ -163,15 +162,13 @@ export function getSavingsRuleMatchText(
       RULES_EVERY_CHANGE,
     ),
     words(
-      lists.environments.map(
-        (environment: string): string => {
-          return (
-            CLOUD_RESOURCE_ENVIRONMENT_LABELS[
-              environment as CloudResourceEnvironment
-            ] || environment
-          );
-        },
-      ),
+      lists.environments.map((environment: string): string => {
+        return (
+          CLOUD_RESOURCE_ENVIRONMENT_LABELS[
+            environment as CloudResourceEnvironment
+          ] || environment
+        );
+      }),
       RULES_ANY_ENVIRONMENT,
     ),
     words(
