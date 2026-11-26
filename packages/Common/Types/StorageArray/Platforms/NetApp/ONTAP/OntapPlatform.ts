@@ -916,7 +916,8 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
       exampleUser: "oneuptime",
       exampleEndpoint: "ontap-prod-01.example.com",
       exporterService: "netapp-harvest",
-      arrayNoun: "ONTAP cluster",
+      // A word the Dashboard puts in its sentences, so translated.
+      arrayNoun: translationKey("ONTAP cluster"),
       extraFiles: [
         "netapp-harvest.yml",
         "netapp-harvest-rest.yaml",
