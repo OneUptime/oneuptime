@@ -9,7 +9,6 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableMCP from "../../Types/Database/EnableMCP";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -74,8 +73,12 @@ const readPermissions: Array<Permission> = [
   Permission.ReadCloudResource,
 ];
 
+/*
+ * No MCP tools: one row a project's More settings set, which OneUptime
+ * makes itself. Its create and delete tools would say nothing an agent
+ * needs, and tools/list carries every tool to every client (ToolListBudget).
+ */
 @EnableDocumentation()
-@EnableMCP()
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
@@ -158,7 +161,7 @@ export default class CloudTagSetting extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Tell Who Created It and Its Owners",
     description:
-      "Email who created a new resource without a required tag, and its owners. Nobody to tell: the project's owners.",
+      "Email who created a new resource without a required tag, and its owners. Nobody to tell: the Project Owners.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
