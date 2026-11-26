@@ -18,8 +18,11 @@ import {
 } from "../../../../Types/SecurityCase/SecurityCaseAi";
 import SecurityPlaybookRunStatus from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
+  CORRELATION_SENTENCE_PREFIX,
   ErasedName,
+  getDescriptionNameTexts,
   getErasedRiskKeys,
+  unnameDescription,
   unnameGroupingKey,
   unnameJson,
   unnameTitle,
@@ -34,8 +37,11 @@ import logger from "../../Logger";
  * Each place gets what the Hash rule left in the name's place
  * (Utils/SecurityEvent/SecurityUserErasureUnnaming says which values):
  *
- *   - detections: their title, entities, group value and kept events;
- *   - cases: their title, entities and grouping key;
+ *   - detections: their title, description, entities, group value and kept
+ *     events;
+ *   - cases: their title, description, entities and grouping key. A
+ *     description gets the token only where OneUptime wrote the name as a
+ *     value of its own: as inline code, or in a correlation's sentence;
  *   - entity risk: the person's row is deleted. Risk is worked out again
  *     from what is found, which names the token from now on;
  *   - proposals: an action of OneUptime AI's waiting for a person's
@@ -98,6 +104,19 @@ function jsonNamesOf(names: ReadonlyArray<ErasedName>): Array<string> {
   return names.map((name: ErasedName): string => {
     return JSON.stringify(name.named);
   });
+}
+
+/*
+ * The part of a query that finds a description naming one of the names, as
+ * unnameDescription changes it: a name as inline code ($codes), or as text in
+ * a correlation's sentence ($texts, on a description that has one, $prefix).
+ */
+function descriptionNamesCondition(placeholders: {
+  codes: string;
+  texts: string;
+  prefix: string;
+}): string {
+  return `EXISTS (SELECT 1 FROM unnest(${placeholders.codes}::text[]) AS erased(name) WHERE strpos(COALESCE("description", ''), erased.name) > 0) OR (strpos(COALESCE("description", ''), ${placeholders.prefix}) > 0 AND EXISTS (SELECT 1 FROM unnest(${placeholders.texts}::text[]) AS erased(name) WHERE strpos("description", erased.name) > 0))`;
 }
 
 function idsOf(rows: Array<IdRow>): Array<ObjectID> {
@@ -173,8 +192,8 @@ export default class SecurityUserErasureRecords {
 
   /*
    * The project's detections that name the person: in their group value,
-   * their title, their entities or their kept events. Returns the cases of
-   * the ones it changed.
+   * their title, their description, their entities or their kept events.
+   * Returns the cases of the ones it changed.
    */
   public static async unnameDetections(data: {
     projectId: ObjectID;
@@ -182,11 +201,14 @@ export default class SecurityUserErasureRecords {
   }): Promise<Array<string>> {
     const ids: Array<ObjectID> = idsOf(
       await this.query(
-        `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0)) LIMIT ${MAX_ROWS_PER_KIND}`,
+        `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$4", texts: "$5", prefix: "$6" })}) LIMIT ${MAX_ROWS_PER_KIND}`,
         [
           data.projectId.toString(),
           namesOf(data.names),
           jsonNamesOf(data.names),
+          getDescriptionNameTexts(data.names).code,
+          getDescriptionNameTexts(data.names).text,
+          CORRELATION_SENTENCE_PREFIX,
         ],
       ),
     );
@@ -202,6 +224,7 @@ export default class SecurityUserErasureRecords {
           _id: true,
           securityCaseId: true,
           title: true,
+          description: true,
           groupValue: true,
           entities: true,
           matchedEvents: true,
@@ -219,6 +242,10 @@ export default class SecurityUserErasureRecords {
         detection.title,
         data.names,
       );
+      const description: string | undefined | null = unnameDescription(
+        detection.description,
+        data.names,
+      );
       const groupValue: string | undefined | null = unnameValue(
         detection.groupValue,
         data.names,
@@ -232,6 +259,10 @@ export default class SecurityUserErasureRecords {
 
       if (title !== detection.title) {
         changes["title"] = title;
+      }
+
+      if (description !== detection.description) {
+        changes["description"] = description;
       }
 
       if (groupValue !== detection.groupValue) {
@@ -266,7 +297,8 @@ export default class SecurityUserErasureRecords {
 
   /*
    * The project's cases that name the person: in their title, their
-   * entities or their grouping key. Returns the ones it changed. Written
+   * description, their entities or their grouping key. Returns the ones it
+   * changed. Written
    * with SQL of its own, so the audit log never keeps the name the case
    * held (see the file's comment).
    */
@@ -283,12 +315,15 @@ export default class SecurityUserErasureRecords {
 
     const ids: Array<ObjectID> = idsOf(
       await this.query(
-        `SELECT "_id" FROM "SecurityCase" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupingKey" = ANY($4::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0)) LIMIT ${MAX_ROWS_PER_KIND}`,
+        `SELECT "_id" FROM "SecurityCase" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupingKey" = ANY($4::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$5", texts: "$6", prefix: "$7" })}) LIMIT ${MAX_ROWS_PER_KIND}`,
         [
           data.projectId.toString(),
           namesOf(data.names),
           jsonNamesOf(data.names),
           keysAboutNames,
+          getDescriptionNameTexts(data.names).code,
+          getDescriptionNameTexts(data.names).text,
+          CORRELATION_SENTENCE_PREFIX,
         ],
       ),
     );
@@ -302,6 +337,7 @@ export default class SecurityUserErasureRecords {
       select: {
         _id: true,
         title: true,
+        description: true,
         entities: true,
         groupingKey: true,
       },
@@ -317,6 +353,10 @@ export default class SecurityUserErasureRecords {
         securityCase.title,
         data.names,
       );
+      const description: string | undefined | null = unnameDescription(
+        securityCase.description,
+        data.names,
+      );
       const entities: { value: JSONArray | undefined; changed: boolean } =
         unnameJson(securityCase.entities, data.names);
       const groupingKey: string | undefined | null = unnameGroupingKey(
@@ -327,6 +367,7 @@ export default class SecurityUserErasureRecords {
       if (
         !securityCase.id ||
         (title === securityCase.title &&
+          description === securityCase.description &&
           !entities.changed &&
           groupingKey === securityCase.groupingKey)
       ) {
@@ -337,6 +378,7 @@ export default class SecurityUserErasureRecords {
         projectId: data.projectId,
         caseId: securityCase.id,
         title: title ?? null,
+        description: description ?? null,
         entities: entities.value ?? null,
         groupingKey: groupingKey ?? null,
       });
@@ -347,22 +389,24 @@ export default class SecurityUserErasureRecords {
     return changedIds;
   }
 
-  // A case's title, entities and grouping key, as the erasure leaves them.
+  // A case's title, description, entities and grouping key, as the erasure leaves them.
   private static async writeCase(data: {
     projectId: ObjectID;
     caseId: ObjectID;
     title: string | null;
+    description: string | null;
     entities: JSONArray | null;
     groupingKey: string | null;
   }): Promise<void> {
     await this.query(
-      `UPDATE "SecurityCase" SET "title" = $3, "entities" = $4::jsonb, "groupingKey" = $5, "updatedAt" = now(), "version" = "version" + 1 WHERE "_id" = $1 AND "projectId" = $2`,
+      `UPDATE "SecurityCase" SET "title" = $3, "entities" = $4::jsonb, "groupingKey" = $5, "description" = $6, "updatedAt" = now(), "version" = "version" + 1 WHERE "_id" = $1 AND "projectId" = $2`,
       [
         data.caseId.toString(),
         data.projectId.toString(),
         data.title,
         data.entities === null ? null : JSON.stringify(data.entities),
         data.groupingKey,
+        data.description,
       ],
     );
   }

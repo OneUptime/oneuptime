@@ -1,6 +1,8 @@
 import SecurityUserErasureRequestService, {
   getErasureTokens,
+  readErasureRequestNames,
   readErasureRequestTokens,
+  toStoredErasureNames,
 } from "../../../Server/Services/SecurityUserErasureRequestService";
 import { MAX_USER_VAULT_USER_LENGTH } from "../../../Server/Services/SecurityUserVaultService";
 import ColumnPermission from "../../../Server/Types/Database/Permissions/ColumnPermission";
@@ -24,7 +26,14 @@ import {
   SecurityUserErasureRequestStatus,
 } from "../../../Types/SecurityEvent/SecurityUserErasure";
 import UserType from "../../../Types/UserType";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { columnsTheCreateWrote } from "../TestingUtils/ColumnsSetByServer";
 
@@ -441,5 +450,182 @@ describe("who may file and read erasure requests", () => {
     expect(columns["tokens"]?.read).toContain(Permission.SecurityViewer);
     // Only the server writes them.
     expect(columns["tokens"]?.create).toEqual([]);
+  });
+
+  test("nobody reads back, sends or changes who the worker found the person named as, and it is kept encrypted (#11044)", () => {
+    const model: SecurityUserErasureRequest = new SecurityUserErasureRequest();
+    const columns: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    expect(columns["namesToErase"]?.read).toEqual([]);
+    expect(columns["namesToErase"]?.create).toEqual([]);
+    expect(columns["namesToErase"]?.update).toEqual([]);
+    expect(model.getTableColumnMetadata("namesToErase").encrypted).toBe(true);
+    // Filled in by the worker alone.
+    expect(model.getTableColumnMetadata("namesToErase").computed).toBe(true);
+  });
+
+  test("names sent with a request are refused, even by those who may file one (#11044)", () => {
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.SecurityAdmin,
+      Permission.CreateSecurityUserErasureRequest,
+    ]) {
+      const sent: SecurityUserErasureRequest = new SecurityUserErasureRequest();
+
+      sent.projectId = projectId;
+      sent.userToErase = "alice@example.com";
+      sent.namesToErase = toStoredErasureNames([
+        { named: "bob@example.com", hashed: tokenOf("bob@example.com") },
+      ]);
+
+      expect(() => {
+        return ColumnPermission.checkComputedColumnsSentOnCreate(
+          SecurityUserErasureRequest,
+          sent,
+          propsWith([permission]),
+        );
+      }).toThrow();
+    }
+  });
+});
+
+describe("who the worker found the person named as (#11044)", () => {
+  test("is kept as the worker wrote it, each name with what the rule left in its place", () => {
+    const request: SecurityUserErasureRequest =
+      new SecurityUserErasureRequest();
+    const names: Array<{ named: string; hashed: string }> = [
+      { named: "alice@example.com", hashed: tokenOf("alice@example.com") },
+      {
+        named: "auth0|alice@example.com",
+        hashed: `auth0|${tokenOf("alice@example.com")}`,
+      },
+    ];
+
+    request.namesToErase = toStoredErasureNames(names);
+
+    expect(readErasureRequestNames(request)).toEqual(names);
+  });
+
+  test("keeps nothing of a name but the name and what the rule left", () => {
+    expect(
+      JSON.parse(
+        toStoredErasureNames([
+          {
+            named: "alice@example.com",
+            hashed: tokenOf("alice@example.com"),
+            extra: "kept nowhere",
+          } as never,
+        ]),
+      ),
+    ).toEqual([
+      { named: "alice@example.com", hashed: tokenOf("alice@example.com") },
+    ]);
+  });
+
+  test("reads back nothing that is no name, whatever the column held", () => {
+    const request: SecurityUserErasureRequest =
+      new SecurityUserErasureRequest();
+
+    for (const stored of [
+      undefined,
+      "",
+      "   ",
+      "not json",
+      "{}",
+      "7",
+      JSON.stringify([
+        null,
+        7,
+        "alice@example.com",
+        { named: "alice@example.com" },
+        { hashed: tokenOf("alice@example.com") },
+        { named: "", hashed: tokenOf("alice@example.com") },
+        { named: "same", hashed: "same" },
+        { named: ["alice"], hashed: tokenOf("alice") },
+      ]),
+    ]) {
+      request.namesToErase = stored as never;
+      expect(readErasureRequestNames(request)).toEqual([]);
+    }
+  });
+});
+
+describe("the worker's moves keep and wipe the names (#11044)", () => {
+  let written: Array<Record<string, unknown>>;
+
+  beforeEach(() => {
+    written = [];
+
+    jest
+      .spyOn(SecurityUserErasureRequestService, "updateOneById")
+      .mockImplementation((async (data: {
+        data: Record<string, unknown>;
+      }): Promise<void> => {
+        written.push(data.data);
+      }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const counts: {
+    vaultEntriesDeleted: number;
+    eventsUnnamed: number;
+    casesUnnamed: number;
+    proposalsWithdrawn: number;
+  } = {
+    vaultEntriesDeleted: 1,
+    eventsUnnamed: 4,
+    casesUnnamed: 1,
+    proposalsWithdrawn: 0,
+  };
+
+  test("a run keeps the names it found with its counts, and a run that found none clears them", async () => {
+    const names: Array<{ named: string; hashed: string }> = [
+      { named: "alice@example.com", hashed: tokenOf("alice@example.com") },
+    ];
+
+    await SecurityUserErasureRequestService.markInProgress({
+      requestId: ObjectID.generate(),
+      counts,
+      names,
+    });
+    await SecurityUserErasureRequestService.markInProgress({
+      requestId: ObjectID.generate(),
+      counts,
+      names: [],
+    });
+
+    expect(written[0]!["namesToErase"]).toBe(toStoredErasureNames(names));
+    expect(written[0]!["eventsUnnamed"]).toBe(4);
+    expect(written[1]!["namesToErase"]).toBeNull();
+  });
+
+  test("counts kept without names leave the names as they are", async () => {
+    await SecurityUserErasureRequestService.markInProgress({
+      requestId: ObjectID.generate(),
+      counts,
+    });
+
+    expect(Object.keys(written[0]!)).not.toContain("namesToErase");
+  });
+
+  test("Completed and Failed both wipe them, with what was typed", async () => {
+    await SecurityUserErasureRequestService.markCompleted({
+      requestId: ObjectID.generate(),
+      counts,
+    });
+    await SecurityUserErasureRequestService.markFailed({
+      requestId: ObjectID.generate(),
+      attempts: 5,
+      failureReason: "ClickHouse is down",
+    });
+
+    for (const data of written) {
+      expect(data["namesToErase"]).toBeNull();
+      expect(data["userToErase"]).toBeNull();
+    }
   });
 });

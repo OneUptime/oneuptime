@@ -1,7 +1,8 @@
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayLatencyReading } from "Common/Types/StorageArray/StorageArrayPlatform";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   StorageUsage,
@@ -94,12 +95,6 @@ export const STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS: StorageUsageThresholds = {
   warningPercent: STORAGE_ARRAY_CAPACITY_WARNING_PERCENT,
   criticalPercent: STORAGE_ARRAY_CAPACITY_CRITICAL_PERCENT,
 };
-
-// The FlashArray's High Read and High Write Latency alerts' line (5 ms).
-export const FLASHARRAY_LATENCY_WARNING_USEC: number = 5000;
-
-// The FlashBlade's High Read Latency alert's line (10 ms).
-export const FLASHBLADE_READ_LATENCY_WARNING_USEC: number = 10000;
 
 // The Replication Lag Above 1 Minute alert's line.
 export const STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS: number = 60 * 1000;
@@ -323,9 +318,9 @@ export type StorageArrayPartRow = Pick<
   Partial<Pick<StorageArrayResource, "capacityBytes" | "details">>;
 
 /*
- * What the rules read beside the inventory: a FlashBlade file system's
- * latest available share of its provisioned size (purefb_file_systems_
- * space_bytes, space available_ratio), null where none came.
+ * What the rules read beside the inventory: a file system's latest
+ * available share of its provisioned size (its platform's
+ * overview.fileSystemFreeSpace reading), null where none came.
  */
 export interface StorageArrayPartReadings {
   availableRatio?: number | null | undefined;
@@ -374,8 +369,8 @@ export function getStorageArrayBucketNoUsageText(
 /*
  * A FlashBlade file system, as the shared storage bar reads it: its
  * provisioned size, and the share of it still available that the File
- * System Near Full alert reads (purefb_file_systems_space_bytes,
- * available_ratio). Null without either.
+ * System Near Full alert reads (its platform's
+ * overview.fileSystemFreeSpace). Null without either.
  */
 export function getStorageArrayFileSystemUsage(data: {
   provisionedBytes: number | null | undefined;
@@ -589,7 +584,7 @@ function assessStatusPart(
 }
 
 /*
- * A host as the array sees it (purefa_host_connectivity_info): critical
+ * A host as the array sees it (its connectivity status): critical
  * when it no longer reaches the array through both controllers - the Host
  * Lost Redundant Paths alert, a warning: the host keeps working until its
  * remaining path fails.
@@ -799,13 +794,19 @@ export function assessStorageArray(
     });
   }
 
-  const isFlashBlade: boolean =
-    state.storageSystem === StorageSystem.PureStorageFlashBlade;
-  const readLine: number = isFlashBlade
-    ? FLASHBLADE_READ_LATENCY_WARNING_USEC
-    : FLASHARRAY_LATENCY_WARNING_USEC;
-  const read: number | null = toStorageArrayNumber(state.readLatencyUsec);
-  if (read !== null && read > readLine) {
+  /*
+   * Past the lines the platform's latency alerts fire at
+   * (overview.latency); an array whose platform is not known reads as the
+   * default platform. A platform whose alerts watch no writes has no write
+   * line.
+   */
+  const latency: StorageArrayLatencyReading | undefined =
+    StorageArrayPlatformRegistry.getPlatformOrDefault(state.storageSystem)
+      .overview.latency;
+  const read: number | null = latency
+    ? toStorageArrayNumber(state.readLatencyUsec)
+    : null;
+  if (read !== null && latency && read > latency.readWarningUsec) {
     reasons.push({
       severity: ResourceAttentionSeverity.Warning,
       text: {
@@ -814,11 +815,10 @@ export function assessStorageArray(
       },
     });
   }
-  // A FlashBlade's alert watches its reads only.
-  const write: number | null = isFlashBlade
-    ? null
-    : toStorageArrayNumber(state.writeLatencyUsec);
-  if (write !== null && write > FLASHARRAY_LATENCY_WARNING_USEC) {
+  const writeLine: number | null = latency?.writeWarningUsec ?? null;
+  const write: number | null =
+    writeLine === null ? null : toStorageArrayNumber(state.writeLatencyUsec);
+  if (write !== null && writeLine !== null && write > writeLine) {
     reasons.push({
       severity: ResourceAttentionSeverity.Warning,
       text: {

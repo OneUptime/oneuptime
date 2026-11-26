@@ -470,6 +470,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
+    // MERGE_COUNTS_BY_KIND_SQL: each kind's count as a batch reports it (#11000).
+    "(module) StorageArray": Why.Reported,
   },
   "packages/Common/Server/Services/VMwareVCenterService.ts": {
     "Service.attachLabels VMwareVCenter": Why.Reported,

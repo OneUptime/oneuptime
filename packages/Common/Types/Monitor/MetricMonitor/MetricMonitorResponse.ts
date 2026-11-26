@@ -225,7 +225,7 @@ export interface StorageArrayAffectedResource {
   componentType?: string | undefined;
   /** `local_pod` label — FlashArray pod replica-link series. */
   podName?: string | undefined;
-  /** `summary` label — one open alert (purefa_alerts_open / purefb_alerts_open). */
+  /** `summary` label — one open alert (the platform's open alert series). */
   alertSummary?: string | undefined;
   metricValue: number;
   /**

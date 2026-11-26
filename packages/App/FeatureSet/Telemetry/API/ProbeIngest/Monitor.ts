@@ -30,6 +30,7 @@ import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import ProbePendingCount from "Common/Server/Utils/Probe/ProbePendingCount";
+import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
 import {
   PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS,
   ProbeSchedulingBusyError,
@@ -210,10 +211,11 @@ router.post(
       );
 
       /*
-       * Claim monitors for this probe instance: a read of the due ones, then
-       * one statement that claims those still due that nobody holds (FOR NO
-       * KEY UPDATE SKIP LOCKED, see claimMonitorProbesForProbing). Instances
-       * of the same probe never pick up the same monitors.
+       * Claim monitors for this probe instance: one statement that takes the
+       * oldest due ones nobody else holds (FOR NO KEY UPDATE SKIP LOCKED, see
+       * claimMonitorProbesForProbing). Instances of the same probe never
+       * pick up the same monitors, and claims made at once each get the
+       * next ones, never nothing (#10819).
        */
       const claimedMonitorProbeIds: Array<ObjectID> =
         await MonitorProbeService.claimMonitorProbesForProbing({
@@ -257,7 +259,8 @@ router.post(
               projectId: true,
             },
           },
-          limit: limit,
+          // Every row claimed: never more than the claim may hand out.
+          limit: claimedMonitorProbeIds.length,
           skip: 0,
           props: {
             isRoot: true,
@@ -405,7 +408,11 @@ router.post(
 router.post(
   "/monitor-test/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
-  // Under the probe scheduling limit, as /monitor/list is.
+  /*
+   * Under the probe scheduling limit, in the lane of its own Test Monitor
+   * runs have: someone is waiting for the answer, and it never waits behind
+   * the probe's monitor fetches (#10819).
+   */
   ProbeSchedulingMiddleware.limit(
     (req: ExpressRequest, res: ExpressResponse): void => {
       return Response.sendEntityArrayResponse(
@@ -416,6 +423,7 @@ router.post(
         MonitorTest,
       );
     },
+    { lane: ProbeSchedulingLane.MonitorTests },
   ),
   async (
     req: ExpressRequest,

@@ -88,7 +88,7 @@ import {
   getAllStorageArrayAlertTemplates,
   getStorageArrayAlertTemplatesForSystem,
 } from "../StorageArrayAlertTemplates";
-import { StorageSystemUtil } from "../../StorageArray/StorageSystem";
+import StorageSystemUtil from "../../StorageArray/StorageSystemUtil";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -658,9 +658,10 @@ function getCephRecommendations(): Array<MonitorRecommendation> {
 /*
  * The storage array adapter — two functions for the same reason as
  * Service's. `getStorageArrayRecommendations` answers "what should THIS
- * array be offered", which depends on its platform (a FlashBlade exports no
- * purefa_* series); `getAllStorageArrayRecommendations` answers "what can an
- * array ever be offered".
+ * array be offered", which depends on its platform (a FlashBlade exports
+ * none of a FlashArray's series); `getAllStorageArrayRecommendations` answers
+ * "what can an array ever be offered". Each platform's templates come from
+ * its own folder (StorageArrayPlatform.alertTemplates).
  */
 function normalizeStorageArrayTemplate(
   template: StorageArrayAlertTemplate,
@@ -684,11 +685,11 @@ function normalizeStorageArrayTemplate(
 
 /*
  * No known platform -> nothing, like a database without an engine. Every
- * template reads one platform's metrics (purefa_* or purefb_*), so offering
- * both sets to an array whose platform is not known yet would put two cards
- * of the same name ("Critical Array Alert") on one array, one of which could
- * never fire — and an array of a platform OneUptime ships no templates for
- * would be offered Pure Storage's. The array reports its platform with its
+ * template reads one platform's metrics, so offering every platform's sets
+ * to an array whose platform is not known yet would put two cards of the
+ * same name ("Critical Array Alert") on one array, one of which could never
+ * fire — and an array of a platform OneUptime ships no templates for would
+ * be offered another vendor's. The array reports its platform with its
  * first batch (the agent stamps `storage.system`; ingest also reads it off
  * the metric names), so the wait is one scrape.
  */

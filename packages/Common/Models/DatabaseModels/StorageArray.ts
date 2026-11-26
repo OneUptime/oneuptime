@@ -361,7 +361,7 @@ export default class StorageArray extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Reported Name",
     description:
-      "The name the array reports for itself (array_name on purefa_info / purefb_info). Can differ from the OneUptime name, which comes from the agent configuration.",
+      "The name the array reports for itself (the array name on its platform's identity series). Can differ from the OneUptime name, which comes from the agent configuration.",
     example: "pure-fa-prod-01",
     serverOwned: ServerOwned.Always,
   })
@@ -396,7 +396,7 @@ export default class StorageArray extends BaseModel {
     canReadOnRelationQuery: true,
     title: "System ID",
     description:
-      "The array's own system identifier (system_id on purefa_info / purefb_info).",
+      "The array's own system identifier, as its platform's identity series reports it.",
     example: "9b2c3a4d-1e2f-4a5b-8c7d-6e5f4a3b2c1d",
     serverOwned: ServerOwned.Always,
   })
@@ -431,7 +431,7 @@ export default class StorageArray extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Operating System",
     description:
-      "Name of the array's operating system as it reports it (os on purefa_info / purefb_info).",
+      "Name of the array's operating system as it reports it on its platform's identity series.",
     example: "Purity//FA",
     serverOwned: ServerOwned.Always,
   })
@@ -466,7 +466,7 @@ export default class StorageArray extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Operating System Version",
     description:
-      "Version of the array's operating system as it reports it (version on purefa_info / purefb_info).",
+      "Version of the array's operating system as it reports it on its platform's identity series.",
     example: "6.7.3",
     serverOwned: ServerOwned.Always,
   })
@@ -604,7 +604,7 @@ export default class StorageArray extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Capacity Bytes",
     description:
-      'Cached usable capacity of the array in bytes (purefa_array_space_bytes{space="capacity"} / purefb_array_space_bytes{type="array",space="capacity"}). Null until the first array metric batch arrives.',
+      "Cached usable capacity of the array in bytes, from its platform's array capacity series. Null until the first array metric batch arrives.",
     serverOwned: ServerOwned.Always,
   })
   @Column({
@@ -698,7 +698,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Capacity Used Percent",
     description:
-      "Cached array space utilization in percent (purefa_array_space_utilization / purefb_array_space_utilization). Stored as decimal so sub-percent precision survives the round trip. Null until the first array metric batch arrives.",
+      "Cached array space utilization in percent, from its platform's capacity series. Stored as decimal so sub-percent precision survives the round trip. Null until the first array metric batch arrives.",
     serverOwned: ServerOwned.Always,
   })
   @Column({
@@ -747,7 +747,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Data Reduction Ratio",
     description:
-      "Cached data reduction ratio of the array (purefa_array_space_data_reduction_ratio / purefb_array_space_data_reduction_ratio), for example 4.2 for 4.2:1. Null until the first array metric batch arrives.",
+      "Cached data reduction ratio of the array, from its platform's capacity series, for example 4.2 for 4.2:1. Null until the first array metric batch arrives.",
     serverOwned: ServerOwned.Always,
   })
   @Column({
@@ -796,7 +796,7 @@ export default class StorageArray extends BaseModel {
     type: TableColumnType.Number,
     title: "Open Alert Count",
     description:
-      "Cached count of alerts open on the array itself (purefa_alerts_open / purefb_alerts_open series, hidden alerts excluded).",
+      "Cached count of alerts open on the array itself (its platform's open alert series, hidden alerts excluded).",
     serverOwned: ServerOwned.Always,
   })
   @Column({
@@ -1088,6 +1088,47 @@ export default class StorageArray extends BaseModel {
     default: 0,
   })
   public unhealthyHardwareCount?: number = undefined;
+
+  /*
+   * One count per inventory kind (#11000), so a platform's own kinds (a
+   * NetApp array's aggregates and SVMs) need no column - and no migration -
+   * of their own. The ingest merges each batch's counts into it
+   * (StorageArrayService.mergeCountsByKind): only the kinds whose complete
+   * list the batch carried, so a volumes scrape never erases the hosts
+   * count. volumeCount, hostCount, podCount, fileSystemCount, bucketCount
+   * and hardwareComponentCount stay filled as they were until every reader
+   * reads this instead.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadStorageArray,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditStorageArray,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Inventory Counts",
+    description:
+      'Cached count of the objects the array reports, by kind (StorageArrayResource.kind), for example {"Volume": 120, "Host": 14}. A kind is counted from the first batch that lists all of its objects; null until then.',
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public countsByKind?: Record<string, number> = undefined;
 
   @ColumnAccessControl({
     create: [],

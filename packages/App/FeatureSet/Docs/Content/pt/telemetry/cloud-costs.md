@@ -178,6 +178,7 @@ A sua nuvem informa o último dia ou dois com atraso, e os valores são antes de
 ## Próximos passos
 
 :::cards
+- [Alocação de custos da nuvem](/docs/telemetry/cloud-cost-allocation): Divida os gastos entre equipes, produtos e centros de custo.
 - [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts): Conecte outra conta ou execute o comando dela novamente.
 - [Recursos de nuvem](/docs/telemetry/cloud-resources): As métricas de cada recurso, a partir de um coletor seu.
 - [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost): Quanto custa cada carga de trabalho do Kubernetes.

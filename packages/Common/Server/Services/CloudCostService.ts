@@ -6,9 +6,14 @@ import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import { getPercentileLevel } from "../../Types/BaseDatabase/AggregationType";
 import { CLOUD_COST_TAG_KEY_MAX_LENGTH } from "../../Types/Cloud/CloudCost";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AggregateBy, {
   AggregateUtil,
 } from "../Types/AnalyticsDatabase/AggregateBy";
+import ModelPermission, {
+  CheckReadPermissionType,
+} from "../Types/AnalyticsDatabase/ModelPermission";
+import Query from "../Types/AnalyticsDatabase/Query";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 
@@ -60,6 +65,44 @@ export class CloudCostService extends AnalyticsDatabaseService<CloudCost> {
     }
 
     return asked[0]!;
+  }
+
+  /*
+   * A read's filter as a cost view's allocation reads it
+   * (Utils/CloudCost/CloudCostAllocation): the read permission applied - a
+   * caller whose grants are limited to labels reads the costs of the
+   * accounts those reach, as every read of the table does - compiled for a
+   * statement's WHERE TRUE, table-qualified.
+   */
+  public async getScopedWhere(data: {
+    query: Query<CloudCost>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Statement> {
+    const permission: CheckReadPermissionType<CloudCost> =
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        await this.bindReadQueryOf(data.query, data.props),
+        null,
+        data.props,
+      );
+
+    return this.statementGenerator
+      .toWhereStatement(permission.query, {
+        tableAlias: this.model.tableName,
+      })
+      .append(this.getRetentionReadFilter());
+  }
+
+  // The database and table a statement of this service reads.
+  public getTableReference(): { databaseName: string; tableName: string } {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    return {
+      databaseName: this.database.getDatasourceOptions().database!,
+      tableName: this.model.tableName,
+    };
   }
 
   public override toAggregateStatement(aggregateBy: AggregateBy<CloudCost>): {

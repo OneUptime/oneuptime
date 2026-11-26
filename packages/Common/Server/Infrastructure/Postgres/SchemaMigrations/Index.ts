@@ -1197,6 +1197,10 @@ import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-Ad
 import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
 import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
 import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from "./1809187680000-AddProjectStartIncidentsDeclaredByHandAcknowledged";
+import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
+import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
+import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
+import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
 
 export default [
   InitialMigration,
@@ -2398,4 +2402,8 @@ export default [
   AddOnCallPolicyIncidentRole1809187670000,
   AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
   AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000,
+  AddStorageArrayCountsByKind1809187690000,
+  AddSecurityUserErasureRequestNamesToErase1809187691044,
+  AddMonitorTestUnansweredIndex1809187700819,
+  AddCloudCostViewsGroupsAndLineItems1809187711006,
 ];

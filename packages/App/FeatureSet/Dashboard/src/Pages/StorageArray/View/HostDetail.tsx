@@ -11,7 +11,7 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 
 /*
  * One host defined on a FlashArray. Its series carry the host's name in
- * the `host` label (purefa_host_*), which scopes the Metrics tab.
+ * the `host` label of its host series, which scopes the Metrics tab.
  */
 const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,

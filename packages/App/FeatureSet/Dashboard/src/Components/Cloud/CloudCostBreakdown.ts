@@ -66,6 +66,8 @@ export const CLOUD_COST_DIMENSION_OPTIONS: Array<{
   { label: translationKey("Environments"), value: "environment" },
   { label: translationKey("Apps"), value: "app" },
   { label: translationKey("Tags"), value: "tag" },
+  // A cost view's groups: teams, products, cost centers (CloudCostView).
+  { label: translationKey("Cost groups"), value: "group" },
 ];
 
 /*
@@ -82,6 +84,7 @@ export const BREAKDOWN_REST_LABELS: Readonly<
     "{{amount}} is billed to an environment as a whole, not to one app.",
   ),
   "without-tag": translationKey("{{amount}} does not carry this tag."),
+  "not-in-group": translationKey("{{amount}} is in no group."),
 };
 
 // A cost with no value for the dimension, as its row is named.

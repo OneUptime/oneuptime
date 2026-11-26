@@ -52,19 +52,27 @@ export type ScrubbedUserSignal = "log" | "trace";
 // The value of the marker's "hidden" attribute: a scrub rule hid it.
 export const USER_HIDDEN_BY_SCRUB_RULE: string = "scrub-rule";
 
-// The marker's attributes, per role.
+/*
+ * The marker's attributes, per role. `field` is where in the record a Hash
+ * rule's token was read from (#11045): see locateHashedUserField.
+ */
 export const SCRUBBED_USER_ATTRIBUTES: Readonly<
-  Record<ScrubbedUserRole, { hidden: string; scrubbed: string; in: string }>
+  Record<
+    ScrubbedUserRole,
+    { hidden: string; scrubbed: string; in: string; field: string }
+  >
 > = {
   [ScrubbedUserRole.Principal]: {
     hidden: "oneuptime.principal_user_hidden",
     scrubbed: "oneuptime.principal_user_scrubbed",
     in: "oneuptime.principal_user_scrubbed_in",
+    field: "oneuptime.principal_user_scrubbed_field",
   },
   [ScrubbedUserRole.Target]: {
     hidden: "oneuptime.target_user_hidden",
     scrubbed: "oneuptime.target_user_scrubbed",
     in: "oneuptime.target_user_scrubbed_in",
+    field: "oneuptime.target_user_scrubbed_field",
   },
 };
 
@@ -146,17 +154,23 @@ export function pickEventUser(
   return "";
 }
 
-// The event's user of a role was hidden by a scrub rule: what it left, and where.
+/*
+ * The event's user of a role was hidden by a scrub rule: what it left, and
+ * where - the kind of record, and for a Hash rule's token the field of it
+ * the user was read from (#11045), so its records can be searched for it.
+ */
 export function markEventUserScrubbed(
   attributes: JSONObject,
   data: {
     role: ScrubbedUserRole;
     scrubbed: ScrubbedUser;
     signal?: ScrubbedUserSignal | undefined;
+    field?: string | undefined;
   },
 ): void {
-  const keys: { hidden: string; scrubbed: string; in: string } =
+  const keys: { hidden: string; scrubbed: string; in: string; field: string } =
     SCRUBBED_USER_ATTRIBUTES[data.role];
+  const field: string = (data.field || "").trim();
 
   attributes[keys.hidden] = USER_HIDDEN_BY_SCRUB_RULE;
   attributes[keys.scrubbed] = data.scrubbed.value;
@@ -165,6 +179,21 @@ export function markEventUserScrubbed(
     attributes[keys.in] = data.signal;
   } else {
     delete attributes[keys.in];
+  }
+
+  /*
+   * Only a token is searched for: what Redact or a mask left finds
+   * everybody. A field cut short would name another, so a longer one is
+   * not kept.
+   */
+  if (
+    field &&
+    field.length <= MAX_SCRUBBED_USER_LENGTH &&
+    data.scrubbed.kind === ScrubPlaceholderKind.Hashed
+  ) {
+    attributes[keys.field] = field;
+  } else {
+    delete attributes[keys.field];
   }
 }
 
@@ -177,24 +206,28 @@ export function clearEventUserScrubbed(
   attributes: JSONObject,
   role: ScrubbedUserRole,
 ): void {
-  const keys: { hidden: string; scrubbed: string; in: string } =
+  const keys: { hidden: string; scrubbed: string; in: string; field: string } =
     SCRUBBED_USER_ATTRIBUTES[role];
 
   delete attributes[keys.hidden];
   delete attributes[keys.scrubbed];
   delete attributes[keys.in];
+  delete attributes[keys.field];
 }
 
 /*
  * The users of an event, read and marked in one go: what buildLogSecurity
  * Event and buildTelemetrySecurityEvent name, with the marker for each a
- * rule hid written into `attributes`.
+ * rule hid written into `attributes` - and, for a token, the field of the
+ * record it was read from, when the caller located it (#11045).
  */
 export function readEventUsers(data: {
   principalUser: string | null | undefined;
   targetUser: string | null | undefined;
   attributes: JSONObject;
   signal?: ScrubbedUserSignal | undefined;
+  principalUserField?: string | undefined;
+  targetUserField?: string | undefined;
 }): { principalUser: string; targetUser: string } {
   const principal: EventUserReading = readEventUser(data.principalUser);
   const target: EventUserReading = readEventUser(data.targetUser);
@@ -204,6 +237,7 @@ export function readEventUsers(data: {
       role: ScrubbedUserRole.Principal,
       scrubbed: principal.scrubbed,
       signal: data.signal,
+      field: data.principalUserField,
     });
   }
 
@@ -212,10 +246,94 @@ export function readEventUsers(data: {
       role: ScrubbedUserRole.Target,
       scrubbed: target.scrubbed,
       signal: data.signal,
+      field: data.targetUserField,
     });
   }
 
   return { principalUser: principal.user, targetUser: target.user };
+}
+
+/*
+ * WHERE IN A RECORD A HASHED USER WAS READ FROM (#11045).
+ *
+ * The user vault keeps a user wherever Security Events reads one
+ * (Server/Utils/SecurityEvent/UserVault/HashedUserPairs): a span's
+ * enduser.id or user.id, an AI call's user (one of the attributes its
+ * llmUserId is copied from), a log line's body or one of its attributes,
+ * as a log parser read it. The event says which, as the explorers filter
+ * a record - `body`, or `attributes.<key>` - so the search for the token
+ * looks there and nowhere else (Dashboard's getHashedUserSearch).
+ */
+
+// A record's body, as the logs explorer filters it.
+export const HASHED_USER_BODY_FIELD: string = "body";
+
+// The prefix of a record's attribute, as the explorers filter it.
+export const HASHED_USER_ATTRIBUTE_FIELD_PREFIX: string = "attributes.";
+
+// A Hash rule's token of today's form, anywhere in a text.
+const TOKEN_IN_TEXT: RegExp = /\[HASHED:[0-9a-f]{16}\]/;
+
+function ownText(attributes: unknown, key: string): string {
+  if (
+    !attributes ||
+    typeof attributes !== "object" ||
+    !Object.prototype.hasOwnProperty.call(attributes, key)
+  ) {
+    return "";
+  }
+
+  const value: unknown = (attributes as Record<string, unknown>)[key];
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/*
+ * The field of a record what a Hash rule left of its user (`hashed`) was
+ * read from: the first attribute whose value is exactly it - `preferredKeys`
+ * first, in their order, then the record's other attributes - else the
+ * body, when it holds the token, else the first attribute that holds it
+ * inside a longer value. "" when `hashed` holds no token of today's form,
+ * or the record holds it nowhere.
+ */
+export function locateHashedUserField(data: {
+  hashed: string | null | undefined;
+  attributes: unknown;
+  body?: string | null | undefined;
+  preferredKeys?: ReadonlyArray<string> | undefined;
+}): string {
+  const hashed: string = (data.hashed || "").trim();
+  const token: string = hashed.match(TOKEN_IN_TEXT)?.[0] || "";
+
+  if (!token) {
+    return "";
+  }
+
+  const ownKeys: Array<string> =
+    data.attributes && typeof data.attributes === "object"
+      ? Object.keys(data.attributes as Record<string, unknown>)
+      : [];
+  const keys: Array<string> = Array.from(
+    new Set<string>([...(data.preferredKeys || []), ...ownKeys]),
+  );
+
+  for (const key of keys) {
+    if (ownText(data.attributes, key) === hashed) {
+      return `${HASHED_USER_ATTRIBUTE_FIELD_PREFIX}${key}`;
+    }
+  }
+
+  if (typeof data.body === "string" && data.body.includes(token)) {
+    return HASHED_USER_BODY_FIELD;
+  }
+
+  for (const key of keys) {
+    if (ownText(data.attributes, key).includes(token)) {
+      return `${HASHED_USER_ATTRIBUTE_FIELD_PREFIX}${key}`;
+    }
+  }
+
+  return "";
 }
 
 function readAttribute(attributes: unknown, key: string): string {
@@ -248,6 +366,48 @@ export const HASHED_USER_ATTRIBUTES: Readonly<
   [ScrubbedUserRole.Principal]: "oneuptime.principal_user_hashed_as",
   [ScrubbedUserRole.Target]: "oneuptime.target_user_hashed_as",
 };
+
+/*
+ * Where what the rule left was read from, kept beside it (#11045): the kind
+ * of record ("log" or "trace": a log line's user may come from the trace
+ * its request was followed into), and the field of it - `body` or
+ * `attributes.<key>` (locateHashedUserField) - so the event's search for
+ * the token looks where the user was. Neither is there for an event named
+ * before they were kept.
+ */
+export const HASHED_USER_SOURCE_ATTRIBUTES: Readonly<
+  Record<ScrubbedUserRole, { in: string; field: string }>
+> = {
+  [ScrubbedUserRole.Principal]: {
+    in: "oneuptime.principal_user_hashed_in",
+    field: "oneuptime.principal_user_hashed_field",
+  },
+  [ScrubbedUserRole.Target]: {
+    in: "oneuptime.target_user_hashed_in",
+    field: "oneuptime.target_user_hashed_field",
+  },
+};
+
+// Where what the rule left of an event's user of a role was read from, when the event says.
+export interface HashedUserSource {
+  signal: ScrubbedUserSignal | null;
+  // `body`, or `attributes.<key>`; "" when the event does not say.
+  field: string;
+}
+
+export function readHashedUserSource(
+  event: { attributes?: unknown },
+  role: ScrubbedUserRole,
+): HashedUserSource {
+  const keys: { in: string; field: string } =
+    HASHED_USER_SOURCE_ATTRIBUTES[role];
+  const signal: string = readAttribute(event.attributes, keys.in);
+
+  return {
+    signal: signal === "log" || signal === "trace" ? signal : null,
+    field: readAttribute(event.attributes, keys.field),
+  };
+}
 
 /*
  * A USER ERASED FROM THE USER VAULT ON REQUEST (#10908).
@@ -363,8 +523,28 @@ export function nameHashedEventUser(
     event.attributes[REQUEST_USER_ATTRIBUTE] = named;
   }
 
+  // Where the marker said the token was read from, kept beside what the rule left (#11045).
+  const marker: { in: string; field: string } =
+    SCRUBBED_USER_ATTRIBUTES[data.role];
+  const source: { in: string; field: string } =
+    HASHED_USER_SOURCE_ATTRIBUTES[data.role];
+  const signal: string = readAttribute(event.attributes, marker.in);
+  const field: string = readAttribute(event.attributes, marker.field);
+
   clearEventUserScrubbed(event.attributes, data.role);
   event.attributes[HASHED_USER_ATTRIBUTES[data.role]] = data.hashed;
+
+  if (signal === "log" || signal === "trace") {
+    event.attributes[source.in] = signal;
+  } else {
+    delete event.attributes[source.in];
+  }
+
+  if (field) {
+    event.attributes[source.field] = field;
+  } else {
+    delete event.attributes[source.field];
+  }
 }
 
 // A user a scrub rule hid, as an event says it.

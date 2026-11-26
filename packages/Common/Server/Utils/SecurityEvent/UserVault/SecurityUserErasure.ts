@@ -2,6 +2,7 @@ import SecurityUserErasureRequest from "../../../../Models/DatabaseModels/Securi
 import ProjectService from "../../../Services/ProjectService";
 import SecurityUserErasureRequestService, {
   SecurityUserErasureCounts,
+  readErasureRequestNames,
   readErasureRequestTokens,
 } from "../../../Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService, {
@@ -15,6 +16,7 @@ import {
   getErasureSpellings,
 } from "../../../../Types/SecurityEvent/SecurityUserErasure";
 import { ErasedName } from "../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
+import JobDeadline from "../../JobDeadline";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ScrubHashToken from "../../Telemetry/ScrubHashToken";
@@ -22,6 +24,9 @@ import { ERASED_TOKENS_CACHE_TTL_MS } from "./SecurityUserErasedTokens";
 import SecurityUserErasureEvents, {
   SecurityUserErasurePair,
 } from "./SecurityUserErasureEvents";
+import SecurityUserErasureFindings, {
+  FindingsScanResult,
+} from "./SecurityUserErasureFindings";
 import SecurityUserErasureRecords, {
   SecurityUserErasureRecordCounts,
 } from "./SecurityUserErasureRecords";
@@ -43,20 +48,30 @@ import SecurityUserErasureRecords, {
  *
  *   InProgress. Claimed (one worker does it), then:
  *     1. who the vault named: what the requester typed, the vault's own
- *        rows of the tokens, and the users the events it named hold - the
- *        names Security Events may have copied onward;
+ *        rows of the tokens, the users the events it named hold - the
+ *        names Security Events may have copied onward - and the names an
+ *        earlier run kept on the request;
  *     2. Postgres: the person taken out of detections, cases, entity risk
  *        and proposals (SecurityUserErasureRecords). Synchronous, and the
- *        counts kept at once, so a run that fails later loses none;
- *     3. ClickHouse: the events the vault named counted and the token put
- *        back in them (SecurityUserErasureEvents), the vault's rows of the
- *        tokens counted and deleted. Queued mutations, durable from then on.
+ *        counts kept at once, so a run that fails later loses none. The
+ *        names are kept on the request with them, encrypted
+ *        (namesToErase): the vault's rows and the events that hold them go
+ *        with this run, and later runs and the check need them (#11044);
+ *     3. ClickHouse: the Detection Findings a rule wrote about the person
+ *        read and the names taken out of them (SecurityUserErasureFindings:
+ *        they carry no token to be found by); the events the vault named
+ *        counted and the token put back in them (SecurityUserErasureEvents);
+ *        the vault's rows of the tokens counted and deleted. Queued
+ *        mutations, durable from then on.
  *
  *   Completed, once a later run checks that ClickHouse applied them: no
- *     row of the tokens is left in the vault, and no event still names the
- *     person through them. What the requester typed is wiped. A request
- *     still not done RESUBMIT_AFTER_MS after its last run is run again:
- *     every step finds only what still names the person.
+ *     row of the tokens is left in the vault, no event still names the
+ *     person through them, and none of the project's own Detection Findings
+ *     names them. Postgres is gone through once more first, for a detection
+ *     a rule wrote from the events before they lost the name. What the
+ *     requester typed, and the names, are wiped. A request still not done
+ *     RESUBMIT_AFTER_MS after its last run is run again: every step finds
+ *     only what still names the person.
  *
  *   Failed, after MAX_ERASURE_ATTEMPTS failed runs, spaced out
  *     (RETRY_BACKOFF_MS more each time): the project's owners are emailed,
@@ -64,7 +79,14 @@ import SecurityUserErasureRecords, {
  *     What the requester typed is wiped; the tokens are still refused.
  *
  * Every ClickHouse statement names tokens, never the person
- * (SecurityUserVaultService says why).
+ * (SecurityUserVaultService says why): the findings are matched to the
+ * names here, in the worker, and changed by their ids.
+ *
+ * A run that runs out of the cron job's time (its deadline) stops where it
+ * is, with nothing counted against the request: one not started yet waits
+ * for the next run, and one started is run again as any request still not
+ * done is (RESUBMIT_AFTER_MS). Every step finds only what still names the
+ * person, so nothing is done twice.
  */
 
 // How many failed runs a request survives before it is marked Failed.
@@ -133,6 +155,7 @@ export default class SecurityUserErasure {
   @CaptureSpan()
   public static async processOpenRequests(
     now: Date = OneUptimeDate.getCurrentDate(),
+    deadline: JobDeadline = JobDeadline.none(),
   ): Promise<void> {
     const requests: Array<SecurityUserErasureRequest> =
       await SecurityUserErasureRequestService.getOpenRequests({
@@ -140,7 +163,12 @@ export default class SecurityUserErasure {
       });
 
     for (const request of requests) {
-      await this.processRequest({ request, now });
+      // Out of time: the rest wait for the next run.
+      if (deadline.hasPassed()) {
+        return;
+      }
+
+      await this.processRequest({ request, now, deadline });
     }
   }
 
@@ -167,8 +195,10 @@ export default class SecurityUserErasure {
   public static async processRequest(data: {
     request: SecurityUserErasureRequest;
     now: Date;
+    deadline?: JobDeadline | undefined;
   }): Promise<void> {
     const request: SecurityUserErasureRequest = data.request;
+    const deadline: JobDeadline = data.deadline || JobDeadline.none();
 
     if (!request.id || !request.projectId) {
       return;
@@ -204,7 +234,7 @@ export default class SecurityUserErasure {
           return;
         }
 
-        await this.runErasure(request);
+        await this.runErasure(request, deadline);
 
         return;
       }
@@ -215,36 +245,99 @@ export default class SecurityUserErasure {
 
       // Its last run failed, and its backoff is over: run it again.
       if (this.didLastRunFail(request)) {
-        await this.runErasure(request);
+        await this.runErasure(request, deadline);
 
         return;
       }
 
-      if (await this.isErased(request)) {
-        await SecurityUserErasureRequestService.markCompleted({
-          requestId: request.id,
-          counts: {
-            vaultEntriesDeleted: request.vaultEntriesDeleted || 0,
-            eventsUnnamed: request.eventsUnnamed || 0,
-            casesUnnamed: request.casesUnnamed || 0,
-            proposalsWithdrawn: request.proposalsWithdrawn || 0,
-          },
-        });
-
-        logger.info(
-          `SecurityUserErasure: erasure request ${request.id.toString()} is complete.`,
-        );
+      if (await this.isErased(request, deadline)) {
+        await this.complete(request);
 
         return;
       }
 
       // Not applied yet: told again once it has had long enough.
       if (timeOf(request.updatedAt) + RESUBMIT_AFTER_MS <= data.now.getTime()) {
-        await this.runErasure(request);
+        await this.runErasure(request, deadline);
       }
     } catch (error) {
+      // The run's own time ran out, not the request: a later run carries on.
+      if (deadline.hasPassed()) {
+        logger.info(
+          `SecurityUserErasure: erasure request ${request.id.toString()} stopped when the run ran out of time; a later run carries on.`,
+        );
+
+        return;
+      }
+
       await this.recordFailure({ request, error });
     }
+  }
+
+  /*
+   * Checked done: Postgres gone through once more, for a detection a rule
+   * wrote from the events before they lost the name - none can be written
+   * after, as no event names the person once the check passes - then the
+   * request marked Completed, with what was typed and the names wiped.
+   */
+  private static async complete(
+    request: SecurityUserErasureRequest,
+  ): Promise<void> {
+    const records: SecurityUserErasureRecordCounts =
+      await SecurityUserErasureRecords.unnameRecords({
+        projectId: request.projectId!,
+        names: this.getKeptNames(request),
+      });
+
+    await SecurityUserErasureRequestService.markCompleted({
+      requestId: request.id!,
+      counts: {
+        vaultEntriesDeleted: request.vaultEntriesDeleted || 0,
+        eventsUnnamed: request.eventsUnnamed || 0,
+        casesUnnamed: (request.casesUnnamed || 0) + records.cases,
+        proposalsWithdrawn:
+          (request.proposalsWithdrawn || 0) + records.proposals,
+      },
+    });
+
+    logger.info(
+      `SecurityUserErasure: erasure request ${request.id!.toString()} is complete.`,
+    );
+  }
+
+  /*
+   * The names a request goes on looking for once the vault's rows and the
+   * events that held them may be gone: each spelling of what was typed,
+   * with its own token, and the names a run kept on the request (#11044).
+   */
+  public static getKeptNames(
+    request: SecurityUserErasureRequest,
+  ): Array<ErasedName> {
+    return distinctNames([
+      ...this.getTypedNames({
+        projectId: request.projectId!,
+        userToErase: request.userToErase,
+      }),
+      ...readErasureRequestNames(request),
+    ]);
+  }
+
+  // Each spelling of what the requester typed, with the token a Hash rule makes of exactly it.
+  private static getTypedNames(data: {
+    projectId: ObjectID;
+    userToErase?: string | undefined;
+  }): Array<ErasedName> {
+    return getErasureSpellings(data.userToErase || "").map(
+      (spelling: string): ErasedName => {
+        return {
+          named: spelling,
+          hashed: ScrubHashToken.ofValue({
+            projectId: data.projectId,
+            value: spelling,
+          }),
+        };
+      },
+    );
   }
 
   /*
@@ -256,19 +349,13 @@ export default class SecurityUserErasure {
     projectId: ObjectID;
     tokens: Array<string>;
     userToErase?: string | undefined;
+    // The names an earlier run of the request kept on it (#11044).
+    keptNames?: ReadonlyArray<ErasedName> | undefined;
   }): Promise<Array<ErasedName>> {
-    const names: Array<ErasedName> = [];
-
-    // Each spelling with its own token: the one a Hash rule makes of exactly it.
-    for (const spelling of getErasureSpellings(data.userToErase || "")) {
-      names.push({
-        named: spelling,
-        hashed: ScrubHashToken.ofValue({
-          projectId: data.projectId,
-          value: spelling,
-        }),
-      });
-    }
+    const names: Array<ErasedName> = [
+      ...this.getTypedNames(data),
+      ...(data.keptNames || []),
+    ];
 
     const entries: Array<SecurityUserVaultEntry> =
       await SecurityUserVaultService.findEntriesOfTokens({
@@ -301,6 +388,7 @@ export default class SecurityUserErasure {
   @CaptureSpan()
   public static async runErasure(
     request: SecurityUserErasureRequest,
+    deadline: JobDeadline = JobDeadline.none(),
   ): Promise<SecurityUserErasureRunResult> {
     const requestId: ObjectID = request.id!;
     const projectId: ObjectID = request.projectId!;
@@ -310,6 +398,7 @@ export default class SecurityUserErasure {
       projectId,
       tokens,
       userToErase: request.userToErase,
+      keptNames: readErasureRequestNames(request),
     });
 
     const records: SecurityUserErasureRecordCounts =
@@ -323,10 +412,32 @@ export default class SecurityUserErasure {
       proposalsWithdrawn: (request.proposalsWithdrawn || 0) + records.proposals,
     };
 
+    /*
+     * The names are kept with the counts before anything in ClickHouse
+     * changes: once the vault's rows and the events have, nothing else
+     * says who the findings name.
+     */
     await SecurityUserErasureRequestService.markInProgress({
       requestId,
       counts,
+      names,
     });
+
+    /*
+     * The findings first, by the names: a rule's Detection Findings about
+     * the person carry no token. Counted with the events, below.
+     */
+    const findings: FindingsScanResult =
+      await SecurityUserErasureFindings.findNamingFindings({
+        projectId,
+        names,
+        deadline,
+      });
+    const findingsChanged: number =
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId,
+        rewrites: findings.rewrites,
+      });
 
     /*
      * Counted before each is queued, as ClickHouse answers a mutation with
@@ -347,7 +458,10 @@ export default class SecurityUserErasure {
 
     await SecurityUserVaultService.eraseTokens({ projectId, tokens });
 
-    counts.eventsUnnamed = Math.max(counts.eventsUnnamed, events);
+    counts.eventsUnnamed = Math.max(
+      counts.eventsUnnamed,
+      events + findingsChanged,
+    );
     counts.vaultEntriesDeleted = Math.max(
       counts.vaultEntriesDeleted,
       vaultRows,
@@ -359,7 +473,7 @@ export default class SecurityUserErasure {
     });
 
     logger.info(
-      `SecurityUserErasure: erasure request ${requestId.toString()} took the person out of ${records.cases} case(s) and ${records.proposals} proposal(s), and queued the token back into ${events} event(s) and the delete of ${vaultRows} vault row(s).`,
+      `SecurityUserErasure: erasure request ${requestId.toString()} took the person out of ${records.cases} case(s) and ${records.proposals} proposal(s), and queued the token back into ${events} event(s) and ${findingsChanged} Detection Finding(s)${findings.isCapped ? " (a later run takes the rest)" : ""}, and the delete of ${vaultRows} vault row(s).`,
     );
 
     return { names, counts };
@@ -367,11 +481,14 @@ export default class SecurityUserErasure {
 
   /*
    * Whether nothing the request reaches in ClickHouse names the person any
-   * more: no vault row of its tokens, at any age, and no event the vault
-   * named through them.
+   * more: no vault row of its tokens, at any age, no event the vault named
+   * through them, and none of the project's own Detection Findings naming
+   * one of the request's names (#11044). The cheap checks first: a request
+   * still waiting on ClickHouse reads no findings.
    */
   public static async isErased(
     request: SecurityUserErasureRequest,
+    deadline: JobDeadline = JobDeadline.none(),
   ): Promise<boolean> {
     const projectId: ObjectID = request.projectId!;
     const tokens: Array<string> = readErasureRequestTokens(request);
@@ -389,11 +506,24 @@ export default class SecurityUserErasure {
       return false;
     }
 
-    return (
+    if (
       (await SecurityUserErasureEvents.countNamedEvents({
         projectId,
         tokens,
-      })) === 0
+      })) > 0
+    ) {
+      return false;
+    }
+
+    const names: Array<ErasedName> = this.getKeptNames(request);
+
+    return (
+      names.length === 0 ||
+      !(await SecurityUserErasureFindings.isAnyFindingNaming({
+        projectId,
+        names,
+        deadline,
+      }))
     );
   }
 
