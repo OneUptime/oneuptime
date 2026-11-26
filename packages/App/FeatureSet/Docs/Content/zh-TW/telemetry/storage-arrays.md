@@ -13,11 +13,11 @@ OneUptime Storage Array 代理程式會監控儲存陣列：容量和資料縮�
 
 Storage Arrays 是一個對每個廠商都以相同方式運作的產品。它支援：
 
-| 陣列 | 代理程式如何讀取它 | Collector 設定 |
-| --- | --- | --- |
-| **Pure Storage FlashArray**，Purity//FA 6.7 及更新版本 | 陣列自己的 OpenMetrics 端點（`https://<array>/metrics/...?namespace=purefa`）：Collector 旁邊不需要執行任何東西 | `otel-collector-config.yaml`（預設） |
-| **Pure Storage FlashArray**，較舊的 Purity//FA | Pure 的 FlashArray OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fa-exporter` 服務執行 | `otel-collector-config.flasharray-exporter.yaml` |
-| **Pure Storage FlashBlade** | Pure 的 FlashBlade OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fb-exporter` 服務執行 | `otel-collector-config.flashblade.yaml` |
+| 陣列 | `storage.system` | 代理程式如何讀取它 | Collector 設定 |
+| --- | --- | --- | --- |
+| **Pure Storage FlashArray**，Purity//FA 6.7 及更新版本 | `purestorage.flasharray` | 陣列自己的 OpenMetrics 端點（`https://<array>/metrics/...?namespace=purefa`）：Collector 旁邊不需要執行任何東西 | `otel-collector-config.yaml`（預設） |
+| **Pure Storage FlashArray**，較舊的 Purity//FA | `purestorage.flasharray` | Pure 的 FlashArray OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fa-exporter` 服務執行 | `otel-collector-config.flasharray-exporter.yaml` |
+| **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure 的 FlashBlade OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fb-exporter` 服務執行 | `otel-collector-config.flashblade.yaml` |
 
 Pure Storage 於 2026 年 2 月更名為 **Everpure**。FlashArray、FlashBlade 和 Purity 保留了原名，`purefa_*` 和 `purefb_*` 指標也沒有改名，因此本頁的所有內容都適用於以任一名稱銷售的陣列。
 

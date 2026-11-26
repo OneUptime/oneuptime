@@ -283,10 +283,10 @@ jest.mock(
 
 import StorageArrayOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index";
 import StorageArrayInsights, {
-  FLASHARRAY_INSIGHTS_SECTIONS,
-  FLASHBLADE_INSIGHTS_SECTIONS,
   InsightsSection,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Insights";
+import { FLASHARRAY_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
+import { FLASHBLADE_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import StorageArrayVolumeDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/VolumeDetail";
 import StorageArrayFileSystemDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/FileSystemDetail";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";

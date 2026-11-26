@@ -42,9 +42,13 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import StorageArrayHealthPill from "../../Components/StorageArray/StorageArrayHealthPill";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  getStorageArrayKindCount,
+  getStorageArrayKindWords,
+} from "./Utils/StorageArrayKindWords";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import StorageArrayResourceUtils from "./Utils/StorageArrayResourceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -244,6 +248,7 @@ const StorageArrays: FunctionComponent<
           hostCount: true,
           fileSystemCount: true,
           bucketCount: true,
+          countsByKind: true,
           criticalAlertCount: true,
           warningAlertCount: true,
           osName: true,
@@ -395,44 +400,45 @@ const StorageArrays: FunctionComponent<
             headerTooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.arrayInventory,
             type: FieldType.Element,
             hideOnMobile: true,
-            // Volumes on a FlashArray, file systems on a FlashBlade.
+            /*
+             * The counts the array's platform lists here (its
+             * overview.listCounts): volumes and hosts on a FlashArray, file
+             * systems on a FlashBlade. An array whose platform is not known
+             * reads as the default platform.
+             */
             disableSort: true,
             getElement: (item: StorageArray): ReactElement => {
-              if (StorageSystemUtil.isFlashBlade(item.storageSystem)) {
-                if (
-                  item.fileSystemCount === null ||
-                  item.fileSystemCount === undefined
-                ) {
-                  return <TableEmptyValue />;
-                }
-                return (
-                  <span className="text-sm text-gray-700">
-                    {translator.translatePlural(
-                      {
-                        one: "{{count}} file system",
-                        other: "{{count}} file systems",
-                      },
-                      item.fileSystemCount,
-                    )}
-                  </span>
-                );
-              }
-              if (item.volumeCount === null || item.volumeCount === undefined) {
+              const kinds: Array<string> =
+                StorageArrayPlatformRegistry.getPlatformOrDefault(
+                  item.storageSystem,
+                ).overview.listCounts;
+              const first: number | undefined = kinds[0]
+                ? getStorageArrayKindCount(item, kinds[0])
+                : undefined;
+              if (first === null || first === undefined) {
                 return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">
-                  {translator.translatePlural(
-                    { one: "{{count}} volume", other: "{{count}} volumes" },
-                    item.volumeCount,
-                  )}
-                  <span className="text-gray-400">
-                    <InlineSeparator />
-                  </span>
-                  {translator.translatePlural(
-                    { one: "{{count}} host", other: "{{count}} hosts" },
-                    item.hostCount || 0,
-                  )}
+                  {kinds.map((kind: string, index: number): ReactElement => {
+                    return (
+                      <Fragment key={kind}>
+                        {index > 0 ? (
+                          <span className="text-gray-400">
+                            <InlineSeparator />
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        {translator.translatePlural(
+                          getStorageArrayKindWords(kind).count,
+                          (index === 0
+                            ? first
+                            : getStorageArrayKindCount(item, kind)) || 0,
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </span>
               );
             },

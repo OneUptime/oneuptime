@@ -1945,10 +1945,10 @@ export default class ValueFormatter {
     }
 
     /*
-     * Same for a storage array's data reduction ratio (Pure's
-     * `purefa_array_space_data_reduction_ratio`,
-     * `purefb_file_systems_space_data_reduction_ratio`, ...): logical over
-     * physical space, so 4.2 means 4.2:1 — never "420.00%".
+     * Same for a storage array's data reduction ratio (a Pure array's
+     * array, volume and file system `..._space_data_reduction_ratio`
+     * series): logical over physical space, so 4.2 means 4.2:1 — never
+     * "420.00%".
      */
     const dataReductionRatio: RegExp = /data_reduction_ratio$/i;
     if (dataReductionRatio.test(metricName.trim())) {

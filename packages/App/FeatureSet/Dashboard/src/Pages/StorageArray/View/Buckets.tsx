@@ -21,7 +21,7 @@ import {
 } from "../Utils/StorageArrayHealth";
 
 /*
- * FlashBlade S3 buckets (kind=Bucket), from purefb_buckets_* via the
+ * FlashBlade S3 buckets (kind=Bucket), from its bucket series via the
  * inventory: the account a bucket belongs to (groupName), how full it is
  * against its quota (what it stores before data reduction, of capacityBytes;
  * #9647), its quota, the flash it uses (usedBytes) and its object count.

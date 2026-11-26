@@ -136,14 +136,15 @@ import StorageArrayResourceService, {
   ParsedStorageArrayResource,
 } from "Common/Server/Services/StorageArrayResourceService";
 import {
-  STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   StorageArrayResourceBufferEntry,
   StorageArraySnapshotBufferEntry,
   StorageArraySnapshotDerivedExtras,
   bufferStorageArraySnapshotMetric,
+  deriveStorageArrayCountsByKind,
   deriveStorageArraySnapshotExtras,
   getVolumeConnectionCounts,
   getStorageArrayResourceRows,
+  isStorageArraySnapshotMetric,
   resolveStorageArraySystem,
 } from "Common/Server/Utils/Telemetry/StorageArraySnapshotScan";
 import IoTDeviceService, {
@@ -1499,17 +1500,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             }
           }
 
-          if (storageArrayId) {
-            const declaredStorageSystem: string | null =
-              this.getDeclaredStorageSystemFromAttributes(
-                resourceAttributes_raw,
-              );
-            if (declaredStorageSystem) {
-              storageArrayDeclaredSystems.set(
-                storageArrayId.toString(),
-                declaredStorageSystem,
-              );
-            }
+          /*
+           * The platform this resource's agent declared, normalized. It picks
+           * the extractor of a platform whose metric names carry no vendor
+           * prefix (StorageArrayExtractors.resolve), and is the flush's
+           * fallback for a platform OneUptime has no extractor for.
+           */
+          const storageArrayDeclaredSystem: string | null = storageArrayId
+            ? this.getDeclaredStorageSystemFromAttributes(resourceAttributes_raw)
+            : null;
+          if (storageArrayId && storageArrayDeclaredSystem) {
+            storageArrayDeclaredSystems.set(
+              storageArrayId.toString(),
+              storageArrayDeclaredSystem,
+            );
           }
 
           // What a database's engine reports, as its alert templates read it.
@@ -2334,13 +2338,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                         /*
                          * Storage array identity lives in datapoint
-                         * labels too (`name`, `host`, `component_name`
-                         * on the purefa_* / purefb_* series), so the
-                         * same raw-datapoint buffering applies.
+                         * labels too (a volume's or host's name on its
+                         * platform's series), so the same raw-datapoint
+                         * buffering applies; each platform's extractor
+                         * reads its own series.
                          */
                         if (
                           storageArrayId &&
-                          STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)
+                          isStorageArraySnapshotMetric(metricName)
                         ) {
                           bufferStorageArraySnapshotMetric({
                             arrayIdStr: storageArrayId.toString(),
@@ -2348,6 +2353,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             datapoint: datapoint as JSONObject,
                             resourceBuffer: storageArrayResourceMetricsBuffer,
                             arrayBuffer: storageArraySnapshotBuffer,
+                            declaredStorageSystem: storageArrayDeclaredSystem,
                           });
                         }
 
@@ -5302,9 +5308,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * snapshots are best-effort and must never affect ClickHouse ingest.
    *
    * declaredSystems holds each array's declared `storage.system`; an array
-   * that sent no Pure series at all is visited for it too, so an array of a
-   * platform OneUptime has no catalog for is still labelled
-   * (resolveStorageArraySystem decides when the declaration counts).
+   * that sent no series any platform's extractor read is visited for it
+   * too, so an array of a platform OneUptime has no extractor for is still
+   * labelled (resolveStorageArraySystem decides when the declaration
+   * counts).
    */
   private static async flushStorageArraySnapshotBuffers(data: {
     projectId: ObjectID;
@@ -5381,9 +5388,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       /*
-       * A volume detached from its last host drops out of
-       * purefa_host_connections_info, so the upsert above never writes its
-       * count again. A batch that knows every connection zeroes the rest —
+       * A volume detached from its last host drops out of the hosts'
+       * connections, so the upsert above never writes its count again. A batch that knows every connection zeroes the rest —
        * after the upsert, outside it: an array whose last host was deleted
        * has no row to upsert and still has counts to clear.
        */
@@ -5437,6 +5443,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Storage array snapshot writeback (array) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      /*
+       * The count of each kind whose complete list the batch carried
+       * (StorageArray.countsByKind), merged into what the row holds: a
+       * volumes batch never erases the hosts count, and a kind whose last
+       * object was deleted is written 0.
+       */
+      try {
+        const countsByKind: Record<string, number> | null =
+          deriveStorageArrayCountsByKind(entries, snap);
+        if (countsByKind) {
+          await StorageArrayService.mergeCountsByKind({
+            storageArrayId: new ObjectID(liveIdStr),
+            countsByKind: countsByKind,
+          });
+        }
+      } catch (err) {
+        logger.warn(
+          `Storage array snapshot writeback (counts by kind) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

@@ -14,10 +14,10 @@ import {
   ResourceAttentionSeverity,
   ResourceAttentionText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
+import { FLASHARRAY_LATENCY_WARNING_USEC } from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
+import { FLASHBLADE_READ_LATENCY_WARNING_USEC } from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import {
   FILE_SYSTEM_NEAR_FULL_AVAILABLE_RATIO,
-  FLASHARRAY_LATENCY_WARNING_USEC,
-  FLASHBLADE_READ_LATENCY_WARNING_USEC,
   STORAGE_ARRAY_ATTENTION_KEY,
   STORAGE_ARRAY_CAPACITY_CRITICAL_PERCENT,
   STORAGE_ARRAY_CAPACITY_WARNING_PERCENT,

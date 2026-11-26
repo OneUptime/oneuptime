@@ -324,12 +324,14 @@ work now gets bounded shares of the pool, and requests always have the rest:
 
 | Work | Bound in each pod | Default (pool of 50) | Setting |
 | --- | --- | --- | --- |
-| Probe scheduling: every request a probe makes for work (`/monitor/list`, `/monitor-test/list`, `/probe/network-device/list`, discovery scans, device diagnostics, packet captures, VMware and OpenStack collections and checks, Data Security and Data Observability), and the pending counts | Requests running at once (about one connection each); at most half of them for one probe | 10 (a fifth of the pool) | `PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) |
-| Queue jobs, in a pod that also serves requests | Connections held at once | 30 (the pool less a fifth kept for requests and less probe scheduling's share) | `DATABASE_MAX_QUEUE_JOB_CONNECTIONS` (`app.databaseMaxQueueJobConnections`) |
+| Probe scheduling: every request a probe makes for work (`/monitor/list`, `/probe/network-device/list`, discovery scans, device diagnostics, packet captures, VMware and OpenStack collections and checks, Data Security and Data Observability), and the pending counts | Requests running at once (about one connection each), shared fairly among the probes asking: a probe alone may use them all | 10 (a fifth of the pool) | `PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) |
+| Test Monitor runs handed to probes (`/monitor-test/list`), in a lane of their own, so they never wait behind the monitors | Requests running at once | 2 (1 on a pool of fewer than 30) | `PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS` (`app.probeSchedulingMaxConcurrentMonitorTestRequests`) |
+| Queue jobs, in a pod that also serves requests | Connections held at once | 28 (the pool less a fifth kept for requests and less probe scheduling's two lanes) | `DATABASE_MAX_QUEUE_JOB_CONNECTIONS` (`app.databaseMaxQueueJobConnections`) |
 | Requests | Always at least what the others leave | 10, plus whatever the others are not using | - |
 
 Probe scheduling past its bound waits up to 5 seconds without a connection,
-then is answered busy: a probe that reads a 429 from that request (it declares
+in its lane's queue, then is answered busy: a probe that reads a 429 from
+that request (it declares
 `retryWhenBusy` for the monitor, monitor test and network device lists, and
 `retryAllWorkWhenBusy` for the rest) gets one, with `Retry-After: 10`; an
 older probe gets an empty batch. Both ask again later, and lose nothing:
@@ -341,6 +343,13 @@ the last count made for that probe in the last 15 minutes, never 0, so KEDA
 does not scale probes down for a busy server. A queue job past its bound waits
 without a connection, and fails after `DATABASE_CONNECTION_TIMEOUT_MS` as a
 checkout from a full pool does, to be retried.
+
+How full the probe scheduling lanes are, on every `app` pod together - the
+requests waiting for a slot, how long they waited, how many were answered
+busy, how late monitors were handed out and how long Test Monitor runs
+waited - is at `/metrics/probe-scheduling` on the app's port: see "Running
+many monitors" in
+[the production checklist](../Public/oneuptime/docs/production-checklist.md#running-many-monitors).
 
 Worker pods (`worker.enabled: true`) set `RECEIVES_INGRESS_TRAFFIC=false`:
 they serve no requests and no probes, so their jobs keep the whole pool. That

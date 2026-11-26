@@ -5,7 +5,9 @@
 # dashboards always find one. Both default in code to a share of the pool, so
 # the chart sets them only when asked to: unset, the code's defaults follow
 # DATABASE_MAX_OPEN_CONNECTIONS; set, the value must reach the container, or
-# the operator turns the knob and nothing changes.
+# the operator turns the knob and nothing changes. Test Monitor runs have a
+# lane of their own (PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS,
+# issue #10819), defaulted in code the same way.
 suite: app postgres connection shares
 release:
   name: oneuptime
@@ -27,6 +29,11 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS
           any: true
 
   - it: passes both shares through when set
@@ -72,5 +79,44 @@ tests:
       - templates/app.yaml
     set:
       app.databaseMaxQueueJobConnections: 0
+    asserts:
+      - failedTemplate: {}
+
+  - it: passes the Test Monitor lane's slots through when set
+    templates:
+      - templates/app.yaml
+    set:
+      app.probeSchedulingMaxConcurrentMonitorTestRequests: 4
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS
+            value: "4"
+
+  - it: never sets the Test Monitor lane on the worker pods, which serve no probes
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+      app.probeSchedulingMaxConcurrentMonitorTestRequests: 4
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS
+          any: true
+
+  - it: refuses a Test Monitor lane that is not a whole number above 0
+    templates:
+      - templates/app.yaml
+    set:
+      app.probeSchedulingMaxConcurrentMonitorTestRequests: 0
     asserts:
       - failedTemplate: {}

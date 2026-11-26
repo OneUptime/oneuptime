@@ -236,8 +236,8 @@ export interface MonitorRecommendationContext {
    * A storage array's platform — its `storageSystem`, a StorageSystem value
    * such as "purestorage.flasharray". It selects the templates whose metrics
    * that platform exports (`getStorageArrayAlertTemplatesForSystem`): a
-   * FlashBlade never sends a purefa_* series, so a FlashArray template on it
-   * would never fire. Like a database's engine there is no platform-agnostic
+   * FlashBlade never sends a FlashArray's series, so a FlashArray template
+   * on it would never fire. Like a database's engine there is no platform-agnostic
    * subset, so `null` / `undefined` (not reported yet) and a platform
    * OneUptime ships no templates for are offered nothing.
    */
