@@ -16,4 +16,7 @@ export const XCP_NG_DOCUMENTATION_TRANSLATIONS: SetupGuideTranslations = {
   fr: () => {
     return import("../DocumentationTranslations/fr");
   },
+  es: () => {
+    return import("../DocumentationTranslations/es");
+  },
 };
