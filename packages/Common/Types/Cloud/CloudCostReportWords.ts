@@ -46,7 +46,7 @@ export const REPORT_CHANGE_SAME: string = translationKey(
   "The same as {{previous}}",
 );
 export const REPORT_PREVIOUS_AMOUNT: string = translationKey(
-  "{{amount}} {{previous}}",
+  "It was {{amount}} {{previous}}.",
 );
 export const REPORT_BUDGET: string = translationKey("Budget");
 export const REPORT_BUDGET_LINE: string = translationKey(

@@ -162,6 +162,11 @@ export async function postCloudCost(data: {
     );
   }
 
+  // A text answer - the CSV, the FOCUS file - is held as { data: <text> }.
+  if (response.isText) {
+    return String((response.data as JSONObject)["data"] ?? "");
+  }
+
   return response.data as unknown as JSONValue;
 }
 
@@ -336,6 +341,8 @@ export function registerCloudCostCommands(
       collect,
     )
     .option("--file <path>", "Write the file here instead of to standard output")
+    .addOption(createOutputOption())
+    .addOption(createJsonOption())
     .action(async (options: CloudCostExportOptions, cmd: Command) => {
       try {
         const credentials: ResolvedCredentials = credentialsOf(cmd);
@@ -348,13 +355,29 @@ export function registerCloudCostCommands(
             isText: true,
           })) ?? "",
         );
-
         if (options.file) {
           fs.writeFileSync(options.file, text, "utf8");
-          printSuccess(`Wrote ${options.file}.`);
+
+          if (isJsonOutputRequested(cmd)) {
+            // eslint-disable-next-line no-console
+            console.log(
+              formatOutput(
+                {
+                  file: options.file,
+                  focusVersion: "1.2",
+                  bytes: Buffer.byteLength(text, "utf8"),
+                },
+                resolveOutputFormat(cmd),
+              ),
+            );
+            return;
+          }
+
+          printSuccess(`Wrote the FOCUS 1.2 file to ${options.file}.`);
           return;
         }
 
+        // The file itself is what is asked for: as it is, whatever -o says.
         process.stdout.write(text);
       } catch (error) {
         handleError(error);

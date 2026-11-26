@@ -437,7 +437,7 @@ describe("the report as written", () => {
     expect(text.total).toBe("$1,200");
     expect(text.change).toBe("20% more than the week before");
     expect(text.changeTone).toBe("up");
-    expect(text.previous).toBe("$1,000 the week before");
+    expect(text.previous).toBe("It was $1,000 the week before.");
     expect(text.stats.map((stat: { label: string }) => stat.label)).toEqual([
       "Budget",
       "Savings waiting",

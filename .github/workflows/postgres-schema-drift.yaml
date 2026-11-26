@@ -1572,6 +1572,24 @@ jobs:
           Tests/Server/Services/CloudCostGroupsPostgres.test.ts
           --forceExit
 
+      # Clones the cost reports' tables and the ones their hooks read into an
+      # isolated schema: who may make a report and send it outside the
+      # project, its name unique in its project, its people, teams and
+      # records the project's own, the next send at 09:00 in its maker's time
+      # zone, and two replicas that find a report due sending it once (#11009).
+      - name: Test cost reports against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_COST_REPORT_TESTS: "true"
+          CLOUD_COST_REPORT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_COST_REPORT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_COST_REPORT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudCostReportsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated CloudConnection into an isolated schema and makes
       # a connection's stream keys at the same moment, every one held at its
       # read until all have read: the compare-and-set over the jsonb

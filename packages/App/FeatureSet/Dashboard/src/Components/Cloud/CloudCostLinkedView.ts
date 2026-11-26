@@ -1,4 +1,4 @@
-import { fromCloudCostDay } from "Common/Types/Cloud/CloudCost";
+import { fromCloudCostDay, toCloudCostDay } from "Common/Types/Cloud/CloudCost";
 import {
   CloudCostBasis,
   isCloudCostBasis,
@@ -34,12 +34,15 @@ export interface CloudCostLinkedView {
 
 const DAY: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 
+// A day of the calendar: "2026-02-30" is none, though Date would roll it on.
 function isDay(value: string | null): value is string {
-  return Boolean(
-    value &&
-      DAY.test(value) &&
-      Number.isFinite(fromCloudCostDay(value).getTime()),
-  );
+  if (!value || !DAY.test(value)) {
+    return false;
+  }
+
+  const day: Date = fromCloudCostDay(value);
+
+  return Number.isFinite(day.getTime()) && toCloudCostDay(day) === value;
 }
 
 // What a query string names, read: anything it names wrongly is left out.

@@ -65975,5 +65975,6 @@
   "{{percent}} more than the period before": "{{percent}} more than the period before",
   "{{percent}} more than {{previous}}": "{{percent}} more than {{previous}}",
   "{{percent}} of them used": "{{percent}} of them used",
-  "{{spent}} of {{amount}} in {{month}}": "{{spent}} of {{amount}} in {{month}}"
+  "{{spent}} of {{amount}} in {{month}}": "{{spent}} of {{amount}} in {{month}}",
+  "It was {{amount}} {{previous}}.": "It was {{amount}} {{previous}}."
 }

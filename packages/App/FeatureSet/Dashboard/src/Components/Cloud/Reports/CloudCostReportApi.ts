@@ -89,7 +89,13 @@ export async function fetchCloudCostFocusExport(data: {
     throw response;
   }
 
-  const body: unknown = response.data;
+  /*
+   * A text answer is held as { data: <the file> } (HTTPResponse.isText):
+   * the file itself, never "[object Object]".
+   */
+  const body: unknown = response.isText
+    ? (response.data as JSONObject)["data"]
+    : response.data;
 
   return typeof body === "string" ? body : String(body ?? "");
 }
