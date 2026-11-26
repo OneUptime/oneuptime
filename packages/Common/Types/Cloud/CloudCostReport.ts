@@ -260,3 +260,170 @@ export function readCloudCostReportEmailAddresses(
 
   return addresses;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a report says
+ * ---------------------------------------------------------------------------
+ *
+ * The figures a report is sent with, worked out once for each way the
+ * costs may be read (CloudCostReportBuilder) and written in each reader's
+ * language as it goes out (CloudCostReportWords). Every figure is in the
+ * report's currency, on its cost basis.
+ */
+
+// A line of a report: a service, a cost group, an account.
+export interface CloudCostReportLine {
+  key: string;
+  // As the cloud or the team wrote it.
+  name: string;
+  amount: number;
+  previousAmount: number;
+}
+
+// A budget the report's spend counts towards: its month so far, or all of it.
+export interface CloudCostReportBudgetLine {
+  name: string;
+  // The month's amount, in the budget's currency (the report's).
+  amount: number;
+  // What its month cost through the report's last day, on the budget's basis.
+  spent: number;
+  // The month, "2026-11".
+  month: string;
+  basis: string;
+}
+
+// A day that cost far more than usual (CloudCostAnomaly), in the period.
+export interface CloudCostReportUnusualDay {
+  day: string;
+  // The account's name; empty for a cost group's day.
+  accountName: string;
+  // The service; empty for the whole account or group.
+  service: string;
+  amount: number;
+  usual: number;
+}
+
+// A saving waiting to be made (CloudCostRecommendation).
+export interface CloudCostReportSaving {
+  // What to do, in the recommender's words or OneUptime's.
+  action: string;
+  resourceName: string;
+  accountName: string;
+  monthlySavings: number;
+}
+
+export interface CloudCostReportSection {
+  // The whole report, or one cost group's section of a cost view's report.
+  kind: "summary" | "group";
+  groupId?: string | undefined;
+  // What the section is of: an account's, a group's or a view's name; "" for every account.
+  name: string;
+  total: number;
+  previousTotal: number;
+  // The services that rose and fell the most against the period before.
+  rises: Array<CloudCostReportLine>;
+  falls: Array<CloudCostReportLine>;
+  // A cost view's groups, the costliest first, and what no group takes.
+  groups?: Array<CloudCostReportLine> | undefined;
+  unallocated?: { amount: number; previousAmount: number } | undefined;
+  budgets: Array<CloudCostReportBudgetLine>;
+  unusualDays: Array<CloudCostReportUnusualDay>;
+  savings?:
+    | {
+        count: number;
+        monthlySavings: number;
+        top: Array<CloudCostReportSaving>;
+      }
+    | undefined;
+  // How much of the spend commitments covered, and how much of them was used.
+  commitments?:
+    | {
+        coveredPercent: number | null;
+        usedPercent: number | null;
+        hasCommitments: boolean;
+      }
+    | undefined;
+}
+
+export interface CloudCostReportContent {
+  reportId: string;
+  reportName: string;
+  projectName: string;
+  scope: CloudCostReportScope;
+  period: CloudCostReportPeriod;
+  // The days covered and compared with: "2026-11-16".
+  start: string;
+  lastDay: string;
+  previousStart: string;
+  previousLastDay: string;
+  currency: string;
+  basis: string;
+  section: CloudCostReportSection;
+  // The accounts left out, billed in another currency.
+  otherCurrencies: Array<{ name: string; currency: string }>;
+  // Costs on exactly these days (and this view or account), for the button.
+  costsUrl: string;
+  // The figures as a CSV, and the file's name.
+  csv: string;
+  csvFileName: string;
+  readAt: string;
+}
+
+/*
+ * Why a send left someone out, as the Reports page says it: a code the
+ * page words in the reader's language, and - for a channel - what its
+ * workspace said, in its own words.
+ */
+export enum CloudCostReportSkipReason {
+  // Left the project, or may not read its cloud costs.
+  MayNotRead = "may-not-read",
+  // Past the most people one send reaches.
+  TooManyPeople = "too-many-people",
+  // Addresses and channels no Cloud admin set.
+  NoOutsideSetter = "no-outside-setter",
+  // The Cloud admin who set them may no longer send outside the project.
+  OutsideSetterMayNot = "outside-setter-may-not",
+  // The channel's workspace did not take the message.
+  NotPosted = "not-posted",
+  // The Microsoft Teams team its channels are in is not known.
+  TeamsTeamUnknown = "teams-team-unknown",
+}
+
+export const CLOUD_COST_REPORT_SKIP_REASON_LABELS: Readonly<
+  Record<CloudCostReportSkipReason, string>
+> = {
+  [CloudCostReportSkipReason.MayNotRead]: translationKey(
+    "Not sent: they may not read this project's cloud costs.",
+  ),
+  [CloudCostReportSkipReason.TooManyPeople]: translationKey(
+    "Not sent: a report reaches at most 200 people. Send it to fewer teams.",
+  ),
+  [CloudCostReportSkipReason.NoOutsideSetter]: translationKey(
+    "Not sent: no Cloud admin set the report's addresses and channels. A Cloud admin can save them again.",
+  ),
+  [CloudCostReportSkipReason.OutsideSetterMayNot]: translationKey(
+    "Not sent: the person who set the report's addresses and channels may no longer send outside the project. A Cloud admin can save them again.",
+  ),
+  [CloudCostReportSkipReason.NotPosted]: translationKey(
+    "Not posted in this channel.",
+  ),
+  [CloudCostReportSkipReason.TeamsTeamUnknown]: translationKey(
+    "Not posted: the report does not say which Microsoft Teams team its channels are in.",
+  ),
+};
+
+export function isCloudCostReportSkipReason(
+  value: unknown,
+): value is CloudCostReportSkipReason {
+  return (
+    typeof value === "string" &&
+    (Object.values(CloudCostReportSkipReason) as Array<string>).includes(value)
+  );
+}
+
+// How many lines each list of a report shows.
+export const CLOUD_COST_REPORT_MOVERS: number = 5;
+export const CLOUD_COST_REPORT_UNUSUAL_DAYS: number = 5;
+export const CLOUD_COST_REPORT_SAVINGS: number = 5;
+export const CLOUD_COST_REPORT_GROUPS: number = 15;

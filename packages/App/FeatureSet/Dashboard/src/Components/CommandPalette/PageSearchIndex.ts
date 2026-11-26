@@ -4020,6 +4020,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.CLOUD_REPORTS,
+            title: "Reports",
+            icon: IconProp.Report,
+            keywords: [
+              "cost reports",
+              "cloud cost reports",
+              "scheduled reports",
+              "weekly cost report",
+              "monthly cost report",
+              "showback",
+              "chargeback",
+              "finops review",
+              "cost email",
+              "focus export",
+            ],
+          },
+          {
             page: PageMap.CLOUD_SCHEDULES,
             title: "Schedules",
             icon: IconProp.Moon,

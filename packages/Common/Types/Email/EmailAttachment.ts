@@ -28,7 +28,7 @@ export const EMAIL_ATTACHMENT_MIME_TYPES: ReadonlyArray<string> = ["text/csv"];
 
 // How many files one email carries, and how large they may be together.
 export const EMAIL_ATTACHMENTS_MAX_COUNT: number = 3;
-export const EMAIL_ATTACHMENTS_MAX_BYTES: number = 1024 * 1024;
+export const EMAIL_ATTACHMENTS_MAX_BYTES: number = 512 * 1024;
 
 // A file's name as an attachment carries it: no path, no line break, no quote.
 export function toEmailAttachmentFileName(value: string): string {

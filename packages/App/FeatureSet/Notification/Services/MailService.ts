@@ -5,6 +5,7 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
+import FileAttachments from "./MailProviders/FileAttachments";
 import InlineImageAttachments from "./MailProviders/InlineImageAttachments";
 import InlineImageRefusal from "./MailProviders/InlineImageRefusal";
 import MicrosoftGraphMailProvider from "./MailProviders/MicrosoftGraphMailProvider";
@@ -1415,10 +1416,18 @@ export default class MailService {
               html: mail.body,
               /*
                * An attachment with a cid is "related" to the HTML: nodemailer
-               * sends both in one multipart/related part.
+               * sends both in one multipart/related part. The files the email
+               * carries (a cost report's CSV, FileAttachments) have none, and
+               * go as attachments of their own.
                */
-              ...(inlineImages.length > 0
-                ? { attachments: InlineImageAttachments.forSmtp(inlineImages) }
+              ...(inlineImages.length > 0 ||
+              FileAttachments.of(mail).length > 0
+                ? {
+                    attachments: [
+                      ...InlineImageAttachments.forSmtp(inlineImages),
+                      ...FileAttachments.forSmtp(FileAttachments.of(mail)),
+                    ],
+                  }
                 : {}),
             });
 

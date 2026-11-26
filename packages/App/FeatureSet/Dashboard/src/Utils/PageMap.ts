@@ -1298,6 +1298,8 @@ enum PageMap {
   CLOUD_COMMITMENTS = "CLOUD_COMMITMENTS",
   CLOUD_SCHEDULES = "CLOUD_SCHEDULES",
   CLOUD_BUDGETS = "CLOUD_BUDGETS",
+  // Scheduled cost reports, to email, Slack and Microsoft Teams (#11009).
+  CLOUD_REPORTS = "CLOUD_REPORTS",
   // The project's cost basis and when its commitments alert.
   CLOUD_SETTINGS_COSTS = "CLOUD_SETTINGS_COSTS",
   CLOUD_COST_GROUPS = "CLOUD_COST_GROUPS",

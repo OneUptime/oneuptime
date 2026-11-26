@@ -681,6 +681,7 @@ import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
 import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
+import CloudCostReportAPI from "Common/Server/API/CloudCostReportAPI";
 import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
 import CloudCostLineItemService, {
   Service as CloudCostLineItemServiceType,
@@ -4031,6 +4032,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CloudCostViewAPI().getRouter(),
+    );
+
+    // Scheduled cloud cost reports, with Preview and Send Me a Copy (#11009).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostReportAPI().getRouter(),
     );
 
     app.use(
