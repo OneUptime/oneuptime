@@ -755,7 +755,7 @@ describe("resizing a VM", () => {
 
     expect(failure).toBeInstanceOf(BadDataException);
     expect((failure as Error).message).toBe(
-      "Azure would not make VM web-01 a Standard_E4s_v5, so it was left a Standard_D8s_v5: The requested VM size Standard_E4s_v5 is not available in the current region. The sizes available in the current region are: Standard_B2s,Standard_D2s_v5.",
+      "Azure would not make VM web-01 a Standard_E4s_v5, so it was left a Standard_D8s_v5. The requested VM size Standard_E4s_v5 is not available in the current region. The sizes available in the current region are: Standard_B2s,Standard_D2s_v5.",
     );
     expect(fake.vms.get(VM_ID.toLowerCase())?.vmSize).toBe("Standard_D8s_v5");
   });

@@ -19,6 +19,7 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import CloudSavingsActionService from "../../../../Server/Services/CloudSavingsActionService";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../../../../Server/Utils/AnalyticsDatabase/StatementGenerator";
+import UpdateByID from "../../../../Server/Types/Database/UpdateByID";
 import CloudSavingsBillReader from "../../../../Server/Utils/CloudSavings/CloudSavingsBillReader";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
@@ -122,7 +123,7 @@ function bill(data: {
         day,
         // 10 a day before; the change's own day is in neither window.
         cost: isBefore ? 10 : isChangeDay ? 6 : data.volumeAfter,
-        provider: data.provider,
+        ...(data.provider ? { provider: data.provider } : {}),
       }),
     );
     // The account's other costs, every day: its costs were read.
@@ -254,9 +255,12 @@ integration("the bill reader, against ClickHouse", () => {
     // What the reader writes back to the change.
     jest
       .spyOn(CloudSavingsActionService, "updateOneById")
-      .mockImplementation(async (data: { data: unknown }): Promise<void> => {
-        written.push(data.data as JSONObject);
-      });
+      .mockImplementation(
+        async (data: UpdateByID<CloudSavingsAction>): Promise<number> => {
+          written.push(data.data as unknown as JSONObject);
+          return 1;
+        },
+      );
     jest.spyOn(CloudResourceService, "findOneById").mockResolvedValue(null);
   });
 

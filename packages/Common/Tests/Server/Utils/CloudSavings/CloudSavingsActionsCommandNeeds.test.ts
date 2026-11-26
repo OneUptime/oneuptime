@@ -8,6 +8,7 @@ import {
 } from "../../../../Types/Cloud/CloudSavingsAction";
 import {
   CloudConnectionAuthMethod,
+  CloudConnectionField,
   SAVINGS_ACTIONS_FIELD_KEY,
   getCloudConnectionDefinition,
   isCloudConnectionSavingsActionsOn,
@@ -391,9 +392,7 @@ describe("the form and the server read the setting alike", () => {
 
   test("every choice the form offers is a level the server knows, off first and by default", () => {
     for (const provider of Object.values(CloudProvider)) {
-      const field: ReturnType<
-        typeof getCloudConnectionDefinition
-      >["configFields"][number] = getCloudConnectionDefinition(
+      const field: CloudConnectionField = getCloudConnectionDefinition(
         provider,
       )!.configFields.find((candidate: { key: string }): boolean => {
         return candidate.key === SAVINGS_ACTIONS_FIELD_KEY;

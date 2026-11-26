@@ -51,6 +51,7 @@ import {
 import { CloudSavingsAiAutonomy } from "../../../../Types/Cloud/CloudSavingsAi";
 import {
   CloudOffHoursPreview,
+  CloudOffHoursPreviewResource,
   CloudOffHoursSkipReason,
   CloudSavingsActionResult,
   CloudSavingsConnectionState,
@@ -1708,7 +1709,7 @@ describePostgres("acting on savings, against Postgres", () => {
 
       expect(
         preview.resources
-          .map((resource: { name: string; skipReason?: string }): string => {
+          .map((resource: CloudOffHoursPreviewResource): string => {
             return `${resource.name}: ${resource.skipReason || "stopped"}`;
           })
           .sort(),

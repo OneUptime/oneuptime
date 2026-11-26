@@ -1,3 +1,4 @@
+import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import {
   CloudSavingsActionKind,
   CloudSavingsTarget,
@@ -279,7 +280,7 @@ async function changeInstanceState(
   } catch (error) {
     if (codeOf(error) === "UnsupportedOperation") {
       throw new BadDataException(
-        `AWS cannot ${verb === "StopInstances" ? "stop" : "start"} instance ${id}: ${awsErrorMessageOf(
+        `AWS cannot ${verb === "StopInstances" ? "stop" : "start"} instance ${id} now. ${awsErrorMessageOf(
           (error as LlmProviderError).responseBody || "",
         )}`,
       );
@@ -452,7 +453,7 @@ async function resizeInstance(
 
         if (codeOf(error) === "InvalidParameterValue") {
           throw new BadDataException(
-            `AWS would not make instance ${id} a ${to}, so it was left a ${progress.previous || "the size it was"}${progress.wasRunning ? " and started again" : ""}: ${awsErrorMessageOf(
+            `AWS would not make instance ${id} a ${to}, so it was left ${progress.previous ? `a ${progress.previous}` : "the size it was"}${progress.wasRunning ? " and started again" : ""}. ${awsErrorMessageOf(
               (error as LlmProviderError).responseBody || "",
             )}`,
           );
@@ -570,7 +571,7 @@ async function changeDatabaseState(
       code === "InvalidDBClusterStateFault"
     ) {
       throw new BadDataException(
-        `AWS cannot ${verb === "StopDBInstance" ? "stop" : "start"} database ${id} now: ${awsErrorMessageOf(
+        `AWS cannot ${verb === "StopDBInstance" ? "stop" : "start"} database ${id} now. ${awsErrorMessageOf(
           (error as LlmProviderError).responseBody || "",
         )}`,
       );
@@ -697,7 +698,7 @@ async function resizeDatabase(
       codeOf(error) === "InvalidParameterValue"
     ) {
       throw new BadDataException(
-        `AWS would not make database ${id} a ${to}: ${awsErrorMessageOf(
+        `AWS would not make database ${id} a ${to}. ${awsErrorMessageOf(
           (error as LlmProviderError).responseBody || "",
         )}`,
       );
@@ -883,7 +884,7 @@ async function changeVolumeType(
     );
     body["Iops"] = String(performance.iops);
     body["Throughput"] = String(performance.throughput);
-    detail = ` with ${performance.iops} IOPS and ${performance.throughput} MiB/s, as fast as it was`;
+    detail = ` with ${performance.iops}${NO_BREAK_SPACE}IOPS and ${performance.throughput}${NO_BREAK_SPACE}MiB/s, as fast as it was`;
   }
 
   await modifyVolumeType(call, id, body);
@@ -1197,7 +1198,7 @@ async function deleteSnapshot(
   } catch (error) {
     if (codeOf(error) === "InvalidSnapshot.InUse") {
       throw new BadDataException(
-        `Snapshot ${id} is used by an image (AMI), so it was kept: ${awsErrorMessageOf(
+        `Snapshot ${id} is used by an image (AMI), so it was kept. ${awsErrorMessageOf(
           (error as LlmProviderError).responseBody || "",
         )}`,
       );

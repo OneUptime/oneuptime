@@ -561,7 +561,7 @@ describe("deleting an unattached disk after a final snapshot", () => {
 
     expect(failure).toBeInstanceOf(BadDataException);
     expect((failure as Error).message).toBe(
-      `Disk data-old was attached before it could be deleted, so it was kept: The disk resource 'projects/${PROJECT}/zones/${ZONE}/disks/data-old' is already being used by 'projects/${PROJECT}/zones/${ZONE}/instances/batch-7'`,
+      `Disk data-old was attached before it could be deleted, so it was kept. The disk resource 'projects/${PROJECT}/zones/${ZONE}/disks/data-old' is already being used by 'projects/${PROJECT}/zones/${ZONE}/instances/batch-7'`,
     );
     expect(fake.disks.size).toBe(1);
   });
@@ -988,7 +988,7 @@ describe("resizing an instance", () => {
 
     expect(failure).toBeInstanceOf(BadDataException);
     expect((failure as Error).message).toBe(
-      `Google Cloud would not make instance web-1 a n9-tiny-1, so it was left a n2-standard-8 and started again: Invalid value for field 'resource.machineType': 'zones/${ZONE}/machineTypes/n9-tiny-1'. Machine type with name 'n9-tiny-1' does not exist in zone '${ZONE}'.`,
+      `Google Cloud would not make instance web-1 a n9-tiny-1, so it was left a n2-standard-8 and started again. Invalid value for field 'resource.machineType': 'zones/${ZONE}/machineTypes/n9-tiny-1'. Machine type with name 'n9-tiny-1' does not exist in zone '${ZONE}'.`,
     );
     expect(fake.writes()).toEqual([
       "compute.instances.stop",

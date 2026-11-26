@@ -670,9 +670,9 @@ async function resizeInstance(
           error.statusCode === 400
         ) {
           throw new BadDataException(
-            `Google Cloud would not make ${call.what} a ${to}, so it was left a ${progress.previous || "the size it was"}${
+            `Google Cloud would not make ${call.what} a ${to}, so it was left ${progress.previous ? `a ${progress.previous}` : "the size it was"}${
               progress.wasRunning ? " and started again" : ""
-            }: ${googleErrorOf(error).message}`,
+            }. ${googleErrorOf(error).message}`,
           );
         }
 
@@ -905,7 +905,7 @@ async function deleteDisk(
 
       if (isInUse(error)) {
         throw new BadDataException(
-          `${capitalized(call.what)} was attached before it could be deleted, so it was kept: ${googleErrorOf(error).message}`,
+          `${capitalized(call.what)} was attached before it could be deleted, so it was kept. ${googleErrorOf(error).message}`,
         );
       }
 
@@ -1053,7 +1053,7 @@ async function releaseAddress(
 
     if (isInUse(error)) {
       throw new BadDataException(
-        `${capitalized(named)} was put to use before it could be released, so it was kept: ${googleErrorOf(error).message}`,
+        `${capitalized(named)} was put to use before it could be released, so it was kept. ${googleErrorOf(error).message}`,
       );
     }
 

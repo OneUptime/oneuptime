@@ -475,7 +475,7 @@ async function resizeVm(
       (error.statusCode === 400 || error.statusCode === 409)
     ) {
       throw new BadDataException(
-        `Azure would not make ${call.what} a ${to}, so it was left a ${vm.vmSize || "the size it was"}: ${armErrorOf(error).message}`,
+        `Azure would not make ${call.what} a ${to}, so it was left ${vm.vmSize ? `a ${vm.vmSize}` : "the size it was"}. ${armErrorOf(error).message}`,
       );
     }
 
@@ -670,7 +670,7 @@ async function deleteDisk(
         !isLocked(error)
       ) {
         throw new BadDataException(
-          `${capitalized(call.what)} was attached before it could be deleted, so it was kept: ${armErrorOf(error).message}`,
+          `${capitalized(call.what)} was attached before it could be deleted, so it was kept. ${armErrorOf(error).message}`,
         );
       }
 

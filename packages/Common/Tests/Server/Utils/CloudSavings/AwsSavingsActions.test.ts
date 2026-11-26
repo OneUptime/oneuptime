@@ -302,7 +302,7 @@ describe("stopping an idle RDS database", () => {
         }),
       ),
     ).rejects.toThrow(
-      "AWS cannot stop database aurora-1 now: aurora-postgresql DB instances are not eligible",
+      "AWS cannot stop database aurora-1 now. aurora-postgresql DB instances are not eligible",
     );
   });
 
