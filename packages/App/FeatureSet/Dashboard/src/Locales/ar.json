@@ -64734,7 +64734,7 @@
   "ICMP Packet Loss (in %)": "فقدان حزم ICMP (بالنسبة المئوية)",
   "ICMP Response Time": "زمن استجابة ICMP",
   "ICMP Response Time (in ms)": "زمن استجابة ICMP (بالمللي ثانية)",
-  "ICMP Response Time (in ms) of the device's ping": "زمن استجابة ICMP (بالمللي ثانية) لـ ping الجهاز",
+  "ICMP Response Time (in ms) of the device's ping": "زمن استجابة ICMP (بالـ ms) لـ ping الجهاز",
   "Reachable by Ping (ICMP)": "قابل للوصول عبر Ping (ICMP)",
   "SNMP is failing on {{monitorName}}": "SNMP يفشل على {{monitorName}}",
   "The average round trip of the device's ping. Not checked when no echo came back.": "متوسط زمن الذهاب والإياب لـ ping الجهاز. لا يُفحص عندما لا يعود أي صدى.",

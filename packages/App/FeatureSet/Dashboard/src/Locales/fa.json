@@ -64734,7 +64734,7 @@
   "ICMP Packet Loss (in %)": "از دست رفتن بستهٔ ICMP (به %)",
   "ICMP Response Time": "زمان پاسخ ICMP",
   "ICMP Response Time (in ms)": "زمان پاسخ ICMP (به میلی‌ثانیه)",
-  "ICMP Response Time (in ms) of the device's ping": "زمان پاسخ ICMP (به میلی‌ثانیه) پینگ دستگاه",
+  "ICMP Response Time (in ms) of the device's ping": "زمان پاسخ ICMP (به ms) پینگ دستگاه",
   "Reachable by Ping (ICMP)": "در دسترس با پینگ (ICMP)",
   "SNMP is failing on {{monitorName}}": "SNMP در {{monitorName}} ناموفق است",
   "The average round trip of the device's ping. Not checked when no echo came back.": "میانگین رفت‌وبرگشت پینگ دستگاه. وقتی هیچ پاسخی برنگشت بررسی نمی‌شود.",

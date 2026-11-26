@@ -146,11 +146,14 @@ En discovery-skanning av en kundes nettverk henter inn dusinvis av enheter som h
 | --- | --- |
 | **Angi lokasjon** / **Fjern lokasjon** | Flytter hver merkede enhet til lokasjonen du velger, der den teller med i lokasjonens helse; en enhet uten egen sonde tar lokasjonens standardsonde. **Fjern lokasjon** tar dem ut av lokasjonene sine. En enhet som en lokasjonstildelingsregel treffer, går tilbake til regelens lokasjon ved neste polling, så for enheter som discovery fortsetter å finne, legger du heller til en regel under **Nettverk → Regler → Regler for lokasjonstildeling**; dialogen **Angi lokasjon** lenker dit. |
 | **Angi enhetsrolle** / **Fjern enhetsrolle** | Gir hver merkede enhet én rolle, som de tjue svitsjene som alle er "Access Switch". Rollene er prosjektets egne, under **Nettverk → Innstillinger → Enhetsroller**, som dialogen lenker til. **Fjern enhetsrolle** utleder hver enhets rolle fra SNMP-identiteten igjen. |
+| **Opprett monitorer** | Gir hver merkede enhet en monitor fra malen du velger, slik en import gjør: monitoren fra en nettverksenhetsmal leser enhetens spørringer, og monitoren fra en Ping-, IP-, Port- eller NTP-mal sjekker enhetens egen adresse. En enhet som allerede har en monitor fra den malen, eller en av samme type som sjekker det samme, beholder den og får ikke en til. |
 | **Bruk produsentmal** | Legger til en [produsentmals](#produsentenes-helsemaler) helse-OID-er og SNMP-tabeller på hver merkede enhet. **Match hver enhets produsent**, dialogens første valg, velger hver enhets egen mal ut fra det SNMP-walket rapporterer, så et blandet utvalg får riktig mal overalt; eller velg én mal for alle. |
 
 Hver handling er én dialog og én lagring for hele utvalget, og hver enhet går gjennom de samme kontrollene som en redigering på sin egen side Innstillinger: tillatelser, rollens etikett- og eieromfang og grensene for hva en enhet kan samle inn.
 
 **Bruk produsentmal** viser hva den skal gjøre før den gjør noe: hvor mange enheter som får hvilken mal, og hvor mange den lar være og hvorfor. Den legger til det hver enhet allerede samler inn og fjerner ingenting, og en enhet som allerede har alt i malen, skrives ikke på nytt. Den lar være en enhet med bundet monitor (ingenting poller den), en enhet som er knyttet til en [OID Collection Template](#maler-for-oid-innsamling) (malen bestemmer hva den samler inn, så legg til produsentens OID-er der) og, ved matching, en enhet som ikke er walket via SNMP ennå, eller hvis produsent ikke har noen mal.
+
+**Opprett monitorer** kjører på serveren, opptil 5 000 enheter om gangen, og den stopper ikke når du lukker dialogen. Dialogen teller monitorene etter hvert som hver av dem opprettes, allerede finnes eller feiler, og **Stopp** stopper kjøringen etter enheten som er i ferd med å få monitoren sin. **Prøv på nytt** prøver bare enhetene som feilet, på nytt, og å kjøre den igjen på de samme enhetene oppretter ingenting to ganger. En enhet som får statusen sin fra en monitor som er bundet til den, får ingen nettverksenhetsmonitor, fordi ingenting poller den. Hver monitor teller mot abonnementet ditt: et abonnement uten plass igjen nekter å starte, og når det fylles opp underveis, vises de gjenværende enhetene blant dem som ikke fikk tildelt noen monitor, med årsaken, så de kan prøves på nytt når det er plass.
 
 Når en handling er ferdig, viser den hvor mange enheter som ble endret, hvilke som feilet og hvorfor — en enhet rollen din ikke kan redigere, en liste over grensen — og hvilke den ikke endret og hvorfor: en enhet som allerede var på den lokasjonen eller hadde den rollen, eller en som produsentmalen lar være.
 
@@ -181,6 +184,8 @@ En enhet som svarer på ping, men hvis walk feiler, er **Oppe**, merket med **SN
 - Den er SNMP failing fordi grensesnittene, inventaret og helse-OID-ene har sluttet å bli oppdatert, nesten alltid på grunn av påloggingsinformasjon, en deaktivert SNMP-agent eller en ACL. Ingenting annet på siden ville fortalt deg at tallene er frosset.
 
 En enhet der både ping og walk feiler, er rett og slett **Nede**, så merkingen står bare noensinne ved siden av en grønn status.
+
+Monitorer skiller de to på samme måte. **Enhet er tilgjengelig (ICMP)** vurderer pollingens ping for seg, og en ny nettverksenhetsmonitor utløser et varsel, ikke en hendelse, og forblir online når SNMP feiler på en enhet som svarer på ping: se [En ny monitors kriterier](#en-ny-monitors-kriterier).
 
 ### Slik leser du en enhets status
 
@@ -731,7 +736,7 @@ For å få enhetene du allerede har, i tråd med reglene, trykker du på **Bruk 
 
 ### Importer automatisk med automatiske importregler
 
-Å gå gjennom hver skanning for hånd skalerer ikke forbi de første delnettene. **Nettverk → Regler → Regler for automatisk import** er der du skriver ned importen én gang: en regel sier hvilke oppdagede verter den gjør krav på (et IP-område, og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`) og eventuelt hvilken monitormal og hvilken [OID Collection Template](#maler-for-oid-innsamling) enhetene den importerer, får. Monitoren fra en nettverksenhetsmal leser hver enhets spørringer, monitoren fra en Ping-, IP-, Port- eller NTP-mal sjekker hver enhets egen adresse, og monitoren fra en Nettsted-, API- eller SSL-sertifikatmal sjekker malens URL med hver enhets adresse som vert. En enhet får aldri en ny monitor av samme type. En regel som er merket som unntak, gjør ikke krav på noe og nedlegger veto mot de andre: slik skjæres skrivere og telefoner ut av en bred delnettsregel.
+Å gå gjennom hver skanning for hånd skalerer ikke forbi de første delnettene. **Nettverk → Regler → Regler for automatisk import** er der du skriver ned importen én gang: en regel sier hvilke oppdagede verter den gjør krav på (et IP-område, og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`) og eventuelt hvilken monitormal og hvilken [OID Collection Template](#maler-for-oid-innsamling) enhetene den importerer, får. Monitoren fra en nettverksenhetsmal leser hver enhets spørringer, monitoren fra en Ping-, IP-, Port- eller NTP-mal sjekker hver enhets egen adresse, og monitoren fra en Nettsted-, API- eller SSL-sertifikatmal sjekker malens URL med hver enhets adresse som vert. En enhet prosjektet allerede har, får også malens monitor, med mindre den allerede har en: en monitor fra den samme malen, eller en av samme type som sjekker det samme, som er laget for den, er knyttet til den, er bundet til den eller overvåker den. En monitor av en annen type, eller en nettverksenhetsmonitor fra en annen mal eller uten mal, hindrer det aldri, så en enhet får aldri den samme monitoren to ganger, og går aldri glipp av den regelen gir. En regel som er merket som unntak, gjør ikke krav på noe og nedlegger veto mot de andre: slik skjæres skrivere og telefoner ut av en bred delnettsregel.
 
 I en regel bestemmer **Sjekk hvert** hvor ofte skanningens sonde poller hver enhet regelen importerer, slik **Sjekk hvert** gjør når du importerer fra **Se gjennom resultater**; tomt er det hvert 5. minutt. En regel med **Ta med verter med bare ping** slått på importerer også verter som bare svarte på ping, blant dem hver vert en [ICMP-skanning](#icmp-skanninger) finner, og gir også dem monitormalen sin: sonden pinger dem, så malens kontroller av om en enhet er oppe, og av trapene den sender, virker for dem med en gang, og kontrollene som leser et SNMP-walk, så snart enheten har påloggingsinformasjon.
 
@@ -815,7 +820,7 @@ For å opprette en fra **Monitorer** i stedet:
 
 En nettverksenhetsmonitor har ikke noe eget intervall: den vurderes hver gang enhetens pollingresultater kommer inn, og hver gang en trap fra enheten kommer inn.
 
-Når pollingen stopper, vurderes monitoren likevel. Når en enhet har gått tre pollingintervaller, og minst ti minutter, uten polling, vurderes monitorene dens én gang, hver gang pollingen stopper, som en polling som ikke nådde den (en sjekk kjører hvert femte minutt): et kriterium som treffer at **SNMP-enhet er tilkoblet** er False, for eksempel **Device unreachable**, utløses, og hendelsen sier hvorfor ingen polling kom, for eksempel at sonden er nede eller at enheten ikke har noen sonde. En enhet med polling slått av, eller med [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), blir latt være. Neste polling vurderer monitoren som vanlig.
+Når pollingen stopper, vurderes monitoren likevel. Når en enhet har gått tre pollingintervaller, og minst ti minutter, uten polling, vurderes monitorene dens én gang, hver gang pollingen stopper, som en polling som ikke nådde den (en sjekk kjører hvert femte minutt): et kriterium som treffer at **SNMP-enhet er tilkoblet** eller **Enhet er tilgjengelig (ICMP)** er False, for eksempel **Device unreachable**, utløses, og hendelsen sier hvorfor ingen polling kom, for eksempel at sonden er nede eller at enheten ikke har noen sonde. En enhet med polling slått av, eller med [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), blir latt være. Neste polling vurderer monitoren som vanlig.
 
 En monitor du lager for en enhet, er knyttet til den: en du oppretter fra kortet, og en du oppretter fra **Monitorer** på adressen til en enhet som sondene dens kjenner, funnet slik vertene i en skanning finnes: en enhet de poller, ellers den eneste med adressen på en lokasjon der de poller enheter eller er standardsonde. Sonder som ikke poller noe og ikke er standardsonde for noen lokasjon, knytter den bare til en enhet uten lokasjon som er den eneste i prosjektet med adressen, så en monitor aldri knyttes til en enhet på en annen lokasjon på gjetting. I alle andre tilfeller velger du enheten under **Nettverksenhet** i skjemaets **Flere felt**, eller endrer den senere på monitorens kort **Detaljer**. **Legg til eksisterende monitor**, på enhetens kort, knytter en monitor du har laget tidligere, til enheten. En knyttet monitor vises på enhetens sider, det den utløser, knyttes til enheten, og en import eller en regel for automatisk import teller den med, så enheten aldri får en ny monitor av samme slag. **Fjern**, på raden til en knyttet monitor, fjerner koblingen når du bekrefter: Den vises ikke lenger på enheten, det den utløser fra da av, knyttes ikke til enheten, og importer og regler for automatisk import slutter å telle den med. Selve monitoren fortsetter å sjekke, uendret. En monitor som enheten viser av en annen grunn, for eksempel en som en import har laget for den, eller monitoren enheten er bundet til, har ingen **Fjern**. Når sondene til en monitor endres, finner OneUptime koblingen dens på nytt på samme måte. En monitor som ikke er knyttet til noen enhet, knyttes til enheten sondene dens nå ser. En kobling OneUptime har laget, flyttes til den enheten eller fjernes når de ikke ser noen eller ikke kan skille to. En kobling du selv har laget eller fjernet, blir slik du lot den være, og det samme gjør en kobling fra før OneUptime begynte å registrere hvem som laget den. Hver endring noteres i monitorens feed. Under enhetens egne monitorer viser kortet monitorene som sjekker adressen, men ikke er knyttet til noen enhet. **Legg til** knytter en monitor der sondene ser denne enheten. En monitor der sondene ikke kan skille enheten fra en annen enhet med adressen, eller ikke poller noen enhet og ikke er standardsonde for noen lokasjon, sier hvorfor og nevner de andre enhetene: Hvis den sjekker denne enheten, knytter du den med **Legg til eksisterende monitor**.
 
@@ -844,7 +849,10 @@ Kriterier sjekker hvert pollingresultat og hver trap, og oppretter hendelser ell
 
 | Filtertype | Hva den sjekker | Ved en polling med bare ping |
 | --- | --- | --- |
-| SNMP Device Is Online | Om enheten kan nås, via ping eller SNMP: den samme avgjørelsen som statusen. | Vurderes |
+| SNMP Device Is Online | Om enheten kan nås, via ping eller SNMP: den samme avgjørelsen som statusen. Til tross for navnet er en enhet som svarer på ping, online mens SNMP feiler. | Vurderes |
+| Device Is Reachable (ICMP) | Om enheten svarte på sondens ping ved denne pollingen, uansett hva SNMP gjorde. | Vurderes |
+| ICMP Response Time (in ms) | Den gjennomsnittlige tur-returen for pollingens ping. Ingen avgjørelse ved en polling der pingen ikke fikk noe ekko tilbake. | Vurderes |
+| ICMP Packet Loss (in %) | Andelen av pingens ekkoer som enheten ikke besvarte. | Vurderes |
 | SNMP Walk Is Succeeding | Om det siste SNMP-walket lyktes. Usann er tilstanden "SNMP failing": tilgjengelig, men grensesnitt og inventar har sluttet å bli oppdatert. | Vurderes ikke |
 | SNMP Response Time (in ms) | Walkets svartid i millisekunder, aldri pingens. | Vurderes ikke |
 | SNMP OID Value | Verdien én OID returnerte. | Vurderes ikke |
@@ -866,6 +874,8 @@ Kriterier sjekker hvert pollingresultat og hver trap, og oppretter hendelser ell
 
 Ved en polling der ikke noe walk kjørte, gir kriteriene merket "Vurderes ikke" ingen avgjørelse i stedet for en negativ. Et kriterium som oppretter en hendelse når SNMP-svartiden er for høy, kan ikke utløses på en enhet som bare pinges, så en enhet med bare ping som overvåkes av walkbaserte kriterier, gir aldri falsk alarm.
 
+ICMP-sjekkene leser pingen som hver polling allerede sender fra enhetens sonde, ved siden av SNMP-walket, så de trenger ingen Ping-monitor og ingen oppdatering av sonden. De kan vurderes over et tidsrom, slik som svartidssjekkene. En polling fra en sonde som er for gammel til å pinge, gir ingen avgjørelse på dem.
+
 Grensesnittsjekkene krever **Walk Interfaces** slått på i enhetens pollinginnstillinger, slik det er som standard. OID-sjekkene leser enhetens konfigurerte helse-OID-er. Administrativt deaktiverte grensesnitt er nede med vilje og teller aldri som feil.
 
 **SNMP-grensesnittutnyttelse (i %)** tar også **Unormalt høy**, **Unormalt lav** og **Avvikende**, med **Følsomhet** og **Grunnlinjevindu** som på en [Målingsmonitor](/docs/monitor/metrics-monitor). Hvert grensesnitt i omfanget sammenlignes med sin egen utnyttelse i samme time i uken på tidligere dager, slik dette trinnet av monitoren har pollet det, så en reservelinje som går fullt hver natt, vurderes etter sine egne netter, ikke etter de rolige portene ved siden av. Hendelsen eller varselet nevner grensesnittet som ligger lengst utenfor sitt område, og hvor mange flere som ligger utenfor sitt. Et grensesnitt lærer fortsatt, og utløser ingenting, til den timen i uken har to uker av historikken dets.
@@ -876,6 +886,24 @@ Kriterier for SNMP-tabeller velger en tabell, en kolonne (for SNMP Table Value) 
 
 Transceiverkriterier har omfang som grensesnittsjekkene: tomt vurderer hver modul som ett samlet varsel, `*` gir et separat varsel for hver port med en modul (hvert løst for seg og med navn etter porten), og alt annet navngir én port etter navn eller alias. De vurderer enhetens [transceivere](#transceivere) slik de er ved denne pollingen, som allerede bærer historikken sin — hvor mange pollinger en modul har manglet, en måneds mottatt effekt — så heller ikke de vurderes over et tidsrom. En polling der lesingen av transceivere feilet, lar dem vurdere den siste gode lesingen, så et åpent varsel løses ikke ved en polling som ikke kunne se.
 
+### En ny monitors kriterier
+
+En ny nettverksenhetsmonitor starter med tre kriterier. De sjekkes i rekkefølge, og det første som treffer, setter monitorens status:
+
+| Kriterium | Treffer når | Status | Utløser |
+| --- | --- | --- | --- |
+| Offline | Enheten svarer verken på ping eller SNMP: **SNMP-enhet er tilkoblet** er Usann. | Offline | En hendelse |
+| SNMP feiler | Enheten svarer på ping, **Enhet er tilgjengelig (ICMP)** er Sann, mens walket feiler, **SNMP-walk lykkes** er Usann. | Online | Et varsel med prosjektets advarselsnivå |
+| Online | Enheten svarer på ping eller SNMP. | Online | Ingenting |
+
+At SNMP feiler, betyr ikke at enheten er offline. En endret community string, en stoppet SNMP-agent eller en ACL stopper walket på hver enhet den berører, mens hver av dem fortsatt svarer på ping og videresender trafikk. Ett problem med påloggingsinformasjon på tvers av 3 000 svitsjer er 3 000 varsler som sier at SNMP feiler, med én ting å rette, i stedet for 3 000 enheter som er nede på statussidene dine. Varselet løses ved den første pollingen der walket lykkes.
+
+Kriteriet "SNMP feiler" setter statusen til Online i stedet for å la den være som den var, fordi bare det første kriteriet som treffer, får virkning: en enhet som var offline i én polling og kom tilbake med SNMP som fortsatt feilet, ville ellers blitt værende offline så lenge SNMP feilet.
+
+Offline krever at begge feiler, ikke bare pingen, fordi utstyr bak en ACL som blokkerer ICMP fra sonden, fortsatt svarer på SNMP og er oppe. Hvis alle enhetene du overvåker, svarer på ping, kan du i stedet la Offline-kriteriet ditt være **Enhet er tilgjengelig (ICMP)** er Usann, og legge til kriterier med **ICMP-svartid (i ms)** eller **ICMP-pakketap (i %)** for en treg lenke eller en lenke med pakketap. For en enhet som bare pinges, meldes det aldri at SNMP feiler: uten walk vurderes ikke det kriteriet.
+
+Monitorer som ble laget før dette, beholder kriteriene de har. For å gi en av dem de nye kriteriene legger du dem til i monitorens kriterieskjema, eller i malen monitorene er laget fra, og bruker **Synkroniser fra mal**.
+
 ### Anbefalt varslingspakke
 
 Klikk på **Add Recommended Alerts** i kriterieskjemaet for å legge til et ferdig sett med kriterier: varslene de fleste nettverksoperatører vil ha, uten å bygge dem for hånd hver gang. Pakken fylles ut når du oppretter en monitor fra enhetens side, og det er den malen i den anbefalte varslingspolicyen bærer.
@@ -883,7 +911,7 @@ Klikk på **Add Recommended Alerts** i kriterieskjemaet for å legge til et ferd
 | Kriterium | Utløses når | Oppretter |
 | --- | --- | --- |
 | Device unreachable | Enheten slutter å svare på ping og SNMP. | Hendelse |
-| SNMP walk failing | Enheten svarer på ping, men SNMP-walket feiler. | Varsel |
+| SNMP walk failing | Enheten svarer på ping, men SNMP-walket feiler. Det holder monitoren online. | Varsel |
 | Interface down | Et administrativt aktivert grensesnitt går ned i drift. | Hendelse |
 | Interface saturated | Et grensesnitt går over 80 % utnyttelse. | Varsel |
 | Interface errors | Et grensesnitt registrerer mer enn 1 feil per sekund. | Varsel |
@@ -893,7 +921,9 @@ Klikk på **Add Recommended Alerts** i kriterieskjemaet for å legge til et ferd
 
 Når enheten walker [SNMP-tabeller](#snmp-tabeller) som oppgir friske verdier, legger pakken også til ett kriterium **SNMP-tabellrad er ikke feilfri** per slik tabell, med Row `*`: en hendelse per rad for tunneler, rutingnaboer og en kontrollers tilgangspunkter ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" for et tilgangspunkt som har forsvunnet fra kontrolleren sin), og et varsel per rad for maskinvaretabeller og radioer.
 
-SNMP walk failing er med vilje et varsel og ikke en hendelse: enheten er ikke nede, så å vekke noen klokken 2 om natten for det ville vært feil, men inventaret har sluttet å bli oppdatert, og noen bør rette påloggingsinformasjonen. Det utløses aldri på en enhet med bare ping, fordi kriteriet ikke vurderes når det ikke kjørte noe walk.
+SNMP walk failing er med vilje et varsel og ikke en hendelse: enheten er ikke nede, så å vekke noen klokken 2 om natten for det ville vært feil, men inventaret har sluttet å bli oppdatert, og noen bør rette påloggingsinformasjonen. Det utløses aldri på en enhet med bare ping, fordi kriteriet ikke vurderes når det ikke kjørte noe walk, og heller ikke på en enhet som ikke svarer på noe, som er **Device unreachable**: det sjekker også **Enhet er tilgjengelig (ICMP)**.
+
+Det setter også monitorens status til online når det treffer. Bare det første kriteriet som treffer, setter statusen, så en enhet som gikk ned i én polling og kom tilbake med SNMP som fortsatt feilet, ble tidligere værende offline så lenge SNMP feilet, med hendelsen løst og statussiden rød. Varselet løses ved den første pollingen der walket lykkes. En mal eller monitor som tidligere ble laget fra pakken, beholder kriteriene sine: for å endre en legger du til **Enhet er tilgjengelig (ICMP)** er Sann i kriteriet **SNMP walk failing** og lar det endre statusen til online-statusen din, og bruker deretter **Synkroniser fra mal** på malens monitorer; monitorene til en varslingspolicy følger malen dens av seg selv.
 
 De tre transceiverkriteriene gir ett varsel per port (`*`), og er varsler i stedet for hendelser av samme grunn: en mørk modul tar allerede ned grensesnittet sitt, og Interface down kaller ut vakten for det, mens disse sier hvorfor, eller advarer før det skjer. 2 dB er omtrent en tredjedel av lyset borte: godt over de få tidelene av en dB en frisk lenke svinger med fra dag til dag, og tidlig nok til å rense en kontakt før lenken mister marginen sin. Ingen av dem kan utløses på en enhet som ikke rapporterer noen optikk.
 

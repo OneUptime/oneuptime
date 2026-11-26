@@ -64734,7 +64734,7 @@
   "ICMP Packet Loss (in %)": "ICMP 丢包率（%）",
   "ICMP Response Time": "ICMP 响应时间",
   "ICMP Response Time (in ms)": "ICMP 响应时间（毫秒）",
-  "ICMP Response Time (in ms) of the device's ping": "设备 ping 的 ICMP 响应时间（毫秒）",
+  "ICMP Response Time (in ms) of the device's ping": "设备 ping 的 ICMP 响应时间（ms）",
   "Reachable by Ping (ICMP)": "可通过 Ping 访问（ICMP）",
   "SNMP is failing on {{monitorName}}": "{{monitorName}} 的 SNMP 失败",
   "The average round trip of the device's ping. Not checked when no echo came back.": "设备 ping 的平均往返时间。没有收到回显时不检查。",
