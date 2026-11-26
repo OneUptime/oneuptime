@@ -1,6 +1,7 @@
 import ProductKey from "../../../Types/Product/ProductKey";
 import { SWITCHABLE_PRODUCTS } from "../../../Types/Product/ServerProducts";
 import { SETUP_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AISetupActions";
+import { DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AIDataSecurityActions";
 import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
@@ -150,6 +151,17 @@ const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
   ),
 );
 
+// Ask AI's Data Security actions, run one call each for the MCP server (#10378).
+const DATA_SECURITY_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
+  new Set<ProductKey>(
+    DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
+      (action: string): ReadonlyArray<ProductKey> => {
+        return getToolProducts(action);
+      },
+    ),
+  ),
+);
+
 const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/StatusPageAPI.ts": {
     products: [ProductKey.StatusPages],
@@ -203,7 +215,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
-    leftAlone: {},
+    leftAlone: {
+      // Which monitors cover a page's recommended ones (#11074).
+      "`${new this.entityType().getCrudApiPath()?.toString()}${MONITOR_RECOMMENDATION_COVERAGE_PATH}`":
+        READ,
+    },
   },
   "packages/Common/Server/API/MonitorGroupAPI.ts": {
     products: [ProductKey.Monitors],
@@ -403,6 +419,32 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Cloud],
     leftAlone: {},
   },
+  /*
+   * Acting on savings (#11010): every route registers through its post
+   * helper, which refuses a change while Cloud is off, and the pull request
+   * while Code is too. Each call is decided here.
+   */
+  "packages/Common/Server/API/CloudSavingsAPI.ts": {
+    products: [ProductKey.Cloud, ProductKey.Code],
+    leftAlone: {},
+    readHelpers: {
+      post: {
+        "CLOUD_SAVINGS_API_ROUTES.offer": READ,
+        "CLOUD_SAVINGS_API_ROUTES.summary": READ,
+        'CLOUD_SAVINGS_API_ROUTES.schedulePreview(":id")': READ,
+        "CLOUD_SAVINGS_API_ROUTES.apply":
+          "Refused while Cloud is off: it asks for a change to a customer's cloud, made at once for an approver.",
+        'CLOUD_SAVINGS_API_ROUTES.approve(":id")':
+          "Refused while Cloud is off: an approval makes the change.",
+        'CLOUD_SAVINGS_API_ROUTES.dismiss(":id")':
+          "Refused while Cloud is off: it closes a change waiting for approval.",
+        'CLOUD_SAVINGS_API_ROUTES.undo(":id")':
+          "Refused while Cloud is off: it changes a customer's cloud back.",
+        "CLOUD_SAVINGS_API_ROUTES.fixInCode":
+          "Refused while Cloud or Code is off: it starts a task in Code that opens a pull request.",
+      },
+    },
+  },
   "packages/Common/Server/API/NetworkControllerConnectionAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},
@@ -546,6 +588,13 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.VMware],
     leftAlone: {
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/inventory-summary/:vcenterId`":
+        READ,
+    },
+  },
+  "packages/Common/Server/API/XcpNgResourceAPI.ts": {
+    products: [ProductKey.XcpNg],
+    leftAlone: {
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/inventory-summary/:poolId`":
         READ,
     },
   },
@@ -773,6 +822,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    */
   "packages/Common/Server/API/SetupActionAPI.ts": {
     products: SETUP_ACTION_PRODUCTS,
+    leftAlone: {},
+  },
+  /*
+   * Ask AI's Data Security actions, one call each, for the MCP server
+   * (#10378): the products of the action the body names, as Ask AI's tool
+   * names them (ProductsOfRequest.dataSecurityAction) - Data Security, and
+   * Code too for Fix with AI.
+   */
+  "packages/Common/Server/API/DataSecurityActionAPI.ts": {
+    products: DATA_SECURITY_ACTION_PRODUCTS,
     leftAlone: {},
   },
   /*
@@ -1767,6 +1826,7 @@ const productsOfRefusal: (
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),
       "ProductsOfRequest.setupAction": SETUP_ACTION_PRODUCTS,
+      "ProductsOfRequest.dataSecurityAction": DATA_SECURITY_ACTION_PRODUCTS,
     };
 
     return resolvers[refusal.argument] || handed[refusal.argument] || null;
@@ -2008,6 +2068,26 @@ describe("what the decisions stand on", () => {
     for (const action of ["invite_people", "set_how_to_reach_me"]) {
       expect(SETUP_ACTIONS_RUN_OUTSIDE_CHAT).toContain(action);
       expect([action, getToolProducts(action)]).toEqual([action, []]);
+    }
+  });
+
+  /*
+   * POST /api/data-security-actions/run does the same for Data Security's
+   * actions (#10378): every one of them is Data Security's, and Fix with AI
+   * opens its pull request through Code too.
+   */
+  test("the Data Security actions' route names Data Security, and Code for Fix with AI only", () => {
+    expect([...DATA_SECURITY_ACTION_PRODUCTS].sort()).toEqual(
+      [ProductKey.DataSecurity, ProductKey.Code].sort(),
+    );
+
+    for (const action of DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT) {
+      expect([action, getToolProducts(action)]).toEqual([
+        action,
+        action === "fix_data_security_issue_with_ai"
+          ? [ProductKey.DataSecurity, ProductKey.Code]
+          : [ProductKey.DataSecurity],
+      ]);
     }
   });
 

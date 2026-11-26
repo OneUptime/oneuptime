@@ -301,6 +301,8 @@ describe("POST /cloud-connection/test", () => {
           wafBlocklist: "off",
           // Nor does a security case read its IAM changes back (#10900).
           securityCaseChecks: "off",
+          // Nor does OneUptime act on a saving until someone lets it (#11010).
+          savingsActions: "off",
           authMethod: CloudConnectionAuthMethod.AwsAccessKey,
         },
         secrets: { secretAccessKey: NEW_SECRET },

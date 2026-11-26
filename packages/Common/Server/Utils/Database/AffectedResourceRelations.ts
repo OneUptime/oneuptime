@@ -18,6 +18,7 @@ import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../Services/XcpNgPoolService";
 import { ProjectScopedRelation } from "./ProjectScopedReferenceValidator";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
@@ -119,6 +120,11 @@ function getAllAffectedResourceRelations(): Array<ProjectScopedRelation> {
       column: "vmwareVCenters",
       modelName: "VMware vCenter",
       service: VMwareVCenterService,
+    },
+    {
+      column: "xcpNgPools",
+      modelName: "XCP-ng Pool",
+      service: XcpNgPoolService,
     },
     {
       column: "iotFleets",

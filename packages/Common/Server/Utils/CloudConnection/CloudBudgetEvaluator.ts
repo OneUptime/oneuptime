@@ -20,6 +20,7 @@ import {
   CloudCostAnomaly,
   CloudCostState,
   fromCloudCostDay,
+  getCloudAccountCostSummaryInBasis,
   startOfUtcDay,
   toCloudCostDay,
   getPassedCloudBudgetThresholds,
@@ -28,6 +29,11 @@ import {
   toCloudBudgetMonth,
   daysInUtcMonth,
 } from "../../../Types/Cloud/CloudCost";
+import {
+  CloudCostBasis,
+  isCloudCostBasis,
+  resolveCloudCostBasis,
+} from "../../../Types/Cloud/CloudCostBasis";
 import { getCloudProviderLabel } from "../../../Types/Cloud/CloudPlatform";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
@@ -40,6 +46,7 @@ import AlertStateService from "../../Services/AlertStateService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import CloudAccountService from "../../Services/CloudAccountService";
 import CloudBudgetService from "../../Services/CloudBudgetService";
+import CloudCostSettingService from "../../Services/CloudCostSettingService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -49,7 +56,10 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * Each enabled budget (CloudBudget) is compared with what its accounts cost
  * this month so far and are on course to cost - the accounts' cost
  * summaries, written after every read of their costs (CloudCostWriter), so
- * no query over the costs is made here. A budget raises an alert:
+ * no query over the costs is made here - on the budget's cost basis
+ * (CloudCostBasis): its own, else its project's, amortized unless someone
+ * picked another, so a commitment bought up front does not pass a month's
+ * budget in a day. A budget raises an alert:
  *
  *   - the first time in a month the spend passes one of its thresholds
  *     (80% and 100% of the budget by default) - one alert, for the highest
@@ -173,6 +183,15 @@ export interface CloudBudgetSpend {
 
 // How many services an alert names as where the money went.
 export const CLOUD_BUDGET_ALERT_SERVICES: number = 3;
+
+// Each basis as an alert says it: "This month's amortized cloud spend".
+export const CLOUD_BUDGET_BASIS_WORDS: Readonly<
+  Record<CloudCostBasis, string>
+> = {
+  [CloudCostBasis.Billed]: "billed",
+  [CloudCostBasis.Amortized]: "amortized",
+  [CloudCostBasis.Net]: "net",
+};
 
 export interface CloudBudgetDecision {
   raise: Array<CloudBudgetAlertKind>;
@@ -549,8 +568,14 @@ export default class CloudBudgetEvaluator {
     currency: string;
     spend: CloudBudgetSpend;
     alert: CloudBudgetAlertKind;
+    // The cost the budget watches; said in its words when given.
+    basis?: CloudCostBasis | undefined;
     now: Date;
   }): { title: string; description: string; rootCause?: string | undefined } {
+    // "amortized cloud spend": which of the three costs the figures are.
+    const spendWords: string = data.basis
+      ? `${CLOUD_BUDGET_BASIS_WORDS[data.basis]} cloud spend`
+      : "cloud spend";
     const amount: string = formatCloudBudgetAmount(data.amount, data.currency);
     const spent: string = formatCloudBudgetAmount(
       data.spend.spent,
@@ -596,14 +621,14 @@ export default class CloudBudgetEvaluator {
     if (data.alert.kind === "threshold") {
       return {
         title: `Cloud budget "${data.budgetName}" passed ${data.alert.threshold}%`,
-        description: `This month's cloud spend for ${data.scope} is ${spent} of the ${amount} budget (${percent}%), with ${daysLeft} day${daysLeft === 1 ? "" : "s"} of the month to go. At the pace of the last full week, the month is on course for ${projected}.`,
+        description: `This month's ${spendWords} for ${data.scope} is ${spent} of the ${amount} budget (${percent}%), with ${daysLeft} day${daysLeft === 1 ? "" : "s"} of the month to go. At the pace of the last full week, the month is on course for ${projected}.`,
         rootCause,
       };
     }
 
     return {
       title: `Cloud budget "${data.budgetName}" is on course to be passed`,
-      description: `At the pace of the last full week, this month's cloud spend for ${data.scope} is on course for ${projected}, over the ${amount} budget. ${spent} (${percent}%) is spent so far, with ${daysLeft} day${daysLeft === 1 ? "" : "s"} to go.`,
+      description: `At the pace of the last full week, this month's ${spendWords} for ${data.scope} is on course for ${projected}, over the ${amount} budget. ${spent} (${percent}%) is spent so far, with ${daysLeft} day${daysLeft === 1 ? "" : "s"} to go.`,
       rootCause,
     };
   }
@@ -644,7 +669,7 @@ export default class CloudBudgetEvaluator {
     });
 
     if (budget) {
-      await CloudBudgetEvaluator.evaluate(budget);
+      await CloudBudgetEvaluator.evaluate(budget, new Map());
     }
   }
 
@@ -658,9 +683,10 @@ export default class CloudBudgetEvaluator {
       limit: LIMIT_PER_PROJECT,
       props: { isRoot: true },
     });
+    const projectBases: Map<string, CloudCostBasis> = new Map();
 
     for (const budget of budgets) {
-      await CloudBudgetEvaluator.evaluate(budget);
+      await CloudBudgetEvaluator.evaluate(budget, projectBases);
     }
 
     return budgets.length;
@@ -676,12 +702,38 @@ export default class CloudBudgetEvaluator {
       limit: LIMIT_MAX,
       props: { isRoot: true },
     });
+    const projectBases: Map<string, CloudCostBasis> = new Map();
 
     for (const budget of budgets) {
-      await CloudBudgetEvaluator.evaluate(budget);
+      await CloudBudgetEvaluator.evaluate(budget, projectBases);
     }
 
     return budgets.length;
+  }
+
+  /*
+   * The basis a budget watches: its own, else its project's (read once per
+   * project for a run over many budgets), else the default.
+   */
+  public static async getBudgetBasis(
+    budget: CloudBudget,
+    projectBases: Map<string, CloudCostBasis>,
+  ): Promise<CloudCostBasis> {
+    if (isCloudCostBasis(budget.costBasis)) {
+      return budget.costBasis;
+    }
+
+    const projectKey: string = budget.projectId!.toString();
+    let projectBasis: CloudCostBasis | undefined = projectBases.get(projectKey);
+
+    if (!projectBasis) {
+      projectBasis = await CloudCostSettingService.getCostBasisOfProject(
+        budget.projectId!,
+      );
+      projectBases.set(projectKey, projectBasis);
+    }
+
+    return resolveCloudCostBasis(projectBasis);
   }
 
   private static readonly BUDGET_SELECT: {
@@ -692,6 +744,7 @@ export default class CloudBudgetEvaluator {
     cloudAccountId: true;
     monthlyAmount: true;
     currency: true;
+    costBasis: true;
     alertThresholds: true;
     alertOnProjection: true;
     alertOnAnomaly: true;
@@ -706,6 +759,7 @@ export default class CloudBudgetEvaluator {
     cloudAccountId: true,
     monthlyAmount: true,
     currency: true,
+    costBasis: true,
     alertThresholds: true,
     alertOnProjection: true,
     alertOnAnomaly: true,
@@ -719,13 +773,33 @@ export default class CloudBudgetEvaluator {
    * last month's it resolves. Never throws: one budget's trouble is logged
    * and never stops the others.
    */
-  private static async evaluate(budget: CloudBudget): Promise<void> {
+  private static async evaluate(
+    budget: CloudBudget,
+    projectBases: Map<string, CloudCostBasis>,
+  ): Promise<void> {
     if (!budget.id || !budget.projectId) {
       return;
     }
 
     try {
       const now: Date = OneUptimeDate.getCurrentDate();
+      // The cost it watches: its own basis, else the project's.
+      const basis: CloudCostBasis = await CloudBudgetEvaluator.getBudgetBasis(
+        budget,
+        projectBases,
+      );
+      const summaryOf: (
+        account: CloudAccount,
+      ) => CloudAccountCostSummary | null = (
+        account: CloudAccount,
+      ): CloudAccountCostSummary | null => {
+        const summary: CloudAccountCostSummary | null =
+          readCloudAccountCostSummary(account.costSummary);
+
+        return summary
+          ? getCloudAccountCostSummaryInBasis(summary, basis)
+          : null;
+      };
       const accounts: Array<CloudAccount> = await CloudAccountService.findBy({
         query: budget.cloudAccountId
           ? { projectId: budget.projectId, _id: budget.cloudAccountId }
@@ -745,11 +819,7 @@ export default class CloudBudgetEvaluator {
       const currency: string = (budget.currency || "USD").toUpperCase();
       const spend: CloudBudgetSpend = CloudBudgetEvaluator.computeSpend({
         currency,
-        summaries: accounts.map(
-          (account: CloudAccount): CloudAccountCostSummary | null => {
-            return readCloudAccountCostSummary(account.costSummary);
-          },
-        ),
+        summaries: accounts.map(summaryOf),
         now,
       });
 
@@ -772,7 +842,7 @@ export default class CloudBudgetEvaluator {
               return {
                 id: account.id?.toString() || "",
                 scope: CloudBudgetEvaluator.getAccountScope(account),
-                summary: readCloudAccountCostSummary(account.costSummary),
+                summary: summaryOf(account),
               };
             },
           ),
@@ -805,6 +875,7 @@ export default class CloudBudgetEvaluator {
             spend,
             alert: alertKind,
             month: decision.state.month,
+            basis,
             now,
           });
 
@@ -872,6 +943,7 @@ export default class CloudBudgetEvaluator {
     spend: CloudBudgetSpend;
     alert: CloudBudgetAlertKind;
     month: string;
+    basis?: CloudCostBasis | undefined;
     now: Date;
   }): Promise<ObjectID | null> {
     const projectId: ObjectID = data.budget.projectId!;
@@ -920,6 +992,7 @@ export default class CloudBudgetEvaluator {
       currency: data.currency,
       spend: data.spend,
       alert: data.alert,
+      basis: data.basis,
       now: data.now,
     });
 

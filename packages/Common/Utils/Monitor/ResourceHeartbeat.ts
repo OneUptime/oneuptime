@@ -1,6 +1,11 @@
 import Dictionary from "../../Types/Dictionary";
 import MonitorStep, { MonitorStepType } from "../../Types/Monitor/MonitorStep";
 import { OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE } from "../../Types/Monitor/MonitorStepOpenStackMonitor";
+import { XcpNgSeries } from "../../Types/XcpNg/XcpNgTelemetry";
+import {
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  getXcpNgStepPoolIdentifier,
+} from "./MonitorStepMetricQueries";
 import StorageArrayPlatformRegistry from "../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { StorageArrayPlatform } from "../../Types/StorageArray/StorageArrayPlatform";
 
@@ -17,6 +22,10 @@ import { StorageArrayPlatform } from "../../Types/StorageArray/StorageArrayPlatf
  * answering. The prometheus receiver writes `up` and `scrape_*` for a failed
  * scrape, with the resource's attributes, and a Ceph agent gets `up` = 1 from
  * every standby mgr while no mgr serves any metric.
+ *
+ * An XCP-ng pool's is xcp_pool_connected: Xen Orchestra sends it every scrape
+ * while it is connected to the pool and stops - rather than sending 0 - when
+ * it loses the pool, while its other pools carry on.
  *
  * A storage array names every platform's heartbeat series
  * (StorageArrayPlatform.heartbeat), so that a monitor whose platform is not
@@ -124,6 +133,16 @@ export default class ResourceHeartbeatUtil {
         attributes: ResourceHeartbeatUtil.scopedTo(
           "resource.vmware.vcenter.name",
           data.vmwareMonitor.vcenterIdentifier,
+        ),
+      };
+    }
+
+    if (data.xcpNgMonitor) {
+      return {
+        metricNames: [XcpNgSeries.PoolConnected],
+        attributes: ResourceHeartbeatUtil.scopedTo(
+          XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+          getXcpNgStepPoolIdentifier(data.xcpNgMonitor.poolIdentifier),
         ),
       };
     }

@@ -3333,6 +3333,116 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
     ],
   },
   {
+    id: "xcp-ng-pools",
+    area: "xcp-ng",
+    menus: ["Pages/XcpNg/View/SideMenu.tsx"],
+    recordName: "XCP-ng Pool",
+    keywords: [
+      "xcp-ng pool",
+      "xcp-ng",
+      "xcp",
+      "xen",
+      "xenserver",
+      "xen orchestra",
+      "pool",
+    ],
+    pages: [
+      {
+        page: PageMap.XCP_NG_POOL_VIEW,
+        section: "Basic",
+        title: "Overview",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_HOSTS,
+        section: "Basic",
+        title: "Hosts",
+        keywords: ["hypervisors", "servers"],
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_VMS,
+        section: "Basic",
+        title: "VMs",
+        keywords: ["virtual machines", "guests"],
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_STORAGE,
+        section: "Basic",
+        title: "Storage",
+        keywords: ["storage repositories", "sr", "virtual disks", "vdi"],
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_TOPOLOGY,
+        section: "Basic",
+        title: "Topology",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_INSIGHTS,
+        section: "Observability",
+        title: "Resource Usage",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS,
+        section: "Observability",
+        title: "Recommendations",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_METRICS,
+        section: "Observability",
+        title: "Metrics",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_LOGS,
+        section: "Observability",
+        title: "Logs",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_INCIDENTS,
+        section: "Activity",
+        title: "Incidents",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_ALERTS,
+        section: "Activity",
+        title: "Alerts",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_SCHEDULED_MAINTENANCE,
+        section: "Activity",
+        title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_FEED,
+        section: "Activity",
+        title: "Feed",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_OWNERS,
+        section: "Advanced",
+        title: "Owners",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_SETTINGS,
+        section: "Advanced",
+        title: "Settings",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS,
+        section: "Advanced",
+        title: "Audit Logs",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION,
+        section: "Advanced",
+        title: "Documentation",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_DELETE,
+        section: "Advanced",
+        title: "Delete Pool",
+      },
+    ],
+  },
+  {
     id: "ceph-clusters",
     area: "ceph",
     menus: ["Pages/Ceph/View/SideMenu.tsx"],

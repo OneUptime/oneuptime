@@ -481,6 +481,15 @@ const RECORD_PAGES: Array<RecordPage> = [
     identifier: "fsid",
   },
   {
+    name: "XCP-ng pool",
+    overview: "Pages/XcpNg/View/Index.tsx",
+    model: "XcpNgPool",
+    title: "Pool Details",
+    settings: "Pages/XcpNg/View/Settings.tsx",
+    settingsPage: "XCP_NG_POOL_VIEW_SETTINGS",
+    identifier: "poolIdentifier",
+  },
+  {
     name: "Storage array",
     overview: "Pages/StorageArray/View/Index.tsx",
     model: "StorageArray",

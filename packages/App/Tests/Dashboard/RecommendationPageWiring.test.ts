@@ -143,6 +143,7 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<RoutedResourceType, string> = {
   [MonitorRecommendationResourceType.Proxmox]: "Proxmox",
   [MonitorRecommendationResourceType.OpenStack]: "OpenStack",
   [MonitorRecommendationResourceType.VMware]: "VMware",
+  [MonitorRecommendationResourceType.XcpNg]: "XcpNg",
   [MonitorRecommendationResourceType.Ceph]: "Ceph",
   [MonitorRecommendationResourceType.StorageArray]: "StorageArray",
   [MonitorRecommendationResourceType.IoTDevice]: "IoT",
@@ -199,7 +200,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(21);
+    expect(ALL_RESOURCE_TYPES.length).toBe(22);
     expect(
       RESOURCE_CASES.length +
         TAB_HOSTED_RESOURCE_TYPES.length +

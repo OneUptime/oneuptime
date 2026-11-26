@@ -1,0 +1,59 @@
+services:
+  oneuptime-xcp-ng-agent:
+    # Upstream collector, pinned. There is no oneuptime/xcp-ng-agent image -
+    # the agent is entirely defined by otel-collector-config.yaml, which
+    # install.sh downloads next to this file, and that config reports this
+    # pin as the agent's version (oneuptime.agent.version). Bump the two
+    # together; Tests/Ops/validate-collector-configs.sh validates the config
+    # against this version.
+    image: otel/opentelemetry-collector-contrib:0.165.0
+    # One agent reads one Xen Orchestra, and every pool it manages. To read a
+    # second Xen Orchestra from the same machine, install into another
+    # directory and give its container another name here (see README.md).
+    container_name: oneuptime-xcp-ng-agent
+    # It reads Xen Orchestra and talks to OneUptime, and needs nothing else:
+    # no capabilities and a read-only root filesystem.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # The certificates the collector trusts for Xen Orchestra, and nothing
+      # else (install.sh writes xo-ca.pem: XO's own pinned certificate, the
+      # CA bundle XO_CA_FILE names, or this machine's CA bundle). Written
+      # out in full so that a missing file stops `docker compose up` with
+      # "bind source path does not exist" instead of Docker creating an empty
+      # directory in its place, which the collector cannot read.
+      - type: bind
+        source: ./xo-ca.pem
+        target: /etc/oneuptime/xo-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      # Xen Orchestra's scheme (https; http only in a lab: the secret then
+      # crosses the network in clear) and host[:port], no scheme. install.sh
+      # derives both from XO_URL.
+      - XO_SCHEME=${XO_SCHEME:-https}
+      - XO_ADDRESS=${XO_ADDRESS}
+      # The OpenMetrics plugin's secret (Settings -> Plugins -> openmetrics).
+      # install.sh writes it to .env with every $ doubled, because the
+      # collector expands $$ and ${...} in it once more.
+      - XO_OPENMETRICS_SECRET=${XO_OPENMETRICS_SECRET}
+      # What to call this Xen Orchestra in OneUptime, stamped as
+      # xen_orchestra.name on every pool it reads. Defaults to its address.
+      - XO_NAME=${XO_NAME:-${XO_ADDRESS}}
+      # The name Xen Orchestra's certificate is checked against when XO_URL
+      # uses an address the certificate does not list. Empty: XO_ADDRESS's
+      # host.
+      - XO_TLS_SERVER_NAME=${XO_TLS_SERVER_NAME:-}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

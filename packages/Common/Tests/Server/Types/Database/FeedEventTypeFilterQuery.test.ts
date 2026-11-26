@@ -82,6 +82,9 @@ import StorageArrayFeed, {
 import VMwareVCenterFeed, {
   VMwareVCenterFeedEventType,
 } from "../../../../Models/DatabaseModels/VMwareVCenterFeed";
+import XcpNgPoolFeed, {
+  XcpNgPoolFeedEventType,
+} from "../../../../Models/DatabaseModels/XcpNgPoolFeed";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../Types/BaseDatabase/Includes";
@@ -382,6 +385,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(VMwareVCenterFeedEventType),
     resourceIdColumn: "vmwareVCenterId",
     eventTypeColumn: "vmwareVCenterFeedEventType",
+  },
+  {
+    file: "XcpNgPoolFeed",
+    enumName: "XcpNgPoolFeedEventType",
+    modelType: XcpNgPoolFeed,
+    eventTypes: Object.values(XcpNgPoolFeedEventType),
+    resourceIdColumn: "xcpNgPoolId",
+    eventTypeColumn: "xcpNgPoolFeedEventType",
   },
 ];
 

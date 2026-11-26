@@ -15,6 +15,7 @@ import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIChatPageContextType, {
@@ -72,6 +73,7 @@ const KIND_MODELS: Record<AiAffectedResourceKind, { new (): BaseModel }> = {
   [AiAffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
   [AiAffectedResourceKind.OpenStackCloud]: OpenStackCloud,
   [AiAffectedResourceKind.VMwareVCenter]: VMwareVCenter,
+  [AiAffectedResourceKind.XcpNgPool]: XcpNgPool,
   [AiAffectedResourceKind.CephCluster]: CephCluster,
   [AiAffectedResourceKind.StorageArray]: StorageArray,
   [AiAffectedResourceKind.IoTFleet]: IoTFleet,

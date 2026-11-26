@@ -6,7 +6,10 @@ import {
   DASHBOARD_COMPONENT_EXAMPLE,
   DASHBOARD_VIEW_CONFIG_EXAMPLE,
 } from "../Utils/DashboardDataTypeExamples";
-import { buildRenderContext } from "../Utils/RenderContext";
+import {
+  ReferencePageRenderContext,
+  buildPageRenderContext,
+} from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
@@ -3466,7 +3469,7 @@ export default class ServiceHandler {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const ctx: ReturnType<typeof buildRenderContext> = buildRenderContext(req);
+    const ctx: ReferencePageRenderContext = await buildPageRenderContext(req);
     const page: string | undefined = req.params["page"];
 
     if (!page) {

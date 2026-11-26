@@ -7,7 +7,7 @@ Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het 
 - [Was het een datalek?](#was-het-een-datalek): Elke kritieke blootstelling beoordeeld: hoe lang, wie de gegevens kon lezen, van wie ze waren, en de datalekwetten die van toepassing kunnen zijn.
 - [Waarschuwingen en on-call](#waarschuwingen-en-on-call): De dienstdoende oproepen wanneer er een kritiek probleem opent.
 - [Incidenten](#incidenten): Een incident melden voor een inbreuk die je incidentproces moet afhandelen.
-- [Eigenaren](#eigenaren): Wie eigenaar is van elke opslag, met de hand of door regels ingesteld, en de e-mail die ze krijgen.
+- [Eigenaren](#eigenaren): Een probleem analyseren, een pull request openen die het oplost, of AI vragen vragen naar uw gegevens en het laten handelen, met uw goedkeuring.
 - [OneUptime AI](#oneuptime-ai): Een probleem laten uitleggen, een pull request openen die het oplost, of AI vragen gebruiken om vragen over je gegevens te stellen.
 - [Een blootstelling sluiten](#een-blootstelling-sluiten): Openbare toegang blokkeren of het delen stoppen, vanuit een probleem of een playbook, en een ontbrekende bescherming aanzetten vanuit een probleem.
 :::
@@ -129,7 +129,7 @@ OneUptime AI werkt ook uit zichzelf aan elk nieuw probleem, zoals je AI-regels t
 
 ### AI vragen
 
-**AI vragen** leest ook Gegevensbeveiliging. Vraag op elke pagina van Gegevensbeveiliging welke opslagen kaartnummers bevatten, wat je eerst moet oplossen, of bij welke opslagen een rol zou kunnen als die uitlekte; op de pagina van een opslag of van een probleem leest het eerst dat record. Het antwoordt met drie leestools, uitgevoerd met je eigen machtigingen:
+**AI vragen** leest Gegevensbeveiliging en handelt erin met uw goedkeuring. Vraag op elke pagina van Gegevensbeveiliging welke gegevensopslagen kaartnummers bevatten, wat u eerst moet oplossen, of welke gegevensopslagen een rol kan bereiken als die uitlekt; op de pagina van een gegevensopslag of een probleem leest het eerst dat record. Het leest met deze hulpmiddelen, die met uw eigen rechten draaien:
 
 | Tool | Wat het leest |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI werkt ook uit zichzelf aan elk nieuw probleem, zoals je AI-regels t
 | `query_data_security_issues` | De problemen, de riskantste eerst, op status, ernst, opslag of controle - of één probleem met zijn bewijs en de oplossing voor zijn cloud |
 | `query_data_store_access` | Wie bij een opslag kan, of elke opslag waar één principal bij kan |
 
-Ze lezen gegevenstypen, locaties en tellingen, nooit de voorbeelden van een bevinding, gemaskeerd of niet. AI vragen wijzigt niets in Gegevensbeveiliging.
+Ze lezen gegevenstypen, locaties en aantallen, nooit de voorbeelden van een bevinding, gemaskeerd of niet. Nog twee lezen waar OneUptime AI aan werkt: `query_data_security_proposals` toont wat het voorstelt, en de gegevenstypen die het heeft gevonden en waar scans nog niet naar zoeken, elk met hoe het is aangetoond en de velden waarin het staat, nooit een waarde; `draft_data_security_rule` stelt uit uw zin een regel op en zegt welke gegevensopslagen die vandaag dekt. Het slaat niets op.
+
+AI vragen doet wat de knoppen van Gegevensbeveiliging doen, elk door precies de wijziging door te voeren die zijn knop doorvoert, als u en met uw rechten:
+
+| Actie | Wat het doet | Vraagt u eerst |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Opschonen** voor een bevinding in de telemetrie: de bewezen, nauwe opschoonregel ervan | In **Vragen voor actie**, en in elke modus als iets leest wat de regel verbergt |
+| `judge_data_security_finding` | **Bevestigen**, of **Niet gevoelig** met uw reden, en hetzelfde voor vergelijkbare bevindingen | **Niet gevoelig** in elke modus; **Bevestigen** in elke modus als een kritiek probleem iemand in uw project alarmeert |
+| `change_data_security_issue` | **Risico accepteren** met uw reden en een einddatum, **Geen probleem** met uw reden, **Heropenen** of **Toewijzen** | **Risico accepteren** en **Geen probleem** in elke modus |
+| `set_data_store_owners` | Voegt de eigenaren van een gegevensopslag toe of verwijdert ze | In elke modus |
+| `save_data_security_rule` | Slaat een uit uw zin opgestelde residentie-, eigenaars- of labelregel op, en past een eigenaars- of labelregel toe op de gegevensopslagen die hij vandaag dekt | In elke modus |
+| `respond_on_data_store` | Een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Openbare toegang blokkeren** | In elke modus |
+| `fix_data_security_issue_with_ai` | **Oplossen met AI**: een pull request die iemand beoordeelt en samenvoegt. Een oplossing die al onderweg is, wordt niet twee keer gestart | In **Vragen voor actie** |
+| `decide_data_security_proposal` | **Goedkeuren** of **Verbergen** voor wat OneUptime AI voorstelt. Een gevonden gegevenstype voegt u toe via het formulier in **Instellingen → Gegevenstypen**, dus hier kan het alleen worden afgewezen | In elke modus |
+
+Elke actie toont eerst een kaart die in eenvoudige woorden zegt wat er verandert, wat niet meer werkt en wat het kost. In **Vragen voor actie** staat u elke actie toe of slaat u die over. In **Automatisch uitvoeren** wachten de acties hierboven die in elke modus vragen nog steeds op u: ze veranderen wie uw gegevens kan bereiken, laten een bevinding of een probleem niet meer meetellen, veranderen wie over een gegevensopslag wordt ingelicht, of zouden OneUptime AI zijn eigen voorstel laten goedkeuren. Namen van gegevensopslagen, locaties van bevindingen en bewijs komen uit uw clouds en van iedereen die erin schrijft, dus AI vragen handelt nooit omdat zulke tekst daarom vraagt, en elke actie wordt bij het uitvoeren opnieuw gecontroleerd, met uw rechten.
 
 ## Een blootstelling sluiten
 
@@ -196,7 +211,7 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 
 De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, compliance-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
 
-De [MCP-server](/docs/ai/mcp-server) heeft tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor deze records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule en Data Security Setting. Een AI-assistent kan dan met jouw machtigingen vragen welke opslagen kaartnummers bevatten, of wat er openstaat op een bucket.
+De [MCP-server](/docs/ai/mcp-server) heeft tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor deze records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule en Data Security Setting. Een AI-assistent kan dan met jouw machtigingen vragen welke opslagen kaartnummers bevatten, of wat er openstaat op een bucket. Hij heeft ook [de acties van AI vragen](#ai-vragen), elk één aanroep, en elk voert precies de wijziging door die zijn knop doorvoert, als u. De MCP-server kan niemand een kaart tonen, dus een actie waarvoor AI vragen in elke modus vraagt, wordt daar geweigerd: het antwoord zegt waarom en noemt de pagina in OneUptime waar u de wijziging doorvoert.
 
 ## Volgende stappen
 

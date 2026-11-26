@@ -56,6 +56,11 @@ import {
  * subscriptions every time. Now every subscription's costs load over two
  * reads - each over a first read's days, never one starting over - and the
  * tenant's quotas are never passed, nor its third left to its other callers.
+ *
+ * Since #11007 a subscription's first read asks for its amortized cost and
+ * its actual cost, twice the query units: the tenant loads over four or
+ * five reads, a subscription put off whole, never half read. After that,
+ * amortized cost is read at every read and actual cost once a day.
  */
 
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
@@ -235,8 +240,31 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * Reads five minutes apart until no subscription is left put off: the
+ * reads it took.
+ */
+async function syncUntilRead(data: {
+  tenant: FakeAzureCostManagement;
+  state: CloudConnectionPullState;
+  maxReads: number;
+}): Promise<number> {
+  let reads: number = 0;
+
+  do {
+    if (reads > 0) {
+      data.tenant.clock.advance(READ_INTERVAL_MS);
+    }
+
+    await sync({ tenant: data.tenant, state: data.state });
+    reads++;
+  } while (data.state.costsPending && reads < data.maxReads);
+
+  return reads;
+}
+
 describe("a tenant of 50 subscriptions", () => {
-  test("loads every subscription's costs over two reads, a first read's days each, within the tenant's quotas", async () => {
+  test("loads every subscription's amortized and actual costs, a first read's days each, a read every five minutes within the tenant's quotas", async () => {
     const clock: FakeClock = new FakeClock(START);
     const tenant: FakeAzureCostManagement = new FakeAzureCostManagement({
       clock,
@@ -251,15 +279,17 @@ describe("a tenant of 50 subscriptions", () => {
     } = await sync({ tenant, state });
 
     /*
-     * Two first reads (6 QPU) each ten seconds over the lane's two minutes:
-     * 24, or 26 when the last pair falls on its very end (the lane's time is
-     * the read's real time, a few milliseconds short or not).
+     * A subscription's first read is two queries over its first read's
+     * days - amortized cost, then actual - 6 QPU, and OneUptime's share of
+     * a minute is 40: 12 over the lane's two minutes, or 13 when the last
+     * falls on its very end (the lane's time is the read's real time, a
+     * few milliseconds short or not).
      */
     const readFirstCount: number = first.outcome.accountsRead;
 
     expect(first.outcome.ran).toBe(true);
-    expect(readFirstCount).toBeGreaterThanOrEqual(24);
-    expect(readFirstCount).toBeLessThanOrEqual(26);
+    expect(readFirstCount).toBeGreaterThanOrEqual(12);
+    expect(readFirstCount).toBeLessThanOrEqual(13);
     expect(stateCount(CloudCostState.Reading)).toBe(readFirstCount);
     expect(stateCount(CloudCostState.Queued)).toBe(50 - readFirstCount);
     // Each queued one says when it is read: the connection's next read.
@@ -284,50 +314,79 @@ describe("a tenant of 50 subscriptions", () => {
       "shortly",
     );
 
-    // The next read, five minutes on: only the 24 put off, each read as far back.
-    const putOff: Array<string> = [...state.costsPending!.accounts];
-    const readFirst: Set<string> = new Set(
+    /*
+     * Each read five minutes on: only those put off, each read as far
+     * back, none of them asked before - a subscription is put off whole,
+     * never half read.
+     */
+    let reads: number = 1;
+    const askedBefore: Set<string> = new Set(
       first.asked.map((query: FakeCostQuery): string => {
         return query.subscriptionId;
       }),
     );
 
-    expect(
-      putOff.filter((subscriptionId: string): boolean => {
-        return readFirst.has(subscriptionId);
-      }),
-    ).toEqual([]);
+    while (state.costsPending && reads < 6) {
+      const putOff: Array<string> = [...state.costsPending.accounts];
 
-    clock.advance(READ_INTERVAL_MS);
-    const second: {
-      outcome: CloudCostsLaneOutcome;
-      asked: Array<FakeCostQuery>;
-    } = await sync({ tenant, state });
+      expect(
+        putOff.filter((subscriptionId: string): boolean => {
+          return askedBefore.has(subscriptionId);
+        }),
+      ).toEqual([]);
 
-    expect(
-      new Set(
-        second.asked.map((query: FakeCostQuery): string => {
+      clock.advance(READ_INTERVAL_MS);
+      const next: {
+        outcome: CloudCostsLaneOutcome;
+        asked: Array<FakeCostQuery>;
+      } = await sync({ tenant, state });
+      reads++;
+
+      const asked: Set<string> = new Set(
+        next.asked.map((query: FakeCostQuery): string => {
           return query.subscriptionId;
         }),
-      ),
-    ).toEqual(new Set(putOff));
-    expect(second.outcome.accountsRead).toBe(50 - readFirstCount);
+      );
+
+      for (const subscriptionId of asked) {
+        expect(putOff).toContain(subscriptionId);
+      }
+
+      for (const subscriptionId of asked) {
+        askedBefore.add(subscriptionId);
+      }
+      // A read that carried on keeps the twelve-hour beat where it was.
+      expect(state.costsReadAt).toBe(START.toISOString());
+    }
+
+    // 12 or 13 a read: four reads, or five.
+    expect(reads).toBeLessThanOrEqual(5);
     expect(stateCount(CloudCostState.Reading)).toBe(50);
     expect(state.costsPending).toBeUndefined();
-    // A read that carried on keeps the twelve-hour beat where it was.
-    expect(state.costsReadAt).toBe(START.toISOString());
 
-    // Every subscription asked once, over a first read's days, and never refused.
+    /*
+     * Every subscription asked twice, over a first read's days - amortized
+     * cost, then actual - and never refused.
+     */
     const answered: Map<
       string,
-      Array<{ from: string }>
+      Array<{ from: string; type: string }>
     > = tenant.answeredSubscriptions();
 
     expect(answered.size).toBe(50);
     for (const subscriptionId of SUBSCRIPTIONS) {
-      expect(answered.get(subscriptionId)).toEqual([{ from: FIRST_READ_FROM }]);
+      expect(answered.get(subscriptionId)).toEqual([
+        { from: FIRST_READ_FROM, type: "AmortizedCost" },
+        { from: FIRST_READ_FROM, type: "ActualCost" },
+      ]);
     }
     expect(tenant.refused()).toEqual([]);
+    // When each one's actual cost was read: it is read again a day on.
+    expect(Object.keys(state.azureActualCostsReadAt || {}).sort()).toEqual(
+      SUBSCRIPTIONS.map((subscriptionId: string): string => {
+        return subscriptionId.toLowerCase();
+      }).sort(),
+    );
     expect(
       tenant.queries.every((query: FakeCostQuery): boolean => {
         return query.clientType === "OneUptime";
@@ -355,16 +414,14 @@ describe("a tenant of 50 subscriptions", () => {
     ).toBe(50);
   });
 
-  test("twelve hours on, the whole read is a week a subscription: one read, the quotas kept", async () => {
+  test("twelve hours on, the whole read is a week of amortized cost a subscription: one read, the quotas kept", async () => {
     const clock: FakeClock = new FakeClock(START);
     const tenant: FakeAzureCostManagement = new FakeAzureCostManagement({
       clock,
     });
     const state: CloudConnectionPullState = { accounts: [...SUBSCRIPTIONS] };
 
-    await sync({ tenant, state });
-    clock.advance(READ_INTERVAL_MS);
-    await sync({ tenant, state });
+    await syncUntilRead({ tenant, state, maxReads: 6 });
 
     // Not due again until twelve hours after the first read.
     clock.advance(READ_INTERVAL_MS);
@@ -380,16 +437,64 @@ describe("a tenant of 50 subscriptions", () => {
 
     expect(refresh.outcome.accountsRead).toBe(50);
     expect(refresh.asked).toHaveLength(50);
-    // A week each: a QPU each, never a first read again.
+    /*
+     * A week each: a QPU each, never a first read again - and amortized
+     * cost alone, the actual cost read twelve hours ago.
+     */
     for (const query of refresh.asked) {
       expect(query.from).toBe("2026-11-14T00:00:00Z");
       expect(query.qpu).toBe(1);
+      expect(query.type).toBe("AmortizedCost");
     }
     expect(writes).toHaveLength(1);
     expect(state.costsPending).toBeUndefined();
     expect(tenant.refused()).toEqual([]);
     expect(tenant.mostQpuInWindow.get(10_000)).toBeLessThanOrEqual(8);
     expect(tenant.mostQpuInWindow.get(60_000)).toBeLessThanOrEqual(40);
+  });
+
+  test("a day on, the actual cost too: a week of each a subscription, over the reads the quotas allow", async () => {
+    const clock: FakeClock = new FakeClock(START);
+    const tenant: FakeAzureCostManagement = new FakeAzureCostManagement({
+      clock,
+    });
+    const state: CloudConnectionPullState = { accounts: [...SUBSCRIPTIONS] };
+
+    await syncUntilRead({ tenant, state, maxReads: 6 });
+    clock.nowMs = START.getTime() + CLOUD_COSTS_INTERVAL_MS + 60 * 1000;
+    await syncUntilRead({ tenant, state, maxReads: 3 });
+
+    // The whole read a day on: every subscription's actual cost is due again.
+    clock.nowMs = START.getTime() + 2 * CLOUD_COSTS_INTERVAL_MS + 2 * 60 * 1000;
+    const before: number = tenant.queries.length;
+    const reads: number = await syncUntilRead({ tenant, state, maxReads: 4 });
+    const asked: Array<FakeCostQuery> = tenant.queries.slice(before);
+
+    // 2 QPU each and 40 a minute: two reads.
+    expect(reads).toBeLessThanOrEqual(2);
+    expect(stateCount(CloudCostState.Reading)).toBe(50);
+    expect(state.costsPending).toBeUndefined();
+    expect(asked).toHaveLength(100);
+    for (const subscriptionId of SUBSCRIPTIONS) {
+      expect(
+        asked
+          .filter((query: FakeCostQuery): boolean => {
+            return query.subscriptionId === subscriptionId;
+          })
+          .map((query: FakeCostQuery): string => {
+            return `${query.type} from ${query.from}`;
+          }),
+      ).toEqual([
+        "AmortizedCost from 2026-11-14T00:00:00Z",
+        "ActualCost from 2026-11-14T00:00:00Z",
+      ]);
+    }
+    expect(tenant.refused()).toEqual([]);
+    for (const quota of DOCUMENTED_QPU_QUOTAS) {
+      expect(tenant.mostQpuInWindow.get(quota.spanMs)).toBeLessThanOrEqual(
+        quota.limit,
+      );
+    }
   });
 
   test("other callers sharing the tenant's quota: their 429s are waited out as asked, and every subscription still loads", async () => {
@@ -411,7 +516,8 @@ describe("a tenant of 50 subscriptions", () => {
     }
 
     expect(stateCount(CloudCostState.Reading)).toBe(50);
-    expect(reads).toBeLessThanOrEqual(3);
+    // Their three minutes take part of the first read's share: a read more at most.
+    expect(reads).toBeLessThanOrEqual(6);
     // Azure turned some away while they were busy: OneUptime waited each out.
     expect(tenant.refused().length).toBeGreaterThan(0);
 
@@ -437,15 +543,42 @@ describe("a tenant of 50 subscriptions", () => {
       );
     }
 
-    // Every subscription's first read, once each.
+    /*
+     * Every subscription's first read, over its first read's days: its
+     * actual cost once; its amortized cost once, or again when another
+     * caller's 429 put its actual cost past the read's time.
+     */
     const answered: Map<
       string,
-      Array<{ from: string }>
+      Array<{ from: string; type: string }>
     > = tenant.answeredSubscriptions();
+    let askedAgain: number = 0;
 
     for (const subscriptionId of SUBSCRIPTIONS) {
-      expect(answered.get(subscriptionId)).toEqual([{ from: FIRST_READ_FROM }]);
+      const queries: Array<{ from: string; type: string }> =
+        answered.get(subscriptionId)!;
+      const amortized: number = queries.filter(
+        (query: { type: string }): boolean => {
+          return query.type === "AmortizedCost";
+        },
+      ).length;
+
+      expect(
+        queries.every((query: { from: string }): boolean => {
+          return query.from === FIRST_READ_FROM;
+        }),
+      ).toBe(true);
+      expect(
+        queries.filter((query: { type: string }): boolean => {
+          return query.type === "ActualCost";
+        }),
+      ).toHaveLength(1);
+      expect(amortized).toBeGreaterThanOrEqual(1);
+      askedAgain += amortized - 1;
     }
+
+    // At most one a read.
+    expect(askedAgain).toBeLessThanOrEqual(reads);
   });
 
   test("a subscription with figures keeps them, and counts, while its next read waits", async () => {
@@ -455,9 +588,7 @@ describe("a tenant of 50 subscriptions", () => {
     });
     const state: CloudConnectionPullState = { accounts: [...SUBSCRIPTIONS] };
 
-    await sync({ tenant, state });
-    clock.advance(READ_INTERVAL_MS);
-    await sync({ tenant, state });
+    await syncUntilRead({ tenant, state, maxReads: 6 });
 
     const before: Map<string, JSONObject> = new Map(summaries);
 

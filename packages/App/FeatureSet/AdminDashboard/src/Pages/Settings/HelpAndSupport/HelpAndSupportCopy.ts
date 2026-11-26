@@ -65,6 +65,10 @@ export const HelpAndSupportCopy: {
   chatWithTeams: string;
   chatWithSupport: string;
   toggleShown: string;
+  fromConfigurationTitle: string;
+  fromConfigurationDescription: string;
+  setFromVariable: string;
+  variableNotUsed: string;
 } = {
   helpMenuTitle: translationKey("Help Menu"),
   helpMenuDescription: translationKey(
@@ -144,6 +148,22 @@ export const HelpAndSupportCopy: {
   chatWithTeams: translationKey("Chat on Microsoft Teams"),
   chatWithSupport: translationKey("Chat with Support"),
   toggleShown: translationKey("Show it"),
+  /*
+   * What came from the server's configuration (#10938): the Helm chart's
+   * helpAndSupport values or config.env's HELP_AND_SUPPORT_*, which set
+   * these settings while nothing was saved here, and what they set that was
+   * refused.
+   */
+  fromConfigurationTitle: translationKey("From this server's configuration"),
+  fromConfigurationDescription: translationKey(
+    "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.",
+  ),
+  setFromVariable: translationKey(
+    "Set from {{variable}} in this server's configuration.",
+  ),
+  variableNotUsed: translationKey(
+    "{{variable}} in this server's configuration was not used: {{problem}}",
+  ),
 };
 
 // Where each place is, as a card of the page.
@@ -166,7 +186,7 @@ export const HELP_ITEM_COPY: Readonly<Record<HelpItem, HelpItemCopy>> = {
   [HelpItem.SupportEmail]: {
     title: translationKey("Support Email"),
     where: translationKey(
-      "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.",
+      "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.",
     ),
     icon: IconProp.Email,
     card: HelpCard.HelpMenu,
@@ -294,6 +314,8 @@ export const getChoiceTitle: (item: HelpItem, choice: HelpChoice) => string = (
 
 // The data-testids, for the page and its suites.
 export const HELP_AND_SUPPORT_PAGE_TEST_ID: string = "help-and-support";
+export const HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID: string =
+  "help-and-support-from-configuration";
 
 export const getHelpItemTestId: (item: HelpItem) => string = (
   item: HelpItem,

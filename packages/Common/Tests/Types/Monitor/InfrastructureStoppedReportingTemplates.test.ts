@@ -75,6 +75,11 @@ import {
   getVMwareDefaultAlertTemplateId,
 } from "../../../Types/Monitor/VMwareAlertTemplates";
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
+import {
+  getAllXcpNgAlertTemplates,
+  getXcpNgDefaultAlertTemplateId,
+} from "../../../Types/Monitor/XcpNgAlertTemplates";
+import { getXcpNgMetricByMetricName } from "../../../Types/Monitor/XcpNgMetricCatalog";
 import ResourceHeartbeatUtil from "../../../Utils/Monitor/ResourceHeartbeat";
 
 /*
@@ -118,6 +123,7 @@ const STEP_ARGS: Record<string, unknown> = {
   vcenterIdentifier: "vcenter-01",
   arrayIdentifier: "array-01",
   fleetIdentifier: "fleet-01",
+  poolIdentifier: "b7569d99-30f8-178a-7d94-801de3e29b5b",
   onlineMonitorStatusId: ObjectID.generate(),
   offlineMonitorStatusId: ObjectID.generate(),
   defaultIncidentSeverityId: ObjectID.generate(),
@@ -213,6 +219,18 @@ const CASES: Array<StoppedReportingCase> = [
     configField: "vmwareMonitor",
     isCatalogMetric: (metricName: string): boolean => {
       return Boolean(getVMwareMetricByMetricName(metricName));
+    },
+  },
+  {
+    type: "XCP-ng",
+    templateId: "xcp-ng-pool-disconnected",
+    templates: getAllXcpNgAlertTemplates,
+    defaultTemplateId: getXcpNgDefaultAlertTemplateId,
+    // Xen Orchestra sends it every scrape while it is connected to the pool.
+    heartbeatMetric: "xcp_pool_connected",
+    configField: "xcpNgMonitor",
+    isCatalogMetric: (metricName: string): boolean => {
+      return Boolean(getXcpNgMetricByMetricName(metricName));
     },
   },
   {

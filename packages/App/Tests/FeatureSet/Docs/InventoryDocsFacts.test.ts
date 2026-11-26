@@ -584,6 +584,7 @@ const RETENTION_WORDS: ReadonlyArray<[string, ReadonlyArray<EntityType>]> = [
   ["OpenStack clouds", [EntityType.OpenStackCloud]],
   ["storage arrays", [EntityType.StorageArray]],
   ["vCenters", [EntityType.VMwareVCenter]],
+  ["XCP-ng pools", [EntityType.XcpNgPool]],
   ["Docker Swarm clusters", [EntityType.DockerSwarmCluster]],
 ];
 

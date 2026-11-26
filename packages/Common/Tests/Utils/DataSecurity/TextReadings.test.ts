@@ -95,7 +95,13 @@ describe("TextReadings", () => {
     expect(readings.getDigitsOfEveryScript()).toBe(
       readings.getDigitsOfEveryScript(),
     );
-    // As written, decoded, and every script's digits together: one fullwidth digit holds no run of its own.
+    expect(readings.getDigitsOfEveryScriptPercentDecoded()).toBe(
+      readings.getDigitsOfEveryScriptPercentDecoded(),
+    );
+    /*
+     * As written, decoded, every script's digits together - one fullwidth
+     * digit holds no run of its own - and the decoded text's digits too.
+     */
     expect(
       readings
         .readingsFor({
@@ -105,7 +111,33 @@ describe("TextReadings", () => {
         .map((reading: TextReading): string => {
           return reading.text;
         }),
-    ).toEqual(["a%3Ab ４", "a:b ４", "a%3Ab 4"]);
+    ).toEqual(["a%3Ab ４", "a:b ４", "a%3Ab 4", "a:b 4"]);
+  });
+
+  test("a digit of another script escaped in UTF-8 is read by its value, and placed on its escapes (#11032)", () => {
+    const text: string = "tel=%EF%BC%94%EF%BC%95 x";
+    const readings: TextReadings = new TextReadings(text);
+    const [reading] = readings.getDigitsOfEveryScriptPercentDecoded();
+
+    expect(reading!.text).toBe("tel=45 x");
+    expect(text.slice(reading!.toWritten(4), reading!.toWritten(6))).toBe(
+      "%EF%BC%94%EF%BC%95",
+    );
+    // Only a detector that reads both is read so.
+    expect(
+      readings
+        .readingsFor({ readsPercentEncoded: true })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([text, "tel=４５ x"]);
+    expect(
+      readings
+        .readingsFor({ readsDigitsOfEveryScript: true })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([text]);
   });
 
   test("has no other reading of a text with no escape and no digit beyond ASCII", () => {

@@ -81,6 +81,8 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
   },
   [EntityType.CephCluster]: { label: "Ceph Cluster", color: "#dc2626" },
   [EntityType.StorageArray]: { label: "Storage Array", color: "#ea580c" },
+  // XCP-ng in fuchsia, as its own pool topology draws it.
+  [EntityType.XcpNgPool]: { label: "XCP-ng Pool", color: "#a21caf" },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",
     color: "#0e7490",

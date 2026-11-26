@@ -359,6 +359,25 @@ Servern har också Fråga AI:s inställningsåtgärder, ett anrop var: det du st
 
 De agerar som du, inloggad med OAuth: en API-nyckel för ett projekt kan inte använda de åtta som skapar något. Din klient frågar dig före var och en av dem, och dess svar säger vad som skapades. Det som saknas, till exempel en behörighet, en adress eller plats i abonnemanget, sägs innan något skapas.
 
+## Verktyg för Datasäkerhet
+
+Servern har också [Fråga AI:s åtgärder för Datasäkerhet](/docs/data-security/integrations#fråga-ai), ett anrop var. Var och en gör exakt den ändring som dess knapp gör i Datasäkerhet, som du och med dina behörigheter, efter samma kontroller:
+
+- **`query_data_security_proposals`**: det som OneUptime AI föreslår och som väntar på en person, de mest riskabla först. Med `which: "data-types"` de datatyper det har hittat som genomsökningar ännu inte letar efter: namn, kategori och känslighet för var och en, hur den bevisades och datalagren och fälten den finns i, aldrig ett värde. Den ändrar ingenting
+- **`draft_data_security_rule`**: en hemvist-, ägar- eller etikettregel skriven utifrån en mening, som ”personuppgifter från EU måste stanna i EU”, med de datalager den träffar i dag. Den ändrar ingenting
+- **`scrub_data_security_finding`**: **Rensa** för ett fynd i telemetrin
+- **`judge_data_security_finding`**: **Bekräfta**, eller **Inte känsligt** med en motivering, och detsamma för liknande fynd
+- **`change_data_security_issue`**: **Öppna igen**, **Tilldela**, **Acceptera risk** eller **Inte ett problem**
+- **`set_data_store_owners`**: ett datalagers ägare, tillagda eller borttagna
+- **`save_data_security_rule`**: en regel som `draft_data_security_rule` har skrivit
+- **`respond_on_data_store`**: en responsåtgärd via datalagrets molnanslutning, som **Blockera offentlig åtkomst**
+- **`fix_data_security_issue_with_ai`**: **Åtgärda med AI**, en pull request som någon granskar och slår ihop
+- **`decide_data_security_proposal`**: **Godkänn** eller **Dölj** för ett förslag
+
+Fråga AI frågar en person före några av dessa i alla lägen, på ett kort som säger vad som ändras, vad som slutar fungera och vad det kostar: att reagera på ett datalager, **Inte känsligt**, **Acceptera risk**, **Inte ett problem**, att ändra ett datalagers ägare, att spara en regel, att besluta om ett förslag, en rensning som något läser, och **Bekräfta** i ett projekt som larmar någon vid ett kritiskt problem. Den här servern kan inte visa dig det kortet, så den avvisar dem, säger varför och nämner sidan i OneUptime där du gör ändringen. Ingenting körs någonsin utan det.
+
+De andra agerar som du, inloggad med OAuth: En projekt-API-nyckel kan inte använda dem och använder bara de två som inte ändrar något. På en egen server lämnar `MCP_READ_ONLY=true` bara kvar verktygen som inte ändrar något, och `MCP_ALLOW_DESTRUCTIVE=false` avvisar att ta bort ett datalagers ägare, vilket raderar dem.
+
 ## Fråga efter telemetri
 
 Loggar, mätvärden, spår (spans), undantag, monitorloggar och de andra sorterna av telemetri finns som skrivskyddade verktyg `list_` och `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` och deras `count_`-tvillingar). Telemetri kommer in via OpenTelemetry, så det finns inga skapandeverktyg.

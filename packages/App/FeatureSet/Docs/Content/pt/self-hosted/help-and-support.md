@@ -7,6 +7,7 @@ Direcione a ajuda que o OneUptime oferece para a sua própria equipe: o endereç
 - [O que cada configuração altera](#o-que-cada-configuração-altera): Cada lugar, seu padrão e suas opções.
 - [Dar feedback](#dar-feedback): Para onde vai o que as pessoas escrevem.
 - [A mensagem de login](#a-mensagem-de-login): A quem pedir um convite.
+- [Definir pela configuração do servidor](#definir-pela-configuração-do-servidor): Valores do Helm ou `config.env`, para um novo servidor.
 :::
 
 ## Alterar para onde vai a ajuda
@@ -28,12 +29,12 @@ Enquanto você não altera um lugar, ele mostra o que o OneUptime sempre mostrou
 
 | Configuração | Onde as pessoas a veem | Padrão | Próprio |
 | --- | --- | --- | --- |
-| **E-mail de suporte** | Ajuda › **E-mail de suporte**, **Falar com o suporte** na tela de página não encontrada e o endereço para o qual uma tela de erro pede que as pessoas enviem um pacote de suporte | `support@oneuptime.com` | Um endereço de e-mail |
-| **Chat** | Ajuda › **Chat no Slack** | A comunidade do OneUptime no Slack | Um link. Um link do Slack ou do Microsoft Teams mantém o nome; qualquer outro aparece como **Chat com o suporte** |
+| **E-mail de suporte** | Ajuda › **E-mail de suporte**, **Falar com o suporte** na tela de página não encontrada, os e-mails da conta e o endereço para o qual uma tela de erro pede que as pessoas enviem um pacote de suporte | `support@oneuptime.com` | Um endereço de e-mail |
+| **Chat** | Ajuda › **Chat no Slack** e o link de chat no topo da referência da API | A comunidade do OneUptime no Slack | Um link. Um link do Slack ou do Microsoft Teams mantém o nome; qualquer outro aparece como **Chat com o suporte** |
 | **Solicitar demo** | Ajuda › **Solicitar demo** | Visível | Apenas oculto |
 | **Dar feedback** | Ajuda › **Dar feedback** e **Dar feedback** em Pesquisar | Os administradores deste servidor | Um endereço de e-mail ou uma página própria |
-| **Ajuda e suporte** | **Ajuda e suporte** no rodapé e **Contato** nas páginas de login | `https://oneuptime.com/support` | Um link |
-| **Reportar um bug ou solicitar um recurso** | O rodapé do menu de produtos e a issue pública do GitHub oferecida depois do feedback | Visível | Apenas oculto |
+| **Ajuda e suporte** | **Ajuda e suporte** no rodapé, **Contato** nas páginas de login e **Suporte** no topo da referência da API | `https://oneuptime.com/support` | Um link |
+| **Reportar um bug ou solicitar um recurso** | O rodapé do menu de produtos, a issue pública do GitHub oferecida depois do feedback e os links do GitHub da documentação e da referência da API | Visível | Apenas oculto |
 | **Baixar o app móvel** | **Como me contatar**, a configuração de plantão, os primeiros passos de um novo membro no Início e **Aplicativos móveis** em **Configurações do projeto** | A App Store e o Google Play | Uma página própria, como o portal da empresa do seu gerenciador de dispositivos |
 | **Mensagem para quem precisa de um convite** | As telas do login único que dizem “You need to be invited.” e “No project access.” | A frase do OneUptime | Suas próprias palavras |
 
@@ -41,9 +42,17 @@ Todas as configurações, exceto a mensagem, também podem ser ocultadas. Um lin
 
 O próprio menu Ajuda, o rodapé e o menu de produtos do Admin Dashboard mantêm os links do OneUptime: eles são para os administradores deste servidor, que recebem do OneUptime a ajuda com o servidor.
 
+### E-mails da conta
+
+Em um servidor auto-hospedado, os e-mails da conta, como um convite ou a alteração de um endereço de e-mail, terminam indicando o administrador deste servidor, nunca o suporte do OneUptime. Com um endereço de suporte próprio, eles o mencionam, como link: “Precisa de ajuda? Escreva para it-help@example.com.” No padrão, ou oculto, continuam como sempre foram.
+
+### A documentação e a referência da API
+
+A documentação e a referência da API que este servidor publica seguem as mesmas configurações. Com **Reportar um bug ou solicitar um recurso** oculto, nenhuma página tem links para o GitHub, e **Esta página foi útil?** só é perguntado onde a resposta é guardada ou enviada. A barra superior da referência da API mostra o chat e a página de ajuda que você escolheu, ou nenhum dos dois quando estão ocultos.
+
 ### Quem pode ler seus links
 
-O endereço de suporte e o link **Ajuda e suporte** também aparecem nas páginas de login, então qualquer pessoa que possa abrir essas páginas pode lê-los. Um link de chat e a página do app móvel são enviados apenas a pessoas conectadas: um link de chat muitas vezes é um convite para entrar no seu espaço de trabalho.
+O endereço de suporte e o link **Ajuda e suporte** também aparecem nas páginas de login, então qualquer pessoa que possa abrir essas páginas pode lê-los. Um link de chat e a página do app móvel são enviados apenas a pessoas conectadas: um link de chat muitas vezes é um convite para entrar no seu espaço de trabalho. Pelo mesmo motivo, a documentação e a referência da API, que qualquer pessoa pode ler, mostram um link de chat próprio apenas para quem está conectado a este servidor.
 
 ## Dar feedback
 
@@ -78,6 +87,39 @@ Com uma página própria, todo aviso para baixar o app móvel aponta para ela: u
 - **Baixar o app móvel** sai dos primeiros passos de um novo membro no Início, que continuam sendo concluídos quando a pessoa pode ser contatada e uma chamada de teste chegou até ela.
 - **Como me contatar** e a configuração de plantão oferecem apenas navegadores.
 - **Aplicativos móveis** sai de **Configurações do projeto**.
+- Onde quer que o OneUptime liste as formas de contatar alguém, como nas configurações guiadas, no Início, nas regras de conformidade de uma equipe e no Pergunte à IA, o app não é mais citado entre elas.
+
+## Definir pela configuração do servidor
+
+Um servidor instalado com Helm ou Docker Compose pode começar com essas configurações já feitas. Defina-as nos valores `helpAndSupport` do chart do Helm, ou no `config.env` para o Docker Compose:
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Valor do Helm | `config.env` | O que aceita |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | Um endereço de e-mail, ou `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | Um link, ou `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` ou `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | Um endereço de e-mail, um link, ou `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | Um link, ou `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` ou `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | Um link, ou `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | Texto simples |
+
+- Eles são lidos quando o servidor inicia, apenas enquanto nada tiver sido salvo em **Ajuda e suporte**. A partir daí, a página guarda as configurações: uma alteração feita nela é mantida, e uma reinicialização nunca a desfaz.
+- Um valor alterado depois na configuração do servidor não é aplicado, e o log do servidor avisa. Altere-o na página.
+- Cada valor é verificado como a página o verifica. Um valor que seria recusado, como um link `javascript:`, fica de fora, e a página e o log do servidor dizem por quê. Os outros são definidos mesmo assim.
+- Deixe um valor vazio para manter o padrão do OneUptime. `true` e `false` também funcionam para as duas chaves.
+- A página indica cada item definido pela configuração do servidor, até você alterá-lo.
 
 ## Próximos passos
 

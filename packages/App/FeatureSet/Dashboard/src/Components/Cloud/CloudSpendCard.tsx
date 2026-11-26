@@ -26,6 +26,8 @@ import {
   hasCloudCosts,
 } from "./CloudCostWords";
 import { CloudAccountRow } from "./UseCloudAccounts";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
+import { CloudCostBasisPill } from "./CloudCostBasis";
 
 /*
  * Cloud Overview's Spend: what the accounts cost this month so far, what
@@ -56,6 +58,8 @@ export interface ComponentProps {
   accounts: Array<CloudAccountRow>;
   costs: CloudCostTotals;
   costsRoute: Route;
+  // The cost basis the figures are on, named on the card.
+  basis?: CloudCostBasis | undefined;
 }
 
 export const CloudCostFigure: FunctionComponent<{
@@ -166,7 +170,13 @@ const CloudSpendCard: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card title={SPEND_CARD_TITLE} description={SPEND_CARD_DESCRIPTION}>
+    <Card
+      title={SPEND_CARD_TITLE}
+      description={SPEND_CARD_DESCRIPTION}
+      rightElement={
+        props.basis ? <CloudCostBasisPill basis={props.basis} /> : undefined
+      }
+    >
       <div data-testid="cloud-spend-card" data-state="read">
         {/*
          * Three figures in a row while the card has the room, one under

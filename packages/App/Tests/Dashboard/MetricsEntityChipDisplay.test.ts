@@ -161,6 +161,7 @@ describe("entity facet key registry", () => {
       proxmoxClusterId: ServiceType.ProxmoxCluster,
       openStackCloudId: ServiceType.OpenStackCloud,
       vmwareVCenterId: ServiceType.VMwareVCenter,
+      xcpNgPoolId: ServiceType.XcpNgPool,
       cephClusterId: ServiceType.CephCluster,
       storageArrayId: ServiceType.StorageArray,
       serverlessFunctionId: ServiceType.ServerlessFunction,

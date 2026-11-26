@@ -1,10 +1,13 @@
 import {
+  DECLARED_CODE_DIALOG_ANOTHER_REPOSITORY,
   DECLARED_CODE_DIALOG_CHANGE_LABEL,
   DECLARED_CODE_DIALOG_CONNECT,
   DECLARED_CODE_DIALOG_DESCRIPTION,
   DECLARED_CODE_DIALOG_LOADING,
   DECLARED_CODE_DIALOG_MAY_NOT_ASK,
+  DECLARED_CODE_DIALOG_NO_ASKABLE_REPOSITORY,
   DECLARED_CODE_DIALOG_NO_REPOSITORY,
+  DECLARED_CODE_DIALOG_PICK_REPOSITORY,
   DECLARED_CODE_DIALOG_REPOSITORY_LABEL,
   DECLARED_CODE_DIALOG_SUBMIT,
   DECLARED_CODE_DIALOG_TARGET,
@@ -18,6 +21,8 @@ import {
 } from "./DeclaredCodeChangeWords";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import CodeRepositorySearchField from "../Code/CodeRepositorySearchField";
+import { CodeRepositoryListGroup } from "Common/Types/AI/CodeTask";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -62,11 +67,16 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  *
  * Opened from a step of a fix whose resource is declared as code: the
  * change in plain words with where that kind of code most likely keeps the
- * value, the repositories connected to Code that may hold the code - the
+ * value, the repositories connected to Code that something points to - the
  * likeliest chosen, each with why it is offered, in a list drawn as Code's
- * own repository lists are - and what becomes of the live change. Nothing
- * is opened until the person presses Open pull request; a repository they
- * may not ask AI to work in cannot be chosen.
+ * own repository lists are - a search for any other, and what becomes of
+ * the live change. Nothing is opened until the person presses Open pull
+ * request; a repository they may not ask AI to work in cannot be chosen.
+ *
+ * Any other repository is searched on the server, among the connected ones
+ * the person may ask AI to work in (CodeRepositorySearchField, #11076):
+ * the list held every repository the project connected, nothing pointing
+ * to most of them, each asked about one at a time.
  */
 
 export const DECLARED_CODE_DIALOG_TEST_ID: string = "declared-code-dialog";
@@ -171,6 +181,11 @@ export function readDeclaredCodeOwner(
           }
         : null,
     candidates,
+    // An older server's answer listed every repository: any is one.
+    hasRepository:
+      typeof object["hasRepository"] === "boolean"
+        ? object["hasRepository"]
+        : candidates.length > 0,
   };
 }
 
@@ -179,6 +194,8 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const groupName: string = `declared-code-repository-${useId()}`;
+  const repositoryLabelId: string = `declared-code-repository-label-${useId()}`;
+  const anotherLabelId: string = `declared-code-another-repository-${useId()}`;
   const [owner, setOwner] = useState<DeclaredCodeOwnerJSON | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -309,6 +326,38 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
       return candidate.repositoryId === repositoryId;
     },
   );
+  /*
+   * A repository picked from the search, rather than one of the listed:
+   * the search offers only the ones the reader may ask AI to work in.
+   */
+  const searchedRepositoryId: string | null =
+    repositoryId && !chosen ? repositoryId : null;
+  const canOpen: boolean = chosen
+    ? chosen.canAsk
+    : Boolean(searchedRepositoryId);
+
+  // The search for any other repository, under the listed ones or alone.
+  const renderSearch: (labelledBy: string) => ReactElement = (
+    labelledBy: string,
+  ): ReactElement => {
+    return (
+      <CodeRepositorySearchField
+        value={searchedRepositoryId}
+        group={CodeRepositoryListGroup.Connected}
+        isAskableOnly={true}
+        isClearable={false}
+        placeholder={DECLARED_CODE_DIALOG_PICK_REPOSITORY}
+        emptyListText={DECLARED_CODE_DIALOG_NO_ASKABLE_REPOSITORY}
+        ariaLabelledby={labelledBy}
+        dataTestId={`${DECLARED_CODE_DIALOG_TEST_ID}-search`}
+        onChange={(picked: string | null) => {
+          if (picked) {
+            setRepositoryId(picked);
+          }
+        }}
+      />
+    );
+  };
 
   // Why a repository is offered: its file's path drawn as code, the rest as words.
   const renderReason: (
@@ -454,10 +503,13 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
           className="space-y-1.5"
           data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-repositories`}
         >
-          <legend className={`mb-1.5 ${SECTION_LABEL_CLASS_NAME}`}>
+          <legend
+            id={repositoryLabelId}
+            className={`mb-1.5 ${SECTION_LABEL_CLASS_NAME}`}
+          >
             {translator.translateText(DECLARED_CODE_DIALOG_REPOSITORY_LABEL)}
           </legend>
-          {candidates.length === 0 ? (
+          {!owner.hasRepository ? (
             <div
               className="space-y-1 rounded-lg border border-dashed border-gray-300 px-3 py-3"
               data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-no-repository`}
@@ -474,6 +526,9 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
                 <>{translator.translateText(DECLARED_CODE_DIALOG_CONNECT)}</>
               </Link>
             </div>
+          ) : candidates.length === 0 ? (
+            // Nothing points to one: the search alone, under the section's name.
+            renderSearch(repositoryLabelId)
           ) : (
             /*
              * One list, a row a repository, as Code's own lists of
@@ -556,6 +611,25 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
               )}
             </div>
           )}
+          {owner.hasRepository && candidates.length > 0 ? (
+            // Any other connected repository: picked, no row above is chosen.
+            <div
+              className="pt-2"
+              data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-another`}
+            >
+              <p
+                id={anotherLabelId}
+                className="mb-1 text-xs font-medium text-gray-700"
+              >
+                {translator.translateText(
+                  DECLARED_CODE_DIALOG_ANOTHER_REPOSITORY,
+                )}
+              </p>
+              {renderSearch(anotherLabelId)}
+            </div>
+          ) : (
+            <></>
+          )}
         </fieldset>
 
         {/* What opening it does not do: the live change is decided apart. */}
@@ -618,7 +692,7 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
         });
       }}
       isLoading={isAsking}
-      disableSubmitButton={!chosen || !chosen.canAsk}
+      disableSubmitButton={!canOpen}
       error={askError || undefined}
     >
       <div data-testid={DECLARED_CODE_DIALOG_TEST_ID}>{body}</div>

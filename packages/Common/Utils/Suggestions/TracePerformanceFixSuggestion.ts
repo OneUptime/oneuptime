@@ -229,8 +229,9 @@ export interface TracePerformanceFixRepository {
 /*
  * The most repositories one suggestion lists: a bound on what one answer
  * carries. The list says a pick is asked for (more than one); the page's
- * picker searches every connected repository the person may read on the
- * server, and the server takes a pick past these too (#10921).
+ * picker searches, on the server, every connected repository the person
+ * may ask OneUptime AI to work in (#11075), and the server takes a pick
+ * past these too (#10921).
  */
 export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number = 200;
 
@@ -253,6 +254,41 @@ export const PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE: string =
   "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.";
 
 /*
+ * WHO MAY START A TRACE'S FIX, AND IN WHICH REPOSITORY (#11075).
+ *
+ * The rule every Fix with AI holds to: the person reads the trace, and may
+ * use the repository the fix works in, in Code - read it, and ask OneUptime
+ * AI to work in it (Code's own rule, CodeTaskAccess). The create route
+ * enforces it whatever the page offered, in these words.
+ */
+
+// A pick the person may not read: not found, or not theirs to see.
+export const PICKED_REPOSITORY_NOT_FOUND_MESSAGE: string =
+  "That repository was not found, or you do not have access to it in Code. Pick another.";
+
+// A pick the person may read, but may not ask OneUptime AI to work in.
+export const PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE: string =
+  "You can read that repository, but asking OneUptime AI to work in it takes permission to edit it in Code. Pick another, or ask a Project Admin for that permission.";
+
+/*
+ * Repositories are connected, but none the person may use in Code: no
+ * repository the fix could work in is theirs to ask in.
+ */
+export const NO_REPOSITORY_YOU_MAY_USE_MESSAGE: string =
+  "None of this project's connected repositories is one you may ask OneUptime AI to work in. Asking it to work in a repository takes permission to edit that repository in Code - ask a Project Admin for it.";
+
+/*
+ * The refusals that leave a pick the person cannot make again: the page
+ * clears the pick, and its search - held to the repositories the person
+ * may use - no longer offers it.
+ */
+export const PICK_REFUSAL_MESSAGES: ReadonlyArray<string> = [
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+];
+
+/*
  * What POST /ai-investigation/performance-fix-suggestion answers, and the
  * trace page reads: the offer, the finding it names, and - when a fix is
  * already on its way, or done - the run to link to.
@@ -265,12 +301,13 @@ export interface TracePerformanceFixSuggestion
    */
   aiRunId: string | null;
   /*
-   * Act, when several repositories are connected and none was found to
-   * hold the trace's code for certain: the first of them by name
-   * (MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES) - more than one says the
-   * person picks the fix's repository, from a search of every connected
-   * one on the server (the click names the pick). Empty otherwise - the fix
-   * then works in the repository the trace's facts resolve to.
+   * Act, when several repositories the person may use in Code are
+   * connected and none was found to hold the trace's code for certain: the
+   * first of them by name (MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES) - more
+   * than one says the person picks the fix's repository, from a search of
+   * those on the server (the click names the pick). Empty otherwise - the
+   * fix then works in the repository the trace's facts resolve to, among
+   * the ones the person may use (#11075).
    */
   repositories: Array<TracePerformanceFixRepository>;
 }

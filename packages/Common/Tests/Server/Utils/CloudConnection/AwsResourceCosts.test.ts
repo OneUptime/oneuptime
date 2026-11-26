@@ -123,12 +123,17 @@ function record(fields: Partial<CloudCostRecord>): CloudCostRecord {
 }
 
 function cost(fields: Partial<AwsResourceCost>): AwsResourceCost {
+  const amount: number = fields.amount ?? 0;
+
   return {
     day: "2026-11-19",
     service: EC2,
     resourceId: "",
     currency: "USD",
-    amount: 0,
+    amount,
+    // A cost no commitment or credit touched: the same on every basis.
+    amortizedAmount: amount,
+    netAmount: amount,
     ...fields,
   };
 }
@@ -619,6 +624,7 @@ describe("the read, against Cost Explorer", () => {
       });
 
     expect(read.complete).toBe(true);
+    // The pages answer UnblendedCost alone: no amortized or net figure.
     expect(read.costs).toEqual([
       {
         day: "2026-11-18",
@@ -626,6 +632,8 @@ describe("the read, against Cost Explorer", () => {
         resourceId: "i-0web1",
         currency: "USD",
         amount: 70.5,
+        amortizedAmount: 0,
+        netAmount: 0,
       },
       {
         day: "2026-11-19",
@@ -633,6 +641,8 @@ describe("the read, against Cost Explorer", () => {
         resourceId: "arn:aws:rds:us-east-1:123456789012:db:orders-db",
         currency: "USD",
         amount: 60,
+        amortizedAmount: 0,
+        netAmount: 0,
       },
     ]);
 
@@ -643,7 +653,7 @@ describe("the read, against Cost Explorer", () => {
     expect(bodyOf(api.requests[0]!)).toEqual({
       TimePeriod: { Start: "2026-11-18", End: "2026-11-21" },
       Granularity: "DAILY",
-      Metrics: ["UnblendedCost"],
+      Metrics: ["UnblendedCost", "AmortizedCost", "NetAmortizedCost"],
       Filter: {
         And: [
           { Dimensions: { Key: "SERVICE", Values: [EC2, RDS, S3] } },

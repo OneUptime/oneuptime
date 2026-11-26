@@ -1,8 +1,19 @@
 import { mockRouter } from "./Helpers";
 import PostgresListRouteHarness from "./PostgresListRouteHarness";
 import CodeTaskAPI from "../../../Server/API/CodeTaskAPI";
+import CommonAPI from "../../../Server/API/CommonAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
-import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import FixPerformanceTaskTrigger, {
+  TracePerformanceFixRepositoryUse,
+} from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
+import {
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import Encryption from "../../../Server/Utils/Encryption";
 import {
   ExpressRequest,
@@ -325,6 +336,25 @@ describePostgres(
       }
 
       return JSON.parse(JSON.stringify(call[2])) as JSONObject;
+    };
+
+    // The member's permissions, as the user middleware reads them from the tables.
+    const propsOf: (
+      userId: ObjectID,
+    ) => Promise<DatabaseCommonInteractionProps> = async (
+      userId: ObjectID,
+    ): Promise<DatabaseCommonInteractionProps> => {
+      const req: ExpressRequest = requestAs(userId, {});
+
+      await UserMiddleware.getUserMiddleware(req, response(), ((
+        error?: unknown,
+      ) => {
+        if (error) {
+          throw error;
+        }
+      }) as NextFunction);
+
+      return await CommonAPI.getDatabaseCommonInteractionProps(req);
     };
 
     // A search of Code's repositories, as a picker sends it.
@@ -731,18 +761,40 @@ describePostgres(
       ).toHaveLength(5);
     });
 
-    test("the trace page's Fix performance with AI: its search offers every connected repository the member reads, and a pick past the first 200 is taken", async () => {
-      const found: JSONObject = await searchAs(readerId, {
-        search: "w",
-        group: CodeRepositoryListGroup.Connected,
-      });
-
-      expect(namesOf(found)).toEqual([
+    /*
+     * #11075: the trace's fix takes only a repository the member may read
+     * and ask OneUptime AI to work in, as every other Fix with AI does - so
+     * its search is held to those (askableOnly), and so is a pick, under
+     * the member's own permissions as the tables give them.
+     */
+    test("the trace page's Fix performance with AI: its search offers the connected repositories the member may ask AI in, and a pick past the first 200 is taken", async () => {
+      expect(
+        namesOf(
+          await searchAs(memberId, {
+            search: "w",
+            group: CodeRepositoryListGroup.Connected,
+            askableOnly: true,
+          }),
+        ),
+      ).toEqual([
         "Walrus ledger",
         "Warehouse service",
         "Watchtower billing",
         "Wayfarer api",
       ]);
+      // The label's editor may ask in the labelled ones alone.
+      expect(
+        namesOf(
+          await searchAs(labelEditorId, {
+            search: "w",
+            group: CodeRepositoryListGroup.Connected,
+            askableOnly: true,
+          }),
+        ),
+      ).toEqual(["Walrus ledger", "Warehouse service", "Wayfarer api"]);
+
+      const memberProps: DatabaseCommonInteractionProps =
+        await propsOf(memberId);
 
       // The suggestion lists the first 200 by name: these are past them.
       for (const id of [threeHundredthId, warehouseId, walrusId]) {
@@ -750,6 +802,7 @@ describePostgres(
           await FixPerformanceTaskTrigger.isRepositoryChoice({
             projectId,
             pickedRepositoryId: id,
+            props: memberProps,
           }),
         ).toBe(true);
       }
@@ -761,6 +814,7 @@ describePostgres(
           pickedRepositoryId: new ObjectID(
             warehouseId.toString().toUpperCase(),
           ),
+          props: memberProps,
         }),
       ).toBe(true);
 
@@ -770,12 +824,107 @@ describePostgres(
           await FixPerformanceTaskTrigger.isRepositoryChoice({
             projectId,
             pickedRepositoryId: id,
+            props: memberProps,
           }),
         ).toBe(false);
       }
       expect(
-        await FixPerformanceTaskTrigger.isRepositoryChoice({ projectId }),
+        await FixPerformanceTaskTrigger.isRepositoryChoice({
+          projectId,
+          props: memberProps,
+        }),
       ).toBe(false);
+    });
+
+    test("a trace's pick the member may not use is refused, in a sentence that says why, under their permissions as the tables give them", async () => {
+      const readerProps: DatabaseCommonInteractionProps =
+        await propsOf(readerId);
+      const labelEditorProps: DatabaseCommonInteractionProps =
+        await propsOf(labelEditorId);
+
+      // Reads it, may not ask AI in it: refused as such.
+      const refusal: Error | null =
+        (await FixPerformanceTaskTrigger.checkRepositoryPick({
+          projectId,
+          pickedRepositoryId: warehouseId,
+          props: readerProps,
+        })) as Error | null;
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect(refusal?.message).toBe(PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE);
+
+      // The label's editor: the labelled one is theirs, the other is not.
+      expect(
+        await FixPerformanceTaskTrigger.checkRepositoryPick({
+          projectId,
+          pickedRepositoryId: warehouseId,
+          props: labelEditorProps,
+        }),
+      ).toBeNull();
+      expect(
+        (
+          (await FixPerformanceTaskTrigger.checkRepositoryPick({
+            projectId,
+            pickedRepositoryId: watchtowerId,
+            props: labelEditorProps,
+          })) as Error | null
+        )?.message,
+      ).toBe(PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE);
+
+      // Another project's: not found, never said to exist.
+      const foreign: Error | null =
+        (await FixPerformanceTaskTrigger.checkRepositoryPick({
+          projectId,
+          pickedRepositoryId: westwindId,
+          props: labelEditorProps,
+        })) as Error | null;
+
+      expect(foreign).toBeInstanceOf(NotFoundException);
+      expect(foreign?.message).toBe(PICKED_REPOSITORY_NOT_FOUND_MESSAGE);
+    });
+
+    test("without a pick, the trace's fix is resolved among the connected repositories the member may use - however many the project has", async () => {
+      const memberUse: TracePerformanceFixRepositoryUse =
+        await FixPerformanceTaskTrigger.getUsableRepositories({
+          projectId,
+          props: await propsOf(memberId),
+        });
+      const readerUse: TracePerformanceFixRepositoryUse =
+        await FixPerformanceTaskTrigger.getUsableRepositories({
+          projectId,
+          props: await propsOf(readerId),
+        });
+      const labelEditorUse: TracePerformanceFixRepositoryUse =
+        await FixPerformanceTaskTrigger.getUsableRepositories({
+          projectId,
+          props: await propsOf(labelEditorId),
+        });
+
+      // The member uses every connected one: held to none in particular.
+      expect(memberUse.usable.length).toBe(memberUse.connectedCount);
+      expect(memberUse.allowance.isEveryRepository).toBe(true);
+      expect(memberUse.connectedCount).toBeGreaterThan(
+        MAX_CODE_REPOSITORIES_PER_PAGE,
+      );
+
+      // The reader may ask in none: held to none.
+      expect(readerUse.usable).toEqual([]);
+      expect(readerUse.allowance).toEqual({
+        isEveryRepository: false,
+        repositoryIds: [],
+      });
+
+      // The label's editor: the labelled connected ones alone.
+      expect(
+        labelEditorUse.usable
+          .map((repository: { id: string }): string => {
+            return repository.id.toLowerCase();
+          })
+          .sort(),
+      ).toEqual(sortedKeysOf([walrusId, warehouseId, wayfarerId]));
+      expect(labelEditorUse.allowance.repositoryIds.sort()).toEqual(
+        sortedKeysOf([walrusId, warehouseId, wayfarerId]),
+      );
     });
   },
 );

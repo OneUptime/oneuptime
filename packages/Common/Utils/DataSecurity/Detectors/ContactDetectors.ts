@@ -9,6 +9,7 @@ import {
 } from "../Detector";
 import { isRealDate } from "../Validators";
 import { isTestStreetAddress } from "../Model/RecognizedEntity";
+import PercentDecodedText from "../PercentDecodedText";
 import IpCanonicalUtil from "../../IpCanonicalUtil";
 
 /*
@@ -125,9 +126,14 @@ export function isTestEmail(email: string): boolean {
   });
 }
 
-// An address in one spelling: lower case, and its accents composed (é as one character, not e and a mark).
+/*
+ * An address in one spelling: its percent-escapes read (jos%C3%A9 is josé,
+ * #11032), lower case, and its accents composed (é as one character, not e
+ * and a mark) - so an encoded address and the same address written plainly
+ * are one value, to a fingerprint, an allowed value and a test value alike.
+ */
 function normalizeEmail(value: string): string {
-  return value.normalize("NFC").toLowerCase();
+  return PercentDecodedText.readableOf(value).normalize("NFC").toLowerCase();
 }
 
 const emailDetector: DataTypeDetector = {

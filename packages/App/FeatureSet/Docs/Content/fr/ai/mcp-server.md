@@ -359,6 +359,25 @@ Le serveur a aussi les actions de mise en place de Demander à l'IA, un appel ch
 
 Ils agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas utiliser les huit qui créent quelque chose. Votre client vous demande avant chacun d'eux, et sa réponse dit ce qui a été créé. Ce qui manque, comme une autorisation, une adresse ou de la place dans le forfait, est dit avant que quoi que ce soit soit créé.
 
+## Outils pour la Sécurité des données
+
+Le serveur dispose aussi des [actions de Sécurité des données de Demander à l'IA](/docs/data-security/integrations#demander-à-lia), un appel chacune. Chacune apporte exactement la modification que fait son bouton dans la Sécurité des données, en votre nom et avec vos autorisations, après les mêmes vérifications :
+
+- **`query_data_security_proposals`** : ce que propose OneUptime AI en attendant une personne, les plus risquées d'abord. Avec `which: "data-types"`, les types de données qu'elle a trouvés et que les analyses ne recherchent pas encore : le nom, la catégorie et la sensibilité de chacun, la façon dont il a été prouvé, et les magasins et champs où il se trouve, jamais une valeur. Il ne change rien
+- **`draft_data_security_rule`** : une règle de résidence, de propriétaire ou d'étiquettes rédigée à partir d'une phrase, comme « les données personnelles de l'UE doivent rester dans l'UE », avec les magasins qu'elle couvre aujourd'hui. Il ne change rien
+- **`scrub_data_security_finding`** : **Nettoyer** une détection dans la télémétrie
+- **`judge_data_security_finding`** : **Confirmer**, ou **Non sensible** avec une raison, et de même pour les détections semblables
+- **`change_data_security_issue`** : **Rouvrir**, **Attribuer**, **Accepter le risque** ou **Pas un problème**
+- **`set_data_store_owners`** : les propriétaires d'un magasin, ajoutés ou retirés
+- **`save_data_security_rule`** : une règle que `draft_data_security_rule` a rédigée
+- **`respond_on_data_store`** : une action de réponse via la connexion cloud du magasin, comme **Bloquer l'accès public**
+- **`fix_data_security_issue_with_ai`** : **Corriger avec l'IA**, une pull request que quelqu'un relit et fusionne
+- **`decide_data_security_proposal`** : **Approuver** ou **Masquer** une proposition
+
+Demander à l'IA demande à une personne avant certaines de ces actions dans tous les modes, sur une carte qui dit ce qui change, ce qui cesse de fonctionner et ce que cela coûte : répondre sur un magasin, **Non sensible**, **Accepter le risque**, **Pas un problème**, changer les propriétaires d'un magasin, enregistrer une règle, décider d'une proposition, un nettoyage que quelque chose lit, et **Confirmer** dans un projet qui alerte quelqu'un pour un problème critique. Ce serveur ne peut pas vous montrer cette carte, il les refuse donc, dit pourquoi, et nomme la page de OneUptime où vous faites la modification. Rien n'est jamais exécuté sans elle.
+
+Les autres agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas les utiliser, et n'utilise que les deux qui ne changent rien. Sur un serveur auto-hébergé, `MCP_READ_ONLY=true` ne laisse que les outils qui ne changent rien, et `MCP_ALLOW_DESTRUCTIVE=false` refuse de retirer les propriétaires d'un magasin, ce qui les supprime.
+
 ## Interroger la télémétrie
 
 Les logs, les métriques, les traces (spans), les exceptions, les logs de moniteurs et les autres types de télémétrie sont accessibles par des outils `list_` et `count_` en lecture seule (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` et leurs jumeaux `count_`). La télémétrie arrive par OpenTelemetry, il n'y a donc pas d'outils de création.

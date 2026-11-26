@@ -966,6 +966,39 @@ not the only thing guarding the token.
 | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | Requests one token may make from one client address per window.                     | `60`    |
 | `onCallCalendarFeed.rateLimit.perIpPerWindow` | Requests one client address may make across all tokens per window.                    | `3000`  |
 
+## Help and Support
+
+Where the server sends its people for help - the Help menu's support address,
+chat and **Give feedback**, the footer's help page, OneUptime's GitHub links,
+the mobile app prompts and what single sign-on says to someone who needs an
+invitation - is set in Admin Dashboard > Settings > Help and Support. These
+values set it for a new server, so a GitOps install needs no clicks after it
+starts. They are read at start only while nothing is saved on that page: from
+then on the page holds the settings, a change made there is kept, and a restart
+never sets it back. A value changed here later is not applied; the server's log
+says so, and the page is where it changes. Each value is checked as the page
+checks it (a link starts with `https://`, `http://` or `mailto:`): one that would
+be refused is left out, and the page and the log say why. See
+[Help and Support](https://oneuptime.com/docs/self-hosted/help-and-support).
+
+| Parameter                     | Description                                                                                           | Default |
+|-------------------------------|-------------------------------------------------------------------------------------------------------|---------|
+| `helpAndSupport.supportEmail` | Help > Support Email, Contact Support on Page not found, the crash screen and account emails: an email address, or `hidden`. | `""` (OneUptime's) |
+| `helpAndSupport.chat`         | Help > Chat on Slack: a Slack, Microsoft Teams or other chat link, or `hidden`. Shown to signed-in people only. | `""` (OneUptime's) |
+| `helpAndSupport.requestDemo`  | Help > Request Demo: `shown` or `hidden` (`true` or `false` work too).                                  | `""` (shown) |
+| `helpAndSupport.giveFeedback` | Help > Give feedback: an email address, a link to a page of your own, or `hidden`.                      | `""` (this server's admins) |
+| `helpAndSupport.helpLink`     | The footer's Help and Support, Contact on the sign-in pages and Support in the API reference: a link, or `hidden`. | `""` (OneUptime's) |
+| `helpAndSupport.gitHub`       | OneUptime's GitHub links, Report a Bug or Request a Feature among them: `shown` or `hidden` (`true` or `false` work too). | `""` (shown) |
+| `helpAndSupport.mobileApp`    | The Get the mobile app prompts: a link to a page of your own, such as your device manager's company portal, or `hidden`. | `""` (the app stores) |
+| `helpAndSupport.inviteMessage`| What single sign-on says to someone who still needs an invitation: plain text, up to 1000 characters.  | `""` (OneUptime's) |
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  gitHub: hidden
+```
+
 ## OneUptime's own telemetry
 
 OneUptime can send its own traces, metrics and logs to a OneUptime project, or

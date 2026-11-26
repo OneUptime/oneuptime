@@ -16,16 +16,24 @@ import Permission from "../../Types/Permission";
  * the cloud says it, resource - as each cloud's own billing reports it (AWS
  * Cost Explorer, Azure Cost Management, a Google Cloud billing export in
  * BigQuery), read by the account's cloud connection (CloudConnectionLanes'
- * costs lane). Costs are before credits and refunds.
+ * costs lane).
+ *
+ * Each figure is kept on three bases (CloudCostBasis): `cost` is billed,
+ * before credits and refunds; `amortizedCost` spreads commitment fees over
+ * what they cover; `netCost` takes credits, refunds and discounts off the
+ * amortized figure. A page sums the column of the basis it shows. A row
+ * written before the bases reads its billed figure in all three (their
+ * DEFAULT), until its day is read again.
  *
  * A day is read many times: today's cost grows all day, and a cloud
  * corrects the days before it for a while. The table only ever appends, so
  * the writer never writes a figure twice: it reads what is stored for the
- * window (one sum per day and series) and writes only the DIFFERENCE
- * between the cloud's figure and that sum (CloudCostWriter). The sum of a
- * day's rows is then always the cloud's latest figure - a lost write is
- * made up on the next read, a doubled one taken back with a negative row -
- * and every read of the table is a plain sum.
+ * window (one sum per day and series, on each basis) and writes only the
+ * DIFFERENCE between the cloud's figures and those sums (CloudCostWriter).
+ * The sum of a day's rows is then always the cloud's latest figure, on
+ * every basis - a lost write is made up on the next read, a doubled one
+ * taken back with a negative row - and every read of the table is a plain
+ * sum.
  *
  * Its own table, not the metrics': a year of daily rows would keep a part
  * of every daily partition of the metrics alive for as long (SloHistory
@@ -64,6 +72,7 @@ function column(data: {
   isLowCardinality?: boolean | undefined;
   isTenantId?: boolean | undefined;
   defaultValue?: string | number | undefined;
+  defaultExpression?: string | undefined;
   skipIndex?:
     | {
         name: string;
@@ -83,6 +92,9 @@ function column(data: {
     ...(data.isTenantId ? { isTenantId: true } : {}),
     ...(data.defaultValue !== undefined
       ? { defaultValue: data.defaultValue }
+      : {}),
+    ...(data.defaultExpression !== undefined
+      ? { defaultExpression: data.defaultExpression }
       : {}),
     ...(data.skipIndex ? { skipIndex: data.skipIndex } : {}),
     accessControl: {
@@ -104,7 +116,7 @@ export default class CloudCost extends AnalyticsBaseModel {
       crudApiPath: new Route("/cloud-cost"),
       enableDocumentation: true,
       tableDescription:
-        "What each connected cloud account cost: one figure per day, service, Region and, where the cloud reports it, resource, from AWS Cost Explorer, Azure Cost Management or a Google Cloud billing export. Before credits and refunds. Query sums through /aggregate.",
+        "What each connected cloud account cost: one figure per day, service, Region and, where the cloud reports it, resource, from AWS Cost Explorer, Azure Cost Management or a Google Cloud billing export. Each is kept billed (cost, before credits and refunds), amortized (amortizedCost, commitment fees spread over what they cover) and net (netCost, less credits, refunds and discounts). Query sums through /aggregate.",
       accessControl: {
         read: readPermissions,
         create: createPermissions,
@@ -188,8 +200,24 @@ export default class CloudCost extends AnalyticsBaseModel {
           key: "cost",
           title: "Cost",
           description:
-            "The amount this row adds to the day's figure for its series; the sum of a series' rows for a day is the cloud's latest figure for it.",
+            "Billed: the amount this row adds to the day's figure for its series, before credits and refunds; the sum of a series' rows for a day is the cloud's latest figure for it.",
           type: TableColumnType.Decimal,
+        }),
+        column({
+          key: "amortizedCost",
+          title: "Amortized Cost",
+          description:
+            "Amortized: what this row adds to the day's figure with commitment fees spread over the usage and days they cover, before credits and refunds. Rows read before amortized costs were kept read their billed cost.",
+          type: TableColumnType.Decimal,
+          defaultExpression: "cost",
+        }),
+        column({
+          key: "netCost",
+          title: "Net Cost",
+          description:
+            "Net: what this row adds to the day's figure amortized, less credits, refunds and discounts. Rows read before net costs were kept read their billed cost.",
+          type: TableColumnType.Decimal,
+          defaultExpression: "cost",
         }),
         column({
           key: "currency",
@@ -316,6 +344,22 @@ export default class CloudCost extends AnalyticsBaseModel {
 
   public set cost(v: number | undefined) {
     this.setColumnValue("cost", v);
+  }
+
+  public get amortizedCost(): number | undefined {
+    return this.getColumnValue("amortizedCost") as number | undefined;
+  }
+
+  public set amortizedCost(v: number | undefined) {
+    this.setColumnValue("amortizedCost", v);
+  }
+
+  public get netCost(): number | undefined {
+    return this.getColumnValue("netCost") as number | undefined;
+  }
+
+  public set netCost(v: number | undefined) {
+    this.setColumnValue("netCost", v);
   }
 
   public get currency(): string | undefined {

@@ -17,8 +17,14 @@ import CLOUD_SHOWCASE from "../../Components/Cloud/CloudShowcase";
 import CloudSpendCard from "../../Components/Cloud/CloudSpendCard";
 import CloudStatStrip from "../../Components/Cloud/CloudStatStrip";
 import useCloudAccounts, {
+  CloudAccountRow,
   CloudAccountsRead,
+  CloudAccountsTotals,
+  getCloudAccountsInBasis,
+  totalCloudAccounts,
 } from "../../Components/Cloud/UseCloudAccounts";
+import { useCloudCostBasis } from "../../Components/Cloud/CloudCostBasis";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
   ResourceAttentionCounts,
   countResourceAttention,
@@ -81,6 +87,20 @@ const CloudOverview: FunctionComponent<
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const read: CloudAccountsRead = useCloudAccounts();
+  /*
+   * The costs on the basis the person picked on Costs, else the project's
+   * (amortized by default): a commitment bought up front does not make
+   * this month's tile spike.
+   */
+  const basis: CloudCostBasis = useCloudCostBasis().basis;
+  const accounts: Array<CloudAccountRow> = useMemo(():
+    | Array<CloudAccountRow>
+    | never => {
+    return getCloudAccountsInBasis(read.accounts, basis);
+  }, [read.accounts, basis]);
+  const totals: CloudAccountsTotals = useMemo((): CloudAccountsTotals => {
+    return totalCloudAccounts(accounts);
+  }, [accounts]);
   const [attention, setAttention] = useState<CloudAttentionCounts | null>(null);
   const [attentionFailed, setAttentionFailed] = useState<boolean>(false);
 
@@ -147,9 +167,9 @@ const CloudOverview: FunctionComponent<
       <CloudStatStrip
         testId="cloud-overview-strip"
         tiles={getCloudOverviewTiles({
-          accounts: read.accounts,
-          resources: read.totals.resources,
-          costs: read.totals.costs,
+          accounts,
+          resources: totals.resources,
+          costs: totals.costs,
           attention,
           attentionFailed,
           now: OneUptimeDate.getCurrentDate(),
@@ -162,6 +182,7 @@ const CloudOverview: FunctionComponent<
               route(PageMap.CLOUD_MONITORED_RESOURCES),
             ),
           },
+          basis,
         })}
       />
 
@@ -179,15 +200,16 @@ const CloudOverview: FunctionComponent<
 
       <CardGrid columns={2} dataTestId="cloud-overview-money">
         <CloudSpendCard
-          accounts={read.accounts}
-          costs={read.totals.costs}
+          accounts={accounts}
+          costs={totals.costs}
           costsRoute={route(PageMap.CLOUD_COSTS)}
+          basis={basis}
         />
         {projectId ? (
           <CloudSavingsCard
             projectId={projectId}
             accounts={read.accounts}
-            savings={read.totals.savings}
+            savings={totals.savings}
             savingsRoute={route(PageMap.CLOUD_SAVINGS)}
           />
         ) : (
@@ -196,8 +218,8 @@ const CloudOverview: FunctionComponent<
       </CardGrid>
 
       <CloudAccountsCard
-        accounts={read.accounts}
-        currency={read.totals.costs.currency}
+        accounts={accounts}
+        currency={totals.costs.currency}
         accountsRoute={route(PageMap.CLOUD_ACCOUNTS)}
       />
 

@@ -141,6 +141,16 @@ const RESOURCE_MAPPINGS: Array<ResourceMapping> = [
     names: attributeAliases("vmware.vcenter.name"),
     nameColumn: "name",
   },
+  /*
+   * An XCP-ng pool's series name it by its XAPI UUID (xcp_ng.pool.id), the
+   * pool row's poolIdentifier, never by its name.
+   */
+  {
+    relation: "xcpNgPools",
+    ids: ["xcpNgPoolId", "xcpNgPoolIds"],
+    names: attributeAliases("xcp_ng.pool.id"),
+    nameColumn: "poolIdentifier",
+  },
   {
     relation: "cephClusters",
     ids: ["cephClusterId", "cephClusterIds"],
@@ -196,6 +206,7 @@ const PRIMARY_TYPE_RELATIONS: Partial<Record<ServiceType, string>> = {
   [ServiceType.ProxmoxCluster]: "proxmoxClusters",
   [ServiceType.OpenStackCloud]: "openStackClouds",
   [ServiceType.VMwareVCenter]: "vmwareVCenters",
+  [ServiceType.XcpNgPool]: "xcpNgPools",
   [ServiceType.CephCluster]: "cephClusters",
   [ServiceType.StorageArray]: "storageArrays",
   [ServiceType.DockerSwarmCluster]: "dockerSwarmClusters",
@@ -965,6 +976,15 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
       : []),
     ...(hasAny(attributes, attributeAliases("ceph.cluster.name"))
       ? ["ceph_daemon", "pool_id", "pool_name"]
+      : []),
+    /*
+     * An XCP-ng pool's hosts, VMs and storage repositories are named on
+     * every datapoint by `xcp_ng.id` (their XAPI UUID, stamped at ingest),
+     * which the XCP-ng templates group by; the storage repository filling
+     * template groups a host's disk series by Xen Orchestra's `sr` label.
+     */
+    ...(hasAny(attributes, attributeAliases("xcp_ng.pool.id"))
+      ? ["xcp_ng.id", "sr"]
       : []),
     /*
      * A storage array names its volumes, pods, directories, file systems

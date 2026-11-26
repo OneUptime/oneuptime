@@ -22,8 +22,8 @@ import VersionUtil, { ParsedVersion } from "../../../Utils/VersionUtil";
 /*
  * A PINNED-COLLECTOR AGENT'S FILES AND THE VERSION THEY REPORT MOVE TOGETHER.
  *
- * The Docker Swarm, Database, Proxmox, Ceph, VMware and Storage Array agents
- * are the upstream OpenTelemetry Collector plus OneUptime's files: a
+ * The Docker Swarm, Database, Proxmox, Ceph, VMware, Storage Array and XCP-ng
+ * agents are the upstream OpenTelemetry Collector plus OneUptime's files: a
  * compose file, collector configs, a script. They report a version, and the
  * Dashboard puts a sign beside an agent that reports less than this
  * release's files do (AgentKind.ts). They used to report the collector's
@@ -116,6 +116,13 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     ],
     version: "0.165.0",
     digest: "6f85610e3234a120f556258a67fff2b5c083508ed98346923737088e17f90d18",
+  },
+  {
+    kind: AgentKind.XcpNgAgent,
+    directory: "XcpNgAgent",
+    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    version: "0.165.0",
+    digest: "ff1bdf6e487fa6384123be9fddc065503d5efafb175ad147cee61ee8dcb9604f",
   },
 ];
 

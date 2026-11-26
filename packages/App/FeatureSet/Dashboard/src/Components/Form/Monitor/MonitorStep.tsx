@@ -135,6 +135,10 @@ import VMwareMonitorStepForm from "./VMwareMonitor/VMwareMonitorStepForm";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
+import XcpNgMonitorStepForm from "./XcpNgMonitor/XcpNgMonitorStepForm";
+import MonitorStepXcpNgMonitor, {
+  MonitorStepXcpNgMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import IoTMonitorStepForm from "./IoTMonitor/IoTMonitorStepForm";
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
@@ -2104,6 +2108,33 @@ return {
             }
             onChange={(value: MonitorStepVMwareMonitor) => {
               monitorStep.setVMwareMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.XcpNg && (
+        <Card
+          title="XCP-ng Monitor Configuration"
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
+        >
+          <XcpNgMonitorStepForm
+            monitorStepXcpNgMonitor={
+              monitorStep.data?.xcpNgMonitor ||
+              MonitorStepXcpNgMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepXcpNgMonitor) => {
+              monitorStep.setXcpNgMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

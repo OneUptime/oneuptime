@@ -8,6 +8,7 @@ import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
 import { isScrubPlaceholder } from "../../../../Types/Telemetry/ScrubRule";
+import { getHintedDataTypeIds } from "../../../../Utils/DataSecurity/FieldNameHints";
 import {
   getMetricScrubRuleFingerprint,
   getScrubRuleFingerprint,
@@ -660,10 +661,17 @@ async function countAtPlace(data: {
    * A type found by the field's name is "found" in any value there: a
    * placeholder holds none of it. Not so for what the model found: a line
    * whose street address a rule left as [REDACTED] still names the person
-   * in it, and the model, reading what the rule left, says so.
+   * in it, and the model, reading what the rule left, says so. Nor for a
+   * name a URL's query parameter names in a place not named for it
+   * (#11034): a rule that left [REDACTED] elsewhere in the URL left the
+   * name, and the matcher, reading what the rule left, says so.
    */
   const isFoundByName: boolean =
-    !model && getBuiltInDataType(data.finding.dataTypeId)?.foundBy === "name";
+    !model &&
+    getBuiltInDataType(data.finding.dataTypeId)?.foundBy === "name" &&
+    getHintedDataTypeIds(data.finding.location, data.options.extraHints).has(
+      data.finding.dataTypeId,
+    );
 
   proof.findingRecordsRead = read.findingRecordsRead;
   proof.recordsRead = read.rows.length;

@@ -224,6 +224,7 @@ import TelemetrySettings, {
 } from "@oneuptime/dashboard/Pages/Settings/TelemetrySettings";
 import { TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID } from "@oneuptime/dashboard/Components/TelemetryResource/TelemetryResourceMoreSettings";
 import VMwareSettings from "@oneuptime/dashboard/Pages/VMware/View/Settings";
+import XcpNgSettings from "@oneuptime/dashboard/Pages/XcpNg/View/Settings";
 import { getDashboardPlugins } from "@oneuptime/dashboard/Enterprise/Plugins";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
@@ -251,6 +252,7 @@ import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import Service from "Common/Models/DatabaseModels/Service";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import Route from "Common/Types/API/Route";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
@@ -346,6 +348,14 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     modelType: VMwareVCenter,
     settingsKey: PageMap.VMWARE_VCENTER_VIEW_SETTINGS,
     detailIdPrefix: "model-detail-vmware-vcenter",
+    hasSessionReplayRetention: false,
+  },
+  {
+    name: "XCP-ng pool",
+    Page: XcpNgSettings,
+    modelType: XcpNgPool,
+    settingsKey: PageMap.XCP_NG_POOL_VIEW_SETTINGS,
+    detailIdPrefix: "model-detail-xcp-ng-pool",
     hasSessionReplayRetention: false,
   },
   {

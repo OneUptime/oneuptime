@@ -27,11 +27,17 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { MonitorRecommendation } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationCoverageQuestion,
+  getCoverageSearchText,
+} from "../../../Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * What the telemetry guided setup asks the model API for (issue #6806):
@@ -82,6 +88,9 @@ let getListSpy: LooseSpy;
 let createOrUpdateSpy: LooseSpy;
 let getItemSpy: LooseSpy;
 let existingMonitors: Array<Monitor> = [];
+let coverageSpy: SpyInstance<
+  typeof MonitorRecommendationCoverageApi.findCoveringMonitors
+>;
 
 const recommendations: Array<MonitorRecommendation> =
   getTelemetryRecommendations();
@@ -112,6 +121,13 @@ beforeEach(() => {
   jest
     .spyOn(PayAsYouGo, "isMonitorBatchConsentRequired")
     .mockReturnValue(false);
+  /*
+   * Which recommendations a monitor covers is the server's to say
+   * (#11074): answered from the monitors the project has.
+   */
+  coverageSpy = serveCoverageFrom(() => {
+    return existingMonitors;
+  });
 
   getListSpy.mockImplementation((async (args: {
     modelType: { new (): unknown };
@@ -310,18 +326,14 @@ describe("the monitors offered for the data that arrived", () => {
         .sort(),
     );
 
-    // The tab reads Logs monitors as well as the others.
-    const monitorTypesRead: Array<unknown> = getListSpy.mock.calls
-      .map((call: Array<unknown>): Record<string, unknown> => {
-        return call[0] as Record<string, unknown>;
-      })
-      .filter((args: Record<string, unknown>): boolean => {
-        return args["modelType"] === Monitor;
-      })
-      .map((args: Record<string, unknown>): unknown => {
-        return (args["query"] as Record<string, unknown>)["monitorType"];
-      });
-    expect(monitorTypesRead).toContain(MonitorType.Logs);
+    // The server is asked about Logs monitors as well as the others (#11074).
+    const monitorTypesAsked: Array<MonitorType> = (
+      coverageSpy.mock
+        .calls[0]![0] as Array<MonitorRecommendationCoverageQuestion>
+    ).map((question: MonitorRecommendationCoverageQuestion): MonitorType => {
+      return question.monitorType;
+    });
+    expect(monitorTypesAsked).toContain(MonitorType.Logs);
   });
 });
 
@@ -511,6 +523,86 @@ describe("what the service has already", () => {
         translator: english,
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * #11074: it read the project's first 10,000 monitors of each type and
+   * compared them here, so a monitor past them was never seen, and the
+   * setup offered to make what was made. The server decides it now.
+   */
+  test("it asks the server, never reads the project's monitors: one question per recommendation, with its monitor's type", async () => {
+    await TelemetrySetupApi.loadCoveredRecommendationIds({
+      service: SERVICE,
+      recommendations: recommendations,
+      translator: english,
+    });
+
+    const monitorReads: Array<unknown> = getListSpy.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return (call[0] as { modelType: unknown }).modelType === Monitor;
+      },
+    );
+    expect(monitorReads).toEqual([]);
+
+    expect(coverageSpy).toHaveBeenCalledTimes(1);
+    const questions: Array<MonitorRecommendationCoverageQuestion> =
+      coverageSpy.mock.calls[0]![0];
+    expect(
+      questions.map((question: MonitorRecommendationCoverageQuestion) => {
+        return [question.key, question.monitorType];
+      }),
+    ).toEqual(
+      recommendations.map((recommendation: MonitorRecommendation) => {
+        return [recommendation.recommendationId, recommendation.monitorType];
+      }),
+    );
+    // Each about this service: its id is what the server narrows by.
+    for (const question of questions) {
+      expect(getCoverageSearchText(question.fingerprints[0]!)).toBe(SERVICE.id);
+    }
+  });
+
+  test("a monitor past the project's first 10,000 that covers one is seen: the server answers for every monitor", async () => {
+    await TelemetrySetupApi.createMonitors({
+      service: SERVICE,
+      recommendations: recommendations,
+      recommendationIds: [recommendations[1]!.recommendationId],
+      hasAcknowledgedBilling: false,
+      translator: english,
+    });
+
+    const made: Monitor = created()[0]!.model;
+    made._id = id(10050).toString();
+    existingMonitors = [
+      ...Array.from({ length: 10049 }, (_: unknown, index: number) => {
+        return model(Monitor, {
+          _id: id(index + 400).toString(),
+          name: `monitor-${index}`,
+          monitorType: MonitorType.Metrics,
+        });
+      }),
+      made,
+    ];
+
+    expect(
+      await TelemetrySetupApi.loadCoveredRecommendationIds({
+        service: SERVICE,
+        recommendations: recommendations,
+        translator: english,
+      }),
+    ).toEqual([recommendations[1]!.recommendationId]);
+  });
+
+  test("the server's refusal is the setup's: nothing is offered as if it were not made", async () => {
+    coverageSpy.mockRejectedValue(new Error("Too many requests."));
+
+    await expect(
+      TelemetrySetupApi.loadCoveredRecommendationIds({
+        service: SERVICE,
+        recommendations: recommendations,
+        translator: english,
+      }),
+    ).rejects.toThrow("Too many requests.");
   });
 });
 

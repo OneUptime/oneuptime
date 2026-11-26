@@ -81,6 +81,7 @@ export default class MonitorTypeFamily {
       case MonitorType.Proxmox:
       case MonitorType.OpenStack:
       case MonitorType.VMware:
+      case MonitorType.XcpNg:
       case MonitorType.Ceph:
       case MonitorType.StorageArray:
       case MonitorType.IoTDevice:

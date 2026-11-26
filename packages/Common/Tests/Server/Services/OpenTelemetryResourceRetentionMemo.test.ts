@@ -29,6 +29,7 @@ import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import StorageArrayService from "../../../Server/Services/StorageArrayService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
@@ -118,6 +119,11 @@ const RETENTION_CASES: Array<RetentionCase> = [
     name: "VMwareVCenter",
     serviceType: ServiceType.VMwareVCenter,
     service: VMwareVCenterService,
+  },
+  {
+    name: "XcpNgPool",
+    serviceType: ServiceType.XcpNgPool,
+    service: XcpNgPoolService,
   },
   {
     name: "CephCluster",

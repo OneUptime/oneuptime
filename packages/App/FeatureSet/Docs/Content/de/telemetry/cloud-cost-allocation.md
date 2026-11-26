@@ -23,7 +23,7 @@ flowchart TB
 
 - **Die erste passende Gruppe übernimmt die Kosten.** Die Gruppen einer Ansicht haben eine Reihenfolge, und jeder Kostenposten fällt in die erste Gruppe, deren Regeln auf ihn zutreffen, sodass nichts doppelt gezählt wird. Die Gruppen und die nicht zugeordneten Ausgaben ergeben zusammen immer die Summe des Zeitraums.
 - **Regeln lesen alles, was ein Kostenposten trägt.** Das Konto, die Cloud, den Dienst, die Region, die Ressource und ihre Tags sowie das, was OneUptime über die Ressource weiß: ihre Eigentümer-Teams, ihre Beschriftungen, ihre App-Platforms-Umgebung und App.
-- **Alles wird beim Ansehen berechnet.** Pro Kostenposten wird nichts gespeichert. Eine geänderte Regel ordnet jeden Monat, den OneUptime aufbewahrt, neu zu, bis zu 400 Tage zurück, ohne Wartezeit.
+- **Alles wird beim Ansehen berechnet.** Pro Kostenposten wird nichts gespeichert. Eine geänderte Regel ordnet jeden Monat, den OneUptime aufbewahrt, neu zu, bis zu 400 Tage zurück, ohne Wartezeit. Jede Zahl folgt dem Schalter darüber, abgerechnet, amortisiert oder netto, wie bei den [Cloud-Kosten](/docs/telemetry/cloud-costs#abgerechnet-amortisiert-und-netto), und eine eigene Position ist auf jeder Basis gleich.
 - **Mehrere Ansichten können dieselben Ausgaben ordnen.** „Nach Team“ und „Nach Kostenstelle“ ordnen jeweils alles, jede auf ihre Weise.
 
 ## Bevor Sie beginnen
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-Die Antwort enthält die `total` jeder Gruppe und woraus sie besteht (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), ihre Zahlen nach Tag oder Monat, den Zeitraum davor und woraus die nicht zugeordneten Ausgaben bestehen. `POST /cloud-cost-group/<group ID>/spend` antwortet für eine Gruppe.
+Die Antwort enthält die `total` jeder Gruppe und woraus sie besteht (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), ihre Zahlen nach Tag oder Monat, den Zeitraum davor und woraus die nicht zugeordneten Ausgaben bestehen. `POST /cloud-cost-group/<group ID>/spend` antwortet für eine Gruppe. Senden Sie `basis` als `billed`, `amortized` oder `net` für Zahlen auf dieser Basis; ohne sie gelten die des Projekts, und `basis` in der Antwort sagt, welche.
 
 ## Grenzen
 

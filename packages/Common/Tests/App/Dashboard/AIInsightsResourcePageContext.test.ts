@@ -20,6 +20,7 @@ import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import AIChatPageContextType, {
   AIChatPageContextHelper,
 } from "../../../Types/AI/AIChatPageContext";
@@ -94,6 +95,12 @@ const RESOURCES: Array<ResourceCase> = [
     path: "vmware",
     modelType: VMwareVCenter,
     chip: "This vCenter",
+  },
+  {
+    type: AIResourceType.XcpNgPool,
+    path: "xcp-ng",
+    modelType: XcpNgPool,
+    chip: "This XCP-ng pool",
   },
   {
     type: AIResourceType.CephCluster,
@@ -377,6 +384,32 @@ const CHILDREN: Array<ChildCase> = [
     collection: "clusters",
     kind: AIResourceSubresourceKind.Cluster,
     key: "cluster/London/production",
+  },
+  /*
+   * An XCP-ng pool's hosts, VMs and storage repositories are keyed by their
+   * XAPI UUID: a UUID like the pool's own id, which must stay the part's
+   * key and never be read as the pool.
+   */
+  {
+    type: AIResourceType.XcpNgPool,
+    path: "xcp-ng",
+    collection: "hosts",
+    kind: AIResourceSubresourceKind.Host,
+    key: "4f2b7c1e-9a0d-4e5f-8b6c-1d2e3f405162",
+  },
+  {
+    type: AIResourceType.XcpNgPool,
+    path: "xcp-ng",
+    collection: "vms",
+    kind: AIResourceSubresourceKind.VirtualMachine,
+    key: "9c3e1a77-2b4d-46f8-a0e1-5b6c7d8e9f01",
+  },
+  {
+    type: AIResourceType.XcpNgPool,
+    path: "xcp-ng",
+    collection: "storage",
+    kind: AIResourceSubresourceKind.StorageRepository,
+    key: "e1d2c3b4-a596-4877-8695-a4b3c2d1e0f9",
   },
   {
     type: AIResourceType.CephCluster,

@@ -20,8 +20,9 @@
  *    "Token ACCEPTED".
  *
  * One matrix, run through every script that carries this check: the Ceph,
- * Proxmox, OpenStack, VMware, Storage Array and Docker Swarm agents (docker
- * compose; probes run as `docker run curl` in the agent's network namespace)
+ * Proxmox, OpenStack, VMware, Storage Array, XCP-ng and Docker Swarm agents
+ * (docker compose; probes run as `docker run curl` in the agent's network
+ * namespace)
  * and the Kubernetes agent chart's (probes run as `kubectl run curl` in the
  * cluster). The Database Agent's differs in shape and has its own tests in
  * DatabaseAgentScripts.test.js.
@@ -279,10 +280,11 @@ const CASES = [
  * probe from <probe>.out (body, then the OUSTATUS line curl's -w appends),
  * exiting with <probe>.exit as `docker run` passes curl's exit code on.
  * Anything else it is asked to fetch (a scrape target — a Ceph mgr, a
- * Proxmox or OpenStack exporter, a FlashArray's metrics endpoint — or the
- * collector's own metrics) gets a plausible healthy answer. What `docker run -i`
- * is handed on stdin (the OpenStack agent's key, which stays off the command
- * line) is logged with its arguments.
+ * Proxmox or OpenStack exporter, a FlashArray's metrics endpoint, Xen
+ * Orchestra's OpenMetrics plugin — or the collector's own metrics) gets a
+ * plausible healthy answer. What `docker run -i` is handed on stdin (the
+ * OpenStack and XCP-ng agents' key, which stays off the command line) is
+ * logged with its arguments.
  */
 function dockerStub(bin) {
   writeExecutable(
@@ -316,6 +318,9 @@ case "$1" in
       */fluentd/v1/logs*) probe_answer fluentd ;;
       *127.0.0.1:8888/metrics*)
         printf 'otelcol_receiver_accepted_metric_points 10\\notelcol_exporter_sent_metric_points 10\\notelcol_exporter_send_failed_metric_points 0\\n' ;;
+      */openmetrics/health*) printf '{"status":"ok"}\\nOUSTATUS:200\\nOUTYPE:application/json\\n' ;;
+      */openmetrics/metrics*)
+        printf 'xcp_pool_connected{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",pool_name="Production"} 1\\n# EOF\\nOUSTATUS:200\\nOUTYPE:application/openmetrics-text; version=1.0.0; charset=utf-8\\n' ;;
       *) printf 'ceph_health_status 0\\npve_up 1\\nopenstack_identity_up 1\\npurefa_info{array_name="fa-prod",os="Purity//FA",system_id="0b6a4e39",version="6.7.3"} 1\\n\\nOUSTATUS:200\\n' ;;
     esac
     exit 0 ;;
@@ -392,6 +397,22 @@ const DOCKER_AGENTS = [
     ],
   },
   {
+    agent: "XcpNgAgent",
+    env: [
+      `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+      "XO_SCHEME=https",
+      "XO_ADDRESS=xo.example.com:443",
+      "XO_OPENMETRICS_SECRET=0b6a4e391f0e4a7c9d576c0f2a8a3b11",
+      "XO_NAME=xo-prod",
+      "XO_TLS_SERVER_NAME=",
+    ],
+    // What install.sh writes beside the compose file: the certificate it trusts.
+    installFiles: {
+      "xo-ca.pem":
+        "-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUXcpNgAgentTokenCheck\n-----END CERTIFICATE-----\n",
+    },
+  },
+  {
     agent: "DockerSwarmAgent",
     env: [`ONEUPTIME_SERVICE_TOKEN=${KEY}`, "DOCKER_SWARM_CLUSTER_NAME=swarm"],
     swarm: true,
@@ -404,7 +425,7 @@ const DOCKER_AGENTS = [
  * writes that .env as given instead of the plain lines.
  */
 function runDockerAgent(
-  { agent, env },
+  { agent, env, installFiles = {} },
   probes,
   { containerEnv = true, envFileText = null } = {},
 ) {
@@ -432,6 +453,9 @@ function runDockerAgent(
     path.join(installDir, ".env"),
     envFileText === null ? envText : envFileText,
   );
+  for (const [file, text] of Object.entries(installFiles)) {
+    fs.writeFileSync(path.join(installDir, file), text);
+  }
 
   const result = spawnSync(
     "bash",
@@ -646,7 +670,7 @@ describe.each(DOCKER_AGENTS)("agents/$agent/troubleshoot.sh", (config) => {
 });
 
 /*
- * The Ceph, Proxmox, OpenStack, VMware and Storage Array install scripts write .env
+ * The Ceph, Proxmox, OpenStack, VMware, Storage Array and XCP-ng install scripts write .env
  * quoted for Docker Compose ('value', or "value" with \\ \" and $$). With
  * the collector down there is no container environment to read, and the
  * script falls back to .env: it must read it as Compose does, or it would

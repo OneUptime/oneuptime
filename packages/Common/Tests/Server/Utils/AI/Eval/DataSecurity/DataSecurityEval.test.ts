@@ -28,9 +28,11 @@ import {
   PullRequestReviewEvalCase,
   ImpactAssessmentEvalCase,
   RecordDraftEvalCase,
+  RuleFromSentenceEvalCase,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCase";
+import { JSONObject } from "../../../../../../Types/JSON";
 import { PULL_REQUEST_LEAK_REVIEW_INSTRUCTIONS } from "../../../../../../Server/Utils/AI/DataSecurity/PullRequestLeakReview";
 import { ProductionReviewLeakJSON } from "../../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import {
@@ -569,8 +571,67 @@ function goodEvidenceAnswer(testCase: AuditEvidenceEvalCase): string {
   });
 }
 
+/*
+ * The rule each sentence asks for (#10378), as a right draft answers it;
+ * no rule for the sentence that asks for none.
+ */
+const GOOD_RULES: Record<string, JSONObject | null> = {
+  "rule-eu-personal-data-stays-in-the-eu": {
+    kind: "residency",
+    name: "EU personal data stays in the EU",
+    description: "Personal data is kept only in the EU's cloud regions.",
+    dataCategories: [],
+    subjectCountries: [],
+    allowedRegions: [
+      "eu-west-1",
+      "eu-west-3",
+      "eu-central-*",
+      "eu-north-1",
+      "eu-south-*",
+      "europe-*",
+      "westeurope",
+      "northeurope",
+      "germanywestcentral",
+      "francecentral",
+      "swedencentral",
+    ],
+  },
+  "rule-german-card-data-in-frankfurt": {
+    kind: "residency",
+    name: "German card data stays in Frankfurt",
+    description: "Card data about people in Germany is kept only in Frankfurt.",
+    dataCategories: ["Financial"],
+    subjectCountries: ["DE"],
+    allowedRegions: ["eu-central-1", "europe-west3", "germanywestcentral"],
+  },
+  "rule-payments-owns-payments-stores": {
+    kind: "owner",
+    name: "Payments owns the payments stores",
+    description: "The Payments team owns every store named payments-.",
+    nameRegexPattern: "^payments-",
+    owners: ["Payments"],
+  },
+  "rule-label-card-stores-pci": {
+    kind: "label",
+    name: "Card stores are PCI",
+    description: "Every store with card in its name is labelled PCI.",
+    nameRegexPattern: "card",
+    labelsToAdd: ["PCI"],
+  },
+  "rule-none-in-a-wish": null,
+};
+
+function goodRuleAnswer(testCase: RuleFromSentenceEvalCase): string {
+  return JSON.stringify({
+    rule: GOOD_RULES[testCase.id] ?? null,
+    reason: "The sentence says so.",
+  });
+}
+
 function goodAnswer(testCase: DataSecurityEvalCase): string {
   switch (testCase.feature) {
+    case DataSecurityAiFeature.DraftRuleFromSentence:
+      return goodRuleAnswer(testCase);
     case DataSecurityAiFeature.JudgeFindings:
       return goodVerdictAnswer(testCase);
     case DataSecurityAiFeature.ExplainIssue:

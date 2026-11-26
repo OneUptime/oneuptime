@@ -480,6 +480,27 @@ export default class CloudCostRecommendation extends BaseModel {
   })
   public evidence?: JSONObject = undefined;
 
+  /*
+   * For a "commit to use" recommendation, what the commitment it suggests
+   * is (CloudCommitmentRecommendationDetails): its term, payment option,
+   * hourly commitment or count, and what it costs up front and a month -
+   * AWS Cost Optimization Hub's, read with GetRecommendation. What the
+   * Commitments page's purchase plan is drawn from. Empty otherwise.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Commitment Details",
+    description:
+      "For a recommendation to buy a commitment: its term, payment option, amount, and what it costs up front and a month.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public commitmentDetails?: JSONObject = undefined;
+
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({
     required: false,

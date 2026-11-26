@@ -66,6 +66,8 @@ import OpenStackDocumentationPage from "../../../../App/FeatureSet/Dashboard/src
 import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
 import StorageArrayDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Documentation";
 import ProxmoxDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Documentation";
+import XcpNgDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Documentation";
+import XcpNgDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/XcpNg/DocumentationCard";
 import VMwareDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Documentation";
 import VMwareDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/DocumentationCard";
 import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
@@ -112,6 +114,11 @@ import {
   getProxmoxSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
+import {
+  XcpNgConnectMethod,
+  getXcpNgSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
+import { XCP_NG_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationTranslations";
 import {
   VMwareInstallMethod,
   getVMwareSetupGuide,
@@ -166,6 +173,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   Kubernetes: {},
   StorageArray: {},
   Proxmox: {},
+  XcpNg: {},
   VMware: {},
   Database: {},
   Host: {},
@@ -211,6 +219,24 @@ function proxmoxGuide(
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: method,
+  });
+}
+
+/*
+ * The XCP-ng guide before a key is picked: the install script unless
+ * Docker Compose is picked, for a new Xen Orchestra unless a pool's own tab
+ * names the one it is read from.
+ */
+function xcpNgGuide(
+  method: XcpNgConnectMethod = "install-script",
+  xenOrchestraName?: string,
+): SetupGuideContent {
+  return getXcpNgSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    method: method,
+    xenOrchestraName: xenOrchestraName,
   });
 }
 
@@ -525,6 +551,9 @@ beforeAll(async () => {
     ).default;
     WORDS["Proxmox"]![language] = (
       await PROXMOX_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["XcpNg"]![language] = (
+      await XCP_NG_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
     WORDS["OpenStack"]![language] = (
       await OPENSTACK_DOCUMENTATION_TRANSLATIONS[language]!()
@@ -915,6 +944,124 @@ describe("Proxmox > Help > Documentation", () => {
       expect(screen.queryByText("OTLP metrics endpoint")).toBeNull();
     },
   );
+});
+
+describe("XCP-ng > Help > Documentation", () => {
+  // Every piece of `guide` is drawn in the reader's words, and none in English.
+  function expectGuideInReadersWords(
+    guide: SetupGuideContent,
+    language: string,
+  ): void {
+    const drawn: string = drawnTexts().join("\n");
+
+    for (const piece of getSetupGuideWordPieces(guide)) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+    for (const piece of getSetupGuideWordPieces(
+      inLanguage("XcpNg", guide, language),
+    )) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: true,
+      });
+    }
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the XCP-ng guide, its title, its ways to install and its topics in the reader's words, the install script and Xen Orchestra's own menus as written",
+    async (language: string) => {
+      await drawIn(language, <XcpNgDocumentationPage {...PAGE_PROPS} />);
+
+      expectGuideInReadersWords(xcpNgGuide(), language);
+
+      // The card's own words, its ways to install and its topics come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect XCP-ng Pools"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect XCP-ng Pools")).toBeNull();
+      expect(
+        screen.getByText(locale["How do you want to install the agent?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Turn on Xen Orchestra's OpenMetrics plugin"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Xen Orchestra's certificate"]!),
+      ).toBeInTheDocument();
+
+      // The command, and Xen Orchestra's own menus and fields, are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("/install/xcp-ng-agent -o install.sh");
+      expect(drawn).toContain("*Settings → Plugins*");
+      expect(drawn).toContain("**openmetrics**");
+      expect(drawn).toContain("**Prometheus secret**");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, picking Docker Compose draws its steps in the reader's words, the .env and the certificate commands as written",
+    async (language: string) => {
+      await drawWithOption(
+        language,
+        <XcpNgDocumentationPage {...PAGE_PROPS} />,
+        "docker-compose",
+      );
+      await openEveryTopic();
+
+      expectGuideInReadersWords(xcpNgGuide("docker-compose"), language);
+
+      // The key step's words, from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(
+          locale[
+            "The agent sends your pools' metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+          ]!,
+        ),
+      ).toBeInTheDocument();
+
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("XO_OPENMETRICS_SECRET='your-plugin-secret'");
+      expect(drawn).toContain(
+        "openssl x509 -in xo-ca.pem -noout -fingerprint -sha256",
+      );
+      expect(drawn).toContain(SETUP_GUIDE_API_KEY_PLACEHOLDER);
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test("a pool's own tab: the guide for its Xen Orchestra, in German", async () => {
+    await drawIn(
+      "de",
+      <XcpNgDocumentationCard
+        title="Connect XCP-ng Pools"
+        description="Run the agent."
+        xenOrchestraName="xo-paris"
+      />,
+    );
+
+    expectGuideInReadersWords(xcpNgGuide("install-script", "xo-paris"), "de");
+
+    const drawn: string = drawnTexts().join("\n");
+    expect(drawn).toContain(
+      "der Befehl nennt es bereits **`xo-paris`**, wie die Einstellungen dieses Pools es zeigen.",
+    );
+    // The command names it, as the pool's Settings do.
+    expect(drawn).toContain("XO_NAME=xo-paris bash install.sh");
+  });
 });
 
 describe("Kubernetes > Help > Documentation", () => {

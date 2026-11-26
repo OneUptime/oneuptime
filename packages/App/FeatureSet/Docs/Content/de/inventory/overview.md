@@ -50,7 +50,7 @@ Alle drei Stunden entfernt OneUptime die erkannten Elemente, die länger als das
 | --- | --- |
 | Pods, Deployments, Proxmox-Gäste, OpenStack-Instanzen und virtuelle VMware-Maschinen | 1 Tag |
 | Kubernetes-Knoten und -Namespaces, Proxmox-Knoten, OpenStack-Hypervisoren, VMware-Hosts, -Cluster und -Datastores sowie die Datenbanken und entfernten Dienste, die Ihre Traces aufrufen | 7 Tage |
-| Dienste, Hosts, Kubernetes-, Proxmox- und Ceph-Cluster, OpenStack-Clouds, Speicher-Arrays, vCenters und Docker-Swarm-Cluster | 30 Tage |
+| Dienste, Hosts, Kubernetes-, Proxmox- und Ceph-Cluster, OpenStack-Clouds, Speicher-Arrays, vCenters, XCP-ng-Pools und Docker-Swarm-Cluster | 30 Tage |
 
 Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lang nicht erneut gesehen wurde.
 
