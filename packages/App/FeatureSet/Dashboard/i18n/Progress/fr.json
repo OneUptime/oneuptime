@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 4740
+    "keys": 64815,
+    "untranslated": 4745
   },
   "sameAsEnglish": [
     " incidents",
@@ -589,6 +589,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
