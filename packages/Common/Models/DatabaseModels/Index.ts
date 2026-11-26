@@ -107,6 +107,7 @@ import CloudCostGroup from "./CloudCostGroup";
 import CloudCostLineItem from "./CloudCostLineItem";
 import CloudCostView from "./CloudCostView";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudCostReport from "./CloudCostReport";
 import CloudCostSetting from "./CloudCostSetting";
 import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
 import CloudSavingsAction from "./CloudSavingsAction";
@@ -1395,6 +1396,7 @@ const AllModelTypes: Array<{
   CloudCostGroup,
   CloudCostLineItem,
   CloudCostRecommendation,
+  CloudCostReport,
   CloudCostSetting,
   CloudOffHoursSchedule,
   CloudSavingsAction,

@@ -637,6 +637,7 @@ import CloudCostLineItemService from "./CloudCostLineItemService";
 import CloudCostViewService from "./CloudCostViewService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudCostSettingService from "./CloudCostSettingService";
+import CloudCostReportService from "./CloudCostReportService";
 import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
 import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
@@ -1272,6 +1273,7 @@ const services: Array<BaseService> = [
   CloudCostLineItemService,
   CloudCostRecommendationService,
   CloudCostSettingService,
+  CloudCostReportService,
   CloudOffHoursScheduleService,
   CloudSavingsActionService,
   CloudConnectionService,

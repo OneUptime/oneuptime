@@ -626,8 +626,20 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "CloudAccount",
     "CloudAccountFeed",
     "CloudBudget",
+    /*
+     * Commitments, cost settings, cost views, their groups and line items,
+     * and scheduled cost reports (#11007, #11006, #11009): Cloud's own
+     * records, so Cloud Admin, Member and Viewer reach them as they reach
+     * the costs they sort and report.
+     */
+    "CloudCommitment",
     "CloudConnection",
+    "CloudCostGroup",
+    "CloudCostLineItem",
     "CloudCostRecommendation",
+    "CloudCostReport",
+    "CloudCostSetting",
+    "CloudCostView",
     "CloudOffHoursSchedule",
     "CloudSavingsAction",
     AnalyticsTableName.CloudCost,

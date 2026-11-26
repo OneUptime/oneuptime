@@ -1205,6 +1205,7 @@ import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeS
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
+import { AddCloudCostReports1809187721109 } from "./1809187721109-AddCloudCostReports";
 
 export default [
   InitialMigration,
@@ -2414,4 +2415,5 @@ export default [
   AddXcpNgPoolTables1809187720000,
   AddCloudSavingsActions1809187721010,
   AddCloudCostBasesAndCommitments1809187721011,
+  AddCloudCostReports1809187721109,
 ];
