@@ -106,9 +106,55 @@ describe("every default config", () => {
 
       for (const pipeline of Object.values(config.service.pipelines)) {
         expect(pipeline.exporters).toEqual(["otlp_http/oneuptime"]);
-        // host.name, host.id and os.type file everything under the host.
-        expect(pipeline.processors).toEqual(["resource_detection", "batch"]);
+        /*
+         * host.name, host.id and os.type file everything under the host;
+         * on a cloud VM, the cloud step then stamps which instance it is
+         * (#11013).
+         */
+        expect(pipeline.processors).toEqual([
+          "resource_detection",
+          "resource_detection/cloud",
+          "batch",
+        ]);
       }
+    },
+  );
+
+  /*
+   * THE CLOUD VM A HOST IS (#11013). OneUptime links a host to the VM its
+   * cloud connection lists by the provider, account, Region and instance
+   * ID the cloud's own detectors stamp. They run in a step of their own,
+   * after the host's: each keeps the name the system detector stamps
+   * (host.name off), so a host on a cloud keeps its page, and off a cloud
+   * each finds no metadata service and stamps nothing.
+   */
+  test.each(everyDefault())(
+    "%s asks the EC2, Google Cloud and Azure metadata services, keeping the host's name",
+    (_label: string, text: string) => {
+      const config: ParsedConfig = parse(text);
+      const cloud: Record<string, unknown> = config.processors[
+        "resource_detection/cloud"
+      ] as Record<string, unknown>;
+
+      expect(cloud["detectors"]).toEqual(["ec2", "gcp", "azure"]);
+
+      for (const detector of ["ec2", "gcp", "azure"]) {
+        expect({ detector, settings: cloud[detector] }).toEqual({
+          detector,
+          settings: {
+            resource_attributes: { "host.name": { enabled: false } },
+          },
+        });
+      }
+
+      // The host's own step still names it from the system, first.
+      expect(
+        (config.processors["resource_detection"] as Record<string, unknown>)[
+          "detectors"
+        ],
+      ).toEqual(["system", "env"]);
+      // No step asks a cloud's API for the VM's tags, which needs credentials.
+      expect(text).not.toMatch(/^\s*tags:/m);
     },
   );
 

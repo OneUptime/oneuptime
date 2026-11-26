@@ -37,6 +37,9 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
 import { createTranslator, Translator } from "../../../Types/Translator";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
+import API from "../../../UI/Utils/API/API";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { getJestSpyOn } from "../../Spy";
@@ -59,6 +62,16 @@ import {
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { MemoryRouter } from "react-router-dom";
+
+/*
+ * The card links where a VM's memory comes from (#11013) - the host
+ * collector's guide, or the host that reads it - so it is drawn inside a
+ * router, as every Dashboard page is.
+ */
+function renderInRouter(element: React.ReactElement): void {
+  render(element, { wrapper: MemoryRouter });
+}
 
 /*
  * A cloud resource's right-sizing on its Overview, from OneUptime's own
@@ -417,7 +430,7 @@ describe("the card, drawn", () => {
     });
 
     await act(async () => {
-      render(
+      renderInRouter(
         <CloudResourceRightSizingCard sizing={sizingOf({ dailyCost: 9.2 })} />,
       );
     });
@@ -502,7 +515,7 @@ describe("the card, drawn", () => {
 
   test("in German, every word the Dashboard's German", async () => {
     await act(async () => {
-      render(
+      renderInRouter(
         <I18nextProvider i18n={instance}>
           <CloudResourceRightSizingCard sizing={sizingOf({ dailyCost: 9.2 })} />
         </I18nextProvider>,
@@ -537,7 +550,7 @@ describe("the card, drawn", () => {
 
   test("under-provisioned: what the larger size adds a month, in amber - never a saving's green", async () => {
     await act(async () => {
-      render(
+      renderInRouter(
         <CloudResourceRightSizingCard
           sizing={sizingOf({
             profile: RDS,
@@ -569,7 +582,7 @@ describe("the card, drawn", () => {
 
   test("its saving not known yet: said quietly, with no amount drawn", async () => {
     await act(async () => {
-      render(<CloudResourceRightSizingCard sizing={sizingOf({})} />);
+      renderInRouter(<CloudResourceRightSizingCard sizing={sizingOf({})} />);
     });
 
     const savingLine: HTMLElement = screen.getByTestId(
@@ -583,7 +596,7 @@ describe("the card, drawn", () => {
 
   test("not enough readings: the pill and how far it has come, no figures", async () => {
     await act(async () => {
-      render(
+      renderInRouter(
         <CloudResourceRightSizingCard
           sizing={sizingOf({ fields: { observedHours: 80, samples: 900 } })}
         />,
@@ -759,6 +772,13 @@ describe("the reads", () => {
         };
       },
     );
+    /*
+     * A VM's page asks which host it is (#11013): none here, so its memory
+     * is its cloud's alone.
+     */
+    getJestSpyOn(API, "post").mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { host: null }, {}) as never,
+    );
   });
 
   afterEach(() => {
@@ -919,7 +939,7 @@ describe("the reads", () => {
 
   async function draw(given: CloudResource): Promise<void> {
     await act(async () => {
-      render(<CloudResourceSpendCards projectId={PROJECT} resource={given} />);
+      renderInRouter(<CloudResourceSpendCards projectId={PROJECT} resource={given} />);
     });
   }
 

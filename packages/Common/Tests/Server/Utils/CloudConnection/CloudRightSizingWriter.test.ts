@@ -931,7 +931,12 @@ describe("a run", () => {
       "AWS::ElastiCache::ReplicationGroup",
     ]);
 
-    expect(result).toEqual({ judged: 2, kept: 1, removed: 2 });
+    expect(result).toEqual({
+      judged: 2,
+      kept: 1,
+      removed: 2,
+      sizedOnHostMemory: 0,
+    });
 
     // web-1 is kept up to date, as OneUptime's own Rightsize.
     expect(created).toHaveLength(0);
@@ -1037,7 +1042,12 @@ describe("a run", () => {
       .mockImplementation(async (): Promise<never> => {
         throw new Error("Postgres is away");
       });
-    expect(await run()).toEqual({ judged: 0, kept: 0, removed: 0 });
+    expect(await run()).toEqual({
+      judged: 0,
+      kept: 0,
+      removed: 0,
+      sizedOnHostMemory: 0,
+    });
     expect(created).toHaveLength(0);
     expect(removed).toHaveLength(0);
   });
@@ -1052,6 +1062,11 @@ describe("a run", () => {
         now: NOW,
       });
     expect(resourceQueries).toHaveLength(0);
-    expect(result).toEqual({ judged: 0, kept: 0, removed: 1 });
+    expect(result).toEqual({
+      judged: 0,
+      kept: 0,
+      removed: 1,
+      sizedOnHostMemory: 0,
+    });
   });
 });

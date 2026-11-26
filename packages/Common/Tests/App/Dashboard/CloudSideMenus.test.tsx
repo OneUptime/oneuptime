@@ -80,6 +80,8 @@ describe("the Cloud product menu", () => {
       { title: "Costs", href: `${CLOUD}/costs` },
       { title: "Savings", href: `${CLOUD}/savings` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
+      // The required tags and how much of the spend carries them (#11012).
+      { title: "Tags", href: `${CLOUD}/tags` },
     ]);
     expect(linksIn("Settings")).toEqual([
       { title: "Owner Rules", href: `${CLOUD}/settings/owner-rules` },
@@ -234,6 +236,8 @@ describe("a cloud account's menu", () => {
         href: `${ACCOUNT_PATH}/recommendations`,
       },
       { title: "Costs", href: `${ACCOUNT_PATH}/costs` },
+      // Its required tags, the project's and its own (#11012).
+      { title: "Tags", href: `${ACCOUNT_PATH}/tags` },
     ]);
     // What AI did first, its agent last, as every resource's AI section.
     expect(linksIn("AI")).toEqual([
