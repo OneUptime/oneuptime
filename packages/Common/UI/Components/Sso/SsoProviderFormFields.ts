@@ -245,6 +245,31 @@ export const getSsoGlobalReachAnswerTitle: (values: unknown) => string = (
     : (SSO_GLOBAL_REACH_CHOICES[0] as RadioButton).title;
 };
 
+/*
+ * The answer's line, as a provider's page shows what the answer does
+ * under it (#11149): "Every project" read on its own was taken for
+ * "everyone gets every project", and "Get one on their first sign-in" for
+ * an account whatever is attached.
+ */
+export const getSsoGlobalSignUpAnswerDescription: (values: unknown) => string =
+  (values: unknown): string => {
+    return (
+      (getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_INVITED
+        ? (SSO_GLOBAL_SIGN_UP_CHOICES[1] as RadioButton).description
+        : (SSO_GLOBAL_SIGN_UP_CHOICES[0] as RadioButton).description) || ""
+    );
+  };
+
+export const getSsoGlobalReachAnswerDescription: (values: unknown) => string = (
+  values: unknown,
+): string => {
+  return (
+    (getSsoGlobalReachAnswer(values) === SSO_GLOBAL_REACH_ATTACHED_ONLY
+      ? (SSO_GLOBAL_REACH_CHOICES[1] as RadioButton).description
+      : (SSO_GLOBAL_REACH_CHOICES[0] as RadioButton).description) || ""
+  );
+};
+
 export interface SsoProviderFieldOptions {
   // The step the field is on: SSO_PROVIDER_STEP_ID or SSO_SIGN_IN_STEP_ID.
   stepId: string;
