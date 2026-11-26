@@ -59,6 +59,7 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import ProjectSsoDiscovery from "Common/Server/Utils/ProjectSsoDiscovery";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
+import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
@@ -79,6 +80,46 @@ const getOidcStateCookieName: (projectOidcId: ObjectID) => string = (
   projectOidcId: ObjectID,
 ): string => {
   return `oidc-state-${projectOidcId.toString()}`;
+};
+
+const NO_TEAMS_MESSAGE: string =
+  "No teams have been added to this OIDC config. Please contact your admin and have default teams added.";
+
+/*
+ * Someone not in the project yet, and no team of the project to add them
+ * to: the page, or the mobile app's deep link.
+ */
+type RespondNoTeamsFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+}) => void;
+
+const respondNoTeams: RespondNoTeamsFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+}): void => {
+  if (
+    respondToMobileSsoFailure({
+      res: data.res,
+      isMobileRequest: data.isMobileRequest,
+      error: SSO_NO_TEAMS_ERROR,
+      errorDescription: NO_TEAMS_MESSAGE,
+    })
+  ) {
+    return;
+  }
+
+  return Response.render(
+    data.req,
+    data.res,
+    "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+    {
+      title: SSO_NO_TEAMS_TITLE,
+      message: NO_TEAMS_MESSAGE,
+    },
+  );
 };
 
 /*
@@ -527,6 +568,15 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
      * account, one that has not confirmed this project's sign-in, a blocked
      * one or an administrator's (#9824). See ../Utils/ProjectSsoSignInGate.ts.
      */
+    /*
+     * The provider's teams that are its project's own: where someone not
+     * in the project yet joins it, and whether someone new can (#11149).
+     */
+    const projectTeams: Array<Team> = await SsoTeamMembership.getProjectTeams({
+      projectId: new ObjectID(req.params["projectId"] as string),
+      teams: projectOidc.teams,
+    });
+
     const decision: ProjectSsoGateDecision = await ProjectSsoSignInGate.decide({
       email: result.email,
       name: result.name || null,
@@ -534,7 +584,13 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
       kind: ProjectSsoKind.OIDC,
       providerId: projectOidcId,
       origin: RequestOriginUtil.fromRequest(req),
+      canAddNewcomers: projectTeams.length > 0,
     });
+
+    // Someone new, and no team of the project to put them in: nothing made.
+    if (decision.outcome === ProjectSsoGateOutcome.NoTeams) {
+      return respondNoTeams({ req, res, isMobileRequest });
+    }
 
     if (decision.outcome !== ProjectSsoGateOutcome.SignIn) {
       const failureReason: SignInFailureReason | null =
@@ -589,33 +645,11 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         await SsoTeamMembership.addToTeams({
           projectId: new ObjectID(req.params["projectId"] as string),
           userId: alreadySavedUser.id!,
-          teams: projectOidc.teams,
+          teams: projectTeams,
         });
 
       if (joined === SsoTeamMembershipOutcome.NoTeams) {
-        const noTeamsMessage: string =
-          "No teams have been added to this OIDC config. Please contact your admin and have default teams added.";
-
-        if (
-          respondToMobileSsoFailure({
-            res,
-            isMobileRequest,
-            error: SSO_NO_TEAMS_ERROR,
-            errorDescription: noTeamsMessage,
-          })
-        ) {
-          return;
-        }
-
-        return Response.render(
-          req,
-          res,
-          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-          {
-            title: SSO_NO_TEAMS_TITLE,
-            message: noTeamsMessage,
-          },
-        );
+        return respondNoTeams({ req, res, isMobileRequest });
       }
 
       if (joined === SsoTeamMembershipOutcome.NoRoom) {

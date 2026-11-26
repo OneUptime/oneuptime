@@ -2073,6 +2073,36 @@ describePostgres(
         expect(pageOf(journey).title).toBe("No teams added.");
         expectNobodySignedIn(journey);
         expect(await everyMembership()).toEqual([]);
+        // Nowhere to put them, so no account is left behind either.
+        expect(await accountCount()).toBe(0);
+      });
+
+      test("someone with an account in none of the project's teams is told the same as someone new, and joins nothing", async () => {
+        const platform: ProjectFixture = await makeProject("Platform");
+        const payments: ProjectFixture = await makeProject("Payments");
+        const providerId: ObjectID = await makeProjectOidc({
+          projectId: platform.id,
+          teams: [payments.ownersTeam],
+        });
+        const account: User = await makeAccountByHand({
+          email: "adele@contoso.example",
+          name: "Adele Vance",
+        });
+
+        setClaims(
+          idTokenClaims,
+          entraClaims({ email: "adele@contoso.example", name: "Adele Vance" }),
+        );
+
+        const journey: Journey = await signInWithProjectOidc(
+          platform.id,
+          providerId,
+        );
+
+        expect(pageOf(journey).title).toBe("No teams added.");
+        expectNobodySignedIn(journey);
+        expect(await membershipsOf(account.id!)).toEqual([]);
+        expect(await accountCount()).toBe(1);
       });
 
       test("an address the provider has not verified makes no account and joins nobody to the project", async () => {
@@ -2262,6 +2292,8 @@ describePostgres(
         expect(pageOf(journey).title).toBe("No teams added.");
         expectNobodySignedIn(journey);
         expect(await everyMembership()).toEqual([]);
+        // Nowhere to put them, so no account is left behind either.
+        expect(await accountCount()).toBe(0);
       });
     });
   },

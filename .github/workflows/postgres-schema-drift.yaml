@@ -4381,6 +4381,29 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
 
+      # #11149: whom single sign-on gives an account and which projects it
+      # adds them to, end to end: a browser through OneUptime's sign-in, a
+      # real OpenID Provider on a loopback socket (its authorization
+      # endpoint, one-time codes, PKCE) and signed SAML responses, the
+      # Identity routers on a real Express server and the real services.
+      # The server's own provider makes an account only when an attached
+      # project with teams can take the person, and says why in its log when
+      # it cannot; a sign-in joins people only to the project's own teams;
+      # an address the provider has not verified, or none, makes and signs
+      # in no account. Clones the migrated tables it touches into an
+      # isolated schema.
+      - name: Test whom single sign-on gives an account and which projects, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_SSO_AUTO_PROVISIONING_TESTS: "true"
+          SSO_AUTO_PROVISIONING_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SSO_AUTO_PROVISIONING_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SSO_AUTO_PROVISIONING_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/FeatureSet/Identity/SsoAutoProvisioningPostgres.test.ts --forceExit
+
       # #8199: the incident owner jobs - Created, a state change, a reminder -
       # stopped before an owner's send, during it and before the take, then
       # started again, and two of them at once on connections of their own,

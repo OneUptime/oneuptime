@@ -329,6 +329,8 @@ const providerAnswers: (
     projectId: new ObjectID(WALK_CO),
     kind: kind,
     providerId: new ObjectID(kind === ProjectSsoKind.SAML ? OKTA.id : ENTRA.id),
+    // The provider has teams of the project to put someone new in.
+    canAddNewcomers: true,
   });
 
   await ProjectSsoSignInGate.waitForBackgroundWork();
