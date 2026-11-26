@@ -359,6 +359,25 @@ Il server ha anche le azioni di configurazione di Chiedi all'IA, una chiamata ci
 
 Agiscono come te, con l'accesso tramite OAuth: una chiave API di progetto non può usare le otto che creano qualcosa. Il tuo client ti chiede conferma prima di ciascuna, e la sua risposta dice cosa è stato creato. Ciò che manca, come un permesso, un indirizzo o spazio nel piano, viene detto prima di creare qualcosa.
 
+## Strumenti per la Sicurezza dei dati
+
+Il server ha anche [le azioni di Sicurezza dei dati di Chiedi all'IA](/docs/data-security/integrations#chiedi-allia), una chiamata ciascuna. Ciascuna apporta esattamente la modifica che apporta il suo pulsante nella Sicurezza dei dati, a tuo nome e con i tuoi permessi, dopo gli stessi controlli:
+
+- **`query_data_security_proposals`**: ciò che OneUptime AI propone in attesa di una persona, prima le più rischiose. Con `which: "data-types"`, i tipi di dati che ha trovato e che le scansioni non cercano ancora: nome, categoria e sensibilità di ciascuno, come è stato provato, e gli archivi e i campi in cui si trova, mai un valore. Non cambia nulla
+- **`draft_data_security_rule`**: una regola di residenza, del proprietario o delle etichette scritta da una frase, come «i dati personali dell'UE devono restare nell'UE», con gli archivi che copre oggi. Non cambia nulla
+- **`scrub_data_security_finding`**: **Ripulisci** su un rilevamento nella telemetria
+- **`judge_data_security_finding`**: **Conferma**, o **Non sensibile** con un motivo, e lo stesso per i rilevamenti simili
+- **`change_data_security_issue`**: **Riapri**, **Assegna**, **Accetta il rischio** o **Non è un problema**
+- **`set_data_store_owners`**: i proprietari di un archivio, aggiunti o rimossi
+- **`save_data_security_rule`**: una regola scritta da `draft_data_security_rule`
+- **`respond_on_data_store`**: un'azione di risposta tramite la connessione cloud dell'archivio, come **Block Public Access**
+- **`fix_data_security_issue_with_ai`**: **Correggi con l'IA**, una pull request che qualcuno esamina e unisce
+- **`decide_data_security_proposal`**: **Approva** o **Nascondi** una proposta
+
+Chiedi all'IA chiede a una persona prima di alcune di queste in ogni modalità, su una scheda che dice cosa cambia, cosa smette di funzionare e quanto costa: rispondere su un archivio, **Non sensibile**, **Accetta il rischio**, **Non è un problema**, cambiare i proprietari di un archivio, salvare una regola, decidere una proposta, una pulizia che qualcosa legge, e **Conferma** in un progetto che avvisa qualcuno per un problema critico. Questo server non può mostrarti quella scheda, quindi le rifiuta, dice perché e nomina la pagina di OneUptime in cui apporti la modifica. Nulla viene mai eseguito senza di essa.
+
+Le altre agiscono a tuo nome, con l'accesso tramite OAuth: una chiave API di progetto non può usarle e usa solo le due che non cambiano nulla. Su un server self-hosted, `MCP_READ_ONLY=true` lascia solo gli strumenti che non cambiano nulla, e `MCP_ALLOW_DESTRUCTIVE=false` rifiuta di rimuovere i proprietari di un archivio, il che li elimina.
+
 ## Interrogare la telemetria
 
 Log, metriche, tracce (span), eccezioni, log dei monitor e gli altri tipi di telemetria sono disponibili come strumenti `list_` e `count_` in sola lettura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e i loro gemelli `count_`). La telemetria arriva tramite OpenTelemetry, quindi non ci sono strumenti di creazione.

@@ -7,7 +7,7 @@ Datensicherheit betreibt keinen eigenen Pager und keine eigene Sicherheitswartes
 - [War es eine Datenschutzverletzung?](#war-es-eine-datenschutzverletzung): Jede kritische Exponierung bewertet: wie lange, wer die Daten lesen konnte, wessen Daten es waren und welche Gesetze zu Datenschutzverletzungen gelten können.
 - [Warnungen und Bereitschaft](#warnungen-und-bereitschaft): Alarmieren, wer gerade Bereitschaft hat, wenn sich ein kritisches Problem öffnet.
 - [Vorfälle](#vorfälle): Einen Vorfall für eine Datenpanne melden, die Ihren Vorfallsprozess durchlaufen soll.
-- [Eigentümer](#eigentümer): Wem jeder Datenspeicher gehört, von Hand oder per Regel festgelegt, und die E-Mail, die die Eigentümer erhalten.
+- [Eigentümer](#eigentümer): Ein Problem analysieren, einen Pull Request öffnen, der es behebt, oder KI fragen zu Ihren Daten befragen und es mit Ihrer Zustimmung handeln lassen.
 - [OneUptime AI](#oneuptime-ai): Ein Problem erklären, einen Pull Request öffnen, der es behebt, oder „KI fragen“ nach Ihren Daten fragen.
 - [Eine Exponierung schließen](#eine-exponierung-schließen): Öffentlichen Zugriff sperren oder eine Freigabe beenden, aus einem Problem oder einem Playbook, und einen fehlenden Schutz aus einem Problem einschalten.
 :::
@@ -129,7 +129,7 @@ OneUptime AI arbeitet außerdem von sich aus an jedem neuen Problem, wie Ihre KI
 
 ### KI fragen
 
-**KI fragen** liest auch Datensicherheit. Fragen Sie auf jeder Seite der Datensicherheit, welche Datenspeicher Kartennummern enthalten, was zuerst zu beheben ist oder welche Datenspeicher eine Rolle erreichen könnte, wenn sie kompromittiert würde; auf der Seite eines Datenspeichers oder eines Problems liest es zuerst diesen Datensatz. Es antwortet mit drei Lesewerkzeugen, die mit Ihren eigenen Berechtigungen laufen:
+**KI fragen** liest Datensicherheit und handelt darin mit Ihrer Zustimmung. Fragen Sie auf jeder Seite der Datensicherheit, welche Datenspeicher Kartennummern enthalten, was zuerst zu beheben ist oder welche Datenspeicher eine Rolle erreichen könnte, wenn sie abhandenkäme; auf der Seite eines Datenspeichers oder eines Problems liest es zuerst diesen Datensatz. Es liest mit diesen Werkzeugen, die mit Ihren eigenen Berechtigungen laufen:
 
 | Werkzeug | Was es liest |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI arbeitet außerdem von sich aus an jedem neuen Problem, wie Ihre KI
 | `query_data_security_issues` | Die Probleme, die riskantesten zuerst, nach Status, Schweregrad, Datenspeicher oder Prüfung - oder ein Problem mit seinem Beleg und der Behebung für seine Cloud |
 | `query_data_store_access` | Wer einen Datenspeicher erreichen kann, oder jeder Datenspeicher, den ein Prinzipal erreichen kann |
 
-Sie lesen Datentypen, Orte und Zählungen, nie die Stichproben eines Funds, ob maskiert oder nicht. „KI fragen“ ändert nichts in der Datensicherheit.
+Sie lesen Datentypen, Orte und Zählungen, nie die Stichproben eines Befunds, ob maskiert oder nicht. Zwei weitere lesen, woran OneUptime AI arbeitet: `query_data_security_proposals` listet, was es vorschlägt, und die Datentypen, die es gefunden hat und nach denen Scans noch nicht suchen, jeweils mit der Art, wie sie belegt wurden, und den Feldern, in denen sie stehen, nie mit einem Wert; `draft_data_security_rule` entwirft aus Ihrem Satz eine Regel und sagt, welche Datenspeicher sie heute trifft. Es speichert nichts.
+
+KI fragen tut, was die Schaltflächen der Datensicherheit tun, jeweils indem es genau die Änderung vornimmt, die seine Schaltfläche vornimmt, als Sie und mit Ihren Berechtigungen:
+
+| Aktion | Was sie tut | Fragt Sie zuerst |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Bereinigen** für einen Befund in der Telemetrie: seine geprüfte, enge Bereinigungsregel | In **Vor Aktionen fragen**, und in jedem Modus, wenn etwas liest, was sie verbirgt |
+| `judge_data_security_finding` | **Bestätigen**, oder **Nicht sensibel** mit Ihrer Begründung, und dasselbe für ähnliche Befunde | **Nicht sensibel** in jedem Modus; **Bestätigen** in jedem Modus, wenn ein kritisches Problem in Ihrem Projekt jemanden alarmiert |
+| `change_data_security_issue` | **Risiko akzeptieren** mit Ihrer Begründung und einem Enddatum, **Kein Problem** mit Ihrer Begründung, **Wieder öffnen** oder **Zuweisen** | **Risiko akzeptieren** und **Kein Problem** in jedem Modus |
+| `set_data_store_owners` | Fügt die Eigentümer eines Datenspeichers hinzu oder entfernt sie | In jedem Modus |
+| `save_data_security_rule` | Speichert eine aus Ihrem Satz entworfene Residenz-, Eigentümer- oder Beschriftungsregel und wendet eine Eigentümer- oder Beschriftungsregel auf die Datenspeicher an, die sie heute trifft | In jedem Modus |
+| `respond_on_data_store` | Eine Reaktionsaktion über die Cloud-Verbindung des Datenspeichers, etwa **Block Public Access** | In jedem Modus |
+| `fix_data_security_issue_with_ai` | **Mit KI beheben**: ein Pull Request, den jemand prüft und zusammenführt. Eine bereits laufende Korrektur wird nicht ein zweites Mal gestartet | In **Vor Aktionen fragen** |
+| `decide_data_security_proposal` | **Genehmigen** oder **Ausblenden** für einen Vorschlag von OneUptime AI. Ein gefundener Datentyp wird über sein Formular in **Einstellungen → Datentypen** hinzugefügt, hier kann er also nur abgelehnt werden | In jedem Modus |
+
+Jede Aktion zeigt zuerst eine Karte, die in einfachen Worten sagt, was sich ändert, was nicht mehr funktioniert und was es kostet. In **Vor Aktionen fragen** erlauben oder überspringen Sie jede Aktion. In **Automatisch ausführen** warten die oben genannten Aktionen, die in jedem Modus fragen, weiterhin auf Sie: Sie ändern, wer Ihre Daten erreichen kann, lassen einen Befund oder ein Problem nicht mehr zählen, ändern, wer über einen Datenspeicher informiert wird, oder ließen OneUptime AI seinen eigenen Vorschlag genehmigen. Namen von Datenspeichern, Orte von Befunden und Belege stammen aus Ihren Clouds und von jedem, der in sie schreibt, daher handelt KI fragen nie, weil ein solcher Text es verlangt, und jede Aktion wird beim Ausführen erneut mit Ihren Berechtigungen geprüft.
 
 ## Eine Exponierung schließen
 
@@ -196,7 +211,7 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 
 Der [Terraform-Provider](/docs/terraform/index) hat eine Ressource für jede Art von Datensatz, die Sie erstellen - Datenspeicher, die Sie selbst hinzufügen, benutzerdefinierte Datentypen, Prüfungseinstellungen, Compliance-Einstellungen, Residenzregeln, Eigentümer- und Beschriftungsregeln -, benannt nach dem Datensatz, etwa `oneuptime_residency_rule`.
 
-Der [MCP-Server](/docs/ai/mcp-server) hat Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für diese Datensätze: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule und Data Security Setting. Ein KI-Assistent kann dann mit Ihren Berechtigungen fragen, welche Datenspeicher Kartennummern enthalten oder was an einem Bucket offen ist.
+Der [MCP-Server](/docs/ai/mcp-server) hat Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für diese Datensätze: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule und Data Security Setting. Ein KI-Assistent kann dann mit Ihren Berechtigungen fragen, welche Datenspeicher Kartennummern enthalten oder was an einem Bucket offen ist. Er hat außerdem [die Aktionen von KI fragen](#ki-fragen), je ein Aufruf, und jede nimmt genau die Änderung vor, die ihre Schaltfläche vornimmt, als Sie. Der MCP-Server kann niemandem eine Karte zeigen, daher wird eine Aktion, bei der KI fragen in jedem Modus fragt, dort abgelehnt: Die Antwort sagt, warum, und nennt die Seite in OneUptime, auf der Sie die Änderung vornehmen.
 
 ## Nächste Schritte
 
