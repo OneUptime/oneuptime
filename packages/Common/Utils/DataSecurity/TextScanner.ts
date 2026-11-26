@@ -10,6 +10,11 @@ import {
   normalizeRecognizedValue,
   RecognizedEntity,
 } from "./Model/RecognizedEntity";
+import { readableForModel } from "./Model/ModelTextReading";
+import {
+  findQueryStringNames,
+  QUERY_NAME_DATA_TYPE_ID,
+} from "./QueryStringNames";
 import { TextReading, TextReadings } from "./TextReadings";
 
 /*
@@ -36,6 +41,12 @@ import { TextReading, TextReadings } from "./TextReadings";
  * validated as it reads and placed on the characters it is written with, so
  * it is judged by the words around it as written, and kept by the window it
  * starts in like any other.
+ *
+ * A person's name has no pattern: it is found by the names-and-addresses
+ * model in what it read (`recognized`), and - in a scan that runs every
+ * built-in detector - by the name of a URL's query parameter that holds it,
+ * full_name=Jos%C3%A9%20Garc%C3%ADa, as a field's name finds it in a column
+ * (QueryStringNames, #11034).
  */
 
 export const WINDOW_SIZE: number = 65_536;
@@ -87,6 +98,14 @@ export interface TextScanOptions {
   disabledDataTypeIds?: ReadonlySet<string> | undefined;
   // Values the project says are never sensitive, normalized and lower-cased.
   allowedValues?: ReadonlySet<string> | undefined;
+  /*
+   * Whether a person's name a URL's query parameter names is found too
+   * (QueryStringNames, #11034). When absent, a scan that runs every
+   * built-in detector reads them and one that runs some alone does not; a
+   * read of a person's name finding's own records - which runs no detector
+   * of its own, a name having none - says so.
+   */
+  readsQueryStringNames?: boolean | undefined;
 }
 
 export interface TextMatch {
@@ -105,6 +124,12 @@ export interface TextMatch {
    * data.
    */
   fromModel?: boolean | undefined;
+  /*
+   * Found by the name of the field that holds it inside the text - a URL's
+   * query parameter named for a person's name (QueryStringNames, #11034):
+   * masked as its name-found type is, and never fingerprinted either.
+   */
+  fromFieldName?: boolean | undefined;
 }
 
 // How far around a model's finding its context words are looked for.
@@ -138,8 +163,9 @@ function modelCandidates(
       continue;
     }
 
+    // As the model read it: a name in a URL is allowed, or a placeholder, as it reads (#11034).
     const normalized: string = normalizeRecognizedValue(
-      text.slice(entity.start, entity.end),
+      readableForModel(text.slice(entity.start, entity.end)),
     );
 
     if (
@@ -339,6 +365,20 @@ function passesQuickCheck(
 }
 
 /*
+ * A candidate placed on the characters the window writes it with, and the
+ * reading it was found in, with where in that reading it sits: its words
+ * are read there too.
+ */
+interface WindowCandidate {
+  start: number;
+  end: number;
+  value: string;
+  reading: TextReading;
+  readingStart: number;
+  readingEnd: number;
+}
+
+/*
  * A detector's candidates in a window: as it is written and in each
  * reading it asks for - with its percent-escapes read, with every script's
  * digits read by their values - placed on the characters they are written
@@ -347,39 +387,32 @@ function passesQuickCheck(
 function windowCandidates(
   detector: ScanDetector,
   readings: TextReadings,
-  lowerWindow: string,
-): Array<{ start: number; end: number; value: string }> {
-  const found: Array<{ start: number; end: number; value: string }> = [];
+  lowerOf: (reading: TextReading) => string,
+): Array<WindowCandidate> {
+  const found: Array<WindowCandidate> = [];
 
   for (const reading of readings.readingsFor(detector)) {
-    const isWritten: boolean = reading === readings.written;
-
     if (
       !passesQuickCheck(detector, reading.text, (): string => {
-        return isWritten ? lowerWindow : reading.text.toLowerCase();
+        return lowerOf(reading);
       })
     ) {
       continue;
     }
 
     for (const raw of rawCandidates(detector, reading.text)) {
-      found.push(isWritten ? raw : placedOnWritten(raw, reading));
+      found.push({
+        start: reading.toWritten(raw.start),
+        end: reading.toWritten(raw.end),
+        value: raw.value,
+        reading,
+        readingStart: raw.start,
+        readingEnd: raw.end,
+      });
     }
   }
 
   return found;
-}
-
-// A candidate of a reading, on the characters the window writes it with.
-function placedOnWritten(
-  raw: { start: number; end: number; value: string },
-  reading: TextReading,
-): { start: number; end: number; value: string } {
-  return {
-    start: reading.toWritten(raw.start),
-    end: reading.toWritten(raw.end),
-    value: raw.value,
-  };
 }
 
 function scanWindow(
@@ -394,6 +427,52 @@ function scanWindow(
   const candidates: Array<Candidate> = [];
   // The window's readings, each read the first time a detector asks for it.
   const readings: TextReadings = new TextReadings(window);
+  // Each reading in lower case, made the first time its words are read.
+  const lowerReadings: Map<TextReading, string> = new Map([
+    [readings.written, lowerWindow],
+  ]);
+  const lowerOf: (reading: TextReading) => string = (
+    reading: TextReading,
+  ): string => {
+    let lower: string | undefined = lowerReadings.get(reading);
+
+    if (lower === undefined) {
+      lower = reading.text.toLowerCase();
+      lowerReadings.set(reading, lower);
+    }
+
+    return lower;
+  };
+
+  /*
+   * Whether words sit near a candidate: in the window as written, or in
+   * the reading it was found in - "aws%20secret%20access%20key%3A" reads
+   * "aws secret access key:" (#11031).
+   */
+  const isNear: (
+    raw: WindowCandidate,
+    words: ReadonlyArray<string> | undefined,
+    before: number,
+    after: number,
+  ) => boolean = (
+    raw: WindowCandidate,
+    words: ReadonlyArray<string> | undefined,
+    before: number,
+    after: number,
+  ): boolean => {
+    return (
+      anyWordNear(lowerWindow, raw.start, raw.end, words, before, after) ||
+      (raw.reading !== readings.written &&
+        anyWordNear(
+          lowerOf(raw.reading),
+          raw.readingStart,
+          raw.readingEnd,
+          words,
+          before,
+          after,
+        ))
+    );
+  };
 
   for (const detector of detectors) {
     if (options.disabledDataTypeIds?.has(detector.dataTypeId)) {
@@ -403,17 +482,21 @@ function scanWindow(
     const hinted: boolean = Boolean(
       options.hintedDataTypeIds?.has(detector.dataTypeId),
     );
+    const decoded: TextReading | null = detector.readsPercentEncoded
+      ? readings.getPercentDecoded()
+      : null;
 
-    // A type that needs context, in a window holding none of its words.
+    // A type that needs context, in a window holding none of its words, as written or decoded.
     if (
       detector.requiresContext &&
       !hinted &&
-      !anyWordIn(lowerWindow, detector.keywords)
+      !anyWordIn(lowerWindow, detector.keywords) &&
+      !(decoded && anyWordIn(lowerOf(decoded), detector.keywords))
     ) {
       continue;
     }
 
-    for (const raw of windowCandidates(detector, readings, lowerWindow)) {
+    for (const raw of windowCandidates(detector, readings, lowerOf)) {
       if (raw.start < acceptFrom || raw.start >= acceptBefore) {
         continue;
       }
@@ -433,15 +516,7 @@ function scanWindow(
       const before: number = detector.contextBefore ?? CONTEXT_BEFORE;
       const after: number = detector.contextAfter ?? CONTEXT_AFTER;
       const hasContext: boolean =
-        hinted ||
-        anyWordNear(
-          lowerWindow,
-          raw.start,
-          raw.end,
-          detector.keywords,
-          before,
-          after,
-        );
+        hinted || isNear(raw, detector.keywords, before, after);
 
       if (detector.requiresContext && !hasContext) {
         continue;
@@ -454,14 +529,7 @@ function scanWindow(
       }
 
       if (
-        anyWordNear(
-          lowerWindow,
-          raw.start,
-          raw.end,
-          detector.negativeKeywords,
-          CONTEXT_BEFORE,
-          CONTEXT_AFTER,
-        )
+        isNear(raw, detector.negativeKeywords, CONTEXT_BEFORE, CONTEXT_AFTER)
       ) {
         confidence = lower(confidence);
       }
@@ -535,6 +603,10 @@ export function resolveOverlaps(
 
       if (candidate.fromModel) {
         match.fromModel = true;
+      }
+
+      if (candidate.fromFieldName) {
+        match.fromFieldName = true;
       }
 
       kept.push(match);
@@ -617,5 +689,66 @@ export function findSensitiveValues(
     }
   }
 
+  if (
+    (options.readsQueryStringNames ?? readsEveryBuiltInDetector(detectors)) &&
+    !options.disabledDataTypeIds?.has(QUERY_NAME_DATA_TYPE_ID)
+  ) {
+    for (const candidate of queryNameCandidates(bounded, options)) {
+      candidates.push(candidate);
+    }
+  }
+
   return resolveOverlaps(candidates);
+}
+
+/*
+ * Whether a scan's detectors are every built-in one - the project's own
+ * types after them, as every scan lists them - so it reads what the
+ * catalog's rules find beside the detectors: a person's name a query
+ * parameter names (#11034). A caller that runs some detectors alone, to
+ * judge one type, reads only theirs.
+ */
+function readsEveryBuiltInDetector(
+  detectors: ReadonlyArray<ScanDetector>,
+): boolean {
+  const last: number = BUILT_IN_DETECTORS.length - 1;
+
+  return (
+    detectors === BUILT_IN_DETECTORS ||
+    (detectors.length > last &&
+      detectors[0] === BUILT_IN_DETECTORS[0] &&
+      detectors[last] === BUILT_IN_DETECTORS[last])
+  );
+}
+
+/*
+ * The person's names a text's URLs hold under a parameter named for one
+ * (QueryStringNames, #11034), as candidates: High - the parameter's name
+ * says what its value is, and the value has a name's shape - competing for
+ * their characters like any other, as the least specific kind.
+ */
+function queryNameCandidates(
+  text: string,
+  options: TextScanOptions,
+): Array<Candidate> {
+  const candidates: Array<Candidate> = [];
+
+  for (const name of findQueryStringNames(text)) {
+    if (options.allowedValues?.has(name.normalized.toLowerCase())) {
+      continue;
+    }
+
+    candidates.push({
+      dataTypeId: QUERY_NAME_DATA_TYPE_ID,
+      start: name.start,
+      end: name.end,
+      normalized: name.normalized,
+      confidence: DataConfidence.High,
+      isTestValue: name.isTestValue,
+      fromFieldName: true,
+      score: DATA_CONFIDENCE_RANK[DataConfidence.High] * 100 + 10 + 1,
+    });
+  }
+
+  return candidates;
 }

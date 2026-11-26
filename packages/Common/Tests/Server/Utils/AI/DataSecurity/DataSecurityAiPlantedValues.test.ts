@@ -2219,7 +2219,7 @@ function useRumTables(): void {
  * planted - one line of code, read twice with different values.
  */
 function plantedRumLogRows(): Array<JSONObject> {
-  return [RUM_PLANTED["logLine"], RUM_PLANTED["logLineAgain"]].map(
+  return [RUM_PLANTED["logLine"]!, RUM_PLANTED["logLineAgain"]!].map(
     (value: string, index: number): JSONObject => {
       return {
         recordTime: 1795000000000 + index,
