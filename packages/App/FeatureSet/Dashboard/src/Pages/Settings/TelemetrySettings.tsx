@@ -11,6 +11,7 @@ import {
   TELEMETRY_RETENTION_REQUIRED_PLAN,
 } from "../../Enterprise/EnterpriseEligibility";
 import EnterprisePluginPage from "../../Enterprise/EnterprisePluginPage";
+import RulesPastRetentionNotice from "../../Components/SecurityEvents/Retention/RulesPastRetentionNotice";
 import { ProjectTelemetryRetentionByTypeProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
@@ -37,6 +38,12 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * #retention-by-telemetry-type (or #retention-overrides, the upsell) opens
  * it there. Open, the fold says nothing of its own: its one card says what
  * it is.
+ *
+ * The default is also how long Security Events keeps security events, and
+ * what its rules, Run on Past Events and hunts can read back to (#10432):
+ * the card says so, and under it, when enabled detection rules look back
+ * further, which ones and the retention that covers them
+ * (RulesPastRetentionNotice).
  */
 export const PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID: string =
   "project-telemetry-more-settings";
@@ -58,7 +65,7 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Telemetry Data Retention",
           description:
-            "Project-wide default retention for telemetry data. Used whenever no retention override applies.",
+            "How long telemetry is kept when no override applies, security events included: Security Events' rules, Run on Past Events and hunts read back only this far.",
         }}
         isEditable={true}
         editButtonText="Edit Retention Settings"
@@ -69,7 +76,7 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Number,
             required: true,
             description:
-              "Number of days to retain telemetry data when no more specific retention is configured.",
+              "Days to keep telemetry, security events included, when no more specific retention is configured.",
             placeholder: "15",
             validation: {
               minValue: 1,
@@ -93,6 +100,11 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
           modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
+      {/*
+       * Enabled detection rules that look back further than security
+       * events are kept: shown only when some do.
+       */}
+      <RulesPastRetentionNotice className="mb-5" />
       <AdvancedPageSection
         items={retentionFold.items}
         dataTestId={PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID}

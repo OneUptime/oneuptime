@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-O `1` no fim do DSN é exigido pelos SDKs do Sentry e não é lido. O DSN de uma aplicação de navegador é público, então use ali uma chave de ingestão **Navegador**, limitada às origens do seu site.
+O `1` no fim do DSN é exigido pelos SDKs do Sentry e não é lido. O DSN de uma aplicação de navegador é público, então use ali uma chave de ingestão **Navegador**, limitada às origens do seu site. Tudo o que ela envia é então arquivado como telemetria RUM dessa aplicação de navegador, nunca como um serviço de backend.
 
 ### No que um envelope se transforma
 

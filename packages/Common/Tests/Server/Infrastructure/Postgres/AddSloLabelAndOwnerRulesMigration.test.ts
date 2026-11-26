@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddSloLabelAndOwnerRules1794100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794100000000-AddSloLabelAndOwnerRules";
 import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182490000-AddRuleEmptiedLimits";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -60,7 +61,12 @@ function persistedColumns(modelType: unknown): Array<string> {
     for (const column of getMetadataArgsStorage().columns) {
       if (column.target === current) {
         const args: ColumnMetadataArgs = column;
-        names.push(args.options.name || args.propertyName);
+        const name: string = args.options.name || args.propertyName;
+
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        if (!RecordActorUtil.isColumn(name)) {
+          names.push(name);
+        }
       }
     }
 

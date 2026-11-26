@@ -64,6 +64,12 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/API/UserCallAPI.ts",
   "packages/Common/Server/API/UserIncomingCallNumberAPI.ts",
   "packages/Common/Server/API/UserWhatsAppAPI.ts",
+  // A chat tool's and a webhook's Send Test, and Telegram's verification (#7272).
+  "packages/Common/Server/API/UserSlackAPI.ts",
+  "packages/Common/Server/API/UserMicrosoftTeamsAPI.ts",
+  "packages/Common/Server/API/UserMattermostAPI.ts",
+  "packages/Common/Server/API/UserTelegramAPI.ts",
+  "packages/Common/Server/API/UserWebhookAPI.ts",
   "packages/Common/Server/Services/UserEmailService.ts",
   "packages/Common/Server/Services/UserSmsService.ts",
   "packages/Common/Server/Services/UserCallService.ts",
@@ -76,6 +82,17 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/StatusPageResourceService.ts",
   "packages/Common/Server/Services/TelemetryIngestionKeyService.ts",
   "packages/Common/Server/Middleware/TelemetryIngest.ts",
+  // A probe that registers, checks in and reports, and the probe itself (#7273).
+  "packages/App/FeatureSet/Telemetry/Middleware/ProbeAuthorization.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Probe.ts",
+  "packages/Probe/Config.ts",
+  "packages/Probe/Services/Register.ts",
+  "packages/Probe/Index.ts",
+  // Files whose every message became a sentence, kept so (#7276, #7711).
+  "packages/Common/UI/Components/Forms/ModelForm.tsx",
+  "packages/Common/Server/Services/MonitorTemplateService.ts",
+  "packages/Common/Server/API/MonitorTemplateAPI.ts",
 ];
 
 /*
@@ -91,6 +108,8 @@ export const LAST_RESORT_FILES: ReadonlyArray<string> = [
   "packages/Common/UI/Components/ErrorMessage/ErrorMessage.tsx",
   "packages/Common/UI/Components/ErrorMessage/ErrorExplanation.tsx",
   "packages/Common/Types/Exception/UnexplainedError.ts",
+  // The screen a part of a page that threw is replaced with (#7270).
+  "packages/Common/UI/Components/ErrorBoundary.tsx",
 ];
 
 // Buttons whose words are an empty phrase's, and say what they do.

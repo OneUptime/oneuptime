@@ -75,6 +75,21 @@ const RULES_PAGES_NOT_TITLED_RULES: ReadonlyArray<{
     menu: "Dashboard/src/Pages/Slo/View/SideMenu.tsx",
     page: "Error Budget Policy",
   },
+  /*
+   * A product's rules' Audit Logs: who changed the rules above it, what and
+   * when - most rules have no page of their own to show their history
+   * (Alerts' since #10290, every product's with rules since #10462).
+   */
+  ...[
+    "Dashboard/src/Components/Network/NetworkSideMenu.tsx",
+    "Dashboard/src/Pages/Alerts/SideMenu.tsx",
+    "Dashboard/src/Pages/Incidents/SideMenu.tsx",
+    "Dashboard/src/Pages/Monitor/SideMenu.tsx",
+    "Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu.tsx",
+    "Dashboard/src/Pages/StatusPages/SideMenu.tsx",
+  ].map((menu: string): { menu: string; page: string } => {
+    return { menu: menu, page: "Audit Logs" };
+  }),
 ];
 
 function isRulesPage(menu: string, page: string): boolean {

@@ -116,7 +116,8 @@ export default class ApiGetById extends ComponentCode {
 
       return {
         returnValues: {
-          error: (err as Error).message || "Unknown error",
+          // A refused certificate says which setting would let it through.
+          error: ApiComponentUtils.describeFailure(err, result),
         },
         executePort: result.errorPort,
       };

@@ -226,7 +226,12 @@ next, and how to change it last.
   list's own filters (`LlmCallsRoute`), each failed call saying its error under its status. Enforced by
   [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
-  one "ID" line under the other fields, with a copy button. Enforced by
+  one "ID" line under the other fields, with a copy button. Every record's own page ends its first
+  details card with that line, saying who created the record and who last modified it: fourteen
+  overviews and a dozen more record pages, an API key's among them, said neither (#10461). A
+  details card declares the `_id` field as `FieldType.ObjectID`; a page with no details card draws
+  `RecordActivityLine` at the foot of its first card. A page of something nobody creates or edits,
+  such as a trace, is listed in the guard with why. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).
 - **A record's details are edited in one place.** Enforced by
   [ResourceDetailsOnePlaceGuard](../../packages/Common/Tests/UI/Components/Forms/ResourceDetailsOnePlaceGuard.test.ts).
@@ -834,6 +839,14 @@ what was further down.
   [ChartTitleRowTailwind](../../packages/Common/Tests/UI/Components/Charts/ChartTitleRowTailwind.test.tsx)
   and
   [ZoomHintWordsFitBesideATitle](../../packages/Common/Tests/App/Dashboard/ZoomHintWordsFitBesideATitle.test.ts).
+- **A title's (i) follows its last word.** A tile's, a card's or a section's title that has an
+  explanation draws its words and its (i) with `WordsWithInfoTooltip`, which puts the (i) inside the
+  title's own text, after its last word, on whichever line that word ends. Drawn as the title's flex
+  sibling, the (i) of a title that wrapped stood at the far edge of its tile, centred between the
+  title's two lines, as if it belonged to the next tile: English titles mostly fit, German and Arabic
+  ones did not (#7348, #8044). An (i) in a column header, after or inside a chip, or after a title kept
+  to one line stays where it is, and the few places left are listed in the guard with why. Enforced by
+  [InfoAfterTitleWordsGuard](../../packages/App/Tests/Dashboard/InfoAfterTitleWordsGuard.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
@@ -881,6 +894,17 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **A menu entry says the name of the page it opens.** A person learns a name from the menu and
+  looks for it on the page: the products menu's Chat opened the Ask AI panel over Home, its Insights
+  a page titled AI Insights, the profile menu's Admin Settings the Admin Dashboard, whose own
+  Settings pages were titled Admin Settings, and Inventory's Topology Map the page the products menu
+  calls Topology (#7474). A product's entry is its step in the trail of the page it opens and the
+  title its layout gives that page; Ask AI, which opens a panel, is the panel's name; the profile
+  menu says User Profile and the Admin Dashboard as those pages call themselves, and the Admin
+  Dashboard's menu its pages' titles and trails, in every language. A layout that titles each page
+  by the page within it (On-Call's policies and schedules) is listed in the guard with why. Enforced
+  by
+  [MenuEntriesNameTheirPagesGuard](../../packages/Common/Tests/App/Dashboard/MenuEntriesNameTheirPagesGuard.test.tsx).
 - **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
   One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
   and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and
@@ -1229,6 +1253,10 @@ then `npm run i18n:validate` from the root.
   for the topology screens' "Unnamed resource", a browser service's "Browser" and the entity
   drawer's screen-reader line (#8260),
   [TopologyUnnamedBrowserAndDrawerInLanguages](../../packages/Common/Tests/App/Dashboard/TopologyUnnamedBrowserAndDrawerInLanguages.test.tsx),
+  for Scrub It's warning before it saves a rule: whose records the rule changes, and what reads
+  the values it would hide, a monitor that would stop matching and an address Security Events
+  could no longer block (#10433),
+  [ScrubItWarningInEveryLanguage](../../packages/Common/Tests/App/Dashboard/ScrubItWarningInEveryLanguage.test.tsx),
   and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
   whose 186 texts had no entry in its locales and read English in every language (#8227),
   [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),

@@ -14,6 +14,7 @@ import {
   SecurityHuntRunWindow,
   getNextSecurityHuntRunAt,
   getSecurityHuntRetryAt,
+  getSecurityHuntRunArrival,
   getSecurityHuntRunWindow,
   isScheduledSecurityHunt,
   readSecurityHuntFilters,
@@ -47,15 +48,19 @@ import { SecurityWatchlistMissingException } from "../Watchlists/SecurityWatchli
  *
  * One run of a hunt:
  *
- *   1. reads the window since the run before stopped (searchedUpToAt), to
- *      two minutes ago (getSecurityHuntRunWindow);
- *   2. counts the events its search finds there, through the same read the
- *      Events page lists them with (SecurityEventService.countBy, the
- *      query compiled by SecurityHuntSearch), as the person who set its
- *      schedule - their permissions, read when the run is made, so a run
- *      never sees more than its author could - with the explorers' time
- *      limit, and an exact count: a read the limit stopped is an error, never
- *      "found nothing";
+ *   1. takes the events that ARRIVED since the run before stopped
+ *      (searchedUpToAt), up to two minutes ago (getSecurityHuntRunWindow),
+ *      whenever they happened within a day before (#10488): an event that
+ *      lands late is counted by the first run after it arrived, once;
+ *   2. counts the events its search finds among them, through the same read
+ *      the Events page lists them with (SecurityEventService.countBy, the
+ *      query compiled by SecurityHuntSearch, the arrivals under their own
+ *      key, which the statement generator compiles with the condition a
+ *      scheduled detection rule judges what arrived by), as the person who
+ *      set its schedule - their permissions, read when the run is made, so
+ *      a run never sees more than its author could - with the explorers'
+ *      time limit, and an exact count: a read the limit stopped is an error,
+ *      never "found nothing";
  *   3. records what it found on the hunt in one compare-and-set on the
  *      schedule it was read with, so a hunt changed while it ran keeps the
  *      change (its new schedule starts from the change) and a second worker
@@ -217,7 +222,12 @@ export default class SecurityHuntScheduler {
     return props;
   }
 
-  // How many events a hunt's search finds in a window, read as `props`.
+  /*
+   * How many events a hunt's search finds among those that arrived in a
+   * run's window, read as `props`: whenever they happened within a day
+   * before, by the condition a scheduled detection rule judges what arrived
+   * with (DetectionArrivalRead, #10488).
+   */
   public static async countEvents(data: {
     hunt: SecurityHunt;
     window: SecurityHuntRunWindow;
@@ -227,8 +237,7 @@ export default class SecurityHuntScheduler {
       projectId: data.hunt.projectId!,
       searchQuery: data.hunt.searchQuery,
       filters: readSecurityHuntFilters(data.hunt.filters),
-      startTime: data.window.startTime,
-      endTime: data.window.endTime,
+      arrival: getSecurityHuntRunArrival(data.window),
     });
 
     const count: PositiveNumber = await SecurityEventService.countBy({

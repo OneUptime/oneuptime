@@ -115,14 +115,70 @@ describe("Data Security registry wiring", () => {
     ).toContain(`CREATE TABLE "${model}"`);
   });
 
+  /*
+   * What OneUptime AI proposes for an issue and why it did or did not act
+   * (#10364): registered, mounted and made by their own migration, which
+   * also adds the AI rules' Data Security columns. AIRun's index on the
+   * issue a run was for is built without a transaction, in a migration of
+   * its own, as an index on a busy table must be.
+   */
+  test("OneUptime AI's proposals and decisions are registered, mounted and made by their own migration", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187364000-AddDataSecurityAiRules.ts",
+    );
+
+    for (const model of ["DataSecurityAiProposal", "DataSecurityAiDecision"]) {
+      expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+        `${model},`,
+      );
+      expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+        `${model}Service,`,
+      );
+      expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+        new RegExp(
+          `new BaseAPI<\\s*${model},\\s*${model}ServiceType\\s*>\\(\\s*${model},\\s*${model}Service,?\\s*\\)`,
+        ),
+      );
+      expect(migration).toContain(`CREATE TABLE "${model}"`);
+    }
+
+    expect(migration).toContain('ALTER TABLE "AutoRemediationRule" ADD');
+    expect(migrations).toContain(
+      'import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";',
+    );
+    expect(migrations).toContain(
+      'import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";',
+    );
+    // The tables first, then the index that reads AIRun's new column.
+    expect(
+      migrations.indexOf("AddDataSecurityAiRules1809187364000,"),
+    ).toBeLessThan(
+      migrations.indexOf("AddAIRunDataSecurityIssueIndex1809187364100,"),
+    );
+
+    const index: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187364100-AddAIRunDataSecurityIssueIndex.ts",
+    );
+
+    expect(index).toContain("public transaction: boolean = false;");
+    expect(index).toContain("OnlineDdl");
+  });
+
   test("the stores' own API (with its actions) and every other model's CRUD API are mounted", () => {
     const baseApi: string = readSquashed("App/FeatureSet/BaseAPI/Index.ts");
 
     // DataStore's CRUD routes come with Data Security's own: the Overview, Scan now, Scrub It...
     expect(baseApi).toContain("new DataSecurityAPI().getRouter()");
+    // The project's own data types' CRUD routes come with Describe It (#10371).
+    expect(baseApi).toContain(
+      "new DataSecurityCustomDataTypeAPI().getRouter()",
+    );
 
     for (const model of DATA_SECURITY_MODELS) {
-      if (model === "DataStore") {
+      if (model === "DataStore" || model === "DataSecurityCustomDataType") {
         continue;
       }
 
@@ -141,6 +197,20 @@ describe("Data Security registry wiring", () => {
       /class DataSecurityAPI extends BaseAPI<\s*DataStore,\s*DataStoreServiceType\s*>/,
     );
     expect(api).toContain("super(DataStore, DataStoreService)");
+  });
+
+  test("the data types' API extends their CRUD API, so the Dashboard's model calls and Describe It share one router", () => {
+    const api: string = readSquashed(
+      "Common/Server/API/DataSecurityCustomDataTypeAPI.ts",
+    );
+
+    expect(api).toMatch(
+      /class DataSecurityCustomDataTypeAPI extends BaseAPI<\s*DataSecurityCustomDataType,\s*DataSecurityCustomDataTypeServiceType\s*>/,
+    );
+    expect(api).toContain(
+      "super(DataSecurityCustomDataType, DataSecurityCustomDataTypeService)",
+    );
+    expect(api).toContain("DESCRIBE_DATA_TYPE_ROUTE");
   });
 
   test("every route the Dashboard calls is one the API serves", () => {
@@ -162,6 +232,9 @@ describe("Data Security registry wiring", () => {
       "dropMetric",
       "explainIssue",
       "fixIssueWithAi",
+      "approveAiProposal",
+      "dismissAiProposal",
+      "undoAiProposal",
     ]) {
       expect(api).toContain(`DATA_SECURITY_API_ROUTES.${key}`);
       expect(client).toContain(`DATA_SECURITY_API_ROUTES.${key}`);
@@ -181,6 +254,9 @@ describe("Data Security registry wiring", () => {
       DATA_SECURITY_API_ROUTES.dropMetric(":id"),
       DATA_SECURITY_API_ROUTES.explainIssue(":id"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
+      DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
+      DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
     ];
 
     expect(new Set(paths).size).toBe(paths.length);

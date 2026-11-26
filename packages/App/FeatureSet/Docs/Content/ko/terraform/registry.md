@@ -55,6 +55,8 @@ terraform {
 
 소스 주소는 레지스트리를 지정하지 않습니다. Terraform은 Terraform Registry에서, OpenTofu는 OpenTofu Registry에서 읽으며, 두 레지스트리는 같은 버전을 게시합니다.
 
+게시된 버전은 바뀌지 않습니다. 레지스트리는 처음 다운로드한 것의 체크섬을 보관하고, `init`은 모든 다운로드를 그것과 대조합니다. 고쳐야 하는 버전은 다음 패치 버전으로 다시 게시되고, 범위는 그 버전을 받아들이며, 그 릴리스의 노트에는 어떤 버전을 대신하는지가 나와 있습니다.
+
 ## 잠금 파일
 
 `terraform init`은 선택한 버전과 다운로드의 체크섬을 `.terraform.lock.hcl`에 기록합니다. 이 파일을 커밋하세요. 그러면 다른 버전을 고를 때까지 모든 머신과 모든 CI 실행이 정확히 그 버전을 설치합니다. 체크섬은 레지스트리가 게시하는 모든 플랫폼을 다루므로, 잠금 파일 하나로 Linux, macOS, Windows 머신을 모두 지원합니다.
@@ -77,7 +79,7 @@ provider "registry.terraform.io/oneuptime/oneuptime" {
 :::steps
 ### 바뀐 점 읽기
 
-[OneUptime의 릴리스](https://github.com/OneUptime/oneuptime/releases)에는 프로바이더를 포함해 각 릴리스에서 바뀐 점이 나와 있습니다. [프로바이더의 릴리스](https://github.com/OneUptime/terraform-provider-oneuptime/releases)는 이전 릴리스 이후의 변경으로 연결됩니다.
+[OneUptime의 릴리스](https://github.com/OneUptime/oneuptime/releases)에는 프로바이더를 포함해 각 릴리스에서 바뀐 점이 나와 있습니다. [프로바이더의 릴리스](https://github.com/OneUptime/terraform-provider-oneuptime/releases)에는 각 릴리스가 프로바이더에서 무엇을 바꿨는지가 나와 있습니다. 먼저 구성을 깨뜨리는 변경, 그다음 새 리소스와 데이터 소스, 그리고 바뀐 속성입니다.
 
 ### 다운로드하기
 

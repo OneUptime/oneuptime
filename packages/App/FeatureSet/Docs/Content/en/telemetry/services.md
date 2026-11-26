@@ -26,7 +26,7 @@ flowchart TB
 - **The name is the service's identity.** It is compared without regard to case, so `Checkout-API` and `checkout-api` are one service. A new `service.name` starts a new service.
 - **Containers name themselves.** Telemetry from the Docker and Podman agents names a service after its container when it has no `service.name`.
 - **An ingestion key can name the service.** OpenTelemetry data sent with a key that has a **Pinned Service Name** is filed under that name, whatever its `service.name` says. See [Ingestion Keys](/docs/telemetry/ingestion-keys#lock-down-a-browser-key).
-- **Browsers and phones are not services.** Telemetry from a browser or a mobile app belongs to a [RUM application](/docs/rum/applications) instead.
+- **Browsers and phones are not services.** Telemetry from a browser or a mobile app, and everything sent with a Browser or Mobile key, belongs to a [RUM application](/docs/rum/applications) instead.
 - **Labels can come with the telemetry.** A resource attribute named `oneuptime.label.<name>` adds the label `<name>:<value>` to the service, such as `oneuptime.label.team=payments` for `team:payments`.
 
 Each time telemetry arrives, the service's **Last Seen** moves forward, and its details are refreshed from the resource attributes that come with it:

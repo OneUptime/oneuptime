@@ -20,8 +20,15 @@ import { SMSMessage } from "../../../../Types/SMS/SMS";
 import {
   SecurityHuntRunWindow,
   countSecurityHuntFilterValues,
+  getSecurityHuntRunArrival,
+  getSecurityHuntRunEventTimeRange,
   isScheduledSecurityHunt,
 } from "../../../../Types/SecurityEvent/SecurityHunt";
+import {
+  SECURITY_EVENTS_ARRIVED_AFTER_PARAM,
+  SECURITY_EVENTS_ARRIVED_UNTIL_PARAM,
+  toSecurityEventArrivalQueryValue,
+} from "../../../../Types/SecurityEvent/SecurityEventArrival";
 import TimeRange from "../../../../Types/Time/TimeRange";
 import Timezone from "../../../../Types/Timezone";
 import { buildNotificationSms } from "../../../../Utils/Sms/NotificationSms";
@@ -73,10 +80,14 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 export const SECURITY_HUNT_NOTIFICATION_JOB: string =
   "SecurityHunts:SendNotification";
 
+/*
+ * A person told what a hunt found: whom to tell, and the time zone their
+ * email writes the window in. No name or address is kept (#10681): nothing
+ * a hunt posts or sends names who was told, and the name kept here was the
+ * person's address when they had no name - one line away from a channel.
+ */
 export interface SecurityHuntRecipient {
   userId: ObjectID;
-  name: string;
-  email: string;
   timezone?: Timezone | undefined;
 }
 
@@ -89,9 +100,10 @@ export interface SecurityHuntFoundFacts {
   // How many chip values the hunt keeps beside its search.
   filterCount: number;
   projectName: string;
-  // The hunt's page on the run's window.
+  // The hunt's page on the events its run counted (getHuntLinkInDashboard).
   url: string;
   eventCount: number;
+  // When those events arrived: after the first, up to the second.
   startTime: Date;
   endTime: Date;
 }
@@ -145,8 +157,17 @@ export function formatHuntTime(date: Date, timezone?: Timezone): string {
 }
 
 /*
- * Where a hunt opens in the Dashboard: its page, on a run's window when one
- * is given (the Events page's own range params).
+ * Where a hunt opens in the Dashboard: its page, and - for a run's window -
+ * on exactly the events that run counted (#10488). A run counts the events
+ * that ARRIVED in its window, whenever they happened in the day before, so
+ * its window is no time range the Events page can show them in: one that
+ * arrived an hour late happened before it. The link names the run's
+ * arrivals (arrivedAfter, arrivedUntil), which the page reads as a chip, by
+ * the condition the run counted with, and the times those events can have
+ * happened as its time range (getSecurityHuntRunEventTimeRange): the list,
+ * its chart and its facets show every event the run counted, and only
+ * those, wherever in the day before each happened. Taking the chip off
+ * shows everything else in that time range too.
  */
 export async function getHuntLinkInDashboard(data: {
   projectId: ObjectID;
@@ -159,9 +180,25 @@ export async function getHuntLinkInDashboard(data: {
   );
 
   if (data.window) {
+    const shown: SecurityHuntRunWindow = getSecurityHuntRunEventTimeRange(
+      data.window,
+    );
+    const arrival: { arrivedAfter: string; arrivedUntil: string } =
+      toSecurityEventArrivalQueryValue(getSecurityHuntRunArrival(data.window));
+
     url.addQueryParam("range", TimeRange.CUSTOM, true);
-    url.addQueryParam("start", data.window.startTime.toISOString(), true);
-    url.addQueryParam("end", data.window.endTime.toISOString(), true);
+    url.addQueryParam("start", shown.startTime.toISOString(), true);
+    url.addQueryParam("end", shown.endTime.toISOString(), true);
+    url.addQueryParam(
+      SECURITY_EVENTS_ARRIVED_AFTER_PARAM,
+      arrival.arrivedAfter,
+      true,
+    );
+    url.addQueryParam(
+      SECURITY_EVENTS_ARRIVED_UNTIL_PARAM,
+      arrival.arrivedUntil,
+      true,
+    );
   }
 
   return url;
@@ -233,7 +270,8 @@ export function buildHuntFoundChannelMarkdown(
       mdText`🔎 **Hunt found ${found}**`,
       mdText`**[${facts.huntName}](${facts.url})**`,
       ...(searchLine ? [searchLine] : []),
-      mdText`Events from ${WorkspaceMessageTime.dateAndTime(facts.startTime)} to ${WorkspaceMessageTime.dateAndTime(facts.endTime)}`,
+      // When they arrived: the run counts what arrived, whenever it happened.
+      mdText`Events that arrived from ${WorkspaceMessageTime.dateAndTime(facts.startTime)} to ${WorkspaceMessageTime.dateAndTime(facts.endTime)}`,
     ],
     "\n\n",
   );
@@ -366,8 +404,6 @@ export default class SecurityHuntNotifications {
         schedule: true,
         notifyUsers: {
           _id: true,
-          name: true,
-          email: true,
           timezone: true,
         },
         notifyTeams: {
@@ -575,8 +611,6 @@ export default class SecurityHuntNotifications {
 
     return {
       userId,
-      name: user?.name?.toString() || user?.email?.toString() || "",
-      email: user?.email?.toString() || "",
       ...(user?.timezone ? { timezone: user.timezone } : {}),
     };
   }
@@ -594,8 +628,6 @@ export default class SecurityHuntNotifications {
       select: {
         userId: true,
         user: {
-          name: true,
-          email: true,
           timezone: true,
         },
       },

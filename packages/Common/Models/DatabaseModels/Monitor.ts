@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Host from "./Host";
 import KubernetesCluster from "./KubernetesCluster";
 import DockerHost from "./DockerHost";
@@ -194,6 +196,18 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   where:
     '"disableActiveMonitoring" = true AND "isArchived" = false AND "deletedAt" IS NULL',
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_MONITOR_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "Monitor",
 })
@@ -333,6 +347,7 @@ export default class Monitor extends BaseModel {
     ],
   })
   @Index()
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -497,52 +512,6 @@ export default class Monitor extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   /*
    * Archiving retires a monitor without deleting its history: it leaves

@@ -14,16 +14,35 @@ import ScheduledMaintenanceMeasurementService from "../../../Server/Services/Sch
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
-import UserService from "../../../Server/Services/UserService";
+import UserService, {
+  SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE,
+} from "../../../Server/Services/UserService";
+import Redis from "../../../Server/Infrastructure/Redis";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
+import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentication";
+import {
+  REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES,
+  REAUTHENTICATION_REQUIRED_MESSAGES,
+  ReauthenticationPurpose,
+} from "../../../Types/Accounts/Reauthentication";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ReauthenticationRequiredException from "../../../Types/Exception/ReauthenticationRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { idsNamedBy } from "../TestingUtils/QueryConditions";
+import {
+  PASSWORD_ACCOUNT,
+  REAUTH_SESSION_ID,
+  REAUTH_USER_ID,
+  RIGHT_PASSWORD,
+  StandInValkey,
+  standInAccount,
+} from "../TestingUtils/ReauthenticationStandIns";
 import {
   readsOfRowsCallerMayWrite,
   stubRowsCallerMayDelete,
@@ -70,6 +89,48 @@ const TEAMMATE: JSONObject = {
   userId: new ObjectID("5f000000-0000-4000-8000-000000000001"),
 };
 
+/*
+ * A teammate in a session they signed in to, which has confirmed it's
+ * theirs (Confirm It's You, Server/Utils/Reauthentication): what deleting an
+ * account asks of every delete but the server's own (#10220, #10330). Its
+ * account is the stand-ins' (REAUTH_USER_ID), never one of the rows.
+ */
+const SIGNED_IN_TEAMMATE: JSONObject = {
+  tenantId: PROJECT_ID,
+  userId: REAUTH_USER_ID,
+  sessionId: REAUTH_SESSION_ID,
+};
+
+// A teammate's API key: no person's session behind it.
+const TEAMMATES_API_KEY: JSONObject = {
+  tenantId: PROJECT_ID,
+  apiKeyId: new ObjectID("5f000000-0000-4000-8000-0000000000a1"),
+  apiKeyName: "Cleanup job",
+};
+
+/*
+ * The stand-ins' account and Valkey (ReauthenticationStandIns), so the real
+ * check reads the real confirmation: the session confirms with its
+ * password, as the prompt sends it, when `confirmed` says so.
+ */
+async function standInConfirmIts(data: { confirmed: boolean }): Promise<void> {
+  const valkey: StandInValkey = new StandInValkey();
+
+  jest.spyOn(Redis, "getClient").mockReturnValue(valkey as never);
+  jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+  standInAccount(() => {
+    return PASSWORD_ACCOUNT;
+  });
+
+  if (data.confirmed) {
+    await Reauthentication.confirm({
+      session: { userId: REAUTH_USER_ID, sessionId: REAUTH_SESSION_ID },
+      proof: { password: RIGHT_PASSWORD },
+      clientIp: "203.0.113.9",
+    });
+  }
+}
+
 // A delete as big as several pages, in a window beyond the first read's.
 const BULK_WINDOW: { skip: number; limit: number } = {
   skip: 10000,
@@ -88,8 +149,15 @@ interface DeleteCase {
   refused: JSONObject;
   // The hook checks only a teammate's delete (OneUptime's is never refused).
   teammateOnly?: boolean;
+  /*
+   * Who the teammate is, when the delete asks more of them than TEAMMATE
+   * holds: a confirmed session, for an account's delete.
+   */
+  teammate?: JSONObject;
+  // What a refusal of ROW_B says, where the check words it.
+  refusedWith?: string;
   // What the check calls besides the service's own reads.
-  stub?: () => void;
+  stub?: () => void | Promise<void>;
 }
 
 function asService<TModel extends DatabaseBaseModel>(
@@ -247,7 +315,15 @@ const CASES: Array<DeleteCase> = [
     service: asService(UserService),
     accepted: {},
     refused: {},
-    stub: (): void => {
+    /*
+     * Deleting someone's account also waits for the session that asks to
+     * confirm it's its person's (#10330): the teammate signed in, and
+     * confirmed, so the delete reaches the check this case is for. An API
+     * key's delete is refused before it (see the end of this file).
+     */
+    teammate: SIGNED_IN_TEAMMATE,
+    refusedWith: SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE,
+    stub: async (): Promise<void> => {
       // ROW_B is still a member of a project.
       jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (read: {
         query: JSONObject;
@@ -256,6 +332,8 @@ const CASES: Array<DeleteCase> = [
           ? [{ _id: "5e000000-0000-4000-8000-000000000001" }]
           : [];
       }) as never);
+
+      await standInConfirmIts({ confirmed: true });
     },
   },
   {
@@ -401,9 +479,9 @@ function idsDeleted(deleteBy: DeleteBy<DatabaseBaseModel>): Array<string> {
 }
 
 describe.each(CASES)("$name", (deleteCase: DeleteCase) => {
-  beforeEach(() => {
+  beforeEach(async () => {
     if (deleteCase.stub) {
-      deleteCase.stub();
+      await deleteCase.stub();
     }
   });
 
@@ -412,6 +490,7 @@ describe.each(CASES)("$name", (deleteCase: DeleteCase) => {
   });
 
   const service: DatabaseService<DatabaseBaseModel> = deleteCase.service;
+  const teammate: JSONObject = deleteCase.teammate || TEAMMATE;
 
   if (!deleteCase.teammateOnly) {
     it("reads OneUptime's bulk delete in its own window, in one read, and holds the delete to the rows it read", async () => {
@@ -464,7 +543,7 @@ describe.each(CASES)("$name", (deleteCase: DeleteCase) => {
           service,
           deleteOf({ isRoot: true, tenantId: PROJECT_ID }, BULK_WINDOW),
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow(deleteCase.refusedWith);
     });
   }
 
@@ -482,7 +561,7 @@ describe.each(CASES)("$name", (deleteCase: DeleteCase) => {
     });
     stubReads(service, [rowA, rowOutOfReach]);
 
-    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(TEAMMATE, {
+    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(teammate, {
       skip: 0,
       limit: 100,
     });
@@ -509,8 +588,8 @@ describe.each(CASES)("$name", (deleteCase: DeleteCase) => {
     stubReads(service, [rowA, rowB]);
 
     await expect(
-      runHook(service, deleteOf(TEAMMATE, { skip: 0, limit: 100 })),
-    ).rejects.toThrow();
+      runHook(service, deleteOf(teammate, { skip: 0, limit: 100 })),
+    ).rejects.toThrow(deleteCase.refusedWith);
   });
 
   it("judges and removes nothing when a teammate may delete none of the rows", async () => {
@@ -521,7 +600,7 @@ describe.each(CASES)("$name", (deleteCase: DeleteCase) => {
       rowOf(service, ROW_B, deleteCase.refused),
     ]);
 
-    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(TEAMMATE, {
+    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(teammate, {
       skip: 0,
       limit: 100,
     });
@@ -710,5 +789,106 @@ describe("TeamMemberService: one delete of several members is held to the rule s
     await runHook(service, deleteBy);
 
     expect(idsDeleted(deleteBy)).toEqual([ROW_A]);
+  });
+});
+
+/*
+ * DELETING AN ACCOUNT ANY OTHER WAY THAN FROM A CONFIRMED SESSION.
+ *
+ * The rule above - an account in a project is not deleted - is asked first,
+ * so nobody confirms for a delete that cannot happen; then the session that
+ * asks must have confirmed it's its person's (UserService
+ * .assertAccountDeleteIsConfirmed, #10220, #10330). An API key has no
+ * session, so it never deletes an account: it is refused in Confirm It's
+ * You's words, before anything is deleted.
+ */
+describe("UserService: an account is deleted only from a session that confirmed it's its person's", () => {
+  const service: DatabaseService<DatabaseBaseModel> = asService(UserService);
+
+  async function refusalOf(work: Promise<unknown>): Promise<Error> {
+    try {
+      await work;
+    } catch (err) {
+      return err as Error;
+    }
+
+    throw new Error("Expected a refusal, and the delete went through.");
+  }
+
+  // ROW_A is in no project, ROW_B in one; the teammate may delete each row given.
+  function deletableRows(rows: Array<DatabaseBaseModel>): void {
+    jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (read: {
+      query: JSONObject;
+    }): Promise<Array<JSONObject>> => {
+      return isRowB(read.query["userId"])
+        ? [{ _id: "5e000000-0000-4000-8000-000000000001" }]
+        : [];
+    }) as never);
+    stubRowsCallerMayDelete(service, () => {
+      return rows;
+    });
+    stubReads(service, rows);
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an API key's delete is refused in Confirm It's You's words, and removes nothing", async () => {
+    await standInConfirmIts({ confirmed: true });
+    deletableRows([rowOf(service, ROW_A, {})]);
+
+    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(TEAMMATES_API_KEY, {
+      skip: 0,
+      limit: 100,
+    });
+    const refusal: Error = await refusalOf(runHook(service, deleteBy));
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal).not.toBeInstanceOf(ReauthenticationRequiredException);
+    expect(refusal.message).toBe(
+      REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES[
+        ReauthenticationPurpose.AdminChange
+      ],
+    );
+    expect(refusal.message).toContain("An API key cannot make it.");
+  });
+
+  test("an API key's delete of a project member's account is refused for the membership first", async () => {
+    await standInConfirmIts({ confirmed: true });
+    deletableRows([rowOf(service, ROW_A, {}), rowOf(service, ROW_B, {})]);
+
+    await expect(
+      runHook(service, deleteOf(TEAMMATES_API_KEY, { skip: 0, limit: 100 })),
+    ).rejects.toThrow(SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE);
+  });
+
+  test("a session that has not confirmed it's its person's is asked to, and removes nothing", async () => {
+    await standInConfirmIts({ confirmed: false });
+    deletableRows([rowOf(service, ROW_A, {})]);
+
+    const refusal: Error = await refusalOf(
+      runHook(service, deleteOf(SIGNED_IN_TEAMMATE, { skip: 0, limit: 100 })),
+    );
+
+    expect(refusal).toBeInstanceOf(ReauthenticationRequiredException);
+    expect(refusal.message).toBe(
+      REAUTHENTICATION_REQUIRED_MESSAGES[ReauthenticationPurpose.AdminChange],
+    );
+  });
+
+  test("the same session, once it has confirmed, deletes the account it may delete", async () => {
+    await standInConfirmIts({ confirmed: true });
+    deletableRows([rowOf(service, ROW_A, {})]);
+
+    const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(SIGNED_IN_TEAMMATE, {
+      skip: 0,
+      limit: 100,
+    });
+
+    await runHook(service, deleteBy);
+
+    expect(idsDeleted(deleteBy)).toEqual([ROW_A]);
+    expect(deleteBy.limit).toBe(1);
   });
 });

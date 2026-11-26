@@ -20,6 +20,7 @@ import {
   cutText,
   readAttribute,
   readIpAddress,
+  readIpAddressOnly,
   readPort,
   readRemoteIpAddress,
 } from "./SecurityLogLine";
@@ -379,6 +380,7 @@ interface Initiator {
   id: string;
   name: string;
   projectId: string;
+  // The address, or what a scrub rule left in its place (readIpAddress, #10419).
   address: string;
 }
 
@@ -432,10 +434,17 @@ function baseAttributes(data: {
     OpenStackAuditAttribute.InitiatorProjectId,
     data.initiator.projectId,
   );
+  /*
+   * Only an address: a project's own rule may count per this, so what a
+   * scrub rule left is no address every hidden sign-in shares. The event
+   * says a rule hid it instead (buildLogSecurityEvent, #10419), and names
+   * the address behind a Hash rule's token in principalIp, which the Rule
+   * Library's OpenStack rules count per (#10773).
+   */
   set(
     attributes,
     OpenStackAuditAttribute.InitiatorAddress,
-    data.initiator.address,
+    readIpAddressOnly(data.initiator.address),
   );
   set(
     attributes,

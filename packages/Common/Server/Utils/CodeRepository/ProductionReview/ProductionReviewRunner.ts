@@ -28,6 +28,7 @@ import ProductionReviewAI, {
   ProductionReviewAiResult,
 } from "./ProductionReviewAI";
 import ProductionReviewComposer, {
+  PRODUCTION_REVIEW_CHECK_TITLES,
   ProductionReviewCheckRunText,
   ProductionReviewCommentInput,
 } from "./ProductionReviewComposer";
@@ -46,6 +47,18 @@ import ProductionReviewRepositoryProfile, {
 import ProductionReviewScope, {
   ProductionReviewScopeResult,
 } from "./ProductionReviewScope";
+import ProductionReviewSensitiveData from "./ProductionReviewSensitiveData";
+import PullRequestLeakReview, {
+  PullRequestLeakFile,
+  PullRequestLeakReviewResult,
+} from "../../AI/DataSecurity/PullRequestLeakReview";
+import {
+  ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataJSON,
+  ProductionReviewSensitiveDataUtil,
+  SensitiveDataAiNoteCode,
+  SensitiveDataPosting,
+} from "../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import {
@@ -291,6 +304,7 @@ export default class ProductionReviewRunner {
             isProductionReviewEnabled: true,
             productionReviewPullRequestContent: true,
             productionReviewLlmProviderId: true,
+            isProductionReviewFailOnLeakEnabled: true,
           },
           props: { isRoot: true },
         })
@@ -424,6 +438,30 @@ export default class ProductionReviewRunner {
       findings.unreadSections.push(ProductionReviewSection.Data);
     }
 
+    /*
+     * What the change writes of sensitive data to telemetry, does to a
+     * store or adds a column for (#10376): read from the diff, whether or
+     * not the repository serves a service - an infrastructure repository
+     * serves none, and leaks the most.
+     */
+    let sensitiveData: ProductionReviewSensitiveDataJSON | undefined =
+      undefined;
+
+    try {
+      sensitiveData = await ProductionReviewSensitiveData.find({
+        projectId,
+        files,
+        services: scope.services,
+        isFailOn: repository.isProductionReviewFailOnLeakEnabled === true,
+        now,
+      });
+    } catch (error) {
+      logger.error(
+        `Production review: the sensitive data the pull request writes could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      findings.unreadSections.push(ProductionReviewSection.SensitiveData);
+    }
+
     const report: ProductionReviewReport = {
       pullRequest: {
         number: pullRequestNumber,
@@ -453,6 +491,7 @@ export default class ProductionReviewRunner {
       codeFileCount: changed.codeFileCount,
       ...findings,
       dataImpact,
+      ...(sensitiveData ? { sensitiveData } : {}),
       points: [],
       posting: ProductionReviewPosting.None,
     };
@@ -476,6 +515,21 @@ export default class ProductionReviewRunner {
       now,
       update: contextUpdate,
     });
+
+    /*
+     * Each leak the review posts, remembered once on the pull request's
+     * review - what AI Results counts as caught before it merged - and one
+     * a later review no longer finds, as fixed. A section that could not
+     * be read this time says nothing of what was fixed.
+     */
+    if (report.sensitiveData) {
+      contextUpdate.caughtLeaks =
+        ProductionReviewSensitiveDataUtil.mergeCaughtLeaks({
+          previous: review.caughtLeaks,
+          points: report.sensitiveData.points,
+          now,
+        });
+    }
 
     await ProductionReviewRunner.post({
       run,
@@ -504,12 +558,22 @@ export default class ProductionReviewRunner {
   }
 
   /*
-   * OneUptime AI's read, added to the report when production says something
-   * and AI may run: the project's AI switch is on, the pull request and
-   * the repository have reads left today, and the facts and the diff are
-   * not the ones the last read answered (whose points are kept instead).
-   * It reads with the LLM provider the repository picks for its production
-   * reviews, else the project's default provider, else the global one.
+   * OneUptime AI's reads, added to the report when AI may run: the
+   * project's AI switch is on, the pull request and the repository have
+   * reads left today, and what a read is given is not what the last one
+   * answered (whose answer is kept instead). Two reads, each only when it
+   * has something to read:
+   *
+   *   - what to watch, when production says something about the change
+   *     (ProductionReviewAI);
+   *   - the Sensitive data section, when its rules found something
+   *     (PullRequestLeakReview, #10376) - built and asked the one way every
+   *     Data Security read is, never told what production holds.
+   *
+   * One review is one of the day's reads, however many of the two it
+   * makes. Both read with the LLM provider the repository picks for its
+   * production reviews, else the project's default provider, else the
+   * global one.
    */
   public static async addAiRead(data: {
     run: AIRun;
@@ -523,35 +587,54 @@ export default class ProductionReviewRunner {
     now: Date;
     update: ProductionReviewContextUpdate;
   }): Promise<void> {
-    if (!ProductionReviewUtil.hasSignal(data.report)) {
+    const wantsProductionRead: boolean =
+      ProductionReviewUtil.hasProductionSignal(data.report);
+    const section: ProductionReviewSensitiveDataJSON | undefined =
+      data.report.sensitiveData;
+    const wantsLeakRead: boolean =
+      ProductionReviewSensitiveDataUtil.getPoints(section).length > 0;
+
+    if (!wantsProductionRead && !wantsLeakRead) {
       return;
     }
 
     const projectId: ObjectID = data.run.projectId!;
 
     if (!(await AIService.isProjectAIEnabled(projectId))) {
-      data.report.aiNote = { code: ProductionReviewAiNoteCode.AiOff };
+      if (wantsProductionRead) {
+        data.report.aiNote = { code: ProductionReviewAiNoteCode.AiOff };
+      }
+
+      if (section && wantsLeakRead) {
+        section.aiNote = SensitiveDataAiNoteCode.AiOff;
+      }
+
       return;
     }
 
+    const previous: ProductionReviewReport | undefined =
+      data.run.taskOutcome?.productionReview;
+
+    // What to watch: kept from the last read when it read the same.
     const diffText: string = ProductionReviewAI.buildDiffText({
       files: data.files.map((file: CodeHostChangedFile) => {
         return { path: file.filename, patch: file.patch };
       }),
       changed: data.changed,
     });
-
     const inputHash: string = ProductionReviewAI.getInputHash({
       report: data.report,
       diffText,
     });
-
-    const previous: ProductionReviewReport | undefined =
-      data.run.taskOutcome?.productionReview;
     const previousPoints: Array<ProductionReviewPointJSON> =
       previous?.points || [];
+    let needsProductionRead: boolean = wantsProductionRead;
 
-    if (inputHash === data.review.aiInputHash && previousPoints.length > 0) {
+    if (
+      wantsProductionRead &&
+      inputHash === data.review.aiInputHash &&
+      previousPoints.length > 0
+    ) {
       data.report.points = previousPoints;
 
       // The read they came from, and the provider that made it.
@@ -559,6 +642,38 @@ export default class ProductionReviewRunner {
         data.report.llmProvider = previous.llmProvider;
       }
 
+      needsProductionRead = false;
+    }
+
+    // The Sensitive data section: kept from the last read when it read the same.
+    const leakFiles: Array<PullRequestLeakFile> = data.files.map(
+      (file: CodeHostChangedFile): PullRequestLeakFile => {
+        return { path: file.filename, patch: file.patch };
+      },
+    );
+    const leakInputHash: string = section
+      ? PullRequestLeakReview.getInputHash({
+          pullRequestTitle: data.report.pullRequest.title,
+          points: section.points,
+          files: leakFiles,
+        })
+      : "";
+    let needsLeakRead: boolean = wantsLeakRead;
+
+    if (
+      section &&
+      wantsLeakRead &&
+      leakInputHash === data.review.sensitiveDataAiInputHash &&
+      previous?.sensitiveData?.isAiRead
+    ) {
+      data.report.sensitiveData = ProductionReviewRunner.keepLeakRead({
+        current: section,
+        previous: previous.sensitiveData,
+      });
+      needsLeakRead = false;
+    }
+
+    if (!needsProductionRead && !needsLeakRead) {
       return;
     }
 
@@ -573,52 +688,143 @@ export default class ProductionReviewRunner {
         day,
       }))
     ) {
-      data.report.aiNote = { code: ProductionReviewAiNoteCode.DailyLimit };
+      if (needsProductionRead) {
+        data.report.aiNote = { code: ProductionReviewAiNoteCode.DailyLimit };
+      }
+
+      if (needsLeakRead && data.report.sensitiveData) {
+        data.report.sensitiveData.aiNote = SensitiveDataAiNoteCode.DailyLimit;
+      }
+
       return;
-    }
-
-    /*
-     * The provider the read uses: the repository's pick when the project
-     * may use it and nothing stops it, else what it falls back to - the
-     * project's default provider, else the global one (LlmProviderChoice).
-     * With no pick nothing more is read: the call resolves the project's
-     * provider, as every review did before a repository could pick one.
-     */
-    const llmProviderChoice: RuleLlmProviderChoice =
-      await LlmProviderChoice.decideIfPicked({
-        projectId,
-        pickedProviderId: data.pickedLlmProviderId,
-      });
-
-    /*
-     * Which provider reads it, when the repository picks one: the pick, or
-     * the provider it falls back to and why - which the review's page says,
-     * a pick that could not be used as a warning. With no pick, nothing.
-     */
-    if (llmProviderChoice.activity) {
-      data.report.llmProvider = llmProviderChoice.activity;
-    }
-
-    const result: ProductionReviewAiResult = await ProductionReviewAI.read({
-      projectId,
-      aiRunId: data.run.id!,
-      report: data.report,
-      diffText,
-      llmProviderId: llmProviderChoice.llmProviderId,
-    });
-
-    data.report.points = result.points;
-
-    if (result.note) {
-      data.report.aiNote = result.note;
     }
 
     data.update.aiReadDay = day;
     data.update.aiReadsToday = readsToday + 1;
 
-    if (!result.note) {
-      data.update.aiInputHash = inputHash;
+    if (needsProductionRead) {
+      /*
+       * The provider the read uses: the repository's pick when the project
+       * may use it and nothing stops it, else what it falls back to - the
+       * project's default provider, else the global one
+       * (LlmProviderChoice). With no pick nothing more is read: the call
+       * resolves the project's provider, as every review did before a
+       * repository could pick one.
+       */
+      const llmProviderChoice: RuleLlmProviderChoice =
+        await LlmProviderChoice.decideIfPicked({
+          projectId,
+          pickedProviderId: data.pickedLlmProviderId,
+        });
+
+      /*
+       * Which provider reads it, when the repository picks one: the pick,
+       * or the provider it falls back to and why - which the review's page
+       * says, a pick that could not be used as a warning. With no pick,
+       * nothing.
+       */
+      if (llmProviderChoice.activity) {
+        data.report.llmProvider = llmProviderChoice.activity;
+      }
+
+      const result: ProductionReviewAiResult = await ProductionReviewAI.read({
+        projectId,
+        aiRunId: data.run.id!,
+        report: data.report,
+        diffText,
+        llmProviderId: llmProviderChoice.llmProviderId,
+      });
+
+      data.report.points = result.points;
+
+      if (result.note) {
+        data.report.aiNote = result.note;
+      } else {
+        data.update.aiInputHash = inputHash;
+      }
     }
+
+    if (needsLeakRead && data.report.sensitiveData) {
+      const read: PullRequestLeakReviewResult =
+        await PullRequestLeakReview.read({
+          projectId,
+          aiRunId: data.run.id!,
+          pullRequestTitle: data.report.pullRequest.title,
+          section: data.report.sensitiveData,
+          files: leakFiles,
+          pickedLlmProviderId: data.pickedLlmProviderId,
+        });
+
+      data.report.sensitiveData = read.section;
+
+      if (read.note) {
+        data.report.sensitiveData.aiNote = read.note;
+      } else {
+        data.update.sensitiveDataAiInputHash = leakInputHash;
+      }
+    }
+  }
+
+  /*
+   * The last read of the Sensitive data section, kept for a review whose
+   * points and diff are the same: each point in the words it was read in,
+   * in its order, and the ones it left out left out again - but never one
+   * the check fails on now.
+   */
+  public static keepLeakRead(data: {
+    current: ProductionReviewSensitiveDataJSON;
+    previous: ProductionReviewSensitiveDataJSON;
+  }): ProductionReviewSensitiveDataJSON {
+    const previousByKey: Map<string, ProductionReviewLeakJSON> = new Map<
+      string,
+      ProductionReviewLeakJSON
+    >();
+
+    data.previous.points.forEach((point: ProductionReviewLeakJSON): void => {
+      previousByKey.set(point.key, point);
+    });
+
+    const order: Array<string> = data.previous.points.map(
+      (point: ProductionReviewLeakJSON): string => {
+        return point.key;
+      },
+    );
+
+    const kept: Array<ProductionReviewLeakJSON> = data.current.points
+      .filter((point: ProductionReviewLeakJSON): boolean => {
+        return previousByKey.has(point.key) || point.failsCheck;
+      })
+      .map((point: ProductionReviewLeakJSON): ProductionReviewLeakJSON => {
+        const read: ProductionReviewLeakJSON | undefined = previousByKey.get(
+          point.key,
+        );
+
+        if (!read) {
+          return point;
+        }
+
+        return {
+          ...point,
+          text: read.text,
+          fix: read.fix,
+          isAiWorded: read.isAiWorded,
+          ...(read.suggestion ? { suggestion: read.suggestion } : {}),
+        };
+      })
+      .sort((a: ProductionReviewLeakJSON, b: ProductionReviewLeakJSON) => {
+        if (a.failsCheck !== b.failsCheck) {
+          return a.failsCheck ? -1 : 1;
+        }
+
+        return order.indexOf(a.key) - order.indexOf(b.key);
+      });
+
+    return {
+      ...data.current,
+      points: kept,
+      droppedCount: data.current.points.length - kept.length,
+      isAiRead: true,
+    };
   }
 
   /*
@@ -671,9 +877,14 @@ export default class ProductionReviewRunner {
       !hasSignal &&
       !data.review.commentId &&
       data.review.trigger === ProductionReviewTrigger.PullRequestChanged;
+    const reviewUrl: string = GitHubRunReply.buildRunUrl({
+      projectId: data.run.projectId!,
+      aiRunId: data.run.id!,
+    });
 
     if (isQuiet && !data.host.writeCheckRun) {
       data.report.posting = ProductionReviewPosting.None;
+      await ProductionReviewRunner.writeCommitStatus({ ...data, reviewUrl });
       return;
     }
 
@@ -703,6 +914,10 @@ export default class ProductionReviewRunner {
       isPublicRepository: isPublic,
       pullRequestTerm: data.host.pullRequestTerm,
       asksAgainInProduct: data.host.provider !== CodeRepositoryType.GitHub,
+      sensitiveDataPosting: ProductionReviewUtil.getSensitiveDataPosting({
+        content: data.repository.productionReviewPullRequestContent,
+        isPublic,
+      }),
     };
 
     if (isQuiet) {
@@ -712,6 +927,123 @@ export default class ProductionReviewRunner {
     }
 
     await ProductionReviewRunner.writeCheck({ ...data, input });
+    await ProductionReviewRunner.writeCommitStatus({ ...data, reviewUrl });
+
+    if (!isQuiet) {
+      await ProductionReviewRunner.writeSuggestions({ ...data, input });
+    }
+  }
+
+  /*
+   * GitLab, Forgejo and Gitea: the review's commit status on the pull
+   * request's head - only for a repository that asked its check to fail
+   * on a leak (#10376), so nothing new appears anywhere else. Success, or
+   * failed when a point fails it; nothing when the section could not be
+   * read, which is no answer to give a required check. A status that
+   * cannot be written never fails the review.
+   */
+  private static async writeCommitStatus(data: {
+    run: AIRun;
+    host: ProductionReviewHost;
+    repository: CodeRepository;
+    report: ProductionReviewReport;
+    reviewUrl: string;
+  }): Promise<void> {
+    const headSha: string = data.report.pullRequest.headSha;
+
+    if (
+      !data.host.writeCommitStatus ||
+      data.repository.isProductionReviewFailOnLeakEnabled !== true ||
+      !headSha ||
+      !data.report.sensitiveData
+    ) {
+      return;
+    }
+
+    const isFailure: boolean = ProductionReviewSensitiveDataUtil.failsCheck(
+      data.report.sensitiveData,
+    );
+
+    try {
+      await data.host.writeCommitStatus({
+        headSha,
+        isFailure,
+        name: getProductionReviewCheckName(),
+        description: isFailure
+          ? PRODUCTION_REVIEW_CHECK_TITLES.sensitiveDataFails
+          : PRODUCTION_REVIEW_CHECK_TITLES.noLeakFails,
+        targetUrl: data.reviewUrl,
+      });
+    } catch (error) {
+      logger.info(
+        `Production review ${data.run.id?.toString()}: its commit status could not be written, so the review stands without it: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /*
+   * GitHub: the suggested change of each new point, on its line, as one
+   * review of the pull request its author can commit from (#10376) - a
+   * point's suggestion once, however many pushes show it, and only where
+   * the comment shows the section at all. One that GitHub refuses (a line
+   * a push moved) is not posted, and the comment still shows its change.
+   */
+  private static async writeSuggestions(data: {
+    run: AIRun;
+    review: ProductionReviewTaskContext;
+    host: ProductionReviewHost;
+    report: ProductionReviewReport;
+    update: ProductionReviewContextUpdate;
+    input: ProductionReviewCommentInput;
+  }): Promise<void> {
+    if (
+      !data.host.writeSuggestions ||
+      data.input.sensitiveDataPosting === SensitiveDataPosting.None ||
+      !data.report.pullRequest.headSha
+    ) {
+      return;
+    }
+
+    const posted: Array<string> = data.review.suggestedLeakKeys || [];
+    const points: Array<ProductionReviewLeakJSON> =
+      ProductionReviewComposer.getSuggestedPoints(data.report).filter(
+        (point: ProductionReviewLeakJSON): boolean => {
+          return !posted.includes(point.key);
+        },
+      );
+
+    if (points.length === 0) {
+      return;
+    }
+
+    try {
+      await data.host.writeSuggestions({
+        pullRequestNumber: data.report.pullRequest.number,
+        headSha: data.report.pullRequest.headSha,
+        body: ProductionReviewComposer.composeSuggestionsBody(
+          data.input,
+          points.length,
+        ),
+        comments: points.map((point: ProductionReviewLeakJSON) => {
+          return {
+            path: point.path,
+            line: point.suggestion!.endLine,
+            body: ProductionReviewComposer.composeSuggestion(point),
+          };
+        }),
+      });
+
+      data.update.suggestedLeakKeys = [
+        ...posted,
+        ...points.map((point: ProductionReviewLeakJSON): string => {
+          return point.key;
+        }),
+      ].slice(-100);
+    } catch (error) {
+      logger.info(
+        `Production review ${data.run.id?.toString()}: its suggested changes could not be posted on their lines, so the comment holds them alone: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   // The review's comment, as `post` decided it.

@@ -15,6 +15,7 @@ import {
   CloudDataStoreRead,
 } from "./Cloud/DataSecurityCloudTypes";
 import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
+import DeclaredDataStores from "./DeclaredDataStores";
 import DataSecurityIssueAlerts, {
   ClosedDataSecurityIssue,
 } from "./DataSecurityIssueAlerts";
@@ -62,6 +63,9 @@ import { DataStorePostureFacts } from "../../../Types/DataSecurity/DataStorePost
  *    does not list, S3 buckets and BigQuery datasets among them.
  *  - Telemetry scans (ensureTelemetryStore): a service's logs, traces,
  *    exceptions, replays, AI conversations and metrics.
+ *  - OneUptime itself (DeclaredDataStores): the security events, network
+ *    flows and address vault it keeps for the project, declared from what
+ *    the project holds, never scanned (#10398).
  *
  * Every source builds the same key for the same store (DataStoreKey.ts),
  * so a store found twice is one row. A store whose source is gone is
@@ -194,6 +198,13 @@ export default class DataSecurityDiscovery {
     }
 
     await this.archiveGone(projectId, existing, covered);
+
+    /*
+     * The stores OneUptime keeps for the project's security - its security
+     * events, network flows and address vault - declared, never scanned
+     * (#10398). Nothing evaluates them, so they queue no evaluation.
+     */
+    await DeclaredDataStores.declareProject(projectId, { now });
 
     if (created > 0) {
       await queueDataSecurityEvaluation(projectId);

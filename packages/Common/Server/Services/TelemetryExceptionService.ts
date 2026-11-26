@@ -34,6 +34,8 @@ import TelemetryService from "../../Models/DatabaseModels/Service";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import HashedAddressSearch from "../Utils/Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../Types/Telemetry/HashedAddressSearch";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -112,6 +114,13 @@ export interface CreateCodeFixRunForExceptionParams {
    * Code says what started it, and its pull request says why it opened.
    */
   triggeredByAiInsightId?: ObjectID | undefined;
+  /*
+   * The security case the fix is for (#10347): Fix With AI asks for it from
+   * the case's playbook. Stamped on the run, and from the run on the pull
+   * request it opens (CodeFixPullRequestRecord), so the case finds its
+   * fixes and its Fix step's check reads whether one shipped.
+   */
+  triggeredBySecurityCaseId?: ObjectID | undefined;
   /*
    * The repositories the run may be queued on (the AI rules' that started
    * it): the exception resolves only to one of them. Left out, to any.
@@ -266,6 +275,10 @@ export class Service extends ProjectReferencesService<Model> {
    * unattributed ones), and a block with labels takes away the groups of the
    * resources carrying them. The occurrences behind a group (ExceptionInstance)
    * follow the same scope, so the list, its counts and the occurrences agree.
+   *
+   * A search for an IP address in a group's message also finds the groups
+   * whose address an IP Address rule hashed, by the project's token for it,
+   * as the occurrences' search does (HashedAddressSearch, #10418).
    */
   @CaptureSpan()
   protected override async onBeforeFind(
@@ -273,7 +286,9 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnFind<Model>> {
     findBy.query = await this.addExceptionScope(
       Service.hideMergedExceptions(
-        await this.withMergedFingerprintAliases(findBy.query),
+        await this.withMergedFingerprintAliases(
+          await Service.bindHashedAddressSearch(findBy.query, findBy.props),
+        ),
       ),
       findBy.props,
       DatabaseRequestType.Read,
@@ -288,13 +303,31 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<PositiveNumber> {
     countBy.query = await this.addExceptionScope(
       Service.hideMergedExceptions(
-        await this.withMergedFingerprintAliases(countBy.query),
+        await this.withMergedFingerprintAliases(
+          await Service.bindHashedAddressSearch(countBy.query, countBy.props),
+        ),
       ),
       countBy.props,
       DatabaseRequestType.Read,
     );
 
     return super.countBy(countBy);
+  }
+
+  // A read's message search, bound to the project's IP Address tokens (#10418).
+  private static async bindHashedAddressSearch<TQuery>(
+    query: TQuery,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): Promise<TQuery> {
+    if (!query || props?.ignoreHooks) {
+      return query;
+    }
+
+    return await HashedAddressSearch.bindQuery({
+      query,
+      props,
+      signal: HashedAddressSignal.Exceptions,
+    });
   }
 
   /*
@@ -943,6 +976,12 @@ export class Service extends ProjectReferencesService<Model> {
    * the data means rather than who may see it - unless the query names them:
    * by id (an exception's own page, a link to it), or by the column itself
    * (the exceptions merged into one, which its page lists).
+   *
+   * Nor is a row that only keeps an exception's former fingerprint
+   * (#10619), which is always merged into its exception's group: left out
+   * by its own column too, so it stays out of every list even if the
+   * exception it was merged into is deleted and purged, which unmerges what
+   * was merged into it.
    */
   public static hideMergedExceptions<TQuery>(query: TQuery): TQuery {
     const record: Record<string, unknown> = (query || {}) as Record<
@@ -953,7 +992,8 @@ export class Service extends ProjectReferencesService<Model> {
     if (
       "_id" in record ||
       "id" in record ||
-      "mergedIntoTelemetryExceptionId" in record
+      "mergedIntoTelemetryExceptionId" in record ||
+      "formerFingerprintOfTelemetryExceptionId" in record
     ) {
       return query;
     }
@@ -961,6 +1001,7 @@ export class Service extends ProjectReferencesService<Model> {
     return {
       ...record,
       mergedIntoTelemetryExceptionId: QueryHelper.isNull(),
+      formerFingerprintOfTelemetryExceptionId: QueryHelper.isNull(),
     } as TQuery;
   }
 
@@ -1787,6 +1828,11 @@ export class Service extends ProjectReferencesService<Model> {
         run.triggeredByAiInsightId = params.triggeredByAiInsightId;
       }
 
+      // The security case it fixes, so the case finds its pull request.
+      if (params.triggeredBySecurityCaseId) {
+        run.triggeredBySecurityCaseId = params.triggeredBySecurityCaseId;
+      }
+
       if (params.llmProviderId) {
         run.llmProviderId = params.llmProviderId;
       }
@@ -2446,6 +2492,10 @@ export class Service extends ProjectReferencesService<Model> {
       .andWhere(`"TelemetryException"."deletedAt" IS NULL`)
       // A merged exception counts in the one it was merged into.
       .andWhere(`"TelemetryException"."mergedIntoTelemetryExceptionId" IS NULL`)
+      // And a former fingerprint is no exception (hideMergedExceptions).
+      .andWhere(
+        `"TelemetryException"."formerFingerprintOfTelemetryExceptionId" IS NULL`,
+      )
       .andWhere(`"TelemetryException"."primaryEntityId" IS NOT NULL`)
       .groupBy(`"TelemetryException"."primaryEntityId"`)
       .addGroupBy(`"TelemetryException"."primaryEntityType"`)

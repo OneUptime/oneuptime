@@ -56,7 +56,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Overview**  | **All Maintenance Events**, **Ongoing Maintenance Events**, whose badge counts the events in progress right now, and **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add. |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect a workspace** when it has none. |
-| **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
+| **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**, **Audit Logs**: who created, changed or deleted any of them, and when. |
 | **Settings**  | **Maintenance State**, **Maintenance Templates**, **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 
 **Overview** is open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.

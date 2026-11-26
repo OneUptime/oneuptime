@@ -603,6 +603,202 @@ describe("SecurityCaseIngest.recordDetections", () => {
  * firing's on the new detection, each firing after adds its own until it is
  * full, and the request outcomes add up over every firing.
  */
+/*
+ * EXACTLY ONCE (#10489). A detection rule's scheduled run judged again
+ * after its worker stopped hands the same firings, each under the name its
+ * first pass gave it. A detection keeps the names of the firings it took,
+ * and takes one it has once: its counts go up once, and nothing else of it
+ * is written. A signal that names no firing is taken every time, as before.
+ */
+describe("a firing handed again", () => {
+  const FIRING: string = "run:1760432400000:each:0f3a5c7e9b1d2468";
+
+  function storedDetection(
+    securityCase: SecurityCase,
+    firingKeys?: Array<string> | undefined,
+  ): SecurityDetection {
+    const detection: SecurityDetection = new SecurityDetection();
+    detection._id = ObjectID.generate().toString();
+    detection.fingerprint = "detection-rule:r1:abc";
+    detection.securityCaseId = securityCase.id!;
+    detection.severity = OcsfSeverity.Medium;
+    detection.entities = [];
+
+    if (firingKeys) {
+      detection.recentFiringKeys = firingKeys as never;
+    }
+
+    return detection;
+  }
+
+  test("a firing its detection took already adds nothing: no count, no write, no playbook", async () => {
+    const securityCase: SecurityCase = storedCase();
+
+    install({
+      detections: [storedDetection(securityCase, [FIRING])],
+      openCases: [securityCase],
+    });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({ eventCount: 5, firingKey: FIRING }),
+      ]);
+
+    expect(result).toEqual({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 0,
+      detectionsAlreadyTaken: 1,
+    });
+    expect(stubs.addToDetection).not.toHaveBeenCalled();
+    expect(stubs.writeCase).not.toHaveBeenCalled();
+    expect(stubs.updateCase).not.toHaveBeenCalled();
+    expect(stubs.createDetection).not.toHaveBeenCalled();
+    expect(stubs.createCase).not.toHaveBeenCalled();
+    expect(stubs.launch).not.toHaveBeenCalled();
+  });
+
+  test("a new firing is taken, its counts go up, and its name is kept with the ones before", async () => {
+    const securityCase: SecurityCase = storedCase();
+
+    install({
+      detections: [storedDetection(securityCase, ["run:1:each:older"])],
+      openCases: [securityCase],
+    });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({ eventCount: 5, firingKey: FIRING }),
+      ]);
+
+    expect(result).toEqual({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 1,
+    });
+    expect(stubs.addToDetection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        add: { eventCount: 5, fireCount: 1 },
+        set: expect.objectContaining({
+          recentFiringKeys: ["run:1:each:older", FIRING],
+        }),
+      }),
+    );
+  });
+
+  test("the detection a firing opens keeps its name, so the same firing handed again repeats nothing", async () => {
+    install({});
+
+    const first: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({ firingKey: FIRING }),
+      ]);
+    const opened: SecurityDetection = (
+      stubs.createDetection.mock.calls[0]![0] as { data: SecurityDetection }
+    ).data;
+
+    expect(first.casesOpened).toBe(1);
+    expect(opened.recentFiringKeys).toEqual([FIRING]);
+
+    // The run judged again: its detection is in the case it opened.
+    install({
+      detections: [opened],
+      openCases: [
+        storedCase({
+          _id: opened.securityCaseId!.toString(),
+        } as Partial<SecurityCase>),
+      ],
+    });
+
+    const again: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({ firingKey: FIRING }),
+      ]);
+
+    expect(again).toEqual({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 0,
+      detectionsAlreadyTaken: 1,
+    });
+    expect(stubs.addToDetection).not.toHaveBeenCalled();
+  });
+
+  test("two firings of one detection in one batch are both taken, and the second sees the first's name", async () => {
+    const securityCase: SecurityCase = storedCase();
+
+    install({
+      detections: [storedDetection(securityCase, [])],
+      openCases: [securityCase],
+    });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({ firingKey: "run:1:100:aaa" }),
+        signal({ firingKey: "run:1:200:aaa" }),
+        // ...and the first handed a second time in the same batch: once.
+        signal({ firingKey: "run:1:100:aaa" }),
+      ]);
+
+    expect(result).toEqual({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 2,
+      detectionsAlreadyTaken: 1,
+    });
+    expect(
+      stubs.addToDetection.mock.calls.map((call: Array<unknown>): unknown => {
+        return (call[0] as { set: Record<string, unknown> }).set[
+          "recentFiringKeys"
+        ];
+      }),
+    ).toEqual([["run:1:100:aaa"], ["run:1:100:aaa", "run:1:200:aaa"]]);
+  });
+
+  test("a signal that names no firing is taken every time, as before", async () => {
+    const securityCase: SecurityCase = storedCase();
+
+    install({
+      detections: [storedDetection(securityCase, [FIRING])],
+      openCases: [securityCase],
+    });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([signal(), signal()]);
+
+    expect(result).toEqual({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 2,
+    });
+    // Nothing about firings is written for it.
+    for (const call of stubs.addToDetection.mock.calls) {
+      expect(
+        (call[0] as { set: Record<string, unknown> }).set["recentFiringKeys"],
+      ).toBeUndefined();
+    }
+  });
+
+  test("the names are read with the detections, and the column is OneUptime's alone", async () => {
+    install({});
+
+    await SecurityCaseIngest.recordDetections([signal({ firingKey: FIRING })]);
+
+    const fingerprintRead: { select: Record<string, unknown> } = stubs
+      .findDetections.mock.calls[0]![0] as {
+      select: Record<string, unknown>;
+    };
+
+    expect(fingerprintRead.select["recentFiringKeys"]).toBe(true);
+
+    const detection: SecurityDetection = new SecurityDetection();
+
+    expect(detection.getColumnAccessControlFor("recentFiringKeys")).toEqual(
+      expect.objectContaining({ create: [], read: [], update: [] }),
+    );
+  });
+});
+
 describe("the events a detection keeps", () => {
   function keptEvent(index: number): SecurityDetectionMatchedEvent {
     return buildSecurityDetectionMatchedEvent({

@@ -114,6 +114,12 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
                 return <Pill tone={PillTone.Paused} text="Disabled" />;
               },
             },
+            {
+              // The pipeline's line: its ID, who created it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
           modelId: modelId,
         }}

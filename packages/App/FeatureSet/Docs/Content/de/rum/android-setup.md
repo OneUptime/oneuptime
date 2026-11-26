@@ -12,11 +12,11 @@ Instrumentieren Sie eine native Android-App mit OpenTelemetry Android, damit sie
 
 ## So funktioniert es
 
-OpenTelemetry Android läuft in Ihrer App. Es sendet Traces, Logs und Metriken über OTLP mit einem **Server**-Ingestion-Schlüssel an OneUptime und fügt den Anfragen Ihrer App einen W3C-Header `traceparent` hinzu, sodass sich die Spans Ihres Backends den Traces der App anschließen.
+OpenTelemetry Android läuft in Ihrer App. Es sendet Traces, Logs und Metriken über OTLP mit einem **Mobil**-Ingestion-Schlüssel an OneUptime, der auf Ihre App festgelegt ist, und fügt den Anfragen Ihrer App einen W3C-Header `traceparent` hinzu, sodass sich die Spans Ihres Backends den Traces der App anschließen.
 
 ```mermaid title="Von der App zu OneUptime und durch Ihr Backend"
 flowchart TB
-    app["Ihre Android-App<br/>mit OpenTelemetry Android"] -->|"OTLP mit einem<br/>Server-Schlüssel"| oneuptime["OneUptime"]
+    app["Ihre Android-App<br/>mit OpenTelemetry Android"] -->|"OTLP mit einem<br/>Mobil-Schlüssel"| oneuptime["OneUptime"]
     app -->|"Anfragen mit einem<br/>traceparent-Header"| api["Ihre APIs: Bestellungen,<br/>POS, Küchendisplay"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Mobile RUM-Anwendung"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - Eine Android-App, deren `minSdk` 23 oder höher ist, gebaut mit `compileSdk` 34 oder höher. Bei einem `minSdk` unter 26 schalten Sie [Core Library Desugaring](https://developer.android.com/studio/write/java8-support#library-desugaring) ein, mit Android Gradle Plugin 8.3.0 oder neuer und `android.useFullClasspathForDexingTransform=true` in `gradle.properties`.
-- Ein **Server**-Ingestion-Schlüssel, erstellt unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** mit **Ingestion-Schlüssel erstellen**. Ein **Browser**-Schlüssel wird aus einer App abgelehnt: Er wird gegen den Header `Origin` geprüft, den eine App nicht sendet.
+- Ein **Mobil**-Ingestion-Schlüssel, erstellt unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** mit **Ingestion-Schlüssel erstellen**, mit dem `service.name` Ihrer App unter **Festgelegter Dienstname**. Ein **Browser**-Schlüssel wird aus einer App abgelehnt: Er wird gegen den Header `Origin` geprüft, den eine App nicht sendet.
 - Diese OTLP-Einstellungen. Wenn Sie OneUptime selbst hosten, ersetzen Sie `https://oneuptime.com` durch Ihren eigenen Host.
 
 | Einstellung | Wert |
@@ -303,7 +303,7 @@ OpenTelemetry Android setzt `device.model.identifier` selbst, also wurde die App
 :::
 
 :::details Nichts kommt an, oder der Schlüssel wird abgelehnt
-Führen Sie die Schlüsselprüfung unter [OpenTelemetry Android hinzufügen](#opentelemetry-android-hinzufügen) durch. Ein `401` bedeutet, dass der Schlüssel unbekannt, widerrufen, ausgeschaltet oder abgelaufen ist. Ein **Browser**-Schlüssel wird aus einer App abgelehnt: Verwenden Sie einen **Server**-Schlüssel. Prüfen Sie, dass `baseUrl` auf `/otlp` endet, ohne `/v1/traces`: Der Agent hängt den Pfad selbst an.
+Führen Sie die Schlüsselprüfung unter [OpenTelemetry Android hinzufügen](#opentelemetry-android-hinzufügen) durch. Ein `401` bedeutet, dass der Schlüssel unbekannt, widerrufen, ausgeschaltet oder abgelaufen ist. Ein **Browser**-Schlüssel wird aus einer App abgelehnt: Verwenden Sie einen **Mobil**-Schlüssel. Prüfen Sie, dass `baseUrl` auf `/otlp` endet, ohne `/v1/traces`: Der Agent hängt den Pfad selbst an.
 :::
 
 :::details Ein Absturz oder ein ANR fehlt unter Ausnahmen

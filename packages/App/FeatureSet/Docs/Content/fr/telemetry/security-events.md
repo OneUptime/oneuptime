@@ -51,7 +51,9 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
+| **Réponse automatique** | Playbooks | Les politiques qui soumettent à un défi ou bloquent une adresse qui attaque dès la détection, chacune avec sa période d'essai et ses garde-fous |
 | **Liste de blocage** | Playbooks | Les adresses que votre projet bloque, jusqu'à quand, et où chaque blocage est appliqué |
+| **Flux de liste de blocage** | Playbooks | Les URL secrètes depuis lesquelles vos pare-feu et proxies lisent la liste de blocage, et leurs récupérations |
 | **Entités protégées** | Playbooks | Les utilisateurs, les hôtes et les adresses qu'aucun playbook ne confine et qu'aucun blocage ne touche |
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
@@ -131,6 +133,7 @@ Ouvrez **Produits → Événements de sécurité → Événements**. Les événe
 Indiquez le format avec `?format=`, avec l'en-tête `x-oneuptime-security-event-format` ou avec un champ `"format"` de premier niveau. Si vous l'omettez, le format de chaque événement est déterminé séparément, si bien qu'un même webhook peut mêler détections et événements bruts.
 
 - Le corps peut être un événement, un tableau d'événements ou `{ "events": [...] }`.
+- Un lot peut être compressé avec gzip et envoyé avec `Content-Encoding: gzip` : il est lu comme le même lot non compressé. La sortie `http` de Fluent Bit compresse avec `compress gzip`, le sink `http` de Vector avec `compression = "gzip"` et la sortie `http` de Logstash avec `http_compression => true`. Seul le JSON est lu compressé : un corps compressé de tout autre type est refusé avec `400`.
 - L'en-tête `x-oneuptime-service-name` nomme le service de télémétrie auquel appartiennent les événements. Sans lui, ils appartiennent au service nommé d'après le produit ou le fournisseur du premier événement, ou à `Security Events`.
 - Rien n'est écarté faute de correspondance : chaque champ de la source arrive dans les attributs de l'événement.
 
@@ -172,6 +175,7 @@ Pour envoyer des journaux de sécurité que vous collectez déjà, par exemple c
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -183,7 +187,7 @@ La page **Guide de configuration**, sous **Connexions**, contient ces extraits a
 
 ### Trouver des événements de sécurité dans vos journaux
 
-La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes, attaque web et requête visant un fichier sensible qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
 
 Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 
@@ -234,6 +238,16 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 - La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
 - Chaque événement nomme les ressources cloud dont parle son enregistrement par leurs propres identifiants - un ARN, un ID de ressource Azure, un nom de ressource Google Cloud -, il apparaît donc sur la page **Événements de sécurité** de chacune, et sur celle d'une fonction serverless dès que sa télémétrie définit `cloud.account.id` et `cloud.region`.
 
+### Les propres sondes de OneUptime dans vos flux réseau
+
+Activez **Flux réseau**, sous **Vos données OneUptime** sur **Connexions**, et les flux que vos appareils réseau exportent sont lus pour y trouver des scans de ports, des balayages réseau, du trafic avec des adresses malveillantes connues et de gros transferts sortants. Le travail d'une sonde y ressemble à un scan : interroger 40 appareils en SNMP atteint le port 161 sur 40 hôtes toutes les cinq minutes. Le trafic de l'une des propres sondes de OneUptime qui correspond exactement à ce que la sonde est configurée pour faire est donc mis de côté :
+
+- les appareils réseau qu'elle interroge, par ping et en SNMP sur leur port ;
+- la plage de chacune de ses découvertes, pendant que le scan tourne ;
+- les hôtes et les ports que ses moniteurs vérifient.
+
+Il est conservé comme un événement informatif, `oneuptime-probe-traffic`, qui nomme la sonde, et aucune règle ne le lit. **Flux réseau** indique combien a été mis de côté au cours du dernier jour, avec **Les voir**. Tout le reste venant de l'adresse d'une sonde est compté comme le trafic de n'importe qui, et un balayage ou un scan au-delà du travail de la sonde est signalé, en nommant la sonde. Une sonde est reconnue à l'adresse depuis laquelle elle se signale et aux adresses de ses propres interfaces réseau, qu'elle liste à chaque fois qu'elle se signale.
+
 ### Connecter un produit de sécurité
 
 **Connexions** interroge un produit de sécurité pour vous et importe ses nouveaux enregistrements comme événements de sécurité. Une connexion conserve les paramètres du produit et un identifiant chiffré ; un worker l'interroge à l'intervalle que vous fixez et ignore les enregistrements déjà importés.
@@ -250,6 +264,7 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Ce que son pare-feu a bloqué, soumis à un challenge et journalisé en périphérie, en HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Ouvrir des dossiers à partir de** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.
@@ -272,6 +287,71 @@ Chaque événement est stocké avec des champs typés et son payload source :
 | Attributs | Tout le payload source, aplati en clés à points |
 
 Les événements stockés avant OneUptime 14.0.84 laissent vides les champs de processus et ne nomment leur processus que par `principalProcess`, le processus qui a agi. Ils ne sont pas complétés après coup : ils gardent ce avec quoi ils ont été stockés jusqu'à la fin de leur rétention.
+
+### Quelle adresse un événement désigne
+
+Un événement ne désigne l'adresse d'où vient une requête que lorsque l'expéditeur de la requête n'a pas pu l'écrire lui-même. Cette adresse est vérifiée et devient l'**IP source** de l'événement : les règles de détection la comptent, le renseignement sur les menaces la compare à ses listes, et le **Plan de réponse** d'un dossier propose de la bloquer. Toute autre adresse qu'une requête désigne n'est que déclarée : l'événement la garde comme **IP déclarée**, et rien ne la compte ni ne la bloque.
+
+- L'adresse propre de la connexion est vérifiée : la `network.peer.address` d'un span serveur, ou le premier champ d'une ligne du journal d'accès d'un serveur web. Personne ne peut l'écrire dans une requête.
+- Derrière un proxy auquel vous faites confiance, l'adresse de la connexion est celle du proxy, et le client est l'adresse que le proxy a transmise dans `X-Forwarded-For`. Chaque proxy ajoute l'adresse d'où il a reçu la connexion, donc OneUptime lit l'en-tête depuis la droite et prend la première adresse qui n'est pas un proxy auquel vous faites confiance. Ce qu'un expéditeur écrit dans l'en-tête se retrouve à sa gauche et reste une déclaration.
+- Une adresse qu'une requête donne sur elle-même est déclarée : `client.address`, que l'instrumentation remplit depuis la gauche de l'en-tête, le reste de `X-Forwarded-For`, et `Forwarded`.
+
+Une adresse déclarée n'est jamais bloquée depuis un dossier : n'importe qui peut envoyer `X-Forwarded-For: 192.0.2.44`, et un blocage couperait quiconque possède 192.0.2.44. Un événement qui n'a qu'une adresse déclarée a un **Plan de réponse** qui vous demande de trouver la vraie dans les journaux de votre répartiteur de charge ou de votre pare-feu.
+
+Enregistrez deux choses sur les spans serveur de votre application pour que ses adresses soient vérifiées : l'adresse propre de la connexion, `network.peer.address`, que définissent les instrumentations HTTP d'OpenTelemetry, et, derrière un proxy, l'en-tête `X-Forwarded-For`, qu'elles enregistrent comme `http.request.header.x-forwarded-for` dès que vous l'indiquez dans `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Un journal d'accès JSON se lit de la même façon : son champ client, comme `remote_addr`, est l'adresse de la connexion, et son champ `http_x_forwarded_for` est l'en-tête.
+
+#### Proxys de confiance
+
+Les Événements de sécurité font confiance à un proxy pour dire qui était son client quand son adresse est :
+
+| De confiance | Pourquoi |
+| --- | --- |
+| Privée, de bouclage ou lien-local, comme `10.0.0.5` | Toujours : personne ne l'a sur Internet, c'est donc un répartiteur de charge ou un ingress de votre réseau |
+| Listée sous **Proxys de confiance** | Vous l'avez listée |
+| Dans les plages publiées d'un service en périphérie que vous avez connecté, comme [Cloudflare](/docs/integrations/cloudflare) | Tant que la connexion existe |
+| L'un de vos propres répartiteurs de charge d'application | Sauf si vous le désactivez |
+
+**Événements de sécurité → Connexions → Plus de paramètres** contient **Proxys de confiance**, la liste que vous écrivez, et **Fiables automatiquement**, qui montre le reste et pourquoi. Listez un proxy sous **Proxys de confiance**, une adresse ou une plage par ligne, quand son adresse est publique et que rien d'autre ne lui fait confiance : un CDN que vous n'avez pas connecté, un répartiteur de charge qui atteint votre application par Internet, ou un proxy inverse comme nginx sur un serveur à adresse publique devant votre application. Tant que vous ne le faites pas, chaque attaque qui passe par lui est attribuée au proxy. Derrière un Application Load Balancer externe global de Google Cloud, les connexions de votre application viennent des front-ends de Google : listez `35.191.0.0/16` et `130.211.0.0/22`.
+
+Vos propres répartiteurs de charge d'application sont ceux que listent vos [comptes cloud connectés](/docs/telemetry/cloud-accounts) : les AWS Application Load Balancers, les AWS Classic Load Balancers dont chaque écouteur est HTTP ou HTTPS, les Google Cloud Application Load Balancers et les Azure Application Gateways, par leurs adresses publiques. Chacun ajoute à `X-Forwarded-For` le client qu'il transmet. Un répartiteur de charge Google Cloud ajoute sa propre adresse après celle du client, et un Application Gateway atteint un backend public depuis sa propre adresse, donc sans eux chaque attaque passant par l'un d'eux serait attribuée au répartiteur de charge. **Vos répartiteurs de charge**, sur **Fiables automatiquement**, les liste, et un Propriétaire du projet, un Administrateur du projet ou un Administrateur de la sécurité peut le désactiver.
+
+Rien d'autre chez vous n'est fiable automatiquement : ni vos hôtes, nœuds Kubernetes, sondes ou machines virtuelles, ni une passerelle NAT, ni un Network, Gateway ou Azure Load Balancer. Ils ne transmettent personne, ou font suivre une requête telle qu'elle est arrivée, donc ce qui s'exécute sur eux pourrait désigner n'importe quel client : une requête qu'un moniteur envoie avec ses propres en-têtes, un pod, un ordinateur portable derrière la passerelle. Si l'un d'eux est votre proxy, ajoutez-le à **Proxys de confiance**. Un ingress Kubernetes est fiable comme le répartiteur de charge qu'il est : un ingress GKE est un Google Cloud Application Load Balancer, un ingress Application Gateway d'AKS un Application Gateway, et un ingress EKS de classe `alb` un AWS Application Load Balancer. Un contrôleur d'ingress dans votre cluster transmet depuis une adresse privée, toujours fiable.
+
+Une modification de l'un de ces éléments prend effet en moins d'une minute, et un nouveau répartiteur de charge devient fiable en moins de cinq.
+
+#### Journaux d'accès qui se terminent par X-Forwarded-For
+
+Derrière un répartiteur de charge, beaucoup de serveurs web journalisent l'adresse transmise en dernier, comme le fait le format `main` de nginx lui-même :
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Une ligne ne dit jamais ce que sont ses champs, donc son dernier champ n'est lu comme `X-Forwarded-For` qu'une fois que vous avez activé **Journaux terminés par X-Forwarded-For**, sur **Journaux d'accès** sous **Plus de paramètres**, et seulement :
+
+- quand le premier champ de la ligne est un proxy auquel vous faites confiance : une ligne d'un client qui a atteint votre serveur web directement est celle de ce client ;
+- au format combined, avec exactement un champ entre guillemets après l'agent utilisateur et rien après ;
+- quand ce champ vaut `-` ou une liste d'adresses dont la dernière n'a pas de port.
+
+Laissez-le désactivé quand votre format se termine par un autre en-tête qui contient une adresse, comme `X-Real-IP`, ou quand votre serveur web écrit les en-têtes sans échapper leurs guillemets, comme le fait `morgan` d'Express : l'agent utilisateur d'une requête pourrait alors ajouter un champ. Un journal d'accès JSON n'a besoin d'aucun interrupteur, puisque ses champs sont nommés.
+
+### Masquée par une règle de nettoyage
+
+Une règle d'adresse IP qui efface ou masque vos journaux ou vos traces cache l'adresse d'où vient une attaque avant que les Événements de sécurité ne les lisent. L'événement est tout de même stocké, sans adresse, et partout où il nommerait l'adresse, il dit qu'une règle de masquage l'a cachée :
+
+- Le champ **IP source**, dans le panneau de l'événement, nomme la règle qui l'a cachée quand c'est possible, sous forme de lien vers les **Règles de masquage** des journaux ou des traces. Le filtre à côté affiche chaque événement dont une règle de masquage a caché l'adresse.
+- Le champ **IP cible** dit la même chose quand une règle a caché où allait une connexion : la destination d'un pare-feu, ou l'endroit où des données ont été envoyées. Le filtre à côté affiche chaque événement dont une règle de masquage a caché l'adresse cible.
+- **Ce qui s'est passé ensuite** dit que la requête venait d'une adresse cachée par une règle de masquage, et **Campagnes** regroupe ces requêtes sur une ligne à part.
+- Un dossier dont tous les événements ont perdu leur adresse le dit dans son **Plan de réponse** : au lieu de bloquer l'adresse, il vous demande de la trouver dans les journaux de votre répartiteur de charge ou de votre pare-feu et de la bloquer là, avec **Ouvrir les règles de masquage**.
+- La **Vue d'ensemble** nomme la règle qui cache les adresses que lisent les Événements de sécurité, avec **Ouvrir les règles de masquage** aussi.
+
+Une règle qui hache garde l'adresse pour les Événements de sécurité, donc l'événement la nomme, sauf si son jeton a plus de 30 jours ou a été créé avant que les jetons aient une clé : voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles). Pour trouver ces événements, recherchez `@oneuptime.request.client_address_hidden:scrub-rule`. Ce que la règle a laissé à la place de l'adresse, comme `[REDACTED]`, se trouve dans `oneuptime.request.client_address_scrubbed`. Pour une destination, recherchez `@oneuptime.target_address_hidden:scrub-rule`.
+
+Une règle de détection qui compte par adresse devrait compter par `principalIp` ou `targetIp`, comme le font les règles de la Bibliothèque de règles : ces champs nomment l'adresse derrière le jeton d'une règle qui hache. Le champ d'adresse propre à un format, comme `openstack.audit.initiator_address` ou `asa.src_ip`, ne contient qu'une adresse que le journal a écrite : il reste donc vide partout où une règle de masquage en a caché une.
+
+Une règle qui efface ou masque un utilisateur le cache de la même façon : là où l'événement nommerait l'utilisateur, **Utilisateur source** ou **Utilisateur cible** dit qu'une règle de masquage l'a caché. Là où les Événements de sécurité lisent un utilisateur, une règle qui hache leur garde l'utilisateur : le `enduser.id` ou le `user.id` d'une requête, l'utilisateur d'un appel d'IA et l'utilisateur que nomme une ligne de journal, comme le principal d'un journal d'audit cloud. Ainsi, l'événement nomme l'utilisateur derrière le jeton, un dossier le concernant nomme le compte, et un playbook peut agir sur lui comme sur tout autre utilisateur. Ce que la règle a laissé se trouve dans `oneuptime.principal_user_hashed_as` ou `oneuptime.target_user_hashed_as`, pour retrouver l'utilisateur dans vos journaux et vos traces, qui ne contiennent que le jeton. Un jeton pour lequel aucun utilisateur n'est gardé, comme un jeton créé avant que les jetons aient une clé, reste l'utilisateur de l'événement : les règles le comptent comme un seul compte, et aucun playbook n'agit sur lui.
 
 ## Explorer les événements de sécurité
 
@@ -304,9 +384,29 @@ La barre latérale compte les événements de la fenêtre par **Source**, **Grav
 
 Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Application atteinte**, **En erreur** ou **Base de données atteinte**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
 
+### Un fichier sensible que votre site a servi
+
+Une requête visant un fichier qui contient des secrets, comme `/.env`, `/.git/config`, `/.aws/credentials` ou une copie de `wp-config.php`, est une fuite quand votre site y a répondu par le fichier lui-même : quiconque l'a demandé détient ses mots de passe, ses clés et ses jetons. Une application monopage répond à chaque chemin qu'elle n'a pas par sa propre page et un 200, si bien qu'un 200 seul ne l'indique jamais. OneUptime lit ce que contenait la réponse :
+
+- Un type qui n'est pas une page web, comme `text/plain` ou `application/octet-stream` : le fichier lui-même.
+- Une page web, ou du JSON pour un fichier qui n'est pas du JSON : la propre page de votre site.
+- Rien dedans : rien n'a été pris.
+- Une taille sans type, telle que l'enregistre le journal d'accès d'un serveur web : le fichier lui-même quand aucun autre chemin n'a reçu cette taille et que votre site répond 404 pour les chemins qu'il n'a pas, et la propre page de votre site quand deux chemins différents ont reçu une réponse de la même taille. Quand rien ne permet de le dire, la requête n'est pas un événement.
+
+Un fichier servi est Critique, et la règle **Sensitive file served** de la Bibliothèque de règles ouvre un dossier à son sujet, avec des étapes pour retirer le fichier et renouveler ce qu'il contient. Chacune de ces requêtes compte aussi pour **Scanning for sensitive files**, y compris celles auxquelles une application monopage a répondu. Une page d'administration que votre site sert, comme celle de WordPress, n'en est jamais une, et un `wp-config.php` que WordPress a exécuté est la propre page de votre site. Les événements de pare-feu de Cloudflare ne disent pas ce que votre serveur d'origine a envoyé : une requête que Cloudflare a laissée passer ne compte donc que comme un scan. Le panneau d'un événement indique ce que votre site a envoyé sous **Ce qui s'est passé ensuite**.
+
 ### Campaigns
 
-**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier.
+**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier. Une ligne que votre liste de blocage contient déjà indique jusqu'à quand elle est bloquée ou soumise à un défi, et nomme la plage ou le réseau qui la contient.
+
+Pour bloquer plusieurs attaquants à la fois, sélectionnez leurs lignes et cliquez sur **Bloquer des adresses**. Une seule boîte de dialogue liste chaque adresse qu'elle bloque et chaque adresse qu'elle exclut, avec la raison : déjà bloquée, l'une des vôtres ou une adresse protégée, une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou une adresse que OneUptime n'a pas pu vérifier. Elle bloque pendant 24 heures sauf si vous choisissez une autre durée, ou soumet à un défi avec **Défi à la place**, et chaque blocage rejoint votre [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) en votre nom.
+
+**Regrouper par réseau** place les adresses d'un même réseau sur une seule ligne : par son ASN quand les événements de votre connexion [Cloudflare](/docs/integrations/cloudflare) en nomment un, et sinon par son /24 en IPv4 ou son /48 en IPv6. La ligne d'un ASN liste les plages depuis lesquelles ses adresses ont envoyé des requêtes. **Soumettre ce réseau à un défi** indique ce qu'il va faire, où et pendant combien de temps avant de le faire : 24 heures sauf si vous choisissez une autre durée, et l'échelon suivant de l'échelle pour un réseau déjà soumis à un défi. Cloudflare garde une plage dans sa liste de défis, et un ASN sous forme d'IP Access Rule, que chaque forfait possède. **Voir les requêtes** sur la ligne d'un réseau ouvre ce qu'il a envoyé dans **Événements** : pour un ASN, par l'ASN que portent ses événements Cloudflare, et pour une plage, sous forme de recherche de ses adresses, comme `ip:203.0.113.*`, que vous pouvez modifier.
+
+- Un réseau qui contient une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou l'une des vôtres, n'est jamais soumis à un défi, et la boîte de dialogue nomme qui ou quoi.
+- Une plage plus large qu'un /24 (un /48 en IPv6), et un ASN entier, demandent un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet. La ligne d'un ASN propose aussi chacune de ses plages, que toute personne qui peut bloquer peut soumettre à un défi.
+- Quand OneUptime ne peut pas savoir qui utilise un réseau, parce que c'est un ASN entier ou qu'une règle de masquage cache les adresses des clients, seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut le soumettre à un défi, après avoir coché qu'il le sait.
+- Rien n'est bloqué ni soumis à un défi tant que les Événements de sécurité sont désactivés sur le serveur.
 
 ### Corréler
 
@@ -339,7 +439,7 @@ Une chasse enregistrée avec des filtres de la barre latérale d'Événements le
 
 Une chasse planifiée prévient les personnes et les équipes que vous choisissez sous **Notifier** : au moins une, et 50 au plus en tout. Chaque exécution :
 
-- lit les événements dont l'heure suit l'exécution précédente, jusqu'à il y a deux minutes, si bien que chaque événement est parcouru une fois. La première exécution lit à partir du moment où la planification a été définie ou la recherche modifiée pour la dernière fois, et après une panne une exécution rattrape au plus un jour de plus que son intervalle.
+- lit les événements arrivés après l'exécution précédente, jusqu'à il y a deux minutes, quel que soit le moment où ils se sont produits, si bien que chaque événement est parcouru une fois, même celui qui arrive en retard. La première exécution lit à partir du moment où la planification a été définie ou la recherche modifiée pour la dernière fois, et après une panne une exécution rattrape au plus un jour de plus que son intervalle. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais aucune exécution ne le compte.
 - compte les événements que sa recherche y trouve, exactement comme **Événements** les listerait, en ne lisant que ce que peut lire la personne sous laquelle elle s'exécute.
 - quand elle trouve des événements, prévient les personnes que la chasse nomme, et les membres des équipes qu'elle nomme, qui peuvent lire les chasses et les événements de sécurité.
 
@@ -349,11 +449,11 @@ Une chasse planifiée s'exécute sous la personne qui a défini sa planification
 
 ### Historique des exécutions
 
-Chaque exécution planifiée est conservée 90 jours. **Historique des exécutions**, au bout de la ligne qui dit ce que les exécutions d'une chasse ont trouvé, les liste de la plus récente à la plus ancienne : quand chacune s'est exécutée et les événements qu'elle a parcourus, puis combien elle en a trouvé, avec **Les afficher** pour ouvrir ces événements sur la page de la chasse ; qu'elle n'a rien trouvé ; ou pourquoi elle n'a pas pu s'exécuter. Quiconque peut ouvrir une chasse peut lire ses exécutions.
+Chaque exécution planifiée est conservée 90 jours. **Historique des exécutions**, au bout de la ligne qui dit ce que les exécutions d'une chasse ont trouvé, les liste de la plus récente à la plus ancienne : quand chacune s'est exécutée et quand sont arrivés les événements qu'elle a parcourus, puis combien elle en a trouvé, avec **Les afficher** pour ouvrir exactement ces événements sur la page de la chasse ; qu'elle n'a rien trouvé ; ou pourquoi elle n'a pas pu s'exécuter. Quiconque peut ouvrir une chasse peut lire ses exécutions.
 
 ### Qui est prévenu
 
-La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et la fenêtre qu'elle a lue, et renvoie vers la page de la chasse sur ces événements ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
+La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et quand ils sont arrivés, et renvoie vers la page de la chasse sur exactement ces événements : le filtre **Arrivés** sur la journée qui les précède, que vous pouvez retirer pour voir tout le reste de cette période ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
 
 Pour publier dans Slack, Microsoft Teams ou Mattermost ce que trouvent les chasses, ajoutez une règle à **Règles des chasses** sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams** ou **Mattermost**), sous les règles qui publient les [dossiers de sécurité](/docs/telemetry/security-cases#publier-dans-des-canaux-slack-microsoft-teams-et-mattermost). Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les chasses auxquelles elle s'applique, par **Nom de la chasse** : un nom qui est votre texte, le contient, commence par lui ou se termine par lui. Chaque fois qu'une exécution planifiée trouve des événements, elle publie la chasse, sa recherche, combien d'événements et quand, avec un lien vers eux, et aucun des mots propres à un événement. Une règle de chasse est mise en place par un rôle qui peut configurer des playbooks de sécurité, comme Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité.
 
@@ -497,13 +597,16 @@ Le regroupement et le comptage distinct prennent les mêmes noms de champs que l
 | Password spraying : une IP qui échoue sur 5 comptes différents | `principalIp` | `principalUser` | 5 |
 | Scan de ports : une IP qui atteint 20 ports différents | `principalIp` | `targetPort` | 20 |
 
+Une règle avec un **Champ de regroupement** qui a besoin de plus d'un événement dans un groupe, par un seuil supérieur à 1 ou un **Champ de comptage distinct**, laisse de côté les événements qui n'ont pas de valeur pour son champ : comptés, ils s'additionneraient tous en une seule valeur, chaque échec de connexion sans adresse en une seule adresse IP. Une règle qui se déclenche sur chaque événement continue de se déclencher pour eux. **Règles de détection** indique sous le nom d'une règle combien d'événements correspondants du dernier jour elle n'a pas pu compter, et la ligne ouvre la raison : combien n'avaient pas de valeur, et combien d'entre eux une règle de masquage a cachés, avec **Ouvrir les règles de masquage**. Une règle qui n'a rien pu compter de ce qu'elle a trouvé ne peut pas se déclencher, et son **Statut** indique **Attention requise**. **Exécuter sur les événements passés** dit la même chose pour la période qu'il lit.
+
 ### Quand une règle s'exécute
 
 OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements arrivés dans OneUptime entre l'exécution précédente et il y a deux minutes, quel que soit le moment où ils se sont produits, puis avance. Ces deux minutes laissent le temps aux événements encore en cours d'écriture :
 
 - Une règle qui compte et une corrélation comptent dans des fenêtres aussi longues que l'intervalle, bout à bout sur l'horloge : avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 tombent dans des fenêtres différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
-- Un événement qui arrive en retard est quand même lu, une fois, par l'exécution suivante, et compté dans la fenêtre où il s'est produit : un groupe se déclenche quand sa fenêtre atteint le comptage, et au plus une fois par fenêtre. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais les exécutions de la règle ne le lisent pas ; **Exécuter sur les événements passés** le fait.
+- Une exécution qui échoue, par exemple parce qu'elle prend trop de temps, laisse la règle là où elle en était : son **Statut** indique **Échec de l'exécution**, et elle est relancée à son prochain intervalle, ou dans l'heure si celui-ci est plus long. L'exécution qui réussit lit tout ce qui est arrivé depuis la dernière qui a réussi, si ancienne soit-elle, une journée à la fois. Une exécution arrêtée après avoir agi sur ses correspondances est refaite sans les ajouter deux fois à leur dossier.
+- Un événement qui arrive en retard est quand même lu, une fois, par l'exécution suivante, et compté dans la fenêtre où il s'est produit : un groupe se déclenche quand sa fenêtre atteint le comptage, et au plus une fois par fenêtre. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais les exécutions de la règle ne le lisent pas ; **Exécuter sur les événements passés** le fait. C'est voulu, pour qu'un import d'historique n'ouvre pas d'alertes sur le passé : quand des événements sont arrivés aussi tard au cours des 7 derniers jours, une notice au-dessus des règles indique combien, de quelles sources et quand ils se sont produits, et ouvre **Exécuter sur les événements passés** sur cette période.
 - Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
 
 ### Règles en temps réel
@@ -557,6 +660,7 @@ Une exception est une chose qu'une règle ignore parce que vous vous y attendez,
 | **Une fenêtre de temps** | Chaque événement de **Commence le** à **Se termine le**, à 30 jours d'écart au plus |
 
 - Les valeurs correspondent quelle que soit la casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` ignore chaque compte de service, et `*.lab.example.com` chaque hôte d'un domaine. Une adresse IP peut être une plage, comme `10.20.0.0/16`. Une valeur faite seulement de `*` est refusée : pour arrêter une règle, désactivez-la.
+- Les événements du propre journal d'audit de OneUptime nomment une clé d'API de projet dans `principalUser` par `api-key:` suivi de son ID : deux clés portant le même nom sont donc deux acteurs, et aucun playbook ne propose une clé comme un utilisateur à suspendre. Le nom de la clé reste dans le message de l'événement et dans `audit.api_key_name`. Une exception pour le nom d'une clé, comme utilisateur ou comme valeur de `principalUser`, ignore toujours chaque clé de ce nom, et une exception pour `api-key:` suivi de l'ID de la clé n'ignore que cette clé.
 - Chaque exception dit pourquoi dans son **Motif**, que voit quiconque lit la liste, et garde qui l'a ajoutée et quand. Une entité ou une valeur peut avoir une date dans **Expire le**, après laquelle la règle la voit de nouveau ; une fenêtre de temps se termine d'elle-même.
 - **Statut** dit où chacune en est : **Actif**, **À venir** pour une fenêtre qui n'a pas commencé, **Expiré** ou **Terminé**. Sous le nom d'une règle dans **Règles de détection**, une ligne compte ses exceptions actives, et **Voir les exceptions** dans la ligne de la règle ouvre la liste filtrée sur elle.
 - Les événements ignorés sont écartés avant que la règle ne compte quoi que ce soit : ils ne comptent jamais pour son **Seuil de nombre de correspondances** et n'ouvrent ni dossier, ni alerte, ni incident, ni constat. Les exceptions s'appliquent à chaque exécution de la règle, corrélations comprises, et à **Exécuter sur les événements passés**, mais jamais à une attaque de test, qui vérifie que les événements arrivent.
@@ -635,6 +739,14 @@ L'action **Créer un moniteur** dans la ligne d'une règle ouvre un nouveau moni
 ## Conservation et facturation
 
 Les événements de sécurité sont facturés par Go ingéré, comme le reste de votre télémétrie, et conservés selon votre conservation de télémétrie : la **Conservation par défaut (jours)** du projet, sous **Paramètres du projet → Télémétrie & APM → Rétention des données**, ou une conservation réglée sur le service de télémétrie auquel ils appartiennent. Quand la conservation d'un événement prend fin, il est supprimé.
+
+Tout ce qui, dans Événements de sécurité, lit des événements passés ne lit que les événements encore conservés, et dit quand il lui en faudrait davantage :
+
+- Une règle **Vu pour la première fois** dont la durée dépasse la conservation des événements juge qu'une valeur est nouvelle d'après les jours conservés : avec une durée de 30 jours et 15 jours conservés, ses alertes et ses dossiers disent `First awsRegion in 15 days`, et une valeur vue pour la dernière fois il y a 20 jours est considérée comme nouvelle. Sa ligne affiche **Attention requise**, et **Voir l'erreur** dit quoi changer. Le formulaire de la règle et le détail d'une règle dans la bibliothèque de règles le disent avant qu'elle soit enregistrée ou ajoutée. Un comptage ou une séquence dont la fenêtre dépasse la conservation des événements ne compte que ceux-là.
+- **Exécuter sur les événements passés** sur une période qui commence avant les événements conservés dit que les événements de sécurité sont conservés 15 jours, donc qu'il a remonté 15 jours, et ce qu'il n'a pas trouvé ne vaut que pour ces jours-là. Un événement survenu plus tôt mais arrivé en retard reste conservé, et reste lu. Une règle **Vu pour la première fois** dit quelle part des 30 jours précédant la période elle a pu voir.
+- Une chasse dont la **Plage temporelle** dépasse la conservation des événements ne trouve rien de plus ancien, et son formulaire le dit.
+
+**Paramètres du projet → Télémétrie & APM → Rétention des données** liste les règles activées qui remontent plus loin que sa **Conservation par défaut (jours)**. Pour les couvrir, conservez les événements plus longtemps, avec **Modifier la rétention** sous une règle, ou raccourcissez la durée d'une règle à ce qui est conservé. OneUptime conserve 15 jours sauf si vous le changez, car la conservation fixe ce que coûte votre télémétrie et combien de temps les données personnelles des événements, comme les adresses et les noms d'utilisateur, sont gardées. Une nouvelle conservation s'applique aux événements qui arrivent à partir de ce moment, donc les règles voient plus loin à mesure que ces événements vieillissent.
 
 ## Dépannage
 

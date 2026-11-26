@@ -48,6 +48,15 @@ export interface DetectionRuleStatusFields {
   isRealTime?: boolean | undefined;
 }
 
+/*
+ * What the page read of a rule beside its record (#10547): whether it
+ * could count none of what it matched in the last day - every match had no
+ * value for its Group By Field (DetectionRuleUncounted) - so it cannot fire.
+ */
+export interface DetectionRuleStatusReading {
+  countsNothing?: boolean | undefined;
+}
+
 export const SECURITY_DETECTION_ENABLED: SecurityDetectionStatus = {
   text: translationKey("Enabled"),
   color: Green,
@@ -96,11 +105,37 @@ export const DETECTION_RULE_RUN_FAILED: SecurityDetectionStatus = {
   ),
 };
 
+/*
+ * A scheduled rule's run that failed (#10490): tried again at its next
+ * interval, or within the hour when that is longer, and the run that works
+ * checks every event that arrived since the last one that did - so a person
+ * knows it is not tried every minute, and that nothing is skipped.
+ */
+export const DETECTION_RULE_RUN_FAILED_TRIED_AGAIN: SecurityDetectionStatus = {
+  text: translationKey("Run failed"),
+  color: Red,
+  tooltip: translationKey(
+    "The last run failed. It is tried again at its next interval, or within the hour if that is longer, and then checks every event it missed. Open View Error for the full message.",
+  ),
+};
+
 export const DETECTION_RULE_NEEDS_ATTENTION: SecurityDetectionStatus = {
   text: translationKey("Needs attention"),
   color: Yellow,
   tooltip: translationKey(
     "The last run left a message. Open View Error to read it.",
+  ),
+};
+
+/*
+ * A rule that could count none of what it matched in the last day (#10547):
+ * it works, but cannot fire. The line under its name says why.
+ */
+export const DETECTION_RULE_COUNTS_NOTHING: SecurityDetectionStatus = {
+  text: translationKey("Needs attention"),
+  color: Yellow,
+  tooltip: translationKey(
+    "It couldn't count any event it matched in the last day, so it can't fire. The line under its name says why.",
   ),
 };
 
@@ -165,19 +200,30 @@ export function getThreatIntelFeedStatus(
 
 /*
  * A rule: switched off, then its last run (one that failed, or one that left
- * a note about its work), then whether it has run at all.
+ * a note about its work), then whether it could count any of what it
+ * matched (#10547), then whether it has run at all.
  */
 export function getDetectionRuleStatus(
   rule: DetectionRuleStatusFields,
+  reading?: DetectionRuleStatusReading | undefined,
 ): SecurityDetectionStatus {
   if (!rule.isEnabled) {
     return SECURITY_DETECTION_DISABLED;
   }
 
   if (hasText(rule.lastError)) {
-    return isDetectionRunNotice(rule.lastError)
-      ? DETECTION_RULE_NEEDS_ATTENTION
-      : DETECTION_RULE_RUN_FAILED;
+    if (isDetectionRunNotice(rule.lastError)) {
+      return DETECTION_RULE_NEEDS_ATTENTION;
+    }
+
+    // A scheduled run is tried again, backing off; a real-time check runs on the next event.
+    return rule.isRealTime
+      ? DETECTION_RULE_RUN_FAILED
+      : DETECTION_RULE_RUN_FAILED_TRIED_AGAIN;
+  }
+
+  if (reading?.countsNothing) {
+    return DETECTION_RULE_COUNTS_NOTHING;
   }
 
   if (rule.isRealTime) {

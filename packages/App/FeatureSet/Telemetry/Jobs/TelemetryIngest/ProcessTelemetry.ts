@@ -24,7 +24,10 @@ import {
   processSnmpTrapBatchFromQueue,
 } from "../ProbeIngest/ProcessCoalescedProbeIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
-import { processIncomingRequestJobFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
+import {
+  processIncomingRequestJobFromQueue,
+  processPendingIncomingRequestsFromQueue,
+} from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
@@ -50,7 +53,14 @@ import SessionReplayIngestService from "../../Services/SessionReplayIngestServic
 import ProductAnalyticsEventIngestService from "../../Services/ProductAnalyticsEventIngestService";
 import { JSONObject } from "Common/Types/JSON";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
+import PinRumClientResource from "Common/Server/Utils/Telemetry/PinRumClientResource";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+  RumClientKind,
+} from "Common/Types/Rum/RumClientKind";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { measureParsedTelemetryIngestBody } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
 /*
@@ -86,29 +96,73 @@ function applyPinnedServiceName(
   body: JSONObject,
   jobData: TelemetryIngestJobData,
 ): void {
-  if (!jobData.pinnedServiceName) {
-    return;
+  if (jobData.pinnedServiceName) {
+    /*
+     * PinServiceName is specified never to throw — every malformed shape it
+     * meets is repaired or skipped — and it is wrapped anyway, because the
+     * two blast radii here are wildly lopsided. It runs on attacker-controlled
+     * JSON, and an unhandled error out of it would fail the whole job: with
+     * BullMQ retries re-hitting the same payload, that is permanent loss of
+     * everything else in the batch. A pin that failed to apply, by contrast,
+     * is a labelling failure on ONE key, whose abuse is still bounded by the
+     * origin allowlist, the per-key rate limit and the kill switch. So: log
+     * loudly, never fail the job.
+     */
+    try {
+      PinServiceName.pinInPlace(body, jobData.pinnedServiceName);
+    } catch (error) {
+      logger.error(
+        `ProcessTelemetry: failed to pin service.name for project ${jobData.projectId}:`,
+      );
+      logger.error(error);
+    }
   }
 
   /*
-   * PinServiceName is specified never to throw — every malformed shape it
-   * meets is repaired or skipped — and it is wrapped anyway, because the two
-   * blast radii here are wildly lopsided. It runs on attacker-controlled JSON,
-   * and an unhandled error out of it would fail the whole job: with BullMQ
-   * retries re-hitting the same payload, that is permanent loss of everything
-   * else in the batch. A pin that failed to apply, by contrast, is a labelling
-   * failure on ONE key, whose abuse is still bounded by the origin allowlist,
-   * the per-key rate limit and the kill switch. So: log loudly, never fail the
-   * job.
+   * A public key's batch is its app's or its page's RUM and nothing else: a
+   * Mobile key's its app's mobile RUM (issue #6457), a Browser key's its
+   * page's browser RUM (issue #10539). Only what that kind of client says
+   * about itself is kept on each resource, the pinned service.name among
+   * them, and every resource is stamped as that kind of client
+   * (PinRumClientResource), so a copied key files nothing under a host, a
+   * cluster, a cloud resource, a database or a backend service. After the
+   * pin, for the same reason, and wrapped for the same reason: it never
+   * throws, and must not fail the job if it ever does.
    */
-  try {
-    PinServiceName.pinInPlace(body, jobData.pinnedServiceName);
-  } catch (error) {
-    logger.error(
-      `ProcessTelemetry: failed to pin service.name for project ${jobData.projectId}:`,
-    );
-    logger.error(error);
+  const publicKeyClientKind: RumClientKind | null =
+    getPublicKeyRumClientKind(jobData);
+
+  if (publicKeyClientKind) {
+    try {
+      PinRumClientResource.pinInPlace(body, publicKeyClientKind);
+    } catch (error) {
+      logger.error(
+        `ProcessTelemetry: failed to file a ${publicKeyClientKind} key's batch as ${publicKeyClientKind} RUM for project ${jobData.projectId}:`,
+      );
+      logger.error(error);
+    }
   }
+}
+
+/*
+ * Which kind of RUM client a public key's job is from, or null for any
+ * other job. A Mobile key's flag is read first: the two are never both set,
+ * and a Mobile key's batch must never be filed as anything but mobile.
+ *
+ * Exported for tests.
+ */
+export function getPublicKeyRumClientKind(
+  jobData: Pick<TelemetryIngestJobData, "isMobileKey" | "isBrowserKey">,
+): RumClientKind | null {
+  if (jobData.isMobileKey) {
+    return RUM_CLIENT_KIND_MOBILE;
+  }
+
+  if (jobData.isBrowserKey) {
+    return RUM_CLIENT_KIND_BROWSER;
+  }
+
+  return null;
 }
 
 /*
@@ -271,6 +325,82 @@ export async function resolveAttributedOtelRequest(data: {
 }
 
 /*
+ * The size a Fluent or syslog batch is shared out at (#10102): what its
+ * handler carried - the request path's count, read before it reshaped the
+ * body - or the count its charge carries. A job a release before this one
+ * queued carries neither, and is shared out at its body as it is stored.
+ * null when there is no body to share.
+ *
+ * Exported for tests.
+ */
+export function getAttributedRequestBodyBytes(
+  jobData: TelemetryIngestJobData,
+): number | null {
+  if (
+    typeof jobData.ingestBytes === "number" &&
+    Number.isFinite(jobData.ingestBytes) &&
+    jobData.ingestBytes > 0
+  ) {
+    return jobData.ingestBytes;
+  }
+
+  const counted: number | undefined =
+    jobData.ingestionBudgetCharge?.countedBytes;
+
+  if (typeof counted === "number" && Number.isFinite(counted) && counted > 0) {
+    return counted;
+  }
+
+  if (!jobData.requestBody) {
+    return null;
+  }
+
+  return (
+    measureParsedTelemetryIngestBody({ body: jobData.requestBody }).bytes ||
+    null
+  );
+}
+
+/*
+ * A Fluent or syslog job's attribution to the teams, labels and usage of
+ * the services its lines are filed under (#10102), as an OTel job's is
+ * (resolveAttributedOtelRequest): null when its project needs none - two
+ * in-process set lookups. A retry drops what a used-up budget drops, but
+ * counts nothing: the first attempt counted the batch.
+ *
+ * Exported for tests.
+ */
+export async function resolveAttributedRequestBody(data: {
+  jobData: TelemetryIngestJobData;
+  isFirstAttempt: boolean;
+}): Promise<TelemetryIngestAttribution | null> {
+  const signal: TelemetryIngestionBudgetSignal | null =
+    getTelemetryIngestionBudgetSignalForTelemetryType(data.jobData.type);
+
+  if (
+    !signal ||
+    !data.jobData.projectId ||
+    !(await TelemetryIngestAttribution.isNeededFor(
+      data.jobData.projectId.toString(),
+    ))
+  ) {
+    return null;
+  }
+
+  return TelemetryIngestAttribution.forBatch({
+    projectId: data.jobData.projectId.toString(),
+    signal: signal,
+    bytes: getAttributedRequestBodyBytes(data.jobData),
+    receivedAt: data.jobData.ingestionTimestamp
+      ? new Date(data.jobData.ingestionTimestamp)
+      : undefined,
+    gateCharge: data.jobData.ingestionBudgetCharge ?? null,
+    // A retry drops what is used up, but counts nothing again.
+    isRetry: !data.isFirstAttempt,
+  });
+}
+
+/*
  * A compressed OTLP/HTTP body was counted against its ingestion budget on
  * arrival at the size its own header declared (gzip's ISIZE, a zstd frame's
  * content size) or, with none, at its compressed size. Now that it is
@@ -337,7 +467,8 @@ export async function settleIngestionBudgetCharge(data: {
  * statement rate is negligible, so their retry idempotence costs nothing
  * to keep.
  *
- * The probe / server-monitor / incoming-request types are excluded
+ * The probe / server-monitor / incoming-request types (a request of its
+ * own, and a monitor's waiting requests) are excluded
  * deliberately: their inserts go through shared cross-job buffers
  * (MonitorLogUtil / monitor metrics), where a flushed batch can mix
  * rows from several jobs — a retry would then reuse a token for a
@@ -427,6 +558,17 @@ async function withSessionReplaySlot(fn: () => Promise<void>): Promise<void> {
       sessionReplayInFlight--;
     }
   }
+}
+
+/*
+ * Whether this run of the job is its last: BullMQ fails it for good if this
+ * one throws (attemptsMade counts the attempts that failed before it).
+ */
+export function isFinalAttemptOf(job: QueueJob): boolean {
+  const attempts: number = Number(job.opts?.attempts) || 1;
+  const failedBefore: number = Number(job.attemptsMade) || 0;
+
+  return failedBefore + 1 >= attempts;
 }
 
 /*
@@ -616,6 +758,10 @@ if (DisableQueueWorkers) {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body: jobData.requestBody!,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: await resolveAttributedRequestBody({
+                  jobData: jobData,
+                  isFirstAttempt: isFirstAttempt,
+                }),
               } as TelemetryRequest;
 
               await SyslogIngestService.processSyslogFromQueue(mockRequest);
@@ -646,6 +792,10 @@ if (DisableQueueWorkers) {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body: jobData.requestBody!,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: await resolveAttributedRequestBody({
+                  jobData: jobData,
+                  isFirstAttempt: isFirstAttempt,
+                }),
               } as TelemetryRequest;
 
               await FluentLogsIngestService.processFluentLogsFromQueue(
@@ -700,6 +850,17 @@ if (DisableQueueWorkers) {
               logger.debug(
                 `Successfully processed incoming request ingest job`,
               );
+              break;
+
+            case TelemetryType.IncomingRequestPending:
+              // A monitor's waiting requests (IncomingRequestPendingStore).
+              if (jobData.incomingRequestPending) {
+                await processPendingIncomingRequestsFromQueue(
+                  jobData.incomingRequestPending,
+                  { isFinalAttempt: isFinalAttemptOf(job) },
+                );
+              }
+              logger.debug(`Successfully processed incoming request job`);
               break;
 
             case TelemetryType.TelemetryMonitorEvaluation:

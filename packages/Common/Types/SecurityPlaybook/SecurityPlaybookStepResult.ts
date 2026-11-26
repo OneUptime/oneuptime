@@ -31,6 +31,17 @@ export enum SecurityPlaybookTargetReason {
   GroupedOn = "Grouped On",
   // It is a known indicator in the project's threat intel.
   ThreatIntel = "Threat Intel",
+  /*
+   * A person picked it on the case: one of the addresses its Response Plan
+   * says to block, blocked from there with one click (#10342).
+   */
+  OnTheCase = "On the Case",
+  /*
+   * A person blocked the whole campaign of one of the case's addresses
+   * (#10354): another address that sent the same requests with the same
+   * tools, blocked with the case's own in one approval.
+   */
+  InTheCampaign = "In the Campaign",
 }
 
 export enum SecurityPlaybookTargetState {

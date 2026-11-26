@@ -8,7 +8,9 @@ import EmailVerificationTokenService from "../../../Server/Services/EmailVerific
 import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamMemberService, {
+  TeamMemberAcceptanceCarryForward,
+} from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -35,6 +37,9 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import InvitationInviterUtil from "../../../Server/Utils/TeamMember/InvitationInviter";
+import EscalationRuleReach from "../../../Server/Utils/OnCall/EscalationRuleReach";
+import OnCallJoinNotices from "../../../Server/Utils/OnCall/OnCallJoinNotices";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
@@ -915,6 +920,137 @@ describe("TeamMemberService.onCreateSuccess - joining accepts the rest of the pr
     expect(acceptPendingSpy).not.toHaveBeenCalled();
     expect(refreshSpy).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
   });
+
+  /*
+   * An escalation rule may name someone invited, or a team they are invited
+   * to, and pages them once they join (#10412): no rule logged them as on
+   * call while they were only invited, so joining starts those logs.
+   */
+  test("joining, or joining another team, starts the on-call time logs of the rules that page them now", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(true);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+  });
+
+  test("an invitation alone starts no time log: nothing pages them until they join", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(false);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(logsSpy).not.toHaveBeenCalled();
+  });
+
+  test("time logs that cannot be started are logged, and the membership stands", async () => {
+    jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockRejectedValue(new Error("The database could not be reached."));
+    const errors: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {});
+    const { onCreate: hook, created } = onCreate(true);
+
+    await expect(callHook("onCreateSuccess", hook, created)).resolves.toBe(
+      created,
+    );
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(errors).toHaveBeenCalledWith(
+      "Could not start the on-call time logs of somebody who joined a project or a team.",
+      expect.anything(),
+    );
+  });
+
+  /*
+   * And joining tells them which on-call policies page them from now on
+   * (#10557): the membership made says what they joined - another team,
+   * or the project when no accepted membership of theirs was there before
+   * it - and one that accepted their invitations joined them to the
+   * project. Never with an invitation alone.
+   */
+  test("a membership made accepted tells them of the on-call policies it put them on, by the membership", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(true);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(tellSpy).toHaveBeenCalledTimes(1);
+    expect(tellSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      join: { membershipId: MEMBER_ID },
+    });
+  });
+
+  test("one that accepted their invitations joined them to the project: every policy that pages them now", async () => {
+    acceptPendingSpy.mockResolvedValue(2);
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(true);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(tellSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      join: { membershipId: null },
+    });
+  });
+
+  test("an invitation alone tells them nothing: nothing reaches them before they join", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(false);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(tellSpy).not.toHaveBeenCalled();
+  });
+
+  test("they are told once their notification defaults are written: the message goes out through them", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(true);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(addSettingsSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      tellSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("telling them never holds up or fails the membership", async () => {
+    let finish: () => void = (): void => {};
+    jest.spyOn(OnCallJoinNotices, "tellJoined").mockReturnValue(
+      new Promise<void>((resolve: () => void): void => {
+        finish = resolve;
+      }),
+    );
+    const { onCreate: hook, created } = onCreate(true);
+
+    await expect(callHook("onCreateSuccess", hook, created)).resolves.toBe(
+      created,
+    );
+
+    finish();
+  });
 });
 
 describe("TeamMemberService.onUpdateSuccess - accepting one invitation accepts the project", () => {
@@ -1042,6 +1178,294 @@ describe("TeamMemberService.onUpdateSuccess - accepting one invitation accepts t
     );
 
     expect(addSettingsSpy).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
+  });
+
+  // A rule that named them while they were invited pages them now (#10412).
+  test("accepting starts the on-call time logs of the rules that page them now", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+
+    await callHook(
+      "onUpdateSuccess",
+      onUpdate({ hasAcceptedInvitation: true }),
+      [MEMBER_ID],
+    );
+
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+  });
+
+  test("an update that is not an acceptance starts none", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+
+    await callHook("onUpdateSuccess", onUpdate({ teamId: TEAM_ID }), [
+      MEMBER_ID,
+    ]);
+
+    expect(logsSpy).not.toHaveBeenCalled();
+  });
+
+  test("several invitations of one person accepted together start their time logs once, not once a row racing the others", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+    rowsSpy.mockResolvedValue([
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: OTHER_USER_ID, projectId: PROJECT_ID }),
+    ]);
+
+    await callHook(
+      "onUpdateSuccess",
+      onUpdate({ hasAcceptedInvitation: true }),
+      [MEMBER_ID, ObjectID.generate(), ObjectID.generate()],
+    );
+
+    expect(logsSpy).toHaveBeenCalledTimes(2);
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: OTHER_USER_ID,
+    });
+  });
+
+  /*
+   * Accepting an invitation joins the project: they are told, once, which
+   * on-call policies page them from now on (#10557) - who was a member
+   * before the acceptance, onBeforeUpdate read.
+   */
+  function acceptance(
+    memberKeysBefore: Set<string> | null,
+  ): OnUpdate<TeamMember> {
+    const carryForward: TeamMemberAcceptanceCarryForward = {
+      memberKeysBefore: memberKeysBefore,
+    };
+
+    return {
+      ...onUpdate({ hasAcceptedInvitation: true }),
+      carryForward: carryForward,
+    };
+  }
+
+  test("REGRESSION: someone who joins with the acceptance is told, once however many of their invitations it accepts", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+    rowsSpy.mockResolvedValue([
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+    ]);
+
+    await callHook("onUpdateSuccess", acceptance(new Set<string>()), [
+      MEMBER_ID,
+      ObjectID.generate(),
+      ObjectID.generate(),
+    ]);
+
+    // It was nothing: they learned they were on call from their first page.
+    expect(tellSpy).toHaveBeenCalledTimes(1);
+    expect(tellSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      join: { membershipId: null },
+    });
+  });
+
+  test("an invitation accepted a second time tells nothing again: they were a member before it", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+
+    await callHook(
+      "onUpdateSuccess",
+      acceptance(new Set([ProjectMembership.getKey(PROJECT_ID, USER_ID)])),
+      [MEMBER_ID],
+    );
+
+    expect(tellSpy).not.toHaveBeenCalled();
+  });
+
+  test("who was a member could not be read: nobody is told, as before", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+
+    await callHook("onUpdateSuccess", acceptance(null), [MEMBER_ID]);
+    await callHook(
+      "onUpdateSuccess",
+      onUpdate({ hasAcceptedInvitation: true }),
+      [MEMBER_ID],
+    );
+
+    expect(tellSpy).not.toHaveBeenCalled();
+  });
+
+  test("each person who joined is told of their own project, and nobody who was a member already", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+    rowsSpy.mockResolvedValue([
+      membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
+      membershipRow({ userId: USER_ID, projectId: OTHER_PROJECT_ID }),
+      membershipRow({ userId: OTHER_USER_ID, projectId: PROJECT_ID }),
+    ]);
+
+    await callHook(
+      "onUpdateSuccess",
+      acceptance(
+        new Set([ProjectMembership.getKey(OTHER_PROJECT_ID, USER_ID)]),
+      ),
+      [MEMBER_ID, ObjectID.generate(), ObjectID.generate()],
+    );
+
+    expect(tellSpy).toHaveBeenCalledTimes(2);
+    expect(tellSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      join: { membershipId: null },
+    });
+    expect(tellSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: OTHER_USER_ID,
+      join: { membershipId: null },
+    });
+  });
+
+  test("they are told once their notification defaults are written", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+
+    await callHook("onUpdateSuccess", acceptance(new Set<string>()), [
+      MEMBER_ID,
+    ]);
+
+    expect(addSettingsSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      tellSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("an update that is not an acceptance tells nothing", async () => {
+    const tellSpy: jest.SpyInstance = jest
+      .spyOn(OnCallJoinNotices, "tellJoined")
+      .mockResolvedValue(undefined);
+
+    await callHook("onUpdateSuccess", onUpdate({ teamId: TEAM_ID }), [
+      MEMBER_ID,
+    ]);
+
+    expect(tellSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("TeamMemberService.onBeforeUpdate - an acceptance carries who was a member before it (#10557)", () => {
+  let holdSpy: jest.SpyInstance;
+  let memberKeysSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    holdSpy = jest
+      .spyOn(TeamMemberService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([
+        membershipRow({
+          userId: USER_ID,
+          projectId: PROJECT_ID,
+          id: MEMBER_ID,
+        }),
+      ]);
+    memberKeysSpy = jest
+      .spyOn(ProjectMembership, "getMemberKeys")
+      .mockResolvedValue(new Set<string>());
+  });
+
+  function updateBy(
+    data: Record<string, unknown>,
+    props: DatabaseCommonInteractionProps,
+  ): UpdateBy<TeamMember> {
+    return {
+      query: { _id: MEMBER_ID.toString() },
+      data: data,
+      props: props,
+      limit: 1,
+      skip: 0,
+    } as unknown as UpdateBy<TeamMember>;
+  }
+
+  test("the invited person's acceptance: its rows are read once, for the check and for who was a member", async () => {
+    const result: OnUpdate<TeamMember> = (await callHook(
+      "onBeforeUpdate",
+      updateBy({ hasAcceptedInvitation: true }, {
+        userId: USER_ID,
+      } as DatabaseCommonInteractionProps),
+    )) as OnUpdate<TeamMember>;
+
+    expect(holdSpy).toHaveBeenCalledTimes(1);
+    expect(memberKeysSpy).toHaveBeenCalledWith([
+      { projectId: PROJECT_ID, userId: USER_ID },
+    ]);
+    expect(result.carryForward).toEqual({
+      memberKeysBefore: new Set<string>(),
+    });
+  });
+
+  test("a member of the project already is carried as one", async () => {
+    const key: string = ProjectMembership.getKey(PROJECT_ID, USER_ID);
+    memberKeysSpy.mockResolvedValue(new Set<string>([key]));
+
+    const result: OnUpdate<TeamMember> = (await callHook(
+      "onBeforeUpdate",
+      updateBy({ hasAcceptedInvitation: true }, {
+        userId: USER_ID,
+      } as DatabaseCommonInteractionProps),
+    )) as OnUpdate<TeamMember>;
+
+    expect(
+      (result.carryForward as TeamMemberAcceptanceCarryForward)
+        .memberKeysBefore,
+    ).toEqual(new Set<string>([key]));
+  });
+
+  test("an acceptance OneUptime writes - single sign-on, a claimed sign-up - reads its rows too", async () => {
+    const result: OnUpdate<TeamMember> = (await callHook(
+      "onBeforeUpdate",
+      updateBy({ hasAcceptedInvitation: true }, rootProps()),
+    )) as OnUpdate<TeamMember>;
+
+    expect(holdSpy).toHaveBeenCalledTimes(1);
+    expect(result.carryForward).toEqual({
+      memberKeysBefore: new Set<string>(),
+    });
+  });
+
+  test("an update that is not an acceptance carries nothing, and reads nothing for it", async () => {
+    const result: OnUpdate<TeamMember> = (await callHook(
+      "onBeforeUpdate",
+      updateBy({ inviteeName: "Ana" }, rootProps()),
+    )) as OnUpdate<TeamMember>;
+
+    expect(result.carryForward).toBeNull();
+    expect(holdSpy).not.toHaveBeenCalled();
+    expect(memberKeysSpy).not.toHaveBeenCalled();
+  });
+
+  test("rows that cannot be read: nobody's standing is carried, and the acceptance goes on", async () => {
+    holdSpy.mockRejectedValue(new Error("The database could not be reached."));
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    const result: OnUpdate<TeamMember> = (await callHook(
+      "onBeforeUpdate",
+      updateBy({ hasAcceptedInvitation: true }, rootProps()),
+    )) as OnUpdate<TeamMember>;
+
+    expect(result.carryForward).toEqual({ memberKeysBefore: null });
   });
 });
 

@@ -83,6 +83,17 @@ I segreti vengono compilati prima che venga eseguito lo script di un monitor Mon
 
 Se un monitor richiama un segreto che non può usare, il riferimento resta com'è e non viene sostituito con il valore.
 
+Quando il controllo di un monitor API, Sito web o Pagina di stato esterna non riesce, il suo errore indica l'URL solo con schema, host e porta, come `https://api.example.com`, quindi un segreto nell'URL non viene mai mostrato.
+
+Un controllo può anche restituire il valore di un segreto: un browser cita l'URL di una pagina che non è riuscito a caricare, uno script registra ciò che contiene e un server può ripetere la query, gli header o il corpo che ha ricevuto. OneUptime nasconde il valore ovunque compaia in ciò che il controllo riporta: l'errore, i messaggi di log e il risultato di uno script, il corpo e gli header di una risposta, e la causa del fallimento del controllo e di ogni tentativo. Così il valore non compare nei log del monitor, nel suo riepilogo, nel risultato di un test del monitor né nella causa principale di un incidente o di un avviso. OneUptime scrive `[REDACTED]` al suo posto e mantiene il resto, quindi una pagina in `https://app.example.com/login?token={{monitorSecrets.Token}}` che non si carica viene riportata come `https://app.example.com/login?token=[REDACTED]`. Il valore viene trovato in maiuscolo o in minuscolo e comunque il controllo lo abbia scritto: con codifica percentuale, con escape in JSON o HTML, o in base64.
+
+OneUptime non nasconde:
+
+- Un valore di meno di 4 caratteri, senza contare gli spazi intorno. Un valore così corto fa parte del testo comune, come numeri e parole.
+- Ciò che mostra uno screenshot. Uno screenshot è un'immagine, quindi un segreto che la pagina mostra sullo schermo vi compare.
+
+I criteri leggono un controllo così come viene riportato. Scrivete un criterio sul testo intorno a un segreto, come `ERR_NAME_NOT_RESOLVED` o `token=`, invece che sul valore del segreto: un criterio è visibile a chiunque possa leggere il monitor.
+
 Quando testate un monitor prima di salvarlo, vengono compilati solo i segreti disponibili per **Tutti i monitor**, perché un nuovo monitor non è in nessun elenco e non ha ancora etichette. Dopo aver salvato il monitor, i test usano ogni segreto che il monitor può usare.
 
 ## Accedere con un codice monouso
@@ -128,7 +139,7 @@ return {
 La sonda non consegna mai un codice a cui restano meno di cinque secondi, o meno di un terzo del periodo quando il periodo è più breve: attende invece il codice successivo, al massimo cinque secondi, e non conta quell'attesa nel tempo di esecuzione del controllo. Ogni codice generato da un controllo viene mostrato come asterischi, per esempio `******`, nei suoi messaggi di log, nel suo risultato, nel suo errore e nei nomi dei suoi screenshot. Uno screenshot è un'immagine della pagina, quindi scattatelo prima che il codice venga digitato o dopo che la pagina è andata avanti.
 
 > [!NOTE]
-> La sonda genera i codici, quindi una sonda personalizzata richiede OneUptime 17.0.1 o successiva. Su una più vecchia, un controllo che richiede un codice non viene eseguito e fallisce con una frase che chiede di aggiornare la sonda; il modulo del monitor e la pagina della sonda indicano una sonda troppo vecchia, e [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda) spiega come. Anche l'orologio della sonda deve essere giusto, perché una sonda sfasata di un minuto genera codici che il sito ha già superato.
+> La sonda genera i codici, quindi una sonda personalizzata richiede OneUptime 17.1.0 o successiva. Su una più vecchia, un controllo che richiede un codice non viene eseguito e fallisce con una frase che chiede di aggiornare la sonda; il modulo del monitor e la pagina della sonda indicano una sonda troppo vecchia, e [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda) spiega come. Anche l'orologio della sonda deve essere giusto, perché una sonda sfasata di un minuto genera codici che il sito ha già superato.
 
 ## Risoluzione dei problemi
 
@@ -144,12 +155,16 @@ Prima che un monitor venga salvato, vengono compilati solo i segreti disponibili
 Solo i campi della tabella sopra accettano segreti. In qualsiasi altro campo, `{{monitorSecrets.NAME}}` viene inviato così com'è scritto.
 :::
 
+:::details Un controllo mostra `[REDACTED]` dove c'era un valore
+Il valore di un segreto era in ciò che il controllo ha riportato, e OneUptime lo ha nascosto. Il testo intorno, come `token=[REDACTED]`, indica dove lo script o la richiesta ha usato il segreto.
+:::
+
 :::details Il sito rifiuta il codice monouso
 Verificate che il **Codice attuale** corrispondesse alla vostra app di autenticazione quando avete salvato il segreto, che l'orologio della sonda sia giusto e che un riferimento in un corpo della richiesta JSON sia tra virgolette. Se l'accesso impiega un po' ad arrivare alla richiesta del codice, chiedete il codice in quel punto con `oneuptime.getTotpCode`.
 :::
 
 :::details Il controllo dice che la sonda è troppo vecchia per generare codici monouso
-La sonda esegue una versione precedente a OneUptime 17.0.1, che non può generare codici monouso, quindi il controllo non è stato eseguito su di essa. Aggiornate la sonda (vedete [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda)) oppure fate controllare il monitor da sonde con la 17.0.1 o successiva.
+La sonda esegue una versione precedente a OneUptime 17.1.0, che non può generare codici monouso, quindi il controllo non è stato eseguito su di essa. Aggiornate la sonda (vedete [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda)) oppure fate controllare il monitor da sonde con la 17.1.0 o successiva.
 :::
 
 ## Passaggi successivi

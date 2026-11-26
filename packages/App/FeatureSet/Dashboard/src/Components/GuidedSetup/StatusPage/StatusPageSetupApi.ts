@@ -1,14 +1,20 @@
 import {
   NO_STATUS_PAGE_EDIT_REACH,
+  STATUS_PAGE_SETUP_PAGE_SIZE,
   StatusPageEditReach,
+  StatusPageSetupFilter,
+  StatusPageSetupFound,
   StatusPageSetupLabel,
   StatusPageSetupMonitor,
   StatusPageSetupMonitorGroup,
   StatusPageSetupPage,
   getStatusPageNameIdentity,
+  getStatusPageSetupSearchQuery,
   isSameStatusPageName,
   mayEditStatusPage,
 } from "./StatusPageSetup";
+import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
 import bulkAddStatusPageMonitorGroups, {
   BulkAddStatusPageMonitorGroupsResult,
 } from "../../StatusPage/BulkAddStatusPageMonitorGroups";
@@ -16,7 +22,10 @@ import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorsResult,
 } from "../../StatusPage/BulkAddStatusPageMonitors";
 import Label from "Common/Models/DatabaseModels/Label";
-import { getSharedNameFacts } from "Common/Types/Database/SharedNameMarks";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/Types/Database/SharedNameMarks";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -177,31 +186,99 @@ const getOwnedScopeTeamIds: () => Array<string> = (): Array<string> => {
     .ownedScopeTeamIds;
 };
 
+// A monitor as step 1 lists it: its name, its current status, its labels.
+const MONITOR_SELECT: Select<Monitor> = {
+  _id: true,
+  name: true,
+  currentMonitorStatus: {
+    name: true,
+    color: true,
+  },
+  labels: {
+    _id: true,
+    name: true,
+    color: true,
+    // When each was made: tells two labels of one name apart (#10314).
+    createdAt: true,
+  },
+};
+
+const toSetupMonitor: (monitor: Monitor) => StatusPageSetupMonitor = (
+  monitor: Monitor,
+): StatusPageSetupMonitor => {
+  const status: MonitorStatus | undefined = monitor.currentMonitorStatus;
+
+  return {
+    id: monitor._id!.toString(),
+    name: monitor.name || "",
+    statusName: status?.name || undefined,
+    statusColor: status?.color?.toString() || undefined,
+    labels: labelsOf(monitor.labels),
+  };
+};
+
 export default class StatusPageSetupApi {
-  // The project's monitors, by name, with their current status and labels.
-  public static async loadMonitors(): Promise<Array<StatusPageSetupMonitor>> {
+  /*
+   * The project's monitors that match a search of step 1's list, a page by
+   * name, and how many match (#10580): searched on the server, so a monitor
+   * is found by its name however many the project has. The step read the
+   * first 10,000 by name and searched those in the browser, so a monitor
+   * past them was never listed.
+   */
+  public static async searchMonitors(
+    filter: StatusPageSetupFilter,
+  ): Promise<StatusPageSetupFound<StatusPageSetupMonitor>> {
     const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
       modelType: Monitor,
       query: {
         projectId: getProjectId(),
-      },
-      limit: LIMIT_PER_PROJECT,
+        ...getStatusPageSetupSearchQuery(filter),
+      } as Query<Monitor>,
+      limit: STATUS_PAGE_SETUP_PAGE_SIZE,
       skip: 0,
-      select: {
-        _id: true,
-        name: true,
-        currentMonitorStatus: {
-          name: true,
-          color: true,
-        },
-        labels: {
-          _id: true,
-          name: true,
-          color: true,
-          // When each was made: tells two labels of one name apart (#10314).
-          createdAt: true,
-        },
+      select: MONITOR_SELECT,
+      sort: {
+        name: SortOrder.Ascending,
       },
+    });
+
+    const items: Array<StatusPageSetupMonitor> = result.data
+      .filter((monitor: Monitor): boolean => {
+        return Boolean(monitor._id);
+      })
+      .map(toSetupMonitor);
+
+    return { items: items, count: Math.max(result.count ?? 0, items.length) };
+  }
+
+  /*
+   * Monitors by their ids, as step 1 lists them: the one the website-down
+   * setup hands in, which need not be on the first page of the list.
+   */
+  public static async loadMonitorsByIds(
+    ids: Array<string>,
+  ): Promise<Array<StatusPageSetupMonitor>> {
+    const valid: Array<string> = ids.filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
+
+    if (valid.length === 0) {
+      return [];
+    }
+
+    const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+      modelType: Monitor,
+      query: {
+        projectId: getProjectId(),
+        _id: new Includes(
+          valid.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        ),
+      },
+      limit: valid.length,
+      skip: 0,
+      select: MONITOR_SELECT,
       sort: {
         name: SortOrder.Ascending,
       },
@@ -211,34 +288,25 @@ export default class StatusPageSetupApi {
       .filter((monitor: Monitor): boolean => {
         return Boolean(monitor._id);
       })
-      .map((monitor: Monitor): StatusPageSetupMonitor => {
-        const status: MonitorStatus | undefined = monitor.currentMonitorStatus;
-
-        return {
-          id: monitor._id!.toString(),
-          name: monitor.name || "",
-          statusName: status?.name || undefined,
-          statusColor: status?.color?.toString() || undefined,
-          labels: labelsOf(monitor.labels),
-        };
-      });
+      .map(toSetupMonitor);
   }
 
   /*
-   * The project's monitor groups, by name, with their labels (#7147): each
-   * is put on the page as one row. A read the person may not make throws,
-   * and the step lists monitors alone.
+   * The project's monitor groups that match a search, a page by name, with
+   * their labels (#7147, #10580): each is put on the page as one row. A
+   * read the person may not make throws, and the step lists monitors alone.
    */
-  public static async loadMonitorGroups(): Promise<
-    Array<StatusPageSetupMonitorGroup>
-  > {
+  public static async searchMonitorGroups(
+    filter: StatusPageSetupFilter,
+  ): Promise<StatusPageSetupFound<StatusPageSetupMonitorGroup>> {
     const result: ListResult<MonitorGroup> =
       await ModelAPI.getList<MonitorGroup>({
         modelType: MonitorGroup,
         query: {
           projectId: getProjectId(),
-        },
-        limit: LIMIT_PER_PROJECT,
+          ...getStatusPageSetupSearchQuery(filter),
+        } as Query<MonitorGroup>,
+        limit: STATUS_PAGE_SETUP_PAGE_SIZE,
         skip: 0,
         select: {
           _id: true,
@@ -256,7 +324,7 @@ export default class StatusPageSetupApi {
         },
       });
 
-    return result.data
+    const items: Array<StatusPageSetupMonitorGroup> = result.data
       .filter((group: MonitorGroup): boolean => {
         return Boolean(group._id);
       })
@@ -267,6 +335,35 @@ export default class StatusPageSetupApi {
           labels: labelsOf(group.labels),
         };
       });
+
+    return { items: items, count: Math.max(result.count ?? 0, items.length) };
+  }
+
+  /*
+   * The project's labels, by name: what step 1's list can be narrowed by,
+   * whichever monitors carry them - not only the ones of its first page.
+   */
+  public static async loadLabels(): Promise<Array<StatusPageSetupLabel>> {
+    const result: ListResult<Label> = await ModelAPI.getList<Label>({
+      modelType: Label,
+      query: {
+        projectId: getProjectId(),
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: {
+        _id: true,
+        name: true,
+        color: true,
+        // What tells two labels of one name apart (#10064, #10314).
+        ...getSharedNameSelect(Label),
+      },
+      sort: {
+        name: SortOrder.Ascending,
+      },
+    });
+
+    return labelsOf(result.data) || [];
   }
 
   /*

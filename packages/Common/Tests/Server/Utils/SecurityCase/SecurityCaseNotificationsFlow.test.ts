@@ -65,9 +65,29 @@ import {
   NotificationRuleConditionCheckOn,
 } from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import WorkspaceMessagePayload, {
+  WorkspaceMessageBlock,
+  WorkspaceMessagePayloadButton,
+  WorkspacePayloadButtons,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
+import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
+import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import SecurityDetectionService from "../../../../Server/Services/SecurityDetectionService";
+import SecurityEventConnectionService from "../../../../Server/Services/SecurityEventConnectionService";
+import ThreatIntelIndicatorService from "../../../../Server/Services/ThreatIntelIndicatorService";
+import UserMattermostService from "../../../../Server/Services/UserMattermostService";
+import UserMicrosoftTeamsService from "../../../../Server/Services/UserMicrosoftTeamsService";
+import UserSlackService from "../../../../Server/Services/UserSlackService";
+import WorkspaceLiveMessageService from "../../../../Server/Services/WorkspaceLiveMessageService";
+import WorkspaceUserNotificationService, {
+  SendWorkspaceDirectMessageOptions,
+} from "../../../../Server/Services/WorkspaceUserNotificationService";
+import UserMattermost from "../../../../Models/DatabaseModels/UserMattermost";
+import UserMicrosoftTeams from "../../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserSlack from "../../../../Models/DatabaseModels/UserSlack";
+import WorkspaceLiveMessage from "../../../../Models/DatabaseModels/WorkspaceLiveMessage";
 import { getJestSpyOn } from "../../../Spy";
 import {
   TEST_PRIORITY_IDS,
@@ -170,6 +190,8 @@ let emails: Array<{
   vars: JSONObject;
 }>;
 let pushes: Array<{ userId: string; title: string }>;
+// The run each push names, for the app to open its approval.
+let pushRuns: Array<string>;
 let slackPosts: Array<WorkspaceMessagePayload>;
 let feed: Array<string>;
 
@@ -256,6 +278,7 @@ beforeEach(() => {
   jobs = [];
   emails = [];
   pushes = [];
+  pushRuns = [];
   slackPosts = [];
   feed = [];
   seedDefaults();
@@ -470,6 +493,14 @@ beforeEach(() => {
         userId: String(userId),
         title: (message as { title: string }).title,
       });
+
+      const runId: unknown = (
+        message as { data?: { runId?: unknown } | undefined }
+      ).data?.runId;
+
+      if (runId) {
+        pushRuns.push(String(runId));
+      }
     },
   );
 
@@ -621,6 +652,121 @@ function slackMarkdown(): Array<string> {
   });
 }
 
+/*
+ * A Critical case on the Blue Team, and a run whose containment step will
+ * wait for approval when the engine reaches it: what the approval tests run.
+ */
+function setUpRunWaitingForApproval(): void {
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Critical,
+  );
+  securityCase.notifiedSecurityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Critical,
+  );
+  securityCase.assignedToTeamId = BLUE_TEAM_ID;
+
+  const steps: Array<SecurityPlaybookStep> = [
+    {
+      id: "contain",
+      action: SecurityPlaybookActionType.ContainCrowdStrikeHost,
+      config: { connectionId: "66666666-6666-4666-8666-666666666666" },
+      requiresApproval: true,
+      continueOnFailure: false,
+      onlyIfThreatIntelMatched: false,
+    },
+  ];
+
+  run = new SecurityPlaybookRun();
+  run._id = RUN_ID.toString();
+  run.projectId = PROJECT_ID;
+  run.securityCaseId = CASE_ID;
+  run.playbookName = "Contain compromised host";
+  run.status = SecurityPlaybookRunStatus.Queued;
+  run.steps = steps as unknown as JSONArray;
+  run.stepResults = buildPendingStepResults(steps) as unknown as JSONArray;
+  run.currentStepIndex = 0;
+
+  // The engine, as the Worker runs it: it stops at the step and asks.
+  getJestSpyOn(SecurityPlaybookRunService, "findOneById").mockImplementation(
+    async () => {
+      return run;
+    },
+  );
+  getJestSpyOn(
+    SecurityPlaybookRunService,
+    "compareAndSetColumnsByIdWithoutHooks",
+  ).mockImplementation(async (args: unknown) => {
+    const { data, expectedData } = args as {
+      data: JSONObject;
+      expectedData: JSONObject;
+    };
+    if (run!.status !== expectedData["status"]) {
+      return false;
+    }
+    run!.status = data["status"] as SecurityPlaybookRunStatus;
+    return true;
+  });
+  // What the engine saves is what the job reads back, as from the database.
+  getJestSpyOn(SecurityPlaybookRunService, "updateOneById").mockImplementation(
+    async (args: unknown) => {
+      Object.assign(run!, (args as { data: JSONObject }).data);
+    },
+  );
+  getJestSpyOn(
+    SecurityPlaybookRunService,
+    "updateColumnsByIdWithoutHooks",
+  ).mockResolvedValue(undefined as never);
+
+  // The step proposes the host the case is about (SecurityPlaybookTargets).
+  getJestSpyOn(SecurityPlaybookTargets, "selectTargets").mockResolvedValue([
+    {
+      type: SecurityEntityType.Host,
+      value: "web-01",
+      reason: SecurityPlaybookTargetReason.GroupedOn,
+      state: SecurityPlaybookTargetState.Proposed,
+    },
+  ] as never);
+
+  /*
+   * The approval says what the step acts through and what the case holds
+   * (#10341): the CrowdStrike connection by its name, the requests behind
+   * the case as its detection kept them, and nothing threat intel knows.
+   */
+  getJestSpyOn(SecurityEventConnectionService, "findOneBy").mockImplementation(
+    async () => {
+      const connection: SecurityEventConnection = new SecurityEventConnection();
+      connection.name = "CrowdStrike (prod)";
+      return connection;
+    },
+  );
+  getJestSpyOn(SecurityDetectionService, "findBy").mockImplementation(
+    async () => {
+      const detection: SecurityDetection = new SecurityDetection();
+      detection.matchedEvents = {
+        events: [],
+        outcomes: { "Reached App": 3, Rejected: 9 },
+      };
+      return [detection];
+    },
+  );
+  getJestSpyOn(
+    ThreatIntelIndicatorService,
+    "findActiveIndicatorsByValues",
+  ).mockResolvedValue([] as never);
+  // Slack is connected: the approval is posted, with its buttons, and kept.
+  getJestSpyOn(
+    WorkspaceProjectAuthTokenService,
+    "getProjectAuths",
+  ).mockImplementation(async () => {
+    const projectAuth: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    projectAuth.projectId = PROJECT_ID;
+    projectAuth.workspaceType = WorkspaceType.Slack;
+    projectAuth.authToken = "xoxb-project-token";
+    return [projectAuth];
+  });
+}
+
 describe("a security case from opening to approval", () => {
   test("a Medium case reaches the analyst who chose Medium, and stays out of #soc", async () => {
     await openCaseFromDetection();
@@ -722,79 +868,10 @@ describe("a security case from opening to approval", () => {
   });
 
   test("a containment step waiting for approval asks the analyst on the case", async () => {
-    securityCase.securityCasePriorityId = testPriorityId(
-      SecurityCasePriorityLevel.Critical,
-    );
-    securityCase.notifiedSecurityCasePriorityId = testPriorityId(
-      SecurityCasePriorityLevel.Critical,
-    );
-    securityCase.assignedToTeamId = BLUE_TEAM_ID;
-
-    const steps: Array<SecurityPlaybookStep> = [
-      {
-        id: "contain",
-        action: SecurityPlaybookActionType.ContainCrowdStrikeHost,
-        config: { connectionId: "66666666-6666-4666-8666-666666666666" },
-        requiresApproval: true,
-        continueOnFailure: false,
-        onlyIfThreatIntelMatched: false,
-      },
-    ];
-
-    run = new SecurityPlaybookRun();
-    run._id = RUN_ID.toString();
-    run.projectId = PROJECT_ID;
-    run.securityCaseId = CASE_ID;
-    run.playbookName = "Contain compromised host";
-    run.status = SecurityPlaybookRunStatus.Queued;
-    run.steps = steps as unknown as JSONArray;
-    run.stepResults = buildPendingStepResults(steps) as unknown as JSONArray;
-    run.currentStepIndex = 0;
-
-    // The engine, as the Worker runs it: it stops at the step and asks.
-    getJestSpyOn(SecurityPlaybookRunService, "findOneById").mockImplementation(
-      async () => {
-        return run;
-      },
-    );
-    getJestSpyOn(
-      SecurityPlaybookRunService,
-      "compareAndSetColumnsByIdWithoutHooks",
-    ).mockImplementation(async (args: unknown) => {
-      const { data, expectedData } = args as {
-        data: JSONObject;
-        expectedData: JSONObject;
-      };
-      if (run!.status !== expectedData["status"]) {
-        return false;
-      }
-      run!.status = data["status"] as SecurityPlaybookRunStatus;
-      return true;
-    });
-    // What the engine saves is what the job reads back, as from the database.
-    getJestSpyOn(
-      SecurityPlaybookRunService,
-      "updateOneById",
-    ).mockImplementation(async (args: unknown) => {
-      Object.assign(run!, (args as { data: JSONObject }).data);
-    });
-    getJestSpyOn(
-      SecurityPlaybookRunService,
-      "updateColumnsByIdWithoutHooks",
-    ).mockResolvedValue(undefined as never);
-
-    // The step proposes the host the case is about (SecurityPlaybookTargets).
-    getJestSpyOn(SecurityPlaybookTargets, "selectTargets").mockResolvedValue([
-      {
-        type: SecurityEntityType.Host,
-        value: "web-01",
-        reason: SecurityPlaybookTargetReason.GroupedOn,
-        state: SecurityPlaybookTargetState.Proposed,
-      },
-    ] as never);
+    setUpRunWaitingForApproval();
 
     await SecurityPlaybookEngine.executeRun(RUN_ID);
-    expect(run.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
+    expect(run!.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
 
     await runQueuedJobs();
 
@@ -808,14 +885,187 @@ describe("a security case from opening to approval", () => {
           "[CASE-12] Approval needed: Contain compromised host, step 1 (Contain the host in CrowdStrike)",
       }),
     ]);
-    // The approver is told what the step would act on.
-    expect(emails[0]!.vars["stepTargets"]).toBe("web-01");
+    // The approver is told what the step would act on, why, and the rest of the evidence.
+    expect(emails[0]!.vars["stepTargets"]).toBe(
+      "web-01: the case is grouped on it",
+    );
+    expect(emails[0]!.vars["approvalAction"]).toBe(
+      "Contain the host in CrowdStrike, through CrowdStrike (prod)",
+    );
+    expect(emails[0]!.vars["approvalEvidence"]).toBe(
+      "12 requests behind the case: Turned away: 9, Reached the app: 3 Nothing it acts on is on your protected list.",
+    );
+    expect(emails[0]!.vars["approvalUndo"]).toBe(
+      "Can be undone: each one, with Lift containment in CrowdStrike on the case.",
+    );
+    // Its button opens the approval on the case, never approves it.
+    expect(emails[0]!.vars["caseViewLink"]).toBe(
+      `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/security-events/cases/${CASE_ID.toString()}/playbook-runs`,
+    );
     expect(pushes).toEqual([
       {
         userId: ANALYST_ID.toString(),
         title: "Approval needed: Contain compromised host",
       },
     ]);
-    expect(slackMarkdown()[0]).toContain("⏸️ **Approval needed**");
+    // The push opens the approval itself, on the case.
+    expect(pushRuns).toEqual([RUN_ID.toString()]);
+    // #soc gets the approval with its buttons.
+    expect(slackMarkdown()[0]).toContain("⏸️ **Approval needed on [CASE-12](");
+    expect(
+      slackPosts[0]!.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        })
+        .flatMap((block: WorkspaceMessageBlock): Array<string> => {
+          return (block as WorkspacePayloadButtons).buttons.map(
+            (button: WorkspaceMessagePayloadButton): string => {
+              return button.title;
+            },
+          );
+        }),
+    ).toEqual(["Approve", "Reject", "Open Case"]);
+  });
+
+  test("an approver who chose chat gets the approval in Slack and Microsoft Teams, in their language, each copy kept as it lands; Mattermost gets the notice", async () => {
+    setUpRunWaitingForApproval();
+
+    // Ana chose Slack, Microsoft Teams and Mattermost for approvals, and reads German.
+    const anaSetting: UserNotificationSetting = settingRows.get(
+      settingKey(
+        ANALYST_ID,
+        NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+      ),
+    )!;
+    anaSetting.alertBySlack = true;
+    anaSetting.alertByMicrosoftTeams = true;
+    anaSetting.alertByMattermost = true;
+
+    getJestSpyOn(UserService, "findOneById").mockImplementation(
+      async (args: unknown) => {
+        const member: Person | undefined = person(
+          (args as { id: ObjectID }).id,
+        );
+        if (!member) {
+          return null;
+        }
+        const user: User = new User();
+        user.name = member.name as never;
+        user.email = new Email(member.email);
+        user.language = member.id.equals(ANALYST_ID) ? "de" : "en";
+        return user;
+      },
+    );
+    getJestSpyOn(UserSlackService, "findBy").mockResolvedValue([
+      { slackUserId: "U0ANA" } as unknown as UserSlack,
+    ] as never);
+    getJestSpyOn(UserMicrosoftTeamsService, "findBy").mockResolvedValue([
+      { microsoftTeamsUserId: "entra-ana" } as unknown as UserMicrosoftTeams,
+    ] as never);
+    getJestSpyOn(UserMattermostService, "findBy").mockResolvedValue([
+      { mattermostUserId: "m".repeat(26) } as unknown as UserMattermost,
+    ] as never);
+
+    const directMessages: Array<SendWorkspaceDirectMessageOptions> = [];
+    getJestSpyOn(
+      WorkspaceUserNotificationService,
+      "sendDirectMessageToUser",
+    ).mockImplementation(async (options: unknown) => {
+      directMessages.push(options as SendWorkspaceDirectMessageOptions);
+    });
+    const keptCopies: Array<WorkspaceLiveMessage> = [];
+    getJestSpyOn(WorkspaceLiveMessageService, "create").mockImplementation(
+      async (args: unknown) => {
+        keptCopies.push((args as { data: WorkspaceLiveMessage }).data);
+        return (args as { data: WorkspaceLiveMessage }).data;
+      },
+    );
+    getJestSpyOn(
+      WorkspaceLiveMessageService,
+      "findByMessageKey",
+    ).mockResolvedValue([] as never);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+    await runQueuedJobs();
+
+    expect(
+      directMessages.map((message: SendWorkspaceDirectMessageOptions) => {
+        return [message.workspaceType, message.workspaceUserId];
+      }),
+    ).toEqual([
+      [WorkspaceType.Slack, "U0ANA"],
+      [WorkspaceType.MicrosoftTeams, "entra-ana"],
+      [WorkspaceType.Mattermost, "m".repeat(26)],
+    ]);
+
+    const [slack, teams, mattermost] = directMessages as [
+      SendWorkspaceDirectMessageOptions,
+      SendWorkspaceDirectMessageOptions,
+      SendWorkspaceDirectMessageOptions,
+    ];
+    const buttonTitles: (
+      message: SendWorkspaceDirectMessageOptions,
+    ) => Array<string> = (
+      message: SendWorkspaceDirectMessageOptions,
+    ): Array<string> => {
+      return message.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        })
+        .flatMap((block: WorkspaceMessageBlock): Array<string> => {
+          return (block as WorkspacePayloadButtons).buttons.map(
+            (button: WorkspaceMessagePayloadButton): string => {
+              return button.title;
+            },
+          );
+        });
+    };
+
+    // In German, with its buttons, and a notification line of its own.
+    expect((slack.messageBlocks[0] as WorkspacePayloadMarkdown).text).toContain(
+      "**Genehmigung nötig für [CASE-12](",
+    );
+    expect(buttonTitles(slack)).toEqual([
+      "Genehmigen",
+      "Ablehnen",
+      "Fall öffnen",
+    ]);
+    expect(slack.notificationText).toBe(
+      "Genehmigung nötig für CASE-12: Credential dumping on web-01",
+    );
+    // Microsoft Teams draws it as its cards do, with the same buttons.
+    expect(teams.messageBlocks).not.toEqual(slack.messageBlocks);
+    expect(buttonTitles(teams)).toEqual([
+      "Genehmigen",
+      "Ablehnen",
+      "Fall öffnen",
+    ]);
+    // Each Slack and Teams copy is kept as it lands; Mattermost has no buttons for it.
+    expect(typeof slack.onSent).toBe("function");
+    expect(typeof teams.onSent).toBe("function");
+    expect(mattermost.onSent).toBeUndefined();
+    expect(buttonTitles(mattermost)).toEqual([]);
+    expect(mattermost.messageBlocks).toHaveLength(1);
+    expect(
+      (mattermost.messageBlocks[0] as WorkspacePayloadMarkdown).text,
+    ).toContain("Approval needed");
+
+    await slack.onSent!({
+      workspaceType: WorkspaceType.Slack,
+      workspaceProjectId: "T0ACME",
+      channelId: "D0ANA",
+      messageId: "1760000000.000400",
+    });
+
+    expect(keptCopies).toHaveLength(1);
+    expect(keptCopies[0]!.messageKey).toBe(
+      `SecurityPlaybookApproval:${RUN_ID.toString()}:0`,
+    );
+    expect(keptCopies[0]!.channelId).toBe("D0ANA");
+    expect(keptCopies[0]!.messageData).toEqual({
+      language: "de",
+      directMessageUserId: ANALYST_ID.toString(),
+      workspaceProjectId: "T0ACME",
+    });
   });
 });

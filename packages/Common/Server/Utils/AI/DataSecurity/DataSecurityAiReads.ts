@@ -65,6 +65,7 @@ export const AI_ISSUE_SELECT: {
 
 // What a telemetry issue's places are read with.
 export const AI_PLACE_SELECT: {
+  _id: true;
   dataTypeId: true;
   dataTypeName: true;
   location: true;
@@ -75,6 +76,8 @@ export const AI_PLACE_SELECT: {
   isAiSuggested: true;
   isScrubbed: true;
 } = {
+  // Which finding each place is: who may read the analysis must be able to read it.
+  _id: true,
   dataTypeId: true,
   dataTypeName: true,
   location: true,
@@ -164,6 +167,7 @@ export default class DataSecurityAiReads {
       .slice(0, MAX_ISSUE_FINDINGS_FOR_AI)
       .map((finding: DataStoreFinding): AiFindingRecord => {
         return {
+          _id: finding._id,
           dataTypeId: finding.dataTypeId,
           dataTypeName: finding.dataTypeName,
           location: finding.location,

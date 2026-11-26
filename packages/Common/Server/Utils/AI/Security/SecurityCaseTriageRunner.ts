@@ -47,6 +47,7 @@ import {
   SECURITY_CASE_TRIAGE_REPORT_HEADING,
 } from "./SecurityCaseTriagePrompt";
 import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import SecurityCaseResponse from "./Response/SecurityCaseResponse";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
@@ -76,7 +77,13 @@ import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
  * every tool read for them. The case names itself and the incident it
  * declared; a host, cluster, service or other record its entities connect
  * to that an owner or a label sets apart from one of them is neither named
- * nor counted, and private incidents and alerts are never read.
+ * nor counted, and private incidents and alerts are never read. The triage
+ * is written on the case and its timeline alone, so only the narrowing that
+ * reaches somebody who may read the case counts (#9632): a team that reads
+ * hosts only by owner, none of whose members may read security cases, sets
+ * nothing apart from the triage. Write it anywhere else - a channel, a
+ * notice, a record another run reads - and that no longer holds
+ * (SubjectReadersOnlyGuard).
  *
  * Every text the model reads - the context and every tool result - goes
  * through an InstructionLikeTextScan. When the case's data held text written
@@ -131,15 +138,21 @@ export default class SecurityCaseTriageRunner {
      * Who reads the triage: everyone who may see the case, on its page and
      * in its timeline (#9612). The starting context and every tool read
      * only what all of them may read, beside what the case names itself.
-     * A triage that cannot tell who reads it is retried.
+     * The triage is posted there and nowhere else (recordTriage), so an
+     * owner or a label narrows it only where it narrows somebody who may
+     * read the case (#9632). A triage that cannot tell who reads it is
+     * retried.
      */
     let readAudience: ReadAudience;
 
     try {
-      readAudience = await ReadAudienceReader.forSubject({
-        projectId,
-        securityCaseId,
-      });
+      readAudience = await ReadAudienceReader.forSubject(
+        {
+          projectId,
+          securityCaseId,
+        },
+        { postsOnlyWhereTheSubjectIsRead: true },
+      );
 
       const triage: SecurityCaseTriageData =
         await SecurityCaseAIContextBuilder.read({
@@ -312,6 +325,20 @@ export default class SecurityCaseTriageRunner {
         onlyPlaybooksThatStayInside: data.isSetupTestCase === true,
       });
     }
+
+    /*
+     * OneUptime AI works a case it read as Likely Malicious, where the
+     * project lets it (#10352), and hands one whose data held text written
+     * to steer an AI to people at once. It is handed the read and whether
+     * such text was found - never the report, which stays with the case's
+     * readers (SubjectReadersOnlyGuard).
+     */
+    await SecurityCaseResponse.startAfterTriage({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      verdict: decision.verdict,
+      isSteeringTextFound: data.scan.found(),
+    });
 
     return decision;
   }

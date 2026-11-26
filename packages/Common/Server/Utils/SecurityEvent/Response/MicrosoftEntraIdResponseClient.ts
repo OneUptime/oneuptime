@@ -27,7 +27,11 @@ import ResponseHttp, {
  * finding a user needs User.Read.All (Directory.Read.All covers it),
  * disabling and enabling one User.EnableDisableAccount.All, and signing
  * one out User.RevokeSessions.All - application permissions, with admin
- * consent. Graph refuses to change an administrator's account unless the
+ * consent. A Fix step's check also reads an account's password change and
+ * sessions ($select=lastPasswordChangeDateTime,
+ * signInSessionsValidFromDateTime, User.Read.All) and its MFA methods (GET
+ * {graph}/v1.0/users/{id}/authentication/methods,
+ * UserAuthenticationMethod.Read.All). Graph refuses to change an administrator's account unless the
  * app also holds the Privileged Authentication Administrator role, and the
  * error says so when Graph answers 403. A user already in the state asked
  * for is reported as such, not as a failure.
@@ -48,6 +52,85 @@ const USER_SELECT: string = "id,userPrincipalName,accountEnabled";
 
 export const ENTRA_ID_PRIVILEGED_USER_HINT: string =
   "An administrator's account can be changed only by an app that also holds the Privileged Authentication Administrator role.";
+
+// What reading an account's authentication methods takes (#10347).
+export const ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION: string =
+  "UserAuthenticationMethod.Read.All";
+
+/*
+ * What reading an account's roles, groups and app role assignments takes,
+ * and an app's keys (#10603). Directory.Read.All covers both.
+ */
+export const ENTRA_ID_DIRECTORY_READ_PERMISSION: string = "Directory.Read.All";
+export const ENTRA_ID_APPLICATION_READ_PERMISSION: string =
+  "Application.Read.All";
+
+/*
+ * An object Graph lists for an account - a directory role, a group, an app
+ * role assignment, an authentication method - as the account-changes
+ * check reads it (#10603): its id, the ids it points to, its type, its
+ * name, and when it was added, where Graph says.
+ */
+export interface EntraIdDirectoryObject {
+  id: string;
+  // A directory role's template id; an app role assignment's app (resourceId).
+  templateId: string;
+  // An app role assignment's role.
+  appRoleId: string;
+  // An authentication method's @odata.type.
+  type: string;
+  name: string;
+  createdAt: Date | null;
+}
+
+function readGraphText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function readEntraIdDirectoryObject(
+  value: unknown,
+): EntraIdDirectoryObject {
+  const record: JSONObject =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as JSONObject)
+      : {};
+  const created: string = readGraphText(record["createdDateTime"]);
+  const createdAt: Date | null = created ? new Date(created) : null;
+
+  return {
+    id: readGraphText(record["id"]).toLowerCase(),
+    templateId: (
+      readGraphText(record["roleTemplateId"]) ||
+      readGraphText(record["resourceId"])
+    ).toLowerCase(),
+    appRoleId: readGraphText(record["appRoleId"]).toLowerCase(),
+    type: readGraphText(record["@odata.type"]),
+    name:
+      readGraphText(record["displayName"]) ||
+      readGraphText(record["resourceDisplayName"]),
+    createdAt:
+      createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : null,
+  };
+}
+
+/*
+ * The authentication methods Microsoft Graph lists that are a second
+ * factor (learn.microsoft.com/graph/api/resources/authenticationmethods-
+ * overview): an authenticator app, a security key, Windows Hello, a
+ * software or hardware OATH token, a phone, a platform credential or a
+ * certificate. Not a password, an email address kept for resetting one,
+ * or a Temporary Access Pass.
+ */
+export const ENTRA_ID_MFA_METHOD_TYPES: ReadonlyArray<string> = [
+  "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod",
+  "#microsoft.graph.fido2AuthenticationMethod",
+  "#microsoft.graph.windowsHelloForBusinessAuthenticationMethod",
+  "#microsoft.graph.softwareOathAuthenticationMethod",
+  "#microsoft.graph.hardwareOathAuthenticationMethod",
+  "#microsoft.graph.phoneAuthenticationMethod",
+  "#microsoft.graph.platformCredentialAuthenticationMethod",
+  "#microsoft.graph.x509CertificateAuthenticationMethod",
+];
 
 export default class MicrosoftEntraIdResponseClient {
   private tokenClient: MicrosoftEntraIdClient;
@@ -224,6 +307,234 @@ export default class MicrosoftEntraIdResponseClient {
     }
 
     return MicrosoftEntraIdResponseClient.readUser(found[0]);
+  }
+
+  /*
+   * When the account's sessions were last ended: Graph's
+   * signInSessionsValidFromDateTime, which revoking them moves to now. What
+   * a Response Plan step's check reads back to say a compromised account's
+   * sessions were ended after its case opened (#10340). Null when Graph
+   * keeps none.
+   */
+  public async readSessionsValidFrom(user: EntraIdUser): Promise<Date | null> {
+    const step: string = "Microsoft Entra ID sign-in sessions lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}?$select=signInSessionsValidFromDateTime`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result, "User.Read.All");
+    }
+
+    const value: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "signInSessionsValidFromDateTime"
+    ];
+    const validFrom: Date | null =
+      typeof value === "string" ? new Date(value) : null;
+
+    return validFrom && !Number.isNaN(validFrom.getTime()) ? validFrom : null;
+  }
+
+  /*
+   * When the account's password last changed (lastPasswordChangeDateTime)
+   * and since when its refresh and session tokens are valid
+   * (signInSessionsValidFromDateTime, which revoking them moves to now):
+   * what the Fix step "reset the password" reads back (#10347). Both need
+   * $select; User.Read.All reads them.
+   */
+  public async readCredentialState(user: EntraIdUser): Promise<{
+    passwordChangedAt: Date | null;
+    sessionsValidFrom: Date | null;
+  }> {
+    const step: string = "Microsoft Entra ID password lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}?$select=lastPasswordChangeDateTime,signInSessionsValidFromDateTime`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result, "User.Read.All");
+    }
+
+    const body: JSONObject = (result.bodyJson as JSONObject | undefined) || {};
+
+    return {
+      passwordChangedAt: MicrosoftEntraIdResponseClient.readTime(
+        body["lastPasswordChangeDateTime"],
+      ),
+      sessionsValidFrom: MicrosoftEntraIdResponseClient.readTime(
+        body["signInSessionsValidFromDateTime"],
+      ),
+    };
+  }
+
+  /*
+   * The methods the account can do MFA with (GET /users/{id}/
+   * authentication/methods, UserAuthenticationMethod.Read.All): the Fix
+   * step "MFA on the accounts it went after" (#10347). A password, an email
+   * kept for resetting it and a Temporary Access Pass are no second factor.
+   */
+  public async readMfaMethods(user: EntraIdUser): Promise<Array<string>> {
+    const step: string = "Microsoft Entra ID authentication methods lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/authentication/methods`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(
+        step,
+        result,
+        ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+      );
+    }
+
+    const methods: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "value"
+    ];
+
+    if (!Array.isArray(methods)) {
+      return [];
+    }
+
+    return methods
+      .map((method: unknown): string => {
+        return method && typeof method === "object"
+          ? String((method as JSONObject)["@odata.type"] || "")
+          : "";
+      })
+      .filter((type: string): boolean => {
+        return ENTRA_ID_MFA_METHOD_TYPES.includes(type);
+      });
+  }
+
+  /*
+   * What the Fix step "Undo what changed on the account" reads back
+   * (#10603), without changing anything: the directory roles and groups
+   * the account is a member of (GET /users/{id}/memberOf/...,
+   * Directory.Read.All), its app role assignments (GET /users/{id}/
+   * appRoleAssignments), its authentication methods with when each was
+   * added, and the keys an app holds (GET /applications/{id} or
+   * /servicePrincipals/{id}, Application.Read.All or Directory.Read.All).
+   */
+  public async listDirectoryRoles(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID directory roles lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/memberOf/microsoft.graph.directoryRole?$select=id,roleTemplateId,displayName`,
+      permission: ENTRA_ID_DIRECTORY_READ_PERMISSION,
+    });
+  }
+
+  public async listGroups(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID groups lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/memberOf/microsoft.graph.group?$select=id,displayName&$top=999`,
+      permission: ENTRA_ID_DIRECTORY_READ_PERMISSION,
+    });
+  }
+
+  public async listAppRoleAssignments(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID app role assignments lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/appRoleAssignments?$select=id,resourceId,appRoleId,resourceDisplayName&$top=999`,
+      permission: ENTRA_ID_DIRECTORY_READ_PERMISSION,
+    });
+  }
+
+  // Every method the account signs in with, its type and when it was added.
+  public async listAuthenticationMethods(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID authentication methods lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/authentication/methods`,
+      permission: ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+    });
+  }
+
+  /*
+   * The ids of the secrets and certificates an app holds - its
+   * registration's ("Application") or its service principal's - or null
+   * once the app is gone.
+   */
+  public async readAppKeyIds(data: {
+    ownerType: "Application" | "ServicePrincipal";
+    id: string;
+  }): Promise<Array<string> | null> {
+    const step: string = "Microsoft Entra ID app keys lookup";
+    const collection: string =
+      data.ownerType === "Application" ? "applications" : "servicePrincipals";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/${collection}/${encodeURIComponent(data.id)}?$select=id,passwordCredentials,keyCredentials`,
+    );
+
+    if (result.statusCode === 404) {
+      return null;
+    }
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result, ENTRA_ID_APPLICATION_READ_PERMISSION);
+    }
+
+    const body: JSONObject = (result.bodyJson as JSONObject | undefined) || {};
+    const ids: Array<string> = [];
+
+    for (const list of [body["passwordCredentials"], body["keyCredentials"]]) {
+      for (const credential of Array.isArray(list) ? list : []) {
+        const keyId: unknown =
+          credential && typeof credential === "object"
+            ? (credential as JSONObject)["keyId"]
+            : undefined;
+
+        if (typeof keyId === "string" && keyId) {
+          ids.push(keyId.toLowerCase());
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  // A list Graph answers with: one page, as `value`.
+  private async readObjects(data: {
+    step: string;
+    url: string;
+    permission: string;
+  }): Promise<Array<EntraIdDirectoryObject>> {
+    const result: ResponseHttpResult = await this.send(
+      data.step,
+      "GET",
+      data.url,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(data.step, result, data.permission);
+    }
+
+    const items: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "value"
+    ];
+
+    return Array.isArray(items) ? items.map(readEntraIdDirectoryObject) : [];
+  }
+
+  private static readTime(value: unknown): Date | null {
+    const time: Date | null =
+      typeof value === "string" && value ? new Date(value) : null;
+
+    return time && !Number.isNaN(time.getTime()) ? time : null;
   }
 
   public async disableUser(

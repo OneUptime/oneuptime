@@ -31,6 +31,10 @@ import {
   getCloudResourceTypeDescriptor,
   isInventoryOnlyCloudResourceType,
 } from "../../../../Types/Cloud/CloudResourceCatalog";
+import {
+  AZURE_APPLICATION_GATEWAY_WAF_POLICY_TYPE,
+  AZURE_FRONT_DOOR_WAF_POLICY_TYPE,
+} from "../../../../Types/CloudConnection/AzureWafBlocklist";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import { AZURE_READ_ONLY_ROLE } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject } from "../../../../Types/JSON";
@@ -612,10 +616,13 @@ describe("what the rows say read together", () => {
 });
 
 describe("the catalog and the role", () => {
-  test("subnets and network security groups are listed as resources with no metrics of their own", () => {
+  test("subnets, network security groups and WAF policies are listed as resources with no metrics of their own", () => {
     expect(AZURE_LISTED_ONLY_TYPES).toEqual([
       AZURE_NETWORK_SECURITY_GROUP_TYPE,
       AZURE_SUBNET_TYPE,
+      // The WAF policies the blocklist can be enforced in (#10348).
+      AZURE_APPLICATION_GATEWAY_WAF_POLICY_TYPE,
+      AZURE_FRONT_DOOR_WAF_POLICY_TYPE,
     ]);
 
     for (const type of AZURE_LISTED_ONLY_TYPES) {

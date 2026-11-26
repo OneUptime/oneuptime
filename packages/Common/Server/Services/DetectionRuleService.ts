@@ -376,7 +376,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (getDetectionRuleWatchlistReferences(definition).length === 0) {
       for (const rule of sigmaRulesOf(definition)) {
-        SigmaClickhouseCompiler.compile(rule);
+        // Refused here, not as its error at its first run, when one read cannot carry it.
+        assertDetectionReadFits(SigmaClickhouseCompiler.compile(rule));
       }
 
       return definition;

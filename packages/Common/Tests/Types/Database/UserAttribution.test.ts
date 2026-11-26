@@ -277,6 +277,14 @@ describe("the column decorators", () => {
       update: [],
     });
     expect(UserAttribution.getColumns(model)).toEqual([
+      // What made it and who last modified it, on every record (RecordActor).
+      "createdByActorType",
+      "createdByActorId",
+      "lastModifiedAt",
+      "lastModifiedByActorType",
+      "lastModifiedByActorId",
+      "lastModifiedByUser",
+      "lastModifiedByUserId",
       "createdByUser",
       "createdByUserId",
     ]);

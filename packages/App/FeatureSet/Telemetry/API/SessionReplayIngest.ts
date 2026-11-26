@@ -4,9 +4,13 @@ import TelemetryIngest, {
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import TelemetryIngestionKeyGuard, {
+  MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE,
   TelemetryIngestionKeyRefusal,
+  TelemetryIngestionKeyRefusalReason,
+  isMobileKeyPinnedToApp,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -774,8 +778,9 @@ router.post(
           projectId: projectId,
           appIdentifier: appIdentifier,
           /*
-           * The outer Browser-key guard already chose this identity and
-           * authorized it. Native replay stores a normalized app:// value
+           * The outer public-key guard already chose this identity and
+           * authorized it (a Browser key against its origins, a Mobile key
+           * for its own app). Native replay stores a normalized app:// value
            * here; web and Server-key requests retain their real Origin.
            * Re-reading only the raw header would make the two allowlists
            * disagree and refuse every authorized mobile chunk.
@@ -1334,8 +1339,9 @@ router.get(
        * guard applies, evaluated against the session-replay surface so the
        * probe and the chunk endpoint can never disagree about the same key.
        *
-       * Session replay IS one of the surfaces a browser key may write to, so
-       * this rejects a browser key only if that ever stops being true. It is
+       * Session replay IS one of the surfaces a browser key may write to,
+       * and a mobile key too for its own app (issue #10540, checked below),
+       * so this rejects either only if that ever stops being true. It is
        * written as the shared check rather than an inline isEnabled/expiresAt
        * pair precisely so that change lands here for free.
        */
@@ -1364,6 +1370,36 @@ router.get(
       const projectId: ObjectID = keyPolicy.projectId;
 
       const appIdentifier: string = readAppIdentifier(req);
+
+      /*
+       * A Mobile key records only the app it is pinned to (issue #10540):
+       * named another, every chunk would be refused, so the probe says so
+       * too, with the guard's own reason and sentence. Without an app
+       * identifier there is nothing to compare, as for the policy below.
+       */
+      if (
+        keyPolicy.keyType === TelemetryIngestionKeyType.Mobile &&
+        appIdentifier &&
+        !isMobileKeyPinnedToApp({
+          pinnedServiceName: keyPolicy.pinnedServiceName,
+          appIdentifier: appIdentifier,
+        })
+      ) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: true,
+            valid: false,
+            keyType: keyPolicy.keyType,
+            reason:
+              TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey,
+            message: MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE,
+          },
+          { statusCode: new StatusCode(401) },
+        );
+        return;
+      }
 
       /*
        * When an app identifier is supplied we also report whether replay is
@@ -1406,7 +1442,8 @@ router.get(
         sessionReplayDisabledDetail: sessionReplayDisabledDetail,
         isIngestEnabledOnThisInstance: SESSION_REPLAY_INGEST_ENABLED,
         /*
-         * A recorder snippet is meant to carry a Browser key, so unlike
+         * A recorder snippet is meant to carry a Browser key, and a React
+         * Native app's its Mobile key (issue #10540), so unlike
          * /otlp/v1/validate this is reported without editorialising - a
          * Server key here still works and is not a misconfiguration, it just
          * gives up the origin binding that makes a published key safe. The

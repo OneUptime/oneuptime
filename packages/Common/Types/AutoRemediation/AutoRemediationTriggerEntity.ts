@@ -49,6 +49,14 @@ enum AutoRemediationTriggerEntity {
    * pull request that improves the metrics or adds the missing ones.
    */
   Metric = "Metric",
+  /*
+   * A Data Security issue: a check that failed on a store (Data Security →
+   * AI, #10364). The rule says which issues OneUptime AI works on - by the
+   * check, the severity, the store and its data - and, for each kind of
+   * work (analyze, contain, fix, judge), whether it is off, suggested for
+   * approval, or done without asking (Types/DataSecurity/DataSecurityAi).
+   */
+  DataSecurityIssue = "DataSecurityIssue",
 }
 
 export default AutoRemediationTriggerEntity;

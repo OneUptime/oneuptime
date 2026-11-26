@@ -59,6 +59,8 @@ Gjør en HTTP-forespørsel til en hvilken som helst URL. Det finnes én blokk pe
 | **URL**             | Adressen som skal kalles, `http` eller `https`.                                                                                      |
 | **Forespørselstekst**    | JSON-en som skal sendes. Vanligvis er det bare `POST`-, `PUT`- og `PATCH`-forespørsler som trenger en.                              |
 | **Forespørselshoder** | Headere som skal sendes med, som en API-nøkkel. Under **Flere felt**. Verdiene deres er skjult i kjøringens logg.                    |
+| **Tillat selvsignerte sertifikater** | Under **Flere felt**, av som standard. Når den er på, tar blokken ethvert sertifikat serveren viser, så et selvsignert fungerer, men den kontrollerer verken vertsnavnet eller gyldighetsdatoene, og alle på nettverksstien kan lese forespørselen, headere inkludert, og endre svaret. |
+| **CA-sertifikat** | Under **Flere felt**, så lenge **Tillat selvsignerte sertifikater** er av. Sertifikatet, i PEM, til CA-en som signerte serverens sertifikat, eller serverens eget når det er selvsignert. Blokken stoler da bare på det sertifikatet, og kontrollerer fortsatt vertsnavnet og gyldighetsdatoene. |
 
 | Utgang      | Når                                                                                            |
 | ----------- | ---------------------------------------------------------------------------------------------- |
@@ -70,6 +72,8 @@ Uansett returnerer blokken **Svarstatus**, **Svarhoder** og **Svartekst**, pluss
 En blokk leser høyst 10 MB av et svar. Et større svar leses ikke: blokken tar **Feil**, med årsaken.
 
 Omdirigeringer følges ikke, så pek blokken mot adressen som svarer. Forespørsler sendes fra OneUptime: en URL som peker til en privat nettverksadresse, avvises med mindre en administrator av en selvhostet installasjon tillater det, og kjøringen stopper med årsaken. Se [Utgående nettverkstilgang](/docs/workflows/configuration#utgående-nettverkstilgang).
+
+En server med et sertifikat den har signert selv, eller som din egen CA har signert, avvises til blokken stoler på den: blokken tar **Feil**, ingenting sendes, og **Feil** sier hva du må endre. Lim inn sertifikatet som signerte det, i **CA-sertifikat**: CA-ens, eller serverens eget når det er selvsignert. Blokken kontrollerer da serverens sertifikat mot det, vertsnavn og gyldighetsdatoer inkludert, så en server som bare utgir seg for å være din, fortsatt avvises. Slå på **Tillat selvsignerte sertifikater** bare når du ikke kan lime inn et. Begge gjelder bare forespørselen til denne blokken, aldri en annen blokk, en annen forespørsel fra OneUptime eller tilkoblingen til en utgående proxy. En server med et slikt sertifikat står som regel i ditt eget nettverk, og blokken når det bare hvis en administrator av en selvhostet installasjon tillater private nettverksadresser, som beskrevet over.
 
 **API-kall GET etter ID (JSON)** leser ett element ut fra en ID som kom et annet sted fra, for eksempel issue-nøkkelen et webhook sendte. Sett `{id}` i **URL** der ID-en skal stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, og ID-en i **ID**. Blokken setter bare inn ID-en når den er en enkel ID, høyst 200 bokstaver, sifre, bindestreker og understreker, og prosentkoder den likevel: alt annet, for eksempel `x/../users`, tar **Feil** før noen forespørsel sendes, så tekst utenfra ikke kan sende forespørselen et annet sted. Ellers virker den som **API-kall GET (JSON)** og returnerer de samme verdiene.
 

@@ -325,6 +325,15 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return <LabelsElement labels={labels} />;
                   },
                 },
+                /*
+                 * The SLO's own ID, and who created it and last modified
+                 * it, on the line its details end with (#10290).
+                 */
+                {
+                  field: { _id: true },
+                  title: "ID",
+                  fieldType: FieldType.ObjectID,
+                },
               ],
             }}
           />

@@ -49,6 +49,8 @@ function statsWith(
   return {
     telemetryExceptionId: EXCEPTION_ID,
     affectedUsers: 3,
+    hiddenUsers: 0,
+    hiddenUserOccurrences: 0,
     trend,
     ...values,
   };
@@ -117,6 +119,86 @@ describe("the row's affected users", () => {
 
     expect(screen.queryByTestId("exception-row-users")).toBeNull();
     expect(screen.queryByText(/0 users/)).toBeNull();
+  });
+});
+
+/*
+ * A user id a scrub rule hid is never counted as a user (#10435). Redact's
+ * "[REDACTED]" and a mask are every hidden user at once, so their events are
+ * counted as events with a hidden user - where the row used to say "1 user"
+ * for all of them. A Hash rule's token is one user, so those are counted
+ * once each, as hidden users. Each says what it is when hovered.
+ */
+describe("the row's users a scrub rule hid", () => {
+  test("three redacted users are three events with a hidden user, never one user", () => {
+    render(
+      <ExceptionRow
+        exception={exceptionWith()}
+        stats={statsWith({ affectedUsers: 0, hiddenUserOccurrences: 3 })}
+      />,
+    );
+
+    const hidden: HTMLElement = screen.getByTestId(
+      "exception-row-hidden-user-events",
+    );
+
+    expect(hidden).toHaveTextContent("3 events with a hidden user");
+    expect(hidden).toHaveAttribute(
+      "title",
+      "A scrub rule redacted or masked the user of these events, so they can't be counted as users",
+    );
+    expect(screen.queryByTestId("exception-row-users")).toBeNull();
+    expect(screen.queryByText(/1 user\b/)).toBeNull();
+  });
+
+  test("hashed users are counted once each, as hidden users, beside the users the row can name", () => {
+    render(
+      <ExceptionRow
+        exception={exceptionWith()}
+        stats={statsWith({ affectedUsers: 3, hiddenUsers: 2 })}
+      />,
+    );
+
+    const hiddenUsers: HTMLElement = screen.getByTestId(
+      "exception-row-hidden-users",
+    );
+
+    expect(hiddenUsers).toHaveTextContent("2 hidden users");
+    expect(hiddenUsers).toHaveAttribute(
+      "title",
+      "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them",
+    );
+    expect(hiddenUsers.parentElement).toHaveTextContent(
+      /12 events.*3 users.*2 hidden users/,
+    );
+    expect(screen.queryByTestId("exception-row-hidden-user-events")).toBeNull();
+  });
+
+  test("one of each reads in the singular", () => {
+    render(
+      <ExceptionRow
+        exception={exceptionWith()}
+        stats={statsWith({
+          affectedUsers: 0,
+          hiddenUsers: 1,
+          hiddenUserOccurrences: 1,
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("exception-row-hidden-users")).toHaveTextContent(
+      /^1 hidden user$/,
+    );
+    expect(
+      screen.getByTestId("exception-row-hidden-user-events"),
+    ).toHaveTextContent(/^1 event with a hidden user$/);
+  });
+
+  test("nothing hidden says nothing of it", () => {
+    render(<ExceptionRow exception={exceptionWith()} stats={statsWith()} />);
+
+    expect(screen.queryByTestId("exception-row-hidden-users")).toBeNull();
+    expect(screen.queryByTestId("exception-row-hidden-user-events")).toBeNull();
   });
 });
 

@@ -27,6 +27,7 @@ Enquanto uma substituição está em vigor, do início ao fim:
 - Com alguém em **Quem cobre?**, essa pessoa recebe todos os acionamentos da pessoa ausente, de cada agendamento, equipe e regra a que a substituição se aplica. O acionamento chega a ela pelas suas próprias regras de plantão pessoais.
 - Sem ninguém para cobrir, a pessoa é pulada. Em um agendamento de plantão, cada turno dela passa para a próxima pessoa da rotação que não esteja ausente; se todos de uma camada estiverem ausentes, as camadas abaixo assumem. Uma regra que a nomeia diretamente, ou por meio de uma equipe, não a aciona, e a execução da política diz que ela está ausente, e até quando.
 - As substituições não se encadeiam. Se quem cobre também estiver ausente, ainda é essa pessoa que é acionada pela pessoa que ela cobre.
+- Alguém convidado que ainda não entrou no projeto pode ser escolhido em **Quem cobre?**, mas nada aciona essa pessoa até ela aceitar o convite, então até lá ninguém é acionado no lugar da pessoa ausente. O formulário avisa assim que você a escolhe, e a linha que os canais e o feed da política recebem também: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 Quando a substituição termina, os acionamentos voltam a ser dela. A **Linha do tempo de plantões**, as camadas de um agendamento e os feeds de calendário mostram quem tem cada turno coberto.
 

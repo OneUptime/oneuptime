@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | Веб-сайт, API | HTTP-метод: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` или `PATCH`. Если он не задан, сервер использует `GET`. |
 | `request_headers` | map(string) | Веб-сайт, API | Заголовки для отправки: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Тело запроса в виде текста. |
+| `request_body_format` | string | API | Как отправляется `request_body`: `json`, по умолчанию, для любого значения JSON; `text` для тела запроса, которое отправляется точно так, как написано, например XML или поля формы. |
 | `do_not_follow_redirects` | bool | Веб-сайт, API | Остановиться на первом ответе вместо перехода по перенаправлениям. |
 | `allow_self_signed_certificates` | bool | Веб-сайт, API | Принимать самоподписанный сертификат TLS. |
 | `tls_client_certificate` | string | Веб-сайт, API | Клиентский сертификат для взаимного TLS: PEM или ссылка `{{monitorSecrets.name}}`. |
@@ -237,6 +238,10 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `description` | string | Описание, которое показывает панель управления. |
 | `filter_condition` | string (обязательный) | `All`: должен совпасть каждый фильтр. `Any`: достаточно одного. |
 | `filters` | list (обязательный) | Условия, хотя бы одно: см. [Справочник по фильтрам](#справочник-по-фильтрам). |
+| `recovery_filters` | list | Фильтры, как в `filters`, которые должны сработать, прежде чем критерий перестанет действовать, а не сразу, как только его `filters` перестанут срабатывать. |
+| `recovery_filter_condition` | string | Как сочетаются `recovery_filters`: `All` (по умолчанию) или `Any`. |
+| `active_hours` | object | Оценивать критерий только в эти `days` (понедельник — `0`, воскресенье — `6`), с `from` до `to` (`"08:00"`); вне этих часов он пропускается, как отключённый критерий. |
+| `active_hours_timezone` | string | Часовой пояс, в котором читаются `active_hours`, например `Europe/Oslo`. Задавайте его вместе с `active_hours`. |
 | `change_monitor_status` | bool | Меняет ли совпадение статус монитора. |
 | `monitor_status_id` | string | ID `oneuptime_monitor_status`, на который нужно переключиться. Задайте его, когда `change_monitor_status` равно `true`. |
 | `create_incidents` | bool | Открывает ли совпадение инциденты. |
@@ -283,15 +288,87 @@ criteria = [
 ]
 ```
 
+### Когда он восстанавливается и когда оценивается
+
+Этот критерий оценивает сайт только в рабочие часы в Осло, с понедельника по пятницу, и держит его в offline, пока сайт 10 минут подряд не ответит на каждую проверку:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## Справочник по фильтрам
 
 У фильтра есть `check_on` (на что смотреть), `filter_type` (как сравнивать) и `value` (с чем сравнивать, в виде строки; не указывайте его для проверок «истина или ложь», таких как `True` и `False`).
 
-Фильтр также может оценивать окно времени вместо последней проверки: задайте `evaluate_over_time = true`, длину окна в `evaluate_over_time_minutes` и в `evaluate_over_time_type` — как читается окно: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` или `Any Value`.
+Фильтр также может оценивать окно времени вместо последней проверки: задайте `evaluate_over_time = true`, длину окна в `evaluate_over_time_minutes` и в `evaluate_over_time_type` — как читается окно: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` или `Previous Check`. `Percentile` сравнивает перцентиль из `evaluate_over_time_percentile` со значением фильтра (95, если не задано). `Count`, `Percentage` и `Status Changes` считают для каждого зонда проверки окна, соответствовавшие условию, их долю в процентах или число переходов между соответствием и несоответствием и сравнивают это число с `evaluate_over_time_count_value` так, как задаёт `evaluate_over_time_count_filter_type` (`Greater Than` 0, если не задано).
 
 `All Values` означает, что каждая проверка в окне нарушила правило, поэтому он совпадает только тогда, когда окно покрыто данными: только что созданный монитор ждёт, пока окно заполнится, вместо того чтобы совпасть на первой проверке. Задайте окно не меньше двух `monitoring_interval` монитора; иначе в окне одна проверка, и «все значения» означает то же, что «любое значение». `Any Value` совпадает на одной нарушающей проверке, так задумано.
 
 `evaluate_over_time_no_data_policy` говорит, что делает фильтр, пока в окне недостаточно данных: `Ignore` (по умолчанию) не совпадает, `Trigger` считает отсутствие данных сбоем, как это делает heartbeat, а `Treat As Zero` сравнивает окно как один ноль.
+
+`Previous Check` сравнивает каждую проверку с предыдущей проверкой того же зонда, сделанной не раньше чем за `evaluate_over_time_minutes` до неё. Измеренное значение не принимает `value`: `filter_type` сравнивает его с предыдущим значением, сдвинутым на `evaluate_over_time_change_value` вверх при `Greater Than` и вниз при `Less Than`, как `Amount` в единицах проверки или как `Percentage` от предыдущего значения — так, как задаёт `evaluate_over_time_change_type` (`Amount` 0, если не задано: любой рост или падение). Фильтр, который бывает истинным или ложным, срабатывает на проверке, которая начала соответствовать условию. Без предыдущей проверки решает `evaluate_over_time_no_data_policy`.
+
+Этот критерий открывает оповещение, когда проверка длится более чем вдвое дольше предыдущей:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### Что может проверять фильтр
 

@@ -364,8 +364,8 @@ describe("the AI rule", () => {
     /*
      * Incidents and alerts, the slow code a service's profiles show, the
      * slow and failing operations its traces show, its new and rising
-     * exceptions, the error, missing and noisy logs its logs show, and the
-     * problems its metrics show.
+     * exceptions, the error, missing and noisy logs its logs show, the
+     * problems its metrics show, and Data Security's issues (#10364).
      */
     expect(Object.values(AutoRemediationTriggerEntity)).toEqual([
       "Incident",
@@ -375,6 +375,7 @@ describe("the AI rule", () => {
       "Exception",
       "Log",
       "Metric",
+      "DataSecurityIssue",
     ]);
   });
 
@@ -400,6 +401,8 @@ describe("the AI rule", () => {
     ).toEqual([
       "AutoRemediationRuleAlertSeverity autoRemediationRuleId alertSeverityId",
       "AutoRemediationRuleCodeRepository autoRemediationRuleId codeRepositoryId",
+      // What a Data Security AI rule matches on: the store's labels (#10364).
+      "AutoRemediationRuleDataStoreLabel autoRemediationRuleId labelId",
       "AutoRemediationRuleExternalMcpServer autoRemediationRuleId externalMcpServerId",
       "AutoRemediationRuleIncidentSeverity autoRemediationRuleId incidentSeverityId",
       "AutoRemediationRuleLabel autoRemediationRuleId labelId",

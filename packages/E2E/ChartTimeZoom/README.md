@@ -454,7 +454,10 @@ the chart, facet, count and aggregate reads beside them:
   (this one already held; it guards it);
 - the Exceptions explorer, a link and a reload with `?range=Past 1 Day`: one list read,
   one chart and one facet read, and the error-class counts once (five, and the tab's
-  badge) - before, all of them again when the service list landed;
+  badge) - before, all of them again when the service list landed. Once the page's
+  rows are in, the list reads the exceptions a scrub rule split from them, so each pair
+  says Split (#10897): once too, about every row it drew (`ExceptionSplitPairReads.ts`
+  tells it from the list's read);
 - the Metrics explorer, a link and a reload: one metric list read and one aggregate per
   row's sparkline - before, the list and every sparkline twice.
 
@@ -469,7 +472,7 @@ nothing to show; then, once released, one read:
 - the Exceptions explorer on a `@service:checkout-api` link, while the service names
   load: "Loading..." in the footer, the facet sidebar's loader alone (no "No values in
   this time range" under every facet), no "No exceptions found"; then one list read,
-  checkout-api's two groups only;
+  checkout-api's two groups only, and one read of the exceptions split from those two;
 - the Metrics explorer on a `service:checkout-api` link, while the service names load:
   "Loading..." and no "No metrics found"; then one read, whose empty answer only now
   says so.

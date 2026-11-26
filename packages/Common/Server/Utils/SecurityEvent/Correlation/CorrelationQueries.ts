@@ -86,6 +86,12 @@ export interface CorrelationReadWindow {
   restrictTo?: Statement | undefined;
   // In real time: the window as one write found it.
   arrival?: DetectionArrivalRead | undefined;
+  /*
+   * Read only the events still kept at this moment (retentionDate): one
+   * past its retention is deleted, whether or not its part is yet (#10432).
+   * A First seen rule's history then holds only what the project keeps.
+   */
+  keptAt?: Date | undefined;
 }
 
 export interface CorrelationGroupKey {
@@ -345,6 +351,7 @@ function baseWhere(data: {
   until: Date;
   restrictTo?: Statement | undefined;
   arrival?: DetectionArrivalRead | undefined;
+  keptAt?: Date | undefined;
 }): Statement {
   const statement: Statement = SQL`projectId = ${{
     type: TableColumnType.ObjectID,
@@ -365,6 +372,15 @@ function baseWhere(data: {
   if (data.arrival) {
     statement.append(" AND ");
     statement.append(arrivedBy(data.arrival));
+  }
+
+  if (data.keptAt) {
+    statement.append(
+      SQL` AND retentionDate >= ${{
+        type: TableColumnType.Date,
+        value: data.keptAt,
+      }}`,
+    );
   }
 
   return statement;
@@ -647,6 +663,7 @@ export default class CorrelationQueries {
         until: data.window.endTime,
         restrictTo: data.window.restrictTo,
         arrival,
+        keptAt: data.window.keptAt,
       }),
     );
     inner.append(" AND (");
@@ -875,6 +892,7 @@ export default class CorrelationQueries {
         until: data.window.endTime,
         restrictTo: data.window.restrictTo,
         arrival,
+        keptAt: data.window.keptAt,
       }),
     );
     statement.append(" AND (");
@@ -1050,6 +1068,7 @@ export default class CorrelationQueries {
           until: data.window.startTime,
           restrictTo: data.window.restrictTo,
           arrival: data.window.arrival,
+          keptAt: data.window.keptAt,
         }),
       );
       statement.append(" AND (");
@@ -1106,6 +1125,7 @@ export default class CorrelationQueries {
         until: data.window.endTime,
         restrictTo: data.window.restrictTo,
         arrival,
+        keptAt: data.window.keptAt,
       }),
     );
     query.append(" AND (");

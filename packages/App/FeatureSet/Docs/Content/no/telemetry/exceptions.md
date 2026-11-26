@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Telt igjen; gjenåpnet<br/>hvis det var løst"]
 ```
 
-- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak. Et nytt unntak grupperes i stedet etter typen og funksjonene og filene i din egen kode i stack trace: linjenumre, bibliotekframes og meldingen holdes utenfor, så varianter kastet fra den samme koden er ett unntak. Uten stack trace grupperer meldingen det, som over. Unntak registrert før denne grupperingen beholder sin.
+- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak. Et nytt unntak grupperes i stedet etter typen og funksjonene og filene i din egen kode i stack trace: linjenumre, bibliotekframes og meldingen holdes utenfor, så varianter kastet fra den samme koden er ett unntak. Uten stack trace grupperer meldingen det, som over, og kortnumre skrevet i grupper, amerikanske Social Security-numre og telefonnumre, også internasjonale, tas også ut, så `Invalid SSN 123-45-6789 on file` og `Invalid SSN 987-65-4321 on file` er ett unntak, og det samme er `call +44 20 7946 0958 failed` og `call +49 30 123456 failed`. Unntak registrert før denne grupperingen beholder sin.
 - **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen, og unntaket merkes som **Regresjon**. En forekomst fra før du løste det, som først når OneUptime senere, gjenåpner det ikke.
 - **Et arkivert unntak forblir arkivert.** De nye forekomstene telles fortsatt, men de sender ikke lenger varsler.
 
@@ -52,7 +52,7 @@ Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak**
 
 Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid. En rad merket **Regresjon** kom tilbake etter at den ble løst, og en merket **Ny** ble sett første gang i løpet av de siste 24 timene.
 
-Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke.
+Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke. En bruker-ID som en rensingsregel har skjult, telles aldri som en bruker. En hashet ID telles likevel én gang, som en skjult bruker; forekomster der ID-en er sladdet eller maskert, telles som hendelser med en skjult bruker, siden de ikke kan skilles fra hverandre.
 
 ### Velg hva som teller som et problem
 
@@ -218,7 +218,11 @@ Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisning
 :::
 
 :::details Én feil vises som flere unntak
-Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**.
+Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, eller etter en melding uten kort-, Social Security- og telefonnumre, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**. En scrub-regel deler ikke et unntak: det grupperes etter det det sa før reglene kjørte. Et unntak funnet i logger som en regel delte i to i en tidligere versjon av OneUptime, forblir delt. Så snart en ny forekomst kommer, er begge merket **Delt** i listen over unntak, og siden til hvert av dem nevner det andre: der gjør **Slå sammen unntak** dem til ett igjen, uten OneUptime AI. Det eldste av de to beholdes, og **Del opp** angrer det.
+:::
+
+:::details Et unntaks fingeravtrykk endret seg
+Når en scrub-regel skjuler en del av det et unntaks fingeravtrykk ble laget av, for eksempel et kortnummer i meldingen, kunne alle som leser unntaket, hashe gjetninger på den skjulte verdien og sammenligne dem med fingeravtrykket. Derfor flytter OneUptime unntaket ved neste forekomst regelen endrer, til et fingeravtrykk med en nøkkel som tilhører prosjektet ditt. Det forblir det samme unntaket, med status, tildeling, historikk og tellinger. Forekomstene registrert før beholder det gamle fingeravtrykket til oppbevaringen deres går ut, og siden til unntaket viser dem fortsatt; deretter slettes det gamle fingeravtrykket. En verdi OneUptime tar ut før fingeravtrykket lages, for eksempel en e-postadresse, endrer ingenting.
 :::
 
 :::details Et løst unntak kommer stadig tilbake

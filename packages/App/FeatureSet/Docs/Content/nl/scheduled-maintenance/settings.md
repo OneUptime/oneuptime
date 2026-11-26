@@ -19,6 +19,7 @@ Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De se
 | **Runbook-regels** | Start runbooks voor passende gebeurtenissen.                        |
 | **Labelregels**    | Voegt labels toe aan passende gebeurtenissen.                       |
 | **Herinneringsregels** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
+| **Auditlogboeken** | Toont wie een van deze regels heeft gemaakt, gewijzigd of verwijderd, en wanneer. |
 
 De sectie **Instellingen** bevat **Onderhoudsstatus**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Onderhoudssjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
 

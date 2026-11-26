@@ -46,17 +46,49 @@ on:
       - .github/workflows/data-security-ai-eval.yml
       # One feature's own words.
       - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts
+      - packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FindingPrecedent.ts
+      - packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts
+      - packages/Common/Utils/DataSecurity/FindingJudgement.ts
       - packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts
       - packages/Common/Server/Utils/AI/Toolbox/Serializer.ts
       - packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner.ts
+      - packages/Common/Utils/DataSecurity/DataStoreOwnerAnswer.ts
+      - packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming.ts
+      - packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ScrubRuleWriter.ts
+      - packages/Common/Types/DataSecurity/ScrubRuleWriterPlace.ts
+      - packages/Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes.ts
+      - packages/Common/Types/DataSecurity/ComplianceFacts.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDossier.ts
+      - packages/Common/Types/DataSecurity/RecordOfProcessing.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter.ts
+      - packages/Common/Types/DataSecurity/ImpactAssessment.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/AuditEvidencePrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/AuditEvidenceDrafter.ts
+      - packages/Common/Types/DataSecurity/AuditEvidence.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter.ts
+      - packages/Common/Types/DataSecurity/ExposureAssessment.ts
+      - packages/Common/Types/DataSecurity/BreachLaws.ts
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, FixIssue, SuggestFieldTypes, AskAi. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests, DraftRecord, DraftRecordOnRequest, DraftImpactAssessment, DraftAuditEvidence, DraftDataTypes, DescribeDataType, DraftExposureAssessment, DraftExposureAssessmentOnRequest. Empty: all of them."
         required: false
         default: ""
       cases:

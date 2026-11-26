@@ -459,6 +459,7 @@ Ogni punto dati porta l'ID risorsa Azure della sua risorsa (`azuremonitor.resour
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ A una risorsa di un [account connesso](/docs/telemetry/cloud-accounts) vengono p
 :::
 
 Un namespace di Service Bus riporta le sue metriche una volta per coda e topic, e un namespace di Event Hubs una volta per event hub. Dove si sommano, una riga della scheda **Metriche** del namespace ne mostra il totale e sotto riporta **totale delle serie**. Anche un monitor creato da quella riga legge il totale, come uno creato tramite l'API o Terraform senza un'aggregazione. Le altre righe riportano **media delle serie** e mostrano la coda o l'event hub medio: una latenza e, su un intervallo di oltre 3 ore, una quantità che il namespace trattiene, come i messaggi in attesa.
+
+La connessione legge le richieste di una Container App una volta per categoria di codice di stato, per distinguere le sue risposte 5xx, e la riga delle sue richieste le somma allo stesso modo: ne mostra il totale, come un monitor creato da quella riga.
 
 > [!IMPORTANT]
 > Il monitoraggio cloud pubblica ogni valore alcuni minuti dopo il momento che misura: da 10 a 20 minuti per CloudWatch interrogato come sopra, pochi minuti per Azure Monitor e Cloud Monitoring. Viene salvato al momento che misura. Dai a un monitor su queste metriche una finestra più lunga di quel ritardo (30 minuti per CloudWatch, 15 per gli altri), altrimenti non vede dati e non scatta mai.

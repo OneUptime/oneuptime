@@ -1,8 +1,10 @@
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import {
   DashboardPlaylistDashboard,
   isSameDashboardId,
 } from "Common/Types/Dashboard/DashboardPlaylist";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
+import ObjectID from "Common/Types/ObjectID";
 import {
   DurationTextPart,
   formatDurationText,
@@ -21,6 +23,51 @@ import {
  * (issue #5235), as plain functions: React-free, so App's tests and the
  * Common component tests read the same rules.
  */
+
+/*
+ * THE DASHBOARDS THE FIELD'S PICKER OFFERS (#10580): the project's
+ * dashboards that are not archived and not in the list yet, searched on the
+ * server as the editor types, 50 by name (EntityDropdown), and counted the
+ * same way for what the picker says when none is left. The field used to
+ * read the project's first 10,000 dashboards when it opened and pick from
+ * those in the browser, so a dashboard past them was never offered, and one
+ * in the list past them read as "Dashboard not available". The list's own
+ * dashboards are read by their ids (readPlaylistDashboards), as the player
+ * reads them.
+ */
+export type AddablePlaylistDashboardsQuery = {
+  isArchived: false;
+  _id?: IncludesNone;
+};
+
+export function getAddablePlaylistDashboardsQuery(
+  dashboards: ReadonlyArray<DashboardPlaylistDashboard>,
+): AddablePlaylistDashboardsQuery {
+  // An id that is no uuid would make the server refuse the whole search.
+  const ids: Array<string> = getPlaylistDashboardIds(dashboards).filter(
+    (id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    },
+  );
+
+  return {
+    isArchived: false,
+    ...(ids.length > 0 ? { _id: new IncludesNone(ids) } : {}),
+  };
+}
+
+/*
+ * What the picker says when nothing is left to add, as a translation key:
+ * an empty list, that the project has no dashboard yet; a list holding
+ * some, that every dashboard is in it (an archived one is never added).
+ */
+export function getNothingToAddText(
+  dashboards: ReadonlyArray<DashboardPlaylistDashboard>,
+): string {
+  return dashboards.length === 0
+    ? translationKey("This project has no dashboards yet")
+    : translationKey("Every dashboard is in the list");
+}
 
 /*
  * A dashboard of the playlist as the viewer may read it: its id, its name,

@@ -82,7 +82,12 @@ import {
  * does not speak, a swarm worker) come with what the operator should change.
  */
 
-// The docker CLI in the agent image (Alpine's docker-cli package).
+/*
+ * The docker CLI in the agent image: Docker's own static release, which
+ * Dockerfile.tpl checks against a pinned digest and puts where Alpine's
+ * docker-cli package put it (Alpine's is built with a Go that has known
+ * vulnerabilities, #10383).
+ */
 export const DOCKER_BINARY: string = "/usr/bin/docker";
 
 // The program the policy tiers and the output belongs to.

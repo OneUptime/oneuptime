@@ -45,7 +45,6 @@ import {
   getSharedNameFacts,
   getSharedNameMarks,
   getSharedNameOptionKey,
-  getSharedNameSelect,
 } from "Common/UI/Utils/SharedNameOptions";
 import {
   SharedNameDetail,
@@ -74,6 +73,9 @@ import {
   AffectedResourceSearchResult,
 } from "Common/Types/AffectedResources/AffectedResourceSearch";
 import { searchAffectedResources } from "./AffectedResourceSearchApi";
+import useLabelSearch, {
+  LabelSearch,
+} from "Common/UI/Components/EntityDropdown/LabelSearch";
 
 /*
  * Every kind the picker can offer: the kinds the server's one search reads
@@ -933,9 +935,6 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const [activeTab, setActiveTab] = useState<"resources" | "labels">(
     "resources",
   );
-  const [allLabels, setAllLabels] = useState<Array<Label>>([]);
-  const [isLoadingLabels, setIsLoadingLabels] = useState<boolean>(false);
-  const [labelsLoaded, setLabelsLoaded] = useState<boolean>(false);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
   const [isApplyingLabels, setIsApplyingLabels] = useState<boolean>(false);
   const [labelError, setLabelError] = useState<string>("");
@@ -1493,63 +1492,15 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Lazy-load labels the first time the user switches to the Labels tab.
-   * The list is cached for the picker's lifetime — switching back and
-   * forth between tabs is instant.
-   *
-   * IMPORTANT: do *not* add `isLoadingLabels` to the dep array. The first
-   * thing the loader does is setIsLoadingLabels(true); if that re-fires
-   * this effect, its cleanup sets `cancelled = true` and the in-flight
-   * request is silently dropped, leaving the popover stuck on
-   * "Loading labels...". `activeTab` + `labelsLoaded` are enough to gate
-   * re-entry.
+   * The Labels tab's labels: the ones whose name holds what is typed,
+   * searched on the server while the tab is open (useLabelSearch, #10646).
+   * It read the project's first 10,000 by name once and filtered them
+   * here, so a label past them could never bulk-add what it tags.
    */
-  useEffect(() => {
-    if (activeTab !== "labels" || labelsLoaded) {
-      return;
-    }
-    let cancelled: boolean = false;
-    const loadLabels: () => Promise<void> = async (): Promise<void> => {
-      setIsLoadingLabels(true);
-      setLabelError("");
-      try {
-        const result: { data: Array<Label> } = await ModelAPI.getList<Label>({
-          modelType: Label,
-          query: {} as never,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            // What tells two labels of one name apart (#10314).
-            ...getSharedNameSelect(Label),
-          } as never,
-          sort: { name: SortOrder.Ascending } as never,
-        });
-        if (cancelled) {
-          return;
-        }
-        setAllLabels(result.data || []);
-        setLabelsLoaded(true);
-      } catch {
-        if (cancelled) {
-          return;
-        }
-        setLabelError(
-          "Failed to load labels. You may not have permission to read labels.",
-        );
-      } finally {
-        if (!cancelled) {
-          setIsLoadingLabels(false);
-        }
-      }
-    };
-    void loadLabels();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, labelsLoaded]);
+  const labelSearch: LabelSearch = useLabelSearch({
+    isActive: isOpen && activeTab === "labels",
+    searchText: searchQuery,
+  });
 
   const toggleLabelId: (id: string) => void = (id: string): void => {
     setSelectedLabelIds((prev: Array<string>): Array<string> => {
@@ -1648,20 +1599,22 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * On the Labels tab the same input filters the label list client-side
-   * (we already have all labels in memory). Keeping a single searchQuery
-   * for both tabs keeps the input behavior intuitive — the user types,
-   * the visible list narrows, regardless of which tab they're on.
+   * On the Labels tab the same input searches the labels on the server.
+   * Keeping a single searchQuery for both tabs keeps the input behavior
+   * intuitive — the user types, the visible list narrows, regardless of
+   * which tab they're on.
    */
+  const filteredLabels: Array<Label> = labelSearch.labels;
+
   /*
    * Labels named alike before names were held to one label each (#10314):
    * each wears its list's pill, and what sets it apart under its name.
-   * Twins are found among every label the tab offers, so one the search
-   * hides still tells its twin apart.
+   * A label carries what tells it apart, so twins the search shows side
+   * by side are told apart.
    */
   const labelMarks: Map<string, SharedNameMark> = useMemo(() => {
     return getSharedNameMarks(
-      allLabels.map((label: Label) => {
+      filteredLabels.map((label: Label) => {
         return {
           value: label._id ? String(label._id) : "",
           label: label.name || "",
@@ -1670,18 +1623,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       }),
       translator,
     );
-  }, [allLabels, translator]);
-
-  const filteredLabels: Array<Label> = useMemo(() => {
-    const q: string = searchQuery.trim().toLowerCase();
-    if (q === "") {
-      return allLabels;
-    }
-    return allLabels.filter((label: Label): boolean => {
-      const name: string = (label.name || "").toLowerCase();
-      return name.includes(q);
-    });
-  }, [allLabels, searchQuery]);
+  }, [filteredLabels, translator]);
 
   /*
    * Clamp the keyboard cursor when the active list shrinks under it (e.g.
@@ -2740,7 +2682,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           {/* Labels tab body. */}
           {activeTab === "labels" && (
             <div className="flex-1 overflow-auto py-1">
-              {isLoadingLabels && (
+              {labelSearch.isLoading && (
                 <div className="flex w-full items-center px-3 py-2 text-start text-gray-500">
                   <svg
                     className="animate-spin -ms-0.5 me-2 h-4 w-4 text-indigo-500"
@@ -2767,16 +2709,19 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
-              {!isLoadingLabels && labelError !== "" && (
-                <div className="px-3 py-2 text-red-600">
-                  {translator.translateText(labelError)}
-                </div>
-              )}
+              {!labelSearch.isLoading &&
+                (labelError || labelSearch.error) !== "" && (
+                  <div className="px-3 py-2 text-red-600">
+                    {translator.translateText(labelError || labelSearch.error)}
+                  </div>
+                )}
 
-              {!isLoadingLabels &&
+              {!labelSearch.isLoading &&
                 labelError === "" &&
-                labelsLoaded &&
-                allLabels.length === 0 && (
+                labelSearch.error === "" &&
+                labelSearch.hasLoaded &&
+                filteredLabels.length === 0 &&
+                searchQuery.trim() === "" && (
                   <div className="px-3 py-2 text-gray-500">
                     {translator.translateText(
                       "No labels found in this project. Create labels first to use this shortcut.",
@@ -2784,11 +2729,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-              {!isLoadingLabels &&
+              {!labelSearch.isLoading &&
                 labelError === "" &&
-                labelsLoaded &&
-                allLabels.length > 0 &&
-                filteredLabels.length === 0 && (
+                labelSearch.error === "" &&
+                labelSearch.hasLoaded &&
+                filteredLabels.length === 0 &&
+                searchQuery.trim() !== "" && (
                   <div className="px-3 py-2 text-gray-500">
                     {translator.translateTemplate(
                       "No labels match “{{query}}”.",
@@ -2799,7 +2745,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-              {!isLoadingLabels &&
+              {!labelSearch.isLoading &&
                 filteredLabels.map(
                   (label: Label, idx: number): ReactElement => {
                     const labelId: string = label._id ? String(label._id) : "";
@@ -3060,6 +3006,26 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       </div>
                     );
                   },
+                )}
+
+              {/*
+               * More labels match than one search lists: how many, and how
+               * to find the rest - typing more of a name narrows them.
+               */}
+              {!labelSearch.isLoading &&
+                labelSearch.count > filteredLabels.length && (
+                  <p
+                    className="px-3 py-2 text-xs text-gray-500"
+                    data-testid="affected-resources-more-labels"
+                  >
+                    {translator.translateTemplate(
+                      "Showing {{shown}} of {{total}}. Type to narrow the list.",
+                      {
+                        shown: translator.formatNumber(filteredLabels.length),
+                        total: translator.formatNumber(labelSearch.count),
+                      },
+                    )}
+                  </p>
                 )}
             </div>
           )}

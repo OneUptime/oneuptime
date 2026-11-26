@@ -2,6 +2,7 @@ import DatabaseConfig from "../../../Server/DatabaseConfig";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import MailService from "../../../Server/Services/MailService";
 import OnCallReadinessService, {
+  INVITATION_NOT_ACCEPTED_READINESS_REASONS,
   PHONE_METHOD_REQUIRED_READINESS_REASON,
   ReadinessCoverageCell,
   ReadinessStatus,
@@ -14,6 +15,7 @@ import OnCallSetupReminderService, {
   SetupReminderResult,
   SetupReminderUserResult,
   SETUP_REMINDER_MAX_RECIPIENTS,
+  SETUP_REMINDER_NOT_JOINED_MESSAGE,
 } from "../../../Server/Services/OnCallSetupReminderService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -1318,5 +1320,84 @@ describe("OnCallSetupReminderService - the exported singleton", () => {
     expect(OnCallSetupReminderService).toBeInstanceOf(
       OnCallSetupReminderServiceClass,
     );
+  });
+});
+
+/*
+ * SOMEONE ONLY INVITED IS NOT MAILED (#10412). An invitee can be named on an
+ * escalation rule - by the Dashboard, the API, Ask AI or the MCP server -
+ * and is paged once they join. Until they accept, nothing about the
+ * project's on-call reaches them: not a page, not "you were added", and not
+ * this reminder, which told them "You are on an on-call rotation" in a
+ * project they have not joined. Their invitation asks them in.
+ */
+describe("OnCallSetupReminderService - someone only invited", () => {
+  test("is skipped, with why, and never mailed: their invitation asks them in", async () => {
+    readinessSpy.mockResolvedValue([
+      buildReadiness({
+        userId: USER_A,
+        email: "ivy@acme.example",
+        reasons: [...INVITATION_NOT_ACCEPTED_READINESS_REASONS],
+      }),
+      buildReadiness({ userId: USER_B }),
+    ] as never);
+
+    const result: SetupReminderResult = await newService().sendSetupReminders({
+      projectId: PROJECT_ID,
+      userIds: [USER_A, USER_B],
+    });
+
+    expect(outcomeFor(result, USER_A)).toBe(
+      SetupReminderOutcome.SkippedNotAMember,
+    );
+    expect(
+      result.results.find((one: SetupReminderUserResult): boolean => {
+        return one.userId.toString() === USER_A.toString();
+      })?.message,
+    ).toBe(SETUP_REMINDER_NOT_JOINED_MESSAGE);
+    // Only the member is mailed; the invitee's address never is.
+    expect(
+      sentMails().map((mail: SentMail): string => {
+        return mail.toEmail;
+      }),
+    ).toEqual(["jane@example.com"]);
+    expect(outcomeFor(result, USER_B)).toBe(SetupReminderOutcome.Sent);
+  });
+
+  test("burns no reminder window and reads no membership: their readiness says so", async () => {
+    readinessSpy.mockResolvedValue([
+      buildReadiness({
+        userId: USER_A,
+        reasons: [...INVITATION_NOT_ACCEPTED_READINESS_REASONS],
+      }),
+    ] as never);
+
+    await newService().sendSetupReminders({
+      projectId: PROJECT_ID,
+      userIds: [USER_A],
+    });
+
+    expect(cacheClaimSpy).not.toHaveBeenCalled();
+    expect(teamMemberSpy).not.toHaveBeenCalled();
+    expect(mailSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member whose reasons only share one line with an invitee's is still reminded", async () => {
+    readinessSpy.mockResolvedValue([
+      buildReadiness({
+        userId: USER_A,
+        reasons: [
+          INVITATION_NOT_ACCEPTED_READINESS_REASONS[0]!,
+          "No verified notification method - cannot be paged",
+        ],
+      }),
+    ] as never);
+
+    const result: SetupReminderResult = await newService().sendSetupReminders({
+      projectId: PROJECT_ID,
+      userIds: [USER_A],
+    });
+
+    expect(outcomeFor(result, USER_A)).toBe(SetupReminderOutcome.Sent);
   });
 });

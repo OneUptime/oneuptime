@@ -3,6 +3,7 @@ import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../../../Models/DatabaseModels/DataStoreFinding";
 import DataSecurityAiInput, {
+  AiIssueDossier,
   AiInputMarks,
   customerText,
   customerTextForRow,
@@ -176,14 +177,15 @@ describe("a text the customer's systems wrote", () => {
 
   test("has a secret, an email address and an IP address left out", () => {
     const text: string = customerText(
-      "export for alice@example.com from 10.1.2.3 password=hunter22 AKIAABCDEFGHIJKLMNOP",
+      // A public address: a private one (10.0.0.12) points at no one, and is kept.
+      "export for alice@example.com from 203.0.113.7 password=hunter22 AKIAABCDEFGHIJKLMNOP",
       500,
       "issue.evidence",
       new AiInputMarks(),
     );
 
     expect(text).not.toContain("alice@example.com");
-    expect(text).not.toContain("10.1.2.3");
+    expect(text).not.toContain("203.0.113.7");
     expect(text).not.toContain("hunter22");
     expect(text).not.toContain("AKIAABCDEFGHIJKLMNOP");
     expect(text).toContain("[redacted-email]");
@@ -236,17 +238,39 @@ describe("a text the customer's systems wrote", () => {
   });
 });
 
-describe("Explain with AI's prompt", () => {
-  test("carries the issue, its store and its places - and none of what a record keeps of the data", () => {
-    const prompt: DataSecurityAiPrompt =
-      DataSecurityAiInput.buildExplainIssuePrompt({
-        instructions: "Explain it.",
-        issue: plantedIssue(),
-        findings: [plantedFinding()],
-        dataTypeNamer: NAMER,
-      });
-    const sent: string = prompt.messages
-      .map((message: { content: string }): string => {
+// The issue, as OneUptime AI's analysis of it reads it (#10369): every record planted.
+function plantedDossier(): AiIssueDossier {
+  return {
+    issue: plantedIssue() as never,
+    store: plantedStore() as never,
+    places: [plantedFinding()] as never,
+    access: [plantedAccess()] as never,
+    copies: [],
+    securityCaseIds: [],
+    responses: [],
+    proposals: [],
+    declaredCode: null,
+    owners: { recordIds: [], names: [], count: 0 },
+    now: new Date("2026-11-20T12:00:00.000Z"),
+  };
+}
+
+function analysisPrompt(
+  dossier: AiIssueDossier = plantedDossier(),
+  instructions: string = "Analyze it.",
+): DataSecurityAiPrompt {
+  return DataSecurityAiInput.buildAnalyzeIssuePrompt({
+    feature: DataSecurityAiFeature.ExplainIssue,
+    instructions,
+    dossier,
+    dataTypeNamer: NAMER,
+  });
+}
+
+describe("an issue's analysis prompt (#10369)", () => {
+  test("carries the issue, its store, its places and who can reach it - and none of what a record keeps of the data", () => {
+    const sent: string = analysisPrompt()
+      .messages.map((message: { content: string }): string => {
         return message.content;
       })
       .join("\n");
@@ -257,14 +281,14 @@ describe("Explain with AI's prompt", () => {
     expect(sent).toContain("acme-card-exports");
     expect(sent).toContain("attributes.user.email");
     expect(sent).toContain("Card number");
+    expect(sent).toContain("partner");
   });
 
   test("is two messages: the instructions with the data rule, then the data", () => {
-    const prompt: DataSecurityAiPrompt =
-      DataSecurityAiInput.buildExplainIssuePrompt({
-        instructions: "  Explain it.  ",
-        issue: plantedIssue(),
-      });
+    const prompt: DataSecurityAiPrompt = analysisPrompt(
+      plantedDossier(),
+      "  Analyze it.  ",
+    );
 
     expect(
       prompt.messages.map((message: { role: string }): string => {
@@ -272,24 +296,22 @@ describe("Explain with AI's prompt", () => {
       }),
     ).toEqual(["system", "user"]);
     expect(prompt.instructions).toBe(
-      `Explain it.\n\n${DATA_SECURITY_AI_DATA_RULE}`,
+      `Analyze it.\n\n${DATA_SECURITY_AI_DATA_RULE}`,
     );
     expect(prompt.messages[1]!.content).toBe(JSON.stringify(prompt.data));
   });
 
-  test("the store's name is filled into the fix as it was cleaned", () => {
-    const issue: DataSecurityIssue = plantedIssue();
-    issue.dataStore!.name = "exports/alice@example.com";
+  test("the store's name is cleaned wherever it is said", () => {
+    const dossier: AiIssueDossier = plantedDossier();
+    const store: DataStore = plantedStore();
 
-    const data: JSONObject = DataSecurityAiInput.buildExplainIssuePrompt({
-      instructions: "Explain it.",
-      issue,
-    }).data;
+    store.name = "exports/alice@example.com";
+    dossier.store = store as never;
 
-    expect(JSON.stringify(data)).not.toContain("alice@example.com");
-    expect(JSON.stringify((data["issue"] as JSONObject)["fix"])).toContain(
-      "--bucket exports/[redacted-email]",
-    );
+    const sent: string = JSON.stringify(analysisPrompt(dossier).data);
+
+    expect(sent).not.toContain("alice@example.com");
+    expect(sent).toContain("exports/[redacted-email]");
   });
 });
 
@@ -549,11 +571,7 @@ describe("Ask AI's rows", () => {
 
 describe("a prompt is one this file made", () => {
   test("a built prompt and request are; a lookalike is not", () => {
-    const prompt: DataSecurityAiPrompt =
-      DataSecurityAiInput.buildExplainIssuePrompt({
-        instructions: "Explain it.",
-        issue: plantedIssue(),
-      });
+    const prompt: DataSecurityAiPrompt = analysisPrompt();
     const request: DataSecurityAiCodeRequest =
       DataSecurityAiInput.buildFixIssueRequest({
         instruction: "Fix it.",

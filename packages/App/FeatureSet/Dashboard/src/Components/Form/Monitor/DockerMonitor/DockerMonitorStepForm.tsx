@@ -134,6 +134,9 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<DockerHost> =
     useInfrastructureResources<DockerHost>({
+      valueField: "hostIdentifier",
+      searchFields: ["name", "hostIdentifier"],
+      heldValue: monitorStepDockerMonitor.hostIdentifier,
       modelType: DockerHost,
       select: {
         _id: true,
@@ -317,6 +320,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: DOCKER_HOST_ONBOARDING.addTitle,
           renderModal: (input: {

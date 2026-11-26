@@ -83,6 +83,17 @@ Hemmeligheder udfyldes, før scriptet i en monitor af typen Syntetisk monitor el
 
 Hvis en monitor henviser til en hemmelighed, den ikke må bruge, bliver henvisningen stående, som den er, og erstattes ikke med værdien.
 
+Når kontrollen af en API-, Websted- eller Ekstern statusside-monitor fejler, nævner fejlen kun URL'ens skema, vært og port, som `https://api.example.com`, så en hemmelighed i URL'en vises aldrig.
+
+En kontrol kan også give værdien af en hemmelighed tilbage: en browser citerer URL'en til en side, den ikke kunne indlæse, et script logger det, det indeholder, og en server kan gentage den forespørgsel, de headere eller den brødtekst, den modtog. OneUptime skjuler værdien overalt, hvor den står i det, kontrollen rapporterer: et scripts fejl, logmeddelelser og resultat, et svars brødtekst og headere samt fejlårsagen for kontrollen og for hvert forsøg. Så står værdien hverken i monitorens logs, dens oversigt, resultatet af en monitortest eller grundårsagen til en hændelse eller en advarsel. OneUptime skriver `[REDACTED]` i stedet og beholder resten, så en side på `https://app.example.com/login?token={{monitorSecrets.Token}}`, der ikke kan indlæses, rapporteres som `https://app.example.com/login?token=[REDACTED]`. Værdien findes med store eller små bogstaver og uanset hvordan kontrollen skrev den: procentkodet, escapet i JSON eller HTML eller i base64.
+
+OneUptime skjuler ikke:
+
+- En værdi på færre end 4 tegn, mellemrum omkring den ikke medregnet. En så kort værdi er en del af almindelig tekst, som tal og ord.
+- Det, et skærmbillede viser. Et skærmbillede er et billede, så en hemmelighed, som siden viser på skærmen, er med i det.
+
+Kriterier læser en kontrol, som den rapporteres. Skriv et kriterium ud fra teksten omkring en hemmelighed, som `ERR_NAME_NOT_RESOLVED` eller `token=`, frem for ud fra hemmelighedens værdi: et kriterium kan ses af alle, der kan læse monitoren.
+
 Når du tester en monitor, før du gemmer den, udfyldes kun hemmeligheder, der er tilgængelige for **Alle monitorer**, fordi en ny monitor ikke står på nogen liste og endnu ikke har nogen etiketter. Når du har gemt monitoren, bruger testene hver hemmelighed, som monitoren må bruge.
 
 ## Log ind med en engangskode
@@ -128,7 +139,7 @@ return {
 Sonden udleverer aldrig en kode, der har mindre end fem sekunder tilbage, eller en tredjedel af perioden, når perioden er kortere: i stedet venter den på den næste kode, højst fem sekunder, og regner ikke ventetiden med i kontrollens udførelsestid. Hver kode, en kontrol genererer, vises som stjerner, for eksempel `******`, i dens logmeddelelser, dens resultat, dens fejl og navnene på dens skærmbilleder. Et skærmbillede er et billede af siden, så tag det, før koden indtastes, eller efter at siden er gået videre.
 
 > [!NOTE]
-> Det er sonden, der genererer koderne, så en brugerdefineret sonde skal have OneUptime 17.0.1 eller nyere. På en ældre kører en kontrol, der kræver en kode, ikke, men fejler med en sætning om at opdatere sonden; monitorens formular og sondens side nævner en sonde, der er for gammel, og [Opdater en sonde](/docs/probe/custom-probe#opdater-en-sonde) forklarer hvordan. Sondens ur skal også gå rigtigt, for en sonde, der går et minut forkert, genererer koder, som webstedet allerede er gået videre fra.
+> Det er sonden, der genererer koderne, så en brugerdefineret sonde skal have OneUptime 17.1.0 eller nyere. På en ældre kører en kontrol, der kræver en kode, ikke, men fejler med en sætning om at opdatere sonden; monitorens formular og sondens side nævner en sonde, der er for gammel, og [Opdater en sonde](/docs/probe/custom-probe#opdater-en-sonde) forklarer hvordan. Sondens ur skal også gå rigtigt, for en sonde, der går et minut forkert, genererer koder, som webstedet allerede er gået videre fra.
 
 ## Fejlfinding
 
@@ -144,12 +155,16 @@ Før en monitor er gemt, udfyldes kun hemmeligheder, der er tilgængelige for **
 Kun felterne i tabellen ovenfor accepterer hemmeligheder. I ethvert andet felt sendes `{{monitorSecrets.NAME}}`, som det er skrevet.
 :::
 
+:::details En kontrol viser `[REDACTED]`, hvor der stod en værdi
+Værdien af en hemmelighed stod i det, kontrollen rapporterede, og OneUptime skjulte den. Teksten omkring den, som `token=[REDACTED]`, viser, hvor scriptet eller forespørgslen brugte hemmeligheden.
+:::
+
 :::details Webstedet afviser engangskoden
 Kontrollér, at **Aktuel kode** svarede til din godkendelsesapp, da du gemte hemmeligheden, at sondens ur går rigtigt, og at en henvisning i en JSON-brødtekst i en anmodning står i anførselstegn. Hvis der går et stykke tid, før webstedet beder om koden under login, så bed om koden dér med `oneuptime.getTotpCode`.
 :::
 
 :::details Kontrollen siger, at sonden er for gammel til at generere engangskoder
-Sonden kører en version ældre end OneUptime 17.0.1, som ikke kan generere engangskoder, så kontrollen blev ikke kørt på den. Opdater sonden (se [Opdater en sonde](/docs/probe/custom-probe#opdater-en-sonde)), eller lad sonder med 17.0.1 eller nyere kontrollere monitoren.
+Sonden kører en version ældre end OneUptime 17.1.0, som ikke kan generere engangskoder, så kontrollen blev ikke kørt på den. Opdater sonden (se [Opdater en sonde](/docs/probe/custom-probe#opdater-en-sonde)), eller lad sonder med 17.1.0 eller nyere kontrollere monitoren.
 :::
 
 ## Næste skridt

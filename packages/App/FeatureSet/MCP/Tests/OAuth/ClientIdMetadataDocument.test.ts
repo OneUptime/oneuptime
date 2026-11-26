@@ -385,11 +385,16 @@ describe("ClientIdMetadataDocument", () => {
       await ClientIdMetadataDocument.resolve(CLIENT_ID);
 
       expect(guardSpy).toHaveBeenCalledTimes(1);
-      expect(guardSpy).toHaveBeenCalledWith(CLIENT_ID, {
-        blockPrivateAddresses: true,
-        targetLabel: "Client ID metadata document URL",
-        includeResolvedAddressInError: false,
-      });
+      expect(guardSpy).toHaveBeenCalledWith(
+        CLIENT_ID,
+        {
+          blockPrivateAddresses: true,
+          targetLabel: "Client ID metadata document URL",
+          includeResolvedAddressInError: false,
+        },
+        // Never through a proxy, which would connect somewhere unchecked.
+        { direct: true },
+      );
     });
 
     it("checks before it fetches", async () => {
@@ -411,6 +416,15 @@ describe("ClientIdMetadataDocument", () => {
       expect(request.headers).toEqual({ Accept: "application/json" });
       expect(request.options.doNotFollowRedirects).toBe(true);
       expect(request.options.disableProxy).toBe(true);
+      /*
+       * The pinned agents go through no proxy either: they carry their
+       * route themselves (#10442), so the pin is asked for direct ones.
+       */
+      expect(guardSpy).toHaveBeenCalledWith(
+        CLIENT_ID,
+        expect.objectContaining({ blockPrivateAddresses: true }),
+        { direct: true },
+      );
       expect(request.options.timeout).toBe(5000);
       expect(request.options.totalTimeoutInMs).toBe(5000);
       expect(request.options.maxContentLength).toBe(64 * 1024);
@@ -613,6 +627,7 @@ describe("ClientIdMetadataDocument", () => {
           expect(guardSpy).toHaveBeenCalledWith(
             fixture.clientId,
             expect.objectContaining({ blockPrivateAddresses: true }),
+            { direct: true },
           );
           expect(requestSeen().url.toString()).toBe(fixture.clientId);
         },

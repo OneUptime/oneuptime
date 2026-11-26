@@ -21,7 +21,6 @@ import {
   SecurityLogOwner,
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_EVENT_SCOPE_MAX_ATTRIBUTE_VALUES } from "../../Types/SecurityEvent/SecurityEventScope";
-import { DETECTION_LATE_EVENT_WINDOW_IN_MINUTES } from "../../Types/SecurityEvent/DetectionFindingConstants";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import TelemetryReadScopeUtil, {
@@ -36,6 +35,14 @@ import {
   SecurityAttackCampaign,
   readSecurityAttackCampaign,
 } from "../../Types/SecurityEvent/SecurityAttackCampaign";
+import { SECURITY_ATTACK_NETWORK_ADDRESSES_MAX } from "../../Types/SecurityEvent/SecurityAttackNetwork";
+import {
+  SECURITY_CAMPAIGN_OF_ADDRESS_TARGETS,
+  SECURITY_CAMPAIGN_OF_ADDRESS_USER_AGENTS,
+  SecurityCampaignOfAddressRead,
+  SecurityCampaignOfAddressRow,
+} from "../../Types/SecurityEvent/SecurityCampaignContainment";
+import { CLOUDFLARE_ATTRIBUTES } from "../../Utils/SecurityEvent/Connectors/CloudflareNormalizer";
 import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE } from "../../Utils/SecurityEvent/ScrubbedAddress";
 import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
@@ -58,6 +65,12 @@ import {
   readSecurityLogOwners,
 } from "../../Utils/SecurityCase/SecurityConnectionMatch";
 import { foldCloudResourceAttribute } from "../Utils/SecurityEvent/SecurityEventRow";
+import {
+  DetectionArrivalRead,
+  detectionArrivedBefore,
+  detectionArrivedBy,
+  isDetectionArrivalCandidate,
+} from "../Utils/SecurityEvent/DetectionArrivalRead";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -91,116 +104,22 @@ export interface DetectionMatchGroup {
 }
 
 /*
- * WHAT A RUN OF A RULE JUDGES, BY WHEN IT ARRIVED.
- *
- * A rule that counts (Types/SecurityEvent/RealTimeDetection) reads a window
- * of its interval as it stood when the events it judges came in, and keeps
- * a group only when those events are what brought it to the threshold: one
- * of them is among the group's matches, and with only what came in before
- * them the group had not reached it. A burst fires once, on the events that
- * make the count; a late event that makes it fires too; and a group past it
- * stays quiet until the next window. Two kinds of run judge events so:
- *
- *  - A real-time run judges the events one write handed it, by id: ids are
- *    time-ordered (UUIDv7, made as each row is built), so a later id came
- *    in later, and the window as it stood is the events with an id no later
- *    than the write's last.
- *  - A scheduled run judges every event that arrived since the rule's last
- *    run (#10337): createdAt, stamped as each row is built, after the
- *    rule's last run and no later than this one. An event that happened
- *    long before it reached OneUptime - a batch a shipper held, a span that
- *    ended a minute after it started, a flow read in whole windows - is
- *    judged by the first run after it arrived, once, with the events of the
- *    window it happened in.
+ * What a run of a rule judges, by when it arrived, and the condition a
+ * scheduled run and a scheduled hunt both read it with: kept in
+ * DetectionArrivalRead, where the statement generator reads them too, and
+ * re-exported here for the reads below and everything that imports them.
  */
-export interface DetectionWriteArrival {
-  kind?: "write" | undefined;
-  // The write's events, by id.
-  candidateIds: Array<string>;
-  // The lowest and the highest of them.
-  firstId: string;
-  lastId: string;
-  // When they happened, at most: the groups they name are read there.
-  candidateStartTime: Date;
-  candidateEndTime: Date;
-}
-
-export interface DetectionRunArrival {
-  kind: "run";
-  // What the rule's last run judged: everything that arrived by then. Exclusive.
-  arrivedAfter: Date;
-  // What this run judges up to. Inclusive.
-  arrivedUntil: Date;
-  // When the events it judges happened, at most: the groups they name are read there.
-  candidateStartTime: Date;
-  candidateEndTime: Date;
-}
-
-/*
- * How long before it arrived an event a scheduled run judges may have
- * happened (DETECTION_LATE_EVENT_WINDOW_IN_MINUTES), held to each event:
- * one that reached OneUptime later than that is stored and searchable, and
- * Run on Past Events reads it, but no run judges it.
- */
-const DETECTION_RUN_LATE_EVENT_SECONDS: number =
-  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60;
-
-export type DetectionArrivalRead = DetectionWriteArrival | DetectionRunArrival;
-
-// The window as it stood when the events judged came in.
-export function detectionArrivedBy(arrival: DetectionArrivalRead): Statement {
-  if (arrival.kind === "run") {
-    return SQL`createdAt <= ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedUntil,
-    }}`;
-  }
-
-  return SQL`_id <= ${{
-    type: TableColumnType.Text,
-    value: arrival.lastId,
-  }}`;
-}
-
-// What had come in before them: judged already.
-export function detectionArrivedBefore(
-  arrival: DetectionArrivalRead,
-): Statement {
-  if (arrival.kind === "run") {
-    return SQL`createdAt <= ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedAfter,
-    }}`;
-  }
-
-  return SQL`_id < ${{
-    type: TableColumnType.Text,
-    value: arrival.firstId,
-  }}`;
-}
-
-// One of the events judged: for a run, one that arrived in it, within a day of when it happened.
-export function isDetectionArrivalCandidate(
-  arrival: DetectionArrivalRead,
-): Statement {
-  if (arrival.kind === "run") {
-    return SQL`(createdAt > ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedAfter,
-    }} AND createdAt <= ${{
-      type: TableColumnType.Date,
-      value: arrival.arrivedUntil,
-    }} AND time >= createdAt - toIntervalSecond(${{
-      type: TableColumnType.Number,
-      value: DETECTION_RUN_LATE_EVENT_SECONDS,
-    }}))`;
-  }
-
-  return SQL`has(${{
-    type: TableColumnType.ArrayText,
-    value: arrival.candidateIds,
-  }}, _id)`;
-}
+export type {
+  DetectionArrivalColumnRef,
+  DetectionArrivalRead,
+  DetectionRunArrival,
+  DetectionWriteArrival,
+} from "../Utils/SecurityEvent/DetectionArrivalRead";
+export {
+  detectionArrivedBefore,
+  detectionArrivedBy,
+  isDetectionArrivalCandidate,
+} from "../Utils/SecurityEvent/DetectionArrivalRead";
 
 export interface FindDetectionMatchesData {
   projectId: ObjectID;
@@ -208,6 +127,12 @@ export interface FindDetectionMatchesData {
   endTime: Date;
   whereFragment: Statement;
   groupByExpression: Statement | null;
+  /*
+   * Whether an event has a value for the field the rule groups by
+   * (buildSigmaFieldHasValue): a rule that counts per value leaves out the
+   * events that have none, so they never add up as one value (#10415).
+   */
+  groupHasValueExpression?: Statement | null | undefined;
   distinctCountExpression: Statement | null;
   minMatchCount: number;
   maxGroups: number;
@@ -323,6 +248,26 @@ export interface SecurityEventLogResource {
 
 // The most values one activity lookup reads.
 export const OBSERVABLE_ACTIVITY_MAX_VALUES: number = 50;
+
+/*
+ * The texts of an array a grouped read returned, each once and exactly as
+ * stored - a later read matches them as written - blank ones left out.
+ */
+function readStringArray(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const texts: Array<string> = [];
+
+  for (const item of value) {
+    if (typeof item === "string" && item.trim() && !texts.includes(item)) {
+      texts.push(item);
+    }
+  }
+
+  return texts;
+}
 
 function readDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === "") {
@@ -579,6 +524,13 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
    * that carry no username. The threshold is enforced in HAVING so the
    * maxGroups LIMIT keeps only qualifying groups instead of letting
    * noisy-but-under-threshold groups crowd out real ones.
+   *
+   * A rule that counts per value - a group field, and a threshold above
+   * one or a distinct count - leaves out the events with no value for its
+   * group field (groupHasValueExpression, #10415), in the read and in the
+   * groups an arrival names: every failed sign-in with no address is no
+   * "one IP address". One that fires on each event keeps them, in a group
+   * of their own, as before.
    */
   public async findDetectionMatches(
     data: FindDetectionMatchesData,
@@ -657,6 +609,20 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     statement.append(data.whereFragment);
     statement.append(")");
 
+    const minMatchCount: number = Math.max(1, data.minMatchCount);
+    const leavesOutNoValue: boolean = Boolean(
+      data.groupByExpression &&
+        data.groupHasValueExpression &&
+        (data.distinctCountExpression || minMatchCount > 1),
+    );
+
+    // Events with no value for the group field are no value to count.
+    if (leavesOutNoValue) {
+      statement.append(" AND (");
+      statement.append(data.groupHasValueExpression!);
+      statement.append(")");
+    }
+
     if (arrival) {
       // The window as it stood when the events judged came in.
       statement.append(" AND ");
@@ -684,6 +650,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
           }} AND `,
         );
         statement.append(isDetectionArrivalCandidate(arrival));
+
+        // Nor are the groups of events that have none of the field.
+        if (leavesOutNoValue) {
+          statement.append(" AND (");
+          statement.append(data.groupHasValueExpression!);
+          statement.append(")");
+        }
+
         statement.append(")");
       }
     }
@@ -700,7 +674,6 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     const effectiveCountColumn: string = data.distinctCountExpression
       ? "distinctCount"
       : "matchCount";
-    const minMatchCount: number = Math.max(1, data.minMatchCount);
 
     if (arrival) {
       /*
@@ -967,6 +940,11 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     limit: number;
     // The sources the reader may read; none: every one (findObservableActivity).
     serviceFilter?: TelemetryServiceFilter | undefined;
+    /*
+     * The most rows a read may ask for: the page's 100 by address, or the
+     * addresses grouped by network (#10354), which reads more of them.
+     */
+    maxLimit?: number | undefined;
   }): Promise<Array<SecurityAttackCampaign>> {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -976,7 +954,16 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       this.database!.getDatasourceOptions().database!;
     const limit: number = Math.max(
       1,
-      Math.min(SECURITY_ATTACK_CAMPAIGNS_MAX, Math.trunc(data.limit)),
+      Math.min(
+        Math.max(
+          SECURITY_ATTACK_CAMPAIGNS_MAX,
+          Math.min(
+            data.maxLimit || SECURITY_ATTACK_CAMPAIGNS_MAX,
+            SECURITY_ATTACK_NETWORK_ADDRESSES_MAX,
+          ),
+        ),
+        Math.trunc(data.limit),
+      ),
     );
 
     const statement: Statement = SQL`SELECT principalIp AS sourceIp, count() AS requestCount, countIf(requestOutcome = ${{
@@ -1015,7 +1002,19 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     }}] = ${{
       type: TableColumnType.Text,
       value: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
-    }}) AS hiddenAddressCount FROM `;
+    }}) AS hiddenAddressCount, anyIf(attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asn,
+    }}], attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asn,
+    }}] != '') AS asn, anyIf(attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asnName,
+    }}], attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asnName,
+    }}] != '') AS asnName FROM `;
     statement.append(`${databaseName}.${this.model.tableName}`);
     statement.append(
       SQL` WHERE projectId = ${{
@@ -1058,6 +1057,160 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
         };
       },
     );
+  }
+
+  /*
+   * THE CAMPAIGN OF ONE ADDRESS (#10354): the other addresses whose web
+   * attacks over the window share its tools and its targets - a request of
+   * theirs carried one of the address's user agents, exactly, to one of
+   * the requests it sent - the most requests first, at most `limit`. What
+   * a case about the address offers to block as a whole. Nothing when the
+   * address's own requests named no user agent or no target: OneUptime
+   * then cannot say what the campaign is. Every value is a bound parameter.
+   */
+  public async findCampaignOfAddress(data: {
+    projectId: ObjectID;
+    // The address's spellings, as events may hold it (getSecurityAddressSpellings).
+    spellings: Array<string>;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+    serviceFilter?: TelemetryServiceFilter | undefined;
+  }): Promise<SecurityCampaignOfAddressRead> {
+    const spellings: Array<string> = Array.from(
+      new Set(
+        data.spellings
+          .map((spelling: string): string => {
+            return spelling.trim();
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    if (spellings.length === 0) {
+      return { userAgents: [], targetCount: 0, addresses: [] };
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+    const userAgent: Statement = SQL`attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_REQUEST_ATTRIBUTES.userAgent,
+    }}]`;
+    const inWindow: (statement: Statement) => void = (
+      statement: Statement,
+    ): void => {
+      statement.append(
+        SQL` WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }} AND time >= ${{
+          type: TableColumnType.DateTime64,
+          value: data.startTime,
+        }} AND time <= ${{
+          type: TableColumnType.DateTime64,
+          value: data.endTime,
+        }} AND classUid = ${{
+          type: TableColumnType.Number,
+          value: HTTP_ACTIVITY_CLASS_UID,
+        }}`,
+      );
+    };
+
+    // What the address sent: its tools and its requests.
+    const own: Statement = SQL`SELECT groupUniqArrayIf(${{
+      type: TableColumnType.Number,
+      value: SECURITY_CAMPAIGN_OF_ADDRESS_USER_AGENTS,
+    }})(`;
+    own.append(userAgent);
+    own.append(", ");
+    own.append(userAgent);
+    own.append(
+      SQL` != '') AS userAgents, groupUniqArrayIf(${{
+        type: TableColumnType.Number,
+        value: SECURITY_CAMPAIGN_OF_ADDRESS_TARGETS,
+      }})(substring(targetResource, 1, 300), targetResource != '') AS targets FROM `,
+    );
+    own.append(`${databaseName}.${this.model.tableName}`);
+    inWindow(own);
+    own.append(
+      SQL` AND principalIp IN ${{
+        type: TableColumnType.ArrayText,
+        value: spellings,
+      }}`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(own, data.serviceFilter || {});
+    own.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const ownRows: Array<JSONObject> = await this.readRows(own);
+    const userAgents: Array<string> = readStringArray(
+      ownRows[0]?.["userAgents"],
+    );
+    const targets: Array<string> = readStringArray(ownRows[0]?.["targets"]);
+
+    if (userAgents.length === 0 || targets.length === 0) {
+      return { userAgents, targetCount: targets.length, addresses: [] };
+    }
+
+    // The other addresses that sent one of those requests with one of those tools.
+    const others: Statement = SQL`SELECT principalIp AS sourceIp, count() AS requestCount, uniq(targetResource) AS sharedTargetCount, max(time) AS lastSeen FROM `;
+    others.append(`${databaseName}.${this.model.tableName}`);
+    inWindow(others);
+    others.append(
+      SQL` AND principalIp != '' AND principalIp NOT IN ${{
+        type: TableColumnType.ArrayText,
+        value: spellings,
+      }} AND `,
+    );
+    others.append(userAgent);
+    others.append(
+      SQL` IN ${{
+        type: TableColumnType.ArrayText,
+        value: userAgents,
+      }} AND substring(targetResource, 1, 300) IN ${{
+        type: TableColumnType.ArrayText,
+        value: targets,
+      }}`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      others,
+      data.serviceFilter || {},
+    );
+    others.append(
+      SQL` GROUP BY sourceIp ORDER BY requestCount DESC, sourceIp ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)) + 1,
+      }}`,
+    );
+    others.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    return {
+      userAgents,
+      targetCount: targets.length,
+      addresses: (await this.readRows(others)).map(
+        (row: JSONObject): SecurityCampaignOfAddressRow => {
+          return {
+            address: String(row["sourceIp"] ?? ""),
+            requestCount: Number(row["requestCount"] || 0),
+            sharedTargetCount: Number(row["sharedTargetCount"] || 0),
+            lastSeen: readDate(row["lastSeen"])?.toISOString() || "",
+          };
+        },
+      ),
+    };
+  }
+
+  private async readRows(statement: Statement): Promise<Array<JSONObject>> {
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []) as Array<JSONObject>;
   }
 
   /*

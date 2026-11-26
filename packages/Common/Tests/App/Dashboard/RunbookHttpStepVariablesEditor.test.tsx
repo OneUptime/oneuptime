@@ -41,10 +41,11 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * AN HTTP REQUEST STEP NAMES RUNBOOK VARIABLES, on a runbook's Steps page.
  *
  * Bash, JavaScript, SSH and kubectl steps named variables; an HTTP request
- * step's URL, headers and body now do too, and OneUptime fills them in when
- * the step runs - a secret as well, since OneUptime sends the request
- * itself. The step says so under its fields, offers the variables as chips
- * to copy, and says when it names one that is not there.
+ * step's URL, headers and body now do too - and its CA certificate (#10441)
+ * - and OneUptime fills them in when the step runs - a secret as well,
+ * since OneUptime sends the request itself. The step says so under its
+ * fields, offers the variables as chips to copy, and says when it names one
+ * that is not there.
  *
  * The real page; only the model API is stubbed.
  */
@@ -195,7 +196,7 @@ describe("an HTTP request step's variables", () => {
     );
 
     expect(help).toHaveTextContent(
-      "Use a variable in the URL, the headers or the body as {{global.variables.NAME}}. Secrets are filled in too, and hidden in what the step records.",
+      "Use a variable in the URL, headers, body or CA certificate as {{global.variables.NAME}}. Secrets are filled in too, and hidden in what the step records.",
     );
     expect(within(help).getByText("{{global.variables.NAME}}").tagName).toBe(
       "CODE",

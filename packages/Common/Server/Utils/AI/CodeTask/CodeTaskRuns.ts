@@ -110,6 +110,12 @@ export default class CodeTaskRuns {
      */
     triggeredByAiInsightId?: ObjectID | undefined;
     /*
+     * The Data Security issue the person asked from, when the task fixes
+     * one (Fix with AI, DataSecurityCodeTask): its run says what it is
+     * about (#10364).
+     */
+    triggeredByDataSecurityIssueId?: ObjectID | undefined;
+    /*
      * The fix of OneUptime AI's the person asked from, when they asked for
      * the code that declares a cloud resource to make the fix's change
      * (Utils/AiRemediation/DeclaredCodeChange): the fix, and its step.
@@ -151,6 +157,10 @@ export default class CodeTaskRuns {
 
     if (data.triggeredByAiInsightId) {
       run.triggeredByAiInsightId = data.triggeredByAiInsightId;
+    }
+
+    if (data.triggeredByDataSecurityIssueId) {
+      run.triggeredByDataSecurityIssueId = data.triggeredByDataSecurityIssueId;
     }
 
     if (data.declaredCodeChange) {
@@ -210,6 +220,44 @@ export default class CodeTaskRuns {
     }
 
     return await CodeTaskRuns.createFirstTurn(run, data.holdsTo);
+  }
+
+  /*
+   * A task OneUptime starts for a Data Security issue a security case is
+   * about (#10740): a playbook's Fix the code with AI step, on a case whose
+   * issue is in no group, asks Fix with AI for that issue itself. Nobody
+   * typed the request - DataSecurityAiInput built it - and the run names the
+   * issue and the case: the case keeps its pull request, as it keeps one the
+   * step asks for an exception or a group, and Code says the case is where
+   * it came from. An ordinary Code task from then on.
+   */
+  @CaptureSpan()
+  public static async startForDataSecurityIssue(data: {
+    projectId: ObjectID;
+    repository: CodeRepository;
+    message: string;
+    triggeredByDataSecurityIssueId: ObjectID;
+    triggeredBySecurityCaseId?: ObjectID | undefined;
+  }): Promise<AIRun> {
+    const message: string = CodeTaskRuns.readMessage(data.message);
+
+    // Subjectless AI work: no daily fix-task limit applies (FixRunBudget).
+    await FixRunBudget.assertWithinBudget(data.projectId, {});
+
+    const run: AIRun = CodeTaskRuns.newTurn({
+      projectId: data.projectId,
+      codeRepositoryId: data.repository.id!,
+      request: { message, context: [] },
+    });
+
+    run.title = CodeTaskTitle.fromMessage(message);
+    run.triggeredByDataSecurityIssueId = data.triggeredByDataSecurityIssueId;
+
+    if (data.triggeredBySecurityCaseId) {
+      run.triggeredBySecurityCaseId = data.triggeredBySecurityCaseId;
+    }
+
+    return await CodeTaskRuns.createFirstTurn(run, undefined);
   }
 
   /*

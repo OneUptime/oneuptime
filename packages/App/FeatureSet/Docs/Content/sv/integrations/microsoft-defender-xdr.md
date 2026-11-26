@@ -6,6 +6,7 @@ Importera larmen från varje [Microsoft Defender XDR](https://learn.microsoft.co
 - [Konfigurera anslutningen](#konfigurera-anslutningen): En appregistrering, en behörighet och anslutningens formulär.
 - [Vad som importeras](#vad-som-importeras): Hur varje Defender-larm blir en säkerhetshändelse.
 - [Så fungerar avsökningen](#så-fungerar-avsökningen): Det fönster som varje avsökning läser, och vad en upptagen klientorganisation gör med det.
+- [Blockera med Microsoft Defender](#blockera-med-microsoft-defender): Tillämpa din blocklista på varje enhet, med en behörighet till.
 - [Felsökning](#felsökning): Vad varje fel betyder och vad du ska ändra.
 :::
 
@@ -64,6 +65,7 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 | **Katalog-ID (tenant)** | Appens sida **Overview**. Klientorganisationens GUID, eller en verifierad domän som `contoso.onmicrosoft.com`. |
 | **Program-ID (klient)** | Appens sida **Overview**. GUID:t för den app som har `SecurityAlert.Read.All`. |
 | **Moln** | **Offentligt Azure-moln**, som också betjänar Microsoft 365 GCC, eller **Azure Government (USA)** för GCC High (`login.microsoftonline.us` och `graph.microsoft.us`). Microsoft 365 DoD och 21Vianet-molnet i Kina stöds inte. |
+| **Blockera domäner, adresser och filer med Defender** | Avslaget på en ny anslutning. Påslaget blockerar det det som ditt projekts blocklista innehåller på varje enhet, och kräver `Ti.ReadWrite.All` (se [Blockera med Microsoft Defender](#blockera-med-microsoft-defender)). |
 | **Klienthemlighet** | Hemlighetens **Value**. Den krypteras, returneras aldrig av API:et och visas aldrig igen. Ersätt den med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
 Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall (minuter)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
@@ -130,6 +132,26 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 - **Importera det här tidsintervallet** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
 - **Kopiera diagnostik** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
+## Blockera med Microsoft Defender
+
+Slå på **Blockera domäner, adresser och filer med Defender** på en anslutning, så tillämpas ditt projekts [blocklista](/docs/telemetry/security-cases#blocklista) på varje enhet som Microsoft Defender for Endpoint skyddar. Varje blockering blir en Defender-[indikator](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview), arkiverad under programmet `OneUptime`, som upphör när blockeringen upphör:
+
+| På blocklistan | Defender-indikator | Vad Defender gör |
+| --- | --- | --- |
+| En domän | `DomainName`, `Block` | Blockerar domänen och varje namn under den |
+| En URL | `Url`, `Block` | Blockerar URL:en i Microsoft Edge, och dess domän i andra webbläsare |
+| En adress blockerad på varje maskin | `IpAddress`, `Block` | Blockerar anslutningar till adressen. Ett intervall skickas aldrig: Defender tar en adress i taget |
+| En fil | `FileSha256`, `FileSha1` eller `FileMd5`, `Block` | Hindrar filen från att köras |
+| En fil, blockerad och satt i karantän | Samma, `BlockAndRemediate` | Hindrar filen från att köras, och sätter kopiorna den hittar i karantän |
+
+Reglaget är avslaget på en ny anslutning: En anslutning som skapats för att importera larm läser bara. Så här slår du på det:
+
+1. Gå i appregistreringen till **API permissions → Add a permission → APIs my organization uses**, sök efter `WindowsDefenderATP`, välj **Application permissions**, välj `Ti.ReadWrite.All` och ge administratörsmedgivande. Det är den enda behörighet som blockering behöver.
+2. Slå på **Custom network indicators** och **Allow or block file** under **Settings → Endpoints → Advanced features** i Microsoft Defender-portalen. Utan dem behåller Defender indikatorerna men blockerar ingenting; utanför Microsoft Edge blockeras en domän, en URL eller en adress bara där nätverksskydd är i blockeringsläge.
+3. Slå på **Blockera domäner, adresser och filer med Defender** på anslutningen och klicka på **Testa anslutningen**: **Block with Microsoft Defender** kontrollerar behörigheten.
+
+En klientorganisation rymmer 15 000 indikatorer, dess egna inräknade. En blockering som Defender inte kan rymma, eller avvisar, visas som inte tillämpad på blocklistan, med orsaken. OneUptime läser och tar bara bort de indikatorer som den har lagt till för den här anslutningen, aldrig en som en person har skapat. När Defender stryper den försöker den igen vid nästa genomgång.
+
 ## Testa anslutningen
 
 **Testa anslutningen** på en anslutnings rad och **Testa de här inställningarna** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
@@ -140,6 +162,7 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID utfärdar en token för Microsoft Graph, i det moln som du valde. Det misslyckas vid en felaktig eller utgången hemlighet, ett felaktigt klientorganisations- eller klient-ID eller fel moln. |
 | **Read alerts from Microsoft Graph** | Ett larm som har skapats de senaste 24 timmarna kan läsas (`$top=1`). En `403` här är den saknade behörigheten `SecurityAlert.Read.All`, det saknade administratörsmedgivandet eller en klientorganisation utan Defender XDR. |
 | **Alerts available to import** | Hur många larm som har skapats de senaste 24 timmarna och de senaste 7 dagarna, en sida med 100 för var och en, så `100+` betyder fler. Inga på 7 dagar är en varning, inte ett fel. |
+| **Block with Microsoft Defender** | Bara med **Blockera domäner, adresser och filer med Defender** påslaget: Appregistreringen har `Ti.ReadWrite.All`, och indikatorerna går att läsa. Kontrollen säger hur många av klientorganisationens 15 000 indikatorer OneUptime har, och ändrar ingen. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
 | **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 

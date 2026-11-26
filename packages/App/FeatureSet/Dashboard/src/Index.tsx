@@ -1,4 +1,7 @@
 import App from "./App";
+import getRecordHistoryRoute from "./Components/AuditLogs/RecordHistoryRoute";
+import { getRecordPageRoute } from "./Components/UniqueNames/RecordPages";
+import RecordPageContext from "Common/UI/Components/RecordPage/RecordPageContext";
 import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/NotificationMethods/BrowserPushRegistration";
 import { i18nReady } from "./Utils/i18n";
 import reportSignUpFromSignIn from "./Utils/ReportSignUpFromSignIn";
@@ -13,6 +16,7 @@ import "Common/Types/Monitor/MonitorJsonTypes";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import RecordHistoryContext from "Common/UI/Components/Detail/RecordHistoryContext";
 import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
 import NewVersionNotice from "Common/UI/Components/NewVersion/NewVersionNotice";
@@ -168,7 +172,20 @@ i18nReady
          */}
         <BrowserRouter useTransitions={false}>
           <NewVersionNavigation />
-          <App />
+          {/*
+           * Where each record's history is, for the line its details end
+           * with ("History", #10290).
+           */}
+          <RecordHistoryContext.Provider value={getRecordHistoryRoute}>
+            {/*
+             * Where each record is opened, for a form that warns its name
+             * is another record's and the names a project holds twice
+             * (#10761).
+             */}
+            <RecordPageContext.Provider value={getRecordPageRoute}>
+              <App />
+            </RecordPageContext.Provider>
+          </RecordHistoryContext.Provider>
         </BrowserRouter>
         <NewVersionNotice />
         <ToastRegion />

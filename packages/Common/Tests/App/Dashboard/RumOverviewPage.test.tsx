@@ -41,6 +41,8 @@ const getItemMock: MockFunction = getJestMockFunction();
 const countMock: MockFunction = getJestMockFunction();
 // The newest exception, and the setup dialog's key picker.
 const getListMock: MockFunction = getJestMockFunction();
+// The newest Web Vital of the past 30 days, read while the range has none.
+const analyticsGetListMock: MockFunction = getJestMockFunction();
 const fetchSpanMetricsMock: MockFunction = getJestMockFunction();
 const fetchSpanNameStatsMock: MockFunction = getJestMockFunction();
 const fetchWebVitalsMock: MockFunction = getJestMockFunction();
@@ -101,6 +103,17 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       getCommonHeaders: (): Record<string, string> => {
         return {};
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: (...args: Array<unknown>): unknown => {
+        return analyticsGetListMock(...args);
       },
     },
   };
@@ -519,12 +532,22 @@ interface Scenario {
   inpByRoute?: Promise<WebVitalByRoute> | undefined;
   sessionList?: Promise<unknown> | undefined;
   /*
+   * The page Session Replay's errors filter answers (issue #6379). Left
+   * out, the sessions of sessionList that have an error, on one page.
+   */
+  sessionsWithErrors?: Promise<unknown> | undefined;
+  /*
    * When the newest exception arrived (null: never), read only when the
    * range has none. Two years ago by default: an app that reports them.
    */
   newestException?: Promise<Date | null> | undefined;
   // What the project's keys were refused in the past day (issue #6378).
   refusals?: Array<Record<string, unknown>> | undefined;
+  /*
+   * When the newest Web Vital of the past 30 days arrived (null: none), read
+   * only when the range has none (issue #6379).
+   */
+  newestWebVital?: Promise<Date | null> | undefined;
 }
 
 const DAY_MS: number = 24 * 60 * 60 * 1000;
@@ -558,15 +581,51 @@ function arrange(scenario: Scenario = {}): void {
   fetchWebVitalByRouteMock.mockImplementation(() => {
     return scenario.inpByRoute ?? Promise.resolve(NO_ROUTES);
   });
-  fetchSessionReplayListMock.mockImplementation(() => {
-    return (
+  fetchSessionReplayListMock.mockImplementation((request: unknown) => {
+    const list: Promise<unknown> =
       scenario.sessionList ??
       Promise.resolve({
         sessions: sessions(50),
         nextCursor: { id: "next" },
         ignoredFilters: [],
+      });
+
+    if ((request as { signal?: string }).signal !== "errors") {
+      return list;
+    }
+
+    // Session Replay's own errors filter, as the server applies it.
+    return (
+      scenario.sessionsWithErrors ??
+      list.then((result: unknown) => {
+        const page: {
+          sessions: Array<{ errorCount?: number; hasError?: boolean }>;
+        } = result as {
+          sessions: Array<{ errorCount?: number; hasError?: boolean }>;
+        };
+
+        return {
+          sessions: page.sessions.filter(
+            (session: { errorCount?: number; hasError?: boolean }): boolean => {
+              return (session.errorCount || 0) > 0 || Boolean(session.hasError);
+            },
+          ),
+          nextCursor: null,
+          ignoredFilters: [],
+        };
       })
     );
+  });
+  analyticsGetListMock.mockImplementation(async () => {
+    const at: Date | null = await (scenario.newestWebVital ??
+      Promise.resolve(null));
+
+    return {
+      data: at ? [{ time: at }] : [],
+      count: at ? 1 : 0,
+      skip: 0,
+      limit: 1,
+    };
   });
   getListMock.mockImplementation(async (args: unknown) => {
     const modelType: unknown = (args as { modelType?: unknown }).modelType;
@@ -694,6 +753,7 @@ beforeEach(() => {
     getItemMock,
     countMock,
     getListMock,
+    analyticsGetListMock,
     fetchSpanMetricsMock,
     fetchSpanNameStatsMock,
     fetchWebVitalsMock,
@@ -733,7 +793,7 @@ describe("RUM overview: normal data", () => {
     );
     expectTile("Exceptions", "17", "reported by your app");
     expectTile("Clients", "4", "platforms seen");
-    expectTile("Sessions recorded", "50+", "past 1 hour");
+    expectTile("Sessions recorded", "50+", "Past 1 Hour");
   });
 
   test("the tiles are in the order a reader scans them, page loads first", async () => {
@@ -779,7 +839,7 @@ describe("RUM overview: normal data", () => {
     });
     await renderPage();
 
-    expectTile("Sessions recorded", "7", "past 1 hour");
+    expectTile("Sessions recorded", "7", "Past 1 Hour");
   });
 
   test("the error-rate bar is coloured by its 1% / 5% thresholds", async () => {
@@ -1362,23 +1422,112 @@ describe("RUM overview: empty and failed lookups", () => {
     expectTile("Sessions recorded", "—", "could not load");
   });
 
-  test("no web vitals yet: the card still explains itself, the per-vital (i)s are absent", async () => {
+  /*
+   * An empty Core Web Vitals card says why (issue #6379), from the same
+   * diagnosis as the setup check's Web Vitals row, and the per-vital (i)s
+   * are absent.
+   */
+  const NO_VITALS: Promise<Array<WebVital>> = Promise.resolve(
+    VITALS.map((v: WebVital): WebVital => {
+      return { ...v, value: null };
+    }),
+  );
+
+  function webVitalsEmpty(part?: string): HTMLElement {
+    return screen.getByTestId(
+      part ? `rum-webVitals-empty-${part}` : "rum-webVitals-empty",
+    );
+  }
+
+  test("no web vitals in 30 days: not set up, and the docs that set them up", async () => {
     arrange({
-      vitals: Promise.resolve(
-        VITALS.map((v: WebVital): WebVital => {
-          return { ...v, value: null };
-        }),
-      ),
+      app: TRACKED_APP,
+      vitals: NO_VITALS,
+      newestWebVital: Promise.resolve(null),
     });
     await renderPage();
 
-    expect(screen.getByText("No web vitals reported yet")).toBeInTheDocument();
+    expect(webVitalsEmpty()).toHaveAttribute("data-state", "not-set-up");
+    expect(webVitalsEmpty("title").textContent).toBe(
+      "Web Vitals aren't set up",
+    );
+    expect(webVitalsEmpty("detail").textContent).toBe(
+      "No Web Vital has arrived from this app in the past 30\u00A0days. Web Vitals are metrics your app reports with the web-vitals library, which a few lines send.",
+    );
+    expect(
+      within(webVitalsEmpty()).getByRole("link", { name: "Set up Web Vitals" }),
+    ).toHaveAttribute("href", "/docs/rum/web-vitals");
     expect(
       screen.getByRole("button", { name: "About Core Web Vitals" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /^About LCP/ }),
     ).not.toBeInTheDocument();
+    // One row of one metric's granules: the newest of the past 30 days.
+    expect(analyticsGetListMock).toHaveBeenCalledTimes(1);
+    expect(
+      (analyticsGetListMock.mock.calls[0]![0] as { limit: number }).limit,
+    ).toBe(1);
+  });
+
+  test("metrics of other names only: says the card reads none of their names", async () => {
+    arrange({
+      app: { ...TRACKED_APP, metricsLastReceivedAt: new Date() },
+      vitals: NO_VITALS,
+      newestWebVital: Promise.resolve(null),
+    });
+    await renderPage();
+
+    expect(webVitalsEmpty()).toHaveAttribute("data-state", "not-set-up");
+    expect(webVitalsEmpty("detail").textContent).toBe(
+      "Metrics arrive from this app, but none in the past 30\u00A0days under a name this card reads.",
+    );
+  });
+
+  test("vitals came days ago: none in this range, and the range that shows them", async () => {
+    arrange({
+      app: { ...TRACKED_APP, metricsLastReceivedAt: new Date() },
+      vitals: NO_VITALS,
+      newestWebVital: Promise.resolve(ago(3 * DAY_MS)),
+    });
+    await renderPage();
+
+    expect(webVitalsEmpty()).toHaveAttribute("data-state", "quiet");
+    expect(webVitalsEmpty("title").textContent).toBe(
+      "No Web Vitals in this time range",
+    );
+    expect(webVitalsEmpty("detail").textContent).toMatch(
+      /^The last Web Vital arrived .+\.$/,
+    );
+    expect(
+      within(webVitalsEmpty()).getByRole("button", {
+        name: "Show the past week",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("the vitals are in range: no empty state, and nothing more is read", async () => {
+    arrange({ app: TRACKED_APP });
+    await renderPage();
+
+    expect(screen.queryByTestId("rum-webVitals-empty")).toBeNull();
+    expect(analyticsGetListMock).not.toHaveBeenCalled();
+  });
+
+  test("the newest vital could not be read: says it could not check, with Try again", async () => {
+    arrange({
+      app: TRACKED_APP,
+      vitals: NO_VITALS,
+      newestWebVital: rejected("Network down"),
+    });
+    await renderPage();
+
+    expect(webVitalsEmpty("title").textContent).toBe(
+      "Couldn't check why there are no Web Vitals",
+    );
+    expect(
+      within(webVitalsEmpty()).getByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -1437,7 +1586,7 @@ describe("RUM overview: refreshing", () => {
     expectTile("Page loads", "1.2k", "3 failed");
     expectTile("Page load time (p95)", "2.34 s", "median 850 ms");
     expectTile("Exceptions", "17", "reported by your app");
-    expectTile("Sessions recorded", "50+", "past 1 hour");
+    expectTile("Sessions recorded", "50+", "Past 1 Hour");
   });
 
   test("a range change reloads with spinners and names the new range on the sessions tile", async () => {
@@ -1458,7 +1607,7 @@ describe("RUM overview: refreshing", () => {
 
     expect(tile("Page loads")).toHaveAttribute("aria-busy", "true");
     expect(tile("Page load time (p95)")).toHaveAttribute("aria-busy", "true");
-    expectTile("Sessions recorded", "3", "past 1 day");
+    expectTile("Sessions recorded", "3", "Past 1 Day");
   });
 
   test("a slow response from the previous range does not overwrite the new one", async () => {
@@ -1782,6 +1931,71 @@ describe("RUM overview: why Exceptions and Logs are empty", () => {
     expect(textOf("exceptions", "evidence")).toBe(
       "Session Replay recorded 2 sessions with errors in this time range, so errors do happen.",
     );
+  });
+
+  /*
+   * Counted with Session Replay's own errors filter (issue #6379): every
+   * recorded session with an error in the range, not those among the
+   * newest page of sessions - and past a page of them, "or more".
+   */
+  test("sessions with errors are counted with Session Replay's errors filter, and past a page say 'or more'", async () => {
+    arrange({
+      app: TRACKED_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+      // The newest page of sessions holds none with an error...
+      sessionList: Promise.resolve({
+        sessions: sessions(50),
+        nextCursor: { id: "next" },
+        ignoredFilters: [],
+      }),
+      // ... and the errors filter finds a page of them, and more.
+      sessionsWithErrors: Promise.resolve({
+        sessions: sessions(50).map((session: { sessionId: string }) => {
+          return { ...session, errorCount: 1, hasError: true };
+        }),
+        nextCursor: { id: "more-with-errors" },
+        ignoredFilters: [],
+      }),
+    });
+    await renderPage();
+
+    expect(textOf("exceptions", "evidence")).toBe(
+      "Session Replay recorded 50 or more sessions with errors in this time range, so errors do happen.",
+    );
+
+    const requests: Array<{ signal: string; startTime: Date; endTime: Date }> =
+      fetchSessionReplayListMock.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { signal: string; startTime: Date; endTime: Date };
+      });
+    const errors: Array<{ signal: string; startTime: Date; endTime: Date }> =
+      requests.filter((request: { signal: string }): boolean => {
+        return request.signal === "errors";
+      });
+    expect(errors).toHaveLength(1);
+    // The same window as the page's own count.
+    const all: { signal: string; startTime: Date; endTime: Date } =
+      requests.find((request: { signal: string }): boolean => {
+        return request.signal !== "errors";
+      })!;
+    expect(errors[0]!.startTime).toEqual(all.startTime);
+    expect(errors[0]!.endTime).toEqual(all.endTime);
+  });
+
+  test("the errors filter's read fails: no evidence, and the not-set-up answer stands", async () => {
+    arrange({
+      app: TRACKED_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+      sessionsWithErrors: rejected("403"),
+    });
+    await renderPage();
+
+    expect(emptyChart("exceptions")).toHaveAttribute(
+      "data-state",
+      "not-set-up",
+    );
+    expect(screen.queryByTestId("rum-exceptions-empty-evidence")).toBeNull();
   });
 
   test("one recorded session with an error reads in the singular", async () => {
@@ -2287,7 +2501,7 @@ describe("RUM overview: a mobile app's tiles (#9588)", () => {
     arrangeMobile();
     await renderMobilePage();
 
-    expectTile("Sessions", "200", "past 1 hour");
+    expectTile("Sessions", "200", "Past 1 Hour");
     expectTile("Crash-free sessions", "99.00%", "2 sessions crashed");
     expectTile("Crashes", "3", "in 2 sessions");
     expectTile("ANRs", "1", "in 1 session");
@@ -2434,7 +2648,7 @@ describe("RUM overview: a mobile app's reads", () => {
 
     expect(fetchMobileSessionsMock).toHaveBeenCalledTimes(2);
     // The answer is out; the old figure stays rather than a spinner.
-    expectTile("Sessions", "200", "past 1 hour");
+    expectTile("Sessions", "200", "Past 1 Hour");
   });
 });
 
@@ -2752,6 +2966,106 @@ describe("RUM overview: a mobile app's empty and failed reads", () => {
 
     for (const [title] of MOBILE_TILE_TITLES.slice(0, 7)) {
       expect(tile(title)).toHaveAttribute("aria-busy", "true");
+    }
+  });
+});
+
+describe("RUM overview: the tiles name their range in the reader's language (#10552)", () => {
+  const german: Record<string, string> = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+  // Every English way the range was ever written under a tile.
+  const ENGLISH_RANGES: RegExp = /past \d|custom range/i;
+
+  function useGerman(keys: Array<string>): void {
+    for (const key of keys) {
+      expect(german[key]).toBeTruthy();
+      expect(german[key]).not.toBe(key);
+      TRANSLATIONS[key] = german[key]!;
+    }
+  }
+
+  afterEach(() => {
+    for (const key of Object.keys(TRANSLATIONS)) {
+      delete TRANSLATIONS[key];
+    }
+  });
+
+  test("a German page reads Sessions recorded over the past hour in German, with no English range on any tile", async () => {
+    useGerman(["Past 1 Hour", "Past 1 Day"]);
+
+    arrange();
+    await renderPage();
+
+    expectTile("Sessions recorded", "50+", german["Past 1 Hour"]!);
+    expect(german["Past 1 Hour"]).toBe("Letzte Stunde");
+    for (const title of TILE_TITLES.map(
+      ([tileTitle]: [string, RumMetric]): string => {
+        return tileTitle;
+      },
+    )) {
+      expect({ title, text: tile(title).textContent }).not.toEqual({
+        title,
+        text: expect.stringMatching(ENGLISH_RANGES),
+      });
+    }
+
+    // A new range is named in German too, its noun keeping its capital.
+    arrange({
+      sessionList: Promise.resolve({
+        sessions: sessions(3),
+        nextCursor: null,
+        ignoredFilters: [],
+      }),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Pick past day" }));
+    await flush();
+
+    expectTile("Sessions recorded", "3", german["Past 1 Day"]!);
+    expect(german["Past 1 Day"]).toBe("Letzter Tag");
+  });
+
+  test("a German mobile app's Sessions, Crashes and ANRs tiles name the range in German", async () => {
+    useGerman(["Past 1 Hour"]);
+
+    arrangeMobile({
+      faults: Promise.resolve<MobileFaults>({
+        crashes: {
+          total: 0,
+          series: [],
+          sessions: null,
+          installs: null,
+          failed: false,
+        },
+        anrs: {
+          total: 0,
+          series: [],
+          sessions: null,
+          installs: null,
+          failed: false,
+        },
+      }),
+    });
+    await renderMobilePage();
+
+    expectTile("Sessions", "200", german["Past 1 Hour"]!);
+    expect(
+      within(tile("Crashes")).getByText(german["Past 1 Hour"]!),
+    ).toBeInTheDocument();
+    expect(
+      within(tile("ANRs")).getByText(german["Past 1 Hour"]!),
+    ).toBeInTheDocument();
+    for (const title of ["Sessions", "Crashes", "ANRs"]) {
+      expect({ title, text: tile(title).textContent }).not.toEqual({
+        title,
+        text: expect.stringMatching(ENGLISH_RANGES),
+      });
     }
   });
 });

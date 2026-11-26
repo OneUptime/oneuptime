@@ -116,7 +116,7 @@ Plus la fenêtre est longue, plus chaque intervalle de temps est large, si bien 
 
 ## Critères
 
-Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
+Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Tout sauf**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
 
 | Condition | Correspond quand la valeur est… |
 | --- | --- |
@@ -125,6 +125,7 @@ Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agr
 | **Inférieur à** | en dessous du seuil |
 | **Inférieur ou égal à** | égale ou inférieure au seuil |
 | **Égal à** | exactement le seuil |
+| **Différent de** | tout sauf le seuil |
 | **Anormalement élevé** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anormalement bas** | en dessous de cette plage |
 | **Anormal** | hors de cette plage, dans un sens ou dans l'autre |
@@ -193,6 +194,10 @@ Sans Group By, le même moniteur est un scalaire unique : la requête réduit to
 
 Chaque alerte par groupe suit son propre groupe. Quand l'hôte A repasse sous le seuil, son alerte se résout de son côté, et l'alerte de l'hôte B reste ouverte jusqu'à ce que l'hôte B se rétablisse. Le rétablissement d'un groupe ne ferme jamais l'alerte d'un autre.
 
+### Chaque série dans la vue d'ensemble
+
+La **Vue d'ensemble** du moniteur liste dans **Séries** chaque série que sa dernière vérification a lue : les libellés de la série, tels que ses alertes les nomment, sa dernière valeur, les critères qu'elle satisfait et son incident ou son alerte ouverts. Une série qui conserve le statut du moniteur affiche **Conserve le statut**. Un moniteur qui a beaucoup de séries en liste 50, d'abord celles qui conservent le statut ou satisfont un critère, et indique combien il y en a.
+
 ### Ce que garde chaque alerte
 
 Chaque alerte ou incident ouvert pour un groupe ne garde la vérification qui l'a ouvert que pour ce groupe : sa série, ses points et le résumé de l'évaluation. Aucune vérification conservée ne dépasse 256 KB, et les journaux de celle qui a dû être réduite pour tenir l'indiquent.
@@ -206,6 +211,7 @@ Les alertes et les incidents ouverts auparavant gardaient tous les groupes de l'
 
 - **Les moniteurs regroupés évaluent chaque critère.** Des niveaux de gravité peuvent donc se déclencher sur différents groupes en même temps : avec « Critical – supérieur à 95 » au-dessus de « Warning – supérieur à 80 », un hôte à 96 % ouvre une alerte critique tandis qu'un hôte à 85 % ouvre un avertissement, lors de la même vérification. Un hôte qui dépasse les deux niveaux ne reçoit toujours qu'une alerte – celle du premier critère qui correspond ; **ordonnez donc les critères du plus grave au moins grave**.
 - **Les moniteurs non regroupés s'arrêtent au premier critère qui correspond.** Seul ce critère se déclenche, ce qui est une raison de plus de placer le critère d'alerte au-dessus du critère sain : un critère sain large placé en premier correspond à presque chaque vérification et empêche le critère d'alerte en dessous d'être jamais évalué.
+- **Le statut d'un moniteur regroupé revient avec les séries qui l'ont changé.** Le moniteur a un seul statut, fixé par le premier critère qui correspond. Un critère qui le ramène seulement à son **État du moniteur par défaut**, sans ouvrir d'alerte ni d'incident, attend les séries qui ont satisfait un critère fixant un autre statut, et correspond une fois que chacune d'elles le satisfait : un hôte qui n'a jamais été près du seuil ne ramène pas le moniteur. D'ici là, le moniteur conserve son statut, même quand aucun critère ne correspond ; un critère sain un peu en dessous du seuil empêche donc une série qui oscille autour de lui de faire basculer le statut. L'alerte de chaque série se résout toujours de son côté.
 
 | Hôte | Disque utilisé | Critical (> 95) | Warning (> 80) | Alerte levée |
 | --- | --- | --- | --- | --- |

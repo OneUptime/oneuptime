@@ -51,7 +51,9 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
 | **Godkjenninger** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
 | **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
+| **Automatisk respons** | Playbooks | Policyene som utfordrer eller blokkerer en angripende adresse idet deteksjonen skjer, hver med prøveperiode og sikkerhetsrammer |
 | **Blokkeringsliste** | Playbooks | Adressene prosjektet ditt blokkerer, til når, og hvor hver blokkering håndheves |
+| **Blokkeringslistefeeder** | Playbooks | De hemmelige URL-ene brannmurene og proxyene dine leser blokkeringslisten fra, og hentingene deres |
 | **Beskyttede entiteter** | Playbooks | Brukerne, vertene og adressene som ingen playbook demmer inn og ingen blokkering rører |
 | **Innstillinger** | KI | Om OneUptime AI vurderer hver nye sak |
 | **Tilkoblinger** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
@@ -131,6 +133,7 @@ Endepunktet svarer `200` så snart hendelsene står i kø. En hendelse sendt ute
 Angi formatet med `?format=`, med hodet `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste nivå. Utelater du det, bestemmes formatet for hver hendelse for seg, så én webhook kan blande deteksjoner med rå hendelser.
 
 - Body kan være én hendelse, en matrise av hendelser eller `{ "events": [...] }`.
+- En batch kan være gzip-komprimert og sendes med `Content-Encoding: gzip`: den leses som den samme batchen ukomprimert. I Fluent Bit komprimerer `http`-utgangen med `compress gzip`, i Vector `http`-sinken med `compression = "gzip"`, og i Logstash `http`-utgangen med `http_compression => true`. Bare JSON leses komprimert: en komprimert body av en hvilken som helst annen type avvises med `400`.
 - Hodet `x-oneuptime-service-name` angir telemetritjenesten hendelsene hører til. Uten det hører de til tjenesten som er oppkalt etter produktet eller leverandøren til den første hendelsen, eller til `Security Events`.
 - Ingenting forkastes fordi det ikke lot seg tilordne: hvert felt fra kilden havner i hendelsens attributter.
 
@@ -172,6 +175,7 @@ For å sende sikkerhetslogger du allerede samler inn, for eksempel auditd, syslo
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -183,7 +187,7 @@ Siden **Oppsettveiledning**, under **Tilkoblinger**, har disse kodesnuttene med 
 
 ### Finn sikkerhetshendelser i loggene dine
 
-Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH- eller Windows-pålogging, sudo-kommando, revisjonsoppføring fra en sky, CEF- eller LEEF-oppføring fra et sikkerhetsprodukt, oppføring fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-brannmur, Kubernetes-revisjonsoppføring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
+Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH- eller Windows-pålogging, sudo-kommando, revisjonsoppføring fra en sky, CEF- eller LEEF-oppføring fra et sikkerhetsprodukt, oppføring fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-brannmur, Kubernetes-revisjonsoppføring, hvert webangrep og hver forespørsel om en sensitiv fil i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
 
 Hver type når OneUptime som vanlige logger:
 
@@ -234,6 +238,16 @@ En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet 
 - Kontoens egen lesing gir ikke mer: datahendelser, Data Access-logger og loggene til Microsoft Entra ID trenger fortsatt **Loggene dine** eller en [tilkobling](/docs/integrations/microsoft-entra-id).
 - Hver hendelse nevner skyressursene posten gjelder, ved deres egne ID-er - en ARN, en Azure-ressurs-ID, et ressursnavn fra Google Cloud - så den vises på siden **Sikkerhetshendelser** til hver av dem, og på siden til en serverløs funksjon så snart telemetrien dens setter `cloud.account.id` og `cloud.region`.
 
+### OneUptimes egne sonder i nettverksflyten din
+
+Slå på **Nettverksflyt** under **OneUptime-dataene dine** på **Tilkoblinger**, så leses flytene nettverksenhetene dine eksporterer, etter portskanninger, nettverkssveip, trafikk med kjente ondsinnede adresser og store overføringer ut. En sondes eget arbeid ligner der på en skanning: å spørre 40 enheter over SNMP treffer port 161 på 40 verter hvert femte minutt. Derfor legges trafikk fra en av OneUptimes egne sonder som er nøyaktig det sonden er satt til å gjøre, til side:
+
+- nettverksenhetene den spør, pinget og spurt over SNMP på porten deres;
+- området til hver av oppdagelsene dens, mens skanningen pågår;
+- vertene og portene monitorene dens sjekker.
+
+Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg.
+
 ### Koble til et sikkerhetsprodukt
 
 **Tilkoblinger** henter data fra et sikkerhetsprodukt for deg og importerer de nye postene som sikkerhetshendelser. En tilkobling inneholder produktets innstillinger og en kryptert legitimasjon; en worker henter fra den med intervallet du angir, og hopper over poster den allerede har importert.
@@ -250,6 +264,7 @@ En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet 
 | Okta System Log | Hendelser for pålogging, MFA, kontoer og policyer | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Pålogginger, katalogendringer og risikoregistreringer, om du vil mislykkede bakgrunns- og apppålogginger, og fra Microsoft 365-revisjonsloggen videresending av e-post, deling og phishingdommer | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Pålogginger, Googles egne funn, administratorendringer og apptilgang, og deling i Disk | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Det brannmuren blokkerte, utfordret og logget ved kanten, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Produktets egne varsler på eller over **Åpne saker fra** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
 - En tilkobling leser poster etter tidspunktet produktet opprettet dem, ikke etter tidspunktet for aktiviteten de beskriver. En SIEM-regel som kjører hver time, oppretter deteksjoner lenge etter hendelsene den traff, og de importeres likevel.
@@ -272,6 +287,71 @@ Hver hendelse lagres med typede felt og kildens nyttelast:
 | Attributter | Hele kildens nyttelast, flatet ut til nøkler med punktum |
 
 Hendelser som ble lagret før OneUptime 14.0.84, lar prosessfeltene stå tomme og nevner bare prosessen sin som `principalProcess`, prosessen som handlet. De fylles ikke ut i etterkant: de beholder det de ble lagret med, til oppbevaringen deres går ut.
+
+### Hvilken adresse en hendelse nevner
+
+En hendelse nevner adressen en forespørsel kom fra, bare når avsenderen av forespørselen ikke selv kunne ha skrevet den. Den adressen er verifisert, og den blir hendelsens **Kilde-IP**: Deteksjonsregler teller den, trusseletterretning matcher den, og en saks **Responsplan** tilbyr å blokkere den. Enhver annen adresse en forespørsel nevner, er bare oppgitt: Hendelsen beholder den som **Oppgitt IP**, og ingenting teller eller blokkerer den.
+
+- Tilkoblingens egen adresse er verifisert: `network.peer.address` i et serverspenn, eller det første feltet i en linje i tilgangsloggen til en webserver. Ingen kan skrive den inn i en forespørsel.
+- Bak en proxy du stoler på, er tilkoblingens adresse proxyens, og klienten er adressen proxyen videresendte i `X-Forwarded-For`. Hver proxy legger til adressen den tok imot tilkoblingen fra, så OneUptime leser headeren fra høyre og tar den første adressen som ikke er en proxy du stoler på. Det en avsender skriver i headeren, havner til venstre for den og forblir en påstand.
+- En adresse en forespørsel nevner om seg selv, er oppgitt: `client.address`, som instrumenteringen fyller ut fra venstre side av headeren, resten av `X-Forwarded-For` og `Forwarded`.
+
+En oppgitt adresse blokkeres aldri fra en sak: Hvem som helst kan sende `X-Forwarded-For: 192.0.2.44`, og en blokkering ville stenge ute den som enn har 192.0.2.44. En hendelse med bare en oppgitt adresse har en **Responsplan** som ber deg finne den ekte adressen i loggene til lastbalansereren eller brannmuren din.
+
+Registrer to ting på serverspennene til appen din, så adressene er verifisert: tilkoblingens egen adresse, `network.peer.address`, som HTTP-instrumenteringene i OpenTelemetry setter, og bak en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for` når du oppgir den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-tilgangslogg leses på samme måte: Klientfeltet, for eksempel `remote_addr`, er tilkoblingens adresse, og feltet `http_x_forwarded_for` er headeren.
+
+#### Klarerte proxyer
+
+Sikkerhetshendelser tror en proxy på hvem klienten var, når adressen dens er:
+
+| Klarert | Hvorfor |
+| --- | --- |
+| Privat, loopback eller link-local, for eksempel `10.0.0.5` | Alltid: Ingen har den på internett, så den er en lastbalanserer eller en ingress i nettverket ditt |
+| Oppført under **Klarerte proxyer** | Du har oppført den |
+| I de publiserte områdene til en kant du har koblet til, for eksempel [Cloudflare](/docs/integrations/cloudflare) | Så lenge tilkoblingen finnes |
+| En av dine egne applikasjonslastbalanserere | Med mindre du slår det av |
+
+**Sikkerhetshendelser → Tilkoblinger → Flere innstillinger** inneholder **Klarerte proxyer**, listen du skriver, og **Klarert automatisk**, som viser resten og hvorfor. Før opp en proxy under **Klarerte proxyer**, én adresse eller ett område på hver linje, når adressen dens er offentlig og ingenting annet stoler på den: et CDN du ikke har koblet til, en lastbalanserer som når appen din over internett, eller en omvendt proxy som nginx på en server med offentlig adresse foran appen din. Inntil du gjør det, tilskrives hvert angrep gjennom den selve proxyen. Bak en global ekstern Application Load Balancer i Google Cloud kommer appens tilkoblinger fra Googles front-ends: Før opp `35.191.0.0/16` og `130.211.0.0/22`.
+
+Dine egne applikasjonslastbalanserere er de som de [tilkoblede skykontoene](/docs/telemetry/cloud-accounts) dine viser: AWS Application Load Balancers, AWS Classic Load Balancers der hver lytter er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med de offentlige adressene sine. Hver av dem legger klienten den videresender, til i `X-Forwarded-For`. En lastbalanserer i Google Cloud legger til sin egen adresse etter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uten dem ville hvert angrep gjennom en av dem blitt tilskrevet lastbalansereren. **Lastbalansererne dine** på **Klarert automatisk** viser dem, og en Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator kan slå det av.
+
+Ingenting annet av ditt er klarert automatisk: ikke vertene, Kubernetes-nodene, sondene eller de virtuelle maskinene dine, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserer. De videresender ingen, eller de sender en forespørsel videre slik den kom, så det som kjører på dem, kunne oppgi hvilken som helst klient: en forespørsel en monitor sender med egne headere, en pod, en bærbar PC bak gatewayen. Hvis en av dem er proxyen din, legger du den til i **Klarerte proxyer**. En Kubernetes-ingress er klarert som den lastbalansereren den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress for Application Gateway en Application Gateway, og en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-kontroller i klyngen din videresender fra en privat adresse, som alltid er klarert.
+
+En endring i noen av disse trer i kraft innen ett minutt, og en ny lastbalanserer blir klarert innen fem.
+
+#### Tilgangslogger som slutter med X-Forwarded-For
+
+Bak en lastbalanserer logger mange webservere den videresendte adressen sist, slik nginx' eget format `main` gjør:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+En linje sier aldri hva feltene er, så det siste feltet leses som `X-Forwarded-For` først når du slår på **Logger slutter med X-Forwarded-For** på **Tilgangslogger** under **Flere innstillinger**, og da bare:
+
+- når linjens første felt er en proxy du stoler på: En linje fra en klient som nådde webserveren din direkte, tilhører den klienten;
+- i formatet combined, med nøyaktig ett felt i anførselstegn etter user agent og ingenting etter det;
+- når det feltet er `-` eller en liste over adresser der den siste ikke har port.
+
+La den være av når formatet ditt slutter med en annen header som inneholder en adresse, for eksempel `X-Real-IP`, eller når webserveren din skriver headere uten å escape anførselstegnene deres, slik `morgan` for Express gjør: En forespørsels egen user agent kunne da legge til et felt. En JSON-tilgangslogg trenger ingen bryter, siden feltene har navn.
+
+### Skjult av en rensingsregel
+
+En IP-adresseregel som sletter eller maskerer loggene eller trasene dine, skjuler adressen et angrep kom fra før Sikkerhetshendelser leser dem. Hendelsen lagres likevel, uten adresse, og overalt der den ville navngitt adressen, sier den at en scrub-regel skjulte den:
+
+- **Kilde-IP** i hendelsens panel navngir regelen som skjulte adressen når den kan, som en lenke til **Scrub-regler** for loggene eller trasene. Filteret ved siden av viser hver hendelse der en scrub-regel skjulte adressen.
+- **Mål-IP** sier det samme når en regel skjulte hvor en tilkobling gikk: en brannmurs destinasjon, eller hvor data ble sendt. Filteret ved siden av viser hver hendelse der en scrub-regel skjulte måladressen.
+- **Hva som skjedde videre** sier at forespørselen kom fra en adresse som en scrub-regel skjulte, og **Kampanjer** samler slike forespørsler i én egen rad.
+- En sak der alle hendelsene mistet adressen sin, sier det i **Responsplan**: I stedet for å blokkere adressen ber den deg finne den i loggene til lastbalansereren eller brannmuren din og blokkere den der, med **Åpne scrub-regler**.
+- **Oversikt** navngir regelen som skjuler adressene Sikkerhetshendelser leser, også med **Åpne scrub-regler**.
+
+En regel som hasher, lagrer adressen for Sikkerhetshendelser, så hendelsen navngir den, med mindre tokenet er eldre enn 30 dager eller ble laget før tokener hadde en nøkkel: se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data). Søk etter `@oneuptime.request.client_address_hidden:scrub-rule` for å finne disse hendelsene. Det regelen la igjen i stedet for adressen, som `[REDACTED]`, står i `oneuptime.request.client_address_scrubbed`. Søk etter `@oneuptime.target_address_hidden:scrub-rule` for en destinasjon.
+
+En deteksjonsregel som teller per adresse, bør telle per `principalIp` eller `targetIp`, som navngir adressen bak tokenet fra en regel som hasher, slik regelbibliotekets regler gjør. Et formats eget adressefelt, for eksempel `openstack.audit.initiator_address` eller `asa.src_ip`, inneholder bare en adresse som sto i loggen, så det forblir tomt overalt der en scrub-regel skjulte en.
+
+En regel som sletter eller maskerer en bruker, skjuler den på samme måte: Der hendelsen ville navngitt brukeren, sier **Kildebruker** eller **Målbruker** at en scrub-regel skjulte den. Der Sikkerhetshendelser leser en bruker, lagrer en regel som hasher, brukeren for den: en forespørsels `enduser.id` eller `user.id`, et AI-kalls bruker og en bruker som en logglinje navngir, som principal i en revisjonslogg fra skyen. Så hendelsen navngir brukeren bak tokenet, en sak om brukeren navngir kontoen, og en playbook kan handle på den som på enhver annen bruker. Det regelen la igjen, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finne brukeren i loggene og trasene dine, som bare inneholder tokenet. Et token som ingen bruker er lagret for, som et som ble laget før tokener hadde en nøkkel, forblir hendelsens bruker: Regler teller det som én konto, og ingen playbook handler på det.
 
 ## Utforsk sikkerhetshendelser
 
@@ -304,9 +384,29 @@ Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **R
 
 En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel, følges inn i den forespørselen. Panelet viser hvor langt forespørselen kom (**Avvist**, **Nådde appen**, **Feilet** eller **Nådde databasen**), hvem som sendte den, og lenker til sporingen, unntaket, øktavspillingen og selve logglinjen. En logglinje, en sporing og et unntak som er del av et angrep, sier det også på sine egne sider.
 
+### En sensitiv fil nettstedet ditt leverte
+
+En forespørsel om en fil med hemmeligheter, for eksempel `/.env`, `/.git/config`, `/.aws/credentials` eller en kopi av `wp-config.php`, er en lekkasje når nettstedet ditt besvarte den med selve filen: Den som spurte, har nå passordene, nøklene og tokenene i den. En enkeltsideapp besvarer hver sti den ikke har, med sin egen side og status 200, så status 200 alene sier aldri det. OneUptime leser hva svaret inneholdt:
+
+- En type som ikke er en nettside, for eksempel `text/plain` eller `application/octet-stream`: selve filen.
+- En nettside, eller JSON for en fil som ikke er JSON: nettstedets egen side.
+- Ingenting i svaret: ingenting ble tatt.
+- En størrelse og ingen type, slik tilgangsloggen til en webserver registrerer svaret: selve filen når ingen annen sti fikk den størrelsen og nettstedet ditt svarer 404 for stiene det ikke har, og nettstedets egen side når samme størrelse besvarte to forskjellige stier. Når ingenting avgjør det, blir forespørselen ikke en hendelse.
+
+En levert fil får alvorlighetsgraden Kritisk, og regelbibliotekets regel **Sensitive file served** åpner en sak om den, med trinn for å ta ned filen og rotere det den inneholder. Hver av disse forespørslene teller også med i **Scanning for sensitive files**, også dem fra en enkeltsideapp. En administrasjonsside som nettstedet ditt leverer, for eksempel den i WordPress, er aldri en av dem, og en `wp-config.php` som WordPress kjørte, er nettstedets egen side. Cloudflares brannmurhendelser sier ikke hva opprinnelsen din sendte, så en forespørsel Cloudflare slapp gjennom, teller bare med i skanningen. Panelet til en hendelse viser hva nettstedet ditt sendte, under **Hva som skjedde videre**.
+
 ### Campaigns
 
-**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
+**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først. En rad som blokkeringslisten din allerede holder, sier til når den er blokkert eller utfordret, og nevner området eller nettverket som holder den.
+
+For å blokkere flere angripere samtidig velger du radene deres og trykker på **Blokker adresser**. Én dialog viser hver adresse den blokkerer og hver adresse den utelater, med grunnen: allerede blokkert, en av dine egne eller en beskyttet, en som en pålogget bruker har brukt de siste 30 dagene, eller en som OneUptime ikke kunne kontrollere. Den blokkerer i 24 timer med mindre du velger en annen varighet, eller utfordrer med **Utfordre i stedet**, og hver blokkering havner på [blokkeringslisten](/docs/telemetry/security-cases#blokkeringsliste) din som din.
+
+**Grupper etter nettverk** samler adressene fra ett nettverk på én rad: etter ASN-en der hendelsene fra [Cloudflare](/docs/integrations/cloudflare)-tilkoblingen din oppgir en, og ellers etter /24 for IPv4 eller /48 for IPv6. Raden til en ASN viser områdene adressene sendte fra. **Utfordre dette nettverket** sier hva det vil gjøre, hvor og hvor lenge, før det gjør det: 24 timer med mindre du velger en annen varighet, og neste trinn på stigen for et nettverk som er utfordret før. Cloudflare holder et område i utfordringslisten sin, og en ASN som en IP Access Rule, som alle planer har. **Vis forespørsler** på raden til et nettverk åpner det nettverket sendte, i **Hendelser**: for en ASN etter ASN-en som Cloudflare-hendelsene oppgir, og for et område som et søk etter adressene, for eksempel `ip:203.0.113.*`, som du kan endre.
+
+- Et nettverk som inneholder en adresse en pålogget bruker har brukt de siste 30 dagene, eller en av dine egne, blir aldri utfordret, og dialogen nevner hvem eller hva.
+- Et område som er bredere enn et /24 (et /48 for IPv6), og en hel ASN, krever en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier. Raden til en ASN tilbyr også hvert av områdene, som alle som kan blokkere, kan utfordre.
+- Når OneUptime ikke kan se hvem som bruker et nettverk, fordi det er en hel ASN eller fordi en scrub-regel skjuler klientadresser, kan bare en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier utfordre det, etter å ha krysset av for at de vet det.
+- Ingenting blir blokkert eller utfordret så lenge Sikkerhetshendelser er slått av på serveren.
 
 ### Korreler
 
@@ -339,7 +439,7 @@ En hunt som er lagret med filtre fra sidepanelet under Hendelser, viser dem i **
 
 En planlagt hunt varsler personene og teamene du velger under **Varsle**: minst én og høyst 50 til sammen. Hver kjøring:
 
-- leser hendelsene med et tidspunkt etter kjøringen før, frem til for to minutter siden, så hver hendelse søkes gjennom én gang. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt.
+- leser hendelsene som kom inn etter kjøringen før, frem til for to minutter siden, uansett når de skjedde, så hver hendelse søkes gjennom én gang, også en som kommer sent. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt. En hendelse som kommer mer enn en dag etter at den skjedde, lagres og kan søkes i, men ingen kjøring teller den.
 - teller hendelsene søket finner der, nøyaktig slik **Hendelser** ville listet dem, og leser bare det personen den kjører som, kan lese.
 - varsler, når den finner hendelser, personene hunten nevner, og medlemmene av teamene den nevner, som kan lese hunts og sikkerhetshendelser.
 
@@ -349,11 +449,11 @@ En planlagt hunt kjører som personen som sist satte tidsplanen, endret søket e
 
 ### Kjøringshistorikk
 
-Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og hvilke hendelser den søkte i, deretter hvor mange den fant, med **Vis dem** for å åpne de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
+Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og når hendelsene den søkte i kom inn, deretter hvor mange den fant, med **Vis dem** for å åpne nettopp de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
 
 ### Hvem som varsles
 
-Varslingen **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og vinduet den leste, og lenker til siden til hunten på de hendelsene; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varslingsinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
+Varslingen **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og når de kom inn, og lenker til siden til hunten på nettopp de hendelsene: filteret **Kommet inn** over dagen før dem, som du kan fjerne for å se alt annet fra den tiden; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varslingsinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
 
 For å legge ut det hunts finner i Slack, Microsoft Teams eller Mattermost, legger du til en regel i **Regler for hunts** under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglene som legger ut [sikkerhetssaker](/docs/telemetry/security-cases#legg-ut-i-slack-microsoft-teams-og-mattermost-kanaler). En regel navngir kanalene det skal legges ut i (og i Microsoft Teams chattene) og, om du vil, hvilke hunts den gjelder for, etter **Navn på hunt**: et navn som er teksten din, inneholder den, begynner eller slutter med den. Hver gang en planlagt kjøring finner hendelser, legger den ut hunten, søket, hvor mange hendelser og når, med en lenke til dem, og ingen av en hendelses egne ord. En huntregel settes opp av en rolle som kan sette opp sikkerhets-playbooks, som Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator.
 
@@ -497,13 +597,16 @@ Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier te
 | Password spraying: én IP som feiler mot 5 ulike kontoer | `principalIp` | `principalUser` | 5 |
 | Portskanning: én IP som når 20 ulike porter | `principalIp` | `targetPort` | 20 |
 
+En regel med et **Grupperingsfelt** som trenger mer enn én hendelse i en gruppe, gjennom en terskel over 1 eller et **Felt for unik telling**, utelater hendelsene som ikke har noen verdi for feltet: Talt med ville de alle lagt seg sammen som én verdi, hver mislykkede pålogging uten adresse som én IP-adresse. En regel som utløses av hver hendelse, fortsetter å utløses for dem. **Deteksjonsregler** viser under navnet på en regel hvor mange av det siste døgnets samsvarende hendelser den ikke kunne telle, og linjen åpner hvorfor: hvor mange som ikke hadde noen verdi, og hvor mange av dem en scrub-regel skjulte, med **Åpne scrub-regler**. En regel som ikke kunne telle noe av det den samsvarte med, kan ikke utløses, og **Status** sier **Krever oppmerksomhet**. **Kjør på tidligere hendelser** sier det samme for perioden den leser.
+
 ### Når en regel kjører
 
 OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene som kom frem til OneUptime mellom forrige kjøring og for to minutter siden, uansett når de skjedde, og går deretter videre. De to minuttene gir rom for hendelser som fortsatt skrives:
 
 - En tellende regel og en korrelasjon teller i vinduer like lange som intervallet, etter hverandre etter klokken: med et intervall på 10 minutter havner feil kl. 09:58 og 10:01 i ulike vinduer og telles hver for seg, så legg inn margin når du velger en terskel.
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
-- En hendelse som kommer for sent, leses likevel én gang av neste kjøring og telles i vinduet den skjedde i: en gruppe slår til når vinduet når tellingen, og høyst én gang per vindu. En hendelse som kommer mer enn et døgn etter at den skjedde, lagres og er søkbar, men regelens kjøringer leser den ikke; **Kjør på tidligere hendelser** gjør det.
+- En kjøring som mislykkes, for eksempel en som tar for lang tid, lar regelen bli der den var: **Status** sier **Kjøring mislyktes**, og den prøves igjen ved neste intervall, eller innen en time hvis intervallet er lengre. Kjøringen som lykkes, leser alt som har kommet inn siden den siste som lyktes, uansett hvor lenge siden, én dag om gangen. En kjøring som ble stoppet etter at den handlet på treffene sine, gjøres på nytt uten å legge dem til saken to ganger.
+- En hendelse som kommer for sent, leses likevel én gang av neste kjøring og telles i vinduet den skjedde i: en gruppe slår til når vinduet når tellingen, og høyst én gang per vindu. En hendelse som kommer mer enn et døgn etter at den skjedde, lagres og er søkbar, men regelens kjøringer leser den ikke; **Kjør på tidligere hendelser** gjør det. Det er med vilje, slik at innlasting av historikk ikke åpner varsler om fortiden: når noen har kommet så sent de siste 7 dagene, sier en melding over reglene hvor mange, fra hvilke kilder og når de skjedde, og åpner **Kjør på tidligere hendelser** over den tiden.
 - Hver gruppe som når terskelen, blir et Detection Finding, opptil 10 000 per kjøring. Varsler, hendelser og saker åpnes for de 100 med høyest telling; resten deler én sak om regelen, og regelens **Siste feil** sier hvor mange grupper som traff.
 
 ### Sanntidsregler
@@ -557,6 +660,7 @@ Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsska
 | **Et tidsvindu** | Alle hendelser fra **Begynner den** til **Slutter den**, høyst 30 dager fra hverandre |
 
 - Verdier treffer uansett store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` hopper over alle tjenestekontoer, og `*.lab.example.com` alle verter i et domene. En IP-adresse kan være et område, som `10.20.0.0/16`. En verdi som bare er `*`, avvises: slå av en regel for å stoppe den.
+- Hendelser fra OneUptimes egen revisjonslogg navngir en prosjekt-API-nøkkel i `principalUser` som `api-key:` etterfulgt av dens ID, så to nøkler med samme navn er to aktører, og ingen playbook tilbyr en nøkkel som en bruker som kan suspenderes. Nøkkelens navn står fortsatt i hendelsens melding og i `audit.api_key_name`. Et unntak for en nøkkels navn, som bruker eller som verdi av `principalUser`, hopper fortsatt over alle nøkler med det navnet, og et unntak for `api-key:` etterfulgt av nøkkelens ID hopper bare over den nøkkelen.
 - Hvert unntak sier hvorfor i sin **Årsak**, som alle som leser listen, ser, og tar vare på hvem som la det til og når. En entitet eller en verdi kan ha en dato i **Utløper**, og etter den ser regelen den igjen; et tidsvindu slutter av seg selv.
 - **Status** sier hvor hvert unntak står: **Aktiv**, **Kommende** for et vindu som ikke har begynt, **Utløpt** eller **Avsluttet**. Under en regels navn i **Deteksjonsregler** teller en linje de aktive unntakene, og **Vis unntak** i regelens rad åpner listen filtrert på regelen.
 - Hendelser som hoppes over, holdes utenfor før regelen teller noe, så de teller aldri mot dens **Terskel for antall treff** og åpner ingen sak, varsel, hendelse eller funn. Unntak gjelder for hver kjøring av regelen, korrelasjoner inkludert, og for **Kjør på tidligere hendelser**, men aldri for et testangrep, som sjekker at hendelser kommer gjennom.
@@ -635,6 +739,14 @@ Handlingen **Opprett monitor** i raden til en regel åpner en ny monitor som all
 ## Oppbevaring og fakturering
 
 Sikkerhetshendelser faktureres per GB som tas inn, som resten av telemetrien din, og oppbevares i telemetriens oppbevaringstid: prosjektets **Standard oppbevaring (dager)**, under **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring**, eller en oppbevaringstid som er angitt på telemetritjenesten de hører til. Når oppbevaringstiden for en hendelse er ute, slettes den.
+
+Alt i Sikkerhetshendelser som leser tidligere hendelser, leser bare hendelsene som fortsatt oppbevares, og sier når det ville trengt flere:
+
+- En **Først sett**-regel med et tidsrom som er lengre enn hendelsene oppbevares, avgjør ut fra de oppbevarte dagene om en verdi er ny: med et tidsrom på 30 dager og 15 dagers oppbevaring sier varslene og sakene dens `First awsRegion in 15 days`, og en verdi som sist ble sett for 20 dager siden, regnes som ny. Raden dens viser **Krever oppmerksomhet**, og **Vis feil** sier hva som må endres. Regelskjemaet og detaljene til en regel i regelbiblioteket sier det før den lagres eller legges til. En telling eller en sekvens med et vindu som er lengre enn hendelsene oppbevares, teller bare dem.
+- **Kjør på tidligere hendelser** over en periode som begynner før de oppbevarte hendelsene, sier at sikkerhetshendelser oppbevares i 15 dager, så den så 15 dager tilbake, og det den ikke fant, gjelder bare de dagene. En hendelse som skjedde tidligere, men kom for sent, er fortsatt oppbevart og leses fortsatt. En **Først sett**-regel sier hvor mye av de 30 dagene før perioden den kunne se.
+- En hunt med et **Tidsintervall** som er lengre enn hendelsene oppbevares, finner ingenting eldre, og skjemaet dens sier det.
+
+**Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** viser de aktiverte reglene som ser lenger tilbake enn **Standard oppbevaring (dager)**. For å dekke dem, oppbevar hendelser lenger, med **Endre oppbevaring** under en regel, eller forkort tidsrommet til en regel til det som oppbevares. OneUptime oppbevarer 15 dager med mindre du endrer det, fordi oppbevaringen bestemmer hva telemetrien din koster og hvor lenge personopplysninger i hendelser, som adresser og brukernavn, oppbevares. En ny oppbevaring gjelder for hendelser som kommer inn fra da av, så reglene ser lenger tilbake etter hvert som de hendelsene blir eldre.
 
 ## Feilsøking
 

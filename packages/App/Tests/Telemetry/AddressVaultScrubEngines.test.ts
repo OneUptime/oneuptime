@@ -414,6 +414,10 @@ describe("the trace engine", () => {
     );
 
     expect(scrubbed.message).toBe(`connect ${tokenOf("2001:db8::99")} refused`);
-    expect(TraceScrubRuleService.scrubExceptionContent.length).toBe(2);
+    /*
+     * Its content, its rules and the service of the span it was copied
+     * from (#10433), whose rules scrub it: no recorder.
+     */
+    expect(TraceScrubRuleService.scrubExceptionContent.length).toBe(3);
   });
 });

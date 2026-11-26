@@ -1,5 +1,6 @@
 import Models from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Form from "../../../Models/DatabaseModels/Form";
 import FormSubmission from "../../../Models/DatabaseModels/FormSubmission";
@@ -18,6 +19,7 @@ import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ColumnType from "../../../Types/Database/ColumnType";
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { getUniqueColumnBy } from "../../../Types/Database/UniqueColumnBy";
@@ -179,6 +181,11 @@ const BASE_COLUMNS: Array<string> = [
   "updatedAt",
   "deletedAt",
   "version",
+  /*
+   * What created each record and who last modified it, which every model
+   * has (#10290, AddRecordCreatedByAndLastModifiedColumns).
+   */
+  ...RECORD_ACTOR_COLUMNS,
 ];
 
 const FORM_COLUMNS: Array<string> = [
@@ -206,8 +213,6 @@ const FORM_COLUMNS: Array<string> = [
   "requireSsoForLogin",
   "createdByUser",
   "createdByUserId",
-  "deletedByUser",
-  "deletedByUserId",
 ];
 
 // The columns a form editor changes once the form exists.
@@ -241,6 +246,9 @@ const SUBMISSION_COLUMNS: Array<string> = [
   "targetType",
   "incident",
   "incidentId",
+  // What an alert form's submission created (#10760).
+  "alert",
+  "alertId",
   "scheduledMaintenance",
   "scheduledMaintenanceId",
 ];
@@ -671,18 +679,20 @@ describe("Form: who may build, read and change a form", () => {
   });
 
   /*
-   * Who created or deleted a form is OneUptime's to say (UserAttribution):
-   * DatabaseService takes both out of every write it does not make itself,
-   * and the column check skips them as computed, so a client that still
-   * sends one is not refused for it - and the value is never stored.
+   * Who created a form is OneUptime's to say (UserAttribution):
+   * DatabaseService takes it out of every write it does not make itself,
+   * and the column check skips it as computed, so a client that still sends
+   * one is not refused for it - and the value is never stored. Who deleted
+   * one is no column at all: a form is deleted outright (#10469).
    */
-  test("nobody can set who deleted a form", () => {
+  test("nobody can set who created a form", () => {
     const model: Form = new Form();
 
-    expect(model.getTableColumnMetadata("deletedByUserId").computed).toBe(true);
+    expect(model.getTableColumnMetadata("createdByUserId").computed).toBe(true);
     expect(UserAttribution.getColumns(model)).toEqual(
-      expect.arrayContaining(["deletedByUser", "deletedByUserId"]),
+      expect.arrayContaining(["createdByUser", "createdByUserId"]),
     );
+    expect(model.hasColumn("deletedByUserId")).toBe(false);
   });
 });
 
@@ -839,17 +849,6 @@ describe("Form columns", () => {
         update: [],
       });
       expect(model.getTableColumnMetadata(column).computed).toBe(true);
-    },
-  );
-
-  test.each(["deletedByUser", "deletedByUserId"])(
-    "%s cannot be written or read through the API",
-    (column: string) => {
-      expect(access(model, column)).toEqual({
-        create: [],
-        read: [],
-        update: [],
-      });
     },
   );
 
@@ -1097,12 +1096,6 @@ describe("Form columns", () => {
       modelType: User,
       onDelete: "SET NULL",
     },
-    {
-      relation: "deletedByUser",
-      idColumn: "deletedByUserId",
-      modelType: User,
-      onDelete: "SET NULL",
-    },
   ] as Array<RelationCase>)(
     "$relation points at its model through $idColumn, and is $onDelete on delete",
     ({ relation, idColumn, modelType, onDelete }: RelationCase) => {
@@ -1312,15 +1305,21 @@ describe("FormSubmission: written by the submit route alone", () => {
 describe("FormSubmission columns", () => {
   const model: FormSubmission = new FormSubmission();
 
-  test("has exactly the columns the migration creates - no created-by or deleted-by user", () => {
+  test("has exactly the columns its migrations create - no created-by or deleted-by user", () => {
     expect([...model.getTableColumns().columns].sort()).toEqual(
       [...BASE_COLUMNS, ...SUBMISSION_COLUMNS].sort(),
     );
   });
 
-  test("the project, form, incident and event ids are indexed", () => {
+  test("the project, form, incident, alert and event ids are indexed", () => {
     expect(indexedColumns(FormSubmission)).toEqual(
-      ["formId", "incidentId", "projectId", "scheduledMaintenanceId"].sort(),
+      [
+        "alertId",
+        "formId",
+        "incidentId",
+        "projectId",
+        "scheduledMaintenanceId",
+      ].sort(),
     );
   });
 
@@ -1381,6 +1380,13 @@ describe("FormSubmission columns", () => {
       nullable: true,
     },
     {
+      relation: "alert",
+      idColumn: "alertId",
+      modelType: Alert,
+      onDelete: "SET NULL",
+      nullable: true,
+    },
+    {
       relation: "scheduledMaintenance",
       idColumn: "scheduledMaintenanceId",
       modelType: ScheduledMaintenance,
@@ -1408,6 +1414,9 @@ describe("FormSubmission columns", () => {
       "CASCADE",
     );
     expect(relationArgs(FormSubmission, "incident").options.onDelete).toBe(
+      "SET NULL",
+    );
+    expect(relationArgs(FormSubmission, "alert").options.onDelete).toBe(
       "SET NULL",
     );
     expect(

@@ -148,13 +148,13 @@ Nel passaggio **Criteri**, apri il primo criterio, quello che segna il monitor c
 
 ### Aprire un incidente per problema
 
-Nello stesso criterio, apri **Impostazioni** e attiva **Group incidents and alerts by a payload field**. Compilalo come qui sotto, così ogni problema ha il suo incidente e il suo rientro lo risolve:
+Nello stesso criterio, apri **Impostazioni** e attiva **Raggruppa incidenti e avvisi per un campo del payload**. Compilalo come qui sotto, così ogni problema ha il suo incidente e il suo rientro lo risolve:
 
 | Campo | Valore |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Apri un incidente separato per ogni…** | `requestBody.event_id` |
+| **Campo che segnala il ripristino** | `requestBody.status` |
+| **Valore che indica il ripristino** | `0` |
 
 ### Riportare il monitor online
 
@@ -321,7 +321,7 @@ Apri il tipo di media e usa **Test**: Zabbix mostra il risultato dello script o 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - L'azione ha bisogno di **Recovery operations**, altrimenti Zabbix non invia mai il rientro.
 - Con il modello, apri **Esecuzioni** del flusso di lavoro e l'esecuzione del rientro: il suo ultimo passo dice perché. Il rientro di un problema che non ha aperto alcun incidente non cambia nulla.
-- Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**. **Field that signals recovery** deve essere `requestBody.status`, e **Value that means recovered** esattamente `0`.
+- Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**. **Campo che segnala il ripristino** deve essere `requestBody.status`, e **Valore che indica il ripristino** esattamente `0`.
 :::
 
 :::details Il problema di Zabbix non viene riconosciuto né chiuso

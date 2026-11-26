@@ -382,7 +382,7 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     );
     expect(feedCalls[0]!.displayColor).toBe(Red500);
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **Jane Doe** (jane@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍💻 Removed **[Jane Doe](${USER_LINK})** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
     expect(feedCalls[0]!.userId).toBe(ACTING_USER_ID);
   });
@@ -432,7 +432,7 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     expect(feedCalls[0]!.userId?.toString()).toBe(USER_ID.toString());
   });
 
-  test("a removed owner with no name is named by email once, not twice", async () => {
+  test("a removed owner with no name is named by the part of their address before the @, never the address (#10669)", async () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(makeUser({ email: "ops@example.com" }));
@@ -448,16 +448,17 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     );
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **ops@example.com** as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍💻 Removed **[ops](${USER_LINK})** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 
   /*
-   * Someone invited to the project who has not accepted is named as the
-   * project knows them - the name typed for them, else their address -
-   * never by their account's own name (#9823).
+   * Someone invited to the project who has not accepted is named by the
+   * name typed for them, else as someone who hasn't joined the project yet,
+   * as text - never by their account's own name (#9823) or any address
+   * (#10668).
    */
-  test("a removed owner only invited to the project is named by the name typed for them", async () => {
+  test("a removed owner only invited to the project is named by the name typed for them, never an address", async () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(
@@ -482,7 +483,7 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     );
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **Jane (invited)** (jane@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍💻 Removed **Jane (invited)** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
     expect(
       (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
@@ -504,9 +505,9 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
       [OWNER_USER_ROW_ID],
     );
 
-    // Named by their address once, not their own name.
+    // Nor by their address, nor their own name.
     expect(feedCalls[1]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **jane@example.com** as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍💻 Removed **someone who hasn't joined the project yet** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 
@@ -527,9 +528,17 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
       [OWNER_USER_ROW_ID],
     );
 
-    expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **\\*\\*Jane\\*\\* \\[x\\](y)** (jane_doe@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
+    const removed: string = String(feedCalls[0]!.feedInfoInMarkdown);
+
+    // The name is the text of its link, escaped; no address follows it.
+    expect(removed.startsWith("👨🏻‍💻 Removed **[\\*\\*Jane\\*\\* \\[x\\]")).toBe(
+      true,
     );
+    expect(removed).toContain(
+      `](${USER_LINK})** as an owner of ${SLO_MARKDOWN_LINK}.`,
+    );
+    expect(removed).not.toContain("**Jane** [x](y)");
+    expect(removed).not.toContain("jane_doe@example.com");
   });
 
   test("a failed read of the rows the delete removes refuses the delete: it is held to the rows read", async () => {

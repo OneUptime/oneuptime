@@ -9,6 +9,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -36,8 +37,13 @@ import { productNamePostProcessor } from "../../../UI/Utils/ProductNameTranslati
 import { LEFT_TO_RIGHT_ISOLATE } from "../../../Types/CodeInSentence";
 import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
+import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
+import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
 import ObjectID from "../../../Types/ObjectID";
+import { RUM_SIGNAL_ARRIVAL_POLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/SetupCheck/RumSignalArrival";
 import type { Mock } from "jest-mock";
 
 /*
@@ -46,7 +52,8 @@ import type { Mock } from "jest-mock";
  * its log records, with this install's URL and - for logs - a Browser key
  * filled in. The snippet ships in the page, so the picker may only ever
  * offer Browser keys; exceptions travel with the traces the app already
- * sends, so they ask for no key at all.
+ * sends, so they ask for no key at all. Their last step waits for the
+ * first log or exception, and says when it arrives (issue #6379).
  */
 
 // Rendered as plain text, as in SetupGuideCard.test.tsx.
@@ -60,6 +67,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
+const APP_ID: ObjectID = new ObjectID("rum-app-1");
 
 function makeKey(data: {
   id: string;
@@ -91,34 +99,87 @@ const SERVER_KEY: TelemetryIngestionKey = makeKey({
 });
 
 type GetList = typeof ModelAPI.getList;
+type GetItem = typeof ModelAPI.getItem;
 
 interface ListArguments {
+  modelType: unknown;
   query: Record<string, unknown>;
 }
 
-// Answers with the keys of the requested type, as the API does.
-function mockKeys(keys: Array<TelemetryIngestionKey>): Mock<GetList> {
+// What the last step's reads answer: the newest exception, the refusals.
+interface ArrivalRows {
+  exceptions?: Array<Record<string, unknown>>;
+  refusals?: Array<Record<string, unknown>>;
+}
+
+/*
+ * Answers with the keys of the requested type, as the API does, and with
+ * the rows the last step reads.
+ */
+function mockKeys(
+  keys: Array<TelemetryIngestionKey>,
+  rows: ArrivalRows = {},
+): Mock<GetList> {
   return jest.spyOn(ModelAPI, "getList").mockImplementation(((
     args: ListArguments,
   ): Promise<unknown> => {
-    const matching: Array<TelemetryIngestionKey> = keys.filter(
-      (key: TelemetryIngestionKey): boolean => {
+    const listOf: (data: Array<unknown>) => Promise<unknown> = (
+      data: Array<unknown>,
+    ): Promise<unknown> => {
+      return Promise.resolve({
+        data: data,
+        count: data.length,
+        skip: 0,
+        limit: 50,
+      });
+    };
+
+    if (args.modelType === TelemetryException) {
+      return listOf(rows.exceptions || []);
+    }
+
+    if (args.modelType === TelemetryIngestionKeyRefusal) {
+      return listOf(rows.refusals || []);
+    }
+
+    return listOf(
+      keys.filter((key: TelemetryIngestionKey): boolean => {
         return !args.query["keyType"] || key.keyType === args.query["keyType"];
-      },
+      }),
     );
-    return Promise.resolve({
-      data: matching,
-      count: matching.length,
-      skip: 0,
-      limit: 50,
-    });
   }) as never) as unknown as Mock<GetList>;
 }
 
+// The key types the picker asked for, in order: the key reads only.
 function requestedKeyTypes(getList: Mock<GetList>): Array<unknown> {
-  return getList.mock.calls.map((call: Array<unknown>): unknown => {
-    return (call[0] as ListArguments).query["keyType"];
-  });
+  return getList.mock.calls
+    .map((call: Array<unknown>): ListArguments => {
+      return call[0] as ListArguments;
+    })
+    .filter((args: ListArguments): boolean => {
+      return args.modelType === TelemetryIngestionKey;
+    })
+    .map((args: ListArguments): unknown => {
+      return args.query["keyType"];
+    });
+}
+
+// The application row the last step reads: when logs and traces last came.
+function mockApplication(
+  row: Record<string, unknown> | Error = {
+    logsLastReceivedAt: null,
+    tracesLastReceivedAt: null,
+  },
+): Mock<GetItem> {
+  return jest
+    .spyOn(ModelAPI, "getItem")
+    .mockImplementation(((): Promise<unknown> => {
+      return row instanceof Error ? Promise.reject(row) : Promise.resolve(row);
+    }) as never) as unknown as Mock<GetItem>;
+}
+
+function ago(ms: number): Date {
+  return new Date(Date.now() - ms);
 }
 
 // The steps' titles, without the "Step 1:" a screen reader hears first.
@@ -138,6 +199,7 @@ function open(signal: "exceptions" | "logs"): HTMLElement {
   render(
     <RumSignalSetupModal
       signal={signal}
+      rumApplicationId={APP_ID}
       appName="storefront-web"
       onClose={onClose}
     />,
@@ -148,6 +210,7 @@ function open(signal: "exceptions" | "logs"): HTMLElement {
 beforeEach(() => {
   onClose.mockReset();
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  mockApplication();
 });
 
 afterEach(() => {
@@ -198,11 +261,12 @@ describe("Set up logs", () => {
       expect(dialog.textContent).toContain("secret-browser");
     });
     const titles: Array<string> = stepTitles(dialog);
+    // The live step is the only check: no static one repeats it before it.
     expect(titles.slice(-4)).toEqual([
       "Install the log packages",
       "Add a log pipeline to src/telemetry.ts",
       "Write log records",
-      "Check that they arrive",
+      "Wait for the first log",
     ]);
     // The key comes first.
     expect(titles).toHaveLength(5);
@@ -239,8 +303,15 @@ describe("Set up exceptions", () => {
       "Add the error handlers to src/telemetry.ts",
       "Record the errors your code handles",
       "Check that they arrive",
+      "Wait for the first exception",
     ]);
-    expect(getList).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByTestId("rum-signal-arrival-waiting")).toHaveAttribute(
+        "data-state",
+        "waiting",
+      );
+    });
+    expect(requestedKeyTypes(getList)).toEqual([]);
     expect(dialog.textContent).not.toContain(SETUP_GUIDE_API_KEY_PLACEHOLDER);
     expect(dialog.textContent).toContain('window.addEventListener("error"');
     expect(dialog.textContent).toContain(
@@ -276,6 +347,157 @@ describe("Set up exceptions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The last step (issue #6379): it looks for the application's first log or
+ * exception while the dialog is open, and says when one arrives, what was
+ * refused, or that it could not look.
+ */
+describe("the last step waits for the first one", () => {
+  test("logs: waits, naming the application, and reads the application's own row", async () => {
+    mockKeys([BROWSER_KEY]);
+    const getItem: Mock<GetItem> = mockApplication({
+      logsLastReceivedAt: null,
+      tracesLastReceivedAt: ago(60 * 1000),
+    });
+    open("logs");
+
+    const waiting: HTMLElement = await screen.findByTestId(
+      "rum-signal-arrival-waiting",
+    );
+    await waitFor(() => {
+      expect(waiting).toHaveAttribute("data-state", "waiting");
+    });
+    expect(waiting.textContent).toBe(
+      "Waiting for the first log from storefront-web…",
+    );
+    const read: Record<string, unknown> = getItem.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+    expect((read["id"] as ObjectID).toString()).toBe(APP_ID.toString());
+    expect(read["select"]).toEqual({
+      logsLastReceivedAt: true,
+      tracesLastReceivedAt: true,
+    });
+  });
+
+  test("logs: says when they arrive", async () => {
+    mockKeys([BROWSER_KEY]);
+    mockApplication({
+      logsLastReceivedAt: ago(20 * 1000),
+      tracesLastReceivedAt: ago(20 * 1000),
+    });
+    open("logs");
+
+    const arrived: HTMLElement = await screen.findByTestId(
+      "rum-signal-arrival-arrived",
+    );
+    expect(arrived.textContent).toMatch(
+      /^Logs are arriving from storefront-web\. The latest arrived .+\.$/,
+    );
+  });
+
+  test("exceptions: says when the newest one was seen", async () => {
+    mockKeys([], { exceptions: [{ lastSeenAt: ago(30 * 1000) }] });
+    open("exceptions");
+
+    const arrived: HTMLElement = await screen.findByTestId(
+      "rum-signal-arrival-arrived",
+    );
+    expect(arrived.textContent).toMatch(
+      /^Exceptions are arriving from storefront-web\. The latest was seen .+\.$/,
+    );
+  });
+
+  test("a key the logs are refused with: why, and that step 1 picks another", async () => {
+    mockKeys([BROWSER_KEY], {
+      refusals: [
+        {
+          reason: TelemetryIngestRefusalReason.KeyDisabled,
+          surface: TelemetryIngestSurface.OtelLogs,
+          refusedCount: 12,
+          firstRefusedAt: ago(10 * 60 * 1000),
+          lastRefusedAt: ago(60 * 1000),
+          telemetryIngestionKeyId: "key-browser",
+          telemetryIngestionKey: {
+            name: "Storefront Browser Key",
+            keyType: TelemetryIngestionKeyType.Browser,
+          },
+        },
+      ],
+    });
+    open("logs");
+
+    const refused: HTMLElement = await screen.findByTestId(
+      "rum-signal-arrival-refused",
+    );
+    expect(
+      within(refused).getByTestId("rum-signal-arrival-refusal").textContent,
+    ).toBe(
+      'The key "Storefront Browser Key" is turned off, so everything sent with it is refused.',
+    );
+    expect(refused.textContent).toContain(
+      "Pick another key in step 1, and deploy with it.",
+    );
+  });
+
+  test("a look that fails says so, and is not taken for nothing arriving", async () => {
+    mockKeys([BROWSER_KEY]);
+    mockApplication(new Error("Network down"));
+    open("logs");
+
+    const failed: HTMLElement = await screen.findByTestId(
+      "rum-signal-arrival-failed",
+    );
+    expect(failed.textContent).toBe(
+      "Couldn't check just now. Trying again in a few seconds.",
+    );
+    expect(screen.queryByTestId("rum-signal-arrival-nothing-yet")).toBeNull();
+  });
+
+  test("looks again every few seconds while open, and stops when the dialog closes", async () => {
+    jest.useFakeTimers();
+
+    try {
+      mockKeys([BROWSER_KEY]);
+      const getItem: Mock<GetItem> = mockApplication();
+      const { unmount } = render(
+        <RumSignalSetupModal
+          signal="logs"
+          rumApplicationId={APP_ID}
+          appName="storefront-web"
+          onClose={onClose}
+        />,
+      );
+
+      const settle: (ms: number) => Promise<void> = async (
+        ms: number,
+      ): Promise<void> => {
+        await act(async () => {
+          jest.advanceTimersByTime(ms);
+        });
+        for (let turn: number = 0; turn < 10; turn++) {
+          await act(async () => {
+            await Promise.resolve();
+          });
+        }
+      };
+
+      await settle(0);
+      expect(getItem).toHaveBeenCalledTimes(1);
+
+      await settle(RUM_SIGNAL_ARRIVAL_POLL_MS);
+      expect(getItem).toHaveBeenCalledTimes(2);
+
+      unmount();
+      await settle(10 * RUM_SIGNAL_ARRIVAL_POLL_MS);
+      expect(getItem).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 
@@ -327,6 +549,7 @@ describe("in the reader's language", () => {
       <I18nextProvider i18n={instances[language]!}>
         <RumSignalSetupModal
           signal={signal}
+          rumApplicationId={APP_ID}
           appName="storefront-web"
           onClose={onClose}
         />
@@ -417,16 +640,18 @@ describe("in the reader's language", () => {
       mockKeys([BROWSER_KEY]);
       const dialog: HTMLElement = await openIn("en", "logs");
 
+      /*
+       * What the key is accepted for, a Sentry browser SDK's events too
+       * (#7872), in plain words (#6458).
+       */
       expect(dialog.textContent).toContain(
-        `Browser key — intended for client distribution.`,
-      );
-      // What the key is accepted for: a Sentry browser SDK's events too (#7872).
-      expect(dialog.textContent).toContain(
-        `Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only.`,
+        `Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: ${ORIGIN}.`,
       );
       expect(dialog.textContent).toContain(
-        `Accepted identities: ${ORIGIN}. Native app identities are self-asserted, not platform attestation.`,
+        "An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.",
       );
+      expect(dialog.textContent).not.toContain("client distribution");
+      expect(dialog.textContent).not.toContain("self-asserted");
       expect(dialog.textContent).not.toContain(FIRST_STRONG_ISOLATE);
     });
 
@@ -435,25 +660,22 @@ describe("in the reader's language", () => {
       let dialog: HTMLElement = await openIn("de", "logs");
 
       expect(dialog.textContent).toContain(
-        `Browser-Schlüssel — zur Weitergabe an Clients gedacht.`,
+        `Browser-Schlüssel: gefahrlos in einer Webseite einsetzbar.`,
       );
       expect(dialog.textContent).toContain(
-        `Sitzungswiedergaben und Sentry-Ereignisse senden;`,
+        `Sitzungswiedergaben und Sentry-Ereignisse senden, und nur von: ${ORIGIN}.`,
       );
-      expect(dialog.textContent).toContain(
-        `Akzeptierte Identitäten: ${ORIGIN}.`,
-      );
-      expect(dialog.textContent).not.toContain("client distribution");
+      expect(dialog.textContent).not.toContain("safe to put in a web page");
       cleanup();
 
       dialog = await openIn("fa", "logs");
       expect(dialog.textContent).toContain(
-        `شناسه‌های پذیرفته: ${FIRST_STRONG_ISOLATE}${ORIGIN}${POP_DIRECTIONAL_ISOLATE}.`,
+        `و فقط از: ${FIRST_STRONG_ISOLATE}${ORIGIN}${POP_DIRECTIONAL_ISOLATE}.`,
       );
       expect(dialog.textContent).toContain(
-        `بازپخش نشست و رویدادهای Sentry بفرستند؛`,
+        `بازپخش‌های نشست و رویدادهای Sentry را بفرستد`,
       );
-      expect(dialog.textContent).not.toContain("client distribution");
+      expect(dialog.textContent).not.toContain("safe to put in a web page");
 
       /*
        * A left-to-right isolate keeps "://" with "app", or it is drawn
@@ -479,7 +701,7 @@ describe("in the reader's language", () => {
       };
 
       expect(caution).toContain(
-        `شناسه‌های ${LEFT_TO_RIGHT_ISOLATE}app://${POP_DIRECTIONAL_ISOLATE} فقط`,
+        `ورودی ${LEFT_TO_RIGHT_ISOLATE}app://${POP_DIRECTIONAL_ISOLATE} به`,
       );
       expect(isAppDrawnAsWritten(caution)).toBe(true);
       expect(isAppDrawnAsWritten(withoutIsolates(caution))).toBe(false);

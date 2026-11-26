@@ -239,6 +239,41 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   public carriedAlertIds?: Array<string> = undefined;
 
+  /*
+   * The security case this pull request fixes (#10347): Fix With AI opened
+   * it from the case's playbook, and its run carries the case
+   * (AIRun.triggeredBySecurityCaseId), so the case finds its fixes and its
+   * Fix step's check reads whether one shipped and the attack is turned
+   * away since. Only the case's id: what the case says is for the people
+   * who may read the case. Written by OneUptime only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Security Case ID",
+    description:
+      "ID of the security case this pull request fixes, when Fix With AI opened it from the case.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public securityCaseId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1080,45 +1115,6 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public repoName?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.Entity, modelType: User })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

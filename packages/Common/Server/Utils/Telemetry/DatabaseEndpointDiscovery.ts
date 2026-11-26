@@ -39,6 +39,7 @@ import {
   firstNonEmptyAttributeSql,
 } from "./ServiceDependencyDiscovery";
 import { readOwnValue } from "../../../Utils/LookupTable";
+import { notRumClientRowSql } from "./RumClientRows";
 
 // Defined beside the dependency query, which reads DB calls the same way.
 export {
@@ -247,6 +248,8 @@ export function getDatabaseEndpointCallerContextNeeds(address: string): {
  * result - an existing row is still matched and sighted - but never count
  * towards the min-calls threshold. Ordered host-named groups first, then by
  * calls, so the endpoints that can create a database survive the row cap.
+ * A RUM client's spans are never read (notRumClientRowSql, #10539): a key
+ * copied out of a page or an app must not be able to add a database.
  */
 export function buildDatabaseEndpointSql(
   window: DatabaseEndpointQueryWindow,
@@ -287,6 +290,7 @@ export function buildDatabaseEndpointSql(
       AND kind = '${SpanKind.Client}'
       AND hasAny(attributeKeys, ${keyList(DATABASE_SYSTEM_ATTRIBUTES)})
       AND hasAny(attributeKeys, ${keyList(DATABASE_ADDRESS_ATTRIBUTES)})
+      AND ${notRumClientRowSql()}
       AND dbSystem != ''
       AND serverAddress != ''
     GROUP BY dbSystem, serverAddress, serverPort, dbInstance, callerNamespace, callerInKubernetes, callerCluster

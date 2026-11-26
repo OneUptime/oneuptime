@@ -51,7 +51,9 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
+| **Resposta automática** | Playbooks | As políticas que desafiam ou bloqueiam um endereço que ataca assim que a detecção é feita, cada uma com seu período de teste e suas salvaguardas |
 | **Lista de bloqueio** | Playbooks | Os endereços que seu projeto bloqueia, até quando e onde cada bloqueio é aplicado |
+| **Feeds da lista de bloqueio** | Playbooks | Os URLs secretos de onde seus firewalls e proxies leem a lista de bloqueio, e suas obtenções |
 | **Entidades protegidas** | Playbooks | Os usuários, hosts e endereços aos quais nenhum playbook aplica contenção e que nenhum bloqueio afeta |
 | **Configurações** | IA | Se o OneUptime AI classifica cada caso novo |
 | **Conexões** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
@@ -131,6 +133,7 @@ Abra **Produtos → Eventos de segurança → Eventos**. Os eventos aparecem em 
 Informe o formato com `?format=`, com o cabeçalho `x-oneuptime-security-event-format` ou com um campo `"format"` de nível superior. Se você o omitir, o formato de cada evento é descoberto separadamente, então um mesmo webhook pode misturar detecções com eventos brutos.
 
 - O corpo pode ser um evento, um array de eventos ou `{ "events": [...] }`.
+- Um lote pode ser comprimido com gzip e enviado com `Content-Encoding: gzip`: ele é lido como o mesmo lote sem compressão. A saída `http` do Fluent Bit comprime com `compress gzip`, o sink `http` do Vector com `compression = "gzip"`, e a saída `http` do Logstash com `http_compression => true`. Só JSON é lido quando comprimido: um corpo comprimido de qualquer outro tipo é recusado com `400`.
 - O cabeçalho `x-oneuptime-service-name` nomeia o serviço de telemetria ao qual os eventos pertencem. Sem ele, pertencem ao serviço com o nome do produto ou do fornecedor do primeiro evento, ou a `Security Events`.
 - Nada é descartado por não ter sido mapeado: cada campo da origem chega aos atributos do evento.
 
@@ -172,6 +175,7 @@ Para enviar logs de segurança que você já coleta, como os do auditd, do syslo
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -183,7 +187,7 @@ A página **Guia de configuração**, em **Conexões**, tem esses trechos com o 
 
 ### Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes, ataque web e requisição de arquivo sensível que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 Cada tipo chega ao OneUptime como logs comuns:
 
@@ -234,6 +238,16 @@ Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conecta
 - A leitura da conta não traz mais nada: eventos de dados, logs Data Access e os logs do Microsoft Entra ID ainda precisam de **Seus logs** ou de uma [conexão](/docs/integrations/microsoft-entra-id).
 - Cada evento nomeia os recursos de nuvem de que o seu registro trata pelos próprios IDs - um ARN, um ID de recurso do Azure, um nome de recurso do Google Cloud -, então ele aparece na página **Eventos de segurança** de cada um, e na de uma função serverless assim que a telemetria dela define `cloud.account.id` e `cloud.region`.
 
+### As sondas do próprio OneUptime nos seus fluxos de rede
+
+Ative **Fluxos de rede**, em **Seus dados do OneUptime** na página **Conexões**, e os fluxos que seus dispositivos de rede exportam são lidos em busca de varreduras de portas, varreduras de rede, tráfego com endereços maliciosos conhecidos e grandes transferências para fora. O trabalho de uma sonda parece ali uma varredura: consultar 40 dispositivos por SNMP alcança a porta 161 em 40 hosts a cada cinco minutos. Por isso o tráfego de uma das sondas do próprio OneUptime que é exatamente o que a sonda está configurada para fazer é posto de lado:
+
+- os dispositivos de rede que ela consulta, com ping e por SNMP na porta deles;
+- o intervalo de cada uma das descobertas dela, enquanto a varredura está em andamento;
+- os hosts e as portas que os monitores dela verificam.
+
+Ele é guardado como um evento informativo, `oneuptime-probe-traffic`, que nomeia a sonda, e nenhuma regra o lê. **Fluxos de rede** diz quantos foram postos de lado no último dia, com **Ver**. Qualquer outra coisa vinda do endereço de uma sonda é contada como o tráfego de qualquer um, e uma varredura além do trabalho da sonda é relatada, nomeando a sonda. Uma sonda é reconhecida pelo endereço de onde ela se apresenta e pelos endereços das suas próprias interfaces de rede, que ela lista sempre que se apresenta.
+
 ### Conecte um produto de segurança
 
 **Conexões** consulta um produto de segurança por você e importa os registros novos dele como eventos de segurança. Uma conexão guarda as configurações do produto e uma credencial criptografada; um worker a consulta no intervalo que você define e pula os registros que já importou.
@@ -250,6 +264,7 @@ Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conecta
 | Okta System Log | Eventos de login, MFA, contas e políticas | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Logins, mudanças de diretório e detecções de risco, se você quiser os logins em segundo plano e de aplicativos que falharam, e do log de auditoria do Microsoft 365 o encaminhamento de e-mail, os compartilhamentos e os veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, as detecções do próprio Google, mudanças de administração e acessos concedidos a aplicativos, e compartilhamentos no Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | O que o firewall dela bloqueou, desafiou e registrou na borda, como HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Os alertas do próprio produto no nível de **Abrir casos a partir de** ou acima (**Alta e acima**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
 - Uma conexão lê os registros pelo momento em que o produto os criou, não pelo momento da atividade que descrevem. Uma regra de SIEM que roda de hora em hora cria detecções muito depois dos eventos correspondentes, e mesmo assim elas são importadas.
@@ -272,6 +287,71 @@ Cada evento é salvo com campos tipados e o payload de origem:
 | Atributos | O payload de origem inteiro, achatado em chaves com pontos |
 
 Os eventos armazenados antes do OneUptime 14.0.84 deixam vazios os campos de processo e nomeiam seu processo apenas como `principalProcess`, o processo que agiu. Eles não são preenchidos depois: mantêm o que tinham ao serem armazenados até o fim da retenção.
+
+### Qual endereço um evento indica
+
+Um evento indica o endereço de onde veio uma requisição somente quando o remetente da requisição não poderia tê-lo escrito. Esse endereço é verificado e se torna o **IP de origem** do evento: as regras de detecção o contam, a inteligência de ameaças o compara e o **Plano de resposta** de um caso oferece bloqueá-lo. Qualquer outro endereço que uma requisição indique é apenas declarado: o evento o guarda como **IP declarado**, e nada o conta nem o bloqueia.
+
+- O endereço da própria conexão é verificado: o `network.peer.address` de um span de servidor, ou o primeiro campo de uma linha do log de acesso de um servidor web. Ninguém pode escrevê-lo em uma requisição.
+- Atrás de um proxy em que você confia, o endereço da conexão é o do proxy, e o cliente é o endereço que o proxy encaminhou em `X-Forwarded-For`. Cada proxy acrescenta o endereço de onde recebeu a conexão, então o OneUptime lê o cabeçalho a partir da direita e pega o primeiro endereço que não é um proxy em que você confia. O que um remetente escreve no cabeçalho fica à esquerda e continua sendo uma declaração.
+- Um endereço que uma requisição indica sobre si mesma é declarado: `client.address`, que a instrumentação preenche a partir da esquerda do cabeçalho, o resto de `X-Forwarded-For` e `Forwarded`.
+
+Um endereço declarado nunca é bloqueado a partir de um caso: qualquer um pode enviar `X-Forwarded-For: 192.0.2.44`, e um bloqueio cortaria quem quer que seja 192.0.2.44. Um evento com apenas um endereço declarado tem um **Plano de resposta** que pede que você encontre o verdadeiro nos logs do seu balanceador de carga ou firewall.
+
+Registre duas coisas nos spans de servidor do seu app para que os endereços dele sejam verificados: o endereço da própria conexão, `network.peer.address`, que as instrumentações HTTP do OpenTelemetry definem, e, atrás de um proxy, o cabeçalho `X-Forwarded-For`, que elas registram como `http.request.header.x-forwarded-for` assim que você o lista em `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Um log de acesso JSON é lido da mesma forma: o campo de cliente dele, como `remote_addr`, é o endereço da conexão, e o campo `http_x_forwarded_for` é o cabeçalho.
+
+#### Proxies confiáveis
+
+O Eventos de segurança confia que um proxy diga quem foi o cliente dele quando o endereço dele é:
+
+| Confiável | Por quê |
+| --- | --- |
+| Privado, de loopback ou link-local, como `10.0.0.5` | Sempre: ninguém o tem na internet, então é um balanceador de carga ou um ingress dentro da sua rede |
+| Listado em **Proxies confiáveis** | Você o listou |
+| Nos intervalos publicados de uma borda que você conectou, como [Cloudflare](/docs/integrations/cloudflare) | Enquanto a conexão existir |
+| Um dos seus próprios balanceadores de carga de aplicação | A menos que você o desative |
+
+**Eventos de segurança → Conexões → Mais configurações** contém **Proxies confiáveis**, a lista que você escreve, e **Confiáveis automaticamente**, que mostra o resto e o porquê. Liste um proxy em **Proxies confiáveis**, um endereço ou intervalo por linha, quando o endereço dele é público e nada mais confia nele: uma CDN que você não conectou, um balanceador de carga que chega ao seu app pela internet, ou um proxy reverso como o nginx em um servidor com endereço público na frente do seu app. Até você fazer isso, todo ataque por ele é atribuído ao proxy. Atrás de um Application Load Balancer externo global do Google Cloud, as conexões do seu app vêm dos front-ends do Google: liste `35.191.0.0/16` e `130.211.0.0/22`.
+
+Os seus próprios balanceadores de carga de aplicação são os que as suas [contas de nuvem conectadas](/docs/telemetry/cloud-accounts) listam: AWS Application Load Balancers, AWS Classic Load Balancers cujos listeners são todos HTTP ou HTTPS, Google Cloud Application Load Balancers e Azure Application Gateways, pelos endereços públicos deles. Cada um acrescenta a `X-Forwarded-For` o cliente que encaminha. Um balanceador de carga do Google Cloud acrescenta o próprio endereço depois do endereço do cliente, e um Application Gateway chega a um backend público a partir do próprio endereço, então sem eles todo ataque por um deles seria atribuído ao balanceador de carga. **Seus balanceadores de carga**, em **Confiáveis automaticamente**, os lista, e um Proprietário do projeto, Administrador do projeto ou Administrador de segurança pode desativá-lo.
+
+Nada mais seu é confiável automaticamente: nem seus hosts, nós do Kubernetes, sondas ou máquinas virtuais, nem um gateway NAT, nem um Network, Gateway ou Azure Load Balancer. Eles não encaminham ninguém, ou repassam uma requisição como ela chegou, então o que roda neles poderia indicar qualquer cliente: uma requisição que um monitor envia com cabeçalhos próprios, um pod, um notebook atrás do gateway. Se um deles for o seu proxy, adicione-o a **Proxies confiáveis**. Um ingress do Kubernetes é confiável como o balanceador de carga que ele é: um ingress do GKE é um Google Cloud Application Load Balancer, um ingress do Application Gateway no AKS um Application Gateway, e um ingress do EKS da classe `alb` um AWS Application Load Balancer. Um controlador de ingress dentro do seu cluster encaminha a partir de um endereço privado, que é sempre confiável.
+
+Uma mudança em qualquer um deles entra em vigor em até um minuto, e um novo balanceador de carga passa a ser confiável em até cinco.
+
+#### Logs de acesso que terminam com X-Forwarded-For
+
+Atrás de um balanceador de carga, muitos servidores web registram o endereço encaminhado por último, como faz o próprio formato `main` do nginx:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Uma linha nunca diz o que são os campos dela, então o último campo só é lido como `X-Forwarded-For` depois que você ativa **Logs terminam com X-Forwarded-For**, em **Logs de acesso** dentro de **Mais configurações**, e apenas:
+
+- quando o primeiro campo da linha é um proxy em que você confia: uma linha de um cliente que chegou ao seu servidor web diretamente é desse cliente;
+- no formato combined, com exatamente um campo entre aspas depois do user agent e nada depois dele;
+- quando esse campo é `-` ou uma lista de endereços cujo último não tem porta.
+
+Deixe desativado quando o seu formato termina com outro cabeçalho que contém um endereço, como `X-Real-IP`, ou quando o seu servidor web escreve cabeçalhos sem escapar as aspas deles, como faz o `morgan` do Express: o próprio user agent de uma requisição poderia então acrescentar um campo. Um log de acesso JSON não precisa de nenhuma opção, já que os campos dele têm nome.
+
+### Ocultado por uma regra de limpeza
+
+Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o endereço de onde veio um ataque antes que Eventos de segurança os leia. O evento é guardado mesmo assim, sem endereço, e onde quer que fosse nomear o endereço, diz que uma regra de mascaramento o ocultou:
+
+- **IP de origem**, no painel do evento, nomeia a regra que o ocultou quando pode, como um link para as **Regras de mascaramento** dos logs ou dos traces. O filtro ao lado mostra cada evento cujo endereço foi ocultado por uma regra de mascaramento.
+- **IP de destino** diz o mesmo quando uma regra ocultou para onde foi uma conexão: o destino de um firewall, ou para onde dados foram enviados. O filtro ao lado mostra cada evento cujo endereço de destino foi ocultado por uma regra de mascaramento.
+- **O que aconteceu depois** diz que a requisição veio de um endereço ocultado por uma regra de mascaramento, e **Campanhas** agrupa essas requisições numa linha própria.
+- Um caso cujos eventos perderam todos o endereço diz isso no seu **Plano de resposta**: em vez de bloquear o endereço, ele pede que você o encontre nos logs do seu balanceador de carga ou firewall e o bloqueie lá, com **Abrir regras de mascaramento**.
+- **Visão geral** nomeia a regra que oculta os endereços que Eventos de segurança lê, também com **Abrir regras de mascaramento**.
+
+Uma regra que aplica hash guarda o endereço para Eventos de segurança, então o evento o nomeia, a menos que seu token tenha mais de 30 dias ou tenha sido criado antes de os tokens terem uma chave: veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). Para encontrar esses eventos, pesquise `@oneuptime.request.client_address_hidden:scrub-rule`. O que a regra deixou no lugar do endereço, como `[REDACTED]`, fica em `oneuptime.request.client_address_scrubbed`. Para um destino, pesquise `@oneuptime.target_address_hidden:scrub-rule`.
+
+Uma regra de detecção que conta por endereço deve contar por `principalIp` ou `targetIp`, que nomeiam o endereço por trás do token de uma regra que aplica hash, como fazem as regras da biblioteca de regras. O campo de endereço próprio de um formato, como `openstack.audit.initiator_address` ou `asa.src_ip`, só guarda um endereço escrito no log, então fica vazio onde quer que uma regra de mascaramento tenha ocultado um.
+
+Uma regra que apaga ou mascara um usuário o oculta da mesma forma: onde o evento nomearia o usuário, **Usuário de origem** ou **Usuário de destino** diz que uma regra de mascaramento o ocultou. Onde Eventos de segurança lê um usuário, uma regra que aplica hash guarda o usuário para ele: o `enduser.id` ou o `user.id` de uma requisição, o usuário de uma chamada de IA e o usuário que uma linha de log nomeia, como o principal de um log de auditoria da nuvem. Assim, o evento nomeia o usuário por trás do token, um caso sobre ele nomeia a conta, e um playbook pode agir sobre ela como sobre qualquer outro usuário. O que a regra deixou fica em `oneuptime.principal_user_hashed_as` ou em `oneuptime.target_user_hashed_as`, para você encontrar o usuário nos seus logs e traces, que guardam só o token. Um token sem usuário guardado, como um criado antes de os tokens terem uma chave, continua sendo o usuário do evento: as regras o contam como uma só conta, e nenhum playbook age sobre ele.
 
 ## Explorar os eventos de segurança
 
@@ -304,9 +384,29 @@ A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Resu
 
 Um evento lido de uma linha de log escrita dentro de uma requisição rastreada é acompanhado até essa requisição. O painel dele mostra até onde a requisição chegou (**Rejeitado**, **Chegou ao app**, **Com erro** ou **Chegou ao banco de dados**), quem a enviou, e leva ao trace, à exceção, ao replay da sessão e à própria linha de log. Uma linha de log, um trace e uma exceção que fazem parte de um ataque também dizem isso nas próprias páginas.
 
+### Um arquivo sensível que seu site serviu
+
+Uma requisição de um arquivo que guarda segredos, como `/.env`, `/.git/config`, `/.aws/credentials` ou uma cópia de `wp-config.php`, é um vazamento quando seu site a respondeu com o próprio arquivo: quem pediu fica com as senhas, as chaves e os tokens dele. Um app de página única responde a todo caminho que não tem com a própria página e um status 200, então um status 200 sozinho nunca diz isso. O OneUptime lê o que a resposta trouxe:
+
+- Um tipo que não é de página web, como `text/plain` ou `application/octet-stream`: o próprio arquivo.
+- Uma página web, ou JSON para um arquivo que não é JSON: a própria página do seu site.
+- Nada nela: nada foi levado.
+- Um tamanho e nenhum tipo, como registra o log de acesso de um servidor web: o próprio arquivo quando nenhum outro caminho teve esse tamanho e seu site responde 404 para os caminhos que não tem, e a própria página do seu site quando o mesmo tamanho respondeu a dois caminhos diferentes. Quando nada permite saber, a requisição não vira evento.
+
+Um arquivo servido é Crítico, e a regra **Sensitive file served** da biblioteca de regras abre um caso sobre ele, com etapas para tirar o arquivo do ar e fazer a rotação do que ele guarda. Cada uma dessas requisições também conta para **Scanning for sensitive files**, inclusive as de um app de página única. Uma página de administração que seu site serve, como a do WordPress, nunca é uma delas, e um `wp-config.php` que o WordPress executou é a própria página do seu site. Os eventos de firewall da Cloudflare não dizem o que sua origem enviou, então uma requisição que a Cloudflare deixou passar conta só para a varredura. O painel de um evento diz o que seu site enviou em **O que aconteceu depois**.
+
 ### Campaigns
 
-**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
+**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro. Uma linha que sua lista de bloqueio já contém diz até quando ela está bloqueada ou desafiada, e nomeia o intervalo ou a rede que a contém.
+
+Para bloquear vários atacantes de uma vez, selecione as linhas deles e clique em **Bloquear endereços**. Uma única caixa de diálogo lista cada endereço que ela bloqueia e cada um que ela deixa de fora, com o motivo: já bloqueado, um dos seus ou um protegido, um que um usuário conectado usou nos últimos 30 dias, ou um que o OneUptime não conseguiu verificar. Ela bloqueia por 24 horas, a menos que você escolha outra duração, ou desafia com **Desafio em vez disso**, e cada bloqueio vai para a sua [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) como seu.
+
+**Agrupar por rede** coloca os endereços de uma mesma rede em uma única linha: pelo seu ASN quando os eventos da sua conexão da [Cloudflare](/docs/integrations/cloudflare) informam um e, caso contrário, pelo seu /24 no IPv4 ou pelo seu /48 no IPv6. A linha de um ASN lista os intervalos de onde seus endereços enviaram. **Desafiar esta rede** diz o que vai fazer, onde e por quanto tempo antes de fazer: 24 horas, a menos que você escolha outra duração, e o próximo degrau da escada para uma rede já desafiada antes. A Cloudflare guarda um intervalo na sua lista de desafio, e um ASN como uma IP Access Rule, que todo plano tem. **Ver requisições**, na linha de uma rede, abre em **Eventos** as requisições que ela enviou: as de um ASN pelo ASN que os eventos da Cloudflare dele trazem, e as de um intervalo como uma pesquisa pelos endereços dele, por exemplo `ip:203.0.113.*`, que você pode alterar.
+
+- Uma rede que contém um endereço que um usuário conectado usou nos últimos 30 dias, ou um dos seus, nunca é desafiada, e a caixa de diálogo diz quem ou o quê.
+- Um intervalo mais amplo que um /24 (um /48 no IPv6), e um ASN inteiro, exigem um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto. A linha de um ASN também oferece cada um dos seus intervalos, que qualquer pessoa que possa bloquear pode desafiar.
+- Quando o OneUptime não consegue saber quem usa uma rede, porque ela é um ASN inteiro ou porque uma regra de mascaramento oculta os endereços dos clientes, somente um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto pode desafiá-la, depois de marcar que está ciente disso.
+- Nada é bloqueado nem desafiado enquanto Eventos de segurança estiver desativado no servidor.
 
 ### Correlacionar
 
@@ -339,7 +439,7 @@ Uma caçada salva com filtros da barra lateral de Eventos os mostra em **Editar*
 
 Uma caçada agendada avisa as pessoas e equipes que você escolhe em **Notificar**: pelo menos uma, e no máximo 50 no total. Cada execução:
 
-- lê os eventos cujo horário vem depois da execução anterior, até dois minutos atrás, então cada evento é pesquisado uma vez. A primeira execução lê a partir do momento em que o agendamento foi definido ou a pesquisa foi alterada pela última vez, e depois de uma interrupção uma execução recupera no máximo um dia a mais que seu intervalo.
+- lê os eventos que chegaram depois da execução anterior, até dois minutos atrás, não importa quando aconteceram, então cada evento é pesquisado uma vez, até um que chega atrasado. A primeira execução lê a partir do momento em que o agendamento foi definido ou a pesquisa foi alterada pela última vez, e depois de uma interrupção uma execução recupera no máximo um dia a mais que seu intervalo. Um evento que chega mais de um dia depois de acontecer é guardado e pode ser pesquisado, mas nenhuma execução o conta.
 - conta os eventos que sua pesquisa encontra ali, exatamente como **Eventos** os listaria, lendo só o que a pessoa com quem ela é executada pode ler.
 - quando encontra eventos, avisa as pessoas que a caçada nomeia, e os membros das equipes que ela nomeia, que podem ler caçadas e eventos de segurança.
 
@@ -349,11 +449,11 @@ Uma caçada agendada é executada com a pessoa que por último definiu seu agend
 
 ### Histórico de execuções
 
-Cada execução agendada é guardada por 90 dias. **Histórico de execuções**, no fim da linha que diz o que as execuções de uma caçada encontraram, as lista da mais recente para a mais antiga: quando cada uma foi executada e os eventos que pesquisou, depois quantos encontrou, com **Mostrá-los** para abrir esses eventos na página da caçada; que não encontrou nada; ou por que não pôde ser executada. Quem pode abrir uma caçada pode ler as execuções dela.
+Cada execução agendada é guardada por 90 dias. **Histórico de execuções**, no fim da linha que diz o que as execuções de uma caçada encontraram, as lista da mais recente para a mais antiga: quando cada uma foi executada e quando chegaram os eventos que pesquisou, depois quantos encontrou, com **Mostrá-los** para abrir exatamente esses eventos na página da caçada; que não encontrou nada; ou por que não pôde ser executada. Quem pode abrir uma caçada pode ler as execuções dela.
 
 ### Quem é avisado
 
-A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
+A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e quando chegaram, e leva à página da caçada exatamente nesses eventos: o filtro **Chegados** sobre o dia anterior a eles, que você pode tirar para ver todo o resto desse período; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
 
 Para publicar no Slack, no Microsoft Teams ou no Mattermost o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-do-microsoft-teams-e-do-mattermost). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Proprietário do projeto, Administrador do projeto ou Administrador de segurança.
 
@@ -497,13 +597,16 @@ O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra
 | Password spraying: um IP falhando em 5 contas diferentes | `principalIp` | `principalUser` | 5 |
 | Varredura de portas: um IP alcançando 20 portas diferentes | `principalIp` | `targetPort` | 20 |
 
+Uma regra com um **Campo de agrupamento** que precisa de mais de um evento em um grupo, por um limite acima de 1 ou um **Campo de contagem distinta**, deixa de fora os eventos que não têm valor para o campo dela: contados, todos se somariam como um único valor, cada login com falha sem endereço como um único endereço IP. Uma regra que dispara a cada evento continua disparando para eles. **Regras de detecção** diz, abaixo do nome de uma regra, quantos dos eventos correspondentes do último dia ela não conseguiu contar, e a linha abre o porquê: quantos não tinham valor e quantos deles uma regra de mascaramento ocultou, com **Abrir regras de mascaramento**. Uma regra que não conseguiu contar nada do que encontrou não pode disparar, e o **Status** dela diz **Requer atenção**. **Executar em eventos passados** diz o mesmo para o período que lê.
+
 ### Quando uma regra roda
 
 O OneUptime verifica a cada minuto quais regras habilitadas já passaram do intervalo desde a última execução. Cada execução lê os eventos que chegaram ao OneUptime entre a execução anterior e dois minutos atrás, não importa quando aconteceram, e depois avança. Os dois minutos dão tempo aos eventos que ainda estão sendo gravados:
 
 - Uma regra que conta e uma correlação contam em janelas do tamanho do intervalo, uma após a outra no relógio: com um intervalo de 10 minutos, falhas às 09:58 e às 10:01 caem em janelas diferentes e são contadas separadamente, então deixe folga ao escolher um limite.
 - Depois de uma lacuna, como uma queda do worker ou uma regra reativada, a próxima execução cobre a lacuna inteira, até as últimas 24 horas.
-- Um evento que chega atrasado é lido mesmo assim, uma vez, pela execução seguinte, e contado na janela em que aconteceu: um grupo dispara quando a janela dele atinge a contagem, e no máximo uma vez por janela. Um que chega mais de um dia depois de acontecer é salvo e pode ser pesquisado, mas as execuções da regra não o leem; **Executar em eventos passados** o lê.
+- Uma execução que falha, como uma que demora demais, deixa a regra onde estava: seu **Status** diz **Falha na execução**, e ela é tentada de novo no próximo intervalo, ou em até uma hora se o intervalo for mais longo. A execução que funciona lê tudo o que chegou desde a última que funcionou, por mais distante que seja, um dia de cada vez. Uma execução interrompida depois de agir sobre suas correspondências é refeita sem adicioná-las duas vezes ao caso.
+- Um evento que chega atrasado é lido mesmo assim, uma vez, pela execução seguinte, e contado na janela em que aconteceu: um grupo dispara quando a janela dele atinge a contagem, e no máximo uma vez por janela. Um que chega mais de um dia depois de acontecer é salvo e pode ser pesquisado, mas as execuções da regra não o leem; **Executar em eventos passados** o lê. Isso é de propósito, para que uma carga de histórico não abra alertas sobre o passado: quando algum chegou tão atrasado nos últimos 7 dias, um aviso acima das regras diz quantos, de quais fontes e quando aconteceram, e abre **Executar em eventos passados** nesse período.
 - Cada grupo que atinge o limite vira um Detection Finding, até 10.000 por execução. Alertas, incidentes e casos abrem para os 100 com as contagens mais altas; o restante compartilha um caso sobre a regra, e o **Último erro** da regra diz quantos grupos corresponderam.
 
 ### Regras em tempo real
@@ -557,6 +660,7 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 | **Uma janela de tempo** | Todo evento de **Começa em** até **Termina em**, com no máximo 30 dias de diferença |
 
 - Os valores correspondem sem diferenciar maiúsculas e minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` ignora toda conta de serviço, e `*.lab.example.com` todo host de um domínio. Um endereço IP pode ser um intervalo, como `10.20.0.0/16`. Um valor feito só de `*` é recusado: para parar uma regra, desative-a.
+- Os eventos do próprio log de auditoria do OneUptime nomeiam uma chave de API do projeto em `principalUser` como `api-key:` seguido do ID dela, então duas chaves com o mesmo nome são dois atores, e nenhum playbook oferece uma chave como um usuário a suspender. O nome da chave continua na mensagem do evento e em `audit.api_key_name`. Uma exceção para o nome de uma chave, como usuário ou como valor de `principalUser`, ainda ignora toda chave com esse nome, e uma para `api-key:` seguido do ID da chave ignora só essa chave.
 - Cada exceção diz o porquê em seu **Motivo**, que todos que leem a lista veem, e guarda quem a adicionou e quando. Uma entidade ou um valor pode ter uma data em **Expira em**, depois da qual a regra volta a vê-lo; uma janela de tempo termina sozinha.
 - **Status** diz em que ponto cada uma está: **Ativo**, **Programado** para uma janela que ainda não começou, **Expirado** ou **Encerrado**. Sob o nome de uma regra em **Regras de detecção**, uma linha conta suas exceções ativas, e **Ver exceções** na linha da regra abre a lista filtrada por ela.
 - Os eventos ignorados são descartados antes que a regra conte qualquer coisa, então nunca contam para seu **Limite de correspondências** e não abrem caso, alerta, incidente nem achado. As exceções valem para toda execução da regra, correlações incluídas, e para **Executar em eventos passados**, mas nunca para um ataque de teste, que verifica se os eventos chegam.
@@ -635,6 +739,14 @@ A ação **Criar monitor** na linha de uma regra abre um monitor novo já config
 ## Retenção e cobrança
 
 Os eventos de segurança são cobrados por GB ingerido, como o resto da sua telemetria, e mantidos pela sua retenção de telemetria: a **Retenção Padrão (Dias)** do projeto, em **Configurações do projeto → Telemetria e APM → Retenção de dados**, ou uma retenção definida no serviço de telemetria ao qual pertencem. Quando a retenção de um evento termina, ele é excluído.
+
+Tudo em Eventos de segurança que lê eventos passados lê só os eventos ainda mantidos, e diz quando precisaria de mais:
+
+- Uma regra **Visto pela primeira vez** cujo intervalo é maior do que o tempo em que os eventos são mantidos decide que um valor é novo pelos dias mantidos: com um intervalo de 30 dias e 15 dias mantidos, seus alertas e casos dizem `First awsRegion in 15 days`, e um valor visto pela última vez há 20 dias é tomado como novo. Sua linha mostra **Requer atenção**, e **Ver erro** diz o que mudar. O formulário da regra e os detalhes de uma regra na biblioteca de regras dizem isso antes de ela ser salva ou adicionada. Uma contagem ou uma sequência cuja janela é maior do que o tempo em que os eventos são mantidos conta só esses.
+- **Executar em eventos passados** em um período que começa antes dos eventos mantidos diz que os eventos de segurança são mantidos por 15 dias, então olhou 15 dias para trás, e o que não encontrou vale só para esses dias. Um evento que aconteceu antes mas chegou atrasado continua mantido, e continua sendo lido. Uma regra **Visto pela primeira vez** diz quanto dos 30 dias antes do período pôde ver.
+- Uma caçada cujo **Intervalo de tempo** é maior do que o tempo em que os eventos são mantidos não encontra nada mais antigo, e seu formulário diz isso.
+
+**Configurações do projeto → Telemetria e APM → Retenção de dados** lista as regras ativas que olham mais para trás do que sua **Retenção Padrão (Dias)**. Para cobri-las, mantenha os eventos por mais tempo, com **Alterar retenção** sob uma regra, ou encurte o intervalo de uma regra para o que é mantido. O OneUptime mantém 15 dias, a menos que você mude, porque a retenção define quanto sua telemetria custa e por quanto tempo os dados pessoais dos eventos, como endereços e nomes de usuário, são mantidos. Uma nova retenção vale para os eventos que chegam a partir de então, então as regras veem mais para trás conforme esses eventos envelhecem.
 
 ## Solução de problemas
 

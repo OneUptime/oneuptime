@@ -1670,11 +1670,21 @@ detection:
   condition: selection
 `,
     },
+    /*
+     * OneUptime's own reads are left out (#10427): Data Security reads a
+     * connected account through the connection's role, and every call AWS
+     * refuses it - a role saved before Data Security needed an action, a
+     * bucket that admits only a VPC endpoint - is in the account's
+     * CloudTrail. The events are still kept and searchable, marked as
+     * OneUptime's own (OneUptimeAwsSessions: only a call signed with a key
+     * AWS handed OneUptime itself is). DETECTION_RULE_LIBRARY_UPGRADES upgrades a
+     * project's copy of the rule as it was added before.
+     */
     {
       id: "2917bec0-2331-4e59-bdd4-a81211529156",
       title: "Burst of access-denied API calls",
       description:
-        "Twenty or more AWS API calls denied for one identity within ten minutes: someone probing what a stolen key can do.",
+        "Twenty or more AWS API calls denied for one identity within ten minutes: someone probing what a stolen key can do. OneUptime's own reads of a connected account are left out.",
       category: DetectionRuleLibraryCategory.Cloud,
       dataSource: "AWS CloudTrail events",
       dataKind: DetectionRuleDataKind.AwsCloudTrail,
@@ -1683,7 +1693,7 @@ detection:
       matchCountThreshold: 20,
       sigmaRuleYaml: `title: Burst of access-denied API calls
 id: 2917bec0-2331-4e59-bdd4-a81211529156
-description: Many AWS API calls denied for one identity.
+description: Many AWS API calls denied for one identity, other than OneUptime's own reads.
 level: medium
 tags:
   - attack.discovery
@@ -1694,7 +1704,9 @@ detection:
       - AccessDenied
       - UnauthorizedOperation
       - Client.UnauthorizedOperation
-  condition: selection
+  filter_oneuptime:
+    oneuptime.actor: oneuptime
+  condition: selection and not filter_oneuptime
 `,
     },
 
@@ -1980,6 +1992,81 @@ detection:
   condition: 1 of selection_*
 `,
     },
+    /*
+     * A scanner's first move (#10745): asking for the files that leak
+     * secrets when a server serves them by mistake, and for the admin
+     * pages of apps it might run. Only a request the site refused or does
+     * not have is one (WebAttackKind.SensitiveFile, SensitiveFileProbe), so
+     * a page the site serves - a WordPress site's own /wp-admin - never
+     * counts, and it takes three different paths, each counted once
+     * however it is spelled (web.sensitive_file.path), so a mistyped URL
+     * asked for again and again never fires it. The Scanners policy acts
+     * on it.
+     */
+    {
+      id: "37aac329-ce8b-4ced-9255-4ae49d564451",
+      title: "Scanning for sensitive files",
+      description:
+        "Requests from one IP address for three or more different well-known sensitive files or admin pages, such as /.env, /.git/config and /wp-admin, that your site refused or does not have, within five minutes: a scanner looking for secrets left on the server. A page your site serves never counts.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "HTTP or web server events",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      distinctCountField: "web.sensitive_file.path",
+      matchCountThreshold: 3,
+      sigmaRuleYaml: `title: Scanning for sensitive files
+id: 37aac329-ce8b-4ced-9255-4ae49d564451
+description: Requests for well-known sensitive files and admin pages that the site refused or does not have.
+level: medium
+tags:
+  - attack.reconnaissance
+  - attack.t1595.003
+detection:
+  selection:
+    web.attack.kind: sensitive-file
+  condition: selection
+`,
+    },
+    /*
+     * Not a scan but a leak (#10912): a file that holds secrets - /.env,
+     * /.git/config, /.aws/credentials - that the site answered with the
+     * file itself, so whoever asked holds its passwords, keys and tokens
+     * now. A single-page app answers every path with its own page and a
+     * 200, so a 200 alone is never one: only a request whose answer was
+     * the file is (web.sensitive_file.answer: file) - its type says it is
+     * no web page, or its size is no page the site answers other paths
+     * with, on a site that refuses what it does not have
+     * (SensitiveFileProbe, SensitiveFileAnswers). One is enough, and it
+     * is Critical, as injected SQL that ran is: the case it opens says to
+     * take the file down and rotate what it holds. An admin page a site
+     * serves - WordPress's, phpMyAdmin - is never one.
+     */
+    {
+      id: "fe1afb71-1434-444c-8091-baa8f5b83d1f",
+      title: "Sensitive file served",
+      description:
+        "Your site answered a request for a well-known file that holds secrets, such as /.env, /.git/config or /.aws/credentials, with the file itself, not with its own page for a path it does not have: whoever asked holds the passwords, keys and tokens in it now.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "HTTP or web server events",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Sensitive file served
+id: fe1afb71-1434-444c-8091-baa8f5b83d1f
+description: A request for a well-known file that holds secrets that the site answered with the file itself.
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1552.001
+detection:
+  selection:
+    web.attack.kind: sensitive-file
+    web.sensitive_file.answer: file
+  condition: selection
+`,
+    },
 
     /*
      * What happened next, as the request's trace showed it
@@ -2033,6 +2120,143 @@ detection:
     className: 'HTTP Activity'
     requestOutcome: 'Errored'
   condition: selection
+`,
+    },
+
+    /*
+     * What Cloudflare's firewall did at the edge (its connection, read as
+     * HTTP Activity with OneUptime's edge action, EdgeAction), beside what
+     * the app's own logs and traces show reached it.
+     */
+    {
+      id: "00146e5e-0b2d-4e09-ad97-91f6f54715fc",
+      title: "Many Cloudflare managed rule hits from one address",
+      description:
+        "Twenty or more requests from one IP address within ten minutes that Cloudflare's WAF managed rules matched, blocked or not: a scanner working through your site, or an exploit being tried until it works.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Cloudflare firewall events",
+      dataKind: DetectionRuleDataKind.Cloudflare,
+      evaluationIntervalInMinutes: 10,
+      groupByField: "principalIp",
+      matchCountThreshold: 20,
+      sigmaRuleYaml: `title: Many Cloudflare managed rule hits from one address
+id: 00146e5e-0b2d-4e09-ad97-91f6f54715fc
+description: Cloudflare's WAF managed rules matched many requests from one address.
+level: medium
+tags:
+  - attack.initial_access
+  - attack.t1190
+  - attack.reconnaissance
+  - attack.t1595.002
+detection:
+  selection:
+    productName: 'Cloudflare WAF'
+    cloudflare.source:
+      - firewallManaged
+      - waf
+  condition: selection
+`,
+    },
+    {
+      id: "38bf7cff-c78b-4958-a56d-e75628ff87b2",
+      title: "An address passed a Cloudflare challenge, then sent attacks",
+      description:
+        "An IP address passed a Cloudflare challenge and, within thirty minutes, sent a request carrying an attack or one Cloudflare's managed rules matched: a person, or a bot that solves challenges, behind the attack.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Cloudflare firewall events and web requests",
+      dataKind: DetectionRuleDataKind.Cloudflare,
+      evaluationIntervalInMinutes: 5,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: An address passed a Cloudflare challenge, then sent attacks
+id: 38bf7cff-c78b-4958-a56d-e75628ff87b2
+description: An address passed a Cloudflare challenge, then sent requests carrying attacks.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+correlation:
+  type: temporal_ordered
+  rules:
+    - cloudflare_challenge_passed
+    - attack_request_after_challenge
+  group-by:
+    - principalIp
+  timespan: 30m
+---
+title: Passed a Cloudflare challenge
+name: cloudflare_challenge_passed
+detection:
+  selection:
+    productName: 'Cloudflare WAF'
+    oneuptime.edge.action: passed-challenge
+  condition: selection
+---
+title: A request carrying an attack
+name: attack_request_after_challenge
+detection:
+  selection_attack:
+    className: 'HTTP Activity'
+    web.attack.kind:
+      - sql-injection
+      - path-traversal
+      - log4shell
+  selection_managed_rule:
+    productName: 'Cloudflare WAF'
+    cloudflare.source:
+      - firewallManaged
+      - waf
+  condition: 1 of selection_*
+`,
+    },
+    {
+      id: "237b4117-52ca-42e3-85e8-cbcc518ccbae",
+      title: "An attack Cloudflare let through reached your app",
+      description:
+        "Cloudflare logged an attack from an IP address, or a rule of yours let one through, and within fifteen minutes your app's own logs or traces show a request from that address reached the app.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource:
+        "Cloudflare firewall events and web requests followed into their traces",
+      dataKind: DetectionRuleDataKind.Cloudflare,
+      evaluationIntervalInMinutes: 5,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: An attack Cloudflare let through reached your app
+id: 237b4117-52ca-42e3-85e8-cbcc518ccbae
+description: Cloudflare logged or let through attack requests from an address, and the app's own logs or traces show requests from it reached the app.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+correlation:
+  type: temporal
+  rules:
+    - cloudflare_let_attack_through
+    - request_reached_app
+  group-by:
+    - principalIp
+  timespan: 15m
+---
+title: Cloudflare logged or let through an attack
+name: cloudflare_let_attack_through
+detection:
+  selection:
+    productName: 'Cloudflare WAF'
+    oneuptime.edge.action:
+      - logged
+      - let-through
+  condition: selection
+---
+title: A request reached the app
+name: request_reached_app
+detection:
+  selection:
+    className: 'HTTP Activity'
+    requestOutcome:
+      - 'Reached App'
+      - 'Errored'
+      - 'Reached Database'
+  filter_edge:
+    productName: 'Cloudflare WAF'
+  condition: selection and not filter_edge
 `,
     },
 
@@ -2159,6 +2383,14 @@ detection:
     /*
      * OpenStack's audit trail (OpenStackAuditLogParser), as a project's logs bring it in.
      * Each rule reads what that parser keeps, and it keeps an allowlist.
+     *
+     * A rule that counts per address counts per principalIp (#10773), never
+     * the parser's own openstack.audit.initiator_address: the log scan names
+     * the address behind a Hash rule's token in principalIp (AddressVault),
+     * while the parser's attribute holds real addresses only, on purpose -
+     * so a sign-in whose address a Hash rule hid counts toward its real
+     * address, and one a Redact or Mask rule hid toward none, never toward
+     * one "[REDACTED]" every hidden sign-in shares (#10415).
      */
     {
       id: "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10",
@@ -2169,7 +2401,7 @@ detection:
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
       evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.initiator_address",
+      groupByField: "principalIp",
       matchCountThreshold: 10,
       sigmaRuleYaml: `title: OpenStack failed logins burst
 id: 6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10
@@ -2238,7 +2470,7 @@ correlation:
     - principalUser
   timespan: 30d
   condition:
-    field: openstack.audit.initiator_address
+    field: principalIp
 ---
 title: OpenStack admin account used
 name: openstack_admin_used
@@ -2547,7 +2779,7 @@ detection:
       id: "51a51214-ca6e-43bc-b9ba-abf06cf4a135",
       title: "Many records deleted at once in OneUptime",
       description:
-        "One person or API key deleted twenty-five or more records within five minutes: a mistake worth catching, or somebody destroying what they found.",
+        "One person, API key or workflow deleted twenty-five or more records within five minutes: a mistake worth catching, a workflow gone wrong, or somebody destroying what they found.",
       category: DetectionRuleLibraryCategory.Identity,
       dataSource: "OneUptime audit log",
       dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
@@ -2625,6 +2857,12 @@ detection:
      * case is the store's, and the store's risk and criticality count.
      * Only a change that went through counts: a refused one opened nothing.
      */
+    /*
+     * A public access block taken off reads as CloudTrail records it,
+     * DeleteBucketPublicAccessBlock: S3's API name, DeletePublicAccessBlock,
+     * never reached a change event, and the rule never fired on it. Earlier
+     * copies get the fix through DETECTION_RULE_LIBRARY_UPGRADES.
+     */
     {
       id: "7c8121cd-87ff-4e1c-bd5e-b1c3ab130737",
       title: "A sensitive bucket was made public",
@@ -2649,7 +2887,7 @@ detection:
     oneuptime.cloud.operation:
       - s3:PutBucketPolicy
       - s3:PutBucketAcl
-      - s3:DeletePublicAccessBlock
+      - s3:DeleteBucketPublicAccessBlock
     statusName: Success
   condition: selection
 `,
@@ -2789,10 +3027,15 @@ export const RECOMMENDED_DETECTION_RULE_IDS: ReadonlyArray<string> = [
   "388b42f9-2239-40bb-bf1a-2a476ad099c0",
   "066bf906-3932-4e5d-9920-131825734ea0",
   "2917bec0-2331-4e59-bdd4-a81211529156",
-  // Attacks on web servers.
+  /*
+   * Attacks on web servers, scanners looking for secrets left on them
+   * (#10745), and a secret file a site served (#10912).
+   */
   "cfdf6ad4-7138-4201-8a1c-6bf962335cee",
   "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52",
   "866b7566-304e-442b-b1ad-ca08264af493",
+  "37aac329-ce8b-4ced-9255-4ae49d564451",
+  "fe1afb71-1434-444c-8091-baa8f5b83d1f",
   // Kubernetes audit logs.
   "1ce3af71-a3d5-409a-b477-34e4a734aa83",
   "44e60520-facd-443a-bf1f-8c741819be91",
@@ -2828,3 +3071,14 @@ export function getRecommendedDetectionRules(): Array<DetectionRuleLibraryEntry>
 // The rule a setup test fires: many failed sign-ins from one address.
 export const SETUP_TEST_DETECTION_RULE_ID: string =
   "acf2a37e-301a-46de-87c7-d4343f3a8445";
+
+// Scanning for sensitive files (#10745): the Scanners policy acts on it.
+export const SCANNING_FOR_SENSITIVE_FILES_RULE_ID: string =
+  "37aac329-ce8b-4ced-9255-4ae49d564451";
+
+/*
+ * Sensitive file served (#10912): a leak, which a person answers - it opens
+ * a Critical case, and no automatic response policy acts on it.
+ */
+export const SENSITIVE_FILE_SERVED_RULE_ID: string =
+  "fe1afb71-1434-444c-8091-baa8f5b83d1f";

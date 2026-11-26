@@ -467,6 +467,43 @@ describe("recording what was found", () => {
     ).toBe(2);
   });
 
+  test("a rule's firing handed again adds its risk once, and writes nothing the second time (#10489)", async () => {
+    const firingKey: string = "run:1760432400000:each:0f3a5c7e9b1d2468";
+
+    await SecurityEntityRiskRecorder.record([finding({ firingKey })]);
+
+    expect(world.spies.create).toHaveBeenCalledTimes(1);
+    world.spies.update.mockClear();
+
+    const again: SecurityEntityRiskRecordResult =
+      await SecurityEntityRiskRecorder.record([finding({ firingKey })]);
+
+    expect(again.entitiesUpdated).toBe(0);
+    expect(world.spies.update).not.toHaveBeenCalled();
+
+    const row: StoredRow = rowOf("alice@corp.example")!;
+    const kept: SecurityEntityRiskContribution = (
+      row["contributions"] as Array<SecurityEntityRiskContribution>
+    )[0]!;
+
+    expect(kept.hits).toBe(1);
+    expect(kept.firingKeys).toEqual([firingKey]);
+    expect(row["riskScore"]).toBe(50);
+
+    // A new firing of the same rule counts, as any repeat does.
+    await SecurityEntityRiskRecorder.record([
+      finding({ firingKey: "run:1760432460000:each:0f3a5c7e9b1d2468" }),
+    ]);
+
+    expect(
+      (
+        rowOf("alice@corp.example")![
+          "contributions"
+        ] as Array<SecurityEntityRiskContribution>
+      )[0]!.hits,
+    ).toBe(2);
+  });
+
   test("one finding about several entities adds to each, once each", async () => {
     await SecurityEntityRiskRecorder.record([
       finding({

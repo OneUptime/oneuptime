@@ -14,17 +14,18 @@
  * Probes send the two in headers as well from #10222 on (ProbeKeyHeaders),
  * and OneUptime checks them before it reads the body. An older probe sends
  * them in the body alone, so OneUptime reads them off the start of the
- * bytes instead - a few hundred bytes, without parsing the rest - and checks
- * the key before it parses the report. A collection's millions of values are
- * parsed only for a probe whose key is right, whichever release it runs.
+ * bytes instead - the first MAX_REPORT_OPENING_BYTES as the body inflates,
+ * with not a byte more read off the wire until the key is checked
+ * (RequestBodyOpening, #10260). A collection's millions of values are read
+ * only for a probe whose key is right, whichever release it runs.
  *
  * Read here: the first two members of the object, when they are two strings
  * named probeKey and probeId (in either order, with the white space JSON
  * allows between tokens), their escapes decoded as JSON.parse decodes them.
  * Anything else reads as no opening - another member first, a value that is
- * no string, a string that runs past the bytes read - and the body is parsed
- * as one whose probe is not known: under a large route's limit, with its key
- * read from it then, as it always was.
+ * no string, a string that runs past the bytes read - and the body is
+ * refused as one without a key, with the rest of it unread: no probe release
+ * writes a collection any other way.
  */
 
 // The most bytes of a report read for the members it opens with.

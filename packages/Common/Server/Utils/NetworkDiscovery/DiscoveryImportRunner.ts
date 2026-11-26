@@ -69,8 +69,8 @@ import NetworkSnmpCredentialProfile from "../../../Models/DatabaseModels/Network
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { isPingOnlyDiscoveredHost } from "../../../Utils/NetworkDiscovery/DiscoveryImportEligibility";
 import {
-  DISCOVERY_SCAN_STARTED_MESSAGE,
   DiscoveryScanStatus,
+  isDiscoveryScanWaitingForFirstReport,
 } from "../../../Utils/NetworkDiscovery/DiscoveryScanStatus";
 import Queue, { QueueName } from "../../Infrastructure/Queue";
 import ColumnsOnlyOneUptimeWrites from "../Database/ColumnsOnlyOneUptimeWrites";
@@ -1512,8 +1512,7 @@ export default class DiscoveryImportRunner {
    */
   private static assertScanHasResults(scan: NetworkDeviceDiscoveryScan): void {
     const isWaitingForFirstProgress: boolean =
-      scan.status === DiscoveryScanStatus.InProgress &&
-      scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE;
+      isDiscoveryScanWaitingForFirstReport(scan);
 
     if (
       scan.status === DiscoveryScanStatus.Pending ||

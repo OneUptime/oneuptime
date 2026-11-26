@@ -5,13 +5,14 @@ En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe elle
 :::cards
 - [Slik avgjør kriteriene](#slik-avgjør-kriteriene): Ovenfra og ned, og det første samsvaret vinner.
 - [Hva et kriterium inneholder](#hva-et-kriterium-inneholder): Filtre, en samsvarsbetingelse, handlinger og innstillinger.
+- [Vurdere et vindu av sjekker](#vurdere-et-vindu-av-sjekker): Tell mislykkede sjekker, oppdag ustabilitet, les av en persentil.
 - [Endre en monitors kriterier](#endre-en-monitors-kriterier): Rediger, legg til, omorganiser og test kriterier.
 - [Monitorstatuser](#monitorstatuser): De innebygde statusene og dine egne statuser.
 :::
 
 ## Slik avgjør kriteriene
 
-Hver gang en monitor kontrolleres, vurderer kriteriene resultatet fra toppen av listen og nedover. Det første kriteriet der filtrene samsvarer, avgjør hva som skjer, og kriteriene under det blir ikke sett på for den kontrollen. Samsvarer ingen, går monitoren til sin **Standard monitorstatus**.
+Hver gang en monitor kontrolleres, vurderer kriteriene resultatet fra toppen av listen og nedover. Det første kriteriet der filtrene samsvarer, avgjør hva som skjer, og kriteriene under det blir ikke sett på for den kontrollen. Samsvarer ingen, går monitoren til sin **Standard monitorstatus**. Den beholder i stedet statusen sin så lenge et kriterium som bringer den tilbake, ennå ikke har samsvart: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
 
 ```mermaid title="Slik vurderes hver kontroll"
 flowchart TB
@@ -31,6 +32,8 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 
 > [!NOTE]
 > En monitor som åpner en hendelse eller et varsel per vert, container, disk eller grensesnitt, vurderer alle kriterier ved hver kontroll, slik at to verter kan samsvare med to ulike kriterier samtidig. Det er en monitor der spørringen har en **Grupper etter**, som en målings- eller loggmonitor, eller et kriterium som angir `*` for hver disk eller hvert grensesnitt. Det samme gjelder en målingsmonitor som følger med på et PromQL-uttrykk: hver serie uttrykket returnerer, vurderes for seg. En monitor for innkommende forespørsler som grupperer hendelser etter et payload-felt, stopper likevel ved det første samsvaret.
+>
+> En slik monitor har likevel én status, satt av det første kriteriet som samsvarer. Et kriterium som bare bringer den tilbake til **Standard monitorstatus** og ikke åpner noen hendelse eller noe varsel, venter på vertene som oppfylte et kriterium som setter en annen status: det samsvarer når hver av dem oppfyller det, uansett hva de andre vertene gjør. Inntil da beholder monitoren statusen sin, også når ingen kriterier samsvarer, mens hendelsene og varslene til hver vert fortsatt løses hver for seg.
 
 ## Hva et kriterium inneholder
 
@@ -41,7 +44,7 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 | **Kriterienavn** | Navnet i listen over kriterier og i rotårsaken til hver hendelse og hvert varsel kriteriet åpner. **Legg til kriterier** gir et nytt kriterium navn etter filtrene, og navnet følger dem til du skriver ditt eget. |
 | **Filtre** | Hva kontrollen må vise, som ett eller flere filtre. Kubernetes- og målingsmonitorer kaller dem **Varselsregler**. |
 | **Handlinger** | Hva som skjer når filtrene samsvarer: endre statusen, opprette et varsel, erklære en hendelse eller en kombinasjon. |
-| **Innstillinger** | **Aktiver disse kriteriene**, en valgfri **Beskrivelse** og, på monitorer for innkommende forespørsler, **Group incidents and alerts by a payload field**. |
+| **Innstillinger** | **Aktiver disse kriteriene**, en valgfri **Beskrivelse**, når det gjenopprettes og når det evalueres, og, på monitorer for innkommende forespørsler, **Grupper hendelser og varsler etter et felt i payloaden**. |
 
 ### Filtre
 
@@ -49,7 +52,7 @@ Et filter leser én ting fra kontrollen og sammenligner den: en **Filtertype** (
 
 Fra to filtre og oppover vises **Samsvarsbetingelse** under dem: **Alle** betyr at hvert filter må samsvare, **Hvilken som helst** at ett er nok. Et nytt kriterium starter på **Alle**.
 
-Filtre som måler hver kontroll, som **Er tilkoblet**, **Statuskode for svar** og **Svartid (i ms)**, tilbyr **Evaluer disse kriteriene over en tidsperiode**. Det vurderer et vindu av nylige kontroller i stedet for bare den siste, og starter på de siste 5 minuttene med **Alle verdier**, som først samsvarer når hver kontroll i vinduet har samsvart. Se [Evaluering over en tidsperiode](/docs/monitor/website-monitor#evaluering-over-en-tidsperiode).
+Filtre som måler hver kontroll, som **Er tilkoblet**, **Statuskode for svar** og **Svartid (i ms)**, tilbyr **Evaluer disse kriteriene over en tidsperiode**. Det vurderer et vindu av nylige kontroller i stedet for bare den siste, og starter på de siste 5 minuttene med **Alle verdier**, som først samsvarer når hver kontroll i vinduet har samsvart. Vinduet kan være opptil 24 timer langt og telle sjekkene, slik [Vurdere et vindu av sjekker](#vurdere-et-vindu-av-sjekker) forklarer. Se [Evaluering over en tidsperiode](/docs/monitor/website-monitor#evaluering-over-en-tidsperiode).
 
 ### Handlinger
 
@@ -67,7 +70,70 @@ En hendelse eller et varsel ber om en tittel, en **Alvorlighetsgrad** og, sammen
 
 **Aktiver disse kriteriene** er slått på for hvert nytt kriterium. Slå det av for å beholde et kriterium uten å bruke det: det hoppes over ved hver kontroll, endrer ingen status, åpner ingenting, og overskriften viser **Deaktivert**.
 
-**Group incidents and alerts by a payload field** åpner én hendelse per verdi som finnes i en innkommende forespørsel, slik at én webhook-adresse kan holde flere hendelser åpne. Se [Slå på hendelsesgruppering](/docs/monitor/incoming-request-monitor#slå-på-gruppering-av-hendelser).
+**Grupper hendelser og varsler etter et felt i payloaden** åpner én hendelse per verdi som finnes i en innkommende forespørsel, slik at én webhook-adresse kan holde flere hendelser åpne. Se [Slå på hendelsesgruppering](/docs/monitor/incoming-request-monitor#slå-på-gruppering-av-hendelser).
+
+**Gjenopprett bare når en egen betingelse er oppfylt** og **Evaluer disse kriteriene bare på bestemte dager og tider** er slått av for et nytt kriterium. Se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes) og [Bare på bestemte dager og tider](#bare-på-bestemte-dager-og-tider).
+
+## Vurdere et vindu av sjekker
+
+Med **Evaluer disse kriteriene over en tidsperiode** avkrysset angir **Evaluer** hvordan sjekkene i vinduet vurderes, og **For de siste** hvor langt vinduet er, fra 2 minutter til 24 timer. Filterets egen betingelse, for eksempel **Er tilkoblet** satt til **Usann**, sier hva hver sjekk må vise.
+
+| Evaluer | Samsvarer når |
+| --- | --- |
+| **Alle verdier** | Hver sjekk i vinduet oppfylte betingelsen. |
+| **Minst én verdi** | Minst én sjekk i vinduet oppfylte betingelsen. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien av vinduets verdier oppfyller betingelsen, for eksempel en gjennomsnittlig responstid over 300 ms. |
+| **Persentil** | Persentilen som er valgt under **Persentil**, fra p50 til p99, oppfyller betingelsen: p95 over 300 ms betyr at de tregeste 5 % av sjekkene ligger over 300 ms. |
+| **Antall** | Antallet sjekker som oppfylte betingelsen, sammenlignes slik det er satt under **Sjekker som samsvarer**: for eksempel **Større enn** 30. |
+| **Prosentandel** | Andelen deres av vinduets sjekker sammenlignes slik det er satt under **Andel sjekker som samsvarer**: for eksempel **Større enn** 10 %. |
+| **Statusskifter** | Antall ganger sjekkene skiftet mellom å oppfylle betingelsen og ikke, sammenlignes slik det er satt under **Antall skifter**. En enhet som går ned og kommer opp igjen, skifter to ganger. |
+| **Forrige sjekk** | Denne sjekken sammenlignet med den forrige sjekken fra samme sonde: for eksempel en svartid som ligger mer enn 50 % over den, eller et nettsted som er nede nå og ikke var det før. Se [Sammenligne en sjekk med den forrige](#sammenligne-en-sjekk-med-den-forrige). |
+
+En setning under vinduets innstillinger gjengir filteret slik det er satt: «Sjekk: "Er tilkoblet" er usann ved flere enn 30 sjekker i den siste perioden på 8 timer».
+
+- **Hver sonde for seg.** **Antall**, **Prosentandel** og **Statusskifter** teller sjekkene fra sonden som utførte sjekken, så en monitor som sjekkes fra tre sonder, teller ikke tre ganger så fort, og sondene må deretter være enige som for ethvert kriterium.
+- **Et vindu som ennå ikke er fullt.** Til sjekkene når tilbake til starten av vinduet, har en monitor som nettopp har startet, færre sjekker enn den vil få. **Antall** og **Statusskifter** samsvarer tidlig når de allerede er forbi **Større enn** eller **Større enn eller lik**, siden flere sjekker bare øker dem; alt annet venter på et fullt vindu.
+- **Et vindu uten sjekker.** Så lenge vinduet ikke har sjekker eller ennå ikke er fullt, avgjør **Hvis ingen data**: **Ignore** venter, **Utløser** samsvarer, og **Treat As Zero** vurderer det som om de manglende sjekkene ikke hadde oppfylt betingelsen.
+
+Gjennomsnitt og persentiler leser verdiene fra alle sonders sjekker, slik **Gjennomsnitt** alltid har gjort. **Antall**, **Prosentandel** og **Statusskifter** tilbys for hvert filter som tilbys et vindu: på Website-, API-, Ping-, IP- og Port-monitorer, for en servers CPU, minne, disker og last, for en nettverksenhets **SNMP-enhet er tilkoblet** og responstid, for en SSL-sertifikat-monitors **Dager til utløp**, og på DNS-, NTP-, database-, eksterne statusside- og sondestatusmonitorer. **Er tilkoblet** for en Server-monitor telles ikke: den vurderes ut fra tiden siden serveren sist rapporterte. Metrics- og andre telemetrimonitorer vurderer i stedet tidsrommet for spørringen sin, med spørringens egen aggregering, som også leser persentiler.
+
+### Eksempel: et tilgangspunkt som er nede, og et som er ustabilt
+
+En Ping-monitor sjekker et tilgangspunkt på kontoret hvert minutt. Før vinduer kunne telle sjekker, så et tilgangspunkt som stadig falt ut, ut som et som var nede, eller som ingenting. Disse tre kriteriene, i denne rekkefølgen, skiller de to:
+
+| Kriterium | Filter | Evaluer | Endrer statusen til |
+| --- | --- | --- | --- |
+| Tilgangspunktet er nede | **Er tilkoblet** er **Usann** | **Alle verdier**, **For de siste** 5 minutter | **Offline**, og erklærer en utfallshendelse |
+| Tilgangspunktet er ustabilt | **Er tilkoblet** er **Usann** | **Statusskifter**, **Større enn** 5, **For de siste** 1 time | **Redusert**, og erklærer en ustabilitetshendelse |
+| Tilgangspunktet er tilkoblet | **Er tilkoblet** er **Sann** | Ikke over en periode | **I drift** |
+
+For det andre slår du på **Gjenopprett bare når en egen betingelse er oppfylt** med **Statusskifter**, **Mindre enn eller lik** 1, **For de siste** 1 time: ustabilitetshendelsen forblir åpen til tilgangspunktet har vært stabilt i en time, i stedet for å lukkes det første minuttet det er oppe. For å varsle når det feiler mer enn 30 ping på 8 timer, setter du i stedet det andre kriteriet til **Antall**, **Større enn** 30, **For de siste** 8 timer.
+
+### Sammenligne en sjekk med den forrige
+
+**Forrige sjekk** sammenligner hver sjekk med den forrige sjekken fra samme sonde, og for en disks bruk fra samme disk. **For de siste** er hvor lenge siden den sjekken kan være, så sett den lengre enn overvåkingsintervallet. Den tilbys for de samme filtrene som **Antall**.
+
+En målt verdi, for eksempel en svartid, slår til når den ligger mer enn endringen under **Endring fra forrige sjekk** over den forrige sjekken, med **Større enn**, eller under den, med **Mindre enn**. Endringen er en **Verdi i sjekkens egen enhet**, for eksempel 200 ms, eller en **Prosent av forrige sjekk**, for eksempel 50 %, og 0 slår til ved enhver økning eller nedgang. **Lik** og **Ikke lik** sammenligner med selve den forrige verdien.
+
+Et filter som er sant eller usant, for eksempel **Er tilkoblet**, og et filter på brødteksten, en header eller et uttrykk slår til ved sjekken som begynte å oppfylle betingelsen: **Er tilkoblet** satt til **Usann** slår til ved sjekken der nettstedet gikk ned, og ikke igjen før neste gang det går ned.
+
+I begge tilfeller slår det til ved én sjekk, og ved den neste slutter kriteriet å virke. Skal det holde statusen det setter, eller la hendelsen sin stå åpen, gi det en egen gjenopprettingsbetingelse: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
+
+Uten noen forrige sjekk i vinduet, som ved monitorens første sjekk, for en sonde som nettopp er lagt til, eller etter et opphold, avgjør **Hvis ingen data**: **Ignore** slår ikke til, **Utløser** slår til, og **Treat As Zero** sammenligner som om den forrige sjekken hadde lest 0, eller ikke hadde oppfylt betingelsen.
+
+Setningen under vinduets innstillinger gjengir det: «Sjekk: "Svartid (i ms)" ligger mer enn 50 % over forrige sjekk», eller «Sjekk: "Er tilkoblet" er usann ved denne sjekken, men ikke ved den forrige».
+
+## Når et kriterium gjenopprettes
+
+Et kriterium slutter å virke så snart filtrene slutter å samsvare: ved den sjekken løses hendelsen og varselet, når **Løs hendelse automatisk** og **Løs varsel automatisk** er slått på, og monitoren går videre til neste kriterium som samsvarer.
+
+**Gjenopprett bare når en egen betingelse er oppfylt** holder kriteriet gjeldende etter at filtrene slutter å samsvare, til filtrene under **Gjenopprettes når** samsvarer. De starter som det motsatte av kriteriets filtre, over de siste 10 minuttene, og kan bruke alt et filter tilbyr, for eksempel et vindu som teller sjekker. Et kriterium er gjeldende så lenge monitoren har statusen det setter, eller en hendelse eller et varsel det erklærte, er åpent. Mens det holder, er det et samsvar på sin plass i listen: et kriterium over det som samsvarer, tar likevel over.
+
+Når ingen kriterier samsvarer, beholder en monitor som et kriterium har flyttet bort fra **Standard monitorstatus**, statusen den har, så lenge den også har et kriterium som bare bringer den tilbake til den statusen og ikke åpner noe. Det er gjenopprettingsmarginen: malene utløses over 90 % og kommer tilbake ved 81 % eller lavere, så ved 89 % blir monitoren der den er. Hendelsene og varslene løses likevel når deres eget kriterium slutter å samsvare. En monitor uten et slikt kriterium går til **Standard monitorstatus**, slik den alltid har gjort.
+
+## Bare på bestemte dager og tider
+
+**Evaluer disse kriteriene bare på bestemte dager og tider** setter dagene, **Starttidspunkt** og **Sluttidspunkt** og **Tidssone**, som starter som din. Utenfor disse tidene hoppes kriteriet over som et deaktivert kriterium: det samsvarer med ingenting, så det det åpnet, løses, og evalueringsloggen sier at det var utenfor tidene sine. Tidene leses på klokken i den tidssonen, så 08:00 forblir 08:00 etter at klokken stilles, og tider som slutter tidligere enn de starter, varer inn i neste morgen.
 
 ## Når hendelser og varsler åpnes og lukkes
 
@@ -148,6 +214,23 @@ Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som 
 
 > [!TIP]
 > Når svarene fra en nettsted- eller API-monitor er sensitive i seg selv, slår du av **Behold svarinnhold** på kortet **Svarinnhold** på siden **Avansert → Innstillinger**. Overvåkingsloggene, hendelsene og varslene tar da vare på hvilke filtre som samsvarte, statuskoden og svartiden, og ingen del av svaret. En monitor for innkommende forespørsler har den samme bryteren for forespørslene den mottar: **Behold forespørselsinnhold**, på kortet **Forespørselsinnhold**. Bryteren gjelder for kontrollene som kjøres, og hendelsene og varslene som åpnes, etter at du endrer den. Den siste forespørselen i oversikten over en monitor for innkommende forespørsler følger bryteren med en gang.
+
+## Hvor lang tid hver sjekk tar
+
+Evalueringssammendraget for hver sjekk, under **Vis sammendrag** i monitorens **Overvåkingslogger** og for den siste sjekken på dens **Oversikt**, forteller når sjekken ble evaluert, hvor lang tid evalueringen tok og, for en monitor som vurderer hver vert, container eller gruppe for seg, hvor mange serier den vurderte. Tiden løper fra OneUptime begynte å lese dataene sjekken vurderer, til den skrev sjekkens logg: lesingen av dataene, vurderingen av kriteriene og åpningen av hendelser og varsler.
+
+I **Overvåkingslogger** viser kolonnen **Sjekkens varighet** hvor lang tid hver sjekk tok, og markerer trege sjekker. En strek betyr at sjekkens varighet ikke ble registrert.
+
+Når en evaluering tar for lang tid for monitoren sin, varsler sammendraget deg. For lang tid er mer enn en tidel av tiden mellom monitorens sjekker, aldri under 5 sekunder og aldri over ett minutt:
+
+| Monitor sjekket | Varsler etter |
+| --- | --- |
+| Hvert minutt | 6 sekunder |
+| Hvert 5. minutt | 30 sekunder |
+| Hvert 10. minutt eller sjeldnere | 1 minutt |
+| Når resultatene kommer inn, som ved innkommende forespørsler og e-poster | 5 sekunder |
+
+En tidel gir en monitor rom til å vokse ti ganger før sjekkene går inn i hverandre og kommer på etterskudd, så du får vite det tidlig. Under 5 sekunder er en sjekk i orden, uansett hvor stor den er: å vurdere 16 000 serier tar omtrent 2,5 sekunder. Over ett minutt holder den en worker og databasene den leser like lenge, uansett intervall. Gjør den raskere ved å snevre inn filtrene i spørringene, gruppere etter færre attributter eller sjekke den sjeldnere.
 
 ## Endre en monitors kriterier
 

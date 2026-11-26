@@ -56,7 +56,7 @@ Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De li
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Overzicht** | **Alle onderhoudsgebeurtenissen**, **Lopende onderhoudsgebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen, en **Onderhoudsagenda**: elke gebeurtenis op een maand, een week of een dag, naast de agenda's van buiten het project die je toevoegt. |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
-| **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
+| **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**, **Auditlogboeken**: wie er een heeft gemaakt, gewijzigd of verwijderd, en wanneer. |
 | **Instellingen** | **Onderhoudsstatus**, **Onderhoudssjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 
 **Overzicht** is open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **Crossplane**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.

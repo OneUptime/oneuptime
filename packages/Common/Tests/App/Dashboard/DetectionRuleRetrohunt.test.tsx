@@ -16,6 +16,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -47,11 +48,15 @@ import DetectionRuleRetrohuntPanel from "../../../../App/FeatureSet/Dashboard/sr
 import DetectionRuleRetrohuntInForm from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntInForm";
 import DetectionRuleRetrohuntModal from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntModal";
 import { RETROHUNT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import { SECURITY_EVENT_RETENTION_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/SecurityEventRetentionCopy";
 import {
   RetrohuntRuleInput,
   buildRetrohuntRequest,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntModel";
+import { getHiddenAddressRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressRoute";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import ProjectUtil from "../../../UI/Utils/Project";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   DetectionRetrohuntGroup,
@@ -80,6 +85,9 @@ function answer(
     startTime: new Date("2026-10-20T12:00:00.000Z"),
     endTime: new Date("2026-10-27T12:00:00.000Z"),
     periodInHours: 168,
+    retentionInDays: 15,
+    keptFrom: null,
+    firstSeenHistory: null,
     isCorrelation: false,
     windowInMinutes: 5,
     threshold: 3,
@@ -93,6 +101,8 @@ function answer(
     groups: [group("alice", 30), group("bob", 10), group("carol", 2)],
     hasMoreGroups: false,
     candidateLimit: null,
+    uncounted: null,
+    refusedTelemetry: [],
     ...overrides,
   };
 }
@@ -289,6 +299,79 @@ describe("Run on Past Events", () => {
           });
         }),
       ).toEqual([]);
+    });
+
+    test("says what a rule that counts per address could not count, and opens the Scrub Rules that hid them (#10415)", async () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID("11111111-1111-4111-8111-111111111111"));
+      runMock.mockResolvedValue(
+        answer({
+          uncounted: {
+            field: "principalIp",
+            eventCount: 1204,
+            hiddenInLogsCount: 1180,
+            hiddenInTracesCount: 0,
+          },
+        }) as never,
+      );
+
+      render(
+        <MemoryRouter>
+          <DetectionRuleRetrohuntPanel
+            getRequest={(periodInHours: number): JSONObject => {
+              return buildRetrohuntRequest(
+                { detectionRuleId: RULE_ID },
+                periodInHours,
+              );
+            }}
+          />
+        </MemoryRouter>,
+      );
+      await settle();
+
+      const line: HTMLElement = screen.getByTestId(
+        RETROHUNT_TEST_IDS.uncounted,
+      );
+
+      expect(line).toHaveTextContent(
+        "1,204 matching events had no IP address, so this rule couldn't count them. A scrub rule hid the address of 1,180 of them. Open Scrub Rules",
+      );
+      expect(
+        within(line).getByRole("link", { name: "Open Scrub Rules" }),
+      ).toHaveAttribute("href", getHiddenAddressRulesRoute("log")!.toString());
+    });
+
+    test("a rule that left out events no scrub rule hid says so with no link; one that left out nothing, nothing", async () => {
+      runMock.mockResolvedValue(
+        answer({
+          uncounted: {
+            field: "principalUser",
+            eventCount: 1,
+            hiddenInLogsCount: 0,
+            hiddenInTracesCount: 0,
+          },
+        }) as never,
+      );
+
+      await drawPanel();
+
+      expect(
+        screen.getByTestId(RETROHUNT_TEST_IDS.uncounted),
+      ).toHaveTextContent(
+        "1 matching event had no user, so this rule couldn't count it.",
+      );
+      expect(
+        within(screen.getByTestId(RETROHUNT_TEST_IDS.uncounted)).queryByRole(
+          "link",
+        ),
+      ).toBeNull();
+
+      cleanup();
+      runMock.mockResolvedValue(answer() as never);
+      await drawPanel();
+
+      expect(screen.queryByTestId(RETROHUNT_TEST_IDS.uncounted)).toBeNull();
     });
 
     test("would not have fired: how close it came", async () => {
@@ -673,6 +756,150 @@ describe("Run on Past Events", () => {
        */
       expect(dialog.className).toContain("sm:max-w-3xl");
       expect(dialog.className).not.toContain("max-w-7xl");
+    });
+  });
+
+  /*
+   * #10432: a period that starts before the kept events do says how far
+   * back it looked, and what it did not find is said of that, never of the
+   * whole period; a First seen rule that could see none of its history
+   * says it could not tell what was new.
+   */
+  describe("the events the project keeps", () => {
+    const DAY: number = 24 * 60 * 60;
+    const MONTH: Partial<DetectionRetrohuntResult> = {
+      startTime: new Date("2026-09-27T12:00:00.000Z"),
+      endTime: new Date("2026-10-27T12:00:00.000Z"),
+      periodInHours: 720,
+      retentionInDays: 15,
+      keptFrom: new Date("2026-10-12T12:00:00.000Z"),
+    };
+
+    // Change Retention is a link: drawn where the Dashboard draws it, under a router.
+    async function drawRoutedPanel(): Promise<void> {
+      render(
+        <MemoryRouter>
+          <DetectionRuleRetrohuntPanel
+            getRequest={(periodInHours: number): JSONObject => {
+              return buildRetrohuntRequest(
+                { detectionRuleId: RULE_ID },
+                periodInHours,
+              );
+            }}
+            initialPeriodInHours={720}
+          />
+        </MemoryRouter>,
+      );
+      await settle();
+    }
+
+    function oneSpace(text: string | null | undefined): string {
+      return (text || "").replace(/\s+/g, " ");
+    }
+
+    test("over the last 30 days, 15 kept: says it looked back 15, and found nothing in them", async () => {
+      runMock.mockResolvedValue(
+        answer({
+          ...MONTH,
+          firedCount: 0,
+          groupCount: 0,
+          groups: [],
+          matchedEventCount: 0,
+        }) as never,
+      );
+
+      await drawRoutedPanel();
+
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.summary)).toHaveTextContent(
+        "Would not have fired",
+      );
+      expect(
+        oneSpace(screen.getByTestId(RETROHUNT_TEST_IDS.facts).textContent),
+      ).toBe("No event matched the rule in the last 15 days.");
+      expect(
+        oneSpace(
+          screen.getByTestId(SECURITY_EVENT_RETENTION_TEST_IDS.retrohuntKept)
+            .textContent,
+        ),
+      ).toContain(
+        "Security events are kept for 15 days, so this looked back 15 days.",
+      );
+      expect(
+        screen.getByTestId(SECURITY_EVENT_RETENTION_TEST_IDS.changeRetention),
+      ).toHaveTextContent("Change Retention");
+      // Never "nothing found" for the part that is gone.
+      expect(document.body.textContent).not.toContain(
+        "No event matched the rule in this period.",
+      );
+    });
+
+    test("a period the kept events cover says nothing of them", async () => {
+      await drawRoutedPanel();
+
+      expect(
+        screen.queryByTestId(SECURITY_EVENT_RETENTION_TEST_IDS.retrohuntKept),
+      ).toBeNull();
+    });
+
+    test("a First seen rule that could see none of its history could not tell what was new", async () => {
+      runMock.mockResolvedValue(
+        answer({
+          ...MONTH,
+          isCorrelation: true,
+          firedCount: 0,
+          groupCount: 0,
+          groups: [],
+          matchedEventCount: null,
+          threshold: null,
+          firstSeenHistory: {
+            lookbackInSeconds: 30 * DAY,
+            keptLookbackInSeconds: 0,
+          },
+        }) as never,
+      );
+
+      await drawRoutedPanel();
+
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.summary)).toHaveTextContent(
+        "Could not tell what is new",
+      );
+      expect(
+        oneSpace(
+          screen.getByTestId(SECURITY_EVENT_RETENTION_TEST_IDS.retrohuntKept)
+            .textContent,
+        ),
+      ).toContain(
+        "To tell a value is new, this rule looks back 30 days before the period, and none of it is kept. Choose a shorter period.",
+      );
+      expect(document.body.textContent).not.toContain(
+        "No group matched the correlation",
+      );
+    });
+
+    test("one that could see 8 of its 30 days says so beside what it found", async () => {
+      runMock.mockResolvedValue(
+        answer({
+          isCorrelation: true,
+          firedCount: 1,
+          groupCount: 1,
+          groups: [group("alice", 1)],
+          firstSeenHistory: {
+            lookbackInSeconds: 30 * DAY,
+            keptLookbackInSeconds: 8 * DAY,
+          },
+        }) as never,
+      );
+
+      await drawRoutedPanel();
+
+      expect(
+        oneSpace(
+          screen.getByTestId(SECURITY_EVENT_RETENTION_TEST_IDS.retrohuntKept)
+            .textContent,
+        ),
+      ).toContain(
+        "To tell a value is new, this rule looks back 30 days before the period, and could see 8 days of it: a value last seen before then reads as new.",
+      );
     });
   });
 });

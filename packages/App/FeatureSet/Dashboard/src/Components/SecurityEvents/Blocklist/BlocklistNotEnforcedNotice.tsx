@@ -9,6 +9,8 @@ import {
   OPEN_CLOUD_CONNECTIONS,
   OPEN_SECURITY_CONNECTIONS,
 } from "./BlocklistCopy";
+import { getBlocklistFeedsRoute } from "../BlocklistFeeds/BlocklistFeedRoutes";
+import { OPEN_BLOCKLIST_FEEDS } from "../BlocklistFeeds/BlocklistFeedsCopy";
 import Route from "Common/Types/API/Route";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -73,6 +75,14 @@ const BlocklistNotEnforcedNotice: FunctionComponent<ComponentProps> = (
             >
               {translator.translateText(OPEN_CLOUD_CONNECTIONS) ||
                 OPEN_CLOUD_CONNECTIONS}
+            </AppLink>
+            {/* A firewall that reads a list reads a blocklist feed (#10345). */}
+            <AppLink
+              to={getBlocklistFeedsRoute()}
+              className="font-medium underline"
+            >
+              {translator.translateText(OPEN_BLOCKLIST_FEEDS) ||
+                OPEN_BLOCKLIST_FEEDS}
             </AppLink>
           </p>
         </div>

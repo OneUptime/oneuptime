@@ -1,0 +1,509 @@
+import DataSecurityAiProposal from "../../Models/DatabaseModels/DataSecurityAiProposal";
+import {
+  DataSecurityAiProposalKind,
+  DataSecurityAiProposalStatus,
+} from "../../Types/DataSecurity/DataSecurityAi";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import QueryHelper from "../Types/Database/QueryHelper";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProjectReferencesService from "./ProjectReferencesService";
+import { UpdateQueryBuilder, UpdateResult } from "typeorm";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+
+/*
+ * What a change of a proposal's state may set. Primitives only: the
+ * query-builder update below bypasses column transformers, so an id is
+ * passed as its string (ObjectID.toString()), and a JSON column as plain
+ * JSON.
+ */
+export interface DataSecurityAiProposalTransitionSet {
+  status: DataSecurityAiProposalStatus;
+  // null takes a claim back: an approval or an undo that did not happen.
+  approvedByUserId?: string | null | undefined;
+  approvedAt?: Date | null | undefined;
+  appliedAt?: Date | undefined;
+  result?: JSONObject | undefined;
+  dismissedByUserId?: string | undefined;
+  dismissedAt?: Date | undefined;
+  dismissReason?: string | undefined;
+  undoneByUserId?: string | null | undefined;
+  undoneAt?: Date | null | undefined;
+  expiredAt?: Date | undefined;
+  failedAt?: Date | undefined;
+  failureMessage?: string | undefined;
+  /*
+   * A data type that was being proven, offered (#10371): its plan with the
+   * proof it is shown with, and its words.
+   */
+  plan?: JSONObject | undefined;
+  planFingerprint?: string | undefined;
+  title?: string | undefined;
+  changeMarkdown?: string | undefined;
+  reasonMarkdown?: string | undefined;
+  proofMarkdown?: string | undefined;
+  undoMarkdown?: string | undefined;
+}
+
+// The first of two approvals: who, when, and the plan it was given to.
+export interface DataSecurityAiFirstApprovalSet {
+  firstApprovedByUserId: string;
+  firstApprovedAt: Date;
+  firstApprovedPlanFingerprint: string;
+}
+
+/*
+ * What OneUptime AI proposes for a Data Security issue (#10364). Rows are
+ * OneUptime's alone: people act on one only through DataSecurityAiProposals,
+ * and every change of its state is one of the claims below - a conditional
+ * UPDATE whose WHERE carries the state it is changed from - so of two
+ * presses at once exactly one approves, dismisses or undoes it, and a
+ * change is never made twice.
+ */
+export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
+  public constructor() {
+    super(DataSecurityAiProposal);
+  }
+
+  /*
+   * Written by OneUptime about records it found itself, crediting whoever
+   * approved - someone who may have left the project since. Refusing one
+   * would only lose the record of a change.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
+  }
+
+  /*
+   * A change of state, claimed: one conditional UPDATE whose WHERE carries
+   * the states it may change from (and, for an approval, the version its
+   * checks read). Returns the rows changed - 0 means someone else acted on
+   * it first, or it changed since it was read.
+   */
+  @CaptureSpan()
+  public async attemptTransition(data: {
+    proposalId: ObjectID;
+    fromStatuses: ReadonlyArray<DataSecurityAiProposalStatus>;
+    set: DataSecurityAiProposalTransitionSet;
+    atVersion?: number | undefined;
+  }): Promise<number> {
+    if (data.fromStatuses.length === 0) {
+      return 0;
+    }
+
+    let queryBuilder: UpdateQueryBuilder<DataSecurityAiProposal> =
+      this.getRepository()
+        .createQueryBuilder()
+        .update(DataSecurityAiProposal)
+        .set(
+          data.set as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>,
+        )
+        .where('"_id" = :id', { id: data.proposalId.toString() })
+        .andWhere('"status" IN (:...fromStatuses)', {
+          fromStatuses: [...data.fromStatuses],
+        })
+        .andWhere('"deletedAt" IS NULL');
+
+    if (data.atVersion !== undefined) {
+      queryBuilder = queryBuilder.andWhere('"version" = :version', {
+        version: data.atVersion,
+      });
+    }
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * The first of the two approvals a riskier change needs where the project
+   * asks for two: recorded only while the proposal still waits, on the
+   * version the approval's checks read, and when no first approval of this
+   * very plan is recorded - so of two first approvals at once exactly one
+   * is, and the other is read again as the second. Nothing runs on it.
+   */
+  @CaptureSpan()
+  public async attemptFirstApproval(data: {
+    proposalId: ObjectID;
+    atVersion: number;
+    set: DataSecurityAiFirstApprovalSet;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set(
+        data.set as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>,
+      )
+      .where('"_id" = :id', { id: data.proposalId.toString() })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"version" = :version', { version: data.atVersion })
+      .andWhere(
+        '("firstApprovedByUserId" IS NULL OR "firstApprovedPlanFingerprint" IS DISTINCT FROM :planFingerprint)',
+        { planFingerprint: data.set.firstApprovedPlanFingerprint },
+      )
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * The second of two approvals: the claim to Approved, guarded as well on
+   * the first approval being the one the approver was shown, given to this
+   * very plan, and someone else's - so the first approver's own second
+   * press never makes the change.
+   */
+  @CaptureSpan()
+  public async attemptSecondApproval(data: {
+    proposalId: ObjectID;
+    atVersion: number;
+    firstApprovedByUserId: string;
+    planFingerprint: string;
+    set: DataSecurityAiProposalTransitionSet;
+  }): Promise<number> {
+    const approverId: string = (data.set.approvedByUserId || "")
+      .trim()
+      .toLowerCase();
+
+    if (
+      !approverId ||
+      approverId === data.firstApprovedByUserId.trim().toLowerCase() ||
+      !data.planFingerprint
+    ) {
+      return 0;
+    }
+
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set(
+        data.set as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>,
+      )
+      .where('"_id" = :id', { id: data.proposalId.toString() })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"version" = :version', { version: data.atVersion })
+      .andWhere('"firstApprovedByUserId" = :firstApprovedByUserId', {
+        firstApprovedByUserId: data.firstApprovedByUserId,
+      })
+      .andWhere('"firstApprovedPlanFingerprint" = :planFingerprint', {
+        planFingerprint: data.planFingerprint,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * What a data type's proof counted so far (#10371), written while it is
+   * being proven, and only on the version it was read at: of two stores'
+   * scans recording at once, one writes and the other reads it again. The
+   * version moves with every write. Returns the rows changed - 0 when it
+   * changed since it was read, or is proven no more.
+   */
+  @CaptureSpan()
+  public async attemptProvingResult(data: {
+    proposalId: ObjectID;
+    atVersion: number;
+    result: JSONObject;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        result: data.result,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"_id" = :id', { id: data.proposalId.toString() })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proving,
+      })
+      .andWhere('"version" = :version', { version: data.atVersion })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * An issue whose check passed: each change made for it is proven - the
+   * proof is the check, never OneUptime AI's word. Only the changes that
+   * still stand, and only once.
+   */
+  @CaptureSpan()
+  public async markProvenForIssue(data: {
+    dataSecurityIssueId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        verifiedAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"dataSecurityIssueId" = :issueId', {
+        issueId: data.dataSecurityIssueId.toString(),
+      })
+      .andWhere('"status" IN (:...statuses)', {
+        statuses: [
+          DataSecurityAiProposalStatus.Applied,
+          DataSecurityAiProposalStatus.AppliedWithoutAsking,
+        ],
+      })
+      .andWhere('"verifiedAt" IS NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * A group's fix whose every issue was closed by it, as each one's own
+   * check said (#10738, DataSecurityIssueGroupFixProof): proven, the proof
+   * being the checks. Only a group's fix, only one that still stands, and
+   * only once.
+   */
+  @CaptureSpan()
+  public async markGroupFixProven(data: {
+    proposalId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        verifiedAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"_id" = :id', { id: data.proposalId.toString() })
+      .andWhere('"kind" IN (:...kinds)', {
+        kinds: [
+          DataSecurityAiProposalKind.FixIssueGroupInCode,
+          DataSecurityAiProposalKind.FixIssueGroupInCloud,
+        ],
+      })
+      .andWhere('"status" IN (:...statuses)', {
+        statuses: [
+          DataSecurityAiProposalStatus.Applied,
+          DataSecurityAiProposalStatus.AppliedWithoutAsking,
+        ],
+      })
+      .andWhere('"verifiedAt" IS NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * A store that has an owner now - added on its Owners page, by an owner
+   * rule, or by another proposal (#10374): the owners still proposed for it
+   * are no longer needed. Whatever issue they hang on, or none.
+   */
+  @CaptureSpan()
+  public async expireWaitingOwnersForStore(data: {
+    dataStoreId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        status: DataSecurityAiProposalStatus.Expired,
+        expiredAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"dataStoreId" = :dataStoreId', {
+        dataStoreId: data.dataStoreId.toString(),
+      })
+      .andWhere('"kind" = :kind', {
+        kind: DataSecurityAiProposalKind.SetStoreOwners,
+      })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * An owner rule OneUptime AI proposed is proven when a store it set
+   * owners on passes "Nobody owns this sensitive store" after it (#10374):
+   * the proof is the store's own check, as for every change. Only a rule
+   * that still stands, and only once.
+   */
+  @CaptureSpan()
+  public async markOwnerRuleProvenForStore(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const rules: Array<DataSecurityAiProposal> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        kind: DataSecurityAiProposalKind.CreateOwnerRule,
+        status: DataSecurityAiProposalStatus.Applied,
+        verifiedAt: QueryHelper.isNull(),
+      },
+      select: { _id: true, result: true },
+      skip: 0,
+      limit: 200,
+      props: { isRoot: true },
+    });
+    const storeId: string = data.dataStoreId.toString().toLowerCase();
+    let proven: number = 0;
+
+    for (const rule of rules) {
+      const owners: unknown = rule.result?.["owners"];
+      const setOwnersOnStore: boolean =
+        Array.isArray(owners) &&
+        owners.some((row: unknown): boolean => {
+          return (
+            Boolean(row) &&
+            typeof row === "object" &&
+            String((row as JSONObject)["dataStoreId"] || "").toLowerCase() ===
+              storeId
+          );
+        });
+
+      if (!rule.id || !setOwnersOnStore) {
+        continue;
+      }
+
+      const result: UpdateResult = await this.getRepository()
+        .createQueryBuilder()
+        .update(DataSecurityAiProposal)
+        .set({
+          verifiedAt: data.at,
+        } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+        .where('"_id" = :id', { id: rule.id.toString() })
+        .andWhere('"status" = :status', {
+          status: DataSecurityAiProposalStatus.Applied,
+        })
+        .andWhere('"verifiedAt" IS NULL')
+        .andWhere('"deletedAt" IS NULL')
+        .execute();
+
+      proven += result.affected || 0;
+    }
+
+    return proven;
+  }
+
+  /*
+   * An issue that no longer needs anything - resolved, accepted, or set
+   * aside: what still waits for a person for it expires.
+   */
+  @CaptureSpan()
+  public async expireWaitingForIssue(data: {
+    dataSecurityIssueId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        status: DataSecurityAiProposalStatus.Expired,
+        expiredAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"dataSecurityIssueId" = :issueId', {
+        issueId: data.dataSecurityIssueId.toString(),
+      })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * A group of issues one mistake made that no longer needs its fix
+   * proposed (#10370) - a person fixed it from the Issues list, or none of
+   * its issues is open: what still waits for it expires, of the kinds
+   * given, or of every kind.
+   */
+  @CaptureSpan()
+  public async expireWaitingForGroup(data: {
+    dataSecurityIssueGroupId: ObjectID;
+    kinds?: ReadonlyArray<DataSecurityAiProposalKind> | undefined;
+    at: Date;
+  }): Promise<number> {
+    if (data.kinds && data.kinds.length === 0) {
+      return 0;
+    }
+
+    let queryBuilder: UpdateQueryBuilder<DataSecurityAiProposal> =
+      this.getRepository()
+        .createQueryBuilder()
+        .update(DataSecurityAiProposal)
+        .set({
+          status: DataSecurityAiProposalStatus.Expired,
+          expiredAt: data.at,
+        } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+        .where('"dataSecurityIssueGroupId" = :groupId', {
+          groupId: data.dataSecurityIssueGroupId.toString(),
+        })
+        .andWhere('"status" = :status', {
+          status: DataSecurityAiProposalStatus.Proposed,
+        })
+        .andWhere('"deletedAt" IS NULL');
+
+    if (data.kinds) {
+      queryBuilder = queryBuilder.andWhere('"kind" IN (:...kinds)', {
+        kinds: [...data.kinds],
+      });
+    }
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * A service's telemetry fix in one repository that no longer waits for
+   * a person (#10367) - a person asked for it with Fix with AI: what still
+   * waits in its lane (the text of its plan keys before the ":") expires.
+   * A lane is "tleak-", then ids and dashes, so it holds nothing LIKE reads.
+   */
+  // A lane as getTelemetryLeakFixLane writes it: lower-case letters, digits and dashes.
+  private static readonly LANE_PATTERN: RegExp = /^[a-z0-9-]+$/;
+
+  @CaptureSpan()
+  public async expireWaitingInLane(data: {
+    projectId: ObjectID;
+    kind: DataSecurityAiProposalKind;
+    lane: string;
+    at: Date;
+  }): Promise<number> {
+    if (!Service.LANE_PATTERN.test(data.lane)) {
+      return 0;
+    }
+
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        status: DataSecurityAiProposalStatus.Expired,
+        expiredAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"projectId" = :projectId', {
+        projectId: data.projectId.toString(),
+      })
+      .andWhere('"kind" = :kind', { kind: data.kind })
+      .andWhere('"planKey" LIKE :prefix', { prefix: `${data.lane}:%` })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+}
+
+export default new Service();

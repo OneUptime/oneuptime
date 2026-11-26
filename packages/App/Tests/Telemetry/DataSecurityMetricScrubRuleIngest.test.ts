@@ -34,6 +34,7 @@ import {
   METRIC_REDACT_REPLACEMENT,
   ScrubTarget,
 } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import MetricPipelineEngine from "Common/Server/Utils/Telemetry/MetricPipelineEngine";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -177,6 +178,50 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     ).toEqual({ "customer.full_name": METRIC_REDACT_REPLACEMENT, plan: "pro" });
   });
 
+  /*
+   * #10934: Scrub It's rule for an IP address matched the IPv4 pattern
+   * alone, so every IPv6 address stayed in the label; it matches the IP
+   * Address pattern type now, as do its rules for an email address and a
+   * card number theirs - what the log and trace rules of those types hide,
+   * found by Data Security's own detectors, encoded or in any script.
+   */
+  test.each([
+    ["ip-address", "peer", "2a00:1450:4001:82a::200e"],
+    ["ip-address", "peer", "2001::1"],
+    ["ip-address", "peer", "remote:2606:4700:4700::1111"],
+    ["ip-address", "url.full", "/geo?client=2606%3A4700%3A%3A1111"],
+    ["ip-address", "peer", "81.2.69.160"],
+    ["email-address", "http.target", "/signup?email=jane.doe%40acmecorp.io"],
+    ["email-address", "user", "张伟@acmecorp.io"],
+    ["email-address", "user", "почта@пример.рф"],
+    ["credit-card-number", "card", "４５３２ ０１５１ １２８３ ０３６６"],
+    ["credit-card-number", "card", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
+    ["credit-card-number", "card", "3782 822463 10005"],
+  ])(
+    "the rule for %s redacts %s holding %s",
+    (dataTypeId: string, key: string, value: string) => {
+      const rules: MetricRulesForProject = rulesOf(
+        scrubRule(`attributes.${key}`, dataTypeId),
+      );
+
+      expect(
+        attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
+      ).toEqual({ [key]: METRIC_REDACT_REPLACEMENT, region: "eu" });
+    },
+  );
+
+  test("the rule for an IP address keeps what is no one's address, which the frozen IPv4 pattern redacted", () => {
+    const rules: MetricRulesForProject = rulesOf(
+      scrubRule("attributes.peer", "ip-address"),
+    );
+
+    for (const value of ["10.0.0.12", "127.0.0.1", "fe80::1", "12:30:45"]) {
+      expect(attributesAfter(point({ peer: value }), CHECKOUT, rules)).toEqual({
+        peer: value,
+      });
+    }
+  });
+
   test("another service's metrics, and a point without the label, are untouched", () => {
     const rules: MetricRulesForProject = rulesOf(
       scrubRule("attributes.user.email", "email-address"),
@@ -192,5 +237,67 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     expect(attributesAfter(point({ region: "eu" }), CHECKOUT, rules)).toEqual({
       region: "eu",
     });
+  });
+});
+
+/*
+ * #10753: Data Security proves a metric attribute's rule on the finding's
+ * data points before OneUptime AI may make it on its own
+ * (TelemetryScrubProof.proveMetricScrubRule). It runs the rule through the
+ * engine ingest runs every metric pipeline rule with
+ * (Common/Server/Utils/Telemetry/MetricPipelineEngine), so what was proven
+ * is what ingest does.
+ */
+describe("the rule proven is the rule ingest runs", () => {
+  test("ingest hands each point to the one engine: the service's rules, then the project's", () => {
+    const serviceRule: MetricPipelineRule = scrubRule(
+      "attributes.user.email",
+      "email-address",
+    );
+    const projectRule: MetricPipelineRule = scrubRule(
+      "attributes.http.route",
+      "email-address",
+    );
+    const engine: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      MetricPipelineEngine,
+      "applyRules",
+    );
+    const row: JSONObject = point({ "user.email": "jane.doe@acme-corp.com" });
+
+    MetricPipelineRuleService.applyRules(row, CHECKOUT, {
+      projectRules: [projectRule],
+      rulesByServiceId: new Map([[CHECKOUT.toString(), [serviceRule]]]),
+    });
+
+    expect(engine).toHaveBeenCalledWith(row, [serviceRule], [projectRule]);
+    engine.mockRestore();
+  });
+
+  test("a point left by the engine, as the proof runs it, is the point ingest stores", () => {
+    const rule: MetricPipelineRule = scrubRule(
+      "attributes.http.route",
+      "email-address",
+    );
+
+    for (const route of [
+      "/users/jane.doe@acme-corp.com/orders",
+      "/orders/:id",
+      "/users/max.mustermann@acme-corp.com",
+    ]) {
+      const byEngine: JSONObject | null = MetricPipelineEngine.applyRules(
+        point({ "http.route": route, "http.method": "GET" }),
+        [rule],
+        [],
+      );
+
+      expect(byEngine).not.toBeNull();
+      expect(byEngine!["attributes"]).toEqual(
+        attributesAfter(
+          point({ "http.route": route, "http.method": "GET" }),
+          CHECKOUT,
+          rulesOf(rule),
+        ),
+      );
+    }
   });
 });

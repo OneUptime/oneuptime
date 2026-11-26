@@ -4,17 +4,22 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import {
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_RECORDER_KIND_HEADER,
   parseSessionReplayRecorderKindHeader,
 } from "../../Types/Rum/SessionReplay";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
+  DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
 } from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
-import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
+import TelemetryIngestionKeyType, {
+  PUBLIC_INGESTION_KEY_TYPES,
+} from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../Types/Telemetry/TelemetryIngestSurface";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
@@ -22,10 +27,11 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  RequestHandler,
   headerValueToString,
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
-import Response from "../Utils/Response";
+import Response, { ErrorResponseOptions } from "../Utils/Response";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
@@ -53,7 +59,14 @@ import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import TelemetryIngestionKeyLastUsed from "../Utils/Telemetry/TelemetryIngestionKeyLastUsed";
+import {
+  getMobileKeySessionReplayRefusalMessage,
+  getMobileKeySurfaceRefusalMessage,
+} from "../Utils/Telemetry/TelemetryIngestionKeyGuard";
 import type TelemetryIngestAttribution from "../Utils/Telemetry/TelemetryIngestAttribution";
+import TelemetryIngestUnknownKeyRefusals, {
+  UnknownIngestionKeyRefusal,
+} from "../Utils/Telemetry/TelemetryIngestUnknownKeyRefusals";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -100,8 +113,10 @@ export interface TelemetryRequest extends ExpressRequest {
    * The size an ingestion budget counts this request at, set where it is
    * not the size of the body the worker reads back: an OTLP/gRPC export's
    * protobuf size, which the worker - holding the export as JSON - cannot
-   * measure. The worker shares it out over the batch's resources
-   * (TelemetryIngestAttribution, #6355, #6386).
+   * measure, or a Fluent or syslog request's, whose handler reshapes the
+   * body before it is queued (TelemetryIngestAttribution
+   * .getRequestBytesToShare, #10102). The worker shares it out over the
+   * batch's resources (TelemetryIngestAttribution, #6355, #6386).
    */
   telemetryIngestBytes?: number | undefined;
 
@@ -122,6 +137,25 @@ export interface TelemetryRequest extends ExpressRequest {
  * PublicDashboardRateLimit and the limiter itself.
  */
 const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * How every refusal here is answered: as a refusal of what the client sent,
+ * logged at debug rather than error (Response.sendErrorResponse, #10703).
+ * They come from clients - most of them before anyone is known - and each
+ * keeps sending: a missing or unknown key is counted per process
+ * (TelemetryIngestUnknownKeyRefusals), the rest against their key
+ * (TelemetryIngestRefusalRecorder), and the rate limit logs its first
+ * rejection in a window. An error-level line each was a flood the client
+ * paid nothing for.
+ */
+const CLIENT_REFUSAL: ErrorResponseOptions = { isClientRefusal: true };
+
+/*
+ * What a route's body reader resolves with when it answered the request
+ * itself, or the connection closed, before it went on (readBodyAfterKey):
+ * the request is over, and nothing more runs.
+ */
+const ANSWERED_BY_READER: unique symbol = Symbol("answered by its reader");
 
 /*
  * Readable name used when a legacy call site did not name its surface. See
@@ -218,6 +252,11 @@ export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLi
       return DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE;
     }
 
+    // Published in every copy of an app: never unlimited (issue #6457).
+    if (policy.keyType === TelemetryIngestionKeyType.Mobile) {
+      return DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE;
+    }
+
     if (surface && IDENTITY_REGISTRATION_SURFACES.has(surface)) {
       return DEFAULT_IDENTITY_REGISTRATION_REQUESTS_PER_MINUTE;
     }
@@ -234,11 +273,13 @@ type TelemetryIngestMiddlewareFunction = (
 interface ResolveTelemetryClientOriginOptions {
   req: ExpressRequest;
   surface: TelemetryIngestSurface | null;
-  isBrowserKey: boolean;
+  // A Browser or a Mobile key: a key published with a page or an app.
+  isPublicKey: boolean;
 }
 
 /*
- * Resolve the client identity used by a Browser/public ingestion key.
+ * Resolve the client identity used by a public (Browser or Mobile)
+ * ingestion key.
  *
  * A real Origin always wins, including on a request that also carries mobile
  * headers. Browsers attach Origin themselves and page JavaScript cannot
@@ -246,9 +287,12 @@ interface ResolveTelemetryClientOriginOptions {
  * case would let a web page choose the weaker native identity path.
  *
  * Native applications do not have that browser-controlled header. Only the
- * session replay surface, only an exact rn-view-tree kind, only a Browser key
- * and only a validated package/bundle id receive the app:// fallback. Server
- * keys retain their historical behaviour and never need to invent an origin.
+ * session replay surface, only an exact rn-view-tree kind, only a public key
+ * and only a validated package/bundle id receive the app:// fallback. A
+ * Browser key's allowed origins are checked against it; a Mobile key, which
+ * records only its own app's sessions (issue #10540), carries it to the
+ * application's own allowed origins, as a Browser key does. Server keys
+ * retain their historical behaviour and never need to invent an origin.
  */
 export function resolveTelemetryClientOrigin(
   options: ResolveTelemetryClientOriginOptions,
@@ -281,7 +325,7 @@ export function resolveTelemetryClientOrigin(
   }
 
   if (
-    !options.isBrowserKey ||
+    !options.isPublicKey ||
     options.surface !== TelemetryIngestSurface.SessionReplay
   ) {
     return undefined;
@@ -306,6 +350,66 @@ export function resolveTelemetryClientOrigin(
   return OriginAllowList.getMobileAppOrigin(mobileAppIdentifier);
 }
 
+/*
+ * Why a Mobile key (issue #6457) may not send this request, or null when it
+ * may. Exported so every branch is pinned in a test without a request
+ * pipeline around it.
+ *
+ *   - Not a surface a mobile app's SDK sends to (MOBILE_ALLOWED_INGEST_SURFACES):
+ *     a key copied out of an app is refused on every server pipe - profiles,
+ *     source maps, dSYMs, syslog, security events, agent registration - and
+ *     the unnamed legacy guard, which is server-only.
+ *   - Sent with an Origin header: only a browser sends one, and a mobile
+ *     SDK never does, so the request came from a web page. A page sends
+ *     with a Browser key, whose origins are checked; a Mobile key, which has
+ *     none to check, would otherwise be a Browser key without them.
+ *   - A session replay request (issue #10540) not from the React Native
+ *     recorder, or for a RUM application other than the one the key is
+ *     pinned to (getMobileKeySessionReplayRefusalMessage): a Mobile key
+ *     records its own app's sessions, never another's.
+ *
+ * None is a wall against someone who has the app: any client can leave
+ * the Origin header out, and send the app's own recorder headers. What
+ * bounds that is the rest of the key: its pinned app, its rate limit, its
+ * expiry and its kill switch.
+ */
+export function getMobileKeyRefusalMessage(data: {
+  req: ExpressRequest;
+  surface: TelemetryIngestSurface | null;
+  // The key's pinned service name: the one app it may record.
+  pinnedServiceName: string | null;
+}): string | null {
+  if (
+    data.surface === null ||
+    !MOBILE_ALLOWED_INGEST_SURFACES.has(data.surface)
+  ) {
+    // The sentence gRPC, MQTT and the probes send too (TelemetryIngestionKeyGuard).
+    return getMobileKeySurfaceRefusalMessage(data.surface);
+  }
+
+  const origin: string = (
+    headerValueToString(data.req.headers["origin"]) || ""
+  ).trim();
+
+  if (origin) {
+    return "A mobile ingestion key cannot be used from a web page: this request sent an Origin header, which only a browser sends. Use a browser ingestion key in a web page.";
+  }
+
+  if (data.surface === TelemetryIngestSurface.SessionReplay) {
+    return getMobileKeySessionReplayRefusalMessage({
+      pinnedServiceName: data.pinnedServiceName,
+      appIdentifier: headerValueToString(
+        data.req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
+      ),
+      recorderKind: parseSessionReplayRecorderKindHeader(
+        data.req.headers[SESSION_REPLAY_RECORDER_KIND_HEADER],
+      ),
+    });
+  }
+
+  return null;
+}
+
 export default class TelemetryIngest {
   /*
    * Build the ingest guard for one named surface.
@@ -322,16 +426,39 @@ export default class TelemetryIngest {
    * open a span when the route table is built at boot, once, and never again
    * per request. Passing the surface as an argument keeps exactly one
    * decorated frame, on the function that actually handles a request.
+   *
+   * `readBody` is for a route whose body StartServer leaves unread
+   * (RequestBodyLimit's readsBodyAfterAuthentication, #10702): the route's
+   * reader (RequestBodyAfterAuthentication.readBody), run once the key is
+   * known to be right and within its rate, and before the ingestion budget
+   * - which measures the body in Refuse mode, to count exactly what it
+   * admits and what it refuses. A request without the right key has
+   * nothing of its body read, inflated or parsed: its refusal is sent and
+   * the connection closed under the rest (UnreadRequestBody), which the
+   * client still reads.
+   *
+   * The reader goes on (next()), refuses the body (next(err), answered by
+   * the error handler), or answers the request itself and goes no further,
+   * as OTLP's parseBody does a body over its cap and the Vercel drain's
+   * signature check a delivery Vercel did not sign (#10814): its answer ends
+   * the request.
    */
   public static forSurface(
     surface: TelemetryIngestSurface,
+    readBody?: RequestHandler | undefined,
   ): TelemetryIngestMiddlewareFunction {
     return (
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      return TelemetryIngest.authorizeIngestRequest(surface, req, res, next);
+      return TelemetryIngest.authorizeIngestRequest(
+        surface,
+        req,
+        res,
+        next,
+        readBody,
+      );
     };
   }
 
@@ -368,6 +495,7 @@ export default class TelemetryIngest {
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
+    readBody?: RequestHandler | undefined,
   ): Promise<void> {
     try {
       // check header.
@@ -391,10 +519,21 @@ export default class TelemetryIngest {
       }
 
       if (!oneuptimeToken) {
-        logger.error(
+        /*
+         * At debug, and counted (#10703): this comes from anyone, before
+         * anyone is known, and a client that sends no key wrote one
+         * error-level line a request, at no cost to itself. The count is
+         * logged at warn at most once a minute, by surface
+         * (TelemetryIngestUnknownKeyRefusals).
+         */
+        logger.debug(
           "Missing header: x-oneuptime-token",
           getLogAttributesFromRequest(req as any),
         );
+        TelemetryIngestUnknownKeyRefusals.record({
+          refusal: UnknownIngestionKeyRefusal.Missing,
+          surface: surface,
+        });
 
         /*
          * 401 is deliberate: the OTLP spec classifies it as
@@ -414,6 +553,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -433,12 +573,17 @@ export default class TelemetryIngest {
          * The token value itself is deliberately NOT logged: ingestion
          * keys are secrets, and a mistyped-but-nearly-valid token in a
          * log line is a credential leak. The request attributes give
-         * operators enough to correlate with the sender.
+         * operators enough to correlate with the sender. At debug, and
+         * counted, as a missing token is (#10703).
          */
-        logger.error(
+        logger.debug(
           "Invalid service token.",
           getLogAttributesFromRequest(req as any),
         );
+        TelemetryIngestUnknownKeyRefusals.record({
+          refusal: UnknownIngestionKeyRefusal.Unknown,
+          surface: surface,
+        });
 
         /*
          * 401 is deliberate (see the missing-token branch above): a
@@ -451,6 +596,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "Invalid ingestion token. Send a valid OneUptime telemetry ingestion key in the x-oneuptime-token header.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -478,6 +624,7 @@ export default class TelemetryIngest {
           new NotAuthorizedException(
             "This telemetry ingestion key has been disabled.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -507,6 +654,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "This telemetry ingestion key expired.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -517,7 +665,7 @@ export default class TelemetryIngest {
         resolveTelemetryClientOrigin({
           req: req,
           surface: surface,
-          isBrowserKey: isBrowserKey,
+          isPublicKey: PUBLIC_INGESTION_KEY_TYPES.has(policy.keyType),
         });
 
       if (resolvedClientOrigin !== undefined) {
@@ -551,6 +699,7 @@ export default class TelemetryIngest {
             new NotAuthorizedException(
               `A browser ingestion key cannot be used for ${readableSurfaceName}. Use a server ingestion key.`,
             ),
+            CLIENT_REFUSAL,
           );
         }
 
@@ -568,6 +717,38 @@ export default class TelemetryIngest {
             req,
             res,
             new NotAuthorizedException(originRefusalMessage),
+            CLIENT_REFUSAL,
+          );
+        }
+      }
+
+      /*
+       * A Mobile key (issue #6457): a mobile app's OTLP traces, logs and
+       * metrics over HTTP, and its own React Native session replays (issue
+       * #10540), and nothing else - never another surface, another app's
+       * recordings or a web page. Checked before the rate limit, as the
+       * browser rules are, so a key copied out of an app and pointed
+       * somewhere else is refused without spending its fleet's requests.
+       */
+      if (policy.keyType === TelemetryIngestionKeyType.Mobile) {
+        const mobileRefusalMessage: string | null = getMobileKeyRefusalMessage({
+          req: req,
+          surface: surface,
+          pinnedServiceName: policy.pinnedServiceName,
+        });
+
+        if (mobileRefusalMessage) {
+          TelemetryIngest.recordRefusal(
+            policy,
+            TelemetryIngestRefusalReason.MobileKeyNotAllowedHere,
+            surface,
+          );
+
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotAuthorizedException(mobileRefusalMessage),
+            CLIENT_REFUSAL,
           );
         }
       }
@@ -598,6 +779,7 @@ export default class TelemetryIngest {
           new NotAuthorizedException(
             getPinnedKeyRegistrationRefusalMessage(surface),
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -657,6 +839,7 @@ export default class TelemetryIngest {
             new TooManyRequestsException(
               "Too many telemetry requests for this ingestion key. Please retry later.",
             ),
+            CLIENT_REFUSAL,
           );
         }
 
@@ -690,6 +873,36 @@ export default class TelemetryIngest {
               "TelemetryIngest: ingestion key rate limit counter unavailable, admitting telemetry unthrottled",
             );
           }
+        }
+      }
+
+      /*
+       * The body, now that its sender is known (#10702): read here, after
+       * every check of the key and its rate, and before the budget, which
+       * measures it. A refused read (over the route's limit, a gzip body
+       * that does not inflate) is answered by the error handler, as
+       * StartServer's was.
+       */
+      if (readBody) {
+        const readError: unknown = await TelemetryIngest.readBodyAfterKey(
+          readBody,
+          req,
+          res,
+        );
+
+        /*
+         * A reader that answered the request itself - OTLP's 413 for a body
+         * over its cap, or 415 for a coding the worker cannot undo; the
+         * Vercel drain's 403 for a delivery Vercel did not sign - or whose
+         * connection closed first ends it here: nothing more is counted or
+         * run (#10814).
+         */
+        if (readError === ANSWERED_BY_READER) {
+          return;
+        }
+
+        if (readError) {
+          return next(readError);
         }
       }
 
@@ -800,6 +1013,71 @@ export default class TelemetryIngest {
   }
 
   /*
+   * Run a route's body reader and resolve with what it passed on: nothing
+   * once the body is read, or the error it was refused with - or
+   * ANSWERED_BY_READER once the request was answered, or its connection
+   * closed, before the reader went on: a reader that answers its own
+   * refusal goes no further (OTLP's parseBody, the Vercel drain's signature
+   * check), and would otherwise leave this waiting. What comes first wins.
+   * Never rejects: a reader that throws is refused with what it threw.
+   */
+  private static readBodyAfterKey(
+    readBody: RequestHandler,
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<unknown> {
+    return new Promise<unknown>((resolve: (err: unknown) => void): void => {
+      let isSettled: boolean = false;
+
+      const settle: (outcome: unknown) => void = (outcome: unknown): void => {
+        if (isSettled) {
+          return;
+        }
+
+        isSettled = true;
+        resolve(outcome);
+      };
+
+      TelemetryIngest.onceAnswered(res, (): void => {
+        settle(ANSWERED_BY_READER);
+      });
+
+      try {
+        readBody(req, res, ((err?: unknown): void => {
+          settle(err);
+        }) as NextFunction);
+      } catch (err) {
+        settle(err);
+      }
+    });
+  }
+
+  /*
+   * Calls `answered` once the response is sent ("finish") or its connection
+   * closes ("close"), whichever is first. Reached through a runtime check,
+   * as setRetryAfterHeader is: unit tests hand this middleware a bare
+   * response object.
+   */
+  private static onceAnswered(
+    res: ExpressResponse,
+    answered: () => void,
+  ): void {
+    const once: unknown = (res as unknown as Record<string, unknown>)["once"];
+
+    if (typeof once !== "function") {
+      return;
+    }
+
+    for (const event of ["finish", "close"]) {
+      (once as (event: string, listener: () => void) => void).call(
+        res,
+        event,
+        answered,
+      );
+    }
+  }
+
+  /*
    * Count a refusal against the key that sent it (issue #6378), for the
    * RUM setup check and the key's own page. In memory, written in batches
    * (TelemetryIngestRefusalRecorder: a key refused again and again is
@@ -857,7 +1135,7 @@ export default class TelemetryIngest {
        * the message - "Origin  is not allowed" reads like a bug and tells the
        * customer nothing about what to fix.
        */
-      return "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.";
+      return "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.";
     }
 
     if (

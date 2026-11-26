@@ -34,7 +34,9 @@ import {
   INTERACTIVE_READ_TIME_LIMIT,
   TimeoutOverflowMode,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
-import ClickhouseReadResult from "../Utils/AnalyticsDatabase/ClickhouseReadResult";
+import ClickhouseReadResult, {
+  ClickhouseRowsRead,
+} from "../Utils/AnalyticsDatabase/ClickhouseReadResult";
 import {
   getDistributedDdlTaskTimeoutSeconds,
   getStorageTableName,
@@ -104,6 +106,15 @@ import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import PlanGates from "../Types/Database/Permissions/PlanGates";
 
 export type Results = ResultSet<"JSON">;
+
+// How a read is sent (AnalyticsDatabaseService.toReadRequest).
+interface ClickhouseReadRequest {
+  client: ClickhouseClient;
+  query: string;
+  queryParams: Record<string, unknown> | undefined;
+  timeLimitInSeconds: number | undefined;
+  clickhouseSettings: ClickHouseSettings | undefined;
+}
 export type DbJSONResponse = ResponseJSON<{
   data?: Array<JSONObject>;
 }>;
@@ -496,6 +507,8 @@ export default class AnalyticsDatabaseService<
         countBy = await this.onBeforeCount(countBy);
       }
 
+      countBy.query = await this.bindReadQueryOf(countBy.query, countBy.props);
+
       // A grouped count counts the distinct values of its group-by column.
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
@@ -664,7 +677,7 @@ export default class AnalyticsDatabaseService<
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          data.query,
+          await this.bindReadQueryOf(data.query, data.props),
           null,
           data.props,
         );
@@ -791,7 +804,7 @@ export default class AnalyticsDatabaseService<
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          data.query,
+          await this.bindReadQueryOf(data.query, data.props),
           null,
           data.props,
         );
@@ -909,7 +922,7 @@ export default class AnalyticsDatabaseService<
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          existsBy.query,
+          await this.bindReadQueryOf(existsBy.query, existsBy.props),
           null,
           existsBy.props,
         );
@@ -1378,6 +1391,17 @@ export default class AnalyticsDatabaseService<
     return await this._aggregateBy(aggregateBy);
   }
 
+  /*
+   * Whether one caller's aggregate may be handed to another whose read the
+   * permission check scopes to the same query - BaseAnalyticsAPI's
+   * short-lived cache. False for a table that holds what a read answers to
+   * its caller beyond that query: the audit log, which holds names and
+   * values to what each reader may read of the records (AuditLogService).
+   */
+  public sharesAggregatesAcrossReaders(): boolean {
+    return true;
+  }
+
   private async _aggregateBy(
     aggregateBy: AggregateBy<TBaseModel>,
   ): Promise<AggregatedResult> {
@@ -1459,7 +1483,7 @@ export default class AnalyticsDatabaseService<
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
-          aggregateBy.query,
+          await this.bindReadQueryOf(aggregateBy.query, aggregateBy.props),
           ModelPermission.getSelectWithGroupBy(
             this.modelType,
             {
@@ -1479,21 +1503,6 @@ export default class AnalyticsDatabaseService<
         statement: Statement;
         columns: Array<string>;
       } = this.toAggregateStatement(aggregateBy);
-
-      const dbResult: ResultSet<"JSON"> = await this.executeQuery(
-        findStatement.statement,
-      );
-
-      logger.debug(`${this.model.tableName} Aggregate Statement executed`, {
-        tableName: this.model.tableName,
-      } as LogAttributes);
-
-      const responseJSON: ResponseJSON<JSONObject> =
-        await dbResult.json<JSONObject>();
-
-      const items: Array<JSONObject> = responseJSON.data
-        ? responseJSON.data
-        : [];
 
       const aggregatedItems: Array<AggregatedModel> = [];
 
@@ -1523,61 +1532,65 @@ export default class AnalyticsDatabaseService<
        */
       const budget: EventLoopBudget = new EventLoopBudget();
 
-      for (const item of items) {
-        if (budget.isSpent()) {
-          await budget.handBack();
+      // How many rows ClickHouse answered with, and the first of them.
+      const answered: { count: number; first: JSONObject | undefined } = {
+        count: 0,
+        first: undefined,
+      };
+
+      const addItem: (item: JSONObject) => void = (item: JSONObject): void => {
+        if (answered.count === 0) {
+          answered.first = item;
         }
 
-        if (
-          !(item as JSONObject)[
-            aggregateBy.aggregationTimestampColumnName as string
-          ]
-        ) {
-          continue;
+        answered.count++;
+
+        const aggregatedModel: AggregatedModel | null = this.toAggregatedModel({
+          item: item,
+          aggregateBy: aggregateBy,
+          groupByColumnNames: groupByColumnNames,
+        });
+
+        if (aggregatedModel) {
+          aggregatedItems.push(aggregatedModel);
         }
+      };
 
-        // if value is of type string then convert it to number.
-
-        if (
-          typeof (item as JSONObject)[
-            aggregateBy.aggregateColumnName as string
-          ] === Typeof.String
-        ) {
-          (item as JSONObject)[aggregateBy.aggregateColumnName as string] =
-            Number.parseFloat(
-              (item as JSONObject)[
-                aggregateBy.aggregateColumnName as string
-              ] as string,
-            );
-        }
-
+      if (this.readsAggregateRowsAsTheyArrive(aggregateBy)) {
         /*
-         * Preserve every group-by column on the aggregated row. The
-         * previous implementation only copied the first column, which
-         * silently dropped the rest when callers grouped by more than
-         * one dimension (e.g. attributes + name). `AggregatedModel`'s
-         * index signature already accepts arbitrary keys, so existing
-         * single-column consumers still work.
+         * A row per series and bucket, read as the rows arrive (#10316):
+         * the answer is never held as text or as one document, and no
+         * parse of it holds the event loop for longer than the budget.
          */
-        const aggregatedModel: AggregatedModel = {
-          timestamp: OneUptimeDate.fromString(
-            (item as JSONObject)[
-              aggregateBy.aggregationTimestampColumnName as string
-            ] as string,
-          ),
-          value: (item as JSONObject)[
-            aggregateBy.aggregateColumnName as string
-          ] as number,
-        };
+        await this.readRowsAsTheyArrive({
+          statement: findStatement.statement,
+          onRow: addItem,
+          budget: budget,
+        });
+      } else {
+        const dbResult: ResultSet<"JSON"> = await this.executeQuery(
+          findStatement.statement,
+        );
 
-        for (const groupByColumnName of groupByColumnNames) {
-          aggregatedModel[groupByColumnName] = (item as JSONObject)[
-            groupByColumnName
-          ] as AggregatedModel[string];
+        const responseJSON: ResponseJSON<JSONObject> =
+          await dbResult.json<JSONObject>();
+
+        const items: Array<JSONObject> = responseJSON.data
+          ? responseJSON.data
+          : [];
+
+        for (const item of items) {
+          if (budget.isSpent()) {
+            await budget.handBack();
+          }
+
+          addItem(item);
         }
-
-        aggregatedItems.push(aggregatedModel);
       }
+
+      logger.debug(`${this.model.tableName} Aggregate Statement executed`, {
+        tableName: this.model.tableName,
+      } as LogAttributes);
 
       /*
        * Top-K statements (see MetricService) carry the pre-trim group
@@ -1587,7 +1600,7 @@ export default class AnalyticsDatabaseService<
        * the helper column never reaches the rows themselves.
        */
       let totalGroups: number | undefined = undefined;
-      const firstItem: JSONObject | undefined = items[0];
+      const firstItem: JSONObject | undefined = answered.first;
       if (firstItem && firstItem["__total_groups"] !== undefined) {
         const parsedTotalGroups: number = Number(firstItem["__total_groups"]);
         if (Number.isFinite(parsedTotalGroups)) {
@@ -1607,7 +1620,7 @@ export default class AnalyticsDatabaseService<
       let truncated: boolean =
         Number.isFinite(appliedLimit) &&
         appliedLimit > 0 &&
-        items.length >= appliedLimit;
+        answered.count >= appliedLimit;
       if (
         aggregateBy.topK &&
         totalGroups !== undefined &&
@@ -1625,6 +1638,75 @@ export default class AnalyticsDatabaseService<
       await this.onFindError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  /*
+   * Whether an aggregate's rows are read as they arrive (readRowsAsTheyArrive,
+   * #10316) rather than as one FORMAT JSON document: an aggregate grouped by
+   * attribute keys, a row per series and bucket - 40,000 rows and 10 MB of
+   * JSON a read for a grouped Metrics monitor over 16,000 series (#10108) -
+   * whose single JSON.parse was the longest block left in its evaluation.
+   * Every other aggregate is a few rows, read as before. Both are turned
+   * into aggregated rows by toAggregatedModel, so the result is the same.
+   */
+  protected readsAggregateRowsAsTheyArrive(
+    aggregateBy: AggregateBy<TBaseModel>,
+  ): boolean {
+    return Boolean(
+      aggregateBy.groupByAttributeKeys &&
+        aggregateBy.groupByAttributeKeys.length > 0,
+    );
+  }
+
+  /*
+   * One row of an aggregate's answer as an aggregated row, or null for a row
+   * with no time, which is left out. The row's value is read as a number
+   * when ClickHouse wrote it as text (a 64-bit figure), in place.
+   */
+  private toAggregatedModel(data: {
+    item: JSONObject;
+    aggregateBy: AggregateBy<TBaseModel>;
+    groupByColumnNames: Array<string>;
+  }): AggregatedModel | null {
+    const item: JSONObject = data.item;
+    const aggregateBy: AggregateBy<TBaseModel> = data.aggregateBy;
+
+    if (!item[aggregateBy.aggregationTimestampColumnName as string]) {
+      return null;
+    }
+
+    // if value is of type string then convert it to number.
+
+    if (
+      typeof item[aggregateBy.aggregateColumnName as string] === Typeof.String
+    ) {
+      item[aggregateBy.aggregateColumnName as string] = Number.parseFloat(
+        item[aggregateBy.aggregateColumnName as string] as string,
+      );
+    }
+
+    /*
+     * Preserve every group-by column on the aggregated row. The
+     * previous implementation only copied the first column, which
+     * silently dropped the rest when callers grouped by more than
+     * one dimension (e.g. attributes + name). `AggregatedModel`'s
+     * index signature already accepts arbitrary keys, so existing
+     * single-column consumers still work.
+     */
+    const aggregatedModel: AggregatedModel = {
+      timestamp: OneUptimeDate.fromString(
+        item[aggregateBy.aggregationTimestampColumnName as string] as string,
+      ),
+      value: item[aggregateBy.aggregateColumnName as string] as number,
+    };
+
+    for (const groupByColumnName of data.groupByColumnNames) {
+      aggregatedModel[groupByColumnName] = item[
+        groupByColumnName
+      ] as AggregatedModel[string];
+    }
+
+    return aggregatedModel;
   }
 
   private async _findBy(
@@ -1659,6 +1741,11 @@ export default class AnalyticsDatabaseService<
         : await this.onBeforeFind(findBy);
       const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
       const carryForward: any = onFind.carryForward;
+
+      onBeforeFind.query = await this.bindReadQueryOf(
+        onBeforeFind.query,
+        onBeforeFind.props,
+      );
 
       if (
         !onBeforeFind.select ||
@@ -1821,6 +1908,37 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
+   * A read's query as this table's service binds it before it is compiled
+   * - a place holder method used for overriding. Every read of the table
+   * takes it, after its find or count hook and before its read permission:
+   * a list, a count, a grouped count, a count per window, a count per
+   * value, an aggregate and an existence check, so they all read the same
+   * rows. Logs, spans and exceptions bind a search for an IP address to the
+   * project's Hash token for it too (HashedAddressSearch, #10418). A
+   * binding widens what a filter matches - never narrows a read - and the
+   * permission check still applies to what it hands back. A read that asks
+   * for no hooks (props.ignoreHooks) is not bound.
+   */
+  protected async bindReadQuery(data: {
+    query: Query<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<TBaseModel>> {
+    return Promise.resolve(data.query);
+  }
+
+  // The read's query, bound unless the read asks for no hooks.
+  protected async bindReadQueryOf(
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel>> {
+    if (!query || props?.ignoreHooks) {
+      return query;
+    }
+
+    return await this.bindReadQuery({ query, props });
+  }
+
+  /*
    * How many distinct values an expression takes over the rows a query
    * matches, '' left out: the query read as countBy reads it - its count
    * hooks, then the read permission - so it counts among exactly the rows
@@ -1851,7 +1969,7 @@ export default class AnalyticsDatabaseService<
     const permission: CheckReadPermissionType<TBaseModel> =
       await ModelPermission.checkReadPermission(
         this.modelType,
-        countBy.query,
+        await this.bindReadQueryOf(countBy.query, countBy.props),
         null,
         countBy.props,
       );
@@ -3169,6 +3287,97 @@ export default class AnalyticsDatabaseService<
     statement: Statement | string,
     options?: ClickhouseExecuteOptions,
   ): Promise<ResultSet<"JSON">> {
+    const read: ClickhouseReadRequest = this.toReadRequest(statement, options);
+
+    let resultSet: ResultSet<"JSON">;
+
+    try {
+      resultSet = await read.client.query({
+        query: read.query,
+        format: "JSON",
+        query_params: read.queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+        ...(read.clickhouseSettings
+          ? { clickhouse_settings: read.clickhouseSettings }
+          : {}),
+        ...(options?.queryId ? { query_id: options.queryId } : {}),
+      });
+    } catch (error) {
+      throw ClickhouseReadResult.toReadError(error, {
+        timeLimitInSeconds: read.timeLimitInSeconds,
+      });
+    }
+
+    return ClickhouseReadResult.guard(resultSet, {
+      timeLimitInSeconds: read.timeLimitInSeconds,
+    });
+  }
+
+  /*
+   * Runs a read and hands each row of its answer to onRow as it arrives,
+   * keyed by column as a FORMAT JSON row is (issue #10316): the answer is
+   * never held as text or as one document, and the event loop is handed
+   * back between rows once the budget is spent (ClickhouseReadResult
+   * .readRows). Sent as executeQuery sends a read - the same settings,
+   * time limit and query id - and failed the same way: a stop at the time
+   * limit is a QueryTimeoutException, an answer that ended early is never
+   * passed off as whole. Resolves once every row has been handed on.
+   */
+  @CaptureSpan()
+  public async readRowsAsTheyArrive(data: {
+    statement: Statement | string;
+    onRow: (row: JSONObject) => void;
+    budget?: EventLoopBudget | undefined;
+    options?: ClickhouseExecuteOptions | undefined;
+  }): Promise<ClickhouseRowsRead> {
+    const read: ClickhouseReadRequest = this.toReadRequest(
+      data.statement,
+      data.options,
+    );
+
+    let result: ExecResult<Stream>;
+
+    try {
+      result = (await read.client.exec({
+        query: ClickhouseReadResult.withRowsFormat(read.query),
+        query_params: read.queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+        ...(read.clickhouseSettings
+          ? { clickhouse_settings: read.clickhouseSettings }
+          : {}),
+        ...(data.options?.queryId ? { query_id: data.options.queryId } : {}),
+      })) as ExecResult<Stream>;
+    } catch (error) {
+      throw ClickhouseReadResult.toReadError(error, {
+        timeLimitInSeconds: read.timeLimitInSeconds,
+      });
+    }
+
+    const exceptionTag: unknown =
+      result.response_headers?.["x-clickhouse-exception-tag"];
+
+    return await ClickhouseReadResult.readRows(
+      result.stream as unknown as AsyncIterable<unknown>,
+      data.onRow,
+      {
+        timeLimitInSeconds: read.timeLimitInSeconds,
+        exceptionTag: Array.isArray(exceptionTag)
+          ? String(exceptionTag[0] || "") || undefined
+          : typeof exceptionTag === "string"
+            ? exceptionTag || undefined
+            : undefined,
+        budget: data.budget,
+      },
+    );
+  }
+
+  /*
+   * How a read is sent, the same for every format: its client, its text and
+   * parameters, its time limit and the settings that go with it
+   * (getReadSettings).
+   */
+  private toReadRequest(
+    statement: Statement | string,
+    options?: ClickhouseExecuteOptions,
+  ): ClickhouseReadRequest {
     const client: ClickhouseClient = options?.useMigrationConnection
       ? this.getMigrationClient()
       : this.getDatabaseClient();
@@ -3184,34 +3393,17 @@ export default class AnalyticsDatabaseService<
         options?.clickhouseSettings,
       );
 
-    const clickhouseSettings: ClickHouseSettings | undefined =
-      AnalyticsDatabaseService.getReadSettings({
+    return {
+      client: client,
+      query: query,
+      queryParams: queryParams,
+      timeLimitInSeconds: timeLimitInSeconds,
+      clickhouseSettings: AnalyticsDatabaseService.getReadSettings({
         clickhouseSettings: options?.clickhouseSettings,
         hasTimeLimit: timeLimitInSeconds !== undefined,
         useMigrationConnection: Boolean(options?.useMigrationConnection),
-      });
-
-    let resultSet: ResultSet<"JSON">;
-
-    try {
-      resultSet = await client.query({
-        query: query,
-        format: "JSON",
-        query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
-        ...(clickhouseSettings
-          ? { clickhouse_settings: clickhouseSettings }
-          : {}),
-        ...(options?.queryId ? { query_id: options.queryId } : {}),
-      });
-    } catch (error) {
-      throw ClickhouseReadResult.toReadError(error, {
-        timeLimitInSeconds: timeLimitInSeconds,
-      });
-    }
-
-    return ClickhouseReadResult.guard(resultSet, {
-      timeLimitInSeconds: timeLimitInSeconds,
-    });
+      }),
+    };
   }
 
   /*

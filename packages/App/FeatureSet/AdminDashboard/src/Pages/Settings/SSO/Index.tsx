@@ -28,6 +28,10 @@ import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelS
 import Page from "Common/UI/Components/Page/Page";
 import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
+import {
+  SAML_SIGN_IN_AGAIN_SELECT,
+  getSamlProviderNameColumn,
+} from "Common/UI/Components/Sso/SamlSignInAgainNote";
 import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
@@ -61,6 +65,10 @@ import { useTranslation } from "react-i18next";
  * The card also names the master admins' way in, /accounts/admin-login:
  * while SSO is required the sign-in page offers only SSO, and only master
  * admins sign in with a password (SsoRequiredSignIn).
+ *
+ * Under a Keycloak or an Okta SAML provider's name, one line says what Sign
+ * In Again needs of it, as on a project's SSO page (#10530,
+ * Common/UI/Components/Sso/SamlSignInAgainNote).
  */
 
 // A provider's sign-in, started on the identity server (its test link).
@@ -181,6 +189,8 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route,
         )}
+        // What the Name column's Sign In Again line reads (#10530).
+        selectMoreFields={SAML_SIGN_IN_AGAIN_SELECT}
         formSteps={getSsoProviderFormSteps<GlobalSSO>()}
         formFields={getSamlProviderFormFields<GlobalSSO>({
           withGlobalAccessSwitches: true,
@@ -262,13 +272,8 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
           },
         ]}
         columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
+          // The name, and under it what Sign In Again needs of the provider.
+          getSamlProviderNameColumn<GlobalSSO>(),
           {
             field: {
               isEnabled: true,

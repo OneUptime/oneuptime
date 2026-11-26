@@ -1,6 +1,7 @@
 import AIInsightService from "../../../Services/AIInsightService";
 import AlertService from "../../../Services/AlertService";
 import IncidentService from "../../../Services/IncidentService";
+import SecurityCaseService from "../../../Services/SecurityCaseService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { sanitizeExceptionMessage } from "../../Telemetry/ExceptionSanitizer";
@@ -8,8 +9,13 @@ import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeFixTaskContext, {
+  getInfrastructureFixTaskContext,
+  getTelemetryLeakFixTaskContext,
+  InfrastructureFixTaskContext,
+  TelemetryLeakFixTaskContext,
   CodeHostPullRequestTaskContext,
   getCodeHostPullRequestTaskContext,
   getGitHubTaskContext,
@@ -52,6 +58,8 @@ export interface CodeTaskOriginSubjects {
   alerts: Map<string, Alert>;
   // Read only for the requests about an insight (isAboutInsight).
   insights?: Map<string, AIInsight> | undefined;
+  // The security cases a fix was asked from (isFixOfSecurityCase).
+  securityCases?: Map<string, SecurityCase> | undefined;
 }
 
 export default class CodeTaskOrigin {
@@ -66,10 +74,15 @@ export default class CodeTaskOrigin {
     const incidentIds: Set<string> = new Set<string>();
     const alertIds: Set<string> = new Set<string>();
     const insightIds: Set<string> = new Set<string>();
+    const securityCaseIds: Set<string> = new Set<string>();
 
     for (const run of data.runs) {
       if (CodeTaskOrigin.isAboutInsight(run)) {
         insightIds.add(run.triggeredByAiInsightId!.toString());
+      }
+
+      if (CodeTaskOrigin.isFixOfSecurityCase(run)) {
+        securityCaseIds.add(run.triggeredBySecurityCaseId!.toString());
       }
 
       if (run.triggeredByTelemetryExceptionId) {
@@ -85,11 +98,12 @@ export default class CodeTaskOrigin {
       }
     }
 
-    const [exceptions, incidents, alerts, insights]: [
+    const [exceptions, incidents, alerts, insights, securityCases]: [
       Array<TelemetryException>,
       Array<Incident>,
       Array<Alert>,
       Array<AIInsight>,
+      Array<SecurityCase>,
     ] = await Promise.all([
       exceptionIds.size > 0
         ? CodeTaskOrigin.readable(
@@ -157,6 +171,29 @@ export default class CodeTaskOrigin {
             }),
           )
         : Promise.resolve([]),
+      /*
+       * A case is read only by the Security tiers: a reader who may not
+       * read it reads "started from a security case", never its title.
+       */
+      securityCaseIds.size > 0
+        ? CodeTaskOrigin.readable(
+            SecurityCaseService.findBy({
+              query: {
+                _id: QueryHelper.any(Array.from(securityCaseIds)),
+                projectId: data.projectId,
+              },
+              select: {
+                _id: true,
+                title: true,
+                caseNumber: true,
+                caseNumberWithPrefix: true,
+              },
+              limit: securityCaseIds.size,
+              skip: 0,
+              props: data.props,
+            }),
+          )
+        : Promise.resolve([]),
     ]);
 
     return {
@@ -164,7 +201,27 @@ export default class CodeTaskOrigin {
       incidents: CodeTaskOrigin.byId(incidents),
       alerts: CodeTaskOrigin.byId(alerts),
       insights: CodeTaskOrigin.byId(insights),
+      securityCases: CodeTaskOrigin.byId(securityCases),
     };
+  }
+
+  /*
+   * A code fix asked for from a security case (#10347): Fix With AI, from
+   * the case's playbook. Its run names the exception it fixes and the case
+   * it was asked from; the case is why it was asked. So is a Code request
+   * OneUptime started for a case's Data Security issue in no group (#10740,
+   * CodeTaskRuns.startForDataSecurityIssue): no person asked it, and it
+   * names the case. A request a person typed is theirs, whatever it names.
+   */
+  public static isFixOfSecurityCase(run: {
+    codeFixTaskType?: CodeFixTaskType | string | null | undefined;
+    triggeredBySecurityCaseId?: ObjectID | null | undefined;
+    userId?: ObjectID | null | undefined;
+  }): boolean {
+    return (
+      Boolean(run.triggeredBySecurityCaseId) &&
+      (!CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType) || !run.userId)
+    );
   }
 
   /*
@@ -231,6 +288,11 @@ export default class CodeTaskOrigin {
     }
 
     if (CodeFixTaskTypeHelper.isCodeRequest(taskType)) {
+      // A request OneUptime started for a case's Data Security issue (#10740): the case is why.
+      if (CodeTaskOrigin.isFixOfSecurityCase(run)) {
+        return CodeTaskOrigin.describeSecurityCase(run, data.subjects);
+      }
+
       return {
         type: CodeTaskOriginType.Request,
         label: data.requesterName || "",
@@ -276,6 +338,15 @@ export default class CodeTaskOrigin {
           ? { url: onOtherHost.pullRequestUrl }
           : {}),
       };
+    }
+
+    /*
+     * A fix asked for from a security case names the case, the reason it
+     * was asked, over the exception it fixes: the case links its fix, and
+     * its Fix step's check reads whether it shipped (#10347).
+     */
+    if (CodeTaskOrigin.isFixOfSecurityCase(run)) {
+      return CodeTaskOrigin.describeSecurityCase(run, data.subjects);
     }
 
     if (run.triggeredByTelemetryExceptionId) {
@@ -333,6 +404,48 @@ export default class CodeTaskOrigin {
       };
     }
 
+    /*
+     * The fix of a group of Data Security issues' cause (#10370): the
+     * cause names it, and the group is where its issues are.
+     */
+    const infrastructureFix: InfrastructureFixTaskContext | null =
+      getInfrastructureFixTaskContext(data.taskContext?.infrastructureFix);
+
+    if (infrastructureFix) {
+      return {
+        type: CodeTaskOriginType.DataSecurityIssueGroup,
+        label: CodeTaskOrigin.shorten(
+          infrastructureFix.cause || infrastructureFix.title,
+        ),
+        recordId: infrastructureFix.groupId,
+      };
+    }
+
+    /*
+     * A service's telemetry leaks, fixed in its code (#10367): the service
+     * names it, and it opens the riskiest of the issues it fixes - the
+     * first it lists.
+     */
+    const telemetryLeakFix: TelemetryLeakFixTaskContext | null =
+      getTelemetryLeakFixTaskContext(data.taskContext?.telemetryLeakFix);
+
+    if (telemetryLeakFix) {
+      const firstIssueId: string =
+        telemetryLeakFix.issues[0]?.issueId ||
+        telemetryLeakFix.leaks[0]?.issueId ||
+        "";
+
+      return {
+        type: CodeTaskOriginType.DataSecurityTelemetryLeaks,
+        label: CodeTaskOrigin.shorten(
+          telemetryLeakFix.serviceName || telemetryLeakFix.title,
+        ),
+        ...(ObjectID.isValidUUID(firstIssueId)
+          ? { recordId: firstIssueId }
+          : {}),
+      };
+    }
+
     if (data.taskContext?.traceId) {
       return {
         type: CodeTaskOriginType.Trace,
@@ -373,11 +486,36 @@ export default class CodeTaskOrigin {
    * Whether the run's origin is named in its task context, so a list must
    * read that context to describe it.
    */
+  // The security case a fix was asked from, as its origin names it.
+  private static describeSecurityCase(
+    run: AIRun,
+    subjects: CodeTaskOriginSubjects,
+  ): CodeTaskOriginJSON {
+    const securityCase: SecurityCase | undefined = subjects.securityCases?.get(
+      run.triggeredBySecurityCaseId!.toString(),
+    );
+
+    return {
+      type: CodeTaskOriginType.SecurityCase,
+      label: securityCase
+        ? CodeTaskOrigin.shorten(
+            CodeTaskOrigin.numbered(
+              securityCase.caseNumberWithPrefix,
+              securityCase.caseNumber,
+              securityCase.title,
+            ),
+          )
+        : "",
+      recordId: run.triggeredBySecurityCaseId!.toString(),
+    };
+  }
+
   public static needsTaskContext(run: AIRun): boolean {
     if (
       run.triggeredByTelemetryExceptionId ||
       run.triggeredByIncidentId ||
-      run.triggeredByAlertId
+      run.triggeredByAlertId ||
+      CodeTaskOrigin.isFixOfSecurityCase(run)
     ) {
       return false;
     }

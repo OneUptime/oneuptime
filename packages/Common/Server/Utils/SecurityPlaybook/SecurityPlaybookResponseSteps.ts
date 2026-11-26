@@ -71,6 +71,7 @@ import SecurityCaseEvidence, {
   distinctValues,
   getEvidenceWindow,
 } from "./SecurityCaseEvidence";
+import SecurityPlaybookIssueGroupFix from "./SecurityPlaybookIssueGroupFix";
 import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import type {
   PlaybookStepContext,
@@ -101,7 +102,9 @@ import {
  *   - Fix the code with AI: a fix run for each exception the case's requests
  *     threw, when OneUptime AI can take one. When it cannot, the step says
  *     what is missing and is skipped rather than failed: a project without a
- *     repository connected is not a broken playbook.
+ *     repository connected is not a broken playbook. On a Data Security
+ *     case whose issues one mistake made, the one pull request that fixes
+ *     their cause (SecurityPlaybookIssueGroupFix, #10370).
  *
  * Each acts as OneUptime on the case's own project, as every step does
  * (SecurityPlaybookActions).
@@ -859,6 +862,18 @@ export default class SecurityPlaybookResponseSteps {
   public static async fixWithAi(
     context: PlaybookStepContext,
   ): Promise<PlaybookStepOutcome> {
+    /*
+     * A Data Security case: each group's cause fixed once (#10370), and
+     * each issue in no group fixed on its own (#10740), in the code that
+     * declares its store - else the exceptions its requests threw.
+     */
+    const issueGroupsFix: PlaybookStepOutcome | null =
+      await SecurityPlaybookIssueGroupFix.fixIssuesOfCase(context);
+
+    if (issueGroupsFix) {
+      return issueGroupsFix;
+    }
+
     const requests: Array<SecurityCaseRequestEvidence> =
       await SecurityCaseEvidence.findRequests({
         projectId: context.projectId,
@@ -928,6 +943,11 @@ export default class SecurityPlaybookResponseSteps {
           await TelemetryExceptionService.createCodeFixRunForException({
             telemetryExceptionId: exception.id!,
             props: { ...ROOT, tenantId: context.projectId },
+            /*
+             * The case the fix is for: its pull request is kept on the case,
+             * whose Fix step's check reads whether it shipped (#10347).
+             */
+            triggeredBySecurityCaseId: context.securityCase.id || undefined,
           });
 
         if (!run) {

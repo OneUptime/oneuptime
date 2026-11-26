@@ -266,8 +266,6 @@ async function openPreviewInTheStep(): Promise<HTMLElement> {
               onMonitorStepExceptionMonitorChanged={() => {
                 // Not what these tests read.
               }}
-              telemetryServices={[]}
-              telemetryEntities={[]}
             />
           </Card>
         </CardFormSections>

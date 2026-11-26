@@ -4,6 +4,7 @@ import SecurityEdgeRanges, {
   CLOUDFLARE_EDGE,
   EDGE_RANGES_REFRESH_IN_MS,
   EDGE_RANGES_RETRY_IN_MS,
+  SECURITY_EDGES,
   SecurityEdge,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityEdgeRanges";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -102,12 +103,14 @@ describe("SecurityEdgeRanges.findConnectedEdges", () => {
     expect(count).not.toHaveBeenCalled();
   });
 
-  test("a project is behind an edge while it has one of its connections, enabled or paused", async () => {
-    // Stands in for the Cloudflare connection #10339 names here.
-    CLOUDFLARE_EDGE.connectorProviders = [
-      SecurityEventConnectorProvider.AwsSecurityHub,
-    ];
+  test("Cloudflare's edge is the one its connection says a project sits behind (#10565)", () => {
+    expect(CLOUDFLARE_EDGE.connectorProviders).toEqual([
+      SecurityEventConnectorProvider.Cloudflare,
+    ]);
+    expect(SECURITY_EDGES).toContain(CLOUDFLARE_EDGE);
+  });
 
+  test("a project is behind Cloudflare while it has a Cloudflare connection, enabled or paused", async () => {
     const count: Spy = getJestSpyOn(
       SecurityEventConnectionService,
       "countBy",
@@ -116,6 +119,8 @@ describe("SecurityEdgeRanges.findConnectedEdges", () => {
     await expect(
       SecurityEdgeRanges.findConnectedEdges(PROJECT_ID),
     ).resolves.toEqual([CLOUDFLARE_EDGE]);
+
+    expect(count).toHaveBeenCalledTimes(1);
 
     const input: {
       query: Record<string, unknown>;
@@ -128,6 +133,16 @@ describe("SecurityEdgeRanges.findConnectedEdges", () => {
     // The project's own connections, whoever asks, a paused one too: no isEnabled.
     expect(Object.keys(input.query).sort()).toEqual(["projectId", "provider"]);
     expect(input.query["projectId"]).toEqual(PROJECT_ID);
+    // Cloudflare's connections only: the provider IN (Cloudflare).
+    expect(
+      Object.values(
+        (
+          input.query["provider"] as {
+            objectLiteralParameters: Record<string, unknown>;
+          }
+        ).objectLiteralParameters,
+      ),
+    ).toEqual([[SecurityEventConnectorProvider.Cloudflare]]);
     expect(input.props).toEqual({ isRoot: true });
 
     count.mockResolvedValue(new PositiveNumber(0) as never);
@@ -135,6 +150,16 @@ describe("SecurityEdgeRanges.findConnectedEdges", () => {
     await expect(
       SecurityEdgeRanges.findConnectedEdges(PROJECT_ID),
     ).resolves.toEqual([]);
+  });
+
+  test("a count that fails is not taken for no edge: it throws, for the caller to fail toward a person", async () => {
+    getJestSpyOn(SecurityEventConnectionService, "countBy").mockRejectedValue(
+      new Error("database is down") as never,
+    );
+
+    await expect(
+      SecurityEdgeRanges.findConnectedEdges(PROJECT_ID),
+    ).rejects.toThrow("database is down");
   });
 });
 

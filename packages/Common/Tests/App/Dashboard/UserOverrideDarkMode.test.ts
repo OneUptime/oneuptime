@@ -10,9 +10,10 @@ import { DarkModeScan, scanDarkMode } from "../../Helpers/DarkModeScan";
  * and nothing fails (Tests/Helpers/DarkModeScan). What the change draws is
  * all classes: the notice under Ends when the times picked overlap another
  * override (red, with Edit that override), the note on an override of the
- * other scope (grey), the lists' Overlaps mark (amber), and Edit on the
- * lists and on a schedule's Active overrides card. They are held here to
- * what Theme.css remaps.
+ * other scope (grey), the lists' Overlaps mark (amber), Edit on the lists
+ * and on a schedule's Active overrides card, and the notice under Who
+ * covers? when the person picked has not joined the project yet (amber,
+ * #10670). They are held here to what Theme.css remaps.
  */
 
 // Relative to Common/UI, where the scan reads from.
@@ -22,6 +23,7 @@ const FILES: Array<string> = [
   `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideFormModal.tsx`,
   `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideOverlapNotice.tsx`,
   `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideOverlapsMark.tsx`,
+  `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideCoverNotJoinedNotice.tsx`,
   `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx`,
   `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx`,
 ];
@@ -57,6 +59,8 @@ describe("editing a user override, and its overlaps, in the dark theme", () => {
         "bg-amber-50",
         "text-amber-800",
         "ring-amber-200",
+        // The cover picked has not joined the project yet.
+        "text-amber-500",
       ]),
     );
 

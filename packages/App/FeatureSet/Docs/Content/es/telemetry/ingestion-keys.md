@@ -4,7 +4,7 @@ Una clave de ingesta conecta su telemetría con su proyecto. Las aplicaciones, l
 
 :::cards
 - [Crear una clave de ingesta](#crear-una-clave-de-ingesta): Un nombre, un tipo y un secreto que copiar.
-- [Servidor o navegador](#servidor-o-navegador): Qué tipo de clave necesita un emisor.
+- [Servidor, navegador o móvil](#servidor-navegador-o-móvil): Qué tipo de clave necesita un emisor.
 - [Proteger una clave de navegador](#proteger-una-clave-de-navegador): Orígenes, un nombre de servicio y un límite.
 - [Rotar, desactivar o eliminar una clave](#rotar-desactivar-o-eliminar-una-clave): Qué hacer cuando una clave se filtra.
 :::
@@ -27,21 +27,21 @@ flowchart TB
 - **La clave decide el proyecto.** Nunca envía un ID de proyecto: los datos enviados con una clave llegan al proyecto al que pertenece la clave.
 - **Los cambios llegan a todos los servidores en pocos segundos.** Desactivar una clave, restablecer su secreto o cambiar sus orígenes, su caducidad o su límite surte efecto en todos los servidores en pocos segundos.
 - **Una clave puede tener presupuestos propios.** Un presupuesto diario y un límite de frecuencia por segundo para cada señal, dentro de los de su proyecto: consulte [Presupuestos de ingesta](/docs/telemetry/ingestion-budgets).
-- **Una clave de servidor es una contraseña.** Quien la tenga puede enviar telemetría a su proyecto. Guárdela en los secretos de sus servidores, nunca en el control de versiones ni en una página web.
+- **Una clave de servidor es una contraseña.** Quien la tenga puede enviar telemetría a su proyecto. Guárdela en los secretos de sus servidores, nunca en el control de versiones, en una página web ni en una aplicación móvil.
 
-## Servidor o navegador
+## Servidor, navegador o móvil
 
 Elija el tipo según dónde vaya a vivir la clave. El tipo no se puede cambiar una vez creada la clave.
 
-| | **Servidor** | **Navegador** |
-| --- | --- | --- |
-| Para | Aplicaciones, collectors y agentes en máquinas que usted gestiona | Páginas web, y React Native Session Replay |
-| Envía | Todo tipo de telemetría, a todos los endpoints | Trazas, registros, métricas, Session Replays y [eventos de Sentry](/docs/telemetry/compatible-endpoints#sdk-de-sentry) |
-| Es un secreto | Sí: guárdela en sus servidores | No: cualquiera que vea la página puede leerla |
-| Orígenes | No se comprueban | Solo se aceptan los orígenes de la lista |
-| Solicitudes por minuto | Sin límite, salvo que usted fije uno | 6.000, salvo que fije otro límite |
+| | **Servidor** | **Navegador** | **Móvil** |
+| --- | --- | --- | --- |
+| Para | Aplicaciones, collectors y agentes en máquinas que usted gestiona | Páginas web | Una aplicación de iOS, Android o React Native |
+| Envía | Todo tipo de telemetría, a todos los endpoints | Trazas, registros, métricas, Session Replays y [eventos de Sentry](/docs/telemetry/compatible-endpoints#sdk-de-sentry) | Las trazas, los registros y las métricas de esa aplicación, por OTLP/HTTP, y sus Session Replays |
+| Es un secreto | Sí: guárdela en sus servidores | No: cualquiera que vea la página puede leerla | No: cualquiera que tenga la aplicación puede copiarla |
+| Orígenes | No se comprueban | Solo se aceptan los orígenes de la lista | Se rechaza una solicitud desde una página web |
+| Solicitudes por minuto | Sin límite, salvo que usted fije uno | 6.000, salvo que fije otro límite | 6.000, salvo que fije otro límite |
 
-En cualquier otro lugar, OneUptime rechaza una clave de navegador, por ejemplo por gRPC y MQTT, para perfiles, Syslog, Fluent Bit y Fluentd, y para subir source maps. Para pasar un emisor al otro tipo, cree una clave de ese tipo, cambie el emisor a ella y luego elimine la clave antigua.
+En cualquier otro lugar, OneUptime rechaza una clave de navegador, por ejemplo por gRPC y MQTT, para perfiles, Syslog, Fluent Bit y Fluentd, y para subir source maps, y una clave móvil en todo lo que no sean trazas, registros y métricas OTLP por HTTP o los Session Replays de su aplicación. Para pasar un emisor a otro tipo, cree una clave de ese tipo, cambie el emisor a ella y luego elimine la clave antigua.
 
 ## Antes de empezar
 
@@ -59,9 +59,9 @@ Vaya a **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. **T
 
 Haga clic en **Crear clave de ingesta**. El cuadro empieza con el nombre **Clave de servidor** y el tipo **Servidor**. Elija el **Tipo de clave** y cambie el nombre de la clave según lo que la vaya a usar, por ejemplo `checkout-collector`. Hay una **Descripción** en **Avanzado**.
 
-### Añadir los orígenes de una clave de navegador
+### Añadir los orígenes de una clave de navegador o la aplicación de una clave móvil
 
-Una clave de **Navegador** pide sus **Orígenes permitidos** en el paso siguiente, **Ajustes del navegador**, con su **Nombre de servicio fijado** en **Avanzado**. Consulte [Proteger una clave de navegador](#proteger-una-clave-de-navegador).
+Una clave de **Navegador** pide sus **Orígenes permitidos** en el paso siguiente, **Ajustes del navegador**, con su **Nombre de servicio fijado** en **Avanzado**. Consulte [Proteger una clave de navegador](#proteger-una-clave-de-navegador). Una clave **Móvil** pide en cambio su **Nombre de servicio fijado** en la primera página: el `service.name` de la aplicación en la que viaja.
 
 ### Crear la clave y copiar su secreto
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Proteger una clave de navegador
 
-Una clave de navegador está en su página, donde cualquiera puede copiarla. Estos ajustes limitan lo que puede hacer una copia. Cámbielos en la página de la clave con **Editar Clave de ingesta**.
+Una clave de navegador está en su página, donde cualquiera puede copiarla. Todo lo que envía se archiva como una aplicación RUM de navegador, nunca como un host, un clúster, un recurso de la nube, una base de datos o un servicio backend: del recurso que define un emisor, la clave solo conserva lo que una página dice de sí misma, como los atributos `service.*`, `browser.*` y `user_agent.*` y las etiquetas `oneuptime.label.*`. Estos ajustes limitan lo que puede hacer una copia. Cámbielos en la página de la clave con **Editar Clave de ingesta**.
 
 | Ajuste | Qué hace |
 | --- | --- |
 | **Orígenes permitidos** | Los únicos orígenes desde los que se acepta la clave. Una solicitud desde cualquier otro origen, o sin encabezado `Origin`, se rechaza. Una clave de navegador debe conservar al menos uno. |
-| **Nombre de servicio fijado** | Archiva todo lo que la clave envía por OTLP/HTTP bajo este único servicio, sea cual sea el `service.name` que haya puesto el emisor. Una copia de la clave solo puede escribir entonces en ese servicio. |
+| **Nombre de servicio fijado** | Archiva todo lo que la clave envía por OTLP/HTTP bajo esta única aplicación, sea cual sea el `service.name` que haya puesto el emisor. Una copia de la clave solo puede escribir entonces en esa aplicación. |
 | **Límite de solicitudes por minuto** | El máximo de solicitudes por las que se acepta la clave cada minuto, compartido por todos los visitantes. Una clave de navegador recibe 6.000 si deja el campo vacío. |
 | **Caduca el** | La fecha a partir de la cual se rechaza la clave, para que una copia publicada deje de funcionar. |
 
-Un origen es un esquema, un host y un puerto opcional: `https://app.example.com` no cubre `https://app.example.com:8443`. Un `*.` inicial cubre todos los subdominios, pero no el dominio en sí. React Native Session Replay envía una identidad `app://` exacta, que no admite comodines:
+Un origen es un esquema, un host y un puerto opcional: `https://app.example.com` no cubre `https://app.example.com:8443`. Un `*.` inicial cubre todos los subdominios, pero no el dominio en sí. React Native Session Replay enviado con una clave de navegador lleva una identidad `app://` exacta, que no admite comodines:
 
 ```json
 [
@@ -105,6 +105,17 @@ Un origen es un esquema, un host y un puerto opcional: `https://app.example.com`
 ```
 
 [Servicios](/docs/telemetry/services#cómo-entra-un-servicio-en-el-catálogo) muestra cómo un nombre fijado decide el servicio. El Runner y el agente de IA del agente de Kubernetes, y los agentes de IA de infraestructura, no se registran con una clave fijada: deles una clave de servidor sin nombre fijado.
+
+## Lo que limita una clave móvil
+
+Una clave móvil viaja dentro de su aplicación, y cualquiera que tenga la aplicación puede copiarla. Estos límites mantienen cada copia en la aplicación para la que se creó:
+
+- **Solo escribe como una aplicación.** Todo lo que envía se archiva con su **Nombre de servicio fijado** como una aplicación RUM móvil, sea cual sea el servicio o el host que indique el emisor. Una copia no puede escribir en sus servicios backend, hosts o clústeres.
+- **Solo envía la telemetría de esa aplicación.** Trazas, registros y métricas OTLP por HTTP, y los Session Replays de la aplicación desde su grabador de React Native, con el **Nombre de servicio fijado** de la clave como `appIdentifier`. Se rechaza por gRPC y MQTT, para Session Replays de otra aplicación, perfiles y source maps, en cualquier otro endpoint y desde cualquier página web.
+- **Tiene un límite de frecuencia.** 6.000 solicitudes por minuto para todas las copias juntas, salvo que fije su **Límite de solicitudes por minuto**.
+- **Puede detenerla.** Desactive **Habilitado** o fije **Caduca el**, y cada copia se rechaza en segundos.
+
+Lo que no puede impedir: quien tenga su aplicación aún puede enviar trazas, registros, métricas y Session Replays inventados para esa aplicación, hasta el límite de la clave, hasta que la desactive o caduque. Rote la clave con cada versión, para que una copia antigua deje de funcionar con su versión.
 
 ## Rotar, desactivar o eliminar una clave
 
@@ -132,7 +143,10 @@ La página de la clave también lleva la cuenta: **Telemetría rechazada** muest
 | `402` con `Add a payment method` | En OneUptime Cloud, el proyecto está en el plan Free y aún no tiene método de pago. |
 | `422` con `This telemetry ingestion key has been disabled.` | Alguien desactivó **Habilitado**. |
 | `422` con `A browser ingestion key cannot be used for` | Una clave de navegador llegó a un endpoint que solo acepta claves de servidor. |
-| `422` con `did not send an Origin header` | Una clave de navegador se envió desde fuera de un navegador. Use allí una clave de servidor. |
+| `422` con `did not send an Origin header` | Una clave de navegador se envió desde fuera de un navegador. Use una clave móvil en una aplicación móvil, y una clave de servidor en cualquier otro lugar. |
+| `422` con `A mobile ingestion key cannot be used for` | Una clave móvil llegó a un endpoint que no es de trazas, registros y métricas OTLP por HTTP ni de Session Replay, como gRPC o perfiles. |
+| `422` con `A mobile ingestion key can send session replays only` | Una clave móvil envió la grabación de una página web, o la de otra aplicación. Dé al grabador de React Native el **Nombre de servicio fijado** de la clave como `appIdentifier`. |
+| `422` con `A mobile ingestion key cannot be used from a web page` | Una clave móvil se envió desde un navegador. Use una clave de navegador en una página web. |
 | `422` con `is not allowed for this browser ingestion key` | El origen de la página no está en **Orígenes permitidos**. |
 | `422` con `is pinned to a single service` | Se usó una clave con **Nombre de servicio fijado** para registrar un agente. Use una clave de servidor sin nombre fijado. |
 | `429` con `Too many telemetry requests for this ingestion key` | La clave alcanzó su **Límite de solicitudes por minuto**. Los exportadores reintentan tras el tiempo de `Retry-After`. |

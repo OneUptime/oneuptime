@@ -18,7 +18,9 @@
  *
  * Read from the attributes as they are STORED: after the project's scrub
  * rules and pipelines, so a rule that removes one of these keys removes the
- * user too.
+ * user too. A rule that redacts, masks or hashes one leaves what it wrote in
+ * its place, kept here as it is: the list reads that as a hidden user, never
+ * as one person (ExceptionListStatsReader, #10435).
  */
 
 export const EXCEPTION_USER_ID_ATTRIBUTE_KEYS: ReadonlyArray<string> = [

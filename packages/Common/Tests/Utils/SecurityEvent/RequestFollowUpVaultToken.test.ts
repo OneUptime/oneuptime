@@ -5,6 +5,7 @@ import SecurityEventRequestOutcome, {
 } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import WebAttackLogParser from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFollowUp";
+import { resolveClientAddress } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
 import {
   HiddenClientAddress,
@@ -57,6 +58,11 @@ function applicationEvent(): NormalizedSecurityEvent {
   return events[0]!;
 }
 
+/*
+ * A trace whose server span names its client by the connection's own
+ * address (the peer), as a scrub rule left it: the address the follow-up
+ * reads as verified (ClientAddressTrust, #10416).
+ */
 function assessment(clientAddress: string): RequestTraceAssessment {
   return {
     outcome: SecurityEventRequestOutcome.Rejected,
@@ -66,6 +72,7 @@ function assessment(clientAddress: string): RequestTraceAssessment {
     url: "/static/../../etc/passwd",
     route: "",
     clientAddress,
+    client: resolveClientAddress({ peer: clientAddress }),
     userAgent: "curl/8.5.0",
     userId: "",
     durationMs: 3,

@@ -183,7 +183,10 @@ describe("validateScrubRule", () => {
 
   test("accepts every built-in pattern type without a regex", () => {
     for (const patternType of LOG_SCRUB_PATTERN_TYPES) {
-      if (patternType === LogScrubPatternType.Custom) {
+      if (
+        patternType === LogScrubPatternType.Custom ||
+        patternType === LogScrubPatternType.NamedKeys
+      ) {
         continue;
       }
 
@@ -194,6 +197,65 @@ describe("validateScrubRule", () => {
         );
       }).not.toThrow();
     }
+  });
+
+  // Issue #10366: a Named Attributes rule hides what it names, so it names something.
+  test("refuses a Named Attributes rule that names no attribute, and takes one that does", () => {
+    for (const attributeKeys of [undefined, [], ["  "], ""]) {
+      expect(() => {
+        validateScrubRule(
+          {
+            patternType: LogScrubPatternType.NamedKeys,
+            attributeKeys,
+            fieldsToScrub: "attributes",
+          },
+          LOG_OPTIONS,
+        );
+      }).toThrow(
+        "A Named Attributes rule hides the attributes it names, and this one names none",
+      );
+    }
+
+    expect(() => {
+      validateScrubRule(
+        {
+          patternType: LogScrubPatternType.NamedKeys,
+          attributeKeys: ["customer_name", "request.headers"],
+          fieldsToScrub: "attributes",
+        },
+        LOG_OPTIONS,
+      );
+    }).not.toThrow();
+  });
+
+  test("refuses more keys than a rule names, or a key too long, on any pattern type", () => {
+    const many: Array<string> = Array.from(
+      { length: 51 },
+      (_value: unknown, index: number): string => {
+        return `key.${index}x`;
+      },
+    );
+
+    expect(() => {
+      validateScrubRule(
+        {
+          patternType: LogScrubPatternType.Email,
+          attributeKeys: many,
+          fieldsToScrub: "attributes",
+        },
+        LOG_OPTIONS,
+      );
+    }).toThrow("A rule names at most 50 attributes");
+    expect(() => {
+      validateScrubRule(
+        {
+          patternType: LogScrubPatternType.NamedKeys,
+          attributeKeys: ["k".repeat(257)],
+          fieldsToScrub: "attributes",
+        },
+        LOG_OPTIONS,
+      );
+    }).toThrow("An attribute key is at most 256 characters long.");
   });
 
   test("accepts a custom rule with a pattern ingest can use", () => {
@@ -662,7 +724,7 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       expect(findBy).not.toHaveBeenCalled();
     });
 
-    test("reads only the three columns it judges, as root", async () => {
+    test("reads only the four columns it judges, as root", async () => {
       const findBy: jest.SpyInstance = mockStoredRows([
         storedRow({
           patternType: suite.customPatternType,
@@ -682,6 +744,8 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
         patternType: true,
         customRegex: true,
         fieldsToScrub: true,
+        // The attributes a rule names decide whether it scrubs anything (#10366).
+        attributeKeys: true,
       });
       expect(request.props).toEqual({ isRoot: true, ignoreHooks: true });
     });
@@ -914,11 +978,15 @@ describe.each(SUITES)(
     /*
      * The stored rows are read once the permission checks have narrowed the
      * update to the caller's own project, so a refusal never tells anyone
-     * about another project's rule - and in one read, by the query that
-     * check left the update with: the caller's permission to update is not
-     * asked a second time, and the rows they may write are not read first.
+     * about another project's rule. A rule names a service of its project,
+     * checked by the services' update hook (ProjectReferencesService,
+     * #10433), so the update path keeps the rows the caller may write before
+     * its hooks run, as it does for every service with one: one narrowing,
+     * one read of their ids. The check then reads the rule once, by id,
+     * within the same project - never a second narrowing, never another
+     * project's rule.
      */
-    test("reads the stored rule only within the caller's project, in one read, by the query the permission check left it with", async () => {
+    test("reads the stored rule only within the caller's project, once the update has kept the rows the caller may write", async () => {
       const stored: any = new suite.modelType();
       stored._id = RULE_ID.toString();
       stored.patternType = suite.customPatternType;
@@ -944,11 +1012,18 @@ describe.each(SUITES)(
         }),
       ).rejects.toThrow(/needs a regular expression/);
 
-      // No second narrowing, and no read of the rows the caller may write.
-      expect(updatableQuery).not.toHaveBeenCalled();
-      expect(readsOfRowsCallerMayWrite(suite.service as never)).toEqual([]);
+      // One narrowing, and one read of the rows the caller may write: in their project.
+      expect(updatableQuery).toHaveBeenCalledTimes(1);
+      const kept: Array<any> = readsOfRowsCallerMayWrite(
+        suite.service as never,
+      );
+      expect(kept).toHaveLength(1);
+      expect(kept[0].query["_id"]).toBe(RULE_ID.toString());
+      expect(inspect(kept[0].query["projectId"], { depth: 4 })).toContain(
+        PROJECT_ID.toString(),
+      );
 
-      // One read: the rule, by id, within the update's query as its permission check narrowed it.
+      // One read of the rule: by id, within the update's query as its permission check narrowed it.
       expect(findBy).toHaveBeenCalledTimes(1);
       const request: any = findBy.mock.calls[0]![0];
       expect(request.query["_id"]).toBe(RULE_ID.toString());

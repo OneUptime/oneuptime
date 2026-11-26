@@ -6,13 +6,14 @@ import { JSONObject } from "Common/Types/JSON";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import Queue from "Common/Server/Infrastructure/Queue";
 import TelemetryBodyStore from "../../FeatureSet/Telemetry/Utils/TelemetryBodyStore";
-import IncomingRequestLatestPayloadStore from "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore";
+import IncomingRequestPendingStore from "../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
 import TelemetryQueueService, {
   TelemetryType,
   TelemetryIngestJobData,
   IncomingRequestIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import { OtelPayloadFormat } from "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
+import { createHash } from "crypto";
 
 /*
  * The Queue module pulls in BullMQ / bull-board at import time, and the
@@ -57,17 +58,25 @@ jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
 });
 
 /*
- * The latest-payload store talks to Redis; the contract under test is that
- * a coalesced request is stored, before its job is added, under the id the
- * job carries.
+ * The waiting-request store talks to Redis (its Lua is
+ * IncomingRequestPendingStore.test.ts's); the contract under test is that
+ * a request is kept, before its monitor's job is added, and the job names
+ * the monitor's list. The key's hash is the real one, so a test can check
+ * the job never spells out the key.
  */
 jest.mock(
-  "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore",
+  "../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore",
   () => {
     return {
       __esModule: true,
       default: {
-        store: jest.fn().mockResolvedValue(undefined),
+        push: jest.fn().mockResolvedValue({ waiting: 1, skipped: 0 }),
+        getSecretKeyHash: (secretKey: string): string => {
+          return (jest.requireActual("crypto") as typeof import("crypto"))
+            .createHash("sha256")
+            .update(secretKey)
+            .digest("hex");
+        },
       },
     };
   },
@@ -102,8 +111,8 @@ jest.mock("../../FeatureSet/Telemetry/Config", () => {
 
 type MockedFn = jest.Mock;
 
-const getStoreLatestMock: () => MockedFn = (): MockedFn => {
-  return IncomingRequestLatestPayloadStore.store as unknown as MockedFn;
+const getPushMock: () => MockedFn = (): MockedFn => {
+  return IncomingRequestPendingStore.push as unknown as MockedFn;
 };
 
 const getAddJobMock: () => MockedFn = (): MockedFn => {
@@ -343,225 +352,113 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
     jest.restoreAllMocks();
   });
 
-  test("coalesces same-monitor incoming requests via per-secret-key deduplication", async () => {
-    const secretKey: string = ObjectID.generate().toString();
-
-    await TelemetryQueueService.addIncomingRequestIngestJob({
-      secretKey,
-      requestHeaders: { "x-test": "1" },
-      requestBody: { hello: "world" },
-      requestMethod: "POST",
-    });
-
-    expect(getAddJobMock()).toHaveBeenCalledTimes(1);
-    expect(getAddJobMock().mock.calls[0]![0]).toBe("Telemetry");
-    expect(getAddJobMock().mock.calls[0]![2]).toBe("ProcessTelemetry");
-
-    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
-    expect(jobData.type).toBe(TelemetryType.IncomingRequestIngest);
-    expect(jobData.incomingRequestIngest?.secretKey).toBe(secretKey);
-
-    const options: JSONObject = getEnqueuedJobOptions();
-    // Unique job id => existence check skipped.
-    expect(options["skipExistenceCheck"]).toBe(true);
-    /*
-     * keepLastIfActive coalescing keyed by the monitor's secret key: BullMQ
-     * keeps at most one active + one waiting job per monitor so an external
-     * sender cannot fan out into concurrent same-monitor monitorResource()
-     * calls contending on the per-monitor lock.
-     */
-    expect(options["deduplication"]).toEqual({
-      id: `incoming-request-${secretKey}`,
-      keepLastIfActive: true,
-    });
-  });
-
-  test("job id is unique per call but the dedup id is stable per secret key", async () => {
-    const frozenUnixNano: number = 1234567890123456;
-    jest
-      .spyOn(OneUptimeDate, "getCurrentDateAsUnixNano")
-      .mockReturnValue(frozenUnixNano);
-
-    const secretKey: string = ObjectID.generate().toString();
-
-    await TelemetryQueueService.addIncomingRequestIngestJob({
-      secretKey,
-      requestHeaders: {},
-      requestBody: {},
-      requestMethod: "GET",
-    });
-    await TelemetryQueueService.addIncomingRequestIngestJob({
-      secretKey,
-      requestHeaders: {},
-      requestBody: {},
-      requestMethod: "GET",
-    });
-
-    expect(getAddJobMock()).toHaveBeenCalledTimes(2);
-
-    // Distinct job ids (random suffix) even with the clock pinned...
-    expect(getEnqueuedJobId(0)).not.toBe(getEnqueuedJobId(1));
-
-    // ...but the dedup id is stable so BullMQ coalesces them onto one monitor.
-    const firstDedupId: string = (
-      getEnqueuedJobOptions(0)["deduplication"] as JSONObject
-    )["id"] as string;
-    const secondDedupId: string = (
-      getEnqueuedJobOptions(1)["deduplication"] as JSONObject
-    )["id"] as string;
-    expect(firstDedupId).toBe(`incoming-request-${secretKey}`);
-    expect(secondDedupId).toBe(firstDedupId);
-  });
-
   /*
-   * The worker records the heartbeat at this time, not at the time the queue
-   * gets around to the job - under a backlog those are minutes apart, and the
-   * heartbeat cron judges "received in the last N minutes" from it.
-   */
-  test("carries the endpoint's arrival time as the job's ingestion timestamp", async () => {
-    const receivedAt: Date = new Date("2026-10-05T12:19:00.000Z");
-
-    jest
-      .spyOn(OneUptimeDate, "getCurrentDate")
-      .mockReturnValue(new Date("2026-10-05T12:19:00.250Z"));
-
-    await TelemetryQueueService.addIncomingRequestIngestJob({
-      secretKey: ObjectID.generate().toString(),
-      requestHeaders: {},
-      requestBody: {},
-      requestMethod: "POST",
-      receivedAt: receivedAt,
-    });
-
-    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
-
-    expect(
-      new Date(
-        jobData.incomingRequestIngest!.ingestionTimestamp as Date,
-      ).getTime(),
-    ).toBe(receivedAt.getTime());
-  });
-
-  test("without an arrival time the job is stamped with the enqueue time", async () => {
-    const enqueuedAt: Date = new Date("2026-10-05T12:19:00.250Z");
-
-    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(enqueuedAt);
-
-    await TelemetryQueueService.addIncomingRequestIngestJob({
-      secretKey: ObjectID.generate().toString(),
-      requestHeaders: {},
-      requestBody: {},
-      requestMethod: "POST",
-    });
-
-    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
-
-    expect(
-      new Date(
-        jobData.incomingRequestIngest!.ingestionTimestamp as Date,
-      ).getTime(),
-    ).toBe(enqueuedAt.getTime());
-  });
-
-  /*
-   * BullMQ keeps the newest payload only for a request that arrives while the
-   * monitor's job is ACTIVE; one that arrives while the job is still WAITING
-   * is discarded in favour of the older waiting job. So each request is also
-   * stored as its monitor's newest, and the job - whichever request created
-   * it - evaluates that when it runs.
+   * Every request is kept in its monitor's list of waiting requests
+   * (IncomingRequestPendingStore), and the monitor has one job that works
+   * through the list (#10582): every request of a monitor whose criteria
+   * group by a payload field, in the order they arrived, the newest of any
+   * other.
    */
   describe("with coalescing on", () => {
-    test("stores the request as its monitor's newest before the job is added", async () => {
+    test("keeps the request in its monitor's waiting list before the job is added", async () => {
       const secretKey: string = ObjectID.generate().toString();
-      const receivedAt: Date = new Date("2026-10-05T12:27:30.000Z");
+      const receivedAt: Date = new Date("2026-11-21T09:27:30.000Z");
 
       await TelemetryQueueService.addIncomingRequestIngestJob({
         secretKey,
         requestHeaders: { "content-type": "application/json" },
-        requestBody: { status: "resolved" },
+        requestBody: { status: "resolved", alertActiveID: "48214" },
         requestMethod: "POST",
         receivedViaProbeId: "probe-1",
         receivedAt: receivedAt,
       });
 
-      expect(getStoreLatestMock()).toHaveBeenCalledTimes(1);
+      expect(getPushMock()).toHaveBeenCalledTimes(1);
       expect(getAddJobMock()).toHaveBeenCalledTimes(1);
 
       /*
-       * Stored first: a worker can pick the job up as soon as it is added,
+       * Kept first: a worker can pick the job up as soon as it is added,
        * and the request it will evaluate has to be there by then.
        */
-      expect(getStoreLatestMock().mock.invocationCallOrder[0]).toBeLessThan(
+      expect(getPushMock().mock.invocationCallOrder[0]).toBeLessThan(
         getAddJobMock().mock.invocationCallOrder[0]!,
       );
 
-      const storeInput: {
+      const pushInput: {
         secretKey: string;
-        payloadId: string;
+        requestId: string;
         payload: IncomingRequestIngestJobData;
-      } = getStoreLatestMock().mock.calls[0]![0];
+      } = getPushMock().mock.calls[0]![0];
 
-      expect(storeInput.secretKey).toBe(secretKey);
-      expect(ObjectID.isValidUUID(storeInput.payloadId)).toBe(true);
-      expect(storeInput.payload).toEqual({
+      expect(pushInput.secretKey).toBe(secretKey);
+      expect(ObjectID.isValidUUID(pushInput.requestId)).toBe(true);
+      // The request as a job of its own would carry it, and nothing more.
+      expect(pushInput.payload).toEqual({
         secretKey,
         requestHeaders: { "content-type": "application/json" },
-        requestBody: { status: "resolved" },
+        requestBody: { status: "resolved", alertActiveID: "48214" },
         requestMethod: "POST",
         ingestionTimestamp: receivedAt,
         receivedViaProbeId: "probe-1",
-        coalescedPayloadId: storeInput.payloadId,
       });
-    });
-
-    test("marks the job with the stored request's id", async () => {
-      await TelemetryQueueService.addIncomingRequestIngestJob({
-        secretKey: ObjectID.generate().toString(),
-        requestHeaders: {},
-        requestBody: {},
-        requestMethod: "POST",
-      });
-
-      const payloadId: string = (
-        getStoreLatestMock().mock.calls[0]![0] as { payloadId: string }
-      ).payloadId;
-
       expect(
-        getEnqueuedJobData().incomingRequestIngest?.coalescedPayloadId,
-      ).toBe(payloadId);
+        Object.prototype.hasOwnProperty.call(
+          pushInput.payload,
+          "coalescedPayloadId",
+        ),
+      ).toBe(false);
     });
 
-    /*
-     * A worker that predates the store (API and worker pods roll separately)
-     * evaluates the job's own copy, as it always has.
-     */
-    test("still carries the whole request on the job", async () => {
+    test("queues the monitor's job, which names its list by the key's hash and carries no request", async () => {
       const secretKey: string = ObjectID.generate().toString();
+      const secretKeyHash: string = createHash("sha256")
+        .update(secretKey)
+        .digest("hex");
 
       await TelemetryQueueService.addIncomingRequestIngestJob({
         secretKey,
         requestHeaders: { "x-test": "1" },
-        requestBody: "plain text",
-        requestMethod: "GET",
+        requestBody: { hello: "world" },
+        requestMethod: "POST",
       });
 
-      const jobRequest: IncomingRequestIngestJobData =
-        getEnqueuedJobData().incomingRequestIngest!;
+      expect(getAddJobMock().mock.calls[0]![0]).toBe("Telemetry");
+      expect(getAddJobMock().mock.calls[0]![2]).toBe("ProcessTelemetry");
 
-      expect(jobRequest.secretKey).toBe(secretKey);
-      expect(jobRequest.requestHeaders).toEqual({ "x-test": "1" });
-      expect(jobRequest.requestBody).toBe("plain text");
-      expect(jobRequest.requestMethod).toBe("GET");
-      expect(jobRequest).toEqual(
-        (
-          getStoreLatestMock().mock.calls[0]![0] as {
-            payload: IncomingRequestIngestJobData;
-          }
-        ).payload,
-      );
+      const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+
+      expect(jobData.type).toBe(TelemetryType.IncomingRequestPending);
+      expect(jobData.incomingRequestPending).toEqual({
+        secretKeyHash: secretKeyHash,
+      });
+      expect(jobData.incomingRequestIngest).toBeUndefined();
+
+      const options: JSONObject = getEnqueuedJobOptions();
+
+      // Unique job id => existence check skipped.
+      expect(options["skipExistenceCheck"]).toBe(true);
+      /*
+       * One job at a time per monitor: one running, and one BullMQ keeps
+       * to run after it.
+       */
+      expect(options["deduplication"]).toEqual({
+        id: `incoming-request-pending-${secretKeyHash}`,
+        keepLastIfActive: true,
+      });
+      expect(options["delayInMs"]).toBeUndefined();
+
+      // The monitor's credential is in neither id nor the job.
+      expect(getEnqueuedJobId()).not.toContain(secretKey);
+      expect(JSON.stringify(options)).not.toContain(secretKey);
+      expect(JSON.stringify(jobData)).not.toContain(secretKey);
     });
 
-    test("gives every request its own id, while the monitor keeps one coalescing group", async () => {
+    test("every request gets an id of its own, while the monitor keeps one job and one list", async () => {
+      const frozenUnixNano: number = 1234567890123456;
+      jest
+        .spyOn(OneUptimeDate, "getCurrentDateAsUnixNano")
+        .mockReturnValue(frozenUnixNano);
+
       const secretKey: string = ObjectID.generate().toString();
 
       for (let i: number = 0; i < 3; i++) {
@@ -573,38 +470,117 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
         });
       }
 
-      const payloadIds: Array<string> = getStoreLatestMock().mock.calls.map(
+      const requestIds: Array<string> = getPushMock().mock.calls.map(
         (call: Array<unknown>) => {
-          return (call[0] as { payloadId: string }).payloadId;
+          return (call[0] as { requestId: string }).requestId;
         },
       );
 
-      expect(new Set(payloadIds).size).toBe(3);
+      expect(new Set(requestIds).size).toBe(3);
 
-      for (let i: number = 0; i < 3; i++) {
-        expect(
-          (getStoreLatestMock().mock.calls[i]![0] as { secretKey: string })
-            .secretKey,
-        ).toBe(secretKey);
-        expect(
-          getEnqueuedJobData(i).incomingRequestIngest?.coalescedPayloadId,
-        ).toBe(payloadIds[i]);
-        expect(getEnqueuedJobOptions(i)["deduplication"]).toEqual({
-          id: `incoming-request-${secretKey}`,
-          keepLastIfActive: true,
-        });
-      }
+      // Distinct job ids (random suffix) even with the clock pinned...
+      expect(
+        new Set([getEnqueuedJobId(0), getEnqueuedJobId(1), getEnqueuedJobId(2)])
+          .size,
+      ).toBe(3);
+
+      // ...but one deduplication id, so BullMQ keeps one job per monitor.
+      const deduplicationIds: Array<unknown> = [0, 1, 2].map(
+        (index: number) => {
+          return (getEnqueuedJobOptions(index)["deduplication"] as JSONObject)[
+            "id"
+          ];
+        },
+      );
+
+      expect(new Set(deduplicationIds).size).toBe(1);
+    });
+
+    test("two monitors have two jobs and two lists", async () => {
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey: ObjectID.generate().toString(),
+        requestHeaders: {},
+        requestBody: {},
+        requestMethod: "POST",
+      });
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey: ObjectID.generate().toString(),
+        requestHeaders: {},
+        requestBody: {},
+        requestMethod: "POST",
+      });
+
+      expect(
+        (getEnqueuedJobOptions(0)["deduplication"] as JSONObject)["id"],
+      ).not.toBe(
+        (getEnqueuedJobOptions(1)["deduplication"] as JSONObject)["id"],
+      );
     });
 
     /*
-     * A job whose request is not stored would evaluate whatever older
-     * request the store holds, or nothing. Better to fail the enqueue, as a
-     * failed queue add already does.
+     * The worker records the heartbeat at this time, not at the time the
+     * queue gets around to the request - under a backlog those are minutes
+     * apart, and the heartbeat cron judges "received in the last N minutes"
+     * from it.
      */
-    test("does not queue a request it could not store", async () => {
-      getStoreLatestMock().mockRejectedValueOnce(
+    test("keeps the endpoint's arrival time as the request's ingestion timestamp", async () => {
+      const receivedAt: Date = new Date("2026-10-05T12:19:00.000Z");
+
+      jest
+        .spyOn(OneUptimeDate, "getCurrentDate")
+        .mockReturnValue(new Date("2026-10-05T12:19:00.250Z"));
+
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey: ObjectID.generate().toString(),
+        requestHeaders: {},
+        requestBody: {},
+        requestMethod: "POST",
+        receivedAt: receivedAt,
+      });
+
+      const kept: IncomingRequestIngestJobData = (
+        getPushMock().mock.calls[0]![0] as {
+          payload: IncomingRequestIngestJobData;
+        }
+      ).payload;
+
+      expect(new Date(kept.ingestionTimestamp).getTime()).toBe(
+        receivedAt.getTime(),
+      );
+    });
+
+    test("without an arrival time the request is stamped with the enqueue time", async () => {
+      const enqueuedAt: Date = new Date("2026-10-05T12:19:00.250Z");
+
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(enqueuedAt);
+
+      await TelemetryQueueService.addIncomingRequestIngestJob({
+        secretKey: ObjectID.generate().toString(),
+        requestHeaders: {},
+        requestBody: {},
+        requestMethod: "POST",
+      });
+
+      const kept: IncomingRequestIngestJobData = (
+        getPushMock().mock.calls[0]![0] as {
+          payload: IncomingRequestIngestJobData;
+        }
+      ).payload;
+
+      expect(new Date(kept.ingestionTimestamp).getTime()).toBe(
+        enqueuedAt.getTime(),
+      );
+    });
+
+    /*
+     * A job for a request that is not kept would evaluate nothing of it.
+     * The enqueue fails instead, and the endpoint answers 503 for the
+     * sender to send it again.
+     */
+    test("does not queue a job for a request it could not keep, and says so", async () => {
+      getPushMock().mockRejectedValueOnce(
         new Error(
-          "Redis not connected; cannot reach the incoming request store",
+          "Redis is not connected, so waiting incoming requests cannot be kept or read.",
         ),
       );
 
@@ -615,9 +591,22 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
           requestBody: {},
           requestMethod: "POST",
         }),
-      ).rejects.toThrow("Redis not connected");
+      ).rejects.toThrow("Redis is not connected");
 
       expect(getAddJobMock()).not.toHaveBeenCalled();
+    });
+
+    test("a job that cannot be queued fails the enqueue too", async () => {
+      getAddJobMock().mockRejectedValueOnce(new Error("Queue unavailable"));
+
+      await expect(
+        TelemetryQueueService.addIncomingRequestIngestJob({
+          secretKey: ObjectID.generate().toString(),
+          requestHeaders: {},
+          requestBody: {},
+          requestMethod: "POST",
+        }),
+      ).rejects.toThrow("Queue unavailable");
     });
   });
 
@@ -634,32 +623,81 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
       mockCoalesceEnabled = true;
     });
 
-    test("queues each request as its own job, unmarked and not stored", async () => {
+    test("queues each request as its own job, carrying it, and keeps nothing", async () => {
       const secretKey: string = ObjectID.generate().toString();
+      const receivedAt: Date = new Date("2026-10-05T12:19:00.000Z");
 
       await TelemetryQueueService.addIncomingRequestIngestJob({
         secretKey,
         requestHeaders: { "x-test": "1" },
         requestBody: { status: "firing" },
         requestMethod: "POST",
+        receivedAt: receivedAt,
       });
 
-      expect(getStoreLatestMock()).not.toHaveBeenCalled();
+      expect(getPushMock()).not.toHaveBeenCalled();
       expect(getAddJobMock()).toHaveBeenCalledTimes(1);
 
-      const jobRequest: IncomingRequestIngestJobData =
-        getEnqueuedJobData().incomingRequestIngest!;
+      const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+      expect(jobData.type).toBe(TelemetryType.IncomingRequestIngest);
 
-      expect(jobRequest.coalescedPayloadId).toBeUndefined();
+      const jobRequest: IncomingRequestIngestJobData =
+        jobData.incomingRequestIngest!;
+
+      expect(jobRequest.secretKey).toBe(secretKey);
+      expect(jobRequest.requestBody).toEqual({ status: "firing" });
+      expect(new Date(jobRequest.ingestionTimestamp).getTime()).toBe(
+        receivedAt.getTime(),
+      );
       expect(
         Object.prototype.hasOwnProperty.call(jobRequest, "coalescedPayloadId"),
       ).toBe(false);
-      expect(jobRequest.requestBody).toEqual({ status: "firing" });
 
       const options: JSONObject = getEnqueuedJobOptions();
       expect(options["skipExistenceCheck"]).toBe(true);
       expect(options["deduplication"]).toBeUndefined();
     });
+  });
+});
+
+describe("TelemetryQueueService.addIncomingRequestPendingJob", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("a job whose last attempt failed queues the next one later, for the same monitor", async () => {
+    await TelemetryQueueService.addIncomingRequestPendingJob({
+      secretKeyHash: "abc123",
+      delayInMs: 60000,
+    });
+
+    const options: JSONObject = getEnqueuedJobOptions();
+
+    expect(options["delayInMs"]).toBe(60000);
+    expect(options["deduplication"]).toEqual({
+      id: "incoming-request-pending-abc123",
+      keepLastIfActive: true,
+    });
+    expect(getEnqueuedJobData().incomingRequestPending).toEqual({
+      secretKeyHash: "abc123",
+    });
+  });
+
+  /*
+   * During an upgrade a monitor may have a job of each kind queued; the
+   * earlier release's deduplication id must not swallow this one's adds.
+   */
+  test("is not deduplicated with the jobs an earlier release queued", () => {
+    const secretKey: string = ObjectID.generate().toString();
+    const secretKeyHash: string = createHash("sha256")
+      .update(secretKey)
+      .digest("hex");
+
+    expect(
+      TelemetryQueueService.getIncomingRequestPendingDeduplicationId(
+        secretKeyHash,
+      ),
+    ).not.toBe(`incoming-request-${secretKey}`);
   });
 });
 

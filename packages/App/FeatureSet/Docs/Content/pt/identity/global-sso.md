@@ -27,7 +27,7 @@ Para o provedor próprio de um único projeto, veja [SSO](/docs/identity/sso).
 :::steps
 ### Abrir a lista de provedores
 
-Faça login como administrador mestre e abra o Admin Dashboard com **Configurações de admin** no seu menu de usuário. Depois vá para **Configurações** > **Login único**. A página lista os provedores SAML da instância, depois os provedores OpenID Connect, e termina com o cartão **Exigir SSO**.
+Faça login como administrador mestre e escolha **Painel do administrador** no seu menu de usuário. Depois vá para **Configurações** > **Login único**. A página lista os provedores SAML da instância, depois os provedores OpenID Connect, e termina com o cartão **Exigir SSO**.
 
 ### Criar o provedor
 
@@ -103,6 +103,12 @@ Registre no seu provedor o URI de redirecionamento após sair que o cartão **UR
 :::
 
 Onde o Okta, o Microsoft Entra ID, o Auth0 e o Keycloak guardam essas configurações está na página [SSO](/docs/identity/sso).
+
+## Entrar novamente para confirmar que é você
+
+Quem entra apenas por um provedor global confirma que é ele com **Entrar novamente** antes de alterar como entra ou excluir sua conta: o OneUptime o devolve ao provedor com `ForceAuthn="true"` para SAML, ou `prompt=login` e `max_age=0` para OpenID Connect (só `prompt=login` para o Microsoft Entra ID), e só conta quando o provedor diz, em `AuthnInstant` ou `auth_time`, que ele entrou naquele momento ou depois. Adicionar, alterar ou excluir um provedor global pede primeiro que você [confirme que é você](/docs/introduction/your-account#confirmar-que-é-você).
+
+O que configurar no Okta, no Microsoft Entra ID, no Keycloak e no Google Workspace está na página [SSO](/docs/identity/sso#entrar-novamente-para-confirmar-que-é-você).
 
 ## Impor o SSO
 
@@ -187,4 +193,5 @@ A instância inteira exige SSO, e este foi um login com senha, chave de acesso, 
 - [SSO](/docs/identity/sso): Configurar o provedor SAML ou OIDC próprio de um projeto.
 - [SCIM](/docs/identity/scim): Deixe seu provedor de identidade adicionar e remover pessoas automaticamente.
 - [Usuários, equipes e permissões](/docs/permissions/index): O que as equipes em que os recém-chegados entram permitem que eles façam.
+- [Ajuda e suporte](/docs/self-hosted/help-and-support): Diga às pessoas que precisam de um convite a quem pedi-lo.
 :::

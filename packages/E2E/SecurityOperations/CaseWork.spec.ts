@@ -85,6 +85,8 @@ interface OpenOptions {
   role?: "viewer";
   targets?: "on";
   lang?: "de" | "fa" | undefined;
+  // A test destination enforces the project's blocklist (#10342).
+  blocklist?: "test";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -166,6 +168,9 @@ async function open(
   }
   if (options.lang) {
     url.searchParams.set("lang", options.lang);
+  }
+  if (options.blocklist) {
+    url.searchParams.set("blocklist", options.blocklist);
   }
   await page.goto(`${url.pathname}${url.search}`);
   // The first load parses a large bundle.
@@ -1555,12 +1560,20 @@ test.describe("why the case was opened, and what to do about it", () => {
       }),
     ).toEqual(["Confirm", "Contain", "Fix", "Close"]);
 
-    // Blocking the address is done outside OneUptime.
+    /*
+     * Nothing enforces the project's blocklist: the step says what would let
+     * OneUptime block the address, never that it is done outside OneUptime.
+     */
     const block: Locator = planStep(page, "contain:block-ip:203.0.113.47");
     await expect(block).toContainText(BLOCK_STEP);
     await expect(
+      block.getByTestId("security-case-response-step-block-help"),
+    ).toContainText(
+      "Block it from here: connect Cloudflare, AWS WAF or your firewall.",
+    );
+    await expect(
       block.getByTestId("security-case-response-step-by-hand"),
-    ).toContainText("Outside OneUptime");
+    ).toHaveCount(0);
 
     // The accounts wait on the held run of Contain Compromised Okta Users.
     const account: Locator = planStep(
@@ -1605,6 +1618,76 @@ test.describe("why the case was opened, and what to do about it", () => {
       "true",
       { timeout: 30000 },
     );
+  });
+
+  test("with a destination enforcing the blocklist, Block for 24 Hours blocks the address there and the step is done; Lift lifts it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { blocklist: "test" });
+    const block: Locator = planStep(page, "contain:block-ip:203.0.113.47");
+
+    // The step names where the block would hold, with its one click.
+    await expect(block).toContainText(
+      "Block 203.0.113.47 at Test destination.",
+      { timeout: 30000 },
+    );
+    await expect(block).toHaveAttribute("data-done", "false");
+    await block.getByTestId("security-case-response-step-block").click();
+
+    // Through the playbook engine's one-step run, for a day.
+    await expect
+      .poll(async (): Promise<Array<unknown>> => {
+        return (await fixture(page)).apiRequests
+          .filter((request: { url: string }): boolean => {
+            return request.url.endsWith("/security-playbook-run/block-address");
+          })
+          .map((request: { body: unknown }): unknown => {
+            return request.body;
+          });
+      })
+      .toEqual([
+        {
+          securityCaseId: caseIdOf(142),
+          value: "203.0.113.47",
+          blockAction: "Block",
+          duration: "OneDay",
+        },
+      ]);
+
+    // Held at the destination: where, by whom, until when - and done.
+    const line: Locator = block.getByTestId(
+      "security-case-response-step-block-line",
+    );
+    await expect(line).toContainText("Blocked at Test destination");
+    await expect(line).toContainText("by Maya Chen");
+    await expect(line).toHaveAttribute("data-enforced", "true");
+    await expect(block).toHaveAttribute("data-done", "true");
+    await expect(
+      block.getByTestId("security-case-response-step-block"),
+    ).toHaveCount(0);
+
+    // Lift lifts it as the Blocklist does, and Block for 24 Hours is back.
+    await line.getByTestId("security-case-response-step-lift").click();
+    await expect(block).toHaveAttribute("data-done", "false");
+    await expect(
+      block.getByTestId("security-case-response-step-block"),
+    ).toBeVisible();
+    expect(
+      (await fixture(page)).updates.filter(
+        (update: { modelName: string }): boolean => {
+          return update.modelName === "SecurityBlock";
+        },
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        data: {
+          state: "Lifted",
+          liftReason: "Lifted from the case's Response Plan.",
+        },
+      }),
+    ]);
   });
 
   test("both cards fit at 1280, 1024, 768 and 390, in both themes, and read in German and right to left in Persian", async ({

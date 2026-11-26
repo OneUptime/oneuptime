@@ -52,12 +52,16 @@ import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule"
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
+import EvaluationEventSeries from "./EvaluationEventSeries";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
-import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
+import {
+  CriteriaIncident,
+  IncidentMemberRoleAssignment,
+} from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil, {
   MonitorRecordResources,
@@ -77,6 +81,7 @@ import CreatedNotificationHold, {
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
 import MonitorOpenRecords from "./MonitorOpenRecords";
+import { EventLoopBudget } from "../EventLoop";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -234,6 +239,7 @@ export default class MonitorIncident {
 
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
+          ...EvaluationEventSeries.of(openIncident.seriesFingerprint),
           ...EvaluationEventText.from({
             title: translatableSentence("Incident resolved: {{title}}", {
               title: String(openIncident.title || openIncident.id?.toString()),
@@ -284,11 +290,22 @@ export default class MonitorIncident {
    * grouped criteria opens for the whole monitor, for a request that names
    * no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria),
    * once a request it matches reports its items without a value recovered.
+   *
+   * `fingerprintsByCriteriaId`, when given, holds each criteria to its own
+   * recoveries: an incident resolves only when the criteria that opened it
+   * reads its value recovered (an Incoming Request monitor's recoveries,
+   * #10585).
    */
   @CaptureSpan()
   public static async resolveSeriesIncidentsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
+    /*
+     * The values each criteria reads recovered, by its id. Without it, a
+     * value in `fingerprints` resolves an incident of any criteria - a Logs
+     * monitor's groups, which a log resolves.
+     */
+    fingerprintsByCriteriaId?: Dictionary<Array<string>> | undefined;
     rootCause: string;
     // What the evaluation summary says of each incident resolved here.
     resolvedMessage?: string | undefined;
@@ -303,6 +320,14 @@ export default class MonitorIncident {
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /*
+     * The monitor log names each open incident a recovery was reported for
+     * but left open, because its criteria's incident has Auto Resolve
+     * Incident off (an Incoming Request monitor's recoveries, #10550). The
+     * grouping settings ask for the resolve and the switch withholds it:
+     * without this, the log said only that the request opened nothing new.
+     */
+    noteLeftOpen?: boolean | undefined;
   }): Promise<void> {
     const fingerprintSet: Set<string> = new Set<string>(
       input.fingerprints || [],
@@ -329,6 +354,7 @@ export default class MonitorIncident {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         createdIncidentTemplateId: true,
         projectId: true,
@@ -346,7 +372,14 @@ export default class MonitorIncident {
         openIncident.seriesFingerprint || undefined;
 
       const isRecoveredValue: boolean = Boolean(
-        fingerprint && fingerprintSet.has(fingerprint),
+        fingerprint &&
+          (input.fingerprintsByCriteriaId
+            ? (
+                input.fingerprintsByCriteriaId[
+                  openIncident.createdCriteriaId?.toString() || ""
+                ] || []
+              ).includes(fingerprint)
+            : fingerprintSet.has(fingerprint)),
       );
       const isRecoveredWholeMonitor: boolean =
         !fingerprint &&
@@ -366,6 +399,31 @@ export default class MonitorIncident {
             input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         })
       ) {
+        if (input.noteLeftOpen) {
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            ...EvaluationEventSeries.of(fingerprint),
+            ...EvaluationEventText.from({
+              title: translatableSentence("Incident left open: {{title}}", {
+                title: String(
+                  openIncident.title || openIncident.id?.toString(),
+                ),
+              }),
+              message: translatableSentence(
+                "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.",
+              ),
+            }),
+            relatedCriteriaId:
+              openIncident.createdCriteriaId?.toString() || undefined,
+            relatedIncidentId: openIncident.id?.toString(),
+            relatedIncidentNumber: openIncident.incidentNumber,
+            relatedIncidentNumberWithPrefix:
+              openIncident.incidentNumberWithPrefix,
+            relatedIncidentCreatedAt: openIncident.createdAt,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         continue;
       }
 
@@ -387,6 +445,7 @@ export default class MonitorIncident {
 
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
+        ...EvaluationEventSeries.of(fingerprint),
         ...EvaluationEventText.from({
           title: translatableSentence("Incident resolved: {{title}}", {
             title: String(openIncident.title || openIncident.id?.toString()),
@@ -708,6 +767,26 @@ export default class MonitorIncident {
       openIncidentsBySeries.set(seriesKey, ofSeries);
     }
 
+    /*
+     * The resources of every series this pass will open an incident for,
+     * read together before it: one read per resource kind, where each
+     * series used to read its own (#10315), and once for the incidents and
+     * the alerts of the evaluation (MonitorRecordResources). A series the
+     * pass skips after all costs nothing more, and one it opens that this
+     * did not foresee reads its own, as before.
+     */
+    if ((input.criteriaInstance.data?.incidents || []).length > 0) {
+      await recordResources.seriesResources.resolve(
+        await this.getLabelsOfSeriesToOpen({
+          seriesToProcess: seriesToProcess,
+          templates: input.criteriaInstance.data?.incidents || [],
+          openIncidentsBySeries: openIncidentsBySeries,
+          suppressedSeriesFingerprints: input.suppressedSeriesFingerprints,
+          dependencySuppression: input.dependencySuppression,
+        }),
+      );
+    }
+
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
@@ -745,6 +824,7 @@ export default class MonitorIncident {
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Incident suppressed by scheduled maintenance",
@@ -771,6 +851,7 @@ export default class MonitorIncident {
           ) {
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Incident suppressed by monitor dependency",
@@ -853,6 +934,7 @@ export default class MonitorIncident {
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Incident already active: {{title}}",
@@ -992,6 +1074,7 @@ export default class MonitorIncident {
 
               input.evaluationSummary?.events.push({
                 type: "incident-skipped",
+                ...EvaluationEventSeries.of(seriesFingerprint),
                 ...EvaluationEventText.from({
                   title: translatableSentence("Incident creation skipped"),
                   message: translatableSentence(
@@ -1095,11 +1178,10 @@ export default class MonitorIncident {
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
             incident.seriesLabels = toStorableJson(seriesLabels);
 
-            await SeriesResourceLinker.linkSeriesResourcesToModel({
+            // Read with the pass's other series, above.
+            await recordResources.seriesResources.linkSeriesResourcesToModel({
               model: incident,
               seriesLabels,
-              projectId: input.monitor.projectId!,
-              monitorType: input.monitor.monitorType,
             });
           }
 
@@ -1398,6 +1480,7 @@ export default class MonitorIncident {
 
           input.evaluationSummary?.events.push({
             type: "incident-created",
+            ...EvaluationEventSeries.of(seriesFingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Incident created: {{title}}", {
                 title: String(createdIncident.title || criteriaIncident.title),
@@ -1442,6 +1525,7 @@ export default class MonitorIncident {
 
           input.evaluationSummary?.events.push({
             type: "incident-skipped",
+            ...EvaluationEventSeries.of(seriesMatch?.fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Incident creation failed"),
               message: seriesMatch?.fingerprint
@@ -1462,6 +1546,68 @@ export default class MonitorIncident {
         }
       }
     }
+  }
+
+  /*
+   * The labels of each series the create pass will open an incident for:
+   * one with labels, not under a maintenance window or a parent's
+   * suppression, and with a template of this criteria that has no incident
+   * open for it (as the pass looks it up). The pass decides again, series
+   * by series; this only says whose resources to read before it (#10315).
+   * Hands the event loop back between series, as the pass does.
+   */
+  private static async getLabelsOfSeriesToOpen(input: {
+    seriesToProcess: Array<PerSeriesCriteriaMatch | undefined>;
+    templates: Array<CriteriaIncident>;
+    openIncidentsBySeries: Map<string | undefined, Array<Incident>>;
+    suppressedSeriesFingerprints?: Set<string> | undefined;
+    dependencySuppression?: DependencySuppressionResult | undefined;
+  }): Promise<Array<JSONObject>> {
+    const budget: EventLoopBudget = new EventLoopBudget();
+    const labelsToOpen: Array<JSONObject> = [];
+
+    for (const seriesMatch of input.seriesToProcess) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+
+      if (
+        !seriesMatch ||
+        !seriesLabels ||
+        Object.keys(seriesLabels).length === 0 ||
+        (seriesMatch.fingerprint &&
+          input.suppressedSeriesFingerprints?.has(seriesMatch.fingerprint)) ||
+        MonitorDependencyRule.isSeriesSuppressed({
+          suppression: input.dependencySuppression,
+          labels: seriesLabels,
+        })
+      ) {
+        continue;
+      }
+
+      const openForSeries: Array<Incident> =
+        input.openIncidentsBySeries.get(seriesMatch.fingerprint) || [];
+
+      const opensOne: boolean = input.templates.some(
+        (template: CriteriaIncident): boolean => {
+          return !openForSeries.some((incident: Incident): boolean => {
+            return (
+              !incident.createdIncidentTemplateId ||
+              incident.createdIncidentTemplateId ===
+                (template.id?.toString() || undefined)
+            );
+          });
+        },
+      );
+
+      if (opensOne) {
+        labelsToOpen.push(seriesLabels);
+      }
+    }
+
+    return labelsToOpen;
   }
 
   /*

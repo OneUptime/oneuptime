@@ -32,7 +32,7 @@ flowchart TB
 
 - **In OneUptime Cloud, der Enterprise-Tarif.** In anderen Tarifen zeigen die Seiten des Audit-Protokolls, was die Funktion tut und wie Sie sie bekommen.
 - **Beim Selbsthosten, die Enterprise Edition**, mit einer Lizenz, die Audit-Protokolle enthält. Siehe [Enterprise Edition](/docs/self-hosted/enterprise).
-- **Eine Rolle, die das Audit-Protokoll lesen darf.** Projektinhaber, Projektadministrator, Einstellungs-Administrator oder die Berechtigung **Read Audit Log**. Das Einschalten der Audit-Protokollierung und das Ändern ihrer Einstellungen erfordern einen Projektinhaber, einen Projektadministrator oder die Berechtigung, das Projekt zu bearbeiten.
+- **Eine Rolle, die das Audit-Protokoll lesen darf.** Projektinhaber, Projektadministrator, Einstellungs-Administrator oder die Berechtigung **Read Audit Log**. Ein Eintrag zeigt die Werte eines Feldes nur, wenn Sie dieses Feld auf der Ressource selbst lesen dürfen, und den Namen einer Ressource nur, wenn Sie die Ressource lesen dürfen. Das Einschalten der Audit-Protokollierung und das Ändern ihrer Einstellungen erfordern einen Projektinhaber, einen Projektadministrator oder die Berechtigung, das Projekt zu bearbeiten.
 
 ## Audit-Protokollierung einschalten
 
@@ -72,9 +72,13 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 
 Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail**, **Arbeitsablauf ausgeführt als**, **Berechtigungen des Arbeitsablaufs gegeben von** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
+Ein Feld, das auf eine andere Ressource verweist, etwa der Status eines Monitors, zeigt den heutigen Namen dieser Ressource mit ihrer ID darunter. Eine Ressource, die Sie nicht lesen dürfen, zeigt **Name ausgeblendet**, und eine inzwischen gelöschte zeigt **Gelöscht**.
+
 Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook, die Telefonnummer einer Richtlinie für eingehende Anrufe nach der Nummer und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
 
 Monitore, Vorfälle, Warnungen, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
+
+Auch die Regeln eines Produkts haben eine eigene Seite, am Ende des Menüabschnitts, der sie auflistet: **Audit-Protokolle** in einem Abschnitt **Regeln**, etwa **Vorfälle → Regeln → Audit-Protokolle**, und **Audit-Protokolle der Regeln** in einem Abschnitt **Einstellungen**, der Eigentümer- und Beschriftungsregeln enthält, etwa **Hosts → Einstellungen → Audit-Protokolle der Regeln**. Sie listet jede Regel dieses Produkts, auch gelöschte. Runbook-Regeln sind eine einzige Art von Regel für Warnungen, Vorfälle und Wartungsereignisse, daher steht ihr Verlauf unter **Runbooks → Einstellungen → Audit-Protokolle der Regeln**.
 
 ## Was erfasst wird
 

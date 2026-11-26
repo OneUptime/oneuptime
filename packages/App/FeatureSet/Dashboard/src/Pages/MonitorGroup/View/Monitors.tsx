@@ -17,7 +17,6 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -31,15 +30,15 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import MonitorGroupMonitorsCopy, {
   ADD_MONITORS_QUERY_PARAM,
 } from "../../../Components/MonitorGroup/MonitorGroupMonitorsCopy";
 import {
-  getMonitorsToOffer,
+  getMonitorsToOfferQuery,
   getNothingToAddMessage,
   MonitorGroupAddResult,
-  MonitorToOffer,
+  MonitorsToOfferCounts,
   getAddMonitorsErrorMessage,
 } from "../../../Components/MonitorGroup/MonitorGroupMembership";
 import Route from "Common/Types/API/Route";
@@ -47,8 +46,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 
 /*
- * Where Add Monitors stands with the project's monitors: still reading them,
- * could not read them (it says why and offers Try again), or read.
+ * Where Add Monitors stands with the project's monitors: still counting
+ * them, could not count them (it says why and offers Try again), or counted.
  */
 type MonitorsToOfferState = "loading" | "failed" | "loaded";
 
@@ -86,9 +85,12 @@ const MonitorGroupMonitors: FunctionComponent<
       PermissionGate.check(new MonitorGroupResource(), ModelAction.Create)
         .isAllowed,
   );
-  const [projectMonitors, setProjectMonitors] = useState<Array<Monitor>>([]);
+  // How many the dialog can offer, counted as it opens.
+  const [offerCounts, setOfferCounts] = useState<MonitorsToOfferCounts | null>(
+    null,
+  );
   const [offerState, setOfferState] = useState<MonitorsToOfferState>("loading");
-  // Why the project's monitors could not be read.
+  // Why the project's monitors could not be counted.
   const [offerError, setOfferError] = useState<string>("");
   const [isAddLoading, setIsAddLoading] = useState<boolean>(false);
   const [addError, setAddError] = useState<string>("");
@@ -145,34 +147,35 @@ const MonitorGroupMonitors: FunctionComponent<
   };
 
   /*
-   * The project's live monitors, for Add Monitors to offer the ones the
-   * group does not hold. Read when the dialog opens, so a monitor created
-   * since the page opened is there.
+   * How many monitors Add Monitors can offer, counted by the server when the
+   * dialog opens - so a monitor created since the page opened counts - to
+   * say why there is nothing to pick in place of an empty picker. The
+   * monitors themselves are never read here: the picker searches the server
+   * for them (#10399).
    */
-  const fetchProjectMonitors: PromiseVoidFunction = async (): Promise<void> => {
+  const countMonitorsToOffer: PromiseVoidFunction = async (): Promise<void> => {
     setOfferState("loading");
     setOfferError("");
     setAddError("");
 
     try {
-      const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+      const toOffer: number = await ModelAPI.count<Monitor>({
         modelType: Monitor,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          isArchived: false,
-        },
-        select: {
-          _id: true,
-          name: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        sort: {
-          name: SortOrder.Ascending,
-        },
+        query: getMonitorsToOfferQuery({
+          monitorIdsInGroup: monitorIds || [],
+        }),
       });
 
-      setProjectMonitors(result.data);
+      // None to offer: whether the project has any, to say which.
+      const inProject: number | undefined =
+        toOffer > 0
+          ? undefined
+          : await ModelAPI.count<Monitor>({
+              modelType: Monitor,
+              query: { isArchived: false },
+            });
+
+      setOfferCounts({ inProject: inProject, toOffer: toOffer });
       setOfferState("loaded");
     } catch (err) {
       setOfferError(API.getFriendlyMessage(err));
@@ -186,21 +189,29 @@ const MonitorGroupMonitors: FunctionComponent<
     });
   }, []);
 
+  /*
+   * Counted as the dialog opens, once the group's members are read: with
+   * the page, when the Overview sent the reader here to add monitors, the
+   * dialog opens before they are.
+   */
+  const areMembersRead: boolean = monitorIds !== null;
+
   useEffect(() => {
-    if (showAddModal) {
-      fetchProjectMonitors().catch((error: Error) => {
+    if (showAddModal && areMembersRead) {
+      countMonitorsToOffer().catch((error: Error) => {
         setOfferError(API.getFriendlyMessage(error));
         setOfferState("failed");
       });
     }
-  }, [showAddModal]);
+  }, [showAddModal, areMembersRead]);
 
   const closeAddModal: () => void = (): void => {
     setShowAddModal(false);
     setAddError("");
     setOfferError("");
-    // Read afresh when it opens again, so it never opens on an old answer.
+    // Counted afresh when it opens again, so it never opens on an old answer.
     setOfferState("loading");
+    setOfferCounts(null);
     setPickedMonitorIds([]);
     // So a reload does not open the dialog again.
     Navigation.setQueryString({ [ADD_MONITORS_QUERY_PARAM]: null });
@@ -298,10 +309,16 @@ const MonitorGroupMonitors: FunctionComponent<
       ModelAction.Create,
     );
 
-  const monitorsToOffer: Array<MonitorToOffer> = getMonitorsToOffer({
-    projectMonitors: projectMonitors,
-    monitorIdsInGroup: monitorIds || [],
-  });
+  /*
+   * What the picker lists, searched on the server: the project's live
+   * monitors the group does not hold. Read again as the group's members
+   * change, so a monitor just added leaves the list.
+   */
+  const monitorsToOfferQuery: Record<string, unknown> = getMonitorsToOfferQuery(
+    {
+      monitorIdsInGroup: monitorIds || [],
+    },
+  );
 
   /*
    * Nothing to pick: the project has no monitor yet, or the group holds
@@ -311,11 +328,11 @@ const MonitorGroupMonitors: FunctionComponent<
    * closes the dialog rather than saying there is nothing left.
    */
   const nothingToAddMessage: string | undefined =
-    offerState === "loaded" && pickedMonitorIds.length === 0 && !isAddLoading
-      ? getNothingToAddMessage({
-          projectMonitors: projectMonitors,
-          monitorsToOffer: monitorsToOffer,
-        })
+    offerState === "loaded" &&
+    offerCounts &&
+    pickedMonitorIds.length === 0 &&
+    !isAddLoading
+      ? getNothingToAddMessage(offerCounts)
       : undefined;
 
   const canCreateMonitor: boolean = PermissionGate.check(
@@ -324,7 +341,7 @@ const MonitorGroupMonitors: FunctionComponent<
   ).isAllowed;
 
   const renderAddModal: () => ReactElement = (): ReactElement => {
-    // The project's monitors could not be read: why, and Try again.
+    // The project's monitors could not be counted: why, and Try again.
     if (offerState === "failed") {
       return (
         <ConfirmModal
@@ -334,7 +351,7 @@ const MonitorGroupMonitors: FunctionComponent<
           submitButtonText="Try again"
           onClose={closeAddModal}
           onSubmit={() => {
-            fetchProjectMonitors().catch((error: Error) => {
+            countMonitorsToOffer().catch((error: Error) => {
               setOfferError(API.getFriendlyMessage(error));
               setOfferState("failed");
             });
@@ -403,7 +420,18 @@ const MonitorGroupMonitors: FunctionComponent<
               },
               title: MonitorGroupMonitorsCopy.monitorsField,
               fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownOptions: monitorsToOffer,
+              /*
+               * Searched on the server as the reader types, 50 names at a
+               * time, within the monitors the group does not hold: every
+               * one of them, however many the project has (#10399).
+               */
+              dropdownModal: {
+                type: Monitor,
+                labelField: "name",
+                valueField: "_id",
+                query: monitorsToOfferQuery,
+                emptyListText: translationKey("No monitors to add yet."),
+              },
               required: true,
               placeholder: MonitorGroupMonitorsCopy.monitorsPlaceholder,
             },

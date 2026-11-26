@@ -386,10 +386,14 @@ A webhook describes only what is in that payload, so OneUptime never resolves an
 1. **Field that signals recovery** and **Value that means recovered** are set, and match the payload. The comparison is exact and case-sensitive — `Resolved` does not match `resolved`.
 2. The criteria's incident has **Auto Resolve Incident** turned on, under **More fields** in the incident form. Without it, matching recovery events are ignored and the incidents stay open. (The same applies to alerts and **Auto Resolve Alert**.) The default offline criteria starts with it on; an incident you add to a criteria yourself starts with it off.
 
+An alert you add to a criteria starts with **Auto Resolve Alert** off as well, so a recovery leaves the alert open until it is on. **Auto-resolve each incident when…** says which of the criteria's incidents and alerts a recovery resolves, and names each one it would leave open, with a button that turns its switch on. The **Monitor Summary** card on the monitor's **Overview** names each incident and alert a recovery left open, and why.
+
+A recovery resolves only the incidents and alerts of the criteria that reads it: the one whose **Field that signals recovery** and **Value that means recovered** match the payload. Another criteria's incidents and alerts for the same value stay open, and those of a criteria that leaves the fields blank are resolved by hand.
+
 **Max incidents per request** caps extraction, not just creation. Keys past the cap are invisible to recovery as well, so in a payload carrying more distinct keys than the cap, an alert reporting `resolved` beyond it will not close its incident.
 
 > [!NOTE]
-> When one monitor receives requests faster than OneUptime evaluates them, it evaluates the newest and skips the ones in between, so a burst of webhooks can leave a firing or a resolved alert unevaluated. On a self-hosted server, setting `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in the OneUptime app's environment evaluates every request on its own.
+> A monitor with a criteria that groups by a payload field evaluates every request it receives, one at a time and in the order they arrived, so a burst of alerts and recoveries opens and resolves each value's incident and alert. Up to 1,000 requests, or 16 MB of them, wait to be evaluated; past that, the oldest waiting are skipped, and the **Monitor Summary** card says how many. It names the limit that was reached, and a self-hosted installation can change both: see [Self-hosted notes](#self-hosted-notes). A monitor without grouping evaluates only the newest of the requests waiting for it.
 
 > [!NOTE]
 > If **Field that signals recovery** contains `[*]` but **Open a separate incident for each…** does not, a request has recovered only when every element of that array says so. With `requestBody.alerts[*].status` and `resolved`, an incident grouped by `requestBody.groupLabels.alertname` resolves once every alert of a request is resolved, and stays open while one still fires.
@@ -517,6 +521,18 @@ Click **Confirm Subscription** in the **Monitor Summary** card on the monitor's 
 :::details The sender gets a 500
 The request says `Content-Type: application/json` but its body is not a JSON object or array. Send valid JSON, or a different content type.
 :::
+
+## Self-hosted notes
+
+A monitor that groups by a payload field keeps each request in Valkey until its turn comes. On a self-hosted installation, three settings bound that. With Docker Compose, set them in `config.env`; with Helm, under `incomingRequests` in the chart's values, which gives the app and worker pods the same ones:
+
+| Setting | Helm value | Default | Range | What it bounds |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` to `100000` | The requests one monitor keeps waiting. Past it, the oldest waiting are skipped. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` to `512` | The megabytes of requests one monitor keeps waiting. Past it, the oldest waiting are skipped. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` to `1000` | The requests one job evaluates before the monitor's job is queued again, behind every job already waiting. |
+
+Raise the first two for senders that burst harder, such as a core switch that goes down and fires thousands of alerts at once, and lower the second for a small Valkey. When requests are skipped, the **Monitor Summary** card says which limit was reached. A value that is not a whole number in its range is not used: the default is, and the app logs a warning that names the setting.
 
 ## Next steps
 

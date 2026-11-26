@@ -34,6 +34,10 @@ import PlaylistDashboardsField, {
   PLAYLIST_DASHBOARDS_FIELD_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistDashboardsField";
 import { PlaylistReadableDashboard } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistDashboards";
+import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import Search from "../../../Types/BaseDatabase/Search";
+import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 
 const OVERVIEW: string = "db000000-0000-4000-8000-000000000001";
 const CLUSTERS: string = "db000000-0000-4000-8000-000000000002";
@@ -68,6 +72,91 @@ async function settle(): Promise<void> {
   });
 }
 
+// The searches and counts the picker asked the server for.
+let serverQueries: Array<Record<string, unknown>> = [];
+
+/*
+ * The project's dashboards the picker's query keeps (#10580), as the server
+ * keeps them: not archived, none the list holds, the name holding what was
+ * typed, by name.
+ */
+function keptBy(
+  dashboards: Array<PlaylistReadableDashboard>,
+  query: Record<string, unknown>,
+): Array<PlaylistReadableDashboard> {
+  const excluded: Array<string> =
+    query["_id"] instanceof IncludesNone
+      ? ((query["_id"] as IncludesNone).values as Array<unknown>).map(
+          (id: unknown): string => {
+            return String(id);
+          },
+        )
+      : [];
+  const search: string =
+    query["name"] instanceof Search
+      ? (query["name"] as Search<string>).toString().toLowerCase()
+      : "";
+
+  return dashboards
+    .filter((dashboard: PlaylistReadableDashboard): boolean => {
+      return (
+        (query["isArchived"] !== false || !dashboard.isArchived) &&
+        !excluded.includes(dashboard.id) &&
+        dashboard.name.toLowerCase().includes(search)
+      );
+    })
+    .sort((a: PlaylistReadableDashboard, b: PlaylistReadableDashboard) => {
+      return a.name.localeCompare(b.name);
+    });
+}
+
+// The server, faked: the picker's search and count read `dashboards`.
+function fakeServer(
+  dashboards: Array<PlaylistReadableDashboard> | Error,
+): void {
+  serverQueries = [];
+
+  jest.spyOn(ModelAPI, "getList").mockImplementation((async (data: {
+    query: Record<string, unknown>;
+    limit: number;
+  }): Promise<ListResult<Dashboard>> => {
+    serverQueries.push(data.query);
+
+    if (dashboards instanceof Error) {
+      throw dashboards;
+    }
+
+    const kept: Array<PlaylistReadableDashboard> = keptBy(
+      dashboards,
+      data.query,
+    );
+
+    return {
+      data: kept.slice(0, data.limit).map((each: PlaylistReadableDashboard) => {
+        const dashboard: Dashboard = new Dashboard();
+        dashboard._id = each.id;
+        dashboard.name = each.name;
+        return dashboard;
+      }),
+      count: kept.length,
+      skip: 0,
+      limit: data.limit,
+    };
+  }) as never);
+
+  jest.spyOn(ModelAPI, "count").mockImplementation((async (data: {
+    query: Record<string, unknown>;
+  }): Promise<number> => {
+    serverQueries.push(data.query);
+
+    if (dashboards instanceof Error) {
+      throw dashboards;
+    }
+
+    return keptBy(dashboards, data.query).length;
+  }) as never);
+}
+
 async function renderField(
   initialValue: unknown,
   options: {
@@ -78,11 +167,24 @@ async function renderField(
   const changes: Array<Array<DashboardPlaylistDashboard>> = [];
   const dashboards: Array<PlaylistReadableDashboard> | Error =
     options.dashboards || PROJECT_DASHBOARDS;
-  const read: () => Promise<Array<PlaylistReadableDashboard>> = () => {
+  // The list's dashboards, read by their ids: those of the project it holds.
+  const read: (
+    listed: ReadonlyArray<DashboardPlaylistDashboard>,
+  ) => Promise<Array<PlaylistReadableDashboard>> = (
+    listed: ReadonlyArray<DashboardPlaylistDashboard>,
+  ) => {
     return dashboards instanceof Error
       ? Promise.reject(dashboards)
-      : Promise.resolve(dashboards);
+      : Promise.resolve(
+          dashboards.filter((dashboard: PlaylistReadableDashboard) => {
+            return listed.some((entry: DashboardPlaylistDashboard) => {
+              return entry.dashboardId === dashboard.id;
+            });
+          }),
+        );
   };
+
+  fakeServer(dashboards);
   const element: (value: unknown) => React.ReactElement = (
     value: unknown,
   ): React.ReactElement => {
@@ -140,6 +242,7 @@ async function pick(rendered: Rendered, name: string): Promise<void> {
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 describe("the list", () => {
@@ -394,7 +497,7 @@ describe("adding a dashboard", () => {
     await renderField(list(OVERVIEW, CLUSTERS, DATABASES));
 
     expect(
-      screen.getByText("Every dashboard is in the list"),
+      screen.getByPlaceholderText("Every dashboard is in the list"),
     ).toBeInTheDocument();
 
     cleanup();
@@ -402,7 +505,7 @@ describe("adding a dashboard", () => {
     await renderField(list(), { dashboards: [] });
 
     expect(
-      screen.getByText("This project has no dashboards yet"),
+      screen.getByPlaceholderText("This project has no dashboards yet"),
     ).toBeInTheDocument();
   });
 
@@ -414,8 +517,77 @@ describe("adding a dashboard", () => {
     );
 
     expect(
-      screen.getByText("A playlist shows at most 100 dashboards"),
+      screen.getByPlaceholderText("A playlist shows at most 100 dashboards"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The picker searches the server (#10580): the project's dashboards that
+   * are not archived and not in the list, by name - never a list the field
+   * read up front, whose first 10,000 a late dashboard was not among.
+   */
+  test("searches the server for the dashboards it may add, archived ones and the list's own left out", async () => {
+    const rendered: Rendered = await renderField(list(OVERVIEW));
+
+    await rendered.user.click(
+      screen.getByRole("combobox", { name: "Add a dashboard" }),
+    );
+    await screen.findByText("Databases");
+
+    expect(serverQueries.length).toBeGreaterThan(0);
+
+    for (const query of serverQueries) {
+      expect(query["isArchived"]).toBe(false);
+      expect(query["_id"]).toBeInstanceOf(IncludesNone);
+      expect(
+        ((query["_id"] as IncludesNone).values as Array<unknown>).map(
+          (id: unknown): string => {
+            return String(id);
+          },
+        ),
+      ).toEqual([OVERVIEW]);
+    }
+  });
+
+  test("finds a dashboard past the 10,000th by its name", async () => {
+    const many: Array<PlaylistReadableDashboard> = Array.from(
+      { length: 10050 },
+      (_value: unknown, index: number): PlaylistReadableDashboard => {
+        return {
+          id: `db000000-0000-4000-8001-${String(index).padStart(12, "0")}`,
+          name: `AP${String(index).padStart(6, "0")} overview`,
+          isArchived: false,
+        };
+      },
+    );
+    const late: PlaylistReadableDashboard = {
+      id: "db000000-0000-4000-8002-000000000001",
+      name: "WB1500 kiosk overview",
+      isArchived: false,
+    };
+
+    const rendered: Rendered = await renderField(list(), {
+      dashboards: [...many, late],
+    });
+
+    const picker: HTMLElement = screen.getByRole("combobox", {
+      name: "Add a dashboard",
+    });
+
+    await rendered.user.click(picker);
+    await rendered.user.type(picker, "WB1500");
+
+    const option: HTMLElement = await screen.findByText(
+      "WB1500 kiosk overview",
+      { exact: true },
+      { timeout: 5000 },
+    );
+
+    await rendered.user.click(option);
+    await settle();
+
+    expect(rows()).toEqual(["WB1500 kiosk overview"]);
+    expect(lastChange(rendered)).toEqual([late.id]);
   });
 
   test("a failed read of the project's dashboards says why, and keeps the list", async () => {

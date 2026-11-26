@@ -14,6 +14,7 @@ import { TELEMETRY_FIRST_STEPS_GUTTER_CLASS_NAME } from "../../Telemetry/Telemet
 import { RumSignalState } from "./RumSignalDiagnosis";
 import { getRumActionRoute } from "./RumRefusalRoutes";
 import {
+  RumEmptySignal,
   RumPanelSignal,
   RumSignalAction,
   RumSignalEmptyCopy,
@@ -23,7 +24,8 @@ import {
  * Why a RUM application's Exceptions or Logs are empty, and the one thing
  * to do about it (issue #5770): in an empty chart on its Overview
  * ("chart"), and on its Logs page ("page", drawn like every empty
- * explorer). The words are RumSignalWords', already in the reader's
+ * explorer). The Core Web Vitals card says why it is empty the same way
+ * (issue #6379). The words are RumSignalWords', already in the reader's
  * language; this only lays them out and wires the action.
  *
  * When what carries the signal is refused at ingest (issue #6378), the
@@ -32,7 +34,7 @@ import {
  */
 
 export interface ComponentProps {
-  signal: RumPanelSignal;
+  signal: RumEmptySignal;
   state: RumSignalState;
   copy: RumSignalEmptyCopy;
   variant: "chart" | "page";

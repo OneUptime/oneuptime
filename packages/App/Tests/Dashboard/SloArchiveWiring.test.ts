@@ -390,9 +390,20 @@ describe("surfaces that count or offer SLOs leave archived ones out", () => {
     expect(savedViewCase).not.toContain("isArchived");
     expect(dropdown.split("pickableQuery: {").length - 1).toBe(2);
 
+    /*
+     * Both reads of what can be picked take the pickable query (#10580): the
+     * pages of every pickable record, read to the end, and the picker's own
+     * search as the reader types. What a widget already holds is read by
+     * its ids, archived or not.
+     */
     expect(dropdown).toContain(
       squash(
-        "query: { ...(def.pickableQuery || {}), projectId: projectId, } as Query<BaseModel>,",
+        "query: { ...(data.def.pickableQuery || {}), projectId: data.projectId, } as Query<BaseModel>,",
+      ),
+    );
+    expect(dropdown).toContain(
+      squash(
+        "query={def.pickableQuery as Record<string, unknown> | undefined}",
       ),
     );
     expect(dropdown).toContain("_id: new Includes(");

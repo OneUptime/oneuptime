@@ -82,6 +82,9 @@ const ANSWER: DetectionRetrohuntResult = {
   startTime: new Date("2026-10-20T12:00:00.000Z"),
   endTime: new Date("2026-10-27T12:00:00.000Z"),
   periodInHours: 168,
+  retentionInDays: 15,
+  keptFrom: null,
+  firstSeenHistory: null,
   isCorrelation: false,
   windowInMinutes: 5,
   threshold: 3,
@@ -106,6 +109,8 @@ const ANSWER: DetectionRetrohuntResult = {
   ],
   hasMoreGroups: false,
   candidateLimit: null,
+  uncounted: null,
+  refusedTelemetry: [],
 };
 
 let props: DatabaseCommonInteractionProps;

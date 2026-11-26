@@ -27,6 +27,7 @@ export interface AIRunSubject {
   triggeredByTelemetryExceptionId?: unknown;
   triggeredByAiInsightId?: unknown;
   triggeredBySecurityCaseId?: unknown;
+  triggeredByDataSecurityIssueId?: unknown;
   codeTaskId?: unknown;
   codeRepositoryId?: unknown;
 }
@@ -47,6 +48,8 @@ const PRODUCTS_OF_RUN_TYPE: Readonly<
   // The runbook that fits, picked from Runbooks'.
   [AIRunType.RemediationPlan]: [ProductKey.Runbooks],
   [AIRunType.RemediationExecution]: [],
+  // A security case: Security Events, from the case it works.
+  [AIRunType.SecurityCaseResponse]: [],
 };
 
 export const getProductsOfAIRun: (run: AIRunSubject) => Array<ProductKey> = (
@@ -73,6 +76,8 @@ export const getProductsOfAIRun: (run: AIRunSubject) => Array<ProductKey> = (
   add(ProductKey.Exceptions, isSet(run.triggeredByTelemetryExceptionId));
   add(ProductKey.AIInsights, isSet(run.triggeredByAiInsightId));
   add(ProductKey.SecurityEvents, isSet(run.triggeredBySecurityCaseId));
+  // A run about a Data Security issue (#10364): a fix asked for it, or OneUptime AI's own work on it.
+  add(ProductKey.DataSecurity, isSet(run.triggeredByDataSecurityIssueId));
   add(ProductKey.Code, isSet(run.codeTaskId) || isSet(run.codeRepositoryId));
 
   return products;

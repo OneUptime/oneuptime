@@ -12,6 +12,12 @@ import {
 } from "../../Types/SecurityEvent/SecurityHunt";
 import { getWatchlistNamesInQuery } from "../../Types/SecurityEvent/SecurityWatchlistFilter";
 import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  SecurityEventArrivalRange,
+  getArrivalEventTimeBounds,
+  toSecurityEventArrivalQueryValue,
+} from "../../Types/SecurityEvent/SecurityEventArrival";
+import {
   applySecurityEventSearchToQuery,
   buildSecurityEventSearchQuery,
   isSecurityEventChipKey,
@@ -76,19 +82,43 @@ export function getSecurityHuntWatchlistNames(
   );
 }
 
-// The read of a hunt's search over one project and one window.
-export function buildSecurityHuntQuery(data: {
-  projectId: ObjectID;
-  searchQuery: string | undefined | null;
-  filters: SecurityHuntFilters | undefined | null;
-  startTime: Date;
-  endTime: Date;
-}): Query<SecurityEvent> {
+/*
+ * The read of a hunt's search over one project: the events that happened
+ * in a window (`startTime` to `endTime`, as the Events page reads them), or
+ * - a scheduled run (#10488) - the events that ARRIVED in its range
+ * (`arrival`), whenever they happened within a day before, held to the
+ * times they can have happened (getArrivalEventTimeBounds) so the read
+ * stays on the parts of the table they are in.
+ */
+export function buildSecurityHuntQuery(
+  data: {
+    projectId: ObjectID;
+    searchQuery: string | undefined | null;
+    filters: SecurityHuntFilters | undefined | null;
+  } & (
+    | { startTime: Date; endTime: Date; arrival?: undefined }
+    | { arrival: SecurityEventArrivalRange }
+  ),
+): Query<SecurityEvent> {
+  const base: Record<string, unknown> = { projectId: data.projectId };
+
+  if (data.arrival) {
+    const happened: { happenedAfter: Date; happenedBefore: Date } =
+      getArrivalEventTimeBounds(data.arrival);
+
+    base["time"] = new InBetween<Date>(
+      happened.happenedAfter,
+      happened.happenedBefore,
+    );
+    base[SECURITY_EVENT_ARRIVAL_QUERY_KEY] = toSecurityEventArrivalQueryValue(
+      data.arrival,
+    );
+  } else {
+    base["time"] = new InBetween<Date>(data.startTime, data.endTime);
+  }
+
   return buildSecurityEventSearchQuery({
-    base: {
-      projectId: data.projectId,
-      time: new InBetween<Date>(data.startTime, data.endTime),
-    } as Query<SecurityEvent>,
+    base: base as Query<SecurityEvent>,
     search: data.searchQuery || "",
     filters: securityHuntFiltersToMap(data.filters),
   });

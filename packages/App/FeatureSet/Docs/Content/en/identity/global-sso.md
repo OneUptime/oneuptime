@@ -27,7 +27,7 @@ For a single project's own provider, see [SSO](/docs/identity/sso).
 :::steps
 ### Open the provider list
 
-Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
+Sign in as a master admin and choose **Admin Dashboard** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
 
 ### Create the provider
 
@@ -103,6 +103,12 @@ Register the sign-out redirect URI that the **Identity Provider URL** card shows
 :::
 
 Where Okta, Microsoft Entra ID, Auth0 and Keycloak keep these settings is on the [SSO](/docs/identity/sso) page.
+
+## Signing in again to confirm it's you
+
+Someone who signs in only through a global provider confirms it's them with **Sign In Again** before they change how they sign in or delete their account: OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect (`prompt=login` alone for Microsoft Entra ID), and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment. Adding, changing or deleting a global provider asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.
+
+What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.
 
 ## Enforcing SSO
 
@@ -187,4 +193,5 @@ The whole instance requires SSO, and this was a sign-in with a password, a passk
 - [SSO](/docs/identity/sso): Set up a project's own SAML or OIDC provider.
 - [SCIM](/docs/identity/scim): Let your identity provider add and remove people automatically.
 - [Users, Teams & Permissions](/docs/permissions/index): What the teams newcomers join let them do.
+- [Help and Support](/docs/self-hosted/help-and-support): Tell people who need an invitation whom to ask.
 :::

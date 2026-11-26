@@ -19,6 +19,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The **
 | **Runbook Rules**  | Starts runbooks for matching events.                                |
 | **Label Rules**    | Adds labels to matching events.                                     |
 | **Reminder Rules** | Reminds owners at an interval until an event is completed.          |
+| **Audit Logs**     | Lists who created, changed or deleted any of these rules, and when. |
 
 The **Settings** section holds **Maintenance State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Maintenance Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
 

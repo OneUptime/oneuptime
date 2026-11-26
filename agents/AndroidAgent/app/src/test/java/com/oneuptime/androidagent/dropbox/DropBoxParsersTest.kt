@@ -87,6 +87,34 @@ class DropBoxParsersTest {
     }
 
     @Test
+    fun `a Java crash named in any script's letters is read, here as on a device`() {
+        // Android's \w read a name's Cyrillic letters and the JVM's did not, so this crash was parsed on a device alone (#10876).
+        val cyrillic: JavaThrowable = JavaStackParser.parse("com.example.Ошибка: Платёж отклонён\n\tat com.example.Касса.оплата(Касса.kt:7)", 1024)!!
+        assertEquals("com.example.Ошибка", cyrillic.type)
+        assertEquals("Платёж отклонён", cyrillic.message)
+        // A package in another script, a nested class's "$", an "_", a digit and a currency sign: what Java lets in a name.
+        assertEquals("例え.パッケージ.エラー\$内部", JavaStackParser.parse("例え.パッケージ.エラー\$内部: x", 1024)!!.type)
+        assertEquals("a.b_c.D1\$€", JavaStackParser.parse("a.b_c.D1\$€", 1024)!!.type)
+        // No package, or a space in the name: no Java class's.
+        assertNull(JavaStackParser.parse("Ошибка: x", 1024))
+        assertNull(JavaStackParser.parse("com.example.My Error: x", 1024))
+    }
+
+    @Test
+    fun `an exception's message and an abort's are read whole, whatever character they hold`() {
+        // Android's "." took no vertical tab or form feed and the JVM's took both, and neither took the other three, so such
+        // a crash was dropped (#10876).
+        for (inside in listOf("\u000B", "\u000C", "\u0085", "\u2028", "\u2029")) {
+            val name: String = "U+%04X".format(inside[0].code)
+            val throwable: JavaThrowable = JavaStackParser.parse("java.lang.IllegalStateException: before${inside}after\n\tat a.B.c(B.java:1)", 1024)!!
+            assertEquals(name, "before${inside}after", throwable.message)
+            val crash: NativeCrash = TombstoneParser.parse(DropBoxFixtures.TOMBSTONE.replace("Check failed: fd", "Check failed:${inside}fd"))!!
+            assertEquals(name, "Check failed:${inside}fd >= 0 token=abc123 (fd=-1)", crash.abortMessage)
+        }
+    }
+
+
+    @Test
     fun `the main thread's stack is found among an ANR's threads`() {
         val body: String = DropBoxHeaderParser.parse(DropBoxFixtures.ANR).body
         val main: String = ThreadTraceParser.thread(body, "main", 32 * 1024)!!
@@ -96,6 +124,20 @@ class DropBoxParsersTest {
         assertFalse(main.contains("RenderThread"))
         assertFalse(main.contains("Signal Catcher"))
         assertNull(ThreadTraceParser.thread(body, "nonexistent", 1024))
+    }
+
+    @Test
+    fun `a thread's header is read alike on a device and here, whatever script its name is in`() {
+        val body =
+            "\"主线程\" prio=5 tid=1 Native\n  at a.B.c(B.java:1)\n\n" +
+                "\"worker\" prio=5 utid=7 Native\n  at d.E.f(E.java:2)\n\n" +
+                "\"x\" prio=5 线程tid=9 Native\n  at g.H.i(H.java:3)\n"
+
+        assertTrue(ThreadTraceParser.thread(body, "主线程", 1024)!!.startsWith("\"主线程\" prio=5 tid=1 Native"))
+        // An ASCII letter runs into "tid=": no thread's id.
+        assertNull(ThreadTraceParser.thread(body, "worker", 1024))
+        // A letter of another script does not, as on the JVM: Android's own \b once said it did (#10835).
+        assertTrue(ThreadTraceParser.thread(body, "x", 1024)!!.contains("at g.H.i(H.java:3)"))
     }
 
     @Test

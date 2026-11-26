@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## What you get
 
-- **Overview**: requests, error rate and p95 latency from your traces. Container Apps does not show a replica's resource usage to a sidecar, so the **CPU** and **Memory** tiles fill only if you send `container.cpu.utilization` and `container.memory.usage` metrics carrying the replica's identity. Most teams leave those to Azure Monitor.
+- **Overview**: requests, error rate and p95 latency from your traces. Container Apps does not show a replica's resource usage to a sidecar, so the **CPU** and **Memory** tiles fill only if you send `container.cpu.utilization` and `container.memory.usage` metrics carrying the replica's identity. Most teams leave those to Azure Monitor. Connect the subscription under **Cloud → Connect**, and this tab adds an **Azure Monitor** section: the Container App's requests, the share answered with a 5xx status, response time, CPU, memory and restarts, as Azure measures them, whatever the app sends. The **Azure Monitor connection** row of the **Setup check** names the Container App it looks for while none is read. In **App Platforms → All Apps** and an environment's **Apps** tab, an app that sends no traces shows the Container App's numbers from Azure Monitor instead.
 - **Instances**: one row per replica, named by the detectors' `azure.container_app.instance.id`, by `service.instance.id` when you set it yourself, or by `host.name` when only the host detector ran.
 - **Logs**, **Traces** and **Metrics**, filtered to the environment, and the per-service view under **Services**.
 

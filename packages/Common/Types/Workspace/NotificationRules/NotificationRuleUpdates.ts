@@ -242,12 +242,16 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.PolicyChanges,
     NotificationRuleUpdateKind.Owners,
   ],
-  // Every notice a security case posts (issue #7936): nothing else.
+  /*
+   * Every notice a security case posts (issue #7936): nothing else - and
+   * OneUptime AI handing a case it worked to people (#10352), as AI.
+   */
   [NotificationRuleEventType.SecurityCase]: [
     NotificationRuleUpdateKind.PriorityReached,
     NotificationRuleUpdateKind.Assigned,
     NotificationRuleUpdateKind.ApprovalRequested,
     NotificationRuleUpdateKind.ResponseTargets,
+    NotificationRuleUpdateKind.AI,
   ],
 };
 
@@ -294,12 +298,13 @@ const KEY_UPDATE_KINDS: Readonly<
    * What a security channel has to act on (issue #7936): a case at a
    * priority it is for, a step nobody can run until it is approved, and a
    * response target about to be missed. Who a case is assigned to is left
-   * out.
+   * out. A case OneUptime AI hands to people needs one of them now (#10352).
    */
   [NotificationRuleEventType.SecurityCase]: [
     NotificationRuleUpdateKind.PriorityReached,
     NotificationRuleUpdateKind.ApprovalRequested,
     NotificationRuleUpdateKind.ResponseTargets,
+    NotificationRuleUpdateKind.AI,
   ],
 };
 

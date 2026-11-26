@@ -464,13 +464,16 @@ export default class BaseAnalyticsAPI<
    *
    * Returns null (skip the cache) without a tenant, and for a request the
    * service's own validation is about to reject, so that request gets the
-   * service's error message rather than one from the check here.
+   * service's error message rather than one from the check here. A service
+   * whose answers are held to their reader beyond the scoped query - the
+   * audit log's (#10642) - is never cached either: the next reader in the
+   * slot may not read what the last one did.
    */
   protected async getAggregateCacheKey(
     aggregateBy: AggregateBy<AnalyticsDataModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<string | null> {
-    if (!props.tenantId) {
+    if (!props.tenantId || !this.service.sharesAggregatesAcrossReaders()) {
       return null;
     }
 

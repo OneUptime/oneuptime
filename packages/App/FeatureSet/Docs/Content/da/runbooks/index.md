@@ -98,7 +98,7 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | Et runbooks **Indstillinger** | Slå **Kør dette runbook** fra uden at slette runbooket. |
 | **Runbooks → Udførelser** | Alle kørsler af alle runbooks i projektet. |
 | **Runbooks → Runbook-agenter** | Installer de [Runners](/docs/runbooks/agents), som dine runbook-trin kører på. |
-| **Runbooks → Indstillinger** | Administrer under **Globale variabler** de variabler, som alle runbooks kan [bruge](/docs/runbooks/variables), samt de **Ejerregler** og **Etiketregler**, der tilføjer ejere og etiketter til nye runbooks. |
+| **Runbooks → Indstillinger** | Administrer under **Globale variabler** de variabler, som alle runbooks kan [bruge](/docs/runbooks/variables), samt de **Ejerregler** og **Etiketregler**, der tilføjer ejere og etiketter til nye runbooks. **Auditlogs for regler** viser, hvem der oprettede, ændrede eller slettede disse regler og alle produkters runbook-regler, og hvornår. |
 | **Hændelser / Advarsler / Planlagt vedligeholdelse → Regler → Runbook-regler** | Opret de regler, der starter runbooks automatisk. |
 | En hændelse, advarsel eller vedligeholdelseshændelse → **Runbooks** | Se de kørsler, der er knyttet til den, og klik på **Kør runbook** for at starte en. |
 

@@ -55,6 +55,8 @@ terraform {
 
 Kildeadressen nevner ikke noe register: Terraform leser den fra Terraform Registry, og OpenTofu fra OpenTofu Registry, som publiserer de samme versjonene.
 
+En publisert versjon endres aldri: registrene beholder sjekksummene for det de først lastet ned, og `init` sjekker hver nedlasting mot dem. En versjon som må rettes, publiseres på nytt som neste patchversjon, som et intervall tar med, og notatene til den releasen sier hvilken versjon den erstatter.
+
 ## Låsefilen
 
 `terraform init` registrerer versjonen den valgte, og sjekksummene for nedlastingene, i `.terraform.lock.hcl`. Commit den filen: hver maskin og hver CI-kjøring installerer da nøyaktig den versjonen, til du velger en annen. Sjekksummene dekker hver plattform registeret publiserer, så én låsefil fungerer like godt for Linux-, macOS- og Windows-maskiner.
@@ -77,7 +79,7 @@ Låsefilen nevner registeret. OpenTofu skriver `registry.opentofu.org/oneuptime/
 :::steps
 ### Les hva som endret seg
 
-[OneUptimes releaser](https://github.com/OneUptime/oneuptime/releases) sier hva hver release endret, provideren inkludert. [Providerens releaser](https://github.com/OneUptime/terraform-provider-oneuptime/releases) lenker til endringene siden den forrige.
+[OneUptimes releaser](https://github.com/OneUptime/oneuptime/releases) sier hva hver release endret, provideren inkludert. [Providerens releaser](https://github.com/OneUptime/terraform-provider-oneuptime/releases) sier hva hver enkelt endret i provideren: først hva som bryter en konfigurasjon, deretter de nye ressursene og datakildene, og attributtene som endret seg.
 
 ### Last den ned
 

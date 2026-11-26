@@ -26,6 +26,20 @@ export const RUM_CLIENT_KIND_BROWSER: RumClientKind = "browser";
 export const RUM_CLIENT_KIND_MOBILE: RumClientKind = "mobile";
 
 /*
+ * The resource attribute ingest stamps on everything a public ingestion key
+ * writes (PinRumClientResource): "mobile" on a Mobile key's (issue #6457),
+ * "browser" on a Browser key's (issue #10539). Read before any other client
+ * signal, so a public key's telemetry is its app's or its page's RUM
+ * whatever its resource carried. Stored with the telemetry like any other
+ * attribute, as `resource.oneuptime.rum.client.kind` on a row: the
+ * discovery that reads rows reads no row that carries it. A sender that
+ * sets it itself is filed as that kind of client, as one that sends
+ * `device.id` or `browser.language` is.
+ */
+export const RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE: string =
+  "oneuptime.rum.client.kind";
+
+/*
  * The kind ingest recorded, or null while it is not known: nothing has
  * arrived yet, or the value is not one ingest writes. Read case-insensitively
  * and trimmed, as the column is shown capitalised in places ("Browser").

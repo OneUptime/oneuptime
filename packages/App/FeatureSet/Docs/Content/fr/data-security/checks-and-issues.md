@@ -1,13 +1,15 @@
 # Contrôles et problèmes de Sécurité des données
 
-Sécurité des données exécute 34 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie.
+Sécurité des données exécute 34 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie. Événements de sécurité, Flux réseau et Coffre d'adresses de sécurité appartiennent à OneUptime, qui les conserve pour votre sécurité : déclarés, jamais analysés ni contrôlés (voir [Magasins de données que OneUptime conserve pour votre sécurité](/docs/data-security/compliance#magasins-de-données-que-oneuptime-conserve-pour-votre-sécurité)).
 
 :::cards
 - [Comment un contrôle décide](#comment-un-contrôle-décide): Réussit, échoue ou ne peut pas trancher, et la gravité d'un échec.
 - [Chaque contrôle](#chaque-contrôle): Les 34, avec ce que chacun contrôle et comment corriger.
 - [Score de risque](#score-de-risque): Comment les problèmes sont ordonnés au sein d'une même gravité.
-- [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème.
+- [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème, comment chacun a été résolu, et les correctifs suivis jusqu'en production.
+- [L'analyse d'OneUptime AI](#lanalyse-doneuptime-ai): Si un problème est réel, ce qu'il met en danger, ce que la correction casserait et le chemin le plus court vers la correction.
 - [Corriger d'ici](#corriger-dici): Fermer une exposition, ou activer une protection manquante, en un clic.
+- [Problèmes d'une même cause](#problèmes-dune-même-cause): Les problèmes qu'une même erreur a causés, regroupés, et leur cause corrigée une seule fois.
 :::
 
 ## Comment un contrôle décide
@@ -152,13 +154,56 @@ OneUptime ouvre, met à jour et résout les problèmes au fil de l'exécution de
 | Statut | Comment il y arrive | Ce qui suit |
 | --- | --- | --- |
 | **Ouvert** | Son contrôle échoue actuellement sur le magasin de données. | Il compte dans la Vue d'ensemble, dans le résumé du magasin de données et dans la conformité, jusqu'à ce que le contrôle réussisse. |
-| **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé, ou son magasin de données a été archivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
+| **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé, ou son magasin de données a été archivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il indique comment il a été résolu (voir ci-dessous). Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
 | **Accepté** | Une personne a choisi **Accepter le risque**, avec un **Motif** et une date dans **Accepté jusqu'au**, au plus un an plus tard. | Il reste fermé jusqu'à cette date, puis s'ouvre à nouveau si le contrôle échoue toujours. Acceptez-le alors de nouveau si le motif tient toujours. |
-| **Pas un problème** | Une personne a choisi **Pas un problème** : la détection était erronée. | Il reste fermé, même tant que le contrôle échoue. **Rouvrir** le remet à Ouvert. |
+| **Pas un problème** | Une personne a choisi **Pas un problème** et a dit pourquoi dans **Motif** : la détection était erronée. | Il reste fermé, même tant que le contrôle échoue, et conserve le motif. **Rouvrir** le remet à Ouvert. |
 
 Les Membres de la sécurité, Administrateurs de la sécurité, Administrateurs du projet et Propriétaires du projet peuvent changer le statut d'un problème, et l'**Attribuer** à une personne ou à une équipe. Chaque modification est écrite dans la **Chronologie** du problème : quand il s'est ouvert, chaque changement de gravité, chaque changement de statut et qui l'a fait, les nouveaux contrôles demandés, et ce qu'ont fait les intégrations.
 
 Un problème qui s'ouvre à nouveau garde son historique. Les risques acceptés sont réexaminés chaque jour, donc une acceptation expire à temps même quand rien n'a été analysé.
+
+### Comment il a été résolu
+
+Un problème résolu indique comment il l'a été, en haut de sa page et dans la liste des problèmes, qui peut être filtrée selon ce critère sous **Résolution** :
+
+| Résolution | Ce que cela signifie |
+| --- | --- |
+| **Corrigé dans le code** | La pull request d'un correctif de code a été livrée, et la nouvelle version du service n'écrit plus les données. Le problème indique laquelle, « Corrigé dans la pull request #482, déployé dans la version 2.4.1, vérifié », et quand. |
+| **Corrigé dans le code d'infrastructure** | Une pull request vers le Terraform, le CloudFormation ou le Bicep qui déclare le magasin de données a été fusionnée, et le magasin a réussi son contrôle une fois la modification appliquée. |
+| **Corrigé depuis ici** | Une action de réponse ([Corriger d'ici](#corriger-dici)) a modifié le magasin de données, et son contrôle a réussi ensuite. |
+| **Confiné à l'ingestion** | Chaque détection d'un problème de télémétrie est masquée par une règle de nettoyage avant d'être stockée. Ce n'est pas une correction : le code écrit toujours les données, sur stdout et partout ailleurs où le service envoie sa télémétrie. Le problème le signale en orange, avec ce que la règle a modifié au cours de la dernière semaine, et propose **Corriger le code**. |
+| **Contrôle réussi** | Son contrôle réussit sans aucune modification de la part d'OneUptime. |
+| **Résolu par une personne** | Quelqu'un a choisi **Marquer comme résolu**. Le magasin de données est aussitôt contrôlé à nouveau, et le problème s'ouvre à nouveau si son contrôle échoue toujours. |
+| **Plus contrôlé** | Son contrôle a été désactivé, ou ne s'applique plus au magasin de données. |
+| **Magasin de données archivé** | Son magasin de données a disparu de sa source. |
+
+La Vue d'ensemble compte les problèmes corrigés à la source séparément des fuites seulement confinées à l'ingestion, et **Dans votre télémétrie** garde une détection confinée visible, marquée **Nettoyé**, jusqu'à ce que le code cesse de l'écrire.
+
+### Correctifs suivis jusqu'en production
+
+Une pull request qu'OneUptime AI a ouverte pour un problème (**Corriger avec l'IA**, ou une seule pull request pour un [groupe de problèmes](#problèmes-dune-même-cause)) n'a encore rien corrigé quand elle est fusionnée. OneUptime la suit jusqu'à ce que la production le prouve :
+
+- **Une fuite dans le code.** OneUptime attend un déploiement enregistré du service qui contient la fusion, puis surveille sa nouvelle version. Là où une règle de nettoyage masque les données, la règle ne doit modifier aucune valeur dans cette version ; là où aucune règle ne le fait, aucun enregistrement de cette version ne doit contenir les données aux endroits où elles ont été trouvées. La nouvelle version doit aussi tourner une journée et envoyer au moins autant de journaux ou de spans que l'ancienne dans l'heure où la fuite a été vue pour la dernière fois. Le problème est alors **Corrigé dans le code**. Une seule valeur modifiée, ou un seul enregistrement qui contient encore les données, signifie que le correctif n'a pas arrêté la fuite, et une version qui envoie trop peu en une semaine ne permet pas de conclure. Les déploiements sont rapprochés par leur commit : enregistrez-les avec `oneuptime deploy`, ou envoyez `vcs.ref.head.revision` (voir [Déploiements et changements](/docs/telemetry/change-events)).
+- **La configuration d'un magasin de données.** Quand la pull request est fusionnée, ses magasins de données sont aussitôt relus. Chaque problème dont le contrôle réussit ensuite est **Corrigé dans le code d'infrastructure**. Quand un magasin échoue encore à son contrôle lorsqu'il est relu un jour après la fusion, le correctif a été **fusionné, non appliqué** : les propriétaires du magasin et la personne qui a demandé la pull request reçoivent un e-mail, une seule fois, et les chronologies du problème et du magasin l'indiquent. C'est généralement un apply qui manque.
+- **La règle de nettoyage est conservée.** Après un correctif de code vérifié, la règle de nettoyage qui a confiné la fuite reste en place, si bien qu'une régression est masquée dès son arrivée. Le problème indique que la règle n'a rien modifié depuis le correctif, et propose **Supprimer la règle**.
+- **Une régression.** Un correctif vérifié reste surveillé ensuite : quand une règle conservée modifie de nouveau des valeurs, ou que l'analyse retrouve les données, le problème s'ouvre à nouveau et indique quelle version les a ramenées. Il reste ouvert jusqu'à ce qu'il soit de nouveau corrigé, même tant qu'une règle masque les données.
+
+Chaque étape figure dans la **Chronologie** du problème et dans celle du magasin de données, et Résultats IA compte les correctifs vérifiés par type (voir [Comment OneUptime AI s'en sort](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort)).
+
+## L'analyse d'OneUptime AI
+
+Tant que **Travailler sur les nouveaux problèmes** est activé dans **Sécurité des données → IA**, OneUptime AI analyse de lui-même chaque problème nouveau ou rouvert de gravité Critique ou Élevée, avant que quiconque ne l'ouvre ; vos règles d'IA de Sécurité des données peuvent en choisir d'autres. Tout problème peut être analysé depuis sa page avec **Analyser le problème**. L'analyse ouvre la **Vue d'ensemble** du problème, sous **Analyse d'OneUptime AI**, et répond à partir de ce que la Sécurité des données sait :
+
+- s'il est réel : **Réel**, **Probablement voulu**, **Probablement une fausse détection** ou **Impossible à dire**, et pourquoi ;
+- ce qu'il met en danger : les données et environ combien d'enregistrements, qui peut les atteindre, leurs copies dans d'autres magasins et les dossiers de sécurité qui les concernent ;
+- ce que la correction casserait : les services vus en train d'utiliser le magasin, les identités qui ont utilisé leur accès au cours des 90 derniers jours et les autorisations que la correction supprime et que quelque chose utilise encore ;
+- le chemin le plus court vers la correction : ce qui le contient maintenant, le code qui déclare le magasin et qui devrait s'en charger.
+
+Chaque ligne nomme les faits sur lesquels elle repose, listés sous elle par un bouton tel que **Afficher les 3 faits sur lesquels elle repose**. Une ligne qui ne repose sur aucun fait est écartée, un verdict dont le motif ne repose sur aucun est **Impossible à dire**, et un magasin de données restreintes n'est jamais **Probablement voulu** sur la seule parole d'OneUptime AI. Une ligne qui repose sur quelque chose que vous ne pouvez pas lire, comme qui peut atteindre le magasin, vous est masquée, et le dit.
+
+OneUptime AI ne modifie jamais le problème : son statut et sa gravité restent l'affaire de son contrôle et de vous. Pour **Probablement voulu**, il propose **Accepter le risque** avec le motif rédigé, et **Public par conception** pour un magasin public ; pour **Probablement une fausse détection**, **Pas un problème** avec le motif rédigé. Rien ne change tant que vous n'avez pas choisi.
+
+L'analyse est conservée sur le problème, avec une entrée dans sa **Chronologie** à chaque fois qu'elle est rédigée, dans la langue choisie par la plupart des membres de votre projet (**Analyser à nouveau** la rédige dans la vôtre). Elle n'est rédigée à nouveau que si ce sur quoi elle repose a changé : ouvrir le problème ne demande donc rien à OneUptime AI ; **Analyser à nouveau** le demande quand même. **Problèmes** filtre et affiche les problèmes par **Verdict d'OneUptime AI**. Ce qu'elle envoie, et n'envoie jamais, figure dans [OneUptime AI dans la Sécurité des données](/docs/data-security/ai). Avec l'IA désactivée, il n'y a pas d'analyse.
 
 ## Corriger d'ici
 
@@ -178,6 +223,38 @@ Un problème ouvert qu'une seule modification des paramètres d'un magasin de do
 Il demande d'abord confirmation, en indiquant ce qui change, ce qui cesse de fonctionner et ce que cela coûte. Il modifie les paramètres du magasin de données, jamais ses données, et ne modifie rien de ce qui est déjà comme il faut. Un magasin de données marqué **Public par conception** n'est jamais bloqué.
 
 Il agit via la connexion cloud du magasin de données, donc la connexion doit avoir **Réponse de sécurité des données** activé et sa commande de configuration exécutée à nouveau (voir [Configurer la Sécurité des données](/docs/data-security/setup#laisser-sécurité-des-données-fermer-une-exposition)). D'ici là, le panneau indique ce qu'il faut activer. Le magasin de données est contrôlé à nouveau juste après, et le problème se résout de lui-même dès que son contrôle réussit. La **Chronologie** du problème et la **Chronologie** du magasin de données indiquent ce qui a été fait, et par qui.
+
+## Problèmes d'une même cause
+
+Un module Terraform qui désactive les journaux d'accès crée quarante buckets avec quarante problèmes. La sécurité des données rassemble les problèmes qu'une même erreur a causés, pour que leur cause soit corrigée une seule fois.
+
+**Regrouper par cause** dans **Problèmes** affiche chaque groupe au-dessus de la liste : « 40 problèmes, une seule cause : le module static-site », ce que son contrôle trouve, combien sont corrigés et combien restent. Ses magasins de données se déplient en dessous, chacun menant à son problème, et les filtres de la liste les réduisent comme ils réduisent les lignes. Les problèmes sans groupe sont listés sous les groupes. Le regroupement s'active dès qu'un groupe compte cinq problèmes, et votre navigateur garde votre choix.
+
+Ce sont des faits qui forment un groupe, jamais OneUptime AI. Les problèmes d'un même contrôle, sur des magasins de données d'un même cloud, forment un groupe quand leurs magasins partagent l'un de ces faits, du plus fort au plus faible :
+
+| Fait | Où il est lu |
+| --- | --- |
+| Le code qui les déclare | Un fichier d'un dépôt connecté nommé d'après le module ou la stack que nomment leurs balises |
+| Leur stack | La balise propre à la stack CloudFormation, ou une balise qui nomme une stack |
+| Une balise | Une balise qui nomme le module, la stack ou le composant qui les a créés, comme `module` ou `component` |
+| Qui les a créés | L'identité qui les a créés d'après le journal des changements du cloud, pour les magasins dont les balises ne nomment rien de ce qui les a créés |
+| Un modèle de nom | Une partie de leurs noms que peu d'autres magasins ont, comme `static-site-*` |
+
+Un groupe compte au moins deux problèmes, un problème appartient à un groupe au plus, et un problème reste dans son groupe tant que son magasin de données partage le fait du groupe. Tant que **Travailler sur les nouveaux problèmes** est activé dans **Sécurité des données → IA**, OneUptime AI nomme chaque groupe à partir de ses faits, comme « le module static-site désactive les journaux d'accès », et un nom qui dit quelque chose que ses faits ne disent pas n'est pas gardé. Sinon, un groupe porte le nom de son fait.
+
+**Corriger la cause** sur un groupe dit ce qu'il change, ce qu'il laisse de côté et pourquoi, avant que rien ne change :
+
+- **Une seule pull request**, pour les magasins de données déclarés en code : OneUptime AI modifie le module ou le fichier qui les déclare, dans le dépôt que vous confirmez, plutôt que chaque magasin. La pull request liste chaque magasin et chaque problème qu'elle corrige, et apparaît sous **Code** et dans la **Chronologie** de chaque problème. Elle demande ce que demande **Corriger avec l'IA** : l'autorisation de modifier les problèmes de sécurité des données, et un dépôt où OneUptime AI peut travailler.
+- **Une seule approbation**, pour les magasins de données créés dans la console : sur chacun, le changement que fait [Corriger d'ici](#corriger-dici) pour son type de magasin, via sa connexion cloud. Les changements sont listés type par type, chacun avec ce qu'il change, ce qui cesse de fonctionner et ce qu'il coûte, comme Corriger d'ici le dit (un instantané partagé cesse d'être partagé, alors qu'une base de données cesse de partager chacun de ses instantanés manuels), et une seule approbation les fait tous. Elle demande l'autorisation de modifier les magasins de données.
+- **Laissés de côté** : un magasin marqué **Public par conception** n'est jamais bloqué. Un magasin dont l'analyse dit que la correction retirerait un accès que quelque chose utilise encore attend que vous cochiez **Le corriger quand même**. Un magasin qu'aucune connexion cloud ne laisse modifier par la sécurité des données est laissé à sa console, avec la raison.
+
+Quand un groupe a les deux sortes de magasins, un seul clic fait les deux parties, et chacune peut être laissée de côté. Chaque problème se résout de lui-même dès que son contrôle réussit, et le groupe dit combien il en reste jusqu'à ce qu'il n'en reste aucun. Un groupe dont tous les problèmes sont corrigés reste dans la liste pendant sept jours.
+
+Une correction qu'OneUptime AI a faite pour un groupe est prouvée dès que chaque problème qu'elle a corrigé a été clos par cette correction : pour une pull request, chaque problème qu'elle liste résolu comme **Corrigé dans le code d'infrastructure** par elle ; pour l'approbation unique, chaque problème dont elle a changé le magasin résolu comme **Corrigé depuis ici**, par le changement qu'elle a fait. Un problème accepté, marqué comme n'étant pas un problème, résolu par une personne ou supprimé ne prouve rien, et un magasin que l'approbation a laissé de côté, ou trouvé déjà comme il doit être, n'est pas attendu. [Résultats IA](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort) compte une correction prouvée parmi les changements qui ont fonctionné.
+
+OneUptime AI propose la correction de chaque groupe comme le disent vos règles d'IA de sécurité des données : sans règle, la pull request vous attend dans **Sécurité des données → IA**, et une règle dont la **Correction** est **Sans demander** l'ouvre d'elle-même. Un changement via les connexions cloud vous attend toujours. Chaque problème ouvert visé par une proposition le dit dans sa **Chronologie** quand OneUptime AI propose la correction du groupe, puis de nouveau quand quelqu'un la refuse ou qu'elle expire. Une proposition plus récente qui en remplace une encore en attente ne le dit qu'aux problèmes que la précédente n'avait pas prévenus, et un groupe de plus de 200 problèmes ouverts reste silencieux. Sur un dossier de sécurité des données, l'étape **Fix the code with AI** d'un playbook demande la pull request du groupe du dossier, et une pull request à part pour chacun des problèmes du dossier qui ne sont dans aucun groupe. Un problème d'un groupe le dit sous **Analyse d'OneUptime AI**, avec **Corriger la cause**.
+
+Une personne dont la lecture des problèmes de sécurité des données est limitée à des étiquettes voit chaque groupe réduit aux magasins de données qu'elle peut lire : ses nombres ne comptent que les problèmes de ces magasins, et il porte le nom de son fait tel que ces magasins le donnent, jamais le nom donné par OneUptime AI, qui peut parler de magasins qu'elle ne peut pas lire. Un groupe dont elle ne peut lire qu'un seul problème n'est pas affiché, et ce problème reste dans sa liste. **Corriger la cause** modifie chaque magasin que la cause a créé ; il faut donc pouvoir lire les problèmes de sécurité des données de tout le projet : elle voit ce que la correction ferait, et pourquoi elle ne peut pas la faire.
 
 ## Où les données d'un problème de télémétrie ont été trouvées
 

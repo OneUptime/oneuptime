@@ -70,9 +70,11 @@ Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installa
 | Fortinet FortiGate | IPS- och antivirusfynd, nekad trafik, VPN- och administratörsinloggningar samt konfigurationsändringar från FortiGates egen syslog |
 | Cisco ASA | Nekade anslutningar, fynd från hotidentifiering och IPS, VPN- och administratörsinloggningar samt kommandon från Cisco ASA och Firepower Threat Defense |
 | Kubernetes granskningsloggar | Ändringar i klustret, skal som öppnas i poddar, lästa hemligheter och nekade förfrågningar |
-| Webbattacker | Förfrågningar i en webbservers åtkomstlogg som försöker med SQL-injektion, path traversal eller Log4Shell |
+| Webbattacker | Förfrågningar i en webbservers åtkomstlogg som försöker med SQL-injektion, path traversal eller Log4Shell, och förfrågningar efter känsliga filer, till exempel `/.env` eller `/.git/config`, som din webbplats nekade eller inte har, och en fil med hemligheter som din webbplats levererade |
 
 Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten blir händelser: aldrig varje sida som en webbserver har levererat, eller varje läsning av ett API.
+
+En fil med hemligheter som din webbplats levererade, till exempel `/.env`, är en läcka, och regeln **Sensitive file served** i regelbiblioteket öppnar ett kritiskt ärende om den. En ensidesapps egen sida för en sökväg den inte har är det aldrig. Se [En känslig fil som din webbplats levererade](/docs/telemetry/security-events#en-känslig-fil-som-din-webbplats-levererade).
 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett IPS-fynd från en FortiGate, öppnar ett ärende på samma sätt som en ansluten produkts larm. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**.
 

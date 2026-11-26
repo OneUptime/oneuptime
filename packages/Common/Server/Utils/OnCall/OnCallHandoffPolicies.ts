@@ -168,8 +168,12 @@ export default class OnCallHandoffPolicies {
     return ruleVars;
   }
 
-  // Lowest order first; a rule with no order after the rest, as it came.
-  private static inOrder(
+  /*
+   * Lowest order first; a rule with no order after the rest, as it came.
+   * How every on-call message lists a policy's rules: a hand-off's, and
+   * joining's and leaving's (OnCallJoinNotices, OnCallLeaveNotices).
+   */
+  public static inOrder(
     rules: Array<OnCallHandoffRule>,
   ): Array<OnCallHandoffRule> {
     return rules

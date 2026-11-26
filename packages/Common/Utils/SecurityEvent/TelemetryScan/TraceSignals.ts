@@ -1,4 +1,3 @@
-import IP from "../../../Types/IP/IP";
 import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
@@ -20,12 +19,17 @@ import {
   readLogFunction,
 } from "../LogParsers/SecurityLogLine";
 import {
+  RESPONSE_CONTENT_TYPE_KEYS,
+  RESPONSE_SIZE_KEYS,
   WEB_ATTACK_KIND_ATTRIBUTE,
   WEB_ATTACK_MARKERS,
   WEB_HTTP_ACTIVITY_CLASS_UID,
   WebAttackKind,
   buildWebAttackMessage,
+  markSensitiveFileRequest,
+  outcomeForSensitiveFile,
   readWebAttackKind,
+  severityForSensitiveFile,
   severityForWebAttack,
 } from "../LogParsers/WebAttackLogParser";
 import {
@@ -33,11 +37,29 @@ import {
   requestOutcomeFromStatusCode,
 } from "../RequestOutcome";
 import {
+  SENSITIVE_FILE_PROBE_WORDS,
+  SENSITIVE_FILE_SECRET_WORDS,
+  SensitiveFileAnswer,
+  SensitiveFileRequest,
+  readBodySize,
+  readContentType,
+  readSensitiveFileRequest,
+} from "../SensitiveFileProbe";
+import {
+  CLIENT_ADDRESS_ATTRIBUTE_KEYS,
+  ClientAddressReading,
+  TrustedProxies,
+  markClientAddressTrust,
+  readClientAddressEvidence,
+  resolveClientAddress,
+} from "../ClientAddressTrust";
+import {
   ScrubbedAddress,
   ScrubbedAddressPlace,
   markClientAddressScrubbed,
-  readScrubbedAddress,
 } from "../ScrubbedAddress";
+import { pickEventUser } from "../ScrubbedUser";
+import { isSharedScrubPlaceholder } from "../../../Types/Telemetry/ScrubRule";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -51,6 +73,11 @@ import {
  *     traversal, a Log4Shell lookup - as "Your logs" finds it in an access
  *     log, but from the server span that answered it, so an app that logs
  *     nothing about its requests is still covered;
+ *   - a request for a well-known sensitive file or admin page - /.env,
+ *     /.git/config, /wp-admin - that the app refused or does not have, its
+ *     answer a 4xx status (#10745, SensitiveFileProbe), or a file that
+ *     holds secrets it answered, read for what it sent: the file itself,
+ *     a leak, or its own page (#10912);
  *   - a request whose URL names a cloud metadata address
  *     (169.254.169.254, metadata.google.internal ...): somebody trying to
  *     make the server fetch its own credentials (server-side request
@@ -59,6 +86,12 @@ import {
  *   - a prompt to an LLM that tries to override its instructions ("ignore
  *     previous instructions", "reveal your system prompt" ...), read from
  *     the start of the user's message the LLM span keeps.
+ *
+ * A request's attack is blamed on an address its sender could not have
+ * written: the connection's own, or one a proxy the project trusts
+ * forwarded (Utils/SecurityEvent/ClientAddressTrust, #10416). client.address
+ * alone is not one - instrumentations fill it from X-Forwarded-For - so an
+ * address only the request claims is kept as a claim, never principalIp.
  *
  * Pure. Every scan of a span's text is an indexOf on a lowercased copy,
  * never a regular expression: the text is a request an attacker wrote.
@@ -142,10 +175,15 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   method: ReadonlyArray<string>;
   statusCode: ReadonlyArray<string>;
   route: ReadonlyArray<string>;
-  clientAddress: ReadonlyArray<string>;
+  peerAddress: ReadonlyArray<string>;
+  forwardedClientAddress: ReadonlyArray<string>;
+  forwardedFor: ReadonlyArray<string>;
+  forwarded: ReadonlyArray<string>;
   userAgent: ReadonlyArray<string>;
   userId: ReadonlyArray<string>;
   serverAddress: ReadonlyArray<string>;
+  responseBodySize: ReadonlyArray<string>;
+  responseContentType: ReadonlyArray<string>;
 } = {
   url: ["url.full", "http.url", "url.original"],
   path: ["url.path", "http.target"],
@@ -153,17 +191,36 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   method: ["http.request.method", "http.method"],
   statusCode: ["http.response.status_code", "http.status_code"],
   route: ["http.route"],
-  clientAddress: [
-    "client.address",
-    "http.client_ip",
-    "net.peer.ip",
-    "network.peer.address",
-    "net.sock.peer.addr",
-  ],
+  /*
+   * Where the request came from (Utils/SecurityEvent/ClientAddressTrust):
+   * the connection's own address, the client's as instrumentation reported
+   * it from a forwarding header, and the forwarding headers themselves
+   * when the app records them. Read apart, so only an address the sender
+   * could not have written is the event's (#10416).
+   */
+  peerAddress: CLIENT_ADDRESS_ATTRIBUTE_KEYS.peer,
+  forwardedClientAddress: CLIENT_ADDRESS_ATTRIBUTE_KEYS.forwardedClient,
+  forwardedFor: CLIENT_ADDRESS_ATTRIBUTE_KEYS.forwardedFor,
+  forwarded: CLIENT_ADDRESS_ATTRIBUTE_KEYS.forwarded,
   userAgent: ["user_agent.original", "http.user_agent"],
   userId: ["enduser.id", "user.id"],
   serverAddress: ["server.address", "net.peer.name", "http.host"],
+  /*
+   * What the answer carried (#10912), when the instrumentation records it:
+   * what tells a sensitive file the app served from its own page.
+   */
+  responseBodySize: RESPONSE_SIZE_KEYS,
+  responseContentType: RESPONSE_CONTENT_TYPE_KEYS,
 };
+
+/*
+ * How a span's events are read: the proxies its project trusts to say who
+ * the client was (ClientAddressTrust). Absent, only the private addresses
+ * every project trusts.
+ */
+export interface TraceScanOptions {
+  trustedProxies?: TrustedProxies | undefined;
+}
 
 /*
  * The resource attributes that say which cloud resource and which
@@ -206,6 +263,24 @@ export function getTraceScanUrlMarkers(): Array<string> {
   ];
 }
 
+/*
+ * The words of a sensitive path in a server span's URL (#10745): read with
+ * the span's status, so only a request the app refused or does not have is
+ * worth reading - never the admin pages a WordPress site serves its people.
+ */
+export function getTraceScanSensitiveFileWords(): Array<string> {
+  return [...SENSITIVE_FILE_PROBE_WORDS];
+}
+
+/*
+ * The words of a path that holds secrets in a server span's URL (#10912):
+ * read with a 2xx, so a request for /.env the app answered is read for
+ * what it sent - and still never a WordPress site's own admin pages.
+ */
+export function getTraceScanSecretFileWords(): Array<string> {
+  return [...SENSITIVE_FILE_SECRET_WORDS];
+}
+
 export function readTraceAttribute(
   span: Pick<TraceScanSpan, "attributes">,
   keys: ReadonlyArray<string>,
@@ -219,6 +294,19 @@ export function readTraceAttribute(
   }
 
   return "";
+}
+
+/*
+ * A span's user: the first of its user attributes (enduser.id, user.id) a
+ * scrub rule left whole - else a Hash token, else what Redact or Mask left,
+ * for the event to say a rule hid it (ScrubbedUser.pickEventUser).
+ */
+export function readSpanUser(span: Pick<TraceScanSpan, "attributes">): string {
+  return pickEventUser(
+    TRACE_SCAN_ATTRIBUTE_KEYS.userId.map((key: string): string => {
+      return readTraceAttribute(span, [key]);
+    }),
+  );
 }
 
 export function isServerSpanKind(kind: string): boolean {
@@ -320,14 +408,6 @@ export function findPromptInjectionPhrase(prompt: string): string {
   return "";
 }
 
-function readClientIp(value: string): string {
-  const candidate: string = (value || "").trim();
-
-  return candidate && candidate.length <= 64 && IP.isIP(candidate)
-    ? candidate
-    : "";
-}
-
 // What every event read from a request span shares.
 interface SpanRequest {
   target: string;
@@ -346,7 +426,10 @@ interface SpanRequest {
   attributes: JSONObject;
 }
 
-function readSpanRequest(span: TraceScanSpan): SpanRequest {
+function readSpanRequest(
+  span: TraceScanSpan,
+  options: TraceScanOptions | undefined,
+): SpanRequest {
   const target: string = readSpanRequestTarget(span);
   const method: string = readTraceAttribute(
     span,
@@ -356,26 +439,27 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
     readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.statusCode),
   );
   /*
-   * The first of the client address attributes the span holds is the
-   * client's, as it always was: an IP address, else what a scrub rule left
-   * of one - "[REDACTED]", a mask, a Hash rule's token - else nothing.
+   * The client's address is one the sender could not have written: the
+   * connection's own, or the one a trusted proxy forwarded - else none, and
+   * what the request claimed is kept as a claim (ClientAddressTrust). Each
+   * read as an address, or as what a scrub rule left of one.
    */
-  const clientAddress: string = readTraceAttribute(
-    span,
-    TRACE_SCAN_ATTRIBUTE_KEYS.clientAddress,
+  const client: ClientAddressReading = resolveClientAddress(
+    readClientAddressEvidence(span.attributes),
+    options?.trustedProxies,
   );
-  const clientIp: string = readClientIp(clientAddress);
-  const scrubbedClientAddress: ScrubbedAddress | null = clientIp
-    ? null
-    : readScrubbedAddress(clientAddress);
+  const clientIp: string = client.address;
+  const scrubbedClientAddress: ScrubbedAddress | null = client.scrubbed;
   const userAgent: string = readTraceAttribute(
     span,
     TRACE_SCAN_ATTRIBUTE_KEYS.userAgent,
   );
-  const userId: string = readTraceAttribute(
-    span,
-    TRACE_SCAN_ATTRIBUTE_KEYS.userId,
-  );
+  /*
+   * The request's user: the first of its user attributes a scrub rule left
+   * whole. One it redacted or masked is no user (#10435): the event names
+   * none and says a rule hid it (buildTelemetrySecurityEvent).
+   */
+  const userId: string = readSpanUser(span);
   const route: string = readTraceAttribute(
     span,
     TRACE_SCAN_ATTRIBUTE_KEYS.route,
@@ -408,6 +492,8 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
     });
   }
 
+  markClientAddressTrust(attributes, client);
+
   if (userAgent) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.userAgent] = cutTelemetryText(
       userAgent,
@@ -415,7 +501,8 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
     );
   }
 
-  if (userId) {
+  // What a rule shared among everybody is no user to search or group by.
+  if (userId && !isSharedScrubPlaceholder(userId)) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.userId] = cutTelemetryText(
       userId,
       255,
@@ -452,19 +539,55 @@ function statusNameOf(statusCode: number): string {
   return statusCode >= 400 ? "Failure" : "Success";
 }
 
-// A server span whose URL carries an attack string, as the event it is.
+/*
+ * A server span whose URL carries an attack string, as the event it is - or
+ * that asked for a sensitive file the app refused or does not have (#10745).
+ */
 export function buildTraceWebAttackEvent(
   span: TraceScanSpan,
+  options?: TraceScanOptions | undefined,
 ): NormalizedSecurityEvent | null {
   if (!isServerSpanKind(span.kind)) {
     return null;
   }
 
-  const request: SpanRequest = readSpanRequest(span);
-  const kind: WebAttackKind | null = readWebAttackKind(request.target);
+  const request: SpanRequest = readSpanRequest(span, options);
 
-  if (!kind || !request.target) {
+  if (!request.target) {
     return null;
+  }
+
+  const attackKind: WebAttackKind | null = readWebAttackKind(request.target);
+  /*
+   * No attack string: a request for a sensitive file, refused or not there
+   * (#10745), or for a file that holds secrets, read for what the app sent
+   * (#10912) - its size and its type, when the span records them.
+   */
+  const response: { bodySize: number | null; contentType: string } = {
+    bodySize: readBodySize(
+      readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.responseBodySize),
+    ),
+    contentType: readContentType(
+      readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.responseContentType),
+    ),
+  };
+  const sensitive: SensitiveFileRequest | null = attackKind
+    ? null
+    : readSensitiveFileRequest({
+        target: request.target,
+        statusCode: request.statusCode,
+        ...response,
+      });
+
+  if (!attackKind && !sensitive) {
+    return null;
+  }
+
+  const kind: WebAttackKind = attackKind || WebAttackKind.SensitiveFile;
+  const sensitiveAttributes: JSONObject = {};
+
+  if (sensitive) {
+    markSensitiveFileRequest(sensitiveAttributes, sensitive, response);
   }
 
   return buildTelemetrySecurityEvent({
@@ -475,12 +598,15 @@ export function buildTraceWebAttackEvent(
     classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
     activityName: request.method,
     statusName: statusNameOf(request.statusCode),
-    severity: severityForWebAttack(kind, request.outcome),
+    severity: sensitive
+      ? severityForSensitiveFile(sensitive.answer)
+      : severityForWebAttack(kind, request.outcome),
     message: buildWebAttackMessage({
       kind,
       method: request.method,
       target: request.target,
       statusCode: request.statusCode,
+      isServed: sensitive?.answer === SensitiveFileAnswer.File,
     }),
     principalIp: request.clientIp,
     principalUser: request.userId,
@@ -488,11 +614,14 @@ export function buildTraceWebAttackEvent(
     attributes: {
       ...request.attributes,
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
+      ...sensitiveAttributes,
     },
     traceId: span.traceId,
     spanId: span.spanId,
     sessionId: span.sessionId,
-    requestOutcome: request.outcome,
+    requestOutcome: sensitive
+      ? outcomeForSensitiveFile(sensitive.answer, request.outcome)
+      : request.outcome,
     resourceId: span.serviceId,
     resourceType: span.serviceType,
   });
@@ -509,12 +638,13 @@ export const SSRF_FETCHED_URL_ATTRIBUTE: string = "oneuptime.ssrf.fetched_url";
  */
 export function buildTraceSsrfEvent(
   span: TraceScanSpan,
+  options?: TraceScanOptions | undefined,
 ): NormalizedSecurityEvent | null {
   if (!isServerSpanKind(span.kind)) {
     return null;
   }
 
-  const request: SpanRequest = readSpanRequest(span);
+  const request: SpanRequest = readSpanRequest(span, options);
   const marker: string = findCloudMetadataMarker(request.target);
 
   if (!marker) {
@@ -623,9 +753,13 @@ export function buildPromptInjectionEvent(
   }
 
   const model: string = (span.llmRequestModel || span.llmSystem || "").trim();
-  const userId: string =
-    (span.llmUserId || "").trim() ||
-    readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.userId);
+  // The AI call's user, else the request's: past whatever a scrub rule hid.
+  const userId: string = pickEventUser([
+    span.llmUserId,
+    ...TRACE_SCAN_ATTRIBUTE_KEYS.userId.map((key: string): string => {
+      return readTraceAttribute(span, [key]);
+    }),
+  ]);
   const excerpt: string = cutTelemetryText(
     squashWhiteSpace(span.llmUserMessagePreview),
     PROMPT_EXCERPT_LENGTH,
@@ -651,7 +785,7 @@ export function buildPromptInjectionEvent(
     attributes["gen_ai.operation.name"] = span.llmOperation;
   }
 
-  if (userId) {
+  if (userId && !isSharedScrubPlaceholder(userId)) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.userId] = cutTelemetryText(
       userId,
       255,
@@ -686,16 +820,22 @@ export function buildPromptInjectionEvent(
  */
 export function buildTraceSecurityEvents(
   span: TraceScanSpan,
+  options?: TraceScanOptions | undefined,
 ): Array<NormalizedSecurityEvent> {
   const events: Array<NormalizedSecurityEvent> = [];
 
-  const webAttack: NormalizedSecurityEvent | null =
-    buildTraceWebAttackEvent(span);
+  const webAttack: NormalizedSecurityEvent | null = buildTraceWebAttackEvent(
+    span,
+    options,
+  );
 
   if (webAttack) {
     events.push(webAttack);
   } else {
-    const ssrf: NormalizedSecurityEvent | null = buildTraceSsrfEvent(span);
+    const ssrf: NormalizedSecurityEvent | null = buildTraceSsrfEvent(
+      span,
+      options,
+    );
 
     if (ssrf) {
       events.push(ssrf);

@@ -13,6 +13,7 @@ import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/Wor
 import WorkspaceUserAuthTokenService from "../../../../../Server/Services/WorkspaceUserAuthTokenService";
 import WorkspaceUserGroupService from "../../../../../Server/Services/WorkspaceUserGroupService";
 import logger from "../../../../../Server/Utils/Logger";
+import ProjectMembership from "../../../../../Server/Utils/TeamMember/ProjectMembership";
 import MicrosoftTeamsUtil, {
   MicrosoftTeamsRosterMember,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -62,6 +63,11 @@ export interface WorldPerson {
   id: ObjectID;
   name: string;
   email: string;
+  /*
+   * Invited to the project and not joined yet: no member of it, though a
+   * schedule's rotation can reach them (#10412).
+   */
+  isInvitedOnly?: boolean | undefined;
 }
 
 export interface WorldSchedule {
@@ -829,6 +835,27 @@ export default class UserGroupsWorld {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
       return this.now();
     });
+
+    // Every person of the world is a member, but someone only invited.
+    jest
+      .spyOn(ProjectMembership, "getMemberUserIds")
+      .mockImplementation((async (data: {
+        userIds: Array<ObjectID | string>;
+      }): Promise<Set<string>> => {
+        const members: Set<string> = new Set<string>();
+
+        for (const userId of data.userIds) {
+          const person: WorldPerson | undefined = this.people.get(
+            userId.toString(),
+          );
+
+          if (person && !person.isInvitedOnly) {
+            members.add(userId.toString().toLowerCase());
+          }
+        }
+
+        return members;
+      }) as never);
 
     jest
       .spyOn(ProductBrandingText, "getProductName")

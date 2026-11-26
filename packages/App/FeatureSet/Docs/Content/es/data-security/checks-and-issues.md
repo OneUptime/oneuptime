@@ -1,13 +1,15 @@
 # Comprobaciones y problemas de Seguridad de datos
 
-Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida.
+Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
 
 :::cards
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
 - [Cada comprobación](#cada-comprobación): Las 34, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
-- [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema.
+- [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema, cómo se resolvió cada uno y las correcciones seguidas hasta producción.
+- [El análisis de OneUptime AI](#el-análisis-de-oneuptime-ai): Si un problema es real, lo que pone en riesgo, lo que rompería la corrección y el camino más corto hacia la corrección.
 - [Corrígelo desde aquí](#corrígelo-desde-aquí): Cierra una exposición, o activa una protección que falta, con un clic.
+- [Problemas con una sola causa](#problemas-con-una-sola-causa): Los problemas que causó un mismo error, agrupados, y su causa corregida una sola vez.
 :::
 
 ## Cómo decide una comprobación
@@ -152,13 +154,56 @@ OneUptime abre, actualiza y resuelve problemas a medida que se ejecutan las comp
 | Estado | Cómo llega ahí | Qué sigue |
 | --- | --- | --- |
 | **Abierto** | Su comprobación falla ahora en el almacén. | Cuenta en la Vista general, en el resumen del almacén y en el cumplimiento, hasta que la comprobación se supera. |
-| **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó, o se archivó su almacén. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
+| **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó, o se archivó su almacén. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Indica cómo se resolvió (más abajo). Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
 | **Aceptado** | Una persona eligió **Aceptar el riesgo**, con un **Motivo** y una fecha en **Aceptado hasta**, como máximo a un año. | Sigue cerrado hasta esa fecha, y después se vuelve a abrir si la comprobación sigue fallando. Acéptalo de nuevo entonces si el motivo sigue siendo válido. |
-| **No es un problema** | Una persona eligió **No es un problema**: el hallazgo era erróneo. | Sigue cerrado, aunque la comprobación falle. **Reabrir** lo devuelve a Abierto. |
+| **No es un problema** | Una persona eligió **No es un problema** y dijo por qué en **Motivo**: el hallazgo era erróneo. | Sigue cerrado, aunque la comprobación falle, y conserva el motivo. **Reabrir** lo devuelve a Abierto. |
 
 Los Miembros de seguridad, los Administradores de seguridad, los Administradores del proyecto y los Propietarios del proyecto pueden cambiar el estado de un problema y usar **Asignar** para dárselo a una persona o a un equipo. Cada cambio se escribe en la **Cronología** del problema: cuándo se abrió, cada cambio de gravedad, cada cambio de estado y quién lo hizo, las nuevas comprobaciones solicitadas y lo que hicieron las integraciones.
 
 Un problema que se vuelve a abrir conserva su historial. Los riesgos aceptados se revisan cada día, así que uno caduca a tiempo aunque no se haya escaneado nada.
+
+### Cómo se resolvió
+
+Un problema resuelto indica cómo se resolvió, arriba en su página y en la lista de problemas, que puede filtrarse por ello en **Resolución**:
+
+| Resolución | Qué significa |
+| --- | --- |
+| **Corregido en el código** | Se entregó la pull request de una corrección de código, y la nueva versión del servicio ya no escribe los datos. El problema indica cuál y cuándo: «Corregido en la pull request #482, desplegado en la versión 2.4.1, verificado». |
+| **Corregido en el código de infraestructura** | Se fusionó una pull request al Terraform, CloudFormation o Bicep que declara el almacén, y el almacén superó su comprobación una vez aplicado el cambio. |
+| **Corregido desde aquí** | Una acción de respuesta ([Corrígelo desde aquí](#corrígelo-desde-aquí)) cambió el almacén, y su comprobación se superó después. |
+| **Contenido en la ingesta** | Una regla de depuración oculta cada hallazgo de un problema de telemetría antes de que se guarde. Esto no es una corrección: el código sigue escribiendo los datos, en stdout y en cualquier otro lugar al que el servicio envía su telemetría. El problema lo indica en ámbar, con lo que la regla cambió en la última semana, y ofrece **Corregir el código**. |
+| **Comprobación superada** | Su comprobación se supera sin que OneUptime haya hecho ningún cambio. |
+| **Resuelto por una persona** | Alguien eligió **Marcar como resuelto**. El almacén se vuelve a comprobar al momento, y el problema se vuelve a abrir si su comprobación sigue fallando. |
+| **Ya no se comprueba** | Su comprobación se desactivó o ya no se aplica al almacén. |
+| **Almacén archivado** | Su almacén ya no está en su origen. |
+
+La Vista general cuenta por separado los problemas corregidos donde se originan y las fugas que solo se contuvieron en la ingesta, y **En tu telemetría** mantiene a la vista un hallazgo contenido, marcado como **Depurado**, hasta que el código deja de escribirlo.
+
+### Correcciones seguidas hasta producción
+
+Una pull request que OneUptime AI abrió para un problema (**Corregir con IA**, o una sola pull request para un [grupo de problemas](#problemas-con-una-sola-causa)) todavía no ha corregido nada cuando se fusiona. OneUptime la sigue hasta que producción lo demuestra:
+
+- **Una fuga en el código.** OneUptime espera un despliegue registrado del servicio que contenga la fusión y luego vigila su nueva versión. Donde una regla de depuración oculta los datos, la regla no debe cambiar ningún valor en esa versión; donde ninguna regla lo hace, ninguna entrada de esa versión puede contener los datos en los lugares donde se encontraron. Además, la nueva versión debe ejecutarse un día y enviar al menos tantos registros o spans como envió la anterior en la hora en que se vio la fuga por última vez. Entonces el problema queda **Corregido en el código**. Un solo valor cambiado, o una sola entrada que todavía contiene los datos, significa que la corrección no detuvo la fuga, y de una versión que envía demasiado poco en una semana no se puede saber nada. Los despliegues se relacionan por su commit: regístralos con `oneuptime deploy` o envía `vcs.ref.head.revision` (consulta [Despliegues y cambios](/docs/telemetry/change-events)).
+- **La configuración de un almacén.** Cuando la pull request se fusiona, sus almacenes se vuelven a leer al momento. Cada problema cuya comprobación se supera después queda **Corregido en el código de infraestructura**. Si un almacén sigue sin superar su comprobación al volver a leerse un día después de la fusión, la corrección quedó **fusionada, sin aplicar**: los propietarios del almacén y la persona que pidió la pull request reciben un correo, una sola vez, y las cronologías del problema y del almacén lo indican. Lo que suele faltar es un apply.
+- **La regla de depuración se conserva.** Tras una corrección de código verificada, la regla de depuración que contuvo la fuga se queda, así que una regresión se oculta en cuanto llega. El problema indica que la regla no ha cambiado nada desde la corrección y ofrece **Eliminar regla**.
+- **Una regresión.** Una corrección verificada se sigue vigilando después: cuando una regla conservada vuelve a cambiar valores, o el escaneo vuelve a encontrar los datos, el problema se vuelve a abrir e indica qué versión los trajo de vuelta. Sigue abierto hasta que se corrige de nuevo, incluso mientras una regla oculta los datos.
+
+Cada paso aparece en la **Cronología** del problema y en la del almacén, y Resultados de IA cuenta las correcciones verificadas por tipo (consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai)).
+
+## El análisis de OneUptime AI
+
+Mientras **Trabajar en los problemas nuevos** esté activado en **Seguridad de datos → IA**, OneUptime AI analiza por su cuenta cada problema nuevo o reabierto de gravedad Crítica o Alta, antes de que nadie lo abra; tus reglas de IA de Seguridad de datos pueden elegir otros problemas. Cualquier problema se puede analizar desde su página con **Analizar el problema**. El análisis abre la **Vista general** del problema, bajo **Análisis de OneUptime AI**, y responde a partir de lo que Seguridad de datos sabe:
+
+- si es real: **Real**, **Probablemente intencionado**, **Probablemente un hallazgo erróneo** o **No se puede determinar**, y por qué;
+- lo que pone en riesgo: los datos y aproximadamente cuántos registros, quién puede llegar a ellos, sus copias en otros almacenes y los casos de seguridad sobre ellos;
+- lo que rompería la corrección: los servicios vistos usando el almacén, las identidades que usaron su acceso en los últimos 90 días y los permisos que la corrección elimina y que algo sigue usando;
+- el camino más corto hacia la corrección: lo que lo contiene ahora, el código que declara el almacén y quién debería hacerlo.
+
+Cada línea nombra los hechos en los que se basa, listados debajo con un botón como **Mostrar los 3 hechos en los que se basa**. Una línea que no se basa en ningún hecho se descarta, un veredicto cuyo motivo no se basa en ninguno es **No se puede determinar**, y un almacén de datos restringidos nunca es **Probablemente intencionado** por la sola palabra de OneUptime AI. Una línea que se basa en algo que no puedes leer, como quién puede llegar al almacén, se te oculta, y lo dice.
+
+OneUptime AI nunca cambia el problema: su estado y su gravedad quedan en manos de su comprobación y de ti. Para **Probablemente intencionado** ofrece **Aceptar el riesgo** con el motivo redactado, y **Público por diseño** para un almacén público; para **Probablemente un hallazgo erróneo**, **No es un problema** con el motivo redactado. Nada cambia hasta que elijas.
+
+El análisis se guarda en el problema, con una entrada en su **Cronología** cada vez que se escribe, en el idioma que eligió la mayoría de los miembros de tu proyecto (**Analizar de nuevo** lo escribe en el tuyo). Solo se vuelve a escribir cuando cambió aquello en lo que se basa, así que abrir el problema no pregunta nada a OneUptime AI; **Analizar de nuevo** pregunta de todos modos. **Problemas** filtra y muestra los problemas por **Veredicto de OneUptime AI**. Lo que envía, y lo que nunca envía, está en [OneUptime AI en Seguridad de datos](/docs/data-security/ai). Con la IA desactivada, no hay análisis.
 
 ## Corrígelo desde aquí
 
@@ -178,6 +223,38 @@ Un problema abierto que corrige un solo cambio en los ajustes de un almacén (un
 Primero pregunta, y dice qué cambia, qué deja de funcionar y qué cuesta. Cambia los ajustes del almacén, nunca sus datos, y no cambia nada que ya esté como debe. Un almacén marcado como **Público por diseño** nunca se bloquea.
 
 Actúa a través de la conexión a la nube del almacén, así que la conexión necesita **Respuesta de seguridad de datos** activada y su comando de configuración ejecutado de nuevo (consulta [Configurar Seguridad de datos](/docs/data-security/setup#dejar-que-seguridad-de-datos-cierre-una-exposición)). Hasta entonces, el panel dice qué hay que activar. El almacén se vuelve a comprobar justo después, y el problema se resuelve solo en cuanto su comprobación se supera. La **Cronología** del problema y la **Cronología** del almacén dicen qué se hizo y quién lo hizo.
+
+## Problemas con una sola causa
+
+Un módulo de Terraform que desactiva los registros de acceso crea cuarenta buckets con cuarenta problemas. Seguridad de datos reúne los problemas que causó un mismo error, para que su causa se corrija una sola vez.
+
+**Agrupar por causa** en **Problemas** muestra cada grupo encima de la lista: «40 problemas, una sola causa: el módulo static-site», lo que encuentra su comprobación, cuántos están corregidos y cuántos quedan. Sus almacenes de datos se despliegan debajo, cada uno con un enlace a su problema, y los filtros de la lista los reducen igual que reducen las filas. Los problemas sin grupo aparecen debajo de los grupos. La agrupación se activa en cuanto un grupo tiene cinco problemas, y tu navegador recuerda tu elección.
+
+Los hechos forman un grupo, nunca OneUptime AI. Los problemas de una misma comprobación, en almacenes de datos de una misma nube, forman un grupo cuando sus almacenes comparten uno de estos hechos, del más fuerte al más débil:
+
+| Hecho | Dónde se lee |
+| --- | --- |
+| El código que los declara | Un archivo de un repositorio conectado con el nombre del módulo o la pila que nombran sus etiquetas |
+| Su pila | La etiqueta propia de la pila de CloudFormation, o una etiqueta que nombra una pila |
+| Una etiqueta | Una etiqueta que nombra el módulo, la pila o el componente que los creó, como `module` o `component` |
+| Quién los creó | La identidad que los creó según el registro de cambios de la nube, para los almacenes cuyas etiquetas no nombran nada de lo que los creó |
+| Un patrón de nombre | Una parte de sus nombres que pocos otros almacenes tienen, como `static-site-*` |
+
+Un grupo tiene al menos dos problemas, un problema está como mucho en un grupo, y un problema sigue en su grupo mientras su almacén de datos comparta el hecho del grupo. Mientras **Trabajar en los problemas nuevos** esté activado en **Seguridad de datos → IA**, OneUptime AI nombra cada grupo a partir de sus hechos, como «el módulo static-site desactiva los registros de acceso», y un nombre que dice algo que sus hechos no dicen no se conserva. Si no, un grupo lleva el nombre de su hecho.
+
+**Corregir la causa** en un grupo dice qué cambia, qué deja fuera y por qué, antes de que cambie nada:
+
+- **Una sola pull request**, para los almacenes de datos declarados como código: OneUptime AI cambia el módulo o el archivo que los declara, en el repositorio que confirmes, en vez de cada almacén. La pull request enumera cada almacén y cada problema que corrige, y aparece en **Código** y en la **Cronología** de cada problema. Requiere lo mismo que **Corregir con IA**: permiso para cambiar problemas de seguridad de datos y un repositorio en el que OneUptime AI pueda trabajar.
+- **Una sola aprobación**, para los almacenes de datos creados en la consola: en cada uno, el cambio que hace [Corrígelo desde aquí](#corrígelo-desde-aquí) para su tipo de almacén, mediante su conexión a la nube. Los cambios se listan tipo por tipo, cada uno con lo que cambia, lo que deja de funcionar y lo que cuesta, como lo dice Corrígelo desde aquí (una instantánea compartida deja de compartirse, mientras que una base de datos deja de compartir cada una de sus instantáneas manuales), y una sola aprobación los hace todos. Requiere permiso para editar almacenes de datos.
+- **Excluidos**: un almacén marcado como **Público por diseño** nunca se bloquea. Un almacén cuyo análisis dice que la corrección quitaría un acceso que algo todavía usa espera a que marques **Corregirlo de todos modos**. Un almacén que ninguna conexión a la nube deja cambiar a Seguridad de datos se deja a su consola, con el motivo.
+
+Cuando un grupo tiene los dos tipos de almacén, una sola pulsación hace ambas partes, y cualquiera de ellas se puede dejar fuera. Cada problema se resuelve solo en cuanto su comprobación se supera, y el grupo dice cuántos quedan hasta que no queda ninguno. Un grupo con todos sus problemas corregidos sigue en la lista durante siete días.
+
+Una corrección que OneUptime AI hizo para un grupo queda probada en cuanto cada problema que corrigió se cerró por esa corrección: en una pull request, cada problema que lista resuelto como **Corregido en el código de infraestructura** por ella; en la aprobación única, cada problema cuyo almacén cambió resuelto como **Corregido desde aquí**, por el cambio que hizo. Un problema aceptado, marcado como que no es un problema, resuelto por una persona o eliminado no prueba nada, y no se espera a un almacén que la aprobación dejó fuera, o que encontró ya como debía estar. [Resultados de IA](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai) cuenta una corrección probada entre los cambios que funcionaron.
+
+OneUptime AI propone la corrección de cada grupo como dicen tus reglas de IA de Seguridad de datos: sin reglas, la pull request te espera en **Seguridad de datos → IA**, y una regla cuya **Corrección** es **Sin preguntar** la abre por sí sola. Un cambio mediante las conexiones a la nube siempre te espera. Cada problema abierto al que se refiere una propuesta lo dice en su **Cronología** cuando OneUptime AI propone la corrección del grupo, y otra vez cuando alguien la descarta o caduca. Una propuesta más reciente que reemplaza a otra que aún espera solo avisa a los problemas a los que la anterior no avisó, y un grupo de más de 200 problemas abiertos no dice nada. En un caso de Seguridad de datos, el paso **Fix the code with AI** de un playbook pide la pull request del grupo del caso, y una pull request propia para cada problema del caso que no está en ningún grupo. Un problema de un grupo lo dice en **Análisis de OneUptime AI**, con **Corregir la causa**.
+
+Quien tiene la lectura de los problemas de seguridad de datos limitada por etiquetas ve cada grupo reducido a los almacenes de datos que puede leer: sus cifras cuentan solo los problemas de esos almacenes, y se llama por su hecho tal como lo dan esos almacenes, nunca por el nombre que le dio OneUptime AI, que puede hablar de almacenes que no puede leer. Un grupo del que solo puede leer un problema no se muestra, y ese problema sigue en su lista. **Corregir la causa** cambia cada almacén que hizo la causa, así que requiere leer los problemas de seguridad de datos de todo el proyecto: ve lo que haría, y por qué no puede hacerlo.
 
 ## Dónde se encontraron los datos de un problema de telemetría
 

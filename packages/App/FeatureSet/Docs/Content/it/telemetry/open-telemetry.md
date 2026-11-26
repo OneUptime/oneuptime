@@ -375,7 +375,7 @@ OneUptime serve OTLP/gRPC sullo stesso host dell'app web, sulla porta 443 tramit
 
 In un'installazione self-hosted, gRPC raggiunge OneUptime solo tramite HTTPS: una connessione HTTP in chiaro (h2c) viene rifiutata. Se la tua istanza è servita in HTTP semplice, usa OTLP/HTTP.
 
-Due impostazioni di una chiave valgono solo per OTLP/HTTP: il suo **Requests Per Minute Limit** e il suo **Nome del servizio fissato**. I dati inviati tramite gRPC mantengono il `service.name` con cui sono stati inviati e non vengono contati nel limite.
+Due impostazioni di una chiave valgono solo per OTLP/HTTP: il suo **Limite di richieste al minuto** e il suo **Nome del servizio fissato**. I dati inviati tramite gRPC mantengono il `service.name` con cui sono stati inviati e non vengono contati nel limite.
 
 ### Risposte
 
@@ -389,7 +389,7 @@ OneUptime risponde a un'esportazione non appena i dati sono in coda, e i dati co
 | `413` | — | La richiesta supera il limite di dimensione. | Invia batch più piccoli. |
 | `415` | — | `Content-Encoding` non supportato. | Usa `gzip`, `deflate` o `zstd`, oppure nessuna compressione. |
 | `422` | `PERMISSION_DENIED` | La chiave è disattivata, oppure è una chiave Browser usata fuori dalle sue origini consentite. | Riattiva la chiave, oppure invia con una chiave Server. |
-| `429` | — | È stato raggiunto il **Requests Per Minute Limit** della chiave. | All'inizio niente: gli exporter riprovano dopo il tempo indicato da `Retry-After`. Alza il limite se succede spesso. |
+| `429` | — | È stato raggiunto il **Limite di richieste al minuto** della chiave. | All'inizio niente: gli exporter riprovano dopo il tempo indicato da `Retry-After`. Alza il limite se succede spesso. |
 | `503` | `UNAVAILABLE` | OneUptime si sta avviando, oppure la coda di acquisizione non è disponibile. | Niente: gli exporter OTLP ripetono da soli dopo un `503`. |
 
 `401`, `402`, `413`, `415` e `422` sono errori permanenti per gli exporter OTLP: l'exporter scarta il batch e registra l'errore invece di riprovare.
@@ -409,7 +409,7 @@ La pagina di ogni chiave, in **Impostazioni del progetto → Telemetria e APM �
 | **Nome del servizio fissato** | Se impostato, sostituisce `service.name` su tutto ciò che viene inviato con questa chiave tramite OTLP/HTTP. |
 | **Abilitato** | Disattivalo per smettere subito di accettare i dati inviati con la chiave, senza eliminarla. |
 | **Scade il** | Dopo questa data la chiave viene rifiutata. Vuoto significa che non scade mai. |
-| **Requests Per Minute Limit** | Il numero massimo di richieste OTLP/HTTP al minuto accettate con la chiave, considerando tutti i client che la usano. Vuoto significa nessun limite su una chiave Server e 6.000 su una chiave Browser. |
+| **Limite di richieste al minuto** | Il numero massimo di richieste OTLP/HTTP al minuto accettate con la chiave, considerando tutti i client che la usano. Vuoto significa nessun limite su una chiave Server e 6.000 su una chiave Browser. |
 | **Ultimo utilizzo il** | Quando sono stati accettati per l'ultima volta dei dati con la chiave. Usalo per trovare le chiavi che puoi ruotare o eliminare senza rischi. |
 
 **Reimposta la chiave segreta** nella pagina della chiave sostituisce il segreto. Ogni applicazione e ogni collector che invia con quello vecchio viene rifiutato finché non lo aggiorni. Per le chiavi del browser, come ruotare una chiave in sicurezza e cosa significa ogni rifiuto, vedi [Chiavi di acquisizione](/docs/telemetry/ingestion-keys).

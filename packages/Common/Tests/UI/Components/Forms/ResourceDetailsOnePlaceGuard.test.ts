@@ -145,9 +145,10 @@ function describePlace(place: EditPlace): string {
  * A model whose rows are split between tables by a column, each row edited
  * in exactly one of them: the one AI rule - an incident's or an alert's in
  * AiRulesTable, a telemetry product's (the Profiler's) in
- * TelemetryAiRulesTable - by triggerEntityType. Each table reads only its
- * own triggers, so a rule is never edited from both. Held below: every
- * table of the split reads its rows by that column.
+ * TelemetryAiRulesTable, a Data Security issue's on Data Security → AI in
+ * DataSecurityAiRulesTable (#10364) - by triggerEntityType. Each table
+ * reads only its own triggers, so a rule is never edited from two. Held
+ * below: every table of the split reads its rows by that column.
  */
 interface SplitModel {
   column: string;
@@ -160,6 +161,7 @@ const SPLIT_MODELS: Record<string, SplitModel> = {
     files: [
       "packages/App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiRulesTable.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiRulesTable.tsx",
     ],
   },
   /*

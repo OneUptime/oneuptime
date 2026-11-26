@@ -6,7 +6,9 @@
  * Kubernetes, Host and the rest), how much data its queries read.
  *
  *   MetricSeries      A grouped metric monitor: its series with data.
- *   MetricDataPoints  An ungrouped one: the data points its queries read.
+ *   MetricDataPoints  An ungrouped one: the data points of what its criteria
+ *                     compare - each formula's, and each query's that no
+ *                     formula is computed from.
  *   NoMetricData      Its queries read nothing in the window - the reason a
  *                     metric criteria most often does not match, so it is
  *                     said, not left as a 0.

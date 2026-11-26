@@ -1,3 +1,6 @@
+import CriteriaRecordPicker from "./CriteriaRecordPicker";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import Dropdown, {
   DropdownOption,
@@ -35,8 +38,6 @@ export interface ComponentProps {
   initialValue?: undefined | CriteriaAlert;
   onChange?: undefined | ((value: CriteriaAlert) => void);
   alertSeverityDropdownOptions: Array<DropdownOption>;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
   monitorType?: MonitorType | undefined;
   seriesAttributeKeys?: Array<string> | undefined;
 }
@@ -242,29 +243,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
               title="Labels"
               description="Labels to categorize the alert"
             />
-            <Dropdown
-              value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.labelIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.labelDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "labelIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("labelIds", []);
-                }
-              }}
-              isMultiSelect={true}
+            <CriteriaRecordPicker
+              modelType={Label}
+              ids={criteriaAlert.labelIds}
               placeholder="Select Labels"
+              dataTestId="monitor-criteria-alert-labelIds"
+              onChange={(ids: Array<ObjectID>) => {
+                updateField("labelIds", ids);
+              }}
             />
           </div>
         </div>
@@ -282,29 +268,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             title="On-Call Policies"
             description="Execute these on-call policies when this alert is created"
           />
-          <Dropdown
-            value={props.onCallPolicyDropdownOptions.filter(
-              (i: DropdownOption) => {
-                return criteriaAlert.onCallPolicyIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              },
-            )}
-            options={props.onCallPolicyDropdownOptions}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (Array.isArray(value)) {
-                updateField(
-                  "onCallPolicyIds",
-                  value.map((v: DropdownValue) => {
-                    return new ObjectID(v.toString());
-                  }),
-                );
-              } else {
-                updateField("onCallPolicyIds", []);
-              }
-            }}
-            isMultiSelect={true}
+          <CriteriaRecordPicker
+            modelType={OnCallDutyPolicy}
+            ids={criteriaAlert.onCallPolicyIds}
             placeholder="Select On-Call Policies"
+            dataTestId="monitor-criteria-alert-onCallPolicyIds"
+            onChange={(ids: Array<ObjectID>) => {
+              updateField("onCallPolicyIds", ids);
+            }}
           />
         </div>
       </FoldedSection>

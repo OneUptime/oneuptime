@@ -882,6 +882,7 @@ const DatabaseServerOverview: FunctionComponent<
           "Its engine and endpoints, where OneUptime found it, and its engine metrics.",
         )}
         recordId={modelId.toString()}
+        recordModelType={DatabaseServer}
         labels={r.labels}
         settingsRoute={populate(PageMap.DATABASE_SERVER_VIEW_SETTINGS)}
       />

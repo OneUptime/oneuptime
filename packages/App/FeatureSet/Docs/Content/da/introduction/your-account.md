@@ -23,8 +23,8 @@ Klik på dit billede øverst til højre i dashboardet.
 
 | Punkt | Hvad det gør |
 | --- | --- |
-| **Profil** | Åbner **Brugerprofil**: dit navn, din e-mail, din tidszone, dit sprog, dit billede og sikkerheden ved dit login. |
-| **Admin-indstillinger** | Åbner Admin Dashboard. Kun hovedadministratorer på en selvhostet installation ser det. |
+| **Brugerprofil** | Åbner **Brugerprofil**: dit navn, din e-mail, din tidszone, dit sprog, dit billede og sikkerheden ved dit login. |
+| **Admin-dashboard** | Åbner Admin Dashboard. Kun hovedadministratorer på en selvhostet installation ser det. |
 | **Tema** | Vælger dashboardets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt, alt efter hvordan din enhed er indstillet. |
 | **Log ud** | Logger dig ud, med det samme på alle OneUptime-servere. Hvor din administrator har sat det op, logger den dig også ud af din identitetsudbyder. |
 
@@ -35,7 +35,7 @@ Klik på dit billede øverst til højre i dashboardet.
 :::steps
 ### Åbn din profil
 
-Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt** åbner på kortet **Grundlæggende oplysninger**: dit navn, din e-mail, din tidszone og dit sprog.
+Klik på dit billede øverst til højre, og vælg **Brugerprofil**. Siden **Oversigt** åbner på kortet **Grundlæggende oplysninger**: dit navn, din e-mail, din tidszone og dit sprog.
 
 ### Rediger dine oplysninger
 
@@ -114,7 +114,7 @@ Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et lin
 
 ### Opsæt det
 
-For en godkendelsesapp scanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtaster den 6-cifrede kode, den viser, og klikker på **Bekræft og afslut**. En USB- eller NFC-nøgle giver du et navn og følger din browsers vejledning. Tofaktorgodkendelse er derefter slået til, og kortet viser **Aktiveret**. Fra dit næste login med adgangskode eller et link i en e-mail beder OneUptime om dit andet trin.
+For en godkendelsesapp scanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtaster den 6-cifrede kode, den viser, og klikker på **Bekræft og afslut**. På en telefon trykker du i stedet for at scanne på **Tilføj til godkendelsesapp**: din app åbner med din konto udfyldt. En USB- eller NFC-nøgle giver du et navn og følger din browsers vejledning. Tofaktorgodkendelse er derefter slået til, og kortet viser **Aktiveret**. Fra dit næste login med adgangskode eller et link i en e-mail beder OneUptime om dit andet trin.
 
 ### Gem dine backupkoder
 
@@ -127,7 +127,7 @@ Har du allerede en app under **Godkendelsesapps** eller en nøgle under **Sikker
 
 Når en administrator kræver tofaktorgodkendelse, og du endnu ikke har opsat noget, beder dit næste login med adgangskode eller et link i en e-mail dig om at opsætte det, før du bliver lukket ind. Vælg **Autentifikator-app** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**:
 
-- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**.
+- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**. På en telefon kan du i stedet for at scanne trykke på **Tilføj til godkendelsesapp**.
 - **Sikkerhedsnøgle**: Klik på **Registrer sikkerhedsnøgle**, og følg din browsers vejledning. Rør ved en USB- eller NFC-nøgle, eller brug din telefons eller computers fingeraftryk, ansigt eller skærmlås.
 
 Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er logget ind. **Vælg en anden måde** går tilbage til valget. En browser, der ikke kan registrere en sikkerhedsnøgle, fx på en side uden HTTPS, tilbyder kun autentifikator-appen.
@@ -156,20 +156,23 @@ Nogle ændringer beder dig først bekræfte, at det er dig, selvom du er logget 
 - slår tofaktorgodkendelse fra;
 - sletter din konto.
 
-Dialogen **Bekræft, at det er dig** beder om din adgangskode og, mens tofaktorgodkendelse er slået til, om dit andet trin: en kode fra din godkendelsesapp, din sikkerhedsnøgle eller en af dine backupkoder. Med en adgangsnøgle klikker du i stedet på **Brug en adgangsnøgle**. Logger du kun ind med single sign-on, Google eller Microsoft, klikker du på **Log ind igen**: OneUptime får din identitetsudbyder til at bede dig logge ind igen og sender dig derefter tilbage til siden. Så gennemføres ændringen.
+Dialogen **Bekræft, at det er dig** beder om din adgangskode og, mens tofaktorgodkendelse er slået til, om dit andet trin: en kode fra din godkendelsesapp, din sikkerhedsnøgle eller en af dine backupkoder. Med en adgangsnøgle klikker du i stedet på **Brug en adgangsnøgle**. Logger du kun ind med single sign-on, Google eller Microsoft, klikker du på **Log ind igen**: OneUptime får din identitetsudbyder til at bede dig logge ind igen og sender dig derefter tilbage til siden. Så gennemføres ændringen. Logger du kun ind med Vercel, som ikke kan bekræfte, at det er dig, så vælg i stedet **Log ind på en anden måde**, og log ind med et link, der sendes til din e-mail.
 
 Når du har bekræftet, bliver du ikke spurgt igen i 10 minutter i den browser. Fem forkerte forsøg logger den browser ud, men låser aldrig din konto: Log ind igen, og prøv en gang til. OneUptime sender dig en e-mail, når det sker, og hver gang en backupkode bekræfter, at det er dig.
 
-På en selvhostet server bekræfter hovedadministratorer på samme måde, at det er dem, før de ændrer, hvordan en anden logger ind, gør nogen til hovedadministrator, ændrer serverens single sign-on-udbydere eller e-mailindstillinger eller opretter en master-API-nøgle. Master-API-nøglen kan ikke foretage disse ændringer.
+På en selvhostet server bekræfter hovedadministratorer på samme måde, at det er dem, før de ændrer, hvordan en anden logger ind, sletter en andens konto, gør nogen til hovedadministrator, ændrer serverens single sign-on-udbydere eller e-mailindstillinger eller opretter en master-API-nøgle eller slår den til igen. Master-API-nøglen kan ikke foretage disse ændringer.
 
 At logge ind igen tæller kun, når din identitetsudbyder siger, at du loggede ind, efter at OneUptime sendte dig derhen. Logger udbyderen dig ind med en session, den allerede har, uden at bede om din adgangskode, bekræfter det intet: Log først ud hos udbyderen, og klik så på **Log ind igen**. Hvor din server lader dig logge ind med et link sendt på e-mail, gør **Log ind på en anden måde** det i stedet. Hvad OneUptime beder hver udbyder om, og hvad en administrator kan ændre, når et nyt login ikke bekræfter noget:
 
 | Udbyder | Hvad OneUptime beder om | Når det ikke bekræfter noget |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` og tidspunktet, hvor du loggede ind (`AuthnInstant`) | Få udbyderen til at efterkomme anmodningen, fx med Honor Force Authentication i Okta. |
-| OpenID Connect | `prompt=login` og `max_age=0` samt tidspunktet, hvor du loggede ind (`auth_time`) | Få udbyderen til at sende `auth_time`. I Microsoft Entra ID føjer du det til ID-tokenet som et valgfrit krav. |
+| OpenID Connect | `prompt=login` og `max_age=0` (Microsoft Entra ID: kun `prompt=login`) samt tidspunktet, hvor du loggede ind (`auth_time`) | Få udbyderen til at sende `auth_time`. I Microsoft Entra ID føjer du det til ID-tokenet som et valgfrit krav. |
 | Google | Tidspunktet, hvor du loggede ind (`auth_time`). Google kan ikke bedes om at få dig til at logge ind igen. | Slå Session age claims til for serverens Google-login-app, som skal være udgivet og verificeret. |
-| Microsoft | `prompt=login` og `max_age=0` samt tidspunktet, hvor du loggede ind (`auth_time`) | Føj `auth_time` til ID-tokenet i serverens Microsoft-login-app som et valgfrit krav. |
+| Microsoft | `prompt=login` samt tidspunktet, hvor du loggede ind (`auth_time`) | Føj `auth_time` til ID-tokenet i serverens Microsoft-login-app som et valgfrit krav. |
+| Vercel | Intet: Vercel kan ikke bedes om at få dig til at logge ind igen og oplyser ikke, hvornår du loggede ind. | Det bekræfter aldrig. Vælg **Log ind på en anden måde**, og log ind med et link, der sendes til din e-mail, eller opret en adgangskode med **Glemt adgangskode?**, og bekræft med den. |
+
+Hvad du skal indstille i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#log-ind-igen-for-at-bekræfte-at-det-er-dig).
 
 ## Dine projekter
 

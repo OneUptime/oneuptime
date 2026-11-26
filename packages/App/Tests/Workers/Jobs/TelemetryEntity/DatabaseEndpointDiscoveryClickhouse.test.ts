@@ -140,7 +140,12 @@ interface SpanFixture {
   minutesAgo?: number;
   // The span name; "query" when absent, NULL when null.
   name?: string | null;
+  // What the span is filed under; a backend Service's when absent.
+  primaryEntityType?: string;
 }
+
+// The stamp ingest puts on a Browser or Mobile key's resource (#10539).
+const RUM_CLIENT_STAMP: string = "resource.oneuptime.rum.client.kind";
 
 // Spans a fixture adds to its group's call count: connection spans add none.
 function callsOf(fixture: SpanFixture): number {
@@ -449,13 +454,33 @@ const SPANS: Array<SpanFixture> = [
     caller: VM,
     minutesAgo: 120,
   },
+  /*
+   * Never read either: a RUM client's spans (#10539). A key copied out of a
+   * page or an app could send a dozen CLIENT spans to a database it names;
+   * filed under a RUM application, or stamped as a RUM client with no
+   * application to be filed under, they add no database.
+   */
+  {
+    attributes: db("postgresql", "rum-forged.example.com"),
+    caller: { "resource.service.name": "storefront-web" },
+    primaryEntityType: "RealUserMonitor",
+    count: 12,
+  },
+  {
+    attributes: db("postgresql", "stamped-forged.example.com"),
+    caller: { [RUM_CLIENT_STAMP]: "browser" },
+    primaryEntityType: "Unknown",
+    count: 12,
+  },
 ];
 
 function isCounted(fixture: SpanFixture): boolean {
   return (
     (fixture.kind || SpanKind.Client) === SpanKind.Client &&
     (fixture.projectId || PROJECT_ID) === PROJECT_ID &&
-    (fixture.minutesAgo || 1) < 15
+    (fixture.minutesAgo || 1) < 15 &&
+    fixture.primaryEntityType !== "RealUserMonitor" &&
+    !Object.prototype.hasOwnProperty.call(fixture.caller, RUM_CLIENT_STAMP)
   );
 }
 
@@ -477,7 +502,7 @@ function spanRows(): Array<JSONObject> {
       rowsToInsert.push({
         projectId: fixture.projectId || PROJECT_ID,
         primaryEntityId: ObjectID.generate().toString(),
-        primaryEntityType: "OpenTelemetry",
+        primaryEntityType: fixture.primaryEntityType || "OpenTelemetry",
         startTime: OneUptimeDate.toClickhouseDateTime64(start),
         endTime: OneUptimeDate.toClickhouseDateTime64(start),
         startTimeUnixNano: String(start.getTime() * 1000000),
@@ -742,6 +767,13 @@ integration("Client-span database discovery SQL against ClickHouse", () => {
   test("SERVER spans, spans without a system, other projects and old spans are never read", () => {
     for (const row of rows) {
       expect(row.serverAddress).not.toBe("never.example.com");
+    }
+  });
+
+  test("a RUM client's spans are never read, filed under an application or only stamped (#10539)", () => {
+    for (const row of rows) {
+      expect(row.serverAddress).not.toBe("rum-forged.example.com");
+      expect(row.serverAddress).not.toBe("stamped-forged.example.com");
     }
   });
 

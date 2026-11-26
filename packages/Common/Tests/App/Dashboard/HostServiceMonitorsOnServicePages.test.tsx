@@ -149,6 +149,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { buildHostMonitorConfig } from "../../../Types/Monitor/HostAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { MetricMonitorQueryLanguage } from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
@@ -274,6 +275,34 @@ const SPOOLER_MONITOR: Monitor = monitorWith({
   }),
   status: { name: "Operational", color: "#22c55e" },
 });
+
+// A Metrics monitor written in PromQL (#10452), the project's every metric its scope.
+function promQLMonitorWith(data: {
+  id: string;
+  name: string;
+  promQLQuery: string;
+}): Monitor {
+  const steps: MonitorSteps = new MonitorSteps();
+  const step: MonitorStep = steps.data!.monitorStepsInstanceArray[0]!;
+
+  step.setMetricMonitor({
+    queryLanguage: MetricMonitorQueryLanguage.PromQL,
+    promQLQuery: data.promQLQuery,
+    metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+    rollingTime: RollingTime.Past5Minutes,
+  });
+
+  const monitor: Monitor = monitorWith({
+    id: data.id,
+    name: data.name,
+    step: step,
+    status: { name: "Operational", color: "#22c55e" },
+  });
+
+  monitor.monitorType = MonitorType.Metrics;
+
+  return monitor;
+}
 
 // Another service's monitor on the same host: not this service's.
 const W3SVC_MONITOR: Monitor = monitorWith({
@@ -530,6 +559,198 @@ describe("a Windows service's page, with a monitor watching the service", () => 
 
     expect(within(monitors).getByText("Disabled")).toBeInTheDocument();
     expect(within(monitors).queryByText("Offline")).toBeNull();
+  });
+});
+
+/*
+ * #10452: a Metrics monitor written in PromQL is read by its expression. The
+ * card lists one whose expression reads this service on this host, leaves
+ * out one it should not claim, and lists one it cannot be sure of with what
+ * it could not check - without saying "Create Another Monitor" for it.
+ */
+describe("a Windows service's page, with monitors written in PromQL", () => {
+  const PROMQL_ID: string = "5a5a5a5a-1111-4aaa-8bbb-0000000000a1";
+  const DOUBTFUL_ID: string = "5a5a5a5a-1111-4aaa-8bbb-0000000000a2";
+
+  const SPOOLER_IN_PROMQL: Monitor = promQLMonitorWith({
+    id: PROMQL_ID,
+    name: "Spooler down (PromQL)",
+    promQLQuery:
+      'windows_service_status{name="Spooler", resource_host_name="web-01"} != 4',
+  });
+
+  test("lists one whose expression reads this service on this host, and Create Monitor says there is one", async () => {
+    monitorRows = [SPOOLER_IN_PROMQL];
+
+    renderServicePage();
+
+    const monitors: HTMLElement = await card();
+    const link: HTMLElement = await within(monitors).findByRole("link", {
+      name: "Spooler down (PromQL)",
+    });
+
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/${PROMQL_ID}`,
+    );
+    expect(
+      within(monitors).queryByTestId("host-service-monitors-doubt"),
+    ).toBeNull();
+    expect(createButton()).toHaveTextContent("Create Another Monitor");
+  });
+
+  test("leaves out the ones it should not claim: another service, another host, another metric, an expression that does not parse", async () => {
+    monitorRows = [
+      promQLMonitorWith({
+        id: "5a5a5a5a-1111-4aaa-8bbb-0000000000b1",
+        name: "W3SVC down (PromQL)",
+        promQLQuery: 'windows_service_status{name="W3SVC"} != 4',
+      }),
+      promQLMonitorWith({
+        id: "5a5a5a5a-1111-4aaa-8bbb-0000000000b2",
+        name: "Spooler on web-02 (PromQL)",
+        promQLQuery:
+          'windows_service_status{name="Spooler", resource_host_name="web-02"} != 4',
+      }),
+      promQLMonitorWith({
+        id: "5a5a5a5a-1111-4aaa-8bbb-0000000000b3",
+        name: "Busy CPU (PromQL)",
+        promQLQuery:
+          'system_cpu_utilization{resource_host_name="web-01"} > 0.9',
+      }),
+      promQLMonitorWith({
+        id: "5a5a5a5a-1111-4aaa-8bbb-0000000000b4",
+        name: "Half written (PromQL)",
+        promQLQuery: 'windows_service_status{name="Spooler"',
+      }),
+    ];
+
+    renderServicePage();
+
+    const monitors: HTMLElement = await card();
+
+    expect(
+      await within(monitors).findByText("No monitor watches this service yet."),
+    ).toBeInTheDocument();
+    expect(
+      within(monitors).queryAllByTestId("host-service-monitors-item"),
+    ).toEqual([]);
+    expect(createButton()).toHaveTextContent("Create Monitor");
+    expect(createButton()).not.toHaveTextContent("Another");
+  });
+
+  test("lists one it cannot be sure of, says which labels it could not check, and Create Monitor stays Create Monitor", async () => {
+    monitorRows = [
+      promQLMonitorWith({
+        id: DOUBTFUL_ID,
+        name: "Auto-start services down",
+        promQLQuery:
+          'windows_service_status{startup_mode="auto_start", job="windows"} != 4',
+      }),
+    ];
+
+    renderServicePage();
+
+    const monitors: HTMLElement = await card();
+
+    await within(monitors).findByRole("link", {
+      name: "Auto-start services down",
+    });
+
+    expect(
+      within(monitors).getByTestId("host-service-monitors-doubt"),
+    ).toHaveTextContent(
+      "May not watch this service: its PromQL expression also filters by startup_mode, job, which this page can't check.",
+    );
+    expect(createButton()).toHaveTextContent("Create Monitor");
+    expect(createButton()).not.toHaveTextContent("Another");
+  });
+
+  test("an expression that may leave the service out says so", async () => {
+    monitorRows = [
+      promQLMonitorWith({
+        id: DOUBTFUL_ID,
+        name: "Services down, Spooler aside",
+        promQLQuery:
+          'windows_service_status != 4 unless windows_service_status{name=~"Spool.*"}',
+      }),
+    ];
+
+    renderServicePage();
+
+    const monitors: HTMLElement = await card();
+
+    await within(monitors).findByRole("link", {
+      name: "Services down, Spooler aside",
+    });
+
+    expect(
+      within(monitors).getByTestId("host-service-monitors-doubt"),
+    ).toHaveTextContent(
+      "May not watch this service: its PromQL expression can leave some of the series it reads out, which this page can't check.",
+    );
+  });
+
+  test("beside a monitor it is sure of, one it is not says so alone, and Create Monitor says there is one", async () => {
+    monitorRows = [
+      promQLMonitorWith({
+        id: DOUBTFUL_ID,
+        name: "Auto-start services down",
+        promQLQuery: 'windows_service_status{startup_mode="auto_start"} != 4',
+      }),
+      SPOOLER_MONITOR,
+    ];
+
+    renderServicePage();
+
+    const monitors: HTMLElement = await card();
+
+    await within(monitors).findByRole("link", { name: "Spooler on Web 01" });
+
+    const items: Array<HTMLElement> = within(monitors).getAllByTestId(
+      "host-service-monitors-item",
+    );
+
+    expect(items).toHaveLength(2);
+    expect(
+      within(items[0]!).getByTestId("host-service-monitors-doubt"),
+    ).toBeInTheDocument();
+    expect(
+      within(items[1]!).queryByTestId("host-service-monitors-doubt"),
+    ).toBeNull();
+    expect(createButton()).toHaveTextContent("Create Another Monitor");
+  });
+
+  test("on a systemd unit's page, the PromQL alert of every failed unit is listed, and the unit's own words say a doubt", async () => {
+    lastParamMock.mockReturnValue("nginx.service");
+    monitorRows = [
+      promQLMonitorWith({
+        id: PROMQL_ID,
+        name: "Failed units (PromQL)",
+        promQLQuery:
+          'systemd_unit_state{systemd_unit_active_state="failed"} == 1',
+      }),
+      promQLMonitorWith({
+        id: DOUBTFUL_ID,
+        name: "Units of a job",
+        promQLQuery: 'systemd_unit_state{job="systemd"} == 0',
+      }),
+    ];
+
+    renderUnitPage();
+
+    const monitors: HTMLElement = await card();
+
+    await within(monitors).findByRole("link", {
+      name: "Failed units (PromQL)",
+    });
+
+    expect(
+      within(monitors).getByTestId("host-service-monitors-doubt"),
+    ).toHaveTextContent(
+      "May not watch this unit: its PromQL expression also filters by job, which this page can't check.",
+    );
+    expect(createButton()).toHaveTextContent("Create Another Monitor");
   });
 });
 

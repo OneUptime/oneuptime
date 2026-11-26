@@ -564,8 +564,9 @@ describe("the create-incident page", () => {
   test("reads the alert ids from the shared query parameter", () => {
     const code: string = dense(CREATE_PAGE);
 
+    // Beside the keys that carry the alerts' acknowledgement over and, since #10867, their owners.
     expect(code).toContain(
-      'INCIDENT_ALERT_IDS_TO_LINK_KEY,INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,MAX_ALERTS_PER_INCIDENT_LINK_ACTION,}from"Common/Types/Incident/IncidentAlertLink";',
+      'import{INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,INCIDENT_ALERT_IDS_TO_LINK_KEY,INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,MAX_ALERTS_PER_INCIDENT_LINK_ACTION,}from"Common/Types/Incident/IncidentAlertLink";',
     );
     expect(code).toContain(
       "IncidentFromAlerts.parseAlertIdsQueryParam(Navigation.getQueryStringByName(INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM),);",

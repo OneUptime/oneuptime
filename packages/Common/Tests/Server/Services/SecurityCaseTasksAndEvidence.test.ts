@@ -46,6 +46,7 @@ import ArchivableValueGuard from "../../../Server/Utils/Database/ArchivableValue
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import StateOrderGuard from "../../../Server/Utils/Database/StateOrderGuard";
 import SecurityCaseNotifications from "../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
+import { FEED_INVITEE_UNNAMED } from "../../../Server/Utils/Feed/FeedPersonName";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
@@ -331,10 +332,11 @@ describe("adding a task", () => {
 
   /*
    * A task can be assigned to someone invited to the project who has not
-   * accepted: the project sees only what it invited of them - the name
-   * typed for them, else their address - never their own name (#9823).
+   * accepted: the timeline names them by the name typed with their
+   * invitation, else as someone who hasn't joined the project yet - never
+   * by their own name (#9823), nor by any address (#10681).
    */
-  test("for somebody only invited to the project: named by the name typed for them, else their address", async () => {
+  test("for somebody only invited to the project: named by the name typed for them, else as someone who hasn't joined", async () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockImplementation(async (args: unknown) => {
@@ -375,7 +377,7 @@ describe("adding a task", () => {
 
     expect(feedTexts()).toEqual([
       "📋 Added the task **Reset the admin password** and assigned it to **Ana from Security**.",
-      "📋 Added the task **Reset the admin password** and assigned it to **ana@example.com**.",
+      `📋 Added the task **Reset the admin password** and assigned it to **${FEED_INVITEE_UNNAMED}**.`,
     ]);
     expect(
       (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,

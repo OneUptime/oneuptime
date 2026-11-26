@@ -1106,6 +1106,58 @@ export default class CodeRepository extends BaseModel {
   })
   public productionReviewLlmProviderId?: ObjectID = undefined;
 
+  /*
+   * Whether this repository's production review fails its check when a
+   * pull request leaks sensitive data (#10376): writes a secret or
+   * Restricted data to telemetry, makes a store that may hold sensitive
+   * data public, or adds a column for a password or a card security code
+   * stored as it is. Unset - every repository, until someone turns it on -
+   * is off: the check stays neutral, and the leak is said in the comment.
+   * On GitHub the check run fails; on GitLab, Forgejo and Gitea the review
+   * writes a commit status a branch rule can require.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Fail the Check on a Leak",
+    description:
+      "Whether a production review fails its check when a pull request writes a secret or Restricted data to telemetry, makes a store that may hold sensitive data public, or adds a column for a password or a card security code stored as it is. Off: the check stays neutral.",
+    example: false,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isProductionReviewFailOnLeakEnabled?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1415,71 +1467,6 @@ export default class CodeRepository extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadCodeRepository,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadCodeRepository,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

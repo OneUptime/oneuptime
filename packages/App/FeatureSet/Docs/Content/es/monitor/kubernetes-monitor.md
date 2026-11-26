@@ -116,7 +116,7 @@ Estos monitores siempre evalúan el **Valor de la métrica**: el valor de la con
 
 ### Condiciones
 
-Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** e **Igual a**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo.
+Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**, **Igual a** y **Distinto de**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo.
 
 La detección de anomalías frente a una referencia no necesita umbral. Elija una de estas condiciones, y el formulario muestra **Sensibilidad** y **Ventana de referencia** en su lugar:
 

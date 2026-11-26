@@ -13,6 +13,9 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   RESOURCE_COSTS_FIELD_KEY,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
+  WAF_BLOCKLIST_FIELD_KEY,
+  doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionAuthMethod,
   getCloudConnectionAuthMethodDefinition,
   getCloudConnectionDataSecurityLevel,
@@ -20,9 +23,12 @@ import {
   getCloudConnectionFieldsForMethod,
   getCloudConnectionReadIntervalInMinutes,
   getCloudConnectionTitle,
+  getCloudConnectionWafBlocklist,
   isCloudConnectionAuthMethod,
   isCloudConnectionProvider,
   isCloudConnectionResourceCostsOn,
+  isCloudConnectionSecurityCaseChecksOn,
+  isCloudConnectionWafBlocklistOn,
   splitCloudConnectionList,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { describe, expect, test } from "@jest/globals";
@@ -185,6 +191,10 @@ describe("the catalog", () => {
       RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      // Writes in the account, off until someone opts in (#10344).
+      WAF_BLOCKLIST_FIELD_KEY,
+      // Reads IAM users back for security cases, off until someone opts in (#10900).
+      SECURITY_CASE_CHECKS_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.Azure)).toEqual([
       "subscriptionIds",
@@ -192,6 +202,8 @@ describe("the catalog", () => {
       READ_INTERVAL_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      // Writes OneUptime's rules in WAF policies, off until someone opts in (#10348).
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.GCP)).toEqual([
       "projectIds",
@@ -200,6 +212,8 @@ describe("the catalog", () => {
       READ_INTERVAL_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      // Writes OneUptime's rules in Cloud Armor policies, off until someone opts in (#10349).
+      WAF_BLOCKLIST_FIELD_KEY,
     ]);
   });
 
@@ -242,6 +256,180 @@ describe("the catalog", () => {
    * already. Off until someone turns it on - each read is one more Cost
    * Explorer request, at $0.01 - and only "on" reads them.
    */
+  test("blocking addresses in AWS WAF is an AWS setting, folded with the command, off until someone picks a way to turn it on", () => {
+    const field: CloudConnectionField | undefined = definitionOf(
+      CloudProvider.AWS,
+    ).configFields.find((candidate: CloudConnectionField): boolean => {
+      return candidate.key === WAF_BLOCKLIST_FIELD_KEY;
+    });
+
+    expect(field).toBeDefined();
+    expect(field!.title).toBe("Block addresses in AWS WAF");
+    expect(field!.isAdvanced).toBe(true);
+    expect(field!.changesSetupCommand).toBe(true);
+    expect(field!.required).toBe(false);
+    expect(field!.defaultValue).toBe("off");
+    // Both ways in: a role, and an access key's user.
+    expect(field!.authMethods).toBeUndefined();
+    expect(field!.description.length).toBeLessThanOrEqual(150);
+    expect(field!.description).toContain("The command changes with it.");
+    expect(
+      (field!.options || []).map(
+        (option: { label: string; value: string }): Array<string> => {
+          return [option.value, option.label];
+        },
+      ),
+    ).toEqual([
+      ["off", "Off"],
+      ["rule", "On, and OneUptime adds its rule"],
+      ["code", "On, and I add the rule in code"],
+    ]);
+
+    /*
+     * Azure WAF and Cloud Armor (#10348, #10349): the same setting, on or
+     * off. OneUptime always keeps its own rules in the policies picked -
+     * a WAF policy is written whole, so a rule kept in code would be
+     * written over - and the command grants its role with it.
+     */
+    for (const [provider, title, names] of [
+      [
+        CloudProvider.Azure,
+        "Block addresses in Azure WAF",
+        ["Application Gateway", "Front Door"],
+      ],
+      [CloudProvider.GCP, "Block addresses in Cloud Armor", ["Cloud Armor"]],
+    ] as Array<[CloudProvider, string, Array<string>]>) {
+      const policyField: CloudConnectionField | undefined = definitionOf(
+        provider,
+      ).configFields.find((candidate: CloudConnectionField): boolean => {
+        return candidate.key === WAF_BLOCKLIST_FIELD_KEY;
+      });
+
+      expect(policyField).toBeDefined();
+      expect(policyField!.title).toBe(title);
+      expect(policyField!.isAdvanced).toBe(true);
+      expect(policyField!.changesSetupCommand).toBe(true);
+      expect(policyField!.required).toBe(false);
+      expect(policyField!.defaultValue).toBe("off");
+      expect(policyField!.authMethods).toBeUndefined();
+      expect(policyField!.description.length).toBeLessThanOrEqual(150);
+      expect(policyField!.description).toContain(
+        "The command changes with it.",
+      );
+
+      for (const name of names) {
+        expect(policyField!.description).toContain(name);
+      }
+
+      expect(
+        (policyField!.options || []).map(
+          (option: { label: string; value: string }): Array<string> => {
+            return [option.value, option.label];
+          },
+        ),
+      ).toEqual([
+        ["off", "Off"],
+        ["rule", "On"],
+      ]);
+    }
+
+    expect(getCloudConnectionWafBlocklist("rule")).toBe("rule");
+    expect(getCloudConnectionWafBlocklist("code")).toBe("code");
+    expect(isCloudConnectionWafBlocklistOn("rule")).toBe(true);
+    expect(isCloudConnectionWafBlocklistOn("code")).toBe(true);
+    expect(doesCloudConnectionWafBlocklistAddRule("rule")).toBe(true);
+    expect(doesCloudConnectionWafBlocklistAddRule("code")).toBe(false);
+
+    // Anything else - absent, off, misspelt, another type - writes nothing.
+    for (const value of [
+      undefined,
+      null,
+      "off",
+      "",
+      "Rule",
+      " rule ",
+      "on",
+      "block",
+      true,
+      1,
+      ["rule"],
+      { value: "rule" },
+    ]) {
+      expect({ value, read: getCloudConnectionWafBlocklist(value) }).toEqual({
+        value,
+        read: "off",
+      });
+      expect(isCloudConnectionWafBlocklistOn(value)).toBe(false);
+      expect(doesCloudConnectionWafBlocklistAddRule(value)).toBe(false);
+    }
+  });
+
+  /*
+   * AWS alone (#10900): what a security case reads back of the IAM users
+   * an attack changed. Off until someone turns it on - OneUptime asks IAM
+   * nothing through a connection that has not granted it - and only "on"
+   * reads them.
+   */
+  test("security case checks are an AWS setting, folded with the command, off until someone turns them on", () => {
+    const field: CloudConnectionField | undefined = definitionOf(
+      CloudProvider.AWS,
+    ).configFields.find((candidate: CloudConnectionField): boolean => {
+      return candidate.key === SECURITY_CASE_CHECKS_FIELD_KEY;
+    });
+
+    expect(field).toBeDefined();
+    expect(field!.title).toBe("Security case checks");
+    expect(field!.type).toBe("dropdown");
+    expect(field!.isAdvanced).toBe(true);
+    expect(field!.changesSetupCommand).toBe(true);
+    expect(field!.required).toBe(false);
+    expect(field!.defaultValue).toBe("off");
+    // Both ways in: a role, and an access key's user.
+    expect(field!.authMethods).toBeUndefined();
+    expect(field!.description.length).toBeLessThanOrEqual(150);
+    expect(field!.description).toContain("IAM user");
+    expect(field!.description).toContain("The command changes with it.");
+    expect(
+      (field!.options || []).map(
+        (option: { label: string; value: string }): Array<string> => {
+          return [option.value, option.label];
+        },
+      ),
+    ).toEqual([
+      ["off", "Off"],
+      ["on", "On"],
+    ]);
+
+    // Azure and Google Cloud have no IAM users of AWS's to read back.
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      expect(keysOf(definitionOf(provider).configFields)).not.toContain(
+        SECURITY_CASE_CHECKS_FIELD_KEY,
+      );
+    }
+
+    expect(isCloudConnectionSecurityCaseChecksOn("on")).toBe(true);
+
+    // Anything else - absent, off, misspelt, another type - reads nothing.
+    for (const value of [
+      undefined,
+      null,
+      "off",
+      "",
+      "On",
+      " on ",
+      "rule",
+      true,
+      1,
+      ["on"],
+      { value: "on" },
+    ]) {
+      expect({
+        value,
+        on: isCloudConnectionSecurityCaseChecksOn(value),
+      }).toEqual({ value, on: false });
+    }
+  });
+
   test("what each resource costs is an AWS setting, folded and off until someone turns it on", () => {
     const field: CloudConnectionField | undefined = definitionOf(
       CloudProvider.AWS,
@@ -297,6 +485,8 @@ describe("fields by sign-in method", () => {
       RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      WAF_BLOCKLIST_FIELD_KEY,
+      SECURITY_CASE_CHECKS_FIELD_KEY,
     ]);
     expect(
       keysOf(
@@ -320,6 +510,8 @@ describe("fields by sign-in method", () => {
       RESOURCE_COSTS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
+      WAF_BLOCKLIST_FIELD_KEY,
+      SECURITY_CASE_CHECKS_FIELD_KEY,
     ]);
     expect(
       keysOf(

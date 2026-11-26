@@ -47,14 +47,22 @@ import GzipRequestBodyMiddleware, {
   isJsonContentType,
 } from "../../../Server/Middleware/GzipRequestBody";
 import {
+  DOCS_REPORT_REQUEST_BODY_LIMIT,
   LARGE_REQUEST_BODY_LIMIT,
+  MCP_OAUTH_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   RequestBodyLimit,
 } from "../../../Server/Utils/RequestBodyLimit";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
+import {
+  INFLATE_FAILED_TYPE,
+  REQUEST_BODY_REFUSAL_MESSAGES,
+  getTooLargeForRouteMessage,
+  readRequestBodyRefusal,
+  withAppRequestBodyLimit,
+} from "../../../Server/Utils/RequestBodyRefusal";
 import Exception from "../../../Types/Exception/Exception";
-import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -82,6 +90,13 @@ const sendErrorResponseMock: JestMock =
 
 function loggerMock(level: "debug" | "warn" | "error"): JestMock {
   return logger[level] as unknown as JestMock;
+}
+
+// The last line logged at debug.
+function lastDebugLine(): string {
+  const calls: Array<Array<unknown>> = loggerMock("debug").mock.calls;
+
+  return String(calls[calls.length - 1]?.[0] ?? "");
 }
 
 /*
@@ -408,9 +423,12 @@ describe("GzipRequestBodyMiddleware - decompression bombs (GHSA-cp58-wc9q-qv53)"
     expect(driver.res.statusCode).toBe(413);
     expect(driver.nextCalls).toHaveLength(0);
     expect(driver.req.body).toBeUndefined();
-    expect(
-      String((driver.res.jsonBody as { message: string }).message),
-    ).toContain("decompressed");
+    // The limit, as a body sent uncompressed is told it (#10672).
+    expect(driver.res.jsonBody).toEqual({
+      error: REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime,
+    });
+    // Which of the two caps it passed is the debug line's to say.
+    expect(lastDebugLine()).toContain("decompressed size reached");
   });
 
   test("the bomb is refused mid-stream, not after the last byte arrives", async () => {
@@ -472,9 +490,10 @@ describe("GzipRequestBodyMiddleware - decompression bombs (GHSA-cp58-wc9q-qv53)"
 
     expect(driver.res.statusCode).toBe(413);
     expect(driver.nextCalls).toHaveLength(0);
-    expect(
-      String((driver.res.jsonBody as { message: string }).message),
-    ).toContain("compressed");
+    expect(driver.res.jsonBody).toEqual({
+      error: REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime,
+    });
+    expect(lastDebugLine()).toContain(": compressed size reached");
     expect(driver.req.paused).toBe(true);
   });
 
@@ -549,8 +568,31 @@ describe("GzipRequestBodyMiddleware - one outcome per request", () => {
   });
 });
 
+/*
+ * A body that says it is gzip and does not inflate is the client's (#10597):
+ * handed on as a 400 refusal in body-parser's shape, which expressErrorHandler
+ * answers in RequestBodyRefusal's words at debug. It was a 500, written
+ * straight to the response, with the zlib error logged at error level.
+ */
+function expectNotInflatedRefusal(driver: Driver): void {
+  expect(driver.nextCalls).toHaveLength(1);
+  expect(readRequestBodyRefusal(driver.nextCalls[0])).toEqual({
+    type: INFLATE_FAILED_TYPE,
+    status: 400,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.notInflated,
+  });
+  expect(driver.errorResponse()).toBeUndefined();
+  expect(driver.res.statusCode).toBe(0);
+  expect(driver.req.body).toBeUndefined();
+  // The rest of the body is not read, and its answer closes the connection.
+  expect(driver.req.paused).toBe(true);
+  expect(
+    (driver.res as unknown as { shouldKeepAlive?: boolean }).shouldKeepAlive,
+  ).toBe(false);
+}
+
 describe("GzipRequestBodyMiddleware - malformed and truncated input", () => {
-  test("a body that is not gzip at all is a 500, exactly as before", async () => {
+  test("a body that is not gzip at all is refused 400 as the client's, not a 500", async () => {
     const driver: Driver = new Driver();
 
     await driver.feed([Buffer.from("this is not gzip")]);
@@ -558,16 +600,10 @@ describe("GzipRequestBodyMiddleware - malformed and truncated input", () => {
 
     expect(await driver.waitForOutcome()).toBe(true);
 
-    expect(driver.nextCalls).toHaveLength(0);
-
-    const error: Exception | undefined = driver.errorResponse();
-
-    expect(error).toBeDefined();
-    expect(error!.code).toBe(ExceptionCode.ServerException);
-    expect(error!.message).toBe("Error decompressing data");
+    expectNotInflatedRefusal(driver);
   });
 
-  test("a truncated gzip body is a 500 and never reaches the route", async () => {
+  test("a truncated gzip body is refused 400 and never reaches the route", async () => {
     const compressed: Buffer = gzip(Buffer.from("x".repeat(100_000)));
 
     const driver: Driver = new Driver();
@@ -579,9 +615,35 @@ describe("GzipRequestBodyMiddleware - malformed and truncated input", () => {
 
     expect(await driver.waitForOutcome()).toBe(true);
 
-    expect(driver.nextCalls).toHaveLength(0);
-    expect(driver.req.body).toBeUndefined();
-    expect(driver.errorResponse()).toBeDefined();
+    expectNotInflatedRefusal(driver);
+  });
+
+  test("gzip with bytes after its end is refused 400, as one that does not inflate", async () => {
+    const driver: Driver = new Driver();
+
+    await driver.feed([
+      Buffer.concat([gzip(Buffer.from('{"a":1}')), Buffer.from("trailing")]),
+    ]);
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expectNotInflatedRefusal(driver);
+  });
+
+  test("a body that is not gzip is refused at its first bytes, with the rest unread", async () => {
+    const driver: Driver = new Driver();
+
+    await driver.feed([
+      Buffer.from("this is not gzip"),
+      ...chunked(Buffer.alloc(4 * 1024 * 1024, 1), 64 * 1024),
+    ]);
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expectNotInflatedRefusal(driver);
+    // The first chunk, and what the inflate was given meanwhile: a read or two.
+    expect(driver.fedBytes).toBeLessThanOrEqual(16 + 2 * 64 * 1024);
   });
 
   test("an empty body is an empty body, not a 500", async () => {
@@ -662,6 +724,32 @@ describe("GzipRequestBodyMiddleware - rejections do not become a log flood", () 
     expect(loggerMock("error").mock.calls).toHaveLength(0);
     expect(loggerMock("warn").mock.calls).toHaveLength(0);
     expect(loggerMock("debug").mock.calls).toHaveLength(1);
+  });
+
+  /*
+   * #10597: any client, with no key, could have the App log an error with
+   * its stack once a request. The refusal is handed on, and
+   * expressErrorHandler logs it at debug (StartServerErrorStatus,
+   * RequestBodyRefusalOverHttp).
+   */
+  test("a body that does not inflate is never logged here, at any level", async () => {
+    loggerMock("debug").mockClear();
+    loggerMock("warn").mockClear();
+    loggerMock("error").mockClear();
+
+    for (let attempt: number = 0; attempt < 20; attempt++) {
+      const driver: Driver = new Driver();
+
+      await driver.feed([Buffer.from(`not gzip ${attempt}`)]);
+      driver.end();
+
+      expect(await driver.waitForOutcome()).toBe(true);
+      expect(readRequestBodyRefusal(driver.nextCalls[0])?.status).toBe(400);
+    }
+
+    expect(loggerMock("error").mock.calls).toHaveLength(0);
+    expect(loggerMock("warn").mock.calls).toHaveLength(0);
+    expect(loggerMock("debug").mock.calls).toHaveLength(0);
   });
 });
 
@@ -874,8 +962,14 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
 
     expect(await inflating.waitForOutcome()).toBe(true);
     expect(inflating.res.statusCode).toBe(413);
+    /*
+     * In the words, and the field, the same body sent uncompressed is
+     * refused in (#10672): it used to say a sentence of its own, under
+     * "message", so a body over a route's limit was answered one way gzipped
+     * and another sent as it is.
+     */
     expect(inflating.res.jsonBody).toEqual({
-      message: `Request body too large. The decompressed body of a gzip-encoded request may not exceed ${ORDINARY_REQUEST_BODY_LIMIT.bytes} bytes.`,
+      error: getTooLargeForRouteMessage(ORDINARY_REQUEST_BODY_LIMIT.bytes),
     });
 
     const declared: Driver = new Driver(
@@ -885,8 +979,50 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
 
     expect(declared.res.statusCode).toBe(413);
     expect(declared.res.jsonBody).toEqual({
-      message: `Request body too large. The compressed body of a gzip-encoded request may not exceed ${ORDINARY_REQUEST_BODY_LIMIT.bytes} bytes.`,
+      error: getTooLargeForRouteMessage(ORDINARY_REQUEST_BODY_LIMIT.bytes),
     });
+  });
+
+  test("the answer is the one expressErrorHandler gives a parser's 413 for the same limit: a large route's, an ordinary one's, a small one's", async () => {
+    for (const limit of [
+      LARGE_REQUEST_BODY_LIMIT,
+      ORDINARY_REQUEST_BODY_LIMIT,
+      MCP_OAUTH_REQUEST_BODY_LIMIT,
+      DOCS_REPORT_REQUEST_BODY_LIMIT,
+    ]) {
+      const inflating: Driver = new Driver(
+        { "content-type": "application/x-www-form-urlencoded" },
+        limit,
+      );
+
+      await inflating.feed([gzip(Buffer.alloc(limit.bytes + 1, 0x61))]);
+      inflating.end();
+
+      expect(await inflating.waitForOutcome()).toBe(true);
+
+      // body-parser's refusal of the same body, as StartServer marks it.
+      let refused: unknown = undefined;
+
+      withAppRequestBodyLimit((err?: unknown): void => {
+        refused = err;
+      }, limit.bytes)(
+        Object.assign(new Error("request entity too large"), {
+          type: "entity.too.large",
+          status: 413,
+          statusCode: 413,
+          expose: true,
+          limit: limit.bytes,
+          length: limit.bytes + 1,
+        }),
+      );
+
+      const parsersAnswer: string | undefined =
+        readRequestBodyRefusal(refused)?.message;
+
+      expect(parsersAnswer).toBeDefined();
+      expect(inflating.res.statusCode).toBe(413);
+      expect(inflating.res.jsonBody).toEqual({ error: parsersAnswer });
+    }
   });
 
   test.each([
@@ -916,17 +1052,28 @@ describe("StartServer routes the gzip branch through this middleware", () => {
     "utf-8",
   );
 
+  /*
+   * The App's parsers (AppBodyParsers), which StartServer reads every body
+   * with, and a route that checks its key first after the key (#10702).
+   */
+  const parsersSource: string = fs.readFileSync(
+    path.join(__dirname, "../../../Server/Middleware/AppBodyParsers.ts"),
+    "utf-8",
+  );
+
   test("the gzip branch calls GzipRequestBodyMiddleware.parseBody, with the route's limit", () => {
-    expect(startServerSource).toContain(
+    expect(parsersSource).toContain(
       "GzipRequestBodyMiddleware.parseBody(req, res, next, limit)",
     );
     expect(startServerSource).toContain(
-      "const limit: RequestBodyLimit = getRequestBodyLimit(req.path);",
+      "AppBodyParsers.read(req, res, next, getRequestBodyLimit(req.path));",
     );
   });
 
   test("StartServer no longer inflates a request body itself", () => {
-    expect(startServerSource).not.toContain("zlib.gunzip(");
-    expect(startServerSource).not.toMatch(/^import zlib from "zlib";$/m);
+    for (const source of [startServerSource, parsersSource]) {
+      expect(source).not.toContain("zlib.gunzip(");
+      expect(source).not.toMatch(/^import zlib from "zlib";$/m);
+    }
   });
 });

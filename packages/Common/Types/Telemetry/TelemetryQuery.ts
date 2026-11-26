@@ -6,6 +6,16 @@ import MetricViewData from "../Metrics/MetricViewData";
 import TelemetryType from "./TelemetryType";
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 
+/*
+ * What a resource's logs or traces are read by: the attribute filters, as
+ * the signal stores them, and the metric attributes the monitor narrowed its
+ * reads by that the signal cannot carry (MonitorResourceSignalScope).
+ */
+export interface TelemetrySignalScope {
+  attributes: Dictionary<string>;
+  notCarried: Array<string>;
+}
+
 export interface TelemetryQuery {
   telemetryType: TelemetryType;
   telemetryQuery: Query<Log> | Query<Span> | Query<ExceptionInstance> | null;
@@ -32,4 +42,16 @@ export interface TelemetryQuery {
    * #6266).
    */
   metricServiceIds?: Array<string> | undefined;
+  /*
+   * On a metric snapshot of a Host, Docker, Podman or IoT Device monitor:
+   * its resource's logs and traces, by what the check read (#10451) - the
+   * host, a container host's runtime, an IoT fleet, a systemd unit's
+   * journal lines. The event's Logs, Traces and Exceptions tabs read these
+   * in place of the metric queries' own filters, which are the metric's (a
+   * Windows service's `name`, a CPU's `state`) and on no log line or span.
+   * Absent for every other monitor, and on a snapshot stored before.
+   */
+  metricSignalScopes?:
+    | { logs: TelemetrySignalScope; traces: TelemetrySignalScope }
+    | undefined;
 }

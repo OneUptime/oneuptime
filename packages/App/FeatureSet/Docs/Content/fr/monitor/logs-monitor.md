@@ -237,7 +237,7 @@ La valeur de chaque attribut de Group By est une [variable de modèle](/docs/mon
 - **Chaque critère est évalué**, comme sur un moniteur de métriques regroupé, si bien que différents groupes peuvent remplir différents critères en même temps. Un groupe qui remplit deux critères ne reçoit toujours qu'une alerte, celle du premier ; ordonnez donc les critères du plus grave au moins grave.
 - **Un groupe n'existe que s'il a journalisé quelque chose dans la fenêtre de temps.** Les critères **Égal à 0** et **Inférieur à** ne se déclenchent donc que pour les groupes qui ont journalisé au moins une fois ; pour alerter quand les journaux cessent complètement d'arriver, utilisez un moniteur sans Group By.
 - **La détection d'anomalies** (**Anormalement élevé**, **Anormalement bas**, **Anormal**) n'est pas évaluée par groupe – sa référence couvre tout le moniteur –, si bien que ces filtres ne correspondent jamais sur un moniteur regroupé.
-- Le statut du moniteur suit le premier critère que remplit un groupe. Quand aucun groupe ne remplit de critère, le moniteur revient à son statut par défaut.
+- Le statut du moniteur suit le premier critère que remplit un groupe. Un critère qui ramène seulement le moniteur à son statut par défaut, sans ouvrir d'alerte ni d'incident, attend les groupes qui ont rempli un critère fixant un autre statut, jusqu'à ce que chacun d'eux le remplisse ou ne journalise rien dans la fenêtre de temps. Quand aucun groupe ne remplit de critère et qu'aucun n'est attendu, le moniteur revient à son statut par défaut.
 
 ## Dépannage
 

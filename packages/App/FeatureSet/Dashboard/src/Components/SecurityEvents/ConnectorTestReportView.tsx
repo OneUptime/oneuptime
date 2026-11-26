@@ -114,11 +114,16 @@ export function formatDuration(
   });
 }
 
-interface CheckRowProps {
+export interface CheckRowProps {
   check: SecurityConnectorCheck;
 }
 
-const CheckRow: FunctionComponent<CheckRowProps> = (
+/*
+ * One check: its status, its name and what it found, and what to do when it
+ * did not pass. Also drawn on its own by the Block Addresses dialog, for the
+ * write permissions blocking at Cloudflare checks (#10343).
+ */
+export const CheckRow: FunctionComponent<CheckRowProps> = (
   props: CheckRowProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();

@@ -16,7 +16,8 @@ import zlib from "zlib";
  *   - and, for a project with team or label budgets or usage metrics
  *     (#6386, #6355), the job carries what the request path counted, and
  *     the worker hands the ingest service the batch's attribution, at the
- *     size the request path counted it.
+ *     size the request path counted it - an OTLP job's, and a Fluent or
+ *     syslog job's (#10102).
  *
  * The budget decisions are mocked (TelemetryIngestionBudget is tested on its
  * own, and against a real Valkey); the queue, the body store and the ingest
@@ -92,6 +93,15 @@ jest.mock("../../FeatureSet/Telemetry/Services/FluentLogsIngestService", () => {
     default: { processFluentLogsFromQueue: jest.fn() },
   };
 });
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/SecurityEventsIngestService",
+  () => {
+    return {
+      __esModule: true,
+      default: { processSecurityEventsFromQueue: jest.fn() },
+    };
+  },
+);
 
 const storeBody: jest.Mock = jest.fn().mockResolvedValue("telemetry:body:k");
 const readBody: jest.Mock = jest.fn();
@@ -173,6 +183,8 @@ jest.mock(
 );
 
 import "../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry";
+import FluentLogsIngestService from "../../FeatureSet/Telemetry/Services/FluentLogsIngestService";
+import SyslogIngestService from "../../FeatureSet/Telemetry/Services/SyslogIngestService";
 import TelemetryQueueService, {
   getTelemetryIngestionBudgetSignalForTelemetryType,
   TelemetryIngestJobData,
@@ -738,5 +750,178 @@ describe("OtelPayloadDecoder.decodeFromQueueMeasured", () => {
     expect(MAX_COUNTED_INGEST_BODY_BYTES).toBe(
       MAX_DECOMPRESSED_OTLP_BODY_BYTES,
     );
+  });
+});
+
+/*
+ * #10102: a Fluent or syslog job carries the size its handler read before
+ * it reshaped the body, and the worker hands its ingest service the batch's
+ * attribution, as it does an OTLP job's.
+ */
+describe("a Fluent or syslog batch of a project that needs attribution", () => {
+  test("is queued with the size its handler carried, for the worker to share out", async () => {
+    for (const type of [TelemetryType.Syslog, TelemetryType.FluentLogs]) {
+      jest.clearAllMocks();
+
+      const req: TelemetryRequest = request({
+        body: { messages: ["x"] },
+        charge: charge({ countedBytes: 640 }),
+      });
+      (req as unknown as Record<string, unknown>)["telemetryIngestBytes"] = 640;
+
+      await TelemetryQueueService.addTelemetryIngestJob(req, type);
+
+      // Counted once, at the gate: not again here.
+      expect(admit).not.toHaveBeenCalled();
+      expect(enqueuedJob()?.ingestBytes).toBe(640);
+      expect(enqueuedJob()?.requestBody).toEqual({ messages: ["x"] });
+    }
+  });
+
+  const runJob: (data: {
+    type: TelemetryType;
+    attemptsMade: number;
+    ingestBytes?: number;
+    countedBytes?: number;
+  }) => Promise<void> = async (data: {
+    type: TelemetryType;
+    attemptsMade: number;
+    ingestBytes?: number;
+    countedBytes?: number;
+  }): Promise<void> => {
+    const jobData: TelemetryIngestJobData = {
+      type: data.type,
+      projectId: PROJECT_ID,
+      requestBody: { messages: ["<14>hello"] },
+      requestHeaders: {},
+      ingestionTimestamp: new Date("2026-11-09T12:00:00Z"),
+      ...(data.ingestBytes !== undefined
+        ? { ingestBytes: data.ingestBytes }
+        : {}),
+      ...(data.countedBytes !== undefined
+        ? {
+            ingestionBudgetCharge: {
+              dayId: "20261109T0000Z",
+              signalSlug: "logs",
+              countedBytes: data.countedBytes,
+              isExact: true,
+              scopes: [
+                {
+                  scope: TelemetryIngestionBudgetScope.Project,
+                  scopeId: PROJECT_ID,
+                  warningBytes: null,
+                },
+              ],
+            },
+          }
+        : {}),
+    };
+
+    await capturedHandler!({
+      id: "job-3",
+      name: "ProcessTelemetry",
+      data: jobData,
+      attemptsMade: data.attemptsMade,
+    });
+  };
+
+  const handedOver: (type: TelemetryType) => Record<string, unknown> = (
+    type: TelemetryType,
+  ): Record<string, unknown> => {
+    const process: jest.Mock = (type === TelemetryType.Syslog
+      ? SyslogIngestService.processSyslogFromQueue
+      : FluentLogsIngestService.processFluentLogsFromQueue) as unknown as jest.Mock;
+
+    expect(process).toHaveBeenCalledTimes(1);
+
+    return process.mock.calls[0]![0] as Record<string, unknown>;
+  };
+
+  for (const type of [TelemetryType.Syslog, TelemetryType.FluentLogs]) {
+    test(`${type}: hands the ingest service none for a project that needs none, and never asks`, async () => {
+      await runJob({ type: type, attemptsMade: 0, ingestBytes: 640 });
+
+      expect(forBatch).not.toHaveBeenCalled();
+      expect(handedOver(type)["telemetryIngestAttribution"]).toBe(null);
+    });
+
+    test(`${type}: shares out the size its handler carried, counted on the day the request path counted it`, async () => {
+      getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+      await runJob({
+        type: type,
+        attemptsMade: 0,
+        ingestBytes: 640,
+        countedBytes: 640,
+      });
+
+      expect(forBatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: PROJECT_ID,
+          signal: ProductType.Logs,
+          bytes: 640,
+          isRetry: false,
+          receivedAt: new Date("2026-11-09T12:00:00Z"),
+          gateCharge: expect.objectContaining({
+            dayId: "20261109T0000Z",
+            countedBytes: 640,
+          }),
+        }),
+      );
+      expect(handedOver(type)["telemetryIngestAttribution"]).toEqual({
+        attribution: true,
+      });
+    });
+
+    test(`${type}: a job a release before this one queued is shared out at its charge's count, else at its body as stored`, async () => {
+      getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+      await runJob({ type: type, attemptsMade: 0, countedBytes: 300 });
+
+      expect(forBatch).toHaveBeenLastCalledWith(
+        expect.objectContaining({ bytes: 300 }),
+      );
+
+      jest.clearAllMocks();
+      getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+      await runJob({ type: type, attemptsMade: 0 });
+
+      expect(forBatch).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          bytes: Buffer.byteLength(JSON.stringify({ messages: ["<14>hello"] })),
+        }),
+      );
+    });
+
+    test(`${type}: a retry drops what a used-up budget drops, and counts nothing again`, async () => {
+      getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+      await runJob({ type: type, attemptsMade: 1, ingestBytes: 640 });
+
+      expect(forBatch).toHaveBeenCalledWith(
+        expect.objectContaining({ bytes: 640, isRetry: true }),
+      );
+    });
+  }
+
+  test("security events are never attributed: they count against the project's and the key's budgets only", async () => {
+    getProjectConfig.mockResolvedValue({ publishesUsageMetrics: true });
+
+    await capturedHandler!({
+      id: "job-4",
+      name: "ProcessTelemetry",
+      data: {
+        type: TelemetryType.SecurityEvents,
+        projectId: PROJECT_ID,
+        requestBody: { events: [] },
+        requestHeaders: {},
+        ingestionTimestamp: new Date("2026-11-09T12:00:00Z"),
+        ingestBytes: 50,
+      } as TelemetryIngestJobData,
+      attemptsMade: 0,
+    });
+
+    expect(forBatch).not.toHaveBeenCalled();
   });
 });

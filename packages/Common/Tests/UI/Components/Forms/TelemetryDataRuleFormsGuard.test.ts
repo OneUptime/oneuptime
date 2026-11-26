@@ -265,7 +265,12 @@ describe.each(DROP_FILTER_PAGES)("$form", (page: DataRulePage) => {
   test("builds its form with the shared drop filter builder", () => {
     const code: string = readCode(page.file);
 
-    expect(code).toMatch(/get(Log|Trace)DropFilterFormFields\(\)/);
+    /*
+     * Handed the footer that says what the filter would take, as it is
+     * written (#10436): the fields are still the shared builder's.
+     */
+    expect(code).toMatch(/get(Log|Trace)DropFilterFormFields\(/);
+    expect(code).toContain("<DropFilterImpactPreview");
     expect(code).toContain("getDropFilterFormSteps<");
     expect(code).not.toContain("FormFieldSchemaType.");
     expect(code).not.toContain("stepId:");
@@ -279,26 +284,36 @@ describe.each(SCRUB_RULE_PAGES)("$form", (page: DataRulePage) => {
     expect(form.hasSteps).toBe(false);
   });
 
-  test("starts from the pattern type, its regex under it, then the name", () => {
+  test("starts from the pattern type, its regex or its attributes under it, then the name", () => {
     expect(keys(openFields(form))).toEqual([
       "patternType",
       "customRegex",
+      // A Named Attributes rule's attributes to hide (#10366).
+      "attributeKeys",
       "name",
     ]);
 
-    const customRegex: FormFieldFacts | undefined = form.fields.find(
-      (field: FormFieldFacts): boolean => {
-        return field.key === "customRegex";
-      },
-    );
-    expect(customRegex?.isConditional).toBe(true);
+    for (const key of ["customRegex", "attributeKeys"]) {
+      const field: FormFieldFacts | undefined = form.fields.find(
+        (candidate: FormFieldFacts): boolean => {
+          return candidate.key === key;
+        },
+      );
+      expect({ key, isConditional: field?.isConditional }).toEqual({
+        key,
+        isConditional: true,
+      });
+    }
   });
 
-  test("folds the description, the action, the fields and Enabled under one Advanced, last", () => {
+  test("folds the description, the action, the fields, the attributes a pattern reads, the service and Enabled under one Advanced, last", () => {
     expect(keys(foldedFields(form))).toEqual([
       "description",
       "scrubAction",
       "fieldsToScrub",
+      // The only attributes a pattern rule reads, empty for every one (#10751).
+      "attributeKeys",
+      "service",
       "isEnabled",
     ]);
     expect(
@@ -325,14 +340,17 @@ describe.each(SCRUB_RULE_PAGES)("$form", (page: DataRulePage) => {
     });
   });
 
-  test("is four rows, the fourth only for Custom Regex", () => {
-    expect(form.visibleFieldCount).toBe(4);
+  // Four rows on screen at most: the regex and the attributes never show together.
+  test("is five rows, the regex only for Custom Regex and the attributes only for Named Attributes", () => {
+    expect(form.visibleFieldCount).toBe(5);
   });
 
   test("builds its form with the shared scrub rule builder, and flags rules that scrub nothing", () => {
     const code: string = readCode(page.file);
 
-    expect(code).toMatch(/get(Log|Trace)ScrubRuleFormFields\(\)/);
+    expect(code).toMatch(/get(Log|Trace)ScrubRuleFormFields\(/);
+    // Under the name, what reads the values the rule would hide (#10433).
+    expect(code).toContain("<ScrubRuleReadersPreview");
     expect(code).not.toContain("FormFieldSchemaType.");
     expect(code).not.toContain("formSteps=");
     expect(code).toContain("<ScrubRulePatternPill");

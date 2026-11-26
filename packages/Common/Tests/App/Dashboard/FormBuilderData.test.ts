@@ -57,6 +57,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenanceCustomField from "../../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
@@ -208,7 +209,7 @@ describe("the records a choice offers", () => {
     [
       FormTargetOptionsSource.IncidentSeverity,
       IncidentSeverity,
-      { _id: true, name: true, color: true },
+      { _id: true, name: true, color: true, order: true },
       { order: SortOrder.Ascending },
     ],
     [
@@ -263,6 +264,91 @@ describe("the records a choice offers", () => {
       { id: "dddddddd-0000-4000-8000-000000000002", name: "Minor" },
       { id: "dddddddd-0000-4000-8000-000000000003", name: "" },
     ]);
+  });
+
+  /*
+   * #10646: a choice question offers the records it names, so those are
+   * read by their ids, as the server reads them for the public page - never
+   * looked for in the project's first 10,000 of a kind.
+   */
+  test.each([
+    [FormTargetOptionsSource.Monitor, Monitor, {}],
+    [FormTargetOptionsSource.StatusPage, StatusPage, {}],
+    [FormTargetOptionsSource.Label, Label, { isArchived: false }],
+    [
+      FormTargetOptionsSource.IncidentSeverity,
+      IncidentSeverity,
+      { isArchived: false },
+    ],
+  ])(
+    "%s by ids: only those, as the public page reads them",
+    async (
+      source: FormTargetOptionsSource,
+      modelType: unknown,
+      rule: Record<string, unknown>,
+    ) => {
+      await loadFormRecordOptions(source, [UPPER_ID, "not-an-id", UPPER_ID]);
+
+      const request: Record<string, unknown> = lastRequest();
+      const query: Record<string, unknown> = request["query"] as Record<
+        string,
+        unknown
+      >;
+
+      expect(request["modelType"]).toBe(modelType);
+      // Each id once, a malformed one left out; nothing else read.
+      expect(
+        (query["_id"] as Includes).values.map((value: unknown): string => {
+          return String(value);
+        }),
+      ).toEqual([UPPER_ID.toLowerCase()]);
+      expect(request["limit"]).toBe(1);
+
+      for (const [column, value] of Object.entries(rule)) {
+        expect(query[column]).toBe(value);
+      }
+    },
+  );
+
+  test("read by ids, they come in the project's own order", async () => {
+    rows = [
+      { _id: "dddddddd-0000-4000-8000-000000000002", name: "Minor", order: 3 },
+      { _id: "dddddddd-0000-4000-8000-000000000001", name: "Major", order: 1 },
+    ];
+
+    expect(
+      (
+        await loadFormRecordOptions(FormTargetOptionsSource.IncidentSeverity, [
+          "dddddddd-0000-4000-8000-000000000001",
+          "dddddddd-0000-4000-8000-000000000002",
+        ])
+      ).map((option: { name: string }): string => {
+        return option.name;
+      }),
+    ).toEqual(["Major", "Minor"]);
+
+    rows = [
+      { _id: "dddddddd-0000-4000-8000-000000000003", name: "zeta" },
+      { _id: "dddddddd-0000-4000-8000-000000000004", name: "Alpha" },
+    ];
+
+    expect(
+      (
+        await loadFormRecordOptions(FormTargetOptionsSource.Monitor, [
+          "dddddddd-0000-4000-8000-000000000003",
+          "dddddddd-0000-4000-8000-000000000004",
+        ])
+      ).map((option: { name: string }): string => {
+        return option.name;
+      }),
+    ).toEqual(["Alpha", "zeta"]);
+  });
+
+  test("by no ids, nothing is read", async () => {
+    expect(
+      await loadFormRecordOptions(FormTargetOptionsSource.Monitor, []),
+    ).toEqual([]);
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
   test("nothing for a source it does not know, or without a project", async () => {

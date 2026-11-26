@@ -996,6 +996,125 @@ describe("WorkspaceLiveMessages.updateKept", () => {
   });
 });
 
+/*
+ * A message to one person (a playbook step's approval in an approver's
+ * direct messages) is theirs: edited only through the workspace it was sent
+ * through, at the Bot Framework service its personal chat is at, and once
+ * they delete it, never posted to them again.
+ */
+describe("WorkspaceLiveMessages.updateKept - a direct message", () => {
+  function directMessage(
+    workspaceType: WorkspaceType,
+    data: { workspaceProjectId: string; serviceUrl?: string },
+  ): WorkspaceLiveMessage {
+    const row: WorkspaceLiveMessage = new WorkspaceLiveMessage();
+    row.id = ObjectID.generate();
+    row.projectId = PROJECT_ID;
+    row.workspaceType = workspaceType;
+    row.messageKey = KEY;
+    row.destinationType =
+      workspaceType === WorkspaceType.MicrosoftTeams
+        ? WorkspaceLiveMessageDestinationType.Chat
+        : WorkspaceLiveMessageDestinationType.Channel;
+    row.channelId =
+      workspaceType === WorkspaceType.MicrosoftTeams
+        ? "a:1personal-chat"
+        : "D0JANE";
+    row.messageId = "1700000000.000100";
+    row.contentHash = WorkspaceLiveMessages.getContentHash([markdown("first")]);
+    row.messageData = {
+      language: "de",
+      directMessageUserId: "jane",
+      ...data,
+    };
+    store.rows.push(row);
+    return row;
+  }
+
+  function connectedTo(workspaceProjectId: string): void {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockImplementation((async (data: {
+        workspaceType: WorkspaceType;
+      }): Promise<WorkspaceProjectAuthToken> => {
+        const token: WorkspaceProjectAuthToken = auth(data.workspaceType);
+        token.workspaceProjectId = workspaceProjectId;
+        return token;
+      }) as never);
+  }
+
+  test("through the workspace it was sent through: edited, a personal chat at the service it is at", async () => {
+    connectedTo("tenant-1");
+    const teamsUpdate: SpyInstance<typeof MicrosoftTeamsUtil.updateMessage> =
+      jest.spyOn(MicrosoftTeamsUtil, "updateMessage").mockResolvedValue();
+    const kept: WorkspaceLiveMessage = directMessage(
+      WorkspaceType.MicrosoftTeams,
+      {
+        workspaceProjectId: "tenant-1",
+        serviceUrl: "https://smba.trafficmanager.net/emea/",
+      },
+    );
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Updated);
+
+    expect(teamsUpdate.mock.calls[0]![0].location).toEqual({
+      channelId: "a:1personal-chat",
+      teamId: undefined,
+      isChat: true,
+      serviceUrl: "https://smba.trafficmanager.net/emea/",
+    });
+    // What it was written in, kept for the next edit.
+    expect(store.rows[0]!.messageData).toEqual(kept.messageData);
+  });
+
+  test("the project connected to another workspace since: not edited with that workspace's token", async () => {
+    connectedTo("T0ANOTHER");
+    const slackUpdate: SpyInstance<typeof SlackUtil.updateMessage> = jest
+      .spyOn(SlackUtil, "updateMessage")
+      .mockResolvedValue();
+    const kept: WorkspaceLiveMessage = directMessage(WorkspaceType.Slack, {
+      workspaceProjectId: "T0TEAM",
+    });
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
+
+    expect(slackUpdate).not.toHaveBeenCalled();
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("deleted by the person it was sent to: never posted to them again", async () => {
+    connectedTo("T0TEAM");
+    jest
+      .spyOn(SlackUtil, "updateMessage")
+      .mockRejectedValue(
+        new BadRequestException("Error from Slack message_not_found"),
+      );
+    const kept: WorkspaceLiveMessage = directMessage(WorkspaceType.Slack, {
+      workspaceProjectId: "T0TEAM",
+    });
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
+
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(store.rows[0]!.messageId).toBe("1700000000.000100");
+  });
+});
+
 describe("WorkspaceLiveMessages.getConnectedWorkspaceTypes", () => {
   test("the workspaces with a token, Slack first", async () => {
     const teamsWithoutToken: WorkspaceProjectAuthToken = auth(

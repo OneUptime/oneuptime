@@ -35,7 +35,8 @@ full field; a kind of file a field does not take and a file over 10 MB,
 refused by name with nothing uploaded; an upload and a save the server
 refuses; long names that wrap; and on the form, files kept in the browser
 until Submit and sent with the answers as the server reads them, the
-upload's progress, Replace, the response's 10 files and 20 MB checked before
+upload's progress, Replace, a question that names the file it had no room
+for, the response's 10 files and 20 MB checked before
 anything is sent, and the form's hourly allowance of files - at 1280 and 390
 pixels, dark, German and Persian, right to left. Screenshots are saved under
 `output/playwright/custom-field-files-ui`.

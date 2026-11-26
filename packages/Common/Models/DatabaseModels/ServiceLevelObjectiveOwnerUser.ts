@@ -371,66 +371,6 @@ export default class ServiceLevelObjectiveOwnerUser extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadServiceLevelObjectiveOwnerUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-    example: "user-id-2d4f6a8c-e1b3-5d7e-9f0a-1c2d3e4f5a6b",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadServiceLevelObjectiveOwnerUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "2d4f6a8c-e1b3-5d7e-9f0a-1c2d3e4f5a6b",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

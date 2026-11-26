@@ -34,6 +34,12 @@ import PaloAltoLogParser, {
 import SshLogParser, { SSH_AUTHENTICATION_METHODS } from "./SshLogParser";
 import SudoLogParser from "./SudoLogParser";
 import WebAttackLogParser, { WEB_ATTACK_MARKERS } from "./WebAttackLogParser";
+import {
+  REFUSED_STATUS_LOG_WORDS,
+  SENSITIVE_FILE_PROBE_WORDS,
+  SENSITIVE_FILE_SECRET_WORDS,
+  SERVED_STATUS_LOG_WORDS,
+} from "../SensitiveFileProbe";
 import WindowsEventLogParser, {
   WINDOWS_PREFILTER_GROUPS,
   WindowsPrefilterGroup,
@@ -117,6 +123,8 @@ const PARSERS: ReadonlyArray<LogLineParser> = [
 export interface SecurityLogPrefilterGroup {
   // The line holds this...
   requires: string;
+  // ...and, when it is given, one of these...
+  requiresAnyOf?: ReadonlyArray<string> | undefined;
   // ...and one of these...
   anyOf: ReadonlyArray<string>;
   // ...and none of these - unless it holds one of `unlessAnyOf` too.
@@ -284,6 +292,28 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
     ...PALO_ALTO_PREFILTER_GROUPS,
     ...FORTIGATE_PREFILTER_GROUPS,
     ...CISCO_ASA_PREFILTER_GROUPS,
+    /*
+     * A request for a sensitive file or admin page that the site refused
+     * or does not have (#10745, SensitiveFileProbe): a path's words and a
+     * 4xx status, so a WordPress site's own admin pages, which it serves,
+     * never leave the database.
+     */
+    {
+      requires: "/",
+      requiresAnyOf: SENSITIVE_FILE_PROBE_WORDS,
+      anyOf: REFUSED_STATUS_LOG_WORDS,
+    },
+    /*
+     * A file that holds secrets the site answered (#10912): its words and a
+     * 2xx status, read for what was sent - the file, a leak, or the site's
+     * own page. An admin page's words are none of these, so a WordPress
+     * site's own pages still never leave the database.
+     */
+    {
+      requires: "/",
+      requiresAnyOf: SENSITIVE_FILE_SECRET_WORDS,
+      anyOf: SERVED_STATUS_LOG_WORDS,
+    },
   ],
 };
 
@@ -308,6 +338,10 @@ export function matchesSecurityLogPrefilter(body: string): boolean {
   return SECURITY_LOG_PREFILTER.groups.some(
     (group: SecurityLogPrefilterGroup): boolean => {
       if (lower.indexOf(group.requires) === -1) {
+        return false;
+      }
+
+      if (group.requiresAnyOf && !holdsAny(lower, group.requiresAnyOf)) {
         return false;
       }
 

@@ -813,6 +813,31 @@ describe("TelemetryExceptionService.createCodeFixRunForException - from an excep
 
     expect(run.triggeredByAiInsightId).toBeUndefined();
     expect(run.llmProviderId).toBeUndefined();
+    expect(run.triggeredBySecurityCaseId).toBeUndefined();
+  });
+
+  test("a fix asked from a security case carries the case, so the pull request it opens is kept on the case (#10347)", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const securityCaseId: ObjectID = ObjectID.generate();
+
+    await TelemetryExceptionService.createCodeFixRunForException({
+      telemetryExceptionId: exceptionId,
+      props: { isRoot: true },
+      triggeredBySecurityCaseId: securityCaseId,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          triggeredByTelemetryExceptionId: exceptionId,
+          triggeredBySecurityCaseId: securityCaseId,
+        }),
+      }),
+    );
   });
 
   test("the rules' repositories bound where the exception may resolve; left out, any", async () => {

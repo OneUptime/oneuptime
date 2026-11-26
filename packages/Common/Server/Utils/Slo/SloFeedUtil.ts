@@ -1,13 +1,9 @@
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
-import UserService from "../../Services/UserService";
-import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../TeamMember/PendingInviteeProfiles";
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedPersonName from "../Feed/FeedPersonName";
 
 /*
  * The server-side half of the SLO feed: the few things a feed writer needs
@@ -92,58 +88,17 @@ export default class SloFeedUtil {
   }
 
   /*
-   * "Jane Doe" - or the email when the user never set a name. Plain text,
-   * for a feed item to place as text (mdText). Empty when the user has
-   * neither.
-   */
-  public static getUserDisplayName(user: User | null | undefined): string {
-    if (!user) {
-      return "";
-    }
-
-    const name: string = user.name?.toString().trim() || "";
-    const email: string = user.email?.toString().trim() || "";
-
-    return name || email;
-  }
-
-  /*
-   * getUserDisplayName, as the project names the user: someone only invited
-   * to it by the name typed for them, else their address - never their
-   * account's own name, which it does not see until they join (#9823).
-   */
-  public static async getUserDisplayNameInProject(data: {
-    user: User | null | undefined;
-    userId: ObjectID;
-    projectId: ObjectID;
-  }): Promise<string> {
-    if (!data.user) {
-      return "";
-    }
-
-    const withheld: Map<string, WithheldProfile> =
-      await PendingInviteeProfiles.readWithheldProfilesInProject({
-        userIds: [data.userId.toString()],
-        projectId: data.projectId,
-      });
-
-    return PendingInviteeProfiles.getNameInProject({
-      userId: data.userId,
-      name: data.user.name,
-      email: data.user.email,
-      withheld: withheld,
-    });
-  }
-
-  /*
-   * `[Jane Doe](<dashboard link to the user>)` for the acting user of a feed
-   * item, the name the link's own text, placed as text (mdText) as
-   * UserService.getUserMarkdownString places it - a user's name is theirs to
-   * set, and `x](https://evil)` must not re-point the link.
+   * A person in an SLO's feed - the acting user, an owner added or removed
+   * - as every feed entry names them (FeedPersonName): a member by their
+   * name, else the part of their address before the "@", linked to their
+   * page; someone only invited to the project by the name typed for them,
+   * else "someone who hasn't joined the project yet", as text - never an
+   * address (#10668, #10669). The name is placed as text (mdText), so
+   * `x](https://evil)` cannot re-point the link.
    *
    * Unlike UserService.getUserMarkdownString it returns null when there is
    * no such user, so callers can fall back to "no user" wording rather than
-   * printing an empty link, and it trims the name.
+   * printing an empty link.
    */
   public static async getUserMarkdown(data: {
     userId: ObjectID | undefined | null;
@@ -157,34 +112,12 @@ export default class SloFeedUtil {
       return null;
     }
 
-    const user: User | null = await UserService.findOneById({
-      id: data.userId,
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    const markdown: MarkdownText = await FeedPersonName.getMarkdown({
+      userId: data.userId,
+      projectId: data.projectId,
     });
 
-    if (!user) {
-      return null;
-    }
-
-    const displayName: string =
-      (await SloFeedUtil.getUserDisplayNameInProject({
-        user: user,
-        userId: data.userId,
-        projectId: data.projectId,
-      })) || "User";
-
-    const link: URL = await UserService.getUserLinkInDashboard(
-      data.projectId,
-      data.userId,
-    );
-
-    return mdText`[${displayName}](${link.toString()})`;
+    return markdown.isEmpty() ? null : markdown;
   }
 
   /*

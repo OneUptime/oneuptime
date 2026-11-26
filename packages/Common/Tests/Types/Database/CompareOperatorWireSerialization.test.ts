@@ -9,6 +9,7 @@ import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, it } from "@jest/globals";
@@ -118,6 +119,14 @@ const OPERATOR_CASES: Array<OperatorCase> = [
     type: NotEqual,
     create: (value: CompareType) => {
       return new NotEqual(value);
+    },
+  },
+  // Its empty-including twin (#10399), sent the same way.
+  {
+    name: "NotEqualOrNull",
+    type: NotEqualOrNull,
+    create: (value: CompareType) => {
+      return new NotEqualOrNull(value);
     },
   },
 ];

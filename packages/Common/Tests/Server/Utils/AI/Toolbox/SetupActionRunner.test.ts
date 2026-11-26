@@ -1412,6 +1412,121 @@ describe("the four actions #10041 adds make what an approved Ask AI card makes",
   });
 });
 
+/*
+ * SOMEONE INVITED EARLIER, FROM AN AGENT (#10412): "invite ana, then page
+ * her on Payments" is two MCP calls, and the second found nobody until she
+ * accepted. Now the address with a live invitation to the project is added
+ * by the user its invitation made, as the person, and paged once she joins
+ * - the same rows an approved Ask AI card writes. An address the project
+ * never invited adds nobody.
+ */
+describe("add_to_on_call_policy from an agent: someone invited earlier, before they accept", () => {
+  const CY_ID: string = "10041000-0000-4000-8000-0000000000c3";
+
+  // The project's policy and Ana, and Cy's invitation, waiting for her.
+  function invitedCy(): PolicyRows {
+    const rows: PolicyRows = pagesWithPolicy();
+    const ana: User = model(User, {
+      _id: ANA_ID,
+      name: new Name("Ana Lopez"),
+      email: new Email("ana@acme.example"),
+    });
+
+    jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+      select: JSONObject;
+      query: JSONObject;
+    }): Promise<Array<TeamMember>> => {
+      const memberships: Array<TeamMember> = [];
+
+      if (args.query["hasAcceptedInvitation"] !== false) {
+        memberships.push(
+          model(TeamMember, {
+            _id: "10041000-0000-4000-8000-0000000000a1",
+            userId: new ObjectID(ANA_ID),
+            hasAcceptedInvitation: true,
+            ...(args.select["user"] ? { user: ana } : {}),
+          }),
+        );
+      }
+
+      if (args.query["hasAcceptedInvitation"] !== true) {
+        memberships.push(
+          model(TeamMember, {
+            _id: "10041000-0000-4000-8000-0000000000c1",
+            userId: new ObjectID(CY_ID),
+            hasAcceptedInvitation: false,
+            inviteeEmail: new Email("cy@acme.example"),
+          }),
+        );
+      }
+
+      return memberships;
+    }) as never);
+
+    return rows;
+  }
+
+  test("added to the level by the user her invitation made, as the person, and paged once she joins", async () => {
+    const props: DatabaseCommonInteractionProps = ownerProps();
+    let rows: PolicyRows | null = null;
+    const agent: { spies: Spies; result: SetupActionRunResult } =
+      await calledByAnAgent({
+        call: {
+          name: "add_to_on_call_policy",
+          arguments: {
+            policy: "Payments on-call",
+            alsoPage: ["cy@acme.example"],
+          },
+        },
+        props,
+        project: (): void => {
+          rows = invitedCy();
+        },
+      });
+
+    expect(rows!.userRows).toEqual([{ ruleId: LEVEL_ONE_ID, userId: CY_ID }]);
+    expect(
+      handed(
+        OnCallDutyPolicyEscalationRuleUserService.create as unknown as SpyInstance,
+      )["props"],
+    ).toBe(props);
+    expect(agent.result.details).toEqual([
+      'Adds cy@acme.example to escalation rule "Level 1".',
+      "Invited, and paged once they join: cy@acme.example.",
+    ]);
+  });
+
+  test("an address the project never invited adds nobody, and nothing is written for it", async () => {
+    let rows: PolicyRows | null = null;
+    installSpies({
+      project: (): void => {
+        rows = invitedCy();
+      },
+    });
+
+    let error: Error | null = null;
+
+    try {
+      await SetupActionRunner.run({
+        action: "add_to_on_call_policy",
+        args: { policy: "Payments on-call", alsoPage: ["zed@acme.example"] },
+        ctx: ctxOf(ownerProps()),
+      });
+    } catch (caught) {
+      error = caught as Error;
+    }
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toContain(
+      '"zed@acme.example" is no member or team of this project',
+    );
+    expect(rows!.userRows).toEqual([]);
+    expect(
+      OnCallDutyPolicyEscalationRuleUserService.create as unknown as SpyInstance,
+    ).not.toHaveBeenCalled();
+  });
+});
+
 describe("a project API key is refused each of the four, in its own words", () => {
   test.each([
     ["set_up_service_monitor", { service: "checkout", monitor: "errors" }],

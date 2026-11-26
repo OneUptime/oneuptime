@@ -6,6 +6,9 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import SecurityBlockDestination, {
+  isSecurityBlockForDestination,
+} from "../Utils/SecurityBlocklist/SecurityBlockDestination";
 import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../Utils/SecurityBlocklist/SecurityBlockDestinations";
@@ -19,6 +22,7 @@ import SecurityBlockTimeline, {
 import SecurityProtectedAddresses, {
   SecurityProtectionCheck,
 } from "../Utils/SecurityBlocklist/SecurityProtectedAddresses";
+import SecurityProtectedIndicators from "../Utils/SecurityBlocklist/SecurityProtectedIndicators";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -34,18 +38,24 @@ import {
   SecurityBlockAction,
   SecurityBlockDuration,
   SecurityBlockIndicatorType,
+  SecurityBlockIndicatorValue,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
-  SecurityBlockValue,
   findCoveringSecurityBlock,
+  getSecurityBlockActionProblem,
   getSecurityBlockExpiry,
   getSecurityBlockExpiryProblem,
+  getSecurityBlockReach,
   getSecurityBlockValueProblem,
   isSecurityBlockAction,
+  isSecurityBlockAddressType,
   isSecurityBlockInForce,
+  isSecurityBlockReach,
   isSecurityBlockSource,
-  readSecurityBlockValue,
+  readSecurityBlockIndicator,
 } from "../../Types/SecurityBlocklist/SecurityBlock";
+import { getSecurityBlockUnheldMessage } from "../../Types/SecurityBlocklist/SecurityBlockHolders";
 import { SecurityBlockEnforcementState } from "../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import {
   SecurityAddressProtection,
@@ -87,10 +97,18 @@ import UserType from "../../Types/UserType";
 // What a block() call is asked.
 export interface SecurityBlockRequest {
   projectId: ObjectID;
-  // As typed: an address, or a range written as an address and a length.
+  /*
+   * As typed: an address, a range written as an address and a length, a
+   * domain, an http or https URL, or a file's MD5, SHA-1 or SHA-256 hash.
+   */
   value: string;
-  // Block unless asked to challenge.
+  // Block unless asked to challenge an address, or to block and quarantine a file.
   action?: SecurityBlockAction | undefined;
+  /*
+   * Where it is enforced: an address at the edge unless asked for
+   * everywhere (on every machine too); anything else always everywhere.
+   */
+  reach?: SecurityBlockReach | undefined;
   /*
    * How long it lasts, from now: 24 hours unless given. Or when it ends
    * (expiresAt), null to keep it until someone lifts it. A duration wins
@@ -106,6 +124,23 @@ export interface SecurityBlockRequest {
    */
   source?: SecurityBlockSource | undefined;
   securityPlaybookRunId?: ObjectID | undefined;
+  /*
+   * OneUptime's own writes only (root props): the automatic response policy
+   * that blocks it (#10350), and whether its challenge is held as a block
+   * where an edge cannot challenge (SecurityBlockChallenge).
+   */
+  securityAutomaticResponsePolicyId?: ObjectID | undefined;
+  challengeFallsBackToBlock?: boolean | undefined;
+  // The policy's name, for the case's timeline: "The Scanners policy challenged ...".
+  securityAutomaticResponsePolicyName?: string | undefined;
+  /*
+   * A network by its ASN (#10354): OneUptime cannot tell whether it holds
+   * the project's own servers or its users, so it is blocked only when a
+   * person who may go past the largest range said they know that - the
+   * Campaigns page's Challenge This Network, after it said so. Ignored for
+   * any other value, and for OneUptime's own writes.
+   */
+  acknowledgesUncheckedNetwork?: boolean | undefined;
   props: DatabaseCommonInteractionProps;
 }
 
@@ -159,6 +194,8 @@ const BLOCK_SELECT: {
   value: true;
   indicatorType: true;
   action: true;
+  challengeFallsBackToBlock: true;
+  reach: true;
   state: true;
   expiresAt: true;
   createdAt: true;
@@ -169,6 +206,8 @@ const BLOCK_SELECT: {
   value: true,
   indicatorType: true,
   action: true,
+  challengeFallsBackToBlock: true,
+  reach: true,
   state: true,
   expiresAt: true,
   createdAt: true,
@@ -201,6 +240,20 @@ export class Service extends ProjectReferencesService<Model> {
    */
   private readonly checkedRecords: WeakSet<Model> = new WeakSet<Model>();
 
+  // The automatic response policy each record block() makes is made by, by name, for its timeline line.
+  private readonly policyNames: WeakMap<Model, string> = new WeakMap<
+    Model,
+    string
+  >();
+
+  /*
+   * The records of a network by its ASN that block() was asked to make by a
+   * person who knows OneUptime cannot check what the network holds
+   * (acknowledgesUncheckedNetwork). Only this service adds to it, so a
+   * create of one through the API is refused (#10354).
+   */
+  private readonly acknowledgedNetworks: WeakSet<Model> = new WeakSet<Model>();
+
   public constructor() {
     super(Model);
   }
@@ -208,9 +261,11 @@ export class Service extends ProjectReferencesService<Model> {
   // ---------- What other code calls ----------
 
   /*
-   * Blocks an address or a range, or says why not: already blocked (and
-   * by what), protected (and by what), or refused (and why). Throws only
-   * when the caller may not block at all, or the write itself fails.
+   * Blocks an address, a range, a domain, a URL or a file, or says why not:
+   * already blocked (and by what), protected (and by what), or refused (and
+   * why) - a domain, a URL or a file nothing the project connected could
+   * hold among them. Throws only when the caller may not block at all, or
+   * the write itself fails.
    */
   @CaptureSpan()
   public async block(
@@ -222,6 +277,11 @@ export class Service extends ProjectReferencesService<Model> {
     record.projectId = data.projectId;
     record.value = data.value;
     record.action = data.action || SecurityBlockAction.Block;
+
+    if (data.reach !== undefined) {
+      record.reach = data.reach;
+    }
+
     record.expiresAt =
       data.duration !== undefined
         ? (getSecurityBlockExpiry(data.duration, now) as Date)
@@ -241,6 +301,25 @@ export class Service extends ProjectReferencesService<Model> {
       if (data.securityPlaybookRunId) {
         record.securityPlaybookRunId = data.securityPlaybookRunId;
       }
+
+      if (data.securityAutomaticResponsePolicyId) {
+        record.securityAutomaticResponsePolicyId =
+          data.securityAutomaticResponsePolicyId;
+      }
+
+      if (
+        data.challengeFallsBackToBlock &&
+        record.action === SecurityBlockAction.Challenge
+      ) {
+        record.challengeFallsBackToBlock = true;
+      }
+
+      if (data.securityAutomaticResponsePolicyName?.trim()) {
+        this.policyNames.set(
+          record,
+          data.securityAutomaticResponsePolicyName.trim(),
+        );
+      }
     }
 
     /*
@@ -253,16 +332,30 @@ export class Service extends ProjectReferencesService<Model> {
       asked.value = data.value;
       asked.action = record.action;
 
+      if (record.reach !== undefined) {
+        asked.reach = record.reach;
+      }
+
       if (data.securityCaseId) {
         asked.securityCaseId = data.securityCaseId;
       }
 
       await this.checkCallerMayCreate({ data: asked, props: data.props });
+
+      if (
+        data.acknowledgesUncheckedNetwork &&
+        this.mayGoPastLimits(data.props, data.projectId)
+      ) {
+        this.acknowledgedNetworks.add(record);
+      }
     }
 
     const refusal: SecurityBlockOutcome | null =
       this.normalize({ record, props: data.props, now }) ||
       (await this.checkTargets({ record, props: data.props, now }));
+
+    // Read once, by the checks just run: the create never asks again.
+    this.acknowledgedNetworks.delete(record);
 
     if (refusal) {
       return refusal;
@@ -280,11 +373,14 @@ export class Service extends ProjectReferencesService<Model> {
     } catch (error) {
       /*
        * Two blocks of one value at once: the second insert meets the index
-       * that keeps one active block per value, and is already blocked.
+       * that keeps one active block per value and reach, and is already
+       * blocked.
        */
+      // normalize() wrote where it is enforced.
       const covering: Model | null = await this.findCoveringBlock({
         projectId: data.projectId,
-        value: readSecurityBlockValue(record.value)!,
+        value: readSecurityBlockIndicator(record.value)!,
+        reach: record.reach || SecurityBlockReach.Edge,
         now,
       });
 
@@ -375,18 +471,22 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The active block that covers a value: one of the same value, else the
-   * narrowest active range that holds it.
+   * The active block that covers a value where it is to be enforced: one of
+   * the same value, else - for an address - the narrowest active range that
+   * holds it. A block everywhere covers one at the edge, never the other way
+   * round (findCoveringSecurityBlock).
    */
   @CaptureSpan()
   public async findCoveringBlock(data: {
     projectId: ObjectID;
-    value: SecurityBlockValue;
+    value: SecurityBlockIndicatorValue;
+    reach?: SecurityBlockReach | undefined;
     now?: Date | undefined;
   }): Promise<Model | null> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
 
     const [same, ranges]: [Array<Model>, Array<Model>] = await Promise.all([
+      // At most one at each reach.
       this.findBy({
         query: {
           projectId: data.projectId,
@@ -395,20 +495,22 @@ export class Service extends ProjectReferencesService<Model> {
         },
         select: BLOCK_SELECT,
         skip: 0,
-        limit: 1,
+        limit: 2,
         props: { isRoot: true },
       }),
-      this.findBy({
-        query: {
-          projectId: data.projectId,
-          state: SecurityBlockState.Active,
-          indicatorType: SecurityBlockIndicatorType.IpRange,
-        },
-        select: BLOCK_SELECT,
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: { isRoot: true },
-      }),
+      data.value.block
+        ? this.findBy({
+            query: {
+              projectId: data.projectId,
+              state: SecurityBlockState.Active,
+              indicatorType: SecurityBlockIndicatorType.IpRange,
+            },
+            select: BLOCK_SELECT,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          })
+        : Promise.resolve([]),
     ]);
 
     const inForce: Array<Model> = [...same, ...ranges].filter(
@@ -420,6 +522,7 @@ export class Service extends ProjectReferencesService<Model> {
     return findCoveringSecurityBlock(
       data.value,
       inForce as Array<Model & { value: string }>,
+      data.reach || SecurityBlockReach.Edge,
     );
   }
 
@@ -432,14 +535,17 @@ export class Service extends ProjectReferencesService<Model> {
   public async check(data: {
     projectId: ObjectID;
     value: string;
+    reach?: SecurityBlockReach | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<{
-    value: SecurityBlockValue | null;
+    value: SecurityBlockIndicatorValue | null;
     problem: string | null;
     coveredBy: Model | null;
     protection: SecurityProtectionCheck | null;
   }> {
-    const read: SecurityBlockValue | null = readSecurityBlockValue(data.value);
+    const read: SecurityBlockIndicatorValue | null = readSecurityBlockIndicator(
+      data.value,
+    );
     const problem: string | null = getSecurityBlockValueProblem({
       value: data.value,
       mayBlockWideRanges: this.mayGoPastLimits(data.props, data.projectId),
@@ -451,11 +557,15 @@ export class Service extends ProjectReferencesService<Model> {
 
     const [coveredBy, protection]: [Model | null, SecurityProtectionCheck] =
       await Promise.all([
-        this.findCoveringBlock({ projectId: data.projectId, value: read }),
-        SecurityProtectedAddresses.findProtection({
+        this.findCoveringBlock({
           projectId: data.projectId,
-          block: read.block,
+          value: read,
+          reach: getSecurityBlockReach({
+            indicatorType: read.indicatorType,
+            reach: data.reach,
+          }),
         }),
+        this.findProtection({ projectId: data.projectId, value: read }),
       ]);
 
     return { value: read, problem: null, coveredBy, protection };
@@ -543,7 +653,9 @@ export class Service extends ProjectReferencesService<Model> {
       return refused(problem);
     }
 
-    const read: SecurityBlockValue = readSecurityBlockValue(record.value)!;
+    const read: SecurityBlockIndicatorValue = readSecurityBlockIndicator(
+      record.value,
+    )!;
     record.value = read.value;
 
     if (record.action === undefined || record.action === null) {
@@ -551,7 +663,33 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!isSecurityBlockAction(record.action)) {
-      return refused("Choose Block or Challenge.");
+      return refused(SECURITY_BLOCK_MESSAGES.chooseAction);
+    }
+
+    if (
+      record.reach !== undefined &&
+      record.reach !== null &&
+      !isSecurityBlockReach(record.reach)
+    ) {
+      return refused(
+        "Choose where the block is enforced: Edge, or Everywhere for every machine too.",
+      );
+    }
+
+    // An address where it was asked for, at the edge unless said; anything else everywhere.
+    record.reach = getSecurityBlockReach({
+      indicatorType: read.indicatorType,
+      reach: record.reach,
+    });
+
+    const actionProblem: string | null = getSecurityBlockActionProblem({
+      indicatorType: read.indicatorType,
+      action: record.action,
+      reach: record.reach,
+    });
+
+    if (actionProblem) {
+      return refused(actionProblem);
     }
 
     // Every block expires unless someone who may asks for one that does not.
@@ -599,11 +737,96 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * What protects a value, read as OneUptime: an address's or a range's
+   * sources (SecurityProtectedAddresses), or a domain's, a URL's or a
+   * file's (SecurityProtectedIndicators). Never throws.
+   */
+  private async findProtection(data: {
+    projectId: ObjectID;
+    value: SecurityBlockIndicatorValue;
+  }): Promise<SecurityProtectionCheck> {
+    return data.value.block
+      ? await SecurityProtectedAddresses.findProtection({
+          projectId: data.projectId,
+          block: data.value.block,
+        })
+      : await SecurityProtectedIndicators.findProtection({
+          projectId: data.projectId,
+          indicator: data.value,
+        });
+  }
+
+  /*
+   * Why a domain, a URL, a file - or an address everywhere - would be
+   * refused because nothing the project connected could hold it, or null.
+   * An address at the edge is kept whatever is connected, and says it is
+   * not enforced anywhere until something is (#10338). While a kind of
+   * destination cannot be listed, nobody can tell: the block is made, and
+   * the reconciler says where it holds.
+   */
+  private async checkHolders(data: {
+    record: Model;
+    read: SecurityBlockIndicatorValue;
+  }): Promise<SecurityBlockOutcome | null> {
+    const reach: SecurityBlockReach =
+      data.record.reach || SecurityBlockReach.Edge;
+    const action: SecurityBlockAction =
+      data.record.action || SecurityBlockAction.Block;
+
+    // An address or a range at the edge; never a network by its ASN, which only some edges hold (#10354).
+    if (
+      isSecurityBlockAddressType(data.read.indicatorType) &&
+      reach === SecurityBlockReach.Edge
+    ) {
+      return null;
+    }
+
+    const found: SecurityBlockDestinationsFound =
+      await SecurityBlockDestinations.findForProject(data.record.projectId!);
+
+    if (found.failedProviders.length > 0) {
+      return null;
+    }
+
+    const isHeld: boolean = found.destinations.some(
+      (destination: SecurityBlockDestination): boolean => {
+        return (
+          isSecurityBlockForDestination({
+            destination,
+            block: { indicatorType: data.read.indicatorType, reach },
+          }) &&
+          destination.supports({
+            indicatorType: data.read.indicatorType,
+            action,
+            value: data.read.value,
+          }).isSupported
+        );
+      },
+    );
+
+    if (isHeld) {
+      return null;
+    }
+
+    const message: string | null = getSecurityBlockUnheldMessage({
+      indicatorType: data.read.indicatorType,
+      action,
+      reach,
+    });
+
+    return message
+      ? { status: SecurityBlockOutcomeStatus.Refused, message }
+      : null;
+  }
+
+  /*
    * What the block would meet, read as OneUptime: an active block that
-   * covers it already, or an address it must never touch. Null when there
-   * is neither. Run on a normalized record. What protects it is told the
-   * caller as the caller may be told it (asSeenBy): a record they may not
-   * read is named as one of the project's own addresses, never by name.
+   * covers it already, a value it must never touch, or - for a domain, a
+   * URL, a file or an address everywhere - nothing connected that could
+   * hold it. Null when there is none of them. Run on a normalized record.
+   * What protects it is told the caller as the caller may be told it
+   * (asSeenBy): a record they may not read is named as one of the
+   * project's own, never by name.
    */
   private async checkTargets(data: {
     record: Model;
@@ -611,20 +834,21 @@ export class Service extends ProjectReferencesService<Model> {
     now: Date;
   }): Promise<SecurityBlockOutcome | null> {
     const { record, now } = data;
-    const read: SecurityBlockValue | null = readSecurityBlockValue(
+    const read: SecurityBlockIndicatorValue | null = readSecurityBlockIndicator(
       record.value,
     );
 
     if (!record.projectId || !read) {
       return {
         status: SecurityBlockOutcomeStatus.Refused,
-        message: SECURITY_BLOCK_MESSAGES.notAnAddress,
+        message: SECURITY_BLOCK_MESSAGES.notAValue,
       };
     }
 
     const covering: Model | null = await this.findCoveringBlock({
       projectId: record.projectId,
       value: read,
+      reach: record.reach || SecurityBlockReach.Edge,
       now,
     });
 
@@ -632,11 +856,26 @@ export class Service extends ProjectReferencesService<Model> {
       return this.alreadyBlocked(read.value, covering);
     }
 
-    const check: SecurityProtectionCheck =
-      await SecurityProtectedAddresses.findProtection({
-        projectId: record.projectId,
-        block: read.block,
-      });
+    /*
+     * A network by its ASN (#10354): no list says which addresses it holds,
+     * so OneUptime cannot tell whether the project's own servers or its
+     * users are among them. It fails toward a person: only one who said
+     * they know that (block()'s acknowledgesUncheckedNetwork) blocks it.
+     */
+    if (
+      read.indicatorType === SecurityBlockIndicatorType.Asn &&
+      !this.acknowledgedNetworks.has(record)
+    ) {
+      return {
+        status: SecurityBlockOutcomeStatus.Refused,
+        message: SECURITY_BLOCK_MESSAGES.asnUnchecked({ value: read.value }),
+      };
+    }
+
+    const check: SecurityProtectionCheck = await this.findProtection({
+      projectId: record.projectId,
+      value: read,
+    });
 
     if (check.protection) {
       const protection: SecurityAddressProtection =
@@ -664,7 +903,7 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    return null;
+    return await this.checkHolders({ record, read });
   }
 
   /*
@@ -733,7 +972,7 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
   ): Promise<void> {
     const record: Model = onCreate.createBy.data;
-    const read: SecurityBlockValue | null = readSecurityBlockValue(
+    const read: SecurityBlockIndicatorValue | null = readSecurityBlockIndicator(
       record.value,
     );
 
@@ -775,19 +1014,36 @@ export class Service extends ProjectReferencesService<Model> {
         await SecurityBlockDestinations.findForProject(projectId);
       const source: SecurityBlockSource =
         onCreate.createBy.data.source || SecurityBlockSource.Person;
+      const indicatorType: SecurityBlockIndicatorType =
+        onCreate.createBy.data.indicatorType ||
+        SecurityBlockIndicatorType.IpAddress;
+      const reach: SecurityBlockReach =
+        onCreate.createBy.data.reach || SecurityBlockReach.Edge;
 
       await SecurityBlockTimeline.write({
         projectId,
         securityCaseId,
         markdown: blockAddedMarkdown({
           value: onCreate.createBy.data.value || "",
+          indicatorType,
           action: onCreate.createBy.data.action || SecurityBlockAction.Block,
+          reach,
           source,
           createdAt: createdItem.createdAt || OneUptimeDate.getCurrentDate(),
           expiresAt: onCreate.createBy.data.expiresAt,
           reason: onCreate.createBy.data.reason,
+          // Whether anything is asked to hold this block: a destination of its reach.
           hasDestinations:
-            found.destinations.length > 0 || found.failedProviders.length > 0,
+            found.failedProviders.length > 0 ||
+            found.destinations.some(
+              (destination: SecurityBlockDestination): boolean => {
+                return isSecurityBlockForDestination({
+                  destination,
+                  block: { indicatorType, reach },
+                });
+              },
+            ),
+          policyName: this.policyNames.get(onCreate.createBy.data),
         }),
         color: SecurityBlockTimeline.colors.added,
         userId:
@@ -821,6 +1077,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data["action"] !== undefined) {
       throw new BadDataException(SECURITY_BLOCK_MESSAGES.actionNeverChanges);
+    }
+
+    if (data["reach"] !== undefined) {
+      throw new BadDataException(SECURITY_BLOCK_MESSAGES.reachNeverChanges);
     }
 
     const isLift: boolean = data["state"] !== undefined;

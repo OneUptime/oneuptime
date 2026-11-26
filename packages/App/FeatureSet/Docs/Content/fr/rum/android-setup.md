@@ -12,11 +12,11 @@ Instrumentez une application Android native avec OpenTelemetry Android afin qu'e
 
 ## Fonctionnement
 
-OpenTelemetry Android s'exécute dans votre application. Il envoie des traces, des journaux et des métriques à OneUptime via OTLP avec une clé d'ingestion **Serveur**, et ajoute un en-tête W3C `traceparent` aux requêtes que fait votre application, pour que les spans de votre backend rejoignent les traces de l'application.
+OpenTelemetry Android s'exécute dans votre application. Il envoie des traces, des journaux et des métriques à OneUptime via OTLP avec une clé d'ingestion **Mobile**, épinglée à votre application, et ajoute un en-tête W3C `traceparent` aux requêtes que fait votre application, pour que les spans de votre backend rejoignent les traces de l'application.
 
 ```mermaid title="De l'application à OneUptime, et à travers votre backend"
 flowchart TB
-    app["Votre application Android<br/>avec OpenTelemetry Android"] -->|"OTLP avec<br/>une clé Serveur"| oneuptime["OneUptime"]
+    app["Votre application Android<br/>avec OpenTelemetry Android"] -->|"OTLP avec<br/>une clé Mobile"| oneuptime["OneUptime"]
     app -->|"requêtes avec<br/>un en-tête traceparent"| api["Vos API : commandes,<br/>POS, écran de cuisine"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Application RUM mobile"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Avant de commencer
 
 - Une application Android dont le `minSdk` vaut 23 ou plus, compilée avec `compileSdk` 34 ou plus. Avec un `minSdk` inférieur à 26, activez le [désucrage de la bibliothèque principale](https://developer.android.com/studio/write/java8-support#library-desugaring), avec Android Gradle Plugin 8.3.0 ou ultérieur et `android.useFullClasspathForDexingTransform=true` dans `gradle.properties`.
-- Une clé d'ingestion **Serveur**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** avec **Créer une clé d'ingestion**. Une clé **Navigateur** est refusée depuis une application : elle est vérifiée par rapport à l'en-tête `Origin`, qu'une application n'envoie pas.
+- Une clé d'ingestion **Mobile**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** avec **Créer une clé d'ingestion**, avec le `service.name` de votre application comme **Nom du service épinglé**. Une clé **Navigateur** est refusée depuis une application : elle est vérifiée par rapport à l'en-tête `Origin`, qu'une application n'envoie pas.
 - Ces paramètres OTLP. Si vous hébergez OneUptime vous-même, remplacez `https://oneuptime.com` par votre propre hôte.
 
 | Paramètre | Valeur |
@@ -35,7 +35,7 @@ flowchart TB
 | En-tête | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Sur la page de la clé, définissez un **Nom du service épinglé**, une **Requests Per Minute Limit** et une date **Expire le**, et renouvelez la clé à chaque version.
+> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Sur la page de la clé, définissez un **Nom du service épinglé**, une **Limite de requêtes par minute** et une date **Expire le**, et renouvelez la clé à chaque version.
 
 ## Ajouter OpenTelemetry Android
 
@@ -303,7 +303,7 @@ OpenTelemetry Android définit `device.model.identifier` lui-même : l'applicati
 :::
 
 :::details Rien n'arrive, ou la clé est refusée
-Lancez la vérification de la clé décrite dans [Ajouter OpenTelemetry Android](#ajouter-opentelemetry-android). Un `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée. Une clé **Navigateur** est refusée depuis une application : utilisez une clé **Serveur**. Vérifiez que `baseUrl` se termine par `/otlp`, sans `/v1/traces` : l'agent ajoute le chemin lui-même.
+Lancez la vérification de la clé décrite dans [Ajouter OpenTelemetry Android](#ajouter-opentelemetry-android). Un `401` signifie que la clé est inconnue, révoquée, désactivée ou expirée. Une clé **Navigateur** est refusée depuis une application : utilisez une clé **Mobile**. Vérifiez que `baseUrl` se termine par `/otlp`, sans `/v1/traces` : l'agent ajoute le chemin lui-même.
 :::
 
 :::details Un plantage ou un ANR n'apparaît pas dans Exceptions

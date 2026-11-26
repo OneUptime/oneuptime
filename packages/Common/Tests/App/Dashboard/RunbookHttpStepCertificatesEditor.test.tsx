@@ -37,6 +37,7 @@ import Runbook from "../../../Models/DatabaseModels/Runbook";
 import RunbookVariable from "../../../Models/DatabaseModels/RunbookVariable";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import Route from "../../../Types/API/Route";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { CaCertificateProblem } from "../../../Types/Runbook/HttpStepCertificates";
 import {
@@ -58,6 +59,10 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * certificate the step trusts instead, the safer way. The folded line names
  * what is set, a save sends exactly what the page shows, and a reload shows
  * what was saved. A CA certificate that is not one says so under its box.
+ * One runbook variable alone is taken as a CA certificate too (#10441): the
+ * help line says how to write it, and the step's variables note names it
+ * when the project has no such variable - unless the switch is on, which
+ * leaves the CA certificate, and its variable, unused.
  *
  * The real page; only the model API is stubbed.
  */
@@ -119,12 +124,31 @@ function steps(): Array<RunbookStep> {
 
 let stored: Array<RunbookStep> = steps();
 let saved: Array<RunbookStep> | null = null;
+// The project's global variables, as the variables list answers them.
+let globalVariables: Array<RunbookVariable> = [];
+
+function variable(name: string): RunbookVariable {
+  return Object.assign(new RunbookVariable(), {
+    _id: `variable-${name}`,
+    name,
+    isSecret: false,
+    isAvailableToGlobalRunners: false,
+    runners: [],
+  });
+}
+
+// The help under the CA certificate, as it reads: its slot drawn as code.
+const CA_CERTIFICATE_HELP_READ: string = HTTP_CA_CERTIFICATE_HELP.replace(
+  "{{reference}}",
+  "{{global.variables.NAME}}",
+);
 
 beforeEach(() => {
   goTo(`/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`);
 
   stored = steps();
   saved = null;
+  globalVariables = [];
 
   jest.spyOn(ModelAPI, "getItem").mockImplementation((async (args: {
     modelType: unknown;
@@ -144,6 +168,7 @@ beforeEach(() => {
 
   jest.spyOn(ModelAPI, "getList").mockImplementation((async (args: {
     modelType: unknown;
+    query?: Record<string, unknown>;
     requestOptions?: { overrideRequestUrl?: unknown };
   }): Promise<ListResult<never>> => {
     let data: Array<unknown> = [];
@@ -155,7 +180,8 @@ beforeEach(() => {
         ? []
         : [];
     } else if (args.modelType === RunbookVariable) {
-      data = [];
+      // The project's own, asked for with no runbook; the runbook has none.
+      data = args.query?.["runbookId"] instanceof IsNull ? globalVariables : [];
     }
 
     return {
@@ -313,8 +339,16 @@ describe("an HTTP request step's More fields", () => {
 
     expect(ca).toHaveValue("");
     expect(ca).toHaveAttribute("placeholder", HTTP_CA_CERTIFICATE_PLACEHOLDER);
-    expect(ca).toHaveAccessibleDescription(HTTP_CA_CERTIFICATE_HELP);
+    expect(ca).toHaveAccessibleDescription(CA_CERTIFICATE_HELP_READ);
     expect(HTTP_CA_CERTIFICATE_HELP.length).toBeLessThanOrEqual(150);
+
+    // It says a variable can hold the certificate, and how one is written.
+    expect(CA_CERTIFICATE_HELP_READ).toBe(
+      "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{global.variables.NAME}} here.",
+    );
+    expect(within(caField).getByText("{{global.variables.NAME}}").tagName).toBe(
+      "CODE",
+    );
 
     // After the headers, before the notes.
     const text: string = found.textContent || "";
@@ -478,6 +512,16 @@ describe("the CA certificate", () => {
       "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49\n-----END PRIVATE KEY-----",
       CaCertificateProblem.PrivateKey,
     ],
+    [
+      "a variable beside a certificate",
+      `${CERTIFICATE}\n{{global.variables.INTERNAL_CA}}`,
+      CaCertificateProblem.VariableAmongText,
+    ],
+    [
+      "two variables",
+      "{{global.variables.INTERNAL_CA}} {{global.variables.LAB_CA}}",
+      CaCertificateProblem.VariableAmongText,
+    ],
   ])(
     "that is %s says why under its box",
     async (_what: string, value: string, problem: CaCertificateProblem) => {
@@ -506,6 +550,87 @@ describe("the CA certificate", () => {
         screen.queryByText(HTTP_CA_CERTIFICATE_PROBLEMS[problem]),
       ).toBeNull();
     }
+  });
+
+  test("one variable alone says nothing under its box, is saved as written, and is named on the folded line, never its text", async () => {
+    globalVariables = [variable("INTERNAL_CA")];
+    await renderSteps();
+    open("Check the public status");
+
+    fireEvent.change(caBox(0), {
+      target: { value: "{{global.variables.INTERNAL_CA}}" },
+    });
+
+    expect(caBox(0)).not.toHaveAttribute("aria-invalid");
+
+    for (const problem of Object.values(CaCertificateProblem)) {
+      expect(
+        screen.queryByText(HTTP_CA_CERTIFICATE_PROBLEMS[problem]),
+      ).toBeNull();
+    }
+
+    expect(foldedLine(0)).toContain(HTTP_CA_CERTIFICATE_TITLE);
+    expect(foldedLine(0)).not.toContain("INTERNAL_CA");
+
+    stored = await save();
+    expect(configOf(stored, "plain").caCertificate).toBe(
+      "{{global.variables.INTERNAL_CA}}",
+    );
+
+    cleanup();
+    await renderSteps();
+    open("Check the public status");
+
+    expect(caBox(0)).toHaveValue("{{global.variables.INTERNAL_CA}}");
+  });
+
+  test("a variable the project does not have is named with the step's other variables; with the switch on, it is not used, so none is", async () => {
+    stored = [
+      httpStep("names", 0, "Call the ledger", {
+        caCertificate: "{{global.variables.INTERNAL_CA}}",
+      }),
+      httpStep("skips-names", 1, "Call the lab switch", {
+        allowSelfSignedCertificates: true,
+        caCertificate: "{{global.variables.GONE}}",
+      }),
+    ];
+    globalVariables = [variable("SOMETHING_ELSE")];
+
+    await renderSteps();
+    open("Call the ledger");
+    open("Call the lab switch");
+
+    const note: HTMLElement = await screen.findByTestId(
+      "runbook-step-0-http-unknown-variables",
+      {},
+      WAIT,
+    );
+
+    expect(note).toHaveTextContent(
+      "No variable is named {{global.variables.INTERNAL_CA}}, so the step will fail when it runs.",
+    );
+    expect(
+      screen.queryByTestId("runbook-step-1-http-unknown-variables"),
+    ).toBeNull();
+  });
+
+  test("a variable the project has is named nowhere as missing", async () => {
+    stored = [
+      httpStep("names", 0, "Call the ledger", {
+        caCertificate: "{{global.variables.INTERNAL_CA}}",
+      }),
+    ];
+    globalVariables = [variable("INTERNAL_CA")];
+
+    await renderSteps();
+    open("Call the ledger");
+
+    // The variables are read: the chips to copy them show.
+    await screen.findByTestId("runbook-step-0-http-variables", {}, WAIT);
+
+    expect(
+      screen.queryByTestId("runbook-step-0-http-unknown-variables"),
+    ).toBeNull();
   });
 });
 
@@ -543,6 +668,23 @@ describe("the words", () => {
           expect([file, word, value === word]).toEqual([file, word, false]);
         }
       }
+    }
+  });
+
+  test("the CA certificate's help keeps its one slot, where the reference is drawn, in every language", () => {
+    for (const file of fs.readdirSync(DASHBOARD_LOCALES)) {
+      if (!file.endsWith(".json")) {
+        continue;
+      }
+
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(DASHBOARD_LOCALES, file), "utf8"),
+      );
+      const help: string | undefined = locale[HTTP_CA_CERTIFICATE_HELP];
+
+      expect([file, help?.split("{{reference}}").length]).toEqual([file, 2]);
+      // Still a certificate in PEM, whatever the language calls it.
+      expect([file, help?.includes("PEM")]).toEqual([file, true]);
     }
   });
 

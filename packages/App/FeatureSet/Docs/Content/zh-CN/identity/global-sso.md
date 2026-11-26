@@ -27,7 +27,7 @@
 :::steps
 ### 打开提供商列表
 
-以主管理员身份登录，然后通过用户菜单中的 **管理员设置** 打开 Admin Dashboard。接着前往 **设置** > **单点登录**。该页面先列出实例的 SAML 提供商，然后是 OpenID Connect 提供商，最后是 **要求使用 SSO** 卡片。
+以主管理员身份登录，然后在用户菜单中选择 **管理员仪表板**。接着前往 **设置** > **单点登录**。该页面先列出实例的 SAML 提供商，然后是 OpenID Connect 提供商，最后是 **要求使用 SSO** 卡片。
 
 ### 创建提供商
 
@@ -103,6 +103,12 @@ flowchart TB
 :::
 
 Okta、Microsoft Entra ID、Auth0 和 Keycloak 中这些设置的位置，请见 [SSO](/docs/identity/sso) 页面。
+
+## 重新登录以确认是您本人
+
+只通过全局提供商登录的人，在更改登录方式或删除账户之前，用 **重新登录** 确认是本人：OneUptime 会把此人送回提供商，SAML 带上 `ForceAuthn="true"`，OpenID Connect 带上 `prompt=login` 和 `max_age=0`（对 Microsoft Entra ID 只带上 `prompt=login`），并且只有当提供商在 `AuthnInstant` 或 `auth_time` 中告知此人在那一刻或之后登录时才算数。添加、更改或删除全局提供商时，会先要求您[确认是本人](/docs/introduction/your-account#确认是你本人)。
+
+在 Okta、Microsoft Entra ID、Keycloak 和 Google Workspace 中要设置什么，请见 [SSO](/docs/identity/sso#重新登录以确认是您本人) 页面。
 
 ## 强制使用 SSO
 
@@ -187,4 +193,5 @@ Okta、Microsoft Entra ID、Auth0 和 Keycloak 中这些设置的位置，请见
 - [SSO](/docs/identity/sso): 设置项目自己的 SAML 或 OIDC 提供商。
 - [SCIM](/docs/identity/scim): 让身份提供商自动添加和移除人员。
 - [用户、团队与权限](/docs/permissions/index): 新来的人加入的团队允许他们做什么。
+- [帮助和支持](/docs/self-hosted/help-and-support): 告诉需要邀请的人应该向谁申请。
 :::

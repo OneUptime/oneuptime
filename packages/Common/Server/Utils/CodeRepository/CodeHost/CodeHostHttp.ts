@@ -206,6 +206,8 @@ export default class CodeHostHttp {
               " A Git server on a private network is reached by one of your own Runners on that network: connect it as a Git repository and pick that Runner for it.",
             ...(options?.egressOptions || {}),
           },
+          // A Git server is always reached directly, at the checked address.
+          { direct: true },
         );
       } catch (error) {
         throw new CodeHostHttpError({

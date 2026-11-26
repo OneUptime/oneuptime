@@ -6,6 +6,8 @@ import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
+import MonitorCheckSecretValues from "Common/Server/Utils/Monitor/MonitorCheckSecretValues";
+import MonitorSecretValueRedaction from "Common/Server/Utils/Monitor/MonitorSecretValueRedaction";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
@@ -15,16 +17,24 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import { MonitorSecretTypeUtil } from "Common/Types/Monitor/MonitorSecretType";
 import {
+  MONITOR_SECRETS_REFERENCE_PREFIX,
   StepTotpReferences,
   callsTotpCodeFunction,
+  getReferencedName,
   getStepTotpReferences,
   getTotpSecretNamesNeeded,
 } from "Common/Utils/Monitor/MonitorSecretReferences";
+import { findTemplatePlaceholders } from "Common/Utils/TemplatePlaceholders";
+import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import { TotpParameters, TotpSecrets } from "Common/Utils/Totp/TotpParameters";
 import {
   TotpSecretReading,
   readTotpSecret,
 } from "Common/Utils/Totp/TotpSecret";
+
+// {{monitorSecrets}} on its own: the map every reference reads its value from.
+const WHOLE_SECRETS_MAP: string = MONITOR_SECRETS_REFERENCE_PREFIX.slice(0, -1);
 
 export default class MonitorUtil {
   /*
@@ -63,27 +73,14 @@ export default class MonitorUtil {
    * written, so the monitor's secrets apply only while the monitor is in the
    * test's project. A test of a monitor that is not saved yet (run from the
    * Create Monitor form) gets the secrets every monitor in the project may
-   * use.
+   * use. One rule, which the server also reads the test's check for when it
+   * comes back, to hide those secrets' values in it (#10825).
    */
   public static async loadMonitorSecretsForMonitorTest(data: {
     monitorId: ObjectID | undefined;
     projectId: ObjectID;
   }): Promise<Array<MonitorSecret>> {
-    if (!data.monitorId) {
-      return await MonitorSecretService.getSecretsForUnsavedMonitor({
-        projectId: data.projectId,
-      });
-    }
-
-    const secretsByMonitorId: Map<
-      string,
-      Array<MonitorSecret>
-    > = await MonitorSecretService.getSecretsForMonitors({
-      monitorIds: [data.monitorId],
-      projectId: data.projectId,
-    });
-
-    return secretsByMonitorId.get(data.monitorId.toString()) || [];
+    return await MonitorCheckSecretValues.loadSecretsForMonitorTest(data);
   }
 
   /*
@@ -105,6 +102,13 @@ export default class MonitorUtil {
     // Not needed when preloadedSecrets is given.
     monitorId?: ObjectID | undefined;
     preloadedSecrets?: Array<MonitorSecret> | undefined;
+    /*
+     * Hand each step the values of the Text secrets filled into it
+     * (MonitorStep.secretValuesToHide), for a probe that hides them in its
+     * own log (ProbeCapability.HideSecretValuesInLogs, #10875). Off unless
+     * asked: a probe that does not declare it has no use for them.
+     */
+    handSecretValuesToHide?: boolean | undefined;
   }): Promise<MonitorSteps> {
     /*
      * Secrets are loaded lazily (only when a step actually references one)
@@ -139,6 +143,33 @@ export default class MonitorUtil {
     const totpReferences: Map<MonitorStep, StepTotpReferences> =
       MonitorUtil.getTotpReferences(monitorSteps, monitorType);
 
+    /*
+     * The values of the Text secrets filled into each step, noted as each
+     * field is filled (#10875). Every step's carried values are cleared
+     * first, so a step only ever carries what was filled into it here.
+     */
+    const filledValues: Map<MonitorStep, Set<string>> = new Map();
+
+    for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
+      if (monitorStep?.data) {
+        monitorStep.data.secretValuesToHide = undefined;
+      }
+    }
+
+    const filledInto: (monitorStep: MonitorStep) => Set<string> = (
+      monitorStep: MonitorStep,
+    ): Set<string> => {
+      let filled: Set<string> | undefined = filledValues.get(monitorStep);
+
+      if (!filled) {
+        filled = new Set<string>();
+        filledValues.set(monitorStep, filled);
+      }
+
+      return filled;
+    };
+
     if (monitorType === MonitorType.API) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
         []) {
@@ -154,6 +185,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.requestHeaders,
+              filled: filledInto(monitorStep),
             })) as Dictionary<string>;
         }
 
@@ -161,18 +193,24 @@ export default class MonitorUtil {
          * Not an else: a request that sends a secret in a header can send
          * one in its body too, and used to go out with the body's
          * placeholder unfilled.
+         *
+         * Each secret is written as its place in the body needs it
+         * (#10735): escaped inside a JSON string, as it is anywhere else.
+         * Written as it is everywhere, a password holding a quote ended
+         * its string, and the check failed without sending anything.
          */
         if (
-          monitorStep.data?.requestBody &&
-          this.hasSecrets(JSONFunctions.toString(monitorStep.data.requestBody))
+          typeof monitorStep.data?.requestBody === "string" &&
+          this.hasSecrets(monitorStep.data.requestBody)
         ) {
           const monitorSecrets: MonitorSecret[] = await getSecrets();
 
-          monitorStep.data.requestBody =
-            (await MonitorUtil.fillSecretsInStringOrJSON({
-              secrets: monitorSecrets,
-              populateSecretsIn: monitorStep.data.requestBody,
-            })) as string;
+          monitorStep.data.requestBody = MonitorUtil.fillSecretsInRequestBody({
+            secrets: monitorSecrets,
+            populateSecretsIn: monitorStep.data.requestBody,
+            requestBodyFormat: monitorStep.data.requestBodyFormat,
+            filled: filledInto(monitorStep),
+          });
         }
       }
     }
@@ -202,6 +240,7 @@ export default class MonitorUtil {
               filled: await MonitorUtil.fillSecretsInStringOrJSON({
                 secrets: monitorSecrets,
                 populateSecretsIn: monitorStep.data.monitorDestination,
+                filled: filledInto(monitorStep),
               }),
               configured: monitorStep.data.monitorDestination,
             });
@@ -226,6 +265,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.tlsClientCertificate,
+              filled: filledInto(monitorStep),
             })) as string;
         }
 
@@ -239,6 +279,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.tlsClientKey,
+              filled: filledInto(monitorStep),
             })) as string;
         }
 
@@ -252,6 +293,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.tlsClientKeyPassphrase,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -274,6 +316,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.customCode,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -293,6 +336,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.snmpMonitor.communityString,
+              filled: filledInto(monitorStep),
             })) as string;
         }
 
@@ -308,6 +352,7 @@ export default class MonitorUtil {
               secrets: monitorSecrets,
               populateSecretsIn:
                 monitorStep.data.snmpMonitor.snmpV3Auth.authKey,
+              filled: filledInto(monitorStep),
             })) as string;
         }
 
@@ -323,6 +368,7 @@ export default class MonitorUtil {
               secrets: monitorSecrets,
               populateSecretsIn:
                 monitorStep.data.snmpMonitor.snmpV3Auth.privKey,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -342,6 +388,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.dnsMonitor.hostname,
+              filled: filledInto(monitorStep),
             })) as string;
         }
 
@@ -356,6 +403,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.dnsMonitor.queryName,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -375,6 +423,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.domainMonitor.domainName,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -393,6 +442,7 @@ export default class MonitorUtil {
             (await MonitorUtil.fillSecretsInStringOrJSON({
               secrets: monitorSecrets,
               populateSecretsIn: monitorStep.data.dnssecMonitor.domainName,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -426,6 +476,7 @@ export default class MonitorUtil {
               (await MonitorUtil.fillSecretsInStringOrJSON({
                 secrets: monitorSecrets,
                 populateSecretsIn: currentValue,
+                filled: filledInto(monitorStep),
               })) as string;
           }
         }
@@ -460,6 +511,7 @@ export default class MonitorUtil {
               (await MonitorUtil.fillSecretsInStringOrJSON({
                 secrets: monitorSecrets,
                 populateSecretsIn: currentValue,
+                filled: filledInto(monitorStep),
               })) as string;
           }
         }
@@ -483,6 +535,7 @@ export default class MonitorUtil {
               secrets: monitorSecrets,
               populateSecretsIn:
                 monitorStep.data.externalStatusPageMonitor.statusPageUrl,
+              filled: filledInto(monitorStep),
             })) as string;
         }
       }
@@ -493,11 +546,39 @@ export default class MonitorUtil {
       getSecrets: getSecrets,
     });
 
+    if (data.handSecretValuesToHide) {
+      MonitorUtil.attachSecretValuesToHide(filledValues);
+    }
+
     return monitorSteps;
+  }
+
+  /*
+   * Hands each step the values of the Text secrets filled into it, those
+   * long enough to be hidden (MonitorSecretValueRedaction): what the probe
+   * hides in its own log while it runs the step (#10875). They travel
+   * beside the step, never inside a field, and are never stored
+   * (MonitorStep.toDatabaseJSON) or logged here.
+   */
+  private static attachSecretValuesToHide(
+    filledValues: Map<MonitorStep, Set<string>>,
+  ): void {
+    for (const [monitorStep, filled] of Array.from(filledValues.entries())) {
+      const values: Array<string> = Array.from(filled).filter(
+        (value: string): boolean => {
+          return MonitorSecretValueRedaction.isLongEnoughToHide(value);
+        },
+      );
+
+      if (monitorStep.data && values.length > 0) {
+        monitorStep.data.secretValuesToHide = values;
+      }
+    }
   }
 
   public static async populateSecretsOnMonitorTest(
     monitorTest: MonitorTest,
+    options?: { handSecretValuesToHide?: boolean | undefined } | undefined,
   ): Promise<MonitorTest> {
     const projectId: ObjectID | undefined = monitorTest.projectId;
 
@@ -529,6 +610,7 @@ export default class MonitorUtil {
         monitorId: monitorTest.monitorId,
         projectId: projectId,
       }),
+      handSecretValuesToHide: options?.handSecretValuesToHide,
     });
 
     return monitorTest;
@@ -537,6 +619,7 @@ export default class MonitorUtil {
   public static async populateSecrets(
     monitor: Monitor,
     preloadedSecrets?: Array<MonitorSecret> | undefined,
+    options?: { handSecretValuesToHide?: boolean | undefined } | undefined,
   ): Promise<Monitor> {
     if (!monitor.id) {
       return monitor;
@@ -559,6 +642,7 @@ export default class MonitorUtil {
       monitorType: monitor.monitorType,
       monitorId: monitor.id,
       preloadedSecrets: preloadedSecrets,
+      handSecretValuesToHide: options?.handSecretValuesToHide,
     });
 
     return monitor;
@@ -722,53 +806,140 @@ export default class MonitorUtil {
     }
   }
 
+  /*
+   * The values a monitor's {{monitorSecrets.NAME}} references are filled
+   * with, by name: its Text secrets that have one. A one-time code secret's
+   * value is a seed, and a seed is never written into a monitor: its
+   * reference is left for the probe, which makes the code when the check
+   * uses it (attachTotpSecrets).
+   */
+  private static getTextSecretValues(
+    secrets: Array<MonitorSecret>,
+  ): Map<string, string> {
+    const values: Map<string, string> = new Map();
+
+    for (const monitorSecret of secrets) {
+      if (
+        !monitorSecret.name ||
+        !monitorSecret.secretValue ||
+        MonitorSecretTypeUtil.isTotp(monitorSecret.secretType)
+      ) {
+        continue;
+      }
+
+      values.set(monitorSecret.name, monitorSecret.secretValue);
+    }
+
+    return values;
+  }
+
+  /*
+   * An API step's body with the monitor's Text secrets filled in, each
+   * written as its place in the body needs it (MonitorRequestBody.
+   * fillSecrets, #10735) - as it is throughout a text body (#10736). A
+   * reference to a secret the monitor may not use, or to a one-time code
+   * secret, is left as written. Nothing here is logged or thrown: the
+   * values are the secrets'.
+   */
+  private static fillSecretsInRequestBody(data: {
+    secrets: Array<MonitorSecret>;
+    // The body, as the step holds it.
+    populateSecretsIn: string;
+    requestBodyFormat: MonitorRequestBodyFormat | undefined;
+    // Where the values filled in are noted, for the probe's log (#10875).
+    filled: Set<string>;
+  }): string {
+    const values: Map<string, string> = MonitorUtil.getTextSecretValues(
+      data.secrets,
+    );
+
+    // fillSecrets reads a placeholder by the name it references, and no other way.
+    MonitorUtil.noteFilledValues({
+      text: data.populateSecretsIn,
+      values: values,
+      wholeMapIsWritten: false,
+      filled: data.filled,
+    });
+
+    return MonitorRequestBody.fillSecrets(
+      data.populateSecretsIn,
+      values,
+      data.requestBodyFormat,
+    );
+  }
+
   private static async fillSecretsInStringOrJSON(data: {
     secrets: MonitorSecret[];
     populateSecretsIn: string | JSONObject | URL | Hostname | IP;
+    // Where the values filled in are noted, for the probe's log (#10875).
+    filled: Set<string>;
   }): Promise<string | JSONObject | URL | Hostname | IP> {
-    // get all secrets for this monitor.
+    const values: Map<string, string> = MonitorUtil.getTextSecretValues(
+      data.secrets,
+    );
 
-    const secrets: MonitorSecret[] = data.secrets;
-
-    if (secrets.length === 0) {
+    if (values.size === 0) {
       return data.populateSecretsIn;
     }
 
     // replace all secrets in the populateSecretsIn
 
     const storageMap: JSONObject = {
-      monitorSecrets: {},
+      monitorSecrets: Object.fromEntries(values.entries()),
     };
 
-    for (const monitorSecret of secrets) {
-      if (!monitorSecret.name) {
-        continue;
-      }
-
-      if (!monitorSecret.secretValue) {
-        continue;
-      }
-
-      /*
-       * A one-time code secret's value is a seed, and a seed is never
-       * written into a monitor: its reference is left for the probe, which
-       * makes the code when the check uses it (attachTotpSecrets).
-       */
-      if (MonitorSecretTypeUtil.isTotp(monitorSecret.secretType)) {
-        continue;
-      }
-
-      (storageMap["monitorSecrets"] as JSONObject)[
-        monitorSecret.name as string
-      ] = monitorSecret.secretValue;
-    }
-
     const isValueJSON: boolean = typeof data.populateSecretsIn === "object";
+
+    MonitorUtil.noteFilledValues({
+      // As the filling reads an object: its JSON.
+      text:
+        typeof data.populateSecretsIn === "string"
+          ? data.populateSecretsIn
+          : JSON.stringify(data.populateSecretsIn),
+      values: values,
+      // VMUtil writes {{monitorSecrets}} itself as the whole map.
+      wholeMapIsWritten: true,
+      filled: data.filled,
+    });
 
     return VMUtil.replaceValueInPlace(
       storageMap,
       data.populateSecretsIn as string,
       isValueJSON,
     );
+  }
+
+  /*
+   * The values a field's placeholders are filled with, each read as the
+   * filling reads it: {{monitorSecrets.NAME}} by the name it references
+   * (getReferencedName, the server's own reading - a dotted name is one
+   * name, as the map's key is), and {{monitorSecrets}} itself as every
+   * value, where the filling writes it as the whole map. Never logged.
+   */
+  private static noteFilledValues(data: {
+    text: string;
+    values: ReadonlyMap<string, string>;
+    wholeMapIsWritten: boolean;
+    filled: Set<string>;
+  }): void {
+    for (const placeholder of findTemplatePlaceholders(data.text)) {
+      if (placeholder.inner === WHOLE_SECRETS_MAP) {
+        if (data.wholeMapIsWritten) {
+          for (const value of Array.from(data.values.values())) {
+            data.filled.add(value);
+          }
+        }
+
+        continue;
+      }
+
+      const name: string | null = getReferencedName(placeholder);
+      const value: string | undefined =
+        name === null ? undefined : data.values.get(name);
+
+      if (value) {
+        data.filled.add(value);
+      }
+    }
   }
 }

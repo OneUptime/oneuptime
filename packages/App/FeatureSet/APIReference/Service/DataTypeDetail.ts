@@ -434,7 +434,14 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "string",
         required: false,
         description:
-          "The HTTP request body. Used for API monitors with POST, PUT, or PATCH methods. Typically a JSON string.",
+          'The HTTP request body, as text. Used for API monitors with POST, PUT, or PATCH methods. Any JSON value - an object, an array or a single value - or, when requestBodyFormat is "text", any text.',
+      },
+      {
+        name: "requestBodyFormat",
+        type: 'string ("json" | "text")',
+        required: false,
+        description:
+          'How an API monitor sends requestBody. "json", the default when left out, sends any JSON value as written. "text" sends the body exactly as written and never reads it as JSON - XML, plain text or form fields such as a=1&b=2 - under the Content-Type in requestHeaders, or text/plain.',
       },
       {
         name: "doNotFollowRedirects",
@@ -1317,6 +1324,40 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           { label: ">", path: "" },
         ],
       },
+      {
+        name: "recoveryFilters",
+        type: "Array<CriteriaFilter>",
+        required: false,
+        description:
+          "When this criteria recovers, if not as soon as its filters stop matching: CriteriaFilter objects like those in filters, such as Response Time (in ms) Less Than 300 with evaluateOverTime over 10 minutes. Once the criteria has acted - the monitor has its status, or an incident or alert it opened is still open - it keeps acting on every check until these filters match, then its records resolve as usual. On a monitor that judges each series on its own (a Group By, or a '*' disk or interface), each series recovers on its own. Leave it out to recover as soon as the filters stop matching.",
+        typeLinks: [
+          { label: "Array<", path: "" },
+          { label: "CriteriaFilter", path: "criteria-filter" },
+          { label: ">", path: "" },
+        ],
+      },
+      {
+        name: "recoveryFilterCondition",
+        type: "FilterCondition (enum)",
+        required: false,
+        description:
+          "How to combine recoveryFilters: 'All' (the default) or 'Any'. See FilterCondition.",
+        typeLinks: [{ label: "FilterCondition", path: "filter-condition" }],
+      },
+      {
+        name: "activeHours",
+        type: "RestrictionTimes (object)",
+        required: false,
+        description:
+          "The days of the week and the times of day this criteria is judged in, as an on-call rule's working hours are kept: { _type: 'RestrictionTimes', value: { restictionType: 'Weekly', weeklyRestrictionTimes: [{ startDay, endDay, startTime, endTime }] } }, read on the clock of activeHoursTimezone. Outside them the criteria is skipped as a disabled criteria is, so what it opened resolves. Leave it out to judge it on every check.",
+      },
+      {
+        name: "activeHoursTimezone",
+        type: "string",
+        required: false,
+        description:
+          "The IANA time zone activeHours are read in, such as 'Europe/Oslo'. Required with activeHours: a project has no time zone of its own.",
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(
@@ -2083,7 +2124,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "object",
         required: false,
         description:
-          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check; give it a window longer than the monitoring interval, since a window no longer than the interval holds a single check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online', 'NTP Is Online', 'NTP Is Synchronized') only support 'All Values' and 'Any Value'; any other aggregation on them is evaluated as 'All Values'. So do the checks nothing records as a series, which are judged from a record of whether the filter matched on each check: 'Response Body', 'Response Header', 'Response Header Value', 'JavaScript Expression' and 'Is Request Timeout' on Website and API monitors, and 'Is Request Timeout' on Ping, IP and Port monitors. With 'All Values' such a filter matches only once it has matched on every check of the window, which keeps a restarting application's placeholder page from firing it; with 'Any Value', once it matched on any check of the window.",
+          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate: up to 1440 in the Dashboard, and up to 10080, a week, for the counts and 'Previous Check'), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'Percentile', 'All Values', 'Any Value', 'Count', 'Percentage', 'Status Changes' or 'Previous Check'), 'percentile' (for 'Percentile': above 0 and below 100, 95 when unset), 'countFilterType' and 'countValue' (for 'Count', 'Percentage' and 'Status Changes': how the number of the window's checks that met the filter's condition - their share in %, or the times they changed between met and not met - is compared, such as 'Greater Than' 30; 'Greater Than' 0 when unset; counted per probe), 'changeType' and 'changeValue' (for 'Previous Check' on a measured value: how far this check's value must be from the previous check's, in the direction of the filter's own comparison - above it for 'Greater Than' and 'Greater Than Or Equal To', below it for 'Less Than' and 'Less Than Or Equal To' - as an 'Amount' in the check's own unit or a 'Percentage' of the previous value, such as 'Percentage' 50 for 'more than 50% above the previous check'; an 'Amount' of 0 when unset; 'Equal To' and 'Not Equal To' compare with the previous value itself, and the filter's own 'value' is not read), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. 'Previous Check' compares each check with the previous check of the same probe, at most 'timeValueInMinutes' old: a measured value against a threshold made from the previous value, and a true/false check or a check judged from its match history by whether it started to meet the filter's condition on this check (the previous check did not); with no previous check in the window - the first check, or one after a gap longer than the window - 'onNoDataPolicy' decides, and 'Treat As Zero' compares with a previous value of 0. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check; give it a window longer than the monitoring interval, since a window no longer than the interval holds a single check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online', 'NTP Is Online', 'NTP Is Synchronized') take 'All Values', 'Any Value', the counts and 'Previous Check'; any other aggregation on them is evaluated as 'All Values'. So do the checks nothing records as a series, which are judged from a record of whether the filter matched on each check: 'Response Body', 'Response Header', 'Response Header Value', 'JavaScript Expression' and 'Is Request Timeout' on Website and API monitors, and 'Is Request Timeout' on Ping, IP and Port monitors. With 'All Values' such a filter matches only once it has matched on every check of the window, which keeps a restarting application's placeholder page from firing it; with 'Any Value', once it matched on any check of the window.",
       },
       {
         name: "serverMonitorOptions",

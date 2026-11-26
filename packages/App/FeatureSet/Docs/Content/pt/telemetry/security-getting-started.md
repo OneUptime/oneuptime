@@ -70,9 +70,11 @@ O cartão **Seus logs**, no topo de **Conexões**, não precisa de instalação.
 | Fortinet FortiGate | Detecções de IPS e antivírus, tráfego negado, logins de VPN e de administradores, e alterações de configuração do próprio syslog do FortiGate |
 | Cisco ASA | Conexões negadas, detecções de ameaças e do IPS, logins de VPN e de administradores, e comandos do Cisco ASA e do Firepower Threat Defense |
 | Logs de auditoria do Kubernetes | Mudanças no cluster, shells abertos em pods, secrets lidos e requisições recusadas |
-| Ataques web | Requisições no log de acesso de um servidor web que tentam injeção de SQL, path traversal ou Log4Shell |
+| Ataques web | Requisições no log de acesso de um servidor web que tentam injeção de SQL, path traversal ou Log4Shell, requisições de arquivos sensíveis, como `/.env` ou `/.git/config`, que seu site recusou ou não tem, e um arquivo com segredos que seu site serviu |
 
 Seus logs continuam como estão. Só as linhas que importam para a segurança viram eventos: nunca cada página que um servidor web serviu, nem cada leitura de uma API.
+
+Um arquivo com segredos que seu site serviu, como `/.env`, é um vazamento, e a regra **Sensitive file served** da biblioteca de regras abre um caso Crítico sobre ele. A própria página de um app de página única para um caminho que ele não tem nunca é um vazamento. Consulte [Um arquivo sensível que seu site serviu](/docs/telemetry/security-events#um-arquivo-sensível-que-seu-site-serviu).
 
 Uma ameaça que um produto de segurança escreve nos seus logs, como uma detecção CEF ou LEEF ou uma detecção de IPS de um FortiGate, abre um caso como o alerta de um produto conectado faz. **Abrir casos a partir de**, em **Seus logs**, diz a partir de qual gravidade: **Alta e acima**, a menos que você escolha outra, ou **Nunca**.
 

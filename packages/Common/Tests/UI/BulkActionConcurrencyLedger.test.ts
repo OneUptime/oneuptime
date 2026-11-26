@@ -152,6 +152,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Mark Resolved, Accept Risk and Not an Issue on Data Security issues: each is an update of its own issue, written to that issue's own timeline, and nothing the issues share is checked or recomputed.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/OwnersToReview.tsx":
+    [
+      {
+        expression: "1",
+        why: "Approve on the owners OneUptime AI proposes (#10374): the owner rules first, one at a time, because a rule approved gives the stores it matches their owner, which settles their own proposals - each item is approved as the server sees it after the one before.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/EpisodeMembers/BulkAddToEpisodeActions.tsx":
     [
       {

@@ -4,6 +4,7 @@ import ProbeRequest from "../../Utils/ProbeRequest";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -33,6 +34,9 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import ProbeReportIdentity, {
   PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
 } from "Common/Server/Utils/Probe/ProbeReportIdentity";
+import ProbeInterfaceAddressesUtil, {
+  PROBE_INTERFACE_ADDRESSES_FIELD,
+} from "Common/Types/Probe/ProbeInterfaceAddresses";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -90,6 +94,35 @@ function bindResultToSender(data: {
   );
 }
 
+/*
+ * The addresses on the probe's own network interfaces, as its heartbeat
+ * lists them (#10429; Types/Probe/ProbeInterfaceAddresses), kept on the
+ * probe: Security Events knows the probe's own polls and checks in the
+ * project's flows by them. Scheduled and never awaited, as the liveness
+ * stamp is, and written only when they changed (ProbeService). A heartbeat
+ * that lists nothing - a probe older than the list - leaves what is kept.
+ */
+function recordInterfaceAddresses(req: ProbeExpressRequest): void {
+  const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
+  const addresses: Array<string> | null = ProbeInterfaceAddressesUtil.read(
+    (req.body as JSONObject | undefined)?.[PROBE_INTERFACE_ADDRESSES_FIELD],
+  );
+
+  if (!probeId || addresses === null) {
+    return;
+  }
+
+  ProbeService.recordInterfaceAddresses({ probeId, addresses }).catch(
+    (err: Error) => {
+      logger.error(
+        `Failed to keep the interface addresses of probe ${probeId.toString()}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    },
+  );
+}
+
 router.post(
   "/alive",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
@@ -107,7 +140,11 @@ router.post(
        * heartbeat's response time to Postgres write latency, which is the
        * exact coupling that let a slow database mark healthy probes
        * Disconnected while they were successfully running their checks.
+       * The probe's interface addresses are kept the same way: scheduled,
+       * never awaited.
        */
+      recordInterfaceAddresses(req as ProbeExpressRequest);
+
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
@@ -133,7 +170,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -145,7 +182,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("StatusReport not found"),
+          new BadDataException(ProbeConnectionRefusals.missingStatusReport),
         );
       }
 
@@ -190,7 +227,7 @@ router.post(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid Probe ID or Probe Key"),
+            new BadDataException(ProbeConnectionRefusals.wrongIdOrKey),
           );
         }
 
@@ -225,7 +262,9 @@ router.post(
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Global config not found"),
+              new BadDataException(
+                "OneUptime could not read its global settings, so nobody was emailed that this probe is offline. Check the OneUptime server's logs: the probe reports again on its next check.",
+              ),
             );
           }
 
@@ -244,7 +283,9 @@ router.post(
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid Project ID"),
+              new BadDataException(
+                "This probe belongs to no project, so nobody was emailed that it is offline. Add the probe again under Monitors > Settings > Probes.",
+              ),
             );
           }
 
@@ -362,7 +403,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -373,7 +414,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("ProbeMonitorResponse not found"),
+          new BadDataException(ProbeConnectionRefusals.missingMonitorResponse),
         );
       }
 
@@ -429,7 +470,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -437,7 +478,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("snmpTrap not found in request body"),
+          new BadDataException(ProbeConnectionRefusals.missingSnmpTrap),
         );
       }
 
@@ -480,7 +521,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("TestId not found"),
+          new BadDataException(ProbeConnectionRefusals.missingTestId),
         );
       }
 
@@ -490,7 +531,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -501,7 +542,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("ProbeMonitorResponse not found"),
+          new BadDataException(ProbeConnectionRefusals.missingMonitorResponse),
         );
       }
 
@@ -558,7 +599,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe ID not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 

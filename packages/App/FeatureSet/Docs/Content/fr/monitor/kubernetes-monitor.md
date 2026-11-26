@@ -116,7 +116,7 @@ Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur de 
 
 ### Conditions
 
-Les seuils statiques sont comparés au **Seuil** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** et **Égal à**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose.
+Les seuils statiques sont comparés au **Seuil** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à** et **Différent de**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose.
 
 La détection d'anomalies par rapport à une référence n'a pas besoin de seuil. Choisissez l'une de ces conditions, et le formulaire affiche **Sensibilité** et **Fenêtre de référence** à la place :
 

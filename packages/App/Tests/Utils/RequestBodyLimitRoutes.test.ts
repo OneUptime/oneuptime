@@ -1,12 +1,16 @@
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import getRequestBodyLimit, {
+  DOCS_REPORT_REQUEST_BODY_LIMIT,
   FILE_REQUEST_BODY_LIMIT,
   INCOMING_REQUEST_ROUTE_PREFIXES,
   LARGE_REQUEST_BODY_LIMIT,
+  MCP_OAUTH_REQUEST_BODY_LIMIT,
+  OPAMP_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   PROBE_INGEST_ROUTE_PREFIXES,
   REPORT_REQUEST_BODY_LIMIT,
@@ -16,6 +20,7 @@ import getRequestBodyLimit, {
   readsBodyAfterAuthentication,
 } from "Common/Server/Utils/RequestBodyLimit";
 import { TELEMETRY_WRITER_INSERT_ROUTE } from "Common/Server/Utils/Telemetry/TelemetryWriterClient";
+import { parseBodyLimit } from "Common/Server/Middleware/RequestBodyParser";
 import {
   isCloudStreamPath,
   isVercelLogDrainPath,
@@ -193,22 +198,40 @@ describe("the paths the App's own clients send large bodies to", () => {
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
-      "telemetry the StartServer parsers read",
+      "Security Events, read once its ingest key is checked (#10795)",
+      [...under(TELEMETRY_ROUTE_PREFIXES, "/security-events/v1/ingest")],
+      LARGE_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "the batches read once their ingest key is checked (#10702): Fluent, syslog, Pyroscope's push and the rest",
       [
         ...under(TELEMETRY_ROUTE_PREFIXES, "/fluentd/v1/logs"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/syslog/v1/logs"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/security-events/v1/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/kubernetes-cost/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/change-events/v1/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/openlineage/api/v1/lineage"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/dbt/v1/artifacts"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/source-maps/v1/upload"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/dsyms/v1/upload"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/pyroscope/ingest"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
+        ...under(
+          TELEMETRY_ROUTE_PREFIXES,
+          "/pyroscope/push.v1.PusherService/Push",
+        ),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/android-agent/v1/log-sessions"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/fivetran/v1/webhook/id"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/airbyte/v1/webhook/key"),
+      ],
+      LARGE_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "a host collector's OpAMP messages, read once their key is checked and held to an OpAMP message's 1 MiB (#10770)",
+      under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
+      OPAMP_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "the uploads read once their ingest key is checked (#10673): a profile, source maps, dSYMs",
+      [
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/pyroscope/ingest"),
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/source-maps/v1/upload"),
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/dsyms/v1/upload"),
       ],
       LARGE_REQUEST_BODY_LIMIT,
     ],
@@ -279,11 +302,20 @@ describe("the paths the App's own clients send large bodies to", () => {
         '"/incoming-request/:secretkey"',
       ],
       ["FeatureSet/Telemetry/API/Fluent.ts", '"/fluentd/v1/logs"'],
+      [
+        "FeatureSet/Telemetry/API/SecurityEventsIngest.ts",
+        '"/security-events/v1/ingest"',
+      ],
       ["FeatureSet/Telemetry/API/DbtArtifactsIngest.ts", '"/dbt/v1/artifacts"'],
       [
         "FeatureSet/Telemetry/API/SourceMapIngest.ts",
         '"/source-maps/v1/upload"',
       ],
+      ["FeatureSet/Telemetry/API/DsymIngest.ts", '"/dsyms/v1/upload"'],
+      ["FeatureSet/Telemetry/API/Pyroscope.ts", '"/pyroscope/ingest"'],
+      ["FeatureSet/MCP/OAuth/OAuthRoutes.ts", '= "/mcp/oauth"'],
+      ["FeatureSet/Docs/Index.ts", '"/docs/feedback"'],
+      ["FeatureSet/Docs/Index.ts", '"/docs/search/found-nothing"'],
     ] as Array<[string, string]>) {
       expect({ file, registers: readSource(file).includes(route) }).toEqual({
         file,
@@ -293,13 +325,16 @@ describe("the paths the App's own clients send large bodies to", () => {
   });
 
   /*
-   * A telemetry route a body comes in by - a collector's, an agent's, CI's -
-   * is mounted on TELEMETRY_PREFIXES. Each one StartServer reads the body of
-   * takes a large route's limit; the rest read their own (OTLP, session
-   * replay, the compatible endpoints, the Vercel log drain, the cloud
-   * streams). A route added there without either fails here.
+   * A telemetry route a body comes in by - a collector's, an agent's, CI's,
+   * a SIEM's - is mounted on TELEMETRY_PREFIXES. None has its body read by
+   * StartServer, before its key is checked (#10702, #10795): each reads its
+   * own (OTLP, session replay, the compatible endpoints, the Vercel log
+   * drain, the cloud streams), or reads it once its key is right
+   * (readsBodyAfterAuthentication). A route added there without either -
+   * whose body anyone could have read and parsed, up to its limit - fails
+   * here.
    */
-  test("every telemetry route that takes a body StartServer reads is a large one", () => {
+  test("no telemetry route has its body read by StartServer: each reads its own, or reads it once its key is right", () => {
     const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
     const mounted: Array<string> = Array.from(
       telemetryIndex.matchAll(/app\.use\(TELEMETRY_PREFIXES, (\w+)\);/g),
@@ -309,7 +344,8 @@ describe("the paths the App's own clients send large bodies to", () => {
 
     expect(mounted.length).toBeGreaterThan(20);
 
-    const checked: Array<string> = [];
+    const scanned: Array<string> = [];
+    const readByStartServer: Array<{ path: string; bytes: number }> = [];
 
     for (const name of mounted) {
       const imported: RegExpMatchArray | null = telemetryIndex.match(
@@ -340,23 +376,227 @@ describe("the paths the App's own clients send large bodies to", () => {
             isCompatibleIngestPath(path) ||
             readsBodyAfterAuthentication(path);
 
+          scanned.push(path);
+
           if (!readsItsOwnBody) {
-            expect({
+            readByStartServer.push({
               path,
               bytes: getRequestBodyLimit(path).bytes,
-            }).toEqual({ path, bytes: LARGE_REQUEST_BODY_LIMIT.bytes });
-            checked.push(path);
+            });
           }
         }
       }
     }
 
-    expect(checked).toEqual(
+    // The scan reads every router: OTLP, the batches, Security Events.
+    expect(scanned).toEqual(
       expect.arrayContaining([
-        "/dsyms/v1/upload",
+        "/otlp/v1/traces",
         "/telemetry/fluentd/v1/logs",
+        "/pyroscope/push.v1.PusherService/Push",
+        "/security-events/v1/ingest",
+        "/telemetry/security-events/v1/ingest",
       ]),
     );
+    // Security Events was the last (#10795).
+    expect(readByStartServer).toEqual([]);
+  });
+
+  /*
+   * #10702: a telemetry route StartServer leaves the body of unread reads it
+   * itself once its key is right - the key check reads it, before the
+   * ingestion budget (TelemetryIngest.forSurface's reader), or a reader
+   * mounted after it (the uploads). One that read it nowhere would find no
+   * body at all, from every client. OTLP/HTTP and the Vercel log drain,
+   * which StartServer leaves to their own readers by their paths, read
+   * theirs in the key check too (#10814): they read it before the key.
+   */
+  test("every telemetry route whose body StartServer leaves unread reads it once the key is right", () => {
+    const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
+    const read: Array<string> = [];
+
+    // The key check, given the route's reader: it reads between the key and the budget.
+    const READS_IN_THE_KEY_CHECK: RegExp =
+      /TelemetryIngest\.forSurface\( ?TelemetryIngestSurface\.\w+, \w+,? ?\)/;
+    // The key check, then a reader mounted after it: the uploads.
+    const READS_AFTER_THE_KEY_CHECK: RegExp =
+      /TelemetryIngest\.forSurface\( ?TelemetryIngestSurface\.\w+ ?\), read\w+,/;
+
+    // The routers mounted on the telemetry prefixes, whose key is an ingest key.
+    for (const mounted of telemetryIndex.matchAll(
+      /app\.use\(TELEMETRY_PREFIXES, (\w+)\);/g,
+    )) {
+      const imported: RegExpMatchArray | null = telemetryIndex.match(
+        new RegExp(`import ${mounted[1]} from "\\./API/([\\w/]+)";`),
+      );
+      const source: string = readSource(
+        `FeatureSet/Telemetry/API/${imported![1]}.ts`,
+      ).replace(/\s+/g, " ");
+
+      for (const route of source.matchAll(
+        /router\.(?:post|put|patch)\( "([^"]+)",(.*?)async \(/g,
+      )) {
+        const path: string = route[1]!;
+        const chain: string = route[2]!;
+        const isOtlpOrVercelDrain: boolean =
+          path.includes("/otlp/v1/") || isVercelLogDrainPath(path);
+
+        if (
+          !isOtlpOrVercelDrain &&
+          (path.includes("/session-replay/v1/") ||
+            isCloudStreamPath(path) ||
+            isCompatibleIngestPath(path) ||
+            !readsBodyAfterAuthentication(path))
+        ) {
+          continue;
+        }
+
+        expect({
+          path,
+          readsItsBody:
+            READS_IN_THE_KEY_CHECK.test(chain) ||
+            READS_AFTER_THE_KEY_CHECK.test(chain),
+        }).toEqual({ path, readsItsBody: true });
+        read.push(path);
+      }
+    }
+
+    expect(read).toEqual(
+      expect.arrayContaining([
+        "/fluentd/v1/logs",
+        "/syslog/v1/logs",
+        "/kubernetes-cost/ingest",
+        "/change-events/v1/ingest",
+        "/openlineage/api/v1/lineage",
+        "/dbt/v1/artifacts",
+        "/android-agent/v1/log-sessions",
+        "/opamp/v1",
+        "/pyroscope/push.v1.PusherService/Push",
+        "/fivetran/v1/webhook/:ingestionKeyId",
+        "/airbyte/v1/webhook/:ingestionKey",
+        "/pyroscope/ingest",
+        "/source-maps/v1/upload",
+        "/dsyms/v1/upload",
+        "/security-events/v1/ingest",
+        "/otlp/v1/traces",
+        "/otlp/v1/metrics",
+        "/otlp/v1/logs",
+        "/otlp/v1/profiles",
+        "/vercel/v1/logs",
+      ]),
+    );
+  });
+
+  /*
+   * #10672: a route that reads its body with a parser of its own, after
+   * StartServer, holds the body to that parser's limit only where
+   * StartServer left the body to it - a gzip body, whose bytes it only
+   * inflated - unless StartServer holds the route to the same limit. The
+   * MCP OAuth endpoints' 64 KB and the docs' 2 KB held for a gzip body
+   * alone: an uncompressed one StartServer parsed first, at 1 MB. Every
+   * route-level reader with a limit of its own (RequestBodyReadersGuard
+   * lists them) is held here to the limit StartServer holds its route to,
+   * so a body is held to one limit whatever its encoding.
+   */
+  test("every route that reads its body with a limit of its own is held to it by StartServer as well", () => {
+    const oauthRoutes: string = readSource(
+      "FeatureSet/MCP/OAuth/OAuthRoutes.ts",
+    );
+    const docs: string = readSource("FeatureSet/Docs/Index.ts");
+    const mcpRoutes: string = readSource(
+      "FeatureSet/MCP/Handlers/RouteHandler.ts",
+    );
+
+    // The OAuth endpoints' parsers take their limit from the list.
+    expect(oauthRoutes).toContain(
+      "const MAX_BODY_BYTES: number = MCP_OAUTH_REQUEST_BODY_LIMIT.bytes;",
+    );
+    expect(oauthRoutes.match(/limit: MAX_BODY_BYTES/g)).toHaveLength(2);
+    expect(oauthRoutes).not.toMatch(/limit: "\d/);
+
+    for (const endpoint of [
+      "/mcp/oauth/authorize",
+      "/mcp/oauth/token",
+      "/mcp/oauth/register",
+      "/mcp/oauth/revoke",
+      "/mcp/oauth/consent/details",
+      "/mcp/oauth/consent/approve",
+      "/mcp/oauth/consent/deny",
+    ]) {
+      expect({ endpoint, limit: getRequestBodyLimit(endpoint) }).toEqual({
+        endpoint,
+        limit: MCP_OAUTH_REQUEST_BODY_LIMIT,
+      });
+    }
+
+    // The docs' reports' parser, the same.
+    expect(docs).toContain("{ limit: DOCS_REPORT_REQUEST_BODY_LIMIT.bytes }");
+
+    for (const report of ["/docs/feedback", "/docs/search/found-nothing"]) {
+      expect({ report, limit: getRequestBodyLimit(report) }).toEqual({
+        report,
+        limit: DOCS_REPORT_REQUEST_BODY_LIMIT,
+      });
+    }
+
+    // The MCP endpoint's JSON-RPC parser reads its route's own limit.
+    expect(mcpRoutes).toContain(
+      "{ limit: getRequestBodyLimit(mcpEndpoint).bytes }",
+    );
+
+    /*
+     * OpAMP's reader, after the key, reads the limit its route is listed
+     * with (#10770): the message's own 1 MiB, the most its handler takes.
+     */
+    const opamp: string = readSource(
+      "FeatureSet/Telemetry/API/HostCollectorOpAmp.ts",
+    );
+
+    expect(opamp).toContain(
+      "RequestBodyAfterAuthentication.readBody(OPAMP_REQUEST_BODY_LIMIT)",
+    );
+    expect(opamp).toContain(
+      "export const MAX_OPAMP_MESSAGE_BYTES: number = OPAMP_MESSAGE_MAX_BYTES;",
+    );
+    expect(opamp).not.toContain("LARGE_REQUEST_BODY_LIMIT");
+
+    for (const endpoint of ["/telemetry/opamp/v1", "/opamp/v1"]) {
+      expect({ endpoint, limit: getRequestBodyLimit(endpoint) }).toEqual({
+        endpoint,
+        limit: OPAMP_REQUEST_BODY_LIMIT,
+      });
+    }
+
+    // The webhook text readers: their routes' 50 MB, as StartServer's.
+    const sizeNamed: (file: string, name: string) => number = (
+      file: string,
+      name: string,
+    ): number => {
+      const match: RegExpMatchArray | null = readSource(file).match(
+        new RegExp(`export const ${name}: string = "([^"]+)";`),
+      );
+
+      expect({ file, name, found: Boolean(match) }).toEqual({
+        file,
+        name,
+        found: true,
+      });
+
+      return parseBodyLimit(match![1]!);
+    };
+
+    expect(
+      sizeNamed(
+        "FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts",
+        "TEXT_BODY_LIMIT",
+      ),
+    ).toBe(getRequestBodyLimit("/incoming-request/key").bytes);
+    expect(
+      sizeNamed(
+        "../Common/Server/Types/Workflow/Components/Webhook.ts",
+        "WEBHOOK_TEXT_BODY_LIMIT",
+      ),
+    ).toBe(getRequestBodyLimit("/workflow/trigger/key").bytes);
   });
 
   test("an ordinary route of the API takes the ordinary limit", () => {
@@ -381,12 +621,17 @@ describe("the paths the App's own clients send large bodies to", () => {
  * A probe's collection is read by its route, once the route has checked the
  * key in its headers (#10222), as the bytes the gzip reader inflated,
  * whatever its Content-Type said - one that is not JSON's is not counted as
- * it inflates. It is counted before it is parsed: up to a collection's
- * 8,000,000 values for a probe whose key is right, and up to a large route's
- * 1,000,000 for one whose probe is not known by then.
+ * it inflates. It is counted before it is parsed, up to a collection's
+ * 8,000,000 values. A collection whose probe no header named is read no
+ * further than the key at its start until that key is checked (#10260), so
+ * a body that opens with anything else is refused unread.
  */
 describe("a collection is counted before it is parsed", () => {
-  function gzipRequest(body: Buffer, contentType: string): ExpressRequest {
+  function gzipRequest(
+    body: Buffer,
+    contentType: string,
+    probe?: Probe,
+  ): ExpressRequest {
     const stream: PassThrough = new PassThrough();
     const req: ExpressRequest = stream as unknown as ExpressRequest;
 
@@ -396,11 +641,21 @@ describe("a collection is counted before it is parsed", () => {
       "content-length": String(body.length),
     };
 
+    if (probe) {
+      (req as ProbeExpressRequest).probe = probe;
+    }
+
     setImmediate(() => {
       stream.end(body);
     });
 
     return req;
+  }
+
+  // An answer, as Response.sendErrorResponse writes one.
+  interface Answered {
+    status?: number;
+    body?: unknown;
   }
 
   function run(
@@ -410,11 +665,26 @@ describe("a collection is counted before it is parsed", () => {
       next: NextFunction,
     ) => void,
     req: ExpressRequest,
+    answered: Answered = {},
   ): Promise<unknown> {
     return new Promise<unknown>((resolve: (value: unknown) => void) => {
+      const res: Record<string, unknown> = {
+        headersSent: false,
+        shouldKeepAlive: true,
+        status: (status: number): unknown => {
+          answered.status = status;
+          return res;
+        },
+        send: (body: unknown): unknown => {
+          answered.body = body;
+          resolve("answered");
+          return res;
+        },
+      };
+
       middleware(
         req,
-        {} as ExpressResponse,
+        res as unknown as ExpressResponse,
         ((error?: unknown) => {
           resolve(error);
         }) as NextFunction,
@@ -422,12 +692,15 @@ describe("a collection is counted before it is parsed", () => {
     });
   }
 
-  const bomb: Buffer = Buffer.from(
-    `[${"[],".repeat(Math.floor((20 * 1024 * 1024) / 3))}[]]`,
-  );
-
-  test("of 20 MiB of empty arrays sent as text/plain, whose probe is not known, is refused 413 and never parsed", async () => {
-    const req: ExpressRequest = gzipRequest(zlib.gzipSync(bomb), "text/plain");
+  test("of 26 MiB of empty arrays sent as text/plain by a probe its headers named, is refused 413 at a collection's 8,000,000 values and never parsed", async () => {
+    const bomb: Buffer = Buffer.from(
+      `[${"[],".repeat(Math.floor((26 * 1024 * 1024) / 3))}[]]`,
+    );
+    const req: ExpressRequest = gzipRequest(
+      zlib.gzipSync(bomb),
+      "text/plain",
+      new Probe(new ObjectID("11111111-1111-4111-8111-111111111111")),
+    );
 
     // The route's own reader: not JSON's type, so not counted as it inflates.
     expect(await run(readCollectionBody, req)).toBeUndefined();
@@ -447,13 +720,33 @@ describe("a collection is counted before it is parsed", () => {
         req,
       );
 
-      // Under a large route's 1,000,000, not a collection's 8,000,000.
       expect(error).toMatchObject({
         type: "entity.too.many.values",
         status: 413,
         expose: true,
-        limit: LARGE_REQUEST_BODY_LIMIT.values,
+        limit: REPORT_REQUEST_BODY_LIMIT.values,
       });
+      expect(jsonParse).not.toHaveBeenCalled();
+    } finally {
+      jsonParse.mockRestore();
+    }
+  }, 120000);
+
+  test("of 20 MiB of empty arrays whose probe no header named, is refused at its opening, read no further and never parsed", async () => {
+    const bomb: Buffer = Buffer.from(
+      `[${"[],".repeat(Math.floor((20 * 1024 * 1024) / 3))}[]]`,
+    );
+    const req: ExpressRequest = gzipRequest(zlib.gzipSync(bomb), "text/plain");
+    const answered: Answered = {};
+    const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      expect(await run(readCollectionBody, req, answered)).toBe("answered");
+      expect(answered).toEqual({
+        status: 400,
+        body: { message: ProbeConnectionRefusals.missingIdOrKey },
+      });
+      expect((req as unknown as { body: unknown }).body).toBeUndefined();
       expect(jsonParse).not.toHaveBeenCalled();
     } finally {
       jsonParse.mockRestore();

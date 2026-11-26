@@ -11,6 +11,13 @@ import {
   SecurityEventScope,
   readSecurityEventScope,
 } from "../../../Types/SecurityEvent/SecurityEventScope";
+import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  SecurityEventArrivalRange,
+  getArrivalEventTimeBounds,
+  readSecurityEventArrivalRange,
+} from "../../../Types/SecurityEvent/SecurityEventArrival";
+import { isDetectionArrivalCandidate } from "../SecurityEvent/DetectionArrivalRead";
 import GroupBy from "../../Types/AnalyticsDatabase/GroupBy";
 import Query from "../../Types/AnalyticsDatabase/Query";
 import Select from "../../Types/AnalyticsDatabase/Select";
@@ -50,6 +57,9 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull, {
+  IncludesNoneOrNullType,
+} from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -57,6 +67,7 @@ import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import { MAX_WILDCARD_PATTERNS } from "../../../Types/BaseDatabase/WildcardPattern";
@@ -977,6 +988,57 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       }
 
       /*
+       * "securityEventArrival" is a synthetic query key (not a column): the
+       * security events that ARRIVED in a range, within a day of when they
+       * happened, as a scheduled hunt counts them and its notification's
+       * link lists them (Types/SecurityEvent/SecurityEventArrival, #10488):
+       *   (createdAt > after AND createdAt <= until
+       *     AND time >= createdAt - toIntervalSecond(86400))
+       * - the condition a scheduled detection rule judges what arrived with
+       * (DetectionArrivalRead), the one both read by. A range it cannot
+       * read, or a model without the two columns, is AND 0: it narrows a
+       * read, and must never widen one to every event. Every value is
+       * parameter-bound.
+       */
+      if (key === SECURITY_EVENT_ARRIVAL_QUERY_KEY) {
+        if (first) {
+          first = false;
+        } else {
+          whereStatement.append(SQL` `);
+        }
+
+        const range: SecurityEventArrivalRange | null =
+          readSecurityEventArrivalRange(value);
+
+        if (
+          !range ||
+          !this.model.getTableColumn("createdAt") ||
+          !this.model.getTableColumn("time")
+        ) {
+          whereStatement.append(SQL`AND 0`);
+          continue;
+        }
+
+        const happened: { happenedAfter: Date; happenedBefore: Date } =
+          getArrivalEventTimeBounds(range);
+
+        whereStatement.append(SQL`AND `);
+        whereStatement.append(
+          isDetectionArrivalCandidate(
+            {
+              kind: "run",
+              arrivedAfter: range.arrivedAfter,
+              arrivedUntil: range.arrivedUntil,
+              candidateStartTime: happened.happenedAfter,
+              candidateEndTime: happened.happenedBefore,
+            },
+            columnRef,
+          ),
+        );
+        continue;
+      }
+
+      /*
        * "entityScope" is a synthetic query key (not a column):
        * { entityKeys, attributeKey, attributeValue } compiles to
        *   (hasAny(entityKeys, [...]) OR attributes['k'] = 'v')
@@ -1398,6 +1460,31 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (value instanceof NotEqualOrNull) {
+        /*
+         * Anything but the value, an empty column included (#10581): a
+         * table's "Not equal to" filter keeps the rows that have none here
+         * as on Postgres. Its value is bound as a NotEqual's is. An
+         * Array(String) column is never NULL - "not set" is the empty array,
+         * which mentions nothing - so there it asks what NotEqual asks.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND NOT has(${columnRef(key)}, ${{
+              value: String((value as NotEqualOrNull<string>).value ?? ""),
+              type: TableColumnType.Text,
+            }})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND (${columnRef(key)} != ${{
+              value: new NotEqual(value.value),
+              type: tableColumn.type,
+            }} OR ${columnRef(key)} IS NULL)`,
+          );
+        }
       } else if (value instanceof GreaterThan) {
         whereStatement.append(
           SQL`AND ${columnRef(key)} > ${{
@@ -1514,6 +1601,45 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               type: tableColumn.type,
             }}`,
           );
+        }
+      } else if (value instanceof IncludesNoneOrNull) {
+        /*
+         * None of these, an empty column included (#10581): `NOT IN` is not
+         * true of NULL. Its values are bound as an IncludesNone's are;
+         * nothing to exclude, no predicate. An Array(String) column is never
+         * NULL (see NotEqualOrNull above), so there it asks what IncludesNone
+         * asks.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+
+        const excludeValues: Array<string | ObjectID | number> =
+          ((value as IncludesNoneOrNull).values as Array<
+            string | ObjectID | number
+          >) || [];
+
+        if (excludeValues.length > 0) {
+          if (tableColumn.type === TableColumnType.ArrayText) {
+            whereStatement.append(
+              SQL`AND NOT hasAny(${columnRef(key)}, ${{
+                value: excludeValues.map(
+                  (excluded: string | ObjectID | number): string => {
+                    return excluded.toString();
+                  },
+                ),
+                type: TableColumnType.ArrayText,
+              }})`,
+            );
+          } else {
+            whereStatement.append(
+              SQL`AND (${columnRef(key)} NOT IN ${{
+                value: new IncludesNone(
+                  (value as IncludesNoneOrNull)
+                    .values as IncludesNoneOrNullType,
+                ),
+                type: tableColumn.type,
+              }} OR ${columnRef(key)} IS NULL)`,
+            );
+          }
         }
       } else if (value instanceof IsNull) {
         if (tableColumn.type === TableColumnType.ArrayText) {

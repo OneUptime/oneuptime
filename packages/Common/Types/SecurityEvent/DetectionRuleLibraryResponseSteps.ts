@@ -656,6 +656,56 @@ const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
     phase: Fix,
     text: "Fix the code the exception points to, so a request like it is turned away instead.",
   },
+  "check-sensitive-files-served": {
+    phase: Confirm,
+    text: "Ask your site for each file the address asked for, from outside your network, and check that none of them is served.",
+  },
+  "rotate-served-secrets": {
+    phase: Contain,
+    text: "If one was served, rotate every secret it holds now: its passwords, keys and tokens.",
+  },
+  "keep-secrets-out-of-web-root": {
+    phase: Fix,
+    text: "Keep secrets and repositories out of the folders your web server serves, and have it refuse paths that start with a dot.",
+  },
+  // A sensitive file the site served (#10912).
+  "check-served-file-answer": {
+    phase: Confirm,
+    text: "Open the request and check what your site sent: its size and type, beside what it sends for a path it does not have. Ask for the file from outside your network to see whether it is still served.",
+  },
+  "take-served-file-down": {
+    phase: Contain,
+    text: "Take the file off your web server now, or have the server refuse its path.",
+  },
+  "rotate-exposed-secrets": {
+    phase: Contain,
+    text: "Rotate every secret the file holds - its passwords, keys and tokens - and check where each was used since it was served.",
+  },
+  // ----- At Cloudflare -----
+  "check-cloudflare-hits-reached-app": {
+    phase: Confirm,
+    text: "Check whether any of the address's requests got past Cloudflare to your app: the case's Impact shows Cloudflare's actions beside what reached it.",
+  },
+  "block-with-managed-rules": {
+    phase: Fix,
+    text: "Set the Cloudflare managed rules that only logged these requests to Block, on the routes they target.",
+  },
+  "check-after-challenge": {
+    phase: Confirm,
+    text: "Check what the address asked for after it passed the challenge, and whether any of it reached your app.",
+  },
+  "block-instead-of-challenge": {
+    phase: Fix,
+    text: "Block attack payloads on the routes it targeted with a Cloudflare managed rule set to Block, not a challenge a bot can solve.",
+  },
+  "check-let-through-reached": {
+    phase: Confirm,
+    text: "Find the requests that reached your app, and check what the app did with each.",
+  },
+  "narrow-skip-rule": {
+    phase: Fix,
+    text: "Narrow the Cloudflare rule that skipped the WAF or only logged, so attacks on this route are blocked.",
+  },
   "check-ssrf-metadata": {
     phase: Confirm,
     text: "Check whether the request reached the metadata service and got credentials back.",
@@ -760,7 +810,11 @@ const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
   },
   "check-mass-delete": {
     phase: Confirm,
-    text: "Check who deleted the records, and whether a cleanup explains it.",
+    text: "Check who or which workflow deleted the records, and whether a cleanup explains it.",
+  },
+  "stop-deleting-actor": {
+    phase: Contain,
+    text: "If a workflow or an API key deleted them, turn the workflow off or revoke the key until you know why.",
   },
   "restore-deleted-records": {
     phase: Fix,
@@ -1203,6 +1257,19 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52": ["safe-file-paths"],
   // Log4Shell exploit attempt
   "866b7566-304e-442b-b1ad-ca08264af493": ["check-log4j", "upgrade-log4j"],
+  // Scanning for sensitive files
+  "37aac329-ce8b-4ced-9255-4ae49d564451": [
+    "check-sensitive-files-served",
+    "rotate-served-secrets",
+    "keep-secrets-out-of-web-root",
+  ],
+  // Sensitive file served (#10912)
+  "fe1afb71-1434-444c-8091-baa8f5b83d1f": [
+    "check-served-file-answer",
+    "take-served-file-down",
+    "rotate-exposed-secrets",
+    "keep-secrets-out-of-web-root",
+  ],
   // Injected SQL reached the database
   "a1218db8-8e28-4afb-ae8e-ed4f0aef7595": [
     "check-injected-query",
@@ -1214,6 +1281,22 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   "47d32cc6-462c-44f9-8bcb-b99d7b083860": [
     "check-app-exception",
     "fix-exception-code",
+  ],
+  // Many Cloudflare managed rule hits from one address
+  "00146e5e-0b2d-4e09-ad97-91f6f54715fc": [
+    "check-cloudflare-hits-reached-app",
+    "block-with-managed-rules",
+  ],
+  // An address passed a Cloudflare challenge, then sent attacks
+  "38bf7cff-c78b-4958-a56d-e75628ff87b2": [
+    "check-after-challenge",
+    "block-instead-of-challenge",
+  ],
+  // An attack Cloudflare let through reached your app
+  "237b4117-52ca-42e3-85e8-cbcc518ccbae": [
+    "check-let-through-reached",
+    "block-vulnerable-route",
+    "narrow-skip-rule",
   ],
   // Shell opened in a pod
   "1ce3af71-a3d5-409a-b477-34e4a734aa83": [
@@ -1316,6 +1399,7 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   // Many records deleted at once in OneUptime
   "51a51214-ca6e-43bc-b9ba-abf06cf4a135": [
     "check-mass-delete",
+    "stop-deleting-actor",
     "restore-deleted-records",
   ],
   // Security controls changed in OneUptime

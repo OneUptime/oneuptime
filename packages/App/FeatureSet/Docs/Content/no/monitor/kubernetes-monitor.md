@@ -116,7 +116,7 @@ Disse monitorene evaluerer alltid **Målingsverdi** – verdien av den konfigure
 
 ### Betingelser
 
-Statiske terskler sammenlignes med **Terskel** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** og **Lik**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe.
+Statiske terskler sammenlignes med **Terskel** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik**, **Lik** og **Ikke lik**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe.
 
 Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse betingelsene, så viser skjemaet i stedet **Følsomhet** og **Grunnlinjevindu**:
 

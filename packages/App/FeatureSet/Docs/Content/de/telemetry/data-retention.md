@@ -38,6 +38,7 @@ Vollständig liest OneUptime diese Einstellungen in dieser Reihenfolge, und die 
 - **Die Einstellungen 1 bis 5 sind Aufbewahrungs-Überschreibungen.** Sie gehören zur [Enterprise Edition](/docs/self-hosted/enterprise) und in OneUptime Cloud zum Scale-Plan. Ohne sie wird jeder Datensatz für den Standard des Projekts aufbewahrt.
 - **Eine Änderung gilt für neue Telemetrie.** Ein Datensatz behält das Datum, mit dem er gestempelt wurde: Eine kürzere Aufbewahrung löscht ihn nicht früher, und eine längere bewahrt ihn nicht länger auf. Neue Datensätze folgen einer Änderung nach etwa fünf Minuten.
 - **Ausnahmen folgen dem, worin sie gefunden wurden.** Eine Ausnahme wird so lange aufbewahrt wie der Span oder das Protokoll, aus dem sie stammt. Session Replays haben eine eigene Aufbewahrung: siehe [Andere Daten mit eigener Aufbewahrung](#andere-daten-mit-eigener-aufbewahrung).
+- **Sicherheitsereignisse werden genauso aufbewahrt.** Erkennungsregeln, Auf vergangene Ereignisse anwenden und Bedrohungssuchen lesen nur so weit zurück, wie Sicherheitsereignisse aufbewahrt werden, und sagen es, wo sie mehr bräuchten: siehe [Sicherheitsereignisse](/docs/telemetry/security-events).
 
 ## Bevor Sie beginnen
 

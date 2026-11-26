@@ -20,6 +20,8 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import RequestBodyJson from "Common/Server/Utils/RequestBodyJson";
 import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
+import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
+import UnreadRequestBody from "Common/Server/Middleware/UnreadRequestBody";
 import WebhookRequestBody from "Common/Server/Middleware/WebhookRequestBody";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -344,17 +346,23 @@ router.get("/heartbeat/:secretkey", forwardToOneUptime);
  * A signed request's body is also kept as the bytes that came, whatever its
  * type, up to the same 50 MB, and forwarded as those bytes (getRequestBody),
  * so its signature still holds when OneUptime checks it.
+ *
+ * Anyone who can reach the listener can send to it, so a body over the
+ * limit is refused without the rest of it read, and the connection is closed
+ * once answered (RequestBodyParser, #10598); so is a body of any other type,
+ * once the listener has answered without reading it (UnreadRequestBody).
  */
 export function createIngressApp(): ExpressApplication {
   const app: ExpressApplication = createExpressApp();
+  app.use(UnreadRequestBody.closeConnectionInstead);
   app.use(
-    ExpressJson({
+    RequestBodyParser.create(ExpressJson, {
       limit: INGRESS_BODY_LIMIT,
       verify: countJsonAndKeepSignedBodyBytes,
     }),
   );
   app.use(
-    ExpressUrlEncoded({
+    RequestBodyParser.create(ExpressUrlEncoded, {
       extended: true,
       limit: INGRESS_BODY_LIMIT,
       verify: keepSignedBodyBytes,

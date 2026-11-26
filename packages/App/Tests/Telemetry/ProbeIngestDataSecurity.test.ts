@@ -3,6 +3,7 @@ import DataSecurityCustomDataTypeService from "Common/Server/Services/DataSecuri
 import DataSecuritySettingService from "Common/Server/Services/DataSecuritySettingService";
 import DataStoreService from "Common/Server/Services/DataStoreService";
 import DataSecurityFindingWriter from "Common/Server/Utils/DataSecurity/DataSecurityFindingWriter";
+import DataTypeProving from "Common/Server/Utils/DataSecurity/DataTypeProving";
 import {
   CLAIM_DUE_DATA_STORES_STATEMENT,
   DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT,
@@ -106,6 +107,14 @@ jest.mock("Common/Server/Utils/DataSecurity/DataSecurityFindingWriter", () => {
   };
 });
 
+// The data types OneUptime AI is proving on the project's stores (#10371).
+jest.mock("Common/Server/Utils/DataSecurity/DataTypeProving", () => {
+  return {
+    __esModule: true,
+    default: { getShadowDrafts: jest.fn() },
+  };
+});
+
 jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
   return {
     __esModule: true,
@@ -158,6 +167,9 @@ const writer: { recordContentScan: Mock; recordFailedScan: Mock } =
     recordContentScan: Mock;
     recordFailedScan: Mock;
   };
+const proving: { getShadowDrafts: Mock } = DataTypeProving as unknown as {
+  getShadowDrafts: Mock;
+};
 const responseUtil: { sendErrorResponse: Mock; sendJsonObjectResponse: Mock } =
   Response as unknown as {
     sendErrorResponse: Mock;
@@ -391,6 +403,7 @@ beforeEach(() => {
     findingsWritten: 3,
   } as never);
   writer.recordFailedScan.mockResolvedValue(undefined as never);
+  proving.getShadowDrafts.mockResolvedValue([] as never);
 });
 
 describe("wiring", () => {
@@ -541,6 +554,10 @@ describe("POST /probe/data-security/work", () => {
       disabledDataTypeIds: ["phone-number"],
       allowedValues: ["support@acme-corp.com"],
       fingerprintKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+      // The project's names-and-addresses switch, on unless turned off (#10373).
+      findNamesAndAddresses: true,
+      // No data type is being proven on it.
+      shadowDataTypes: [],
     });
 
     expect(JSON.stringify(body)).not.toContain("never-handed-out");
@@ -560,6 +577,60 @@ describe("POST /probe/data-security/work", () => {
     )["select"] as JSONObject;
 
     expect(select["connectionString"]).toBeUndefined();
+  });
+
+  test("hands each store the project's names-and-addresses switch: a project that turned it off has its probe leave the model out (#10373)", async () => {
+    settingService.getOrCreateForProject.mockResolvedValue({
+      ...settings(),
+      isModelScanEnabled: false,
+    } as never);
+
+    await call(WORK_URI, makeRequest({ body: CAPABLE }));
+
+    const handedOut: Array<JSONObject> = sentBody()[
+      "stores"
+    ] as Array<JSONObject>;
+
+    expect(handedOut).toHaveLength(2);
+    expect(
+      handedOut.map((store: JSONObject): unknown => {
+        return store["findNamesAndAddresses"];
+      }),
+    ).toEqual([false, false]);
+  });
+
+  test("hands a store the data types OneUptime AI is proving on it, to run in shadow (#10371)", async () => {
+    const draft: JSONObject = {
+      key: "66666666-6666-4666-8666-666666666666:AsDrafted",
+      definition: {
+        pattern: "\\b[A-Z]{2}-?\\d{7}\\b",
+        ignoreCase: false,
+        keywords: ["policy"],
+        requiresKeyword: false,
+        nameHints: ["policy no"],
+        validator: "None",
+      },
+    };
+
+    proving.getShadowDrafts.mockImplementation((async (data: {
+      dataStoreId: ObjectID;
+    }): Promise<Array<JSONObject>> => {
+      return data.dataStoreId.toString() === storeId(1) ? [draft] : [];
+    }) as never);
+
+    await call(WORK_URI, makeRequest({ body: CAPABLE }));
+
+    const handedOut: Array<JSONObject> = sentBody()[
+      "stores"
+    ] as Array<JSONObject>;
+
+    expect(handedOut[0]!["shadowDataTypes"]).toEqual([draft]);
+    expect(handedOut[1]!["shadowDataTypes"]).toEqual([]);
+    // Asked of each store's own project, for that store.
+    expect(proving.getShadowDrafts).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      dataStoreId: new ObjectID(storeId(1)),
+    });
   });
 
   test("two polls never get the same store", async () => {
@@ -891,6 +962,59 @@ describe("POST /probe/data-security/result", () => {
         ] as JSONObject
       )["unplacedFields"],
     ).toEqual([]);
+  });
+
+  test("keeps the shadow counts of the data types being proven on the store, and no other (#10371)", async () => {
+    const provenKey: string = "66666666-6666-4666-8666-666666666666:AsDrafted";
+
+    storeOfThisProbe();
+    proving.getShadowDrafts.mockResolvedValue([
+      { key: provenKey, definition: { pattern: "\\d{7}" } },
+    ] as never);
+
+    await call(
+      RESULT_URI,
+      makeRequest({
+        body: {
+          dataStoreId: storeId(1),
+          startedAt: STARTED_AT,
+          result: result({
+            shadowCounts: {
+              [provenKey]: {
+                fields: 3,
+                values: 120,
+                matched: 40,
+                matchedFields: {
+                  "public.policies.policy_no": { values: 40, matched: 40 },
+                },
+              },
+              // A draft this store was never handed: a probe cannot add one.
+              "77777777-7777-4777-8777-777777777777:AsDrafted": {
+                fields: 1,
+                values: 10,
+                matched: 10,
+                matchedFields: {},
+              },
+            },
+          }),
+        },
+      }),
+    );
+
+    const recorded: JSONObject = (
+      writer.recordContentScan.mock.calls[0]![0] as JSONObject
+    )["result"] as JSONObject;
+
+    expect(recorded["shadowCounts"]).toEqual({
+      [provenKey]: {
+        fields: 3,
+        values: 120,
+        matched: 40,
+        matchedFields: {
+          "public.policies.policy_no": { values: 40, matched: 40 },
+        },
+      },
+    });
   });
 
   test("a scan that could not run is recorded with its reason, and tried again sooner", async () => {

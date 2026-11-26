@@ -174,6 +174,10 @@ export function getDockerSwarmBreadcrumbs(
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Docker Swarm", "Settings", "Rule Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "Docker Swarm", "Settings", "Label Rules", "View Rule"],
     ),

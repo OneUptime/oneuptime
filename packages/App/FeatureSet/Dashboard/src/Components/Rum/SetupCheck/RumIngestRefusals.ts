@@ -24,12 +24,13 @@ export type { IngestRefusalFact } from "../../Telemetry/IngestRefusalFacts";
  *   - it holds for every key of the project alike (a used-up project
  *     budget, no payment method, a blocked project): whatever key the app
  *     sends with, it is refused the same way;
- *   - its key is pinned to the app's service.name;
+ *   - its key is pinned to the app's service.name - every Mobile key is
+ *     (issue #6457), so a mobile app's own key always speaks for it;
  *   - its key is an unpinned Browser key and the app is a browser app. A
  *     browser app's setup gives it a Browser key, and nothing but a page
- *     sends with one. A mobile app sends with a Server key, which the
- *     project's backends send with too, so an unpinned Server key's refusal
- *     does not speak for one.
+ *     sends with one. A mobile app set up before Mobile keys may send with
+ *     a Server key, which the project's backends send with too, so an
+ *     unpinned Server key's refusal does not speak for one.
  *
  * And it explains what the app sends of a kind (page loads and requests,
  * logs, metrics, recordings - the surface it was refused on) only while

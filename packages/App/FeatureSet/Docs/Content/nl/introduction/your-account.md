@@ -23,8 +23,8 @@ Klik op uw foto rechtsboven in het dashboard.
 
 | Item | Wat het doet |
 | --- | --- |
-| **Profiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, taal, foto en de beveiliging van uw aanmelding. |
-| **Beheerdersinstellingen** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
+| **Gebruikersprofiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, taal, foto en de beveiliging van uw aanmelding. |
+| **Admin-dashboard** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
 | **Thema** | Stelt het thema van het dashboard in: **Licht**, **Donker** of **Systeem**, dat licht of donker is zoals uw apparaat is ingesteld. |
 | **Afmelden** | Meldt u af, meteen op elke OneUptime-server. Waar uw beheerder het heeft ingesteld, meldt het u ook af bij uw identiteitsprovider. |
 
@@ -35,7 +35,7 @@ Klik op uw foto rechtsboven in het dashboard.
 :::steps
 ### Uw profiel openen
 
-Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent met de kaart **Basisinformatie**: uw naam, e-mailadres, tijdzone en taal.
+Klik rechtsboven op uw foto en kies **Gebruikersprofiel**. De pagina **Overzicht** opent met de kaart **Basisinformatie**: uw naam, e-mailadres, tijdzone en taal.
 
 ### Uw gegevens bewerken
 
@@ -114,7 +114,7 @@ Open **Beveiliging → Tweefactorauthenticatie** en klik op **Tweefactorauthenti
 
 ### Instellen
 
-Voor een authenticator-app scant u de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voert u de 6-cijferige code in die de app toont en klikt u op **Verifiëren en afronden**. Een USB- of NFC-sleutel geeft u een naam, waarna u de aanwijzingen van uw browser volgt. Tweefactorauthenticatie is daarna ingeschakeld en de kaart toont **Ingeschakeld**. Vanaf uw volgende aanmelding met een wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
+Voor een authenticator-app scant u de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voert u de 6-cijferige code in die de app toont en klikt u op **Verifiëren en afronden**. Op een telefoon tikt u in plaats van te scannen op **Toevoegen aan authenticator-app**: uw app opent met uw account al ingevuld. Een USB- of NFC-sleutel geeft u een naam, waarna u de aanwijzingen van uw browser volgt. Tweefactorauthenticatie is daarna ingeschakeld en de kaart toont **Ingeschakeld**. Vanaf uw volgende aanmelding met een wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 
 ### Uw back-upcodes bewaren
 
@@ -127,7 +127,7 @@ Hebt u al een app onder **Authenticator-apps** of een sleutel onder **Beveiligin
 
 Als een beheerder tweefactorauthenticatie vereist en u nog niets hebt ingesteld, vraagt uw volgende aanmelding met een wachtwoord of een gemailde link u om die in te stellen voordat u binnenkomt. Kies **Authenticator-app** of **Beveiligingssleutel** en klik op **Doorgaan**:
 
-- **Authenticator-app**: scan de QR-code, voer de 6-cijferige code in die uw app toont en klik op **Verifiëren en aanmelden**.
+- **Authenticator-app**: scan de QR-code, voer de 6-cijferige code in die uw app toont en klik op **Verifiëren en aanmelden**. Tik op een telefoon in plaats van te scannen op **Toevoegen aan authenticator-app**.
 - **Beveiligingssleutel**: klik op **Beveiligingssleutel registreren** en volg de aanwijzingen van uw browser. Raak een USB- of NFC-sleutel aan, of gebruik de vingerafdruk, het gezicht of de schermvergrendeling van uw telefoon of computer.
 
 Hebt u nog geen back-upcodes, dan toont OneUptime ze daarna één keer, en bent u aangemeld. **Een andere manier kiezen** gaat terug naar de keuze. Een browser die geen beveiligingssleutel kan registreren, zoals een op een pagina zonder HTTPS, biedt alleen de authenticator-app aan.
@@ -156,20 +156,23 @@ Sommige wijzigingen vragen u eerst te bevestigen dat u het bent, ook al bent u a
 - tweefactorauthenticatie uitschakelt;
 - uw account verwijdert.
 
-Het venster **Bevestig dat u het bent** vraagt om uw wachtwoord en, zolang tweefactorauthenticatie is ingeschakeld, om uw tweede stap: een code uit uw authenticator-app, uw beveiligingssleutel of een van uw back-upcodes. Met een passkey klikt u in plaats daarvan op **Passkey gebruiken**. Meldt u zich alleen aan via single sign-on, Google of Microsoft, klik dan op **Opnieuw aanmelden**: OneUptime vraagt uw identiteitsprovider u opnieuw te laten aanmelden en brengt u daarna terug naar de pagina. Dan wordt de wijziging doorgevoerd.
+Het venster **Bevestig dat u het bent** vraagt om uw wachtwoord en, zolang tweefactorauthenticatie is ingeschakeld, om uw tweede stap: een code uit uw authenticator-app, uw beveiligingssleutel of een van uw back-upcodes. Met een passkey klikt u in plaats daarvan op **Passkey gebruiken**. Meldt u zich alleen aan via single sign-on, Google of Microsoft, klik dan op **Opnieuw aanmelden**: OneUptime vraagt uw identiteitsprovider u opnieuw te laten aanmelden en brengt u daarna terug naar de pagina. Dan wordt de wijziging doorgevoerd. Meldt u zich alleen aan met Vercel, dat niet kan bevestigen dat u het bent, kies dan in plaats daarvan **Op een andere manier aanmelden** en meld u aan met een link die u per e-mail krijgt.
 
 Nadat u hebt bevestigd, wordt het u in die browser 10 minuten lang niet opnieuw gevraagd. Vijf verkeerde pogingen melden die browser af, maar vergrendelen uw account nooit: meld u opnieuw aan en probeer het nog een keer. OneUptime stuurt u een e-mail als dat gebeurt, en telkens wanneer een back-upcode bevestigt dat u het bent.
 
-Op een zelf-gehoste server bevestigen hoofdbeheerders op dezelfde manier dat zij het zijn voordat ze wijzigen hoe iemand anders zich aanmeldt, iemand hoofdbeheerder maken, de single sign-on-providers of e-mailinstellingen van de server wijzigen of een master API-sleutel maken. De master API-sleutel kan deze wijzigingen niet doen.
+Op een zelf-gehoste server bevestigen hoofdbeheerders op dezelfde manier dat zij het zijn voordat ze wijzigen hoe iemand anders zich aanmeldt, het account van iemand anders verwijderen, iemand hoofdbeheerder maken, de single sign-on-providers of e-mailinstellingen van de server wijzigen of een master API-sleutel maken of weer inschakelen. De master API-sleutel kan deze wijzigingen niet doen.
 
 Opnieuw aanmelden telt alleen als uw identiteitsprovider aangeeft dat u zich hebt aangemeld nadat OneUptime u ernaartoe stuurde. Meldt de provider u aan met een sessie die hij al heeft, zonder om uw wachtwoord te vragen, dan bevestigt dat niets: meld u eerst af bij de provider en klik dan op **Opnieuw aanmelden**. Waar uw server aanmelden met een gemailde link toestaat, doet **Op een andere manier aanmelden** dat in plaats daarvan. Wat OneUptime aan elke provider vraagt, en wat een beheerder kan wijzigen als opnieuw aanmelden niets bevestigt:
 
 | Provider | Wat OneUptime vraagt | Als het niets bevestigt |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` en wanneer u zich aanmeldde (`AuthnInstant`) | Laat de provider het verzoek opvolgen, bijvoorbeeld met Honor Force Authentication in Okta. |
-| OpenID Connect | `prompt=login` en `max_age=0`, en wanneer u zich aanmeldde (`auth_time`) | Laat de provider `auth_time` meesturen. Voeg het in Microsoft Entra ID als optionele claim toe aan het ID-token. |
+| OpenID Connect | `prompt=login` en `max_age=0` (Microsoft Entra ID: alleen `prompt=login`), en wanneer u zich aanmeldde (`auth_time`) | Laat de provider `auth_time` meesturen. Voeg het in Microsoft Entra ID als optionele claim toe aan het ID-token. |
 | Google | Wanneer u zich aanmeldde (`auth_time`). Google kan niet worden gevraagd u opnieuw te laten aanmelden. | Schakel Session age claims in voor de Google-aanmeldapp van de server, die gepubliceerd en geverifieerd moet zijn. |
-| Microsoft | `prompt=login` en `max_age=0`, en wanneer u zich aanmeldde (`auth_time`) | Voeg `auth_time` als optionele claim toe aan het ID-token van de Microsoft-aanmeldapp van de server. |
+| Microsoft | `prompt=login`, en wanneer u zich aanmeldde (`auth_time`) | Voeg `auth_time` als optionele claim toe aan het ID-token van de Microsoft-aanmeldapp van de server. |
+| Vercel | Niets: Vercel kan niet worden gevraagd u opnieuw te laten aanmelden, en geeft niet door wanneer u zich hebt aangemeld. | Het bevestigt nooit. Kies **Op een andere manier aanmelden** en meld u aan met een link die u per e-mail krijgt, of stel een wachtwoord in met **Wachtwoord vergeten?** en bevestig daarmee. |
+
+Wat u instelt in Okta, Microsoft Entra ID, Keycloak en Google Workspace, staat op de pagina [SSO](/docs/identity/sso#opnieuw-aanmelden-om-te-bevestigen-dat-u-het-bent).
 
 ## Uw projecten
 

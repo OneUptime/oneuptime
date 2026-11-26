@@ -1,10 +1,13 @@
 import AiOutcomesBuilder, {
+  AiOutcomesDataSecurityProposalRow,
   AiOutcomesInvestigationRow,
   getSubjectKey,
 } from "../../../../../Server/Utils/AI/Outcomes/AiOutcomesBuilder";
 import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import {
+  AI_OUTCOMES_DATA_SECURITY_PARTS,
+  AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES,
   AI_OUTCOMES_PAGE_OUTCOMES,
   AI_OUTCOMES_PART_OUTCOMES,
   AI_OUTCOMES_PARTS,
@@ -17,6 +20,9 @@ import {
 } from "../../../../../Types/AI/AiOutcomes";
 import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import { DataSecurityAiProposalStatus } from "../../../../../Types/DataSecurity/DataSecurityAi";
+import DataSecurityIssueStatus from "../../../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { DataSecurityAiVerdict } from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OnCallPolicyAiHoldOutcome } from "../../../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { describe, expect, test } from "@jest/globals";
@@ -210,6 +216,13 @@ describe("what a record request may name", () => {
     expect(Object.keys(outcomes.rootCauses!)).toEqual(
       expect.arrayContaining(["confirmed", "partial", "wrong"]),
     );
+    // Of the verdicts' counts, the four what people decided lands in.
+    expect(
+      [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.IssueVerdicts]].sort(),
+    ).toEqual(["agreed", "cannotTell", "disagreed", "waiting"]);
+    expect(Object.keys(build({ issueVerdictRows: [] }).issueVerdicts!)).toEqual(
+      expect.arrayContaining(["agreed", "cannotTell", "disagreed", "waiting"]),
+    );
   });
 
   test("an outcome of one part is no outcome of another", () => {
@@ -239,8 +252,119 @@ describe("what a record request may name", () => {
       AiOutcomesPart.RemediationFixes,
       AiOutcomesPart.PullRequestFixes,
       AiOutcomesPart.RootCauses,
+      AiOutcomesPart.DataSecurityAnalyses,
+      AiOutcomesPart.DataSecurityChanges,
+      AiOutcomesPart.DataSecurityProposals,
+      AiOutcomesPart.IssueVerdicts,
+      // Leaks caught before they merged, against those found after (#10376).
+      AiOutcomesPart.Leaks,
     ]);
+    expect(AI_OUTCOMES_DATA_SECURITY_PARTS).toEqual(
+      AI_OUTCOMES_PARTS.slice(4, 7),
+    );
   });
+
+  test("a leak's outcomes are exactly the keys of its counts (#10376)", () => {
+    const outcomes: AiOutcomes = build({ leakRows: [] });
+
+    expect([...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.Leaks]].sort()).toEqual(
+      Object.keys(outcomes.leaks!).sort(),
+    );
+    expect(isAiOutcomesPartOutcome(AiOutcomesPart.Leaks, "foundAfter")).toBe(
+      true,
+    );
+    expect(isAiOutcomesPartOutcome(AiOutcomesPart.Leaks, "agreed")).toBe(false);
+  });
+
+  test("Data Security's outcomes are exactly the keys of its counts (#10364)", () => {
+    const outcomes: AiOutcomes = build({
+      dataSecurityProposalRows: [],
+      dataSecurityAnalysisRows: [],
+    });
+
+    expect(
+      [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityChanges]].sort(),
+    ).toEqual(Object.keys(outcomes.dataSecurity!.changes).sort());
+    expect(
+      [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityProposals],
+      ].sort(),
+    ).toEqual(Object.keys(outcomes.dataSecurity!.proposals).sort());
+    // One outcome: the issues analyzed, AiOutcomesDataSecurity.issuesAnalyzed.
+    expect(
+      AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityAnalyses],
+    ).toEqual(["analyzed"]);
+    expect(outcomes.dataSecurity!.issuesAnalyzed).toBe(0);
+    // A change's outcome is no proposal's, and the other way round.
+    expect(
+      isAiOutcomesPartOutcome(AiOutcomesPart.DataSecurityChanges, "approved"),
+    ).toBe(false);
+    expect(
+      isAiOutcomesPartOutcome(AiOutcomesPart.DataSecurityProposals, "proven"),
+    ).toBe(false);
+    expect(
+      isAiOutcomesPartOutcome(AiOutcomesPart.DataSecurityAnalyses, "failed"),
+    ).toBe(false);
+  });
+});
+
+describe("Data Security proposals (#10364)", () => {
+  test.each(
+    Object.values(DataSecurityAiProposalStatus).flatMap(
+      (status: DataSecurityAiProposalStatus) => {
+        return [
+          [status, false, false],
+          [status, true, false],
+          [status, false, true],
+        ] as Array<[DataSecurityAiProposalStatus, boolean, boolean]>;
+      },
+    ),
+  )(
+    "%s (proven: %p, approved by a person: %p) counts under its outcomes, and only there",
+    (
+      status: DataSecurityAiProposalStatus,
+      isProven: boolean,
+      isApprovedByPerson: boolean,
+    ) => {
+      const row: AiOutcomesDataSecurityProposalRow = {
+        settledAt: IN_WINDOW,
+        status,
+        kind: "ScrubTelemetry",
+        isApprovedByPerson,
+        ...(isProven ? { verifiedAt: IN_WINDOW } : {}),
+      };
+      const change: string | null =
+        AiOutcomesBuilder.getDataSecurityChangeOutcome(row);
+      const proposal: string | null =
+        AiOutcomesBuilder.getDataSecurityProposalOutcome(row);
+      const outcomes: AiOutcomes = build({ dataSecurityProposalRows: [row] });
+
+      for (const other of AI_OUTCOMES_PART_OUTCOMES[
+        AiOutcomesPart.DataSecurityChanges
+      ]) {
+        expect({
+          other,
+          count: (
+            outcomes.dataSecurity!.changes as unknown as Record<string, number>
+          )[other],
+        }).toEqual({ other, count: other === change ? 1 : 0 });
+      }
+
+      for (const other of AI_OUTCOMES_PART_OUTCOMES[
+        AiOutcomesPart.DataSecurityProposals
+      ]) {
+        expect({
+          other,
+          count: (
+            outcomes.dataSecurity!.proposals as unknown as Record<
+              string,
+              number
+            >
+          )[other],
+        }).toEqual({ other, count: other === proposal ? 1 : 0 });
+      }
+    },
+  );
 });
 
 describe("the window a number and its records share", () => {
@@ -296,5 +420,213 @@ describe("what a row is about", () => {
       `alert:${ALERT_ID.toString()}`,
     );
     expect(getSubjectKey(null, null)).toBeUndefined();
+  });
+});
+
+describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
+  interface VerdictRow {
+    verdict: string;
+    status: DataSecurityIssueStatus;
+    isStorePublicByDesign?: boolean;
+    outcome: string | null;
+  }
+
+  const ROWS: Array<VerdictRow> = [
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.Open,
+      outcome: "waiting",
+    },
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.Accepted,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.Real,
+      status: DataSecurityIssueStatus.NotAnIssue,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.Accepted,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.NotAnIssue,
+      outcome: "agreed",
+    },
+    // Resolved by marking the store public by design: agreed.
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.Resolved,
+      isStorePublicByDesign: true,
+      outcome: "agreed",
+    },
+    // Resolved by closing what was public: people thought it was real.
+    {
+      verdict: DataSecurityAiVerdict.LikelyByDesign,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+      status: DataSecurityIssueStatus.NotAnIssue,
+      outcome: "agreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+      status: DataSecurityIssueStatus.Accepted,
+      outcome: "disagreed",
+    },
+    {
+      verdict: DataSecurityAiVerdict.CannotTell,
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: "cannotTell",
+    },
+    {
+      verdict: DataSecurityAiVerdict.CannotTell,
+      status: DataSecurityIssueStatus.Open,
+      outcome: "cannotTell",
+    },
+    {
+      verdict: "Probably fine",
+      status: DataSecurityIssueStatus.Resolved,
+      outcome: null,
+    },
+  ];
+
+  test.each(ROWS)(
+    "$verdict, then $status (public by design: $isStorePublicByDesign) is $outcome",
+    (row: VerdictRow) => {
+      expect(AiOutcomesBuilder.getIssueVerdictOutcome(row)).toBe(row.outcome);
+
+      const outcomes: AiOutcomes = build({
+        issueVerdictRows: [{ createdAt: IN_WINDOW, ...row }],
+      });
+
+      for (const other of AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES) {
+        expect({ other, count: outcomes.issueVerdicts![other] }).toEqual({
+          other,
+          count: other === row.outcome ? 1 : 0,
+        });
+      }
+    },
+  );
+
+  test("each verdict is counted by itself, and the week counts what people decided and agreed with", () => {
+    const outcomes: AiOutcomes = build({
+      issueVerdictRows: ROWS.map((row: VerdictRow) => {
+        return { createdAt: IN_WINDOW, ...row };
+      }),
+    });
+
+    expect(outcomes.issueVerdicts).toEqual({
+      agreed: 6,
+      disagreed: 4,
+      waiting: 1,
+      cannotTell: 2,
+      real: 4,
+      likelyByDesign: 4,
+      likelyWrongFinding: 3,
+    });
+
+    const week: AiOutcomes["weeks"][number] | undefined = outcomes.weeks.find(
+      (candidate: AiOutcomes["weeks"][number]): boolean => {
+        return (candidate.verdictsDecided || 0) > 0;
+      },
+    );
+
+    expect(week?.verdictsDecided).toBe(10);
+    expect(week?.verdictsAgreed).toBe(6);
+  });
+
+  test("before the window, nothing; no rows read is no number, not zeros; a server that reads none says nothing", () => {
+    expect(
+      build({
+        issueVerdictRows: [
+          {
+            createdAt: new Date(WINDOW_START.getTime() - 1),
+            verdict: DataSecurityAiVerdict.Real,
+            status: DataSecurityIssueStatus.Resolved,
+          },
+        ],
+      }).issueVerdicts!.agreed,
+    ).toBe(0);
+    expect(build({ issueVerdictRows: null }).issueVerdicts).toBeNull();
+    expect("issueVerdicts" in build({})).toBe(false);
+  });
+});
+
+describe("leaks caught before they merged (#10376)", () => {
+  test("each leak counts under its outcome, in the week it was caught or found", () => {
+    const outcomes: AiOutcomes = build({
+      leakRows: [
+        { createdAt: IN_WINDOW, isCaught: true, fixedAt: NOW },
+        { createdAt: IN_WINDOW, isCaught: true },
+        { createdAt: IN_WINDOW, isCaught: false },
+        // Before the window: counted nowhere.
+        {
+          createdAt: new Date(WINDOW_START.getTime() - DAY),
+          isCaught: true,
+        },
+      ],
+    });
+
+    expect(outcomes.leaks).toEqual({ fixed: 1, open: 1, foundAfter: 1 });
+
+    const week: AiOutcomes["weeks"][number] =
+      outcomes.weeks[outcomes.weeks.length - 1]!;
+
+    expect(week.leaksCaught).toBe(2);
+    expect(week.leaksCounted).toBe(3);
+    expect(
+      outcomes.weeks.slice(0, -1).every((each: AiOutcomes["weeks"][number]) => {
+        return !each.leaksCounted;
+      }),
+    ).toBe(true);
+  });
+
+  test("a caught leak is fixed when a later review no longer found it, open until then; one a scan found is found after", () => {
+    expect(
+      AiOutcomesBuilder.getLeakOutcome({
+        createdAt: IN_WINDOW,
+        isCaught: true,
+        fixedAt: NOW,
+      }),
+    ).toBe("fixed");
+    expect(
+      AiOutcomesBuilder.getLeakOutcome({
+        createdAt: IN_WINDOW,
+        isCaught: true,
+      }),
+    ).toBe("open");
+    expect(
+      AiOutcomesBuilder.getLeakOutcome({
+        createdAt: IN_WINDOW,
+        isCaught: false,
+      }),
+    ).toBe("foundAfter");
+  });
+
+  test("a reader who may not read them gets no leak numbers; a server that counts none sends none", () => {
+    expect(build({ leakRows: null }).leaks).toBeNull();
+    expect("leaks" in build({})).toBe(false);
+    expect(build({ leakRows: [] }).leaks).toEqual({
+      fixed: 0,
+      open: 0,
+      foundAfter: 0,
+    });
   });
 });

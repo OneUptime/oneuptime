@@ -298,6 +298,22 @@ export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
 ];
 
 /*
+ * Where the server sends its people for help (Types/HelpAndSupport/
+ * HelpAndSupport, #10864-#10866), written only through Admin Dashboard >
+ * Settings > Help and Support's own route (HelpAndSupportServerSettings),
+ * which accepts only https, http and mailto links, valid addresses and plain
+ * text. Through the CRUD API a master admin could store a javascript: link
+ * every person's Help menu would hold.
+ */
+export const ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS: ReadonlyArray<keyof Model> = [
+  "helpAndSupport",
+];
+
+// What a write of the help and support settings through the API is told.
+export const HELP_AND_SUPPORT_WRITTEN_HERE_MESSAGE: string =
+  "Where this server sends people for help is changed on Admin Dashboard > Settings > Help and Support, which checks every link and address, and cannot be written here.";
+
+/*
  * The server's master API key (#7901): the SHA-256 of the key, never the
  * key itself (Utils/MasterApiKey), and which key it is (#8903): when it was
  * made, by whom, and its hint, its last four characters. They are made only
@@ -1067,6 +1083,85 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * TURNING THE MASTER API KEY BACK ON WAITS UNTIL THE MASTER ADMIN'S
+   * SESSION CONFIRMS IT'S THEM (#10330, Utils/Reauthentication).
+   *
+   * The key is root in every project, and Admin Dashboard > Settings > API
+   * Key's Enabled switch turns a key that was turned off back on. Its value
+   * cannot be read back, so whoever holds the session cannot use it - but
+   * whoever holds the key, a script or someone who has left, could again.
+   * So a write that turns it on (isMasterApiKeyEnabled: anything but false
+   * or null) is refused until the session has confirmed, as making a new
+   * key is (POST /global-config/master-api-key, #10216), and goes through
+   * once it has: the Admin Dashboard asks and sends it again. The master
+   * API key has no session, and is refused. Turning it off asks nothing: it
+   * only takes a way in away, and must be possible at once. OneUptime's own
+   * writes (props.isRoot: createMasterApiKey) are not asked. On a create as
+   * on an update: the API reaches both.
+   */
+  public async assertMasterApiKeyTurnOnIsConfirmed(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (props.isRoot || !Service.turnsMasterApiKeyOn(data)) {
+      return;
+    }
+
+    await Reauthentication.assertConfirmed(
+      props,
+      ReauthenticationPurpose.AdminChange,
+    );
+  }
+
+  /*
+   * Whether a write turns the master API key on: it writes
+   * isMasterApiKeyEnabled, as anything that is not off (false) or unset
+   * (null). A value that is not a boolean counts as on, so a write the
+   * database would read as true is never let through unasked.
+   */
+  public static turnsMasterApiKeyOn(data: unknown): boolean {
+    const value: unknown = (
+      data as Record<string, unknown> | null | undefined
+    )?.["isMasterApiKeyEnabled"];
+
+    return value !== undefined && value !== null && value !== false;
+  }
+
+  /*
+   * What the server's log says when someone turns the master API key on or
+   * off (#10330), and who: a master admin by their id, or a key by its name
+   * - the master API key turning itself off. Null for a write that does not
+   * switch it, and for OneUptime's own (a new key, createMasterApiKey,
+   * which keeps who made it on the key itself).
+   */
+  public static getMasterApiKeySwitchLogLine(data: {
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): string | null {
+    const value: unknown = (
+      data.data as Record<string, unknown> | null | undefined
+    )?.["isMasterApiKeyEnabled"];
+
+    if (value === undefined || data.props.isRoot) {
+      return null;
+    }
+
+    const state: string = Service.turnsMasterApiKeyOn(data.data) ? "on" : "off";
+
+    let by: string = "a request with no user";
+
+    if (data.props.sessionId && data.props.userId) {
+      by = `master admin ${data.props.userId.toString()}`;
+    } else if (data.props.apiKeyName) {
+      by = `the API key "${data.props.apiKeyName}"`;
+    } else if (data.props.userId) {
+      by = `user ${data.props.userId.toString()}`;
+    }
+
+    return `The master API key was turned ${state} by ${by}.`;
+  }
+
+  /*
    * Refuses any write to ROOT_ONLY_LICENSE_COLUMNS that does not come from
    * OneUptime itself. An explicit null counts as a write: clearing the license
    * token is as much a forgery as setting one.
@@ -1315,6 +1410,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the help and support settings by anyone but
+   * OneUptime itself (ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS). An explicit null
+   * counts as a write: it puts every item back on OneUptime's own as surely
+   * as a value changes one.
+   */
+  public assertHelpAndSupportWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(HELP_AND_SUPPORT_WRITTEN_HERE_MESSAGE);
+  }
+
+  /*
    * Refuses a write of the master API key by anyone but OneUptime itself
    * (ROOT_ONLY_MASTER_API_KEY_COLUMNS). An explicit null counts as a write:
    * clearing the key takes it away as surely as replacing it.
@@ -1483,6 +1608,22 @@ export class Service extends DatabaseService<Model> {
     const data: PartialEntity<Model> = {};
 
     (data as Record<string, unknown>)["serverProducts"] = settings;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+    });
+  }
+
+  /*
+   * Writes where the server sends its people for help, as the settings page
+   * saved it (HelpAndSupportServerSettings, which checked every value): one
+   * statement, no hooks. The caller keeps its copy of what it wrote.
+   */
+  public async writeHelpAndSupport(settings: JSONObject): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["helpAndSupport"] = settings;
 
     await this.updateColumnsByIdWithoutHooks({
       id: ObjectID.getZeroObjectID(),
@@ -1900,9 +2041,14 @@ export class Service extends DatabaseService<Model> {
     this.assertBackupScriptRunWrittenByRootOnly(createBy.data, createBy.props);
     this.assertServerAlertStateWrittenByRootOnly(createBy.data, createBy.props);
     this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertHelpAndSupportWrittenByRootOnly(createBy.data, createBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
+    await this.assertMasterApiKeyTurnOnIsConfirmed(
+      createBy.data,
+      createBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -1939,10 +2085,15 @@ export class Service extends DatabaseService<Model> {
     this.assertBackupScriptRunWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertServerAlertStateWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertHelpAndSupportWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
     await this.assertEmailSettingsChangeIsConfirmed(updateBy);
+    await this.assertMasterApiKeyTurnOnIsConfirmed(
+      updateBy.data,
+      updateBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
@@ -2173,6 +2324,17 @@ export class Service extends DatabaseService<Model> {
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+
+    /*
+     * The master API key turned on or off (#10330): recorded for whoever
+     * runs the server, with who did it.
+     */
+    const masterApiKeySwitch: string | null =
+      Service.getMasterApiKeySwitchLogLine(onUpdate.updateBy);
+
+    if (masterApiKeySwitch) {
+      logger.info(masterApiKeySwitch);
+    }
 
     if (
       (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })

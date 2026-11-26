@@ -25,6 +25,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { getAppServiceStackVariants } from "../AppPlatforms/AppServiceTelemetryGuide";
 
 /*
  * The "Connect a managed cloud environment" guide, one per managed platform.
@@ -1640,12 +1641,31 @@ const buildAzureAppServiceGuide: CloudGuideBuilder = (
             "# The Key Vault reference, which resolves to the header from step 2.",
             `OTEL_EXPORTER_OTLP_HEADERS=${keyVaultReference}`,
             `OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=${example.accountId}`,
-            "OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure",
           ]),
           tx(
-            "Replace the subscription id with your own — the Node.js and .NET detectors do not set `cloud.account.id`. `OTEL_NODE_RESOURCE_DETECTORS` is for Node.js; on .NET use `OpenTelemetry.Resources.Azure` with `AddAzureAppServiceDetector()`. Other languages add `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` to `OTEL_RESOURCE_ATTRIBUTES` and set `service.instance.id` from `WEBSITE_INSTANCE_ID` in code.",
+            "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.",
           ),
         ]),
+      },
+      /*
+       * Each stack's own instrumentation, as an app's Setup tab gives it
+       * (#10408), with a placeholder for each name the guide does not know
+       * yet: its App Service resource detector names each instance and the
+       * site (`cloud.resource_id`, which ties the app to its site's Azure
+       * Monitor numbers), and its logs carry their traces.
+       */
+      {
+        title: "Instrument the app",
+        description:
+          "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.",
+        markdown: tx(
+          "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.",
+        ),
+        variants: getAppServiceStackVariants({
+          oneuptimeUrl: context.oneuptimeUrl,
+          apiKey: context.apiKey,
+          translator: context.translator,
+        }),
       },
       verifyStep(context),
     ],

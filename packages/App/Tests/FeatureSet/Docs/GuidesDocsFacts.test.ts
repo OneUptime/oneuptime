@@ -329,12 +329,14 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     expect(ON_CALL_SETUP_PAGE).toContain(
       "validation: { minValue: 20, maxValue: 1000 },",
     );
-    expect(ON_CALL_SETUP_PAGE).toContain('submitButtonText="Recharge"');
+    expect(ON_CALL_SETUP_PAGE).toContain(
+      "submitButtonText={ON_CALL_SETUP_COPY.addBalance}",
+    );
     expect(
       dashboardFile("Components/ProjectBalance/ProjectBalanceCopy.ts"),
     ).toContain('translationKey("Amount (USD)")');
     expect(PAGING).toContain(
-      "enter 20 to 1,000 USD under **Amount (USD)** and click **Recharge**",
+      "enter 20 to 1,000 USD under **Amount (USD)** and click **Add to Balance**",
     );
     expect(
       repoFile("packages/Common/Server/Services/NotificationService.ts"),

@@ -217,7 +217,16 @@ import {
   ConditionType,
   NotificationRuleConditionCheckOn,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import { lateArrivalsToJSON } from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
+  SECURITY_EVENT_RETENTION_MAX_LISTED_RULES,
+  findRulesPastRetention,
+  getSecurityEventRetentionInDays,
+  securityEventRetentionStatusToJSON,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
+import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
   RETROHUNT_SCENARIOS,
@@ -255,6 +264,32 @@ import {
 } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
+import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import {
+  SECURITY_BLOCK_INDICATOR_TYPES,
+  SecurityBlockDuration,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
+  SecurityBlockSource,
+  SecurityBlockState,
+  getSecurityBlockValueKey,
+  isSecurityBlockInForce,
+  readSecurityBlockValue,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import {
+  SecurityBlockEnforcementState,
+  isSecurityBlockEnforcementHolding,
+} from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { SECURITY_CAMPAIGN_OF_ADDRESS_DAYS } from "Common/Types/SecurityEvent/SecurityCampaignContainment";
+import {
+  DETECTION_RULE_UNCOUNTED_PERIOD_IN_HOURS,
+  detectionRulesUncountedToJSON,
+} from "Common/Types/SecurityEvent/DetectionRuleUncounted";
+import { readSecurityCaseAiLimits } from "Common/Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES } from "Common/Types/SecurityCase/SecurityCaseAiWords";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -395,6 +430,16 @@ const hasBranchingRuns = hasHistory && params.get("branching") === "1";
  * say where the run stopped.
  */
 const hasStoppingRun = hasHistory && params.get("stopping") === "1";
+/*
+ * ?blocklist=test: a test destination enforces the project's blocklist, and
+ * holds each block as soon as it is made (#10342). Without it nothing
+ * enforces the blocklist, and a case's block step says how to connect
+ * something that would.
+ */
+const BLOCKLIST_DESTINATIONS =
+  params.get("blocklist") === "test"
+    ? [{ key: "Test:destination", name: "Test destination", provider: "Test" }]
+    : [];
 /*
  * ?ai=off: the project's Enable AI is off. Every AI part of Security reads
  * it (useAiOffered) and draws nothing; the AI settings page says AI is off.
@@ -2950,6 +2995,11 @@ for (const modelType of [
   DetectionRuleException,
   ThreatIntelFeed,
   SecurityProtectedEntity,
+  // The project's blocklist, and where each block holds: nothing blocked yet.
+  SecurityBlock,
+  SecurityBlockEnforcement,
+  // The pull requests linked to a case's Fix step: none linked yet.
+  SecurityCasePullRequest,
   Team,
   TeamMember,
   // A member's page asks for the project's member fields: it has none.
@@ -4075,6 +4125,259 @@ AnalyticsModelAPI.aggregate = async (options) => {
   };
 };
 
+// How long a block from a case lasts, by what was chosen.
+const BLOCK_DURATIONS = {
+  [SecurityBlockDuration.OneHour]: HOUR,
+  [SecurityBlockDuration.OneDay]: DAY,
+  [SecurityBlockDuration.SevenDays]: 7 * DAY,
+  [SecurityBlockDuration.ThirtyDays]: 30 * DAY,
+};
+
+/*
+ * What the server does with Block for 24 Hours on a case's Response Plan
+ * (#10342), for the project's owner: a one-step run of the playbook engine,
+ * with no playbook, that needs no approval from them and blocks the address
+ * at once - on the blocklist, held by each destination that enforces it.
+ * A viewer may not block.
+ */
+function blockFromCase(body) {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "Blocking an address from a case takes a role that can run playbooks and block addresses.",
+      },
+      {},
+    );
+  }
+
+  const value = String(body?.value || "");
+  const securityCaseId = new ObjectID(String(body?.securityCaseId || ""));
+  const blockAction = body?.blockAction;
+  const duration = body?.duration;
+  const expiresAt = BLOCK_DURATIONS[duration]
+    ? new Date(NOW.getTime() + BLOCK_DURATIONS[duration])
+    : null;
+  // The owner's click is the approval: the step says who turned it off, and when.
+  const step = {
+    id: rowId(),
+    action: SecurityPlaybookActionType.BlockAddress,
+    config: { blockAction, duration },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    approvalTurnedOff: { byUserId: people.maya._id, at: NOW.toISOString() },
+  };
+  const run = insert(SecurityPlaybookRun, {
+    securityCaseId,
+    playbookName: "Block the address",
+    trigger: SecurityPlaybookTrigger.Manual,
+    triggeredByUserId: new ObjectID(people.maya._id),
+    status: SecurityPlaybookRunStatus.Succeeded,
+    steps: [step],
+    stepResults: [
+      {
+        stepId: step.id,
+        action: SecurityPlaybookActionType.BlockAddress,
+        status: SecurityPlaybookStepStatus.Succeeded,
+        startedAt: NOW.toISOString(),
+        completedAt: NOW.toISOString(),
+        message: `Block the address: done for \`${value}\`.`,
+        targets: [
+          {
+            type: SecurityEntityType.IpAddress,
+            value,
+            reason: "On the Case",
+            state: "Done",
+          },
+        ],
+      },
+    ],
+    currentStepIndex: 1,
+    startedAt: NOW,
+    completedAt: NOW,
+  });
+  const block = insert(SecurityBlock, {
+    value,
+    indicatorType: SecurityBlockIndicatorType.IpAddress,
+    action: blockAction,
+    state: SecurityBlockState.Active,
+    source: SecurityBlockSource.Person,
+    securityCaseId,
+    securityPlaybookRunId: new ObjectID(run._id),
+    createdByUserId: new ObjectID(people.maya._id),
+    createdByUser: people.maya,
+    expiresAt,
+  });
+
+  for (const destination of BLOCKLIST_DESTINATIONS) {
+    insert(SecurityBlockEnforcement, {
+      securityBlockId: new ObjectID(block._id),
+      destinationKey: destination.key,
+      destinationName: destination.name,
+      provider: destination.provider,
+      state: SecurityBlockEnforcementState.Applied,
+      appliedAt: NOW,
+      lastConfirmedAt: NOW,
+    });
+  }
+
+  return new HTTPResponse(200, { runId: run._id, needsApproval: false }, {});
+}
+
+/*
+ * What POST /security-block/for-values answers a case's Response Plan
+ * (#10346), as SecurityBlockAPI works it out: what each destination that
+ * enforces the blocklist can hold - the test destination
+ * (TestSecurityBlockDestination) holds a value of every kind, at the edge,
+ * and quarantines no file - and the blocks in force on the values the case
+ * names, each with the destinations that hold it now.
+ */
+function caseBlocklist(body) {
+  const keys = new Set(
+    (Array.isArray(body?.values) ? body.values : [])
+      .filter((value) => {
+        return typeof value === "string";
+      })
+      .map((value) => {
+        return getSecurityBlockValueKey(value);
+      })
+      .filter(Boolean),
+  );
+  const inForce = table(SecurityBlock).filter((block) => {
+    return (
+      keys.has(getSecurityBlockValueKey(String(block.value || ""))) &&
+      isSecurityBlockInForce(block, NOW)
+    );
+  });
+
+  return new HTTPResponse(
+    200,
+    {
+      holders: BLOCKLIST_DESTINATIONS.map((destination) => {
+        return {
+          name: destination.name,
+          provider: destination.provider,
+          enforcesOnEveryMachine: false,
+          blocks: [...SECURITY_BLOCK_INDICATOR_TYPES],
+          quarantinesFiles: false,
+        };
+      }),
+      blocks: inForce.map((block) => {
+        return {
+          value: block.value || "",
+          reach: block.reach || SecurityBlockReach.Edge,
+          action: block.action || "",
+          enforcedAt: table(SecurityBlockEnforcement)
+            .filter((enforcement) => {
+              return (
+                String(enforcement.securityBlockId) === String(block._id) &&
+                isSecurityBlockEnforcementHolding(enforcement, NOW)
+              );
+            })
+            .map((enforcement) => {
+              return enforcement.destinationName || "";
+            }),
+        };
+      }),
+      cannotTell: false,
+    },
+    {},
+  );
+}
+
+/*
+ * What POST /security-event/attack-campaigns/of-case-address answers
+ * (#10354): the other addresses that sent the case's address's web
+ * requests with its tools over the last week, which Block the Whole
+ * Campaign offers. The fixture's security events hold no web requests
+ * (HTTP Activity), so each address's campaign is the address alone. Asking
+ * takes a role that may block, as Campaigns' actions do.
+ */
+function campaignOfCaseAddress(body) {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "Blocking or challenging a campaign takes a role that can block addresses: Security Member, Security Admin, Project Admin or Project Owner.",
+      },
+      {},
+    );
+  }
+
+  if (!findCase(body?.securityCaseId)) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "Security case not found." },
+      {},
+    );
+  }
+
+  const address = String(body?.address || "");
+
+  return new HTTPResponse(
+    200,
+    {
+      address: readSecurityBlockValue(address)?.value || address,
+      userAgents: [],
+      addresses: [],
+      isTruncated: false,
+      windowInDays: SECURITY_CAMPAIGN_OF_ADDRESS_DAYS,
+    },
+    {},
+  );
+}
+
+/*
+ * What POST /security-case/:id/ai-response answers the case's OneUptime AI
+ * card (#10352), as SecurityCaseResponseStatus reads it. The project has
+ * not let OneUptime AI work its cases - Automatic Response is off until
+ * someone turns it on - so nothing of it is on the case: no run, no step
+ * taken or asked about, no hold. Respond with AI would not start, and says
+ * why.
+ */
+function aiResponseStatus(caseId) {
+  const securityCase = findCase(caseId);
+
+  if (!securityCase) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "Security case not found." },
+      {},
+    );
+  }
+
+  const limits = readSecurityCaseAiLimits(PROJECT_RECORD);
+  const notStarted =
+    PROJECT_RECORD.enableAi === false ? "ai_disabled" : "response_disabled";
+  const iso = (value) => {
+    return value ? new Date(value).toISOString() : null;
+  };
+
+  return new HTTPResponse(
+    200,
+    {
+      isOn: limits.isOn,
+      modes: limits.modes,
+      state: securityCase.aiResponseState || null,
+      handOffReason: securityCase.aiHandOffReason || null,
+      tookCaseAt: iso(securityCase.aiTookCaseAt),
+      nextLookAt: iso(securityCase.aiNextLookAt),
+      closedAt: iso(securityCase.aiClosedAt),
+      run: null,
+      actions: [],
+      notStartedReason: {
+        code: notStarted,
+        message: SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES[notStarted],
+      },
+      hold: null,
+    },
+    {},
+  );
+}
+
 /*
  * What the server does when someone decides a held step: approving runs the
  * step and the ones after it (here, at once), rejecting ends the run.
@@ -4441,6 +4744,12 @@ const telemetryMentions = createTelemetryMentionsFixture({
  */
 table(SecurityCaseTask);
 table(SecurityCaseEvidence);
+/*
+ * What OneUptime found when it checked a Response Plan step itself (#10340):
+ * the Response Plan card reads a case's checks beside its tasks. The month's
+ * cases have none yet, so each step reads as ticked off or not, as before.
+ */
+table(SecurityCaseStepCheck);
 const caseWork = createCaseWorkFixture({
   insert,
   table,
@@ -4485,6 +4794,48 @@ const caseContext = createCaseContextFixture({
   connections,
   findCase,
 });
+
+/*
+ * What POST /detection-rule/retention answers, as SecurityEventRetention's
+ * getStatus works it out: the project's retention for security events, and
+ * its enabled rules that read further back, furthest first. A rule whose
+ * YAML does not parse is one no run reads with, and is left out.
+ */
+function securityEventRetentionStatus() {
+  const retentionInDays = getSecurityEventRetentionInDays(PROJECT_RECORD);
+  const parsed = [];
+
+  for (const rule of table(DetectionRule)) {
+    if (!rule.isEnabled || !rule.sigmaRuleYaml) {
+      continue;
+    }
+
+    try {
+      parsed.push({
+        id: String(rule._id),
+        name: rule.name || "",
+        definition: SigmaRuleSetParser.parse(rule.sigmaRuleYaml),
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  const pastRetention = findRulesPastRetention({
+    rules: parsed,
+    retentionInDays,
+  });
+
+  return {
+    retentionInDays,
+    rulesPastRetention: pastRetention.slice(
+      0,
+      SECURITY_EVENT_RETENTION_MAX_LISTED_RULES,
+    ),
+    hasMoreRulesPastRetention:
+      pastRetention.length > SECURITY_EVENT_RETENTION_MAX_LISTED_RULES,
+  };
+}
 
 async function handleApi(method, options) {
   const url = options.url.toString();
@@ -4638,6 +4989,34 @@ async function handleApi(method, options) {
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
   }
+  /*
+   * The security events that arrived more than a day after they happened
+   * in the last week (#10491): none of the month's did, so Detection Rules
+   * shows no notice of them.
+   */
+  if (method === "POST" && path.endsWith("/detection-rule/late-arrivals")) {
+    return new HTTPResponse(
+      200,
+      lateArrivalsToJSON({
+        arrivedSince: new Date(NOW.getTime() - 7 * DAY),
+        eventCount: 0,
+        sources: [],
+      }),
+      {},
+    );
+  }
+  /*
+   * How long the project keeps its security events, and the enabled rules
+   * that read further back (#10432), worked out from the rules' own YAML as
+   * the server works it out (Server/Utils/SecurityEvent/SecurityEventRetention).
+   */
+  if (method === "POST" && path.endsWith("/detection-rule/retention")) {
+    return new HTTPResponse(
+      200,
+      securityEventRetentionStatusToJSON(securityEventRetentionStatus()),
+      {},
+    );
+  }
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
   }
@@ -4659,6 +5038,65 @@ async function handleApi(method, options) {
       ),
       {},
     );
+  }
+  // Where the project's blocklist is enforced (#10342).
+  if (method === "POST" && path.endsWith("/security-block/destinations")) {
+    return new HTTPResponse(
+      200,
+      { destinations: BLOCKLIST_DESTINATIONS, cannotTell: false },
+      {},
+    );
+  }
+  // What a case's Response Plan reads of the blocklist (#10346).
+  if (method === "POST" && path.endsWith("/security-block/for-values")) {
+    return caseBlocklist(options.data);
+  }
+  /*
+   * A case's addresses blocked before it opened (#10354): nothing was
+   * blocked before any of the fixture's cases opened - a block from a case
+   * is that case's own - so none of them is a repeat offender.
+   */
+  if (method === "POST" && path.endsWith("/security-block/repeat-offenders")) {
+    return new HTTPResponse(200, { offenders: [] }, {});
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-event/attack-campaigns/of-case-address")
+  ) {
+    return campaignOfCaseAddress(options.data);
+  }
+  const aiResponse = path.match(/\/security-case\/([^/]+)\/ai-response$/);
+  if (method === "POST" && aiResponse) {
+    return aiResponseStatus(aiResponse[1]);
+  }
+  /*
+   * What the rules Detection Rules lists could not count in the last day
+   * (#10547): every matching event of the fixture's month names an address,
+   * as Run on Past Events says (RuleExceptionsFixture.js), so no rule left
+   * one out.
+   */
+  if (method === "POST" && path.endsWith("/detection-rule/uncounted")) {
+    return new HTTPResponse(
+      200,
+      detectionRulesUncountedToJSON({
+        periodInHours: DETECTION_RULE_UNCOUNTED_PERIOD_IN_HOURS,
+        rules: [],
+      }),
+      {},
+    );
+  }
+  // A form's name field asks whether another record has the name (#10761).
+  if (method === "GET") {
+    const names = answerUniqueNames({ url });
+    if (names) {
+      return new HTTPResponse(200, names, {});
+    }
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-playbook-run/block-address")
+  ) {
+    return blockFromCase(options.data);
   }
   const decision = path.match(
     /\/security-playbook-run\/([^/]+)\/(approve|reject)$/,

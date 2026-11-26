@@ -32,6 +32,9 @@ import "./Jobs/SloOwners/SendOwnerAddedNotification";
 // Exceptions assigned to a person or a team: told to them.
 import "./Jobs/TelemetryException/SendAssignedNotification";
 
+// An exception's former fingerprint, once no occurrence carries it: deleted.
+import "./Jobs/TelemetryException/RetireFormerFingerprints";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 import "./Jobs/Monitor/ClearStoredLogScreenshots";
@@ -213,6 +216,13 @@ import "./Jobs/VideoCall/DeleteTranscriptsOfRemovedSignIns";
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 
+/*
+ * The emails to people whose sign-in settings were cleared (#9991): each a
+ * job a clear queues and a worker sends. Without this import they wait in
+ * the queue, and nobody is told.
+ */
+import "./Jobs/SignInSettings/SendClearedEmail";
+
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
@@ -270,6 +280,7 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 import "./Jobs/Probe/UpdateBehind";
+import "./Jobs/Probe/NotifyMajorReleaseBehind";
 
 // Probe Status monitors: one incident when a probe a project watches goes offline.
 import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
@@ -329,9 +340,18 @@ import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
 import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
+import "./Jobs/SecurityCases/CheckResponseSteps";
+import "./Jobs/SecurityCases/FollowLinkedPullRequests";
+import "./Jobs/SecurityCases/WorkCasesWithAi";
+import "./Jobs/SecurityCases/ReviewAiHolds";
+import "./Jobs/SecurityCases/SendAiWeeklyDigest";
 import "./Jobs/SecurityBlocklist/ExpireSecurityBlocks";
 import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
 import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";
+import "./Jobs/SecurityBlocklist/CheckFeedsAreRead";
+import "./Jobs/SecurityBlocklist/PurgeFeedFetches";
+import "./Jobs/SecurityAutomaticResponse/DecideAutomaticResponse";
+import "./Jobs/SecurityAutomaticResponse/AutomaticResponseSweeps";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

@@ -36,8 +36,172 @@ import {
 
 export const MERGE_ROUTE_PREFIX: string = "/telemetry-exception/merge";
 export const UNMERGE_ROUTE_PREFIX: string = "/telemetry-exception/unmerge";
+// A pair a scrub rule split before #10434, merged from the split one (#10618).
+export const MERGE_SPLIT_ROUTE_PREFIX: string =
+  "/telemetry-exception/merge-split";
 
-// What an exception's page reads of the exceptions merged into it.
+/*
+ * What an exception's page reads of the exception a scrub rule split it
+ * from: enough to name it, and to tell whether the two are merged already.
+ */
+export const SPLIT_FROM_EXCEPTION_SELECT: {
+  _id: true;
+  exceptionType: true;
+  message: true;
+  firstSeenAt: true;
+  mergedIntoTelemetryExceptionId: true;
+} = {
+  _id: true,
+  exceptionType: true,
+  message: true,
+  firstSeenAt: true,
+  mergedIntoTelemetryExceptionId: true,
+};
+
+/*
+ * Whether an exception's page says a scrub rule split it from another and
+ * offers to merge them (#10618): ingest recorded the pair, the one it was
+ * split from could be read, and neither is merged into the other - nor this
+ * one into anything, when its page says that instead. Pure, for the tests.
+ */
+export function isSplitNoticeShown(data: {
+  exception: {
+    id?: { toString: () => string } | null | undefined;
+    splitFromTelemetryExceptionId?: unknown;
+    mergedIntoTelemetryExceptionId?: unknown;
+  };
+  splitFrom:
+    | {
+        id?: { toString: () => string } | null | undefined;
+        mergedIntoTelemetryExceptionId?:
+          | { toString: () => string }
+          | null
+          | undefined;
+      }
+    | null
+    | undefined;
+}): boolean {
+  if (
+    !data.exception.splitFromTelemetryExceptionId ||
+    data.exception.mergedIntoTelemetryExceptionId ||
+    !data.splitFrom?.id
+  ) {
+    return false;
+  }
+
+  const ownId: string = data.exception.id?.toString().toLowerCase() || "";
+  const mergedInto: string =
+    data.splitFrom.mergedIntoTelemetryExceptionId?.toString().toLowerCase() ||
+    "";
+
+  return !ownId || mergedInto !== ownId;
+}
+
+/*
+ * Merge an exception a scrub rule split with the one it was split from: the
+ * server keeps the older of the two (TelemetryExceptionMerge.mergeSplit).
+ */
+export async function mergeSplitException(id: string): Promise<JSONObject> {
+  return post(`${MERGE_SPLIT_ROUTE_PREFIX}/${id}`, {});
+}
+
+/*
+ * What the page of the exception a scrub rule split others from reads of
+ * them (#10897): enough to name each one, and to merge it.
+ */
+export const SPLIT_INTO_EXCEPTION_SELECT: {
+  _id: true;
+  exceptionType: true;
+  message: true;
+  firstSeenAt: true;
+  splitFromTelemetryExceptionId: true;
+  mergedIntoTelemetryExceptionId: true;
+} = {
+  _id: true,
+  exceptionType: true,
+  message: true,
+  firstSeenAt: true,
+  splitFromTelemetryExceptionId: true,
+  mergedIntoTelemetryExceptionId: true,
+};
+
+/*
+ * The most of them a page reads: a rule splits an exception once, a second
+ * rule or a rule changed since may split it again, and each split one makes
+ * a line of the note.
+ */
+export const MAX_SPLIT_INTO_EXCEPTIONS: number = 20;
+
+/*
+ * The exceptions a scrub rule split from this one, as its page names them
+ * (#10897): each once, those really recorded as split from it, none merged
+ * - into this one or anything else - and none at all while this one is
+ * merged into another, whose page says so instead. Pure, for the tests.
+ */
+export function getSplitIntoNoticeExceptions<
+  T extends {
+    id?: { toString: () => string } | null | undefined;
+    splitFromTelemetryExceptionId?: unknown;
+    mergedIntoTelemetryExceptionId?: unknown;
+  },
+>(data: {
+  exception: {
+    id?: { toString: () => string } | null | undefined;
+    mergedIntoTelemetryExceptionId?: unknown;
+  };
+  splitInto: ReadonlyArray<T> | null | undefined;
+}): Array<T> {
+  const ownId: string = data.exception.id?.toString().toLowerCase() || "";
+
+  if (!ownId || data.exception.mergedIntoTelemetryExceptionId) {
+    return [];
+  }
+
+  const seen: Set<string> = new Set<string>();
+
+  return (data.splitInto || []).filter((split: T): boolean => {
+    const id: string = split.id?.toString().toLowerCase() || "";
+    const splitFrom: string = split.splitFromTelemetryExceptionId
+      ? String(split.splitFromTelemetryExceptionId).toLowerCase()
+      : "";
+
+    if (
+      !id ||
+      id === ownId ||
+      seen.has(id) ||
+      splitFrom !== ownId ||
+      split.mergedIntoTelemetryExceptionId
+    ) {
+      return false;
+    }
+
+    seen.add(id);
+
+    return true;
+  });
+}
+
+/*
+ * Merge each exception a scrub rule split from this one back into it, one
+ * after another: the server keeps the older of each pair, which is this one
+ * nearly always, or the one it was merged into since, so they end as one.
+ * Stops at the first refusal; merging again merges what is left, and skips
+ * what is merged already.
+ */
+export async function mergeSplitExceptions(
+  ids: ReadonlyArray<string>,
+): Promise<void> {
+  for (const id of ids) {
+    await mergeSplitException(id);
+  }
+}
+
+/*
+ * What an exception's page reads of the exceptions merged into it: their
+ * fingerprints, which it reads its occurrences by, and, to list them, the
+ * rest. A row that keeps its own former fingerprint (#10619) is read too:
+ * its fingerprint is the one its occurrences from before the move carry.
+ */
 export const MERGED_EXCEPTION_SELECT: {
   _id: true;
   fingerprint: true;
@@ -45,6 +209,7 @@ export const MERGED_EXCEPTION_SELECT: {
   message: true;
   occuranceCount: true;
   mergedAt: true;
+  formerFingerprintOfTelemetryExceptionId: true;
 } = {
   _id: true,
   fingerprint: true,
@@ -52,7 +217,23 @@ export const MERGED_EXCEPTION_SELECT: {
   message: true,
   occuranceCount: true,
   mergedAt: true,
+  formerFingerprintOfTelemetryExceptionId: true,
 };
+
+/*
+ * The exceptions a person merged, of those merged into one: without the
+ * rows that only keep a former fingerprint of it, which are part of it and
+ * are never listed or unmerged on their own. Pure, for the tests.
+ */
+export function getListedMergedExceptions<
+  T extends {
+    formerFingerprintOfTelemetryExceptionId?: unknown;
+  },
+>(members: ReadonlyArray<T>): Array<T> {
+  return members.filter((member: T): boolean => {
+    return !member.formerFingerprintOfTelemetryExceptionId;
+  });
+}
 
 async function post(route: string, data: JSONObject): Promise<JSONObject> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(

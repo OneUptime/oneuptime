@@ -23,8 +23,8 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 
 | Punkt | Hva det gjør |
 | --- | --- |
-| **Profil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen, språket og bildet ditt, og sikkerheten rundt innloggingen. |
-| **Admin-innstillinger** | Åpner Admin Dashboard. Bare hovedadministratorer på en selvhostet installasjon ser det. |
+| **Brukerprofil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen, språket og bildet ditt, og sikkerheten rundt innloggingen. |
+| **Admin-dashbord** | Åpner Admin Dashboard. Bare hovedadministratorer på en selvhostet installasjon ser det. |
 | **Tema** | Velger dashbordets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt etter hvordan enheten din er stilt inn. |
 | **Logg ut** | Logger deg ut, med en gang på alle OneUptime-servere. Der administratoren din har satt det opp, logger den deg også ut av identitetsleverandøren din. |
 
@@ -35,7 +35,7 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 :::steps
 ### Åpne profilen din
 
-Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt** åpnes på kortet **Grunnleggende informasjon**: navnet, e-posten, tidssonen og språket ditt.
+Klikk på bildet ditt øverst til høyre, og velg **Brukerprofil**. Siden **Oversikt** åpnes på kortet **Grunnleggende informasjon**: navnet, e-posten, tidssonen og språket ditt.
 
 ### Rediger opplysningene dine
 
@@ -114,7 +114,7 @@ Tofaktorautentisering gjelder når du logger på med passordet ditt eller en len
 
 ### Sett det opp
 
-For en autentiseringsapp skanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriver inn den sekssifrede koden den viser, og klikker på **Bekreft og fullfør**. En USB- eller NFC-nøkkel gir du et navn og følger nettleserens veiledning. Tofaktorautentisering er da slått på, og kortet viser **Aktivert**. Fra neste pålogging med passord eller en lenke på e-post ber OneUptime om det andre trinnet ditt.
+For en autentiseringsapp skanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriver inn den sekssifrede koden den viser, og klikker på **Bekreft og fullfør**. På en telefon trykker du på **Legg til i autentiseringsapp** i stedet for å skanne: appen åpnes med kontoen din fylt inn. En USB- eller NFC-nøkkel gir du et navn og følger nettleserens veiledning. Tofaktorautentisering er da slått på, og kortet viser **Aktivert**. Fra neste pålogging med passord eller en lenke på e-post ber OneUptime om det andre trinnet ditt.
 
 ### Ta vare på reservekodene dine
 
@@ -127,7 +127,7 @@ Har du allerede en app under **Autentiseringsapper** eller en nøkkel under **Si
 
 Når en administrator krever tofaktorautentisering og du ikke har satt opp noe ennå, ber neste pålogging med passord eller en lenke på e-post deg om å sette det opp før du slippes inn. Velg **Autentiseringsapp** eller **Sikkerhetsnøkkel**, og klikk på **Fortsett**:
 
-- **Autentiseringsapp**: Skann QR-koden, skriv inn den sekssifrede koden appen viser, og klikk på **Bekreft og logg inn**.
+- **Autentiseringsapp**: Skann QR-koden, skriv inn den sekssifrede koden appen viser, og klikk på **Bekreft og logg inn**. På en telefon trykker du på **Legg til i autentiseringsapp** i stedet for å skanne.
 - **Sikkerhetsnøkkel**: Klikk på **Registrer sikkerhetsnøkkel**, og følg nettleserens veiledning. Berør en USB- eller NFC-nøkkel, eller bruk fingeravtrykk, ansikt eller skjermlås på telefonen eller datamaskinen.
 
 Har du ingen reservekoder ennå, viser OneUptime dem deretter én gang, og du er pålogget. **Velg en annen måte** går tilbake til valget. En nettleser som ikke kan registrere en sikkerhetsnøkkel, for eksempel på en side uten HTTPS, tilbyr bare autentiseringsappen.
@@ -156,20 +156,23 @@ Noen endringer ber deg først bekrefte at det er deg, selv om du er pålogget, s
 - slår av tofaktorautentisering;
 - sletter kontoen din.
 
-Dialogen **Bekreft at det er deg** ber om passordet ditt og, mens tofaktorautentisering er slått på, om det andre trinnet ditt: en kode fra autentiseringsappen, sikkerhetsnøkkelen din eller en av reservekodene dine. Med en passnøkkel klikker du i stedet på **Bruk en passnøkkel**. Logger du bare på med enkel pålogging, Google eller Microsoft, klikker du på **Logg på igjen**: OneUptime får identitetsleverandøren din til å be deg logge på igjen, og sender deg så tilbake til siden. Deretter blir endringen gjort.
+Dialogen **Bekreft at det er deg** ber om passordet ditt og, mens tofaktorautentisering er slått på, om det andre trinnet ditt: en kode fra autentiseringsappen, sikkerhetsnøkkelen din eller en av reservekodene dine. Med en passnøkkel klikker du i stedet på **Bruk en passnøkkel**. Logger du bare på med enkel pålogging, Google eller Microsoft, klikker du på **Logg på igjen**: OneUptime får identitetsleverandøren din til å be deg logge på igjen, og sender deg så tilbake til siden. Deretter blir endringen gjort. Logger du bare på med Vercel, som ikke kan bekrefte at det er deg, velger du i stedet **Logg på på en annen måte** og logger på med en lenke som sendes til e-posten din.
 
 Når du har bekreftet, blir du ikke spurt igjen på 10 minutter i den nettleseren. Fem feil forsøk logger av den nettleseren, men låser aldri kontoen din: Logg på igjen, og prøv en gang til. OneUptime sender deg en e-post når det skjer, og hver gang en reservekode bekrefter at det er deg.
 
-På en selvhostet server bekrefter hovedadministratorer på samme måte at det er dem, før de endrer hvordan noen andre logger på, gjør noen til hovedadministrator, endrer serverens leverandører for enkel pålogging eller e-postinnstillinger, eller oppretter en hoved-API-nøkkel. Hoved-API-nøkkelen kan ikke gjøre disse endringene.
+På en selvhostet server bekrefter hovedadministratorer på samme måte at det er dem, før de endrer hvordan noen andre logger på, sletter kontoen til noen andre, gjør noen til hovedadministrator, endrer serverens leverandører for enkel pålogging eller e-postinnstillinger, eller oppretter en hoved-API-nøkkel eller slår den på igjen. Hoved-API-nøkkelen kan ikke gjøre disse endringene.
 
 Å logge på igjen teller bare når identitetsleverandøren din sier at du logget på etter at OneUptime sendte deg dit. Logger leverandøren deg på med en økt den allerede har, uten å be om passordet ditt, bekrefter det ingenting: Logg først av hos leverandøren, og klikk så på **Logg på igjen**. Der serveren din lar deg logge på med en lenke på e-post, gjør **Logg på på en annen måte** det i stedet. Hva OneUptime ber hver leverandør om, og hva en administrator kan endre når en ny pålogging ikke bekrefter noe:
 
 | Leverandør | Hva OneUptime ber om | Når det ikke bekrefter noe |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` og når du logget på (`AuthnInstant`) | Få leverandøren til å følge forespørselen, for eksempel med Honor Force Authentication i Okta. |
-| OpenID Connect | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Få leverandøren til å sende `auth_time`. I Microsoft Entra ID legger du det til i ID-tokenet som et valgfritt krav. |
+| OpenID Connect | `prompt=login` og `max_age=0` (Microsoft Entra ID: bare `prompt=login`), og når du logget på (`auth_time`) | Få leverandøren til å sende `auth_time`. I Microsoft Entra ID legger du det til i ID-tokenet som et valgfritt krav. |
 | Google | Når du logget på (`auth_time`). Google kan ikke bes om å få deg til å logge på igjen. | Slå på Session age claims for serverens Google-påloggingsapp, som må være publisert og verifisert. |
-| Microsoft | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Legg til `auth_time` i ID-tokenet til serverens Microsoft-påloggingsapp som et valgfritt krav. |
+| Microsoft | `prompt=login`, og når du logget på (`auth_time`) | Legg til `auth_time` i ID-tokenet til serverens Microsoft-påloggingsapp som et valgfritt krav. |
+| Vercel | Ingenting: Vercel kan ikke bes om å få deg til å logge på igjen, og sier ikke når du logget på. | Det bekrefter aldri. Velg **Logg på på en annen måte** og logg på med en lenke som sendes til e-posten din, eller lag et passord med **Glemt passord?** og bekreft med det. |
+
+Hva du skal stille inn i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#logge-på-igjen-for-å-bekrefte-at-det-er-deg).
 
 ## Prosjektene dine
 

@@ -5,10 +5,17 @@ import {
   MOBILE_APP_IOS_URL,
 } from "../../Utils/MobileAppStoreLinks";
 import { getMobileAppServerUrl } from "../../Utils/MobileAppServerUrl";
+import {
+  MobileAppOffer,
+  MobileAppOfferKind,
+  getHelpLinkLabel,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import QRCode from "Common/UI/Components/QR/QR";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * GET THE MOBILE APP: a code for each store and the address to sign in to.
@@ -38,31 +45,69 @@ export const MOBILE_APP_INSTALL_ON_PHONE_SENTENCE: string = translationKey(
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
 );
 
+/*
+ * Where the server's admins offer the app from a page of their own - an app
+ * catalogue, a device manager's company portal (Admin Dashboard > Settings
+ * > Help and Support, #10866): one code for that page, named by its address.
+ */
+export const MOBILE_APP_INSTALL_FROM_OWN_PAGE_SENTENCE: string = translationKey(
+  "Scan the code with your phone to get the app from your organization, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
+);
+
+export const MOBILE_APP_INSTALL_FROM_OWN_PAGE_ON_PHONE_SENTENCE: string =
+  translationKey(
+    "Get the app from the link above, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
+  );
+
 export interface ComponentProps {
   dataTestId: string;
   serverUrlDataTestId: string;
   className?: string | undefined;
 }
 
-const StoreCode: FunctionComponent<{ name: string; url: string }> = (props: {
+const StoreCode: FunctionComponent<{
   name: string;
   url: string;
+  onCodeFailed: () => void;
+  dataTestId?: string | undefined;
+  // An address as its name: broken anywhere rather than run off a phone.
+  isNamedByAddress?: boolean | undefined;
+}> = (props: {
+  name: string;
+  url: string;
+  onCodeFailed: () => void;
+  dataTestId?: string | undefined;
+  isNamedByAddress?: boolean | undefined;
 }): ReactElement => {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div
+      className={
+        props.isNamedByAddress
+          ? "flex min-w-0 flex-col items-center gap-2"
+          : "flex flex-col items-center gap-2"
+      }
+      data-testid={props.dataTestId}
+    >
       {/*
        * A code is for a phone held up to a big screen, not for a phone.
        * max-sm:hidden, not a bare hidden: a foreign .hidden rule would
        * hide the code at every width.
        */}
       <div className="max-sm:hidden sm:block">
-        <QRCode text={props.url} alt={props.name} />
+        <QRCode
+          text={props.url}
+          alt={props.name}
+          onError={props.onCodeFailed}
+        />
       </div>
       <a
         href={props.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm font-semibold text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:text-indigo-500"
+        className={`${
+          props.isNamedByAddress ? "break-all text-center " : ""
+        }text-sm font-semibold text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:text-indigo-500`}
+        dir={props.isNamedByAddress ? "ltr" : undefined}
       >
         {props.name}
       </a>
@@ -73,6 +118,30 @@ const StoreCode: FunctionComponent<{ name: string; url: string }> = (props: {
 const MobileAppCodes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * A code that could not be drawn - its library did not load - says so in
+   * its place, and is no code to scan (#6653): the laptop is then told what
+   * a phone is, to get the app from the links under each code.
+   */
+  const [hasACodeFailed, setHasACodeFailed] = useState<boolean>(false);
+
+  const onCodeFailed: () => void = (): void => {
+    setHasACodeFailed(true);
+  };
+
+  /*
+   * How the server offers the app (Help and Support): OneUptime's stores,
+   * a page of its own, or not at all - then nothing is drawn, and the places
+   * that open this offer no way to it either. A page of the server's own
+   * not read from the server yet draws nothing until it is.
+   */
+  const offer: MobileAppOffer | null = getMobileAppOffer(useHelpAndSupport());
+  const isOwnPage: boolean = offer?.kind === MobileAppOfferKind.OwnPage;
+
+  if (!offer || (isOwnPage && !offer.url)) {
+    return <></>;
+  }
+
   /*
    * The address, read left to right on every page. It moves to a line of
    * its own before it is broken, and is broken only when it is longer than
@@ -100,13 +169,41 @@ const MobileAppCodes: FunctionComponent<ComponentProps> = (
       }`}
     >
       <div className="flex flex-shrink-0 justify-center gap-6">
-        <StoreCode name={APP_STORE_NAME} url={MOBILE_APP_IOS_URL} />
-        <StoreCode name={GOOGLE_PLAY_NAME} url={MOBILE_APP_ANDROID_URL} />
+        {isOwnPage && offer.url ? (
+          <StoreCode
+            name={getHelpLinkLabel(offer.url)}
+            url={offer.url}
+            onCodeFailed={onCodeFailed}
+            dataTestId={`${props.dataTestId}-own-page`}
+            isNamedByAddress={true}
+          />
+        ) : (
+          <>
+            <StoreCode
+              name={APP_STORE_NAME}
+              url={MOBILE_APP_IOS_URL}
+              onCodeFailed={onCodeFailed}
+            />
+            <StoreCode
+              name={GOOGLE_PLAY_NAME}
+              url={MOBILE_APP_ANDROID_URL}
+              onCodeFailed={onCodeFailed}
+            />
+          </>
+        )}
       </div>
       {/* Beside the codes, from a laptop's width; a phone's sentence below it. */}
       <p className="min-w-0 text-sm leading-6 text-gray-700 max-sm:hidden">
         <TranslatedSentence
-          template={MOBILE_APP_INSTALL_SENTENCE}
+          template={
+            isOwnPage
+              ? hasACodeFailed
+                ? MOBILE_APP_INSTALL_FROM_OWN_PAGE_ON_PHONE_SENTENCE
+                : MOBILE_APP_INSTALL_FROM_OWN_PAGE_SENTENCE
+              : hasACodeFailed
+                ? MOBILE_APP_INSTALL_ON_PHONE_SENTENCE
+                : MOBILE_APP_INSTALL_SENTENCE
+          }
           slots={{
             serverUrl: getServerUrl(props.serverUrlDataTestId),
           }}
@@ -114,7 +211,11 @@ const MobileAppCodes: FunctionComponent<ComponentProps> = (
       </p>
       <p className="min-w-0 text-sm leading-6 text-gray-700 sm:hidden">
         <TranslatedSentence
-          template={MOBILE_APP_INSTALL_ON_PHONE_SENTENCE}
+          template={
+            isOwnPage
+              ? MOBILE_APP_INSTALL_FROM_OWN_PAGE_ON_PHONE_SENTENCE
+              : MOBILE_APP_INSTALL_ON_PHONE_SENTENCE
+          }
           slots={{
             serverUrl: getServerUrl(`${props.serverUrlDataTestId}-on-phone`),
           }}

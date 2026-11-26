@@ -32,7 +32,7 @@ flowchart TB
 
 - **On OneUptime Cloud, the Enterprise plan.** On other plans, the audit log pages show what the feature does and how to get it.
 - **When you self-host, the Enterprise Edition**, with a license that includes audit logs. See [Enterprise Edition](/docs/self-hosted/enterprise).
-- **A role that reads the audit log.** Project Owner, Project Admin, Settings Admin, or the **Read Audit Log** permission. Turning audit logging on, and changing its settings, takes a Project Owner, a Project Admin, or permission to edit the project.
+- **A role that reads the audit log.** Project Owner, Project Admin, Settings Admin, or the **Read Audit Log** permission. An entry shows a field's values only if you may read that field on the resource itself, and a resource's name only if you may read the resource. Turning audit logging on, and changing its settings, takes a Project Owner, a Project Admin, or permission to edit the project.
 
 ## Turn on audit logging
 
@@ -72,9 +72,13 @@ A change to these settings applies within a minute.
 
 Filter by **Resource Type**, **Resource Name**, **Action**, **User Email**, **Workflow Ran As**, **Workflow Permissions Given By** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
+A field that points to another resource, such as a monitor's status, shows that resource's current name, with its ID under it. A resource you may not read shows **Name hidden**, and one deleted since shows **Deleted**.
+
 A resource with no name of its own is named by what names it in OneUptime: an exception by its type and the start of its message, with ids, addresses and anything that looks like a secret masked, a runbook run by its runbook, an incoming call policy's phone number by the number, and a template or a domain by its own name.
 
 Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own, in a folded section of their side menu such as **Advanced**. It lists only that resource's entries, with those of what belongs to it: an SLO's page shows its rules and owners too.
+
+A product's rules have a page of their own as well, at the end of the menu section that lists them: **Audit Logs** in a **Rules** section, such as **Incidents → Rules → Audit Logs**, and **Rule Audit Logs** in a **Settings** section that holds owner and label rules, such as **Hosts → Settings → Rule Audit Logs**. It lists every rule of that product, deleted ones included. Runbook rules are one kind of rule for alerts, incidents and maintenance events, so their history is under **Runbooks → Settings → Rule Audit Logs**.
 
 ## What is recorded
 

@@ -1,3 +1,5 @@
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import ReauthenticationRequiredException from "../../../Types/Exception/ReauthenticationRequiredException";
 import GenericObject from "../../../Types/GenericObject";
 import API from "../../Utils/API/API";
 import { BULK_ACTION_CONCURRENCY } from "./BulkActionConcurrency";
@@ -21,8 +23,9 @@ import {
  *                  API.getFriendlyMessage, so a refused permission or a
  *                  validation error is reported in the words that explain it;
  *   - not started: the person stopped the run before it reached the item
- *                  (BulkActionOnClickProps.stopSignal). Nothing was done to
- *                  it.
+ *                  (BulkActionOnClickProps.stopSignal), or did not confirm
+ *                  it's them for an item that waited on that
+ *                  (isConfirmationRefusal). Nothing was done to it.
  *
  * The lists are always reported in the order the items were selected, not
  * the order they finished in, so a result read twice reads the same.
@@ -155,6 +158,23 @@ export function estimateBulkTimeLeftInMs(data: {
   }
 
   return Math.round((data.elapsedInMs / data.doneCount) * left);
+}
+
+/*
+ * Whether an item failed with the refusal of a change that waits until the
+ * session confirms it's its person's (#10155, ReauthenticationRequired
+ * Exception) - deleting someone's account, or no longer requiring their
+ * two-factor authentication, from the Admin Dashboard (#10216, #10330).
+ * The API client asks the person on the first such refusal and sends the
+ * request again once they have confirmed, so one that still reaches the
+ * step means they cancelled, or could not be asked: every item after it
+ * would be refused too, and ask again, one prompt after another.
+ */
+export function isConfirmationRefusal(err: unknown): boolean {
+  return (
+    err instanceof HTTPErrorResponse &&
+    ReauthenticationRequiredException.isRefusal(err.data)
+  );
 }
 
 export function getBulkActionConcurrency(
@@ -307,6 +327,13 @@ export async function runBulkAction<T extends GenericObject>(
     return snapshot;
   };
 
+  /*
+   * Whether an item was refused until the session confirms it's its
+   * person's, after the API client had asked them (#10155,
+   * isConfirmationRefusal): the run starts no more.
+   */
+  let isConfirmationRefused: boolean = false;
+
   type RunOneFunction = (index: number) => Promise<void>;
 
   const runOne: RunOneFunction = async (index: number): Promise<void> => {
@@ -327,6 +354,10 @@ export async function runBulkAction<T extends GenericObject>(
         kind: "failed",
         entry: { item: item, failedMessage: API.getFriendlyMessage(err) },
       };
+
+      if (isConfirmationRefusal(err)) {
+        isConfirmationRefused = true;
+      }
     }
 
     doneCount += 1;
@@ -347,7 +378,7 @@ export async function runBulkAction<T extends GenericObject>(
     // Each worker takes the next item as soon as it is free.
     const worker: WorkerFunction = async (): Promise<void> => {
       while (nextIndex < totalItems.length) {
-        if (isStoppable && stopSignal?.aborted) {
+        if (isConfirmationRefused || (isStoppable && stopSignal?.aborted)) {
           wasStopped = true;
           return;
         }

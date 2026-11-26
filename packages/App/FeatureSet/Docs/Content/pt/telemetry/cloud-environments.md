@@ -102,7 +102,7 @@ A ingestão cria os ambientes para você, então não há nada para digitar. Abr
 
 ## Apps e implantações
 
-Cada serviço que um ambiente executa é um app dele, com o nome que o console da plataforma dá a ele. **Plataformas de aplicativos → Todos os apps** lista cada app com a revisão que ele executa e as suas requisições, a sua taxa de erro e a sua latência p95 da última hora, e a aba **Apps** de um ambiente lista os dele.
+Cada serviço que um ambiente executa é um app dele, com o nome que o console da plataforma dá a ele. **Plataformas de aplicativos → Todos os apps** lista cada app com a revisão que ele executa e as suas requisições, a sua taxa de erro e a sua latência p95 da última hora, e a aba **Apps** de um ambiente lista os dele. Um app do App Service que não envia traços mostra ali, no lugar, os números do site dele no Azure Monitor: as requisições que o Azure contou, a parcela respondida com status 5xx e o tempo de resposta médio. O mesmo faz um app no Container Apps, no Cloud Run, no App Engine ou no App Runner, com os números que a nuvem dele mede; as requisições de um app do ECS vêm só dos traços dele.
 
 | Plataforma | App | Separado por | Revisão |
 | --- | --- | --- | --- |

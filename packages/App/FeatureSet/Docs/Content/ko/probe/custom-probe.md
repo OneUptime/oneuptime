@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 그런 다음 `kubectl apply -f oneuptime-probe.yaml`(으)로 적용합니다.
 :::
 
 호스트 네트워킹(`--network host`, `network_mode: host`)을 쓰면 프로브가 IPv6를 포함한 호스트 자체의 네트워크를 사용합니다. 호스트 네트워킹 없이 실행하기 전에 [IPv6 대상 모니터링](#ipv6-대상-모니터링)을 읽어 보세요.
+
+위의 Kubernetes Deployment나 브리지 네트워크의 Docker처럼 호스트 네트워크를 쓰지 않으면, 프로브의 검사는 호스트 자체의 주소로 머신을 나가지만 프로브는 컨테이너 안에서 그 주소를 볼 수 없습니다. `PROBE_HOST_IP_ADDRESSES`로 그 주소를 알려 주면 [보안 이벤트](/docs/telemetry/security-events)가 프로브의 폴링, 검색, 모니터 검사를 프로브 자신의 작업으로 알아봅니다. Kubernetes Deployment는 듀얼 스택 노드의 두 주소를 모두 담은 `status.hostIPs`에서 값을 가져옵니다. 1.29보다 오래된 Kubernetes에서는 `status.hostIP`를 사용하세요. Docker 브리지 네트워크에서는 `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`처럼 호스트의 주소를 직접 지정하세요.
 
 ### 연결 확인
 
@@ -146,10 +152,26 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-`<version>`을 `17.0.1`처럼 실행할 버전으로 바꾸고, 같은 이미지를 `oneuptime-probe.yaml`에도 적으세요. 그래야 파일을 다시 적용해도 그 이미지가 유지됩니다.
+`<version>`을 `17.1.0`처럼 실행할 버전으로 바꾸고, 같은 이미지를 `oneuptime-probe.yaml`에도 적으세요. 그래야 파일을 다시 적용해도 그 이미지가 유지됩니다.
 :::
 
-프로브 페이지의 **프로브 상태** 에 실행 중인 버전이 표시됩니다. 17.0.1보다 오래된 프로브는 [일회용 코드 시크릿](/docs/monitor/monitor-secrets#일회용-코드로-로그인)의 코드를 만들 수 없습니다. 프로브 페이지가 이를 알려 주며, 프로브가 검사하는 모니터의 양식도 마찬가지입니다.
+프로브 페이지의 **프로브 상태** 에 실행 중인 버전이 표시됩니다. 17.1.0보다 오래된 프로브는 [일회용 코드 시크릿](/docs/monitor/monitor-secrets#일회용-코드로-로그인)의 코드를 만들 수 없습니다. 프로브 페이지가 이를 알려 주며, 프로브가 검사하는 모니터의 양식도 마찬가지입니다. JSON 배열, 단일 값 또는 텍스트인 API 모니터의 요청 본문을 보내기에는 너무 오래된 프로브도 마찬가지입니다.
+
+프로브가 OneUptime보다 메이저 릴리스 하나 이상 뒤처지면, 소유자에게 프로브에 없는 기능과 이 섹션 링크가 한 번 알려집니다. 소유자가 없는 프로브는 프로젝트 소유자에게 알립니다. 다시 알림을 받는 것은 더 나중 메이저 릴리스에 뒤처지거나, 업데이트한 뒤 다시 뒤처질 때뿐입니다. 받는 방법은 각자 **사용자 설정 → 알림 설정**의 **프로브가 메이저 릴리스 하나 뒤처짐**에서 고르며, 처음에는 이메일로 받습니다. 마이너 릴리스만 뒤처진 프로브는 해당 페이지에 그렇게 표시될 뿐 아무에게도 알리지 않습니다.
+
+## 체크인할 때 프로브가 보내는 것
+
+프로브의 모든 요청에는 ID와 키, 실행 중인 릴리스, 할 수 있는 일이 담기며, 1분에 한 번 자신을 나타내는 주소와 함께 체크인합니다. 검사 결과 외에 네트워크에 대해 보내는 것은 없습니다.
+
+| 필드 | 전송 시점 | OneUptime이 하는 일 |
+| --- | --- | --- |
+| `probeVersion` | 모든 요청 | 프로브가 실행 중인 릴리스를 보관합니다. 프로브 페이지와 **사용자 지정 프로브**는 OneUptime보다 오래되었을 때 이를 표시하고, 메이저 릴리스 하나만큼 뒤처지면 소유자에게 한 번 알립니다. |
+| `probeCapabilities` | 모든 요청 | 프로브가 할 수 있는 작업만 맡깁니다. 더 새로운 프로브가 필요한 검사는 프로브를 업데이트하라는 문장과 함께 실패합니다. |
+| `probeInterfaceAddresses` | 1분에 한 번 | 프로브의 네트워크 인터페이스 주소와 `PROBE_HOST_IP_ADDRESSES`로 받은 주소를 보관합니다. [보안 이벤트](/docs/telemetry/security-events)는 이 주소로 네트워크 흐름에서 프로브 자신의 폴링, 검색, 모니터 검사를 알아보며, 차단 목록은 이 주소를 절대 차단하지 않습니다. 루프백, 링크 로컬, 멀티캐스트 주소는 제외됩니다. |
+
+OneUptime은 프로브가 체크인하는 주소도 OneUptime에 보이는 그대로 보관합니다. 네트워크에 NAT가 있으면 NAT의 주소입니다. 프로브 페이지는 프로브를 읽을 수 있는 사람에게 **프로브 상태** 아래에 **체크인 주소**와 **인터페이스 주소**로 두 가지를 모두 보여 주며, 아직 체크인하지 않은 프로브에는 둘 다 보여 주지 않습니다.
+
+프로브가 자신의 주소에 대해 말하는 것은 프로브의 주장일 뿐이며, 키를 가진 사람은 누구나 어떤 주소든 말할 수 있습니다. 그래서 보안 이벤트는 주소만으로 트래픽을 따로 분류하지 않습니다. 도달한 각 호스트와 포트도 프로브가 도달하도록 설정된 것이어야 하며, 그 이상은 프로브 이름과 함께 보고됩니다.
 
 ## 프록시를 통해 연결
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Docker Engine 27 이상은 네트워크에 쓸 IPv6 서브넷을 고르고, 프�
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | 없음 | 프록시 설정. [프록시를 통해 연결](#프록시를-통해-연결)을 참조하세요. |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | 프로브가 OneUptime에 보내는 각 요청의 기한. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | OneUptime에 보낸 요청이 이보다 느리면 경고를 기록합니다. |
+| `PROBE_HOST_IP_ADDRESSES` | 없음 | 호스트 네트워크를 쓰지 않는 프로브를 위한 호스트의 IP 주소로, 쉼표로 구분합니다. 체크인할 때마다 프로브 자신의 주소와 함께 나열됩니다. [프로브 실행](#프로브-실행)을 참조하세요. |
 
 ### 네트워크 검색
 
@@ -430,7 +457,7 @@ OneUptime 서버 쪽에서도 느리게 응답한 프로브 요청이나, 응답
 ### 그 밖의 문제
 
 :::details 프로브가 시작하자마자 멈춥니다
-로그에 무엇이 빠졌는지 나옵니다: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` 또는 `PROBE_ID or REGISTER_PROBE_KEY should be set`. 세 가지가 모두 설정되어 있는데 ID와 키가 어떤 프로브와도 맞지 않으면, 프로브는 30초 간격으로 10번 시도한 뒤 `Unable to register probe after 10 attempts`와 함께 멈춥니다. **ID 및 키 표시** 로 ID와 키를 다시 복사하세요.
+로그에 무엇이 빠졌는지 나옵니다: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` 또는 `PROBE_ID is not set`. 세 가지가 모두 설정되어 있는데 ID와 키가 어떤 프로브와도 맞지 않으면, 프로브는 30초 간격으로 10번 시도한 뒤 `Unable to register probe after 10 attempts`와 함께 멈춥니다. **ID 및 키 표시** 로 ID와 키를 다시 복사하세요.
 :::
 
 :::details 누군가 키를 재설정하기 전까지는 프로브가 작동했습니다

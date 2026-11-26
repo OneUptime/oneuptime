@@ -27,7 +27,7 @@
 :::steps
 ### 開啟提供者清單
 
-以主管理員身分登入，然後透過使用者選單中的 **管理員設定** 開啟 Admin Dashboard。接著前往 **設定** > **單一登入**。該頁面先列出執行個體的 SAML 提供者，接著是 OpenID Connect 提供者，最後是 **要求使用 SSO** 卡片。
+以主管理員身分登入，然後在使用者選單中選擇 **管理員儀表板**。接著前往 **設定** > **單一登入**。該頁面先列出執行個體的 SAML 提供者，接著是 OpenID Connect 提供者，最後是 **要求使用 SSO** 卡片。
 
 ### 建立提供者
 
@@ -103,6 +103,12 @@ flowchart TB
 :::
 
 Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見 [SSO](/docs/identity/sso) 頁面。
+
+## 重新登入以確認是您本人
+
+只透過全域提供者登入的人，在變更登入方式或刪除帳戶之前，用 **重新登入** 確認是本人：OneUptime 會把此人送回提供者，SAML 帶上 `ForceAuthn="true"`，OpenID Connect 帶上 `prompt=login` 和 `max_age=0`（對 Microsoft Entra ID 只帶上 `prompt=login`），並且只有當提供者在 `AuthnInstant` 或 `auth_time` 中告知此人在那一刻或之後登入時才算數。新增、變更或刪除全域提供者時，會先要求您[確認是本人](/docs/introduction/your-account#確認是你本人)。
+
+在 Okta、Microsoft Entra ID、Keycloak 與 Google Workspace 中要設定什麼，請見 [SSO](/docs/identity/sso#重新登入以確認是您本人) 頁面。
 
 ## 強制使用 SSO
 
@@ -187,4 +193,5 @@ Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見
 - [SSO](/docs/identity/sso): 設定專案自己的 SAML 或 OIDC 提供者。
 - [SCIM](/docs/identity/scim): 讓身分提供者自動新增和移除人員。
 - [使用者、團隊與權限](/docs/permissions/index): 新來的人加入的團隊允許他們做什麼。
+- [說明與支援](/docs/self-hosted/help-and-support): 告訴需要邀請的人應該向誰申請。
 :::

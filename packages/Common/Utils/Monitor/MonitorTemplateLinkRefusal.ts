@@ -62,3 +62,50 @@ export const getMonitorTypeMismatchRefusal: (data: {
     templateType: data.templateType,
   });
 };
+
+/*
+ * WHY A TEMPLATE ITSELF CANNOT BE SAVED, LINKED, SYNCED OR UNLINKED (#7711).
+ *
+ * The template's own refusals said "Monitor template not found", "Monitor
+ * template is missing projectId", "Monitor template is missing
+ * monitorType", "Monitor type is required to configure template sync
+ * fields" and "Field "x" is not syncable from a monitor template": English
+ * fragments that named its columns. Each is a whole sentence now that says
+ * what to do, and a key of the Dashboard's locales; the one with a value in
+ * it keeps the value as a placeholder (RefusalWithValues).
+ */
+
+// The template is gone, or the caller may not see it.
+export const TEMPLATE_NOT_FOUND_REFUSAL: string = translationKey(
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.",
+);
+
+// A template that names no project, so no monitor of one can be linked to it.
+export const TEMPLATE_WITHOUT_PROJECT_REFUSAL: string = translationKey(
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.",
+);
+
+// A template that names no monitor type, whose monitors cannot be synced.
+export const TEMPLATE_WITHOUT_TYPE_REFUSAL: string = translationKey(
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.",
+);
+
+// Template sync settings chosen before the template's monitor type.
+export const SYNC_SETTINGS_WITHOUT_TYPE_REFUSAL: string = translationKey(
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.",
+);
+
+// A setting a template does not sync, named by its path (an API client's).
+export const FIELD_NOT_SYNCABLE_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'A monitor template cannot sync "{{field}}". Choose from the template sync settings the template offers, then save again.',
+  ),
+  terms: [],
+};
+
+// The setting refusal as the server answers it: in English, with the path.
+export const getFieldNotSyncableRefusal: (field: string) => string = (
+  field: string,
+): string => {
+  return getRefusalText(FIELD_NOT_SYNCABLE_REFUSAL, { field: field });
+};

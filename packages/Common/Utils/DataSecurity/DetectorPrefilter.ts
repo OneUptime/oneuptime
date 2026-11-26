@@ -1,3 +1,4 @@
+import { DIGIT_ZEROS } from "./DigitReadings";
 import { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { ScanDetector } from "./TextScanner";
 import CharacterSet from "../LinearRegExp/CharacterSet";
@@ -41,6 +42,35 @@ import { SyntaxNode } from "../LinearRegExp/Syntax";
 
 // RE2's largest repeat count.
 export const RE2_MAX_REPEAT: number = 1000;
+
+/*
+ * What a detector that reads a text with its percent-escapes read also
+ * finds in (readsPercentEncoded, #10467): a text holding an escape of an
+ * ASCII character - the only escape PercentDecodedText reads - since what
+ * the reading finds and the text as written does not, it finds because of
+ * one. The search then hands over every record holding one, and each is
+ * checked by the detector itself: more is fine, never less.
+ */
+export const PERCENT_ESCAPE_PREFILTER: string = "\\x{25}[0-7][0-9A-Fa-f]";
+
+/*
+ * What a detector that reads every script's digits by their values also
+ * finds in (readsDigitsOfEveryScript, #10960): a text holding a digit of a
+ * script other than ASCII - one of the 36 others of DigitReadings - since
+ * what those readings find and the text as written does not, they find
+ * because of one. More is fine, never less.
+ */
+export const DIGIT_OF_EVERY_SCRIPT_PREFILTER: string = `[${DIGIT_ZEROS.filter(
+  (zero: number): boolean => {
+    return zero !== 0x30;
+  },
+)
+  .map((zero: number): string => {
+    return `\\x{${zero.toString(16).toUpperCase()}}-\\x{${(zero + 9)
+      .toString(16)
+      .toUpperCase()}}`;
+  })
+  .join("")}]`;
 
 // The longest expression handed to the database.
 export const MAX_PREFILTER_LENGTH: number = 32_768;
@@ -573,6 +603,22 @@ function patternOf(
 }
 
 /*
+ * One detector's expression: the one it says it narrows by, for a pattern
+ * written with Unicode classes this cannot write (the u flag), or else its
+ * pattern written for RE2. Null when neither can be had. Not the escapes or
+ * the digits its readings add: getDataTypePrefilter adds those.
+ */
+export function getDetectorPrefilter(detector: ScanDetector): string | null {
+  if (detector.prefilter) {
+    return detector.prefilter;
+  }
+
+  const pattern: { source: string; flags: string } | null = patternOf(detector);
+
+  return pattern ? toRe2Prefilter(pattern.source, pattern.flags) : null;
+}
+
+/*
  * One RE2 expression for every detector of a data type - the built-in
  * ones, or the project's own type's - that matches at least what any of
  * them matches: null when the type has none, or one of them cannot be
@@ -602,11 +648,7 @@ export function getDataTypePrefilter(data: {
   const expressions: Array<string> = [];
 
   for (const detector of detectors) {
-    const pattern: { source: string; flags: string } | null =
-      patternOf(detector);
-    const expression: string | null = pattern
-      ? toRe2Prefilter(pattern.source, pattern.flags)
-      : null;
+    const expression: string | null = getDetectorPrefilter(detector);
 
     if (!expression) {
       return null;
@@ -614,6 +656,20 @@ export function getDataTypePrefilter(data: {
 
     if (!expressions.includes(expression)) {
       expressions.push(expression);
+    }
+
+    if (
+      detector.readsPercentEncoded &&
+      !expressions.includes(PERCENT_ESCAPE_PREFILTER)
+    ) {
+      expressions.push(PERCENT_ESCAPE_PREFILTER);
+    }
+
+    if (
+      detector.readsDigitsOfEveryScript &&
+      !expressions.includes(DIGIT_OF_EVERY_SCRIPT_PREFILTER)
+    ) {
+      expressions.push(DIGIT_OF_EVERY_SCRIPT_PREFILTER);
     }
   }
 

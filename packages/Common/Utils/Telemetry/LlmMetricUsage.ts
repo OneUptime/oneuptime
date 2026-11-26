@@ -18,6 +18,8 @@ import {
   emptyLlmMetricUsageFigures,
 } from "../../Types/Telemetry/LlmMetricUsageApi";
 import { normalizeLlmProvider } from "../../Types/Telemetry/LlmProviders";
+import { LLM_USAGE_HIDDEN_GROUP_KEY } from "../../Types/Telemetry/LlmUsageApi";
+import { isScrubPlaceholder } from "../../Types/Telemetry/ScrubRule";
 
 /*
  * WHAT THE GENAI METRICS OF A RANGE ADD UP TO.
@@ -152,7 +154,10 @@ export default class LlmMetricUsageUtil {
    * A group's value as the Usage tab names it: trimmed, and a provider
    * named the way ingest names a span's (azure.ai.openai, never
    * az.ai.openai or OpenAI), so a provider's metrics and its calls are one
-   * row.
+   * row. A person or a team a scrub rule hid - "[REDACTED]", a mask, a Hash
+   * rule's token - is nobody's name: all of them are the one group of
+   * usage whose person or team was hidden (LLM_USAGE_HIDDEN_GROUP_KEY,
+   * #10435), never a person of their own.
    */
   public static normalizeGroup(
     dimension: LlmMetricUsageDimension,
@@ -162,6 +167,14 @@ export default class LlmMetricUsageUtil {
 
     if (dimension === LlmMetricUsageDimension.Provider && trimmed) {
       return normalizeLlmProvider({ reported: trimmed });
+    }
+
+    if (
+      (dimension === LlmMetricUsageDimension.Employee ||
+        dimension === LlmMetricUsageDimension.Team) &&
+      isScrubPlaceholder(trimmed)
+    ) {
+      return LLM_USAGE_HIDDEN_GROUP_KEY;
     }
 
     return trimmed;

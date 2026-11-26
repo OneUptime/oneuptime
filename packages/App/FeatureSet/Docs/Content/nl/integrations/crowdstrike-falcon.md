@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-Importeer waarschuwingen van [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), uit detecties op endpoints, identiteiten en cloud, in de beveiligingsgebeurtenissen van OneUptime. Daar doorzoek je ze naast je logs, traces en metrics, correleer je ze met elke andere bron en roep je de dienst op voor de waarschuwingen die ertoe doen. OneUptime leest ze via de Falcon Alerts API met een API-client die jij maakt, en schrijft nooit naar Falcon.
+Importeer waarschuwingen van [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), uit detecties op endpoints, identiteiten en cloud, in de beveiligingsgebeurtenissen van OneUptime. Daar doorzoek je ze naast je logs, traces en metrics, correleer je ze met elke andere bron en roep je de dienst op voor de waarschuwingen die ertoe doen. OneUptime leest ze via de Falcon Alerts API met een API-client die jij maakt, en schrijft alleen naar Falcon om de bestanden te blokkeren die jij blokkeert, zodra je dat aanzet.
 
 :::cards
 - [De verbinding instellen](#de-verbinding-instellen): Een API-client met één bereik, en het formulier van de verbinding.
 - [Wat er wordt geïmporteerd](#wat-er-wordt-geïmporteerd): Hoe elke Falcon-waarschuwing een beveiligingsgebeurtenis wordt.
 - [Hoe pollen werkt](#hoe-pollen-werkt): Het venster dat elke poll leest, en wat een drukke CID daarmee doet.
+- [Bestanden blokkeren met CrowdStrike](#bestanden-blokkeren-met-crowdstrike): Voorkom dat de bestanden op je blokkeerlijst op welke host dan ook draaien.
 - [Problemen oplossen](#problemen-oplossen): Wat elke fout betekent en wat je moet wijzigen.
 :::
 
@@ -33,7 +34,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 ### Een API-client maken
 
 1. Open in de Falcon-console **Support and resources → API clients and keys** en selecteer **Create API client**.
-2. Geef hem een naam, bijvoorbeeld `OneUptime security events`. Zet onder **API scopes** **Alerts → Read** aan en laat elk ander bereik uit: de verbinding schrijft nooit naar Falcon.
+2. Geef hem een naam, bijvoorbeeld `OneUptime security events`. Zet onder **API scopes** **Alerts → Read** aan en laat elk ander bereik uit: waarschuwingen lezen schrijft niets naar Falcon. Bestanden blokkeren heeft er twee meer nodig (zie [Bestanden blokkeren met CrowdStrike](#bestanden-blokkeren-met-crowdstrike)).
 3. Maak de client aan. Falcon toont zijn client-ID, zijn geheim en zijn basis-URL één keer. Kopieer alle drie nu: het geheim kan later opnieuw worden ingesteld, maar wordt nooit meer getoond.
 
 ### Je Falcon-cloud vinden
@@ -60,6 +61,7 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | --- | --- |
 | **Client-ID** | De ID van de API-client, zoals Falcon die toonde toen je de client maakte. |
 | **Falcon-cloud** | De cloud van je CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** of **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Elk verzoek gaat naar de API-host van die cloud. |
+| **Bestanden blokkeren met CrowdStrike** | Uit op een nieuwe verbinding. Aan stopt hij de bestanden op de blokkeerlijst van je project op elke host, en heeft hij **IOC Management → Read** en **Write** nodig (zie [Bestanden blokkeren met CrowdStrike](#bestanden-blokkeren-met-crowdstrike)). |
 | **Clientgeheim** | Het geheim van de API-client. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
 De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint. Een verbinding die niet is ingeschakeld, kan nog steeds worden getest en met de hand worden gepold.
@@ -123,6 +125,17 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 - **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
 - **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
+## Bestanden blokkeren met CrowdStrike
+
+Zet **Bestanden blokkeren met CrowdStrike** aan op een verbinding, en de bestanden op de [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst) van je project worden gestopt op elke host die Falcon beschermt. Elk bestand wordt een eigen IOC van de SHA-256- of MD5-hash, met de bron `OneUptime` en de actie `prevent`, op Windows-, Mac- en Linux-hosts, die verloopt wanneer de blokkering verloopt. Een bestand dat ook in quarantaine moet, wordt geblokkeerd, en Falcon plaatst het in quarantaine zoals het preventiebeleid van de host voorschrijft. Falcon herkent geen SHA-1-hash en detecteert een domein of adres alleen, dus krijgt het daar niets van: blokkeer die met [Microsoft Defender](/docs/integrations/microsoft-defender-xdr).
+
+De schakelaar staat uit op een nieuwe verbinding. Zo zet je hem aan:
+
+1. Open in de Falcon-console **Support and resources → API clients and keys**, bewerk de API-client en zet **IOC Management → Read** en **Write** aan.
+2. Zet op de verbinding **Bestanden blokkeren met CrowdStrike** aan en klik op **Verbinding testen**: **Block with CrowdStrike Falcon** controleert beide bereiken, zonder een IOC te wijzigen.
+
+Een IOC dat Falcon weigert, staat op de blokkeerlijst als niet toegepast, met de reden. OneUptime leest en wijzigt alleen de IOC's die het voor deze verbinding heeft toegevoegd, nooit een die een persoon heeft gemaakt.
+
 ## Verbinding testen
 
 **Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
@@ -133,6 +146,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` met de ID en het geheim van de API-client, op de host van je cloud, geeft een token terug. |
 | **Read alerts from the Falcon Alerts API** | Een waarschuwingsquery voor één waarschuwing (`limit=1`) over de afgelopen 24 uur wordt geaccepteerd, wat het bereik **Alerts → Read** bewijst. |
 | **Alerts available to import** | Hoeveel waarschuwingen in de afgelopen 24 uur en de afgelopen 7 dagen zijn gemaakt. Geen in 7 dagen is een waarschuwing, geen fout: pollen importeert nieuwe waarschuwingen zodra Falcon ze maakt. |
+| **Block with CrowdStrike Falcon** | Alleen met **Bestanden blokkeren met CrowdStrike** aan: de API-client heeft **IOC Management → Read** en **Write**. De controle zegt hoeveel eigen IOC's OneUptime in Falcon heeft, en wijzigt er geen. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
 | **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 

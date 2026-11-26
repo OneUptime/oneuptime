@@ -9,6 +9,11 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 });
 
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Queue, { QueueName } from "../../../Server/Infrastructure/Queue";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import MailService from "../../../Server/Services/MailService";
@@ -19,10 +24,16 @@ import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFact
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import LocalSignInClearing, {
   CLEAR_BATCH_SIZE,
+  CLEAR_LOCK_NAMESPACE,
+  CLEAR_LOCK_TIMEOUT_IN_MS,
+  CLEAR_LOCK_WAIT_IN_MS,
+  isPasswordResetLinkWorking,
   MAX_CLEAR_BATCHES,
 } from "../../../Server/Utils/LocalSignInClearing";
 import logger from "../../../Server/Utils/Logger";
 import SignInSettingsClearedEmail, {
+  EMAIL_ENQUEUE_TIMEOUT_IN_MS,
+  SIGN_IN_SETTINGS_CLEARED_EMAIL_JOB,
   SignInSettingsClearedEmailEvent,
 } from "../../../Server/Utils/SignInSettingsClearedEmail";
 import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
@@ -31,7 +42,11 @@ import User from "../../../Models/DatabaseModels/User";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import Email from "../../../Types/Email";
-import { SignInSettingsClearedAuditEvent } from "../../../Types/AuditLog/AuditLogSignInSettingsCleared";
+import {
+  getSignInSettingsClearedChanges,
+  SignInSettingsClearedAuditEvent,
+  SignInSettingsClearedField,
+} from "../../../Types/AuditLog/AuditLogSignInSettingsCleared";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
@@ -42,12 +57,15 @@ import {
   CLEAR_MASTER_ADMIN_SIGN_IN_NOT_CONFIRMED_MESSAGE,
   CLEAR_OWN_SIGN_IN_MESSAGE,
   CLEAR_SAVED_SIGN_IN_SETTINGS_NEEDS_SSO_REQUIRED_MESSAGE,
+  CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE,
   ClearLocalSignInAnswer,
+  hasLocalSignInSettings,
   LocalSignInSettings,
   NO_LOCAL_SIGN_IN_SETTINGS,
 } from "../../../Types/SSO/LocalSignInClearing";
 import { SignInSettingsClearedBy } from "../../../Types/SSO/SignInSettingsClearedEmail";
 import { getJestSpyOn } from "../../Spy";
+import InMemoryLocks from "../TestingUtils/InMemoryLocks";
 import { readQueryValues } from "../TestingUtils/SsoManagedProjects";
 // The global jest: its mocks are the jest.Mock the fake query is typed with.
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -90,17 +108,27 @@ const PERSON_ID: ObjectID = new ObjectID(
 interface StoredPerson {
   isMasterAdmin: boolean;
   settings: LocalSignInSettings;
+  /*
+   * When the reset link the settings say they have runs out: in a day,
+   * unless a test says otherwise (an expired link, or a link with none).
+   */
+  resetPasswordExpires?: Date | null | undefined;
 }
 
 let people: Map<string, StoredPerson>;
 
 const EVERYTHING: LocalSignInSettings = {
   hasPassword: true,
+  hasPasswordResetLink: true,
   isTwoFactorAuthEnabled: true,
   authenticatorAppCount: 2,
   passkeyAndSecurityKeyCount: 1,
   backupCodeCount: 8,
 };
+
+// A day from now and a day ago: a reset link that works, and one that ran out.
+const IN_A_DAY: Date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+const A_DAY_AGO: Date = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
 const keyOf: (id: unknown) => string = (id: unknown): string => {
   return String(id).toLowerCase();
@@ -114,14 +142,24 @@ const person: (id: ObjectID | string) => StoredPerson | undefined = (
 
 const store: (
   id: ObjectID,
-  data: { isMasterAdmin?: boolean; settings?: LocalSignInSettings },
+  data: {
+    isMasterAdmin?: boolean;
+    settings?: LocalSignInSettings;
+    resetPasswordExpires?: Date | null | undefined;
+  },
 ) => void = (
   id: ObjectID,
-  data: { isMasterAdmin?: boolean; settings?: LocalSignInSettings },
+  data: {
+    isMasterAdmin?: boolean;
+    settings?: LocalSignInSettings;
+    resetPasswordExpires?: Date | null | undefined;
+  },
 ): void => {
   people.set(keyOf(id), {
     isMasterAdmin: data.isMasterAdmin === true,
     settings: data.settings || EVERYTHING,
+    resetPasswordExpires:
+      "resetPasswordExpires" in data ? data.resetPasswordExpires : IN_A_DAY,
   });
 };
 
@@ -194,6 +232,8 @@ let recordCleared: jest.SpyInstance;
 let notifyCleared: jest.SpyInstance;
 let getRequireSsoForLogin: jest.SpyInstance;
 let getQueryBuilder: jest.SpyInstance;
+// The clear's lock on each person (#10776), held in memory as Valkey holds it.
+let locks: InMemoryLocks;
 
 beforeEach(() => {
   people = new Map<string, StoredPerson>();
@@ -221,6 +261,12 @@ beforeEach(() => {
 
       if (stored.settings.hasPassword) {
         user.password = new HashedString("stored-hash", true);
+      }
+
+      // A reset link's token, kept as its hash, and when it runs out.
+      if (stored.settings.hasPasswordResetLink) {
+        user.resetPasswordToken = "stored-reset-token-hash";
+        user.resetPasswordExpires = stored.resetPasswordExpires as Date;
       }
 
       return user;
@@ -302,7 +348,11 @@ beforeEach(() => {
     return fakeQuery();
   });
 
+  locks = new InMemoryLocks();
+  locks.install();
+
   getJestSpyOn(logger, "info").mockImplementation((): void => {});
+  getJestSpyOn(logger, "warn").mockImplementation((): void => {});
   getJestSpyOn(logger, "error").mockImplementation((): void => {});
 });
 
@@ -337,6 +387,25 @@ const nothingCleared: () => void = (): void => {
   expect(notifyCleared).not.toHaveBeenCalled();
 };
 
+/*
+ * Under fake timers: lets the work run, a promise step at a time, until it
+ * has set `count` timers - the queue's time limits a clear waits on - and
+ * fails if it never does, rather than hang.
+ */
+const untilTimersAreSet: (count: number) => Promise<void> = async (
+  count: number,
+): Promise<void> => {
+  for (let step: number = 0; step < 100000; step++) {
+    if (jest.getTimerCount() >= count) {
+      return;
+    }
+
+    await Promise.resolve();
+  }
+
+  throw new Error(`The work never set ${count} timer(s).`);
+};
+
 // The people each email batch was handed, by call, lower-cased.
 const emailedIds: () => Array<Array<string>> = (): Array<Array<string>> => {
   return notifyCleared.mock.calls.map((call: Array<unknown>): Array<string> => {
@@ -359,10 +428,81 @@ describe("LocalSignInClearing.readSettings: what one person has saved", () => {
     expect(call["select"]).toEqual({
       _id: true,
       password: true,
+      resetPasswordToken: true,
+      resetPasswordExpires: true,
       enableTwoFactorAuth: true,
     });
     expect(call["props"]).toEqual({ isRoot: true });
   });
+
+  /*
+   * #9992: the count of people with settings saved counts a reset link
+   * that still works, and the clear removes it - but what a clear reported
+   * had no field for it, so somebody whose only saved setting it was was
+   * cleared with no email and no audit entry.
+   */
+  test("a password reset link that still works is read, as the count reads it (#9992)", async () => {
+    store(PERSON_ID, {
+      settings: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
+    });
+
+    await expect(LocalSignInClearing.readSettings(PERSON_ID)).resolves.toEqual({
+      ...NO_LOCAL_SIGN_IN_SETTINGS,
+      hasPasswordResetLink: true,
+    });
+  });
+
+  test.each([
+    ["a link that ran out", A_DAY_AGO],
+    ["a link with no expiry", null],
+  ])(
+    "%s signs nobody in, is not counted, and is not reported",
+    async (_label: string, expires: Date | null) => {
+      store(PERSON_ID, {
+        settings: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
+        resetPasswordExpires: expires,
+      });
+
+      await expect(
+        LocalSignInClearing.readSettings(PERSON_ID),
+      ).resolves.toEqual(NO_LOCAL_SIGN_IN_SETTINGS);
+    },
+  );
+});
+
+describe("isPasswordResetLinkWorking: a reset link, as the count's SQL reads it (#9992)", () => {
+  const now: Date = new Date("2026-11-22T10:00:00.000Z");
+
+  test.each([
+    [
+      "a token and an expiry still to come",
+      "hash",
+      "2026-11-22T10:00:01.000Z",
+      true,
+    ],
+    ["no token", null, "2026-11-23T10:00:00.000Z", false],
+    ["a token never stored", undefined, "2026-11-23T10:00:00.000Z", false],
+    ["no expiry", "hash", null, false],
+    ["an expiry this very moment", "hash", "2026-11-22T10:00:00.000Z", false],
+    ["an expiry past", "hash", "2026-11-21T10:00:00.000Z", false],
+    ["an expiry that is no date", "hash", "not a date", false],
+  ])(
+    "%s",
+    (
+      _label: string,
+      token: string | null | undefined,
+      expires: string | null,
+      isWorking: boolean,
+    ) => {
+      expect(
+        isPasswordResetLinkWorking({
+          resetPasswordToken: token,
+          resetPasswordExpires: expires === null ? null : new Date(expires),
+          now: now,
+        }),
+      ).toBe(isWorking);
+    },
+  );
 
   test("counts every authenticator app, set up or not: each holds a secret", async () => {
     await LocalSignInClearing.readSettings(PERSON_ID);
@@ -595,16 +735,34 @@ describe("LocalSignInClearing.clearForPerson", () => {
     nothingCleared();
   });
 
-  test("someone with nothing saved is cleared all the same, and the entry says nothing was there", async () => {
+  /*
+   * Written all the same, and their sessions not signed in with SSO end, as
+   * always. But nothing was removed, so nothing is recorded as this master
+   * admin's removal (#10776): it is what the second of two clears of one
+   * person at the same moment finds, under the person's lock.
+   */
+  test("someone with nothing saved is written all the same, their sessions end, and nothing is recorded: nothing was removed", async () => {
     store(PERSON_ID, { settings: NO_LOCAL_SIGN_IN_SETTINGS });
 
     await expect(clear()).resolves.toEqual({
       cleared: NO_LOCAL_SIGN_IN_SETTINGS,
       sessionsEnded: 2,
     });
-    const events: Array<SignInSettingsClearedAuditEvent> = recordCleared.mock
-      .calls[0]![0] as Array<SignInSettingsClearedAuditEvent>;
-    expect(events[0]!.cleared).toEqual(NO_LOCAL_SIGN_IN_SETTINGS);
+    expect(updateBy).toHaveBeenCalledTimes(1);
+    expect(endSessions).toHaveBeenCalledTimes(1);
+    expect(recordCleared).not.toHaveBeenCalled();
+  });
+
+  test("made a master admin between the check and the write: nothing is written, so it is refused, never recorded or emailed as cleared", async () => {
+    // Read as not a master admin; the write's re-read finds one.
+    findBy.mockResolvedValue([]);
+
+    await expect(clear()).rejects.toThrow(
+      new BadDataException(CLEAR_MASTER_ADMIN_SIGN_IN_NOT_CONFIRMED_MESSAGE),
+    );
+    expect(updateBy).not.toHaveBeenCalled();
+    expect(recordCleared).not.toHaveBeenCalled();
+    expect(notifyCleared).not.toHaveBeenCalled();
   });
 
   test("a write that fails is told, never answered as cleared", async () => {
@@ -657,25 +815,131 @@ describe("LocalSignInClearing.clearForPerson", () => {
       expect(order).toEqual(["sessions", "audit", "email"]);
     });
 
-    test("the clear answers without waiting for the email", async () => {
-      // An email that never goes.
-      notifyCleared.mockReturnValue(new Promise<void>((): void => {}));
+    test("the clear waits for its email to be queued, never for it to be sent (#9991)", async () => {
+      // The real sender: it queues a job, and a worker sends it.
+      notifyCleared.mockRestore();
+      const addJob: jest.SpyInstance = getJestSpyOn(
+        Queue,
+        "addJob",
+      ).mockResolvedValue({} as never);
+      const sendMail: jest.SpyInstance = getJestSpyOn(MailService, "sendMail");
 
       await expect(clear()).resolves.toEqual({
         cleared: EVERYTHING,
         sessionsEnded: 2,
       });
-      expect(notifyCleared).toHaveBeenCalledTimes(1);
+
+      expect(addJob).toHaveBeenCalledTimes(1);
+      expect(addJob.mock.calls[0]![0]).toBe(QueueName.Worker);
+      expect(addJob.mock.calls[0]![2]).toBe(SIGN_IN_SETTINGS_CLEARED_EMAIL_JOB);
+      expect(sendMail).not.toHaveBeenCalled();
     });
 
-    test("someone with nothing saved is handed over as such, and the sender sends nothing for them", async () => {
+    test("a queue that does not answer holds the clear up EMAIL_ENQUEUE_TIMEOUT_IN_MS at most, and never fails it", async () => {
+      notifyCleared.mockRestore();
+      // Redis gone: the job is never added, and never refused either.
+      getJestSpyOn(Queue, "addJob").mockReturnValue(
+        new Promise<never>((): void => {}),
+      );
+
+      jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+
+      try {
+        const clearing: Promise<ClearLocalSignInAnswer> = clear();
+        let isDone: boolean = false;
+        void clearing.then((): void => {
+          isDone = true;
+        });
+
+        // Until the clear is waiting on the queue, with its time limit set.
+        await untilTimersAreSet(1);
+
+        jest.advanceTimersByTime(EMAIL_ENQUEUE_TIMEOUT_IN_MS - 1);
+        await Promise.resolve();
+        expect(isDone).toBe(false);
+
+        jest.advanceTimersByTime(1);
+
+        await expect(clearing).resolves.toEqual({
+          cleared: EVERYTHING,
+          sessionsEnded: 2,
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("not all queued"),
+      );
+    });
+
+    test("a queue that refuses the email never fails the clear", async () => {
+      notifyCleared.mockRestore();
+      getJestSpyOn(Queue, "addJob").mockRejectedValue(
+        new Error("Redis connection lost"),
+      );
+
+      await expect(clear()).resolves.toEqual({
+        cleared: EVERYTHING,
+        sessionsEnded: 2,
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(PERSON_ID.toString()),
+      );
+    });
+
+    /*
+     * #9992, end to end on this side: somebody whose only saved setting
+     * was a reset link that still worked - counted by the Require SSO card,
+     * and cleared - was told nothing, and the audit log said nothing.
+     */
+    test("a clear that removes only a password reset link records it, and emails the person (#9992)", async () => {
+      store(PERSON_ID, {
+        settings: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
+      });
+
+      notifyCleared.mockRestore();
+      const addJob: jest.SpyInstance = getJestSpyOn(
+        Queue,
+        "addJob",
+      ).mockResolvedValue({} as never);
+
+      await expect(clear()).resolves.toEqual({
+        cleared: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
+        sessionsEnded: 2,
+      });
+
+      // The audit log: an entry with a field for the link (the recorder writes one).
+      const audited: Array<SignInSettingsClearedAuditEvent> = recordCleared.mock
+        .calls[0]![0] as Array<SignInSettingsClearedAuditEvent>;
+      expect(audited).toHaveLength(1);
+      expect(
+        getSignInSettingsClearedChanges(audited[0]!.cleared).map(
+          (change: unknown): unknown => {
+            return (change as Record<string, unknown>)["field"];
+          },
+        ),
+      ).toEqual([SignInSettingsClearedField.PasswordResetLink]);
+
+      // The email: queued for that person, saying the link is what went.
+      expect(addJob).toHaveBeenCalledTimes(1);
+      const data: Record<string, unknown> = addJob.mock.calls[0]![3] as Record<
+        string,
+        unknown
+      >;
+      expect(keyOf(data["userId"])).toBe(keyOf(PERSON_ID));
+      expect(data["cleared"]).toEqual({
+        ...NO_LOCAL_SIGN_IN_SETTINGS,
+        hasPasswordResetLink: true,
+      });
+    });
+
+    test("someone with nothing saved is emailed nothing: nothing was removed", async () => {
       store(PERSON_ID, { settings: NO_LOCAL_SIGN_IN_SETTINGS });
 
       await clear();
 
-      const events: Array<SignInSettingsClearedEmailEvent> = notifyCleared.mock
-        .calls[0]![0] as Array<SignInSettingsClearedEmailEvent>;
-      expect(events[0]!.cleared).toEqual(NO_LOCAL_SIGN_IN_SETTINGS);
+      expect(notifyCleared).not.toHaveBeenCalled();
     });
 
     test("another master admin, confirmed and cleared, is emailed too", async () => {
@@ -714,6 +978,10 @@ describe("LocalSignInClearing.clearForPerson", () => {
         SignInSettingsClearedEmail,
         "notify",
       );
+      const addJob: jest.SpyInstance = getJestSpyOn(
+        Queue,
+        "addJob",
+      ).mockResolvedValue({} as never);
 
       const readPerson: (data: { id: ObjectID }) => Promise<User | null> =
         findOneById.getMockImplementation() as (data: {
@@ -749,13 +1017,24 @@ describe("LocalSignInClearing.clearForPerson", () => {
         "sendMail",
       ).mockRejectedValue(new Error("mail service down"));
 
+      getJestSpyOn(GlobalCache, "getString").mockResolvedValue(null);
+
       await expect(clear()).resolves.toEqual({
         cleared: EVERYTHING,
         sessionsEnded: 2,
       });
 
-      // The email's own promise, which the clear did not wait for: it never rejects.
+      // The email's own promise: it never rejects, and nothing was sent yet.
       await expect(notifySpy.mock.results[0]!.value).resolves.toBe(undefined);
+      expect(sendMail).not.toHaveBeenCalled();
+
+      // The worker runs the job the clear queued: the send fails, the job says so.
+      await expect(
+        SignInSettingsClearedEmail.runJob(addJob.mock.calls[0]![3], {
+          attempt: 1,
+          maxAttempts: 6,
+        }),
+      ).rejects.toThrow(PERSON_ID.toString());
 
       expect(sendMail).toHaveBeenCalledTimes(1);
       expect(
@@ -803,6 +1082,57 @@ describe("LocalSignInClearing.countPeopleCoveredBySsoRequirement", () => {
     expect(sql).toContain('FROM "UserTwoFactorBackupCode"');
     // A spent backup code signs nobody in.
     expect(sql).toContain('"code"."usedAt" IS NULL');
+  });
+
+  /*
+   * #9992: the count counted a working reset link that what a clear
+   * reports had no field for, so the clear reported nothing removed for
+   * somebody it counted. Each thing the count counts is a field of what a
+   * clear reports, and each field is a thing the count counts: one added to
+   * either side alone fails here.
+   */
+  test("the count and what a clear reports agree: a clause for each field, a field for each clause (#9992)", async () => {
+    const clauseOfField: Record<keyof LocalSignInSettings, string> = {
+      hasPassword: '"person"."password" IS NOT NULL',
+      hasPasswordResetLink:
+        '"person"."resetPasswordToken" IS NOT NULL AND "person"."resetPasswordExpires" > NOW()',
+      isTwoFactorAuthEnabled: '"person"."enableTwoFactorAuth" = true',
+      authenticatorAppCount: 'FROM "UserTotpAuth"',
+      passkeyAndSecurityKeyCount: 'FROM "UserWebAuthn"',
+      backupCodeCount: 'FROM "UserTwoFactorBackupCode"',
+    };
+
+    expect(Object.keys(NO_LOCAL_SIGN_IN_SETTINGS).sort()).toEqual(
+      Object.keys(clauseOfField).sort(),
+    );
+
+    await LocalSignInClearing.countPeopleCoveredBySsoRequirement();
+
+    const sql: string = whereSql[0]!.replace(/\s+/g, " ");
+
+    for (const clause of Object.values(clauseOfField)) {
+      expect(sql).toContain(clause);
+    }
+
+    // And nothing else counts somebody: one clause a field, OR'd together.
+    const counted: string = sql.slice(sql.indexOf("AND ("));
+    expect((counted.match(/ OR /g) || []).length + 1).toBe(
+      Object.keys(clauseOfField).length,
+    );
+
+    // Each field alone is something a clear reports, and so something it tells.
+    for (const field of Object.keys(clauseOfField) as Array<
+      keyof LocalSignInSettings
+    >) {
+      const alone: LocalSignInSettings = {
+        ...NO_LOCAL_SIGN_IN_SETTINGS,
+        [field]:
+          typeof NO_LOCAL_SIGN_IN_SETTINGS[field] === "boolean" ? true : 1,
+      };
+
+      expect(hasLocalSignInSettings(alone)).toBe(true);
+      expect(getSignInSettingsClearedChanges(alone)).toHaveLength(1);
+    }
   });
 });
 
@@ -1161,11 +1491,58 @@ describe("LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement", () => {
       expect(emailedIds().flat()).toEqual([]);
     });
 
-    test("the clear of everyone does not wait for its emails: it answers while they are still going", async () => {
-      batches = [[someone().toString(), someone().toString()]];
-      notifyCleared.mockReturnValue(new Promise<void>((): void => {}));
+    test("the clear of everyone never waits for an email to be sent: each batch's are queued while the next is cleared (#9991)", async () => {
+      notifyCleared.mockRestore();
+      const addJob: jest.SpyInstance = getJestSpyOn(
+        Queue,
+        "addJob",
+      ).mockResolvedValue({} as never);
+      const sendMail: jest.SpyInstance = getJestSpyOn(MailService, "sendMail");
 
-      await expect(clearEveryone()).resolves.toBe(2);
+      const full: Array<string> = Array.from(
+        { length: CLEAR_BATCH_SIZE },
+        (): string => {
+          return someone().toString();
+        },
+      );
+      batches = [full, [someone().toString()]];
+
+      await expect(clearEveryone()).resolves.toBe(CLEAR_BATCH_SIZE + 1);
+
+      // A job for each person, and not one email sent by the clear itself.
+      expect(addJob).toHaveBeenCalledTimes(CLEAR_BATCH_SIZE + 1);
+      expect(sendMail).not.toHaveBeenCalled();
+    });
+
+    test("a queue that does not answer holds the clear of everyone up EMAIL_ENQUEUE_TIMEOUT_IN_MS once, not once a batch", async () => {
+      notifyCleared.mockRestore();
+      getJestSpyOn(Queue, "addJob").mockReturnValue(
+        new Promise<never>((): void => {}),
+      );
+
+      const full: Array<string> = Array.from(
+        { length: CLEAR_BATCH_SIZE },
+        (): string => {
+          return someone().toString();
+        },
+      );
+      batches = [full, [someone().toString()]];
+
+      jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+
+      try {
+        const clearing: Promise<number> = clearEveryone();
+
+        // Both batches cleared, each waiting on the queue with its time limit.
+        await untilTimersAreSet(2);
+
+        // One time limit's worth: every batch's wait ends in it.
+        jest.advanceTimersByTime(EMAIL_ENQUEUE_TIMEOUT_IN_MS);
+
+        await expect(clearing).resolves.toBe(CLEAR_BATCH_SIZE + 1);
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     test("refused, it emails nobody", async () => {
@@ -1181,6 +1558,392 @@ describe("LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement", () => {
       await clearEveryone();
 
       expect(notifyCleared).not.toHaveBeenCalled();
+    });
+  });
+});
+
+/*
+ * TWO CLEARS OF ONE PERSON AT THE SAME MOMENT (#10776). Every clear read
+ * what a person had and then cleared it, with nothing between two clears of
+ * the same person: both could read the settings before either cleared them,
+ * and both recorded the whole removal. Each clear now holds the person's
+ * lock (Semaphore, in memory here) from its read to its write. The race
+ * end to end - every pair of clears, the real audit log recorder - is
+ * ee/Tests/Server/AuditLog/SignInSettingsClearedOnceWhenClearsMeet.test.ts.
+ */
+describe("two clears of one person at the same moment (#10776)", () => {
+  const lockKey: (userId: ObjectID | string) => string = (
+    userId: ObjectID | string,
+  ): string => {
+    return keyOf(userId);
+  };
+
+  const isHeld: (userId: ObjectID | string) => boolean = (
+    userId: ObjectID | string,
+  ): boolean => {
+    return locks.isHeld(lockKey(userId), CLEAR_LOCK_NAMESPACE);
+  };
+
+  const label: (userId: ObjectID | string) => string = (
+    userId: ObjectID | string,
+  ): string => {
+    return `${CLEAR_LOCK_NAMESPACE}/${lockKey(userId)}`;
+  };
+
+  // The clear's writes, made real: what they remove is gone for the next read.
+  const writesRemove: () => void = (): void => {
+    const idsOf: (call: unknown, key: string) => Array<string> = (
+      call: unknown,
+      key: string,
+    ): Array<string> => {
+      return readQueryValues(
+        (call as { query: Record<string, unknown> }).query[key],
+      );
+    };
+
+    updateBy.mockImplementation(async (data: unknown): Promise<number> => {
+      for (const id of idsOf(data, "_id")) {
+        const stored: StoredPerson | undefined = person(id);
+
+        if (stored) {
+          stored.settings = {
+            ...stored.settings,
+            hasPassword: false,
+            hasPasswordResetLink: false,
+            isTwoFactorAuthEnabled: false,
+          };
+        }
+      }
+
+      return 1;
+    });
+
+    for (const [spy, field] of [
+      [deleteApps, "authenticatorAppCount"],
+      [deleteKeys, "passkeyAndSecurityKeyCount"],
+      [deleteCodes, "backupCodeCount"],
+    ] as Array<[jest.SpyInstance, keyof LocalSignInSettings]>) {
+      spy.mockImplementation(async (data: unknown): Promise<number> => {
+        for (const id of idsOf(data, "userId")) {
+          const stored: StoredPerson | undefined = person(id);
+
+          if (stored) {
+            stored.settings = { ...stored.settings, [field]: 0 };
+          }
+        }
+
+        return 1;
+      });
+    }
+  };
+
+  test("one person's clear holds their lock from its read to its write, and gives it back before the audit log and the email", async () => {
+    const heldWhile: Array<string> = [];
+
+    (UserTotpAuthService.countBy as unknown as jest.Mock).mockImplementation(
+      async (): Promise<PositiveNumber> => {
+        heldWhile.push(`read:${isHeld(PERSON_ID)}`);
+        return new PositiveNumber(2);
+      },
+    );
+    updateBy.mockImplementation(async (): Promise<number> => {
+      heldWhile.push(`write:${isHeld(PERSON_ID)}`);
+      return 1;
+    });
+    recordCleared.mockImplementation(async (): Promise<void> => {
+      heldWhile.push(`audit:${isHeld(PERSON_ID)}`);
+    });
+    notifyCleared.mockImplementation(async (): Promise<void> => {
+      heldWhile.push(`email:${isHeld(PERSON_ID)}`);
+    });
+
+    await LocalSignInClearing.clearForPerson({
+      userId: PERSON_ID,
+      clearedByUserId: ADMIN_ID,
+      isMasterAdminConfirmed: false,
+    });
+
+    expect(heldWhile).toEqual([
+      "read:true",
+      "write:true",
+      "audit:false",
+      "email:false",
+    ]);
+    expect(locks.eventsOf("lock")).toEqual([`lock:${label(PERSON_ID)}`]);
+    expect(locks.eventsOf("release")).toEqual([`release:${label(PERSON_ID)}`]);
+  });
+
+  test("the lock: its own namespace, the person's id however it is spelled, how long it lasts and is waited for, and a lost lock is logged, never thrown", async () => {
+    await LocalSignInClearing.clearForPerson({
+      userId: new ObjectID(PERSON_ID.toString().toUpperCase()),
+      clearedByUserId: ADMIN_ID,
+      isMasterAdminConfirmed: false,
+    });
+
+    const options: {
+      key: string;
+      namespace: string;
+      lockTimeout: number;
+      acquireTimeout: number;
+      retryInterval: number;
+      onLockLost: (err: Error) => void;
+    } = (Semaphore.lock as unknown as jest.Mock).mock.calls[0]![0] as {
+      key: string;
+      namespace: string;
+      lockTimeout: number;
+      acquireTimeout: number;
+      retryInterval: number;
+      onLockLost: (err: Error) => void;
+    };
+
+    expect(options.key).toBe(keyOf(PERSON_ID));
+    expect(options.namespace).toBe(CLEAR_LOCK_NAMESPACE);
+    expect(options.lockTimeout).toBe(CLEAR_LOCK_TIMEOUT_IN_MS);
+    expect(options.acquireTimeout).toBe(CLEAR_LOCK_WAIT_IN_MS);
+    expect(options.retryInterval).toBeGreaterThan(0);
+
+    // A lock nobody keeps runs out before a clear waiting for it gives up.
+    expect(CLEAR_LOCK_WAIT_IN_MS).toBeGreaterThan(CLEAR_LOCK_TIMEOUT_IN_MS);
+
+    expect(() => {
+      options.onLockLost(new Error("Lost lock"));
+    }).not.toThrow();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(keyOf(PERSON_ID)),
+    );
+  });
+
+  test("a second clear of the same person waits for the first, reads what it left - nothing - and records and emails nothing", async () => {
+    writesRemove();
+    const otherAdmin: ObjectID = ObjectID.generate();
+    store(otherAdmin, { isMasterAdmin: true });
+
+    const [first, second]: Array<ClearLocalSignInAnswer> = await Promise.all([
+      LocalSignInClearing.clearForPerson({
+        userId: PERSON_ID,
+        clearedByUserId: ADMIN_ID,
+        isMasterAdminConfirmed: false,
+      }),
+      LocalSignInClearing.clearForPerson({
+        userId: PERSON_ID,
+        clearedByUserId: otherAdmin,
+        isMasterAdminConfirmed: false,
+      }),
+    ]);
+
+    // The second waited for the person, while the first held them.
+    expect(locks.eventsOf("wait")).toEqual([`wait:${label(PERSON_ID)}`]);
+
+    expect(first!.cleared).toEqual(EVERYTHING);
+    expect(second!.cleared).toEqual(NO_LOCAL_SIGN_IN_SETTINGS);
+
+    expect(recordCleared).toHaveBeenCalledTimes(1);
+    expect(recordCleared.mock.calls[0]![0]).toEqual([
+      { userId: PERSON_ID, clearedByUserId: ADMIN_ID, cleared: EVERYTHING },
+    ]);
+    expect(emailedIds()).toEqual([[keyOf(PERSON_ID)]]);
+  });
+
+  test("a clear of everyone and a clear of one person at the same moment record the person once", async () => {
+    writesRemove();
+    batches = [[PERSON_ID.toString()]];
+
+    const [forPerson, forEveryone]: [ClearLocalSignInAnswer, number] =
+      await Promise.all([
+        LocalSignInClearing.clearForPerson({
+          userId: PERSON_ID,
+          clearedByUserId: ADMIN_ID,
+          isMasterAdminConfirmed: false,
+        }),
+        LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement({
+          clearedByUserId: ADMIN_ID,
+        }),
+      ]);
+
+    /*
+     * Whichever took the person's lock first removed what they had; the
+     * other found nothing left under it, left them alone and counted
+     * nobody.
+     */
+    const clearedForPerson: number = hasLocalSignInSettings(forPerson.cleared)
+      ? 1
+      : 0;
+
+    expect(clearedForPerson + forEveryone).toBe(1);
+
+    const recorded: Array<SignInSettingsClearedAuditEvent> =
+      recordCleared.mock.calls.flatMap(
+        (call: Array<unknown>): Array<SignInSettingsClearedAuditEvent> => {
+          return call[0] as Array<SignInSettingsClearedAuditEvent>;
+        },
+      );
+    expect(recorded).toEqual([
+      { userId: PERSON_ID, clearedByUserId: ADMIN_ID, cleared: EVERYTHING },
+    ]);
+    expect(emailedIds().flat()).toEqual([keyOf(PERSON_ID)]);
+  });
+
+  test("a batch takes its people's locks in the order of their ids, and gives every one back before the next batch", async () => {
+    const full: Array<string> = Array.from(
+      { length: CLEAR_BATCH_SIZE },
+      (): string => {
+        const id: ObjectID = ObjectID.generate();
+        store(id, {});
+        return id.toString();
+      },
+    );
+    const lastId: ObjectID = ObjectID.generate();
+    store(lastId, {});
+    batches = [full, [lastId.toString()]];
+
+    await expect(
+      LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement({
+        clearedByUserId: ADMIN_ID,
+      }),
+    ).resolves.toBe(CLEAR_BATCH_SIZE + 1);
+
+    const firstBatch: Array<string> = full.map(keyOf).sort();
+    const steps: Array<string> = locks.events.filter(
+      (event: string): boolean => {
+        return event.startsWith("lock:") || event.startsWith("release:");
+      },
+    );
+
+    // Every lock of the first batch, in id order; all given back; then the next.
+    expect(steps.slice(0, CLEAR_BATCH_SIZE)).toEqual(
+      firstBatch.map((key: string): string => {
+        return `lock:${CLEAR_LOCK_NAMESPACE}/${key}`;
+      }),
+    );
+    expect(
+      steps
+        .slice(CLEAR_BATCH_SIZE, CLEAR_BATCH_SIZE * 2)
+        .every((event: string): boolean => {
+          return event.startsWith("release:");
+        }),
+    ).toBe(true);
+    expect(steps.slice(CLEAR_BATCH_SIZE * 2)).toEqual([
+      `lock:${label(lastId)}`,
+      `release:${label(lastId)}`,
+    ]);
+    expect(isHeld(lastId)).toBe(false);
+  });
+
+  test("a person another clear holds for longer than a clear waits: refused with what to do, nothing read or cleared, and every lock taken given back", async () => {
+    const first: ObjectID = new ObjectID(
+      "cc000000-0000-4000-8000-000000000001",
+    );
+    const second: ObjectID = new ObjectID(
+      "cc000000-0000-4000-8000-000000000002",
+    );
+    store(first, {});
+    store(second, {});
+    batches = [[second.toString(), first.toString()]];
+
+    // The second, in id order, is held by another clear for longer than this one waits.
+    locks.busy.add(lockKey(second));
+
+    await expect(
+      LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement({
+        clearedByUserId: ADMIN_ID,
+      }),
+    ).rejects.toThrow(
+      new BadDataException(CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE),
+    );
+
+    expect(UserTotpAuthService.countBy).not.toHaveBeenCalled();
+    nothingCleared();
+    expect(locks.eventsOf("lock")).toEqual([`lock:${label(first)}`]);
+    expect(locks.eventsOf("release")).toEqual([`release:${label(first)}`]);
+    expect(isHeld(first)).toBe(false);
+  });
+
+  test("one person another clear holds for longer than a clear waits: refused, nothing read or cleared", async () => {
+    locks.busy.add(lockKey(PERSON_ID));
+
+    await expect(
+      LocalSignInClearing.clearForPerson({
+        userId: PERSON_ID,
+        clearedByUserId: ADMIN_ID,
+        isMasterAdminConfirmed: false,
+      }),
+    ).rejects.toThrow(CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE);
+
+    expect(UserTotpAuthService.countBy).not.toHaveBeenCalled();
+    nothingCleared();
+  });
+
+  test("with Valkey out of reach the clear goes on unlocked, as every clear did before, and says so once", async () => {
+    locks.unreachable = true;
+
+    await expect(
+      LocalSignInClearing.clearForPerson({
+        userId: PERSON_ID,
+        clearedByUserId: ADMIN_ID,
+        isMasterAdminConfirmed: false,
+      }),
+    ).resolves.toEqual({ cleared: EVERYTHING, sessionsEnded: 2 });
+
+    expect(updateBy).toHaveBeenCalledTimes(1);
+    expect(recordCleared).toHaveBeenCalledTimes(1);
+
+    const warned: Array<string> = (
+      logger.warn as unknown as jest.Mock
+    ).mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .filter((line: string): boolean => {
+        return line.includes("could not lock");
+      });
+    expect(warned).toHaveLength(1);
+  });
+
+  test("a write that fails gives the person's lock back", async () => {
+    updateBy.mockRejectedValue(new Error("connection refused"));
+
+    await expect(
+      LocalSignInClearing.clearForPerson({
+        userId: PERSON_ID,
+        clearedByUserId: ADMIN_ID,
+        isMasterAdminConfirmed: false,
+      }),
+    ).rejects.toThrow("connection refused");
+
+    expect(isHeld(PERSON_ID)).toBe(false);
+    expect(locks.eventsOf("release")).toEqual([`release:${label(PERSON_ID)}`]);
+  });
+
+  test("a lock taken outside a clear is waited for by one, which goes on once it is given back", async () => {
+    const other: SemaphoreMutex = await Semaphore.lock({
+      key: lockKey(PERSON_ID),
+      namespace: CLEAR_LOCK_NAMESPACE,
+    });
+
+    const waited: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        locks.onWait = (): void => {
+          resolve();
+        };
+      },
+    );
+
+    const clearing: Promise<ClearLocalSignInAnswer> =
+      LocalSignInClearing.clearForPerson({
+        userId: PERSON_ID,
+        clearedByUserId: ADMIN_ID,
+        isMasterAdminConfirmed: false,
+      });
+
+    await waited;
+    expect(UserTotpAuthService.countBy).not.toHaveBeenCalled();
+    expect(updateBy).not.toHaveBeenCalled();
+
+    await Semaphore.release(other);
+
+    await expect(clearing).resolves.toEqual({
+      cleared: EVERYTHING,
+      sessionsEnded: 2,
     });
   });
 });

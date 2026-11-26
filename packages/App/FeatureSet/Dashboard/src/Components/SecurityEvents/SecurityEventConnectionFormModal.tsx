@@ -45,6 +45,9 @@ import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
   connectorDocsUrl,
 } from "./SecurityEventConnectionDiagnosticsUtil";
+import ConnectorFieldChoicesInput, {
+  connectorFieldChoicesWaitingReason,
+} from "./ConnectorFieldChoicesInput";
 import {
   Translator,
   formatList,
@@ -89,7 +92,7 @@ export function getConnectionStepFields(
 ): Array<ConnectorField> {
   const settings: Array<ConnectorField> = definition.configFields.filter(
     (field: ConnectorField): boolean => {
-      return !field.isOption;
+      return !field.isOption && !field.choicesFromProvider;
     },
   );
 
@@ -101,6 +104,30 @@ export function getConnectionStepFields(
       return Boolean(field.isAdvanced);
     }),
   ];
+}
+
+/*
+ * A provider's settings picked from what its credentials read
+ * (ConnectorField.choicesFromProvider): asked on the Credentials step,
+ * after the credentials, as pickers of what the product offers.
+ */
+export function getProviderChoiceFields(
+  definition: SecurityEventConnectorDefinition,
+): Array<ConnectorField> {
+  return definition.configFields.filter((field: ConnectorField): boolean => {
+    return Boolean(field.choicesFromProvider) && !field.isOption;
+  });
+}
+
+/*
+ * Whether the Connection step has anything to ask of a provider. Cloudflare's
+ * settings are all picked from what its token reads, after the credentials,
+ * so its form goes from the provider to the credentials.
+ */
+export function hasConnectionStep(
+  definition: SecurityEventConnectorDefinition | undefined,
+): boolean {
+  return !definition || getConnectionStepFields(definition).length > 0;
 }
 
 /*
@@ -330,7 +357,13 @@ export function readSecurityEventConnectionForm(
       ? interval
       : definition.defaultPollIntervalInMinutes,
     alertingOnly: values["alertingOnly"] !== false,
-    caseMinimumSeverity: readCaseSeverityChoice(values["caseMinimumSeverity"]),
+    /*
+     * A provider that imports no alerts opens no case from its records, and
+     * its form does not ask: it stores never.
+     */
+    caseMinimumSeverity: definition.importsNoAlerts
+      ? ""
+      : readCaseSeverityChoice(values["caseMinimumSeverity"]),
   };
 }
 
@@ -683,6 +716,94 @@ const InlineSettingsTest: FunctionComponent<InlineSettingsTestProps> = (
   );
 };
 
+interface ProviderChoicesFieldProps {
+  definition: SecurityEventConnectorDefinition;
+  field: ConnectorField;
+  values: JSONObject;
+  connection?: SecurityEventConnection | undefined;
+  fieldProps: CustomElementProps;
+}
+
+/*
+ * One of a provider's settings picked from what its credentials read, wired
+ * to this form: the credentials it reads with are the ones the form holds
+ * (or, on edit, the stored ones, with whatever was typed over them), and a
+ * create form that has no token yet says to enter it first.
+ */
+const ProviderChoicesField: FunctionComponent<ProviderChoicesFieldProps> = (
+  props: ProviderChoicesFieldProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const provider: string = props.definition.provider;
+  const missing: ConnectorField | undefined = props.connection?.id
+    ? undefined
+    : props.definition.secretFields.find((field: ConnectorField): boolean => {
+        return (
+          field.required &&
+          readFieldText(
+            field,
+            props.values[secretFieldName(provider, field.key)] as
+              | JSONValue
+              | undefined,
+          ) === ""
+        );
+      });
+
+  let body: JSONObject | undefined = undefined;
+
+  if (!missing) {
+    try {
+      body = securityEventConnectionTestBody({
+        values: props.values,
+        connection: props.connection,
+        credentialsOnly: true,
+      });
+    } catch {
+      body = undefined;
+    }
+  }
+
+  // The same credentials are read once, whatever else the form holds.
+  const requestKey: string = connectionTestSettingsKey((): JSONObject => {
+    return {
+      provider,
+      connectionId: body?.["connectionId"] || null,
+      secrets: body?.["secrets"] || null,
+    };
+  });
+  const parentKey: string | undefined =
+    props.field.choicesFromProvider?.parentKey;
+
+  return (
+    <ConnectorFieldChoicesInput
+      field={props.field}
+      productTitle={props.definition.title}
+      value={readString(
+        props.values[configFieldName(provider, props.field.key)] as
+          | JSONValue
+          | undefined,
+      )}
+      parentValue={
+        parentKey
+          ? readString(
+              props.values[configFieldName(provider, parentKey)] as
+                | JSONValue
+                | undefined,
+            ) || undefined
+          : undefined
+      }
+      body={body}
+      requestKey={requestKey}
+      waitingReason={
+        missing
+          ? connectorFieldChoicesWaitingReason(missing, translator)
+          : undefined
+      }
+      fieldProps={props.fieldProps}
+    />
+  );
+};
+
 export interface ComponentProps {
   // Set for edit; absent for create.
   connection?: SecurityEventConnection | undefined;
@@ -734,7 +855,17 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
   }
 
   if (!credentialsOnly) {
-    steps.push({ id: CONNECTION_STEP_ID, title: "Connection" });
+    steps.push({
+      id: CONNECTION_STEP_ID,
+      title: "Connection",
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return hasConnectionStep(
+          getSecurityEventConnectorDefinition(
+            lockedProvider || readString(values["provider"] as JSONValue),
+          ),
+        );
+      },
+    });
   }
 
   steps.push({ id: CREDENTIALS_STEP_ID, title: "Credentials" });
@@ -895,6 +1026,54 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         }
       },
     );
+
+    /*
+     * The settings picked from what the credentials read, right after them:
+     * a Cloudflare token's account and zones. Not on Update credentials,
+     * which changes the credentials alone.
+     */
+    if (!credentialsOnly) {
+      getProviderChoiceFields(definition).forEach(
+        (field: ConnectorField, index: number): void => {
+          fields.push({
+            field: { [configFieldName(definition.provider, field.key)]: true },
+            title: field.title,
+            description: field.description,
+            stepId: CREDENTIALS_STEP_ID,
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: field.required,
+            ...(field.placeholder ? { placeholder: field.placeholder } : {}),
+            showIf: isSelected(definition),
+            ...(index === 0
+              ? {
+                  sectionTitle: translator.translateTemplate(
+                    "{{product}} settings",
+                    { product: definition.title },
+                  ),
+                  sectionDescription: translator.translateTemplate(
+                    "Read from {{vendor}} with the credentials above.",
+                    { vendor: definition.vendorName },
+                  ),
+                }
+              : {}),
+            getCustomElement: (
+              values: FormValues<JSONObject>,
+              fieldProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <ProviderChoicesField
+                  definition={definition}
+                  field={field}
+                  values={values as JSONObject}
+                  connection={props.connection}
+                  fieldProps={fieldProps}
+                />
+              );
+            },
+          });
+        },
+      );
+    }
   }
 
   fields.push({
@@ -1010,6 +1189,12 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         },
       ),
       required: true,
+      // Not asked of a provider none of whose records is an alert.
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return !getSecurityEventConnectorDefinition(
+          lockedProvider || readString(values["provider"] as JSONValue),
+        )?.importsNoAlerts;
+      },
     });
 
     /*

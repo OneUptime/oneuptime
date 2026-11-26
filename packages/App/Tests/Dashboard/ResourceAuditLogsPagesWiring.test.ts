@@ -115,6 +115,71 @@ function sourceFilesUnder(directory: string): Array<string> {
 }
 
 /*
+ * The pages that list the history of a family of records by their types,
+ * not one resource's: each with why it has no resource to roll up to.
+ */
+const FAMILY_AUDIT_LOG_PAGES: Record<string, string> = {
+  /*
+   * Alerts > Rules > Audit Logs (#10290): most alert rules are rows on
+   * their list, with no page of their own, so the history of every kind of
+   * them is one page, by type.
+   */
+  [path.join("Pages", "Alerts", "Settings", "AlertRulesAuditLogs.tsx")]:
+    "the project's alert rules",
+  /*
+   * Every other product's rules (#10462), the same way: one page at the end
+   * of the menu section that lists them. Runbook rules are one kind for
+   * Alerts, Incidents and Scheduled Maintenance, and their history is
+   * Runbooks' page. ProductRulesAuditLogsWiring holds each to its product's
+   * kinds of rule.
+   */
+  [path.join("Pages", "Incidents", "Settings", "IncidentRulesAuditLogs.tsx")]:
+    "the project's incident and incident episode rules",
+  [path.join("Pages", "Monitor", "Settings", "MonitorRulesAuditLogs.tsx")]:
+    "the project's monitor rules",
+  [path.join(
+    "Pages",
+    "ScheduledMaintenanceEvents",
+    "Settings",
+    "ScheduledMaintenanceRulesAuditLogs.tsx",
+  )]: "the project's scheduled maintenance rules",
+  [path.join(
+    "Pages",
+    "StatusPages",
+    "Settings",
+    "StatusPageRulesAuditLogs.tsx",
+  )]: "the project's status page rules",
+  [path.join("Pages", "Service", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's service rules",
+  [path.join("Pages", "Host", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's host rules",
+  [path.join("Pages", "Kubernetes", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Kubernetes cluster rules",
+  [path.join("Pages", "Docker", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Docker host rules",
+  [path.join("Pages", "DockerSwarm", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Docker Swarm cluster rules",
+  [path.join("Pages", "Podman", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Podman host rules",
+  [path.join("Pages", "Proxmox", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Proxmox cluster rules",
+  [path.join("Pages", "OpenStack", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's OpenStack cloud rules",
+  [path.join("Pages", "VMware", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's vCenter rules",
+  [path.join("Pages", "Ceph", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Ceph cluster rules",
+  [path.join("Pages", "StorageArray", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's storage array rules",
+  [path.join("Pages", "NetworkDevice", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's network device and site rules",
+  [path.join("Pages", "IoT", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's IoT fleet rules",
+  [path.join("Pages", "Runbook", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's runbook rules, for alerts, incidents and maintenance events alike",
+};
+
+/*
  * Every resource's Audit Logs page: each file that draws the audit log table
  * - Pages/<Product>/<View>/AuditLogs.tsx, and the exception's detail page,
  * which draws its Audit Logs section under the exception's summary.
@@ -126,6 +191,7 @@ function resourceAuditLogPages(): Array<string> {
       return (
         !file.startsWith(path.join("Pages", "Settings")) &&
         !file.startsWith(path.join("Components", "AuditLogs")) &&
+        !Object.prototype.hasOwnProperty.call(FAMILY_AUDIT_LOG_PAGES, file) &&
         readCode(file).includes("<AuditLogsTable")
       );
     })
@@ -162,6 +228,18 @@ describe("every resource's Audit Logs page", () => {
   test("the sweep finds the pages (it is not vacuous)", () => {
     expect(pages.length).toBeGreaterThanOrEqual(48);
   });
+
+  test.each(Object.keys(FAMILY_AUDIT_LOG_PAGES))(
+    "%s lists its family by type, and is no resource's page",
+    (page: string) => {
+      const source: string = readCode(page);
+
+      expect(source).toContain("<AuditLogsTable");
+      expect(source).toContain("resourceTypes={");
+      expect(source).not.toContain("rootResourceId={");
+      expect(pages).not.toContain(page);
+    },
+  );
 
   test.each(pages)(
     "%s lists everything that rolls up to its resource",

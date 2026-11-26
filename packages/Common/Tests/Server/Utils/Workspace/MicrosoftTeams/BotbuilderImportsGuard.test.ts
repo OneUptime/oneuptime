@@ -31,6 +31,14 @@ const ZOD_NAMES_MODULE: string = "./BotbuilderOnZod4";
 // botframework-connector's serializer models, which MicrosoftTeamsAiAnswer patches.
 const CONNECTOR_MAPPERS: string =
   "botframework-connector/lib/connectorApi/models/mappers";
+/*
+ * botframework-connector's credentials and clients, and the cache of OpenID
+ * metadata its token checks read, which the bot's outbound route is built
+ * from (BotFrameworkRouting, #10763).
+ */
+const CONNECTOR: string = "botframework-connector";
+const JWT_TOKEN_EXTRACTOR: string =
+  "botframework-connector/lib/auth/jwtTokenExtractor";
 
 interface BotbuilderImport {
   // 1-based.
@@ -266,7 +274,7 @@ describe("the detector finds every way of loading botbuilder", () => {
 });
 
 describe("Botbuilder.ts adds zod's missing names before botbuilder is loaded", () => {
-  test("its first module is BotbuilderOnZod4, then botbuilder and its serializer models, and nothing else", () => {
+  test("its first module is BotbuilderOnZod4, then botbuilder, its serializer models and the connector's pieces the outbound route needs, and nothing else", () => {
     const source: string = fs.readFileSync(
       path.join(REPOSITORY_DIRECTORY, BOTBUILDER_FILE),
       "utf8",
@@ -299,6 +307,8 @@ describe("Botbuilder.ts adds zod's missing names before botbuilder is loaded", (
       ZOD_NAMES_MODULE,
       "botbuilder",
       CONNECTOR_MAPPERS,
+      CONNECTOR,
+      JWT_TOKEN_EXTRACTOR,
     ]);
 
     // A side-effect import: nothing named is taken, so nothing is elided.
@@ -375,6 +385,8 @@ describe("product code loads botbuilder only through Botbuilder.ts", () => {
     ).toEqual([
       `${BOTBUILDER_FILE}: botbuilder`,
       `${BOTBUILDER_FILE}: ${CONNECTOR_MAPPERS}`,
+      `${BOTBUILDER_FILE}: ${CONNECTOR}`,
+      `${BOTBUILDER_FILE}: ${JWT_TOKEN_EXTRACTOR}`,
     ]);
   });
 

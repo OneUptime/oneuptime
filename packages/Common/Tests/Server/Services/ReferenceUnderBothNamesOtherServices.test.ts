@@ -261,7 +261,7 @@ const CONFLICT_CASES: Array<ConflictCase> = [
     },
     idColumn: "statusPageSubscriberNotificationTemplateId",
     relation: "statusPageSubscriberNotificationTemplate",
-    title: "Status Page Subscriber Notification Template",
+    title: "Subscriber Notification Template",
     // A person's link is the one the service checks.
     props: { tenantId: PROJECT_ID, userId: USER_ID },
   },

@@ -165,6 +165,7 @@ Each item of `monitor_steps` is one thing to check:
 | `request_type` | string | Website, API | The HTTP method: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` or `PATCH`. The server uses `GET` when it is not set. |
 | `request_headers` | map(string) | Website, API | Headers to send: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | The request body, as text. |
+| `request_body_format` | string | API | How `request_body` is sent: `json`, the default, for any JSON value; `text` for a body sent exactly as written, such as XML or form fields. |
 | `do_not_follow_redirects` | bool | Website, API | Stop at the first answer instead of following redirects. |
 | `allow_self_signed_certificates` | bool | Website, API | Accept a self-signed TLS certificate. |
 | `tls_client_certificate` | string | Website, API | A client certificate for mutual TLS: PEM, or a `{{monitorSecrets.name}}` reference. |
@@ -237,6 +238,10 @@ Grouped metric monitors are the one exception. When a metric monitor's query is 
 | `description` | string | The description the dashboard shows. |
 | `filter_condition` | string (required) | `All`: every filter must match. `Any`: one is enough. |
 | `filters` | list (required) | The conditions, at least one: see [Filter reference](#filter-reference). |
+| `recovery_filters` | list | Filters like those of `filters` that have to match before the criteria stops acting, instead of as soon as its `filters` stop matching. |
+| `recovery_filter_condition` | string | How `recovery_filters` combine: `All` (the default) or `Any`. |
+| `active_hours` | object | Judge the criteria only on these `days` (Monday is `0`, Sunday `6`), from `from` to `to` (`"08:00"`); outside them it is skipped as a disabled criteria is. |
+| `active_hours_timezone` | string | The time zone `active_hours` are read in, such as `Europe/Oslo`. Set it with `active_hours`. |
 | `change_monitor_status` | bool | Whether a match changes the monitor's status. |
 | `monitor_status_id` | string | The ID of the `oneuptime_monitor_status` to change to. Set it when `change_monitor_status` is `true`. |
 | `create_incidents` | bool | Whether a match opens incidents. |
@@ -283,15 +288,87 @@ criteria = [
 ]
 ```
 
+### When it recovers and when it is judged
+
+This criteria judges the site only during office hours in Oslo, Monday to Friday, and keeps it offline until it has answered on every check for 10 minutes:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## Filter reference
 
 A filter has `check_on` (what to look at), `filter_type` (how to compare) and `value` (what to compare with, as a string; leave it out for true-or-false checks such as `True` and `False`).
 
-A filter can also judge a time window instead of the latest check: set `evaluate_over_time = true`, the window's length in `evaluate_over_time_minutes`, and in `evaluate_over_time_type` how the window is read: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` or `Any Value`.
+A filter can also judge a time window instead of the latest check: set `evaluate_over_time = true`, the window's length in `evaluate_over_time_minutes`, and in `evaluate_over_time_type` how the window is read: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` or `Previous Check`. `Percentile` compares the percentile in `evaluate_over_time_percentile` with the filter's value (95 when unset). `Count`, `Percentage` and `Status Changes` count, per probe, the window's checks that met the condition, their share in percent, or how often they changed between meeting it and not, and compare that number with `evaluate_over_time_count_value` as `evaluate_over_time_count_filter_type` says (`Greater Than` 0 when unset).
 
 `All Values` means every check in the window broke the rule, so it matches only once the window is covered by data: a monitor that was just created waits for its window to fill instead of matching on its first check. Give it a window at least twice the monitor's `monitoring_interval`; otherwise the window holds one check, and "all values" means the same as "any value". `Any Value` matches on one breaking check, by design.
 
 `evaluate_over_time_no_data_policy` says what the filter does while the window does not hold enough data: `Ignore` (the default) does not match, `Trigger` treats the missing data as the failure, as a heartbeat does, and `Treat As Zero` compares the window as a single zero.
+
+`Previous Check` compares each check with the previous check of the same probe, made at most `evaluate_over_time_minutes` before it. A measured value takes no `value`: `filter_type` compares it with the previous value moved by `evaluate_over_time_change_value`, up for `Greater Than` and down for `Less Than`, as an `Amount` in the check's own unit or a `Percentage` of the previous value, as `evaluate_over_time_change_type` says (`Amount` 0 when unset: any rise or fall). A filter that is true or false matches on the check that started to meet the condition. With no previous check, `evaluate_over_time_no_data_policy` decides.
+
+This criteria opens an alert when a check takes more than twice as long as the one before it:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### What a filter can check
 

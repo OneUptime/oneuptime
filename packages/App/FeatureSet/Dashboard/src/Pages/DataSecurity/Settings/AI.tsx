@@ -101,6 +101,9 @@ const MODEL_SOURCE: Record<DataSecurityAiModelSource, string> = {
   [DataSecurityAiModelSource.Chat]: translationKey(
     "The LLM provider picked in Ask AI, else your project's default one.",
   ),
+  [DataSecurityAiModelSource.ProductionReview]: translationKey(
+    "The LLM provider a repository picks for its production reviews, else your project's default one.",
+  ),
 };
 
 const MODEL_NOT_READABLE: string = translationKey(

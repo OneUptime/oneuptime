@@ -7,6 +7,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import HostLogSessionService from "Common/Server/Services/HostLogSessionService";
 import AndroidAgentLogSessions, {
@@ -14,6 +15,8 @@ import AndroidAgentLogSessions, {
 } from "Common/Utils/Host/AndroidAgentLogSessions";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 /*
  * Log sessions (#9806), the Android agent's side: every minute the OneUptime
@@ -46,10 +49,23 @@ function sendMessage(
  * reads each ingest route's path beside the surface it names. Mounted under
  * /telemetry and /, it answers where the agent asks, beside OTLP:
  * /telemetry/android-agent/v1/log-sessions.
+ *
+ * The agent's JSON is read once its key is right (#10702): StartServer
+ * leaves the body unread (RequestBodyLimit), and nothing of it is read or
+ * parsed for a request without the right key, which the agent sends in
+ * x-oneuptime-token.
  */
+const readDeviceBody: RequestHandler = RequestBodyAfterAuthentication.readBody(
+  LARGE_REQUEST_BODY_LIMIT,
+  { parseGzipJson: true },
+);
+
 router.post(
   "/android-agent/v1/log-sessions",
-  TelemetryIngest.forSurface(TelemetryIngestSurface.AndroidAgentLogSessions),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.AndroidAgentLogSessions,
+    readDeviceBody,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

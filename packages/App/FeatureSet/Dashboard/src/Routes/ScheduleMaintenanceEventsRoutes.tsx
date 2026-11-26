@@ -71,6 +71,7 @@ import ScheduledMaintenanceSettingsNumbering from "../Pages/ScheduledMaintenance
 
 import ScheduledMaintenanceSettingsCalendar from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings";
 import ScheduledMaintenanceSettingsPublicNoteApproval from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenancePublicNoteApproval";
+import ScheduledMaintenanceRulesAuditLogs from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceRulesAuditLogs";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import {
   MORE_SETTINGS_PATH,
@@ -478,6 +479,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS
                 ] as Route
               }
             />

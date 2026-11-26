@@ -42,6 +42,20 @@ export const SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS: Record<
   [SecurityPlaybookTrigger.Manual]: translationKey(
     "Only when someone runs it.",
   ),
+  /*
+   * Never a playbook's trigger, so never offered (SECURITY_PLAYBOOK_TRIGGERS):
+   * the one-step runs OneUptime AI starts while it works a case (#10352).
+   */
+  [SecurityPlaybookTrigger.OneUptimeAi]: translationKey(
+    "Each step OneUptime AI takes while it works a case.",
+  ),
+  /*
+   * Never a playbook's trigger either: the one-step runs an automatic
+   * response policy starts as an attack is detected (#10350).
+   */
+  [SecurityPlaybookTrigger.AutomaticResponse]: translationKey(
+    "Each challenge or block an automatic response policy makes as an attack is detected.",
+  ),
 };
 
 export function getSecurityPlaybookTriggerOptions(data: {

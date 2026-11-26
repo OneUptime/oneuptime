@@ -14,6 +14,7 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import ProjectUtil from "../../../UI/Utils/Project";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import Navigation from "../../../UI/Utils/Navigation";
 import MonitorCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
 import { ACTIVE_MONITOR_LIMIT_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitNotice";
@@ -273,6 +274,19 @@ describe("Pay as you go creation notices", () => {
     getItemMock.mockReset();
     createOrUpdateMock.mockResolvedValue({ data: {} });
     getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(PlanType.Free);
+
+    /*
+     * A monitor's name and an ingestion key's are each one of their kind in
+     * a project that requires unique names, so a create form asks the
+     * server, a moment after a name is typed, whether another record has it
+     * (DuplicateNameNotice, #10761): none has it here. It is answered before
+     * it reaches BaseAPI.get, whose reads these tests count.
+     */
+    getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+      isRequired: false,
+      takenBy: null,
+      isTakenByUnreadable: false,
+    });
   });
 
   describe("creating a telemetry ingestion key on the Free plan", () => {

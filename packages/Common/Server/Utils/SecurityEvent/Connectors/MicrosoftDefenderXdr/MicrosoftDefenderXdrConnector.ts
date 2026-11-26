@@ -19,6 +19,11 @@ import DataSourceHttpFetch, {
 import { redactLogString } from "../../../LogRedaction";
 import ConnectorErrorMessage from "../../ConnectorErrorMessage";
 import {
+  DEFENDER_BLOCK_CHECK_NAME,
+  checkDefenderBlocking,
+  withBlockingCheck,
+} from "../BlockingConnectionChecks";
+import {
   ConnectorFetchOptions,
   ConnectorFetchResult,
   ConnectorFetchWindow,
@@ -182,11 +187,33 @@ export default class MicrosoftDefenderXdrConnector
   }
 
   /*
+   * The reading checks, and - with Block domains, addresses and files with
+   * Defender on - whether the app registration may add indicators
+   * (BlockingConnectionChecks, #10346).
+   */
+  public async testConnection(
+    settings: SecurityConnectorSettings,
+    options: ConnectorTestOptions,
+  ): Promise<Array<SecurityConnectorCheck>> {
+    return await withBlockingCheck({
+      settings,
+      checks: await this.testReading(settings, options),
+      name: DEFENDER_BLOCK_CHECK_NAME,
+      check: () => {
+        return checkDefenderBlocking({
+          settings,
+          transport: this.transport,
+        });
+      },
+    });
+  }
+
+  /*
    * Three provider checks, in dependency order. Each later check is
    * skipped rather than failed when an earlier one fails, so the report
    * names one root cause instead of three symptoms of it.
    */
-  public async testConnection(
+  private async testReading(
     settings: SecurityConnectorSettings,
     options: ConnectorTestOptions,
   ): Promise<Array<SecurityConnectorCheck>> {

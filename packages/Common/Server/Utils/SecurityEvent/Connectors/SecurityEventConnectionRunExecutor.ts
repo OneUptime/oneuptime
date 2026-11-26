@@ -281,6 +281,8 @@ export default class SecurityEventConnectionRunExecutor {
               lastPollResult: true,
               cursor: true,
               isEnabled: true,
+              // Blocking on: a test run checks its write access too (#10343).
+              blockingSettings: true,
             },
             props: { isRoot: true },
           });

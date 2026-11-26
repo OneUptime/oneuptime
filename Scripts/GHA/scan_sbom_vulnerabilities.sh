@@ -60,6 +60,17 @@ for tool in grype python3; do
 	fi
 done
 
+# Match the Go standard library of every Go binary by its CPE too, whatever
+# the grype. Grype 0.110.0, which anchore/scan-action/download-grype@v7
+# installs today, does by default; 0.122.1, which scan-action's main already
+# pins for its next release, does not, and then misses the standard library
+# vulnerabilities NVD lists by CPE alone: in a go1.26.10 binary, the eight
+# high ones CVE-2026-97033 to CVE-2026-97043 (#10383) and CVE-2026-97054.
+# The Vulnerability gate, the release's scan and the nightly Vulnerability
+# Re-scan all run this script, so none of them can stop seeing those when
+# the action moves.
+export GRYPE_MATCH_GOLANG_ALWAYS_USE_CPE_FOR_STDLIB=true
+
 SBOMS=()
 while IFS= read -r file; do
 	SBOMS+=("$file")

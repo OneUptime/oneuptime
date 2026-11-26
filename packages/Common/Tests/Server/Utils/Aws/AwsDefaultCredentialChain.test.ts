@@ -791,6 +791,58 @@ describe("a web identity token, traded at STS (IAM roles for service accounts)",
     expect(error.isRetryable).toBe(true);
   });
 
+  /*
+   * STS is asked through the outbound proxy (#10720): a proxy that refused
+   * it says so in its own words, which name no proxy, and would refuse it
+   * again - unless it failed itself.
+   */
+  test.each([
+    {
+      refusal:
+        "The outbound proxy answered 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to sts.eu-west-1.amazonaws.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
+      isRetryable: false,
+    },
+    {
+      refusal:
+        "The outbound proxy did not open a connection to sts.eu-west-1.amazonaws.com:443: it answered 503 Service Unavailable. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.",
+      isRetryable: true,
+    },
+  ])(
+    "STS refused by the outbound proxy is said in the proxy's words (retryable: $isRetryable)",
+    async (data: { refusal: string; isRetryable: boolean }) => {
+      const error: AwsCredentialChainError = await failureOf(
+        chainWith({
+          env: WEB_IDENTITY_ENV,
+          files: { [TOKEN_FILE]: WEB_IDENTITY_TOKEN },
+          answers: [
+            new AwsChainHttpError(data.refusal, false, {
+              isFailure: true,
+              isRetryable: data.isRetryable,
+            }),
+          ],
+        }),
+      );
+
+      expect(error.message).toBe(
+        `AWS STS could not be reached at sts.eu-west-1.amazonaws.com. ${data.refusal}`,
+      );
+      expect(error.isRetryable).toBe(data.isRetryable);
+    },
+  );
+
+  test("STS is asked through the outbound proxy: its request is not one sent directly", async () => {
+    const under: ChainUnderTest = chainWith({
+      env: WEB_IDENTITY_ENV,
+      files: { [TOKEN_FILE]: WEB_IDENTITY_TOKEN },
+      answers: [new AwsChainHttpError("ECONNREFUSED", false)],
+    });
+
+    await failureOf(under);
+
+    expect(under.http.requests).toHaveLength(1);
+    expect(under.http.requests[0]!.direct).toBeUndefined();
+  });
+
   test("an answer without credentials is tried again", async () => {
     const error: AwsCredentialChainError = await failureOf(
       chainWith({
@@ -827,6 +879,7 @@ describe("the ECS task role and the EKS Pod Identity agent", () => {
         url: "http://169.254.170.2/v2/credentials/7f1a",
         headers: { Accept: "application/json" },
         timeoutMs: CONTAINER_CREDENTIALS_TIMEOUT_MS,
+        direct: true,
       },
     ]);
   });
@@ -1059,6 +1112,7 @@ describe("the EC2 instance profile, over IMDSv2", () => {
         url: "http://169.254.169.254/latest/api/token",
         headers: { "X-aws-ec2-metadata-token-ttl-seconds": "21600" },
         timeoutMs: EC2_METADATA_TIMEOUT_MS,
+        direct: true,
       },
       {
         method: "GET",
@@ -1067,6 +1121,7 @@ describe("the EC2 instance profile, over IMDSv2", () => {
           "X-aws-ec2-metadata-token": "AQAEAImdsSessionTokenEXAMPLE==",
         },
         timeoutMs: EC2_METADATA_TIMEOUT_MS,
+        direct: true,
       },
       {
         method: "GET",
@@ -1075,6 +1130,7 @@ describe("the EC2 instance profile, over IMDSv2", () => {
           "X-aws-ec2-metadata-token": "AQAEAImdsSessionTokenEXAMPLE==",
         },
         timeoutMs: EC2_METADATA_TIMEOUT_MS,
+        direct: true,
       },
     ]);
   });

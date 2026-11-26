@@ -1,3 +1,8 @@
+import {
+  getOpenStackProjectsQuery,
+  OPENSTACK_PROJECT_NOT_FOUND_LABEL,
+} from "./OpenStackProjectPicker";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import { JSONObject } from "Common/Types/JSON";
@@ -60,7 +65,6 @@ const MODE_LABELS: Record<OpenStackInstanceMetricsMode, string> = {
 
 interface Choices {
   choice: OpenStackInstanceMetricsChoice;
-  projects: Array<DropdownOption>;
   aggregates: Array<DropdownOption>;
 }
 
@@ -74,17 +78,17 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
   const [saveError, setSaveError] = useState<string>("");
 
   const read: OpenStackRead<Choices> = useOpenStackRead<Choices>(async () => {
-    const [choice, projects, hypervisors]: [
+    /*
+     * The projects are not read here: their picker searches the cloud's
+     * projects itself and names the chosen ones by their ids (#10646). The
+     * card read the first 500, and a project chosen past them vanished the
+     * next time the choice was saved.
+     */
+    const [choice, hypervisors]: [
       OpenStackInstanceMetricsChoice,
-      Array<OpenStackResource>,
       Array<OpenStackResource>,
     ] = await Promise.all([
       fetchOpenStackInstanceMetricsChoice(props.modelId),
-      fetchOpenStackRows({
-        openStackCloudId: props.modelId,
-        kind: OpenStackResourceKind.Project,
-        limit: 500,
-      }),
       fetchOpenStackRows({
         openStackCloudId: props.modelId,
         kind: OpenStackResourceKind.Hypervisor,
@@ -93,13 +97,6 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
     ]);
     return {
       choice,
-      projects: projects.map((row: OpenStackResource): DropdownOption => {
-        return {
-          label: row.name || row.externalId || "",
-          isUserContent: true,
-          value: row.externalId || "",
-        };
-      }),
       aggregates: Array.from(
         new Set(hypervisors.flatMap(parseOpenStackAggregates)),
       )
@@ -217,15 +214,19 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
               className="grid grid-cols-1 gap-3 sm:grid-cols-2"
               data-testid="openstack-instance-metrics-selection"
             >
-              <Dropdown
+              <EntityDropdown
+                className="relative w-full"
                 isMultiSelect={true}
                 placeholder="Projects"
-                options={read.data.projects}
-                value={read.data.projects.filter(
-                  (option: DropdownOption): boolean => {
-                    return options.projectIds.includes(String(option.value));
-                  },
-                )}
+                modelType={OpenStackResource}
+                labelField="name"
+                valueField="externalId"
+                query={getOpenStackProjectsQuery(props.modelId)}
+                heldValueQuery={getOpenStackProjectsQuery(props.modelId)}
+                searchFields={["name", "externalId"]}
+                notFoundLabel={OPENSTACK_PROJECT_NOT_FOUND_LABEL}
+                dataTestId="openstack-instance-metrics-projects"
+                value={options.projectIds}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {

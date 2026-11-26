@@ -116,6 +116,11 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "On OneUptime Cloud, a payment method.",
     // The link to Ingestion Budgets (issue #5917).
     "A key can have budgets of its own.",
+    // What a Mobile key limits (issue #6457).
+    "It writes only as one app.",
+    "It sends only that app's telemetry.",
+    "It is rate limited.",
+    "You can stop it.",
   ],
   [TOPOLOGY]: [
     "Only what was active is drawn.",
@@ -138,12 +143,27 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Each list runs in order.",
     "Logs or spans arriving.",
     "A role that changes telemetry settings.",
+    // Whose records a rule scrubs, and what it breaks (issue #10433).
+    "A rule can be for one service.",
+    // The attributes a rule names, what each rule changed, its proof (issue #10366).
+    "A rule can name the attributes it reads.",
+    "The list says what each rule changed.",
+    "A rule Data Security proved says so.",
+    "The form says what a rule would change for others.",
+    // What a Redact or Mask IP Address rule takes from Security Events (issue #10396).
+    "An IP Address rule that redacts or masks says what it costs Security Events.",
     // What an IP Address rule hides and keeps (issue #10393).
     "An IP Address rule hides the addresses that are personal data.",
+    // What an Email Address rule hides: in any script, percent-encoded (issues #10935, #10960).
+    "An Email Address rule hides what Data Security calls an email address.",
+    // What a Credit Card Number rule hides: in any script's digits (issue #10960).
+    "A Credit Card Number rule hides what Data Security calls a card number.",
     // A Hash token's key, and the tokens made before it (issue #10394).
     "A Hash token is your project's own.",
     // What Security Events' address vault keeps, and for how long (issue #10395).
     "Security Events can still name a hashed IP address.",
+    // What Security Events' user vault keeps, and for how long (issue #10632).
+    "Security Events can still name a hashed user.",
     // What a rule reads inside a list or a nested value (issue #6397).
     "Lists and nested values are read too.",
     // A JSON text a string holds, which a keys rule reads too (issue #8993).
@@ -157,11 +177,17 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",
     "A custom pattern takes time in line with the record.",
+    // What a drop or sample filter would take, before it is saved (issue #10436).
+    "How much it matches.",
+    "What Security Events would lose.",
+    "What else reads the same records.",
   ],
   [DATA_RETENTION]: [
     "Settings 1 to 5 are retention overrides.",
     "A change applies to new telemetry.",
     "Exceptions follow what they were found in.",
+    // What Security Events reads back to under this retention (issue #10432).
+    "Security events are kept the same way.",
     "A role that changes the project.",
     "For overrides, the Enterprise Edition or the Scale plan.",
     "On a self-hosted installation",

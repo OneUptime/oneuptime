@@ -459,6 +459,7 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ stateDiagram-v2
 :::
 
 یک فضای نام Service Bus متریک‌هایش را برای هر صف و تاپیک یک بار گزارش می‌دهد و یک فضای نام Event Hubs برای هر Event Hub یک بار. هر جا که این‌ها با هم جمع شوند، ردیفی در زبانهٔ **متریک‌ها** در آن فضای نام جمعشان را نشان می‌دهد و زیرش **مجموع سری‌ها** نوشته می‌شود. مانیتوری که از آن ردیف ساخته شود هم همین جمع را می‌خواند، و مانیتوری که از راه API یا Terraform بدون تجمیع ساخته شود هم همین‌طور. ردیف‌های دیگر **میانگین سری‌ها** را نشان می‌دهند، یعنی صف یا Event Hub میانگین: یک تأخیر، و در بازه‌ای بیش از ۳ ساعت، مقداری که فضای نام نگه می‌دارد، مانند پیام‌های منتظر.
+
+اتصال درخواست‌های یک Container App را برای هر دستهٔ کد وضعیت یک بار می‌خواند تا پاسخ‌های 5xx آن جدا شوند، و ردیف درخواست‌هایش آن‌ها را به همین شکل جمع می‌زند: جمعشان را نشان می‌دهد، و مانیتوری که از آن ردیف ساخته شود هم همین‌طور.
 
 > [!IMPORTANT]
 > پایش ابری هر عدد را چند دقیقه پس از زمانی که اندازه می‌گیرد منتشر می‌کند: ۱۰ تا ۲۰ دقیقه برای CloudWatch که مانند بالا پرس‌وجو شود، و چند دقیقه برای Azure Monitor و Cloud Monitoring. آن عدد زیر همان زمانی که اندازه می‌گیرد ذخیره می‌شود. به مانیتوری که روی این متریک‌هاست پنجره‌ای طولانی‌تر از این تأخیر بدهید (۳۰ دقیقه برای CloudWatch، ۱۵ برای بقیه)، وگرنه هیچ داده‌ای نمی‌بیند و هرگز فعال نمی‌شود.

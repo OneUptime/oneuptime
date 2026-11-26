@@ -1,6 +1,6 @@
 {
   "source": "https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/metrics-index (the generated tables, from github.com/MicrosoftDocs/azure-monitor-docs, articles/azure-monitor/reference/supported-metrics)",
-  "readOn": "2026-11-19",
+  "readOn": "2026-11-24",
   "types": {
     "Microsoft.Compute/virtualMachines": {
       "page": "microsoft-compute-virtualmachines-metrics.md",
@@ -79,6 +79,18 @@
         "BytesSent": {"displayName": "Data Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "FunctionExecutionUnits": {"displayName": "Function Execution Units", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "FileSystemUsage": {"displayName": "File System Usage", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Web/sites/slots": {
+      "page": "microsoft-web-sites-slots-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http5xx": {"displayName": "Http Server Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http4xx": {"displayName": "Http 4xx", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "HttpResponseTime": {"displayName": "Response Time", "unit": "Seconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CpuTime": {"displayName": "CPU Time", "unit": "Seconds", "aggregations": ["Count", "Total", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MemoryWorkingSet": {"displayName": "Memory working set", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
       }
     },
     "Microsoft.Web/serverfarms": {
@@ -372,11 +384,11 @@
       "page": "microsoft-app-containerapps-metrics.md",
       "pageDate": "07/31/2026",
       "metrics": {
-        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false, "dimensions": ["revisionName", "podName", "statusCodeCategory", "statusCode"]},
         "UsageNanoCores": {"displayName": "CPU Usage", "unit": "NanoCores", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "WorkingSetBytes": {"displayName": "Memory Working Set Bytes", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "RestartCount": {"displayName": "Total Replica Restart Count", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
-        "ResponseTime": {"displayName": "Average Response Time (Preview)", "unit": "Milliseconds", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ResponseTime": {"displayName": "Average Response Time (Preview)", "unit": "Milliseconds", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false, "dimensions": ["statusCodeCategory", "statusCode"]},
         "CpuPercentage": {"displayName": "CPU Usage Percentage (Preview)", "unit": "Percent", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "MemoryPercentage": {"displayName": "Memory Percentage (Preview)", "unit": "Percent", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "Replicas": {"displayName": "Replica Count", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},

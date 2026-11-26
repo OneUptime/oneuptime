@@ -35,7 +35,7 @@ Ce que OneUptime AI fait de lui-même ne se règle pas ici : il a sa propre sect
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir de **Modèles d'incident**. Les formulaires qui permettent à des personnes extérieures à votre équipe de signaler des incidents sont un produit à part entière : voir [Formulaires](/docs/forms/index). Les outils qui ouvrent des incidents d'eux-mêmes, comme [Huntress](/docs/integrations/huntress), se configurent comme des flux de travail.
 
-Dépliez **Règles** et vous obtenez huit pages de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Règles de rappel**. Elles sont traitées plus bas.
+Dépliez **Règles** et vous obtenez neuf pages de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Règles de rappel** et **Journaux d'audit** : qui a créé, modifié ou supprimé l'une de ces règles, ce qui a changé et quand, règles supprimées comprises. Les règles sont traitées plus bas.
 
 ## Modèles d'incident
 

@@ -57,6 +57,9 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed, {
   DataSecurityIssueFeedEventType,
@@ -108,14 +111,19 @@ import {
   COMPLIANCE_FRAMEWORK_INFO,
 } from "Common/Types/DataSecurity/ComplianceFramework";
 import { scoreComplianceFramework } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
-import DataCategory from "Common/Types/DataSecurity/DataCategory";
+import DataCategory, {
+  isPersonalDataCategory,
+} from "Common/Types/DataSecurity/DataCategory";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
 import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
 } from "Common/Types/DataSecurity/DataStoreAccess";
 import DataStoreEnvironment from "Common/Types/DataSecurity/DataStoreEnvironment";
-import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  TELEMETRY_DATA_STORE_KINDS,
+} from "Common/Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "Common/Types/DataSecurity/DataStorePosture";
 import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
 import {
@@ -123,14 +131,49 @@ import {
   moreSevere,
 } from "Common/Types/DataSecurity/DataSecurityRisk";
 import { getDataSecurityCheck } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import { getBuiltInDataType } from "Common/Types/DataSecurity/DataTypeCatalog";
+import {
+  getScrubTarget,
+  ScrubbedField,
+} from "Common/Types/DataSecurity/TelemetryScrubTarget";
+import LogScrubAction from "Common/Types/Log/LogScrubAction";
+import LogScrubField from "Common/Types/Log/LogScrubField";
+import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
+import { DATA_TYPE_OF_SCRUB_PATTERN_TYPE } from "Common/Types/Telemetry/ScrubRule";
+import { SCRUB_RULES_HIDING_ADDRESSES_API_PATH } from "Common/Types/Telemetry/ScrubRuleAddresses";
+import {
+  getEmptyTelemetryFieldReadersByKind,
+  TelemetryFieldPart,
+  TelemetryFieldReaderKind,
+  TelemetryFieldUse,
+} from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  DataSecurityAiAskReason,
+  DataSecurityAiAutonomy,
+  DataSecurityAiChangeSafety,
+  DataSecurityAiProposalKind,
+  DataSecurityAiProposalStatus,
+  DataSecurityAiWork,
+} from "Common/Types/DataSecurity/DataSecurityAi";
+import {
+  DataSecurityAiDecisionReason,
+  DataSecurityAiIssueSkipReason,
+} from "Common/Types/DataSecurity/DataSecurityAiDecision";
 import {
   DataSecurityResponseAction,
   getDataSecurityResponseActions,
 } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  DATA_SECURITY_ANALYSIS_VERSION,
+  DataSecurityAiVerdict,
+  DataSecurityAnalysisFactKind,
+  DataSecurityRecency,
+} from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -156,6 +199,8 @@ const dataSet = ["empty", "busy"].includes(params.get("data"))
   ? params.get("data")
   : "default";
 const isFailing = params.get("fail") === "reads";
+// ?ai=on: OneUptime AI has proposed, made and left alone (Data Security → AI).
+const isAiOn = params.get("ai") === "on";
 const rolePermissions =
   role === "viewer"
     ? [Permission.SecurityViewer]
@@ -194,6 +239,10 @@ const ID = {
   identity: (n) => uuid("1a000000", n),
   // The checkout service, whose logs are a store.
   service: (n) => uuid("1b000000", n),
+  // OneUptime AI's proposals and decisions on the issues.
+  proposal: (n) => uuid("1d000000", n),
+  rule: (n) => uuid("1f000000", n),
+  decision: (n) => uuid("1e000000", n),
 };
 
 const fixture = {
@@ -218,6 +267,8 @@ const fixture = {
     vendorIdentity: ID.identity(3),
     legacyIdentity: ID.identity(4),
     serviceIdentity: ID.identity(5),
+    waitingProposal: ID.proposal(1),
+    madeProposal: ID.proposal(2),
   },
   scenario: {
     language,
@@ -225,11 +276,17 @@ const fixture = {
     response: isResponseOn ? "on" : "off",
     data: dataSet,
     fail: isFailing ? "reads" : "",
+    ai: isAiOn ? "on" : "",
+    groups: ["on", "before"].includes(params.get("groups"))
+      ? params.get("groups")
+      : "",
   },
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
   apiRequests: [],
+  // Each press of a group's fix (#10370), with what it asked.
+  groupFixes: [],
   updates: [],
   creates: [],
   unhandled: [],
@@ -775,6 +832,239 @@ table(DataStoreFinding).push(
   },
 );
 
+/*
+ * OneUptime AI's verdicts on the orders database's findings that wait for
+ * a person (#10372): card numbers in an order number column, which the team
+ * marked not sensitive on four stores; email addresses in a column the team
+ * confirmed elsewhere; and an id column holding numbers that pass the Luhn
+ * check, with nothing to go on. Two of the stores cited are ones the reader
+ * may not read.
+ */
+const VERDICT_WRITTEN_AT = ago(2 * HOUR).toISOString();
+const UNREADABLE_STORE = (n) => {
+  return uuid("2f000000", n);
+};
+
+function verdictFinding(number, data) {
+  return {
+    _id: ID.finding(number),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    locationKind: "Column",
+    valueCount: 500,
+    testValueCount: 0,
+    maskedSamples: [],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isConfirmed: false,
+    isAiSuggested: false,
+    isConfirmedByAi: false,
+    aiVerdictAt: ago(2 * HOUR),
+    firstSeenAt: ago(1 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+    ...data,
+    findingKey: `${data.dataTypeId}:${data.location}`,
+    aiVerdict: data.aiVerdictAnalysis.verdict,
+  };
+}
+
+table(DataStoreFinding).push(
+  verdictFinding(20, {
+    dataTypeId: "credit-card-number",
+    dataTypeName: "Card number",
+    dataCategory: DataCategory.Financial,
+    sensitivity: DataSensitivity.Restricted,
+    location: "public.orders.order_number",
+    confidence: "Low",
+    matchCount: 61,
+    matchPercent: 12,
+    distinctValues: 61,
+    maskedSamples: ["4532 **** **** 0366"],
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "NotSensitive",
+      reason:
+        "These are shop order numbers that pass the Luhn check by chance, like the order_number columns your team marked on other stores.",
+      draft:
+        "Shop order numbers that pass the Luhn check by chance, as on our other stores.",
+      precedent: [
+        {
+          findingId: ID.finding(90),
+          dataStoreId: ID.store(3),
+          location: "shop.orders.order_number",
+          decision: "NotSensitive",
+          reason: "Shopify order numbers. They pass Luhn by chance.",
+          isSameName: true,
+          decidedAt: ago(9 * DAY).toISOString(),
+        },
+        {
+          findingId: ID.finding(91),
+          dataStoreId: ID.store(1),
+          location: "exports/orders-2026-10-12.csv › order_number",
+          decision: "NotSensitive",
+          reason: "Order numbers in the nightly export, not cards.",
+          isSameName: true,
+          decidedAt: ago(12 * DAY).toISOString(),
+        },
+        {
+          findingId: ID.finding(92),
+          dataStoreId: UNREADABLE_STORE(1),
+          location: "public.orders.order_number",
+          decision: "NotSensitive",
+          reason: "The same order numbers, in the read replica.",
+          isSameName: true,
+          decidedAt: ago(20 * DAY).toISOString(),
+        },
+        {
+          findingId: ID.finding(93),
+          dataStoreId: UNREADABLE_STORE(2),
+          location: "billing.invoices.orderNumber",
+          decision: "NotSensitive",
+          reason: "Order numbers copied onto invoices.",
+          isSameName: true,
+          decidedAt: ago(31 * DAY).toISOString(),
+        },
+      ],
+      signs: ["IdFieldWithLuhnNumbers"],
+      language: "en",
+      writtenAt: VERDICT_WRITTEN_AT,
+    },
+  }),
+  verdictFinding(21, {
+    dataTypeId: "email-address",
+    dataTypeName: "Email address",
+    dataCategory: DataCategory.ContactAndIdentity,
+    sensitivity: DataSensitivity.Confidential,
+    location: "public.newsletter_signups.contact",
+    confidence: "Low",
+    matchCount: 212,
+    matchPercent: 42,
+    distinctValues: 208,
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "Confirm",
+      reason:
+        "Newsletter sign-ups are people who gave their email address, as in the contact column your team confirmed on analytics.",
+      draft: "",
+      precedent: [
+        {
+          findingId: ID.finding(94),
+          dataStoreId: ID.store(3),
+          location: "marketing.leads.contact",
+          decision: "Confirmed",
+          reason: "",
+          isSameName: true,
+          decidedAt: ago(6 * DAY).toISOString(),
+        },
+      ],
+      signs: [],
+      language: "en",
+      writtenAt: VERDICT_WRITTEN_AT,
+    },
+  }),
+  verdictFinding(22, {
+    dataTypeId: "us-npi",
+    dataTypeName: "US National Provider Identifier",
+    dataCategory: DataCategory.Health,
+    sensitivity: DataSensitivity.Confidential,
+    location: "public.orders.ref_no",
+    confidence: "Medium",
+    matchCount: 140,
+    matchPercent: 28,
+    distinctValues: 140,
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "CannotTell",
+      reason:
+        "Nobody on your team decided a finding like it, and an order's reference number says nothing of a healthcare provider. Look at a few values before you decide.",
+      draft: "",
+      precedent: [],
+      signs: ["IdFieldWithLuhnNumbers"],
+      language: "en",
+      writtenAt: VERDICT_WRITTEN_AT,
+    },
+  }),
+);
+
+/*
+ * The findings like the order numbers' that nobody decided yet: one more
+ * on the orders database, and nine on other stores - what Apply to Similar
+ * Findings lists after a person decides it (#10372).
+ */
+const SIMILAR_STORES = [
+  "orders-replica",
+  "orders-eu",
+  "orders-us",
+  "shop-archive",
+  "billing",
+  "returns",
+  "support-desk",
+  "warehouse-sync",
+  "exports-2025",
+];
+
+function similarFindings(findingId) {
+  const finding = table(DataStoreFinding).find((row) => {
+    return row._id === findingId;
+  });
+  const decision = finding?.isSuppressed
+    ? "NotSensitive"
+    : finding?.isConfirmed
+      ? "Confirmed"
+      : "";
+  if (!finding || finding._id !== ID.finding(20) || !decision) {
+    return {
+      findingId,
+      decision,
+      reason: "",
+      hasName: true,
+      findings: [],
+    };
+  }
+  return {
+    findingId,
+    decision,
+    reason: decision === "NotSensitive" ? finding.suppressedReason || "" : "",
+    hasName: true,
+    findings: [
+      {
+        findingId: uuid("4f000000", 1),
+        dataStoreId: ID.store(2),
+        storeName: "orders-db",
+        storeKind: DataStoreKind.AwsRdsInstance,
+        location: "public.refunds.order_number",
+        locationKind: "Column",
+        dataTypeId: "credit-card-number",
+        dataTypeName: "Card number",
+        confidence: "Low",
+        aiVerdict: "NotSensitive",
+        isSameStore: true,
+      },
+      ...SIMILAR_STORES.map((name, index) => {
+        return {
+          findingId: uuid("4f000000", index + 2),
+          dataStoreId: uuid("2e000000", index + 1),
+          storeName: name,
+          storeKind: DataStoreKind.AwsRdsInstance,
+          location:
+            index === 7
+              ? "sync.orders.orderNumber"
+              : "public.orders.order_number",
+          locationKind: "Column",
+          dataTypeId: "credit-card-number",
+          dataTypeName: "Card number",
+          confidence: index % 3 === 0 ? "Medium" : "Low",
+          aiVerdict: index % 2 === 0 ? "NotSensitive" : "",
+          isSameStore: false,
+        };
+      }),
+    ],
+  };
+}
+
 table(DataStoreAccess).push(
   {
     _id: ID.access(1),
@@ -1244,6 +1534,261 @@ table(DataSecurityIssueFeed).push(
 
 /*
  * ---------------------------------------------------------------------------
+ * OneUptime AI's work on the issues (#10364)
+ * ---------------------------------------------------------------------------
+ *
+ * Data Security → AI lists what OneUptime AI proposes and made, and the
+ * issues it left alone; the side menu counts what waits beside AI, on every
+ * page. The project has the switch on, as a new project does. The default
+ * data set has no proposal, so every other page reads as it did; ?ai=on
+ * adds one waiting on the logs' email issue, one made without asking, and
+ * one issue left alone.
+ */
+table(Project).push({
+  _id: PROJECT_ID,
+  name: "Acme Commerce",
+  enableAi: true,
+  enableAutomaticDataSecurityAi: true,
+});
+table(DataSecurityAiProposal);
+table(DataSecurityAiDecision);
+// Data Security's AI rules: AI rules with the DataSecurityIssue trigger.
+table(AutoRemediationRule);
+
+if (isAiOn) {
+  table(AutoRemediationRule).push({
+    _id: ID.rule(1),
+    projectId,
+    name: "Production stores",
+    triggerEntityType: AutoRemediationTriggerEntity.DataSecurityIssue,
+    isEnabled: true,
+    dataSecurityAnalyze: DataSecurityAiAutonomy.WithoutAsking,
+    dataSecurityContain: DataSecurityAiAutonomy.Suggest,
+    dataSecurityFix: DataSecurityAiAutonomy.Suggest,
+    dataSecurityJudge: DataSecurityAiAutonomy.Off,
+    dataStoreEnvironments: ["Production"],
+  });
+  table(DataSecurityAiProposal).push(
+    {
+      _id: ID.proposal(1),
+      projectId,
+      dataSecurityIssueId: new ObjectID(ID.issue(3)),
+      dataStoreId: new ObjectID(ID.store(4)),
+      kind: DataSecurityAiProposalKind.ScrubTelemetry,
+      work: DataSecurityAiWork.Contain,
+      safety: DataSecurityAiChangeSafety.MaskOnly,
+      status: DataSecurityAiProposalStatus.Proposed,
+      riskScore: 72,
+      title: "Scrub Email address in log.body of checkout · Logs",
+      changeMarkdown:
+        "A log scrub rule, **Data Security: Email address in `log.body`**, that masks email addresses in the service's new logs before they are stored.",
+      reasonMarkdown:
+        "**Email address in logs**: Email address was found in 1 place of checkout · Logs in the last 7 days, and no scrub rule hides it as the telemetry arrives.",
+      proofMarkdown:
+        "The issue's own check decides. Once the rule is made, the store is checked again: the issue resolves when none of its data is left unscrubbed.",
+      undoMarkdown:
+        "Undo deletes the scrub rule this made - never a rule that was there before - and checks the store again.",
+      plan: {
+        places: [
+          {
+            signal: "Logs",
+            dataTypeId: "email",
+            dataTypeName: "Email address",
+            location: "log.body",
+          },
+        ],
+      },
+      askReason: DataSecurityAiAskReason.NotProvenSafe,
+      autoRemediationRuleId: new ObjectID(ID.rule(1)),
+      autoRemediationRuleName: "Production stores",
+      createdAt: ago(2 * HOUR),
+    },
+    {
+      _id: ID.proposal(2),
+      projectId,
+      dataSecurityIssueId: new ObjectID(ID.issue(3)),
+      dataStoreId: new ObjectID(ID.store(4)),
+      kind: DataSecurityAiProposalKind.ScrubTelemetry,
+      work: DataSecurityAiWork.Contain,
+      safety: DataSecurityAiChangeSafety.MaskOnly,
+      status: DataSecurityAiProposalStatus.AppliedWithoutAsking,
+      riskScore: 40,
+      title: "Scrub Phone number in log.body of checkout · Logs",
+      plan: { places: [] },
+      createdAt: ago(DAY + HOUR),
+      appliedAt: ago(DAY),
+    },
+  );
+  table(DataSecurityAiDecision).push({
+    _id: ID.decision(1),
+    projectId,
+    dataSecurityIssueId: new ObjectID(ID.issue(2)),
+    dataStoreId: new ObjectID(ID.store(2)),
+    didAct: false,
+    skipReason: DataSecurityAiIssueSkipReason.NoRuleMatched,
+    entries: [
+      {
+        work: DataSecurityAiWork.Analyze,
+        reason: DataSecurityAiDecisionReason.WorkOff,
+      },
+    ],
+    createdAt: ago(3 * HOUR),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI's analysis of an issue (#10369)
+ * ---------------------------------------------------------------------------
+ *
+ * What an issue keeps, as the server sends it to a reader who may read
+ * every fact it rests on (DataSecurityIssueAnalysisReader): ?ai=on gives
+ * the public bucket's issue one - Real, what it puts at risk, what blocking
+ * public access would break and the shortest path, each line with the
+ * facts it rests on - and every other issue none, as an issue nobody
+ * analyzed yet. Reading it asks OneUptime AI nothing; Analyze Again with
+ * nothing changed keeps it, as the server does.
+ */
+const ANALYSES = new Map();
+
+if (isAiOn) {
+  ANALYSES.set(ID.issue(1), {
+    version: DATA_SECURITY_ANALYSIS_VERSION,
+    verdict: DataSecurityAiVerdict.Real,
+    language: "en",
+    analyzedAt: ago(3 * DAY - 2 * MINUTE).toISOString(),
+    lines: {
+      reason: {
+        text: "customer-exports holds card numbers and email addresses, and its bucket policy lets anyone on the internet read it. Nothing marks it public by design.",
+        facts: ["S1", "S2", "R1"],
+      },
+      risk: {
+        text: "About 2,400,000 records of card numbers and email addresses, which anyone who finds the bucket can download without signing in.",
+        facts: ["S1", "R1"],
+      },
+      breaks: {
+        text: "Blocking public access takes away Everyone's read through the bucket policy. finance-exporter keeps its write, so the nightly exports still land, and account 210987654321 keeps its read through vendor-reader.",
+        facts: ["R1", "R2", "R3"],
+      },
+      path: {
+        text: "Block Public Access on customer-exports from this page, then ask Diego Alvarez whether the account outside should still read it.",
+        facts: ["A1", "O1"],
+      },
+    },
+    hiddenLines: {},
+    facts: [
+      {
+        id: "I1",
+        kind: DataSecurityAnalysisFactKind.Issue,
+        recordIds: [ID.issue(1)],
+        checkId: "public-read",
+        severity: SecuritySeverity.Critical,
+      },
+      {
+        id: "S1",
+        kind: DataSecurityAnalysisFactKind.StoreHolds,
+        recordIds: [ID.store(1)],
+        dataTypeIds: ["email-address", "credit-card-number"],
+        dataTypeNames: ["Email address", "Card number"],
+        sensitivity: DataSensitivity.Restricted,
+        records: 2400000,
+        objects: 180000,
+      },
+      {
+        id: "S2",
+        kind: DataSecurityAnalysisFactKind.StoreExposure,
+        recordIds: [ID.store(1)],
+        exposure: DataStoreExposure.Public,
+        isPublicByDesign: false,
+        publicReason: 'The bucket policy grants s3:GetObject to Principal "*".',
+      },
+      {
+        id: "R0",
+        kind: DataSecurityAnalysisFactKind.Reach,
+        recordIds: [],
+        identities: 3,
+        publicGrants: 1,
+        externalGrants: 1,
+        writeGrants: 1,
+        usedLately: 1,
+      },
+      {
+        id: "R1",
+        kind: DataSecurityAnalysisFactKind.Grant,
+        recordIds: [ID.access(1)],
+        principal: "Everyone",
+        principalType: DataStorePrincipalType.Public,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia: "Bucket policy",
+        isPublic: true,
+        isExternal: true,
+        lastUsed: DataSecurityRecency.Unknown,
+        isRemovedByFix: true,
+      },
+      {
+        id: "R2",
+        kind: DataSecurityAnalysisFactKind.Grant,
+        recordIds: [ID.access(3)],
+        principal: "210987654321",
+        principalType: DataStorePrincipalType.Account,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia:
+          "Can assume role vendor-reader: IAM policy AmazonS3ReadOnlyAccess",
+        isPublic: false,
+        isExternal: true,
+        lastUsed: DataSecurityRecency.Unknown,
+        isRemovedByFix: false,
+      },
+      {
+        id: "R3",
+        kind: DataSecurityAnalysisFactKind.Grant,
+        recordIds: [ID.access(2)],
+        principal: "finance-exporter",
+        principalType: DataStorePrincipalType.Role,
+        accessLevel: DataStoreAccessLevel.Write,
+        grantedVia: "Bucket policy",
+        isPublic: false,
+        isExternal: false,
+        lastUsed: DataSecurityRecency.Day,
+        isRemovedByFix: false,
+      },
+      {
+        id: "K1",
+        kind: DataSecurityAnalysisFactKind.SecurityCase,
+        recordIds: [ID.securityCase(1)],
+        securityCaseId: ID.securityCase(1),
+      },
+      {
+        id: "A1",
+        kind: DataSecurityAnalysisFactKind.Response,
+        recordIds: [ID.store(1)],
+        action: DataSecurityResponseAction.BlockPublicAccess,
+        isAvailable: isResponseOn,
+        unavailableReason: isResponseOn
+          ? undefined
+          : DataSecurityResponseUnavailableReason.ResponseOff,
+      },
+      {
+        id: "O1",
+        kind: DataSecurityAnalysisFactKind.Owners,
+        recordIds: [ID.owner(1)],
+        ownerNames: ["Diego Alvarez"],
+        owners: 1,
+      },
+    ],
+  });
+}
+
+// The analysis an issue keeps, or null: none, or no such issue.
+function issueAnalysis(issueId) {
+  const issue = table(DataSecurityIssue).find((row) => {
+    return row._id === issueId;
+  });
+  return (issue && ANALYSES.get(issueId)) || null;
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The other data sets: a busy project, and a new one
  * ---------------------------------------------------------------------------
  */
@@ -1538,17 +2083,615 @@ function emptyData() {
     DataStoreOwnerRule,
     DataStoreFeed,
     DataSecurityIssueFeed,
+    DataSecurityAiProposal,
+    DataSecurityAiDecision,
+    AutoRemediationRule,
   ]) {
     table(modelType).length = 0;
   }
 }
 
+/*
+ * A busy project's logs also carry order numbers in an attribute, which the
+ * card number detector found and OneUptime AI judged (#10372): what In Your
+ * Telemetry draws across the finding's row.
+ */
+function addTelemetryVerdict() {
+  table(DataStoreFinding).push({
+    _id: ID.finding(23),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(4)),
+    findingKey: "credit-card-number:attributes.order.number",
+    dataTypeId: "credit-card-number",
+    dataTypeName: "Card number",
+    dataCategory: DataCategory.Financial,
+    sensitivity: DataSensitivity.Restricted,
+    location: "attributes.order.number",
+    locationKind: "Attribute",
+    confidence: "Low",
+    matchCount: 7,
+    valueCount: 50,
+    matchPercent: 14,
+    distinctValues: 7,
+    testValueCount: 0,
+    maskedSamples: ["4532 **** **** 0366"],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isConfirmed: false,
+    isAiSuggested: false,
+    isConfirmedByAi: false,
+    aiVerdict: "NotSensitive",
+    aiVerdictAt: ago(2 * HOUR),
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "NotSensitive",
+      reason:
+        "Order numbers the checkout service logs with each request; they pass the Luhn check by chance, like the order_number columns your team marked.",
+      draft: "Order numbers in the request logs, not cards.",
+      precedent: [
+        {
+          findingId: ID.finding(90),
+          dataStoreId: ID.store(3),
+          location: "shop.orders.order_number",
+          decision: "NotSensitive",
+          reason: "Shopify order numbers. They pass Luhn by chance.",
+          isSameName: true,
+          decidedAt: ago(9 * DAY).toISOString(),
+        },
+      ],
+      signs: ["IdFieldWithLuhnNumbers"],
+      language: "en",
+      writtenAt: ago(2 * HOUR).toISOString(),
+    },
+    firstSeenAt: ago(1 * DAY),
+    lastSeenAt: ago(40 * MINUTE),
+  });
+}
+
 if (dataSet === "busy") {
   addBusyData();
+  addTelemetryVerdict();
 }
 
 if (dataSet === "empty") {
   emptyData();
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Issues with one cause (#10370): ?groups=on
+ * ---------------------------------------------------------------------------
+ *
+ * Three groups of issues one mistake made, as the grouping keeps them:
+ *
+ *   - forty S3 buckets the static-site Terraform module made, access
+ *     logging off on all of them (six fixed already): one pull request to
+ *     the module, in acme/infra;
+ *   - twelve public buckets the export-job role made in the console - the
+ *     customer-exports bucket among them - one marked Public By Design and
+ *     one whose analysis says the fix would break what reads it: one
+ *     approval, through the cloud connection;
+ *   - five DynamoDB tables of the billing-tables CloudFormation stack
+ *     without point-in-time recovery, two fixed, its pull request open.
+ *
+ * With ?ai=on OneUptime AI named each from its facts.
+ *
+ * ?groups=before is the same stores and issues before any group was kept:
+ * every issue a row of the list, as Issues was before #10370.
+ */
+const hasIssueGroupStores =
+  ["on", "before"].includes(params.get("groups")) && dataSet !== "empty";
+const hasIssueGroups = params.get("groups") === "on" && dataSet !== "empty";
+
+// The group an issue is in: none before the grouping kept one.
+function inGroup(groupId) {
+  return hasIssueGroups
+    ? { dataSecurityIssueGroupId: new ObjectID(groupId) }
+    : {};
+}
+
+const GROUP = {
+  module: uuid("1c000000", 1),
+  exports: uuid("1c000000", 2),
+  stack: uuid("1c000000", 3),
+};
+const INFRA_REPOSITORY_ID = uuid("1c100000", 1);
+const BILLING_TASK_ID = uuid("1c200000", 1);
+const MODULE_TASK_ID = uuid("1c200000", 2);
+
+const STATIC_SITES = [
+  "marketing",
+  "docs",
+  "blog",
+  "careers",
+  "status",
+  "help-center",
+  "partners",
+  "investors",
+  "press",
+  "events",
+  "academy",
+  "community",
+  "developers",
+  "brand",
+  "legal",
+  "privacy",
+  "security",
+  "trust",
+  "pricing",
+  "store",
+  "gift-cards",
+  "rewards",
+  "loyalty",
+  "support",
+  "learn",
+  "webinars",
+  "podcast",
+  "newsroom",
+  "jobs",
+  "labs",
+  "research",
+  "design-system",
+  "api-reference",
+  "changelog",
+  "roadmap",
+  "forum",
+  "knowledge-base",
+  "promotions",
+  "launch",
+  "holiday",
+];
+
+// What each group's fix is, once a press asked for it.
+const groupFixes = new Map();
+
+function groupStore(number, data) {
+  return {
+    _id: ID.store(number),
+    projectId,
+    description: "",
+    provider: "aws",
+    discoveredFrom: "Cloud inventory",
+    cloudAccountNumber: "123456789012",
+    environment: DataStoreEnvironment.Production,
+    dataTypeIds: [],
+    dataCategories: [],
+    posture: { readAt: ago(2 * HOUR).toISOString(), encryptedAtRest: true },
+    estimatedRecords: 4000,
+    isPublicByDesign: false,
+    isAiData: false,
+    isContentScanEnabled: true,
+    configurationReadAt: ago(2 * HOUR),
+    findingCount: 0,
+    isArchived: false,
+    firstSeenAt: ago(60 * DAY),
+    lastSeenAt: ago(20 * MINUTE),
+    ...data,
+  };
+}
+
+function addIssueGroups() {
+  // The static-site module's buckets.
+  STATIC_SITES.forEach((site, index) => {
+    const number = 300 + index;
+    table(DataStore).push(
+      groupStore(number, {
+        name: `acme-${site}-site`,
+        kind: DataStoreKind.AwsS3Bucket,
+        family: "Object storage",
+        providerResourceId: `arn:aws:s3:::acme-${site}-site`,
+        region: index % 3 === 0 ? "us-east-1" : "eu-west-1",
+        sensitivity: DataSensitivity.Internal,
+        exposure: DataStoreExposure.Private,
+        cloudTags: {
+          module: "static-site",
+          "managed-by": "terraform",
+          team: "web",
+        },
+        posture: {
+          readAt: ago(2 * HOUR).toISOString(),
+          encryptedAtRest: true,
+          accessLogging: index < 6,
+        },
+      }),
+    );
+    table(DataSecurityIssue).push(
+      issue(500 + index, {
+        dataStoreId: ID.store(number),
+        checkId: "access-not-logged",
+        evidence: `Server access logging is off on acme-${site}-site.`,
+        severity:
+          index % 4 === 0 ? SecuritySeverity.Medium : SecuritySeverity.Low,
+        firstDetectedAt: ago((2 + (index % 5)) * DAY),
+        lastDetectedAt: ago(2 * HOUR),
+        ...inGroup(GROUP.module),
+        // The first six were fixed by hand, before the group's pull request.
+        ...(index < 6
+          ? {
+              status: DataSecurityIssueStatus.Resolved,
+              resolvedAt: ago((1 + index) * DAY),
+            }
+          : {}),
+      }),
+    );
+  });
+
+  // The export-job role's buckets, made in the console - the customer-exports bucket among them.
+  for (let index = 1; index <= 11; index++) {
+    const number = 360 + index;
+    const name = `acme-exports-${String(index).padStart(2, "0")}`;
+    table(DataStore).push(
+      groupStore(number, {
+        name,
+        kind: DataStoreKind.AwsS3Bucket,
+        family: "Object storage",
+        providerResourceId: `arn:aws:s3:::${name}`,
+        region: "eu-west-1",
+        cloudConnectionId: new ObjectID(ID.connection(1)),
+        sensitivity: DataSensitivity.Confidential,
+        exposure: DataStoreExposure.Public,
+        dataTypeIds: ["email-address"],
+        dataCategories: [DataCategory.ContactAndIdentity],
+        estimatedRecords: 20000 * index,
+        // The press kit is meant to be public.
+        isPublicByDesign: index === 11,
+      }),
+    );
+    table(DataSecurityIssue).push(
+      issue(560 + index, {
+        dataStoreId: ID.store(number),
+        checkId: "public-read",
+        evidence: `The bucket policy of ${name} grants s3:GetObject to Principal "*".`,
+        severity: SecuritySeverity.Critical,
+        dataTypeIds: ["email-address"],
+        firstDetectedAt: ago(index * HOUR + DAY),
+        lastDetectedAt: ago(2 * HOUR),
+        ...inGroup(GROUP.exports),
+      }),
+    );
+  }
+  Object.assign(
+    table(DataSecurityIssue).find((row) => {
+      return row._id === ID.issue(1);
+    }),
+    inGroup(GROUP.exports),
+  );
+
+  // The billing-tables stack's tables.
+  ["invoices", "payments", "refunds", "credits", "ledgers"].forEach(
+    (table_, index) => {
+      const number = 380 + index;
+      table(DataStore).push(
+        groupStore(number, {
+          name: `billing-${table_}`,
+          kind: DataStoreKind.AwsDynamoDbTable,
+          family: "Key-value",
+          providerResourceId: `arn:aws:dynamodb:eu-west-1:123456789012:table/billing-${table_}`,
+          region: "eu-west-1",
+          sensitivity: DataSensitivity.Restricted,
+          exposure: DataStoreExposure.Private,
+          cloudTags: { "aws:cloudformation:stack-name": "billing-tables" },
+        }),
+      );
+      table(DataSecurityIssue).push(
+        issue(580 + index, {
+          dataStoreId: ID.store(number),
+          checkId: "no-point-in-time-recovery",
+          evidence: `Point-in-time recovery is off on billing-${table_}.`,
+          severity: SecuritySeverity.High,
+          firstDetectedAt: ago(9 * DAY),
+          lastDetectedAt: ago(2 * HOUR),
+          ...inGroup(GROUP.stack),
+          ...(index < 2
+            ? {
+                status: DataSecurityIssueStatus.Resolved,
+                resolvedAt: ago((index + 1) * HOUR),
+              }
+            : {}),
+        }),
+      );
+    },
+  );
+}
+
+if (hasIssueGroupStores) {
+  addIssueGroups();
+}
+
+const GROUP_FACTS = {
+  [GROUP.module]: {
+    cause: "DeclaredCode",
+    checkId: "access-not-logged",
+    tag: ["module", "static-site"],
+    tagRole: "Module",
+    code: {
+      repositoryId: INFRA_REPOSITORY_ID,
+      repositoryName: "acme/infra",
+      paths: ["modules/static-site/main.tf", "modules/static-site/logging.tf"],
+      codeKind: "Terraform",
+      reason: "has-named-file",
+    },
+    storeKind: DataStoreKind.AwsS3Bucket,
+    provider: "aws",
+    accountNumber: "123456789012",
+    managedAsCode: "Terraform",
+  },
+  [GROUP.exports]: {
+    cause: "Creator",
+    checkId: "public-read",
+    creator: "role/export-job",
+    storeKind: DataStoreKind.AwsS3Bucket,
+    provider: "aws",
+    region: "eu-west-1",
+    accountNumber: "123456789012",
+  },
+  [GROUP.stack]: {
+    cause: "Stack",
+    checkId: "no-point-in-time-recovery",
+    stackName: "billing-tables",
+    storeKind: DataStoreKind.AwsDynamoDbTable,
+    provider: "aws",
+    region: "eu-west-1",
+    accountNumber: "123456789012",
+    managedAsCode: 'CloudFormation stack "billing-tables"',
+  },
+};
+
+// OneUptime AI's names, held to the facts, while the project's AI is on.
+const GROUP_NAMES = {
+  [GROUP.module]: "the static-site module turns off access logs",
+  [GROUP.exports]: "the export-job role makes its buckets public",
+  [GROUP.stack]: "the billing-tables stack leaves recovery off",
+};
+
+function groupMembers(groupId) {
+  return table(DataSecurityIssue).filter((row) => {
+    return String(row.dataSecurityIssueGroupId || "") === groupId;
+  });
+}
+
+function groupFixState(groupId) {
+  if (groupId === GROUP.stack) {
+    return {
+      taskId: BILLING_TASK_ID,
+      state: "opened",
+      repositoryName: "acme/infra",
+      pullRequestUrl: "https://github.com/acme/infra/pull/482",
+      pullRequestNumber: 482,
+    };
+  }
+  return groupFixes.get(groupId);
+}
+
+function issueGroupJson(groupId) {
+  const members = groupMembers(groupId);
+  const open = members.filter((row) => {
+    return row.status === DataSecurityIssueStatus.Open;
+  });
+  const fixed = members.filter((row) => {
+    return row.status === DataSecurityIssueStatus.Resolved;
+  });
+  const fix = groupFixState(groupId);
+  return {
+    groupId,
+    checkId: GROUP_FACTS[groupId].checkId,
+    cause: GROUP_FACTS[groupId].cause,
+    facts: GROUP_FACTS[groupId],
+    ...(isAiOn ? { name: GROUP_NAMES[groupId] } : {}),
+    issueCount: members.length,
+    openIssueCount: open.length,
+    fixedIssueCount: fixed.length,
+    ...(fix ? { fix } : {}),
+  };
+}
+
+function issueGroups(body) {
+  if (!hasIssueGroups) {
+    return { groups: [], largestGroupSize: 0 };
+  }
+  const asked = Array.isArray(body.groupIds) ? body.groupIds : null;
+  const groups = Object.values(GROUP)
+    .filter((groupId) => {
+      return !asked || asked.includes(groupId);
+    })
+    .map(issueGroupJson)
+    .sort((left, right) => {
+      return right.openIssueCount - left.openIssueCount;
+    });
+  return {
+    groups,
+    largestGroupSize: groups.reduce((largest, group) => {
+      return Math.max(largest, group.issueCount);
+    }, 0),
+  };
+}
+
+function fixStore(row) {
+  const store = storeById(row.dataStoreId);
+  return {
+    issueId: row._id,
+    dataStoreId: store._id,
+    name: store.name,
+    kind: store.kind,
+    region: store.region,
+  };
+}
+
+const VIEWER_PULL_REQUEST_REFUSAL =
+  "Asking OneUptime AI for this pull request takes permission to change Data Security issues.";
+const VIEWER_CLOUD_REFUSAL =
+  "Changing these stores through their cloud connections takes permission to edit data stores.";
+
+// What a group's fix would do now, for the reader.
+function issueGroupFixPlan(groupId) {
+  const open = groupMembers(groupId).filter((row) => {
+    return row.status === DataSecurityIssueStatus.Open;
+  });
+  const plan = {
+    groupId,
+    checkId: GROUP_FACTS[groupId].checkId,
+    leftOut: [],
+    planFingerprint: `fingerprint-${groupId.slice(-4)}`,
+  };
+  if (groupId === GROUP.module || groupId === GROUP.stack) {
+    const facts = GROUP_FACTS[groupId];
+    const fix = groupFixState(groupId);
+    plan.pullRequest = {
+      stores: open.map(fixStore),
+      codeKind: groupId === GROUP.module ? "Terraform" : "CloudFormation",
+      ...(facts.code
+        ? {
+            location: {
+              repositoryId: facts.code.repositoryId,
+              repositoryName: facts.code.repositoryName,
+              paths: facts.code.paths,
+            },
+          }
+        : {}),
+      candidates:
+        role === "viewer"
+          ? []
+          : [
+              {
+                repositoryId: INFRA_REPOSITORY_ID,
+                name: "infra",
+                fullName: "acme/infra",
+                reason: "has-named-file",
+                matchedPaths: facts.code
+                  ? facts.code.paths
+                  : ["stacks/billing-tables.yaml"],
+                isBest: true,
+                canAsk: true,
+              },
+              {
+                repositoryId: uuid("1c100000", 2),
+                name: "platform",
+                fullName: "acme/platform",
+                reason: "has-code-of-kind",
+                matchedPaths: [],
+                isBest: false,
+                canAsk: true,
+              },
+            ],
+      ...(role === "viewer" ? { refusal: VIEWER_PULL_REQUEST_REFUSAL } : {}),
+      ...(fix ? { existing: fix } : {}),
+    };
+    return plan;
+  }
+
+  // The export-job role's buckets: one approval, leaving out what it must.
+  const included = [];
+  for (const row of open) {
+    const store = storeById(row.dataStoreId);
+    if (store.isPublicByDesign) {
+      plan.leftOut.push({
+        ...fixStore(row),
+        part: "Cloud",
+        reason: "PublicByDesign",
+        canInclude: false,
+      });
+      continue;
+    }
+    if (store.name === "acme-exports-07") {
+      plan.leftOut.push({
+        ...fixStore(row),
+        part: "Cloud",
+        reason: "FixWouldBreak",
+        canInclude: true,
+        breaks: ["role/partner-reporting"],
+      });
+      continue;
+    }
+    if (!isResponseOn) {
+      plan.leftOut.push({
+        ...fixStore(row),
+        part: "Cloud",
+        reason: "ResponseOff",
+        canInclude: false,
+        cloudConnectionId: ID.connection(1),
+      });
+      continue;
+    }
+    included.push(fixStore(row));
+  }
+  if (included.length > 0) {
+    plan.cloud = {
+      action: "Block public access",
+      stores: included,
+      ...(role === "viewer" ? { refusal: VIEWER_CLOUD_REFUSAL } : {}),
+    };
+  }
+  return plan;
+}
+
+// A press of a group's fix: the pull request asked for, or the stores changed.
+function fixIssueGroup(groupId, body) {
+  const plan = issueGroupFixPlan(groupId);
+  const parts = Array.isArray(body.parts) ? body.parts : [];
+  const result = { leftOut: plan.leftOut.length };
+  if (parts.includes("PullRequest") && plan.pullRequest) {
+    if (plan.pullRequest.refusal) {
+      result.pullRequest = { message: plan.pullRequest.refusal };
+    } else if (plan.pullRequest.existing) {
+      result.pullRequest = {
+        message:
+          "This group's pull request is open already: review it in Code.",
+        aiRunId: plan.pullRequest.existing.taskId,
+        wasAlreadyAsked: true,
+      };
+    } else {
+      groupFixes.set(groupId, {
+        taskId: MODULE_TASK_ID,
+        state: "writing",
+        repositoryName: "acme/infra",
+      });
+      result.pullRequest = {
+        message:
+          "OneUptime AI is working on one pull request for the cause. It will appear under Code, and on each of the group's issues.",
+        aiRunId: MODULE_TASK_ID,
+      };
+    }
+  }
+  if (parts.includes("Cloud") && plan.cloud) {
+    const ticked = Array.isArray(body.includeDataStoreIds)
+      ? body.includeDataStoreIds
+      : [];
+    result.cloud = plan.cloud.refusal
+      ? {
+          action: plan.cloud.action,
+          changed: 0,
+          unchanged: 0,
+          failed: [],
+          refusal: plan.cloud.refusal,
+        }
+      : {
+          action: plan.cloud.action,
+          changed:
+            plan.cloud.stores.length +
+            plan.leftOut.filter((store) => {
+              return store.canInclude && ticked.includes(store.dataStoreId);
+            }).length,
+          unchanged: 0,
+          failed: [],
+        };
+  }
+  fixture.groupFixes.push({ groupId, body });
+  return result;
+}
+
+// The group an issue's analysis points at.
+function issueGroupOf(issueId) {
+  const row = table(DataSecurityIssue).find((candidate) => {
+    return candidate._id === issueId;
+  });
+  const groupId =
+    row && row.dataSecurityIssueGroupId
+      ? String(row.dataSecurityIssueGroupId)
+      : "";
+  return hasIssueGroups && groupId ? issueGroupJson(groupId) : null;
 }
 
 /*
@@ -1698,6 +2841,18 @@ function sortRecords(records, sort) {
 
 // The relations the pages select through a record, joined at read time.
 function withRelations(modelName, record) {
+  if (
+    modelName === tableName(DataSecurityAiDecision) &&
+    record.dataSecurityIssueId
+  ) {
+    const issue = table(DataSecurityIssue).find((row) => {
+      return row._id === String(record.dataSecurityIssueId);
+    });
+    return {
+      ...record,
+      dataSecurityIssue: issue ? make(DataSecurityIssue, issue) : undefined,
+    };
+  }
   if (
     record.dataStoreId &&
     (modelName === tableName(DataSecurityIssue) ||
@@ -2243,18 +3398,292 @@ function occurrences(findingId) {
   return kept([]);
 }
 
-// Scrub It: the finding is masked at ingest from now on, by a rule as named.
-function scrub(findingId) {
+/*
+ * ---------------------------------------------------------------------------
+ * Scrub It, said before it is done (#10433)
+ * ---------------------------------------------------------------------------
+ *
+ * Security Events reads none of this project's logs or spans: the fixture
+ * models no Security Events source. So no IP Address rule keeps an address
+ * from it (#10396), and Scrub It redacts an IP address rather than hashing
+ * it.
+ */
+
+// The scrub rule pattern of each data type that has one, as a rule names it.
+const SCRUB_PATTERN_OF_DATA_TYPE = new Map(
+  Object.entries(DATA_TYPE_OF_SCRUB_PATTERN_TYPE).map(
+    ([patternType, dataTypeId]) => {
+      return [dataTypeId, patternType];
+    },
+  ),
+);
+
+// The team's own rule that already hides a finding's data: the phone numbers.
+const TEAM_SCRUB_RULES = {
+  [ID.finding(9)]: {
+    id: uuid("1c300000", 1),
+    name: "Mask phone numbers",
+    signal: "log",
+  },
+};
+
+// The rules Scrub It made here, by finding: asked again, it names the one it made.
+const madeScrubRules = new Map();
+
+/*
+ * What a planned rule was proven on (#10366): the records the finding was
+ * seen in, run through ingest's own code. Counts only, never a value. The
+ * client addresses' place also holds the "-" the load balancer's health
+ * checks are logged with, which the rule leaves alone.
+ */
+const SCRUB_PROOFS = {
+  [ID.finding(8)]: {
+    recordsRead: 64,
+    findingRecordsRead: 1,
+    valuesWithData: 50,
+    valuesStillWithData: 0,
+    otherValues: 14,
+    otherValuesChanged: 0,
+  },
+  [ID.finding(3)]: {
+    recordsRead: 384,
+    findingRecordsRead: 5,
+    valuesWithData: 18,
+    valuesStillWithData: 0,
+    otherValues: 366,
+    otherValuesChanged: 0,
+  },
+};
+
+// A telemetry store's service, as the scanner names its stores: "checkout · Logs".
+function serviceNameOf(store) {
+  return (store.name || "").split(" · ")[0];
+}
+
+/*
+ * The rule Scrub It would make for a finding in a service's logs, as the
+ * server plans it (TelemetryScrubPlanner.planScrubRuleCandidates,
+ * TelemetryScrubCoverage.nameScrubItRule): the data type's own pattern, in
+ * the part of the log it sits in, for the service it was seen in - an IP
+ * address redacted, since Security Events reads none of these logs,
+ * personal data masked, anything else redacted - and named after those
+ * parts and the service. Null for one the fixture does not model.
+ */
+function scrubPlan(finding, store) {
+  const target = getScrubTarget(store.kind, (finding.location || "").trim());
+  const patternType = SCRUB_PATTERN_OF_DATA_TYPE.get(finding.dataTypeId);
+  if (!target || target.signal !== "log" || !patternType || !store.serviceId) {
+    return null;
+  }
+  const isBody = target.field === ScrubbedField.Body;
+  const serviceName = serviceNameOf(store);
+  let scrubAction = LogScrubAction.Redact;
+  if (
+    patternType !== LogScrubPatternType.IPAddress &&
+    isPersonalDataCategory(finding.dataCategory)
+  ) {
+    scrubAction = LogScrubAction.Mask;
+  }
+  return {
+    target,
+    rule: {
+      signal: "log",
+      name: `Data Security: ${finding.dataTypeName} in ${isBody ? "log bodies" : "log attributes"} of ${serviceName}`,
+      scrubAction,
+      patternType,
+      fieldsToScrub: isBody ? LogScrubField.Body : LogScrubField.Attributes,
+      dataTypeName: finding.dataTypeName,
+      serviceId: store.serviceId.toString(),
+      serviceName,
+      ...(SCRUB_PROOFS[finding._id]
+        ? { proof: SCRUB_PROOFS[finding._id] }
+        : {}),
+    },
+  };
+}
+
+/*
+ * What reads the data a planned rule would hide, as the server finds it
+ * (TelemetryFieldReaders): a monitor that groups the checkout service's
+ * failed requests by the client's address, which would see what the rule
+ * leaves in its place. Nothing else reads it, and Security Events reads
+ * none of the project's telemetry.
+ */
+function scrubRuleReaders(target) {
+  const kinds = getEmptyTelemetryFieldReadersByKind(true);
+  if (target.key === "http.client_ip") {
+    kinds[TelemetryFieldReaderKind.Monitor].readers.push({
+      id: uuid("1c400000", 1),
+      name: "Checkout errors by client IP",
+      reads: [
+        {
+          part: TelemetryFieldPart.Attributes,
+          key: "http.client_ip",
+          use: TelemetryFieldUse.GroupBy,
+        },
+      ],
+    });
+  }
+  return {
+    kinds,
+    securityEvents: { isChecked: true, sources: [], loses: [] },
+  };
+}
+
+function findingAndStore(findingId) {
   const finding = table(DataStoreFinding).find((row) => {
     return row._id === findingId;
   });
-  if (finding) {
-    finding.isScrubbed = true;
+  return { finding, store: finding ? storeById(finding.dataStoreId) : null };
+}
+
+/*
+ * What Scrub It would do for a finding, for its dialog to say before the
+ * rule is made, as the server answers (DataSecurityAPI's scrubImpact,
+ * TelemetryScrubImpact.getScrubItImpact): the rule that already hides the
+ * data, or the rule it would make and what reads what it would hide. A
+ * finding in a cloud store, not in telemetry, is refused in the server's
+ * words.
+ */
+function scrubImpact(findingId) {
+  const { finding, store } = findingAndStore(findingId);
+  if (!finding || !store) {
+    return new HTTPErrorResponse(400, { message: "Finding not found." }, {});
   }
+  if (!TELEMETRY_DATA_STORE_KINDS.includes(store.kind)) {
+    return new HTTPErrorResponse(
+      400,
+      {
+        message:
+          "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
+      },
+      {},
+    );
+  }
+  const existingRule =
+    madeScrubRules.get(findingId) || TEAM_SCRUB_RULES[findingId];
+  if (existingRule) {
+    return new HTTPResponse(200, { isAvailable: true, existingRule }, {});
+  }
+  const plan = scrubPlan(finding, store);
+  if (!plan) {
+    fixture.unhandled.push({ kind: "scrub-impact", findingId });
+    return new HTTPResponse(200, {}, {});
+  }
+  return new HTTPResponse(
+    200,
+    {
+      isAvailable: true,
+      rule: plan.rule,
+      readers: scrubRuleReaders(plan.target),
+    },
+    {},
+  );
+}
+
+// Scrub It: the finding is hidden at ingest from now on, by the rule its dialog named.
+function scrub(findingId) {
+  const { finding, store } = findingAndStore(findingId);
+  const plan = finding && store ? scrubPlan(finding, store) : null;
+  if (!plan) {
+    fixture.unhandled.push({ kind: "scrub", findingId });
+    return {};
+  }
+  finding.isScrubbed = true;
+  const made = {
+    id: uuid("1c300000", 2 + madeScrubRules.size),
+    name: plan.rule.name,
+    signal: plan.rule.signal,
+  };
+  madeScrubRules.set(findingId, made);
   return {
-    signal: "log",
-    scrubRuleId: uuid("1c000000", 1),
-    scrubRuleName: `Data Security: ${finding?.dataTypeName || "Data"} in ${finding?.location || ""}`,
+    signal: made.signal,
+    scrubRuleId: made.id,
+    scrubRuleName: made.name,
+  };
+}
+
+/*
+ * The IP Address rules that keep Security Events from naming an attacker's
+ * address (#10396), as the server answers (ScrubRuleAddressesAPI): none,
+ * since Security Events reads none of the project's logs or spans. A
+ * Security Viewer, who may not read scrub rules, is refused, and the page
+ * then names no rule.
+ */
+function scrubRulesHidingAddresses() {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "You do not have permission to read scrub rules, so OneUptime does not say which of them hide addresses from Security Events.",
+      },
+      {},
+    );
+  }
+  return new HTTPResponse(
+    200,
+    { isChecked: true, signalsRead: [], rules: [] },
+    {},
+  );
+}
+
+/*
+ * The GDPR record of processing on Compliance, as the server writes it
+ * (DataSecurityAPI.getRecordOfProcessing): a row for each store that holds
+ * personal data, with the data types it holds by the catalog's names, the
+ * frameworks they fall under, and its owners by name. This project keeps
+ * none of the stores OneUptime declares for a project's security: it does
+ * not use Security Events.
+ */
+function recordOfProcessing() {
+  const ownersOf = (storeId) => {
+    return table(DataStoreOwnerUser)
+      .filter((row) => {
+        return String(row.dataStoreId) === storeId;
+      })
+      .map((row) => {
+        return row.user?.name?.toString() || "";
+      })
+      .filter(Boolean);
+  };
+  return {
+    rows: table(DataStore)
+      .filter((store) => {
+        return (
+          !store.isArchived &&
+          (store.dataCategories || []).some(isPersonalDataCategory)
+        );
+      })
+      .map((store) => {
+        const frameworks = new Set();
+        for (const dataTypeId of store.dataTypeIds || []) {
+          const dataType = getBuiltInDataType(dataTypeId);
+          for (const framework of dataType?.frameworks || []) {
+            frameworks.add(framework);
+          }
+        }
+        return {
+          dataStoreId: store._id,
+          name: store.name || "",
+          kind: store.kind || "",
+          provider: store.provider || "",
+          region: store.region || "",
+          environment: store.environment || "",
+          sensitivity:
+            store.sensitivityOverride ||
+            store.sensitivity ||
+            DataSensitivity.Public,
+          dataCategories: store.dataCategories || [],
+          dataTypeNames: (store.dataTypeIds || []).map((dataTypeId) => {
+            return getBuiltInDataType(dataTypeId)?.name || dataTypeId;
+          }),
+          owners: ownersOf(store._id),
+          purpose: store.purpose || "",
+          retention: store.retention || "",
+          frameworks: [...frameworks],
+        };
+      }),
   };
 }
 
@@ -2264,9 +3693,72 @@ const ROUTE = {
   responseActions: DATA_SECURITY_API_ROUTES.responseActions(":id"),
   respond: DATA_SECURITY_API_ROUTES.respond(":id"),
   explain: DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+  issueAnalysis: DATA_SECURITY_API_ROUTES.issueAnalysis(":id"),
   occurrences: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
   scrub: DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+  // What Scrub It would do, before it is done (#10433).
+  scrubImpact: DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+  // The IP Address rules that hide addresses from Security Events (#10396).
+  scrubRulesHidingAddresses: SCRUB_RULES_HIDING_ADDRESSES_API_PATH,
+  // The record of processing on Compliance (#10398).
+  recordOfProcessing: DATA_SECURITY_API_ROUTES.recordOfProcessing,
+  approveAiProposal: DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
+  dismissAiProposal: DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
+  undoAiProposal: DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
+  // One decision for every finding like it (#10372).
+  similarFindings: DATA_SECURITY_API_ROUTES.similarFindings(":id"),
+  applyToSimilar: DATA_SECURITY_API_ROUTES.applyToSimilarFindings(":id"),
+  // Issues with one cause (#10370).
+  issueGroups: DATA_SECURITY_API_ROUTES.issueGroups,
+  issueGroupFixPlan: DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
+  fixIssueGroup: DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+  // Where an issue's fix in code stands, under How to Fix (#10367).
+  issueCodeFix: DATA_SECURITY_API_ROUTES.issueCodeFix(":id"),
 };
+
+// What Data Security → AI's notice reads: AI is on, with a provider to use.
+const AI_PROVIDERS = {
+  isAIEnabledForProject: true,
+  defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+  providers: [
+    {
+      id: "9d9d9d9d-0000-4000-8000-000000000001",
+      name: "OneUptime AI",
+      isGlobal: true,
+      isDefault: false,
+    },
+  ],
+};
+
+/*
+ * A press on a proposal, as the server answers it: a Security Viewer may
+ * not, and the proposal moves on - made, dismissed or undone.
+ */
+function actOnProposal(proposalId, status) {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      { message: "You do not have permission to do this in Data Security." },
+      {},
+    );
+  }
+  const proposal = table(DataSecurityAiProposal).find((row) => {
+    return row._id === proposalId;
+  });
+  if (!proposal) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "This proposal was not found." },
+      {},
+    );
+  }
+  proposal.status = status;
+  return new HTTPResponse(
+    200,
+    { proposalId, status, waitsForSecondApproval: false },
+    {},
+  );
+}
 
 // "/data-security/store/:id/respond" against a request's path.
 function idOf(pattern, pathname) {
@@ -2296,6 +3788,14 @@ async function handleApi(method, options) {
     return new HTTPResponse(200, compliance(), {});
   }
 
+  if (method === "POST" && pathname.endsWith(ROUTE.recordOfProcessing)) {
+    return new HTTPResponse(200, recordOfProcessing(), {});
+  }
+
+  if (method === "POST" && pathname.endsWith(ROUTE.scrubRulesHidingAddresses)) {
+    return scrubRulesHidingAddresses();
+  }
+
   const actionsFor = idOf(ROUTE.responseActions, pathname);
   if (method === "POST" && actionsFor) {
     return new HTTPResponse(200, responseActions(actionsFor), {});
@@ -2316,6 +3816,33 @@ async function handleApi(method, options) {
     return new HTTPResponse(200, respond(respondTo, body), {});
   }
 
+  // OneUptime AI's analysis the issue keeps, read with no model call (#10369).
+  const analysisOf = idOf(ROUTE.issueAnalysis, pathname);
+  if (method === "POST" && analysisOf) {
+    const analysis = issueAnalysis(analysisOf);
+    // An analysis points at the group of issues its issue is one of (#10370).
+    return new HTTPResponse(
+      200,
+      { analysis, group: analysis ? issueGroupOf(analysisOf) : null },
+      {},
+    );
+  }
+
+  /*
+   * Analyze Again: with nothing the analysis rests on changed, the server
+   * keeps it and asks OneUptime AI nothing. The fixture has no model, so an
+   * issue with no analysis gets none.
+   */
+  const explainOf = idOf(ROUTE.explain, pathname);
+  if (method === "POST" && explainOf) {
+    const analysis = issueAnalysis(explainOf);
+    return new HTTPResponse(
+      200,
+      { markdown: "", analysis, isNew: false, group: issueGroupOf(explainOf) },
+      {},
+    );
+  }
+
   const occurrencesOf = idOf(ROUTE.occurrences, pathname);
   if (method === "POST" && occurrencesOf) {
     // A Security Viewer does not read masked samples, nor the records.
@@ -2329,6 +3856,19 @@ async function handleApi(method, options) {
     return new HTTPResponse(200, occurrences(occurrencesOf), {});
   }
 
+  // Asked by whoever may press Scrub It, as the press itself is.
+  const impactOf = idOf(ROUTE.scrubImpact, pathname);
+  if (method === "POST" && impactOf) {
+    if (role === "viewer") {
+      return new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to do this in Data Security." },
+        {},
+      );
+    }
+    return scrubImpact(impactOf);
+  }
+
   const scrubOf = idOf(ROUTE.scrub, pathname);
   if (method === "POST" && scrubOf) {
     if (role === "viewer") {
@@ -2339,6 +3879,84 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, scrub(scrubOf), {});
+  }
+
+  // The findings like one just decided, and the same decision on the ticked ones (#10372).
+  const similarTo = idOf(ROUTE.similarFindings, pathname);
+  if (method === "POST" && similarTo) {
+    return new HTTPResponse(200, similarFindings(similarTo), {});
+  }
+
+  const applyFrom = idOf(ROUTE.applyToSimilar, pathname);
+  if (method === "POST" && applyFrom) {
+    if (role === "viewer") {
+      return new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to do this in Data Security." },
+        {},
+      );
+    }
+    const ids = Array.isArray(body.findingIds) ? body.findingIds : [];
+    return new HTTPResponse(
+      200,
+      {
+        decision: similarFindings(applyFrom).decision,
+        applied: ids.length,
+        skipped: 0,
+      },
+      {},
+    );
+  }
+
+  // Issues with one cause (#10370): the groups, a group's fix, and a press of it.
+  if (method === "POST" && pathname.endsWith(ROUTE.issueGroups)) {
+    return new HTTPResponse(200, issueGroups(body), {});
+  }
+
+  const planOf = idOf(ROUTE.issueGroupFixPlan, pathname);
+  if (method === "POST" && planOf) {
+    return new HTTPResponse(200, issueGroupFixPlan(planOf), {});
+  }
+
+  const fixOf = idOf(ROUTE.fixIssueGroup, pathname);
+  if (method === "POST" && fixOf) {
+    return new HTTPResponse(200, fixIssueGroup(fixOf, body), {});
+  }
+
+  /*
+   * Where the issue's fix in code stands (#10367), as the server reads it
+   * (Server/Utils/DataSecurity/DataSecurityIssueCodeFix): no issue here
+   * has had Fix with AI asked for it, and none is a secret seen in the
+   * telemetry, so there is no fix and nowhere a secret was seen to say.
+   */
+  const codeFixOf = idOf(ROUTE.issueCodeFix, pathname);
+  if (method === "POST" && codeFixOf) {
+    const issue = table(DataSecurityIssue).find((row) => {
+      return row._id === codeFixOf;
+    });
+    if (!issue) {
+      return new HTTPErrorResponse(404, { message: "Issue not found." }, {});
+    }
+    return new HTTPResponse(200, { fix: null }, {});
+  }
+
+  if (method === "POST" && pathname.endsWith("/ai-chat/providers")) {
+    return new HTTPResponse(200, AI_PROVIDERS, {});
+  }
+
+  const approveOf = idOf(ROUTE.approveAiProposal, pathname);
+  if (method === "POST" && approveOf) {
+    return actOnProposal(approveOf, DataSecurityAiProposalStatus.Applied);
+  }
+
+  const dismissOf = idOf(ROUTE.dismissAiProposal, pathname);
+  if (method === "POST" && dismissOf) {
+    return actOnProposal(dismissOf, DataSecurityAiProposalStatus.Dismissed);
+  }
+
+  const undoOf = idOf(ROUTE.undoAiProposal, pathname);
+  if (method === "POST" && undoOf) {
+    return actOnProposal(undoOf, DataSecurityAiProposalStatus.Undone);
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

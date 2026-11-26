@@ -24,8 +24,13 @@ import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "Common/Types/Incident/IncidentAlertLink";
+import {
+  ALERT_OWNERS_ADDED_ONE_ALERT,
+  ALERT_OWNERS_IN_FIELD_ONE_ALERT,
+} from "../../../FeatureSet/Dashboard/src/Components/Incident/AlertOwnersOnDeclare";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -1869,23 +1874,52 @@ describe("Incident Linked Alerts docs", () => {
       }
     });
 
-    it("says a private declared incident takes the alerts' owners, in every language", () => {
+    /*
+     * #10867: a declared incident starts with the alerts' owners - in the
+     * Owners field the declarer can change, or added by OneUptime when they
+     * may not add owners - private or not, and they are told once.
+     */
+    it("says a declared incident starts with the alerts' owners, in every language", () => {
       for (const language of ALL_LANGUAGES) {
+        const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
         const row: string =
-          tableRowStartingWith(
-            readPage(LINKED_ALERTS_PAGE, language),
-            bold(language, "Private Incident"),
-          ) || "";
+          tableRowStartingWith(markdown, bold(language, "Owners")) || "";
+        const translator: Translator = dashboardTranslator(language);
 
         expect({
           language: language,
-          ownersMentioned: row.includes(OWNERS_WORD[language] as string),
-        }).toEqual({ language: language, ownersMentioned: true });
+          prefilledRow: row.length > 0,
+          // The banner's two sentences, as that language's Dashboard words them.
+          quotesInField: markdown.includes(
+            `"${translator.translateText(ALERT_OWNERS_IN_FIELD_ONE_ALERT)}"`,
+          ),
+          quotesAdded: markdown.includes(
+            `"${translator.translateText(ALERT_OWNERS_ADDED_ONE_ALERT)}"`,
+          ),
+          // The API's switch, by its name.
+          namesTheKey: markdown.includes(
+            `\`${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY}\``,
+          ),
+        }).toEqual({
+          language: language,
+          prefilledRow: true,
+          quotesInField: true,
+          quotesAdded: true,
+          namesTheKey: true,
+        });
       }
 
-      expect(readPage(LINKED_ALERTS_PAGE)).toContain(
-        "are added as owners of the incident, without being notified",
+      const english: string = readPage(LINKED_ALERTS_PAGE);
+
+      // Told once, by Incident Created - never "without being notified".
+      expect(english).not.toContain("without being notified");
+      expect(english).toContain(
+        'and get no "added as an owner" notice on top of it',
       );
+      // A private incident no longer copies them on its own.
+      expect(
+        tableRowStartingWith(english, "**Private Incident**") || "",
+      ).not.toContain(OWNERS_WORD["en"] as string);
     });
 
     it("quotes the private-title and declared-from-alerts wording the feed entries use, in every language", () => {

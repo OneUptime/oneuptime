@@ -459,6 +459,7 @@ Hvert datapunkt bærer Azure-ressurs-ID-en til ressursen sin (`azuremonitor.reso
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ En ressurs i en [tilkoblet konto](/docs/telemetry/cloud-accounts) får på fanen
 :::
 
 Et Service Bus-navneområde rapporterer målingene sine én gang per kø og emne, og et Event Hubs-navneområde én gang per event hub. Der de kan legges sammen, viser en rad i fanen **Målinger** for navneområdet summen av dem, med **sum av serier** under. En monitor opprettet fra den raden leser også summen, og det samme gjør en monitor opprettet via API-et eller Terraform uten en aggregering. De andre radene viser **gjennomsnitt av serier**, altså den gjennomsnittlige køen eller event huben: en forsinkelse og, over et tidsrom på mer enn 3 timer, en mengde navneområdet holder, som ventende meldinger.
+
+Tilkoblingen leser forespørslene til en Container App én gang per statuskodekategori for å skille ut 5xx-svarene, og raden for forespørslene legger dem sammen på samme måte: den viser summen, og det samme gjør en monitor opprettet fra den raden.
 
 > [!IMPORTANT]
 > Skyovervåking publiserer hvert tall minutter etter tidspunktet det måler: 10 til 20 minutter for CloudWatch som polles som ovenfor, noen få minutter for Azure Monitor og Cloud Monitoring. Det lagres under tidspunktet det måler. Gi en monitor over disse målingene et vindu som er lengre enn det (30 minutter for CloudWatch, 15 for de andre), ellers ser den ingen data og utløses aldri.

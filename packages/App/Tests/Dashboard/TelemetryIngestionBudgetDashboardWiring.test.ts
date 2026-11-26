@@ -76,19 +76,24 @@ describe("the Dashboard's ingestion budgets", () => {
     );
   });
 
+  /*
+   * Security Events' banner is handed the read of today's budgets that the
+   * banners of the logs and traces it reads share with it (#10431), so the
+   * page reads the budgets once.
+   */
   test.each([
-    ["Logs", "Logs"],
-    ["Traces", "Traces"],
-    ["Metrics", "Metrics"],
-    ["Profiles", "Profiles"],
-    ["SecurityEvents", "SecurityEvents"],
+    ["Logs", "Logs", ""],
+    ["Traces", "Traces", ""],
+    ["Metrics", "Metrics", ""],
+    ["Profiles", "Profiles", ""],
+    ["SecurityEvents", "SecurityEvents", " fetchStatus={readBudgets}"],
   ])(
     "the %s explorer draws the banner above its data",
-    (folder: string, signal: string) => {
+    (folder: string, signal: string, props: string) => {
       const layout: string = compact(read("Pages", folder, "Layout.tsx"));
       const banner: number = layout.indexOf(
         compact(
-          `<TelemetryIngestionBudgetExplorerBanner signal={ProductType.${signal}} />`,
+          `<TelemetryIngestionBudgetExplorerBanner signal={ProductType.${signal}}${props} />`,
         ),
       );
 
@@ -96,6 +101,23 @@ describe("the Dashboard's ingestion budgets", () => {
       expect(banner).toBeLessThan(layout.indexOf("<Outlet/>"));
     },
   );
+
+  test("the Security Events explorer's banners share one read of today's budgets, above its data", () => {
+    const layout: string = compact(
+      read("Pages", "SecurityEvents", "Layout.tsx"),
+    );
+    const readBanners: number = layout.indexOf(
+      compact("<SecurityEventsReadBudgetBanners fetchStatus={readBudgets} />"),
+    );
+
+    expect(layout).toContain(
+      compact(
+        "return shareOneBudgetsRead(fetchProjectTelemetryIngestionBudgetStatus);",
+      ),
+    );
+    expect(readBanners).toBeGreaterThan(0);
+    expect(readBanners).toBeLessThan(layout.indexOf("<Outlet/>"));
+  });
 });
 
 describe("an ingestion key's page", () => {

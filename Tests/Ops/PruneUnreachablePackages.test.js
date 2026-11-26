@@ -44,8 +44,9 @@
  *    names the file that starts or loads it as an --entry-loader, whose
  *    computed loads and starts are then let through. An entry loader has to
  *    be a file the walk read that still loads or starts something by a
- *    computed name. The App's two (its Enterprise loader, and the external
- *    calendar's worker) are pinned here as they read today.
+ *    computed name. The App's three (its Enterprise loader, and what starts
+ *    the external calendar's worker and the names-and-addresses model's) are
+ *    pinned here as they read today.
  *  - The prune: only dependencies the walk never reached leave package.json,
  *    every other field stays, then `npm prune --omit=dev --offline` runs in
  *    the package, and it fails if npm removed anything the walk reached.
@@ -57,11 +58,13 @@
  *    checkout, and for the sidecar Ops Config Test's ingress-prune job, which
  *    installs them and sets RUN_REAL_SIDECAR_PRUNE_TESTS=1 so its walk fails
  *    rather than skips without them; the image build itself is the check
- *    everywhere else): the sidecar's and the Runner's walks read their files
- *    without a computed import, the App's finds computed loads and starts
- *    only in its two entry loaders, each reaches what it runs on and none of
- *    the Dashboard's packages, and every package any of them finds missing
- *    is one of the optional ones below.
+ *    everywhere else): the Runner's walk reads its files without a computed
+ *    import; the sidecar's and the App's find computed loads and starts only
+ *    in their entry loaders - for the sidecar, the one that starts the
+ *    names-and-addresses model's worker, which it reaches through Common's
+ *    DatabaseService - and reach ONNX Runtime only through that worker; each
+ *    reaches what it runs on and none of the Dashboard's packages, and every
+ *    package any of them finds missing is one of the optional ones below.
  *
  * ContainerImageHardening.test.js holds the Nginx, Runner and App Dockerfiles'
  * stages to the script (where it runs, and that only what it leaves ships),
@@ -1918,6 +1921,30 @@ describe("the App's entry loaders", () => {
     );
   });
 
+  test("the names-and-addresses model starts its worker's file, and nothing else, beside the App", () => {
+    expect(
+      computedIn(
+        "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts",
+      ),
+    ).toEqual(["new Worker("]);
+    const source = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts",
+      ),
+      "utf8",
+    );
+    expect(source).toContain('"NameAddressModelWorker.cjs"');
+    expect(
+      fs.existsSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs",
+        ),
+      ),
+    ).toBe(true);
+  });
+
   test("the external calendar starts its worker's file, and nothing else, beside the App", () => {
     expect(
       computedIn(
@@ -2297,21 +2324,51 @@ function isOptionalMissing(specifier) {
   );
 }
 
+/*
+ * Data Security's names-and-addresses model, whose worker thread alone
+ * requires ONNX Runtime. Both the sidecar and the App reach the code that
+ * starts it (through Common's DatabaseService, for the sidecar), so both
+ * images walk the worker as an entry, with its starter as an entry loader.
+ */
+const MODEL_DIRECTORY = path.join(
+  REPO_ROOT,
+  "packages",
+  "Common",
+  "Server",
+  "Utils",
+  "DataSecurity",
+  "Model",
+);
+const MODEL_WORKER = path.join(MODEL_DIRECTORY, "NameAddressModelWorker.cjs");
+const MODEL_THREAD = path.join(MODEL_DIRECTORY, "NameAddressModelThread.ts");
+
+/*
+ * The real sidecar, as the ingress image walks it
+ * (packages/Nginx/Dockerfile.tpl): its entry and the model's worker, with the
+ * model's thread as its one entry loader.
+ */
+const SIDECAR_ENTRY_LOADERS = [MODEL_THREAD];
+
 (SIDECAR_INSTALLED || REAL_SIDECAR_REQUIRED ? describe : describe.skip)(
   "the real certificate sidecar",
   () => {
     let walk;
+    let alone;
     const common = path.join(REPO_ROOT, "packages", "Common");
 
     beforeAll(async () => {
-      walk = await walkImports({ entry: SIDECAR_ENTRY, esbuild });
+      walk = await walkImports({
+        entries: [SIDECAR_ENTRY, MODEL_WORKER],
+        esbuild,
+      });
+      alone = await walkImports({ entry: SIDECAR_ENTRY, esbuild });
     }, 120000);
 
-    // The top-level packages of Common the walk reached, by name.
-    function reachedNames() {
+    // The top-level packages of Common a walk reached, by name.
+    function reachedNames(of = walk) {
       const nodeModules = path.join(common, "node_modules");
       return new Set(
-        [...walk.reached]
+        [...of.reached]
           .map((directory) => {
             return path.relative(nodeModules, directory).split(path.sep);
           })
@@ -2324,11 +2381,34 @@ function isOptionalMissing(specifier) {
       );
     }
 
-    test("loads nothing by a computed name", () => {
+    test("loads and starts code by a computed name only in its entry loader, the names-and-addresses model's thread", () => {
       expect(walk.ownFiles.length).toBeGreaterThan(1000);
-      expect(findComputedImports({ files: walk.ownFiles, typescript })).toEqual(
-        [],
+      const computed = findComputedImports({
+        files: walk.ownFiles,
+        typescript,
+      });
+      expect(
+        [
+          ...new Set(
+            computed.map((item) => {
+              return item.file;
+            }),
+          ),
+        ].sort(),
+      ).toEqual(
+        SIDECAR_ENTRY_LOADERS.map((file) => {
+          return fs.realpathSync(file);
+        }).sort(),
       );
+      for (const loader of SIDECAR_ENTRY_LOADERS) {
+        expect(walk.ownFiles).toContain(fs.realpathSync(loader));
+        expect(alone.ownFiles).toContain(fs.realpathSync(loader));
+      }
+    });
+
+    test("reaches onnxruntime-web only through the names-and-addresses model's worker, which is why the worker is an entry", () => {
+      expect(reachedNames(alone).has("onnxruntime-web")).toBe(false);
+      expect(reachedNames(walk).has("onnxruntime-web")).toBe(true);
     });
 
     test("reaches what the sidecar runs on", () => {
@@ -2524,6 +2604,7 @@ const CALENDAR_WORKER = path.join(
 const APP_ENTRY_LOADERS = [
   path.join(REPO_ROOT, "packages", "App", "Utils", "EnterpriseLoader.ts"),
   path.join(CALENDAR_DIRECTORY, "ExternalCalendarExpansion.ts"),
+  MODEL_THREAD,
 ];
 const APP_INSTALLED =
   COMMON_INSTALLED &&
@@ -2537,7 +2618,7 @@ const APP_INSTALLED =
 
   beforeAll(async () => {
     walk = await walkImports({
-      entries: [APP_ENTRY, CALENDAR_WORKER],
+      entries: [APP_ENTRY, CALENDAR_WORKER, MODEL_WORKER],
       esbuild,
     });
     alone = await walkImports({ entry: APP_ENTRY, esbuild });
@@ -2566,6 +2647,11 @@ const APP_INSTALLED =
   test("reaches ical.js only through the external calendar's worker, which is why the worker is an entry", () => {
     expect(reachedCommonNames(alone).has("ical.js")).toBe(false);
     expect(reachedCommonNames(walk).has("ical.js")).toBe(true);
+  });
+
+  test("reaches onnxruntime-web only through the names-and-addresses model's worker, which is why the worker is an entry", () => {
+    expect(reachedCommonNames(alone).has("onnxruntime-web")).toBe(false);
+    expect(reachedCommonNames(walk).has("onnxruntime-web")).toBe(true);
   });
 
   test("reaches what the App runs on", () => {

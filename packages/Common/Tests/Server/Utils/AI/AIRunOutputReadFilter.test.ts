@@ -185,13 +185,14 @@ describe("every kind of AI run is one the rule knows", () => {
     expect(new Set(classified).size).toBe(classified.length);
   });
 
-  test("a chat is a person's own; an investigation and a fix's runs OneUptime's; a CodeFix run the project's", () => {
+  test("a chat is a person's own; an investigation, a fix's and a security case's runs OneUptime's; a CodeFix run the project's", () => {
     expect(PERSONAL_RUNS).toEqual([AIRunType.Chat]);
     expect([...RUNS_ONEUPTIME_STARTS].sort()).toEqual(
       [
         AIRunType.Investigation,
         AIRunType.RemediationPlan,
         AIRunType.RemediationExecution,
+        AIRunType.SecurityCaseResponse,
       ].sort(),
     );
     expect(PROJECT_WIDE_RUNS).toEqual([AIRunType.CodeFix]);

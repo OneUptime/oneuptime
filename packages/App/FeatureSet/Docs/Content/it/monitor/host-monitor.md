@@ -200,7 +200,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Tutti i valori** (ogni valore deve corrispondere, su tutta la finestra) o **Qualsiasi valore** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalmente alto**, **Anomalmente basso** o **Anomalo**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a**, **Uguale a** o **Diverso da**, oppure una condizione di anomalia: **Anomalmente alto**, **Anomalmente basso** o **Anomalo**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
@@ -229,6 +229,7 @@ Un solo monitor host copre ogni disco che l'host riporta. I modelli High Filesys
 | Dove | Cosa mostra per ogni disco |
 | --- | --- |
 | La pagina **Metriche** del monitor | Una linea per disco, con il nome del suo `mountpoint` e del suo `device`. |
+| La pagina **Panoramica** del monitor | **Serie** elenca ogni disco letto dall'ultimo controllo: il suo ultimo valore, i criteri che soddisfa e il suo incidente o avviso aperto. |
 | **Log di monitoraggio** | La colonna **Osservato** conta le serie lette da ogni controllo: una per disco. |
 | **Incidenti** e **Avvisi** | Uno per disco, che indica il mount e il dispositivo del disco. |
 | La scheda **Filesystem** dell'host | Ogni disco che il collector riporta, qualunque cosa sorveglino i vostri monitor. |
@@ -238,7 +239,7 @@ Ogni criterio viene controllato per ogni disco:
 - Finché l'incidente di un disco è aperto, il criterio che l'ha aperto non ne apre altri per quel disco. Un altro disco che lo soddisfa apre il proprio.
 - Un disco che soddisfa due criteri, come uno sopra il 98% e un altro sopra il 90%, riceve un solo incidente, dal primo dei due nell'elenco. Mettete per primo il più restrittivo.
 - L'incidente di un disco si risolve quando quel disco smette di soddisfare il criterio che l'ha aperto, qualunque cosa facciano gli altri dischi.
-- Il monitor ha un solo stato, impostato dal primo criterio dell'elenco soddisfatto da un disco qualsiasi. Quando nessun disco soddisfa un criterio che scatta, per il criterio che ripristina basta un disco alla soglia di ripristino o sotto, quindi il margine di ripristino del 10% non regge su un host con un disco che non si avvicina mai al pieno.
+- Il monitor ha un solo stato. Un criterio che lo porta a un altro stato, come **Offline**, lo imposta non appena un disco lo soddisfa. Il criterio che riporta il monitor al suo **Stato predefinito del monitor** attende i dischi che hanno soddisfatto un criterio del genere, e corrisponde quando ciascuno di essi lo soddisfa, qualunque cosa facciano gli altri dischi. Così un disco che scende dal 96% all'89% tiene il monitor **Offline** finché non è all'81% o sotto, il margine di ripristino del 10%, anche se il suo incidente si risolve non appena non è più sopra il 90%. **Serie** mostra quel disco come **Mantiene lo stato**. Un disco che non viene più riportato smette di mantenere lo stato.
 
 Per sorvegliare solo alcuni dischi, aprite **Avanzato** e, nella query in **Seleziona metriche**, aggiungete con **Filtra per attributi** un filtro su `mountpoint`: **è uno tra** i dischi da sorvegliare, oppure **non è nessuno tra** i dischi da escludere. Mantenete il **Raggruppa per**, e scrivete ogni disco come lo mostra la scheda **Filesystem**, per esempio `C:` o `/var`. Per smettere del tutto di raccogliere un disco, così che esca anche dalle pagine dell'host, impostate `include_mount_points` o `exclude_mount_points` sullo scraper `filesystem` del collector ([Metriche dell'host](/docs/telemetry/host-otel-collector#metriche-dellhost)).
 

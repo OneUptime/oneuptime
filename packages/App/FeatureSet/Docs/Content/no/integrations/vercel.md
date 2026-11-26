@@ -188,7 +188,7 @@ Den samme egendefinerte drainen fungerer på OneUptime Cloud, med `oneuptime.com
 Vercel viser svaret fra OneUptime på leveransene til drainen:
 
 - `403` med `x-vercel-signature` i meldingen: Vercel signerte ikke leveransen med nøkkelen Vercel sender. For en egendefinert drain kontrollerer du `x-oneuptime-token`-headeren, og setter signeringshemmeligheten til den samme nøkkelen.
-- `401`: OneUptime kjenner ikke noe prosjekt med nøkkelen drainen sender: den er slettet, eller skrevet feil begge steder. Bruk en nøkkel fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**.
+- `401`: OneUptime kjenner ikke noe prosjekt med nøkkelen drainen sender: den er slettet, eller skrevet feil. Bruk en nøkkel fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**.
 - `422`: nøkkelen er slått av. Slå den på igjen på samme side, eller bruk en annen.
 :::
 

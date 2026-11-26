@@ -67,7 +67,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparate
 | Sectie | Pagina's |
 | --- | --- |
 | **Topologie** | **Apparaattopologie**, **Gedetecteerde apparaten**, **Latentiematrix**, **Locatiekoppelingen**, **Apparaatkoppelingen** |
-| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Naamgevingsregels**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
+| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Naamgevingsregels**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels**, **Auditlogboeken** |
 | **Instellingen** | **Waarschuwingsbeleid**, **SNMP-inloggegevens**, **Apparaatrollen**, **Locatietypen**, **Adresnamen**, **Sjablonen voor OID-verzameling** |
 | **Geavanceerd** | **SNMP-walk**, **Gearchiveerde apparaten** |
 
@@ -575,7 +575,7 @@ Typ het bereik in **Scandoel**, controleer de **Sonde** en kies de **Scanmethode
 Alleen een SNMP-scan vraagt om inloggegevens: kies je **SNMP**, dan komt de stap **SNMP-inloggegevens** erbij, met de sets inloggegevens die geprobeerd moeten worden. Een [ICMP-scan](#icmp-scans) heeft geen tweede stap, en **Scan starten** staat op de eerste pagina.
 
 ### De scan starten
-Klik op **Scan starten**. De sonde scant het bereik en meldt hoeveel hosts ze heeft gescand en hoeveel er antwoordden: hoeveel er op SNMP antwoordden, of, bij een ICMP-scan, hoeveel er op ping antwoordden.
+Klik op **Scan starten**. De sonde scant het bereik en meldt hoeveel hosts ze heeft gescand en hoeveel er antwoordden: hoeveel er op SNMP antwoordden, of, bij een ICMP-scan, hoeveel er op ping antwoordden. Wil je het bereik later opnieuw scannen, klik dan bij de scan op **Opnieuw uitvoeren**.
 
 ### Importeren wat er gevonden is
 Klik op **Resultaten bekijken** bij de scan, kies de hosts om te importeren en klik op **Volgende**. Kies hoe vaak ze worden gecontroleerd en of elk een monitor krijgt, en importeer ze dan; zie [Importeren wat een scan heeft gevonden](#importeren-wat-een-scan-heeft-gevonden).
@@ -595,7 +595,7 @@ Ingeklapt onder **Meer velden** in de eerste stap, voor de scans die ze nodig he
 | Naam | Waar de scan voor is, zodat je hem van andere scans kunt onderscheiden. De lijst toont het scandoel als dit leeg is. | Leeg |
 | Windows-namen opzoeken (NetBIOS) | Vraagt elke host zonder SNMP-systeemnaam om zijn NetBIOS-naam, zijn Windows-computernaam, via UDP 137. Die naam gaat voor de reverse-DNS-naam van de host. Alleen privéadressen en eigen sondes; zie [Hoe ontdekte apparaten hun naam krijgen](#hoe-ontdekte-apparaten-hun-naam-krijgen). | Aan |
 | Name devices by their short hostname | Geeft geïmporteerde apparaten de naam van het eerste deel van een volledig gekwalificeerde hostnaam: `core-sw-01` in plaats van `core-sw-01.corp.example.com`. | Uit |
-| Repeat this scan | Voert de scan opnieuw uit met een interval, het **Interval voor opnieuw scannen (minuten)**, van minstens 15 minuten, om discovery gaande te houden; zie [auto-importregels](#automatisch-importeren-met-auto-importregels). Hosts die een herhaalde scan vindt, wachten op je beoordeling tenzij een auto-importregel erop past. | Uit |
+| Repeat this scan | Voert de scan opnieuw uit met een interval, het **Interval voor opnieuw scannen (minuten)**, van minstens 15 minuten, om discovery gaande te houden; zie [auto-importregels](#automatisch-importeren-met-auto-importregels). Hosts die een herhaalde scan vindt, wachten op je beoordeling tenzij een auto-importregel erop past. Uitgeschakeld toont de scan **Op aanvraag** en draait hij opnieuw wanneer je op **Opnieuw uitvoeren** klikt. | Uit |
 
 ### Notatie van het scandoel
 
@@ -647,6 +647,12 @@ Als de hosts die je importeert SNMP-hosts bevatten, biedt de stap **Bewaking** v
 3. De stap **Importeren** telt apparaten en monitors apart, naarmate elk wordt gemaakt, al aanwezig blijkt of mislukt. Aan het eind linkt hij naar wat hij maakte en toont hij, onder de reden, elke host die hij niet importeerde en elk apparaat dat hij zonder zijn monitor importeerde. Een nieuwe poging probeert alleen de mislukte hosts opnieuw en maakt nooit iets dubbel. **Import stoppen** stopt na de host die nu wordt geïmporteerd en behoudt wat al gemaakt is.
 
 De import draait op de server en handelt namens jou: elk apparaat en elke monitor wordt gemaakt met jouw rechten, en wat je niet mag maken, staat in de lijst met de reden. Je kunt het dialoogvenster op elk moment sluiten: de rij van de scan toont hoe ver de import is, en **Voortgang bekijken** opent hem weer. **Meer apparaten importeren** begint opnieuw met de hosts die over zijn. Eén import neemt tot 5.000 hosts; importeer een grotere scan in delen, per subnet of naar wat de hosts beantwoordden. De imports van een project draaien één voor één: een import die wordt gevraagd terwijl een andere draait, wacht daarop.
+
+### Een scan opnieuw uitvoeren
+
+Een scan is na zijn eerste uitvoering niet op. Wil je hetzelfde bereik opnieuw scannen, bijvoorbeeld nadat er nieuwe apparaten zijn geïnstalleerd, klik dan in de rij van de scan, onder wanneer hij voor het laatst draaide, op **Opnieuw uitvoeren**. Dezelfde scan draait opnieuw met zijn eigen doel, sonde, scanmethode en inloggegevens, dus er ontstaat geen tweede scan: zijn rij toont **In de wachtrij**, dan **Bezig met scannen**, en de resultaten van de nieuwe uitvoering vervangen de vorige zodra ze binnenkomen. Apparaten die je al hebt geïmporteerd, blijven zoals ze zijn. Een scan die zich niet herhaalt, toont **Op aanvraag** in de lijst en draait wanneer je op **Opnieuw uitvoeren** klikt.
+
+**Opnieuw uitvoeren** verschijnt zodra een uitvoering is afgelopen, voltooid of mislukt: zolang een scan in de wachtrij staat of bezig is, neemt zijn voortgang de plaats van de knop in, en een tweede uitvoering wordt geweigerd. Een uitvoering wordt ook geweigerd zolang de sonde van de scan niet met OneUptime is verbonden, zodat de scan zijn laatste resultaten houdt; start de sonde, of kies een andere sonde via **Bewerken**. Een scan die zich herhaalt, houdt zijn planning: hij herhaalt zich even vaak als voorheen, en zijn volgende uitvoering telt vanaf het einde van deze. Een scan uitvoeren vraagt de toestemming om detectiescans te bewerken; zijn rij noemt wie hem het laatst heeft uitgevoerd, en de auditlogboeken leggen elke uitvoering vast als die van die persoon. Een API-sleutel met die toestemming kan ook een scan uitvoeren, met `POST /api/network-device-discovery-scan/<scan ID>/run`.
 
 ### Hoe ontdekte apparaten hun naam krijgen
 
@@ -731,7 +737,7 @@ In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk appar
 
 Regels hebben geen eigen schema en hebben er ook geen nodig. Ingeschakelde regels draaien vanzelf tegen de resultaten van elke scan zodra die binnenkomen, inclusief de deelresultaten die een lange scan uploadt terwijl hij nog loopt, dus hosts worden binnen een minuut na het vinden geïmporteerd in plaats van aan het einde van het bereik. Zet **Deze scan herhalen** aan op een discovery-scan en het paar wordt een vaste afspraak: de scan scant zijn bereik opnieuw met jouw interval, en elke nieuwe host die hij vindt, wordt geïmporteerd zonder dat iemand ergens op drukt.
 
-Een regel opslaan past hem ook toe op resultaten die het project al heeft: een regel die je vandaag schrijft of inschakelt, bereikt binnen ongeveer een minuut de hosts die in de afgelopen 24 uur zijn ontdekt, zodat een regel die na een eenmalige scan is geschreven niet blijft wachten op een scan die nooit meer draait. Oudere resultaten blijven met rust, omdat een omgeving importeren die vorige maand is ontdekt een beslissing is, geen bijwerking van het opslaan van een regel. De twee knoppen van een regel zijn hoe je die beslissing neemt, en ze bereiken elke scan in het project, hoe oud ook:
+Een regel opslaan past hem ook toe op resultaten die het project al heeft: een regel die je vandaag schrijft of inschakelt, bereikt binnen ongeveer een minuut de hosts die in de afgelopen 24 uur zijn ontdekt, zodat een regel die na een scan is geschreven niet blijft wachten tot de scan opnieuw draait. Oudere resultaten blijven met rust, omdat een omgeving importeren die vorige maand is ontdekt een beslissing is, geen bijwerking van het opslaan van een regel. Wil je importeren wat een bereik vandaag bevat, klik dan bij zijn scan op **Opnieuw uitvoeren**: de nieuwe resultaten zijn vers, en de regels importeren ze binnen een minuut nadat ze binnenkomen. Wil je de oude resultaten importeren zoals ze zijn, gebruik dan de twee knoppen van een regel, die elke scan in het project bereiken, hoe oud ook:
 
 - **Proefrun** beoordeelt elke voltooide scan en meldt wat de regel zou importeren en monitoren. Er wordt niets weggeschreven, dus het is de veilige manier om te zien wat een regel zou claimen voordat je hem op een productieomgeving inschakelt. Een uitgeschakelde regel kan een proefrun krijgen; alleen een echte run vereist dat hij is ingeschakeld, daarom begint een regel die in het dashboard is gemaakt met **Ingeschakeld** uit: doe een proefrun en zet hem dan aan.
 - **Regel uitvoeren** doet dezelfde beoordeling en voert de import uit.

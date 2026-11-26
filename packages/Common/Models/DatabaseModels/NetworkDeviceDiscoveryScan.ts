@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Probe from "./Probe";
 import Project from "./Project";
 import User from "./User";
@@ -243,6 +245,18 @@ export interface DiscoveredNetworkDevice extends SnmpHardwareIdentity {
   tableDescription:
     "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — from a probe and report the hosts found, so they can be imported as Network Devices. Every sweep pings; an SNMP scan also queries each live host over SNMP, an ICMP scan asks nothing more.",
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_NETWORKDEVICEDISCOVERYSCAN_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
 })
@@ -478,6 +492,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
    * every surface that renders it falls back to the scan target. See
    * Common/Utils/NetworkDiscovery/ScanNameUtil.
    */
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
@@ -1580,6 +1595,119 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
   })
   public autoImportProcessedAt?: Date = undefined;
 
+  /*
+   * WHO RAN THE RUN ON THIS ROW AGAIN, AND WHEN (OneUptime issue #10334).
+   *
+   * A scan runs when it is created, when its schedule comes round, when an
+   * edit changes what it sweeps - and, since #10334, whenever someone presses
+   * Run Again (POST /network-device-discovery-scan/:scanId/run,
+   * NetworkDeviceDiscoveryScanService.runAgain). These two columns describe
+   * only that last kind: set when a person or an API key asks for a run,
+   * and cleared again by whatever queues a run by itself - the requeue
+   * worker on a recurring scan's schedule, and the retire an edit of the
+   * sweep makes (RETIRE_RUN_PAYLOAD). So a row with runRequestedAt set is a
+   * row whose current or latest run was asked for, and the scans list says
+   * by whom; a row without is one that ran by itself.
+   *
+   * The audit log keeps every request with who made it, on the Enterprise
+   * Edition. These keep the latest on the row itself, which every edition
+   * shows.
+   *
+   * Written only by the server: create and update are empty, so neither the
+   * CRUD API nor a form can set them, and the audit defaults leave them out
+   * of every entry as OneUptime's own bookkeeping. runAgain records its own
+   * entry, naming runRequestedAt, with the requester's props.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Run Requested At",
+    description:
+      "When someone last ran this scan again on demand (Run Again), for the run it is on now or ran last. Empty when that run started by itself: when the scan was created, on its schedule, or after a settings change. Managed by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public runRequestedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runRequestedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Run Requested By",
+    description:
+      "Relation to the User who last ran this scan again on demand, for the run it is on now or ran last. Empty when that run started by itself, when an API key asked for it, or once the user is deleted. Managed by the server.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runRequestedByUserId" })
+  public runRequestedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Run Requested By User ID",
+    description:
+      "ID of the User who last ran this scan again on demand, for the run it is on now or ran last. Empty when that run started by itself, when an API key asked for it, or once the user is deleted. Managed by the server.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runRequestedByUserId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1656,68 +1784,4 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadNetworkDeviceDiscoveryScan,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadNetworkDeviceDiscoveryScan,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

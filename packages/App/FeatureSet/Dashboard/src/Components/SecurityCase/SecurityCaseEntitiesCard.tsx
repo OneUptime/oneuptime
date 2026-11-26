@@ -12,6 +12,17 @@ import useEntityRiskSettings, {
 } from "../SecurityEvents/EntityRisk/useEntityRiskSettings";
 import SecurityCaseApi, { EntityActivity } from "./SecurityCaseApi";
 import { SecurityEntityChip } from "./SecurityEntityChips";
+import BlockFromCaseModal from "./Response/BlockFromCaseModal";
+import { BLOCK_FROM_CASE_MENU_ITEM } from "./Response/SecurityCaseResponseCopy";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
+import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import ObjectID from "Common/Types/ObjectID";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import { canonicalAddress } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -104,6 +115,13 @@ export const SECURITY_CASE_ENTITIES_TEST_IDS: {
 
 export interface ComponentProps {
   entities: Array<SecurityEntity>;
+  /*
+   * The case they are on, and the addresses it may be blocked from - its
+   * public ones its requests did not only claim (BlockableAddresses): each
+   * such address's chip offers Block... (#10342).
+   */
+  securityCaseId?: ObjectID | undefined;
+  blockableAddresses?: Array<string> | undefined;
 }
 
 const SkeletonCell: FunctionComponent = (): ReactElement => {
@@ -171,6 +189,56 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The address Block... is open for (#10342).
+  const [blocking, setBlocking] = useState<string | null>(null);
+
+  /*
+   * Blocking from the case is a one-step playbook run that writes the
+   * blocklist: it takes the permission to run playbooks and to block.
+   */
+  const runGate: PermissionGateResult = PermissionGate.check(
+    new SecurityPlaybookRun(),
+    ModelAction.Create,
+  );
+  const blockGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Create,
+  );
+  const blockLock: string | undefined = !runGate.isAllowed
+    ? runGate.disabledReason || ""
+    : !blockGate.isAllowed
+      ? blockGate.disabledReason || ""
+      : undefined;
+  const blockable: Set<string> = new Set(props.blockableAddresses || []);
+
+  // Block... for an address the case may be blocked from; nothing for any other entity.
+  const getEntityMenuItems: (
+    entity: SecurityEntity,
+  ) => Array<ReactElement> | undefined = (
+    entity: SecurityEntity,
+  ): Array<ReactElement> | undefined => {
+    const address: string | null = canonicalAddress(entity.value);
+
+    if (!props.securityCaseId || !address || !blockable.has(address)) {
+      return undefined;
+    }
+
+    return [
+      <MoreMenuItem
+        key="block"
+        icon={IconProp.NoSymbol}
+        text={BLOCK_FROM_CASE_MENU_ITEM}
+        isDisabled={blockLock !== undefined}
+        tooltip={blockLock}
+        // A permission check's reason, in the reader's words already.
+        isTooltipTranslated={true}
+        dataTestId="security-case-entity-block"
+        onClick={() => {
+          setBlocking(address);
+        }}
+      />,
+    ];
+  };
 
   // Each header names its column, and its resize edge, in the reader's words.
   const entityTitle: string = translator.translateText("Entity") || "Entity";
@@ -509,6 +577,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                           <SecurityEntityChip
                             entity={entity}
                             isValueWrapped={true}
+                            menuItems={getEntityMenuItems(entity)}
                           />
                           {/*
                            * The type and when, under the value while their
@@ -625,6 +694,20 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
             </table>
           </div>
         </div>
+      )}
+      {blocking && props.securityCaseId ? (
+        <BlockFromCaseModal
+          securityCaseId={props.securityCaseId}
+          address={blocking}
+          onClose={() => {
+            setBlocking(null);
+          }}
+          onBlocked={() => {
+            setBlocking(null);
+          }}
+        />
+      ) : (
+        <></>
       )}
     </Card>
   );

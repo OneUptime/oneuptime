@@ -46,6 +46,8 @@ flowchart TB
 
 當有人輪流待命且 **更多欄位** 下沒有任何變更時，其收合的標題會說明將會發生什麼事：每人待命一週，然後由下一個人接手。
 
+已受邀加入專案但尚未加入的人也可以輪流待命，但在其接受邀請之前，任何內容都不會呼叫此人，也不會通知此人任何事。此人的輪值是一個涵蓋空檔，呼叫該排程的每個待命策略的頻道和動態消息都會說明這一點，並以邀請時填寫的名稱稱呼此人，絕不會使用其電子郵件地址："⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." Slack 中的 `/oneuptime oncall` 和 Microsoft Teams 中的 `oncall` 也會這樣說明。此人一旦加入，呼叫就能送達此人，此人會收到通知，了解現在有哪些待命策略會呼叫自己，頻道中會發布 "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." 在此之前，[就緒狀態與報告](/docs/on-call/readiness) 會列出此人，並說明該怎麼做。
+
 ## 層
 
 排程的輪替由其 **層** 頁面上的層組成。層由上往下讀取：有人待命的最上層就是呼叫的那一層，因此請把主要輪替放在頂端，把後備涵蓋放在下面。

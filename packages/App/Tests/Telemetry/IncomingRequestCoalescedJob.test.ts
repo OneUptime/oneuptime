@@ -9,10 +9,16 @@
  * for a payload-driven monitor an Alertmanager "resolved" notification
  * queued behind a waiting "firing" one was never evaluated at all.
  *
- * The endpoint now stores every request as its monitor's newest in
+ * The endpoint then stored every request as its monitor's newest in
  * IncomingRequestLatestPayloadStore before queueing it, and a coalesced job
  * (one carrying coalescedPayloadId) evaluates what the store holds when the
  * job runs, then clears it if nothing newer replaced it meanwhile.
+ *
+ * This release keeps every request instead and queues another kind of job
+ * (IncomingRequestPendingStore, #10582: IncomingRequestEveryRequest.test.ts
+ * and IncomingRequestPendingJob.test.ts). The jobs here are the ones an
+ * earlier release's API pods may still queue during an upgrade, which this
+ * release's workers still evaluate.
  */
 
 jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {

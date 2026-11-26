@@ -112,8 +112,6 @@ function renderCriteria(initial: MonitorCriteriaInstance): Harness {
         monitorStatusDropdownOptions={MONITOR_STATUS_OPTIONS}
         incidentSeverityDropdownOptions={INCIDENT_SEVERITY_OPTIONS}
         alertSeverityDropdownOptions={ALERT_SEVERITY_OPTIONS}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteriaInstance) => {

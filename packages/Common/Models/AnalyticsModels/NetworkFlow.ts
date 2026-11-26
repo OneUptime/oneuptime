@@ -10,6 +10,7 @@ import AnalyticsTableColumn, {
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { NETWORK_FLOW_RETENTION_IN_DAYS } from "../../Types/NetFlow/NetworkFlowRetention";
 
 /*
  * One network flow a device reported - in NetFlow v5, NetFlow v9, IPFIX or
@@ -490,8 +491,11 @@ export default class NetworkFlow extends AnalyticsBaseModel {
        * operators to pin for production, so older servers are supported and
        * this must stay version-portable. Narrowing to second precision is
        * lossless for a 30-day retention window.
+       *
+       * The number is NETWORK_FLOW_RETENTION_IN_DAYS, which the record of
+       * processing says too (#10398).
        */
-      ttlExpression: "toDateTime(ingestedAt) + INTERVAL 30 DAY DELETE",
+      ttlExpression: `toDateTime(ingestedAt) + INTERVAL ${NETWORK_FLOW_RETENTION_IN_DAYS} DAY DELETE`,
       defaultSortColumn: "flowStartAt",
     });
   }

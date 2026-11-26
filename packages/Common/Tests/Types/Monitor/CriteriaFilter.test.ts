@@ -214,7 +214,7 @@ describe("CriteriaFilterUtil", () => {
      * configured that way never fired.
      */
     test.each(BOOLEAN_SERIES_CHECK_ONS)(
-      "returns only AllValues / AnyValue for %s",
+      "returns AllValues / AnyValue and the counts of checks, no aggregate, for %s",
       (checkOn: CheckOn) => {
         const result: Array<EvaluateOverTimeType> =
           CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
@@ -226,6 +226,10 @@ describe("CriteriaFilterUtil", () => {
         expect(result).toEqual([
           EvaluateOverTimeType.AllValues,
           EvaluateOverTimeType.AnyValue,
+          EvaluateOverTimeType.Count,
+          EvaluateOverTimeType.Percentage,
+          EvaluateOverTimeType.StatusChanges,
+          EvaluateOverTimeType.PreviousCheck,
         ]);
       },
     );
@@ -251,8 +255,13 @@ describe("CriteriaFilterUtil", () => {
           EvaluateOverTimeType.Sum,
           EvaluateOverTimeType.MaximumValue,
           EvaluateOverTimeType.MunimumValue,
+          EvaluateOverTimeType.Percentile,
           EvaluateOverTimeType.AllValues,
           EvaluateOverTimeType.AnyValue,
+          EvaluateOverTimeType.Count,
+          EvaluateOverTimeType.Percentage,
+          EvaluateOverTimeType.StatusChanges,
+          EvaluateOverTimeType.PreviousCheck,
         ]);
       },
     );
@@ -284,6 +293,11 @@ describe("CriteriaFilterUtil", () => {
         ).toEqual([
           EvaluateOverTimeType.AllValues,
           EvaluateOverTimeType.AnyValue,
+          // Counting yes / no checks is no aggregate of them (#10355).
+          EvaluateOverTimeType.Count,
+          EvaluateOverTimeType.Percentage,
+          EvaluateOverTimeType.StatusChanges,
+          EvaluateOverTimeType.PreviousCheck,
         ]);
       }
     });
@@ -524,7 +538,7 @@ describe("CriteriaFilterUtil", () => {
   });
 
   describe("getEvaluateOverTimeTypeByCriteriaFilter (non-IsOnline)", () => {
-    test("returns the full 6-element aggregation set in order for a non-IsOnline checkOn", () => {
+    test("returns the full aggregation set in order for a non-IsOnline checkOn", () => {
       const result: Array<EvaluateOverTimeType> =
         CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
           checkOn: CheckOn.CPUUsagePercent,
@@ -533,6 +547,22 @@ describe("CriteriaFilterUtil", () => {
         } as CriteriaFilter);
 
       expect(result).toEqual([
+        EvaluateOverTimeType.Average,
+        EvaluateOverTimeType.Sum,
+        EvaluateOverTimeType.MaximumValue,
+        EvaluateOverTimeType.MunimumValue,
+        EvaluateOverTimeType.Percentile,
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+        EvaluateOverTimeType.Count,
+        EvaluateOverTimeType.Percentage,
+        EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
+      ]);
+    });
+
+    test("a metric criteria's aggregation keeps the six it always had", () => {
+      expect(CriteriaFilterUtil.getMetricAggregationTypes()).toEqual([
         EvaluateOverTimeType.Average,
         EvaluateOverTimeType.Sum,
         EvaluateOverTimeType.MaximumValue,

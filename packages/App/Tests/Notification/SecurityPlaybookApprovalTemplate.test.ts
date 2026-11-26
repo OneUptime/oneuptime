@@ -5,6 +5,7 @@ import Path from "path";
 import { describe, expect, test } from "@jest/globals";
 import { registerEmailDetailCardHelpers } from "../../FeatureSet/Notification/Utils/EmailDetailCard";
 import { readEmailMarkup } from "./Fixtures/EmailMarkupTree";
+import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import {
   DetailCard,
   DetailCardRow,
@@ -103,5 +104,94 @@ describe("the approval email's Would Act On row", () => {
 
     expect(html).not.toContain(target);
     expect(html).toContain(Handlebars.escapeExpression(target));
+  });
+});
+
+/*
+ * THE EVIDENCE, IN THE EMAIL AS IN CHAT (#10341).
+ *
+ * What the step will do and through which connection, what it leaves alone
+ * and why, the evidence behind the case, and whether it can be undone -
+ * the approval's own words (SecurityPlaybookApprovalWords), in rows around
+ * the targets, so nobody approves blind. Each row is left out when the
+ * approval has nothing to say there. Its button opens the approval on the
+ * case: it never decides, since a mail scanner follows every link.
+ */
+describe("the approval email's evidence", () => {
+  const EVIDENCE: Record<string, string> = {
+    approvalAction:
+      "Contain the host in CrowdStrike, through CrowdStrike (prod)",
+    stepTargets: "web-01: the case is grouped on it",
+    approvalLeftAlone: "db-02: on your protected list (db-*)",
+    approvalEvidence:
+      "12 requests behind the case: Turned away: 9, Reached the app: 3",
+    approvalUndo:
+      "Can be undone: each one, with Lift containment in CrowdStrike on the case.",
+  };
+
+  test("what it will do, to what, what it leaves alone, the evidence and the undo, in that order", () => {
+    const html: string = render(EVIDENCE);
+
+    expect(rowLabels(html)).toEqual([
+      "Playbook:",
+      "Step Waiting:",
+      "Will Do:",
+      "Would Act On:",
+      "Left Alone:",
+      "Evidence:",
+      "Can Be Undone:",
+      "Started:",
+      "Case:",
+      "Priority:",
+      "Project:",
+    ]);
+
+    // Each row reads its label, then the approval's words.
+    const text: string = visibleText(html).replace(/\s+/g, " ");
+
+    for (const [label, value] of [
+      ["Will Do:", EVIDENCE["approvalAction"]],
+      ["Would Act On:", EVIDENCE["stepTargets"]],
+      ["Left Alone:", EVIDENCE["approvalLeftAlone"]],
+      ["Evidence:", EVIDENCE["approvalEvidence"]],
+      ["Can Be Undone:", EVIDENCE["approvalUndo"]],
+    ] as Array<[string, string]>) {
+      expect(text).toContain(`${label} ${value}`);
+    }
+  });
+
+  test("a row the approval has nothing to say in is left out", () => {
+    const labels: Array<string> = rowLabels(
+      render({ approvalAction: EVIDENCE["approvalAction"]! }),
+    );
+
+    expect(labels).toContain("Will Do:");
+    expect(labels).not.toContain("Left Alone:");
+    expect(labels).not.toContain("Evidence:");
+    expect(labels).not.toContain("Can Be Undone:");
+  });
+
+  test("escapes what detections and people named", () => {
+    const named: string = '<a href="https://evil.example">CrowdStrike</a>';
+    const html: string = render({
+      approvalAction: `Contain the host, through ${named}`,
+      approvalLeftAlone: `${named}: on your protected list`,
+      approvalEvidence: `${named} 3 requests`,
+      approvalUndo: `Can be undone: ${named}`,
+    });
+
+    expect(html).not.toContain(named);
+    expect(html).not.toContain('href="https://evil.example"');
+    expect(html).toContain(Handlebars.escapeExpression(named));
+  });
+
+  test("its button opens the approval on the case, and is the only link to it", () => {
+    const approvalUrl: string =
+      "https://oneuptime.example.com/dashboard/p/security-events/cases/c/playbook-runs";
+    const html: string = render({ ...EVIDENCE, caseViewLink: approvalUrl });
+
+    expect(html).toContain(`href="${approvalUrl}"`);
+    expect(html).toContain("Approve or Reject");
+    expect(html).not.toMatch(/href="[^"]*\/(approve|reject)\b/);
   });
 });

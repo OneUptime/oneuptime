@@ -205,7 +205,7 @@ describe("creating a template that places incident records", () => {
     ["Status Page Member", [row(Permission.StatusPageMember)]],
     ["Status Page Admin", [row(Permission.StatusPageAdmin)]],
     [
-      "Create Status Page Subscriber Notification Template",
+      "Create Subscriber Notification Template",
       [row(Permission.CreateStatusPageSubscriberNotificationTemplate)],
     ],
   ] as Array<[string, Array<UserPermission>]>)(

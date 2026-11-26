@@ -70,9 +70,11 @@ De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd
 | Fortinet FortiGate | IPS- en antivirusbevindingen, geweigerd verkeer, VPN- en beheerdersaanmeldingen en configuratiewijzigingen uit de eigen syslog van FortiGate |
 | Cisco ASA | Geweigerde verbindingen, bevindingen van dreigingsdetectie en IPS, VPN- en beheerdersaanmeldingen en opdrachten van Cisco ASA en Firepower Threat Defense |
 | Kubernetes-auditlogs | Wijzigingen aan het cluster, shells die in pods worden geopend, gelezen secrets en geweigerde verzoeken |
-| Webaanvallen | Verzoeken in het toegangslog van een webserver die SQL-injectie, path traversal of Log4Shell proberen |
+| Webaanvallen | Verzoeken in het toegangslog van een webserver die SQL-injectie, path traversal of Log4Shell proberen, verzoeken om gevoelige bestanden zoals `/.env` of `/.git/config` die uw site heeft geweigerd of niet heeft, en een bestand met geheimen dat uw site heeft geleverd |
 
 Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, worden gebeurtenissen: nooit elke pagina die een webserver heeft geleverd, of elke leesactie op een API.
+
+Een bestand met geheimen dat uw site heeft geleverd, zoals `/.env`, is een lek, en de regel **Sensitive file served** uit de regelbibliotheek opent er een zaak met ernst Kritiek over. De eigen pagina van een single-page-app voor een pad dat hij niet heeft, is dat nooit. Zie [Een gevoelig bestand dat je site leverde](/docs/telemetry/security-events#een-gevoelig-bestand-dat-je-site-leverde).
 
 Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een IPS-bevinding van een FortiGate, opent een zaak zoals de waarschuwing van een gekoppeld product dat doet. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**.
 

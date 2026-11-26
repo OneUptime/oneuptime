@@ -8,10 +8,14 @@ import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import DataSecurityCodeTask, {
   DATA_SECURITY_FIX_SIGN_IN_MESSAGE,
   DATA_SECURITY_FIX_STARTED_MESSAGE,
+  DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE,
+  DATA_SECURITY_PLAYBOOK_FIX_FEED_MESSAGE,
   DataSecurityFixCode,
   getDataSecurityFixNoRepositoryMessage,
   getDataSecurityFixPickRepositoryMessage,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityCodeTask";
+import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
+import { JSONObject } from "../../../../../Types/JSON";
 import { DataSecurityAiCodeRequest } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import { buildDataSecurityFixRequest } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
@@ -119,6 +123,27 @@ beforeEach(() => {
     .mockImplementation(
       async (data: { repositoryId: ObjectID }): Promise<boolean> => {
         return askable.has(data.repositoryId.toString());
+      },
+    );
+  // Many repositories weighed at once, by the same rule (#10764).
+  jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation(
+      async (data: {
+        repositoryIds: Array<ObjectID | string>;
+      }): Promise<Set<string>> => {
+        return new Set<string>(
+          data.repositoryIds
+            .map((id: ObjectID | string): string => {
+              return id.toString();
+            })
+            .filter((id: string): boolean => {
+              return askable.has(id);
+            })
+            .map((id: string): string => {
+              return id.toLowerCase();
+            }),
+        );
       },
     );
   jest
@@ -285,7 +310,7 @@ describe("DataSecurityCodeTask.requestFix", () => {
 });
 
 describe("DataSecurityCodeTask.getAskableRepositories", () => {
-  test("keeps those the person may ask in, in their order, asking about each", async () => {
+  test("keeps those the person may ask in, in their order, asking about all of them at once", async () => {
     const many: Array<CodeRepository> = [];
 
     for (let index: number = 0; index < 23; index++) {
@@ -317,6 +342,204 @@ describe("DataSecurityCodeTask.getAskableRepositories", () => {
           return row.name || "";
         }),
     );
-    expect(CodeTaskAccess.canAskInRepository).toHaveBeenCalledTimes(23);
+    /*
+     * Every repository the person may read is weighed - not the first 500 -
+     * in one read (#10764), never one canAskInRepository a repository.
+     */
+    expect(CodeTaskAccess.listAskableRepositoryIds).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (CodeTaskAccess.listAskableRepositoryIds as unknown as jest.Mock).mock
+          .calls[0]![0] as { repositoryIds: Array<string> }
+      ).repositoryIds,
+    ).toEqual(
+      many.map((row: CodeRepository): string => {
+        return row.id!.toString();
+      }),
+    );
+    expect(CodeTaskAccess.canAskInRepository).not.toHaveBeenCalled();
+  });
+
+  test("past the 500th: a repository the person may ask in is offered however many come before it", async () => {
+    const many: Array<CodeRepository> = [];
+
+    for (let index: number = 0; index < 1200; index++) {
+      many.push(repository(`repo-${String(index).padStart(4, "0")}`));
+    }
+
+    const late: CodeRepository = many[1150]!;
+    askable.add(late.id!.toString());
+
+    const kept: Array<CodeRepository> =
+      await DataSecurityCodeTask.getAskableRepositories({
+        props: CALLER,
+        projectId: PROJECT_ID,
+        readable: many,
+      });
+
+    expect(kept).toEqual([late]);
+  });
+});
+
+/*
+ * #10740: a security playbook's Fix the code with AI step asks Fix with AI
+ * for a case's issue in no group, as OneUptime - no person - only in the
+ * repository the issue's declared code points to, and keeps it on the case.
+ */
+describe("DataSecurityCodeTask.requestFix asked by OneUptime, for a security case", () => {
+  const CASE_ID: ObjectID = new ObjectID(
+    "10740000-0000-4000-8000-0000000000c1",
+  );
+  let given: CodeRepository | null;
+  let startedForIssue: SpyInstance<
+    typeof CodeTaskRuns.startForDataSecurityIssue
+  >;
+  let looked: Array<JSONObject>;
+
+  async function askAsOneUptime(
+    data: {
+      issueIds?: Array<ObjectID>;
+      requestedRepositoryId?: unknown;
+    } = {},
+  ): Promise<DataSecurityFixResult> {
+    return await DataSecurityCodeTask.requestFix({
+      props: { isRoot: true },
+      projectId: PROJECT_ID,
+      issueIds: data.issueIds || [ISSUE_A],
+      code: DataSecurityFixCode.Infrastructure,
+      requestedRepositoryId:
+        "requestedRepositoryId" in data
+          ? data.requestedRepositoryId
+          : given?.id?.toString(),
+      triggeredBySecurityCaseId: CASE_ID,
+      buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
+        order.push("message");
+        return fixRequest();
+      },
+    });
+  }
+
+  beforeEach(() => {
+    given = repository("infra");
+    looked = [];
+    jest.spyOn(CodeRepositoryService, "findOneBy").mockImplementation((async (
+      findOneBy: JSONObject,
+    ) => {
+      looked.push(findOneBy);
+      order.push("repository");
+
+      return given;
+    }) as never);
+    startedForIssue = jest
+      .spyOn(CodeTaskRuns, "startForDataSecurityIssue")
+      .mockImplementation(async (): Promise<AIRun> => {
+        order.push("start for the issue");
+        return new AIRun(RUN_ID);
+      });
+  });
+
+  test("works in the repository it was given, the project's own, and the run names the issue and the case", async () => {
+    const answer: DataSecurityFixResult = await askAsOneUptime();
+
+    expect(order).toEqual([
+      "gate",
+      "repository",
+      "gate in repository",
+      "message",
+      "start for the issue",
+    ]);
+    expect(answer).toEqual({
+      message: DATA_SECURITY_FIX_STARTED_MESSAGE,
+      aiRunId: RUN_ID.toString(),
+    });
+    expect(looked[0]).toMatchObject({
+      query: { _id: given!.id!.toString(), projectId: PROJECT_ID },
+      props: { isRoot: true },
+    });
+    expect(startedForIssue.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      repository: given,
+      message: fixRequest().text,
+      triggeredByDataSecurityIssueId: ISSUE_A,
+      triggeredBySecurityCaseId: CASE_ID,
+    });
+    // Never a person's own task: none was asked for one.
+    expect(started).not.toHaveBeenCalled();
+    // Nobody may read any repository through it: no person's list is read.
+    expect(CodeTaskAccess.listReadableRepositories).not.toHaveBeenCalled();
+  });
+
+  test("the issue's timeline says a security playbook asked, with nobody named", async () => {
+    await askAsOneUptime();
+
+    expect(feed).toHaveBeenCalledTimes(1);
+    expect(feed.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      dataSecurityIssueId: ISSUE_A,
+      eventType: DataSecurityIssueFeedEventType.AiFixRequested,
+      displayColor: expect.anything(),
+      feedInfoInMarkdown: DATA_SECURITY_PLAYBOOK_FIX_FEED_MESSAGE,
+    });
+  });
+
+  test("with no repository given, or one of another project, starts nothing and says why", async () => {
+    expect(await askAsOneUptime({ requestedRepositoryId: undefined })).toEqual({
+      message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE,
+    });
+    expect(
+      await askAsOneUptime({ requestedRepositoryId: "not-an-id" }),
+    ).toEqual({ message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE });
+
+    given = null;
+
+    expect(
+      await askAsOneUptime({
+        requestedRepositoryId: ObjectID.generate().toString(),
+      }),
+    ).toEqual({ message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE });
+    expect(startedForIssue).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+  });
+
+  test("the gate decides, before and inside the repository, as for a person", async () => {
+    blockers.before = {
+      type: CodeTaskBlockerType.AiDisabled,
+      message: "Turn on AI for this project first.",
+    } as CodeTaskBlocker;
+
+    expect(await askAsOneUptime()).toEqual({
+      message: "Turn on AI for this project first.",
+    });
+
+    blockers.before = null;
+    blockers.inside = {
+      type: CodeTaskBlockerType.RepositoryNotConnected,
+      message: "This repository is not connected.",
+    } as CodeTaskBlocker;
+
+    expect(await askAsOneUptime()).toEqual({
+      message: "This repository is not connected.",
+    });
+    expect(startedForIssue).not.toHaveBeenCalled();
+  });
+
+  test("asks for one issue at a time, and only as OneUptime", async () => {
+    await expect(
+      askAsOneUptime({ issueIds: [ISSUE_A, ISSUE_B] }),
+    ).rejects.toThrow(new BadDataException(DATA_SECURITY_FIX_SIGN_IN_MESSAGE));
+    await expect(
+      DataSecurityCodeTask.requestFix({
+        props: { tenantId: PROJECT_ID },
+        projectId: PROJECT_ID,
+        issueIds: [ISSUE_A],
+        code: DataSecurityFixCode.Infrastructure,
+        requestedRepositoryId: given!.id!.toString(),
+        triggeredBySecurityCaseId: CASE_ID,
+        buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
+          return fixRequest();
+        },
+      }),
+    ).rejects.toThrow(new BadDataException(DATA_SECURITY_FIX_SIGN_IN_MESSAGE));
+    expect(order).toEqual([]);
   });
 });

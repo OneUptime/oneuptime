@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-Det afsluttende `1` i DSN'en kræves af Sentrys SDK'er og læses ikke. En browserapps DSN er offentlig, så brug en **Browser**-indtagelsesnøgle der med dit websteds oprindelser på.
+Det afsluttende `1` i DSN'en kræves af Sentrys SDK'er og læses ikke. En browserapps DSN er offentlig, så brug en **Browser**-indtagelsesnøgle der med dit websteds oprindelser på. Alt, hvad den sender, arkiveres så som den browserapps RUM-telemetri, aldrig som en backend-tjeneste.
 
 ### Hvad en kuvert bliver til
 

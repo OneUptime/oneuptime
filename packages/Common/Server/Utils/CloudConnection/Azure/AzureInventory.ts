@@ -19,6 +19,10 @@ import {
   AZURE_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
 } from "../../../../Types/Cloud/CloudResourceCatalog";
+import {
+  AZURE_APPLICATION_GATEWAY_WAF_POLICY_TYPE,
+  AZURE_FRONT_DOOR_WAF_POLICY_TYPE,
+} from "../../../../Types/CloudConnection/AzureWafBlocklist";
 import { JSONObject } from "../../../../Types/JSON";
 import { CloudInventoryItem } from "../CloudConnectorTypes";
 
@@ -117,10 +121,15 @@ const AZURE_LOAD_BALANCER_TYPE: string = "Microsoft.Network/loadBalancers";
  */
 export const AZURE_INVENTORY_ONLY_QUERY_TYPES: ReadonlyArray<string> = [
   AZURE_NETWORK_SECURITY_GROUP_TYPE,
+  // The WAF policies the blocklist can be enforced in (#10348).
+  AZURE_APPLICATION_GATEWAY_WAF_POLICY_TYPE,
+  AZURE_FRONT_DOOR_WAF_POLICY_TYPE,
 ];
 export const AZURE_LISTED_ONLY_TYPES: ReadonlyArray<string> = [
   AZURE_NETWORK_SECURITY_GROUP_TYPE,
   AZURE_SUBNET_TYPE,
+  AZURE_APPLICATION_GATEWAY_WAF_POLICY_TYPE,
+  AZURE_FRONT_DOOR_WAF_POLICY_TYPE,
 ];
 
 /*

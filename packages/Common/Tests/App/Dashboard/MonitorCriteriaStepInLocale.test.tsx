@@ -95,8 +95,6 @@ const CriteriaEditor: FunctionComponent = (): ReactElement => {
       monitorStatusDropdownOptions={[]}
       incidentSeverityDropdownOptions={[]}
       alertSeverityDropdownOptions={[]}
-      onCallPolicyDropdownOptions={[]}
-      labelDropdownOptions={[]}
       userDropdownOptions={[]}
       value={value}
       onChange={(changed: MonitorCriteria) => {

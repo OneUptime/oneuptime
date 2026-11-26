@@ -102,7 +102,7 @@ An outbound HTTP call, made by the OneUptime Worker. No Runner is needed.
 | **URL** | The endpoint to call. | Empty |
 | **Headers (JSON)** | Under **More fields**. A JSON object, such as `{ "Authorization": "Bearer ..." }`. Headers that are not valid JSON fail the step. | None |
 | **Allow self-signed certificates** | Under **More fields**. If on, the step takes whatever certificate the server shows, so a self-signed one works, but it checks neither the host name nor the dates, and anyone on the network path could read the request, its secrets included, and change the answer. | Off |
-| **CA certificate** | Under **More fields**, while **Allow self-signed certificates** is off. The certificate, in PEM, of the CA that signed the server's certificate, or the server's own when it is self-signed. The step then trusts only that certificate, and still checks the host name and the dates. | None |
+| **CA certificate** | Under **More fields**, while **Allow self-signed certificates** is off. The certificate, in PEM, of the CA that signed the server's certificate, or the server's own when it is self-signed, or one [runbook variable](/docs/runbooks/variables) that holds it. The step then trusts only that certificate, and still checks the host name and the dates. | None |
 | **Body** | Shown for `POST`, `PUT`, `PATCH` and `DELETE`. Sent as JSON when it parses as JSON, and as text otherwise. | None |
 | **Request timeout** | How long to wait for the endpoint to respond before failing the step. | 30 seconds |
 
@@ -118,10 +118,12 @@ Useful for: opening a PagerDuty incident, posting to a Slack webhook, calling yo
 
 A server whose certificate it signed itself, or one your own CA signed, is refused until the step trusts it, and nothing is sent. The step's error says what to change: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Paste the certificate that signed it in **CA certificate**: the CA's, or the server's own when it is self-signed. The step then checks the server's certificate against it, the host name and the dates included, so a server that only pretends to be yours is still refused. Turn on **Allow self-signed certificates** only when you cannot paste one. Either applies to this step's request alone, never to another step, another request of OneUptime or the connection to an outbound proxy.
 
+When many steps call services your own CA signed, keep its certificate in a [runbook variable](/docs/runbooks/variables) and write only `{{global.variables.INTERNAL_CA}}` in **CA certificate**. The step reads the variable each time it runs, so when the CA changes, you change the variable once. A plain variable is enough, since a certificate is not a secret; a secret one works too, and is hidden in what the step records. A variable that is not there, or that holds no certificate, fails the step before anything is sent, and the error names the variable. While **Allow self-signed certificates** is on, the step does not read the variable.
+
 > [!TIP]
 > To trust your own CA for every request at once instead, monitors included, a self-hosted installation sets `NODE_EXTRA_CA_CERTS` on its containers.
 
-Through the API and Terraform, the switch is the step config's `allowSelfSignedCertificates`, `true` or `false`, and the CA certificate is its `caCertificate`, the PEM as text. A save is refused when `caCertificate` is not a certificate or holds a private key.
+Through the API and Terraform, the switch is the step config's `allowSelfSignedCertificates`, `true` or `false`, and the CA certificate is its `caCertificate`: the PEM as text, or one variable reference alone. A save is refused when `caCertificate` is neither, or holds a private key.
 
 ```hcl
 config = {

@@ -4,6 +4,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  SecurityCaseAiResponseView,
+  parseSecurityCaseAiResponse,
+} from "./AiResponse/SecurityCaseAiResponseModel";
 import Timezone from "Common/Types/Timezone";
 import {
   DeclaredIncident,
@@ -56,6 +60,14 @@ import {
   SecurityCaseEventsAddResult,
   readSecurityCaseEventsAddResult,
 } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import {
+  SecurityEventLateArrivals,
+  parseLateArrivals,
+} from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
+  SecurityEventRetentionStatus,
+  parseSecurityEventRetentionStatus,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -387,6 +399,59 @@ export default class SecurityCaseApi {
     });
   }
 
+  /*
+   * OneUptime AI working the case (#10352): where it stands, its log - every
+   * step it took, asked about or left, and why - and what stops Respond
+   * with AI (SecurityCaseResponseStatus).
+   */
+  public static async getAiResponse(
+    caseId: ObjectID,
+  ): Promise<SecurityCaseAiResponseView> {
+    return parseSecurityCaseAiResponse(
+      await post(`/security-case/${caseId.toString()}/ai-response`, {}),
+    );
+  }
+
+  // Respond with AI: asks OneUptime AI to work the case.
+  public static async startAiResponse(caseId: ObjectID): Promise<string> {
+    const body: JSONObject = await post(
+      `/security-case/${caseId.toString()}/ai-response/start`,
+      {},
+    );
+
+    return String(body["runId"] || "");
+  }
+
+  // Take Over: OneUptime AI stops working the case, which is the person's.
+  public static async takeOverFromAi(caseId: ObjectID): Promise<void> {
+    await post(`/security-case/${caseId.toString()}/ai-response/take-over`, {});
+  }
+
+  /*
+   * Page now (#10353): the people OneUptime AI holds a new case's alerts
+   * from while it responds first are alerted at once.
+   */
+  public static async pageNowForAiHold(caseId: ObjectID): Promise<void> {
+    await post(`/security-case/${caseId.toString()}/ai-response/page-now`, {});
+  }
+
+  /*
+   * A person's answer to what OneUptime AI asked on the card: taking the
+   * case, a step it would mark done, an exception for the case's rule.
+   */
+  public static async decideAiAction(data: {
+    caseId: ObjectID;
+    actionId: string;
+    isApproved: boolean;
+  }): Promise<void> {
+    await post(
+      `/security-case/${data.caseId.toString()}/ai-response/actions/${data.actionId}/${
+        data.isApproved ? "approve" : "decline"
+      }`,
+      {},
+    );
+  }
+
   // Triage with AI: asks OneUptime AI to triage the case now.
   public static async startAiTriage(caseId: ObjectID): Promise<string> {
     const body: JSONObject = await post(
@@ -429,6 +494,27 @@ export default class SecurityCaseApi {
     const body: JSONObject = await post("/detection-rule/retrohunt", request);
 
     return parseDetectionRetrohuntResult(body);
+  }
+
+  /*
+   * The security events that arrived more than a day after they happened
+   * in the last week (POST /detection-rule/late-arrivals, #10491), which no
+   * rule's run checked: how many, from which sources, and when. Null when
+   * the answer is not one.
+   */
+  public static async getLateArrivals(): Promise<SecurityEventLateArrivals | null> {
+    return parseLateArrivals(await post("/detection-rule/late-arrivals", {}));
+  }
+
+  /*
+   * How long the project keeps its security events, and the enabled rules
+   * that read further back (POST /detection-rule/retention, #10432). Null
+   * when the answer is not one.
+   */
+  public static async getSecurityEventRetention(): Promise<SecurityEventRetentionStatus | null> {
+    return parseSecurityEventRetentionStatus(
+      await post("/detection-rule/retention", {}),
+    );
   }
 
   /*

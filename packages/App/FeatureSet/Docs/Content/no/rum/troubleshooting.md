@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` med `"valid": true` | OneUptime godtar nøkkelen. Svaret oppgir også dens `keyType` og dens `projectId`. Gå videre til neste sjekk. |
 | `401` med `"valid": false` | Nøkkelen mangler, er ukjent, tilbakekalt, deaktivert eller utløpt, og `message` sier hvilken. Opprett en aktiv nøkkel under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
 
-En webapp trenger en **Nettleser**-nøkkel, og en mobilapp en **Server**-nøkkel: se [Nettleseroppsett](/docs/rum/browser-setup) og [Mobiloppsett](/docs/rum/mobile-setup). Eksportendepunktene avviser også en feil nøkkel med `401`, slik OTLP-spesifikasjonen krever, så et veloppdragent SDK logger avvisningen i stedet for å prøve på nytt. Den linjen er lett å overse i nettleserkonsollen, og denne sjekken svarer direkte.
+En webapp trenger en **Nettleser**-nøkkel, og en mobilapp en **Mobil**-nøkkel: se [Nettleseroppsett](/docs/rum/browser-setup) og [Mobiloppsett](/docs/rum/mobile-setup). Eksportendepunktene avviser også en feil nøkkel med `401`, slik OTLP-spesifikasjonen krever, så et veloppdragent SDK logger avvisningen i stedet for å prøve på nytt. Den linjen er lett å overse i nettleserkonsollen, og denne sjekken svarer direkte.
 
 OneUptime teller også hva den avviser fra en nøkkel den kjenner. Nøkkelens side under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** viser under **Avvist telemetri** hva som er avvist de siste 30 dagene, og **Oppsettsjekk** på applikasjonens side **Dokumentasjon** sier hvilken type telemetri som avvises, hvorfor og hvordan du retter det. En manglende eller ukjent nøkkel peker ikke på noe prosjekt, så ingenting teller den: denne sjekken og `401` er alt som finnes.
 
@@ -81,20 +81,20 @@ En nettleser sender sjelden så store batcher, med mindre spennene bærer store 
 
 **`422`.** OneUptime avviste nøkkelen her, og meldingen sier hvorfor. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyr at sidens nøyaktige opprinnelse, med skjema og eventuell port, mangler i nøkkelens **Tillatte opprinnelser**. `This telemetry ingestion key has been disabled.` betyr at noen har deaktivert nøkkelen.
 
-**`429`.** Nøkkelens **Requests Per Minute Limit** er brukt opp: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøkkel tillater 6000 forespørsler i minuttet for alle de besøkende samlet, med mindre du setter din egen grense på nøkkelen.
+**`429`.** Nøkkelens **Grense for forespørsler per minutt** er brukt opp: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøkkel tillater 6000 forespørsler i minuttet for alle de besøkende samlet, med mindre du setter din egen grense på nøkkelen.
 
 **`403` med en HTML-side, eller en tom body.** OneUptime besvarer hver avvisning i JSON, så denne kom fra noe foran, vanligvis en brannmur for webapplikasjoner på ditt eget domene, hvis du sender OneUptime gjennom den. Brannmuren tolker OTLP/JSON og sammenligner hvert spennattributt med injeksjonsreglene sine, så en URL med en spørrestreng på et spenn er nok til at den blokkerer, og brannmurens logg nevner regelen. Unnta OTLP-nyttelasten fra inspeksjon bare på OTLP-banene: [OpenTelemetry-forespørslene dine blir også blokkert](/docs/rum/session-replay-troubleshooting#opentelemetry-forespørslene-dine-blir-også-blokkert) viser hvordan, og dekker avspillingsopptakeren bak den samme brannmuren.
 
 ## Sjekk hvor telemetrien havner
 
-Forespørselen virker, men appen dukker opp under **Produkter → Tjenester** i stedet for under **Produkter → Ressurser → Overvåking av reelle brukere**. Det er den vanligste henvendelsen, og årsaken er nesten alltid en ressurs uten klientattributter. OneUptime arkiverer bare en batch som RUM når ressursen bærer en av disse:
+Forespørselen virker, men appen dukker opp under **Produkter → Tjenester** i stedet for under **Produkter → Ressurser → Overvåking av reelle brukere**. Det er den vanligste henvendelsen, og årsaken er nesten alltid en annen nøkkel enn en Nettleser- eller Mobil-nøkkel, som sender en ressurs uten klientattributter. Alt en Nettleser- eller Mobil-nøkkel sender, arkiveres som RUM; med enhver annen nøkkel arkiverer OneUptime bare en batch som RUM når ressursen bærer en av disse:
 
 | Type | Attributter |
 | --- | --- |
 | Nettleser | `browser.platform`, `browser.language` eller en ikke-tom `browser.brands` |
 | Mobil | `device.id` eller `device.model.identifier`, eller `device.manufacturer` på en ressurs uten vertsidentitet (`host.name`, `host.id` eller `k8s.node.name`) |
 
-Et `service.name` alene oppretter en backend-tjeneste. OpenTelemetry-SDK-et for nettleser legger ikke til noen `browser.*`-attributter med mindre du legger til nettleserens ressursdetektor eller setter dem selv: se [Nettleseroppsett](/docs/rum/browser-setup).
+Med enhver annen nøkkel oppretter et `service.name` alene en backend-tjeneste. OpenTelemetry-SDK-et for nettleser legger ikke til noen `browser.*`-attributter med mindre du legger til nettleserens ressursdetektor eller setter dem selv: se [Nettleseroppsett](/docs/rum/browser-setup).
 
 For å se hva du faktisk sender, åpner du OTLP-forespørselen på fanen Nettverk og ser på nyttelasten: `resourceSpans[0].resource.attributes` er listen som avgjør det. Hvis det ikke finnes noe `browser.*`-attributt, legger ikke SDK-et det til, uansett hva dokumentasjonen sier.
 
@@ -127,7 +127,7 @@ Det tomme diagrammet på applikasjonens **Oversikt** sier hvilket tilfelle det e
 
 Unntak trenger en feilhåndterer, fordi SDK-et ikke fanger ufangede feil: [Rapporter ufangede feil](/docs/rum/browser-setup#rapporter-ufangede-feil) har koden. En feil som en error boundary eller en `try`/`catch` håndterer, når aldri vinduet, så registrer den der du håndterer den, med `span.recordException`.
 
-Logger trenger en loggpipeline og kode som skriver loggposter, fordi en `LoggerProvider` alene ikke sender noe: [Legg til logger og målinger](/docs/rum/browser-setup#legg-til-logger-og-målinger) har begge deler. Bygg pipelinen med samme `resource` som sporene dine, ellers arkiveres loggene under en backend-tjeneste.
+Logger trenger en loggpipeline og kode som skriver loggposter, fordi en `LoggerProvider` alene ikke sender noe: [Legg til logger og målinger](/docs/rum/browser-setup#legg-til-logger-og-målinger) har begge deler. Bygg pipelinen med samme `resource` som sporene dine, så loggene arkiveres under den samme applikasjonen.
 
 Når sideinnlastinger kommer inn, slipper nøkkelen, de tillatte opprinnelsene og Content Security Policy-en din også gjennom unntak og logger, så lenge loggeksportøren bruker samme nøkkel og vert. En feilhåndterer som ennå ikke har fanget noe, sender ingenting, akkurat som en som aldri ble lagt til, så kast en testfeil fra nettleserens konsoll for å skille de to:
 

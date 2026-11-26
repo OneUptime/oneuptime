@@ -973,6 +973,54 @@ export default class OTelIngestService {
   }
 
   /*
+   * The project's own retention, as a row with no resource retention of its
+   * own is stamped with it: its default, and its retention by telemetry type
+   * while the Enterprise feature is active (applyRetentionOverrideEdition).
+   *
+   * From the caches ingest reads (up to five minutes old, as ingest's are),
+   * or, with `isFresh`, from Postgres now: for a page that shows a
+   * retention just changed.
+   */
+  public static async getProjectRetention(
+    projectId: ObjectID,
+    options: { isFresh?: boolean } = {},
+  ): Promise<TelemetryRetention> {
+    let projectContext: ProjectRetentionContext;
+
+    if (options.isFresh) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          defaultTelemetryRetentionInDays: true,
+          telemetryRetentionConfig: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      projectContext = {
+        projectRetentionConfig: project?.telemetryRetentionConfig ?? null,
+        projectRetentionInDays:
+          project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS,
+      };
+    } else {
+      projectContext = await this.getProjectRetentionContext(projectId);
+    }
+
+    return this.applyRetentionOverrideEdition({
+      serviceName: "",
+      primaryEntityId: projectId,
+      primaryEntityType: ServiceType.OpenTelemetry,
+      dataRententionInDays: projectContext.projectRetentionInDays,
+      serviceRetentionConfig: null,
+      serviceRetentionInDays: null,
+      projectRetentionConfig: projectContext.projectRetentionConfig,
+      projectRetentionInDays: projectContext.projectRetentionInDays,
+    });
+  }
+
+  /*
    * The retention of a row created through its table's service - the REST
    * API's create - rather than ingested. The row names the resource it
    * belongs to and gets that resource's retention, as an ingested row of it

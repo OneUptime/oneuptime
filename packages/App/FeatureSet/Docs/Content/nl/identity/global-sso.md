@@ -27,7 +27,7 @@ Voor de eigen provider van één project, zie [SSO](/docs/identity/sso).
 :::steps
 ### De lijst met providers openen
 
-Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstellingen** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
+Meld u aan als master-admin en kies **Admin-dashboard** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
 
 ### De provider aanmaken
 
@@ -103,6 +103,12 @@ Registreer de omleidings-URI na afmelden die de kaart **URL van de identiteitspr
 :::
 
 Waar Okta, Microsoft Entra ID, Auth0 en Keycloak deze instellingen bewaren, staat op de pagina [SSO](/docs/identity/sso).
+
+## Opnieuw aanmelden om te bevestigen dat u het bent
+
+Wie zich alleen via een globale provider aanmeldt, bevestigt met **Opnieuw aanmelden** dat hij het is voordat hij wijzigt hoe hij zich aanmeldt of zijn account verwijdert: OneUptime stuurt hem terug naar de provider met `ForceAuthn="true"` voor SAML, of `prompt=login` en `max_age=0` voor OpenID Connect (alleen `prompt=login` voor Microsoft Entra ID), en telt het alleen als de provider in `AuthnInstant` of `auth_time` zegt dat hij zich op dat moment of daarna heeft aangemeld. Een globale provider toevoegen, wijzigen of verwijderen vraagt u eerst [te bevestigen dat u het bent](/docs/introduction/your-account#bevestigen-dat-u-het-bent).
+
+Wat u instelt in Okta, Microsoft Entra ID, Keycloak en Google Workspace, staat op de pagina [SSO](/docs/identity/sso#opnieuw-aanmelden-om-te-bevestigen-dat-u-het-bent).
 
 ## SSO afdwingen
 
@@ -187,4 +193,5 @@ De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, e
 - [SSO](/docs/identity/sso): De eigen SAML- of OIDC-provider van een project instellen.
 - [SCIM](/docs/identity/scim): Laat uw identiteitsprovider automatisch mensen toevoegen en verwijderen.
 - [Gebruikers, teams en machtigingen](/docs/permissions/index): Wat de teams waarin nieuwkomers komen hun toestaan.
+- [Hulp en ondersteuning](/docs/self-hosted/help-and-support): Mensen die een uitnodiging nodig hebben laten weten wie ze erom moeten vragen.
 :::

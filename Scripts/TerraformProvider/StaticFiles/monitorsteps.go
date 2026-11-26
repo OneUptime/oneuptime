@@ -48,11 +48,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"regexp"
 	"sort"
+	"strconv"
+	"time"
+
+	// The zone database, so a criteria's active hours are read on the same
+	// clock on every operating system, Windows included.
+	_ "time/tzdata"
 
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -79,6 +88,9 @@ var monitorStepsDestinationTypeValues = []string{"URL", "IP", "Hostname"}
 // HTTPMethod enum (Common/Types/API/HTTPMethod.ts).
 var monitorStepsRequestTypeValues = []string{"GET", "POST", "DELETE", "PUT", "HEAD", "PATCH"}
 
+// MonitorRequestBodyFormat enum (Common/Types/Monitor/MonitorRequestBodyFormat.ts).
+var monitorStepsRequestBodyFormatValues = []string{"json", "text"}
+
 // FilterCondition enum (Common/Types/Filter/FilterCondition.ts).
 var monitorStepsFilterConditionValues = []string{"All", "Any"}
 
@@ -98,6 +110,30 @@ var monitorStepsEvaluateOverTimeTypeValues = []string{
 	"Minimum Value",
 	"All Values",
 	"Any Value",
+	"Percentile",
+	"Count",
+	"Percentage",
+	"Status Changes",
+	"Previous Check",
+}
+
+// PreviousCheckChangeType enum (Common/Types/Monitor/CriteriaFilter.ts): how
+// far a check must be from the previous one - an amount in the check's own
+// unit, or a percentage of the previous value.
+var monitorStepsPreviousCheckChangeTypeValues = []string{
+	"Amount",
+	"Percentage",
+}
+
+// How a counted window's number is compared (CriteriaFilterUtil.COUNT_COMPARISONS
+// in Common/Types/Monitor/CriteriaFilter.ts): "Greater Than" 30 failed checks.
+var monitorStepsCountComparisonValues = []string{
+	"Greater Than",
+	"Greater Than Or Equal To",
+	"Less Than",
+	"Less Than Or Equal To",
+	"Equal To",
+	"Not Equal To",
 }
 
 // NoDataPolicy enum (Common/Types/Monitor/CriteriaFilter.ts). Governs what
@@ -269,10 +305,13 @@ var monitorStepsFilterTypeValues = []string{
 var (
 	monitorStepsDestinationTypeValidator      = stringvalidator.OneOf(monitorStepsDestinationTypeValues...)
 	monitorStepsRequestTypeValidator          = stringvalidator.OneOf(monitorStepsRequestTypeValues...)
+	monitorStepsRequestBodyFormatValidator    = stringvalidator.OneOf(monitorStepsRequestBodyFormatValues...)
 	monitorStepsFilterConditionValidator      = stringvalidator.OneOf(monitorStepsFilterConditionValues...)
 	monitorStepsScreenSizeTypeValidator       = stringvalidator.OneOf(monitorStepsScreenSizeTypeValues...)
 	monitorStepsBrowserTypeValidator          = stringvalidator.OneOf(monitorStepsBrowserTypeValues...)
 	monitorStepsEvaluateOverTimeTypeValidator = stringvalidator.OneOf(monitorStepsEvaluateOverTimeTypeValues...)
+	monitorStepsCountComparisonValidator      = stringvalidator.OneOf(monitorStepsCountComparisonValues...)
+	monitorStepsPreviousCheckChangeValidator  = stringvalidator.OneOf(monitorStepsPreviousCheckChangeTypeValues...)
 	monitorStepsNoDataPolicyValidator         = stringvalidator.OneOf(monitorStepsNoDataPolicyValues...)
 	monitorStepsCheckOnValidator              = stringvalidator.OneOf(monitorStepsCheckOnValues...)
 	monitorStepsFilterTypeValidator           = stringvalidator.OneOf(monitorStepsFilterTypeValues...)
@@ -329,18 +368,23 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 
 func monitorStepsFilterAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"check_on":                          types.StringType,
-		"filter_type":                       types.StringType,
-		"value":                             types.StringType,
-		"evaluate_over_time":                types.BoolType,
-		"evaluate_over_time_minutes":        types.Int64Type,
-		"evaluate_over_time_type":           types.StringType,
-		"evaluate_over_time_no_data_policy": types.StringType,
-		"disk_path":                         types.StringType,
-		"metric_monitor_options":            types.StringType,
-		"snmp_monitor_options":              types.StringType,
-		"database_monitor_options":          types.StringType,
-		"custom_code_monitor_options":       types.StringType,
+		"check_on":                             types.StringType,
+		"filter_type":                          types.StringType,
+		"value":                                types.StringType,
+		"evaluate_over_time":                   types.BoolType,
+		"evaluate_over_time_minutes":           types.Int64Type,
+		"evaluate_over_time_type":              types.StringType,
+		"evaluate_over_time_no_data_policy":    types.StringType,
+		"evaluate_over_time_percentile":        types.Int64Type,
+		"evaluate_over_time_count_filter_type": types.StringType,
+		"evaluate_over_time_count_value":       types.Int64Type,
+		"evaluate_over_time_change_type":       types.StringType,
+		"evaluate_over_time_change_value":      types.Float64Type,
+		"disk_path":                            types.StringType,
+		"metric_monitor_options":               types.StringType,
+		"snmp_monitor_options":                 types.StringType,
+		"database_monitor_options":             types.StringType,
+		"custom_code_monitor_options":          types.StringType,
 	}
 }
 
@@ -375,21 +419,35 @@ func monitorStepsAlertAttrTypes() map[string]attr.Type {
 	}
 }
 
+// A criteria's active hours, as the Dashboard's picker sets them: the same
+// hours on the days picked.
+func monitorStepsActiveHoursAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"days": types.ListType{ElemType: types.Int64Type},
+		"from": types.StringType,
+		"to":   types.StringType,
+	}
+}
+
 func monitorStepsCriteriaAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"name":                  types.StringType,
-		"description":           types.StringType,
-		"filter_condition":      types.StringType,
-		"monitor_status_id":     types.StringType,
-		"change_monitor_status": types.BoolType,
-		"create_incidents":      types.BoolType,
-		"create_alerts":         types.BoolType,
-		"is_enabled":            types.BoolType,
-		"open_for_every_email":  types.BoolType,
-		"incident_grouping":     types.StringType,
-		"filters":               types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsFilterAttrTypes()}},
-		"incidents":             types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsIncidentAttrTypes()}},
-		"alerts":                types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsAlertAttrTypes()}},
+		"name":                      types.StringType,
+		"description":               types.StringType,
+		"filter_condition":          types.StringType,
+		"monitor_status_id":         types.StringType,
+		"change_monitor_status":     types.BoolType,
+		"create_incidents":          types.BoolType,
+		"create_alerts":             types.BoolType,
+		"is_enabled":                types.BoolType,
+		"open_for_every_email":      types.BoolType,
+		"incident_grouping":         types.StringType,
+		"filters":                   types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsFilterAttrTypes()}},
+		"recovery_filters":          types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsFilterAttrTypes()}},
+		"recovery_filter_condition": types.StringType,
+		"active_hours":              types.ObjectType{AttrTypes: monitorStepsActiveHoursAttrTypes()},
+		"active_hours_timezone":     types.StringType,
+		"incidents":                 types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsIncidentAttrTypes()}},
+		"alerts":                    types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsAlertAttrTypes()}},
 	}
 }
 
@@ -401,6 +459,7 @@ func monitorStepsStepAttrTypes() map[string]attr.Type {
 		"request_type":                   types.StringType,
 		"request_headers":                types.MapType{ElemType: types.StringType},
 		"request_body":                   types.StringType,
+		"request_body_format":            types.StringType,
 		"do_not_follow_redirects":        types.BoolType,
 		"allow_self_signed_certificates": types.BoolType,
 		"tls_client_certificate":         types.StringType,
@@ -510,9 +569,12 @@ func (v MonitorStepsValue) Equal(o attr.Value) bool {
 /*
  * ListSemanticEquals: the framework calls this with the receiver being the
  * newer value (apply result or refreshed read) and the argument the prior
- * value (planned config or prior state). The prior form may be a sparse
- * subset of the newer, server-default-filled form; the newer side may never
- * disagree with the prior on a key both carry.
+ * value (planned config or prior state). The prior form may leave out what
+ * OneUptime writes of its own (a criteria's is_enabled = true, a step's
+ * GET); the newer side may never disagree with the prior on a key both
+ * carry, nor hold a setting of its own the prior leaves out - a setting
+ * added in the Dashboard reads as a change (monitorStepsHoldsOnlyWhatIsWritten,
+ * #10907), where any key the prior left out used to pass.
  */
 func (v MonitorStepsValue) ListSemanticEquals(ctx context.Context, otherValuable basetypes.ListValuable) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -547,7 +609,7 @@ func (v MonitorStepsValue) ListSemanticEquals(ctx context.Context, otherValuable
 	minePlain = normalizeMonitorStepsValues(normalizeURLWrapperLeaves(minePlain))
 	theirsPlain = normalizeMonitorStepsValues(normalizeURLWrapperLeaves(theirsPlain))
 
-	return jsonIsSubset(theirsPlain, minePlain), diags
+	return monitorStepsHoldsOnlyWhatIsWritten(theirsPlain, minePlain), diags
 }
 
 // toPlainJSON round-trips a value through encoding/json so numeric types
@@ -637,7 +699,7 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"evaluate_over_time_type": schema.StringAttribute{
-				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval. True/false checks and the checks judged from whether they matched on each check (see `evaluate_over_time`) take `All Values` or `Any Value`; any other aggregation on them is evaluated as `All Values`.",
+				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval. True/false checks and the checks judged from whether they matched on each check (see `evaluate_over_time`) take `All Values`, `Any Value`, the counts and `Previous Check`; any other aggregation on them is evaluated as `All Values`. `Previous Check` compares each check with its probe's previous check, at most `evaluate_over_time_minutes` old: a measured value by `evaluate_over_time_change_type` and `evaluate_over_time_change_value`, a true/false or match-history check by whether it started to meet the filter's condition on this check.",
 				Optional:            true,
 				Validators:          []validator.String{monitorStepsEvaluateOverTimeTypeValidator},
 			},
@@ -646,13 +708,38 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Optional:            true,
 				Validators:          []validator.String{monitorStepsNoDataPolicyValidator},
 			},
+			"evaluate_over_time_percentile": schema.Int64Attribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Percentile`: which percentile of the window's values is compared with the filter's value, from 1 to 99 (95 when unset).",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.Between(1, 99)},
+			},
+			"evaluate_over_time_count_filter_type": schema.StringAttribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Count`, `Percentage` or `Status Changes`: how the number of checks that met the filter's condition (their share of the window's checks, in %, for `Percentage`; the times it changed between met and not met, for `Status Changes`) is compared with `evaluate_over_time_count_value`. `Greater Than` when unset.",
+				Optional:            true,
+				Validators:          []validator.String{monitorStepsCountComparisonValidator},
+			},
+			"evaluate_over_time_count_value": schema.Int64Attribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Count`, `Percentage` or `Status Changes`: the number `evaluate_over_time_count_filter_type` compares with, such as `30` failed checks. 0 when unset.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"evaluate_over_time_change_type": schema.StringAttribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Previous Check`, on a measured value: whether `evaluate_over_time_change_value` is an `Amount` in the check's own unit (`200` ms) or a `Percentage` of the previous check's value (`50` %). `Amount` when unset.",
+				Optional:            true,
+				Validators:          []validator.String{monitorStepsPreviousCheckChangeValidator},
+			},
+			"evaluate_over_time_change_value": schema.Float64Attribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Previous Check`, on a measured value: how far from the previous check this check must be, in the direction of `filter_type` - above it for `Greater Than` and `Greater Than Or Equal To`, below it for `Less Than` and `Less Than Or Equal To`. 0 when unset: any rise or fall. `Equal To` and `Not Equal To` compare with the previous value itself, and `value` is not read.",
+				Optional:            true,
+				Validators:          []validator.Float64{float64validator.AtLeast(0)},
+			},
 			"disk_path": schema.StringAttribute{
 				MarkdownDescription: "Disk path for `Disk Usage (in %)` filters on Server monitors (e.g. `/` or `C:`).",
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"metric_monitor_options": schema.StringAttribute{
-				MarkdownDescription: "Raw JSON escape hatch for metric filter options (metricAlias, metricAggregationType, anomaly detection, ...). metricAggregationType is one of `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` or `Any Value`, and onNoDataPolicy one of `Ignore`, `Treat As Zero` or `Trigger`. One written another way (`avg`, `max`, `treat_as_zero`) is stored as the value it means and plans no change; any other value is refused at plan time. Write it with `jsonencode()`.",
+				MarkdownDescription: "Raw JSON escape hatch for metric filter options (metricAlias, metricAggregationType, anomaly detection, ...). metricAggregationType is one of `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` or `Any Value` - the window types `Percentile`, `Count`, `Percentage`, `Status Changes` and `Previous Check` are taken there too, though the dashboard offers a metric criteria only those six - and onNoDataPolicy one of `Ignore`, `Treat As Zero` or `Trigger`. One written another way (`avg`, `max`, `treat_as_zero`) is stored as the value it means and plans no change; any other value is refused at plan time. Write it with `jsonencode()`.",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
@@ -854,6 +941,48 @@ func monitorStepsCriteriaSchema() schema.NestedAttributeObject {
 				NestedObject:        monitorStepsFilterSchema(),
 				Validators:          []validator.List{listvalidator.SizeAtLeast(1)},
 			},
+			"recovery_filters": schema.ListNestedAttribute{
+				MarkdownDescription: "When this criteria recovers, if not as soon as its `filters` stop matching: filters with the same attributes as `filters`, such as `Response Time (in ms)` `Less Than` `300` evaluated over 10 minutes. Once the criteria has acted - the monitor has its status, or an incident or alert it opened is still open - it keeps acting on every check until these filters match. On a monitor that judges each series on its own, each series recovers on its own. Omit instead of passing an empty list.",
+				Optional:            true,
+				NestedObject:        monitorStepsFilterSchema(),
+				Validators:          []validator.List{listvalidator.SizeAtLeast(1)},
+			},
+			"recovery_filter_condition": schema.StringAttribute{
+				MarkdownDescription: "How the `recovery_filters` combine: `All` (every one must match, the default) or `Any`.",
+				Optional:            true,
+				Validators:          []validator.String{monitorStepsFilterConditionValidator},
+			},
+			"active_hours": schema.SingleNestedAttribute{
+				MarkdownDescription: "Judge this criteria only on these days and between these times, on the clock of `active_hours_timezone`: the same hours on each day picked, as the dashboard's picker sets them. Outside them the criteria is skipped as a disabled one is, so what it opened resolves. Omit to judge it on every check.",
+				Optional:            true,
+				Attributes: map[string]schema.Attribute{
+					"days": schema.ListAttribute{
+						MarkdownDescription: "The days the hours are on: Monday is `0`, Sunday `6`, e.g. `[0, 1, 2, 3, 4]` for Monday to Friday.",
+						ElementType:         types.Int64Type,
+						Required:            true,
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1),
+							listvalidator.UniqueValues(),
+							listvalidator.ValueInt64sAre(int64validator.Between(0, 6)),
+						},
+					},
+					"from": schema.StringAttribute{
+						MarkdownDescription: "When the hours begin each day, `HH:mm` on a 24-hour clock, e.g. `\"08:00\"`.",
+						Required:            true,
+						Validators:          []validator.String{monitorStepsClockValidator},
+					},
+					"to": schema.StringAttribute{
+						MarkdownDescription: "When the hours end each day, `HH:mm`, e.g. `\"18:00\"`. Earlier than `from` ends the next morning: `\"22:00\"` to `\"06:00\"`.",
+						Required:            true,
+						Validators:          []validator.String{monitorStepsClockValidator},
+					},
+				},
+			},
+			"active_hours_timezone": schema.StringAttribute{
+				MarkdownDescription: "The IANA time zone `active_hours` are read in, e.g. `Europe/Oslo`. Required with `active_hours`: a project has no time zone of its own.",
+				Optional:            true,
+				Validators:          []validator.String{monitorStepsTimezoneValidator{}},
+			},
 			"incidents": schema.ListNestedAttribute{
 				MarkdownDescription: "Incident templates created when this criteria matches and `create_incidents` is true. Omit instead of passing an empty list.",
 				Optional:            true,
@@ -908,6 +1037,11 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 			MarkdownDescription: "HTTP request body sent by API monitors.",
 			Optional:            true,
 			Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+		},
+		"request_body_format": schema.StringAttribute{
+			MarkdownDescription: "How an API monitor sends `request_body`: `json` (the default) sends any JSON value as written; `text` sends the body exactly as written, never read as JSON, such as XML or form fields, under the `Content-Type` in `request_headers` or `text/plain`.",
+			Optional:            true,
+			Validators:          []validator.String{monitorStepsRequestBodyFormatValidator},
 		},
 		"do_not_follow_redirects": schema.BoolAttribute{
 			MarkdownDescription: "Do not follow HTTP redirects (API and Website monitors).",
@@ -1056,11 +1190,15 @@ func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute 
 // every criteria's defaults written out (is_enabled = true, create_incidents
 // = false...), a step's request_type as GET, and a bare origin with its
 // trailing slash, none of which a configuration writes. They are the same
-// steps when the configuration's, as the API takes them, are a subset of the
-// imported ones with bare origins compared without their slash - the rule
-// ListSemanticEquals applies after an apply. Only right after an import
-// (isImportedFromServer): once Terraform writes the monitor, its state is
-// what the configuration says, and taking a field out is a change again.
+// steps when the imported ones hold only what the configuration's, as the
+// API takes them, say - and what OneUptime writes of its own - with bare
+// origins compared without their slash: the rule ListSemanticEquals applies
+// after an apply (monitorStepsHoldsOnlyWhatIsWritten). A setting the
+// monitor has that the configuration leaves out (active hours set in the
+// Dashboard) is a change, which the plan shows (#10907). Only right after an
+// import (isImportedFromServer): once Terraform writes the monitor, its
+// state is what the configuration says, and taking a field out is a change
+// again.
 type monitorStepsAfterImportModifier struct{}
 
 // MonitorStepsKeepImported is the monitor_steps plan modifier above.
@@ -1099,10 +1237,11 @@ func (m monitorStepsAfterImportModifier) PlanModifyList(ctx context.Context, req
 	}
 }
 
-// monitorStepsSameAfterImport: the steps a configuration writes, as the API
-// takes them, are a subset of the steps an import read, bare origins
-// compared without their trailing slash and each value written another way
-// read as the one OneUptime stores (normalizeMonitorStepsValues).
+// monitorStepsSameAfterImport: the steps an import read hold only what the
+// steps a configuration writes, as the API takes them, say - and what
+// OneUptime writes of its own (monitorStepsHoldsOnlyWhatIsWritten) - bare
+// origins compared without their trailing slash and each value written
+// another way read as the one OneUptime stores (normalizeMonitorStepsValues).
 func monitorStepsSameAfterImport(ctx context.Context, planned types.List, imported types.List) bool {
 	plannedSteps, plannedDiags := MonitorStepsToAPI(ctx, planned)
 	importedSteps, importedDiags := MonitorStepsToAPI(ctx, imported)
@@ -1116,7 +1255,7 @@ func monitorStepsSameAfterImport(ctx context.Context, planned types.List, import
 		return false
 	}
 
-	return jsonIsSubset(
+	return monitorStepsHoldsOnlyWhatIsWritten(
 		normalizeMonitorStepsValues(normalizeURLWrapperLeaves(plannedPlain)),
 		normalizeMonitorStepsValues(normalizeURLWrapperLeaves(importedPlain)),
 	)
@@ -1148,6 +1287,38 @@ func monitorStepsAttrInt64(attrs map[string]attr.Value, name string) (int64, boo
 		return 0, false
 	}
 	return v.ValueInt64(), true
+}
+
+func monitorStepsAttrFloat64(attrs map[string]attr.Value, name string) (float64, bool) {
+	v, ok := attrs[name].(types.Float64)
+	if !ok || v.IsNull() || v.IsUnknown() {
+		return 0, false
+	}
+	return v.ValueFloat64(), true
+}
+
+func monitorStepsAttrObject(attrs map[string]attr.Value, name string) (map[string]attr.Value, bool) {
+	v, ok := attrs[name].(types.Object)
+	if !ok || v.IsNull() || v.IsUnknown() {
+		return nil, false
+	}
+	return v.Attributes(), true
+}
+
+func monitorStepsAttrInt64List(attrs map[string]attr.Value, name string) ([]int64, bool) {
+	v, ok := attrs[name].(types.List)
+	if !ok || v.IsNull() || v.IsUnknown() {
+		return nil, false
+	}
+	out := make([]int64, 0, len(v.Elements()))
+	for _, el := range v.Elements() {
+		n, ok := el.(types.Int64)
+		if !ok || n.IsNull() || n.IsUnknown() {
+			continue
+		}
+		out = append(out, n.ValueInt64())
+	}
+	return out, true
 }
 
 func monitorStepsAttrStringList(attrs map[string]attr.Value, name string) ([]string, bool) {
@@ -1241,6 +1412,21 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	}
 	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_no_data_policy"); ok {
 		evalOpts["onNoDataPolicy"] = v
+	}
+	if v, ok := monitorStepsAttrInt64(attrs, "evaluate_over_time_percentile"); ok {
+		evalOpts["percentile"] = v
+	}
+	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_count_filter_type"); ok {
+		evalOpts["countFilterType"] = v
+	}
+	if v, ok := monitorStepsAttrInt64(attrs, "evaluate_over_time_count_value"); ok {
+		evalOpts["countValue"] = v
+	}
+	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_change_type"); ok {
+		evalOpts["changeType"] = v
+	}
+	if v, ok := monitorStepsAttrFloat64(attrs, "evaluate_over_time_change_value"); ok {
+		evalOpts["changeValue"] = v
 	}
 	if len(evalOpts) > 0 {
 		out["evaluateOverTimeOptions"] = evalOpts
@@ -1393,6 +1579,25 @@ func monitorStepsCriteriaToAPI(attrs map[string]attr.Value, attrPath string, dia
 		value["filters"] = filters
 	}
 
+	// A recovery condition of its own, and the hours it is judged in (#10822).
+	if filterObjs, ok := monitorStepsObjectListElements(attrs, "recovery_filters"); ok {
+		filters := make([]interface{}, 0, len(filterObjs))
+		for i, obj := range filterObjs {
+			filters = append(filters, monitorStepsFilterToAPI(obj.Attributes(), fmt.Sprintf("%s.recovery_filters[%d]", attrPath, i), diags))
+		}
+		value["recoveryFilters"] = filters
+	}
+	if v, ok := monitorStepsAttrString(attrs, "recovery_filter_condition"); ok {
+		value["recoveryFilterCondition"] = v
+	}
+	timezone, hasTimezone := monitorStepsAttrString(attrs, "active_hours_timezone")
+	if hours, ok := monitorStepsAttrObject(attrs, "active_hours"); ok {
+		value["activeHours"] = monitorStepsActiveHoursToAPI(hours, timezone)
+	}
+	if hasTimezone {
+		value["activeHoursTimezone"] = timezone
+	}
+
 	if incidentObjs, ok := monitorStepsObjectListElements(attrs, "incidents"); ok {
 		incidents := make([]interface{}, 0, len(incidentObjs))
 		for _, obj := range incidentObjs {
@@ -1453,6 +1658,9 @@ func monitorStepsStepToAPI(attrs map[string]attr.Value, attrPath string, diags *
 	}
 	if v, ok := monitorStepsAttrString(attrs, "request_body"); ok {
 		value["requestBody"] = v
+	}
+	if v, ok := monitorStepsAttrString(attrs, "request_body_format"); ok {
+		value["requestBodyFormat"] = v
 	}
 	if v, ok := monitorStepsAttrBool(attrs, "do_not_follow_redirects"); ok {
 		value["doNotFollowRedirects"] = v
@@ -1558,6 +1766,8 @@ func monitorStepsNullAttrValues(attrTypes map[string]attr.Type) map[string]attr.
 			out[name] = types.BoolNull()
 		case basetypes.Int64Type:
 			out[name] = types.Int64Null()
+		case basetypes.Float64Type:
+			out[name] = types.Float64Null()
 		case basetypes.ListType:
 			out[name] = types.ListNull(tt.ElemType)
 		case basetypes.MapType:
@@ -1623,6 +1833,30 @@ func monitorStepsAPIInt64(v interface{}) (int64, bool) {
 		// Wrapper objects like {"_type": "Port", "value": 443}.
 		if inner, ok := t["value"]; ok {
 			return monitorStepsAPIInt64(inner)
+		}
+	}
+	return 0, false
+}
+
+// monitorStepsAPIFloat64 reads a number as the API answers one: a JSON
+// number, or its digits as text (the server stores digits as a number, but
+// an older row may hold them as written).
+func monitorStepsAPIFloat64(v interface{}) (float64, bool) {
+	switch t := v.(type) {
+	case float64:
+		return t, true
+	case int:
+		return float64(t), true
+	case int64:
+		return float64(t), true
+	case json.Number:
+		if f, err := t.Float64(); err == nil {
+			return f, true
+		}
+	case string:
+		// Digits only: "NaN" and "Inf" parse too, and spell no change.
+		if f, err := strconv.ParseFloat(strings.TrimSpace(t), 64); err == nil && !math.IsNaN(f) && !math.IsInf(f, 0) {
+			return f, true
 		}
 	}
 	return 0, false
@@ -1719,6 +1953,21 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 		}
 		if s, ok := monitorStepsAPIString(opts["onNoDataPolicy"]); ok {
 			attrs["evaluate_over_time_no_data_policy"] = types.StringValue(s)
+		}
+		if n, ok := monitorStepsAPIInt64(opts["percentile"]); ok {
+			attrs["evaluate_over_time_percentile"] = types.Int64Value(n)
+		}
+		if s, ok := monitorStepsAPIString(opts["countFilterType"]); ok {
+			attrs["evaluate_over_time_count_filter_type"] = types.StringValue(s)
+		}
+		if n, ok := monitorStepsAPIInt64(opts["countValue"]); ok {
+			attrs["evaluate_over_time_count_value"] = types.Int64Value(n)
+		}
+		if s, ok := monitorStepsAPIString(opts["changeType"]); ok {
+			attrs["evaluate_over_time_change_type"] = types.StringValue(s)
+		}
+		if f, ok := monitorStepsAPIFloat64(opts["changeValue"]); ok {
+			attrs["evaluate_over_time_change_value"] = types.Float64Value(f)
 		}
 	}
 	if opts, ok := m["serverMonitorOptions"].(map[string]interface{}); ok {
@@ -1893,6 +2142,43 @@ func monitorStepsCriteriaFromAPI(v interface{}, diags *diag.Diagnostics) (types.
 			attrs["filters"] = l
 		}
 	}
+	/*
+	 * A recovery condition and active hours set in the dashboard are read
+	 * back, so a plan keeps them and an apply sends them again (#10822).
+	 */
+	if raw, ok := m["recoveryFilters"].([]interface{}); ok && len(raw) > 0 {
+		els := make([]attr.Value, 0, len(raw))
+		for _, f := range raw {
+			if obj, ok := monitorStepsFilterFromAPI(f, diags); ok {
+				els = append(els, obj)
+			}
+		}
+		if len(els) > 0 {
+			l, d := types.ListValue(types.ObjectType{AttrTypes: monitorStepsFilterAttrTypes()}, els)
+			diags.Append(d...)
+			attrs["recovery_filters"] = l
+		}
+	}
+	if s, ok := monitorStepsAPIString(m["recoveryFilterCondition"]); ok {
+		attrs["recovery_filter_condition"] = types.StringValue(s)
+	}
+	timezone, hasTimezone := monitorStepsAPIString(m["activeHoursTimezone"])
+	if hasTimezone {
+		attrs["active_hours_timezone"] = types.StringValue(timezone)
+	}
+	if stored, ok := m["activeHours"].(map[string]interface{}); ok {
+		if hours, ok := monitorStepsActiveHoursFromAPI(stored, timezone); ok {
+			obj, d := monitorStepsActiveHoursObject(hours)
+			diags.Append(d...)
+			attrs["active_hours"] = obj
+		} else {
+			name, _ := monitorStepsAPIString(m["name"])
+			diags.AddWarning(
+				"Active hours Terraform cannot write",
+				fmt.Sprintf("The active hours of criteria %q are not the same hours on each day they are on (or their time zone is one Terraform does not know), so active_hours cannot hold them. An apply that writes this criteria removes them: set them as active_hours, or keep this criteria out of Terraform.", name),
+			)
+		}
+	}
 	// The server echoes incidents/alerts as [] when unset — treat
 	// absent-or-empty as unset so unused templates stay null.
 	if raw, ok := m["incidents"].([]interface{}); ok && len(raw) > 0 {
@@ -1971,6 +2257,9 @@ func monitorStepsStepFromAPI(v interface{}, diags *diag.Diagnostics) (types.Obje
 	}
 	if s, ok := monitorStepsAPIString(m["requestBody"]); ok {
 		attrs["request_body"] = types.StringValue(s)
+	}
+	if s, ok := monitorStepsAPIString(m["requestBodyFormat"]); ok {
+		attrs["request_body_format"] = types.StringValue(s)
 	}
 	if b, ok := monitorStepsAPIBool(m["doNotFollowRedirects"]); ok {
 		attrs["do_not_follow_redirects"] = types.BoolValue(b)
@@ -2109,4 +2398,369 @@ func MonitorStepsFromAPI(ctx context.Context, value interface{}) (types.List, di
 		return MonitorStepsNull(), diags
 	}
 	return list, diags
+}
+
+// ---------------------------------------------------------------------------
+// A criteria's active hours (#10822)
+// ---------------------------------------------------------------------------
+
+/*
+ * A criteria's active hours are kept as an on-call rule's working hours are
+ * (RestrictionTimes): one weekly window a day, each from a moment to a
+ * moment, read on the clock of activeHoursTimezone. The provider takes them
+ * as the dashboard's picker does - the same hours on the days picked - and
+ * converts them both ways exactly as WorkingHours.fromSimpleHours and
+ * toSimpleHours do (Common/Types/OnCallDutyPolicy/WorkingHours.ts), so hours
+ * set in the dashboard read back as the configuration that writes them, and
+ * an apply writes what the dashboard would.
+ */
+
+// monitorStepsActiveHours is a criteria's active hours as Terraform holds
+// them: the days (Monday is 0) and the times of day, "HH:mm".
+type monitorStepsActiveHours struct {
+	days []int64
+	from string
+	to   string
+}
+
+const (
+	monitorStepsMinutesInADay  = 24 * 60
+	monitorStepsMinutesInAWeek = 7 * monitorStepsMinutesInADay
+)
+
+// The days of the week, Monday first, as RestrictionTimes names them.
+var monitorStepsWeekdayNames = []string{
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+	"Sunday",
+}
+
+// A time of day as WorkingHours reads one: "08:00", "8:00", "23:59".
+var monitorStepsClockPattern = regexp.MustCompile(`^([01]?\d|2[0-3]):([0-5]\d)$`)
+
+var monitorStepsClockValidator = stringvalidator.RegexMatches(
+	monitorStepsClockPattern,
+	"must be a time of day on a 24-hour clock, HH:mm, such as \"08:00\"",
+)
+
+// monitorStepsParseClock reads "HH:mm" as minutes after midnight.
+func monitorStepsParseClock(clock string) (int, bool) {
+	match := monitorStepsClockPattern.FindStringSubmatch(strings.TrimSpace(clock))
+	if match == nil {
+		return 0, false
+	}
+	hours, _ := strconv.Atoi(match[1])
+	minutes, _ := strconv.Atoi(match[2])
+	return hours*60 + minutes, true
+}
+
+func monitorStepsFormatClock(minuteOfDay int) string {
+	return fmt.Sprintf("%02d:%02d", minuteOfDay/60, minuteOfDay%60)
+}
+
+/*
+ * monitorStepsLoadTimezone is the zone a name names, as moment-timezone
+ * knows it on the server. "Local" and "" are no IANA zone: Go would read
+ * them as this machine's clock and as UTC.
+ */
+func monitorStepsLoadTimezone(name string) (*time.Location, bool) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" || trimmed == "Local" {
+		return nil, false
+	}
+	location, err := time.LoadLocation(trimmed)
+	if err != nil {
+		return nil, false
+	}
+	return location, true
+}
+
+/*
+ * monitorStepsTimezoneValidator refuses at plan time a time zone the
+ * provider cannot read the active hours in. The server reads zone names
+ * without regard to letter case and the provider exactly, so a name
+ * written another way ("europe/oslo") would be stored on the server's clock
+ * and written on UTC's: the hours would be off by the zone's offset.
+ */
+type monitorStepsTimezoneValidator struct{}
+
+func (v monitorStepsTimezoneValidator) Description(_ context.Context) string {
+	return "must be an IANA time zone, such as Europe/Oslo"
+}
+
+func (v monitorStepsTimezoneValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v monitorStepsTimezoneValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if _, ok := monitorStepsLoadTimezone(req.ConfigValue.ValueString()); !ok {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Unknown time zone",
+			fmt.Sprintf("%q is not an IANA time zone. Write one as the tz database names it, letter case included, such as \"Europe/Oslo\" or \"America/New_York\".", req.ConfigValue.ValueString()),
+		)
+	}
+}
+
+/*
+ * monitorStepsActiveHoursToAPI writes the hours as the server keeps them,
+ * as WorkingHours.fromSimpleHours does: one weekly window a day, ending the
+ * next morning when it ends earlier than it begins, each time a moment in
+ * the week of Monday 12 January 2026 - a week no zone changes its clocks
+ * in - on the zone's clock. A zone the provider does not know is read as
+ * UTC, as the server writes it (the schema refuses one).
+ */
+func monitorStepsActiveHoursToAPI(attrs map[string]attr.Value, timezone string) map[string]interface{} {
+	location, ok := monitorStepsLoadTimezone(timezone)
+	if !ok {
+		location = time.UTC
+	}
+
+	fromText, _ := monitorStepsAttrString(attrs, "from")
+	toText, _ := monitorStepsAttrString(attrs, "to")
+	from, fromOK := monitorStepsParseClock(fromText)
+	if !fromOK {
+		from = 9 * 60
+	}
+	to, toOK := monitorStepsParseClock(toText)
+	if !toOK {
+		to = 17 * 60
+	}
+	endsNextDay := to < from
+
+	// Each day once, in week order.
+	seen := map[int64]bool{}
+	days := []int64{}
+	written, _ := monitorStepsAttrInt64List(attrs, "days")
+	for _, day := range written {
+		if day < 0 || day > 6 || seen[day] {
+			continue
+		}
+		seen[day] = true
+		days = append(days, day)
+	}
+	sort.Slice(days, func(i, j int) bool { return days[i] < days[j] })
+
+	atClock := func(dayOfWeek int, minuteOfDay int) map[string]interface{} {
+		moment := time.Date(2026, time.January, 12+dayOfWeek, minuteOfDay/60, minuteOfDay%60, 0, 0, location)
+		return map[string]interface{}{
+			"_type": "DateTime",
+			"value": moment.UTC().Format("2006-01-02T15:04:05.000Z"),
+		}
+	}
+
+	windows := make([]interface{}, 0, len(days))
+	for _, day := range days {
+		endDay := int(day)
+		if endsNextDay {
+			endDay++
+		}
+		windows = append(windows, map[string]interface{}{
+			"startDay":  monitorStepsWeekdayNames[day],
+			"endDay":    monitorStepsWeekdayNames[endDay%7],
+			"startTime": atClock(int(day), from),
+			"endTime":   atClock(endDay, to),
+		})
+	}
+
+	return map[string]interface{}{
+		"_type": "RestrictionTimes",
+		"value": map[string]interface{}{
+			"restictionType":         "Weekly",
+			"dayRestrictionTimes":    nil,
+			"weeklyRestrictionTimes": windows,
+		},
+	}
+}
+
+// A window of the hours: the minute of the week it opens, Monday 00:00 is 0.
+type monitorStepsHoursWindow struct {
+	startMinuteOfWeek int
+	lengthInMinutes   int
+}
+
+// monitorStepsReadMoment reads a stored moment: {"_type": "DateTime",
+// "value": "..."}, or its text alone.
+func monitorStepsReadMoment(v interface{}) (time.Time, bool) {
+	text, ok := v.(string)
+	if !ok {
+		wrapped, isMap := v.(map[string]interface{})
+		if !isMap {
+			return time.Time{}, false
+		}
+		text, ok = wrapped["value"].(string)
+		if !ok {
+			return time.Time{}, false
+		}
+	}
+	moment, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(text))
+	if err != nil {
+		return time.Time{}, false
+	}
+	return moment, true
+}
+
+// The minute of the week a moment falls in, on the zone's clock (Monday 0).
+func monitorStepsMinuteOfWeek(moment time.Time, location *time.Location) int {
+	zoned := moment.In(location)
+	weekday := (int(zoned.Weekday()) + 6) % 7
+	return weekday*monitorStepsMinutesInADay + zoned.Hour()*60 + zoned.Minute()
+}
+
+/*
+ * monitorStepsActiveHoursFromAPI reads the stored hours as the same hours on
+ * the days picked, when that is what they are, as WorkingHours.toSimpleHours
+ * does: their windows on the zone's clock, grouped by the times they open
+ * and close, must be one group that ends the same day, or the next morning
+ * when it ends earlier than it begins. Anything else - different hours on
+ * different days, hours over a weekend - and hours in a zone the provider
+ * does not know read as none.
+ */
+func monitorStepsActiveHoursFromAPI(stored map[string]interface{}, timezone string) (monitorStepsActiveHours, bool) {
+	location, ok := monitorStepsLoadTimezone(timezone)
+	if !ok {
+		return monitorStepsActiveHours{}, false
+	}
+
+	value, ok := stored["value"].(map[string]interface{})
+	if !ok || stored["_type"] != "RestrictionTimes" {
+		return monitorStepsActiveHours{}, false
+	}
+
+	windows := []monitorStepsHoursWindow{}
+
+	switch value["restictionType"] {
+	case "Daily":
+		daily, ok := value["dayRestrictionTimes"].(map[string]interface{})
+		if !ok {
+			return monitorStepsActiveHours{}, false
+		}
+		start, startOK := monitorStepsReadMoment(daily["startTime"])
+		end, endOK := monitorStepsReadMoment(daily["endTime"])
+		if !startOK || !endOK {
+			return monitorStepsActiveHours{}, false
+		}
+		startMinute := monitorStepsMinuteOfWeek(start, location) % monitorStepsMinutesInADay
+		endMinute := monitorStepsMinuteOfWeek(end, location) % monitorStepsMinutesInADay
+		if startMinute == endMinute {
+			return monitorStepsActiveHours{}, false
+		}
+		length := (endMinute - startMinute + monitorStepsMinutesInADay) % monitorStepsMinutesInADay
+		for day := 0; day < 7; day++ {
+			windows = append(windows, monitorStepsHoursWindow{
+				startMinuteOfWeek: day*monitorStepsMinutesInADay + startMinute,
+				lengthInMinutes:   length,
+			})
+		}
+	case "Weekly":
+		weekly, _ := value["weeklyRestrictionTimes"].([]interface{})
+		for _, raw := range weekly {
+			window, ok := raw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			start, startOK := monitorStepsReadMoment(window["startTime"])
+			end, endOK := monitorStepsReadMoment(window["endTime"])
+			if !startOK || !endOK {
+				continue
+			}
+			startMinute := monitorStepsMinuteOfWeek(start, location)
+			endMinute := monitorStepsMinuteOfWeek(end, location)
+			length := (endMinute - startMinute + monitorStepsMinutesInAWeek) % monitorStepsMinutesInAWeek
+			if length == 0 {
+				continue
+			}
+			windows = append(windows, monitorStepsHoursWindow{
+				startMinuteOfWeek: startMinute,
+				lengthInMinutes:   length,
+			})
+		}
+	default:
+		return monitorStepsActiveHours{}, false
+	}
+
+	sort.SliceStable(windows, func(i, j int) bool {
+		return windows[i].startMinuteOfWeek < windows[j].startMinuteOfWeek
+	})
+
+	// The windows grouped by when they open and close (WorkingHours.getSpans).
+	type span struct {
+		days          []int64
+		from          string
+		to            string
+		endsDaysLater int
+	}
+	spans := []*span{}
+	for _, window := range windows {
+		day := int64(window.startMinuteOfWeek / monitorStepsMinutesInADay)
+		startMinute := window.startMinuteOfWeek % monitorStepsMinutesInADay
+		endMinute := startMinute + window.lengthInMinutes
+		from := monitorStepsFormatClock(startMinute)
+		to := monitorStepsFormatClock(endMinute % monitorStepsMinutesInADay)
+		endsDaysLater := endMinute / monitorStepsMinutesInADay
+
+		var alike *span
+		for _, candidate := range spans {
+			hasDay := false
+			for _, known := range candidate.days {
+				if known == day {
+					hasDay = true
+					break
+				}
+			}
+			if candidate.from == from && candidate.to == to && candidate.endsDaysLater == endsDaysLater && !hasDay {
+				alike = candidate
+				break
+			}
+		}
+		if alike != nil {
+			alike.days = append(alike.days, day)
+			continue
+		}
+		spans = append(spans, &span{days: []int64{day}, from: from, to: to, endsDaysLater: endsDaysLater})
+	}
+
+	if len(spans) != 1 {
+		return monitorStepsActiveHours{}, false
+	}
+
+	only := spans[0]
+	from, _ := monitorStepsParseClock(only.from)
+	to, _ := monitorStepsParseClock(only.to)
+	wantsDaysLater := 0
+	if to < from {
+		wantsDaysLater = 1
+	}
+	if from == to || only.endsDaysLater != wantsDaysLater {
+		return monitorStepsActiveHours{}, false
+	}
+
+	return monitorStepsActiveHours{days: only.days, from: only.from, to: only.to}, true
+}
+
+// monitorStepsActiveHoursObject is the active_hours attribute holding hours.
+func monitorStepsActiveHoursObject(hours monitorStepsActiveHours) (types.Object, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	days := make([]attr.Value, 0, len(hours.days))
+	for _, day := range hours.days {
+		days = append(days, types.Int64Value(day))
+	}
+	dayList, d := types.ListValue(types.Int64Type, days)
+	diags.Append(d...)
+
+	obj, d := types.ObjectValue(monitorStepsActiveHoursAttrTypes(), map[string]attr.Value{
+		"days": dayList,
+		"from": types.StringValue(hours.from),
+		"to":   types.StringValue(hours.to),
+	})
+	diags.Append(d...)
+	return obj, diags
 }

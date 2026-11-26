@@ -41,6 +41,12 @@ import {
   fetchCloudAppInstances,
   fetchCloudAppSignals,
 } from "../../Pages/AppPlatforms/Utils/CloudAppReads";
+import {
+  CloudAppPlatformSignalResult,
+  CloudAppPlatformSignals,
+  fetchCloudAppPlatformSignals,
+  showsCloudAppPlatformSignals,
+} from "../../Pages/AppPlatforms/Utils/CloudAppPlatformSignals";
 import { CloudResourceScopeSource } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 import {
   CloudAppRevisionCell,
@@ -65,7 +71,11 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
  *
  * The rows are CloudApp's; the instances and the numbers are read beside
  * them for the rows on the page (fetchCloudAppInstances, and one grouped
- * read per environment for the numbers: fetchCloudAppSignals).
+ * read per environment for the numbers: fetchCloudAppSignals). An App
+ * Service app that sends no traces shows its site's numbers from Azure
+ * Monitor instead, marked as Azure Monitor's (#10406): the site the server
+ * keeps on the app, read as the reader may, in three reads for the page
+ * (fetchCloudAppPlatformSignals).
  *
  * All Apps has a Cloud Account chip above the rows: an app is in the
  * account its environment is in (AppPlatformsAccountFacet). Cloud's
@@ -84,7 +94,7 @@ export const NO_APPS_MESSAGE: string = translationKey(
 );
 
 const SIGNAL_WINDOW_NOTE: string = translationKey(
-  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it.",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.",
 );
 
 // The clouds' product names, as written in every language (DropdownOption.isUserContent).
@@ -132,6 +142,12 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
     new Map<string, number>(),
   );
   const [instancesLoaded, setInstancesLoaded] = useState<boolean>(false);
+  // App Service apps that send no traces: their sites' numbers (#10406).
+  const [platformSignals, setPlatformSignals] = useState<
+    Map<string, CloudAppPlatformSignals>
+  >(new Map<string, CloudAppPlatformSignals>());
+  const [isLoadingPlatformSignals, setIsLoadingPlatformSignals] =
+    useState<boolean>(false);
   // Only the latest page's reads land: an older one is dropped.
   const fetchCount: React.MutableRefObject<number> = useRef<number>(0);
 
@@ -200,6 +216,22 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
 
     setIsLoadingSignals(true);
     setInstancesLoaded(false);
+    setIsLoadingPlatformSignals(true);
+
+    fetchCloudAppPlatformSignals({ apps })
+      .then((result: CloudAppPlatformSignalResult): void => {
+        if (thisFetch !== fetchCount.current) {
+          return;
+        }
+        setPlatformSignals(result.signals);
+        setIsLoadingPlatformSignals(false);
+      })
+      .catch((): void => {
+        if (thisFetch !== fetchCount.current) {
+          return;
+        }
+        setIsLoadingPlatformSignals(false);
+      });
 
     fetchCloudAppSignals({ apps, environments })
       .then((result: CloudAppSignalResult): void => {
@@ -238,6 +270,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setSignals(new Map<string, CloudAppSignals>());
     setLiveInstances(new Map<string, number>());
+    setPlatformSignals(new Map<string, CloudAppPlatformSignals>());
   }, [baseQuery]);
 
   const getAppRoute: (app: CloudApp) => Route = (app: CloudApp): Route => {
@@ -340,6 +373,9 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
         lastSeenAt: true,
         // An app that sends no traces reads "No traces", not "No requests".
         tracesLastReceivedAt: true,
+        // ...or, on App Service, its site's numbers (#10406).
+        providerResourceId: true,
+        platformCloudResourceId: true,
       }}
       searchableFields={["name", "serviceName"]}
       cardProps={{
@@ -477,6 +513,10 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
                 signals={signalsOf(app)}
                 isLoading={isLoadingSignals}
                 hasTraces={hasCloudAppSentTraces(app)}
+                platformSignals={platformSignals.get(idOf(app._id))}
+                isLoadingPlatformSignals={
+                  isLoadingPlatformSignals && showsCloudAppPlatformSignals(app)
+                }
               />
             );
           },

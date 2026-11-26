@@ -71,7 +71,7 @@ flowchart TB
 
 | 對方所處情況 | 看到的內容 | 點選的按鈕 |
 | --- | --- | --- |
-| 尚未加入任何專案 | 登入後進入的頁面上的邀請 | **Accept & Join** 或 **Decline** |
+| 尚未加入任何專案 | 登入後進入的頁面上的邀請 | **Accept & Join** 或 **拒絕** |
 | 已在另一個專案中 | 右上角鈴鐺上的待處理邀請，點選後開啟**專案邀請** | **接受** 或 **拒絕** |
 
 接受後，對方會立即加入專案，獲得其團隊的權限以及每位成員一開始擁有的通知設定：請參閱[一開始擁有什麼](/docs/notifications/index#一開始擁有什麼)。拒絕會刪除邀請，之後要加入就需要新的邀請。
@@ -132,8 +132,8 @@ Owners 團隊始終至少保留一名已加入的成員，因此專案永遠不�
 
 ## 疑難排解
 
-:::details "This user has already been invited to this team"
-此人已經在該團隊中，可能是成員，也可能有尚未接受的邀請。在**使用者**中開啟此人查看其團隊，或將其邀請到其他團隊。
+:::details "This person has already been invited to this team, or is a member of it"
+此人已經在該團隊中，可能是成員，也可能有尚未接受的邀請。在**使用者**中開啟此人查看其團隊，或將其邀請到其他團隊。如果此人尚未加入，此人列選單裡的**重新傳送邀請**會再次寄出邀請郵件。
 :::
 
 :::details "You have reached the user limit for the free plan"

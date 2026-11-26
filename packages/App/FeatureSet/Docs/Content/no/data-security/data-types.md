@@ -5,8 +5,11 @@ Datasikkerhet kjenner 143 typer sensitive data: kortnumre, bankkontoer, nasjonal
 :::cards
 - [Hvordan en verdi blir funnet](#hvordan-en-verdi-blir-funnet): Form, validator, kontekst, testverdier, konfidens.
 - [Felt og kolonner](#felt-og-kolonner): Hvordan en hel kolonne eller et helt attributt vurderes.
+- [Navn og gateadresser i fritekst](#navn-og-gateadresser-i-fritekst): Den lille modellen inne i skanneren, og hvor godt den treffer.
 - [Hver datatype](#innebygde-datatyper): Alle 143, etter kategori.
 - [Dine egne datatyper](#dine-egne-datatyper): Ansatt-ID-er, polisenumre og boksen Test det.
+- [Datatyper som OneUptime AI finner](#datatyper-som-oneuptime-ai-finner): Dine egne datatyper, funnet i feltene som ingen detektor kunne plassere.
+- [Vurderingene fra OneUptime AI](#vurderingene-fra-oneuptime-ai): En vurdering av hvert funn som venter på deg, med teamets beslutninger som presedens.
 :::
 
 ## Hvordan en verdi blir funnet
@@ -39,6 +42,8 @@ Bare funn med Høy og Middels konfidens teller: de gjør et datalager sensitivt 
 
 Når to datatyper gjør krav på de samme tegnene, vinner det sikreste funnet: høyest konfidens, deretter detektoren med egne regler som beviser mest, deretter det lengste treffet.
 
+En verdi leses også slik folk skriver den. Prosentkodingene i en URL leses, så en IP-adresse eller en e-postadresse i en spørrestreng, som `jane%40example.com`, blir funnet. Sifrene i et kortnummer leses i enhver skrift, som sifre i full bredde (`４１１１ １１１１ １１１１ １１１１`) eller arabisk-indiske sifre, først hver skrift for seg og så sammen. En e-postadresse blir funnet i enhver skrift, som `张伟@example.com` eller `почта@пример.рф`, og en IPv6-adresse rett etter kolonet til en nøkkel, som `ip:2001:db8::1`. Hvert funn er verdien slik den er skrevet, så en rensingsregel skjuler den der.
+
 En lang verdi leses i vinduer på 64 KB som overlapper med 4 KB, så en verdi blir funnet hel uansett hvor den står, og høyst 4 MB av én verdi leses.
 
 ## Felt og kolonner
@@ -55,7 +60,7 @@ Et felt der verdiene i snitt er lengre enn 80 tegn, er fritekst – notater, mel
 
 Navnet på et felt deles opp i ord – `customerEmail`, `customer_email` og `customer-email` er alle «customer email» – og navnehintet til en type treffer når ordene står i den rekkefølgen, ved siden av hverandre: «date of birth» treffer `customer_date_of_birth`, ikke `birth_city`. Bare den siste delen av en sti med punktum er feltets eget navn, sammen med delen før når den siste er et generelt ord som `number`, `id` eller `value`: `customer.address.city` er ikke en gateadresse, og `card.number` er fortsatt et kortnummer.
 
-Noen datatyper kan ikke gjenkjennes på verdiene: ingen mønstre skiller en persons navn fra en gate, eller en religion fra et hvilket som helst annet ord. Disse blir bare funnet ut fra feltets navn, når feltet har verdier: Personnavn, Brukernavn, Kjønn, Nasjonalitet, Helseopplysninger, Rasemessig eller etnisk opprinnelse, Religiøs overbevisning, Seksuell orientering, Politisk oppfatning, Fagforeningsmedlemskap, Biometriske data, Genetiske data og Strafferegister. Et navn, et brukernavn, et kjønn eller en nasjonalitet er da Høy når 60 % eller mer av verdiene ser ut som det, og ellers Middels.
+Noen datatyper kan ikke gjenkjennes på verdiene: ingen mønstre skiller en persons navn fra en gate, eller en religion fra et hvilket som helst annet ord. Disse blir bare funnet ut fra feltets navn, når feltet har verdier: Personnavn, Brukernavn, Kjønn, Nasjonalitet, Helseopplysninger, Rasemessig eller etnisk opprinnelse, Religiøs overbevisning, Seksuell orientering, Politisk oppfatning, Fagforeningsmedlemskap, Biometriske data, Genetiske data og Strafferegister. Et navn, et brukernavn, et kjønn eller en nasjonalitet er da Høy når 60 % eller mer av verdiene ser ut som det, og ellers Middels. I fritekst finnes personnavn og gateadresser også av en liten modell: se [Navn og gateadresser i fritekst](#navn-og-gateadresser-i-fritekst).
 
 Et felt med et navn som sier at det inneholder et passord – `password`, `passwordHash`, `pwd`, ikke `password_changed_at` – bør inneholde en hash: bcrypt, argon2, scrypt, PBKDF2 eller et annet skjema et datalager sannsynligvis bruker. Tomme verdier, plassholdere som `********` og krypterte verdier holdes utenfor. Når flere av resten ikke er hasher enn er det, inneholder feltet selve passordene, som ingen mønstre kan se, og datalageret feiler [Passord lagres i klartekst](/docs/data-security/checks-and-issues#datahygiene).
 
@@ -63,7 +68,74 @@ Et felt med et navn som sier at det inneholder et passord – `password`, `passw
 
 En kolonne eller et felt der navnet ikke peker på noen datatype og verdiene ikke treffer noen detektor, er ikke kjent som trygt: det kan være ditt eget kundenummer, eller en kolonne med navn på et annet språk. Med **Aktiver AI** slått på i prosjektet beholder en innholdsskanning slike felt, høyst 200 per skanning, og OneUptime AI blir spurt om hvilken av prosjektets datatyper hvert felt inneholder, høyst 40 felt fra et datalager om gangen. Den får feltets navn, navnene på feltene ved siden av og formene på verdiene - hver bokstav skrevet som `a` eller `A` og hvert siffer som `9`, så `AB-1234` blir `AA-9999` - aldri en verdi. Det spørres ikke om fritekst, felt med færre enn 5 verdier, små heltall og felt som er navngitt som en ID, et tidspunkt eller en status.
 
-Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått av OneUptime AI** med begrunnelsen. Som ethvert funn med Lav konfidens teller det ikke før et menneske velger **Bekreft** på datalagerets side **Innhold**; **Merk som ikke sensitivt** avviser det. Det spørres ikke på nytt om et felt som har fått svar, på 30 dager, og aldri igjen om et felt et menneske har vurdert.
+En telemetriskanning beholder på samme måte attributtene som ingen detektor plasserte, fra en tjenestes logger, spans, målinger og resten av telemetrien, høyst 50 per tjeneste i hver skanning. Den beholder aldri OneUptimes egne attributter, attributtene som OpenTelemetrys konvensjoner skriver på hver post for å si hvor den kommer fra, som tjenesten, verten eller poden, eller fritekst, som brødteksten i en logg.
+
+Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått av OneUptime AI** med begrunnelsen, skrevet på prosjektets språk og vist over hele funnets rad. Som ethvert funn med Lav konfidens teller det ikke før et menneske velger **Bekreft** på datalagerets side **Innhold**; **Merk som ikke sensitivt** avviser det. Det spørres ikke på nytt om et felt som har fått svar, på 30 dager, og aldri igjen om et felt et menneske har vurdert.
+
+## Navn og gateadresser i fritekst
+
+Ingen mønstre skiller en persons navn fra et hvilket som helst annet ord. Derfor leses fritekst - et supportnotat, en logglinje, en unntaksmelding, en prompt - også av en liten språkmodell som finner personnavn og gateadresser. Modellen kjører inne i skanneren, på OneUptimes workers og på sondene dine: teksten forlater aldri skanneren, ingenting lastes ned mens den kjører, og ingen prompt skrives. Den er ikke OneUptime AI, og OneUptime AIs brytere slår den ikke av eller på: det gjør **Finn navn og gateadresser**.
+
+- **Hva den leser.** Et felt der verdiene i snitt er lengre enn 80 tegn, og i telemetri hver loggtekst, unntaksmelding, stakksporing og AI-samtale, uansett hvor kort. Den leser opptil 100 ulike verdier i et felt, 32 KB tekst til sammen, og opptil 16 KB av én verdi.
+- **Hva den finner.** Et **Personnavn** (`person-name`) og en **Gateadresse** (`postal-address`): et sted modellen leser ved siden av et husnummer, for eksempel `14 Calle Mayor`, med postnummeret og stedet som følger. Et sted eller et land alene er ingen gateadresse.
+- **Hvor sikker den er.** Et navn eller en adresse modellen finner, er Middels i seg selv. Det er Høy når feltets navn sier at feltet inneholder navn eller adresser, eller når ord i nærheten gjør det, som "customer", "Kunde" eller "dirección". Det er Lav når modellen er usikker, med en poengsum under 0,6. Hver av dem beholder konfidensen den fikk på egen hånd, så ett navn blant tusen logglinjer er fortsatt Middels.
+- **Testverdier.** Plassholdere som `Jane Doe`, `John Smith`, `Max Mustermann` og `123 Main Street` telles for seg, slik testverdiene til hver type gjør.
+- **Hva den beholder.** Prøvene maskeres slik som for et navn funnet ut fra feltets navn: første tegn og fire stjerner, `M****`. De får aldri noe fingeravtrykk. På datalagerets side **Innhold** står det **Funnet i fritekst av skannerens modell** ved et slikt funn.
+
+| Modell | Lisens | Størrelse | Revisjon | Målte språk |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual): seks lag flerspråklig BERT, int8 ONNX | Apache 2.0 | 98 MB | `8cf7273` | Engelsk, spansk, tysk, fransk, italiensk, portugisisk, nederlandsk |
+
+### Hvor godt den finner dem
+
+Den ble målt med skannerens egen kode på et testsett skrevet for den: 392 oppdiktede setninger på sju språk - logglinjer, supportnotater, e-poster, prompter - der 168 verken har et navn eller en adresse. Et funn er riktig når det overlapper et navn eller en adresse av sin type. Kravet ble skrevet før noen modell ble målt: en presisjon på minst 0,90 for hver type over alle språk og 0,85 i hvert språk, en recall på minst 0,70, og høyst 20 falske funn per 1 000 verdier som ikke har noen av dem. Av de fire modellene som ble målt, klarte to kravet, og den minste ble valgt. En test holder fast på disse tallene: en endring i modellen eller skanneren som senker ett av dem, feiler.
+
+| Språk | Navn: presisjon | Navn: recall | Adresser: presisjon | Adresser: recall |
+| --- | --- | --- | --- | --- |
+| Engelsk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Spansk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Tysk | 1,00 | 0,93 | 1,00 | 1,00 |
+| Fransk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Italiensk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Portugisisk | 0,93 | 0,89 | 1,00 | 1,00 |
+| Nederlandsk | 0,96 | 0,89 | 1,00 | 1,00 |
+| Alle sju | 0,96 | 0,94 | 1,00 | 1,00 |
+
+På testsettets 168 setninger som ikke har noen av dem, gjør den 18 falske funn per 1 000. På en del av et offentlig referansesett, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0): 15 finansdokumenter på hvert av sju språk, med etiketter satt av en maskin og ikke fullstendige, så les det sammen med tabellen over og ikke alene:
+
+| Språk | Navn: presisjon | Navn: recall | Adresser: presisjon | Adresser: recall |
+| --- | --- | --- | --- | --- |
+| Engelsk | 0,91 | 0,90 | 0,83 | 1,00 |
+| Spansk | 0,89 | 0,37 | 0,58 | 0,70 |
+| Tysk | 0,93 | 0,58 | 0,75 | 0,70 |
+| Fransk | 0,84 | 0,50 | 0,42 | 0,83 |
+| Italiensk | 0,73 | 0,61 | 0,79 | 0,69 |
+| Nederlandsk | 0,91 | 0,49 | 1,00 | 0,89 |
+| Svensk | 1,00 | 0,61 | 1,00 | 0,93 |
+| Alle sju | 0,89 | 0,54 | 0,77 | 0,82 |
+
+De fire modellene som ble målt, på det skrevne testsettet, én etter én på samme maskin, hver tidtatt på én kjerne med onnxruntimes native kode. OneUptime kjører den valgte med onnxruntimes WebAssembly, som kjører i hvert image, fem til åtte ganger langsommere:
+
+| Modell | Lisens | Størrelse | Navn: presisjon / recall | Adresser: presisjon / recall | Falske funn per 1 000 | Tid per 1 000 verdier på 75 / 1 181 tegn |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (valgt) | Apache 2.0 | 98 MB | 0,963 / 0,939 | 1,000 / 1,000 | 18 | 5,9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 MB | 0,995 / 0,974 | 0,985 / 1,000 | 12 | 7,4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
+
+### Hvor den kjører, og hva den koster
+
+- **I hvert image.** App-imaget, som kjører workers, og sonde-imaget har med seg modellen, ordforrådet og kjøremiljøet, også luftgappede og Iron Bank-images: rundt 114 MB på disk. De hentes når imaget bygges, fra en fastlåst revisjon, og kontrolleres mot sin SHA-256. Ingenting lastes ned mens en skanning kjører.
+- **Minne.** Den lastes inn første gang en skanning trenger den, én gang per prosess: rundt 550 MB, som gis tilbake etter 10 minutter uten skanning.
+- **Tid.** På én kjerne mellom 30 sekunder og ett minutt per 1 000 verdier på lengde med en logglinje, og rundt 9 minutter per 1 000 verdier på 1 200 tegn. En innholdsskanning av et datalager gir den opptil 2 minutter. Telemetriskanningen hver time gir den opptil 1 minutt til sammen og 6 sekunder per datalager, til et nytt utvalg datalagre hver time.
+- **Når tiden er brukt opp**, fullføres skanningen med det modellen rakk å lese, og varslene sier hvor mange av fritekstverdiene den leste, aldri hva. En worker eller en sonde uten modellen skanner som før og sier hvorfor:
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Finn navn og gateadresser** er på i hvert prosjekt: innholdsskanninger av buckets, databaser og BigQuery-datasett leser fritekst med modellen, på workers og på sonder. **Finn navn og gateadresser i telemetri**, under den, er av: å lese hver loggtekst, hvert unntak og hver samtale i et travelt prosjekt med 200 tjenester én gang tar rundt 48 minutter på én kjerne, og skanningens minutt i timen leser rundt 4 % av det. Slå den på for at hver timeskanning skal lese en del av dem. Begge ligger under **Datasikkerhet → Innstillinger → Skanneinnstillinger**, i **Hva Datasikkerhet leser**. **Test det** kjører i nettleseren din, uten modellen: det modellen ville funnet, vises ikke der.
 
 ## Sensitivitet
 
@@ -100,7 +172,7 @@ En datatype som hører til ett land, navngir det med en ISO 3166-1-kode: residen
 | --- | --- | --- | --- | --- |
 | E-postadresse | `email-address` | En persons e-postadresse. | Konfidensiell | — |
 | Telefonnummer | `phone-number` | Et telefonnummer i internasjonalt eller nasjonalt format. | Konfidensiell | — |
-| Personnavn | `person-name` | En persons fornavn, etternavn eller fulle navn, funnet ut fra feltets navn. | Konfidensiell | — |
+| Personnavn | `person-name` | En persons fornavn, etternavn eller fulle navn, funnet ut fra feltets navn, eller av skannerens modell i fritekst. | Konfidensiell | — |
 | Gateadresse | `postal-address` | En gateadresse: et nummer, et gatenavn og en gatetype. | Konfidensiell | — |
 | Postnummer | `postal-code` | Et postnummer. Alene snevrer det inn hvor noen bor. | Intern | — |
 | Fødselsdato | `date-of-birth` | En dato ved siden av ord som sier at den er noens fødselsdato. | Konfidensiell | — |
@@ -296,6 +368,32 @@ Et mønster kontrolleres når du lagrer det: det må kompilere, ikke treffe tom 
 
 En verdi av typen din er Middels alene og Høy med et nøkkelord i nærheten når den består en kontrollsum, og Lav alene og Middels med et nøkkelord når den ikke har noen. I en kolonne avgjør andelen verdier som treffer, som for alle typer.
 
+### Beskriv det
+
+Øverst i skjemaet for en ny datatype fyller **Beskriv det** ut skjemaet for deg. Skriv hvordan dataene ser ut, for eksempel "ansattnumrene våre ser ut som EMP-123456, noen ganger uten bindestrek", legg til noen eksempler hvis du vil, ett per linje, og velg **Fyll ut skjemaet**. OneUptime AI får setningen din og formene på eksemplene dine, aldri selve eksemplene: de blir i nettleseren din, der **Test det** viser hvor mange av dem mønsteret finner. Les det den fylte ut, endre det du vil, og lagre: ingenting lagres før du gjør det, og mønsteret kontrolleres som et du har skrevet selv. Beskriv det krever at **Aktiver AI** er slått på for prosjektet.
+
+## Datatyper som OneUptime AI finner
+
+Feltene som ingen detektor kunne plassere, inneholder ofte en datatype som er bedriftens egen, lagret mange steder under navn som sier det samme: et forsikringsselskaps polisenumre i kolonner med navnene `policy_no`, `policyNumber` og `police_nr`, i alle databasene. Med **Aktiver AI** slått på for prosjektet finner OneUptime AI en slik datatype i feltene skanningene dine beholdt, og spør deg først når dine egne skanninger har bevist den.
+
+:::steps
+### Den finner en gruppe felt
+
+Tre eller flere felt i to eller flere datalagre danner en gruppe når de fleste verdiene deres har én form, med eller uten skilletegnene mellom delene, og navnene deler et ord som sier hva de inneholder. En form uten sifre, en dato, et klokkeslett eller et desimaltall danner aldri en gruppe, og et ord som `id`, `no` eller `number` sier ingenting alene.
+
+### Den lager utkast til en datatype
+
+OneUptime AI lager et utkast til en datatype for hver nye gruppe, høyst 3 om gangen, ut fra feltenes navn og formene på verdiene, aldri ut fra en verdi. Utkastet må bestå det en lagret type må bestå, og finne formene det ble laget ut fra. Et utkast som ikke gjør det, blir bedt om én gang til, med årsaken.
+
+### De neste skanningene dine beviser den
+
+Utkastet kjører i den neste skanningen av hvert datalager i gruppen, i opptil 48 timer eller ett skanneintervall, det som er lengst. Det lager ingen funn: hver skanning teller hvor mange verdier det ville funnet, i gruppens felt og i alle andre felt i de samme datalagrene. Det tilbys når det finner minst 80 % av verdiene i feltene sine og høyst 1 % av de andre verdiene. Et felt et annet sted der det finner nesten hver verdi, inneholder de samme dataene under et annet navn: det nevnes, ikke telles mot utkastet.
+:::
+
+Hvert utkast telles samtidig også i en innsnevret utgave: utenfor gruppens felt finner et innsnevret utkast en verdi bare ved siden av et av nøkkelordene sine eller under et feltnavn som nevner det. Et utkast som finner for mye andre steder, tilbys innsnevret når det holder. Et utkast som ikke holder på noen av de to måtene, forkastes, og gruppen lages ikke utkast for igjen på 30 dager.
+
+Hver datatype den tilbyr, venter under **Datatyper til gjennomgang**, øverst på **Datasikkerhet → Innstillinger → Datatyper** og på **Datasikkerhet → KI**, med det skanningene dine telte, for eksempel "Treffer 98 % av verdiene i disse 11 feltene, og 0,1 % av verdiene andre steder i de samme datalagrene." **Legg til datatype** åpner skjemaet for en datatype utfylt med den, så du kan endre og teste den; lagrer du, legges typen til, og skanninger finner den fra neste kjøring. **Ikke en datatype** avviser den: den tilbys aldri igjen for de feltene. Å legge til en krever en rolle som kan opprette datatyper.
+
 ## Ikke sensitivt, og aldri sensitivt
 
 En skanning kan finne noe som ikke er det det ser ut som: en kolonne med ordrenumre som består Luhn-kontrollen, din egen støtteadresse i hver logglinje. Si fra til OneUptime, så slutter den å telle det:
@@ -303,6 +401,42 @@ En skanning kan finne noe som ikke er det det ser ut som: en kolonne med ordrenu
 - **Merk funnet som ikke sensitivt.** På siden **Innhold** for datalageret velger du **Merk som ikke sensitivt** på funnet og sier hvorfor. Det teller ikke lenger mot datalagerets sensitivitet eller kontrollene, og datalageret kontrolleres på nytt med en gang. Funnet blir værende på datalageret, merket, med begrunnelsen din, så den neste personen ser hva som ble bestemt.
 - **Legg til verdien i Aldri sensitivt**, i innstillingene for Datasikkerhet, for en verdi som aldri er et funn noe sted, som `support@yourcompany.com`. Verdier sammenlignes etter at skanneren har normalisert dem, uten hensyn til store og små bokstaver.
 - **Slå av en innebygd datatype.** Under **Innebygde datatyper**, på **Datasikkerhet → Innstillinger → Datatyper**, har hver datatype en bryter, som lagres i det øyeblikket den slås om. Ingen skanning i prosjektet ser etter en type som er slått av.
+
+## Vurderingene fra OneUptime AI
+
+Med **Aktiver AI** slått på i prosjektet og **Jobb med nye problemer** slått på under **Datasikkerhet → KI** gir OneUptime AI sin vurdering av hvert funn som venter på en person, etter hver skanning av datalageret. Et funn venter når skanningen ikke var sikker på det – et funn med Lav konfidens, eller et av forslagene fra OneUptime AI – eller når et funn med Middels eller Høy konfidens viser tegn på feil treff:
+
+- det meste av det som traff, var kjente testverdier;
+- feltets navn peker på en annen datatype, og ikke på denne;
+- et ID-felt, som `order_number`, `invoice_no` eller `ref_id`, inneholder en type som kontrolleres med Luhn-algoritmen, som én av ti tilfeldige tallrekker består, og navnet peker ikke på den typen.
+
+Vurderingen er **Bekreft det**, **Ikke sensitivt** eller **Kan ikke avgjøres**, med en begrunnelse på prosjektets språk. Den vises over hele funnets rad på datalagerets side **Innhold** og på **I telemetrien din**, sammen med beslutningene fra teamet ditt som den bygger på, for eksempel «Teamet ditt merket `order_number` som ikke sensitivt i 4 datalagre». **Vis beslutningene** viser hver av dem: datalageret, feltet og begrunnelsen teamet ditt ga.
+
+### Teamets beslutninger som presedens
+
+OneUptime AI får teamets tidligere beslutninger om funn av samme datatype, høyst ti. Først kommer de i et felt med samme navn, i et hvilket som helst datalager: `order_number`, `orderNumber` og `public.orders.order_number` er alle «order number». Det samme stedet kommer først, deretter den nyeste beslutningen. Så kommer felt der navnene, eller begrunnelsene som ble gitt for dem, sier det samme, for eksempel `order_ref` med begrunnelsen «Shopify-ordrenumre». Den får vite hvor hvert funn var, hva som ble bestemt, og begrunnelsen som ble gitt, med eventuelle verdier i en begrunnelse utelatt. Den får aldri en verdi, en maskert prøve eller en post.
+
+Et funn i fritekst, som en loggtekst eller en melding, har ikke noe feltnavn å sammenligne etter. Presedensen er det samme stedet i et annet datalager, for eksempel loggteksten til en annen tjeneste.
+
+### Hva OneUptime AI bestemmer på egen hånd
+
+- **Den merker aldri et funn som ikke sensitivt**, uansett hva en regel sier. Det gjør en person, med sin egen begrunnelse. Der vurderingen er **Ikke sensitivt**, starter **Merk som ikke sensitivt** med begrunnelsen OneUptime AI skrev et utkast til, og den kan du endre.
+- **Den bekrefter bare et funn på egen hånd der en AI-regel sier det**: en AI-regel for Datasikkerhet der **Vurder** er **Automatisk**, for datalageret og datatypen. Det krever også at teamet ditt selv har bekreftet et lignende funn, eller et felt som er oppkalt etter typen. Bekreftelsen står på datalagerets **Tidslinje** og under **Gjort av AI** på **Datasikkerhet → KI**, og **Angre** tar den tilbake.
+
+Ellers venter vurderingen på funnets rad. Der prosjektet har AI-regler, får et funn bare en vurdering når en regel for datalageret og datatypen har **Vurder** slått på; en regel som er begrenset til enkelte kontroller eller alvorlighetsgrader, gjelder problemer og vurderer ingen funn. OneUptime AI vurderer høyst 40 av funnene i et datalager etter en skanning, først dem den aldri har vurdert, og resten etter neste skanning. Etter en senere skanning spørres det bare på nytt om et funn når det vurderingen bygger på, har endret seg, for eksempel ved en ny beslutning om et lignende funn.
+
+## Lignende funn
+
+Etter at du har bekreftet et funn eller merket det som ikke sensitivt, viser **Bruk på lignende funn** de lignende funnene som ingen har tatt stilling til ennå: samme datatype, i et felt med samme navn, i dette datalageret og i alle andre datalagre du har lov til å lese. Hvert av dem er avkrysset. Fjern krysset for dem du vil vurdere hver for seg, så får resten samme beslutning, med begrunnelsen din, som din egen endring; et funn du ikke har lov til å endre, blir stående som det var. **Ikke nå** lar dem alle være som de er. Et funn i fritekst har aldri lignende funn: det én tekst inneholder, sier ingenting om en annen.
+
+## Hva beslutningene dine sier om skanningene
+
+Når teamet ditt merker funn som ikke sensitive, foreslår OneUptime AI endringer i skanningene under **Venter på deg** på **Datasikkerhet → KI**:
+
+- **Slå av en innebygd datatype** når hvert eneste av funnene er merket som ikke sensitivt: minst 3 funn, i minst 2 datalagre. Et funn OneUptime AI bare foreslo, teller ikke.
+- **Hold et sted utenfor skanningene av et datalager** når hvert funn der er merket som ikke sensitivt, minst 2 av dem. Det foreslås for en databasekolonne eller et telemetriattributt, som en skanning kan holde utenfor alene.
+
+Hvert forslag venter alltid på at en person godkjenner det: en skanning som slutter å lete, går glipp av de ekte dataene som kommer senere. Det foreslås aldri noe til **Aldri sensitivt**, fordi den inneholder verdier, og OneUptime AI ser aldri en verdi.
 
 ## Neste steg
 

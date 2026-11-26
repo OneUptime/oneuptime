@@ -56,7 +56,7 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Übersicht** | **Alle Wartungsereignisse**, **Laufende Wartungsereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt, und **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
-| **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
+| **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**, **Audit-Protokolle**: wer eine dieser Regeln erstellt, geändert oder gelöscht hat und wann. |
 | **Einstellungen** | **Wartungsstatus**, **Wartungsvorlagen**, **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 
 **Übersicht** ist geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **Crossplane**, **API**, **CLI** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.

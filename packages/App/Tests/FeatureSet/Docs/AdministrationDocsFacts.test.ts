@@ -54,6 +54,11 @@ import {
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import Project from "Common/Models/DatabaseModels/Project";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import { getNameKey, getNumberedName } from "Common/Types/Database/UniqueName";
+import { getUniqueNameWhenRequiredColumn } from "Common/Types/Database/UniqueNameWhenRequired";
+import { getProjectNameRule } from "Common/Types/Database/ProjectNameRule";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectOidc from "Common/Models/DatabaseModels/ProjectOidc";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
@@ -1032,9 +1037,23 @@ describe("Inviting People", () => {
   it("quotes the refusals as the server words them", () => {
     const refusals: string = section(page, "## Troubleshooting");
 
-    expect(refusals).toContain(
-      `:::details "${Errors.TeamMemberService.ALREADY_INVITED}"`,
+    // Someone in the team already, by its first sentence (#7271).
+    const alreadyInvited: string =
+      "This person has already been invited to this team, or is a member of it";
+
+    expect(
+      Errors.TeamMemberService.ALREADY_INVITED.startsWith(`${alreadyInvited}.`),
+    ).toBe(true);
+    expect(refusals).toContain(`:::details "${alreadyInvited}"`);
+    // What to do next, as the message says it: Resend Invitation.
+    expect(Errors.TeamMemberService.ALREADY_INVITED).toContain(
+      "Resend Invitation",
     );
+    const alreadyInvitedAnswer: string = refusals
+      .slice(refusals.indexOf(`:::details "${alreadyInvited}"`))
+      .split("\n:::")[0] as string;
+
+    expect(alreadyInvitedAnswer).toContain("**Resend Invitation**");
     expect(
       Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN.startsWith(
         "You have reached the user limit for the free plan",
@@ -1302,10 +1321,11 @@ describe("Inviting People", () => {
       /*
        * The Users list offers it on a pending row, to a master admin, on a
        * server that cannot send email - or whose latest invitation email
-       * was not sent (#9511) - beside Resend Invitation (#9519).
+       * was not sent (#9511) - beside Resend Invitation (#9519), and, for
+       * an owner, a member's Clear Sign-In Settings (#9993).
        */
       expect(usersPage).toContain(
-        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), getResendInvitationRowAction<TeamMember>({ isAvailable: canResendInvitations(serverEmail), getRequestHeaders: () => { return ModelAPI.getCommonHeaders(); }, }), ]}",
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), getResendInvitationRowAction<TeamMember>({ isAvailable: canResendInvitations(serverEmail), getRequestHeaders: () => { return ModelAPI.getCommonHeaders(); }, }), getClearMemberSavedSignInSettingsRowAction({ savedSignInSettings: savedSignInSettings, }), ]}",
       );
       expect(serverEmail).toContain(
         "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",
@@ -1854,6 +1874,89 @@ describe("Project Settings", () => {
     expect(page).toContain("Project Owners and Project Admins change it.");
   });
 
+  /*
+   * #10761: Unique Names, on Project Settings > Project. The page names the
+   * card and its switch as they are drawn, says who flips it, that it is on
+   * in a new project and off in one that existed, that it refuses nothing
+   * that exists, and how a name OneUptime picks is numbered - each as the
+   * product does it.
+   */
+  it("names Unique Names as its card draws it, who may flip it, and when it is on, as the product does", () => {
+    const copy: string = readDashboardSource(
+      "Components/Project/RequireUniqueNamesCopy.ts",
+    );
+    const unique: string = section(page, "## Unique names");
+
+    expect(copy).toContain('cardTitle: translationKey("Unique Names")');
+    expect(copy).toContain(
+      'switchTitle: translationKey("Require Unique Names")',
+    );
+    expect(unique).toContain(
+      "**Unique Names**, on **Project Settings → Basic → Project**, decides whether two records of one kind may share a name in the project.",
+    );
+    expect(unique).toContain("While **Require Unique Names** is on");
+    expect(readDashboardSource("Pages/Settings/ProjectSettings.tsx")).toContain(
+      "<RequireUniqueNamesCard",
+    );
+    expect(page).toContain(
+      "**Project Settings → Basic → Project** holds the project's cards: **Project Details**, **Unique Names** and, on OneUptime Cloud, **Customer Support Access**.",
+    );
+
+    // Who flips it.
+    expect(
+      sorted(
+        new Project().getColumnAccessControlFor("requireUniqueNames")?.update ||
+          [],
+      ),
+    ).toEqual(sorted([Permission.ProjectOwner, Permission.ProjectAdmin]));
+    expect(unique).toContain("Project Owners and Project Admins change it.");
+
+    // On in a new project; off in one that existed.
+    expect(
+      new Project().getTableColumnMetadata("requireUniqueNames").defaultValue,
+    ).toBe(false);
+    const projectService: string = readCommonSource(
+      "Server/Services/ProjectService.ts",
+    );
+    expect(projectService).toContain(
+      "this.applyNewProjectNameDefaults(data.data);",
+    );
+    expect(projectService).toContain("data.requireUniqueNames = true;");
+    expect(unique).toContain("It is on in a new project.");
+    expect(unique).toContain(
+      "A project that existed before it came keeps it off",
+    );
+
+    // Case and spacing aside: the two names the page says are one.
+    expect(getNameKey("API Health Check")).toBe(getNameKey("api health check"));
+    expect(unique).toContain(
+      "`API Health Check` and `api health check` are one name",
+    );
+
+    // A name OneUptime picks is numbered, as the page writes it.
+    expect(getNumberedName({ name: "API Health Check", number: 2 })).toBe(
+      "API Health Check 2",
+    );
+    expect(unique).toContain(
+      "it adds a number instead of refusing it: `API Health Check 2`.",
+    );
+
+    // Events and records are left out; a monitor is held.
+    expect(getUniqueNameWhenRequiredColumn(Monitor)).toBe("name");
+    expect(getProjectNameRule(new Incident())).toBeNull();
+    expect(unique).toContain(
+      "incidents, alerts, episodes, maintenance events and status page announcements",
+    );
+
+    // Reached from the cards, the side menu's table and Troubleshooting.
+    expect(page).toContain(
+      "- [Unique names](#unique-names): Whether two records of one kind may share a name.",
+    );
+    expect(page).toContain(
+      ":::details A name is refused because the project requires unique names",
+    );
+  });
+
   it("names the label form's fields, and the plan labels need", () => {
     const labels: string = readDashboardSource("Pages/Settings/Labels.tsx");
 
@@ -2370,7 +2473,7 @@ describe("Billing & Usage", () => {
     expect([...rows].sort()).toEqual([...drawn].sort());
   });
 
-  it("names the balances' recharge, its bounds and Auto Recharge's defaults", () => {
+  it("names adding to the balances, its bounds and Auto Recharge's defaults", () => {
     for (const api of [
       "Server/API/NotificationAPI.ts",
       "Server/API/AIBillingAPI.ts",
@@ -2390,18 +2493,28 @@ describe("Billing & Usage", () => {
     const settings: string = readDashboardSource(
       "Pages/Settings/NotificationSettings.tsx",
     );
+    /*
+     * Up to its amount field's type, after its bounds: the dialog's
+     * description is an element, whose closing </> holds a "/>".
+     */
     const dialog: string = between(
       settings,
-      'title={"Recharge Balance"}',
-      "/>",
+      "title={ADD_TO_BALANCE_TITLE}",
+      "fieldType: FormFieldSchemaType.Number",
     );
 
-    expect(dialog).toContain('submitButtonText={"Recharge"}');
+    // One verb from the card's button to the dialog's own (#7475).
+    expect(dialog).toContain("submitButtonText={ADD_TO_BALANCE_TITLE}");
     expect(capturedNumber(dialog, MIN_VALUE)).toBe(20);
     expect(capturedNumber(dialog, MAX_VALUE)).toBe(1000);
     expect(
       readDashboardSource("Components/ProjectBalance/ProjectBalanceAccess.ts"),
-    ).toContain('title: "Recharge Balance"');
+    ).toContain("title: ADD_TO_BALANCE_TITLE,");
+    expect(
+      readDashboardSource("Components/ProjectBalance/ProjectBalanceCopy.ts"),
+    ).toContain(
+      'ADD_TO_BALANCE_TITLE: string = translationKey("Add to Balance");',
+    );
     /*
      * Both balances draw one Auto Recharge card (Components/ProjectBalance/
      * AutoRechargeCard), its switch named as the guide names it.
@@ -3211,8 +3324,12 @@ describe("Audit Logs", () => {
 
   it("says the audit log can be read through the API, by the permission that reads it", () => {
     expect(new AuditLog().crudApiPath?.toString()).toBe("/audit-log");
+    // Its CRUD and aggregate reads, and the names its changes dialog reads (#10470).
     expect(readPackageFile("App/FeatureSet/BaseAPI/Index.ts")).toContain(
-      "new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(",
+      "new AuditLogAPI(AuditLogService)",
+    );
+    expect(readPackageFile("Common/Server/API/AuditLogAPI.ts")).toContain(
+      "extends BaseAnalyticsAPI<",
     );
     expect(section(page, "## How long entries are kept")).toContain(
       "read them through the API with an API key that holds **Read Audit Log**",
@@ -3233,6 +3350,42 @@ describe("Audit Logs", () => {
     expect(section(page, "## Read the audit log")).toContain(
       "Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own",
     );
+  });
+
+  it("says a related record in a change reads by its current name, with its ID, or as hidden or deleted (#10470)", () => {
+    const lookup: string = readPackageFile(
+      "Common/Server/Utils/AuditLog/AuditLogRelatedNames.ts",
+    );
+
+    // Read now, with the reader's permissions, and in the three states the page names.
+    expect(readPackageFile("Common/Server/API/AuditLogAPI.ts")).toContain(
+      "/:id/related-record-names",
+    );
+    // The entry is read with the reader's own read of the audit log.
+    expect(lookup).toContain("data.service || AuditLogService");
+    expect(lookup).toContain(").findOneById({");
+    expect(
+      readPackageFile("Common/Utils/AuditLog/AuditLogRelatedRecords.ts"),
+    ).toContain(
+      'Named = "Named",\n  Deleted = "Deleted",\n  Hidden = "Hidden",',
+    );
+    expect(section(page, "## Read the audit log")).toContain(
+      "A field that points to another resource, such as a monitor's status, shows that resource's current name, with its ID under it. A resource you may not read shows **Name hidden**, and one deleted since shows **Deleted**.",
+    );
+
+    // Core CI runs without ee/: the words are held to the dialog wherever ee/ is present.
+    if (!fs.existsSync(EE_DIR)) {
+      return;
+    }
+
+    const dialog: string = fs.readFileSync(
+      path.join(EE_DIR, "Dashboard/AuditLogs/AuditLogRelatedRecordValue.tsx"),
+      "utf8",
+    );
+
+    expect(dialog).toContain('deleted: translationKey("Deleted")');
+    expect(dialog).toContain('nameHidden: translationKey("Name hidden")');
+    expect(dialog).toContain('data-testid="audit-log-related-record-id"');
   });
 
   it("names the Enterprise Edition's audit log table, settings form and recorder as they are, where ee/ is checked out", () => {

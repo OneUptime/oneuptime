@@ -6,6 +6,7 @@ Importér advarslerne fra hver [Microsoft Defender XDR](https://learn.microsoft.
 - [Opsæt forbindelsen](#opsæt-forbindelsen): En appregistrering, én tilladelse og forbindelsens formular.
 - [Hvad der importeres](#hvad-der-importeres): Hvordan hver Defender-advarsel bliver en sikkerhedsbegivenhed.
 - [Sådan fungerer polling](#sådan-fungerer-polling): Det vindue, hver poll læser, og hvad en travl lejer gør ved det.
+- [Blokér med Microsoft Defender](#blokér-med-microsoft-defender): Håndhæv din blokeringsliste på hver enhed, med én tilladelse mere.
 - [Fejlfinding](#fejlfinding): Hvad hver fejl betyder, og hvad du skal ændre.
 :::
 
@@ -64,6 +65,7 @@ Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen log
 | **Mappe-id (tenant)** | Appens side **Overview**. Lejerens GUID eller et verificeret domæne som `contoso.onmicrosoft.com`. |
 | **Program-id (klient)** | Appens side **Overview**. GUID'et for den app, der har `SecurityAlert.Read.All`. |
 | **Cloud** | **Offentlig Azure-sky**, som også betjener Microsoft 365 GCC, eller **Azure Government (USA)** til GCC High (`login.microsoftonline.us` og `graph.microsoft.us`). Microsoft 365 DoD og 21Vianet-skyen i Kina understøttes ikke. |
+| **Blokér domæner, adresser og filer med Defender** | Slået fra på en ny forbindelse. Slået til blokerer den det, dit projekts blokeringsliste rummer, på hver enhed, og kræver `Ti.ReadWrite.All` (se [Blokér med Microsoft Defender](#blokér-med-microsoft-defender)). |
 | **Klienthemmelighed** | Hemmelighedens **Value**. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
 Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
@@ -130,6 +132,26 @@ Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler 
 - **Importér dette tidsinterval** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
 - **Kopiér diagnosticering** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
+## Blokér med Microsoft Defender
+
+Slå **Blokér domæner, adresser og filer med Defender** til på en forbindelse, og dit projekts [blokeringsliste](/docs/telemetry/security-cases#blokeringsliste) håndhæves på hver enhed, som Microsoft Defender for Endpoint beskytter. Hver blokering bliver en Defender-[indikator](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview), gemt under applikationen `OneUptime`, som udløber, når blokeringen udløber:
+
+| På blokeringslisten | Defender-indikator | Hvad Defender gør |
+| --- | --- | --- |
+| Et domæne | `DomainName`, `Block` | Blokerer domænet og hvert navn under det |
+| En URL | `Url`, `Block` | Blokerer URL'en i Microsoft Edge, og dens domæne i andre browsere |
+| En adresse blokeret på hver maskine | `IpAddress`, `Block` | Blokerer forbindelser til adressen. Et interval sendes aldrig: Defender tager én adresse ad gangen |
+| En fil | `FileSha256`, `FileSha1` eller `FileMd5`, `Block` | Forhindrer filen i at køre |
+| En fil, blokeret og sat i karantæne | Det samme, `BlockAndRemediate` | Forhindrer filen i at køre, og sætter de kopier, den finder, i karantæne |
+
+Kontakten er slået fra på en ny forbindelse: En forbindelse, der er lavet til at importere advarsler, læser kun. Sådan slår du den til:
+
+1. Gå i app-registreringen til **API permissions → Add a permission → APIs my organization uses**, søg efter `WindowsDefenderATP`, vælg **Application permissions**, vælg `Ti.ReadWrite.All`, og giv administratorsamtykke. Det er den eneste tilladelse, blokering kræver.
+2. Slå **Custom network indicators** og **Allow or block file** til under **Settings → Endpoints → Advanced features** i Microsoft Defender-portalen. Uden dem beholder Defender indikatorerne, men blokerer intet; uden for Microsoft Edge blokeres et domæne, en URL eller en adresse kun, hvor netværksbeskyttelse er i blokeringstilstand.
+3. Slå **Blokér domæner, adresser og filer med Defender** til på forbindelsen, og klik på **Test forbindelse**: **Block with Microsoft Defender** kontrollerer tilladelsen.
+
+En tenant rummer 15.000 indikatorer, dens egne medregnet. En blokering, som Defender ikke kan rumme eller afviser, vises som ikke håndhævet på blokeringslisten, med årsagen. OneUptime læser og fjerner kun de indikatorer, den har tilføjet for denne forbindelse, aldrig en, som en person har lavet. Når Defender drosler den, prøver den igen ved næste gennemløb.
+
 ## Test forbindelse
 
 **Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
@@ -140,6 +162,7 @@ Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler 
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID udsteder et token til Microsoft Graph i den sky, du valgte. Det mislykkes ved en forkert eller udløbet hemmelighed, et forkert lejer- eller klient-ID eller den forkerte sky. |
 | **Read alerts from Microsoft Graph** | Én advarsel, der er oprettet inden for de seneste 24 timer, kan læses (`$top=1`). En `403` her er den manglende tilladelse `SecurityAlert.Read.All`, det manglende administratorsamtykke eller en lejer uden Defender XDR. |
 | **Alerts available to import** | Hvor mange advarsler der er oprettet inden for de seneste 24 timer og de seneste 7 dage, én side med 100 for hver, så `100+` betyder flere. Ingen inden for 7 dage er en advarsel, ikke en fejl. |
+| **Block with Microsoft Defender** | Kun med **Blokér domæner, adresser og filer med Defender** slået til: App-registreringen har `Ti.ReadWrite.All`, og indikatorerne kan læses. Kontrollen siger, hvor mange af tenantens 15.000 indikatorer OneUptime har, og ændrer ingen. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
 | **Planlagt hentning** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
 

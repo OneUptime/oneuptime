@@ -116,6 +116,8 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Reject",
     "Assign to me",
     "Close case",
+    // The release of what a playbook contained, on a case (#10341).
+    "Undo",
     "On-Call",
     "Cover for me",
     "Settings",

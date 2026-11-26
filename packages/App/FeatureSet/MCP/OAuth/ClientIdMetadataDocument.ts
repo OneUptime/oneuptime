@@ -219,11 +219,16 @@ export default class ClientIdMetadataDocument {
      * visitor which internal names exist.
      */
     const { url, httpAgent, httpsAgent } =
-      await DataSourceEgressGuard.assertUrlAllowedAndPin(clientId, {
-        blockPrivateAddresses: true,
-        targetLabel: TARGET_LABEL,
-        includeResolvedAddressInError: false,
-      });
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(
+        clientId,
+        {
+          blockPrivateAddresses: true,
+          targetLabel: TARGET_LABEL,
+          includeResolvedAddressInError: false,
+        },
+        // Never through a proxy: the checked address is the one dialled.
+        { direct: true },
+      );
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.get<JSONObject>({

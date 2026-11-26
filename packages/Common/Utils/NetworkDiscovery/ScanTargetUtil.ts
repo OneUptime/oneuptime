@@ -218,6 +218,15 @@ export class ScanTargetUtil {
       return false;
     }
 
+    return ScanTargetUtil.targetContains(parsed, ip);
+  }
+
+  /*
+   * contains(), for a target parsed once: a reader that checks many
+   * addresses against one target - Security Events, setting a probe's
+   * discovery sweep aside from the flows it left (#10429) - parses it once.
+   */
+  public static targetContains(parsed: ScanTarget, ip: string): boolean {
     const octets: Array<number> | null = ScanTargetUtil.parseIpOctets(ip);
 
     if (!octets) {

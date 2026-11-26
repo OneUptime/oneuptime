@@ -114,6 +114,12 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "Services",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Services",

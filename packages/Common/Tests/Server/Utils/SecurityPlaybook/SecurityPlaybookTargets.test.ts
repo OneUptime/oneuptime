@@ -18,6 +18,14 @@ import {
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import { ProtectedEntityRule } from "../../../../Types/SecurityPlaybook/SecurityProtectedEntity";
 import { getJestSpyOn } from "../../../Spy";
+import SecurityCaseMatches from "../../../../Server/Utils/SecurityCase/Context/SecurityCaseMatches";
+import SecurityProtectedAddresses from "../../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
+import { SecurityProtectedAddressSource } from "../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  SecurityCaseMatchBasis,
+  SecurityCaseMatchesJson,
+} from "../../../../Types/SecurityCase/SecurityCaseMatches";
+import { SECURITY_REQUEST_ATTRIBUTES } from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -335,5 +343,200 @@ describe("SecurityPlaybookTargets.selectTargets", () => {
     expect(
       (indicators.mock.calls[0]![0] as { values: Array<string> }).values,
     ).toEqual(["alice@acme.com", "mallory@evil.example"]);
+  });
+});
+
+/*
+ * BLOCK THE ADDRESS (#10342): an address step acts on the public addresses
+ * the case is about - never one its requests only claimed (#10416), whoever
+ * sent them wrote it, nor a private one, which no edge sees - and the
+ * project's own addresses are kept, marked protected with what they are.
+ */
+describe("the addresses a block step acts on", () => {
+  const ATTACKER: string = "203.0.113.7";
+  const CLAIMED: string = "198.51.100.23";
+  const OWN: string = "35.205.11.131";
+  const PRIVATE: string = "10.0.3.17";
+
+  function caseAbout(values: Array<string>): SecurityCase {
+    const securityCase: SecurityCase = new SecurityCase();
+    securityCase._id = CASE_ID.toString();
+    securityCase.entities = values.map((value: string): SecurityEntity => {
+      return { type: SecurityEntityType.IpAddress, value };
+    }) as unknown as JSONArray;
+    return securityCase;
+  }
+
+  function matchesClaiming(claimed: string): SecurityCaseMatchesJson {
+    return {
+      detections: [
+        {
+          id: "66666666-6666-4666-8666-666666666666",
+          source: "Detection Rule",
+          title: `Path traversal attempts - ${ATTACKER}`,
+          severity: "Medium",
+          groupValue: ATTACKER,
+          ruleName: "Path traversal attempts",
+          eventCount: 1,
+          fireCount: 1,
+          firstSeenAt: null,
+          lastSeenAt: null,
+          sampleMessage: "",
+          isOpening: true,
+          rule: null,
+          threatIntelFeedId: "",
+          securityEventConnectionId: "",
+          basis: SecurityCaseMatchBasis.RuleCondition,
+          windowStart: "2026-11-21T10:00:00.000Z",
+          windowEnd: "2026-11-21T11:00:00.000Z",
+          events: [
+            {
+              id: "event-1",
+              time: "2026-11-21T10:30:00.000Z",
+              message: "GET /../../etc/passwd",
+              principalIp: ATTACKER,
+              traceId: "",
+              spanId: "",
+              attributes: {
+                [SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress]: claimed,
+              },
+            },
+          ],
+          isKept: false,
+          keptPastRetentionCount: 0,
+          hiddenEventCount: 0,
+          matchedEventCount: 1,
+          outcomes: {},
+        },
+      ],
+      detectionCount: 1,
+      unreadableSources: [],
+      failedSources: [],
+    } as unknown as SecurityCaseMatchesJson;
+  }
+
+  function groupedOn(values: Array<string>): void {
+    getJestSpyOn(SecurityDetectionService, "findBy").mockResolvedValue(
+      values.map((value: string): SecurityDetection => {
+        const detection: SecurityDetection = new SecurityDetection();
+        detection.groupValue = value;
+        detection.entities = [
+          { type: SecurityEntityType.IpAddress, value },
+        ] as unknown as JSONArray;
+        return detection;
+      }) as never,
+    );
+    getJestSpyOn(
+      ThreatIntelIndicatorService,
+      "findActiveIndicatorsByValues",
+    ).mockResolvedValue([] as never);
+    getJestSpyOn(SecurityProtectedEntityService, "getRules").mockResolvedValue(
+      [] as never,
+    );
+  }
+
+  test("the public address the case is grouped on; never one its requests only claimed, nor a private one", async () => {
+    groupedOn([ATTACKER, CLAIMED, PRIVATE]);
+    getJestSpyOn(SecurityCaseMatches, "build").mockResolvedValue(
+      matchesClaiming(CLAIMED) as never,
+    );
+    getJestSpyOn(
+      SecurityProtectedAddresses,
+      "findProtection",
+    ).mockResolvedValue({ protection: null, unreadSources: [] } as never);
+
+    const targets: Array<SecurityPlaybookTarget> =
+      await SecurityPlaybookTargets.selectTargets({
+        projectId: PROJECT_ID,
+        securityCase: caseAbout([ATTACKER, CLAIMED, PRIVATE]),
+        entityType: SecurityEntityType.IpAddress,
+      });
+
+    expect(targets).toEqual([
+      {
+        type: SecurityEntityType.IpAddress,
+        value: ATTACKER,
+        reason: SecurityPlaybookTargetReason.GroupedOn,
+        state: SecurityPlaybookTargetState.Proposed,
+      },
+    ]);
+    // The case's requests are read as OneUptime, to know which addresses they only claimed.
+    expect(
+      (
+        (SecurityCaseMatches.build as unknown as jest.Mock).mock
+          .calls[0]![0] as { props: unknown; securityCaseId: ObjectID }
+      ).props,
+    ).toEqual({ isRoot: true });
+  });
+
+  test("the project's own address is kept, marked protected with what it is", async () => {
+    groupedOn([ATTACKER, OWN]);
+    getJestSpyOn(SecurityCaseMatches, "build").mockResolvedValue(
+      matchesClaiming(CLAIMED) as never,
+    );
+    getJestSpyOn(
+      SecurityProtectedAddresses,
+      "findProtection",
+    ).mockImplementation((async (data: { block: { text: string } }) => {
+      return data.block.text === OWN
+        ? {
+            protection: {
+              source: SecurityProtectedAddressSource.CloudResource,
+              protectedValue: OWN,
+              name: "prod-alb",
+              kind: "load balancer",
+            },
+            unreadSources: [],
+          }
+        : { protection: null, unreadSources: [] };
+    }) as never);
+
+    const targets: Array<SecurityPlaybookTarget> =
+      await SecurityPlaybookTargets.selectTargets({
+        projectId: PROJECT_ID,
+        securityCase: caseAbout([ATTACKER, OWN]),
+        entityType: SecurityEntityType.IpAddress,
+      });
+
+    expect(valuesOf(targets)).toEqual([ATTACKER]);
+    expect(
+      targets.find((target: SecurityPlaybookTarget): boolean => {
+        return target.value === OWN;
+      }),
+    ).toMatchObject({
+      state: SecurityPlaybookTargetState.Protected,
+      detail: expect.stringContaining("prod-alb"),
+    });
+  });
+
+  test("a case whose requests cannot be read is not acted on: the step fails, for a person to block from the case", async () => {
+    groupedOn([ATTACKER]);
+    getJestSpyOn(SecurityCaseMatches, "build").mockRejectedValue(
+      new Error("ClickHouse is not answering.") as never,
+    );
+
+    await expect(
+      SecurityPlaybookTargets.selectTargets({
+        projectId: PROJECT_ID,
+        securityCase: caseAbout([ATTACKER]),
+        entityType: SecurityEntityType.IpAddress,
+      }),
+    ).rejects.toThrow("ClickHouse is not answering.");
+  });
+
+  test("a user or host step reads no requests: the claimed-address rule is an address's", async () => {
+    groupedOn([ATTACKER]);
+    const build: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SecurityCaseMatches,
+      "build",
+    );
+
+    await SecurityPlaybookTargets.selectTargets({
+      projectId: PROJECT_ID,
+      securityCase: caseAbout([ATTACKER]),
+      entityType: SecurityEntityType.Host,
+    });
+
+    expect(build).not.toHaveBeenCalled();
   });
 });

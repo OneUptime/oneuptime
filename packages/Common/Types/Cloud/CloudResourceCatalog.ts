@@ -260,6 +260,12 @@ export const AZURE_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
     ),
     // App hosting and containers
     azure("Microsoft.Web/sites", "App Service or Function App", PAAS, C.Web),
+    /*
+     * A site's deployment slot other than production (#6793): Azure Monitor
+     * measures each as a resource of its own, and an App Platforms app of
+     * a slot reads its slot's numbers, never the site's.
+     */
+    azure("Microsoft.Web/sites/slots", "Deployment Slot", PAAS, C.Web),
     azure("Microsoft.Web/serverfarms", "App Service Plan", PAAS, C.Web),
     azure("Microsoft.Web/staticSites", "Static Web App", PAAS, C.Web),
     azure("Microsoft.App/containerApps", "Container App", PAAS, C.Containers),
@@ -1931,6 +1937,17 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       C.Networking,
     ),
     /*
+     * An Elastic IP: a static public address the account's traffic comes
+     * from, which the blocklist never blocks (#10504).
+     */
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EC2::EIP",
+      "Elastic IP",
+      IAAS,
+      C.Networking,
+    ),
+    /*
      * An EKS cluster: its Kubernetes metrics are the Kubernetes product's,
      * as a GKE cluster's are, so the cluster is listed only (#9375).
      */
@@ -1956,6 +1973,24 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       IAAS,
       C.Networking,
     ),
+    /*
+     * The WAF policies a project's blocklist can be enforced in (#10348):
+     * their metrics are their Application Gateway's and Front Door's.
+     */
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+      "Application Gateway WAF Policy",
+      PAAS,
+      C.Security,
+    ),
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies",
+      "Front Door WAF Policy",
+      PAAS,
+      C.Security,
+    ),
     descriptorOf(
       CloudProvider.GCP,
       "compute.googleapis.com/Network",
@@ -1976,6 +2011,14 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       "VPC Firewall Rule",
       IAAS,
       C.Networking,
+    ),
+    // The security policies a project's blocklist can be enforced in (#10349).
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/SecurityPolicy",
+      "Cloud Armor Security Policy",
+      PAAS,
+      C.Security,
     ),
     // A load balancer's pieces that publish no metrics of their own.
     descriptorOf(
@@ -2144,11 +2187,7 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       "AWS::EC2::VPCEndpoint",
       translationKey("VPC Endpoint"),
     ),
-    namedOnly(
-      CloudProvider.AWS,
-      "AWS::EC2::EIP",
-      translationKey("Elastic IP Address"),
-    ),
+    // An Elastic IP is listed since #10504 (INVENTORY_ONLY_RESOURCE_TYPES): a resource, no longer only named.
     namedOnly(
       CloudProvider.AWS,
       "AWS::EC2::LaunchTemplate",

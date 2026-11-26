@@ -1091,7 +1091,12 @@ describe("validateFormTemplateAnswers - the settings the server lets a template 
       );
     });
 
-    test("held values are compared whole: a list answer with another entry is new", () => {
+    /*
+     * #10692: a list answer with another entry is new, and only what it
+     * adds is judged - the entry it held, gone since, never blocks adding
+     * one.
+     */
+    test("a list answer with another entry is judged on what it adds, not on the entry it held", () => {
       expect(
         check(
           [
@@ -1103,8 +1108,40 @@ describe("validateFormTemplateAnswers - the settings the server lets a template 
           ],
           { heldTemplates: [STALE] },
         ),
+      ).toBeNull();
+    });
+
+    test("an entry a list answer adds that its question does not offer is refused, held ones beside it or not", () => {
+      expect(
+        check(
+          [
+            {
+              ...STALE,
+              answers: { facilities: ["Paris", "Lisbon"] },
+              fieldSettings: undefined,
+            },
+          ],
+          { heldTemplates: [STALE] },
+        ),
       ).toBe(
         'Template 1 ("Stale"): Affected Facilities must be chosen from the options the form lists.',
+      );
+    });
+
+    test("an entry another template held is no help: each template is judged on what it held", () => {
+      expect(
+        check(
+          [
+            {
+              id: "copy",
+              name: "Copy",
+              answers: { facilities: ["Paris", "Headquarters"] },
+            },
+          ],
+          { heldTemplates: [STALE] },
+        ),
+      ).toBe(
+        'Template 1 ("Copy"): Affected Facilities must be chosen from the options the form lists.',
       );
     });
 

@@ -211,11 +211,14 @@ interface EventPage {
   // The record's own ID, on the small line the details card ends with.
   recordId: string;
   /*
-   * When the record was created, on that same line after the ID, for the
-   * cards that show it. An incident's card does not: when it was declared,
-   * and by whom, is the stat bar's Declared tile, and nowhere else.
+   * When the record was created, on that same line after the ID. Every
+   * record's line says it, whether or not its card declares the time
+   * (#10290): an incident's too, though when it was declared, and by whom,
+   * is the stat bar's Declared tile.
    */
-  recordCreated?: string | undefined;
+  recordCreated: string;
+  // Who created it, on the line before when, where the record names them.
+  recordCreatedBy?: string | undefined;
   /*
    * The What happened card that opens the left column: the record's
    * description, and its root cause or null for none yet. Left out on a page
@@ -297,6 +300,7 @@ const INCIDENT_PAGE: EventPage = {
     "Incident Number",
   ],
   recordId: INCIDENT_ID,
+  recordCreated: "Sep 14, 2026, 6:01 PM UTC",
   whatHappened: {
     description:
       "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
@@ -431,6 +435,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   ],
   recordId: SCHEDULED_MAINTENANCE_ID,
   recordCreated: "Sep 10, 2026, 9:00 AM UTC",
+  recordCreatedBy: "Jordan Patel",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -1335,10 +1340,10 @@ async function isOverflowing(locator: Locator): Promise<boolean> {
 }
 
 async function expectNoErrorStates(page: Page): Promise<void> {
-  await expect(page.getByText("Something went wrong")).toHaveCount(0);
-  await expect(page.getByText("An unexpected error has occurred")).toHaveCount(
-    0,
-  );
+  await expect(page.getByText("This page stopped working")).toHaveCount(0);
+  await expect(
+    page.getByText("Part of this page ran into a problem"),
+  ).toHaveCount(0);
   await expect(page.getByText(/^Cannot load /)).toHaveCount(0);
   await expect(page.getByText(/^Could not refresh /)).toHaveCount(0);
 }
@@ -8267,23 +8272,36 @@ async function expectRightColumn(
   /*
    * "Can you also show created along the same lines as ID so it doesn't
    * take space up top." When the record was created is not a row of the
-   * card: it follows the ID on the same small line, and moves under the ID
-   * - whole - only when the narrow column has no room for both.
+   * card: it follows the ID on the same small line - "Created by Jordan
+   * Patel · Sep 10" where the record names who created it (#10290) - and
+   * moves under the ID - whole - only when the narrow column has no room
+   * for both.
    */
   const recordLine: Locator = details.getByTestId("detail-record-line");
-  const created: Locator = recordLine.getByTestId("detail-created-at");
+  const createdTestId: string = eventPage.recordCreatedBy
+    ? "detail-created-by"
+    : "detail-created-at";
+  const created: Locator = recordLine.getByTestId(createdTestId);
   await expect(recordLine).toContainText("ID");
   expect(await detailLabels(details)).not.toContain("Created At");
-  if (!eventPage.recordCreated) {
-    await expect(created).toHaveCount(0);
-    return;
-  }
-  await expect(created.getByTestId("detail-created-at-label")).toHaveText(
-    "Created",
+  await expect(created.getByTestId(`${createdTestId}-label`)).toHaveText(
+    eventPage.recordCreatedBy
+      ? `Created by ${eventPage.recordCreatedBy}`
+      : "Created",
   );
-  await expect(created.getByTestId("detail-created-at-value")).toHaveText(
-    eventPage.recordCreated,
-  );
+  await expect(
+    created.getByTestId(
+      eventPage.recordCreatedBy
+        ? "detail-created-by-at"
+        : "detail-created-at-value",
+    ),
+  ).toHaveText(eventPage.recordCreated);
+  // Said once: the line has one piece for when it was created.
+  await expect(
+    recordLine.getByTestId(
+      eventPage.recordCreatedBy ? "detail-created-at" : "detail-created-by",
+    ),
+  ).toHaveCount(0);
   const lineBox: Box = await documentBox(recordLine);
   const idBox: Box = await documentBox(idLine);
   const createdBox: Box = await documentBox(created);

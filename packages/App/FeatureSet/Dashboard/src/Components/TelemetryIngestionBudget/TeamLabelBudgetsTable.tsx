@@ -1,13 +1,11 @@
 import TeamElement from "../Team/Team";
 import IngestionKeyBudgetSummary from "./IngestionKeyBudgetSummary";
+import TeamOrLabelPicker from "./TeamOrLabelPicker";
 import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import Route from "Common/Types/API/Route";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { TelemetryIngestionBudgetValueKind } from "Common/Types/Telemetry/TelemetryIngestionBudget";
@@ -15,28 +13,30 @@ import {
   DropdownOption,
   DropdownOptionGroup,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import LabelElement from "Common/UI/Components/Label/Label";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   getSharedNameFacts,
   getSharedNameSelect,
 } from "Common/UI/Utils/SharedNameOptions";
+import Select from "Common/Types/BaseDatabase/Select";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Team and label budgets (issue #6386), on Project Settings > Telemetry &
  * APM > Usage, under More settings: a daily budget, inside the project's,
- * for the telemetry of the services a team owns or the services that carry
- * a label. The form asks two things: whose budget it is - one picker, the
+ * for the telemetry of the services, hosts and other resources a team owns
+ * or that carry a label (#10101). The form asks two things: whose budget it is - one picker, the
  * project's teams and its labels in two groups - and its logs budget, what
  * a runaway service fills first; the other signals fold under More fields.
  * What happens when one is used up, and who is told, is said on the card.
@@ -46,7 +46,7 @@ export const TEAM_LABEL_BUDGETS_CARD_TITLE: string = translationKey(
   "Team and Label Budgets",
 );
 export const TEAM_LABEL_BUDGETS_CARD_DESCRIPTION: string = translationKey(
-  "A daily budget for the services a team owns or a label is on. Once it is used up, their telemetry is dropped until the reset, and Project Owners are emailed.",
+  "A daily budget for the services, hosts and other resources a team owns or a label is on. Once it is used up, their telemetry is dropped until the reset, and Project Owners are emailed.",
 );
 
 // The form's own pick of whose budget it is: sent as teamId or labelId.
@@ -128,6 +128,23 @@ export const applyTeamOrLabelPick: (
   return item;
 };
 
+/*
+ * What the picker reads of a team and a label: its name, a label's colour,
+ * and what tells two of one name apart (#10064).
+ */
+export const TEAM_OR_LABEL_TEAM_SELECT: Select<Team> = {
+  _id: true,
+  name: true,
+  ...getSharedNameSelect(Team),
+};
+
+export const TEAM_OR_LABEL_LABEL_SELECT: Select<Label> = {
+  _id: true,
+  name: true,
+  color: true,
+  ...getSharedNameSelect(Label),
+};
+
 // The project's teams and labels, as the picker groups them.
 export const getTeamOrLabelOptions: (data: {
   teams: Array<Team>;
@@ -194,55 +211,6 @@ export const getTeamOrLabelOptions: (data: {
   return groups;
 };
 
-const fetchTeamOrLabelOptions: (
-  translator: Translator,
-) => Promise<Array<DropdownOptionGroup>> = async (
-  translator: Translator,
-): Promise<Array<DropdownOptionGroup>> => {
-  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-  if (!projectId) {
-    return [];
-  }
-
-  const [teams, labels]: [ListResult<Team>, ListResult<Label>] =
-    await Promise.all([
-      ModelAPI.getList<Team>({
-        modelType: Team,
-        query: { projectId: projectId },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: { _id: true, name: true, ...getSharedNameSelect(Team) },
-        sort: { name: SortOrder.Ascending },
-      }),
-      ModelAPI.getList<Label>({
-        modelType: Label,
-        /*
-         * A new budget's pick: archived labels are left out, as every
-         * picker leaves them (the server refuses a budget for one).
-         */
-        query: ArchivedValuePicker.getPickerQuery(Label, {
-          projectId: projectId,
-        }),
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: {
-          _id: true,
-          name: true,
-          color: true,
-          ...getSharedNameSelect(Label),
-        },
-        sort: { name: SortOrder.Ascending },
-      }),
-    ]);
-
-  return getTeamOrLabelOptions({
-    teams: teams.data,
-    labels: labels.data,
-    translator: translator,
-  });
-};
-
 export interface ComponentProps {
   // How many budgets the project has, as the table reads them.
   onCountChange?: ((count: number) => void) | undefined;
@@ -251,7 +219,6 @@ export interface ComponentProps {
 const TeamLabelBudgetsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const moreSignals: FormFieldCollapsibleSection<TelemetryIngestionTeamLabelBudget> =
     getAdvancedFormSection<TelemetryIngestionTeamLabelBudget>();
 
@@ -303,9 +270,34 @@ const TeamLabelBudgetsTable: FunctionComponent<ComponentProps> = (
           overrideFieldKey: TEAM_OR_LABEL_FIELD_KEY,
           formOnly: true,
           title: "Team or Label",
-          fieldType: FormFieldSchemaType.Dropdown,
-          fetchDropdownOptions: () => {
-            return fetchTeamOrLabelOptions(translator);
+          /*
+           * The project's teams and labels, searched on the server as the
+           * person types (TeamOrLabelPicker, #10764) - never its first
+           * 10,000 of each, read whole.
+           */
+          fieldType: FormFieldSchemaType.CustomComponent,
+          getCustomElement: (
+            values: FormValues<TelemetryIngestionTeamLabelBudget>,
+            customProps: CustomElementProps,
+          ): ReactElement => {
+            const value: unknown = (values as JSONObject)[
+              TEAM_OR_LABEL_FIELD_KEY
+            ];
+
+            return (
+              <TeamOrLabelPicker
+                value={typeof value === "string" && value ? value : null}
+                placeholder={customProps.placeholder}
+                error={customProps.error}
+                tabIndex={customProps.tabIndex}
+                ariaLabelledby={customProps.ariaLabelledby}
+                ariaDescribedby={customProps.ariaDescribedby}
+                dataTestId="telemetry-budget-team-or-label"
+                onChange={(next: string | null) => {
+                  customProps.onChange?.(next);
+                }}
+              />
+            );
           },
           required: true,
           doNotShowWhenEditing: true,

@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 その後、 `kubectl apply -f oneuptime-probe.yaml` で適用します。
 :::
 
 ホストネットワーク (`--network host`、 `network_mode: host`) を使うと、プローブはホスト自身のネットワークを IPv6 も含めて使えます。ホストネットワークなしで実行する前に、 [IPv6 の宛先を監視する](#ipv6-の宛先を監視する) をお読みください。
+
+ホストのネットワークを使わない場合 (上の Kubernetes の Deployment や、Docker のブリッジネットワーク) 、プローブのチェックはホスト自身のアドレスからマシンを出ていきますが、プローブはコンテナーの中からそのアドレスを見られません。 `PROBE_HOST_IP_ADDRESSES` でそのアドレスを伝えると、 [セキュリティイベント](/docs/telemetry/security-events) はプローブのポーリング、検出、モニターチェックをプローブ自身の作業と見分けます。Kubernetes の Deployment では、デュアルスタックのノードの両方のアドレスを持つ `status.hostIPs` から設定します。1.29 より前の Kubernetes では `status.hostIP` を使います。Docker のブリッジネットワークでは、 `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20` のようにホストのアドレスを自分で指定します。
 
 ### 接続を確認する
 
@@ -146,10 +152,26 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-`<version>` は `17.0.1` のように実行するバージョンに置き換え、同じイメージを `oneuptime-probe.yaml` にも書いてください。そうすれば、ファイルをもう一度適用してもそのイメージのままです。
+`<version>` は `17.1.0` のように実行するバージョンに置き換え、同じイメージを `oneuptime-probe.yaml` にも書いてください。そうすれば、ファイルをもう一度適用してもそのイメージのままです。
 :::
 
-プローブのページの **プローブステータス** に、実行中のバージョンが表示されます。17.0.1 より古いプローブは [ワンタイムコードのシークレット](/docs/monitor/monitor-secrets#ワンタイムコードでサインインする) のコードを作れません。そのことはプローブのページに表示され、プローブがチェックするモニターのフォームにも表示されます。
+プローブのページの **プローブステータス** に、実行中のバージョンが表示されます。17.1.0 より古いプローブは [ワンタイムコードのシークレット](/docs/monitor/monitor-secrets#ワンタイムコードでサインインする) のコードを作れません。そのことはプローブのページに表示され、プローブがチェックするモニターのフォームにも表示されます。JSON の配列、単一の値、またはテキストである API モニターのリクエストボディを送るには古すぎるプローブも同じです。
+
+プローブが OneUptime よりメジャーリリース 1 つ以上遅れると、その所有者に 1 回だけ、足りないものとこのセクションへのリンクが通知されます。所有者のいないプローブはプロジェクト所有者に通知します。再び通知されるのは、より新しいメジャーリリースに遅れたとき、または更新後に再び遅れたときだけです。受け取り方は各自が **ユーザー設定 → 通知設定** の **プローブがメジャーリリース 1 つ分遅れている** で選びます。最初はメールです。マイナーリリースだけ遅れているプローブは、そのページにそう表示され、誰にも通知されません。
+
+## チェックイン時にプローブが送るもの
+
+プローブのすべてのリクエストには、ID とキー、動作しているリリース、できることが含まれ、1 分に 1 回、自身を識別するアドレスを添えてチェックインします。チェックの結果以外に、ネットワークについて送られるものはありません。
+
+| フィールド | 送信 | OneUptime の使い方 |
+| --- | --- | --- |
+| `probeVersion` | すべてのリクエスト | プローブが動作しているリリースを保持します。プローブのページと **カスタムプローブ** は、OneUptime より古いときにそう表示し、メジャーリリース 1 つ分遅れたときに所有者へ 1 回通知します。 |
+| `probeCapabilities` | すべてのリクエスト | プローブにできる作業だけを渡します。より新しいプローブが必要なチェックは、プローブを更新するよう伝える文とともに失敗します。 |
+| `probeInterfaceAddresses` | 1 分に 1 回 | プローブのネットワークインターフェースのアドレスと、 `PROBE_HOST_IP_ADDRESSES` で渡されたアドレスを保持します。 [セキュリティイベント](/docs/telemetry/security-events) はこれらで、ネットワークフロー内のプローブ自身のポーリング、検出、モニターチェックを見分け、ブロックリストはこれらを決してブロックしません。ループバック、リンクローカル、マルチキャストのアドレスは除かれます。 |
+
+OneUptime は、プローブのチェックイン元のアドレスも OneUptime から見えるとおりに保持します。ネットワークに NAT がある場合はその NAT のアドレスです。プローブのページは、プローブを読める人に、 **プローブステータス** の下に両方を **チェックイン元アドレス** と **インターフェースのアドレス** として表示し、まだチェックインしていないプローブにはどちらも表示しません。
+
+プローブが自分のアドレスについて言うことはプローブの申告にすぎず、キーを持つ人なら誰でもどんなアドレスでも申告できます。そのためセキュリティイベントは、アドレスだけを理由にトラフィックを脇に置くことはありません。到達した各ホストとポートも、プローブが到達するよう設定されたものである必要があり、それを超えるものはプローブの名前とともに報告されます。
 
 ## プロキシ経由で接続する
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Docker Engine 27 以降は、ネットワーク用の IPv6 サブネットを選
 | `HTTP_PROXY_URL`、 `HTTPS_PROXY_URL`、 `NO_PROXY` | なし | プロキシの設定。 [プロキシ経由で接続する](#プロキシ経由で接続する) を参照してください。 |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | プローブが OneUptime に送る各リクエストの期限。 |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | OneUptime へのリクエストがこれより遅いと警告をログに出します。 |
+| `PROBE_HOST_IP_ADDRESSES` | なし | ホストのネットワークを使わないプローブのための、カンマ区切りのホストの IP アドレス。チェックインのたびにプローブ自身のアドレスと並べて送られます。 [プローブを実行する](#プローブを実行する) を参照してください。 |
 
 ### ネットワーク検出
 
@@ -430,7 +457,7 @@ OneUptime サーバー側でも、応答の遅かったプローブのリクエ�
 ### その他の問題
 
 :::details プローブが起動直後に停止する
-ログに足りないものが示されます: `PROBE_KEY is not set`、 `PROBE_INGEST_URL or ONEUPTIME_URL is not set`、または `PROBE_ID or REGISTER_PROBE_KEY should be set`。3 つとも設定されていても ID とキーがどのプローブとも一致しない場合、プローブは 30 秒間隔で 10 回試してから、 `Unable to register probe after 10 attempts` で停止します。 **ID とキーを表示** で ID とキーをもう一度コピーしてください。
+ログに足りないものが示されます: `PROBE_KEY is not set`、 `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set`、または `PROBE_ID is not set`。3 つとも設定されていても ID とキーがどのプローブとも一致しない場合、プローブは 30 秒間隔で 10 回試してから、 `Unable to register probe after 10 attempts` で停止します。 **ID とキーを表示** で ID とキーをもう一度コピーしてください。
 :::
 
 :::details 誰かがキーをリセットするまでプローブは動いていた

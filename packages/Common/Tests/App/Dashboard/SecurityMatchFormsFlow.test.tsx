@@ -45,6 +45,23 @@ const mockCreateOrUpdate: MockFunction = getJestMockFunction();
 // What a list read answers: no rows, unless a test hands its dropdown some.
 const mockGetList: MockFunction = getJestMockFunction();
 
+/*
+ * How long the project keeps its security events is read from the server
+ * on its own (SecurityEventRetentionUi.test.tsx): not known here, so
+ * nothing is said of it (#10432).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/UseSecurityEventRetention",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -91,6 +108,22 @@ jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
   };
 });
 
+/*
+ * The notice about events that arrived too late for the rules reads the
+ * server on its own (SecurityEventsLateArrivalsNotice.test.tsx).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/LateArrivals/LateArrivalsNotice",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
@@ -105,6 +138,7 @@ import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -219,6 +253,18 @@ beforeEach(() => {
   jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
   // Every field is offered: who may write which column is not under test.
   jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+
+  /*
+   * A threat intel feed's name is one of its kind in a project that requires
+   * unique names, so its form asks the server, a moment after a name is typed,
+   * whether another feed has it (DuplicateNameNotice, #10761): none has it
+   * here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

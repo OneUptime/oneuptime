@@ -21,8 +21,27 @@ jest.mock("Common/Server/Services/OpenStackCloudConnectionTestService", () => {
   return { __esModule: true, default: {} };
 });
 
+/*
+ * Nothing here checks a key: the key checks are ProbeCollectionKeyBeforeParse's.
+ * An older probe's report opening is let through, and recorded as it arrived.
+ */
+const mockOpenings: Array<string> = [];
+
 jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
-  return { __esModule: true, default: {} };
+  return {
+    __esModule: true,
+    default: {
+      isAuthorizedFromReportOpening: async (data: {
+        req: { probe?: unknown };
+        opening: Uint8Array;
+        next: (err?: unknown) => void;
+      }): Promise<void> => {
+        mockOpenings.push(Buffer.from(data.opening).toString("utf8"));
+        data.req.probe = { id: "11111111-1111-4111-8111-111111111111" };
+        data.next();
+      },
+    },
+  };
 });
 
 /*
@@ -32,9 +51,17 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
  * the two, end to end, on the bytes a probe sends.
  */
 
-function gzipRequest(body: Buffer): ExpressRequest {
+/*
+ * The request a probe sends: its probe named by its headers already (`probe`),
+ * or, for a probe from before them, by the start of its report alone.
+ */
+function gzipRequest(body: Buffer, probe?: { id: string }): ExpressRequest {
   const stream: PassThrough = new PassThrough();
   const req: ExpressRequest = stream as unknown as ExpressRequest;
+
+  if (probe) {
+    (req as unknown as { probe: { id: string } }).probe = probe;
+  }
 
   (req as unknown as { headers: Record<string, string> }).headers = {
     "content-encoding": "gzip",
@@ -115,21 +142,33 @@ describe("a gzip-compressed collection report", () => {
     // Metrics compress well: what travels is a fraction of the JSON.
     expect(compressed.length).toBeLessThan(json.length / 5);
 
-    const req: ExpressRequest = gzipRequest(compressed);
+    for (const probe of [
+      { id: "11111111-1111-4111-8111-111111111111" },
+      undefined,
+    ]) {
+      mockOpenings.length = 0;
 
-    expect(await runMiddleware(readCollectionBody, req)).toBeUndefined();
+      const req: ExpressRequest = gzipRequest(compressed, probe);
 
-    expect(Buffer.isBuffer((req as unknown as { body: unknown }).body)).toBe(
-      true,
-    );
+      expect(await runMiddleware(readCollectionBody, req)).toBeUndefined();
 
-    expect(
-      await runMiddleware(
-        parseCollectionBody as unknown as Parameters<typeof runMiddleware>[0],
-        req,
-      ),
-    ).toBeUndefined();
+      // An older probe's report has its opening checked first: its first 4 KiB.
+      expect(mockOpenings).toEqual(
+        probe ? [] : [json.subarray(0, 4096).toString("utf8")],
+      );
 
-    expect((req as unknown as { body: unknown }).body).toEqual(report);
+      expect(Buffer.isBuffer((req as unknown as { body: unknown }).body)).toBe(
+        true,
+      );
+
+      expect(
+        await runMiddleware(
+          parseCollectionBody as unknown as Parameters<typeof runMiddleware>[0],
+          req,
+        ),
+      ).toBeUndefined();
+
+      expect((req as unknown as { body: unknown }).body).toEqual(report);
+    }
   });
 });

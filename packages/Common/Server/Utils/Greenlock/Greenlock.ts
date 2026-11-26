@@ -20,6 +20,7 @@ import ArrayUtil from "../../../Utils/Array";
 import acme from "acme-client";
 import { Challenge } from "acme-client/types/rfc8555";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import OutboundProxyAgents from "../OutboundProxyAgents";
 import CertificateOrderLock, {
   CertificateOrderLockHandle,
 } from "./CertificateOrderLock";
@@ -30,6 +31,26 @@ import CertificateOrderFailures from "./CertificateOrderFailures";
 import { CertificateOrderOutcome } from "./CertificateOrderOutcome";
 
 export default class GreenlockUtil {
+  private static acmeRequestsRouted: boolean = false;
+
+  /*
+   * acme-client asks Let's Encrypt for each certificate with an axios
+   * instance of its own (acme.axios), which left the outbound proxy to
+   * axios: behind a proxy whose password holds an @ or a :, every order was
+   * refused with 407, as axios sent the password percent-encoded (#10442).
+   * Its requests go through the outbound proxy, or directly, as every
+   * request of the server goes (OutboundProxyAgents), from the first order
+   * on.
+   */
+  public static routeAcmeRequests(): void {
+    if (GreenlockUtil.acmeRequestsRouted) {
+      return;
+    }
+
+    acme.axios.interceptors.request.use(OutboundProxyAgents.routeAxiosRequest);
+    GreenlockUtil.acmeRequestsRouted = true;
+  }
+
   /*
    * How early a certificate is renewed, as a range rather than a single value.
    *
@@ -960,6 +981,8 @@ export default class GreenlockUtil {
     ).toString();
 
     acmeAccountKey = Text.replaceAll(acmeAccountKey, "\\n", "\n");
+
+    GreenlockUtil.routeAcmeRequests();
 
     const client: acme.Client = new acme.Client({
       directoryUrl: acme.directory.letsencrypt.production,

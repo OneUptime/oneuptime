@@ -19,12 +19,12 @@ import {
   packFormSettingsValues,
 } from "./FormSettingsEditor";
 import Form from "Common/Models/DatabaseModels/Form";
+import { getFormTargetSetUpGate } from "./FormTargetChoices";
 import { readFormFields } from "Common/Types/Form/FormField";
 import { FormCustomFieldDefinition } from "Common/Types/Form/FormPublic";
 import {
-  IncidentFormTargetSettings,
+  FormTargetSettings,
   readFormTargetSettings,
-  ScheduledMaintenanceFormTargetSettings,
 } from "Common/Types/Form/FormTargetSettings";
 import FormTargetType from "Common/Types/Form/FormTargetType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -111,42 +111,78 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
    */
   const [unsavedValues, setUnsavedValues] = useState<JSONObject | null>(null);
 
-  useAsyncEffect(async () => {
-    setIsLoading(true);
-    setLoadError("");
+  /*
+   * The records the settings name are read by their ids (#10646), so they
+   * are read again whenever the settings change - after a save, a monitor
+   * just picked is named - without the card going back to its skeleton.
+   */
+  const settingsKey: string = JSON.stringify(props.targetSettings ?? null);
 
-    try {
-      const [loadedReference, loadedCustomFields]: [
-        FormReferenceData,
-        Array<FormCustomFieldDefinition>,
-      ] = await Promise.all([
-        loadFormReferenceData(props.targetType),
-        loadFormCustomFields(props.targetType),
-      ]);
+  useAsyncEffect(
+    async (isMounted: () => boolean) => {
+      const isFirstLoad: boolean = !reference;
 
-      setReference(loadedReference);
-      setCustomFields(loadedCustomFields);
-    } catch (err) {
-      setLoadError(API.getFriendlyMessage(err));
-    }
+      if (isFirstLoad) {
+        setIsLoading(true);
+      }
 
-    setIsLoading(false);
-  }, [props.formId.toString(), props.targetType]);
+      setLoadError("");
 
-  const updateGate: PermissionGateResult = PermissionGate.check(
+      try {
+        const [loadedReference, loadedCustomFields]: [
+          FormReferenceData,
+          Array<FormCustomFieldDefinition>,
+        ] = await Promise.all([
+          loadFormReferenceData(props.targetType, props.targetSettings),
+          loadFormCustomFields(props.targetType),
+        ]);
+
+        if (!isMounted()) {
+          return;
+        }
+
+        setReference(loadedReference);
+        setCustomFields(loadedCustomFields);
+      } catch (err) {
+        if (!isMounted()) {
+          return;
+        }
+
+        setLoadError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    },
+    [props.formId.toString(), props.targetType, settingsKey],
+  );
+
+  /*
+   * Edit Form, then what setting a form up for its target takes: changing
+   * how an alert form makes its alerts takes permission to create alerts,
+   * as the server asks (FormService.assertMaySetUpTarget).
+   */
+  const formUpdateGate: PermissionGateResult = PermissionGate.check(
     new Form(),
     ModelAction.Update,
   );
 
-  const isIncident: boolean = props.targetType === FormTargetType.Incident;
+  const updateGate: PermissionGateResult = formUpdateGate.isAllowed
+    ? getFormTargetSetUpGate(props.targetType)
+    : formUpdateGate;
 
-  const title: string = isIncident
-    ? FormsCopy.mappingIncidentTitle
-    : FormsCopy.mappingScheduledMaintenanceTitle;
+  const title: string =
+    props.targetType === FormTargetType.Incident
+      ? FormsCopy.mappingIncidentTitle
+      : props.targetType === FormTargetType.Alert
+        ? FormsCopy.mappingAlertTitle
+        : FormsCopy.mappingScheduledMaintenanceTitle;
 
-  const description: string = isIncident
-    ? FormsCopy.mappingIncidentDescription
-    : FormsCopy.mappingScheduledMaintenanceDescription;
+  const description: string =
+    props.targetType === FormTargetType.Incident
+      ? FormsCopy.mappingIncidentDescription
+      : props.targetType === FormTargetType.Alert
+        ? FormsCopy.mappingAlertDescription
+        : FormsCopy.mappingScheduledMaintenanceDescription;
 
   const buttons: Array<CardButtonSchema> =
     reference && (updateGate.isAllowed || updateGate.disabledReason)
@@ -341,9 +377,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
       return <ErrorMessage message={loadError || FormsCopy.formNotFound} />;
     }
 
-    const settings:
-      | IncidentFormTargetSettings
-      | ScheduledMaintenanceFormTargetSettings = readFormTargetSettings({
+    const settings: FormTargetSettings = readFormTargetSettings({
       targetType: props.targetType,
       value: props.targetSettings,
     });
@@ -418,6 +452,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
             fields: getFormSettingsFields({
               targetType: props.targetType,
               reference: reference,
+              settings: unsavedValues || props.targetSettings,
             }),
             initialValues:
               unsavedValues ||

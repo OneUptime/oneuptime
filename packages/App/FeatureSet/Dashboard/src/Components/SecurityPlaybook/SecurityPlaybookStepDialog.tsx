@@ -17,6 +17,19 @@ import {
   waitsOnSeveralResults,
 } from "./SecurityPlaybookStepForm";
 import { SecurityPlaybookConditionMatch } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  SECURITY_BLOCK_EXPIRING_DURATIONS,
+  SecurityBlockAction,
+  SecurityBlockDuration,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { getBlockDurationOptions } from "../SecurityEvents/Blocklist/BlockAddressModal";
+import {
+  ACTION_BLOCK_OPTION,
+  ACTION_CHALLENGE_OPTION,
+  ACTION_FIELD_DESCRIPTION,
+  ACTION_FIELD_TITLE,
+  EXPIRES_FIELD_TITLE,
+} from "../SecurityEvents/Blocklist/BlocklistCopy";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IconProp from "Common/Types/Icon/IconProp";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -26,6 +39,12 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  CA_CERTIFICATE_PLACEHOLDER,
+  CaCertificatePemProblem,
+  CaCertificateProblem,
+  getCaCertificatePemShapeProblem,
+} from "Common/Types/Runbook/HttpStepCertificates";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
@@ -120,6 +139,25 @@ export const ACTION_CATEGORY_HEADINGS: Readonly<
 };
 
 // Every action as a card, grouped the way a response goes.
+/*
+ * Under a Send Webhook step's CA certificate, while it is not one a save
+ * takes: the save refuses it, and says the same (SecurityPlaybookStep).
+ */
+const PLAYBOOK_CA_CERTIFICATE_PROBLEMS: Record<
+  CaCertificatePemProblem,
+  string
+> = {
+  [CaCertificateProblem.NotACertificate]: translationKey(
+    "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
+  ),
+  [CaCertificateProblem.PrivateKey]: translationKey(
+    "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.",
+  ),
+  [CaCertificateProblem.TooLong]: translationKey(
+    "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.",
+  ),
+};
+
 export function getActionCardGroups(): Array<CardSelectOptionGroup> {
   return SECURITY_PLAYBOOK_ACTION_CATEGORIES.map(
     (category: SecurityPlaybookActionCategory): CardSelectOptionGroup => {
@@ -260,6 +298,29 @@ function connectionOptions(
         value: connection.id,
       };
     });
+}
+
+export const PLAYBOOK_BLOCK_EXPIRES_DESCRIPTION: string = translationKey(
+  "A playbook's block always ends by itself. Lift it sooner from the case or the Blocklist.",
+);
+
+/*
+ * How long a playbook's block lasts (#10342): a choice that ends by itself
+ * - a playbook's block always does - in the reader's words when the
+ * dialog has them, as the Blocklist offers them.
+ */
+export function getPlaybookBlockDurationOptions(
+  translator: Translator | undefined,
+): Array<DropdownOption> {
+  if (translator) {
+    return getBlockDurationOptions(translator);
+  }
+
+  return SECURITY_BLOCK_EXPIRING_DURATIONS.map(
+    (duration: SecurityBlockDuration): DropdownOption => {
+      return { value: duration, label: duration };
+    },
+  );
 }
 
 /*
@@ -727,6 +788,41 @@ export function getStepSettingsFields(
         );
       },
     },
+    // Block the address (#10342): block or challenge it, and for how long - a day unless chosen.
+    {
+      field: { blockAction: true },
+      title: ACTION_FIELD_TITLE,
+      description: ACTION_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Dropdown,
+      stepId: "settings",
+      dropdownOptions: [
+        { value: SecurityBlockAction.Block, label: ACTION_BLOCK_OPTION },
+        {
+          value: SecurityBlockAction.Challenge,
+          label: ACTION_CHALLENGE_OPTION,
+        },
+      ],
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+    },
+    {
+      field: { duration: true },
+      title: EXPIRES_FIELD_TITLE,
+      description: PLAYBOOK_BLOCK_EXPIRES_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Dropdown,
+      stepId: "settings",
+      dropdownOptions: getPlaybookBlockDurationOptions(translator),
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.BlockAddress);
+      },
+    },
     {
       field: { url: true },
       title: "Webhook URL",
@@ -922,6 +1018,60 @@ export function getStepSettingsFields(
             isOff={values["requiresApproval"] === false}
           />
         );
+      },
+    },
+    /*
+     * How the webhook's certificate is checked, under More fields as a
+     * Runbook HTTP step's and a workflow API step's are (#10440), named and
+     * worded as there: the switch skips every check, and the CA certificate,
+     * the safer way, is shown while the switch is off.
+     */
+    {
+      field: { allowSelfSignedCertificates: true },
+      title: "Allow self-signed certificates",
+      description:
+        "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.",
+      fieldType: FormFieldSchemaType.Toggle,
+      stepId: "settings",
+      required: false,
+      collapsibleSection: howItRuns,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.SendWebhook);
+      },
+    },
+    {
+      field: { caCertificate: true },
+      title: "CA certificate",
+      description:
+        "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.",
+      fieldType: FormFieldSchemaType.LongText,
+      stepId: "settings",
+      placeholder: CA_CERTIFICATE_PLACEHOLDER,
+      required: false,
+      collapsibleSection: howItRuns,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return (
+          isAction(values, SecurityPlaybookActionType.SendWebhook) &&
+          values["allowSelfSignedCertificates"] !== true
+        );
+      },
+      // The save refuses what this says, in the same words.
+      customValidation: (values: FormValues<JSONObject>): string | null => {
+        const text: string =
+          typeof values["caCertificate"] === "string"
+            ? (values["caCertificate"] as string).trim()
+            : "";
+        const problem: CaCertificatePemProblem | null = text
+          ? getCaCertificatePemShapeProblem(text)
+          : null;
+
+        if (!problem) {
+          return null;
+        }
+
+        const message: string = PLAYBOOK_CA_CERTIFICATE_PROBLEMS[problem];
+
+        return translator?.translateText(message) || message;
       },
     },
     {

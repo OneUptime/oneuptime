@@ -944,6 +944,29 @@ describe("Fix the code with AI", () => {
     );
   });
 
+  test("each fix is asked for the case, so its pull request is kept on the case (#10347)", async () => {
+    const asked: Array<ObjectID | undefined> = [];
+
+    jest
+      .spyOn(TelemetryExceptionService, "createCodeFixRunForException")
+      .mockImplementation((async (params: {
+        triggeredBySecurityCaseId?: ObjectID;
+      }) => {
+        asked.push(params.triggeredBySecurityCaseId);
+        return new AIRun();
+      }) as never);
+
+    await SecurityPlaybookActions.execute(
+      context(SecurityPlaybookActionType.FixWithAi, {}),
+    );
+
+    expect(
+      asked.map((id: ObjectID | undefined): string => {
+        return id?.toString() || "";
+      }),
+    ).toEqual([CASE_ID.toString(), CASE_ID.toString()]);
+  });
+
   test("no exception behind the case: nothing to fix, skipped", async () => {
     jest
       .spyOn(SecurityCaseEvidence, "findRequests")

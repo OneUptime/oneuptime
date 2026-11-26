@@ -66,7 +66,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -314,8 +314,9 @@ describe("the chip on each list", () => {
 
     const is: unknown = facet.toQueryValue!([AWS_ACCOUNT, GCP_PROJECT], "is");
     expect(valuesOf(is)).toEqual([AWS_ACCOUNT, GCP_PROJECT]);
+    // An environment in no account is in none of them either (#10581).
     expect(facet.toQueryValue!([AWS_ACCOUNT], "is_not")).toBeInstanceOf(
-      IncludesNone,
+      IncludesNoneOrNull,
     );
   });
 

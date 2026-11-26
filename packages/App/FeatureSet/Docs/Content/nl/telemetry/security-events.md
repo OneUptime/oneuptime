@@ -51,7 +51,9 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
+| **Automatische reactie** | Playbooks | De beleidsregels die een aanvallend adres een challenge geven of blokkeren zodra de detectie er is, elk met een proefperiode en vangrails |
 | **Blokkeerlijst** | Playbooks | De adressen die je project blokkeert, tot wanneer, en waar elke blokkering wordt toegepast |
+| **Blokkeerlijstfeeds** | Playbooks | De geheime URL's waarvan je firewalls en proxy's de blokkeerlijst lezen, en hun ophaalacties |
 | **Beschermde entiteiten** | Playbooks | De gebruikers, hosts en adressen die geen enkel playbook inperkt en geen blokkering raakt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
@@ -131,6 +133,7 @@ Open **Producten → Beveiligingsgebeurtenissen → Gebeurtenissen**. De gebeurt
 Geef het formaat op met `?format=`, met de header `x-oneuptime-security-event-format`, of met een veld `"format"` op het hoogste niveau. Laat je het weg, dan wordt het formaat van elke gebeurtenis apart bepaald, zodat één webhook detecties en ruwe gebeurtenissen kan mengen.
 
 - De body kan één gebeurtenis zijn, een array van gebeurtenissen, of `{ "events": [...] }`.
+- Een batch kan met gzip gecomprimeerd zijn en met `Content-Encoding: gzip` worden verstuurd: hij wordt gelezen als dezelfde batch zonder compressie. De `http`-output van Fluent Bit comprimeert met `compress gzip`, de `http`-sink van Vector met `compression = "gzip"`, en de `http`-output van Logstash met `http_compression => true`. Gecomprimeerd wordt alleen JSON gelezen: een gecomprimeerde body van een ander type wordt geweigerd met `400`.
 - De header `x-oneuptime-service-name` noemt de telemetrieservice waartoe de gebeurtenissen behoren. Zonder die header behoren ze tot de service die is genoemd naar het product of de leverancier van de eerste gebeurtenis, of tot `Security Events`.
 - Er wordt niets weggegooid omdat het niet te koppelen was: elk veld van de bron komt terecht in de attributen van de gebeurtenis.
 
@@ -172,6 +175,7 @@ Om beveiligingslogs te sturen die je al verzamelt, zoals auditd, syslog of Falco
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -183,7 +187,7 @@ De pagina **Installatiegids**, onder **Verbindingen**, bevat deze snippets, met 
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel, webaanval en verzoek om een gevoelig bestand daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 Elke soort bereikt OneUptime als gewone logs:
 
@@ -234,6 +238,16 @@ Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** i
 - De leesbeurt van het account zelf levert niets meer op: data-events, Data Access-logs en de logs van Microsoft Entra ID hebben nog steeds **Uw logboeken** of een [verbinding](/docs/integrations/microsoft-entra-id) nodig.
 - Elke gebeurtenis noemt de cloud-resources waar de record over gaat bij hun eigen ID's - een ARN, een Azure-resource-ID, een resourcenaam van Google Cloud - en staat dus op de pagina **Beveiligingsgebeurtenissen** van elk ervan, en op die van een serverless functie zodra de telemetrie ervan `cloud.account.id` en `cloud.region` instelt.
 
+### De eigen sondes van OneUptime in uw netwerkflows
+
+Zet **Netwerkflows** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, en de flows die uw netwerkapparaten exporteren worden gelezen op poortscans, netwerksweeps, verkeer met bekende kwaadaardige adressen en grote overdrachten naar buiten. Het eigen werk van een sonde lijkt daar op een scan: wie 40 apparaten via SNMP pollt, bereikt elke vijf minuten poort 161 op 40 hosts. Daarom wordt verkeer van een van de eigen sondes van OneUptime dat precies is waarvoor de sonde is ingesteld, apart gezet:
+
+- de netwerkapparaten die ze pollt, gepingd en via SNMP gevraagd op hun poort;
+- het bereik van elke detectie van de sonde, zolang de scan loopt;
+- de hosts en poorten die haar monitoren controleren.
+
+Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt.
+
 ### Een beveiligingsproduct koppelen
 
 **Verbindingen** bevraagt een beveiligingsproduct voor je en importeert zijn nieuwe records als beveiligingsgebeurtenissen. Een verbinding bevat de instellingen van het product en een versleutelde referentie; een worker bevraagt haar met het interval dat je instelt en slaat records over die hij al importeerde.
@@ -250,6 +264,7 @@ Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** i
 | Okta System Log | Gebeurtenissen over aanmeldingen, MFA, accounts en beleid | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Aanmeldingen, directorywijzigingen en risicodetecties, desgewenst mislukte achtergrond- en app-aanmeldingen, en uit het Microsoft 365-auditlogboek het doorsturen van e-mail, delen en phishingoordelen | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Aanmeldingen, de eigen detecties van Google, beheerwijzigingen en app-toegang, en delen in Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Wat de firewall aan de edge heeft geblokkeerd, uitgedaagd en vastgelegd, als HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - De eigen waarschuwingen van het product vanaf het niveau dat in **Zaken openen vanaf** is ingesteld (**Hoog en hoger**, tenzij je een ander niveau kiest, of **Nooit**), openen [zaken](/docs/telemetry/security-cases), gegroepeerd op de gebruiker, de host of het adres waar ze over gaan.
 - Een verbinding leest records op het tijdstip waarop het product ze aanmaakte, niet op het tijdstip van de activiteit die ze beschrijven. Een SIEM-regel die elk uur draait, maakt detecties lang na de gebeurtenissen waarop hij matchte, en die worden toch geïmporteerd.
@@ -272,6 +287,71 @@ Elke gebeurtenis wordt opgeslagen met getypeerde velden en de payload van de bro
 | Attributen | De hele payload van de bron, afgevlakt tot sleutels met punten |
 
 Gebeurtenissen die vóór OneUptime 14.0.84 zijn opgeslagen, laten de procesvelden leeg en noemen hun proces alleen als `principalProcess`, het proces dat handelde. Ze worden achteraf niet aangevuld: ze houden waarmee ze zijn opgeslagen tot hun bewaartermijn afloopt.
+
+### Welk adres een gebeurtenis noemt
+
+Een gebeurtenis noemt het adres waar een aanvraag vandaan kwam alleen als de afzender van de aanvraag het niet zelf kan hebben geschreven. Dat adres is geverifieerd en wordt het **Bron-IP** van de gebeurtenis: detectieregels tellen het, threat intelligence vergelijkt het, en het **Responsplan** van een zaak biedt aan het te blokkeren. Elk ander adres dat een aanvraag noemt, is alleen opgegeven: de gebeurtenis bewaart het als **Opgegeven IP**, en niets telt of blokkeert het.
+
+- Het eigen adres van de verbinding is geverifieerd: de `network.peer.address` van een serverspan, of het eerste veld van een regel in het toegangslog van een webserver. Niemand kan het in een aanvraag schrijven.
+- Achter een proxy die je vertrouwt, is het adres van de verbinding dat van de proxy, en is de client het adres dat de proxy in `X-Forwarded-For` doorgaf. Elke proxy voegt het adres toe waarvan hij de verbinding aannam, dus leest OneUptime de header van rechts en neemt het eerste adres dat geen proxy is die je vertrouwt. Wat een afzender in de header schrijft, komt links daarvan terecht en blijft een bewering.
+- Een adres dat een aanvraag over zichzelf noemt, is opgegeven: `client.address`, dat instrumentatie vult vanaf de linkerkant van de header, de rest van `X-Forwarded-For`, en `Forwarded`.
+
+Een opgegeven adres wordt nooit vanuit een zaak geblokkeerd: iedereen kan `X-Forwarded-For: 192.0.2.44` sturen, en een blokkade zou afsnijden wie 192.0.2.44 ook is. Een gebeurtenis met alleen een opgegeven adres heeft een **Responsplan** dat je zegt het echte adres te zoeken in de logs van je load balancer of firewall.
+
+Leg twee dingen vast op de serverspans van je app, zodat de adressen geverifieerd zijn: het eigen adres van de verbinding, `network.peer.address`, dat de HTTP-instrumentaties van OpenTelemetry instellen, en, achter een proxy, de header `X-Forwarded-For`, die ze vastleggen als `http.request.header.x-forwarded-for` zodra je hem opneemt in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Een JSON-toegangslog wordt op dezelfde manier gelezen: het clientveld, zoals `remote_addr`, is het adres van de verbinding, en het veld `http_x_forwarded_for` is de header.
+
+#### Vertrouwde proxy's
+
+Beveiligingsgebeurtenissen gelooft een proxy over wie zijn client was, als zijn adres een van de volgende is:
+
+| Vertrouwd | Waarom |
+| --- | --- |
+| Privé, loopback of link-local, zoals `10.0.0.5` | Altijd: niemand heeft het op internet, dus het is een load balancer of een ingress binnen je netwerk |
+| Opgenomen in **Vertrouwde proxy's** | Je hebt het opgenomen |
+| In de gepubliceerde bereiken van een edge die je hebt verbonden, zoals [Cloudflare](/docs/integrations/cloudflare) | Zolang de verbinding bestaat |
+| Een van je eigen application load balancers | Tenzij je het uitzet |
+
+**Beveiligingsgebeurtenissen → Verbindingen → Meer instellingen** bevat **Vertrouwde proxy's**, de lijst die je zelf schrijft, en **Automatisch vertrouwd**, dat de rest laat zien en waarom. Neem een proxy op in **Vertrouwde proxy's**, één adres of bereik per regel, als zijn adres openbaar is en niets anders hem vertrouwt: een CDN dat je niet hebt verbonden, een load balancer die je app via internet bereikt, of een reverse proxy zoals nginx op een server met een openbaar adres voor je app. Tot je dat doet, wordt elke aanval via hem aan de proxy toegeschreven. Achter een globale externe Application Load Balancer van Google Cloud komen de verbindingen van je app van de front-ends van Google: neem `35.191.0.0/16` en `130.211.0.0/22` op.
+
+Je eigen application load balancers zijn de load balancers die je [verbonden cloudaccounts](/docs/telemetry/cloud-accounts) opsommen: AWS Application Load Balancers, AWS Classic Load Balancers waarvan elke listener HTTP of HTTPS is, Google Cloud Application Load Balancers en Azure Application Gateways, met hun openbare adressen. Elk voegt de client die hij doorstuurt toe aan `X-Forwarded-For`. Een load balancer van Google Cloud voegt zijn eigen adres toe na dat van de client, en een Application Gateway bereikt een openbare backend vanaf zijn eigen adres, dus zonder hen zou elke aanval via een ervan aan de load balancer worden toegeschreven. **Uw loadbalancers**, op **Automatisch vertrouwd**, somt ze op, en een Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder kan het uitzetten.
+
+Niets anders van jou wordt automatisch vertrouwd: niet je hosts, Kubernetes-nodes, sondes of virtuele machines, geen NAT-gateway, en geen Network, Gateway of Azure load balancer. Ze sturen niemand door, of geven een aanvraag door zoals die binnenkwam, dus wat erop draait, kan elke willekeurige client noemen: een aanvraag die een monitor met eigen headers stuurt, een pod, een laptop achter de gateway. Is een ervan je proxy, voeg hem dan toe aan **Vertrouwde proxy's**. Een Kubernetes-ingress wordt vertrouwd als de load balancer die hij is: een GKE-ingress is een Google Cloud Application Load Balancer, een AKS-ingress voor Application Gateway een Application Gateway, en een EKS-ingress van klasse `alb` een AWS Application Load Balancer. Een ingresscontroller binnen je cluster stuurt door vanaf een privéadres, dat altijd vertrouwd wordt.
+
+Een wijziging aan een van deze werkt binnen een minuut, en een nieuwe load balancer wordt binnen vijf minuten vertrouwd.
+
+#### Toegangslogs die eindigen op X-Forwarded-For
+
+Achter een load balancer loggen veel webservers het doorgestuurde adres als laatste, zoals het eigen formaat `main` van nginx doet:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Een logregel zegt nooit wat zijn velden zijn, dus het laatste veld wordt pas als `X-Forwarded-For` gelezen zodra je **Logboeken eindigen op X-Forwarded-For** aanzet, op **Toegangslogboeken** onder **Meer instellingen**, en dan alleen:
+
+- als het eerste veld van de logregel een proxy is die je vertrouwt: een logregel van een client die je webserver rechtstreeks bereikte, is van die client;
+- in het combined-formaat, met precies één veld tussen aanhalingstekens na de user agent en niets daarna;
+- als dat veld `-` is of een lijst adressen waarvan het laatste geen poort heeft.
+
+Laat het uit als je formaat eindigt op een andere header die een adres bevat, zoals `X-Real-IP`, of als je webserver headers schrijft zonder hun aanhalingstekens te escapen, zoals `morgan` van Express doet: de eigen user agent van een aanvraag zou dan een veld kunnen toevoegen. Een JSON-toegangslog heeft geen schakelaar nodig, omdat de velden een naam hebben.
+
+### Verborgen door een opschoonregel
+
+Een IP-adresregel die je logs of traces wist of maskeert, verbergt het adres waar een aanval vandaan kwam voordat Beveiligingsgebeurtenissen ze leest. De gebeurtenis wordt toch opgeslagen, zonder adres, en overal waar ze het adres zou noemen, zegt ze dat een scrub-regel het verborg:
+
+- **Bron-IP** in het paneel van de gebeurtenis noemt de regel die het verborg wanneer dat kan, als link naar de **Scrub-regels** van de logs of de traces. Het filter ernaast toont elke gebeurtenis waarvan een scrub-regel het adres verborg.
+- **Doel-IP** zegt hetzelfde wanneer een regel verborg waar een verbinding naartoe ging: de bestemming van een firewall, of waar gegevens naartoe werden gestuurd. Het filter ernaast toont elke gebeurtenis waarvan een scrub-regel het doeladres verborg.
+- **Wat er daarna gebeurde** zegt dat het verzoek kwam van een adres dat een scrub-regel verborg, en **Campagnes** brengt zulke verzoeken samen in één eigen rij.
+- Een zaak waarvan alle gebeurtenissen hun adres kwijt zijn, zegt dat in haar **Responsplan**: in plaats van het adres te blokkeren, zegt het plan je het te zoeken in de logs van je load balancer of firewall en het daar te blokkeren, met **Scrub-regels openen**.
+- **Overzicht** noemt de regel die de adressen verbergt die Beveiligingsgebeurtenissen leest, ook met **Scrub-regels openen**.
+
+Een regel die hasht, bewaart het adres voor Beveiligingsgebeurtenissen, zodat de gebeurtenis het noemt, tenzij het token ouder is dan 30 dagen of gemaakt is voordat tokens een sleutel hadden: zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen). Zoek `@oneuptime.request.client_address_hidden:scrub-rule` om deze gebeurtenissen te vinden. Wat de regel op de plaats van het adres achterliet, zoals `[REDACTED]`, staat in `oneuptime.request.client_address_scrubbed`. Zoek voor een bestemming `@oneuptime.target_address_hidden:scrub-rule`.
+
+Een detectieregel die per adres telt, kan het beste per `principalIp` of `targetIp` tellen, zoals de regels van de regelbibliotheek doen: die velden noemen het adres achter het token van een regel die hasht. Het eigen adresveld van een formaat, zoals `openstack.audit.initiator_address` of `asa.src_ip`, bevat alleen een adres dat in het log stond, dus het blijft leeg overal waar een scrub-regel er een verborg.
+
+Een regel die een gebruiker wist of maskeert, verbergt die op dezelfde manier: waar de gebeurtenis de gebruiker zou noemen, zegt **Brongebruiker** of **Doelgebruiker** dat een scrub-regel die verborg. Waar Beveiligingsgebeurtenissen een gebruiker leest, bewaart een regel die hasht de gebruiker ervoor: de `enduser.id` of `user.id` van een verzoek, de gebruiker van een AI-aanroep en een gebruiker die een logregel noemt, zoals de principal van een cloud-auditlog. Zo noemt de gebeurtenis de gebruiker achter het token, noemt een zaak over die gebruiker het account, en kan een playbook erop handelen zoals op elke andere gebruiker. Wat de regel achterliet, staat in `oneuptime.principal_user_hashed_as` of `oneuptime.target_user_hashed_as`, zodat je de gebruiker kunt vinden in je logs en traces, die alleen het token bevatten. Een token waarvoor geen gebruiker bewaard is, zoals een token dat gemaakt is voordat tokens een sleutel hadden, blijft de gebruiker van de gebeurtenis: regels tellen het als één account, en geen playbook handelt erop.
 
 ## Beveiligingsgebeurtenissen verkennen
 
@@ -304,9 +384,29 @@ De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Resu
 
 Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, wordt in dat verzoek gevolgd. Het paneel zegt hoe ver het verzoek kwam (**Afgewezen**, **App bereikt**, **Fout** of **Database bereikt**), wie het stuurde, en linkt naar de trace, de uitzondering, de sessieherhaling en de logregel zelf. Een logregel, een trace en een uitzondering die deel zijn van een aanval zeggen dat ook op hun eigen pagina's.
 
+### Een gevoelig bestand dat je site leverde
+
+Een verzoek om een bestand met geheimen, zoals `/.env`, `/.git/config`, `/.aws/credentials` of een kopie van `wp-config.php`, is een lek als je site het met het bestand zelf beantwoordde: wie erom vroeg, heeft nu de wachtwoorden, sleutels en tokens die erin staan. Een single-page-app beantwoordt elk pad dat hij niet heeft met zijn eigen pagina en status 200, dus status 200 alleen zegt dat nooit. OneUptime leest wat het antwoord bevatte:
+
+- Een type dat geen webpagina is, zoals `text/plain` of `application/octet-stream`: het bestand zelf.
+- Een webpagina, of JSON voor een bestand dat geen JSON is: de eigen pagina van je site.
+- Niets erin: er is niets meegenomen.
+- Een grootte en geen type, zoals het toegangslog van een webserver het vastlegt: het bestand zelf als geen ander pad die grootte kreeg en je site 404 antwoordt voor de paden die hij niet heeft, en de eigen pagina van je site als dezelfde grootte twee verschillende paden beantwoordde. Als niets het uitwijst, is het verzoek geen gebeurtenis.
+
+Een geleverd bestand heeft de ernst Kritiek, en de regel **Sensitive file served** uit de regelbibliotheek opent er een zaak over, met stappen om het bestand offline te halen en te roteren wat erin staat. Elk van deze verzoeken telt ook mee voor **Scanning for sensitive files**, die van een single-page-app inbegrepen. Een beheerpagina die je site levert, zoals die van WordPress, is er nooit een, en een `wp-config.php` die WordPress uitvoerde, is de eigen pagina van je site. De firewallgebeurtenissen van Cloudflare zeggen niet wat je oorsprong stuurde, dus een verzoek dat Cloudflare doorliet, telt alleen mee voor het scannen. Het paneel van een gebeurtenis zegt onder **Wat er daarna gebeurde** wat je site stuurde.
+
 ### Campaigns
 
-**Campagnes** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan.
+**Campagnes** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan. Een rij die je blokkeerlijst al bevat, zegt tot wanneer het adres geblokkeerd is of een challenge heeft, en noemt het bereik of netwerk dat het bevat.
+
+Om meerdere aanvallers tegelijk te blokkeren, selecteer je hun rijen en druk je op **Adressen blokkeren**. Eén dialoogvenster toont elk adres dat het blokkeert en elk adres dat het weglaat, met de reden: al geblokkeerd, een van je eigen adressen of een beschermd adres, een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of een adres dat OneUptime niet kon controleren. Het blokkeert voor 24 uur, tenzij je een andere duur kiest, of geeft een challenge met **In plaats daarvan challenge**, en elke blokkering komt als de jouwe op je [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst).
+
+**Groeperen op netwerk** zet de adressen van één netwerk op één rij: op zijn ASN waar de gebeurtenissen van je [Cloudflare](/docs/integrations/cloudflare)-verbinding er een noemen, en anders op zijn /24 bij IPv4 of zijn /48 bij IPv6. De rij van een ASN toont de bereiken van waaruit zijn adressen stuurden. **Dit netwerk een challenge geven** zegt wat het gaat doen, waar en hoe lang, voordat het dat doet: 24 uur, tenzij je een andere duur kiest, en de volgende trede van de ladder voor een netwerk dat al eerder een challenge kreeg. Cloudflare houdt een bereik in zijn challengelijst, en een ASN als IP Access Rule, die elk abonnement heeft. **Aanvragen bekijken** bij een netwerk opent in **Gebeurtenissen** wat het stuurde: bij een ASN op de ASN die de Cloudflare-gebeurtenissen ervan noemen, en bij een bereik als zoekopdracht naar de adressen ervan, zoals `ip:203.0.113.*`, die je kunt aanpassen.
+
+- Een netwerk met een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of met een van je eigen adressen, krijgt nooit een challenge, en het dialoogvenster noemt wie of wat.
+- Een bereik dat breder is dan een /24 (een /48 bij IPv6), en een hele ASN, vragen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar. De rij van een ASN biedt ook elk van zijn bereiken aan, die iedereen die mag blokkeren een challenge kan geven.
+- Als OneUptime niet kan zien wie een netwerk gebruikt, omdat het een hele ASN is of omdat een scrub-regel clientadressen verbergt, kan alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar het een challenge geven, nadat die heeft aangevinkt dat hij dat weet.
+- Er wordt niets geblokkeerd of een challenge gegeven zolang Beveiligingsgebeurtenissen op de server uitgeschakeld is.
 
 ### Correleren
 
@@ -339,7 +439,7 @@ Een hunt die is opgeslagen met filters uit de zijbalk van Gebeurtenissen, toont 
 
 Een geplande hunt stelt de mensen en teams op de hoogte die je kiest onder **Op de hoogte stellen**: minstens één, en in totaal hooguit 50. Elke run:
 
-- leest de gebeurtenissen waarvan de tijd na de vorige run ligt, tot twee minuten geleden, zodat elke gebeurtenis één keer wordt doorzocht. De eerste run leest vanaf het moment dat het schema werd ingesteld of de zoekopdracht voor het laatst werd gewijzigd, en na een storing haalt een run hooguit een dag meer in dan zijn interval.
+- leest de gebeurtenissen die na de vorige run binnenkwamen, tot twee minuten geleden, wanneer ze ook plaatsvonden, zodat elke gebeurtenis één keer wordt doorzocht, ook een die laat binnenkomt. De eerste run leest vanaf het moment dat het schema werd ingesteld of de zoekopdracht voor het laatst werd gewijzigd, en na een storing haalt een run hooguit een dag meer in dan zijn interval. Een gebeurtenis die meer dan een dag nadat ze plaatsvond binnenkomt, wordt bewaard en is doorzoekbaar, maar geen run telt haar.
 - telt de gebeurtenissen die zijn zoekopdracht daar vindt, precies zoals **Gebeurtenissen** ze zou tonen, en leest alleen wat de persoon onder wie hij draait mag lezen.
 - stelt, als hij gebeurtenissen vindt, de mensen op de hoogte die de hunt noemt, en de leden van de teams die hij noemt, die hunts en beveiligingsgebeurtenissen mogen lezen.
 
@@ -349,11 +449,11 @@ Een geplande hunt draait onder de persoon die als laatste zijn schema instelde, 
 
 ### Runhistorie
 
-Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de regel die zegt wat de runs van een hunt vonden, toont ze met de nieuwste eerst: wanneer elke run draaide en welke gebeurtenissen hij doorzocht, dan hoeveel hij vond, met **Tonen** om die gebeurtenissen op de pagina van de hunt te openen; dat hij niets vond; of waarom hij niet kon draaien. Wie een hunt kan openen, kan zijn runs lezen.
+Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de regel die zegt wat de runs van een hunt vonden, toont ze met de nieuwste eerst: wanneer elke run draaide en wanneer de gebeurtenissen binnenkwamen die hij doorzocht, dan hoeveel hij vond, met **Tonen** om precies die gebeurtenissen op de pagina van de hunt te openen; dat hij niets vond; of waarom hij niet kon draaien. Wie een hunt kan openen, kan zijn runs lezen.
 
 ### Wie op de hoogte wordt gesteld
 
-De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
+De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en wanneer ze binnenkwamen, en linkt naar de pagina van de hunt op precies die gebeurtenissen: het filter **Binnengekomen** over de dag ervoor, dat u kunt weghalen om al het andere uit die tijd te zien; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
 
 Om wat hunts vinden in Slack, Microsoft Teams of Mattermost te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-microsoft-teams-en-mattermost) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder.
 
@@ -497,13 +597,16 @@ Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt d
 | Password spraying: één IP dat faalt tegen 5 verschillende accounts | `principalIp` | `principalUser` | 5 |
 | Poortscan: één IP dat 20 verschillende poorten bereikt | `principalIp` | `targetPort` | 20 |
 
+Een regel met een **Groeperingsveld** die meer dan één gebeurtenis in een groep nodig heeft, via een drempel boven 1 of een **Veld voor unieke telling**, laat de gebeurtenissen weg die geen waarde voor zijn veld hebben: geteld zouden ze allemaal optellen als één waarde, elke mislukte aanmelding zonder adres als één IP-adres. Een regel die bij elke gebeurtenis afgaat, blijft voor hen afgaan. **Detectieregels** zegt onder de naam van een regel hoeveel van de overeenkomende gebeurtenissen van de afgelopen dag hij niet kon tellen, en die tekst opent waarom: hoeveel er geen waarde hadden, en hoeveel daarvan een scrub-regel verborg, met **Scrub-regels openen**. Een regel die niets kon tellen van wat met hem overeenkwam, kan niet afgaan, en zijn **Status** zegt **Vraagt aandacht**. **Uitvoeren op eerdere gebeurtenissen** zegt hetzelfde voor de periode die het leest.
+
 ### Wanneer een regel draait
 
 OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen die tussen de vorige uitvoering en twee minuten geleden bij OneUptime zijn binnengekomen, ongeacht wanneer ze gebeurden, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog worden geschreven ruimte:
 
 - Een tellende regel en een correlatie tellen in vensters zo lang als het interval, aaneengesloten op de klok: met een interval van 10 minuten vallen mislukkingen om 09:58 en 10:01 in verschillende vensters en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
 - Na een onderbreking, zoals een storing van een worker of een regel die weer is aangezet, dekt de volgende uitvoering de hele onderbreking, tot hoogstens de laatste 24 uur.
-- Een gebeurtenis die te laat binnenkomt, leest de volgende uitvoering toch, één keer, en telt die in het venster waarin ze gebeurde: een groep gaat af als zijn venster de telling bereikt, en hoogstens één keer per venster. Een gebeurtenis die meer dan een dag nadat ze gebeurde binnenkomt, wordt opgeslagen en is doorzoekbaar, maar de uitvoeringen van de regel lezen haar niet; **Uitvoeren op eerdere gebeurtenissen** wel.
+- Een run die mislukt, bijvoorbeeld een die te lang duurt, laat de regel waar hij was: zijn **Status** zegt **Uitvoering mislukt**, en hij wordt bij het volgende interval opnieuw geprobeerd, of binnen het uur als zijn interval langer is. De run die slaagt, leest alles wat binnenkwam sinds de laatste geslaagde, hoe lang geleden ook, een dag tegelijk. Een run die stopte nadat hij op zijn treffers had gereageerd, wordt opnieuw gedaan zonder ze twee keer aan hun zaak toe te voegen.
+- Een gebeurtenis die te laat binnenkomt, leest de volgende uitvoering toch, één keer, en telt die in het venster waarin ze gebeurde: een groep gaat af als zijn venster de telling bereikt, en hoogstens één keer per venster. Een gebeurtenis die meer dan een dag nadat ze gebeurde binnenkomt, wordt opgeslagen en is doorzoekbaar, maar de uitvoeringen van de regel lezen haar niet; **Uitvoeren op eerdere gebeurtenissen** wel. Dat is met opzet, zodat het inladen van historie geen waarschuwingen over het verleden opent: als er in de laatste 7 dagen zo laat iets binnenkwam, zegt een melding boven de regels hoeveel, uit welke bronnen en wanneer ze gebeurden, en opent **Uitvoeren op eerdere gebeurtenissen** over die tijd.
 - Elke groep die de drempel haalt, wordt een Detection Finding, tot 10.000 per uitvoering. Waarschuwingen, incidenten en zaken openen voor de 100 met de hoogste tellingen; de rest deelt één zaak over de regel, en de **Laatste fout** van de regel zegt hoeveel groepen matchten.
 
 ### Realtimeregels
@@ -557,6 +660,7 @@ Een uitzondering is iets dat een regel overslaat omdat je het verwacht, zoals ee
 | **Een tijdvenster** | Elke gebeurtenis van **Begint op** tot **Eindigt op**, hoogstens 30 dagen uit elkaar |
 
 - Waarden komen overeen ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` slaat elk serviceaccount over, en `*.lab.example.com` elke host van een domein. Een IP-adres kan een bereik zijn, zoals `10.20.0.0/16`. Een waarde van alleen `*` wordt geweigerd: zet een regel uit om hem te stoppen.
+- Gebeurtenissen uit het eigen auditlogboek van OneUptime noemen een API-sleutel van het project in `principalUser` als `api-key:` gevolgd door zijn ID, dus twee sleutels met dezelfde naam zijn twee actoren, en geen playbook biedt een sleutel aan als gebruiker om te schorsen. De naam van de sleutel blijft in het bericht van de gebeurtenis en in `audit.api_key_name`. Een uitzondering voor de naam van een sleutel, als gebruiker of als waarde van `principalUser`, slaat nog steeds elke sleutel met die naam over, en een uitzondering voor `api-key:` gevolgd door de ID van de sleutel slaat alleen die sleutel over.
 - Elke uitzondering zegt waarom in haar **Reden**, die iedereen ziet die de lijst leest, en bewaart wie haar toevoegde en wanneer. Een entiteit of waarde kan een **Verloopt om** hebben, waarna de regel haar weer ziet; een tijdvenster eindigt vanzelf.
 - **Status** zegt waar elke uitzondering staat: **Actief**, **Aankomend** voor een venster dat nog niet begonnen is, **Verlopen** of **Beëindigd**. Onder de naam van een regel in **Detectieregels** telt een regel tekst haar actieve uitzonderingen, en **Uitzonderingen bekijken** in de rij van de regel opent de lijst gefilterd op die regel.
 - Overgeslagen gebeurtenissen worden weggelaten voordat de regel iets telt, dus ze tellen nooit mee voor haar **Drempel voor aantal treffers** en openen geen zaak, waarschuwing, incident of bevinding. Uitzonderingen gelden voor elke run van de regel, correlaties inbegrepen, en voor **Uitvoeren op eerdere gebeurtenissen**, maar nooit voor een testaanval, die controleert of gebeurtenissen doorkomen.
@@ -635,6 +739,14 @@ De actie **Monitor maken** in de rij van een regel opent een nieuwe monitor die 
 ## Bewaring en facturering
 
 Beveiligingsgebeurtenissen worden per ingenomen GB gefactureerd, net als de rest van je telemetrie, en bewaard volgens je telemetriebewaring: de **Standaardbewaring (dagen)** van het project, onder **Projectinstellingen → Telemetrie & APM → Gegevensbewaring**, of een bewaartermijn die is ingesteld op de telemetrieservice waartoe ze behoren. Als de bewaartermijn van een gebeurtenis afloopt, wordt ze verwijderd.
+
+Alles in Beveiligingsgebeurtenissen dat eerdere gebeurtenissen leest, leest alleen de gebeurtenissen die nog bewaard worden, en zegt wanneer het meer nodig zou hebben:
+
+- Een regel **Voor het eerst gezien** waarvan de tijdspanne langer is dan gebeurtenissen worden bewaard, bepaalt aan de bewaarde dagen of een waarde nieuw is: met een tijdspanne van 30 dagen en 15 bewaarde dagen zeggen zijn alerts en cases `First awsRegion in 15 days`, en een waarde die het laatst 20 dagen geleden is gezien, geldt als nieuw. Zijn rij toont **Vraagt aandacht**, en **Fout bekijken** zegt wat er moet veranderen. Het regelformulier en de details van een regel in de regelbibliotheek zeggen het voordat hij wordt opgeslagen of toegevoegd. Een telling of een reeks waarvan het venster langer is dan gebeurtenissen worden bewaard, telt alleen die.
+- **Uitvoeren op eerdere gebeurtenissen** over een periode die vóór de bewaarde gebeurtenissen begint, zegt dat beveiligingsgebeurtenissen 15 dagen worden bewaard, dus dat het 15 dagen terugkeek, en wat het niet vond, geldt alleen voor die dagen. Een gebeurtenis die eerder plaatsvond maar te laat binnenkwam, blijft bewaard en wordt nog gelezen. Een regel **Voor het eerst gezien** zegt hoeveel van de 30 dagen vóór de periode hij kon zien.
+- Een hunt waarvan het **Tijdsbereik** langer is dan gebeurtenissen worden bewaard, vindt niets ouder, en het formulier zegt dat.
+
+**Projectinstellingen → Telemetrie & APM → Gegevensbewaring** toont de ingeschakelde regels die verder terugkijken dan de **Standaardbewaring (dagen)**. Om ze te dekken, bewaar je gebeurtenissen langer, met **Bewaartermijn wijzigen** onder een regel, of maak je de tijdspanne van een regel korter tot wat bewaard wordt. OneUptime bewaart 15 dagen tenzij je dat wijzigt, omdat de bewaartermijn bepaalt wat je telemetrie kost en hoe lang persoonsgegevens in gebeurtenissen, zoals adressen en gebruikersnamen, worden bewaard. Een nieuwe bewaartermijn geldt voor gebeurtenissen die vanaf dan binnenkomen, dus regels kijken verder terug naarmate die gebeurtenissen ouder worden.
 
 ## Probleemoplossing
 

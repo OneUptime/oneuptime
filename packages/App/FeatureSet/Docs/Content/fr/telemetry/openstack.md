@@ -1069,7 +1069,7 @@ Un cloud écrit énormément de choses que personne ne lit. La première fois qu
 | **OpenStack: health checks** | Un répartiteur de charge qui demande `/` ou `/healthcheck` à chaque API : une ligne toutes les quelques secondes, par API, par contrôleur | À une vérification toutes les 2 secondes, 43 200 lignes par jour pour chaque API sur chaque contrôleur. À raison des 220 à 490 octets que faisaient ces lignes sur nos clouds de test, cela fait 10 à 21 Mo par jour. C'est de l'arithmétique à partir de la taille d'une ligne : nos clouds de test n'ont pas de répartiteur de charge | Rien qu'une personne lise. La même ligne venant d'une personne a le même aspect |
 | **OpenStack: routine notifications** | `metrics.update`, et chaque `*.exists` et `*.usage`. Voir [Événements de cycle de vie](#événements-de-cycle-de-vie) | Non mesuré : nos enregistrements sont trop courts pour en contenir beaucoup. Cela croît avec le nombre d'instances | Rien qui dise que quelque chose a changé. Désactivez ce filtre pour conserver chaque notification |
 
-Ces filtres ne correspondent qu'à ce que OneUptime a lu dans les journaux d'un cloud ; rien d'autre dans un projet n'est touché.
+Ces filtres ne correspondent qu'à ce que OneUptime a lu dans les journaux d'un cloud ; rien d'autre dans un projet n'est touché. Tels que OneUptime les a créés, ils gardent chaque ligne que lisent les [événements de sécurité](/docs/telemetry/security-events) : une connexion, une attaque dans une requête, une entrée d'audit. Modifiez-en un, et il exclut ce qu'il cible, comme un de vos propres filtres.
 
 ### Secrets dans les journaux
 

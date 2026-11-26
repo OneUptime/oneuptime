@@ -1,13 +1,15 @@
 # Data Security Checks and Issues
 
-Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
 - [Every check](#every-check): All 34, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
-- [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
+- [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue, how each was resolved, and fixes followed to production.
+- [OneUptime AI's analysis](#oneuptime-ais-analysis): Whether an issue is real, what it puts at risk, what the fix would break and the shortest path to fixed.
 - [Fix it from here](#fix-it-from-here): Close an exposure, or turn on a missing protection, in one click.
+- [Issues with one cause](#issues-with-one-cause): The issues one mistake made, grouped, and their cause fixed once.
 :::
 
 ## How a check decides
@@ -152,13 +154,56 @@ OneUptime opens, updates and resolves issues as the checks run. What a person do
 | Status | How it gets there | What follows |
 | --- | --- | --- |
 | **Open** | Its check fails on the store now. | It counts on the Overview, in the store's summary and in compliance, until the check passes. |
-| **Resolved** | Its check passed on a later run, no longer applies or was turned off, or its store was archived. A person may choose **Mark Resolved** too: the store is checked again at once. | It opens again if the check fails again, and the issue counts how often it reopened. |
+| **Resolved** | Its check passed on a later run, no longer applies or was turned off, or its store was archived. A person may choose **Mark Resolved** too: the store is checked again at once. | It says how it was resolved (below). It opens again if the check fails again, and the issue counts how often it reopened. |
 | **Accepted** | A person chose **Accept Risk**, with a **Reason** and a date in **Accepted Until**, at most a year away. | It stays closed until that date, then opens again if the check still fails. Accept it again then if the reason still holds. |
-| **Not an issue** | A person chose **Not an Issue**: the finding was wrong. | It stays closed, even while the check fails. **Reopen** puts it back to Open. |
+| **Not an issue** | A person chose **Not an Issue** and said why in **Reason**: the finding was wrong. | It stays closed, even while the check fails, and keeps the reason. **Reopen** puts it back to Open. |
 
 Security Members, Security Admins, Project Admins and Project Owners can change an issue's status, and **Assign** it to a person or a team. Every change is written to the issue's **Timeline**: when it opened, each change of severity, each status change and who made it, the re-checks asked for, and what the integrations did.
 
 An issue that opens again keeps its history. Accepted risks are looked at again every day, so one expires on time even when nothing was scanned.
+
+### How it was resolved
+
+A resolved issue says how, at the top of its page and in the Issues list, which can filter by it under **Resolution**:
+
+| Resolution | What it means |
+| --- | --- |
+| **Fixed in code** | A code fix's pull request shipped, and the service's new version no longer writes the data. The issue says which: "Fixed in pull request #482, deployed in version 2.4.1, verified" and when. |
+| **Fixed in infrastructure code** | A pull request to the Terraform, CloudFormation or Bicep that declares the store merged, and the store passed its check once the change was applied. |
+| **Fixed from here** | A response action ([Fix it from here](#fix-it-from-here)) changed the store, and its check passed after. |
+| **Contained at ingest** | Every finding of a telemetry issue is hidden by a scrub rule before it is stored. This is not a fix: the code still writes the data, to stdout and to every other place the service sends its telemetry. The issue says so in amber, with what the rule changed in the last week, and offers **Fix the Code**. |
+| **Check passed** | Its check passes, for no change OneUptime made. |
+| **Resolved by a person** | Someone chose **Mark Resolved**. The store is checked again at once, and the issue opens again if its check still fails. |
+| **No longer checked** | Its check was turned off, or no longer applies to the store. |
+| **Store archived** | Its store is gone from its source. |
+
+The Overview counts the issues fixed where they start apart from the leaks only contained at ingest, and **In Your Telemetry** keeps a contained finding in view, marked **Scrubbed**, until the code stops writing it.
+
+### Fixes followed to production
+
+A pull request OneUptime AI opened for an issue (**Fix with AI**, or one pull request for a [group of issues](#issues-with-one-cause)) has fixed nothing when it merges. OneUptime follows it until production proves it:
+
+- **A leak in code.** OneUptime waits for a recorded deploy of the service that contains the merge, then watches its new version. Where a scrub rule hides the data, the rule must change no value in that version; where no rule does, none of that version's records may hold the data at the places it was found. The new version must also run a day and send at least as many logs or spans as the old one did in the hour the leak was last seen. Then the issue is **Fixed in code**. One value changed, or one record that still holds the data, means the fix did not stop it, and a version that sends too little in a week cannot be told. Deploys are matched by their commit: record them with `oneuptime deploy`, or send `vcs.ref.head.revision` (see [Change Events](/docs/telemetry/change-events)).
+- **A store's configuration.** When the pull request merges, its stores are read again at once. Each issue whose check passes after that is **Fixed in infrastructure code**. When a store still fails its check when read again a day after the merge, the fix was **merged, not applied**: the store's owners and the person who asked for the pull request are emailed, once, and the issue's and the store's timelines say so. An apply is usually what is missing.
+- **The scrub rule is kept.** After a verified code fix, the scrub rule that contained the leak stays, so a regression is hidden as soon as it arrives. The issue says the rule has changed nothing since the fix, and offers **Remove Rule**.
+- **A regression.** A verified fix is watched after: when a kept rule changes values again, or the scan finds the data again, the issue opens again and says which version brought it back. It stays open until it is fixed again, even while a rule hides the data.
+
+Each step is on the issue's **Timeline** and the store's, and AI Results counts the fixes verified by kind (see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing)).
+
+## OneUptime AI's analysis
+
+While **Work on new issues** is on under **Data Security → AI**, OneUptime AI analyzes each new or reopened Critical or High issue by itself, before anyone opens it; your Data Security AI rules can choose other issues. Any issue can be analyzed from its page with **Analyze Issue**. The analysis opens the issue's **Overview**, under **OneUptime AI Analysis**, and answers from what Data Security knows:
+
+- whether it is real: **Real**, **Likely by design**, **Likely a wrong finding** or **Cannot tell**, and why;
+- what it puts at risk: the data and about how many records, who can reach it, copies of it in other stores, and the security cases on it;
+- what the fix would break: the services seen using the store, the identities that used their access in the last 90 days, and the grants the fix removes that something still uses;
+- the shortest path to fixed: what contains it now, the code that declares the store, and who should do it.
+
+Each line names the facts it rests on, listed under it by a button such as **Show the 3 facts it rests on**. A line that rests on no fact is dropped, a verdict whose reason rests on none is **Cannot tell**, and a store of Restricted data is never **Likely by design** on OneUptime AI's word. A line that rests on something you may not read, such as who can reach the store, is hidden from you, and says so.
+
+OneUptime AI never changes the issue: its status and severity stay with its check and with you. For **Likely by design** it offers **Accept Risk** with the reason drafted, and **Public By Design** for a public store; for **Likely a wrong finding**, **Not an Issue** with the reason drafted. Nothing changes until you choose.
+
+The analysis is kept on the issue, with an entry on its **Timeline** each time it is written, in the language most of your project's members chose (**Analyze Again** writes it in yours). It is written again only when what it rests on changed, so opening the issue asks OneUptime AI nothing; **Analyze Again** asks anyway. **Issues** filters and shows issues by **OneUptime AI Verdict**. What it sends, and never sends, is on [OneUptime AI in Data Security](/docs/data-security/ai). With AI off, there is no analysis.
 
 ## Fix it from here
 
@@ -178,6 +223,38 @@ An open issue that one change to a store's settings fixes - a public bucket, a s
 It asks first, saying what changes, what stops working and what it costs. It changes the store's settings, never its data, and changes nothing that is already as it should be. A store marked **Public By Design** is never blocked.
 
 It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's **Timeline** say what was done, and who did it.
+
+## Issues with one cause
+
+One Terraform module that turns off access logs makes forty buckets with forty issues. Data Security puts the issues one mistake made together, so their cause is fixed once.
+
+**Group by cause** on **Issues** shows each group above the list: "40 issues, one cause: the static-site module", what its check finds, how many are fixed and how many are left. Its stores fold under it, each linking to its issue, and the list's filters narrow them as they narrow the rows. The issues in no group are listed under the groups. It starts on once a group holds five issues, and your browser keeps your choice.
+
+Facts make a group, never OneUptime AI. Issues of one check, on stores of one cloud, are a group when their stores share one of these, the strongest first:
+
+| Fact | Where it is read |
+| --- | --- |
+| The code that declares them | A file in a connected repository named after the module or stack their tags name |
+| Their stack | The CloudFormation stack's own tag, or a tag that names a stack |
+| A tag | A tag that names the module, the stack or the component that made them, such as `module` or `component` |
+| Who created them | The identity the cloud's change log says created them, for stores whose tags name nothing that made them |
+| A name pattern | A part of their names few other stores have, such as `static-site-*` |
+
+A group holds at least two issues, an issue is in one group at most, and an issue stays in its group while its store shares the group's fact. While **Work on new issues** is on under **Data Security → AI**, OneUptime AI names each group from its facts, such as "the static-site module turns off access logs", and a name that says anything its facts do not is not kept. Otherwise a group is named by its fact.
+
+**Fix the Cause** on a group says what it changes, what it leaves out and why, before anything changes:
+
+- **One Pull Request**, for the stores declared as code: OneUptime AI changes the module or file that declares them, in the repository you confirm, rather than each store. The pull request lists every store and issue it fixes, and shows under **Code** and on each issue's **Timeline**. It takes what **Fix with AI** takes: permission to change Data Security issues, and a repository OneUptime AI may work in.
+- **One Approval**, for the stores made in the console: on each, the change [Fix it from here](#fix-it-from-here) makes for its kind of store, through its cloud connection. The changes are listed kind by kind, each with what it changes, what stops working and what it costs, as Fix it from here says it - a shared snapshot stops being shared, where a database stops sharing every manual snapshot of it - and one approval makes them all. It takes permission to edit data stores.
+- **Left Out**: a store marked **Public By Design** is never blocked. A store whose analysis says the fix would take away access something still uses waits for you to tick **Fix it anyway**. A store no cloud connection lets Data Security change is left to its console, with why.
+
+When a group has both kinds of store, one press makes both parts, and either can be left out. Each issue resolves on its own once its check passes, and the group says how many are left until none is. A group whose issues are all fixed stays on the list for seven days.
+
+A fix OneUptime AI made for a group is proven once every issue it fixed was closed by that fix: for a pull request, each issue it lists resolved as **Fixed in infrastructure code** by it; for the one approval, each issue whose store it changed resolved as **Fixed from here**, by the change it made. An issue accepted, marked not an issue, resolved by a person or deleted proves nothing, and a store the approval left out, or found as it should be, is not waited for. [AI Results](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing) counts a proven fix among the changes that worked.
+
+OneUptime AI proposes each group's fix as your Data Security AI rules say: out of the box, the pull request waits for you in **Data Security → AI**, and a rule whose **Fix** is **Without asking** opens it on its own. A change through the cloud connections always waits for you. Each open issue a proposal is for says so on its **Timeline** when OneUptime AI proposes the group's fix, and again when someone dismisses it or it expires. A newer proposal that replaces one still waiting tells only the issues the earlier one did not, and a group of more than 200 open issues stays quiet. On a Data Security case, a playbook's **Fix the code with AI** step asks for the pull request of the case's group, and a pull request of its own for each of the case's issues in no group. An issue in a group says so under **OneUptime AI Analysis**, with **Fix the Cause**.
+
+Someone whose read of Data Security issues is held to labels sees each group cut down to the stores they may read: its counts are those stores' issues alone, and it goes by its fact as their stores make it, never by OneUptime AI's name, which may speak of stores they cannot read. A group of which they may read a single issue is not shown, and that issue stays in their list. **Fix the Cause** changes every store the cause made, so it takes a read of Data Security issues across the whole project: they see what it would do, and why they cannot make it.
 
 ## Where a telemetry issue's data was found
 

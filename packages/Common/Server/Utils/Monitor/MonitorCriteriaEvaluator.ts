@@ -14,7 +14,18 @@ import IncomingRequestIncidentGrouping, {
 import { IOT_DEVICE_ID_ATTRIBUTE_KEY } from "./IoTDeviceAbsenceSeries";
 import PerEntityCriteriaFanOut, {
   FanOutEntity,
+  MaxEntitiesPerCriteria,
 } from "./PerEntityCriteriaFanOut";
+import GroupedMonitorRecovery, {
+  GroupedCriteriaRole,
+  GroupedRecoveryJudgement,
+  RecoveryCriteriaCheck,
+  SeriesBehindStatusReader,
+  WholeMonitorRecoveryJudgement,
+} from "./GroupedMonitorRecovery";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import LogGroupCriteriaFanOut from "./LogGroupCriteriaFanOut";
 import TraceGroupCriteriaFanOut from "./TraceGroupCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
@@ -25,7 +36,21 @@ import CriteriaFilterMatchHistory, {
   MatchHistoryJudgement,
 } from "./Criteria/CriteriaFilterMatchHistory";
 import CompareCriteria from "./Criteria/CompareCriteria";
+import CheckWindowCounts, {
+  CheckWindowCountReads,
+  CheckWindowJudgement,
+  CheckWindowSource,
+} from "./Criteria/CheckWindowCounts";
+import PreviousCheckComparison, {
+  PreviousCheckReads,
+} from "./Criteria/PreviousCheckComparison";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
+import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import CriteriaRecovery, {
+  CriteriaHeldText,
+  CriteriaHold,
+} from "./CriteriaRecovery";
+import CriteriaActiveHours from "./CriteriaActiveHours";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
@@ -74,6 +99,12 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorStepSeries, {
+  MonitorStepSeriesScope,
+} from "../../../Types/Monitor/MonitorStepSeries";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -81,10 +112,13 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
+  MonitorEvaluationSeries,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorSeriesTable from "./MonitorSeriesTable";
 import ProbeApiIngestResponse, {
   MatchedCriteriaResult,
   PerSeriesCriteriaMatch,
+  SeriesKeepingStatus,
 } from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
@@ -94,6 +128,7 @@ import MonitorType, {
 import {
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "../../../Types/Date";
@@ -104,6 +139,12 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
+import MetricQueryServices from "../../../Utils/Metrics/MetricQueryServices";
+import MetricTelemetrySnapshot from "../../../Utils/Monitor/MetricTelemetrySnapshot";
+import MonitorResourceSignalScope, {
+  ResourceSignal,
+  ResourceSignalScope,
+} from "../../../Utils/Monitor/MonitorResourceSignalScope";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -233,8 +274,37 @@ interface AffectedResourceBreachPredicate {
 interface MatchHistoryContext {
   checks: Map<string, CriteriaFilterCheck>;
   checkAt: Date;
+  /*
+   * When the check's rows were written, or began to be: a comparison with
+   * the previous check reads the newest row before it (#10821). A check
+   * that just arrived has its series written before it is judged, so this
+   * is before checkAt; a stored check was stamped before its rows were.
+   */
+  checkWrittenAt: Date;
   isStoredCheck: boolean;
   reads: CriteriaFilterMatchHistoryReads;
+}
+
+/*
+ * What the grouped recovery rule (GroupedMonitorRecovery) left of a grouped
+ * check's matches.
+ */
+interface GroupedRecoveryOutcome {
+  // The matches that stand, in criteria order: the first sets the status.
+  matchedCriteria: Array<MatchedCriteriaResult>;
+  /*
+   * The series behind the status that met no recovery criteria yet: with no
+   * match left, they keep the monitor's status.
+   */
+  seriesKeepingStatus: Array<SeriesKeepingStatus>;
+  // What is behind the status after the check; undefined: nothing to write.
+  seriesBehindStatus: Array<string> | undefined;
+}
+
+// A series a grouped check read, as a sentence names it.
+interface SeriesOfCheck {
+  labels: JSONObject;
+  context?: JSONObject | undefined;
 }
 
 /*
@@ -330,6 +400,13 @@ export default class MonitorCriteriaEvaluator {
      */
     recordMatchHistory?: boolean | undefined;
     /*
+     * For a check that has just arrived: when MonitorResource began writing
+     * its series, before it judges it. A filter that compares the check with
+     * the previous one reads the newest row before this (#10821), so the
+     * check's own rows are never its previous check. Now, when not passed.
+     */
+    checkWrittenAt?: Date | undefined;
+    /*
      * The match history reads of the probe result being handled, shared by
      * its own evaluation and the probe agreement pass so each filter's
      * history is read once (CriteriaFilterMatchHistoryReads). Made here when
@@ -346,6 +423,13 @@ export default class MonitorCriteriaEvaluator {
      * counts as open.
      */
     criteriaInEffect?: CriteriaInEffect | undefined;
+    /*
+     * The series behind a grouped monitor's status before this check, which
+     * its recovery criteria wait for (GroupedMonitorRecovery). MonitorResource
+     * hands the ones it keeps (SeriesBehindStatus); without them none is
+     * known, and a recovery criteria matches on any series, as before.
+     */
+    seriesBehindStatus?: SeriesBehindStatusReader | undefined;
   }): Promise<ProbeApiIngestResponse> {
     const criteria: MonitorCriteria | undefined =
       input.monitorStep.data?.monitorCriteria;
@@ -375,20 +459,25 @@ export default class MonitorCriteriaEvaluator {
      * A stored check read back for probe agreement writes nothing, so it is
      * judged only for the filters the criteria below actually reach.
      */
+    const checkAt: Date = input.recordMatchHistory
+      ? OneUptimeDate.getCurrentDate()
+      : MonitorCriteriaEvaluator.getStoredCheckTime(input.dataToProcess);
+
     const matchHistory: MatchHistoryContext = input.recordMatchHistory
       ? await MonitorCriteriaEvaluator.judgeMatchHistoryFilters({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
           monitor: input.monitor,
           probeApiIngestResponse: input.probeApiIngestResponse,
-          checkAt: OneUptimeDate.getCurrentDate(),
+          checkAt: checkAt,
+          checkWrittenAt: input.checkWrittenAt || checkAt,
           reads: matchHistoryReads,
         })
       : {
           checks: new Map<string, CriteriaFilterCheck>(),
-          checkAt: MonitorCriteriaEvaluator.getStoredCheckTime(
-            input.dataToProcess,
-          ),
+          checkAt: checkAt,
+          // Stamped as it was stored, before its rows were written.
+          checkWrittenAt: checkAt,
           isStoredCheck: true,
           reads: matchHistoryReads,
         };
@@ -432,12 +521,22 @@ export default class MonitorCriteriaEvaluator {
     const matchedCriteria: Array<MatchedCriteriaResult> = [];
     const evaluatedCriteriaIds: Array<string> = [];
 
+    // Each criteria's row of the summary, for the grouped recovery rule.
+    const criteriaResultsById: Map<string, MonitorEvaluationCriteriaResult> =
+      new Map<string, MonitorEvaluationCriteriaResult>();
+
     /*
      * What each metric filter judged every series to be on this check: the
      * criteria's verdict and the series it matched read the same judgement
      * (MetricSeriesEvaluations, #10108).
      */
     const seriesEvaluations: MetricSeriesEvaluations = new Map();
+
+    /*
+     * The series that met the recovery condition of a criteria that held
+     * them, on this check (#10355): let go of by the grouped recovery rule.
+     */
+    const recoveredSeries: Set<string> = new Set<string>();
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       /*
@@ -481,6 +580,30 @@ export default class MonitorCriteriaEvaluator {
         continue;
       }
 
+      /*
+       * A criteria judged only on some days and at some times (#10355) is
+       * skipped outside them, as a criteria that is off is: it matches
+       * nothing, so what it opened resolves as when it stops matching.
+       */
+      if (!CriteriaActiveHours.isActive({ criteria: criteriaInstance.data })) {
+        const skipReason: string =
+          "This criteria is judged only during its active hours, and this check was outside them.";
+
+        input.evaluationSummary.criteriaResults.push({
+          criteriaId: criteriaInstance.data?.id,
+          criteriaName: criteriaInstance.data?.name,
+          filterCondition:
+            criteriaInstance.data?.filterCondition || FilterCondition.All,
+          met: false,
+          message: skipReason,
+          filters: [],
+          skipped: true,
+          skipReason: skipReason,
+          skipCause: "outside-active-hours",
+        });
+        continue;
+      }
+
       const criteriaResult: MonitorEvaluationCriteriaResult = {
         criteriaId: criteriaInstance.data?.id,
         criteriaName: criteriaInstance.data?.name,
@@ -493,7 +616,14 @@ export default class MonitorCriteriaEvaluator {
 
       input.evaluationSummary.criteriaResults.push(criteriaResult);
 
-      const rootCause: string | null =
+      if (criteriaInstance.data?.id) {
+        criteriaResultsById.set(
+          criteriaInstance.data.id.toString(),
+          criteriaResult,
+        );
+      }
+
+      let rootCause: string | null =
         await MonitorCriteriaEvaluator.processMonitorCriteriaInstance({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
@@ -505,6 +635,48 @@ export default class MonitorCriteriaEvaluator {
           criteriaInEffect: criteriaInEffect,
           seriesEvaluations: seriesEvaluations,
         });
+
+      /*
+       * A criteria with a recovery condition of its own (#10355) that has
+       * acted keeps acting until that condition is met, even on a check its
+       * filters no longer match: the whole monitor, or each series of a
+       * grouped one that it still holds (CriteriaRecovery).
+       */
+      let heldPerSeriesMatches: Array<PerSeriesCriteriaMatch> | undefined =
+        undefined;
+
+      if (MonitorCriteriaInstance.hasRecoveryCondition(criteriaInstance.data)) {
+        const hold: CriteriaHold =
+          await MonitorCriteriaEvaluator.holdUntilRecovered({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaInstance: criteriaInstance,
+            criteriaResult: criteriaResult,
+            isMet: Boolean(rootCause),
+            isPerSeries:
+              fanOutAcrossCriteria &&
+              !PerEntityCriteriaFanOut.judgesWholeMonitor({
+                monitorType: input.monitor.monitorType,
+                criteriaInstance: criteriaInstance,
+              }),
+            matchHistory: matchHistory,
+            criteriaInEffect: criteriaInEffect,
+            seriesEvaluations: seriesEvaluations,
+            seriesBehindStatus: input.seriesBehindStatus,
+          });
+
+        for (const fingerprint of hold.recoveredSeries) {
+          recoveredSeries.add(fingerprint);
+        }
+
+        heldPerSeriesMatches = hold.perSeriesMatches;
+
+        if (!rootCause && hold.rootCause) {
+          rootCause = hold.rootCause;
+        }
+      }
 
       if (!criteriaResult.message) {
         criteriaResult.message = criteriaResult.met
@@ -585,14 +757,16 @@ export default class MonitorCriteriaEvaluator {
           ? incomingRequestGrouping.perKeyMatches || []
           : judgesWholeMonitor
             ? []
-            : await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+            : heldPerSeriesMatches ||
+              (await MonitorCriteriaEvaluator.collectPerSeriesMatches({
                 dataToProcess: input.dataToProcess,
                 monitor: input.monitor,
                 monitorStep: input.monitorStep,
                 criteriaInstance,
                 criteriaInEffect: criteriaInEffect,
                 seriesEvaluations: seriesEvaluations,
-              });
+                matchHistory: matchHistory,
+              }));
 
       /*
        * A grouped monitor whose scalar verdict says "met" but which
@@ -742,8 +916,12 @@ ${incomingRequestGrouping.rootCauseNote}
        * `perSeriesMatches` likewise keeps pointing at the first match so
        * any reader that only knows the scalar fields still behaves the
        * way it always did.
+       *
+       * A grouped monitor picks its first match once every criteria is
+       * judged, below: a recovery criteria that waits for the series behind
+       * the monitor's status is no match (GroupedMonitorRecovery).
        */
-      if (isFirstMatch) {
+      if (isFirstMatch && !fanOutAcrossCriteria) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = renderedRootCause.toString();
 
@@ -783,8 +961,107 @@ ${incomingRequestGrouping.rootCauseNote}
      * single-criteria path it has always taken.
      */
     if (fanOutAcrossCriteria) {
-      input.probeApiIngestResponse.matchedCriteria = matchedCriteria;
+      /*
+       * Every criteria is judged: now a recovery criteria that waits for the
+       * series behind the monitor's status is set aside, and the first match
+       * that stands sets the status (GroupedMonitorRecovery).
+       */
+      const recovery: GroupedRecoveryOutcome =
+        await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({
+          dataToProcess: input.dataToProcess,
+          monitor: input.monitor,
+          criteriaInstances: criteria.data.monitorCriteriaInstanceArray,
+          matchedCriteria: matchedCriteria,
+          criteriaResultsById: criteriaResultsById,
+          evaluationSummary: input.evaluationSummary,
+          seriesBehindStatus: input.seriesBehindStatus,
+          recoveredSeries: recoveredSeries,
+        });
+
+      const firstMatch: MatchedCriteriaResult | undefined =
+        recovery.matchedCriteria[0];
+
+      if (firstMatch) {
+        input.probeApiIngestResponse.criteriaMetId = firstMatch.criteriaId;
+        input.probeApiIngestResponse.rootCause = firstMatch.rootCause;
+
+        /*
+         * A per-series monitor always publishes an array, even an empty
+         * one: a defined array is what tells the creators "per-series mode
+         * — dedupe on (criteria, series)" instead of silently degrading to
+         * one alert for the whole monitor.
+         */
+        input.probeApiIngestResponse.perSeriesMatches =
+          firstMatch.perSeriesMatches;
+      } else if (recovery.seriesKeepingStatus.length > 0) {
+        input.probeApiIngestResponse.seriesKeepingStatus =
+          recovery.seriesKeepingStatus;
+      }
+
+      if (recovery.seriesBehindStatus) {
+        input.probeApiIngestResponse.seriesBehindStatus =
+          recovery.seriesBehindStatus;
+      }
+
+      /*
+       * Each series the check read, for the Series card on the monitor's
+       * Overview (#10062): the criteria it met - a recovery criteria that
+       * waits included, which the series itself met - and whether it keeps
+       * the status.
+       */
+      const seriesTable: MonitorEvaluationSeries | undefined =
+        MonitorSeriesTable.build({
+          monitorType: input.monitor.monitorType,
+          monitorStep: input.monitorStep,
+          dataToProcess: input.dataToProcess,
+          criteriaInstances: criteria.data.monitorCriteriaInstanceArray,
+          defaultMonitorStatusId:
+            input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
+          matchedCriteria: matchedCriteria,
+          seriesKeepingStatus: new Set<string>(
+            recovery.seriesKeepingStatus.map(
+              (series: SeriesKeepingStatus): string => {
+                return series.fingerprint;
+              },
+            ),
+          ),
+        });
+
+      if (seriesTable) {
+        input.evaluationSummary.series = seriesTable;
+      }
+
+      input.probeApiIngestResponse.matchedCriteria = recovery.matchedCriteria;
       input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
+    }
+
+    /*
+     * A monitor that judges no series on its own, on a check no criteria
+     * matched (#10743): its status set by a problem criteria holds until a
+     * recovery criteria of the step brings it back, as a grouped monitor's
+     * does (GroupedMonitorRecovery.judgeWholeMonitor). A recovery criteria
+     * outside its active hours cannot bring it back now, so it is not
+     * waited for.
+     */
+    if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {
+      const wholeMonitor: WholeMonitorRecoveryJudgement =
+        GroupedMonitorRecovery.judgeWholeMonitor({
+          criteriaInstances: criteria.data.monitorCriteriaInstanceArray.filter(
+            (criteriaInstance: MonitorCriteriaInstance): boolean => {
+              return CriteriaActiveHours.isActive({
+                criteria: criteriaInstance.data,
+              });
+            },
+          ),
+          defaultMonitorStatusId:
+            input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
+          currentMonitorStatusId: input.monitor.currentMonitorStatusId,
+        });
+
+      if (wholeMonitor.isStatusKept) {
+        input.probeApiIngestResponse.statusKeptForRecoveryCriteriaIds =
+          wholeMonitor.recoveryCriteriaIds;
+      }
     }
 
     /*
@@ -799,6 +1076,7 @@ ${incomingRequestGrouping.rootCauseNote}
           (input.dataToProcess as ProbeMonitorResponse).projectId,
         monitorId: input.monitor.id || input.dataToProcess.monitorId,
         probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+        monitorStepId: input.monitorStep.id,
         checks: Array.from(matchHistory.checks.values()),
       });
     }
@@ -838,11 +1116,13 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
     checkAt: Date;
+    checkWrittenAt: Date;
     reads: CriteriaFilterMatchHistoryReads;
   }): Promise<MatchHistoryContext> {
     const context: MatchHistoryContext = {
       checks: new Map<string, CriteriaFilterCheck>(),
       checkAt: input.checkAt,
+      checkWrittenAt: input.checkWrittenAt,
       isStoredCheck: false,
       reads: input.reads,
     };
@@ -944,6 +1224,426 @@ ${incomingRequestGrouping.rootCauseNote}
       isStoredCheck: input.matchHistory?.isStoredCheck,
       monitoringInterval: input.monitor.monitoringInterval,
       reads: input.matchHistory?.reads,
+    });
+  }
+
+  /*
+   * A criteria with a recovery condition of its own (#10355): whether it
+   * still acts on this check, though its filters may no longer match.
+   *
+   * It does while it is in effect - it set the monitor's status, or an
+   * incident or alert it opened is still open (CriteriaInEffect) - and its
+   * recovery condition is not met. On a monitor that judges each series on
+   * its own it does so series by series: each series it has an incident or
+   * alert open for, or that is behind a status it set, and that the check
+   * read, is held until it meets the recovery condition. The series that
+   * met it are handed back, for the grouped recovery rule to let go of.
+   *
+   * Its row of the summary says what happened: held, with the recovery
+   * filters' findings, or recovered.
+   */
+  private static async holdUntilRecovered(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaInstance: MonitorCriteriaInstance;
+    criteriaResult: MonitorEvaluationCriteriaResult;
+    // Whether the criteria's own filters matched this check.
+    isMet: boolean;
+    // Judged series by series: a grouped monitor's criteria that names some.
+    isPerSeries: boolean;
+    matchHistory: MatchHistoryContext;
+    criteriaInEffect: CriteriaInEffect;
+    seriesEvaluations: MetricSeriesEvaluations;
+    seriesBehindStatus: SeriesBehindStatusReader | undefined;
+  }): Promise<CriteriaHold> {
+    const recoveryCriteria: MonitorCriteriaInstance =
+      CriteriaRecovery.toRecoveryCriteria(input.criteriaInstance);
+
+    if (!input.isPerSeries) {
+      if (input.isMet) {
+        return { rootCause: null, recoveredSeries: [] };
+      }
+
+      const isInEffect: boolean = await input.criteriaInEffect.isInEffect({
+        criteriaInstance: input.criteriaInstance,
+        seriesFingerprint: undefined,
+      });
+
+      if (!isInEffect) {
+        return { rootCause: null, recoveredSeries: [] };
+      }
+
+      const recoveryResult: MonitorEvaluationCriteriaResult =
+        CriteriaRecovery.newRecoveryResult(input.criteriaInstance);
+
+      const recoveryRootCause: string | null =
+        await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaInstance: recoveryCriteria,
+          criteriaResult: recoveryResult,
+          matchHistory: input.matchHistory,
+          criteriaInEffect: input.criteriaInEffect,
+          seriesEvaluations: input.seriesEvaluations,
+        });
+
+      if (recoveryRootCause) {
+        input.criteriaResult.message = CriteriaRecovery.describeRecovered({
+          recoveryResult: recoveryResult,
+        });
+
+        return { rootCause: null, recoveredSeries: [] };
+      }
+
+      const held: CriteriaHeldText = CriteriaRecovery.describeHeld({
+        recoveryResult: recoveryResult,
+      });
+
+      input.criteriaResult.met = true;
+      input.criteriaResult.message = held.message;
+
+      return { rootCause: held.rootCause, recoveredSeries: [] };
+    }
+
+    /*
+     * Series by series: the series its own filters matched, then each one
+     * it still holds.
+     */
+    const triggered: Array<PerSeriesCriteriaMatch> = input.isMet
+      ? await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+          dataToProcess: input.dataToProcess,
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+          criteriaInstance: input.criteriaInstance,
+          criteriaInEffect: input.criteriaInEffect,
+          seriesEvaluations: input.seriesEvaluations,
+          matchHistory: input.matchHistory,
+        })
+      : [];
+
+    const triggeredFingerprints: Set<string> = new Set<string>(
+      triggered.map((series: PerSeriesCriteriaMatch): string => {
+        return series.fingerprint;
+      }),
+    );
+
+    const judged: Map<string, SeriesOfCheck> =
+      MonitorCriteriaEvaluator.getSeriesJudgedBy({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+
+    /*
+     * A status it set is behind the series it put there - known only while
+     * the monitor has that status, and only on a step whose recovery rule
+     * keeps them (SeriesBehindStatus).
+     */
+    const criteria: MonitorCriteriaInstance["data"] =
+      input.criteriaInstance.data;
+
+    const hasItsStatus: boolean =
+      Boolean(criteria?.changeMonitorStatus) &&
+      Boolean(criteria?.monitorStatusId) &&
+      input.monitor.currentMonitorStatusId?.toString() ===
+        criteria?.monitorStatusId?.toString();
+
+    const behindStatus: ReadonlySet<string> =
+      hasItsStatus && input.seriesBehindStatus
+        ? await input.seriesBehindStatus.getSeries()
+        : new Set<string>();
+
+    const inEffect: Array<string> = [];
+
+    for (const fingerprint of judged.keys()) {
+      if (triggeredFingerprints.has(fingerprint)) {
+        continue;
+      }
+
+      if (
+        behindStatus.has(fingerprint) ||
+        (MonitorCriteriaInstance.opensRecords(criteria!) &&
+          (await input.criteriaInEffect.isInEffect({
+            criteriaInstance: input.criteriaInstance,
+            seriesFingerprint: fingerprint,
+          })))
+      ) {
+        inEffect.push(fingerprint);
+      }
+    }
+
+    if (inEffect.length === 0) {
+      return {
+        rootCause: null,
+        perSeriesMatches: triggered,
+        recoveredSeries: [],
+      };
+    }
+
+    /*
+     * The recovery condition, judged for every series its filters read:
+     * the series a held one is, met it or not. When its filters name no
+     * series of their own, the check's verdict on them holds for every one.
+     */
+    const recoveryResult: MonitorEvaluationCriteriaResult =
+      CriteriaRecovery.newRecoveryResult(input.criteriaInstance);
+
+    const recoveryRootCause: string | null =
+      await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        monitor: input.monitor,
+        probeApiIngestResponse: input.probeApiIngestResponse,
+        criteriaInstance: recoveryCriteria,
+        criteriaResult: recoveryResult,
+        matchHistory: input.matchHistory,
+        criteriaInEffect: input.criteriaInEffect,
+        seriesEvaluations: input.seriesEvaluations,
+      });
+
+    const recoveryJudged: Map<string, SeriesOfCheck> =
+      MonitorCriteriaEvaluator.getSeriesJudgedBy({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: recoveryCriteria,
+      });
+
+    const recoveredPerSeries: Set<string> = new Set<string>(
+      (recoveryRootCause
+        ? await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+            dataToProcess: input.dataToProcess,
+            monitor: input.monitor,
+            monitorStep: input.monitorStep,
+            criteriaInstance: recoveryCriteria,
+            criteriaInEffect: input.criteriaInEffect,
+            seriesEvaluations: input.seriesEvaluations,
+            matchHistory: input.matchHistory,
+          })
+        : []
+      ).map((series: PerSeriesCriteriaMatch): string => {
+        return series.fingerprint;
+      }),
+    );
+
+    const held: Array<PerSeriesCriteriaMatch> = [];
+    const recovered: Array<string> = [];
+
+    const heldText: CriteriaHeldText = CriteriaRecovery.describeHeld({
+      recoveryResult: recoveryResult,
+    });
+
+    for (const fingerprint of inEffect) {
+      const isRecovered: boolean = recoveryJudged.has(fingerprint)
+        ? recoveredPerSeries.has(fingerprint)
+        : Boolean(recoveryRootCause);
+
+      if (isRecovered) {
+        recovered.push(fingerprint);
+        continue;
+      }
+
+      const series: SeriesOfCheck | undefined = judged.get(fingerprint);
+
+      held.push({
+        criteriaMetId: criteria!.id.toString(),
+        fingerprint: fingerprint,
+        labels: series?.labels || {},
+        ...(series?.context ? { context: series.context } : {}),
+        rootCause: heldText.rootCause,
+      });
+    }
+
+    if (held.length > 0 && !input.isMet) {
+      input.criteriaResult.met = true;
+      input.criteriaResult.message = CriteriaRecovery.describeHeldSeries({
+        heldCount: held.length,
+        recoveryResult: recoveryResult,
+      });
+    }
+
+    return {
+      rootCause: held.length > 0 ? heldText.rootCause : null,
+      perSeriesMatches: [...triggered, ...held],
+      recoveredSeries: recovered,
+    };
+  }
+
+  /*
+   * A filter that counts its window's checks (CheckWindowCounts): this
+   * check's match of it, when the filter keeps a match history whose row
+   * this check has not written yet, and the window read with everything
+   * else judged for this probe result.
+   */
+  private static async judgeFilterOverCountedChecks(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaFilter: CriteriaFilter;
+    matchHistory?: MatchHistoryContext | undefined;
+  }): Promise<CheckWindowJudgement> {
+    const stepScope: MonitorStepSeriesScope =
+      MonitorCriteriaEvaluator.getStepScope(input);
+
+    const source: CheckWindowSource | null = CheckWindowCounts.getSource({
+      criteriaFilter: input.criteriaFilter,
+      monitorType: input.monitor.monitorType,
+      monitorStepId: input.monitorStep.id,
+      stepScope: stepScope,
+    });
+
+    const checkAt: Date =
+      input.matchHistory?.checkAt || OneUptimeDate.getCurrentDate();
+
+    let check: CriteriaFilterCheck = {
+      filterKey: "",
+      matched: false,
+      at: checkAt,
+    };
+
+    if (source?.isMatchHistory) {
+      const filterKey: string = CriteriaFilterMatchHistory.getFilterKey({
+        monitorStepId: input.monitorStep.id,
+        criteriaFilter: input.criteriaFilter,
+      });
+
+      check = input.matchHistory?.checks.get(filterKey) || {
+        filterKey: filterKey,
+        matched: await MonitorCriteriaEvaluator.isFilterMetOnThisCheck({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: input.criteriaFilter,
+        }),
+        at: checkAt,
+      };
+    }
+
+    // A disk's usage is counted per disk: every disk the report has, for "*".
+    const diskPaths: Array<string> | undefined =
+      input.monitor.monitorType === MonitorType.Server &&
+      input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
+        ? ServerMonitorCriteria.getAgentDiskPaths({
+            serverResponse: input.dataToProcess as ServerMonitorResponse,
+            diskPath: input.criteriaFilter.serverMonitorOptions?.diskPath,
+          })
+        : undefined;
+
+    return CheckWindowCounts.judgeFilter({
+      projectId:
+        input.monitor.projectId ||
+        (input.dataToProcess as ProbeMonitorResponse).projectId,
+      monitorId: input.monitor.id || input.dataToProcess.monitorId,
+      monitorStepId: input.monitorStep.id,
+      stepScope: stepScope,
+      monitorType: input.monitor.monitorType,
+      probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+      criteriaFilter: input.criteriaFilter,
+      check: check,
+      isStoredCheck: input.matchHistory?.isStoredCheck,
+      monitoringInterval: input.monitor.monitoringInterval,
+      diskPaths: diskPaths,
+      reads: input.matchHistory
+        ? CheckWindowCountReads.forMatchHistoryReads(input.matchHistory.reads)
+        : undefined,
+    });
+  }
+
+  /*
+   * A filter that compares this check with the previous one
+   * (PreviousCheckComparison, #10821): the previous check read with
+   * everything else judged for this probe result, a measured value judged
+   * on this check against a threshold made from it, and a yes or no check's
+   * result on this check - from the match history's context when the check
+   * just arrived and keeps one.
+   */
+  private static async judgeFilterAgainstPreviousCheck(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaFilter: CriteriaFilter;
+    matchHistory?: MatchHistoryContext | undefined;
+  }): Promise<CheckWindowJudgement> {
+    // A disk's usage is compared per disk: every disk the report has, for "*".
+    const diskPaths: Array<string> | undefined =
+      input.monitor.monitorType === MonitorType.Server &&
+      input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
+        ? ServerMonitorCriteria.getAgentDiskPaths({
+            serverResponse: input.dataToProcess as ServerMonitorResponse,
+            diskPath: input.criteriaFilter.serverMonitorOptions?.diskPath,
+          })
+        : undefined;
+
+    const filterKey: string = CriteriaFilterMatchHistory.getFilterKey({
+      monitorStepId: input.monitorStep.id,
+      criteriaFilter: input.criteriaFilter,
+    });
+
+    return PreviousCheckComparison.judgeFilter({
+      projectId:
+        input.monitor.projectId ||
+        (input.dataToProcess as ProbeMonitorResponse).projectId,
+      monitorId: input.monitor.id || input.dataToProcess.monitorId,
+      monitorStepId: input.monitorStep.id,
+      stepScope: MonitorCriteriaEvaluator.getStepScope(input),
+      monitorType: input.monitor.monitorType,
+      probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+      criteriaFilter: input.criteriaFilter,
+      checkWrittenAt:
+        input.matchHistory?.checkWrittenAt || OneUptimeDate.getCurrentDate(),
+      diskPaths: diskPaths,
+      reads: input.matchHistory
+        ? PreviousCheckReads.forMatchHistoryReads(input.matchHistory.reads)
+        : undefined,
+      isMetOnThisCheck: async (): Promise<boolean> => {
+        const check: CriteriaFilterCheck | undefined =
+          input.matchHistory?.checks.get(filterKey);
+
+        if (check) {
+          return check.matched;
+        }
+
+        return await MonitorCriteriaEvaluator.isFilterMetOnThisCheck({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: input.criteriaFilter,
+        });
+      },
+      judgeThisCheck: (
+        thisCheckFilter: CriteriaFilter,
+      ): Promise<string | null> => {
+        return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: thisCheckFilter,
+        });
+      },
+    });
+  }
+
+  /*
+   * The rows of a series a window of this step reads (MonitorStepSeries,
+   * #10906): the step's own, and on a monitor with one step the rows written
+   * before rows named their step. Every window of a step - counted, compared
+   * with the previous check, or read whole - reads these alone.
+   */
+  private static getStepScope(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+  }): MonitorStepSeriesScope {
+    return MonitorStepSeries.getScope({
+      monitorStepId: input.monitorStep.id,
+      monitorSteps: input.monitor.monitorSteps,
     });
   }
 
@@ -1057,6 +1757,451 @@ ${incomingRequestGrouping.rootCauseNote}
   }
 
   /**
+   * The grouped recovery rule (GroupedMonitorRecovery), once every criteria
+   * of a grouped check is judged. A recovery criteria that matched - one
+   * series meeting it is enough for a grouped criteria - but that a series
+   * behind the monitor's status has not met is no match: its row of the
+   * summary says which series it waits for. Returns the matches that stand,
+   * the series that keep the status when none does, and what is behind the
+   * status after this check.
+   *
+   * Costs nothing on a step with no recovery criteria judged per series, and
+   * reads what is behind the status only while the monitor is not at its
+   * default status: at its default status nothing is.
+   */
+  private static async applyGroupedRecoveryRule(input: {
+    dataToProcess: DataToProcess;
+    monitor: Monitor;
+    criteriaInstances: Array<MonitorCriteriaInstance>;
+    matchedCriteria: Array<MatchedCriteriaResult>;
+    criteriaResultsById: Map<string, MonitorEvaluationCriteriaResult>;
+    evaluationSummary: MonitorEvaluationSummary;
+    seriesBehindStatus: SeriesBehindStatusReader | undefined;
+    // Series that met their own criteria's recovery condition (#10355).
+    recoveredSeries?: ReadonlySet<string> | undefined;
+  }): Promise<GroupedRecoveryOutcome> {
+    const defaultMonitorStatusId: ObjectID | undefined =
+      input.monitor.monitorSteps?.data?.defaultMonitorStatusId;
+
+    const getRole: (
+      criteriaInstance: MonitorCriteriaInstance | undefined,
+    ) => GroupedCriteriaRole = (
+      criteriaInstance: MonitorCriteriaInstance | undefined,
+    ): GroupedCriteriaRole => {
+      return criteriaInstance
+        ? GroupedMonitorRecovery.getRole({
+            criteriaInstance: criteriaInstance,
+            defaultMonitorStatusId: defaultMonitorStatusId,
+          })
+        : GroupedCriteriaRole.Other;
+    };
+
+    const criteriaById: Map<string, MonitorCriteriaInstance> = new Map<
+      string,
+      MonitorCriteriaInstance
+    >();
+
+    for (const criteriaInstance of input.criteriaInstances) {
+      if (criteriaInstance.data?.id) {
+        criteriaById.set(criteriaInstance.data.id.toString(), criteriaInstance);
+      }
+    }
+
+    const recoveryCriteria: Array<MonitorCriteriaInstance> =
+      input.criteriaInstances.filter(
+        (criteriaInstance: MonitorCriteriaInstance): boolean => {
+          return (
+            Boolean(criteriaInstance.data?.id) &&
+            getRole(criteriaInstance) === GroupedCriteriaRole.Recovery &&
+            MonitorCriteriaEvaluator.isJudgedPerSeries({
+              monitorType: input.monitor.monitorType,
+              criteriaInstance: criteriaInstance,
+            })
+          );
+        },
+      );
+
+    if (recoveryCriteria.length === 0) {
+      return {
+        matchedCriteria: input.matchedCriteria,
+        seriesKeepingStatus: [],
+        seriesBehindStatus: undefined,
+      };
+    }
+
+    // The series a problem criteria matched on this check.
+    const problemSeries: Set<string> = new Set<string>();
+
+    for (const matched of input.matchedCriteria) {
+      if (
+        getRole(criteriaById.get(matched.criteriaId)) !==
+        GroupedCriteriaRole.Problem
+      ) {
+        continue;
+      }
+
+      for (const series of matched.perSeriesMatches) {
+        if (GroupedMonitorRecovery.isSeries(series.fingerprint)) {
+          problemSeries.add(series.fingerprint);
+        }
+      }
+    }
+
+    const currentMonitorStatusId: ObjectID | undefined =
+      input.monitor.currentMonitorStatusId;
+
+    const isBehindStatusRead: boolean =
+      Boolean(input.seriesBehindStatus) &&
+      Boolean(currentMonitorStatusId) &&
+      currentMonitorStatusId!.toString() !== defaultMonitorStatusId?.toString();
+
+    const before: ReadonlySet<string> = isBehindStatusRead
+      ? await input.seriesBehindStatus!.getSeries()
+      : new Set<string>();
+
+    // The series the check read, to name the ones a criteria waits for.
+    const seriesOfCheck: Map<string, SeriesOfCheck> = new Map<
+      string,
+      SeriesOfCheck
+    >();
+
+    const checks: Array<RecoveryCriteriaCheck> = recoveryCriteria.map(
+      (criteriaInstance: MonitorCriteriaInstance): RecoveryCriteriaCheck => {
+        const criteriaId: string = criteriaInstance.data!.id.toString();
+
+        const judged: Map<string, SeriesOfCheck> =
+          MonitorCriteriaEvaluator.getSeriesJudgedBy({
+            monitor: input.monitor,
+            dataToProcess: input.dataToProcess,
+            criteriaInstance: criteriaInstance,
+          });
+
+        for (const [fingerprint, series] of judged) {
+          seriesOfCheck.set(fingerprint, series);
+        }
+
+        const matched: MatchedCriteriaResult | undefined =
+          input.matchedCriteria.find(
+            (candidate: MatchedCriteriaResult): boolean => {
+              return candidate.criteriaId === criteriaId;
+            },
+          );
+
+        return {
+          criteriaId: criteriaId,
+          judgedSeries: new Set<string>(judged.keys()),
+          metSeries: new Set<string>(
+            (matched?.perSeriesMatches || []).map(
+              (series: PerSeriesCriteriaMatch): string => {
+                return series.fingerprint;
+              },
+            ),
+          ),
+        };
+      },
+    );
+
+    const judgement: GroupedRecoveryJudgement = GroupedMonitorRecovery.judge({
+      seriesBehindStatus: before,
+      problemSeries: problemSeries,
+      recoveryCriteria: checks,
+      recoveredSeries: input.recoveredSeries,
+    });
+
+    const standing: Array<MatchedCriteriaResult> = input.matchedCriteria.filter(
+      (matched: MatchedCriteriaResult): boolean => {
+        const waitingFor: Array<string> | undefined = judgement.waitingFor.get(
+          matched.criteriaId,
+        );
+
+        if (!waitingFor) {
+          return true;
+        }
+
+        MonitorCriteriaEvaluator.recordRecoveryWaiting({
+          criteriaResult: input.criteriaResultsById.get(matched.criteriaId),
+          criteriaId: matched.criteriaId,
+          waitingFor: waitingFor,
+          seriesOfCheck: seriesOfCheck,
+          evaluationSummary: input.evaluationSummary,
+        });
+
+        return false;
+      },
+    );
+
+    /*
+     * A recovery criteria that stands and comes first puts the monitor back on
+     * its default status: nothing is behind it any more, but a series that
+     * still meets a problem criteria further down.
+     */
+    const isBackOnDefaultStatus: boolean =
+      standing.length > 0 &&
+      getRole(criteriaById.get(standing[0]!.criteriaId)) ===
+        GroupedCriteriaRole.Recovery;
+
+    const seriesBehindStatus: Array<string> = isBackOnDefaultStatus
+      ? Array.from(problemSeries).sort()
+      : judgement.seriesBehindStatus;
+
+    return {
+      matchedCriteria: standing,
+      seriesKeepingStatus:
+        standing.length === 0
+          ? judgement.seriesKeepingStatus.map(
+              (fingerprint: string): SeriesKeepingStatus => {
+                const series: SeriesOfCheck | undefined =
+                  seriesOfCheck.get(fingerprint);
+
+                return {
+                  fingerprint: fingerprint,
+                  labels: series?.labels || {},
+                  ...(series?.context ? { context: series.context } : {}),
+                };
+              },
+            )
+          : [],
+      /*
+       * Written whenever it was read - an empty list deletes it - and at the
+       * default status only once a problem criteria put a series behind it.
+       */
+      seriesBehindStatus:
+        isBehindStatusRead || seriesBehindStatus.length > 0
+          ? seriesBehindStatus
+          : undefined,
+    };
+  }
+
+  /*
+   * A recovery criteria that waits for the series behind the monitor's
+   * status: its row of the summary says it is not met, and which series it
+   * waits for, as the evaluation log shows it.
+   */
+  private static recordRecoveryWaiting(input: {
+    criteriaResult: MonitorEvaluationCriteriaResult | undefined;
+    criteriaId: string;
+    waitingFor: Array<string>;
+    seriesOfCheck: Map<string, SeriesOfCheck>;
+    evaluationSummary: MonitorEvaluationSummary;
+  }): void {
+    const message: string = MonitorCriteriaEvaluator.describeRecoveryWaiting({
+      waitingFor: input.waitingFor,
+      seriesOfCheck: input.seriesOfCheck,
+    });
+
+    if (input.criteriaResult) {
+      input.criteriaResult.met = false;
+      input.criteriaResult.message = message;
+    }
+
+    input.evaluationSummary.events.push({
+      type: "criteria-not-met",
+      title: `Criteria not met: ${input.criteriaResult?.criteriaName || "Unnamed criteria"}`,
+      message: message,
+      relatedCriteriaId: input.criteriaId,
+      at: OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  // How many waiting series a criteria's message names before "and N more".
+  private static readonly WAITING_SERIES_NAMED: number = 3;
+
+  /*
+   * "Criteria was not met: Mount: /data | Device: /dev/sdb met a criteria
+   * that changed the monitor's status and has not met this one since. ..."
+   */
+  public static describeRecoveryWaiting(input: {
+    waitingFor: Array<string>;
+    seriesOfCheck: Map<string, SeriesOfCheck>;
+  }): string {
+    const names: Array<string> = input.waitingFor
+      .slice(0, MonitorCriteriaEvaluator.WAITING_SERIES_NAMED)
+      .map((fingerprint: string): string => {
+        const series: SeriesOfCheck | undefined =
+          input.seriesOfCheck.get(fingerprint);
+
+        return (
+          (series
+            ? SeriesLabelDisplay.buildInlineSummary(series.labels, {
+                context: series.context,
+              })
+            : "") || fingerprint
+        );
+      });
+
+    const unnamed: number = input.waitingFor.length - names.length;
+
+    const named: string =
+      unnamed > 0
+        ? `${names.join("; ")} and ${unnamed} more`
+        : names.join("; ");
+
+    const why: string =
+      "A grouped monitor comes back only once every such series meets this " +
+      "criteria, whatever the other series do, so it keeps its status meanwhile.";
+
+    if (input.waitingFor.length === 1) {
+      return (
+        `Criteria was not met: ${named} met a criteria that changed the ` +
+        `monitor's status and has not met this one since. ${why}`
+      );
+    }
+
+    return (
+      `Criteria was not met: ${input.waitingFor.length} series met a criteria ` +
+      `that changed the monitor's status and have not met this one since ` +
+      `(${named}). ${why}`
+    );
+  }
+
+  /*
+   * Whether a criteria of a grouped monitor is judged series by series, so
+   * that it can wait for some of them: not one that judges the whole monitor
+   * (PerEntityCriteriaFanOut.judgesWholeMonitor), and on a metric monitor
+   * only one with a metric filter, which is what a series is judged on.
+   */
+  private static isJudgedPerSeries(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): boolean {
+    if (
+      input.monitorType === MonitorType.Server ||
+      input.monitorType === MonitorType.NetworkDevice
+    ) {
+      return !PerEntityCriteriaFanOut.judgesWholeMonitor({
+        monitorType: input.monitorType,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
+    if (
+      input.monitorType === MonitorType.Logs ||
+      input.monitorType === MonitorType.Traces
+    ) {
+      return true;
+    }
+
+    if (!MonitorTypeHelper.isMetricBackedMonitor(input.monitorType)) {
+      return false;
+    }
+
+    return (input.criteriaInstance.data?.filters || []).some(
+      (filter: CriteriaFilter): boolean => {
+        return filter.checkOn === CheckOn.MetricValue;
+      },
+    );
+  }
+
+  /*
+   * The series a criteria of a grouped check is judged on, by fingerprint:
+   * the disks, ports, rows or groups it fans out over (as many as
+   * collectPerSeriesMatches judges), or a metric check's series that have
+   * data in the window. A series that has none is not judged, so it lets go
+   * of the status as a series that is gone does.
+   */
+  private static getSeriesJudgedBy(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Map<string, SeriesOfCheck> {
+    const judged: Map<string, SeriesOfCheck> = new Map<string, SeriesOfCheck>();
+
+    const entities: Array<FanOutEntity> | null =
+      MonitorCriteriaEvaluator.getFanOutEntities(input);
+
+    if (entities) {
+      for (const entity of entities.slice(0, MaxEntitiesPerCriteria)) {
+        judged.set(MetricSeriesFingerprint.computeFingerprint(entity.labels), {
+          labels: entity.labels,
+          context: entity.context,
+        });
+      }
+
+      return judged;
+    }
+
+    if (!MonitorTypeHelper.isMetricBackedMonitor(input.monitor.monitorType)) {
+      return judged;
+    }
+
+    const seriesBreakdown: Array<MetricSeriesResult> =
+      (input.dataToProcess as MetricMonitorResponse).seriesBreakdown || [];
+
+    for (const series of seriesBreakdown) {
+      if (!series?.fingerprint) {
+        continue;
+      }
+
+      const hasData: boolean = (series.aggregatedResults || []).some(
+        (result: AggregatedResult): boolean => {
+          return Array.isArray(result?.data) && result.data.length > 0;
+        },
+      );
+
+      if (hasData) {
+        judged.set(series.fingerprint, { labels: series.labels || {} });
+      }
+    }
+
+    return judged;
+  }
+
+  /*
+   * The disks, ports, table rows or groups a grouped criteria fans out over:
+   * a grouped Logs or Traces monitor's groups, a Server monitor's disks, a
+   * Network Device monitor's ports and rows. Null for a monitor whose series
+   * are a metric check's (seriesBreakdown).
+   */
+  private static getFanOutEntities(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Array<FanOutEntity> | null {
+    if (input.monitor.monitorType === MonitorType.Logs) {
+      return LogGroupCriteriaFanOut.getGroupEntities({
+        dataToProcess: input.dataToProcess,
+      });
+    }
+
+    if (
+      input.monitor.monitorType === MonitorType.Traces &&
+      TraceGroupCriteriaFanOut.isGroupedResponse(input.dataToProcess)
+    ) {
+      return TraceGroupCriteriaFanOut.getGroupEntities({
+        dataToProcess: input.dataToProcess,
+      });
+    }
+
+    if (input.monitor.monitorType === MonitorType.Server) {
+      return PerEntityCriteriaFanOut.getServerDiskEntities({
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+    }
+
+    /*
+     * A Network Device criteria can address ports and table rows; each
+     * entity narrows only the filters that address its own kind, so a
+     * criteria mixing a "*" port filter and a "*" table filter fans out
+     * over both.
+     */
+    if (input.monitor.monitorType === MonitorType.NetworkDevice) {
+      return [
+        ...PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
+          dataToProcess: input.dataToProcess,
+          criteriaInstance: input.criteriaInstance,
+        }),
+        ...PerEntityCriteriaFanOut.getSnmpTableRowEntities({
+          dataToProcess: input.dataToProcess,
+          criteriaInstance: input.criteriaInstance,
+        }),
+      ];
+    }
+
+    return null;
+  }
+
+  /**
    * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/VMware/Ceph/
    * Storage Array)
    * with per-series aggregated results, re-evaluate the matched criteria
@@ -1073,6 +2218,11 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInEffect?: CriteriaInEffect | undefined;
     // What the criteria's verdict judged every series to be, read again here.
     seriesEvaluations?: MetricSeriesEvaluations | undefined;
+    /*
+     * The reads of the probe result being handled, so a disk's counted
+     * window is read with the rest (CheckWindowCounts).
+     */
+    matchHistory?: MatchHistoryContext | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
     /*
      * Incoming Request / webhook monitors are not read here: their
@@ -1085,34 +2235,39 @@ ${incomingRequestGrouping.rootCauseNote}
      * A grouped Logs monitor: one count per combination of its group-by
      * attributes' values. Each group is judged on its own count, so every
      * tunnel (or user, or interface) that breaches raises its own alert,
-     * through the same fan-out the disks and interfaces below use.
+     * through the same fan-out the disks and interfaces use. A grouped
+     * Traces monitor (#9711) the same way: one span count per group - per
+     * install of a mobile app - each judged on its own, a quiet one counted
+     * as 0 (TraceGroupAbsence).
+     *
+     * Server and SNMP monitors observe several independent entities in a
+     * single check - every mounted filesystem, every port on a switch -
+     * but their criteria address one at a time. When a criteria opts in
+     * with the "*" wildcard, it is evaluated once per entity so a second
+     * full disk or a second dead port raises its own alert instead of
+     * being swallowed by the first one's.
      */
-    /*
-     * A grouped Traces monitor (#9711) the same way: one span count per
-     * group - per install of a mobile app - each judged on its own, a
-     * quiet one counted as 0 (TraceGroupAbsence).
-     */
-    if (
-      input.monitor.monitorType === MonitorType.Logs ||
-      (input.monitor.monitorType === MonitorType.Traces &&
-        TraceGroupCriteriaFanOut.isGroupedResponse(input.dataToProcess))
-    ) {
+    const entities: Array<FanOutEntity> | null =
+      MonitorCriteriaEvaluator.getFanOutEntities({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+
+    if (entities) {
       return PerEntityCriteriaFanOut.collectMatches({
         criteriaInstance: input.criteriaInstance,
-        entities:
-          input.monitor.monitorType === MonitorType.Traces
-            ? TraceGroupCriteriaFanOut.getGroupEntities({
-                dataToProcess: input.dataToProcess,
-              })
-            : LogGroupCriteriaFanOut.getGroupEntities({
-                dataToProcess: input.dataToProcess,
-              }),
+        entities: entities,
         monitorId: input.monitor.id?.toString(),
         evaluateNarrowedCriteria: (
           narrowedCriteriaInstance: MonitorCriteriaInstance,
           entity: FanOutEntity,
         ): Promise<string | null> => {
           return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+            /*
+             * A group is judged on its own slice of the data; a disk or a
+             * port is narrowed through its filters, on the check itself.
+             */
             dataToProcess: entity.dataToProcess || input.dataToProcess,
             monitorStep: input.monitorStep,
             monitor: input.monitor,
@@ -1121,77 +2276,7 @@ ${incomingRequestGrouping.rootCauseNote}
               rootCause: null,
             },
             criteriaInstance: narrowedCriteriaInstance,
-            /*
-             * A throwaway result, as for disks below: the per-group pass
-             * must not overwrite the summary row the whole-criteria
-             * evaluation already wrote.
-             */
-            criteriaResult: {
-              criteriaId: narrowedCriteriaInstance.data?.id,
-              criteriaName: narrowedCriteriaInstance.data?.name,
-              filterCondition:
-                narrowedCriteriaInstance.data?.filterCondition ||
-                FilterCondition.All,
-              met: false,
-              message: "",
-              filters: [],
-            },
-          });
-        },
-      });
-    }
-
-    /*
-     * Server and SNMP monitors observe several independent entities in a
-     * single check — every mounted filesystem, every port on a switch —
-     * but their criteria address one at a time. When a criteria opts in
-     * with the "*" wildcard, evaluate it once per entity so a second
-     * full disk or a second dead port raises its own alert instead of
-     * being swallowed by the first one's.
-     */
-    if (
-      input.monitor.monitorType === MonitorType.Server ||
-      input.monitor.monitorType === MonitorType.NetworkDevice
-    ) {
-      /*
-       * A Network Device criteria can address ports and table rows; each
-       * entity narrows only the filters that address its own kind, so a
-       * criteria mixing a "*" port filter and a "*" table filter fans out
-       * over both.
-       */
-      const entities: Array<FanOutEntity> =
-        input.monitor.monitorType === MonitorType.Server
-          ? PerEntityCriteriaFanOut.getServerDiskEntities({
-              dataToProcess: input.dataToProcess,
-              criteriaInstance: input.criteriaInstance,
-            })
-          : [
-              ...PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
-                dataToProcess: input.dataToProcess,
-                criteriaInstance: input.criteriaInstance,
-              }),
-              ...PerEntityCriteriaFanOut.getSnmpTableRowEntities({
-                dataToProcess: input.dataToProcess,
-                criteriaInstance: input.criteriaInstance,
-              }),
-            ];
-
-      return PerEntityCriteriaFanOut.collectMatches({
-        criteriaInstance: input.criteriaInstance,
-        entities: entities,
-        monitorId: input.monitor.id?.toString(),
-        evaluateNarrowedCriteria: (
-          narrowedCriteriaInstance: MonitorCriteriaInstance,
-        ): Promise<string | null> => {
-          return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
-            dataToProcess: input.dataToProcess,
-            monitorStep: input.monitorStep,
-            monitor: input.monitor,
-            probeApiIngestResponse: {
-              monitorId: input.dataToProcess.monitorId,
-              rootCause: null,
-            },
-            criteriaInstance: narrowedCriteriaInstance,
+            matchHistory: input.matchHistory,
             /*
              * A throwaway result: the per-entity pass must not overwrite
              * the summary row the whole-criteria evaluation already
@@ -1417,8 +2502,8 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaResult: MonitorEvaluationCriteriaResult;
     /*
      * This check's results for the filters that keep a match history, from
-     * processMonitorStep. Absent on the per-series and per-entity passes,
-     * whose monitor types keep none.
+     * processMonitorStep. The per-entity pass hands it on too, for the reads
+     * a counted window shares; its monitor types keep no match history.
      */
     matchHistory?: MatchHistoryContext | undefined;
     criteriaInEffect?: CriteriaInEffect | undefined;
@@ -1442,7 +2527,54 @@ ${incomingRequestGrouping.rootCauseNote}
       let rootCause: string | null = null;
       let matchHistoryMessage: string | null = null;
 
+      /*
+       * A filter that compares this check with the previous one (#10821)
+       * reads the previous check from the same record a count reads, and
+       * says what it was compared with whether or not it is met.
+       */
       if (
+        CriteriaFilterUtil.isComparedWithPreviousCheck(
+          criteriaFilter,
+          input.monitor.monitorType,
+        )
+      ) {
+        const judgement: CheckWindowJudgement =
+          await MonitorCriteriaEvaluator.judgeFilterAgainstPreviousCheck({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaFilter: criteriaFilter,
+            matchHistory: input.matchHistory,
+          });
+
+        rootCause = judgement.rootCause;
+        matchHistoryMessage = judgement.message;
+      } else if (
+        /*
+         * A filter that counts its window's checks (#10355) - how many
+         * matched, their share, how often it changed - is judged from them,
+         * whatever records them: a series or a match history. What the
+         * window came to is its message either way.
+         */
+        CriteriaFilterUtil.isCountedOverChecks(
+          criteriaFilter,
+          input.monitor.monitorType,
+        )
+      ) {
+        const judgement: CheckWindowJudgement =
+          await MonitorCriteriaEvaluator.judgeFilterOverCountedChecks({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaFilter: criteriaFilter,
+            matchHistory: input.matchHistory,
+          });
+
+        rootCause = judgement.rootCause;
+        matchHistoryMessage = judgement.message;
+      } else if (
         CriteriaFilterMatchHistory.isJudgedFromHistory({
           criteriaFilter: criteriaFilter,
           monitorType: input.monitor.monitorType,
@@ -1590,6 +2722,13 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInEffect?: CriteriaInEffect | undefined;
     seriesEvaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<string | null> {
+    /*
+     * The rows of a series this step's over-time windows read (#10906): its
+     * own checks, never another step's.
+     */
+    const stepScope: MonitorStepSeriesScope =
+      MonitorCriteriaEvaluator.getStepScope(input);
+
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
       /*
        * What the expression can name, per monitor type - the same map the
@@ -1668,6 +2807,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (apiRequestCriteriaResult) {
@@ -1714,6 +2854,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (incomingRequestResult) {
@@ -1739,6 +2880,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (sslMonitorResult) {
@@ -1752,6 +2894,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (serverMonitorResult) {
@@ -1857,6 +3000,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (snmpMonitorResult) {
@@ -1870,6 +3014,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (dnsMonitorResult) {
@@ -1883,6 +3028,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (domainMonitorResult) {
@@ -1908,6 +3054,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (ntpMonitorResult) {
@@ -1933,6 +3080,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (databaseMonitorResult) {
@@ -1947,6 +3095,7 @@ ${incomingRequestGrouping.rootCauseNote}
             dataToProcess: input.dataToProcess,
             criteriaFilter: input.criteriaFilter,
             monitoringInterval: input.monitor.monitoringInterval,
+            stepScope: stepScope,
           },
         );
 
@@ -1961,6 +3110,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (probeStatusResult) {
@@ -2047,6 +3197,9 @@ ${incomingRequestGrouping.rootCauseNote}
         criteriaInstance: input.criteriaInstance,
         monitor: input.monitor,
         monitorStep: input.monitorStep,
+        metricResponse: MonitorCriteriaDataExtractor.getMetricMonitorResponse(
+          input.dataToProcess,
+        ),
       });
     }
 
@@ -2237,6 +3390,12 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
+    /*
+     * What the worker read, when it says: each query's attribute filters as
+     * it read them, and the services it read them for. The links open what
+     * the check read (#10451).
+     */
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): MarkdownText | null {
     const ctx: MetricCriteriaContext | undefined =
       MonitorCriteriaEvaluator.getMetricCriteriaContext(input.criteriaInstance);
@@ -2379,6 +3538,7 @@ ${incomingRequestGrouping.rootCauseNote}
         monitor: input.monitor,
         ctx,
         monitorStep: input.monitorStep,
+        metricResponse: input.metricResponse,
       });
 
     if (deepLink) {
@@ -2396,6 +3556,7 @@ ${incomingRequestGrouping.rootCauseNote}
         monitor: input.monitor,
         ctx,
         monitorStep: input.monitorStep,
+        metricResponse: input.metricResponse,
       });
 
     if (logsLink) {
@@ -2411,6 +3572,7 @@ ${incomingRequestGrouping.rootCauseNote}
         monitor: input.monitor,
         ctx,
         monitorStep: input.monitorStep,
+        metricResponse: input.metricResponse,
       });
 
     if (tracesLink) {
@@ -2781,10 +3943,79 @@ ${incomingRequestGrouping.rootCauseNote}
     return `${input.breachingCount} sample${input.breachingCount === 1 ? "" : "s"} breached the threshold.`;
   }
 
+  /*
+   * What the monitor added to each query it read, lined up with the
+   * queries it read (MetricTelemetrySnapshot.getQueryScopes): the host a
+   * Host monitor reads, a Docker or Podman monitor's host, runtime and
+   * container filters, an IoT monitor's fleet and device filters. Null
+   * when the worker's response does not say what it read each query with.
+   */
+  private static getQueryReadScopes(
+    metricResponse: MetricMonitorResponse | null | undefined,
+  ): Array<Dictionary<unknown> | null> | null {
+    return MetricTelemetrySnapshot.getQueryScopes({
+      queryConfigs: metricResponse?.metricViewConfig?.queryConfigs,
+      queryAttributes: metricResponse?.queryAttributes,
+    });
+  }
+
+  /*
+   * The query a criteria compared, among the ones the worker read: the one
+   * its alias names, else the first, as MetricMonitorCriteria falls back
+   * to it. -1 for a formula, which compared every query.
+   */
+  private static getComparedQueryIndex(input: {
+    ctx: MetricCriteriaContext;
+    queryConfigs: Array<MetricQueryConfigData>;
+  }): number {
+    if (input.ctx.isFormula) {
+      return -1;
+    }
+
+    const index: number = input.queryConfigs.findIndex(
+      (queryConfig: MetricQueryConfigData): boolean => {
+        return queryConfig?.metricAliasData?.metricVariable === input.ctx.alias;
+      },
+    );
+
+    return index >= 0 ? index : 0;
+  }
+
+  /*
+   * What the worker read the compared query with - every query's, for a
+   * formula - as it says (MetricMonitorResponse.queryAttributes): its own
+   * filters and the ones the monitor added. Empty when it does not say.
+   */
+  private static getComparedQueryReads(input: {
+    ctx: MetricCriteriaContext;
+    metricResponse: MetricMonitorResponse | null | undefined;
+  }): Array<Dictionary<unknown> | undefined> {
+    const queryConfigs: Array<MetricQueryConfigData> | undefined =
+      input.metricResponse?.metricViewConfig?.queryConfigs;
+    const reads: Array<Dictionary<unknown> | undefined> | undefined =
+      input.metricResponse?.queryAttributes;
+
+    if (
+      !Array.isArray(queryConfigs) ||
+      !Array.isArray(reads) ||
+      reads.length !== queryConfigs.length
+    ) {
+      return [];
+    }
+
+    const index: number = MonitorCriteriaEvaluator.getComparedQueryIndex({
+      ctx: input.ctx,
+      queryConfigs: queryConfigs,
+    });
+
+    return index >= 0 ? [reads[index]] : [...reads];
+  }
+
   private static buildMetricExplorerDeepLink(input: {
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): string | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -2793,25 +4024,78 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     /*
+     * A Metrics monitor written in PromQL compares its expression, which its
+     * context names as the metric (getPromQLViewConfig): opened as a metric,
+     * the explorer charted nothing. The expression opens on the PromQL page,
+     * which reads it from `query`.
+     */
+    const metricMonitor: MonitorStepMetricMonitor | undefined =
+      input.monitorStep?.data?.metricMonitor;
+
+    if (MonitorStepMetricMonitorUtil.isPromQL(metricMonitor)) {
+      const expression: string =
+        MonitorStepMetricMonitorUtil.getPromQLQuery(metricMonitor);
+
+      if (!expression) {
+        return null;
+      }
+
+      const promQLParams: URLSearchParams = new URLSearchParams();
+      promQLParams.set("query", expression);
+
+      return `${DashboardClientUrl.toString()}/${projectId}/metrics/promql?${promQLParams.toString()}`;
+    }
+
+    /*
+     * The query as the worker read it (#10451): its own filters, and what
+     * the monitor narrowed it to beside them - the host of a Host monitor,
+     * a Docker or Podman monitor's host and container filters, an IoT
+     * monitor's fleet. Linked with its own filters alone, a Host monitor's
+     * metric was charted for every host in the project.
+     */
+    const readScopes: Array<Dictionary<unknown> | null> | null =
+      MonitorCriteriaEvaluator.getQueryReadScopes(input.metricResponse);
+
+    const comparedReadScope: Dictionary<unknown> =
+      (readScopes &&
+        readScopes[
+          MonitorCriteriaEvaluator.getComparedQueryIndex({
+            ctx: input.ctx,
+            queryConfigs:
+              input.metricResponse?.metricViewConfig?.queryConfigs || [],
+          })
+        ]) ||
+      {};
+
+    // And for the services a Metrics monitor reads every query for (#6266).
+    const serviceIds: Array<string> = MetricQueryServices.normalize(
+      input.metricResponse?.queryServiceIds,
+    );
+
+    /*
      * The explorer URL schema (metricQueries/startTime/endTime params)
      * is owned by MetricExplorerUrl — the same module the explorer uses
      * for its own URL round-trip — so this deep link can never drift
      * from what the explorer parses.
      */
     let queryConfigs: Array<MetricQueryConfigData> = [
-      {
-        metricQueryData: {
-          filterData: {
-            metricName: input.ctx.metricName,
-            attributes: MetricExplorerUrl.sanitizeAttributes(
-              input.ctx.filterAttributes,
-            ),
-            ...(input.ctx.aggregationType
-              ? { aggegationType: input.ctx.aggregationType }
-              : {}),
+      MetricQueryServices.withServiceIds(
+        {
+          metricQueryData: {
+            filterData: {
+              metricName: input.ctx.metricName,
+              attributes: MetricExplorerUrl.sanitizeAttributes({
+                ...(input.ctx.filterAttributes || {}),
+                ...comparedReadScope,
+              }),
+              ...(input.ctx.aggregationType
+                ? { aggegationType: input.ctx.aggregationType }
+                : {}),
+            },
           },
         },
-      },
+        serviceIds,
+      ),
     ];
     let formulaConfigs: Array<MetricFormulaConfigData> = [];
 
@@ -2839,6 +4123,19 @@ ${incomingRequestGrouping.rootCauseNote}
 
       queryConfigs = metricViewConfig.queryConfigs || [];
       formulaConfigs = metricViewConfig.formulaConfigs || [];
+
+      // Each query as the worker read it, as above.
+      if (readScopes && readScopes.length === queryConfigs.length) {
+        queryConfigs = MetricTelemetrySnapshot.applyScopes({
+          queryConfigs: queryConfigs,
+          scopes: readScopes,
+        });
+      }
+
+      queryConfigs = MetricTelemetrySnapshot.applyServices({
+        queryConfigs: queryConfigs,
+        serviceIds: serviceIds,
+      });
     }
 
     const breachWindow: { startTime: Date; endTime: Date } =
@@ -2885,25 +4182,53 @@ ${incomingRequestGrouping.rootCauseNote}
   }
 
   /*
+   * A Host, Docker, Podman or IoT Device monitor's logs or traces: its
+   * resource's, as its own Logs and Traces pages read them, from what the
+   * check read (MonitorResourceSignalScope, #10451). Null for any other
+   * monitor, whose links carry the metric's own attributes.
+   */
+  private static getResourceSignalScope(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
+    signal: ResourceSignal;
+  }): ResourceSignalScope | null {
+    return MonitorResourceSignalScope.getScope({
+      monitorType: input.monitor.monitorType,
+      monitorStep: input.monitorStep,
+      signal: input.signal,
+      queryAttributes: input.ctx.filterAttributes,
+      seriesLabels: input.ctx.seriesLabels,
+      readAttributes: MonitorCriteriaEvaluator.getComparedQueryReads({
+        ctx: input.ctx,
+        metricResponse: input.metricResponse,
+      }),
+    });
+  }
+
+  /*
    * The slice of telemetry a metric breach describes, in cross-signal
    * terms: the breach window, the criteria's metric attribute filters
    * (overlaid with the per-series labels when per-series alerting
    * identified a specific series), and the monitor step's telemetry
-   * service scope when one is configured.
+   * service scope when one is configured. A resource monitor's is its
+   * resource instead (resourceScope): a host metric's own attributes - a
+   * service's `name`, a CPU's `state` - are on no log line or span.
    */
   private static buildMetricBreachTelemetryScope(input: {
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    resourceScope?: ResourceSignalScope | null | undefined;
   }): TelemetryCrossSignalScope {
     const breachWindow: { startTime: Date; endTime: Date } =
       MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
 
     const attributes: Dictionary<string> = {};
 
-    const attributeSources: Array<JSONObject> = [
-      input.ctx.filterAttributes || {},
-      input.ctx.seriesLabels || {},
-    ];
+    const attributeSources: Array<JSONObject> = input.resourceScope
+      ? [input.resourceScope.attributes]
+      : [input.ctx.filterAttributes || {}, input.ctx.seriesLabels || {}];
 
     for (const source of attributeSources) {
       for (const key of Object.keys(source)) {
@@ -2938,6 +4263,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): TelemetryExplorerDeepLink | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -2945,10 +4271,17 @@ ${incomingRequestGrouping.rootCauseNote}
       return null;
     }
 
+    const resourceScope: ResourceSignalScope | null =
+      MonitorCriteriaEvaluator.getResourceSignalScope({
+        ...input,
+        signal: ResourceSignal.Logs,
+      });
+
     const scope: TelemetryCrossSignalScope =
       MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
         ctx: input.ctx,
         monitorStep: input.monitorStep,
+        resourceScope: resourceScope,
       });
 
     /*
@@ -2967,7 +4300,8 @@ ${incomingRequestGrouping.rootCauseNote}
 
     return {
       url: `${DashboardClientUrl.toString()}/${projectId}/logs?${params.toString()}`,
-      dropped: queryParams.dropped,
+      // And the container or device the logs cannot be narrowed to.
+      dropped: [...queryParams.dropped, ...(resourceScope?.notCarried || [])],
     };
   }
 
@@ -2975,6 +4309,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     ctx: MetricCriteriaContext;
     monitorStep?: MonitorStep | undefined;
+    metricResponse?: MetricMonitorResponse | null | undefined;
   }): TelemetryExplorerDeepLink | null {
     const projectId: string | undefined = input.monitor.projectId?.toString();
 
@@ -2982,10 +4317,17 @@ ${incomingRequestGrouping.rootCauseNote}
       return null;
     }
 
+    const resourceScope: ResourceSignalScope | null =
+      MonitorCriteriaEvaluator.getResourceSignalScope({
+        ...input,
+        signal: ResourceSignal.Traces,
+      });
+
     const scope: TelemetryCrossSignalScope =
       MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
         ctx: input.ctx,
         monitorStep: input.monitorStep,
+        resourceScope: resourceScope,
       });
 
     const queryParams: CrossSignalQueryParams =
@@ -2999,7 +4341,8 @@ ${incomingRequestGrouping.rootCauseNote}
 
     return {
       url: `${DashboardClientUrl.toString()}/${projectId}/traces?${params.toString()}`,
-      dropped: queryParams.dropped,
+      // And the container or device the spans cannot be narrowed to.
+      dropped: [...queryParams.dropped, ...(resourceScope?.notCarried || [])],
     };
   }
 
@@ -4489,6 +5832,9 @@ ${incomingRequestGrouping.rootCauseNote}
    *
    * `identityLines` is null when the step carries no config for the
    * monitor type; the metric details are still rendered from the context.
+   *
+   * `dataToProcess` is what the worker read: its links open the metric as
+   * it was read, and the resource's own logs and traces (#10451).
    */
   private static buildTelemetryResourceRootCauseContext(input: {
     heading: string;
@@ -4496,6 +5842,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     monitorStep: MonitorStep;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     const sections: Array<MarkdownText> = [];
 
@@ -4522,6 +5869,11 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaInstance: input.criteriaInstance,
           monitor: input.monitor,
           monitorStep: input.monitorStep,
+          metricResponse: input.dataToProcess
+            ? MonitorCriteriaDataExtractor.getMetricMonitorResponse(
+                input.dataToProcess,
+              )
+            : null,
         })
       : null;
 
@@ -4538,6 +5890,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // Docker host context
     const dockerMonitor: MonitorStepDockerMonitor | undefined =
@@ -4569,6 +5922,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 
@@ -4576,6 +5930,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // Host context
     const hostMonitor: MonitorStepHostMonitor | undefined =
@@ -4589,6 +5944,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 
@@ -4596,6 +5952,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // Podman host context
     const podmanMonitor: MonitorStepPodmanMonitor | undefined =
@@ -4627,6 +5984,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 
@@ -4634,6 +5992,7 @@ ${incomingRequestGrouping.rootCauseNote}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
+    dataToProcess?: DataToProcess | undefined;
   }): MarkdownText | null {
     // IoT fleet / device context
     const iotMonitor: MonitorStepIoTMonitor | undefined =
@@ -4692,6 +6051,7 @@ ${incomingRequestGrouping.rootCauseNote}
       monitor: input.monitor,
       monitorStep: input.monitorStep,
       criteriaInstance: input.criteriaInstance,
+      dataToProcess: input.dataToProcess,
     });
   }
 

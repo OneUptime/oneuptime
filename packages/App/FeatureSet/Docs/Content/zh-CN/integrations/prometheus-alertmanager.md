@@ -58,13 +58,13 @@ Prometheus 评估你的警报规则，并把触发的警报发送给 Alertmanage
 
 ### 每个警报一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **按负载字段对事件和警报分组**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **为以下每个值分别打开一个事件…** | `requestBody.alerts[*].fingerprint` |
+| **表示恢复的字段** | `requestBody.alerts[*].status` |
+| **表示已恢复的值** | `resolved` |
 
 ### 让监视器恢复在线
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-`[*]` 会读取通知中的每个警报，因此包含三个警报的通知可以打开三个事件，数量最多为 **Max incidents per request**（不修改则为 `100`）。每个警报自己的 `status` 决定它的事件如何处理：当通知中的一个警报已解决、另外两个仍在触发时，只有已解决警报的事件会被关闭。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
+`[*]` 会读取通知中的每个警报，因此包含三个警报的通知可以打开三个事件，数量最多为 **每个请求的最大事件数**（不修改则为 `100`）。每个警报自己的 `status` 决定它的事件如何处理：当通知中的一个警报已解决、另外两个仍在触发时，只有已解决警报的事件会被关闭。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
 
 > [!WARNING]
 > 请按同一个通知内各警报之间互不相同的值分组。Alertmanager 的 `fingerprint` 是警报整个标签集的哈希，所以总是不同。路由 `group_by` 中的标签则永远相同：正是它们把警报放进了同一个通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分组，会把通知中的所有警报合并成一个事件，而该事件会跟随第一个警报的状态。
@@ -264,9 +264,9 @@ receivers:
 :::details 事件被创建但从未被解决
 - 检查没有接收器设置了 `send_resolved: false`：那样 Alertmanager 永远不会发送恢复。
 - 条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
-- **Field that signals recovery** 必须是 `requestBody.alerts[*].status`，**Value that means recovered** 必须恰好是 `resolved`。比较区分大小写。
-- 通知中超出 **Max incidents per request** 的警报根本不会被读取，所以它们的恢复也会丢失。
-- 在突发中被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的警报，但从不重复发送恢复。请手动解决这样的事件。
+- **表示恢复的字段** 必须是 `requestBody.alerts[*].status`，**表示已恢复的值** 必须恰好是 `resolved`。比较区分大小写。
+- 通知中超出 **每个请求的最大事件数** 的警报根本不会被读取，所以它们的恢复也会丢失。
+- 因等待的通知过多而被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的警报，但从不重复发送恢复。请手动解决这样的事件。
 :::
 
 :::details 完全没有打开事件
@@ -282,11 +282,11 @@ receivers:
 :::
 
 :::details 事件太多
-让路由按更少的标签分组，或调大 `group_interval`，让 Alertmanager 把相关警报一起发送。调低 **Max incidents per request** 可以限制一个通知产生的事件数，但超出上限的警报不会被读取，所以它们的恢复也会丢失。
+让路由按更少的标签分组，或调大 `group_interval`，让 Alertmanager 把相关警报一起发送。调低 **每个请求的最大事件数** 可以限制一个通知产生的事件数，但超出上限的警报不会被读取，所以它们的恢复也会丢失。
 :::
 
-:::details 突发中有些通知被跳过
-当较新的请求在较早的请求被评估之前到达监视器时，OneUptime 只评估较新的那个，以免单个发送方压垮监视器。突发中的最后一个通知总会被评估，但关于其他警报的较早通知可能被跳过，因为 Alertmanager 把每个组都发送到同一个 URL。请调大 `group_wait` 和 `group_interval`，拉开通知之间的间隔。在自托管安装中，请在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以评估每个请求。
+:::details 一波突发的通知
+像本指南这样按字段分组的监视器，会按到达顺序逐个评估它收到的每一条通知，因此一波突发的触发中和已解决的警报会为每条警报打开并解决各自的事件。最多有 1,000 条通知（或 16 MB）可以等待评估；超出后，等待中最早的通知会被跳过， **监视器摘要** 卡片会显示跳过了多少条。调大 `group_wait` 和 `group_interval`，可以发送更少但更大的通知。没有分组的监视器只评估等待中的最新通知。
 :::
 
 ## 安全

@@ -14,6 +14,9 @@ import CloudAppRevisionsTab from "../../../Components/AppPlatforms/CloudAppRevis
 import useCloudAppAzure, {
   CloudAppAzure,
 } from "../../../Components/AppPlatforms/useCloudAppAzure";
+import useCloudAppPlatform, {
+  CloudAppPlatform,
+} from "../../../Components/AppPlatforms/useCloudAppPlatform";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
@@ -151,6 +154,8 @@ async function loadApp(data: {
           signalArrivalsTrackedSince: true,
           // Its site in Azure Monitor, for an App Service app.
           providerResourceId: true,
+          // The site the server tied it to (#10407), read first.
+          platformCloudResourceId: true,
         },
       }),
       ModelAPI.getItem<CloudResource>({
@@ -318,6 +323,17 @@ const AppPlatformApp: FunctionComponent<
     refreshToken,
   });
 
+  /*
+   * Any other platform's app: the resource it runs as - a Container App, a
+   * Cloud Run, App Engine, App Runner or ECS service - and its way to its
+   * provider's monitoring (#6794), for the Overview's platform section.
+   */
+  const platform: CloudAppPlatform = useCloudAppPlatform({
+    app: loaded?.app,
+    environment: loaded?.environment,
+    refreshToken,
+  });
+
   // The window every tab's numbers are over, fixed until the range changes.
   const window: { start: Date; end: Date } = useMemo((): {
     start: Date;
@@ -424,6 +440,7 @@ const AppPlatformApp: FunctionComponent<
               : undefined
           }
           azure={azure}
+          platform={platform}
           onSetUpTelemetry={
             isAppServiceApp(app)
               ? (): void => {

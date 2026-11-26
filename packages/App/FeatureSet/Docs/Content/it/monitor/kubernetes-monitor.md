@@ -116,7 +116,7 @@ Questi monitor valutano sempre il **Valore della metrica**: il valore della quer
 
 ### Condizioni
 
-Le soglie statiche vengono confrontate con il **Soglia** che inserite: **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** ed **Uguale a**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa.
+Le soglie statiche vengono confrontate con il **Soglia** che inserite: **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a**, **Uguale a** e **Diverso da**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa.
 
 Il rilevamento delle anomalie rispetto a una baseline non richiede soglie. Scegliete una di queste condizioni, e il modulo mostra invece **Sensibilità** e **Finestra di riferimento**:
 

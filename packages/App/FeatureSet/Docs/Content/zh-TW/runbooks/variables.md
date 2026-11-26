@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab 在 HTTP 請求中
-把引用寫在 [HTTP 請求步驟](/docs/runbooks/authoring#http-request)的 URL、標頭或本文中：
+把引用寫在 [HTTP 請求步驟](/docs/runbooks/authoring#http-request)的 URL、標頭、本文或 **CA 憑證** 中：
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+在 **CA 憑證** 中，引用單獨出現，例如 `{{global.variables.INTERNAL_CA}}`，而變數以 PEM 形式存放憑證：每個指定它的步驟都信任同一個 CA，新的 CA 只需在一處設定。
 @tab SSH 登入
 [SSH 步驟](/docs/runbooks/authoring#ssh)在 **登入方式** 中選擇保存其私密金鑰或密碼的機密變數，並在 **更多欄位 → 金鑰複雜密碼** 中選擇其金鑰的複雜密碼。值本身表明它是金鑰還是密碼。
 @tab Kubeconfig

@@ -9,6 +9,8 @@ import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
 import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
 import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
+import MonitorLogUrl from "./MonitorLogUrl";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
 } from "./MonitorTypes/WebsiteMonitor";
@@ -40,7 +42,6 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -56,8 +57,14 @@ import Port from "Common/Types/Port";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
 import API from "Common/Utils/API";
+import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
+import LogSecretValues from "Common/Server/Utils/LogSecretValues";
+import MonitorSecretValueRedaction, {
+  HiddenSecretValues,
+} from "Common/Server/Utils/Monitor/MonitorSecretValueRedaction";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import TelemetryContext from "Common/Server/Utils/Telemetry/TelemetryContext";
 import {
@@ -162,7 +169,17 @@ export default class MonitorUtil {
         [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
-        return this.probeMonitorTestInternal(monitorTest);
+        /*
+         * Every line logged while the test runs - its check, its report and
+         * the debug line of its result - hides the values of the secrets
+         * filled into its steps (#10875).
+         */
+        return LogSecretValues.run(
+          MonitorUtil.getSecretValuesToHide(monitorTest.monitorSteps),
+          () => {
+            return this.probeMonitorTestInternal(monitorTest);
+          },
+        );
       },
     );
   }
@@ -186,38 +203,110 @@ export default class MonitorUtil {
         continue;
       }
 
-      const result: ProbeMonitorResponse | null = await this.probeMonitorStep({
-        monitorType: monitorTest.monitorType!,
-        monitorId: monitorTest.id!,
-        monitorStep: monitorStep,
-        projectId: monitorTest.projectId!,
-      });
+      /*
+       * A test whose step threw posted no result at all, as a monitor's
+       * check did before (probeMonitorInternal): the form waited for one
+       * until it said the probe may be offline, and the person never
+       * learned what went wrong. It is reported as a failed check now, with
+       * the error as its cause.
+       */
+      let result: ProbeMonitorResponse | null = null;
+
+      try {
+        result = await this.probeMonitorStep({
+          monitorType: monitorTest.monitorType!,
+          monitorId: monitorTest.id!,
+          monitorStep: monitorStep,
+          projectId: monitorTest.projectId!,
+        });
+      } catch (err) {
+        result = this.getStepThrewResult({
+          what: "Monitor test",
+          monitorType: monitorTest.monitorType,
+          monitorId: monitorTest.id!,
+          monitorStep: monitorStep,
+          projectId: monitorTest.projectId!,
+          error: err,
+        });
+      }
 
       if (result) {
         // report this back to Probe API.
-        const monitorTestIngestUrl: URL = URL.fromString(
-          PROBE_INGEST_URL.toString(),
-        ).addRoute(
-          "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
-        );
-
-        await API.fetch<JSONObject>({
-          method: HTTPMethod.POST,
-          url: monitorTestIngestUrl,
-          data: {
-            ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
-          },
-          headers: {},
-          options:
-            ProbeAPIRequest.getDefaultRequestOptions(monitorTestIngestUrl),
+        await MonitorUtil.reportResult({
+          url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+            "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
+          ),
+          result: result,
+          what: `monitor test ${monitorTest.id?.toString()}`,
         });
       }
+
+      /*
+       * Its result as the debug log writes it, as a monitor's is: the
+       * values of the secrets filled into the step hidden.
+       */
+      logger.debug("Probed monitor test step:");
+      logger.debug(this.writeResultForLog(result, monitorStep));
 
       results.push(result);
     }
 
     return results;
+  }
+
+  /*
+   * Posts a step's result to OneUptime. A post that fails is thrown on, as
+   * it always was, so the steps after it wait for the next check - but as
+   * an error that says why, never as the client's own error: that holds
+   * the request it sent, the result itself, which can say a secret's value
+   * back, and the probe's key, and the line that logs it would write them
+   * all (#10875).
+   */
+  private static async reportResult(data: {
+    url: URL;
+    result: ProbeMonitorResponse;
+    // Whose result: "monitor <id>" or "monitor test <id>".
+    what: string;
+  }): Promise<void> {
+    try {
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: data.url,
+        data: {
+          ...ProbeAPIRequest.getDefaultRequestBody(),
+          probeMonitorResponse: data.result as any,
+        },
+        headers: {},
+        options: ProbeAPIRequest.getDefaultRequestOptions(data.url),
+      });
+    } catch (err) {
+      throw new Error(
+        `Reporting the check of ${data.what} step ${data.result.monitorStepId?.toString()} to OneUptime failed: ${API.getFriendlyErrorMessage(err as Error)}`,
+      );
+    }
+  }
+
+  /*
+   * The values of the Text secrets the server filled into a monitor's
+   * steps, which it hands a probe that hides them in its log
+   * (MonitorStep.secretValuesToHide, #10875): every step's, since a line
+   * logged between two steps is logged during the check too.
+   */
+  public static getSecretValuesToHide(
+    monitorSteps: MonitorSteps | undefined | null,
+  ): Array<string> {
+    const values: Array<string> = [];
+
+    for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
+      for (const value of monitorStep?.data?.secretValuesToHide || []) {
+        if (!values.includes(value)) {
+          values.push(value);
+        }
+      }
+    }
+
+    return values;
   }
 
   public static async probeMonitor(monitor: Monitor): Promise<void> {
@@ -240,7 +329,17 @@ export default class MonitorUtil {
         [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
-        return this.probeMonitorInternal(monitor);
+        /*
+         * Every line logged while the monitor is checked - its steps'
+         * checks, their reports and the debug line of each result - hides
+         * the values of the secrets filled into its steps (#10875).
+         */
+        return LogSecretValues.run(
+          MonitorUtil.getSecretValuesToHide(monitor.monitorSteps),
+          () => {
+            return this.probeMonitorInternal(monitor);
+          },
+        );
       },
     );
   }
@@ -281,37 +380,24 @@ export default class MonitorUtil {
           projectId: monitor.projectId!,
         });
       } catch (err) {
-        logger.error(
-          `Monitor ${monitor.id?.toString()} (${monitor.monitorType}) step ${monitorStep.id?.toString()} threw while probing:`,
-        );
-        logger.error(err);
-
-        result = {
-          monitorStepId: monitorStep.id,
-          projectId: monitor.projectId!,
+        result = this.getStepThrewResult({
+          what: "Monitor",
+          monitorType: monitor.monitorType,
           monitorId: monitor.id!,
-          probeId: ProbeUtil.getProbeId(),
-          isOnline: false,
-          failureCause: API.getFriendlyErrorMessage(err as Error),
-          monitoredAt: OneUptimeDate.getCurrentDate(),
-        };
+          monitorStep: monitorStep,
+          projectId: monitor.projectId!,
+          error: err,
+        });
       }
 
       if (result) {
         // report this back to Probe API.
-        const monitorIngestUrl: URL = URL.fromString(
-          PROBE_INGEST_URL.toString(),
-        ).addRoute("/probe/response/ingest");
-
-        await API.fetch<JSONObject>({
-          method: HTTPMethod.POST,
-          url: monitorIngestUrl,
-          data: {
-            ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
-          },
-          headers: {},
-          options: ProbeAPIRequest.getDefaultRequestOptions(monitorIngestUrl),
+        await MonitorUtil.reportResult({
+          url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+            "/probe/response/ingest",
+          ),
+          result: result,
+          what: `monitor ${monitor.id?.toString()}`,
         });
       }
 
@@ -321,7 +407,140 @@ export default class MonitorUtil {
        * an array until the slowest monitor in the worker's batch finishes.
        */
       logger.debug("Probed monitor step:");
-      logger.debug(result);
+      logger.debug(this.writeResultForLog(result, monitorStep));
+    }
+  }
+
+  /*
+   * The URLs a step's check is sent to, as the server handed it over: the
+   * monitor's secrets filled in (#10785).
+   */
+  public static getStepUrls(monitorStep: MonitorStep): Array<string> {
+    const urls: Array<string> = [];
+    const destination: unknown = monitorStep.data?.monitorDestination;
+
+    if (destination instanceof URL) {
+      urls.push(destination.toString());
+    }
+
+    const statusPageUrl: unknown =
+      monitorStep.data?.externalStatusPageMonitor?.statusPageUrl;
+
+    if (typeof statusPageUrl === "string" && statusPageUrl) {
+      urls.push(statusPageUrl);
+    }
+
+    return urls;
+  }
+
+  /*
+   * A step's result as the debug log writes it (#10782, #10785, #10875):
+   * whole - a response's body and headers, a script's error, log lines and
+   * result, the timings, each attempt - with the values of the secrets the
+   * server filled into the step (MonitorStep.secretValuesToHide) hidden
+   * wherever they stand, in any form, as the server hides them in what it
+   * takes in (MonitorSecretValueRedaction). Its destination, when that is a
+   * URL, is named by its scheme, host and port, and every URL in what it
+   * reports the same way. The result reported is not changed.
+   */
+  public static writeResultForLog(
+    result: ProbeMonitorResponse | null,
+    monitorStep: MonitorStep,
+  ): ProbeMonitorResponse | JSONObject | null {
+    if (!result) {
+      return result;
+    }
+
+    const values: HiddenSecretValues | null =
+      MonitorSecretValueRedaction.compile(
+        monitorStep.data?.secretValuesToHide || [],
+      );
+
+    const written: ProbeMonitorResponse = MonitorUrlInText.writeProbeResponse(
+      result,
+      this.getStepUrls(monitorStep),
+    );
+
+    const destination: unknown = written.monitorDestination;
+
+    // A host or an address that is a secret's value is hidden too.
+    const forLog: ProbeMonitorResponse =
+      destination instanceof URL || (values && destination)
+        ? ({
+            ...written,
+            monitorDestination: MonitorSecretValueRedaction.redactText(
+              destination instanceof URL
+                ? MonitorLogUrl.write(destination)
+                : String(destination),
+              values,
+            ),
+          } as unknown as ProbeMonitorResponse)
+        : written;
+
+    return MonitorSecretValueRedaction.redactCheck(forLog, values);
+  }
+
+  /*
+   * The result of a step whose check threw: offline, the error its cause,
+   * so it is recorded and judged like any failed check - a monitor's
+   * (probeMonitorInternal) and a test's (probeMonitorTestInternal) alike.
+   * The error may name the step's URL, which the server filled the
+   * monitor's secrets into (a URL that is no URL is quoted whole): the
+   * cause and the log name it by its scheme, host and port (#10785).
+   */
+  private static getStepThrewResult(data: {
+    what: string;
+    monitorType: MonitorType | undefined;
+    monitorId: ObjectID;
+    monitorStep: MonitorStep;
+    projectId: ObjectID;
+    error: unknown;
+  }): ProbeMonitorResponse {
+    const stepUrls: Array<string> = this.getStepUrls(data.monitorStep);
+
+    logger.error(
+      `${data.what} ${data.monitorId?.toString()} (${data.monitorType}) step ${data.monitorStep.id?.toString()} threw while probing:`,
+    );
+    logger.error(MonitorUtil.withUrlsWritten(data.error, stepUrls));
+
+    return {
+      monitorStepId: data.monitorStep.id,
+      projectId: data.projectId,
+      monitorId: data.monitorId,
+      probeId: ProbeUtil.getProbeId(),
+      isOnline: false,
+      failureCause: MonitorUrlInText.writeUrls(
+        API.getFriendlyErrorMessage(data.error as Error),
+        stepUrls,
+      ),
+      monitoredAt: OneUptimeDate.getCurrentDate(),
+    };
+  }
+
+  /*
+   * An error for the log, every URL in its message and stack written by
+   * its scheme, host and port: the error itself, so the log still reads
+   * it as an error, of the class it was thrown as.
+   */
+  private static withUrlsWritten(
+    error: unknown,
+    urls: ReadonlyArray<string>,
+  ): unknown {
+    if (!(error instanceof Error)) {
+      return MonitorLogUrl.scrub(String(error), urls);
+    }
+
+    try {
+      error.message = MonitorLogUrl.scrub(error.message, urls);
+
+      if (typeof error.stack === "string") {
+        error.stack = MonitorLogUrl.scrub(error.stack, urls);
+      }
+
+      return error;
+    } catch {
+      // A message that cannot be written to: its text, written so.
+      return MonitorLogUrl.scrub(String(error), urls);
     }
   }
 
@@ -792,19 +1011,17 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination as URL,
       );
 
-      let requestBody: JSONObject | undefined = undefined;
-      if (
-        monitorStep.data?.requestBody &&
-        typeof monitorStep.data?.requestBody === "string"
-      ) {
-        requestBody = JSONFunctions.parseJSONObject(
-          monitorStep.data?.requestBody,
-        );
-      }
-
       const response: APIResponse | null = await ApiMonitor.ping(apiUrl, {
         requestHeaders: monitorStep.data?.requestHeaders || {},
-        requestBody: requestBody || undefined,
+        /*
+         * The body as written: any JSON value - an object, an array or a
+         * single value - read and sent by each attempt (#9737). It was read
+         * here as an object only, so an array threw before any request
+         * went out, and the check failed on every run.
+         */
+        requestBody: MonitorRequestBody.getText(monitorStep.data?.requestBody),
+        // JSON unless the step says text, as no step said before #10736.
+        requestBodyFormat: monitorStep.data?.requestBodyFormat,
         monitorId: monitorId,
         requestType: monitorStep.data?.requestType || HTTPMethod.GET,
         retry: retryCount,

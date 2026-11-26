@@ -128,7 +128,7 @@ const TEST_RULE_ROUTE: string =
   "/workspace-notification-rule/test/:workspaceNotifcationRuleId";
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const NOT_THIS_PROJECTS_RULE: string =
   "You are not authorized to access this project's data.";

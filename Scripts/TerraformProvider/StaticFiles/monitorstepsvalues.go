@@ -431,14 +431,16 @@ func (set monitorStepsValueSet) read(value interface{}) (string, bool) {
 var monitorStepsEvaluateOverTimeTypesRead = newMonitorStepsValueSet(
 	monitorStepsEvaluateOverTimeTypeValues,
 	map[string]string{
-		"avg":     "Average",
-		"mean":    "Average",
-		"max":     "Maximum Value",
-		"maximum": "Maximum Value",
-		"min":     "Minimum Value",
-		"minimum": "Minimum Value",
-		"any":     "Any Value",
-		"all":     "All Values",
+		"avg":      "Average",
+		"mean":     "Average",
+		"max":      "Maximum Value",
+		"maximum":  "Maximum Value",
+		"min":      "Minimum Value",
+		"minimum":  "Minimum Value",
+		"any":      "Any Value",
+		"all":      "All Values",
+		"percent":  "Percentage",
+		"flapping": "Status Changes",
 	},
 	nil,
 )
@@ -514,8 +516,11 @@ func normalizeMonitorStepsValues(value interface{}) interface{} {
 		criteria := monitorStepsWireValue(step["monitorCriteria"])
 		instances, _ := criteria["monitorCriteriaInstanceArray"].([]interface{})
 		for _, rawInstance := range instances {
-			filters, _ := monitorStepsWireValue(rawInstance)["filters"].([]interface{})
-			for _, rawFilter := range filters {
+			instance := monitorStepsWireValue(rawInstance)
+			// A recovery condition's filters are read as the criteria's own are.
+			filters, _ := instance["filters"].([]interface{})
+			recoveryFilters, _ := instance["recoveryFilters"].([]interface{})
+			for _, rawFilter := range append(append([]interface{}{}, filters...), recoveryFilters...) {
 				filter, _ := rawFilter.(map[string]interface{})
 				options, ok := filter["metricMonitorOptions"].(map[string]interface{})
 				if !ok {

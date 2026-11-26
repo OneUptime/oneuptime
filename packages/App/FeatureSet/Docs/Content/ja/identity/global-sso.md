@@ -27,7 +27,7 @@
 :::steps
 ### プロバイダーの一覧を開く
 
-マスター管理者としてサインインし、ユーザーメニューの **管理者設定** から Admin Dashboard を開きます。続いて **設定** > **シングルサインオン** に移動します。このページには、インスタンスの SAML プロバイダー、続いて OpenID Connect プロバイダーが並び、最後に **SSO を必須にする** カードがあります。
+マスター管理者としてサインインし、ユーザーメニューの **管理者ダッシュボード** を選びます。続いて **設定** > **シングルサインオン** に移動します。このページには、インスタンスの SAML プロバイダー、続いて OpenID Connect プロバイダーが並び、最後に **SSO を必須にする** カードがあります。
 
 ### プロバイダーを作成する
 
@@ -103,6 +103,12 @@ ID プロバイダーのサインアウト URL を、**その他の項目** の 
 :::
 
 Okta、Microsoft Entra ID、Auth0、Keycloak でこれらの設定がある場所は、[SSO](/docs/identity/sso) のページにあります。
+
+## 本人確認のためにもう一度サインインする
+
+グローバルプロバイダーだけでサインインする人は、サインイン方法を変更したりアカウントを削除したりする前に、 **もう一度サインイン** で本人確認をします。OneUptime はその人を、SAML なら `ForceAuthn="true"`、OpenID Connect なら `prompt=login` と `max_age=0` (Microsoft Entra ID には `prompt=login` だけ) を付けてプロバイダーに戻し、その時点以降にサインインしたとプロバイダーが `AuthnInstant` または `auth_time` で伝えた場合だけ確認とみなします。グローバルプロバイダーを追加、変更、削除するときは、先に [本人確認](/docs/introduction/your-account#本人確認) を求められます。
+
+Okta、Microsoft Entra ID、Keycloak、Google Workspace で設定する内容は、[SSO](/docs/identity/sso#本人確認のためにもう一度サインインする) のページにあります。
 
 ## SSO を必須にする
 
@@ -187,4 +193,5 @@ SAML プロバイダーの場合、レスポンスの audience がプロバイ�
 - [SSO](/docs/identity/sso): プロジェクト自身の SAML または OIDC プロバイダーを設定する。
 - [SCIM](/docs/identity/scim): アイデンティティプロバイダーに人の追加と削除を自動で任せる。
 - [ユーザー、チーム、権限](/docs/permissions/index): 新しい人が参加するチームで何ができるようになるか。
+- [ヘルプとサポート](/docs/self-hosted/help-and-support): 招待が必要な人に、誰に頼めばよいかを伝える。
 :::

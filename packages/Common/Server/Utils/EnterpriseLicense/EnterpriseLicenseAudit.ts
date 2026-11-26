@@ -1,5 +1,6 @@
 import EnterpriseLicense from "../../../Models/DatabaseModels/EnterpriseLicense";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import { JSONObject } from "../../../Types/JSON";
 import EnterpriseLicenseUsageUtil from "../../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 
@@ -22,13 +23,17 @@ import EnterpriseLicenseUsageUtil from "../../../Utils/EnterpriseLicense/Enterpr
  * people than the license screens are.
  */
 
-// Every record's own columns: its id, its timestamps and its version.
+/*
+ * Every record's own columns: its id, its timestamps, its version, and what
+ * created it and who last modified it (Types/Database/RecordActor, #10290).
+ */
 export const LICENSE_RECORD_COLUMNS: ReadonlyArray<string> = [
   "_id",
   "createdAt",
   "updatedAt",
   "deletedAt",
   "version",
+  ...RECORD_ACTOR_COLUMNS,
 ];
 
 /*

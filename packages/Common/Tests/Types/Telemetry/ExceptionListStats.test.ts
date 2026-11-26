@@ -91,18 +91,56 @@ describe("reading an answer back", () => {
     trend[23] = 9;
 
     const stats: ExceptionListStats | null = readExceptionListStats({
-      stats: [{ telemetryExceptionId: "e1", affectedUsers: 4, trend }],
+      stats: [
+        {
+          telemetryExceptionId: "e1",
+          affectedUsers: 4,
+          hiddenUsers: 2,
+          hiddenUserOccurrences: 30,
+          trend,
+        },
+      ],
       bucketSizeInSeconds: 3600,
       startTime: "2026-10-29T00:00:00.000Z",
       endTime: "2026-10-30T00:00:00.000Z",
     });
 
     expect(stats).toEqual({
-      items: [{ telemetryExceptionId: "e1", affectedUsers: 4, trend }],
+      items: [
+        {
+          telemetryExceptionId: "e1",
+          affectedUsers: 4,
+          hiddenUsers: 2,
+          hiddenUserOccurrences: 30,
+          trend,
+        },
+      ],
       bucketSizeInSeconds: 3600,
       startTime: "2026-10-29T00:00:00.000Z",
       endTime: "2026-10-30T00:00:00.000Z",
     });
+  });
+
+  test("a server from before users hidden by a scrub rule were counted (#10435) says none were hidden", () => {
+    const stats: ExceptionListStats | null = readExceptionListStats({
+      stats: [
+        { telemetryExceptionId: "e1", affectedUsers: 4, trend: [] },
+        {
+          telemetryExceptionId: "e2",
+          affectedUsers: 1,
+          hiddenUsers: "3",
+          hiddenUserOccurrences: -5,
+          trend: [],
+        },
+      ],
+    });
+
+    expect(stats!.items[0]).toEqual(
+      expect.objectContaining({ hiddenUsers: 0, hiddenUserOccurrences: 0 }),
+    );
+    expect(stats!.items[1]).toEqual(
+      expect.objectContaining({ hiddenUsers: 3, hiddenUserOccurrences: 0 }),
+    );
   });
 
   test("counts as strings (64-bit integers in ClickHouse JSON) read as numbers", () => {

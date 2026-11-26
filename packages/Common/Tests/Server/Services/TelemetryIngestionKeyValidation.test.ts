@@ -1053,3 +1053,166 @@ describe("TelemetryIngestionKeyService - the policy cache is invalidated on writ
     expect(internals.policyCache.size()).toBe(1);
   });
 });
+
+/*
+ * A MOBILE KEY IS PINNED TO ITS APP, FROM THE DAY IT IS MADE (issue #6457).
+ *
+ * A Mobile key ships in every copy of an app, so the one thing that keeps a
+ * copy to that app's telemetry is its pinned service name: everything it
+ * writes is filed under it. A Mobile key without one, or one whose pin is
+ * cleared later, would let anyone with the app write as any service.
+ */
+describe("TelemetryIngestionKeyService.onBeforeCreate - a Mobile key needs its app's service name", () => {
+  const missingPins: Array<[string, Record<string, unknown>]> = [
+    ["absent from the payload", {}],
+    ["null", { pinnedServiceName: null }],
+    ["empty", { pinnedServiceName: "" }],
+    ["blank", { pinnedServiceName: "   " }],
+  ];
+
+  test.each(missingPins)(
+    "refuses a Mobile key whose pinned service name is %s",
+    async (_label: string, payload: Record<string, unknown>): Promise<void> => {
+      const { internals }: Harness = buildService();
+
+      const createBy: CreateBy<Model> = createByModel({
+        keyType: TelemetryIngestionKeyType.Mobile,
+        ...payload,
+      });
+
+      await expect(internals.onBeforeCreate(createBy)).rejects.toThrow(
+        BadDataException,
+      );
+      await expect(internals.onBeforeCreate(createBy)).rejects.toThrow(
+        "must be pinned to its app's service name",
+      );
+    },
+  );
+
+  test("refuses a Mobile key that lists allowed origins it could never use", async () => {
+    const { internals }: Harness = buildService();
+
+    await expect(
+      internals.onBeforeCreate(
+        createByModel({
+          keyType: TelemetryIngestionKeyType.Mobile,
+          pinnedServiceName: "storefront-mobile",
+          allowedOrigins: ["https://app.example.com"],
+        }),
+      ),
+    ).rejects.toThrow("A Mobile ingestion key has no allowed origins");
+  });
+
+  test("creates a Mobile key pinned to its app, the pin trimmed", async () => {
+    const { internals }: Harness = buildService();
+
+    const createBy: CreateBy<Model> = createByModel({
+      keyType: TelemetryIngestionKeyType.Mobile,
+      pinnedServiceName: "  storefront-mobile ",
+    });
+
+    await expect(internals.onBeforeCreate(createBy)).resolves.toBeDefined();
+    expect(writtenValues(createBy)["keyType"]).toBe(
+      TelemetryIngestionKeyType.Mobile,
+    );
+    expect(writtenValues(createBy)["pinnedServiceName"]).toBe(
+      "storefront-mobile",
+    );
+  });
+
+  test("an empty origins list on a Mobile key is fine: it is what the form sends", async () => {
+    const { internals }: Harness = buildService();
+
+    await expect(
+      internals.onBeforeCreate(
+        createByModel({
+          keyType: TelemetryIngestionKeyType.Mobile,
+          pinnedServiceName: "storefront-mobile",
+          allowedOrigins: [],
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("the refusal for an unknown type names all three types", async () => {
+    const { internals }: Harness = buildService();
+
+    await expect(
+      internals.onBeforeCreate(createByModel({ keyType: "Phone" })),
+    ).rejects.toThrow('Use "Server", "Browser" or "Mobile".');
+  });
+
+  test("a Server key needs no pin, as before", async () => {
+    const { internals }: Harness = buildService();
+
+    await expect(
+      internals.onBeforeCreate(
+        createByModel({ keyType: TelemetryIngestionKeyType.Server }),
+      ),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("TelemetryIngestionKeyService.onBeforeUpdate - a Mobile key's pin cannot be cleared", () => {
+  test.each([
+    ["empty", ""],
+    ["blank", "   "],
+    ["null", null],
+  ])(
+    "refuses to clear the pin with %s when an affected row is a Mobile key",
+    async (_label: string, pinnedServiceName: unknown): Promise<void> => {
+      const { internals, findBy }: Harness = buildService();
+
+      findBy.mockResolvedValue([
+        affectedRow(KEY_ID, TelemetryIngestionKeyType.Mobile),
+      ] as never);
+
+      await expect(
+        internals.onBeforeUpdate(updateByBag({ pinnedServiceName })),
+      ).rejects.toThrow("must stay pinned to its app's service name");
+    },
+  );
+
+  test("clears the pin when every affected row is a Server or a Browser key", async () => {
+    const { internals, findBy }: Harness = buildService();
+
+    findBy.mockResolvedValue([
+      affectedRow(KEY_ID, TelemetryIngestionKeyType.Server),
+      affectedRow(SECOND_KEY_ID, TelemetryIngestionKeyType.Browser),
+    ] as never);
+
+    const updateBy: UpdateBy<Model> = updateByBag({ pinnedServiceName: "" });
+
+    await expect(internals.onBeforeUpdate(updateBy)).resolves.toBeDefined();
+    expect(
+      (updateBy.data as unknown as Record<string, unknown>)[
+        "pinnedServiceName"
+      ],
+    ).toBeNull();
+  });
+
+  test("renaming a Mobile key's app needs no read of the keys' types", async () => {
+    const { internals, findBy }: Harness = buildService();
+
+    findBy.mockResolvedValue([
+      affectedRow(KEY_ID, TelemetryIngestionKeyType.Mobile),
+    ] as never);
+
+    await expect(
+      internals.onBeforeUpdate(
+        updateByBag({ pinnedServiceName: "storefront-mobile-2" }),
+      ),
+    ).resolves.toBeDefined();
+    expect(findBy.mock.calls).toHaveLength(0);
+  });
+
+  test("the key type stays immutable: a Server key cannot become a Mobile key", async () => {
+    const { internals }: Harness = buildService();
+
+    await expect(
+      internals.onBeforeUpdate(
+        updateByBag({ keyType: TelemetryIngestionKeyType.Mobile }),
+      ),
+    ).rejects.toThrow("The key type cannot be changed");
+  });
+});

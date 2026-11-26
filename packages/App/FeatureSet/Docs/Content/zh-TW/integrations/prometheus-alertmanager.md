@@ -58,13 +58,13 @@ Prometheus 評估你的警示規則，並把觸發的警示傳送給 Alertmanage
 
 ### 每個警示一個事件
 
-在同一個條件中，開啟 **設定** 並開啟 **Group incidents and alerts by a payload field**。按下表填寫，讓每個警示都有自己的事件，並由它的恢復來解決：
+在同一個條件中，開啟 **設定** 並開啟 **依酬載欄位將事件和警示分組**。按下表填寫，讓每個警示都有自己的事件，並由它的恢復來解決：
 
 | 欄位 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **為以下每個值分別開啟一個事件…** | `requestBody.alerts[*].fingerprint` |
+| **表示恢復的欄位** | `requestBody.alerts[*].status` |
+| **表示已恢復的值** | `resolved` |
 
 ### 讓監測器恢復線上
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自行託管安裝使用自己的主機來代替 `oneuptime.com`。
 :::
 
-`[*]` 會讀取通知中的每個警示，因此包含三個警示的通知可以開啟三個事件，數量最多為 **Max incidents per request**（不修改則為 `100`）。每個警示自己的 `status` 決定它的事件如何處理：當通知中的一個警示已解決、另外兩個仍在觸發時，只有已解決警示的事件會被關閉。每項設定的作用請參閱 [接收其他系統的警示](/docs/monitor/incoming-request-monitor#接收其他系統的警示)。
+`[*]` 會讀取通知中的每個警示，因此包含三個警示的通知可以開啟三個事件，數量最多為 **每個請求的最大事件數**（不修改則為 `100`）。每個警示自己的 `status` 決定它的事件如何處理：當通知中的一個警示已解決、另外兩個仍在觸發時，只有已解決警示的事件會被關閉。每項設定的作用請參閱 [接收其他系統的警示](/docs/monitor/incoming-request-monitor#接收其他系統的警示)。
 
 > [!WARNING]
 > 請按同一個通知內各警示之間互不相同的值分組。Alertmanager 的 `fingerprint` 是警示整個標籤集的雜湊，所以總是不同。路由 `group_by` 中的標籤則永遠相同：正是它們把警示放進了同一個通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分組，會把通知中的所有警示合併成一個事件，而該事件會跟隨第一個警示的狀態。
@@ -264,9 +264,9 @@ receivers:
 :::details 事件被建立但從未被解決
 - 檢查沒有接收器設定了 `send_resolved: false`：那樣 Alertmanager 永遠不會發送恢復。
 - 條件中的事件需要開啟 **更多欄位** 下的 **自動解決事件**。
-- **Field that signals recovery** 必須是 `requestBody.alerts[*].status`，**Value that means recovered** 必須恰好是 `resolved`。比較區分大小寫。
-- 通知中超出 **Max incidents per request** 的警示根本不會被讀取，所以它們的恢復也會遺失。
-- 在突發中被跳過的恢復（見下文）會讓它的事件永遠保持開啟：Alertmanager 會重複傳送觸發中的警示，但從不重複傳送恢復。請手動解決這樣的事件。
+- **表示恢復的欄位** 必須是 `requestBody.alerts[*].status`，**表示已恢復的值** 必須恰好是 `resolved`。比較區分大小寫。
+- 通知中超出 **每個請求的最大事件數** 的警示根本不會被讀取，所以它們的恢復也會遺失。
+- 因等待的通知過多而被跳過的恢復（見下文）會讓它的事件永遠保持開啟：Alertmanager 會重複傳送觸發中的警示，但從不重複傳送恢復。請手動解決這樣的事件。
 :::
 
 :::details 完全沒有開啟事件
@@ -282,11 +282,11 @@ receivers:
 :::
 
 :::details 事件太多
-讓路由按更少的標籤分組，或調大 `group_interval`，讓 Alertmanager 把相關警示一起傳送。調低 **Max incidents per request** 可以限制一個通知產生的事件數，但超出上限的警示不會被讀取，所以它們的恢復也會遺失。
+讓路由按更少的標籤分組，或調大 `group_interval`，讓 Alertmanager 把相關警示一起傳送。調低 **每個請求的最大事件數** 可以限制一個通知產生的事件數，但超出上限的警示不會被讀取，所以它們的恢復也會遺失。
 :::
 
-:::details 突發中有些通知被跳過
-當較新的請求在較早的請求被評估之前到達監測器時，OneUptime 只評估較新的那個，以免單一傳送方壓垮監測器。突發中的最後一個通知總會被評估，但關於其他警示的較早通知可能被跳過，因為 Alertmanager 把每個組都發送到同一個 URL。請調大 `group_wait` 和 `group_interval`，拉開通知之間的間隔。在自行託管安裝中，請在 OneUptime 應用程式的環境中設定 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以評估每個請求。
+:::details 一波突發的通知
+像本指南這樣依欄位分組的監測器，會依到達順序逐一評估它收到的每一則通知，因此一波突發的觸發中與已解決的警示會為每則警示開啟並解決各自的事件。最多有 1,000 則通知（或 16 MB）可以等待評估；超過之後，等待中最早的通知會被略過， **監測器摘要** 卡片會顯示略過了多少則。調大 `group_wait` 與 `group_interval`，可以傳送更少但更大的通知。沒有分組的監測器只評估等待中的最新通知。
 :::
 
 ## 安全

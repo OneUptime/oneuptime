@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab در یک درخواست HTTP
-ارجاع را در URL، هدرها یا بدنهٔ یک [گام درخواست HTTP](/docs/runbooks/authoring#http-request) بنویسید:
+ارجاع را در URL، هدرها، بدنه یا **گواهی CA** در یک [گام درخواست HTTP](/docs/runbooks/authoring#http-request) بنویسید:
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+در **گواهی CA**، ارجاع به‌تنهایی می‌آید، مانند `{{global.variables.INTERNAL_CA}}`، و متغیر گواهی را در قالب PEM نگه می‌دارد: هر گامی که آن را نام می‌برد به همان CA اعتماد می‌کند، و یک CA تازه در یک جا تنظیم می‌شود.
 @tab ورود SSH
 یک [گام SSH](/docs/runbooks/authoring#ssh) متغیر رازی را که کلید خصوصی یا رمز عبورش را نگه می‌دارد زیر **ورود با** انتخاب می‌کند، و عبارت عبور کلیدش را زیر **فیلدهای بیشتر ← عبارت عبور کلید**. خودِ مقدار نشان می‌دهد که کلید است یا رمز عبور.
 @tab Kubeconfig

@@ -83,6 +83,7 @@ import IncidentPostmortemPublication from "../../../Types/StatusPage/IncidentPos
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   applyUpdateValues,
@@ -217,7 +218,11 @@ function postmortemNotificationsQueued(): Array<{
     data: Record<string, unknown>;
     expectedData?: Record<string, unknown> | undefined;
   }> = repositoryUpdate.mock.calls.map((call: Array<unknown>) => {
-    return { data: (call[1] || call[0]) as Record<string, unknown> };
+    return {
+      data: withoutLastModifiedStamp(
+        (call[1] || call[0]) as Record<string, unknown>,
+      ),
+    };
   });
 
   return [...conditionalWrites, ...repositoryWrites].filter(
@@ -317,7 +322,12 @@ beforeEach(() => {
     >;
 
     if (data && typeof data === "object") {
-      writes.push(applyUpdateValues(row, data as Record<string, unknown>));
+      writes.push(
+        applyUpdateValues(
+          row,
+          withoutLastModifiedStamp(data as Record<string, unknown>),
+        ),
+      );
     }
 
     return { affected: 1, raw: returnedColumns(row, options) };

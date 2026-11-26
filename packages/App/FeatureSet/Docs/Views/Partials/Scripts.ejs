@@ -800,6 +800,12 @@
          */
         var SEARCH_SETTLE_MS = 1000;
         var SEARCH_REPORT_MIN_LENGTH = 2;
+        /*
+         * The most of a search the server keeps (DOCS_SEARCH_REPORT_MAX_LENGTH):
+         * the rest is cut here, so a report always fits the 2 KB the server
+         * takes in one (DOCS_REPORT_REQUEST_BODY_LIMIT, #10672).
+         */
+        var SEARCH_REPORT_MAX_LENGTH = 500;
         var isSearchReported = Boolean(searchModal) && searchModal.getAttribute('data-search-report') === 'send';
         var foundNothingFor = null;
         var reportedNothingFor = null;
@@ -814,7 +820,7 @@
             }
             reportedNothingFor = query;
             postToDocs('/docs/search/found-nothing', JSON.stringify({
-                query: query,
+                query: query.slice(0, SEARCH_REPORT_MAX_LENGTH),
                 language: window.__docsLang || 'en'
             }), isLeaving);
         }

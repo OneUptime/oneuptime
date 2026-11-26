@@ -33,6 +33,11 @@ import {
   CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
 } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
+  SECURITY_EVENTS_MENU,
+  SecurityEventsMenuItem,
+  SecurityEventsMenuSection,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import {
   CLOUD_ACCOUNTS,
   CLOUD_AWS_ECS,
   CLOUD_AZURE_CONTAINER_APPS,
@@ -135,8 +140,15 @@ const INVENTORY_REGISTRY: string =
 /*
  * The products a Dashboard path on these pages starts at, with the menu
  * that path goes through and the navbar key the product's title comes from.
+ * A menu is its side menu's file, read the way the menu is built, or, for a
+ * product whose menu is data, its sections as the side menu draws them.
  */
-const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
+interface ProductMenu {
+  menu: string | Array<MenuSection>;
+  titleKey: string;
+}
+
+const PRODUCT_MENUS: Record<string, ProductMenu> = {
   "App Platforms": {
     menu: APP_PLATFORMS_SIDE_MENU,
     titleKey: "appPlatformsTitle",
@@ -145,6 +157,25 @@ const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
   "Project Settings": {
     menu: SETTINGS_SIDE_MENU,
     titleKey: "projectSettingsTitle",
+  },
+  /*
+   * The AWS WAF page (#10578) sends its reader to the Blocklist, under
+   * Security Events → Playbooks. Security Events' menu is the data
+   * SECURITY_EVENTS_MENU (Utils/SecurityEventsNavigation) its side menu
+   * draws, so the path is held to that.
+   */
+  "Security Events": {
+    menu: SECURITY_EVENTS_MENU.map(
+      (section: SecurityEventsMenuSection): MenuSection => {
+        return {
+          title: section.title,
+          items: section.items.map((item: SecurityEventsMenuItem): string => {
+            return item.title;
+          }),
+        };
+      },
+    ),
+    titleKey: "securityEventsTitle",
   },
 };
 
@@ -244,9 +275,11 @@ function menuSections(relativePath: string): Array<MenuSection> {
  * section and one of its items ("Cloud → Settings → Label Rules").
  */
 function isMenuPath(product: string, rest: Array<string>): boolean {
-  const sections: Array<MenuSection> = menuSections(
-    (PRODUCT_MENUS[product] as { menu: string }).menu,
-  );
+  const menu: string | Array<MenuSection> = (
+    PRODUCT_MENUS[product] as ProductMenu
+  ).menu;
+  const sections: Array<MenuSection> =
+    typeof menu === "string" ? menuSections(menu) : menu;
 
   if (rest.length === 1) {
     return sections.some((section: MenuSection): boolean => {
@@ -873,9 +906,11 @@ describe("the token check", () => {
   });
 
   it("names the key types the answer reports", () => {
+    // A Mobile key (#6457) is a mobile app's: a collector sends with a Server key.
     expect(Object.values(TelemetryIngestionKeyType)).toEqual([
       "Server",
       "Browser",
+      "Mobile",
     ]);
     expect(readSource(OTLP_INGEST_API)).toContain("keyType: policy.keyType,");
     expect(pageProse(TROUBLESHOOTING)).toContain(
@@ -1161,7 +1196,55 @@ describe("a namespace's totals", () => {
       return descriptor.label;
     });
 
-    expect(summed).toEqual(["Service Bus Namespace", "Event Hubs Namespace"]);
+    expect(summed).toEqual([
+      "Container App",
+      "Service Bus Namespace",
+      "Event Hubs Namespace",
+    ]);
+  });
+
+  /*
+   * A Container App's requests add up too (#10837): the connection reads
+   * them once per status code category, and the paragraph after the
+   * namespaces' says so, in every language, with its 5xx.
+   */
+  it("says a Container App's requests add up across their status code categories, after the namespaces', in every language", () => {
+    expect(
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.App/containerApps",
+      })?.each,
+    ).toBe("status code category");
+    expect(
+      getCloudResourceMetricAggregation({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.App/containerApps",
+        metricName: getAzureStoredMetricName("Requests", "total"),
+        aggregationInterval: intervalOver(24),
+      }),
+    ).toBe(AggregationType.Sum);
+
+    const serviceBus: RegExp = /Service.?Bus/;
+    const eventHubs: RegExp = /Event.?Hubs/;
+
+    for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+      const lines: Array<string> = readPage(language, RESOURCES).split("\n");
+      // The namespaces' sentence: the one line naming both, as above.
+      const at: number = lines.findIndex((line: string): boolean => {
+        return serviceBus.test(line) && eventHubs.test(line);
+      });
+      const next: string = lines[at + 2] || "";
+
+      expect(`${language}: ${lines[at + 1]}`).toBe(`${language}: `);
+      expect(`${language}: ${next.includes("Container App")}`).toBe(
+        `${language}: true`,
+      );
+      expect(`${language}: ${next.includes("5xx")}`).toBe(`${language}: true`);
+    }
+
+    expect(englishPage(RESOURCES)).toContain(
+      "The connection reads a Container App's requests once per status code category, to tell its 5xx responses apart, and the row of its requests adds them up the same way: it shows their total, and so does a monitor created from that row.",
+    );
   });
 
   it("totals a count over any range, an amount held up to 3 hours, and never a latency", () => {

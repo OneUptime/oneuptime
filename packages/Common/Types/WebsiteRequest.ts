@@ -6,6 +6,7 @@ import HTML from "./Html";
 import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "../Utils/HTTPResponseBodyReader";
+import OutboundRequestRouting from "../Utils/OutboundRequestRouting";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
@@ -97,6 +98,15 @@ export default class WebsiteRequest {
     if (options.httpsAgent) {
       (axiosOptions as AxiosRequestConfig).httpsAgent = options.httpsAgent;
     }
+
+    /*
+     * Through the outbound proxy, or directly, as every request of the
+     * server goes (OutboundRequestRouting): never through a proxy axios
+     * reads from the environment itself (#10442). The agents given, and
+     * disableProxy, are the request's own route.
+     */
+    axiosOptions.url = options.dispatchUrl ?? url.toString();
+    OutboundRequestRouting.route(axiosOptions);
 
     // use axios to fetch an HTML page
     let response: AxiosResponse | null = null;

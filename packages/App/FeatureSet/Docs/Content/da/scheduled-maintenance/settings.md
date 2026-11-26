@@ -19,6 +19,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 | **Runbook-regler** | Starter runbooks for matchende begivenheder.                           |
 | **Etiketregler**   | Tilføjer etiketter til matchende begivenheder.                         |
 | **Påmindelsesregler** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
+| **Auditlogs** | Viser, hvem der oprettede, ændrede eller slettede en af disse regler, og hvornår. |
 
 Sektionen **Indstillinger** rummer **Vedligeholdelsesstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Vedligeholdelsesskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 

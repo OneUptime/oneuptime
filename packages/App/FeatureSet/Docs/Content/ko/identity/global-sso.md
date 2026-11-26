@@ -27,7 +27,7 @@
 :::steps
 ### 공급자 목록 열기
 
-마스터 관리자로 로그인한 다음 사용자 메뉴의 **관리자 설정**으로 Admin Dashboard를 엽니다. 그런 다음 **설정** > **SSO**로 이동합니다. 이 페이지에는 인스턴스의 SAML 공급자, 그다음 OpenID Connect 공급자가 나오고, 마지막에 **SSO 필수로 설정** 카드가 있습니다.
+마스터 관리자로 로그인한 다음 사용자 메뉴에서 **관리자 대시보드**를 선택합니다. 그런 다음 **설정** > **SSO**로 이동합니다. 이 페이지에는 인스턴스의 SAML 공급자, 그다음 OpenID Connect 공급자가 나오고, 마지막에 **SSO 필수로 설정** 카드가 있습니다.
 
 ### 공급자 만들기
 
@@ -103,6 +103,12 @@ ID 공급자의 로그아웃 URL을 **추가 필드**의 **로그아웃 URL**에
 :::
 
 Okta, Microsoft Entra ID, Auth0, Keycloak에서 이 설정이 어디에 있는지는 [SSO](/docs/identity/sso) 페이지에 있습니다.
+
+## 본인 확인을 위해 다시 로그인하기
+
+글로벌 공급자로만 로그인하는 사람은 로그인 방식을 바꾸거나 계정을 삭제하기 전에 **다시 로그인**으로 본인 확인을 합니다. OneUptime은 그 사람을 SAML이면 `ForceAuthn="true"`, OpenID Connect면 `prompt=login`과 `max_age=0`(Microsoft Entra ID에는 `prompt=login`만)과 함께 공급자에게 돌려보내고, 공급자가 `AuthnInstant`나 `auth_time`으로 그 시점이나 그 이후에 로그인했다고 알려 줄 때만 인정합니다. 글로벌 공급자를 추가, 변경, 삭제할 때는 먼저 [본인 확인](/docs/introduction/your-account#본인-확인)을 요청받습니다.
+
+Okta, Microsoft Entra ID, Keycloak, Google Workspace에서 무엇을 설정할지는 [SSO](/docs/identity/sso#본인-확인을-위해-다시-로그인하기) 페이지에 있습니다.
 
 ## SSO 필수 지정
 
@@ -187,4 +193,5 @@ ID 공급자의 각 응답으로는 한 번만 로그인할 수 있으며, 그�
 - [SSO](/docs/identity/sso): 프로젝트 자체의 SAML 또는 OIDC 공급자를 설정합니다.
 - [SCIM](/docs/identity/scim): ID 공급자가 사람을 자동으로 추가하고 제거하게 합니다.
 - [사용자, 팀 및 권한](/docs/permissions/index): 새로 온 사람이 합류하는 팀으로 할 수 있는 일을 알아봅니다.
+- [도움말 및 지원](/docs/self-hosted/help-and-support): 초대가 필요한 사람이 누구에게 요청하면 되는지 알려 줍니다.
 :::

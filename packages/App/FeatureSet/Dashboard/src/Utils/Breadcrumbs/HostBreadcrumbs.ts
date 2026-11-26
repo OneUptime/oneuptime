@@ -207,6 +207,12 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "Hosts",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Hosts",

@@ -15,6 +15,7 @@ import { EvidenceFocusRequest } from "../AI/InvestigationReport/InvestigationEvi
 import InvestigationReportView from "../AI/InvestigationReport/InvestigationReportView";
 import InvestigationRunDetails from "../AI/InvestigationReport/InvestigationRunDetails";
 import SecurityCaseApi from "./SecurityCaseApi";
+import SecurityCaseAiResponseSection from "./AiResponse/SecurityCaseAiResponseSection";
 import {
   SecurityCaseAiCopy,
   SecurityCaseAiCreditsAction,
@@ -1026,6 +1027,14 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         }
       >
         {renderBody()}
+        {/*
+          OneUptime AI working the case end to end (#10352): its log under
+          the triage - every step it took, asked about or left, and why.
+        */}
+        <SecurityCaseAiResponseSection
+          securityCase={props.securityCase}
+          onChanged={props.onTriaged}
+        />
       </Card>
     </div>
   );

@@ -1,3 +1,9 @@
+import {
+  getRefusalText,
+  RefusalWithValues,
+} from "../Exception/RefusalWithValues";
+import { translationKey } from "../Translator";
+
 /*
  * A RESPONDER IS ON AN ESCALATION RULE ONCE (#10411).
  *
@@ -58,15 +64,150 @@ export interface EscalationRuleNames {
   policyName: string;
 }
 
-// The rule, as a refusal's sentence begins with it.
+/*
+ * THE REFUSALS, IN THE READER'S LANGUAGE (#10465).
+ *
+ * Each refusal is a sentence with the names in it (RefusalWithValues): the
+ * server refuses in English (getRefusalText), as the API, the CLI and
+ * Terraform read it, and the Dashboard reads the names back out of the
+ * English and says the sentence in the reader's language
+ * (Common/UI/Utils/ErrorInSentence). Every value is a name someone typed - a
+ * rule's, a policy's, a person's, a team's, a schedule's - said as written.
+ *
+ * One sentence for each kind of responder and each way a schedule is paged
+ * (whoever is on call in it, or the next person in its rotation), and each
+ * of them twice: for the rule by its name and its policy's, and for a rule
+ * that could not be read ("This escalation rule ..."). A team's and a
+ * schedule's names are required, and a person is named by their address
+ * when they have no name, so none of them is blank; a team or a schedule
+ * that is anyway is said in an English sentence of its own.
+ *
+ * A source of the Dashboard's string extractor (keys only).
+ */
+
+// A person named on a rule that pages them already.
+export const PERSON_ON_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'The escalation rule "{{rule}}" of the on-call policy "{{policy}}" pages {{person}} already, so they were not added again.',
+  ),
+  terms: [],
+};
+
+export const PERSON_ON_UNREAD_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "This escalation rule pages {{person}} already, so they were not added again.",
+  ),
+  terms: [],
+};
+
+// A team named on a rule that pages it already.
+export const TEAM_ON_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'The escalation rule "{{rule}}" of the on-call policy "{{policy}}" pages the team "{{team}}" already, so it was not added again.',
+  ),
+  terms: [],
+};
+
+export const TEAM_ON_UNREAD_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'This escalation rule pages the team "{{team}}" already, so it was not added again.',
+  ),
+  terms: [],
+};
+
+// A schedule a rule pages whoever is on call in already.
+export const SCHEDULE_ON_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'The escalation rule "{{rule}}" of the on-call policy "{{policy}}" pages whoever is on call in the on-call schedule "{{schedule}}" already, so the schedule was not added again.',
+  ),
+  terms: [],
+};
+
+export const SCHEDULE_ON_UNREAD_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'This escalation rule pages whoever is on call in the on-call schedule "{{schedule}}" already, so the schedule was not added again.',
+  ),
+  terms: [],
+};
+
+// A schedule a rule pages the next person in the rotation of already.
+export const NEXT_IN_ROTATION_ON_RULE_ALREADY_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    'The escalation rule "{{rule}}" of the on-call policy "{{policy}}" pages the next person in the rotation of the on-call schedule "{{schedule}}" already, so the schedule was not added again.',
+  ),
+  terms: [],
+};
+
+export const NEXT_IN_ROTATION_ON_UNREAD_RULE_ALREADY_REFUSAL: RefusalWithValues =
+  {
+    template: translationKey(
+      'This escalation rule pages the next person in the rotation of the on-call schedule "{{schedule}}" already, so the schedule was not added again.',
+    ),
+    terms: [],
+  };
+
+// Every refusal of a responder a rule pages already.
+export const RESPONDER_ON_RULE_ALREADY_REFUSALS: ReadonlyArray<RefusalWithValues> =
+  [
+    PERSON_ON_RULE_ALREADY_REFUSAL,
+    PERSON_ON_UNREAD_RULE_ALREADY_REFUSAL,
+    TEAM_ON_RULE_ALREADY_REFUSAL,
+    TEAM_ON_UNREAD_RULE_ALREADY_REFUSAL,
+    SCHEDULE_ON_RULE_ALREADY_REFUSAL,
+    SCHEDULE_ON_UNREAD_RULE_ALREADY_REFUSAL,
+    NEXT_IN_ROTATION_ON_RULE_ALREADY_REFUSAL,
+    NEXT_IN_ROTATION_ON_UNREAD_RULE_ALREADY_REFUSAL,
+  ];
+
+/*
+ * The rule's names, as a refusal's sentence takes them: null for a rule
+ * that could not be read, or whose name or policy's name is blank.
+ */
+const readRuleValues: (
+  rule: EscalationRuleNames | null,
+) => { rule: string; policy: string } | null = (
+  rule: EscalationRuleNames | null,
+): { rule: string; policy: string } | null => {
+  if (!rule || !rule.ruleName.trim() || !rule.policyName.trim()) {
+    return null;
+  }
+
+  return { rule: rule.ruleName.trim(), policy: rule.policyName.trim() };
+};
+
+/*
+ * The rule as a sentence begins with it, for the one that names a responder
+ * with a blank name (see above): English, as it always was.
+ */
 const theRule: (rule: EscalationRuleNames | null) => string = (
   rule: EscalationRuleNames | null,
 ): string => {
-  if (!rule || !rule.ruleName.trim() || !rule.policyName.trim()) {
-    return "This escalation rule";
-  }
+  const names: { rule: string; policy: string } | null = readRuleValues(rule);
 
-  return `The escalation rule "${rule.ruleName.trim()}" of the on-call policy "${rule.policyName.trim()}"`;
+  return names
+    ? `The escalation rule "${names.rule}" of the on-call policy "${names.policy}"`
+    : "This escalation rule";
+};
+
+// One of the two sentences of a responder: the rule by its names, or unread.
+const fillRefusal: (data: {
+  rule: EscalationRuleNames | null;
+  named: RefusalWithValues;
+  unread: RefusalWithValues;
+  values: Record<string, string>;
+}) => string = (data: {
+  rule: EscalationRuleNames | null;
+  named: RefusalWithValues;
+  unread: RefusalWithValues;
+  values: Record<string, string>;
+}): string => {
+  const names: { rule: string; policy: string } | null = readRuleValues(
+    data.rule,
+  );
+
+  return names
+    ? getRefusalText(data.named, { ...names, ...data.values })
+    : getRefusalText(data.unread, data.values);
 };
 
 // A person named on a rule that pages them already.
@@ -77,7 +218,12 @@ export const getPersonOnRuleAlreadyRefusal: (data: {
   rule: EscalationRuleNames | null;
   person: string;
 }): string => {
-  return `${theRule(data.rule)} pages ${data.person.trim() || "this person"} already, so they were not added again.`;
+  return fillRefusal({
+    rule: data.rule,
+    named: PERSON_ON_RULE_ALREADY_REFUSAL,
+    unread: PERSON_ON_UNREAD_RULE_ALREADY_REFUSAL,
+    values: { person: data.person.trim() || "this person" },
+  });
 };
 
 // A team named on a rule that pages it already.
@@ -88,11 +234,16 @@ export const getTeamOnRuleAlreadyRefusal: (data: {
   rule: EscalationRuleNames | null;
   team: string;
 }): string => {
-  const team: string = data.team.trim()
-    ? `the team "${data.team.trim()}"`
-    : "this team";
+  if (!data.team.trim()) {
+    return `${theRule(data.rule)} pages this team already, so it was not added again.`;
+  }
 
-  return `${theRule(data.rule)} pages ${team} already, so it was not added again.`;
+  return fillRefusal({
+    rule: data.rule,
+    named: TEAM_ON_RULE_ALREADY_REFUSAL,
+    unread: TEAM_ON_UNREAD_RULE_ALREADY_REFUSAL,
+    values: { team: data.team.trim() },
+  });
 };
 
 /*
@@ -108,12 +259,22 @@ export const getScheduleOnRuleAlreadyRefusal: (data: {
   schedule: string;
   pagesNextInRotation: boolean;
 }): string => {
-  const schedule: string = data.schedule.trim()
-    ? `the on-call schedule "${data.schedule.trim()}"`
-    : "this on-call schedule";
-  const whom: string = data.pagesNextInRotation
-    ? `the next person in the rotation of ${schedule}`
-    : `whoever is on call in ${schedule}`;
+  if (!data.schedule.trim()) {
+    const whom: string = data.pagesNextInRotation
+      ? "the next person in the rotation of this on-call schedule"
+      : "whoever is on call in this on-call schedule";
 
-  return `${theRule(data.rule)} pages ${whom} already, so the schedule was not added again.`;
+    return `${theRule(data.rule)} pages ${whom} already, so the schedule was not added again.`;
+  }
+
+  return fillRefusal({
+    rule: data.rule,
+    named: data.pagesNextInRotation
+      ? NEXT_IN_ROTATION_ON_RULE_ALREADY_REFUSAL
+      : SCHEDULE_ON_RULE_ALREADY_REFUSAL,
+    unread: data.pagesNextInRotation
+      ? NEXT_IN_ROTATION_ON_UNREAD_RULE_ALREADY_REFUSAL
+      : SCHEDULE_ON_UNREAD_RULE_ALREADY_REFUSAL,
+    values: { schedule: data.schedule.trim() },
+  });
 };

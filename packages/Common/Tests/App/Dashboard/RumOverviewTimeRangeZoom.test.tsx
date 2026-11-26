@@ -344,6 +344,9 @@ import {
   WebVitalDefinition,
   WebVitalDefinitions,
 } from "../../../Types/Rum/WebVitals";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import TimeRange from "../../../Types/Time/TimeRange";
+import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangeLabel";
 
 // The six charts, by the series each draws. Two of them draw "p95".
 const PAGE_LOADS_CHART: string = "Page loads,Failed";
@@ -359,6 +362,7 @@ interface FetchScope {
 }
 
 interface SessionListScope {
+  signal?: string;
   startTime: Date;
   endTime: Date;
 }
@@ -521,13 +525,24 @@ function fetchedWindows(mock: MockFunction): Array<[number, number]> {
   });
 }
 
-function sessionListWindows(): Array<[number, number]> {
-  return fetchSessionReplayListMock.mock.calls.map(
-    (call: Array<unknown>): [number, number] => {
-      const scope: SessionListScope = call[0] as SessionListScope;
+/*
+ * The windows the sessions-recorded count was read for; with
+ * `errors`, the windows Session Replay's errors filter counted the
+ * sessions with an error for (issue #6379).
+ */
+function sessionListWindows(
+  which: "all" | "errors" = "all",
+): Array<[number, number]> {
+  return fetchSessionReplayListMock.mock.calls
+    .map((call: Array<unknown>): SessionListScope => {
+      return call[0] as SessionListScope;
+    })
+    .filter((scope: SessionListScope): boolean => {
+      return (scope.signal === "errors") === (which === "errors");
+    })
+    .map((scope: SessionListScope): [number, number] => {
       return [scope.startTime.getTime(), scope.endTime.getTime()];
-    },
-  );
+    });
 }
 
 // A relative "past hour" resolved at some point after NOW.
@@ -641,7 +656,10 @@ describe("RUM overview: one zoom for the whole page", () => {
     }
     expectPastHour(sessionListWindows()[0]!);
     expect(pickerButton()).toHaveTextContent("Past 1 Hour");
-    expect(screen.getByText("past 1 hour")).toBeInTheDocument();
+    // The Sessions recorded tile names the range as the picker does (#10552).
+    expect(sessionsLink().closest("[aria-busy]")).toHaveTextContent(
+      "Past 1 Hour",
+    );
   });
 });
 
@@ -668,6 +686,8 @@ describe("RUM overview: a drag zooms the page", () => {
       }),
     ).toEqual(expect.arrayContaining([true, false]));
     expect(sessionListWindows()).toEqual([ZOOM_WINDOW]);
+    // The sessions with an error are counted for the same ten minutes.
+    expect(sessionListWindows("errors")).toEqual([ZOOM_WINDOW]);
 
     // The Events tile now counts the ten zoomed minutes.
     expect(await screen.findByText("999")).toBeInTheDocument();
@@ -706,12 +726,28 @@ describe("RUM overview: a drag zooms the page", () => {
     expect(new Set(resetIds).size).toBe(1);
   });
 
-  test("the Sessions recorded tile says it counted the custom range, and links to it", async () => {
+  test("the Sessions recorded tile names the window it counted as the picker does, and links to it", async () => {
     await renderPage();
 
     await dragAcross(EXCEPTIONS_CHART);
 
-    expect(await screen.findByText("custom range")).toBeInTheDocument();
+    /*
+     * The zoomed window's two ends, written by the shared helper in the
+     * reader's language - what the picker's button reads - never the
+     * English "custom range" (#10552).
+     */
+    const zoomedWindow: string = getTimeRangeButtonLabel({
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(ZOOM_START, ZOOM_END),
+    });
+    await waitFor(() => {
+      expect(pickerButton()).toHaveTextContent(zoomedWindow);
+    });
+    const sessionsTile: HTMLElement = sessionsLink().closest(
+      "[aria-busy]",
+    ) as HTMLElement;
+    expect(sessionsTile).toHaveTextContent(zoomedWindow);
+    expect(screen.queryByText("custom range")).toBeNull();
     const href: string = sessionsLink().getAttribute("href") || "";
     expect(href).toContain(
       `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/session-replay?`,
@@ -762,7 +798,10 @@ describe("RUM overview: back out of a zoom", () => {
     expect(await screen.findByText("45.6k")).toBeInTheDocument();
     expect(pickerButton()).toHaveTextContent("Past 1 Hour");
     expect(resetZoomButton()).toBeNull();
-    expect(screen.getByText("past 1 hour")).toBeInTheDocument();
+    // The Sessions recorded tile names the range as the picker does (#10552).
+    expect(sessionsLink().closest("[aria-busy]")).toHaveTextContent(
+      "Past 1 Hour",
+    );
     expect(sessionsLink().getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/session-replay?range=Past%201%20Hour`,
     );

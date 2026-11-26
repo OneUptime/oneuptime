@@ -33,6 +33,10 @@ import FindingRecordsPanel, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingRecordsPanel";
 import IssueTelemetryFindings from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueTelemetryFindings";
 import {
+  SCRUB_IT_METRIC_DESCRIPTION,
+  SCRUB_IT_MODAL_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/ScrubItModal";
+import {
   getRulesRoute,
   getScrubItGates,
   getScrubItState,
@@ -214,6 +218,7 @@ let findings: Array<DataStoreFinding>;
 let occurrences: DataSecurityFindingOccurrences;
 let occurrencesSpy: SpyInstance<typeof DataSecurityApi.getFindingOccurrences>;
 let scrubSpy: SpyInstance<typeof DataSecurityApi.scrubFinding>;
+let impactSpy: SpyInstance<typeof DataSecurityApi.getScrubImpact>;
 let mockTableProps: ModelTableProps<DataStoreFinding> | null = null;
 let mockRows: Array<DataStoreFinding> = [];
 
@@ -334,7 +339,36 @@ beforeEach(() => {
     scrubRuleId: "9c9c9c9c-0000-4000-8000-0000000000c9",
     scrubRuleName: "Data Security: Email address in attributes.user.email",
   });
+  // What Scrub It's dialog is told first (#10433): the service's metric rule.
+  impactSpy = jest.spyOn(DataSecurityApi, "getScrubImpact").mockResolvedValue({
+    isAvailable: true,
+    rule: {
+      signal: "metric",
+      name: "Data Security: Email address in attributes.user.email",
+      scrubAction: "redact",
+      patternType: "",
+      fieldsToScrub: "",
+      dataTypeName: "Email address",
+      serviceId: "6b6b6b6b-0000-4000-8000-0000000000b2",
+      serviceName: "checkout",
+    },
+  });
 });
+
+/*
+ * Scrub It's dialog, once it has said what the rule does: its own Scrub
+ * It, pressed (ScrubItModal, #10433).
+ */
+async function confirmScrubIt(): Promise<void> {
+  const modal: HTMLElement = await screen.findByTestId(SCRUB_IT_MODAL_TEST_ID);
+  const dialog: HTMLElement = modal.closest("[role='dialog']") as HTMLElement;
+
+  expect(
+    await within(dialog).findByText(SCRUB_IT_METRIC_DESCRIPTION),
+  ).toBeInTheDocument();
+  expect(scrubSpy).not.toHaveBeenCalled();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Scrub It" }));
+}
 
 afterEach(() => {
   cleanup();
@@ -835,6 +869,8 @@ describe("In Your Telemetry", () => {
           .closest("[role='dialog']") as HTMLElement,
       ).getByRole("button", { name: "Scrub It" }),
     );
+    // The panel's Scrub It asks first, as every Scrub It does.
+    await confirmScrubIt();
 
     const notice: HTMLElement = await screen.findByTestId(
       "data-security-scrub-notice",
@@ -860,6 +896,66 @@ describe("In Your Telemetry", () => {
     });
     // The list is read again.
     expect(mockTableProps!.refreshToggle).toBe("1");
+  });
+
+  /*
+   * A row's Scrub It made the rule at once, with no question (#10433): it
+   * opens the dialog, and nothing is made until the dialog's Scrub It.
+   */
+  test("a row's Scrub It asks first: nothing is made until the dialog's Scrub It", async () => {
+    renderPage();
+    fireEvent.click(
+      within(await rowOf(METRIC_FINDING_ID)).getByRole("button", {
+        name: "Scrub It",
+      }),
+    );
+
+    expect(impactSpy).toHaveBeenCalledWith(new ObjectID(METRIC_FINDING_ID));
+    await confirmScrubIt();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "data-security-scrub-notice",
+    );
+
+    expect(scrubSpy).toHaveBeenCalledTimes(1);
+    expect(scrubSpy).toHaveBeenCalledWith(new ObjectID(METRIC_FINDING_ID));
+    expect(notice).toHaveTextContent(
+      "The metric pipeline rule Data Security: Email address in attributes.user.email now redacts this data in new metrics.",
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(SCRUB_IT_MODAL_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
+    expect(mockTableProps!.refreshToggle).toBe("1");
+  });
+
+  test("a row's Scrub It, cancelled, makes nothing", async () => {
+    renderPage();
+    fireEvent.click(
+      within(await rowOf(METRIC_FINDING_ID)).getByRole("button", {
+        name: "Scrub It",
+      }),
+    );
+
+    const modal: HTMLElement = await screen.findByTestId(
+      SCRUB_IT_MODAL_TEST_ID,
+    );
+
+    fireEvent.click(
+      within(modal.closest("[role='dialog']") as HTMLElement).getByRole(
+        "button",
+        { name: "Cancel" },
+      ),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(SCRUB_IT_MODAL_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
+    expect(scrubSpy).not.toHaveBeenCalled();
+    expect(mockTableProps!.refreshToggle).toBe("");
   });
 
   test("Scrub It on a metric's name is locked, saying why", async () => {

@@ -3,8 +3,11 @@ import {
   NetworkQuickAction,
   getNetworkQuickActionRoute,
 } from "../Network/NetworkQuickActions";
+import {
+  NETWORK_DEVICE_LINK_PICKER,
+  readNetworkDeviceToLink,
+} from "../Network/NetworkDeviceLinkPicker";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import NetworkDeviceOtherAddressesUtil from "Common/Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import Button, {
@@ -12,10 +15,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import {
   FeedClock,
   formatFeedFullTime,
@@ -25,17 +26,11 @@ import {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * Who is sending syslog to a probe without being a device yet - with the
@@ -57,8 +52,6 @@ export interface ComponentProps {
   onLinked: () => void;
 }
 
-const LIST_LIMIT: number = 500;
-
 export const LinkSyslogSourceModal: FunctionComponent<{
   address: string;
   onClose: () => void;
@@ -69,80 +62,16 @@ export const LinkSyslogSourceModal: FunctionComponent<{
   onLinked: (deviceName: string) => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
-  const [devices, setDevices] = useState<Array<NetworkDevice>>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<NetworkDevice> =
-          await ModelAPI.getList<NetworkDevice>({
-            modelType: NetworkDevice,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: LIST_LIMIT,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              hostname: true,
-              otherAddresses: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
-
-        setDevices(result.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    load().catch(() => {
-      // handled inside.
-    });
-  }, []);
-
-  const options: Array<DropdownOption> = devices.map(
-    (device: NetworkDevice): DropdownOption => {
-      const name: string = device.name?.trim() || "";
-      const hostname: string = device.hostname?.trim() || "";
-
-      return {
-        value: device.id?.toString() || "",
-        /*
-         * The name, with the address it is reached at when that says more:
-         * a device named after its own hostname is not named twice, and
-         * one with no hostname gets no empty brackets.
-         */
-        label:
-          name && hostname && name !== hostname
-            ? `${name} (${hostname})`
-            : name || hostname,
-        isUserContent: true,
-      };
-    },
-  );
-
   const save: () => Promise<void> = async (): Promise<void> => {
-    const device: NetworkDevice | undefined = devices.find(
-      (candidate: NetworkDevice): boolean => {
-        return candidate.id?.toString() === selected;
-      },
-    );
+    const pickError: string =
+      translator.translateText("Pick the device that sends this syslog.") || "";
 
-    if (!device || !device.id) {
-      setError(
-        translator.translateText("Pick the device that sends this syslog.") ||
-          "",
-      );
+    if (!selected) {
+      setError(pickError);
       return;
     }
 
@@ -150,6 +79,16 @@ export const LinkSyslogSourceModal: FunctionComponent<{
     setError("");
 
     try {
+      // As it is now: its Other Addresses may have changed since.
+      const device: NetworkDevice | null =
+        await readNetworkDeviceToLink(selected);
+
+      if (!device || !device.id) {
+        setError(pickError);
+        setIsSaving(false);
+        return;
+      }
+
       await ModelAPI.updateById<NetworkDevice>({
         modelType: NetworkDevice,
         id: device.id,
@@ -183,15 +122,14 @@ export const LinkSyslogSourceModal: FunctionComponent<{
         });
       }}
       isLoading={isSaving}
-      isBodyLoading={isLoading}
       disableSubmitButton={!selected}
       error={error || undefined}
     >
       <div data-testid="network-event-link-source">
-        <Dropdown
-          options={options}
+        <EntityDropdown
+          {...NETWORK_DEVICE_LINK_PICKER}
           placeholder="Pick a device"
-          ariaLabel="Device"
+          ariaLabel={translator.translateText("Device")}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             setSelected(value ? String(value) : null);
           }}

@@ -1290,3 +1290,157 @@ describe("A recovery field with [*] when the grouping field has none", () => {
     ).toEqual([tables.incidents[0]!.seriesFingerprint]);
   });
 });
+
+/*
+ * A RECOVERY RESOLVES ONLY ITS OWN CRITERIA'S RECORDS (#10585).
+ *
+ * Each grouped criteria reads a request's recoveries with its own fields.
+ * They used to be pooled across the monitor's grouped criteria, and an open
+ * record of any criteria with that value resolved - its fingerprint is the
+ * hash of { <last path segment>: <value> }, so two criteria grouped by paths
+ * with the same last segment share them. A request one criteria read as
+ * recovered and another as still firing then resolved the other's record,
+ * and the other, matching the request, opened a new one: a resolve and a
+ * reopen - and a page - on every such request. And a criteria that names no
+ * recovery field ("Leave blank to resolve these incidents manually") had its
+ * records resolved by another's recovery.
+ */
+describe("A recovery resolves only the records of the criteria that reads it", () => {
+  const ALERTS_ID: string = "6c1e1d6a-0008-4c00-8000-000000000008";
+  const PAYLOAD_STATUS_ID: string = "6c1e1d6a-0009-4c00-8000-000000000009";
+  const NO_RECOVERY_ID: string = "6c1e1d6a-000a-4c00-8000-00000000000a";
+  const RESOLVED_ID: string = "6c1e1d6a-000b-4c00-8000-00000000000b";
+
+  const BY_ALERT_STATUS: IncidentGroupingConfig = {
+    groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+    resolvedWhenJSONPath: "requestBody.alerts[*].status",
+    resolvedWhenValue: "resolved",
+  };
+
+  function notificationWith(
+    rootStatus: string,
+    alertStatus: string,
+  ): JSONObject {
+    return {
+      status: rootStatus,
+      alerts: [{ status: alertStatus, labels: { alertname: "HighCPU" } }],
+    };
+  }
+
+  // Matches every notification; reads each alert's own status.
+  function alertsCriteria(): MonitorCriteriaInstance {
+    return criteria({
+      id: ALERTS_ID,
+      name: "Alerts",
+      statusId: OFFLINE_STATUS_ID,
+      filters: [bodyFilter(FilterType.Contains, '"alerts"')],
+      grouping: BY_ALERT_STATUS,
+      alert: { title: "Alerts: {{alertname}}", autoResolve: true },
+      incident: { title: "Alerts: {{alertname}}", autoResolve: true },
+    });
+  }
+
+  // Matches nothing here; reads the payload's status, for every alert in it.
+  function payloadStatusCriteria(): MonitorCriteriaInstance {
+    return criteria({
+      id: PAYLOAD_STATUS_ID,
+      name: "Payload status",
+      statusId: DEGRADED_STATUS_ID,
+      filters: [bodyFilter(FilterType.Contains, "matches-nothing")],
+      grouping: {
+        groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+        resolvedWhenJSONPath: "requestBody.status",
+        resolvedWhenValue: "resolved",
+      },
+      alert: { title: "Payload: {{alertname}}", autoResolve: true },
+    });
+  }
+
+  it("a request one criteria reads recovered and another still firing neither resolves nor reopens the other's record", async () => {
+    monitorUnderTest = monitorWith([alertsCriteria(), payloadStatusCriteria()]);
+
+    await send(notificationWith("firing", "firing"));
+
+    expect(alertTitles()).toEqual(["Alerts: HighCPU"]);
+    expect(openIncidentTitles()).toEqual(["Alerts: HighCPU"]);
+
+    // The payload says resolved, the alert itself still fires.
+    const summary: MonitorEvaluationSummary = await send(
+      notificationWith("resolved", "firing"),
+    );
+
+    // One alert and one incident, never resolved, never opened again.
+    expect(alertTitles()).toEqual(["Alerts: HighCPU"]);
+    expect(openAlertTitles()).toEqual(["Alerts: HighCPU"]);
+    expect(tables.incidents).toHaveLength(1);
+    expect(openIncidentTitles()).toEqual(["Alerts: HighCPU"]);
+    expect(tables.stateChanges).toEqual([]);
+    expect(
+      actions(summary).filter((action: string) => {
+        return (
+          action.startsWith("alert-resolved") ||
+          action.startsWith("alert-created") ||
+          action.startsWith("incident-resolved") ||
+          action.startsWith("incident-created")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  it("the criteria's own recovery still resolves its record, whichever criteria matched the request", async () => {
+    monitorUnderTest = monitorWith([alertsCriteria(), payloadStatusCriteria()]);
+
+    await send(notificationWith("firing", "firing"));
+    await send(notificationWith("resolved", "resolved"));
+
+    expect(openAlertTitles()).toEqual([]);
+    expect(openIncidentTitles()).toEqual([]);
+    expect(tables.alerts).toHaveLength(1);
+  });
+
+  it("a criteria that names no recovery field keeps its records open, whatever another criteria reads", async () => {
+    monitorUnderTest = monitorWith([
+      criteria({
+        id: NO_RECOVERY_ID,
+        name: "Firing, resolved by hand",
+        statusId: OFFLINE_STATUS_ID,
+        filters: [bodyFilter(FilterType.Contains, '"status":"firing"')],
+        grouping: { groupByJSONPath: "requestBody.alerts[*].labels.alertname" },
+        alert: { title: "By hand: {{alertname}}", autoResolve: true },
+      }),
+      criteria({
+        id: RESOLVED_ID,
+        name: "Resolved",
+        statusId: ONLINE_STATUS_ID,
+        filters: [bodyFilter(FilterType.Contains, '"status":"resolved"')],
+        grouping: BY_ALERT_STATUS,
+      }),
+    ]);
+
+    await send(notificationWith("firing", "firing"));
+    await send(notificationWith("resolved", "resolved"));
+
+    expect(openAlertTitles()).toEqual(["By hand: HighCPU"]);
+    expect(tables.stateChanges).toEqual([]);
+  });
+
+  it("a criteria that names its recovery field is resolved by its own reading, when another criteria takes the request", async () => {
+    monitorUnderTest = monitorWith([
+      criteria({
+        id: NO_RECOVERY_ID,
+        name: "Firing, resolved by its own field",
+        statusId: OFFLINE_STATUS_ID,
+        filters: [bodyFilter(FilterType.Contains, '"status":"firing"')],
+        grouping: BY_ALERT_STATUS,
+        alert: { title: "Own field: {{alertname}}", autoResolve: true },
+      }),
+      allClear(),
+    ]);
+
+    await send(notificationWith("firing", "firing"));
+    await send(notificationWith("resolved", "resolved"));
+
+    expect(openAlertTitles()).toEqual([]);
+    expect(tables.stateChanges).toHaveLength(1);
+  });
+});

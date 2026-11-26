@@ -130,6 +130,9 @@ const mockProviderRow: { _id: string } = {
   _id: "33333333-3333-4333-8333-333333333333",
 };
 
+// Each stand-in table's props as last drawn, by its id: what a test reads of a column.
+const mockTableProps: Record<string, Record<string, unknown>> = {};
+
 /*
  * The team a project's new SAML or OIDC provider starts on
  * (Utils/DefaultInviteTeam, looked up once when Settings > SSO opens, for
@@ -246,6 +249,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     columns?: Array<MockColumn> | undefined;
   }): ReactElement => {
     const [created, setCreated] = react.useState<string>("");
+
+    mockTableProps[props.id] = props as unknown as Record<string, unknown>;
 
     const visibleActions: Array<MockActionButton> = (
       props.actionButtons || []
@@ -521,6 +526,10 @@ import { getJestSpyOn } from "../../Spy";
 import Clipboard from "../../../UI/Utils/Clipboard";
 import URL from "../../../Types/API/URL";
 import { APP_API_URL } from "../../../UI/Config";
+import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
+import { SAML_SIGN_IN_AGAIN_NOTE_TEST_ID } from "../../../UI/Components/Sso/SamlSignInAgainNote";
+import { drawsItsOwnLines } from "../../../UI/Components/Table/ColumnLineText";
+import { SamlSignInAgainAdvice } from "../../../Types/SSO/SamlSignInAgainAdvice";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -1641,6 +1650,113 @@ describe("a SAML provider's sign-out at the identity provider", () => {
     expect(statusPageSaml.formFields).not.toContain(
       "signOutOfIdentityProvider",
     );
+  });
+});
+
+/*
+ * WHAT SIGN IN AGAIN NEEDS OF A SAML PROVIDER, BESIDE IT (#10530). The
+ * project's SAML table reads each provider's issuer and sign-on URL, and
+ * its Name column draws, under a Keycloak provider's name, that Sign In
+ * Again cannot be checked through it, and under an Okta provider's, Honor
+ * Force Authentication. A status page's SAML table says nothing of it:
+ * nobody signs in again through a status page's provider.
+ */
+describe("a SAML provider's row says what Sign In Again needs of it", () => {
+  interface NameColumn {
+    title: string;
+    getElement?: ((item: unknown) => ReactElement) | undefined;
+    getLineText?: unknown;
+  }
+
+  const projectSaml: PageCase = PAGE_CASES.find((pageCase: PageCase) => {
+    return pageCase.name === "Settings > SSO";
+  })!;
+  const statusPageSaml: PageCase = PAGE_CASES.find((pageCase: PageCase) => {
+    return pageCase.name === "Status page > SSO";
+  })!;
+
+  function nameColumn(): NameColumn {
+    return (mockTableProps["sso-table"]!["columns"] as Array<NameColumn>)[0]!;
+  }
+
+  function provider(data: {
+    name: string;
+    issuerURL: string;
+    signOnURL: string;
+  }): ProjectSSO {
+    const saml: ProjectSSO = new ProjectSSO();
+    saml.name = data.name;
+    saml.issuerURL = data.issuerURL;
+    saml.signOnURL = URL.fromString(data.signOnURL);
+    return saml;
+  }
+
+  function adviceUnder(saml: ProjectSSO): string | null {
+    const cell: ReturnType<typeof render> = render(
+      nameColumn().getElement!(saml),
+    );
+    const note: HTMLElement | null = within(cell.container).queryByTestId(
+      SAML_SIGN_IN_AGAIN_NOTE_TEST_ID,
+    );
+    const advice: string | null = note?.getAttribute("data-advice") || null;
+
+    expect(cell.container).toHaveTextContent(saml.name!);
+    cell.unmount();
+
+    return advice;
+  }
+
+  test("the project's SAML table reads the issuer and the sign-on URL, and draws its names in their own lines", () => {
+    renderPage(projectSaml);
+
+    expect(mockTableProps["sso-table"]!["selectMoreFields"]).toEqual({
+      issuerURL: true,
+      signOnURL: true,
+    });
+    expect(nameColumn().title).toBe("Name");
+    expect(nameColumn().getLineText).toBe(drawsItsOwnLines);
+  });
+
+  test("under a Keycloak provider: Sign In Again cannot be checked through it; under Okta: Honor Force Authentication; under any other, nothing", () => {
+    renderPage(projectSaml);
+
+    expect(
+      adviceUnder(
+        provider({
+          name: "Acme Keycloak",
+          issuerURL: "https://keycloak.example.com/realms/acme",
+          signOnURL: "https://keycloak.example.com/realms/acme/protocol/saml",
+        }),
+      ),
+    ).toBe(SamlSignInAgainAdvice.KeycloakCannotBeChecked);
+    expect(
+      adviceUnder(
+        provider({
+          name: "Acme Okta",
+          issuerURL: "http://www.okta.com/exk1a2b3c4D5E6F7g8h9",
+          signOnURL:
+            "https://acme.okta.com/app/acme_oneuptime_1/exk1a2b3c4D5E6F7g8h9/sso/saml",
+        }),
+      ),
+    ).toBe(SamlSignInAgainAdvice.TurnOnOktaHonorForceAuthentication);
+    expect(
+      adviceUnder(
+        provider({
+          name: "Contoso Entra ID",
+          issuerURL:
+            "https://sts.windows.net/72f988bf-86f1-41af-91ab-2d7cd011db47/",
+          signOnURL:
+            "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/saml2",
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("a status page's SAML providers say nothing of Sign In Again", () => {
+    renderPage(statusPageSaml);
+
+    expect(mockTableProps["sso-table"]!["selectMoreFields"]).toBeUndefined();
+    expect(nameColumn().getElement).toBeUndefined();
   });
 });
 

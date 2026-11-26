@@ -25,7 +25,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -315,10 +315,11 @@ const CephClusterInsights: FunctionComponent<
         <div className="space-y-6">
           <div className="group/zoomhint">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              {translator.translateText("Client IOPS")}
-              <InfoTooltip
+              <WordsWithInfoTooltip
+                className="min-w-0"
+                text={translator.translateText("Client IOPS") || "Client IOPS"}
                 label="Client IOPS"
-                text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+                description={CEPH_METRIC_DESCRIPTIONS.clientIops}
               />
               <TimeRangeZoomHint
                 revealOnHover={true}
@@ -340,10 +341,14 @@ const CephClusterInsights: FunctionComponent<
           </div>
           <div className="group/zoomhint">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              {translator.translateText("Client Throughput")}
-              <InfoTooltip
+              <WordsWithInfoTooltip
+                className="min-w-0"
+                text={
+                  translator.translateText("Client Throughput") ||
+                  "Client Throughput"
+                }
                 label="Client Throughput"
-                text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+                description={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
               />
               <TimeRangeZoomHint
                 revealOnHover={true}

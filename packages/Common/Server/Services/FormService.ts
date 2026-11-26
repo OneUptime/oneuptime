@@ -127,6 +127,11 @@ import {
 } from "../../Types/Form/FormPrivateUserSignIn";
 
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
+import Alert from "../../Models/DatabaseModels/Alert";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 /*
  * What a form may hold, and what its public page does. The public page that
  * submits a form - and whatever each submission creates - trust everything
@@ -151,7 +156,9 @@ import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
  *     project, of a type the public page draws and small (FormBranding);
  *   - every record its settings and questions name - a severity, monitors
  *     offered to choose from, a custom field, an owner - belongs to its own
- *     project, because every submission is created in that project with them.
+ *     project, because every submission is created in that project with them;
+ *   - a form that creates alerts is set up only by someone who may create
+ *     alerts (assertMaySetUpTarget, #10760).
  *
  * The public routes themselves live in FormAPI, and are thin: what a visitor
  * is told about a form and what a submission turns into are decided here,
@@ -163,7 +170,29 @@ export const FORM_SHARE_KEY_MESSAGE: string =
   "Share Key must be a UUID, such as the one the dashboard's Reset Link generates.";
 
 export const FORM_TARGET_TYPE_MESSAGE: string =
-  "Creates must be Incident or ScheduledMaintenance.";
+  "Creates must be Incident, Alert or ScheduledMaintenance.";
+
+/*
+ * Said before the permission refusal itself, which names the permissions
+ * that would allow it (TablePermission): a form that creates alerts lets
+ * anyone with its link create them - and so notify their owners and page
+ * their on-call - so setting one up takes what creating an alert takes.
+ */
+export const FORM_ALERT_PERMISSION_MESSAGE: string =
+  "Only people who may create alerts can set up a form that creates them.";
+
+/*
+ * The record each target creates whose create permission setting a form
+ * up for it takes, when it takes one (assertMaySetUpTarget). Incident and
+ * maintenance forms are set up with the Form permissions alone, as they
+ * always were: Create Form is given on purpose, and says that its forms
+ * create incidents and maintenance events.
+ */
+const TARGET_CREATE_PERMISSION_MODELS: Partial<
+  Record<FormTargetType, typeof Alert>
+> = {
+  [FormTargetType.Alert]: Alert,
+};
 
 /*
  * The one answer a public request gets for every form it may not use: a
@@ -307,6 +336,9 @@ export class Service extends DatabaseService<Model> {
     );
     createBy.data.targetType = targetType;
 
+    // Creating a form is setting it up: for alerts, only by who may create them.
+    this.assertMaySetUpTarget({ targetType, props: createBy.props });
+
     /*
      * A form created without questions starts with the target's own - a
      * title, a description, every field the target cannot do without, and
@@ -343,6 +375,7 @@ export class Service extends DatabaseService<Model> {
         targetType,
         fields: createBy.data.fields,
         settings: createBy.data.targetSettings,
+        storedSettings: undefined,
         storedFields: undefined,
         checkFields: true,
         checkSettings: true,
@@ -382,6 +415,17 @@ export class Service extends DatabaseService<Model> {
 
     if (has("targetType") && !isFormTargetType(data["targetType"])) {
       throw new BadDataException(FORM_TARGET_TYPE_MESSAGE);
+    }
+
+    /*
+     * Making a form create alerts is setting it up for them: refused before
+     * anything is read for someone who may not create alerts.
+     */
+    if (has("targetType")) {
+      this.assertMaySetUpTarget({
+        targetType: data["targetType"] as FormTargetType,
+        props: updateBy.props,
+      });
     }
 
     if (has("templates")) {
@@ -487,6 +531,16 @@ export class Service extends DatabaseService<Model> {
         ? (data["targetType"] as FormTargetType)
         : readFormTargetType(form.targetType);
 
+      /*
+       * Its questions, settings and templates are how it sets its records
+       * up - which severity, monitor, owners, what the submitter may pick -
+       * so changing them on a form that creates alerts takes what creating
+       * an alert takes, as setting the form up did. Its name, its link, its
+       * switch and its look are the form's own, and take the Form
+       * permissions alone.
+       */
+      this.assertMaySetUpTarget({ targetType, props: updateBy.props });
+
       const fields: unknown = changesQuestions
         ? data["fields"] === null
           ? []
@@ -519,6 +573,11 @@ export class Service extends DatabaseService<Model> {
           targetType,
           fields: changesQuestions || changesTarget ? fields : undefined,
           settings: changesSettings || changesTarget ? settings : undefined,
+          /*
+           * What the form held, on an update that keeps its target: a
+           * record it held and that is gone since is not refused again.
+           */
+          storedSettings: changesTarget ? undefined : form.targetSettings,
           storedFields: changesTarget ? undefined : form.fields,
           checkFields: changesQuestions || changesTarget,
           checkSettings: changesSettings || changesTarget,
@@ -537,6 +596,53 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Only people who may create what a form creates can set the form up for
+   * it, where the target asks for that (TARGET_CREATE_PERMISSION_MODELS): a
+   * form that creates alerts lets anyone with its link create them, so
+   * creating one, turning a form into one, or changing how one makes its
+   * alerts takes the permission creating an alert takes (#10760) - the
+   * table's own check, blocks included, as the API would ask it of the
+   * caller's own create. OneUptime itself and a master admin may.
+   */
+  private assertMaySetUpTarget(data: {
+    targetType: FormTargetType;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const modelType: typeof Alert | undefined =
+      TARGET_CREATE_PERMISSION_MODELS[data.targetType];
+
+    if (!modelType || data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    try {
+      TablePermission.checkTableLevelPermissions(
+        modelType,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+      TablePermission.checkTableLevelBlockPermissions(
+        modelType,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        /*
+         * FORM_ALERT_PERMISSION_MESSAGE, written out so the refusal reads as
+         * the two sentences it is (ErrorMessagesGuard); FormService.test
+         * holds the two to the same words.
+         */
+        throw new NotAuthorizedException(
+          `Only people who may create alerts can set up a form that creates them. ${err.message}`,
+        );
+      }
+
+      throw err;
+    }
   }
 
   /**
@@ -1654,6 +1760,8 @@ export class Service extends DatabaseService<Model> {
 
       if (submission.targetType === FormTargetType.ScheduledMaintenance) {
         submission.scheduledMaintenanceId = data.created.id;
+      } else if (submission.targetType === FormTargetType.Alert) {
+        submission.alertId = data.created.id;
       } else {
         submission.incidentId = data.created.id;
       }
@@ -1764,6 +1872,8 @@ export class Service extends DatabaseService<Model> {
     targetType: FormTargetType;
     fields: unknown;
     settings: unknown;
+    // What the form held before an update of the same target.
+    storedSettings?: unknown;
     storedFields: unknown;
     checkFields: boolean;
     checkSettings: boolean;
@@ -1774,6 +1884,8 @@ export class Service extends DatabaseService<Model> {
       await handler.validateReferences({
         projectId: data.projectId,
         settings: data.settings as JSONObject,
+        storedSettings:
+          (data.storedSettings as JSONObject | undefined) || undefined,
       });
     }
 

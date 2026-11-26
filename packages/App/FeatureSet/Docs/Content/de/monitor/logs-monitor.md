@@ -237,7 +237,7 @@ Der Wert jedes Group-By-Attributs ist eine [Vorlagenvariable](/docs/monitor/inci
 - **Jedes Kriterium wird ausgewertet**, wie bei einem gruppierten Metriken-Monitor, sodass verschiedene Gruppen zugleich verschiedene Kriterien erfüllen können. Eine Gruppe, die zwei Kriterien erfüllt, erhält trotzdem nur eine Warnung, vom ersten; ordnen Sie die Kriterien also mit dem schwerwiegendsten zuerst.
 - **Eine Gruppe existiert nur, wenn sie im Zeitfenster etwas protokolliert hat.** Kriterien mit **Gleich 0** und **Kleiner als** lösen daher nur für Gruppen aus, die mindestens einmal protokolliert haben; um zu warnen, wenn gar keine Logs mehr eintreffen, verwenden Sie einen Monitor ohne Group By.
 - **Anomalieerkennung** (**Anomal hoch**, **Anomal niedrig**, **Anomal**) wird nicht pro Gruppe ausgewertet – ihre Baseline umfasst den ganzen Monitor –, daher passen diese Filter bei einem gruppierten Monitor nie.
-- Der Status des Monitors folgt dem ersten Kriterium, das irgendeine Gruppe erfüllt. Erfüllt keine Gruppe ein Kriterium, kehrt der Monitor zu seinem Standardstatus zurück.
+- Der Status des Monitors folgt dem ersten Kriterium, das irgendeine Gruppe erfüllt. Ein Kriterium, das den Monitor nur auf seinen Standardstatus zurückbringt und keine Warnung und keinen Vorfall eröffnet, wartet auf die Gruppen, die ein Kriterium erfüllt haben, das einen anderen Status setzt, bis jede von ihnen es erfüllt oder im Zeitfenster nichts protokolliert. Erfüllt keine Gruppe ein Kriterium und wird auf keine gewartet, kehrt der Monitor zu seinem Standardstatus zurück.
 
 ## Fehlerbehebung
 

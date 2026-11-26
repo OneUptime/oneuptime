@@ -79,8 +79,22 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 )
 @TableMetadata({
   tableName: "StatusPageSubscriberNotificationTemplateStatusPage",
-  singularName: "Subscriber Notification Template",
-  pluralName: "Subscriber Notification Templates",
+  /*
+   * A status page's subscriber notification template: the row that puts a
+   * template on a status page. Until #10664 it had the template's own name,
+   * so the audit log, its export and the API read the two alike. The name
+   * is the one the Terraform provider and the CLI already gave it
+   * (oneuptime_status_page_subscriber_notification_template).
+   */
+  singularName: "Status Page Subscriber Notification Template",
+  pluralName: "Status Page Subscriber Notification Templates",
+  /*
+   * The name it shared with the template. The Terraform provider moves a
+   * link's state from oneuptime_subscriber_notification_template, the
+   * template's name, and the audit log finds the entries recorded under
+   * it in this table too (getAuditLogResourceTypesOfModel).
+   */
+  formerSingularName: "Subscriber Notification Template",
   icon: IconProp.Link,
   tableDescription:
     "Links subscriber notification templates to specific status pages. This allows you to use different notification templates for different status pages.",
@@ -401,59 +415,4 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

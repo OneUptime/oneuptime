@@ -638,6 +638,133 @@ describe("StatusPageSummaryBuilder.fromOverview: incidents", () => {
   });
 });
 
+/*
+ * The summary's active incidents are what the page's Active Incidents
+ * section draws (#10767): on a page that shows episodes but not incidents,
+ * its active episodes. It said such a page had none.
+ */
+describe("StatusPageSummaryBuilder.fromOverview: active incidents in each mode", () => {
+  const declaredAt: Date = new Date(NOW.getTime() - 45 * 60 * 1000);
+
+  const activeEpisode: JSONObject = {
+    _id: id("e01"),
+    title: "Infrastructure Outage",
+    declaredAt: { _type: "DateTime", value: declaredAt.toISOString() },
+    currentIncidentState: { name: "Investigating" },
+    incidentSeverity: { name: "SEV-1" },
+    monitors: [{ _id: M_API }, { _id: M_DB_PRIMARY }],
+  };
+
+  const activeIncident: {
+    id: string;
+    title: string;
+    declaredAt: Date;
+    state: string;
+    severity: string;
+    monitorIds: Array<string>;
+  } = {
+    id: id("f03"),
+    title: "Website Monitor Outage",
+    declaredAt: declaredAt,
+    state: "Investigating",
+    severity: "SEV-2",
+    monitorIds: [M_WEB],
+  };
+
+  function summarizeWith(
+    page: FakeStatusPage,
+    extra: JSONObject,
+  ): StatusPageSummary {
+    return StatusPageSummaryBuilder.fromOverview(
+      JSON.parse(
+        JSON.stringify({ ...buildFakeOverview(page), ...extra }),
+      ) as JSONObject,
+    );
+  }
+
+  test("a page that shows episodes only lists its active episodes, with what they affect", () => {
+    const summary: StatusPageSummary = summarizeWith(
+      departmentPage({ showsIncidents: false }),
+      {
+        incidentListMode: "EpisodesOnly",
+        activeEpisodes: [activeEpisode],
+      },
+    );
+
+    expect(summary.activeIncidents).toEqual([
+      {
+        id: id("e01"),
+        title: "Infrastructure Outage",
+        declaredAt: declaredAt.toISOString(),
+        state: "Investigating",
+        severity: "SEV-1",
+        affectedResourceIds: [R_API, R_DATABASES],
+      },
+    ]);
+  });
+
+  test("an episode naming a monitor the page does not list names no resource for it", () => {
+    const summary: StatusPageSummary = summarizeWith(
+      departmentPage({ showsIncidents: false }),
+      {
+        incidentListMode: "EpisodesOnly",
+        activeEpisodes: [{ ...activeEpisode, monitors: [{ _id: M_OFF_PAGE }] }],
+      },
+    );
+
+    expect(summary.activeIncidents[0]!.affectedResourceIds).toEqual([]);
+  });
+
+  test.each(["GroupedByEpisode", "Separate", "IncidentsOnly"])(
+    "a page in %s lists its active incidents, as before, not its episodes",
+    (mode: string) => {
+      const summary: StatusPageSummary = summarizeWith(
+        departmentPage({ incidents: [activeIncident] }),
+        {
+          incidentListMode: mode,
+          activeEpisodes: [activeEpisode],
+        },
+      );
+
+      expect(
+        summary.activeIncidents.map(
+          (incident: StatusPageSummary["activeIncidents"][number]): string => {
+            return incident.id;
+          },
+        ),
+      ).toEqual([id("f03")]);
+    },
+  );
+
+  test("an overview from a server that names no mode lists its active incidents, as it always did", () => {
+    const summary: StatusPageSummary = summarizeWith(
+      departmentPage({ incidents: [activeIncident] }),
+      { activeEpisodes: [activeEpisode] },
+    );
+
+    expect(summary.activeIncidents).toHaveLength(1);
+    expect(summary.activeIncidents[0]!.id).toBe(id("f03"));
+  });
+
+  test("an episode with no id is left out, and odd entries are no error", () => {
+    const summary: StatusPageSummary = summarizeWith(
+      departmentPage({ showsIncidents: false }),
+      {
+        incidentListMode: "EpisodesOnly",
+        activeEpisodes: [
+          { title: "No id" },
+          null,
+          "x",
+          { ...activeEpisode, monitors: "not a list" },
+        ] as unknown as JSONObject,
+      },
+    );
+
+    expect(summary.activeIncidents).toHaveLength(1);
+    expect(summary.activeIncidents[0]!.affectedResourceIds).toEqual([]);
+  });
+});
+
 describe("StatusPageSummaryBuilder.fromOverview: resources nothing checks", () => {
   /*
    * A monitor whose monitoring is off is not checked, and neither is a

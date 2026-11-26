@@ -731,11 +731,12 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   },
   {
     reason:
-      "Which feed a watchlist follows, which connection a feed reads through, which kind of scan last read a finding, which case a data security issue is worked in or a block was made for (#10338), which cloud account and connection a data store is in, and which connection a cloud resource is read through: by its name, its kind or provider and whether it is on, and a case by its number. A custom role given the first reads which of the second it names, as the Security tiers read a store's cloud account and connection by name, and App Platforms' levels a resource's connection (#10289). Never what the second holds: a feed's URLs, cursor and page token, a connection's settings and errors, a scan's figures, a case's title, verdict, assignees and due dates, a cloud connection's configuration and an account's id follow the record's own read through every relation (#10310).",
+      "Which feed a watchlist follows, which connection a feed reads through, which kind of scan last read a finding, which case a data security issue is worked in or a block was made for (#10338), which automatic response policy made a block (#10350), which cloud account and connection a data store is in, and which connection a cloud resource is read through: by its name, its kind or provider and whether it is on, and a case by its number. A custom role given the first reads which of the second it names, as the Security tiers read a store's cloud account and connection by name, and App Platforms' levels a resource's connection (#10289). Never what the second holds: a feed's URLs, cursor and page token, a connection's settings and errors, a scan's figures, a case's title, verdict, assignees and due dates, what a policy acts on and whether it is on, a cloud connection's configuration and an account's id follow the record's own read through every relation (#10310).",
     columns: {
       CloudAccount: ["name", "provider"],
       CloudConnection: ["isEnabled", "name", "provider"],
       DataSecurityScan: ["kind"],
+      SecurityAutomaticResponsePolicy: ["kind", "name"],
       SecurityCase: ["caseNumber", "caseNumberWithPrefix"],
       SecurityEventConnection: ["isEnabled", "name", "provider"],
       ThreatIntelFeed: ["feedType", "isEnabled", "name"],
@@ -948,7 +949,7 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
       },
     );
 
-    expect(heldToOwnRead.length).toBe(42);
+    expect(heldToOwnRead.length).toBe(44);
     expect(heldToOwnRead).toEqual(
       expect.arrayContaining([
         "sensitivity",
@@ -969,6 +970,9 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
         "contentScanStatus",
         "purpose",
         "retention",
+        // The record of processing's lawful basis and the people it is about (#10375).
+        "legalBasis",
+        "dataSubjects",
         "description",
       ]),
     );
@@ -1046,7 +1050,7 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
       return RelationReadersUtil.isHeldToItsOwnRead(metadata);
     }) as Array<TableColumnMetadata>;
 
-    expect(heldToOwnRead.length).toBe(42);
+    expect(heldToOwnRead.length).toBe(44);
 
     // The column metadata is the model's own: planted off, and put back.
     for (const metadata of heldToOwnRead) {
@@ -1069,10 +1073,17 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
           "DataAlert.dataStore reads DataStore.exposure for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
           "DataWarehouseJob.dataStore reads DataStore.riskScore for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
           "DataSecurityIssue.dataStore reads DataStore.cloudAccountNumber for ReadDataSecurityIssue",
+          // The record of processing's, added since 17.1.0 (#10375).
+          "DataAsset.dataStore reads DataStore.dataSubjects for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "DataSecurityIssue.dataStore reads DataStore.legalBasis for ReadDataSecurityIssue",
         ]),
       );
-      // Each of the 42, through each of the nine relations that reach a store.
-      expect(unrecorded.length).toBe(42 * 9);
+      /*
+       * Each of the 44 - the 42 of 17.1.0, with the legal basis and the
+       * people it is about - through each of the nine relations that reach
+       * a store.
+       */
+      expect(unrecorded.length).toBe(44 * 9);
     } finally {
       for (const metadata of heldToOwnRead) {
         metadata.relationReaders = RelationReaders.ColumnReaders;
@@ -1205,7 +1216,8 @@ describe("a Security record's details are no relation's label (#10310)", () => {
     {
       model: new SecurityCase(),
       labels: ["caseNumber", "caseNumberWithPrefix"],
-      heldCount: 19,
+      // With when an automatic response blocked its address, and how soon (#10350).
+      heldCount: 21,
     },
     {
       model: new CloudConnection(),
@@ -1279,7 +1291,7 @@ describe("a Security record's details are no relation's label (#10310)", () => {
   test("as 17.1.0 shipped them, the guard names each detail through each relation that read it wider, and who read it", () => {
     const held: Array<TableColumnMetadata> = RECORDS.flatMap(heldOf);
 
-    expect(held).toHaveLength(72);
+    expect(held).toHaveLength(74);
 
     // The column metadata is the models' own: planted off, and put back.
     for (const metadata of held) {
@@ -1317,10 +1329,12 @@ describe("a Security record's details are no relation's label (#10310)", () => {
       );
       /*
        * Each detail through each relation it was read wider through: a
-       * case's through two (an issue's and a block's), a cloud connection's
-       * through three (a store's, a scan's and a cloud resource's).
+       * case's through three (an issue's, a block's and what an automatic
+       * response policy did about it, #10350), a cloud connection's
+       * through four (a store's, a scan's, a cloud resource's and a cloud
+       * WAF's, #10344).
        */
-      expect(unrecorded).toHaveLength(19 + 8 + 13 + 19 * 2 + 7 * 3 + 6);
+      expect(unrecorded).toHaveLength(19 + 8 + 13 + 21 * 3 + 7 * 4 + 6);
     } finally {
       for (const metadata of held) {
         metadata.relationReaders = RelationReaders.ColumnReaders;

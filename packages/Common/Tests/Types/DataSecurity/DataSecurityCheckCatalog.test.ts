@@ -23,6 +23,7 @@ import DataSensitivity, {
 import DataStoreEnvironment from "../../../Types/DataSecurity/DataStoreEnvironment";
 import {
   DATA_STORE_KINDS,
+  DECLARED_DATA_STORE_KINDS,
   DataStoreKind,
   DataStoreKindInfo,
   DataStoreProvider,
@@ -801,13 +802,45 @@ describe("checkAppliesToKind", () => {
     ).toBe(false);
   });
 
-  test("applies a check with no kinds or families to every store", () => {
+  test("applies a check with no kinds or families to every store but the ones OneUptime declares", () => {
     for (const info of DATA_STORE_KINDS) {
-      expect(
+      expect([
+        info.kind,
         checkAppliesToKind(getDataSecurityCheck("no-owner")!, info.kind),
-      ).toBe(true);
+      ]).toEqual([info.kind, !info.isDeclared]);
     }
   });
+
+  /*
+   * Security Events, Network Flows and the address vault hold IP addresses
+   * by design (#10398): holding them is what they are for, so no check -
+   * whatever kinds or families it names, or none - applies, and none ever
+   * opens an issue on one of them.
+   */
+  test.each([...DECLARED_DATA_STORE_KINDS])(
+    "applies no check at all to %s, which OneUptime declares",
+    (kind: DataStoreKind) => {
+      for (const each of DATA_SECURITY_CHECKS) {
+        expect([each.id, checkAppliesToKind(each, kind)]).toEqual([
+          each.id,
+          false,
+        ]);
+      }
+
+      // Not even on a store that looks as bad as a store can.
+      expect(
+        evaluateDataStoreChecks(
+          store({
+            kind,
+            sensitivity: DataSensitivity.Restricted,
+            hasOwner: false,
+            lastActivityAt: null,
+            readerCount: 500,
+          }),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   test("applies no family-bound check to a kind it does not know", () => {
     expect(

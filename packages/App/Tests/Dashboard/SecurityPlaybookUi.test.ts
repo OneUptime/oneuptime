@@ -20,6 +20,10 @@ import {
 } from "Common/Tests/Helpers/SecurityCaseValues";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import {
+  SecurityBlockAction,
+  SecurityBlockDuration,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
+import {
   SECURITY_PLAYBOOK_ACTIONS,
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
@@ -185,6 +189,12 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
   },
   [SecurityPlaybookActionType.BlockDataStorePublicAccess]: {},
   [SecurityPlaybookActionType.RevokeDataStoreSharing]: {},
+  // A challenge for a week, not the step's default block for a day (#10342).
+  [SecurityPlaybookActionType.BlockAddress]: {
+    blockAction: SecurityBlockAction.Challenge,
+    duration: SecurityBlockDuration.SevenDays,
+  },
+  [SecurityPlaybookActionType.LiftAddressBlock]: {},
   [SecurityPlaybookActionType.SendWebhook]: {
     url: "https://example.com/hooks/security",
   },

@@ -2,7 +2,7 @@
  * The Incoming Request endpoint records WHEN a heartbeat arrived, at the
  * moment it arrives.
  *
- * It answers 2xx and queues the request for a Telemetry worker. Liveness used
+ * It queues the request for a Telemetry worker and answers 2xx. Liveness used
  * to be stamped only by that worker, so a queue backlog longer than a
  * monitor's window read as a dead sender while the sender was being answered
  * 2xx (2026-10-04/05). The endpoint now advances the monitor's arrival
@@ -102,7 +102,10 @@ jest.mock("Common/Server/Utils/Monitor/IncomingRequestSecretGate", () => {
   };
 });
 
-import IncomingRequestAPI from "../../FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest";
+import IncomingRequestAPI, {
+  INCOMING_REQUEST_NOT_QUEUED_MESSAGE,
+} from "../../FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest";
+import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
 import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import Response from "Common/Server/Utils/Response";
@@ -278,19 +281,77 @@ describe("Incoming Request endpoint records the arrival time", () => {
     expect(jobInput.receivedAt.getTime()).toBe(ARRIVED_AT.getTime());
   });
 
-  test("answers first, then records the arrival, then queues the request", async () => {
+  /*
+   * Queued before it is answered (#10582): a request the sender sends once
+   * this one was answered is queued after it, and its monitor evaluates the
+   * two in that order. The arrival is recorded once the sender has its
+   * answer, at the time the request arrived.
+   */
+  test("queues the request first, then answers, then records the arrival", async () => {
     await send({ method: "POST", secretKey: SECRET_KEY });
 
     expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
 
+    const queued: number =
+      addIncomingRequestIngestJob.mock.invocationCallOrder[0]!;
     const responded: number =
       sendEmptySuccessResponse.mock.invocationCallOrder[0]!;
     const recorded: number = advanceIfTracked.mock.invocationCallOrder[0]!;
-    const queued: number =
-      addIncomingRequestIngestJob.mock.invocationCallOrder[0]!;
 
+    expect(queued).toBeLessThan(responded);
     expect(responded).toBeLessThan(recorded);
-    expect(recorded).toBeLessThan(queued);
+  });
+
+  test("answers only once the request is queued", async () => {
+    let finishQueueing: () => void = (): void => {};
+
+    addIncomingRequestIngestJob.mockImplementationOnce((() => {
+      return new Promise<void>((resolve: () => void) => {
+        finishQueueing = resolve;
+      });
+    }) as never);
+
+    const sent: Promise<jest.Mock> = send({
+      method: "POST",
+      secretKey: SECRET_KEY,
+    });
+
+    await settle();
+    expect(addIncomingRequestIngestJob).toHaveBeenCalledTimes(1);
+    expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
+
+    finishQueueing();
+    await sent;
+    await settle();
+
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * One that cannot be queued is refused with 503, for the sender to send
+   * again, rather than answered 200 and lost. It is not recorded as an
+   * arrival either: the sender's next try is.
+   */
+  test("a request that cannot be queued is refused with 503, not answered 200", async () => {
+    addIncomingRequestIngestJob.mockRejectedValueOnce(
+      new Error("Redis is not connected") as never,
+    );
+
+    const next: jest.Mock = await send({
+      method: "POST",
+      secretKey: SECRET_KEY,
+    });
+
+    expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
+    expect(advanceIfTracked).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledTimes(1);
+
+    const refusal: ServiceUnavailableException = next.mock
+      .calls[0]![0] as ServiceUnavailableException;
+
+    expect(refusal).toBeInstanceOf(ServiceUnavailableException);
+    expect(refusal.code).toBe(503);
+    expect(refusal.message).toBe(INCOMING_REQUEST_NOT_QUEUED_MESSAGE);
   });
 
   test("a request without a secret key records nothing and queues nothing", async () => {

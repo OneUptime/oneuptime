@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import AlertSeverity from "./AlertSeverity";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OpenStackCloud from "./OpenStackCloud";
@@ -116,6 +118,18 @@ const deletePermissions: Array<Permission> = [
   delete: deletePermissions,
   update: updatePermissions,
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_OPENSTACKBUDGET_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "OpenStackBudget",
 })
@@ -237,6 +251,7 @@ export default class OpenStackBudget extends BaseModel {
     read: readPermissions,
     update: updatePermissions,
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -534,48 +549,4 @@ export default class OpenStackBudget extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted by User",
-    description: "Relation to the user who deleted this budget.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description: "ID of the user who deleted this budget.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

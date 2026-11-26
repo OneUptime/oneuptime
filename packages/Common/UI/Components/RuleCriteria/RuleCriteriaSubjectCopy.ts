@@ -172,6 +172,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All cloud environments"),
     matching: translationKey("Only cloud environments that match conditions"),
   },
+  [RuleCriteriaSubject.DataSecurityIssues]: {
+    all: translationKey("All issues"),
+    matching: translationKey("Only issues that match conditions"),
+  },
 };
 
 /*

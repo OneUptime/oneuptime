@@ -455,8 +455,16 @@ export default class CodeTaskAgentBrief {
       )}).`,
     ];
 
+    // A fix asked from a security case (#10347) is still a fix of its exception.
+    if (origin.type === CodeTaskOriginType.SecurityCase) {
+      lines.push(
+        `It came from security case ${origin.label || origin.recordId || ""}.`,
+      );
+    }
+
     if (
-      origin.type === CodeTaskOriginType.Exception &&
+      (origin.type === CodeTaskOriginType.Exception ||
+        origin.type === CodeTaskOriginType.SecurityCase) &&
       turn.triggeredByTelemetryExceptionId
     ) {
       const exception: TelemetryException | null =

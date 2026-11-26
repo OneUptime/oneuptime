@@ -1,3 +1,9 @@
+import {
+  DELETED_BY_USER_ID_COLUMN,
+  DELETED_BY_USER_TABLES,
+  DeletedByUserTable,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity";
 import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
 import { AddDataSecurityIdentities1808791000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808791000000-AddDataSecurityIdentities";
@@ -9,6 +15,15 @@ import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastruc
 import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
 import { AddTableHealthSkippedTables1809184919541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184919541-AddTableHealthSkippedTables";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
+import { AddDataSecurityIssueAiAnalysis1809187436369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436369-AddDataSecurityIssueAiAnalysis";
+import { AddDataSecurityIssueGroups1809187470370 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470370-AddDataSecurityIssueGroups";
+import { AddScrubRuleNamedKeysAndProof1809187470400 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470400-AddScrubRuleNamedKeysAndProof";
+import { AddDataSecurityIssueResolution1809187510368 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187510368-AddDataSecurityIssueResolution";
+import { AddDataStoreFindingAiVerdicts1809187520372 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187520372-AddDataStoreFindingAiVerdicts";
+import { AddDataSecurityComplianceDrafts1809187530375 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187530375-AddDataSecurityComplianceDrafts";
+import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187540373-AddDataSecurityNamesAndAddressesModel";
+import { AddDataStoreFindingAiScrubRules1809187570752 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187570752-AddDataStoreFindingAiScrubRules";
+import { AddDataSecurityIssueCodeFixTask1809187580367 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187580367-AddDataSecurityIssueCodeFixTask";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -173,6 +188,123 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
   // Why OneUptime switched a rule off (#9066), on every rule's table.
   ["DataStoreOwnerRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],
   ["DataStoreLabelRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],
+  // OneUptime AI's analysis an issue keeps, and why a person said it was not one (#10369).
+  ...[
+    "notAnIssueReason",
+    "aiVerdict",
+    "aiAnalysis",
+    "aiAnalyzedAt",
+    "aiAnalysisInputHash",
+    "aiAnalysisLlmLogId",
+  ].map((column: string): [string, string, MigrationClass] => {
+    return [
+      "DataSecurityIssue",
+      column,
+      AddDataSecurityIssueAiAnalysis1809187436369,
+    ];
+  }),
+  // The group of issues one mistake made that an issue is in (#10370).
+  [
+    "DataSecurityIssue",
+    "dataSecurityIssueGroupId",
+    AddDataSecurityIssueGroups1809187470370,
+  ],
+  // The OneUptime AI proposal a feed item is about, for its proof (#10366).
+  [
+    "DataSecurityIssueFeed",
+    "dataSecurityAiProposalId",
+    AddScrubRuleNamedKeysAndProof1809187470400,
+  ],
+  /*
+   * How a resolved issue was resolved, and the fix followed to production
+   * (#10368, PR #10811): the issue's resolution and the change waiting for
+   * its check, and when a code fix was proven to stop a telemetry finding.
+   */
+  ...["resolution", "resolutionDetails", "pendingResolution"].map(
+    (column: string): [string, string, MigrationClass] => {
+      return [
+        "DataSecurityIssue",
+        column,
+        AddDataSecurityIssueResolution1809187510368,
+      ];
+    },
+  ),
+  ["DataStoreFinding", "fixedAt", AddDataSecurityIssueResolution1809187510368],
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person, with the
+   * team's own decisions as precedent (#10372, PR #10812).
+   */
+  ...[
+    "aiVerdict",
+    "aiVerdictAnalysis",
+    "aiVerdictAt",
+    "aiVerdictInputHash",
+    "isConfirmedByAi",
+    "decidedAt",
+  ].map((column: string): [string, string, MigrationClass] => {
+    return [
+      "DataStoreFinding",
+      column,
+      AddDataStoreFindingAiVerdicts1809187520372,
+    ];
+  }),
+  /*
+   * The compliance paperwork (#10375, PR #10805): the rest of a store's
+   * record of processing, OneUptime AI's drafts of it, and its impact
+   * assessment; and the project's audit evidence.
+   */
+  ...["legalBasis", "dataSubjects", "recordDrafts", "impactAssessment"].map(
+    (column: string): [string, string, MigrationClass] => {
+      return [
+        "DataStore",
+        column,
+        AddDataSecurityComplianceDrafts1809187530375,
+      ];
+    },
+  ),
+  [
+    "DataSecuritySetting",
+    "auditEvidence",
+    AddDataSecurityComplianceDrafts1809187530375,
+  ],
+  /*
+   * The names-and-addresses model (#10373, PR #10869): a finding it made,
+   * and whether it reads stores' content and the hourly telemetry scan.
+   */
+  [
+    "DataStoreFinding",
+    "isFoundByModel",
+    AddDataSecurityNamesAndAddressesModel1809187540373,
+  ],
+  [
+    "DataSecuritySetting",
+    "isModelScanEnabled",
+    AddDataSecurityNamesAndAddressesModel1809187540373,
+  ],
+  [
+    "DataSecuritySetting",
+    "isTelemetryModelScanEnabled",
+    AddDataSecurityNamesAndAddressesModel1809187540373,
+  ],
+  /*
+   * The scrub rule OneUptime AI wrote once for a finding's place, and what
+   * it was told then (#10752, PR #10870).
+   */
+  ...["aiScrubRuleInputHash", "aiScrubRules"].map(
+    (column: string): [string, string, MigrationClass] => {
+      return [
+        "DataStoreFinding",
+        column,
+        AddDataStoreFindingAiScrubRules1809187570752,
+      ];
+    },
+  ),
+  // The Code task whose pull request fixes the issue in code (#10367, PR #10874).
+  [
+    "DataSecurityIssue",
+    "codeFixTaskId",
+    AddDataSecurityIssueCodeFixTask1809187580367,
+  ],
 ];
 
 function addedLater(table: string): Array<string> {
@@ -257,6 +389,10 @@ function storedColumns(model: BaseModel): Array<string> {
     .concat(["createdAt", "updatedAt", "deletedAt", "version"])
     .filter((column: string, index: number, all: Array<string>): boolean => {
       return all.indexOf(column) === index;
+    })
+    .filter((column: string): boolean => {
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      return !RecordActorUtil.isColumn(column);
     })
     .sort();
 }
@@ -360,11 +496,22 @@ describe("the Data Security migration", () => {
     async (table: string, Model: ModelClass) => {
       const statement: string = createStatement(await record("up"), table);
       const later: Array<string> = addedLater(table);
+      // Dropped from every table that had it later (DropDeletedByUserColumns, #10469).
+      const droppedLater: Array<string> = DELETED_BY_USER_TABLES.some(
+        (entry: DeletedByUserTable): boolean => {
+          return entry.table === table;
+        },
+      )
+        ? [DELETED_BY_USER_ID_COLUMN]
+        : [];
 
       expect(columnsCreated(statement)).toEqual(
-        storedColumns(new Model()).filter((column: string): boolean => {
-          return !later.includes(column);
-        }),
+        [
+          ...storedColumns(new Model()).filter((column: string): boolean => {
+            return !later.includes(column);
+          }),
+          ...droppedLater,
+        ].sort(),
       );
       expect(statement).toContain(
         `"_id" uuid NOT NULL DEFAULT uuid_generate_v4()`,

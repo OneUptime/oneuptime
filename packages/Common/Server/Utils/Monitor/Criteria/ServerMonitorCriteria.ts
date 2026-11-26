@@ -2,6 +2,7 @@ import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import MonitorCriteriaMessageFormatter from "../MonitorCriteriaMessageFormatter";
 import OneUptimeDate from "../../../../Types/Date";
 import BasicInfrastructureMetrics, {
@@ -40,6 +41,11 @@ export default class ServerMonitorCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
@@ -57,6 +63,7 @@ export default class ServerMonitorCriteria {
         serverResponse: serverResponse,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
     }
 
@@ -75,6 +82,7 @@ export default class ServerMonitorCriteria {
          */
         miscData: undefined,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*
@@ -487,10 +495,49 @@ export default class ServerMonitorCriteria {
    * Disk usage: the disk the Disk Path names, or with "*" every disk the
    * agent reported.
    */
+  /*
+   * The paths the agent reports the disks a filter names under: every disk
+   * in the report for "*", else the one disk the typed path is (or the path
+   * as the agent would write it, when the report does not have it). What a
+   * window of a disk's checks is read by (CheckWindowCounts, #10355).
+   */
+  public static getAgentDiskPaths(input: {
+    serverResponse: ServerMonitorResponse;
+    diskPath: string | undefined;
+  }): Array<string> {
+    const allDiskMetrics: Array<BasicDiskMetrics> = (
+      input.serverResponse.basicInfrastructureMetrics?.diskMetrics || []
+    ).filter((disk: BasicDiskMetrics | null | undefined): boolean => {
+      return Boolean(disk);
+    });
+
+    if (PerEntityCriteriaFanOut.isWildcard(input.diskPath)) {
+      return allDiskMetrics.map((disk: BasicDiskMetrics): string => {
+        return disk.diskPath;
+      });
+    }
+
+    const diskMetric: BasicDiskMetrics | undefined =
+      ServerMonitorCriteria.findDiskMetric({
+        diskMetrics: allDiskMetrics,
+        diskPath: input.diskPath,
+      });
+
+    return [
+      diskMetric?.diskPath ||
+        ServerMonitorCriteria.toAgentDiskPath(input.diskPath),
+    ];
+  }
+
   private static async isDiskUsageCriteriaFilterMet(input: {
     serverResponse: ServerMonitorResponse;
     criteriaFilter: CriteriaFilter;
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     const diskPath: string | undefined =
       input.criteriaFilter.serverMonitorOptions?.diskPath;
@@ -517,6 +564,7 @@ export default class ServerMonitorCriteria {
             serverResponse: input.serverResponse,
             criteriaFilter: input.criteriaFilter,
             monitoringInterval: input.monitoringInterval,
+            stepScope: input.stepScope,
             agentDiskPath: candidateDisk.diskPath,
             disk: candidateDisk,
           });
@@ -539,6 +587,7 @@ export default class ServerMonitorCriteria {
       serverResponse: input.serverResponse,
       criteriaFilter: input.criteriaFilter,
       monitoringInterval: input.monitoringInterval,
+      stepScope: input.stepScope,
       agentDiskPath:
         diskMetric?.diskPath || ServerMonitorCriteria.toAgentDiskPath(diskPath),
       disk: diskMetric,
@@ -555,6 +604,11 @@ export default class ServerMonitorCriteria {
     serverResponse: ServerMonitorResponse;
     criteriaFilter: CriteriaFilter;
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
     // The path the agent reports the disk under, which its window is read by.
     agentDiskPath: string;
     disk: BasicDiskMetrics | undefined;
@@ -566,6 +620,7 @@ export default class ServerMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         miscData: { diskPath: input.agentDiskPath },
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     if (overTime.earlyReturn) {

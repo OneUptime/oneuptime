@@ -102,11 +102,47 @@ jest.mock(
  */
 const mockListReads: Array<JSONObject> = [];
 
+/*
+ * What the service and infrastructure entity pickers find: they search the
+ * server (TelemetryScopePickers, #10646), and their reads are theirs, not
+ * the preview's, so they are not recorded with it.
+ */
+const mockPickerRows: Record<string, Array<Record<string, unknown>>> = {
+  Service: [{ _id: "22222222-2222-4222-8222-222222222222", name: "checkout" }],
+  InventoryItem: [
+    {
+      _id: "33333333-3333-4333-8333-333333333333",
+      entityKey: "k8s.pod/checkout-7d9f",
+      entityType: "k8s.pod",
+      displayName: "checkout-7d9f",
+    },
+  ],
+};
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      getList: (options: { query: JSONObject }) => {
+      getList: (options: {
+        query: JSONObject;
+        modelType?: { new (): { tableName?: string | null } };
+      }) => {
+        const table: string | null | undefined = options.modelType
+          ? new options.modelType().tableName
+          : undefined;
+        const rows: Array<Record<string, unknown>> | undefined = table
+          ? mockPickerRows[table]
+          : undefined;
+
+        if (rows) {
+          return Promise.resolve({
+            data: rows,
+            count: rows.length,
+            skip: 0,
+            limit: 50,
+          });
+        }
+
         mockListReads.push(options.query);
         return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
       },
@@ -128,8 +164,6 @@ import MonitorStepTraceMonitor, {
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepExceptionMonitor";
-import Service from "../../../Models/DatabaseModels/Service";
-import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import ObjectID from "../../../Types/ObjectID";
@@ -143,21 +177,6 @@ const SERVICE_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 const ENTITY_KEY: string = "k8s.pod/checkout-7d9f";
-
-function services(): Array<Service> {
-  const service: Service = new Service();
-  service.id = SERVICE_ID;
-  service.name = "checkout";
-  return [service];
-}
-
-function entities(): Array<InventoryItem> {
-  const entity: InventoryItem = new InventoryItem();
-  entity.entityKey = ENTITY_KEY;
-  entity.entityType = "k8s.pod" as never;
-  entity.displayName = "checkout-7d9f";
-  return [entity];
-}
 
 function moreFields(): HTMLElement {
   return screen.getByRole("button", { name: "More fields" });
@@ -195,12 +214,22 @@ function comboboxOf(title: string): HTMLElement {
   throw new Error(`No dropdown found for "${title}".`);
 }
 
-// Picks an option of a react-select, the way a pointer does.
-function pick(combobox: HTMLElement, optionText: string): void {
-  fireEvent.keyDown(combobox, { key: "ArrowDown" });
-  const option: HTMLElement = screen.getByText(optionText);
-  fireEvent.mouseDown(option);
-  fireEvent.click(option);
+/*
+ * Picks an option of a react-select, the way a pointer does.
+ * A record picked from a picker that searches the server, once it is found.
+ */
+async function pick(combobox: HTMLElement, optionName: RegExp): Promise<void> {
+  await act(async () => {
+    fireEvent.focus(combobox);
+  });
+
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: optionName,
+  });
+
+  await act(async () => {
+    fireEvent.click(option);
+  });
 }
 
 function attributeKeyInput(): HTMLInputElement {
@@ -268,8 +297,6 @@ describe("Log monitor filters", () => {
           setLogMonitor({ ...value });
         }}
         attributeKeys={["http.route"]}
-        telemetryServices={services()}
-        telemetryEntities={entities()}
       />
     );
   };
@@ -373,12 +400,12 @@ describe("Log monitor filters", () => {
     });
   });
 
-  test("a filter picked under More fields reaches the step and the preview with the others", () => {
+  test("a filter picked under More fields reaches the step and the preview with the others", async () => {
     const recorder: Recorder = renderForm({ body: "timeout" });
 
     openMatching("Matching logs");
     fireEvent.click(moreFields());
-    pick(comboboxOf("Filter by Service"), "checkout");
+    await pick(comboboxOf("Filter by Service"), /checkout/);
 
     expect(recorder.latest).toMatchObject({
       body: "timeout",
@@ -442,7 +469,6 @@ describe("Log monitor filters", () => {
         monitorStepLogMonitor={MonitorStepLogMonitorUtil.getDefault()}
         onMonitorStepLogMonitorChanged={() => {}}
         attributeKeys={[]}
-        telemetryServices={services()}
         focusMessageField={true}
         onMessageFieldFocused={() => {
           focused();
@@ -487,8 +513,6 @@ describe("Trace monitor filters", () => {
           setTraceMonitor({ ...value });
         }}
         attributeKeys={["http.route"]}
-        telemetryServices={services()}
-        telemetryEntities={entities()}
       />
     );
   };
@@ -624,13 +648,14 @@ describe("Trace monitor filters", () => {
     });
   });
 
-  test("a filter picked under More fields reaches the step with the others", () => {
+  test("a filter picked under More fields reaches the step with the others", async () => {
     const recorder: Recorder = renderForm({ spanName: "POST /checkout" });
 
     fireEvent.click(moreFields());
-    pick(
+    // Its type is drawn beside its name, so two of one name are told apart.
+    await pick(
       comboboxOf("Filter by Infrastructure Entity"),
-      "checkout-7d9f (k8s.pod)",
+      /checkout-7d9f.*k8s\.pod/,
     );
 
     expect(recorder.latest).toMatchObject({
@@ -671,8 +696,6 @@ describe("Exception monitor filters", () => {
           props.recorder.latest = value;
           setExceptionMonitor(value);
         }}
-        telemetryServices={services()}
-        telemetryEntities={entities()}
       />
     );
   };

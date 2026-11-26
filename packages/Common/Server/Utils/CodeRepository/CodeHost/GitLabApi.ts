@@ -811,6 +811,32 @@ export default class GitLabApi {
     return GitLabApi.readNote(answer.json, data.mergeRequestUrl);
   }
 
+  /*
+   * A commit's status, as an external check of its pipeline: a production
+   * review's, on a merge request's head, when its repository asks the
+   * review to fail on a leak of sensitive data (#10376). Written again for
+   * the same name replaces it. Needs the token's api scope and the
+   * Developer role.
+   */
+  public async setCommitStatus(data: {
+    project: string;
+    sha: string;
+    state: "success" | "failed";
+    name: string;
+    description: string;
+    targetUrl: string;
+  }): Promise<void> {
+    await this.client.postJson(
+      `${GitLabApi.projectPath(data.project)}/statuses/${encodeURIComponent(data.sha)}`,
+      {
+        state: data.state,
+        name: data.name.slice(0, 255),
+        description: data.description.slice(0, 255),
+        target_url: data.targetUrl,
+      },
+    );
+  }
+
   // A note OneUptime wrote, edited in place.
   public async updateMergeRequestNote(data: {
     project: string;

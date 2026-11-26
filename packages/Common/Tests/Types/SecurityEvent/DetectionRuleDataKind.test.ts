@@ -321,14 +321,24 @@ describe("each library rule names the kind of event its Sigma reads", () => {
           expect(readsField(entry, "className", "Network Activity")).toBe(true);
           break;
         case DetectionRuleDataKind.WebRequests:
-          // What was asked for, or how far the request got (only a request followed into its trace has an outcome).
+          /*
+           * What was asked for, or how far the request got (only a request
+           * followed into its trace has an outcome) - or what the parsers
+           * read in what was asked for: a request for a sensitive file the
+           * site refused (web.attack.kind, #10745).
+           */
           expect(
             readsField(entry, "targetResource") ||
-              readsField(entry, "requestOutcome"),
+              readsField(entry, "requestOutcome") ||
+              readsField(entry, "web.attack.kind"),
           ).toBe(true);
           break;
         case DetectionRuleDataKind.KubernetesAuditLogs:
           expect(readsField(entry, "objectRef.resource")).toBe(true);
+          break;
+        case DetectionRuleDataKind.Cloudflare:
+          // Cloudflare's own events, by the product its connection stamps.
+          expect(readsField(entry, "productName", "Cloudflare WAF")).toBe(true);
           break;
         case DetectionRuleDataKind.OneUptimeTraces:
         case DetectionRuleDataKind.NetworkFlows:

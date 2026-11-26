@@ -4,7 +4,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  SecurityEntity,
   SecurityEntityType,
+  getEntityAsActionable,
   inferSecurityEntityType,
   securityEntityTypeForField,
 } from "../../../Types/SecurityCase/SecurityEntity";
@@ -16,12 +18,32 @@ import {
 } from "../../../Types/SecurityEvent/DetectionFindingConstants";
 import {
   DETECTION_RETROHUNT_MAX_GROUPS,
+  DetectionRetrohuntFirstSeenHistory,
   DetectionRetrohuntGroup,
   DetectionRetrohuntResult,
+  DetectionRetrohuntUncounted,
   isDetectionRetrohuntPeriod,
 } from "../../../Types/SecurityEvent/DetectionRetrohunt";
+import { getSecurityEventsKeptFrom } from "../../../Types/SecurityEvent/SecurityEventRetention";
+import { doesDetectionRuleLeaveOutEventsWithNoValue } from "../../../Types/SecurityEvent/DetectionUncountedEvents";
+import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  SCRUBBED_ADDRESS_ATTRIBUTES,
+  ScrubbedAddressMarkerKeys,
+  ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+} from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import {
+  SCRUBBED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_HIDDEN_BY_SCRUB_RULE,
+} from "../../../Utils/SecurityEvent/ScrubbedUser";
 import { DetectionRuleExceptionShape } from "../../../Types/SecurityEvent/DetectionRuleException";
-import { DetectionRuleDefinition } from "../../../Types/SecurityEvent/SigmaCorrelation";
+import {
+  DetectionRuleDefinition,
+  SigmaCorrelationType,
+} from "../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser, {
   sigmaRulesOf,
@@ -39,6 +61,7 @@ import {
 } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { buildHoldsSharedScrubPlaceholderSql } from "../Telemetry/ScrubPlaceholderSql";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "../Telemetry/TelemetryReadScope";
@@ -47,6 +70,7 @@ import CorrelationRuleMatcher, {
   CorrelationMatchResult,
 } from "./Correlation/CorrelationRuleMatcher";
 import ProjectSigmaRules from "./Correlation/ProjectSigmaRules";
+import SecurityEventRetention from "./SecurityEventRetention";
 import SecurityWatchlists from "./Watchlists/SecurityWatchlists";
 import { assertDetectionReadFits } from "./Watchlists/SecurityWatchlistMatch";
 import DetectionRuleExceptions, {
@@ -57,7 +81,13 @@ import DetectionRuleExceptions, {
 import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
+  buildSigmaFieldHasValue,
 } from "./Sigma/SigmaClickhouseCompiler";
+import RefusedTelemetryReader from "./RefusedTelemetryReader";
+import {
+  RefusedTelemetry,
+  getRefusedTelemetryBetween,
+} from "../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * RETROHUNT: a detection rule run over past events, to see what it would
@@ -83,6 +113,14 @@ import SigmaClickhouseCompiler, {
  *
  * A correlation is read once over the whole period by its own matcher,
  * with the exceptions in every read.
+ *
+ * Every read is of the events the project still keeps (#10432): an event
+ * past its retention is deleted, whether or not its part is yet. A period
+ * that starts before the kept events do still reads the whole period - an
+ * event that happened then and arrived late is kept, and the late-arrivals
+ * notice opens Run on Past Events on exactly those (#10491) - and the
+ * answer says where the kept events start, so the part before is never
+ * reported as "nothing found".
  */
 
 // What a retrohunt is asked: the rule, as saved or as the form holds it.
@@ -182,6 +220,20 @@ function readWholeNumber(data: {
   return data.value;
 }
 
+/*
+ * Whether the rule counts per value, as its runs decide it (#10415): the
+ * counting names its threshold `threshold`, a rule `matchCountThreshold`.
+ */
+export function leavesOutEventsWithNoValue(
+  counting: DetectionRetrohuntCounting,
+): boolean {
+  return doesDetectionRuleLeaveOutEventsWithNoValue({
+    groupByField: counting.groupByField,
+    distinctCountField: counting.distinctCountField,
+    matchCountThreshold: counting.threshold,
+  });
+}
+
 export function readDetectionRetrohuntCounting(
   rule: DetectionRetrohuntRule,
 ): DetectionRetrohuntCounting {
@@ -205,6 +257,78 @@ export function readDetectionRetrohuntCounting(
   };
 }
 
+// Only the events still kept at `keptAt`: one past its retention is deleted.
+function appendKeptAt(statement: Statement, keptAt: Date | undefined): void {
+  if (!keptAt) {
+    return;
+  }
+
+  statement.append(
+    SQL` AND retentionDate >= ${{
+      type: TableColumnType.Date,
+      value: keptAt,
+    }}`,
+  );
+}
+
+/*
+ * What the answer says of the events the project keeps (#10432): how long
+ * it keeps them, where they start when the period starts before them, and
+ * - for a First seen rule - how much of the history before the period it
+ * could see.
+ */
+export interface DetectionRetrohuntKept {
+  retentionInDays: number | null;
+  keptFrom: Date | null;
+  firstSeenHistory: DetectionRetrohuntFirstSeenHistory | null;
+}
+
+const NOTHING_SAID_OF_KEPT_EVENTS: DetectionRetrohuntKept = {
+  retentionInDays: null,
+  keptFrom: null,
+  firstSeenHistory: null,
+};
+
+export function getDetectionRetrohuntKept(data: {
+  retentionInDays: number;
+  startTime: Date;
+  endTime: Date;
+  definition: DetectionRuleDefinition;
+}): DetectionRetrohuntKept {
+  const keptFrom: Date = getSecurityEventsKeptFrom({
+    retentionInDays: data.retentionInDays,
+    now: data.endTime,
+  });
+
+  let firstSeenHistory: DetectionRetrohuntFirstSeenHistory | null = null;
+
+  if (
+    data.definition.kind === "correlation" &&
+    data.definition.correlation.type === SigmaCorrelationType.NewValue
+  ) {
+    // The history is the timespan before the period: the part of it still kept.
+    const lookbackInSeconds: number =
+      data.definition.correlation.timespanInSeconds;
+    const keptLookbackInSeconds: number = Math.max(
+      0,
+      Math.min(
+        lookbackInSeconds,
+        Math.floor((data.startTime.getTime() - keptFrom.getTime()) / 1000),
+      ),
+    );
+
+    if (keptLookbackInSeconds < lookbackInSeconds) {
+      firstSeenHistory = { lookbackInSeconds, keptLookbackInSeconds };
+    }
+  }
+
+  return {
+    retentionInDays: data.retentionInDays,
+    keptFrom: data.startTime.getTime() < keptFrom.getTime() ? keptFrom : null,
+    firstSeenHistory,
+  };
+}
+
 /*
  * The single rule's statement (see the top of this file). `skipped` is the
  * condition an event meets when an exception skips it (null: none does).
@@ -219,6 +343,8 @@ export function buildSingleRuleRetrohuntStatement(data: {
   startTime: Date;
   endTime: Date;
   maxGroups: number;
+  // Read only the events still kept at this moment (retentionDate).
+  keptAt?: Date | undefined;
 }): Statement {
   const { counting } = data;
   const groupExpression: Statement | null = counting.groupByField
@@ -293,6 +419,15 @@ export function buildSingleRuleRetrohuntStatement(data: {
   );
   windows.append(data.ruleWhere);
   windows.append(")");
+  appendKeptAt(windows, data.keptAt);
+
+  // A rule that counts per value leaves out the events that have none, as its runs do (#10415).
+  if (leavesOutEventsWithNoValue(counting)) {
+    windows.append(" AND (");
+    windows.append(buildSigmaFieldHasValue(counting.groupByField));
+    windows.append(")");
+  }
+
   TelemetryReadScopeUtil.appendServiceFilter(windows, data.serviceFilter);
   windows.append(" GROUP BY __window, __group");
 
@@ -317,6 +452,174 @@ export function buildSingleRuleRetrohuntStatement(data: {
   statement.append(getQuerySettings(INTERACTIVE_READ_TIME_LIMIT));
 
   return statement;
+}
+
+/*
+ * The marker a scrub rule leaves on an event whose value of a group field it
+ * hid: the key that says so and its value, and the key that says where,
+ * with the value that means a span. A rule grouped by a user reads the
+ * user's marker (ScrubbedUser, #10435); one grouped by targetIp the
+ * destination's (#10419); any other the client address's (ScrubbedAddress,
+ * #10397).
+ *
+ * `storedIn` is the user's own column, for an event stored before the scans
+ * set the marker: it still holds Redact's "[REDACTED]" or a mask, which say
+ * a rule hid the user just as well. Such an event doesn't say where the
+ * user was hidden, so it is counted with the logs, where most such users
+ * are found.
+ */
+export interface HiddenValueMarker {
+  hiddenKey: string;
+  hiddenValue: string;
+  inKey: string;
+  inTracesValue: string;
+  storedIn: string | null;
+}
+
+export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
+  const field: string = (groupByField || "").trim();
+
+  if (field === "principalUser" || field === "targetUser") {
+    const keys: { hidden: string; in: string } =
+      SCRUBBED_USER_ATTRIBUTES[
+        field === "principalUser"
+          ? ScrubbedUserRole.Principal
+          : ScrubbedUserRole.Target
+      ];
+
+    return {
+      hiddenKey: keys.hidden,
+      hiddenValue: USER_HIDDEN_BY_SCRUB_RULE,
+      inKey: keys.in,
+      inTracesValue: "trace",
+      storedIn: field,
+    };
+  }
+
+  // A destination a scrub rule hid has its own marker (#10419).
+  if (field === "targetIp") {
+    const keys: ScrubbedAddressMarkerKeys =
+      SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Target];
+
+    return {
+      hiddenKey: keys.hidden,
+      hiddenValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+      inKey: keys.scrubbedIn,
+      inTracesValue: ScrubbedAddressPlace.SpanAttributes,
+      storedIn: null,
+    };
+  }
+
+  return {
+    hiddenKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+    hiddenValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+    inKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+    inTracesValue: ScrubbedAddressPlace.SpanAttributes,
+    storedIn: null,
+  };
+}
+
+/*
+ * What a single rule that counts per value left out (#10415): the events it
+ * matched, and its exceptions kept, that had no value for its group field,
+ * and how many of them had that value hidden by a scrub rule - a client
+ * address (#10397) or a user (#10435) - in a log line or a span. Null for a
+ * rule that leaves none out.
+ */
+export function buildUncountedRetrohuntStatement(data: {
+  projectId: ObjectID;
+  tableName: string;
+  ruleWhere: Statement;
+  counting: DetectionRetrohuntCounting;
+  skipped: Statement | null;
+  serviceFilter: TelemetryServiceFilter;
+  startTime: Date;
+  endTime: Date;
+  // Read only the events still kept at this moment (retentionDate).
+  keptAt?: Date | undefined;
+}): Statement | null {
+  if (!leavesOutEventsWithNoValue(data.counting)) {
+    return null;
+  }
+
+  const marker: HiddenValueMarker = getHiddenValueMarker(
+    data.counting.groupByField,
+  );
+  const statement: Statement = SQL`WITH `;
+
+  if (data.skipped) {
+    statement.append(SQL`(`);
+    statement.append(data.skipped);
+    statement.append(")");
+  } else {
+    statement.append("false");
+  }
+
+  statement.append(
+    SQL` AS __skipped, (attributes[${{
+      type: TableColumnType.Text,
+      value: marker.hiddenKey,
+    }}] = ${{
+      type: TableColumnType.Text,
+      value: marker.hiddenValue,
+    }}`,
+  );
+
+  if (marker.storedIn) {
+    statement.append(" OR ");
+    statement.append(buildHoldsSharedScrubPlaceholderSql(marker.storedIn));
+  }
+
+  statement.append(
+    SQL`) AS __hidden, attributes[${{
+      type: TableColumnType.Text,
+      value: marker.inKey,
+    }}] = ${{
+      type: TableColumnType.Text,
+      value: marker.inTracesValue,
+    }} AS __inTraces SELECT countIf(NOT __skipped) AS eventCount, countIf(NOT __skipped AND __hidden AND NOT __inTraces) AS hiddenInLogsCount, countIf(NOT __skipped AND __hidden AND __inTraces) AS hiddenInTracesCount FROM `,
+  );
+  statement.append(data.tableName);
+  statement.append(
+    SQL` WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND time >= ${{
+      type: TableColumnType.DateTime64,
+      value: data.startTime,
+    }} AND time < ${{
+      type: TableColumnType.DateTime64,
+      value: data.endTime,
+    }} AND (`,
+  );
+  statement.append(data.ruleWhere);
+  statement.append(") AND NOT (");
+  statement.append(buildSigmaFieldHasValue(data.counting.groupByField));
+  statement.append(")");
+  appendKeptAt(statement, data.keptAt);
+  TelemetryReadScopeUtil.appendServiceFilter(statement, data.serviceFilter);
+  statement.append(getQuerySettings(INTERACTIVE_READ_TIME_LIMIT));
+
+  return statement;
+}
+
+// What the uncounted statement's one row says, or null when it left nothing out.
+export function readUncountedRetrohuntRow(data: {
+  row: JSONObject | undefined;
+  counting: DetectionRetrohuntCounting;
+}): DetectionRetrohuntUncounted | null {
+  const eventCount: number = readCount(data.row?.["eventCount"]);
+
+  if (eventCount <= 0) {
+    return null;
+  }
+
+  return {
+    field: data.counting.groupByField,
+    eventCount,
+    hiddenInLogsCount: readCount(data.row?.["hiddenInLogsCount"]),
+    hiddenInTracesCount: readCount(data.row?.["hiddenInTracesCount"]),
+  };
 }
 
 // The rows of the single rule's statement, read.
@@ -346,7 +649,10 @@ export function readSingleRuleRetrohuntRows(
 
 /*
  * The kind of entity a group's value is: by the field the rule groups by
- * when that field says, else by the value's shape ("" when it is none).
+ * when that field says, else by the value's shape ("" when it is none). A
+ * value no response could act on as that kind - what a scrub rule left, or
+ * one of OneUptime's own actors as a user: a workflow, a project API key
+ * (#10630) - is no kind at all, as a case holds it (getEntityAsActionable).
  */
 export function getRetrohuntEntityType(
   groupByField: string | undefined,
@@ -356,10 +662,14 @@ export function getRetrohuntEntityType(
     return "";
   }
 
-  const type: SecurityEntityType =
-    securityEntityTypeForField(groupByField) || inferSecurityEntityType(value);
+  const entity: SecurityEntity | null = getEntityAsActionable({
+    type:
+      securityEntityTypeForField(groupByField) ||
+      inferSecurityEntityType(value),
+    value,
+  });
 
-  return type === SecurityEntityType.Other ? "" : type;
+  return !entity || entity.type === SecurityEntityType.Other ? "" : entity.type;
 }
 
 /*
@@ -377,6 +687,10 @@ export function summarizeSingleRuleRetrohunt(data: {
   endTime: Date;
   periodInHours: number;
   maxGroups: number;
+  // What a rule that counts per value left out (buildUncountedRetrohuntStatement).
+  uncounted?: DetectionRetrohuntUncounted | null | undefined;
+  // What it says of the events the project keeps.
+  kept?: DetectionRetrohuntKept | undefined;
 }): DetectionRetrohuntResult {
   const first: SingleRuleRow | undefined = data.rows[0];
 
@@ -392,6 +706,7 @@ export function summarizeSingleRuleRetrohunt(data: {
     startTime: data.startTime,
     endTime: data.endTime,
     periodInHours: data.periodInHours,
+    ...(data.kept || NOTHING_SAID_OF_KEPT_EVENTS),
     isCorrelation: false,
     windowInMinutes: data.counting.windowInMinutes,
     threshold: data.counting.threshold,
@@ -421,6 +736,9 @@ export function summarizeSingleRuleRetrohunt(data: {
       }),
     hasMoreGroups: totalGroups > Math.min(fired.length, data.maxGroups),
     candidateLimit: null,
+    uncounted: data.uncounted || null,
+    // Read by the run, which knows the project (readRefusedTelemetryOverPeriod).
+    refusedTelemetry: [],
   };
 }
 
@@ -433,6 +751,8 @@ export function summarizeCorrelationRetrohunt(data: {
   periodInHours: number;
   maxGroups: number;
   groupByFields: Array<string>;
+  // What it says of the events the project keeps.
+  kept?: DetectionRetrohuntKept | undefined;
 }): DetectionRetrohuntResult {
   const groups: Array<DetectionMatchGroup> = data.match.groups;
 
@@ -446,6 +766,7 @@ export function summarizeCorrelationRetrohunt(data: {
     startTime: data.startTime,
     endTime: data.endTime,
     periodInHours: data.periodInHours,
+    ...(data.kept || NOTHING_SAID_OF_KEPT_EVENTS),
     isCorrelation: true,
     windowInMinutes: 0,
     threshold: null,
@@ -486,7 +807,34 @@ export function summarizeCorrelationRetrohunt(data: {
     candidateLimit: data.match.candidatesCapped
       ? CORRELATION_TEMPORAL_CANDIDATE_LIMIT
       : null,
+    // A correlation leaves out groups with no value, as it always did.
+    uncounted: null,
+    // Read by the run, which knows the project (readRefusedTelemetryOverPeriod).
+    refusedTelemetry: [],
   };
+}
+
+/*
+ * What an ingestion budget or rate refused of the logs and traces Security
+ * Events reads, over the period (#10431): a retrohunt over it says the
+ * events those would have made are missing, rather than letting "would
+ * not have fired" read as nothing happened. As the sources kept it, with
+ * the counters as they are now; nothing when that cannot be read.
+ */
+export async function readRefusedTelemetryOverPeriod(data: {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+}): Promise<Array<RefusedTelemetry>> {
+  return getRefusedTelemetryBetween({
+    refusals: await RefusedTelemetryReader.readForProject({
+      projectId: data.projectId,
+      now: data.endTime,
+    }),
+    from: data.startTime,
+    to: data.endTime,
+    now: data.endTime,
+  });
 }
 
 // The sources a person may read, as a restriction on a correlation's reads; null for every source.
@@ -575,6 +923,18 @@ export default class DetectionRuleRetrohunt {
       -request.periodInHours,
     );
 
+    // How long the project keeps its events, read now: what the answer says of them.
+    const retentionInDays: number =
+      await SecurityEventRetention.getRetentionInDays(request.projectId, {
+        isFresh: true,
+      });
+    const kept: DetectionRetrohuntKept = getDetectionRetrohuntKept({
+      retentionInDays,
+      startTime,
+      endTime,
+      definition,
+    });
+
     // A saved rule's exceptions, as its runs read them; a rule not saved yet has none.
     const exceptions: Array<DetectionRuleExceptionShape> = request.rule.id
       ? await DetectionRuleExceptions.loadForRule({
@@ -604,17 +964,26 @@ export default class DetectionRuleRetrohunt {
             sourceRestriction(request.serviceFilter),
             buildDetectionRuleExceptionsFilter(exceptions),
           ),
+          kept: { retentionInDays, at: endTime },
         });
 
-      return summarizeCorrelationRetrohunt({
-        match,
-        exceptionCount,
-        startTime,
-        endTime,
-        periodInHours: request.periodInHours,
-        maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
-        groupByFields: definition.correlation.groupBy,
-      });
+      return {
+        ...summarizeCorrelationRetrohunt({
+          match,
+          exceptionCount,
+          startTime,
+          endTime,
+          periodInHours: request.periodInHours,
+          maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+          groupByFields: definition.correlation.groupBy,
+          kept,
+        }),
+        refusedTelemetry: await readRefusedTelemetryOverPeriod({
+          projectId: request.projectId,
+          startTime,
+          endTime,
+        }),
+      };
     }
 
     const parsedRule: SigmaRule = definition.rule;
@@ -637,6 +1006,7 @@ export default class DetectionRuleRetrohunt {
       endTime,
       // One more than it lists, to tell there are more.
       maxGroups: DETECTION_RETROHUNT_MAX_GROUPS + 1,
+      keptAt: endTime,
     });
 
     assertDetectionReadFits(statement);
@@ -646,14 +1016,57 @@ export default class DetectionRuleRetrohunt {
       data?: Array<JSONObject>;
     }>();
 
-    return summarizeSingleRuleRetrohunt({
-      rows: readSingleRuleRetrohuntRows(response.data || []),
-      counting,
-      exceptionCount,
-      startTime,
-      endTime,
-      periodInHours: request.periodInHours,
-      maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
-    });
+    /*
+     * What a rule that counts per value could not count, so a rule that
+     * cannot count is never quiet about it (#10415).
+     */
+    const uncountedStatement: Statement | null =
+      buildUncountedRetrohuntStatement({
+        projectId: request.projectId,
+        tableName: `${databaseName}.${SecurityEventService.model.tableName}`,
+        ruleWhere: SigmaClickhouseCompiler.compile(parsedRule),
+        counting,
+        skipped,
+        serviceFilter: request.serviceFilter,
+        startTime,
+        endTime,
+        keptAt: endTime,
+      });
+
+    let uncounted: DetectionRetrohuntUncounted | null = null;
+
+    if (uncountedStatement) {
+      assertDetectionReadFits(uncountedStatement);
+
+      const uncountedResult: Results =
+        await SecurityEventService.executeQuery(uncountedStatement);
+      const uncountedResponse: DbJSONResponse = await uncountedResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+
+      uncounted = readUncountedRetrohuntRow({
+        row: (uncountedResponse.data || [])[0],
+        counting,
+      });
+    }
+
+    return {
+      ...summarizeSingleRuleRetrohunt({
+        rows: readSingleRuleRetrohuntRows(response.data || []),
+        counting,
+        exceptionCount,
+        startTime,
+        endTime,
+        periodInHours: request.periodInHours,
+        maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+        uncounted,
+        kept,
+      }),
+      refusedTelemetry: await readRefusedTelemetryOverPeriod({
+        projectId: request.projectId,
+        startTime,
+        endTime,
+      }),
+    };
   }
 }

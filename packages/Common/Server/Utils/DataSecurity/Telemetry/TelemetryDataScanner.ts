@@ -1,3 +1,4 @@
+import { TelemetrySampleSource } from "./TelemetrySampleSource";
 import { ResponseJSON } from "@clickhouse/client";
 import { createHash } from "crypto";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
@@ -39,9 +40,16 @@ import {
 } from "../../../../Utils/DataSecurity/FieldClassifier";
 import FieldCollector from "../../../../Utils/DataSecurity/FieldCollector";
 import {
+  countShadowField,
+  getShadowStoreKey,
+  ShadowCounts,
+  ShadowScanDetector,
+} from "../../../../Utils/DataSecurity/ShadowCount";
+import {
   findSensitiveValues,
   ScanDetector,
 } from "../../../../Utils/DataSecurity/TextScanner";
+import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
 import LogService from "../../../Services/LogService";
@@ -51,6 +59,7 @@ import RumSessionService from "../../../Services/RumSessionService";
 import ServiceService from "../../../Services/ServiceService";
 import SpanService from "../../../Services/SpanService";
 import { getClickhouseDatabaseName } from "../../AnalyticsDatabase/ClusterConfig";
+import { foldAttributeKey } from "../../../../Types/Telemetry/ScrubRuleKeys";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import LlmConversationPrivacy from "../../LlmObservability/LlmConversationPrivacy";
@@ -62,6 +71,16 @@ import {
   LocationFindings,
   MAX_READ_LOG_ENTRIES,
 } from "../DataSecurityScanTypes";
+import {
+  FieldForModel,
+  getModelWarnings,
+  recognizeFields,
+} from "../Model/ModelScan";
+import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
+import {
+  describeUnplacedAttribute,
+  shareUnplacedAttributes,
+} from "./TelemetryUnplacedAttributes";
 
 /*
  * WHAT A PROJECT'S TELEMETRY HOLDS.
@@ -253,16 +272,8 @@ const DEFAULT_BYTES_PER_SCAN: number = 50 * 1024 * 1024;
 // Attributes OneUptime stamps itself (oneuptime.service.id, ...): not the project's data.
 const ONEUPTIME_ATTRIBUTE_PREFIX: string = "oneuptime.";
 
-export enum TelemetrySampleSource {
-  Logs = "Logs",
-  Traces = "Traces",
-  Exceptions = "Exceptions",
-  AiConversations = "AiConversations",
-  RumLogs = "RumLogs",
-  RumSpans = "RumSpans",
-  RumSessions = "RumSessions",
-  Metrics = "Metrics",
-}
+// Kept in a module of its own, which loads before any of this one's imports.
+export { TelemetrySampleSource };
 
 // Who a source's records belong to: a Service, or a RUM application.
 type SampleOwner = "service" | "rum" | "rumSession";
@@ -1557,7 +1568,7 @@ function tupleParts(value: unknown): Array<unknown> {
   return [];
 }
 
-function readPairs(value: unknown): Array<[string, string]> {
+export function readPairs(value: unknown): Array<[string, string]> {
   const pairs: Array<[string, string]> = [];
 
   if (Array.isArray(value)) {
@@ -1584,12 +1595,12 @@ function readPairs(value: unknown): Array<[string, string]> {
   return pairs;
 }
 
-interface ReadEvent {
+export interface ReadEvent {
   name: string;
   attributes: Array<[string, string]>;
 }
 
-function readEvents(value: unknown): Array<ReadEvent> {
+export function readEvents(value: unknown): Array<ReadEvent> {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -1672,21 +1683,12 @@ function isAllDigits(text: string): boolean {
 /*
  * An attribute key with its numbered parts folded, as FieldCollector folds
  * array positions: gen_ai.prompt.3.content is gen_ai.prompt[].content, so
- * the twenty messages of a chat are one location, not twenty.
+ * the twenty messages of a chat are one location, not twenty. Written once,
+ * beside the scrub rules that name attributes by the same keys
+ * (Types/Telemetry/ScrubRuleKeys, #10366), so a finding's key names the
+ * attribute it was found in.
  */
-export function foldAttributeKey(key: string): string {
-  let folded: string = "";
-
-  for (const part of key.split(".")) {
-    if (isAllDigits(part)) {
-      folded += "[]";
-    } else {
-      folded += folded.length > 0 ? "." + part : part;
-    }
-  }
-
-  return folded;
-}
+export { foldAttributeKey };
 
 const CONVERSATION_ATTRIBUTE_KEYS: ReadonlySet<string> = new Set([
   ...LlmPromptJsonAttributeKeys,
@@ -2920,7 +2922,7 @@ async function sampleMetrics(
   }
 }
 
-function classifierOptionsOf(
+export function classifierOptionsOf(
   options: ContentScanOptions,
 ): FieldClassifierOptions {
   return {
@@ -3035,6 +3037,97 @@ function describeOwner(sample: StoreSample, name: string | undefined): string {
     : `${noun} ${sample.ownerId}`;
 }
 
+/*
+ * Where a sample's place is a log body, an exception message or stack trace,
+ * or a prompt: free text whatever its length, which the names-and-addresses
+ * model reads (FieldClassifier readWithModel).
+ */
+function isBodyLocation(sample: StoreSample, path: string): boolean {
+  return sample.locationKinds.get(path) === DataStoreLocationKind.Body;
+}
+
+// The key of a sample's store in the scan's model budget.
+export function modelStoreKey(sample: {
+  kind: DataStoreKind;
+  ownerId: string;
+}): string {
+  return storeKey(sample.kind, sample.ownerId);
+}
+
+// FNV-1a: a store's place in an hour's order for the model.
+function rankOf(text: string): number {
+  let hash: number = 0x811c9dc5;
+
+  for (let index: number = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return hash;
+}
+
+const HOUR_IN_MS: number = 60 * 60 * 1000;
+
+/*
+ * The order the model reads a scan's stores in. Its minute covers a few
+ * dozen stores of a busy project, and the stores come in the order they
+ * were sampled - the same every hour - so the same services would be read
+ * every hour and the rest never. Each hour orders them anew, the same way
+ * for the same hour, so every store's turn comes as often as any other's.
+ */
+export function orderStoresForModel<
+  T extends { kind: DataStoreKind; ownerId: string },
+>(samples: ReadonlyArray<T>, scanEnd: Date): Array<T> {
+  const hour: number = Math.floor(scanEnd.getTime() / HOUR_IN_MS);
+
+  return samples
+    .map((sample: T, index: number) => {
+      return {
+        sample,
+        index,
+        rank: rankOf(`${hour}:${modelStoreKey(sample)}`),
+      };
+    })
+    .sort(
+      (
+        first: { rank: number; index: number },
+        second: { rank: number; index: number },
+      ): number => {
+        return first.rank - second.rank || first.index - second.index;
+      },
+    )
+    .map((entry: { sample: T }): T => {
+      return entry.sample;
+    });
+}
+
+/*
+ * What the names-and-addresses model finds in a sample's free text - its
+ * bodies, messages and prompts, and attributes long enough to be free text
+ * - within the store's share of the scan's model time. Only when the
+ * project turned the model on for telemetry (options.model).
+ */
+async function recognizeSample(
+  sample: StoreSample,
+  options: ContentScanOptions,
+): Promise<ModelRecognitions | undefined> {
+  if (!options.model) {
+    return undefined;
+  }
+
+  const fields: Array<FieldForModel> = sample.collector
+    .getFields()
+    .map((field: { path: string; values: Array<unknown> }): FieldForModel => {
+      return {
+        path: field.path,
+        values: field.values,
+        readWithModel: isBodyLocation(sample, field.path),
+      };
+    });
+
+  return await recognizeFields(options.model, modelStoreKey(sample), fields);
+}
+
 function toResult(data: {
   sample: StoreSample;
   name: string | undefined;
@@ -3042,18 +3135,46 @@ function toResult(data: {
   isDeletedOwner: boolean;
   window: TelemetryReadWindow;
   classifierOptions: FieldClassifierOptions;
+  // What the names-and-addresses model found in the sample's free text.
+  recognitions?: ModelRecognitions | undefined;
+  modelWarnings?: Array<string> | undefined;
+  // The data types being proven on this store, counted in shadow (#10371).
+  shadowDetectors: ReadonlyArray<ShadowScanDetector>;
 }): ContentScanResult {
   const sample: StoreSample = data.sample;
   const locations: Array<LocationFindings> = [];
+  const shadowCounts: ShadowCounts = {};
+  // The attributes no detector placed, before the service's share (#10371).
+  const unplacedFields: Array<UnplacedField> = [];
+  const names: Array<string> = Array.from(sample.locationKinds.keys());
+
+  for (const warning of data.modelWarnings || []) {
+    sample.warn(warning);
+  }
 
   for (const field of sample.collector.getFields()) {
     let classifications: Array<FieldClassification>;
+
+    // The drafts run in shadow, each alone: counted, never found.
+    countShadowField({
+      counts: shadowCounts,
+      detectors: data.shadowDetectors,
+      location: field.path,
+      values: field.values,
+      allowedValues: data.classifierOptions.allowedValues,
+    });
 
     try {
       classifications = classifyField(
         field.path,
         field.values,
-        data.classifierOptions,
+        data.recognitions
+          ? {
+              ...data.classifierOptions,
+              recognitions: data.recognitions,
+              readWithModel: isBodyLocation(sample, field.path),
+            }
+          : data.classifierOptions,
       );
     } catch (error) {
       logger.warn(
@@ -3087,6 +3208,20 @@ function toResult(data: {
           valueCount: field.values.length,
         }),
       });
+      continue;
+    }
+
+    // Not placed, nor known to be safe: described as a column would be, never its values.
+    const unplaced: UnplacedField | null = describeUnplacedAttribute({
+      location: field.path,
+      locationKind:
+        sample.locationKinds.get(field.path) || DataStoreLocationKind.Attribute,
+      values: field.values,
+      neighbours: names,
+    });
+
+    if (unplaced) {
+      unplacedFields.push(unplaced);
     }
   }
 
@@ -3144,7 +3279,12 @@ function toResult(data: {
     fingerprints: {},
     plaintextPasswordFields: [],
     isComplete: sample.isComplete,
+    unplacedFields,
   };
+
+  if (data.shadowDetectors.length > 0) {
+    result.shadowCounts = shadowCounts;
+  }
 
   // A metrics store keeps where its rotation stopped, for the next scan.
   if (sample.metricCursor !== undefined) {
@@ -3198,6 +3338,13 @@ export async function scanProjectTelemetry(data: {
   ownersNotScanned?: TelemetryOwnersNotScanned | undefined;
   // By service: where its metrics' rotation stopped (readMetricRotationCursor).
   metricCursors?: ReadonlyMap<string, number> | undefined;
+  /*
+   * The data types being proven on the project's telemetry stores, by store
+   * (getShadowStoreKey): each store's scan counts its own (#10371).
+   */
+  shadowDetectorsByStore?:
+    | ReadonlyMap<string, ReadonlyArray<ShadowScanDetector>>
+    | undefined;
 }): Promise<Array<TelemetryStoreScan>> {
   const until: Date = OneUptimeDate.getCurrentDate();
   const earliest: Date = OneUptimeDate.addRemoveHours(
@@ -3293,30 +3440,87 @@ export async function scanProjectTelemetry(data: {
     data.options,
   );
 
-  return samples.map((sample: StoreSample): TelemetryStoreScan => {
-    const name: string | undefined = owners.names.get(
-      sample.ownerId.toLowerCase(),
-    );
-    const scan: TelemetryStoreScan = {
-      serviceId: sample.ownerId,
-      kind: sample.kind,
-      result: toResult({
-        sample,
-        name,
-        isDeletedOwner:
-          !name &&
-          (sample.isRumApplication
-            ? owners.applicationsRead
-            : owners.servicesRead),
-        window: context.window,
-        classifierOptions,
-      }),
-    };
+  /*
+   * The model reads the stores first, in this hour's order, so that the
+   * time it has goes to different services each hour; the results keep the
+   * order the stores were sampled in.
+   */
+  const recognized: Map<StoreSample, ModelRecognitions | undefined> = new Map();
 
-    if (name) {
-      scan.serviceName = name;
+  if (data.options.model) {
+    for (const sample of orderStoresForModel(samples, context.window.until)) {
+      recognized.set(sample, await recognizeSample(sample, data.options));
     }
+  }
 
-    return scan;
-  });
+  const scans: Array<TelemetryStoreScan> = samples.map(
+    (sample: StoreSample): TelemetryStoreScan => {
+      const name: string | undefined = owners.names.get(
+        sample.ownerId.toLowerCase(),
+      );
+      const scan: TelemetryStoreScan = {
+        serviceId: sample.ownerId,
+        kind: sample.kind,
+        result: toResult({
+          sample,
+          name,
+          isDeletedOwner:
+            !name &&
+            (sample.isRumApplication
+              ? owners.applicationsRead
+              : owners.servicesRead),
+          window: context.window,
+          classifierOptions,
+          recognitions: recognized.get(sample),
+          modelWarnings: getModelWarnings(
+            data.options.model,
+            modelStoreKey(sample),
+          ),
+          shadowDetectors:
+            data.shadowDetectorsByStore?.get(
+              getShadowStoreKey(sample.kind, sample.ownerId),
+            ) || [],
+        }),
+      };
+
+      if (name) {
+        scan.serviceName = name;
+      }
+
+      return scan;
+    },
+  );
+
+  shareUnplacedAttributesByOwner(scans);
+
+  return scans;
+}
+
+/*
+ * Each service's unplaced attributes, held to its share across its stores
+ * (TelemetryUnplacedAttributes): at most MAX_UNPLACED_ATTRIBUTES_PER_SERVICE
+ * a scan, given out in turn.
+ */
+export function shareUnplacedAttributesByOwner(
+  scans: ReadonlyArray<TelemetryStoreScan>,
+): void {
+  const byOwner: Map<string, Array<TelemetryStoreScan>> = new Map();
+
+  for (const scan of scans) {
+    const owner: string = scan.serviceId.toLowerCase();
+
+    byOwner.set(owner, [...(byOwner.get(owner) || []), scan]);
+  }
+
+  for (const owned of byOwner.values()) {
+    const shared: Array<Array<UnplacedField>> = shareUnplacedAttributes(
+      owned.map((scan: TelemetryStoreScan): Array<UnplacedField> => {
+        return scan.result.unplacedFields || [];
+      }),
+    );
+
+    owned.forEach((scan: TelemetryStoreScan, index: number): void => {
+      scan.result.unplacedFields = shared[index] || [];
+    });
+  }
 }

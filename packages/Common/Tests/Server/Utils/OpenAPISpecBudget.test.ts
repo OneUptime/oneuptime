@@ -32,6 +32,24 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * more of today's size (9%). The spec has grown fast - OpenAPI.ts's
  * comment measured 16.5 MB on 2026-10-28, three weeks before - so a tighter
  * budget would stop every other change.
+ *
+ * Raised on 2026-11-20, from 25,000,000. The spec was 24.66 MB, and every
+ * resource then gained what created each record and who last modified it
+ * (#10290): kept out of the read, query, select and sort schemas and the
+ * reference (hideColumnInDocumentation), but in each resource's own model
+ * schema, which lists every column a reader may read - 1.78 MB in all, to
+ * 26,435,798 bytes. This leaves room for about 6% more.
+ *
+ * Lowered on 2026-11-23, back to 25,000,000 (#10527). The spec was 27.0 MB,
+ * and three changes took it to 23.9 MB while it came to document those
+ * columns on every resource: each of the six is described once, as a
+ * schema of its own every resource refers to (ModelSchema
+ * .RECORD_ACTOR_SCHEMA_NAMES), where its words and its permissions were on
+ * each resource; a read-only field no longer carries the permissions
+ * sentence that said "Create: [No access], Update: [No access]" of it (3.4
+ * MB on 11,397 fields); and who deleted a record, which no record ever
+ * held, is gone from every resource (#10469). This leaves room for about
+ * 5% more.
  */
 const MAX_SPEC_BYTES: number = 25_000_000;
 
@@ -39,15 +57,13 @@ const MAX_SPEC_BYTES: number = 25_000_000;
  * The budget for what is sent: 995,447 bytes gzipped on 2026-11-16, 1,948
  * a resource on average. This leaves room for about 53 more (10%).
  *
- * Raised on 2026-11-23, from 1,100,000, for the 17.2.0 release: the spec had
- * grown to 1,115,381 bytes gzipped (24,857,338 of JSON) with what the release
- * ships - each column's permission lists naming the product levels that
- * reach it (#10475, about 42 KB gzipped), 21 new resources (a dashboard's and
- * a form's private users and their sign-in settings, the blocklist, team and
- * label budgets, owner rules and others, about 24 KB) and the new columns,
- * response headers and descriptions of the rest. Main raised it to 1,300,000
- * on 2026-11-20 for the same growth and its record actor columns (#10290).
- * This leaves room for about 7% more.
+ * Raised on 2026-11-20, from 1,100,000: the spec had grown to 1,106,661
+ * bytes gzipped, past it, and the record actor columns (#10290, above) took
+ * it to 1,237,436. This leaves room for about 5% more.
+ *
+ * Lowered on 2026-11-23, from 1,300,000: the same three changes (#10527,
+ * above) took it from 1,284,511 bytes to 1,110,163, with those columns
+ * documented. This leaves room for about 8% more.
  */
 const MAX_SPEC_GZIP_BYTES: number = 1_200_000;
 

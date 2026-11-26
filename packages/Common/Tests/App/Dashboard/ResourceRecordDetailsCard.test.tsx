@@ -428,9 +428,24 @@ describe("what the card reads", () => {
         "labels",
         "osType",
         "osVersion",
+        // Who created it and who last modified it, for its record line (#10290).
+        "createdAt",
+        "createdByActorType",
+        "createdByActorId",
+        "createdByUser",
+        "lastModifiedAt",
+        "lastModifiedByActorType",
+        "lastModifiedByActorId",
+        "lastModifiedByUser",
       ].sort(),
     );
     expect(call.select["labels"]).toEqual({ name: true, color: true });
+    // A person is read by name and email alone.
+    expect(call.select["createdByUser"]).toEqual({ name: true, email: true });
+    expect(call.select["lastModifiedByUser"]).toEqual({
+      name: true,
+      email: true,
+    });
   });
 
   test("a page's refresh reads the record again", async () => {

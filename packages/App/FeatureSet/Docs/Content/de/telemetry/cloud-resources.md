@@ -459,6 +459,7 @@ Jeder Datenpunkt trägt die Azure-Ressourcen-ID seiner Ressource (`azuremonitor.
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ Einer Ressource eines [verbundenen Kontos](/docs/telemetry/cloud-accounts) werde
 :::
 
 Ein Service-Bus-Namespace meldet seine Metriken einmal pro Warteschlange und Topic, ein Event-Hubs-Namespace einmal pro Event Hub. Wo sie sich addieren lassen, zeigt eine Zeile im Tab **Metriken** des Namespace ihre Summe und darunter **Summe der Reihen**. Ein aus dieser Zeile erstellter Monitor liest ebenfalls die Summe, ebenso einer, der über die API oder Terraform ohne Aggregation erstellt wird. Die übrigen Zeilen zeigen **Durchschnitt der Reihen** und damit die durchschnittliche Warteschlange oder den durchschnittlichen Event Hub: eine Latenz und, über einen Zeitraum von mehr als 3 Stunden, eine Menge, die der Namespace vorhält, etwa wartende Nachrichten.
+
+Die Verbindung liest die Anfragen einer Container App einmal pro Statuscode-Kategorie, um ihre 5xx-Antworten zu unterscheiden, und die Zeile ihrer Anfragen addiert sie ebenso: Sie zeigt ihre Summe, und ein aus dieser Zeile erstellter Monitor liest sie ebenfalls.
 
 > [!IMPORTANT]
 > Die Cloud-Überwachung veröffentlicht jede Zahl Minuten nach dem Zeitpunkt, den sie misst: 10 bis 20 Minuten bei CloudWatch, wie oben abgefragt, wenige Minuten bei Azure Monitor und Cloud Monitoring. Sie wird unter dem Zeitpunkt gespeichert, den sie misst. Geben Sie einem Monitor über diese Metriken ein längeres Zeitfenster (30 Minuten für CloudWatch, 15 für die anderen), sonst sieht er keine Daten und löst nie aus.

@@ -17,6 +17,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -24,6 +25,7 @@ import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import NotOnWatchlist from "../../../Types/BaseDatabase/NotOnWatchlist";
 import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
@@ -190,6 +192,9 @@ const SAMPLES: Readonly<Partial<Record<ObjectType, () => unknown>>> = {
   [ObjectType.NotEqual]: (): unknown => {
     return new NotEqual("checkout");
   },
+  [ObjectType.NotEqualOrNull]: (): unknown => {
+    return new NotEqualOrNull("checkout");
+  },
   [ObjectType.Search]: (): unknown => {
     return new Search("checkout");
   },
@@ -235,6 +240,9 @@ const SAMPLES: Readonly<Partial<Record<ObjectType, () => unknown>>> = {
   [ObjectType.IncludesNone]: (): unknown => {
     return new IncludesNone(["a", "b"]);
   },
+  [ObjectType.IncludesNoneOrNull]: (): unknown => {
+    return new IncludesNoneOrNull(["a", "b"]);
+  },
   [ObjectType.StartsWith]: (): unknown => {
     return new StartsWith("check");
   },
@@ -275,6 +283,7 @@ const KEPT_AS_JSON: Readonly<Record<string, string>> = {
   [ObjectType.EqualTo]: "a query filter",
   [ObjectType.EqualToOrNull]: "a query filter",
   [ObjectType.NotEqual]: "a query filter",
+  [ObjectType.NotEqualOrNull]: "a query filter",
   [ObjectType.Search]: "a query filter",
   [ObjectType.MultiSearch]: "a query filter",
   [ObjectType.GreaterThan]: "a query filter",
@@ -289,6 +298,7 @@ const KEPT_AS_JSON: Readonly<Record<string, string>> = {
   [ObjectType.IncludesAll]: "a query filter",
   [ObjectType.IncludesAnyOfGroups]: "a query filter",
   [ObjectType.IncludesNone]: "a query filter",
+  [ObjectType.IncludesNoneOrNull]: "a query filter",
   [ObjectType.StartsWith]: "a query filter",
   [ObjectType.EndsWith]: "a query filter",
   [ObjectType.NotContains]: "a query filter",

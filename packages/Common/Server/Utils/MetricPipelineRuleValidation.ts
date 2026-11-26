@@ -1,5 +1,8 @@
 import BadDataException from "../../Types/Exception/BadDataException";
-import { MetricPipelineRuleFilterConditionType } from "../../Types/Metrics/MetricPipelineRuleFilterCondition";
+import {
+  isMetricFilterPatternType,
+  MetricPipelineRuleFilterConditionType,
+} from "../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import { getRegexSyntaxErrorReason } from "../../Types/Telemetry/ScrubRule";
 import {
   describePatternProblem,
@@ -50,6 +53,19 @@ export function getMetricPipelineRuleFiltersRefusal(
       "conditionType"
     ];
     const value: unknown = (filter as Record<string, unknown>)["value"];
+
+    /*
+     * A Matches Pattern Type filter names one of the built-in patterns
+     * (#10934): any other value matched nothing at ingest, so the rule
+     * would never apply.
+     */
+    if (
+      conditionType ===
+        MetricPipelineRuleFilterConditionType.MatchesPatternType &&
+      !isMetricFilterPatternType(value)
+    ) {
+      return `Filter ${index + 1}: "${String(value ?? "")}" is no pattern type, so the filter would never match. Pick Email Address, Credit Card Number, SSN, Phone Number or IP Address.`;
+    }
 
     if (
       typeof conditionType !== "string" ||

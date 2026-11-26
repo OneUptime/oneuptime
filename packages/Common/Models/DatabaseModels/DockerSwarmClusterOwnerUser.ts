@@ -68,8 +68,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CrudApiEndpoint(new Route("/docker-swarm-cluster-owner-user"))
 @TableMetadata({
   tableName: "DockerSwarmClusterOwnerUser",
-  singularName: "DockerSwarm Cluster User Owner",
-  pluralName: "DockerSwarm Cluster User Owners",
+  singularName: "Docker Swarm Cluster User Owner",
+  pluralName: "Docker Swarm Cluster User Owners",
+  // Was "DockerSwarm Cluster User Owner" (#7474): its API names stay.
+  apiSingularName: "DockerSwarm Cluster User Owner",
+  apiPluralName: "DockerSwarm Cluster User Owners",
   icon: IconProp.Cube,
   tableDescription: "Add users as owners to your Docker Swarm clusters.",
 })
@@ -264,9 +267,9 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     manyToOneRelationColumn: "dockerSwarmClusterId",
     type: TableColumnType.Entity,
     modelType: DockerSwarmCluster,
-    title: "DockerSwarm Cluster",
+    title: "Docker Swarm Cluster",
     description:
-      "Relation to DockerSwarm Cluster Resource in which this object belongs",
+      "Relation to Docker Swarm Cluster Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
@@ -308,7 +311,7 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "DockerSwarm Cluster ID",
+    title: "Docker Swarm Cluster ID",
     description: "ID of the Docker Swarm cluster the user owns",
   })
   @Column({
@@ -394,70 +397,6 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadDockerSwarmClusterOwnerUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadDockerSwarmClusterOwnerUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

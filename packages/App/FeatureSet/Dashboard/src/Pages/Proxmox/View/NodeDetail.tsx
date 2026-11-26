@@ -56,7 +56,7 @@ import {
 import { getProxmoxPartAttention } from "../Utils/ProxmoxPartAttention";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import OneUptimeDate from "Common/Types/Date";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -532,10 +532,16 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
                 <div className="mt-4 space-y-6">
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      {translator.translateText("Network Throughput")}
-                      <InfoTooltip
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
+                        text={
+                          translator.translateText("Network Throughput") ||
+                          "Network Throughput"
+                        }
                         label="Network Throughput"
-                        text={PROXMOX_METRIC_DESCRIPTIONS.nodeNetworkThroughput}
+                        description={
+                          PROXMOX_METRIC_DESCRIPTIONS.nodeNetworkThroughput
+                        }
                       />
                       <TimeRangeZoomHint
                         revealOnHover={true}
@@ -562,10 +568,16 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
                   </div>
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      {translator.translateText("Disk Throughput")}
-                      <InfoTooltip
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
+                        text={
+                          translator.translateText("Disk Throughput") ||
+                          "Disk Throughput"
+                        }
                         label="Disk Throughput"
-                        text={PROXMOX_METRIC_DESCRIPTIONS.nodeDiskThroughput}
+                        description={
+                          PROXMOX_METRIC_DESCRIPTIONS.nodeDiskThroughput
+                        }
                       />
                       <TimeRangeZoomHint
                         revealOnHover={true}

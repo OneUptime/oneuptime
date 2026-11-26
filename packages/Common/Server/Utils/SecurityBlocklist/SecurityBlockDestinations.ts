@@ -1,7 +1,25 @@
 import ObjectID from "../../../Types/ObjectID";
+import {
+  SECURITY_BLOCK_INDICATOR_TYPES,
+  SecurityBlockAction,
+  SecurityBlockIndicatorType,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import {
+  SECURITY_BLOCK_SAMPLE_VALUES,
+  SecurityBlockHolder,
+} from "../../../Types/SecurityBlocklist/SecurityBlockHolders";
 import logger from "../Logger";
+import { CLOUDFLARE_BLOCK_DESTINATION_SOURCE } from "../SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
+import { AwsWafBlockDestinationSource } from "./AwsWafBlockDestination";
+import { AzureWafBlockDestinationSource } from "./AzureWafBlockDestination";
+import { CloudArmorBlockDestinationSource } from "./CloudArmorBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
+import SecurityBlocklistFeedDestination from "./SecurityBlocklistFeedDestination";
+import {
+  CrowdStrikeBlockDestinationSource,
+  MicrosoftDefenderBlockDestinationSource,
+} from "./Destinations/EndpointBlockDestinationSources";
 
 /*
  * WHERE A PROJECT'S BLOCKLIST IS ENFORCED (#10338): every destination of
@@ -11,7 +29,7 @@ import SecurityBlockDestination from "./SecurityBlockDestination";
  * Each kind of destination is a source here: given a project, it lists the
  * destinations of its kind the project has - one per connection with
  * blocking turned on, say, or one per zone of it. Each provider's issue of
- * #10335 adds its source to SECURITY_BLOCK_DESTINATION_SOURCES as it lands
+ * #10335 adds its source to getSecurityBlockDestinationSources as it lands
  * (Cloudflare #10343, AWS WAF #10344, the feed #10345, Defender and
  * CrowdStrike #10346, Azure WAF #10348, Cloud Armor #10349). Until one has,
  * a project has no destination, and the blocklist says so: its blocks are
@@ -27,6 +45,23 @@ import SecurityBlockDestination from "./SecurityBlockDestination";
 export interface SecurityBlockDestinationSource {
   provider: SecurityBlockDestinationProvider;
   findForProject(projectId: ObjectID): Promise<Array<SecurityBlockDestination>>;
+
+  /*
+   * The projects whose destinations of this kind have work beyond their
+   * blocks - a setup asked for or due a check, a destination turned off
+   * with what OneUptime set up still to take away - at most `limit`. The
+   * every-minute pass reconciles them too, so a project with no block yet
+   * still has its destination set up. Absent: only blocks give work.
+   */
+  findProjectIdsWithWork?(limit: number): Promise<Array<ObjectID>>;
+
+  /*
+   * Work beside the project's destinations, once a pass, after them:
+   * Cloudflare takes away the lists and rules OneUptime set up for a
+   * connection whose blocking was turned off. Never throws: what it could
+   * not do it says where it keeps its state, and does on a later pass.
+   */
+  settle?(projectId: ObjectID, now: Date): Promise<void>;
 }
 
 export interface SecurityBlockDestinationsFound {
@@ -41,26 +76,57 @@ export interface SecurityBlockDestinationsFound {
 /*
  * The kinds of destination OneUptime enforces the blocklist at. Each
  * provider's issue adds its own source here, with its import at the top of
- * this file.
+ * this file. Made on first use, never as this module loads: a source's
+ * module reaches back here through the services it reads, so it is whole
+ * only once every module has loaded.
  */
-export const SECURITY_BLOCK_DESTINATION_SOURCES: ReadonlyArray<SecurityBlockDestinationSource> =
-  [];
+export function getSecurityBlockDestinationSources(): ReadonlyArray<SecurityBlockDestinationSource> {
+  if (!productionSources) {
+    productionSources = [
+      // Cloudflare's IP lists and custom rules, on the connections blocking is on for (#10343).
+      CLOUDFLARE_BLOCK_DESTINATION_SOURCE,
+      // The AWS WAF web ACLs a project picked, through their cloud connections (#10344).
+      new AwsWafBlockDestinationSource(),
+      // The Azure WAF policies a project picked: Application Gateway and Front Door (#10348).
+      new AzureWafBlockDestinationSource(),
+      // The Google Cloud Armor security policies a project picked (#10349).
+      new CloudArmorBlockDestinationSource(),
+      // The blocklist feeds a project made, which its firewalls read (#10345).
+      {
+        provider: SecurityBlockDestinationProvider.Feed,
+        findForProject: (
+          projectId: ObjectID,
+        ): Promise<Array<SecurityBlockDestination>> => {
+          return SecurityBlocklistFeedDestination.findForProject(projectId);
+        },
+      },
+      // Every machine (#10346): Microsoft Defender's indicators and CrowdStrike Falcon's IOCs.
+      MicrosoftDefenderBlockDestinationSource,
+      CrowdStrikeBlockDestinationSource,
+    ];
+  }
+
+  return productionSources;
+}
+
+let productionSources: ReadonlyArray<SecurityBlockDestinationSource> | null =
+  null;
 
 export default class SecurityBlockDestinations {
   /*
    * The sources a process asks, which tests replace (setSourcesForTests):
-   * SECURITY_BLOCK_DESTINATION_SOURCES otherwise.
+   * getSecurityBlockDestinationSources() otherwise.
    */
-  private static sources: ReadonlyArray<SecurityBlockDestinationSource> =
-    SECURITY_BLOCK_DESTINATION_SOURCES;
+  private static sources: ReadonlyArray<SecurityBlockDestinationSource> | null =
+    null;
 
   public static getSources(): ReadonlyArray<SecurityBlockDestinationSource> {
-    return this.sources;
+    return this.sources || getSecurityBlockDestinationSources();
   }
 
   // Whether any kind of destination exists at all: with none, nothing can enforce a block anywhere.
   public static hasSources(): boolean {
-    return this.sources.length > 0;
+    return this.getSources().length > 0;
   }
 
   // For tests: the sources to ask instead, until resetSourcesForTests.
@@ -71,7 +137,52 @@ export default class SecurityBlockDestinations {
   }
 
   public static resetSourcesForTests(): void {
-    this.sources = SECURITY_BLOCK_DESTINATION_SOURCES;
+    this.sources = null;
+  }
+
+  /*
+   * What each destination can hold (#10346), from its own supports(): the
+   * kinds of value it blocks, whether it quarantines files, and whether it
+   * enforces on every machine. What a case's plan and the server's refusal
+   * of a block nothing could hold read.
+   */
+  public static getHolders(
+    destinations: ReadonlyArray<SecurityBlockDestination>,
+  ): Array<SecurityBlockHolder> {
+    return destinations.map(
+      (destination: SecurityBlockDestination): SecurityBlockHolder => {
+        const holds: (
+          indicatorType: SecurityBlockIndicatorType,
+          action: SecurityBlockAction,
+        ) => boolean = (
+          indicatorType: SecurityBlockIndicatorType,
+          action: SecurityBlockAction,
+        ): boolean => {
+          return destination.supports({
+            indicatorType,
+            action,
+            value: SECURITY_BLOCK_SAMPLE_VALUES[indicatorType],
+          }).isSupported;
+        };
+
+        return {
+          name: destination.name,
+          provider: destination.provider,
+          enforcesOnEveryMachine: Boolean(destination.enforcesOnEveryMachine),
+          blocks: SECURITY_BLOCK_INDICATOR_TYPES.filter(
+            (indicatorType: SecurityBlockIndicatorType): boolean => {
+              return holds(indicatorType, SecurityBlockAction.Block);
+            },
+          ),
+          quarantinesFiles:
+            Boolean(destination.quarantinesFiles) &&
+            holds(
+              SecurityBlockIndicatorType.FileSha256,
+              SecurityBlockAction.BlockAndQuarantine,
+            ),
+        };
+      },
+    );
   }
 
   /*
@@ -89,7 +200,7 @@ export default class SecurityBlockDestinations {
     }> = [];
     const seen: Set<string> = new Set();
 
-    for (const source of this.sources) {
+    for (const source of this.getSources()) {
       try {
         for (const destination of await source.findForProject(projectId)) {
           if (!destination.key || seen.has(destination.key)) {
@@ -114,5 +225,51 @@ export default class SecurityBlockDestinations {
     }
 
     return { destinations, failedProviders };
+  }
+
+  /*
+   * The projects whose destinations have work of their own, of every kind
+   * that says (SecurityBlockDestinationSource.findProjectIdsWithWork), each
+   * once. A kind that cannot be read is logged and left out for this pass.
+   */
+  public static async findProjectIdsWithWork(
+    limit: number,
+  ): Promise<Array<ObjectID>> {
+    const found: Map<string, ObjectID> = new Map();
+
+    for (const source of this.getSources()) {
+      if (!source.findProjectIdsWithWork) {
+        continue;
+      }
+
+      try {
+        for (const projectId of await source.findProjectIdsWithWork(limit)) {
+          found.set(projectId.toString(), projectId);
+        }
+      } catch (error) {
+        logger.warn(
+          `SecurityBlockDestinations: could not find the projects whose ${source.provider} destinations have work: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    return Array.from(found.values()).slice(0, limit);
+  }
+
+  // Each kind's work beside its destinations (SecurityBlockDestinationSource.settle). Never throws.
+  public static async settle(projectId: ObjectID, now: Date): Promise<void> {
+    for (const source of this.getSources()) {
+      if (!source.settle) {
+        continue;
+      }
+
+      try {
+        await source.settle(projectId, now);
+      } catch (error) {
+        logger.warn(
+          `SecurityBlockDestinations: the ${source.provider} destinations of project ${projectId.toString()} could not settle: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 }

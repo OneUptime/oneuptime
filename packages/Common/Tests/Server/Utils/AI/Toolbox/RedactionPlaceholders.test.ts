@@ -73,7 +73,7 @@ const SAMPLES: Array<[string, string, string]> = [
     "maps [redacted-google-api-key]",
   ],
   ["email", "to ops@acme.com", "to [redacted-email]"],
-  ["ipv4", "host 10.0.0.12", "host [redacted-ip]"],
+  ["ip-address", "host 203.0.113.12", "host [redacted-ip]"],
   ["credit-card", "card 4111 1111 1111 1111", "card [redacted-card]"],
   [
     "hex-secret",
@@ -159,11 +159,11 @@ describe("each rule writes its placeholder, and the model reads what it always r
 
     expect(SECURITY_OBSERVABLE_RULE_NAMES).toEqual([
       "email",
-      "ipv4",
+      "ip-address",
       "hex-secret",
     ]);
     expect(kept).toContain("ops@acme.com");
-    expect(kept).toContain("10.0.0.12");
+    expect(kept).toContain("203.0.113.12");
     expect(kept).toContain("[redacted-github-token]");
     expect(kept).not.toContain("[redacted-ip]");
   });

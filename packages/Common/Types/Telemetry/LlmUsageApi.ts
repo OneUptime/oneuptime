@@ -69,8 +69,32 @@ export interface LlmUsageFigures {
 }
 
 export interface LlmUsageGroup extends LlmUsageFigures {
-  // The person, team, model, provider or service id; "" when none was named.
+  /*
+   * The person, team, model, provider or service id; "" when none was
+   * named; LLM_USAGE_HIDDEN_GROUP_KEY when a scrub rule hid the person or
+   * the team.
+   */
   key: string;
+}
+
+/*
+ * THE USAGE WHOSE PERSON OR TEAM A SCRUB RULE HID (#10435).
+ *
+ * An AI call's user, email and team are scrubbed like any of its
+ * attributes, so a project that redacts emails sent every call's spend to
+ * one "[REDACTED]" person: the breakdown by employee showed the whole bill
+ * as one person's. A call whose email a rule hid is filed under its user id
+ * when a rule left that whole, and the rest - Redact's, a mask's and a Hash
+ * rule's tokens alike, since no token names anybody - under this one key:
+ * spend nobody's name can be put to, which the Usage tab says so. The
+ * text Redact leaves, so a reader that does not know the key still reads
+ * it as hidden.
+ */
+export const LLM_USAGE_HIDDEN_GROUP_KEY: string = "[REDACTED]";
+
+// Whether a group is the usage whose person or team a scrub rule hid.
+export function isLlmUsageHiddenGroup(key: string | null | undefined): boolean {
+  return key === LLM_USAGE_HIDDEN_GROUP_KEY;
 }
 
 /*

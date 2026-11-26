@@ -46,6 +46,8 @@ flowchart TB
 
 누군가 교대로 담당하고 **추가 필드** 에서 아무것도 바꾸지 않은 동안에는, 접힌 머리글에 앞으로 일어날 일이 표시됩니다. 각 사람이 1주 동안 온콜을 맡고, 그다음 사람이 이어받습니다.
 
+프로젝트에 초대되었지만 아직 참여하지 않은 사람도 교대로 담당할 수 있지만, 초대를 수락할 때까지 그 사람은 무엇으로부터도 호출되지 않으며 아무것도 전달받지 않습니다. 그 사람의 차례는 커버리지 공백이 되고, 스케줄을 호출하는 각 온콜 정책의 채널과 피드가 이를 전합니다. 그 사람은 초대할 때 입력한 이름으로 표시되며, 이메일 주소로 표시되지 않습니다: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." Slack의 `/oneuptime oncall`과 Microsoft Teams의 `oncall`도 그렇게 전합니다. 참여하면 호출이 닿게 되고, 이제 어떤 온콜 정책이 자신을 호출하는지 전달받으며, 채널에는 "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob."라는 메시지가 게시됩니다. 그때까지 [준비 상태 및 보고서](/docs/on-call/readiness)에 해야 할 일과 함께 그 사람이 표시됩니다.
+
 ## 레이어
 
 스케줄의 로테이션은 해당 **레이어** 페이지의 레이어로 이루어집니다. 레이어는 위에서 아래로 읽히며, 온콜 담당자가 있는 가장 위의 레이어가 호출합니다. 그러므로 주 로테이션을 맨 위에, 예비 담당을 그 아래에 두세요.

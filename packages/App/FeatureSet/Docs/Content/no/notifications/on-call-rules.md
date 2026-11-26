@@ -27,6 +27,25 @@ flowchart TB
 
 De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsApp, Telegram, Slack, Microsoft Teams og Mattermost har en bekreftelseslenke, og et anrop ber deg trykke 1. Kan du ikke ta en tilkalling, kan du eskalere den fra de samme meldingene, og et anrop ber deg trykke 2: policyen varsler neste nivå med en gang, og du blir ikke varslet om det igjen. Se [Eskaler en varsling](/docs/on-call/escalation-rules#eskaler-en-varsling). Hver tilkalling du får, står under **Brukerinnstillinger → Vaktlogger**, der **Vis tidslinje** viser hver sendte melding og om den ble levert.
 
+### Hva et anrop sier
+
+Et anrop sier hvem det er fra, hva som har skjedd, hvor alvorlig det er og hvilket nummer det har, deretter hvilken tast som gjør hva, og til slutt tittelen. Du kan trykke på en tast når som helst, også mens anropet fortsatt snakker. Trykker du ikke på noen, sier anropet detaljene og tastene én gang til, venter i 10 sekunder og legger på, og tilkallingen forblir ubekreftet:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+Anropet nevner prosjektet ditt. Et anrop som ikke hører til et prosjekt, for eksempel en verifiseringskode, nevner OneUptime eller navnet den selvhostede installasjonen din bruker. En tittel på mer enn omtrent 100 tegn kortes ned etter et helt ord, og OneUptime tar vare på hele tittelen. Bokstavene i et nummer som `INC-42` sies én om gangen, slik at stemmen aldri leser dem som et ord. Anrop er alltid på engelsk.
+
 ## Én rekkefølge for alt
 
 **Brukerinnstillinger → Slik når man meg** åpner med rekkefølgen din: nummererte trinn som hvert oppkall prøver etter tur, for hendelser, varsler og episoder av enhver alvorlighetsgrad. Hvert trinn er et tidspunkt, for eksempel med en gang eller etter 5 minutter, med de verifiserte metodene som sendes samtidig da. Et senere trinn sendes bare hvis ingen har bekreftet oppkallet innen da.

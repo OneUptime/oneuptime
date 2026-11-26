@@ -3,11 +3,12 @@ import MonitorGroupMonitorsCopy, {
 } from "../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitorsCopy";
 import {
   getAddMonitorsErrorMessage,
-  getMonitorsToOffer,
+  getMonitorsToOfferQuery,
   getNothingToAddMessage,
-  MonitorToOffer,
 } from "../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMembership";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { JSONObject } from "Common/Types/JSON";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import {
   createTranslator,
@@ -65,106 +66,69 @@ function readLocale(locale: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
-function buildMonitor(id: string, name: string | undefined): Monitor {
-  const monitor: Monitor = new Monitor();
-  monitor._id = id;
-  if (name !== undefined) {
-    monitor.name = name;
-  }
-  return monitor;
-}
-
 const API_ID: string = "71000000-0000-4000-8000-000000000001";
 const WEB_ID: string = "71000000-0000-4000-8000-000000000002";
 const PAYMENTS_ID: string = "71000000-0000-4000-8000-000000000003";
 
 const ENGLISH: Translator = createTranslator(undefined, "en");
 
+/*
+ * Which monitors Add Monitors offers is the server's to say (#10399): the
+ * picker searches it with this query, 50 names at a time. The dialog used to
+ * read the project's first 10,000 monitors and drop the group's in the
+ * browser, so a monitor past them was never offered.
+ */
 describe("Add Monitors offers the monitors the group does not hold", () => {
-  const projectMonitors: Array<Monitor> = [
-    buildMonitor(API_ID, "Checkout API"),
-    buildMonitor(WEB_ID, "Web app"),
-    buildMonitor(PAYMENTS_ID, "Payments"),
-  ];
-
-  test("an empty group is offered every monitor, by name, in the order read", () => {
-    expect(
-      getMonitorsToOffer({
-        projectMonitors: projectMonitors,
-        monitorIdsInGroup: [],
-      }),
-    ).toEqual([
-      { value: API_ID, label: "Checkout API" },
-      { value: WEB_ID, label: "Web app" },
-      { value: PAYMENTS_ID, label: "Payments" },
-    ]);
+  test("an empty group is offered every live monitor", () => {
+    expect(getMonitorsToOfferQuery({ monitorIdsInGroup: [] })).toEqual({
+      isArchived: false,
+    });
   });
 
   test("a monitor already in the group is not offered again", () => {
-    const offered: Array<MonitorToOffer> = getMonitorsToOffer({
-      projectMonitors: projectMonitors,
-      monitorIdsInGroup: [new ObjectID(WEB_ID)],
+    const query: Record<string, unknown> = getMonitorsToOfferQuery({
+      monitorIdsInGroup: [new ObjectID(WEB_ID), API_ID],
     });
 
-    expect(
-      offered.map((option: MonitorToOffer) => {
-        return option.value;
-      }),
-    ).toEqual([API_ID, PAYMENTS_ID]);
+    expect(query["isArchived"]).toBe(false);
+    expect(query["_id"]).toBeInstanceOf(IncludesNone);
+    expect((query["_id"] as IncludesNone).values).toEqual([WEB_ID, API_ID]);
   });
 
-  test("ids are compared whatever their case or type", () => {
+  test("is sent to the server as a list of ids none of which it offers", () => {
     expect(
-      getMonitorsToOffer({
-        projectMonitors: projectMonitors,
-        monitorIdsInGroup: [API_ID.toUpperCase(), new ObjectID(PAYMENTS_ID)],
-      }),
-    ).toEqual([{ value: WEB_ID, label: "Web app" }]);
-  });
-
-  test("a group holding every monitor is offered nothing", () => {
-    expect(
-      getMonitorsToOffer({
-        projectMonitors: projectMonitors,
-        monitorIdsInGroup: [API_ID, WEB_ID, PAYMENTS_ID],
-      }),
-    ).toEqual([]);
-  });
-
-  test("a monitor read without a name is offered by its id; one without an id is left out", () => {
-    expect(
-      getMonitorsToOffer({
-        projectMonitors: [buildMonitor(API_ID, undefined), new Monitor()],
-        monitorIdsInGroup: [],
-      }),
-    ).toEqual([{ value: API_ID, label: API_ID }]);
+      JSON.parse(
+        JSON.stringify(
+          JSONFunctions.serialize(
+            getMonitorsToOfferQuery({
+              monitorIdsInGroup: [new ObjectID(PAYMENTS_ID)],
+            }) as JSONObject,
+          ),
+        ),
+      ),
+    ).toEqual({
+      isArchived: false,
+      _id: { _type: "IncludesNone", value: [PAYMENTS_ID] },
+    });
   });
 });
 
 describe("when Add Monitors has nothing to offer", () => {
   test("a project with no monitor yet says so, and that one is created first", () => {
-    expect(
-      getNothingToAddMessage({ projectMonitors: [], monitorsToOffer: [] }),
-    ).toBe(
+    expect(getNothingToAddMessage({ inProject: 0, toOffer: 0 })).toBe(
       "This project has no monitors yet. Create one, then add it to this group.",
     );
   });
 
   test("a group holding every monitor says so - not that the project has none", () => {
-    expect(
-      getNothingToAddMessage({
-        projectMonitors: [buildMonitor(API_ID, "Checkout API")],
-        monitorsToOffer: [],
-      }),
-    ).toBe("Every monitor in this project is already in this group.");
+    expect(getNothingToAddMessage({ inProject: 3, toOffer: 0 })).toBe(
+      "Every monitor in this project is already in this group.",
+    );
   });
 
   test("says nothing while there is a monitor to pick", () => {
     expect(
-      getNothingToAddMessage({
-        projectMonitors: [buildMonitor(API_ID, "Checkout API")],
-        monitorsToOffer: [{ value: API_ID, label: "Checkout API" }],
-      }),
+      getNothingToAddMessage({ inProject: undefined, toOffer: 2 }),
     ).toBeUndefined();
   });
 });
@@ -225,8 +189,13 @@ describe("the Monitors page", () => {
     expect(page).toContain(
       "fieldType: FormFieldSchemaType.MultiSelectDropdown",
     );
-    expect(page).toContain("getMonitorsToOffer({");
-    expect(page).toContain("dropdownOptions: monitorsToOffer");
+    // Searched on the server, within the monitors the group does not hold.
+    expect(page).toContain("getMonitorsToOfferQuery(");
+    expect(page).toContain("dropdownModal: {");
+    expect(page).toContain("query: monitorsToOfferQuery,");
+    // Never the project's first 10,000 monitors, searched in the browser.
+    expect(page).not.toContain("dropdownOptions:");
+    expect(page).not.toContain("getList<Monitor>");
     expect(page).toContain("title={MonitorGroupMonitorsCopy.addDialogTitle}");
     expect(page).toContain(
       "submitButtonText={MonitorGroupMonitorsCopy.addButton}",
@@ -243,11 +212,13 @@ describe("the Monitors page", () => {
   });
 
   test("with nothing to pick, says why and offers Create Monitor instead of an empty picker", () => {
-    expect(page).toContain("getNothingToAddMessage({");
-    // Only once the monitors are read, and never over a pick kept for a retry.
-    expect(page).toContain(
-      'offerState === "loaded" && pickedMonitorIds.length === 0 && !isAddLoading',
-    );
+    // Decided by the server's counts, not by a list read into the browser.
+    expect(page).toContain("getNothingToAddMessage(offerCounts)");
+    expect(page).toContain("await ModelAPI.count<Monitor>({");
+    // Only once the monitors are counted, and never over a pick kept for a retry.
+    expect(page).toContain('offerState === "loaded" &&');
+    expect(page).toContain("pickedMonitorIds.length === 0 &&");
+    expect(page).toContain("!isAddLoading");
     expect(page).toContain(
       "submitButtonText={MonitorGroupMonitorsCopy.createMonitorButton}",
     );

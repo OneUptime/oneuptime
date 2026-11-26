@@ -1177,7 +1177,8 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("counts eight Rules pages, and files the AI rules under AI", () => {
+    // Eight kinds of rule, then their Audit Logs (#10462).
+    it("counts nine Rules pages, and files the AI rules under AI", () => {
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const lines: Array<string> = readPage(
@@ -1220,7 +1221,7 @@ describe("AI has no limits by default", () => {
           bulletUnderAi: boldNames(aiRulesBullet).includes(labels.ai),
         }).toEqual({
           language: language,
-          pages: 8,
+          pages: 9,
           listsAiRules: false,
           bulletAfterRunbookRules: labels.aiRules,
           bulletUnderAi: true,

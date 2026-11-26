@@ -16,7 +16,7 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { getProjectConfig: jest.fn() },
+      default: { getProjectConfig: jest.fn(), isAttributedProject: jest.fn() },
     };
   },
 );
@@ -170,7 +170,7 @@ const withBudgets: (data?: {
         dailyBudgetsInGB: logsBudget(data?.labelGB ?? null),
       },
     ],
-    budgetsByServiceId: new Map([
+    budgetsByResourceId: new Map([
       [CHECKOUT, [0, 1]],
       [CART, [1]],
     ]),
@@ -489,7 +489,7 @@ describe("the usage counters", () => {
     getProjectConfig.mockResolvedValue({
       publishesUsageMetrics: true,
       budgets: [],
-      budgetsByServiceId: new Map(),
+      budgetsByResourceId: new Map(),
     } as never);
 
     const attribution: TelemetryIngestAttribution = (await batch({
@@ -535,5 +535,407 @@ describe("the usage counters", () => {
         return JSON.parse(entry.field)[3];
       }),
     ).toEqual(["other"]);
+  });
+});
+
+/*
+ * #10101: a team's or a label's budget counts every resource telemetry is
+ * filed under - a host, a Kubernetes cluster, a cloud resource, an IoT
+ * fleet - the way it counts a service.
+ */
+describe("a host, a cluster or any other resource the budgets count", () => {
+  const HOST: string = "a1a1a1a1-0000-4000-8000-0000000000a1";
+  const CLUSTER: string = "a1a1a1a1-0000-4000-8000-0000000000a2";
+
+  const withResources: (data?: {
+    teamGB?: number | null;
+    labelGB?: number | null;
+  }) => TelemetryIngestAttributionConfig = (data?: {
+    teamGB?: number | null;
+    labelGB?: number | null;
+  }): TelemetryIngestAttributionConfig => {
+    return {
+      ...withBudgets(data),
+      // The team owns the host; the cluster carries the label.
+      budgetsByResourceId: new Map([
+        [CHECKOUT, [0, 1]],
+        [HOST, [0]],
+        [CLUSTER, [1]],
+      ]),
+    };
+  };
+
+  const host: (records: number) => TelemetryIngestAttributionResource = (
+    records: number,
+  ): TelemetryIngestAttributionResource => {
+    return {
+      primaryEntityId: HOST,
+      primaryEntityType: ServiceType.Host,
+      name: "host/web-1",
+      records: records,
+    };
+  };
+
+  const cluster: (records: number) => TelemetryIngestAttributionResource = (
+    records: number,
+  ): TelemetryIngestAttributionResource => {
+    return {
+      primaryEntityId: CLUSTER,
+      primaryEntityType: ServiceType.KubernetesCluster,
+      name: "k8s/prod",
+      records: records,
+    };
+  };
+
+  test("counts against its team's and its labels' budgets, as a service does", async () => {
+    getProjectConfig.mockResolvedValue(
+      withResources({ teamGB: 1, labelGB: 1 }) as never,
+    );
+
+    const attribution: TelemetryIngestAttribution = (await batch())!;
+
+    expect(await attribution.admitResource(host(3))).toBe(true);
+    expect(await attribution.admitResource(cluster(1))).toBe(true);
+
+    await attribution.settle();
+
+    expect(settled().scopes).toEqual([
+      expect.objectContaining({
+        scope: TelemetryIngestionBudgetScope.Team,
+        scopeId: TEAM_ID,
+        admittedBytes: 750,
+        droppedBytes: 0,
+      }),
+      expect.objectContaining({
+        scope: TelemetryIngestionBudgetScope.Label,
+        scopeId: LABEL_ID,
+        admittedBytes: 250,
+        droppedBytes: 0,
+      }),
+    ]);
+  });
+
+  test("is dropped once its team's budget is used up, and what it would have counted comes back off the project's and the key's day", async () => {
+    getProjectConfig.mockResolvedValue(withResources() as never);
+    readDayCounters.mockResolvedValue([counters(GB)] as never);
+
+    const attribution: TelemetryIngestAttribution = (await batch())!;
+
+    expect(await attribution.admitResource(host(1))).toBe(false);
+    // The cluster's label has no logs budget: it is stored.
+    expect(await attribution.admitResource(cluster(1))).toBe(true);
+
+    await attribution.settle();
+
+    const data: TelemetryIngestAttributionSettle = settled();
+
+    expect(data.scopes).toEqual([
+      expect.objectContaining({
+        scope: TelemetryIngestionBudgetScope.Team,
+        admittedBytes: 0,
+        droppedBytes: 500,
+        droppedRequests: 1,
+      }),
+    ]);
+    expect(data.refund).toEqual({
+      bytes: 500,
+      scopes: [
+        { scope: TelemetryIngestionBudgetScope.Project, scopeId: PROJECT_ID },
+        { scope: TelemetryIngestionBudgetScope.IngestionKey, scopeId: KEY_ID },
+      ],
+    });
+  });
+
+  test("is found whatever the case of its id, as the read scope compares ids", async () => {
+    getProjectConfig.mockResolvedValue(withResources() as never);
+    readDayCounters.mockResolvedValue([counters(GB)] as never);
+
+    const attribution: TelemetryIngestAttribution = (await batch())!;
+
+    expect(
+      await attribution.admitResource({
+        ...host(1),
+        primaryEntityId: HOST.toUpperCase(),
+      }),
+    ).toBe(false);
+  });
+
+  test("a batch costs the same however many resources the project's budgets count", async () => {
+    // 200,000 resources, counting what each batch asks of the map.
+    class CountingMap extends Map<string, Array<number>> {
+      public reads: number = 0;
+      public walks: number = 0;
+
+      public override get(key: string): Array<number> | undefined {
+        this.reads++;
+        return super.get(key);
+      }
+
+      public override forEach(
+        ...args: Parameters<Map<string, Array<number>>["forEach"]>
+      ): void {
+        this.walks++;
+        super.forEach(...args);
+      }
+
+      public override entries(): MapIterator<[string, Array<number>]> {
+        this.walks++;
+        return super.entries();
+      }
+
+      public override keys(): MapIterator<string> {
+        this.walks++;
+        return super.keys();
+      }
+
+      public override values(): MapIterator<Array<number>> {
+        this.walks++;
+        return super.values();
+      }
+
+      public override [Symbol.iterator](): MapIterator<
+        [string, Array<number>]
+      > {
+        this.walks++;
+        return super[Symbol.iterator]();
+      }
+    }
+
+    const resources: CountingMap = new CountingMap();
+
+    for (let index: number = 0; index < 200_000; index++) {
+      resources.set(
+        `a1a1a1a1-0000-4000-8000-${index.toString().padStart(12, "0")}`,
+        [0],
+      );
+    }
+
+    resources.set(HOST, [0]);
+    resources.reads = 0;
+    resources.walks = 0;
+
+    getProjectConfig.mockResolvedValue({
+      ...withBudgets(),
+      budgetsByResourceId: resources,
+    } as never);
+
+    for (let run: number = 0; run < 3; run++) {
+      const attribution: TelemetryIngestAttribution = (await batch())!;
+
+      await attribution.admitResource(host(1));
+      await attribution.admitResource(cluster(1));
+      await attribution.settle();
+    }
+
+    // One lookup a resource a batch, and the map is never walked.
+    expect(resources.walks).toBe(0);
+    expect(resources.reads).toBe(6);
+  });
+});
+
+/*
+ * #10102: an ingest path that files its records one by one - syslog, line
+ * by line - offers a resource again for each, and it is one resource of the
+ * batch.
+ */
+describe("a resource offered again in the same batch", () => {
+  test("adds its records to its first offer, and is answered the same", async () => {
+    getProjectConfig.mockResolvedValue(withBudgets({ usage: true }) as never);
+    readDayCounters.mockResolvedValue([counters(GB)] as never);
+
+    const attribution: TelemetryIngestAttribution = (await batch({
+      bytes: 1000,
+    }))!;
+
+    // Three lines of checkout (its team's budget is used up), one of cart.
+    for (let line: number = 0; line < 3; line++) {
+      expect(
+        await attribution.admitResource(resource(CHECKOUT, 1, "checkout")),
+      ).toBe(false);
+    }
+
+    expect(await attribution.admitResource(resource(CART, 1, "cart"))).toBe(
+      true,
+    );
+    expect(attribution.getDroppedResourceCount()).toBe(1);
+
+    await attribution.settle();
+
+    const data: TelemetryIngestAttributionSettle = settled();
+
+    // Shared by lines: checkout's three are 750 bytes, cart's one 250.
+    expect(data.scopes).toEqual([
+      expect.objectContaining({
+        scope: TelemetryIngestionBudgetScope.Team,
+        admittedBytes: 0,
+        droppedBytes: 750,
+        droppedRequests: 1,
+      }),
+    ]);
+    expect(data.refund!.bytes).toBe(750);
+    expect(
+      data.usage.map((entry: { field: string; bytes: number }) => {
+        return [JSON.parse(entry.field)[3], entry.bytes];
+      }),
+    ).toEqual([["cart", 250]]);
+    // The budgets' counters are read once for the whole batch.
+    expect(readDayCounters).toHaveBeenCalledTimes(1);
+  });
+
+  test("is one resource even when offered again while its budgets are read", async () => {
+    let release: () => void = (): void => {
+      return undefined;
+    };
+    const readHeld: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+
+    readDayCounters.mockImplementation((async (days: Array<unknown>) => {
+      await readHeld;
+      return days.map(() => {
+        return counters(0);
+      });
+    }) as never);
+
+    const attribution: TelemetryIngestAttribution = (await batch({
+      bytes: 900,
+    }))!;
+
+    const first: Promise<boolean> = attribution.admitResource(
+      resource(CHECKOUT, 1),
+    );
+    const second: Promise<boolean> = attribution.admitResource(
+      resource(CHECKOUT, 2),
+    );
+
+    release();
+
+    expect(await Promise.all([first, second])).toEqual([true, true]);
+
+    await attribution.settle();
+
+    // One resource of three records: the team is charged the whole batch.
+    expect(settled().scopes).toEqual([
+      expect.objectContaining({
+        scope: TelemetryIngestionBudgetScope.Team,
+        admittedBytes: 900,
+      }),
+    ]);
+  });
+
+  test("a renamed resource keeps a usage series a name, as its usage fields do", async () => {
+    getProjectConfig.mockResolvedValue({
+      publishesUsageMetrics: true,
+      budgets: [],
+      budgetsByResourceId: new Map(),
+    } as never);
+
+    const attribution: TelemetryIngestAttribution = (await batch({
+      bytes: 300,
+    }))!;
+
+    await attribution.admitResource(resource(CHECKOUT, 1, "checkout"));
+    await attribution.admitResource(resource(CHECKOUT, 2, "checkout-v2"));
+    await attribution.settle();
+
+    expect(
+      settled().usage.map((entry: { field: string; bytes: number }) => {
+        return [JSON.parse(entry.field)[3], entry.bytes];
+      }),
+    ).toEqual([
+      ["checkout", 100],
+      ["checkout-v2", 200],
+    ]);
+  });
+});
+
+/*
+ * #10102: Fluent Bit's and Fluentd's entries and syslog's lines are
+ * reshaped by their handlers before they are queued, so the size the
+ * request path counted is read first and carried for the worker.
+ */
+describe("the size a reshaped batch is shared out at", () => {
+  const isAttributedProject: MockFn =
+    TelemetryIngestAttributionSettings.isAttributedProject as unknown as MockFn;
+
+  test("is nothing at all for a project that needs no attribution, and nothing is measured", async () => {
+    isAttributedProject.mockResolvedValue(false as never);
+    const measure: MockFn = jest.fn() as unknown as MockFn;
+
+    expect(
+      await TelemetryIngestAttribution.getRequestBytesToShare({
+        projectId: PROJECT_ID,
+        charge: { countedBytes: 500, isPending: false },
+        measure: measure as never,
+      }),
+    ).toBe(undefined);
+    expect(measure).not.toHaveBeenCalled();
+    expect(isAttributedProject).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("is what the request path counted, when it counted", async () => {
+    isAttributedProject.mockResolvedValue(true as never);
+    const measure: MockFn = jest.fn() as unknown as MockFn;
+
+    expect(
+      await TelemetryIngestAttribution.getRequestBytesToShare({
+        projectId: PROJECT_ID,
+        charge: { countedBytes: 512, isPending: false },
+        measure: measure as never,
+      }),
+    ).toBe(512);
+    expect(measure).not.toHaveBeenCalled();
+  });
+
+  test("is the body as it arrived, measured as the request path measures one, when nothing was counted", async () => {
+    isAttributedProject.mockResolvedValue(true as never);
+
+    for (const charge of [
+      null,
+      undefined,
+      { countedBytes: 0, isPending: true },
+    ]) {
+      expect(
+        await TelemetryIngestAttribution.getRequestBytesToShare({
+          projectId: PROJECT_ID,
+          charge: charge,
+          measure: () => {
+            return { bytes: 2048.7 };
+          },
+        }),
+      ).toBe(2048);
+    }
+  });
+
+  test("is nothing, never a throw, for no project or a measure that fails", async () => {
+    isAttributedProject.mockResolvedValue(true as never);
+
+    expect(
+      await TelemetryIngestAttribution.getRequestBytesToShare({
+        projectId: undefined,
+        charge: null,
+        measure: () => {
+          return { bytes: 1 };
+        },
+      }),
+    ).toBe(undefined);
+    expect(
+      await TelemetryIngestAttribution.getRequestBytesToShare({
+        projectId: PROJECT_ID,
+        charge: null,
+        measure: () => {
+          throw new Error("unreadable");
+        },
+      }),
+    ).toBe(undefined);
+    expect(
+      await TelemetryIngestAttribution.getRequestBytesToShare({
+        projectId: PROJECT_ID,
+        charge: null,
+        measure: () => {
+          return { bytes: Number.NaN };
+        },
+      }),
+    ).toBe(undefined);
   });
 });

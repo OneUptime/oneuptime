@@ -7,7 +7,12 @@ import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
+import { getAuditLogFieldTitle } from "Common/Utils/AuditLog/AuditLogFieldTitles";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import {
+  isAuditLogChangeHidden,
+  isAuditLogNameHidden,
+} from "Common/Types/AuditLog/AuditLogHiddenValues";
 import { getAuditLogActionLabel } from "Common/Types/AuditLog/AuditLogActionLabel";
 import {
   AUDIT_LOG_SESSION_FIELDS,
@@ -26,6 +31,12 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import AuditLogRelatedRecordValue, {
+  AuditLogRelatedRecordsLoader,
+  AuditLogRelatedRecordsState,
+  isAuditLogReferenceValue,
+  useAuditLogRelatedRecords,
+} from "./AuditLogRelatedRecordValue";
 import React, {
   Fragment,
   FunctionComponent,
@@ -40,8 +51,21 @@ export interface ComponentProps {
   onClose: () => void;
   action: AuditLogModalAction;
   resourceType?: string | undefined;
+  /*
+   * The type the entry is stored under (AuditLog.resourceType), which names
+   * its model, so each field reads as its model names it (#10290).
+   * resourceType above is what the reader is shown.
+   */
+  storedResourceType?: string | undefined;
   resourceName?: string | undefined;
   changes: JSONArray | undefined;
+  /*
+   * The entry's id, for the names of the records its changes name (#10470):
+   * asked once when the dialog opens (AuditLogRelatedRecordValue).
+   */
+  auditLogId?: string | undefined;
+  // How those names are read: the server's, unless a test hands one.
+  loadRelatedRecords?: AuditLogRelatedRecordsLoader | undefined;
 }
 
 export interface ChangeRow {
@@ -53,7 +77,39 @@ export interface ChangeRow {
    * than copies (a workflow's steps) and for JSON (the paths that changed).
    */
   summary: Array<string>;
+  /*
+   * The reader may not read the field on the record, so the server kept its
+   * values from them (#10642, AuditLogHiddenValues): the row says the field
+   * changed, and that its value is hidden. Absent for a value they read.
+   */
+  isHidden?: boolean | undefined;
 }
+
+/*
+ * What the log says in place of what its reader may not read (#10642), as
+ * keys of the Dashboard's locales: a field's value, a record's name, and
+ * the line that says why, once, above the fields.
+ */
+export const AUDIT_LOG_HIDDEN_WORDS: Readonly<{
+  valueHidden: string;
+  nameHidden: string;
+  hiddenValuesNote: string;
+}> = {
+  valueHidden: translationKey("Value hidden"),
+  nameHidden: translationKey("Name hidden"),
+  hiddenValuesNote: translationKey(
+    "Values of fields you may not read are hidden.",
+  ),
+};
+
+// An entry's name as the reader may read it: none when it was kept from them.
+export const getShownResourceName: (
+  resourceName: string | undefined,
+) => string | undefined = (
+  resourceName: string | undefined,
+): string | undefined => {
+  return isAuditLogNameHidden(resourceName) ? undefined : resourceName;
+};
 
 // The lines of a change's summary: text only, anything else left out.
 export const readChangeSummary: (value: unknown) => Array<string> = (
@@ -97,6 +153,18 @@ export const readChangeRows: (changes: unknown) => Array<ChangeRow> = (
       continue;
     }
 
+    // A value kept from the reader is no value: nothing of it is drawn.
+    if (isAuditLogChangeHidden(raw)) {
+      rows.push({
+        field,
+        oldValue: undefined,
+        newValue: undefined,
+        summary: [],
+        isHidden: true,
+      });
+      continue;
+    }
+
     rows.push({
       field,
       oldValue: entry["oldValue"] as JSONValue | undefined,
@@ -112,7 +180,7 @@ export const readChangeRows: (changes: unknown) => Array<ChangeRow> = (
   return rows;
 };
 
-const humanizeFieldName: (field: string) => string = (
+export const humanizeFieldName: (field: string) => string = (
   field: string,
 ): string => {
   if (!field) {
@@ -127,6 +195,79 @@ const humanizeFieldName: (field: string) => string = (
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
+/*
+ * What a field an entry recorded is called, in the reader's language: the
+ * title its model gives the column ("Interval", "Monitor Steps"), where the
+ * entry's type names a model that has it (AuditLogFieldTitles), and its key
+ * split into words otherwise, as the log always drew it (#10290).
+ */
+export const getChangeFieldLabel: (data: {
+  field: string;
+  storedResourceType?: string | undefined;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  field: string;
+  storedResourceType?: string | undefined;
+  translator?: Translator | undefined;
+}): string => {
+  const title: string | null = getAuditLogFieldTitle(
+    data.storedResourceType,
+    data.field,
+  );
+
+  if (title) {
+    return data.translator?.translateText(title) || title;
+  }
+
+  return humanizeFieldName(data.field);
+};
+
+// How many changed fields a row of the log names before it says how many more.
+export const CHANGED_FIELDS_NAMED_ON_A_ROW: number = 3;
+
+export const AUDIT_LOG_MORE_FIELDS: PluralTemplate = {
+  one: "{{count}} more",
+  other: "{{count}} more",
+};
+
+/*
+ * The fields an update changed, as a row of the log names them under its
+ * Changes button: the first few by their names (getChangeFieldLabel), then
+ * how many more, in the reader's plural forms (#10290).
+ */
+export const getChangedFieldLabels: (data: {
+  changes: unknown;
+  storedResourceType?: string | undefined;
+  translator: Translator;
+}) => Array<string> = (data: {
+  changes: unknown;
+  storedResourceType?: string | undefined;
+  translator: Translator;
+}): Array<string> => {
+  const rows: Array<ChangeRow> = readChangeRows(data.changes);
+
+  const labels: Array<string> = rows
+    .slice(0, CHANGED_FIELDS_NAMED_ON_A_ROW)
+    .map((row: ChangeRow): string => {
+      return getChangeFieldLabel({
+        field: row.field,
+        storedResourceType: data.storedResourceType,
+        translator: data.translator,
+      });
+    });
+
+  if (rows.length > CHANGED_FIELDS_NAMED_ON_A_ROW) {
+    labels.push(
+      data.translator.translatePlural(
+        AUDIT_LOG_MORE_FIELDS,
+        rows.length - CHANGED_FIELDS_NAMED_ON_A_ROW,
+      ),
+    );
+  }
+
+  return labels;
+};
+
 const ISO_DATE_REGEX: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 
@@ -134,13 +275,29 @@ const isISODate: (value: string) => boolean = (value: string): boolean => {
   return ISO_DATE_REGEX.test(value);
 };
 
-const formatScalar: (value: JSONValue | undefined) => string = (
+const formatScalar: (
   value: JSONValue | undefined,
+  translator?: Translator | undefined,
+) => string = (
+  value: JSONValue | undefined,
+  translator?: Translator | undefined,
 ): string => {
   if (value === null || value === undefined || value === "") {
     return EMPTY_VALUE_MARK;
   }
   if (typeof value === "boolean") {
+    /*
+     * A switch, as the reader says it: "Yes" or "No" in their language, where
+     * it read "true" or "false" in every one (#10290).
+     */
+    if (translator) {
+      return (
+        (value
+          ? translator.translateText("Yes")
+          : translator.translateText("No")) || (value ? "Yes" : "No")
+      );
+    }
+
     return value ? "true" : "false";
   }
   if (typeof value === "number") {
@@ -243,13 +400,18 @@ export const getAuditLogChangesTitle: (data: {
     data.resourceType || "Resource",
   );
 
-  return data.resourceName
+  // A name kept from the reader (#10642) titles nothing: the type does.
+  const resourceName: string | undefined = getShownResourceName(
+    data.resourceName,
+  );
+
+  return resourceName
     ? data.translator.translateTemplate(
         "{{action}} · {{resourceType}} — {{resourceName}}",
         {
           action: action,
           resourceType: resourceType,
-          resourceName: data.resourceName,
+          resourceName: resourceName,
         },
       )
     : data.translator.translateTemplate("{{action}} · {{resourceType}}", {
@@ -374,7 +536,7 @@ const renderValue: (
 
   return (
     <span className="text-gray-900 whitespace-pre-wrap break-words">
-      {getValueOrQuietDash(formatScalar(value))}
+      {getValueOrQuietDash(formatScalar(value, translator))}
     </span>
   );
 };
@@ -387,9 +549,43 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     return readChangeRows(props.changes);
   }, [props.changes]);
 
+  /*
+   * The names of the records the changes name, read once as the dialog
+   * opens (#10470). A hidden value is no value, so it names nothing; a
+   * session's entry names no record.
+   */
+  const related: AuditLogRelatedRecordsState = useAuditLogRelatedRecords({
+    isOpen: props.isOpen,
+    auditLogId: props.auditLogId,
+    changes: isSessionAuditLogAction(props.action) ? [] : rows,
+    load: props.loadRelatedRecords,
+  });
+
   if (!props.isOpen) {
     return null;
   }
+
+  // A value that names records reads by their names; any other as it always did.
+  const renderChangeValue: (
+    field: string,
+    value: JSONValue | undefined,
+  ) => ReactElement = (
+    field: string,
+    value: JSONValue | undefined,
+  ): ReactElement => {
+    if (isAuditLogReferenceValue({ field, value, related })) {
+      return (
+        <AuditLogRelatedRecordValue
+          value={value}
+          records={related.records.get(field)}
+          isLoading={related.isLoading}
+          translator={translator}
+        />
+      );
+    }
+
+    return renderValue(value, translator);
+  };
 
   const title: string = getAuditLogChangesTitle({
     action: props.action,
@@ -465,6 +661,15 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
 
   const valueLabel: string = translator.translateText("Value") || "Value";
 
+  // Said once, above the fields, when the reader may not read some of them.
+  const hasHiddenValues: boolean = rows.some((row: ChangeRow): boolean => {
+    return Boolean(row.isHidden);
+  });
+
+  const valueHiddenLabel: string =
+    translator.translateText(AUDIT_LOG_HIDDEN_WORDS.valueHidden) ||
+    AUDIT_LOG_HIDDEN_WORDS.valueHidden;
+
   return (
     <Modal
       title={title}
@@ -474,6 +679,26 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
       modalWidth={ModalWidth.Medium}
     >
       <div className="mt-4">
+        {hasHiddenValues ? (
+          <div
+            data-testid="audit-log-hidden-values-note"
+            className="mb-3 flex items-start gap-2 text-xs text-gray-500"
+          >
+            <Icon
+              icon={IconProp.EyeSlash}
+              size={SizeProp.Small}
+              thick={ThickProp.Thick}
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+            />
+            <span>
+              {translator.translateText(
+                AUDIT_LOG_HIDDEN_WORDS.hiddenValuesNote,
+              ) || AUDIT_LOG_HIDDEN_WORDS.hiddenValuesNote}
+            </span>
+          </div>
+        ) : (
+          <></>
+        )}
         {rows.length === 0 ? (
           <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
             {translator.translateText(AUDIT_LOG_NO_FIELD_CHANGES) ||
@@ -487,19 +712,52 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                 row.oldValue !== undefined &&
                 row.newValue !== undefined;
 
+              // The field by its name, whether or not its value is the reader's.
+              const fieldHeader: ReactElement = (
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    data-testid="audit-log-change-field"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+                  >
+                    {getChangeFieldLabel({
+                      field: row.field,
+                      storedResourceType: props.storedResourceType,
+                      translator: translator,
+                    })}
+                  </span>
+                  <span className="text-xs font-mono text-gray-500">
+                    {row.field}
+                  </span>
+                </div>
+              );
+
+              if (row.isHidden) {
+                return (
+                  <div
+                    key={row.field}
+                    data-testid="audit-log-hidden-change"
+                    className="bg-white px-4 py-3"
+                  >
+                    {fieldHeader}
+                    <div className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-sm italic text-gray-500">
+                      <Icon
+                        icon={IconProp.EyeSlash}
+                        size={SizeProp.Small}
+                        thick={ThickProp.Thick}
+                        className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                      />
+                      {valueHiddenLabel}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={row.field}
                   className="bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {humanizeFieldName(row.field)}
-                    </span>
-                    <span className="text-xs font-mono text-gray-500">
-                      {row.field}
-                    </span>
-                  </div>
+                  {fieldHeader}
 
                   {row.summary.length > 0 ? (
                     <ul
@@ -528,7 +786,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           {translator.translateText("Before")}
                         </div>
                         <div className="rounded-md border border-red-100 bg-red-50/60 px-3 py-2 text-sm">
-                          {renderValue(row.oldValue, translator)}
+                          {renderChangeValue(row.field, row.oldValue)}
                         </div>
                       </div>
                       <div className="max-md:hidden md:flex items-center justify-center pt-5 text-gray-400">
@@ -543,7 +801,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                           {translator.translateText("After")}
                         </div>
                         <div className="rounded-md border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm">
-                          {renderValue(row.newValue, translator)}
+                          {renderChangeValue(row.field, row.newValue)}
                         </div>
                       </div>
                     </div>
@@ -563,9 +821,9 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                             : "border-emerald-100 bg-emerald-50/60"
                         }`}
                       >
-                        {renderValue(
+                        {renderChangeValue(
+                          row.field,
                           isDelete ? row.oldValue : row.newValue,
-                          translator,
                         )}
                       </div>
                     </div>

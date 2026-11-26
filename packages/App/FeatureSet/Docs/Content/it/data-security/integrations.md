@@ -4,6 +4,7 @@ Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza
 
 :::cards
 - [Security Operations](#security-operations): Un caso di sicurezza per ogni archivio con un problema Critico.
+- [È stata una violazione dei dati?](#è-stata-una-violazione-dei-dati): Ogni esposizione Critica valutata: per quanto tempo, chi poteva leggere i dati, di chi erano e le leggi sulle violazioni dei dati che possono applicarsi.
 - [Avvisi e reperibilità](#avvisi-e-reperibilità): Chiama chi è di reperibilità quando si apre un problema Critico.
 - [Incidenti](#incidenti): Dichiara un incidente per una violazione di cui deve occuparsi il tuo processo di gestione degli incidenti.
 - [Proprietari](#proprietari): Chi possiede ogni archivio, impostato a mano o tramite regole, e l'email che riceve.
@@ -46,6 +47,22 @@ Da lì il caso si gestisce come qualsiasi altro: viene assegnato, annotato e chi
 
 Ogni caso di sicurezza, qualunque cosa l'abbia aperto, mostra i dati a rischio nel suo **Impatto**: gli archivi con dati sensibili di cui tratta il caso, e ogni archivio che i suoi utenti e ruoli possono raggiungere, il più sensibile per primo, con cosa contiene ciascuno, circa quanti record, quanto è esposto e quante identità possono raggiungerlo. Una sessione di ruolo assunto che il caso nomina conta come il suo ruolo, e un indirizzo email come gli utenti cloud a cui appartiene. Viene letto con le autorizzazioni proprie di chi legge, così un ruolo che non può leggere Sicurezza dei dati vede che quella parte è esclusa.
 
+## È stata una violazione dei dati?
+
+Per un'esposizione Critica di un archivio con dati di livello **Ristretto** o **Confidenziale** - aperto a chiunque su internet, condiviso con account esterni ai tuoi, o uno snapshot che altri possono ripristinare - il caso viene valutato da solo, non appena si apre. Ogni altro caso relativo a un archivio dati viene valutato quando una persona preme **Valuta questa esposizione** nella sua **Panoramica**. La valutazione viene ricavata da semplice codice a partire da ciò che OneUptime ha registrato, e viene ricavata di nuovo ogni volta che viene letta:
+
+- **Per quanto tempo è rimasto aperto**: dalla modifica nel log del tuo cloud che ha esposto l'archivio, se ne è stata registrata una nei 30 giorni prima della scoperta dell'esposizione, altrimenti almeno da quando Sicurezza dei dati l'ha scoperta; fino a quando la risposta stessa di Sicurezza dei dati l'ha chiuso, una modifica l'ha chiuso o un controllo l'ha trovato chiuso.
+- **Chi poteva leggerlo**: se l'archivio registrava le letture. Dove non lo faceva, la valutazione dice «Le letture non sono state registrate. Considera i dati come letti.» Conta gli account esterni alla tua azienda che potevano leggere l'archivio, e quanti di questi hanno usato il proprio accesso mentre era aperto, senza mai nominarli.
+- **Di chi erano i dati**: cosa contiene l'archivio, circa quanti record, a chi si riferiscono e dove vivono le persone, secondo i dati e secondo quanto indica una persona.
+- **I segreti da ruotare**: ogni segreto trovato nell'archivio mentre era aperto, per tipo e per posizione in cui è stato trovato, mai il suo valore.
+- **Le leggi sulle violazioni dei dati che possono applicarsi**: ogni riga della tabella delle leggi sulle violazioni dei dati di OneUptime, con ciò che chiede, a chi, il suo termine conteggiato da quando Sicurezza dei dati ha scoperto l'esposizione, e ciò che una persona verifica ancora prima che la legge si applichi.
+
+La tabella copre gli articoli 33 e 34 del GDPR, gli articoli 33 e 34 del UK GDPR, la Breach Notification Rule di HIPAA, il requisito 12.10.1 di PCI DSS, la LGPD del Brasile, le DPDP Rules e le direttive del CERT-In dell'India, e le leggi sulle violazioni dei dati di California, Colorado, Florida, New York, Texas e Washington. Ogni riga rimanda al testo stesso della legge, la sua fonte, e indica il giorno in cui è stata verificata l'ultima volta rispetto a esso. Ciò che la tabella non copre - un altro paese, un altro Stato degli USA, il luogo in cui è stabilita la tua organizzazione, i tuoi contratti - la valutazione lo dice in parole semplici.
+
+OneUptime AI redige la valutazione come consentono le tue regole IA di Sicurezza dei dati, o quando una persona lo chiede: cosa significa, una notifica all'autorità, una comunicazione alle persone interessate e un riepilogo interno (vedi [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai)). Ogni bozza viene confrontata con i fatti della valutazione: una bozza con un numero o una legge che nessuno di essi contiene viene scartata. Non viene inviato nulla da nessuna parte: una notifica è un testo che una persona modifica e copia, e la valutazione e ogni bozza dicono di non essere una consulenza legale.
+
+Vedono la valutazione i lettori del caso che possono leggere anche l'archivio e i suoi risultati, perché nomina ciò che l'archivio contiene. Valutare, redigere, modificare una notifica e indicare dove vivono le persone richiedono anche l'autorizzazione a modificare il caso. Vedi [È stata una violazione dei dati?](/docs/telemetry/security-cases#è-stata-una-violazione-dei-dati) per le schede del caso.
+
 ## Avvisi e reperibilità
 
 Con **Genera avvisi** attivo, un problema Critico genera un avviso, intitolato «Data Security:» seguito dal titolo e dall'archivio del problema. L'avviso chiama chi è di reperibilità tramite le proprie regole, come qualsiasi altro avviso (vedi [Avvisi](/docs/alerts/index) e [Reperibilità](/docs/on-call/index)). Un problema ha al massimo un avviso aperto alla volta, per quanto spesso venga valutato. **Gravità avviso** imposta la gravità dell'avviso; se resta vuota, è la più grave del progetto.
@@ -66,6 +83,8 @@ I proprietari di un archivio sono persone e team, nella pagina **Proprietari** d
 
 Con **Notifica ai proprietari** attivo, ogni valutazione che apre problemi su un archivio invia ai suoi proprietari un'unica email - alle persone che lo possiedono, e ai membri dei team che lo possiedono, fino a 50 - intitolata con il numero di nuovi problemi dell'archivio, come «Data Security: 2 new issues on orders-db». Elenca la gravità e il titolo di ogni nuovo problema e la sensibilità dell'archivio, e rimanda all'archivio. Non contiene mai un campione.
 
+Finché OneUptime AI lavora da sola sui nuovi problemi, l'email attende la sua analisi, fino a 10 minuti, e dà a ogni problema analizzato due righe in più: il suo verdetto e perché, e la via più breve verso la correzione. Ogni proprietario riceve le righe che può leggere: un proprietario che non può leggere il problema non ne riceve, e una riga che si basa su qualcosa che non può leggere viene omessa.
+
 ### Regole del proprietario e regole etichette
 
 Le regole impostano proprietari ed etichette al posto tuo, man mano che gli archivi vengono trovati:
@@ -77,6 +96,10 @@ Le regole impostano proprietari ed etichette al posto tuo, man mano che gli arch
 
 Una regola corrisponde a un archivio in base alle sue etichette, a un pattern del suo nome o della sua descrizione, oppure al **Modello di tag cloud**: un pattern confrontato con ciascuno dei tag cloud dell'archivio, scritti `key=value`. `^team=payments$` corrisponde a ogni archivio con il tag `team=payments`, e `^env=` a ogni archivio con un tag `env`. Un nuovo archivio riceve le regole del progetto nel momento in cui viene trovato, e la **Notifica ai proprietari** di una regola del proprietario dice se i proprietari che aggiunge vengono avvisati. [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) spiega come corrisponde ogni regola e quando vengono eseguite le regole.
 
+### I proprietari che OneUptime AI propone
+
+Un archivio senza proprietari può riceverli da OneUptime AI. Legge ciò che indica già un proprietario - i tag cloud dell'archivio, i servizi che lo usano, i proprietari del codice del file che lo dichiara, e chi lo ha modificato o aggiunto - e ne ricava team e persone del tuo progetto. Nulla cambia finché una persona non lo approva in **Proprietari da rivedere**, in **Archivi dati** o in **Sicurezza dei dati → IA**, e i proprietari aggiunti vengono avvisati come qualsiasi proprietario. Quando i proprietari di tre o più archivi si basano su un tag o su un inizio del nome, propone anche la regola del proprietario che mantiene un proprietario al prossimo archivio simile, e che si aggiunge alle **Regole del proprietario** una volta approvata. [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai) dice cosa invia e quando si avvia.
+
 ## Flussi di lavoro
 
 **Archivio dati** e **Problema di sicurezza dei dati** sono trigger dei flussi di lavoro, ciascuno con **Alla creazione**, **All'aggiornamento**, **Alla creazione o all'aggiornamento** e **All'eliminazione**. Sceglili nel pannello **Aggiungi trigger**, sotto **Risorse OneUptime**.
@@ -87,12 +110,22 @@ Una regola corrisponde a un archivio in base alle sue etichette, a un pattern de
 
 Vedi [Trigger dei flussi di lavoro](/docs/workflows/triggers) per i campi che passa ogni trigger.
 
+## Pull request
+
+Una fuga costa meno da correggere prima del merge. In un repository collegato in **Codice** con le revisioni di produzione attive, la revisione di ogni pull request ha una sezione **Dati sensibili**, letta dal suo diff: codice che scrive dati personali o un segreto nella telemetria, codice di infrastruttura che rende pubblico un archivio o ne disattiva la crittografia, i backup o la registrazione, e migrazioni che aggiungono colonne per dati personali, password o dati di carte. Ogni punto nomina il controllo di Sicurezza dei dati che la modifica non supererebbe una volta rilasciata, e i tuoi tipi di dati vengono letti dai loro indizi nel nome, come li leggono le scansioni. Vedi [Revisione di produzione delle pull request](/docs/ai/ai-agent#revisione-di-produzione-delle-pull-request).
+
+Ciò che sa Sicurezza dei dati rende questi punti più precisi, nel commento di un repository privato e, in Codice, per chi può leggere i risultati di Sicurezza dei dati: dove la telemetria del servizio ha contenuto lo stesso tipo di dati negli ultimi 7 giorni, la regola di pulizia che lo maschera all'ingestione, e l'archivio che è una risorsa, con la sua sensibilità. Un archivio segnato come **Pubblico per scelta** non dà alcun punto per il fatto di essere pubblico. Il commento di un repository pubblico dice solo ciò che mostra il diff.
+
+**Fughe rilevate prima del merge**, in **Impostazioni del progetto → IA → Risultati IA**, conta le fughe che le revisioni hanno intercettato nelle pull request, corrette lì o non ancora, accanto ai problemi che le scansioni hanno aperto sugli stessi controlli dopo il rilascio del codice.
+
 ## OneUptime AI
 
 Due azioni su un problema chiedono aiuto a OneUptime AI. Entrambe inviano a OneUptime AI il titolo e la gravità del problema, il nome, il tipo, la regione e l'id cloud dell'archivio, la sua sensibilità e i suoi tipi di dati, ciascuno con il suo nome (i tuoi con il nome che gli hai dato), la prova, perché il controllo è importante e la correzione per il cloud dell'archivio - mai i campioni di un risultato. Entrambe rispettano gli interruttori e i limiti di OneUptime AI del progetto. Cosa invia ciascuna, cosa non invia mai e il modello su cui viene eseguita sono in [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai).
 
-- **Spiega con l'IA** scrive, per il proprietario dell'archivio, cosa non va, cosa potrebbe succedere e i passaggi esatti per correggerlo sul suo cloud. La spiegazione viene conservata nella **Cronologia** del problema. Né il problema inviato né la risposta vengono conservati in **Impostazioni del progetto → IA → Log IA**, che ogni Membro del progetto e Visualizzatore può leggere: quella riga dice solo che la chiamata è avvenuta e quanto è costata. Chiunque possa leggere il problema può richiederla.
-- **Correggi con l'IA** chiede a OneUptime AI di correggere il problema nel tuo codice di infrastruttura - Terraform, CloudFormation, Bicep o simili - con la modifica più piccola che fa superare il controllo, e di aprire una pull request. Richiede che il repository che contiene il codice di infrastruttura dell'archivio sia collegato in **Codice**: sceglilo in **Repository** quando puoi richiederla in più di uno. La pull request compare in **Codice** (vedi [Codice](/docs/ai/ai-agent)). Possono richiederla i Membri della sicurezza e i ruoli superiori, in un repository che possono modificare in **Codice**, come richiede chiedere all'IA in quel punto: un ruolo di sicurezza da solo non legge né modifica alcun repository, quindi dai al loro team anche **Read Code Repository** e **Edit Code Repository**. Quando l'IA non può lavorare ora (è disattivata, il progetto ha esaurito i crediti IA, ha raggiunto i limiti giornalieri o nessun Runner è online), Correggi con l'IA dice cosa sistemare e non avvia nulla.
+- **Analizza il problema**, in cima alla pagina del problema, fa scrivere a OneUptime AI la sua analisi: se il problema è reale, cosa mette a rischio, cosa romperebbe la correzione e la via più breve verso la correzione (vedi [Controlli e problemi di Sicurezza dei dati](/docs/data-security/checks-and-issues)). Invia anche chi può raggiungere l'archivio - ogni concessione e all'incirca quando è stata usata l'ultima volta, e i servizi visti usarlo -, le copie dei suoi dati in altri archivi, i suoi casi di sicurezza, l'azione di risposta che corregge il problema, il repository e i file che dichiarano l'archivio, e quanti proprietari ha, mai chi sono. L'analisi viene conservata sul problema, il suo verdetto nella **Cronologia** del problema. Né ciò che è stato inviato né la risposta vengono conservati in **Impostazioni del progetto → IA → Log IA**, che ogni Membro del progetto e Visualizzatore può leggere: quella riga dice solo che la chiamata è avvenuta e quanto è costata. Chiunque possa leggere il problema può chiederla, e **Spiega con l'IA** tramite l'API e il server MCP risponde con la stessa analisi.
+- **Correggi con l'IA** chiede a OneUptime AI di correggere il problema nel tuo codice di infrastruttura - Terraform, CloudFormation, Bicep o simili - con la modifica più piccola che fa superare il controllo, e di aprire una pull request. Richiede che il repository che contiene il codice di infrastruttura dell'archivio sia collegato in **Codice**: sceglilo in **Repository** quando puoi richiederla in più di uno. La pull request compare in **Codice** (vedi [Codice](/docs/ai/ai-agent)). Possono richiederla i Membri della sicurezza e i ruoli superiori, in un repository che possono modificare in **Codice**, come richiede chiedere all'IA in quel punto: un ruolo di sicurezza da solo non legge né modifica alcun repository, quindi dai al loro team anche **Read Code Repository** e **Edit Code Repository**. Quando l'IA non può lavorare ora (è disattivata, il progetto ha esaurito i crediti IA, ha raggiunto i limiti giornalieri o nessun Runner è online), Correggi con l'IA dice cosa sistemare e non avvia nulla. Per un problema nella telemetria di un servizio, mostra prima una sola pull request per tutte le fughe del servizio, con il punto in cui i suoi record dicono che ognuna viene scritta - mai un valore -, e dove i dati vengono scritti in più di tre punti aggiunge invece un passaggio di oscuramento con un test: vedi [Correggerlo nel codice](/docs/data-security/telemetry#correggerlo-nel-codice).
+
+OneUptime AI lavora anche da sola su ogni nuovo problema, come consentono le tue regole IA: vedi [OneUptime AI nella sicurezza dei dati](/docs/data-security/ai).
 
 ### Chiedi all'IA
 
@@ -116,7 +149,7 @@ Due modifiche chiudono l'esposizione di un archivio cloud, ciascuna tramite la c
 
 Una persona ne esegue una da un problema aperto che risolve, con **Correggi da qui** (vedi [Controlli e problemi di Sicurezza dei dati](/docs/data-security/checks-and-issues#correggi-da-qui)). Un playbook di Security Operations le esegue come passi della categoria **Contenimento**, **Blocca l'accesso pubblico agli archivi dati** e **Revoca la condivisione degli archivi dati**: su ogni archivio dati di cui tratta il caso, al massimo 10, ciascuno un passo che parte con **Richiede approvazione** attivo. Un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato. In entrambi i casi la cronologia dell'archivio dice cosa è stato fatto, e l'archivio viene subito controllato di nuovo, così il problema si risolve quando la modifica ha avuto effetto.
 
-Il modello di playbook **Chiudere un'esposizione di dati** risponde ai casi che apre Sicurezza dei dati: invia un'email ai proprietari dell'archivio, blocca l'accesso pubblico e revoca la condivisione quando una persona approva ciascun passo, e aggiunge al caso la checklist della risposta come attività - chi ha letto i dati mentre erano esposti, se si tratta di una violazione da notificare, quali segreti ruotare e cosa scrivere alla chiusura del caso. Aggiungilo da **Crea da modello** tra i playbook del progetto.
+Il modello di playbook **Chiudere un'esposizione di dati** risponde ai casi che apre Sicurezza dei dati: invia un'email ai proprietari dell'archivio, blocca l'accesso pubblico e revoca la condivisione quando una persona approva ciascun passo, e aggiunge al caso la checklist della risposta come attività - chi ha letto i dati mentre erano esposti, se si tratta di una violazione da notificare, quali segreti ruotare e cosa scrivere alla chiusura del caso. Aggiungilo da **Crea da modello** tra i playbook del progetto. La scheda **È stata una violazione dei dati?** del caso risponde a ciascuna di queste attività (vedi [È stata una violazione dei dati?](#è-stata-una-violazione-dei-dati)).
 
 ## API, Terraform e MCP
 
@@ -130,6 +163,7 @@ Tutto ciò che conserva Sicurezza dei dati è un record dell'API di OneUptime, l
 | Tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Le impostazioni del progetto | `/data-security-setting` |
 | Proprietari, regole del proprietario e regole etichette | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Ciò che OneUptime AI propone per un problema, e perché ha agito o no su uno | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognuna è una `POST`:
 
@@ -139,16 +173,26 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | `/data-security/compliance` | Il punteggio e i requisiti di ogni framework |
 | `/data-security/resource-scope` | Gli archivi dati di una risorsa - un cluster Kubernetes, un host Docker o Podman, un database, un servizio o una risorsa cloud - e la risorsa di cui seguono gli interruttori di conformità |
 | `/data-security/resource-compliance` | I framework di una risorsa: i loro punteggi per i suoi archivi, e ciò che è disattivato per essa |
-| `/data-security/record-of-processing` | Il registro dei trattamenti del GDPR, una riga per ogni archivio che contiene dati personali |
+| `/data-security/record-of-processing` | Il registro dei trattamenti del GDPR, una riga per ogni archivio che contiene dati personali. Un archivio che OneUptime conserva per la tua sicurezza ha un oggetto `declared`: la sua finalità e la sua conservazione, e chi può leggerlo |
+| `/data-store/<id>/declared` | Ciò che il registro dice di un archivio che OneUptime conserva per la tua sicurezza: cosa contiene, perché, per quanto tempo e chi può leggerlo |
 | `/data-store/<id>/scan-now` | **Scansiona ora**: campiona subito il contenuto dell'archivio |
 | `/data-store/<id>/check-now` | **Controlla ora**: rilegge la configurazione dell'archivio ed esegue i suoi controlli |
 | `/data-store-finding/<id>/scrub` | **Ripulisci** su un risultato della telemetria |
 | `/data-store-finding/<id>/drop-metric-impact` | Cosa scarterebbe **Scarta questa metrica** per un risultato nel nome di una metrica: quante metriche, e i monitor, le dashboard, gli SLO e le regole di registrazione che le leggono |
 | `/data-store-finding/<id>/drop-metric` | **Scarta questa metrica**: una regola della pipeline delle metriche che scarta per sempre i nuovi punti dati di quelle metriche del servizio. Riceve `{"confirmDataLoss": true}` |
-| `/data-security-issue/<id>/explain` | **Spiega con l'IA** su un problema |
+| `/data-security-issue/<id>/explain` | **Spiega con l'IA**: l'analisi di un problema da parte di OneUptime AI, come la scrive **Analizza il problema**. Restituisce l'analisi conservata sul problema quando nulla di ciò su cui si basa è cambiato, altrimenti ne scrive una nuova; `{"force": true}` ne scrive una nuova, come **Analizza di nuovo** |
+| `/data-security-issue/<id>/analysis` | L'analisi conservata sul problema, come puoi leggerla. Non chiede mai nulla a OneUptime AI |
 | `/data-security-issue/<id>/fix-with-ai` | **Correggi con l'IA** su un problema |
 | `/data-store/<id>/response-actions` | Quali azioni di risposta l'archivio può eseguire ora, e perché no |
 | `/data-store/<id>/respond` | Un'azione di risposta sull'archivio, come **Blocca l'accesso pubblico** o **Attiva il controllo delle versioni**, con il problema da cui è stata eseguita |
+| `/data-security-ai-proposal/<id>/approve` | **Approva** su una modifica proposta da OneUptime AI, che la fa con le tue autorizzazioni. Riceve il `expectedPlanFingerprint` della proposta che ti è stata mostrata, e rifiuta una che è cambiata da allora |
+| `/data-security-ai-proposal/<id>/dismiss` | **Ignora la proposta**, con `{"reason": "..."}`, che viene aggiunto alla cronologia del problema |
+| `/data-security-ai-proposal/<id>/undo` | **Annulla** su una modifica fatta da OneUptime AI: viene annullata, e l'archivio viene controllato di nuovo |
+| `/security-case/<id>/exposure-assessment` | La valutazione dell'esposizione di un caso di sicurezza, così come puoi leggerla: ciò che semplice codice ricava dall'archivio a cui si riferisce, e il resoconto di OneUptime AI |
+| `/security-case/<id>/exposure-assessment/assess` | **Valuta questa esposizione**: avvia la valutazione del caso, dell'archivio che `{"dataStoreId": "..."}` indica quando il caso riguarda più di un archivio |
+| `/security-case/<id>/exposure-assessment/draft` | **Redigi con OneUptime AI**: OneUptime AI redige ogni parte che nessuna persona ha modificato. Non viene inviato nulla |
+| `/security-case/<id>/exposure-assessment/edit` | Una parte con le parole di una persona, come `{"part": "regulatorNotice", "markdown": "..."}`, che non viene mai più redatta |
+| `/security-case/<id>/exposure-assessment/people` | Dove vivono le persone a cui si riferiscono i dati, come `{"places": ["EEA", "GB"]}`; una lista vuota ritira la risposta |
 
 Il [provider Terraform](/docs/terraform/index) ha una risorsa per ogni tipo di record che crei - archivi dati che aggiungi tu, tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità, regole di residenza, regole del proprietario e regole etichette - che prende il nome dal record, come `oneuptime_residency_rule`.
 

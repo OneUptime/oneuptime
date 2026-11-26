@@ -35,7 +35,15 @@ describe("SystemColumns", () => {
     expect([...baseColumnIds].sort()).toEqual([
       "_id",
       "createdAt",
+      // What created the record and who last modified it (#10290).
+      "createdByActorId",
+      "createdByActorType",
       "deletedAt",
+      "lastModifiedAt",
+      "lastModifiedByActorId",
+      "lastModifiedByActorType",
+      "lastModifiedByUser",
+      "lastModifiedByUserId",
       "updatedAt",
       "version",
     ]);
@@ -63,8 +71,6 @@ describe("SystemColumns", () => {
   test("names the who-did-it columns the write path stamps", () => {
     expect(isSystemColumnId("createdByUserId")).toBe(true);
     expect(isSystemColumnId("createdByUser")).toBe(true);
-    expect(isSystemColumnId("deletedByUserId")).toBe(true);
-    expect(isSystemColumnId("deletedByUser")).toBe(true);
     expect(isSystemColumnId("archivedAt")).toBe(true);
     expect(isSystemColumnId("archivedByUserId")).toBe(true);
     expect(isSystemColumnId("archivedByUser")).toBe(true);

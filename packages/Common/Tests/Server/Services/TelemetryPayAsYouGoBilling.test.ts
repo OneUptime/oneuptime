@@ -162,13 +162,30 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * What each key type must carry to be created at all, so the billing check
+ * is what decides: a Browser key's origins, a Mobile key's pinned app
+ * (issue #6457).
+ */
+function setUpAsTheKeyTypeNeeds(
+  input: CreateBy<TelemetryIngestionKey>,
+  keyType: TelemetryIngestionKeyType,
+): void {
+  if (keyType === TelemetryIngestionKeyType.Mobile) {
+    input.data.pinnedServiceName = "storefront-mobile";
+    return;
+  }
+
+  input.data.allowedOrigins = ["https://example.com"];
+}
+
 describe("telemetry key creation and enablement payment admission", () => {
   test.each(Object.values(TelemetryIngestionKeyType))(
     "requires payment setup to create a %s key",
     async (keyType: TelemetryIngestionKeyType) => {
       const input: CreateBy<TelemetryIngestionKey> = createInput();
       input.data.keyType = keyType;
-      input.data.allowedOrigins = ["https://example.com"];
+      setUpAsTheKeyTypeNeeds(input, keyType);
       await expect(hooks.onBeforeCreate(input)).rejects.toBeInstanceOf(
         PaymentRequiredException,
       );
@@ -423,7 +440,7 @@ describe("telemetry operations use the stored subscription plan for payment elig
           useRealPaymentEligibility(plan);
           const input: CreateBy<TelemetryIngestionKey> = createInput();
           input.data.keyType = keyType;
-          input.data.allowedOrigins = ["https://example.com"];
+          setUpAsTheKeyTypeNeeds(input, keyType);
 
           await expect(hooks.onBeforeCreate(input)).resolves.toBeDefined();
 

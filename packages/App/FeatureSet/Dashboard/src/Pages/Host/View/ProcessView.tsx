@@ -62,7 +62,7 @@ import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -1009,11 +1009,13 @@ const HostProcessView: FunctionComponent<
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex min-w-0 items-center gap-1">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {translator.translateText(params.title)}
-              </span>
-              <InfoTooltip label={params.title} text={params.description} />
+            <div className="flex min-w-0">
+              <WordsWithInfoTooltip
+                className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+                text={translator.translateText(params.title) || params.title}
+                label={params.title}
+                description={params.description}
+              />
             </div>
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
@@ -1054,11 +1056,13 @@ const HostProcessView: FunctionComponent<
     return (
       <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex min-w-0 items-center gap-1">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {translator.translateText(params.title)}
-            </span>
-            <InfoTooltip label={params.title} text={params.description} />
+          <div className="flex min-w-0">
+            <WordsWithInfoTooltip
+              className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              text={translator.translateText(params.title) || params.title}
+              label={params.title}
+              description={params.description}
+            />
           </div>
           <div
             className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}

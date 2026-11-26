@@ -287,6 +287,31 @@ De browser gaat naar de afmelding van de provider zodra OneUptime hem heeft afge
 Een provider waar ze niet geregistreerd is, toont na een afmelding bij OneUptime zijn eigen foutpagina in plaats van iemand terug te sturen; bij OneUptime is diegene toch afgemeld.
 :::
 
+## Opnieuw aanmelden om te bevestigen dat u het bent
+
+Voordat iemand wijzigt hoe hij zich aanmeldt of zijn account verwijdert, vraagt OneUptime hem [te bevestigen dat hij het is](/docs/introduction/your-account#bevestigen-dat-u-het-bent). Wie zich alleen via uw identiteitsprovider aanmeldt, zonder wachtwoord of passkey in OneUptime, bevestigt met **Opnieuw aanmelden**: OneUptime stuurt de persoon naar de provider en vraagt die hem opnieuw te laten aanmelden. Dat telt alleen als de provider zegt dat hij zich op dat moment of daarna heeft aangemeld, met een minuut speling voor de twee klokken. Een provider die hem meteen weer aanmeldt met een sessie die hij al heeft, of niet doorgeeft wanneer hij zich heeft aangemeld, bevestigt niets, en de persoon krijgt te horen dat hij u moet vragen dat te wijzigen.
+
+:::tabs
+@tab SAML
+OneUptime stuurt `ForceAuthn="true"` en leest uit de `AuthnInstant` van de assertie wanneer de persoon zich heeft aangemeld.
+
+| Identiteitsprovider | Wat in te stellen |
+| --- | --- |
+| Okta | Bewerk op het tabblad **General** de **SAML Settings**, klik op **Show Advanced Settings** en zet **Honor Force Authentication** op **Yes**. Staat het op **No**, dan negeert Okta het verzoek. OneUptime herinnert u hieraan naast een Okta-provider. |
+| Microsoft Entra ID | Niets: Entra ID volgt het verzoek, en zijn `AuthnInstant` is wanneer de persoon zich heeft aangemeld. |
+| Keycloak | Niets: Keycloak volgt het verzoek, al kunnen 26.8.2 en eerder het overslaan wanneer de aanmelding op de aanmeldpagina van Keycloak opnieuw wordt gestart, wat 26.8.3 en 27.0.0 oplossen. Zijn `AuthnInstant` is wanneer het antwoordt, niet wanneer de persoon zich heeft aangemeld, dus OneUptime kan niet controleren of Keycloak het opnieuw heeft gevraagd, en zegt dat naast de provider. Koppel Keycloak via OpenID Connect voor een controle die OneUptime zelf doet. |
+| Google Workspace | Niets in te stellen. Google zegt niet of het het verzoek volgt. Zijn `AuthnInstant` is wanneer de persoon zich voor het laatst bij Google heeft aangemeld, dus wie nog bij Google is aangemeld, meldt zich eerst af bij Google. |
+@tab OpenID Connect
+OneUptime stuurt `prompt=login` en `max_age=0`, of alleen `prompt=login` naar Microsoft Entra ID, en leest uit de `auth_time` van het ID-token wanneer de persoon zich heeft aangemeld.
+
+| Identiteitsprovider | Wat in te stellen |
+| --- | --- |
+| Okta | Niets: Okta volgt beide en stuurt altijd `auth_time`. |
+| Microsoft Entra ID | Klik in de **Token configuration** van de app-registratie op **Add optional claim**, kies **ID** en voeg `auth_time` toe: Entra ID stuurt het alleen als optionele claim. Het volgt `prompt=login`. OneUptime stuurt het geen `max_age`, dat Microsoft niet documenteert en waardoor Entra ID volgens meldingen antwoordt met een ID-token dat al verlopen is. |
+| Keycloak | Houd de clientscope `basic` op de client: die bevat `auth_time`. Keycloak 25 en later geven elke client deze scope. |
+| Google Workspace | Zet **Session age claims** aan voor de OAuth-client, onder **Google Auth Platform** > **Settings** > **Advanced Settings**; de app moet gepubliceerd en geverifieerd zijn. Google accepteert geen van beide verzoeken, dus OneUptime vraagt in plaats daarvan om `auth_time`, en wie nog bij Google is aangemeld, meldt zich eerst af bij Google. |
+:::
+
 ## Rollen en teams voor SSO-gebruikers
 
 OneUptime neemt geen rollen of groepen over van uw identiteitsprovider. Wat iemand mag, volgt uit de teams waarin de persoon zit: een provider voegt nieuwkomers toe aan zijn **Teams**, en u beheert teams en hun machtigingen in OneUptime, zoals [Gebruikers, teams en machtigingen](/docs/permissions/index) beschrijft. Gebruik [SCIM](/docs/identity/scim) om het teamlidmaatschap gelijk te houden met uw identiteitsprovider. Elk team waar iemand bij het aanmelden lid van wordt, wordt vastgelegd op de pagina **Auditlogboeken** van dat team, als een wijziging van de persoon die zich aanmeldde.
@@ -356,7 +381,9 @@ Een account kan bij veel organisaties horen, dus u kunt alleen de instellingen w
 - iemand die alleen is uitgenodigd voor uw project en er nog geen lid van is geworden;
 - master-admins, en uzelf: wijzig uw eigen instellingen in uw **Gebruikersprofiel**.
 
-Iedereen van wie de instellingen zijn gewist, krijgt een e-mail over wat er is verwijderd en dat diegene zich nu met SSO aanmeldt, en de auditlogboeken van uw projecten leggen vast dat u het wissen hebt gedaan. Alleen een **Projecteigenaar** kan wissen, aangemeld bij het dashboard: nooit met een API-sleutel.
+Om één persoon te wissen, opent u **Gebruikers**: de rij van elke persoon die u mag wissen toont **Aanmeldinstellingen opgeslagen**, en **Aanmeldinstellingen wissen** in het menu ervan wist alleen die van die persoon, volgens dezelfde regel, na een vraag die opsomt wat er verdwijnt.
+
+Iedereen van wie de instellingen zijn gewist, krijgt een e-mail over wat er is verwijderd en dat diegene zich nu met SSO aanmeldt, en de auditlogboeken van uw projecten leggen vast dat u het wissen hebt gedaan. Alleen een **Projecteigenaar** kan wissen, aangemeld bij het dashboard: nooit met een API-sleutel. Wissen vraagt u eerst [te bevestigen dat u het bent](/docs/introduction/your-account#bevestigen-dat-u-het-bent).
 
 ## Een provider uitzetten of verwijderen
 

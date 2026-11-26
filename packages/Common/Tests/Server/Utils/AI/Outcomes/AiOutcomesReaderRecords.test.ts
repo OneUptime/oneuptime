@@ -1,7 +1,12 @@
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
+import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
+import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
+import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
+import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -27,6 +32,8 @@ import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AutoRemediationSuggestionType from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DataSecurityIssueStatus from "../../../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { DataSecurityAiVerdict } from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
@@ -85,7 +92,14 @@ type TableName =
   | "runs"
   | "incidents"
   | "alerts"
-  | "llmLogs";
+  | "llmLogs"
+  // Data Security's proposals, its records of analyses, and its issues (#10364).
+  | "dataSecurityProposals"
+  | "dataSecurityDecisions"
+  | "dataSecurityIssues"
+  | "dataStores"
+  // The repositories whose production reviews caught leaks (#10376).
+  | "codeRepositories";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -124,6 +138,11 @@ function install(
       incidents: [],
       alerts: [],
       llmLogs: [],
+      dataSecurityProposals: [],
+      dataSecurityDecisions: [],
+      dataSecurityIssues: [],
+      dataStores: [],
+      codeRepositories: [],
       ...tables,
     },
     access: {
@@ -134,6 +153,11 @@ function install(
       incidents: "read",
       alerts: "read",
       llmLogs: "read",
+      dataSecurityProposals: "read",
+      dataSecurityDecisions: "read",
+      dataSecurityIssues: "read",
+      dataStores: "read",
+      codeRepositories: "read",
       ...access,
     },
     readableIncidentIds: readable.incidentIds
@@ -215,6 +239,21 @@ function install(
   jest
     .spyOn(LlmLogService, "findBy")
     .mockImplementation(find("llmLogs") as never);
+  jest
+    .spyOn(DataSecurityAiProposalService, "findBy")
+    .mockImplementation(find("dataSecurityProposals") as never);
+  jest
+    .spyOn(DataSecurityAiDecisionService, "findBy")
+    .mockImplementation(find("dataSecurityDecisions") as never);
+  jest
+    .spyOn(DataSecurityIssueService, "findBy")
+    .mockImplementation(find("dataSecurityIssues") as never);
+  jest
+    .spyOn(DataStoreService, "findBy")
+    .mockImplementation(find("dataStores") as never);
+  jest
+    .spyOn(CodeRepositoryService, "findBy")
+    .mockImplementation(find("codeRepositories") as never);
   jest
     .spyOn(InvestigationReportSummary, "getForRuns")
     .mockResolvedValue(new Map<string, string>());
@@ -400,6 +439,79 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+const STORE_PUBLIC_BY_DESIGN: FakeRow = {
+  _id: uuid(91, 1),
+  projectId: PROJECT_ID,
+  createdAt: daysAgo(200),
+  isPublicByDesign: true,
+};
+const STORE_FIXED: FakeRow = {
+  _id: uuid(91, 2),
+  projectId: PROJECT_ID,
+  createdAt: daysAgo(200),
+  isPublicByDesign: false,
+};
+
+// An issue OneUptime AI analyzed (#10369): its verdict, and what people decided.
+function analyzedIssue(
+  verdict: DataSecurityAiVerdict,
+  status: DataSecurityIssueStatus,
+  overrides: Partial<FakeRow> = {},
+): FakeRow {
+  const analyzedAt: Date = (overrides["aiAnalyzedAt"] as Date) || daysAgo(2);
+
+  return {
+    _id: nextId(90),
+    projectId: PROJECT_ID,
+    createdAt: analyzedAt,
+    aiAnalyzedAt: analyzedAt,
+    title: `A bucket anyone can read ${rowCount}`,
+    aiVerdict: verdict,
+    status: status,
+    dataStoreId: new ObjectID(STORE_FIXED._id),
+    ...overrides,
+  };
+}
+
+function analyzedIssues(): Array<FakeRow> {
+  return [
+    analyzedIssue(DataSecurityAiVerdict.Real, DataSecurityIssueStatus.Resolved),
+    analyzedIssue(
+      DataSecurityAiVerdict.Real,
+      DataSecurityIssueStatus.NotAnIssue,
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.LikelyByDesign,
+      DataSecurityIssueStatus.Resolved,
+      { dataStoreId: new ObjectID(STORE_PUBLIC_BY_DESIGN._id) },
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.LikelyByDesign,
+      DataSecurityIssueStatus.Resolved,
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.LikelyWrongFinding,
+      DataSecurityIssueStatus.NotAnIssue,
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.CannotTell,
+      DataSecurityIssueStatus.Open,
+    ),
+    analyzedIssue(DataSecurityAiVerdict.Real, DataSecurityIssueStatus.Open),
+    // Analyzed before the window, and in another project: neither counts.
+    analyzedIssue(
+      DataSecurityAiVerdict.Real,
+      DataSecurityIssueStatus.Resolved,
+      { aiAnalyzedAt: daysAgo(120) },
+    ),
+    analyzedIssue(
+      DataSecurityAiVerdict.Real,
+      DataSecurityIssueStatus.Resolved,
+      { projectId: OTHER_PROJECT_ID },
+    ),
+  ];
+}
+
 // A busy project: every kind, every outcome, some about what the caller may not read.
 function busyProject(): Partial<Tables> {
   const taskA: FakeRow = fixTask(aboutIncident(INCIDENT_A));
@@ -417,6 +529,8 @@ function busyProject(): Partial<Tables> {
   return {
     incidents: [INCIDENT_A, INCIDENT_PRIVATE],
     alerts: [ALERT_A, ALERT_HIDDEN],
+    dataSecurityIssues: analyzedIssues(),
+    dataStores: [STORE_PUBLIC_BY_DESIGN, STORE_FIXED],
     pageLogs: [
       pageLog(
         OnCallPolicyAiHoldOutcome.ResolvedByAI,
@@ -494,6 +608,19 @@ describe("a number opens exactly what it counts", () => {
       [AiOutcomesPart.PullRequestFixes]:
         outcomes.pullRequestFixes as unknown as Record<string, number>,
       [AiOutcomesPart.RootCauses]: outcomes.rootCauses as unknown as Record<
+        string,
+        number
+      >,
+      [AiOutcomesPart.DataSecurityAnalyses]: {
+        analyzed: outcomes.dataSecurity!.issuesAnalyzed!,
+      },
+      [AiOutcomesPart.DataSecurityChanges]: outcomes.dataSecurity!
+        .changes as unknown as Record<string, number>,
+      [AiOutcomesPart.DataSecurityProposals]: outcomes.dataSecurity!
+        .proposals as unknown as Record<string, number>,
+      [AiOutcomesPart.IssueVerdicts]:
+        outcomes.issueVerdicts as unknown as Record<string, number>,
+      [AiOutcomesPart.Leaks]: outcomes.leaks as unknown as Record<
         string,
         number
       >,
@@ -809,8 +936,12 @@ describe("what each record says", () => {
     }
 
     for (const call of store.calls) {
+      // A store's public-by-design flag is counted, never shown: read as OneUptime.
       expect({ table: call.table, isRoot: Boolean(call.props.isRoot) }).toEqual(
-        { table: call.table, isRoot: call.table === "runs" },
+        {
+          table: call.table,
+          isRoot: call.table === "runs" || call.table === "dataStores",
+        },
       );
     }
   });
@@ -1444,4 +1575,320 @@ describe("a pull request a later turn of its task opened (#9812)", () => {
     expect(records.total).toBe(1);
     expect(records.records[0]!.subject).toBeUndefined();
   });
+});
+
+describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
+  test("counted from the issues it analyzed in the window, of this project, by what people decided", async () => {
+    install(busyProject(), {}, READABLE);
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.issueVerdicts).toEqual({
+      agreed: 3,
+      disagreed: 2,
+      waiting: 1,
+      cannotTell: 1,
+      real: 3,
+      likelyByDesign: 2,
+      likelyWrongFinding: 1,
+    });
+
+    // Read under the caller's props, newest first, by when it was analyzed.
+    const call: Call = callsTo("dataSecurityIssues")[0]!;
+
+    expect(call.props).toBe(CALLER);
+    expect(Object.keys(call.select).sort()).toEqual(
+      [
+        "_id",
+        "aiAnalyzedAt",
+        "aiVerdict",
+        "dataStoreId",
+        "status",
+        "title",
+      ].sort(),
+    );
+  });
+
+  test("a verdict's number opens the issues it counts, by their titles, with the verdict and what people decided", async () => {
+    install(busyProject(), {}, READABLE);
+
+    const records: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.IssueVerdicts,
+      "disagreed",
+    );
+
+    expect(records.total).toBe(2);
+    expect(
+      records.records.map((record: AiOutcomesRecord) => {
+        return {
+          // As every Data Security number's record names its issue (#10364).
+          subject: record.subject,
+          issueId: record.dataSecurityIssue?.id === record.id,
+          verdict: record.issueVerdict,
+          status: record.issueStatus,
+        };
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          subject: undefined,
+          issueId: true,
+          verdict: DataSecurityAiVerdict.Real,
+          status: DataSecurityIssueStatus.NotAnIssue,
+        },
+        {
+          subject: undefined,
+          issueId: true,
+          verdict: DataSecurityAiVerdict.LikelyByDesign,
+          status: DataSecurityIssueStatus.Resolved,
+        },
+      ]),
+    );
+    expect(records.records[0]!.dataSecurityIssue?.title).toMatch(
+      /^A bucket anyone can read/,
+    );
+  });
+
+  test.each(["notAuthorized", "paymentRequired"] as Array<Access>)(
+    "a caller whose role may not read Data Security issues (%s) gets no verdict numbers, not zeros, and opens none",
+    async (access: Access) => {
+      install(busyProject(), { dataSecurityIssues: access }, READABLE);
+
+      const outcomes: AiOutcomes = await readOutcomes();
+
+      expect(outcomes.issueVerdicts).toBeNull();
+      // The rest of the page is counted as before.
+      expect(outcomes.pages).not.toBeNull();
+      await expect(
+        readRecords(AiOutcomesPart.IssueVerdicts, "agreed"),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+});
+
+describe("leaks caught before they merged, against those found after (#10376)", () => {
+  // A pull request's production review task, with the leaks it posted.
+  function review(
+    caughtLeaks: Array<Record<string, unknown>>,
+    overrides: Partial<FakeRow> = {},
+  ): FakeRow {
+    return {
+      _id: nextId(95),
+      projectId: PROJECT_ID,
+      createdAt: daysAgo(10),
+      updatedAt: daysAgo(1),
+      runType: AIRunType.CodeFix,
+      codeFixTaskType: CodeFixTaskType.GitHubPullRequestProductionReview,
+      status: AIRunStatus.Completed,
+      title: "Log signups",
+      taskContext: {
+        github: {
+          codeRepositoryId: uuid(96, 1),
+          installationId: "4242",
+          organizationName: "acme",
+          repositoryName: "checkout",
+          commandType: "ProductionReview",
+          instruction: "",
+          pullRequestNumber: 42,
+        },
+        productionReview: {
+          requestNumber: 2,
+          requestedAt: daysAgo(1).toISOString(),
+          headSha: "0f1e2d3c4b5a",
+          caughtLeaks,
+        },
+      },
+      ...overrides,
+    };
+  }
+
+  function leak(
+    key: string,
+    checkId: string,
+    at: Date,
+    fixedAt?: Date,
+  ): Record<string, unknown> {
+    return {
+      key,
+      kind: "Telemetry",
+      checkId,
+      isBlocking: false,
+      at: at.toISOString(),
+      ...(fixedAt ? { fixedAt: fixedAt.toISOString() } : {}),
+    };
+  }
+
+  function foundIssue(
+    checkId: string,
+    firstDetectedAt: Date,
+    overrides: Partial<FakeRow> = {},
+  ): FakeRow {
+    return {
+      _id: nextId(97),
+      projectId: PROJECT_ID,
+      createdAt: firstDetectedAt,
+      firstDetectedAt,
+      checkId,
+      title: "Sensitive data is reaching your telemetry",
+      status: DataSecurityIssueStatus.Open,
+      ...overrides,
+    };
+  }
+
+  function leakyProject(): Partial<Tables> {
+    return {
+      codeRepositories: [
+        { _id: uuid(96, 1), projectId: PROJECT_ID, createdAt: daysAgo(200) },
+      ],
+      runs: [
+        review([
+          leak("a1", "sensitive-data-in-telemetry", daysAgo(5), daysAgo(4)),
+          leak("a2", "secrets-in-telemetry", daysAgo(5)),
+          // Caught before the window: not counted.
+          leak("a3", "public-read", daysAgo(120)),
+        ]),
+        review([], {
+          title: "Add a password column",
+          taskContext: {
+            codeHostPullRequest: {
+              codeRepositoryId: uuid(96, 2),
+              provider: "GitLab",
+              pullRequestNumber: 7,
+              pullRequestUrl:
+                "https://gitlab.com/acme/checkout/-/merge_requests/7",
+            },
+            productionReview: {
+              requestNumber: 1,
+              requestedAt: daysAgo(3).toISOString(),
+              headSha: "9a8b7c",
+              caughtLeaks: [
+                leak("b1", "plaintext-passwords", daysAgo(3), daysAgo(2)),
+              ],
+            },
+          },
+        }),
+        // Another project's review: not counted.
+        review([leak("c1", "secrets-in-telemetry", daysAgo(2))], {
+          projectId: OTHER_PROJECT_ID,
+        }),
+      ],
+      dataSecurityIssues: [
+        foundIssue("sensitive-data-in-telemetry", daysAgo(6)),
+        foundIssue("public-read", daysAgo(20)),
+        // A check no pull request's rules catch early: not a leak here.
+        foundIssue("mfa-not-enforced", daysAgo(6)),
+        // Found before the window: not counted.
+        foundIssue("public-read", daysAgo(120)),
+      ],
+    };
+  }
+
+  test("counted from the reviews' caught leaks and the scans' issues of the window: fixed, open, found after", async () => {
+    install(leakyProject(), {}, READABLE);
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.leaks).toEqual({ fixed: 2, open: 1, foundAfter: 2 });
+  });
+
+  test("each part opens what it counts: a caught leak its pull request and check, a found one its issue", async () => {
+    install(leakyProject(), {}, READABLE);
+
+    const fixed: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.Leaks,
+      "fixed",
+    );
+
+    expect(fixed.total).toBe(2);
+    expect(
+      fixed.records.map((record: AiOutcomesRecord) => {
+        return {
+          checkId: record.checkId,
+          number: record.pullRequestNumber,
+          title: record.pullRequestTitle,
+          url: record.pullRequestUrl,
+        };
+      }),
+    ).toEqual([
+      {
+        checkId: "plaintext-passwords",
+        number: 7,
+        title: "Add a password column",
+        url: "https://gitlab.com/acme/checkout/-/merge_requests/7",
+      },
+      {
+        checkId: "sensitive-data-in-telemetry",
+        number: 42,
+        title: "Log signups",
+        url: undefined,
+      },
+    ]);
+
+    const found: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.Leaks,
+      "foundAfter",
+    );
+
+    expect(found.total).toBe(2);
+    expect(
+      found.records.map((record: AiOutcomesRecord) => {
+        return {
+          checkId: record.checkId,
+          isItsIssue: record.dataSecurityIssue?.id === record.id,
+          title: record.dataSecurityIssue?.title,
+        };
+      }),
+    ).toEqual([
+      {
+        checkId: "sensitive-data-in-telemetry",
+        isItsIssue: true,
+        title: "Sensitive data is reaching your telemetry",
+      },
+      {
+        checkId: "public-read",
+        isItsIssue: true,
+        title: "Sensitive data is reaching your telemetry",
+      },
+    ]);
+  });
+
+  test("the reviews are read as OneUptime; the repositories and the issues under the caller's props", async () => {
+    install(leakyProject(), {}, READABLE);
+
+    await readOutcomes();
+
+    expect(
+      callsTo("codeRepositories").map((call: Call): boolean => {
+        return call.props === CALLER;
+      }),
+    ).toEqual([true]);
+    expect(
+      callsTo("dataSecurityIssues").every((call: Call): boolean => {
+        return call.props === CALLER;
+      }),
+    ).toBe(true);
+    expect(
+      callsTo("runs").every((call: Call): boolean => {
+        return Boolean(call.props.isRoot);
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    ["codeRepositories", "notAuthorized"],
+    ["codeRepositories", "paymentRequired"],
+    ["dataSecurityIssues", "notAuthorized"],
+  ] as Array<[TableName, Access]>)(
+    "a caller who may not read %s (%s) gets no leak numbers, not zeros, and opens none",
+    async (table: TableName, access: Access) => {
+      install(leakyProject(), { [table]: access }, READABLE);
+
+      const outcomes: AiOutcomes = await readOutcomes();
+
+      expect(outcomes.leaks).toBeNull();
+      await expect(readRecords(AiOutcomesPart.Leaks, "fixed")).rejects.toThrow(
+        NotAuthorizedException,
+      );
+    },
+  );
 });

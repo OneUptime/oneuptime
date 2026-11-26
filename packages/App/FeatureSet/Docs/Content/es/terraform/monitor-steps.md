@@ -165,6 +165,7 @@ Cada elemento de `monitor_steps` es una cosa que comprobar:
 | `request_type` | string | Sitio web, API | El método HTTP: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` o `PATCH`. El servidor usa `GET` si no se indica. |
 | `request_headers` | map(string) | Sitio web, API | Las cabeceras que enviar: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | El cuerpo de la solicitud, como texto. |
+| `request_body_format` | string | API | Cómo se envía `request_body`: `json`, el predeterminado, para cualquier valor JSON; `text` para un cuerpo que se envía exactamente como está escrito, como XML o campos de formulario. |
 | `do_not_follow_redirects` | bool | Sitio web, API | Detenerse en la primera respuesta en lugar de seguir las redirecciones. |
 | `allow_self_signed_certificates` | bool | Sitio web, API | Aceptar un certificado TLS autofirmado. |
 | `tls_client_certificate` | string | Sitio web, API | Un certificado de cliente para TLS mutuo: PEM, o una referencia `{{monitorSecrets.name}}`. |
@@ -237,6 +238,10 @@ Los monitores de métricas agrupados son la única excepción. Cuando la consult
 | `description` | string | La descripción que muestra el panel. |
 | `filter_condition` | string (obligatorio) | `All`: todos los filtros deben coincidir. `Any`: basta con uno. |
 | `filters` | list (obligatorio) | Las condiciones, al menos una: vea [Referencia de filtros](#referencia-de-filtros). |
+| `recovery_filters` | list | Filtros como los de `filters` que deben coincidir antes de que el criterio deje de actuar, en lugar de en cuanto sus `filters` dejan de coincidir. |
+| `recovery_filter_condition` | string | Cómo se combinan los `recovery_filters`: `All` (por defecto) o `Any`. |
+| `active_hours` | object | Juzgar el criterio solo estos `days` (el lunes es `0`, el domingo `6`), de `from` a `to` (`"08:00"`); fuera de esas horas se omite como un criterio desactivado. |
+| `active_hours_timezone` | string | La zona horaria en la que se leen las `active_hours`, como `Europe/Oslo`. Indícala junto con `active_hours`. |
 | `change_monitor_status` | bool | Si una coincidencia cambia el estado del monitor. |
 | `monitor_status_id` | string | El ID del `oneuptime_monitor_status` al que cambiar. Indíquelo cuando `change_monitor_status` sea `true`. |
 | `create_incidents` | bool | Si una coincidencia abre incidentes. |
@@ -283,15 +288,87 @@ criteria = [
 ]
 ```
 
+### Cuándo se recupera y cuándo se juzga
+
+Este criterio juzga el sitio solo en horario de oficina en Oslo, de lunes a viernes, y lo mantiene sin conexión hasta que haya respondido a cada comprobación durante 10 minutos:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## Referencia de filtros
 
 Un filtro tiene `check_on` (qué mira), `filter_type` (cómo compara) y `value` (con qué compara, como cadena; déjelo fuera en las comprobaciones de verdadero o falso como `True` y `False`).
 
-Un filtro también puede juzgar una ventana de tiempo en lugar de la última comprobación: indique `evaluate_over_time = true`, la duración de la ventana en `evaluate_over_time_minutes` y, en `evaluate_over_time_type`, cómo se lee la ventana: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` o `Any Value`.
+Un filtro también puede juzgar una ventana de tiempo en lugar de la última comprobación: indique `evaluate_over_time = true`, la duración de la ventana en `evaluate_over_time_minutes` y, en `evaluate_over_time_type`, cómo se lee la ventana: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` o `Previous Check`. `Percentile` compara el percentil de `evaluate_over_time_percentile` con el valor del filtro (95 si no se indica). `Count`, `Percentage` y `Status Changes` cuentan, por sonda, las comprobaciones de la ventana que cumplieron la condición, su proporción en porcentaje o cuántas veces pasaron de cumplirla a no cumplirla, y comparan ese número con `evaluate_over_time_count_value` según indica `evaluate_over_time_count_filter_type` (`Greater Than` 0 si no se indica).
 
 `All Values` significa que todas las comprobaciones de la ventana incumplieron la regla, así que solo coincide cuando la ventana está cubierta de datos: un monitor recién creado espera a que se llene su ventana en lugar de coincidir en su primera comprobación. Dele una ventana de al menos el doble del `monitoring_interval` del monitor; si no, la ventana contiene una sola comprobación, y «todos los valores» significa lo mismo que «cualquier valor». `Any Value` coincide, a propósito, con una sola comprobación que incumple la regla.
 
 `evaluate_over_time_no_data_policy` dice qué hace el filtro mientras la ventana no tiene datos suficientes: `Ignore` (el valor predeterminado) no coincide, `Trigger` trata los datos que faltan como el fallo, como hace un heartbeat, y `Treat As Zero` compara la ventana como un único cero.
+
+`Previous Check` compara cada comprobación con la comprobación anterior de la misma sonda, hecha como mucho `evaluate_over_time_minutes` antes. Un valor medido no lleva `value`: `filter_type` lo compara con el valor anterior desplazado en `evaluate_over_time_change_value`, hacia arriba con `Greater Than` y hacia abajo con `Less Than`, como `Amount` en la unidad de la comprobación o como `Percentage` del valor anterior, según indica `evaluate_over_time_change_type` (`Amount` 0 si no se indica: cualquier subida o bajada). Un filtro verdadero o falso coincide en la comprobación que empezó a cumplir la condición. Sin comprobación anterior, decide `evaluate_over_time_no_data_policy`.
+
+Este criterio abre una alerta cuando una comprobación tarda más del doble que la anterior:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### Qué puede comprobar un filtro
 

@@ -31,6 +31,8 @@ import SecurityBlockDestination, {
  *     does, and refuseValue makes it turn one entry down, as a provider
  *     refuses a value.
  *   - propagating makes it hold an entry that is not in force yet.
+ *   - batchesWrites gives it update(), as a provider that replaces its
+ *     lists whole has: a pass's removals and additions in one call.
  *
  * Never registered in production: a project's destinations come from
  * SecurityBlockDestinations' sources, which hold no test destination.
@@ -46,9 +48,16 @@ export interface TestSecurityBlockDestinationOptions {
   // The most entries it holds; null or left out for no limit.
   capacity?: number | null | undefined;
   fullReason?: string | undefined;
+  // Whether it takes a pass's removals and additions in one call (update()).
+  batchesWrites?: boolean | undefined;
 }
 
-export type TestDestinationCall = "capacity" | "apply" | "remove" | "readBack";
+export type TestDestinationCall =
+  | "capacity"
+  | "apply"
+  | "remove"
+  | "update"
+  | "readBack";
 
 interface StoredItem {
   value: string;
@@ -77,6 +86,15 @@ export default class TestSecurityBlockDestination
   public capacityLimit: number | null;
   public fullReason: string | undefined;
 
+  // Only for one that batches its writes (batchesWrites).
+  public readonly update?: (changes: {
+    add: Array<SecurityBlockEntry>;
+    remove: Array<SecurityBlockHeldItem>;
+  }) => Promise<{
+    applied: Array<SecurityBlockWriteResult>;
+    removed: Array<SecurityBlockWriteResult>;
+  }>;
+
   // Every call made of it, in order, with the values it was handed.
   public readonly calls: Array<{
     call: TestDestinationCall;
@@ -103,6 +121,31 @@ export default class TestSecurityBlockDestination
     this.capacityLimit =
       options?.capacity === undefined ? null : options.capacity;
     this.fullReason = options?.fullReason;
+
+    if (options?.batchesWrites) {
+      this.update = async (changes: {
+        add: Array<SecurityBlockEntry>;
+        remove: Array<SecurityBlockHeldItem>;
+      }): Promise<{
+        applied: Array<SecurityBlockWriteResult>;
+        removed: Array<SecurityBlockWriteResult>;
+      }> => {
+        this.record("update", [
+          ...changes.remove.map((item: SecurityBlockHeldItem): string => {
+            return `-${item.value}`;
+          }),
+          ...changes.add.map((entry: SecurityBlockEntry): string => {
+            return `+${entry.value}`;
+          }),
+        ]);
+        this.throwIfFailing("update");
+
+        return {
+          removed: this.removeItems(changes.remove),
+          applied: this.applyEntries(changes.add),
+        };
+      };
+    }
   }
 
   // ---------- The destination ----------
@@ -152,6 +195,12 @@ export default class TestSecurityBlockDestination
     );
     this.throwIfFailing("apply");
 
+    return this.applyEntries(entries);
+  }
+
+  private applyEntries(
+    entries: Array<SecurityBlockEntry>,
+  ): Array<SecurityBlockWriteResult> {
     return entries.map(
       (entry: SecurityBlockEntry): SecurityBlockWriteResult => {
         const refusal: string | undefined = this.refusedValues.get(entry.value);
@@ -198,6 +247,12 @@ export default class TestSecurityBlockDestination
     );
     this.throwIfFailing("remove");
 
+    return this.removeItems(items);
+  }
+
+  private removeItems(
+    items: Array<SecurityBlockHeldItem>,
+  ): Array<SecurityBlockWriteResult> {
     return items.map(
       (item: SecurityBlockHeldItem): SecurityBlockWriteResult => {
         const key: string = itemKey(item.value, item.action);

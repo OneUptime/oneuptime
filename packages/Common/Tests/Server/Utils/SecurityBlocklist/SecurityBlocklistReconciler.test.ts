@@ -11,6 +11,8 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
+  SecurityBlockEndMove,
+  SecurityBlockWriteResult,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestination";
 import SecurityBlockDestinations, {
   SecurityBlockDestinationSource,
@@ -23,23 +25,51 @@ import SecurityBlocklistReconciler, {
   SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS,
   SECURITY_BLOCKLIST_LONGEST_RETRY_IN_MS,
   SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
+  SecurityBlockHeldBack,
   SecurityBlocklistDestinationPlan,
   SecurityBlocklistPassResult,
+  describeSecurityBlockHeldBack,
+  findSecurityBlocksHeldBack,
+  getSecurityBlockHeldBackReason,
   getHeldItemKey,
   getSecurityBlockEntryComment,
   getSecurityBlocklistRetryDelayInMs,
   planSecurityBlocklistDestination,
+  toSecurityBlockProtectionEntries,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistReconciler";
+import SecurityBlocklistFeedProtection, {
+  SecurityBlocklistFeedProtectionCheck,
+} from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistFeedProtection";
+import { SecurityBlocklistFeedEntry } from "../../../../Types/SecurityBlocklist/SecurityBlocklistFeed";
+import {
+  SECURITY_PROTECTED_OWN_ADDRESS,
+  SecurityProtectedAddressSource,
+} from "../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  SECURITY_BLOCK_REASON_FRAMES,
+  SecurityBlockReason,
+  fillSecurityBlockReason,
+  isSecurityBlockHeldBackReason,
+  readSecurityBlockReason,
+  wordSecurityBlockReason,
+} from "../../../../Types/SecurityBlocklist/SecurityBlockReason";
+import { Translator, createTranslator } from "../../../../Types/Translator";
+import fs from "fs";
+import path from "path";
 import TestSecurityBlockDestination from "../../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockIndicatorValue,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
-  SecurityBlockValue,
-  readSecurityBlockValue,
+  getSecurityBlockReach,
+  readSecurityBlockIndicator,
 } from "../../../../Types/SecurityBlocklist/SecurityBlock";
+import SecurityCaseStepChecks from "../../../../Server/Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
 import {
   SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
@@ -112,6 +142,7 @@ let rows: Map<string, SecurityBlockEnforcement>;
 let rowsCreated: number;
 let rowWrites: Array<{ id: string; data: JSONObject }>;
 let feedItems: Array<JSONObject>;
+let checkRequests: Array<JSONObject>;
 let locks: InMemoryLocks;
 
 function copyOfBlock(block: SecurityBlock): SecurityBlock {
@@ -130,6 +161,8 @@ interface BlockData {
   index: number;
   value: string;
   action?: SecurityBlockAction | undefined;
+  // Where it is enforced (#10346): at the edge unless said.
+  reach?: SecurityBlockReach | undefined;
   state?: SecurityBlockState | undefined;
   createdAt?: Date | undefined;
   expiresAt?: Date | null | undefined;
@@ -139,13 +172,19 @@ interface BlockData {
 
 // A block as the blocklist's service left it: Active for a day unless the test says.
 function addBlock(data: BlockData): SecurityBlock {
-  const read: SecurityBlockValue = readSecurityBlockValue(data.value)!;
+  const read: SecurityBlockIndicatorValue = readSecurityBlockIndicator(
+    data.value,
+  )!;
   const block: SecurityBlock = new SecurityBlock();
 
   block._id = blockId(data.index).toString();
   block.projectId = data.projectId || PROJECT_ID;
   block.value = read.value;
   block.indicatorType = read.indicatorType;
+  block.reach = getSecurityBlockReach({
+    indicatorType: read.indicatorType,
+    reach: data.reach,
+  });
   block.action = data.action || SecurityBlockAction.Block;
   block.state = data.state || SecurityBlockState.Active;
   block.source = SecurityBlockSource.Person;
@@ -366,6 +405,14 @@ beforeEach(() => {
     .mockImplementation((async (args: unknown): Promise<void> => {
       feedItems.push(args as JSONObject);
     }) as never);
+
+  // A case's steps are checked again at every line of its timeline (#10346).
+  checkRequests = [];
+  jest.spyOn(SecurityCaseStepChecks, "requestCheck").mockImplementation((async (
+    args: unknown,
+  ): Promise<void> => {
+    checkRequests.push(args as JSONObject);
+  }) as never);
 });
 
 afterEach(() => {
@@ -1392,7 +1439,8 @@ describe("the every-minute pass", () => {
   });
 
   test("queues nothing, and reads nothing, while no kind of destination exists", async () => {
-    SecurityBlockDestinations.resetSourcesForTests();
+    // Every server has AWS WAF and the feeds (#10344, #10345), so a server with no kind of destination is one a test makes.
+    SecurityBlockDestinations.setSourcesForTests([]);
     projectsWithWork = [PROJECT_ID];
 
     expect(SecurityBlockDestinations.hasSources()).toBe(false);
@@ -1489,7 +1537,7 @@ function planBlock(
   value: string,
   action: SecurityBlockAction = SecurityBlockAction.Block,
 ): SecurityBlock {
-  const read: SecurityBlockValue = readSecurityBlockValue(value)!;
+  const read: SecurityBlockIndicatorValue = readSecurityBlockIndicator(value)!;
   const block: SecurityBlock = new SecurityBlock();
   block._id = blockId(index).toString();
   block.value = read.value;
@@ -1710,5 +1758,961 @@ describe("getSecurityBlockEntryComment", () => {
     expect(getSecurityBlockEntryComment(block)).toBe(
       "OneUptime blocklist until lifted",
     );
+  });
+});
+
+// ---------- Every machine (#10346) ----------
+
+/*
+ * A destination as Microsoft Defender and CrowdStrike are: it enforces on
+ * every machine, holds no range, ends what it holds at the end it was given
+ * (and says so when read back), and can move that end.
+ */
+class EveryMachineDestination implements SecurityBlockDestination {
+  public readonly key: string = "EveryMachine:1";
+  public readonly lockKey: string | undefined = undefined;
+  public readonly provider: SecurityBlockDestinationProvider =
+    SecurityBlockDestinationProvider.MicrosoftDefender;
+  public readonly name: string = "Microsoft Defender";
+  public readonly connectionId: ObjectID | null = null;
+  public readonly enforcesOnEveryMachine: boolean = true;
+  public readonly quarantinesFiles: boolean = true;
+
+  public readonly items: Map<
+    string,
+    { value: string; action: SecurityBlockAction; expiresAt: Date | null }
+  > = new Map();
+  public applied: Array<string> = [];
+  public updates: Array<{ value: string; expiresAt: Date | null }> = [];
+  public updateError: string | null = null;
+
+  public supports(entry: {
+    indicatorType: SecurityBlockIndicatorType;
+    action: SecurityBlockAction;
+    value: string;
+  }): SecurityBlockSupport {
+    return entry.indicatorType === SecurityBlockIndicatorType.IpRange
+      ? { isSupported: false, reason: "it blocks one address at a time" }
+      : { isSupported: true };
+  }
+
+  public async capacity(): Promise<SecurityBlockCapacity> {
+    return { limit: null };
+  }
+
+  public async apply(
+    entries: Array<SecurityBlockEntry>,
+  ): Promise<Array<SecurityBlockWriteResult>> {
+    return entries.map((entry: SecurityBlockEntry) => {
+      this.applied.push(entry.value);
+      this.items.set(`${entry.action}|${entry.value}`, {
+        value: entry.value,
+        action: entry.action,
+        expiresAt: entry.expiresAt,
+      });
+
+      return { value: entry.value, action: entry.action, isDone: true };
+    });
+  }
+
+  public async remove(
+    items: Array<SecurityBlockHeldItem>,
+  ): Promise<Array<SecurityBlockWriteResult>> {
+    return items.map((item: SecurityBlockHeldItem) => {
+      this.items.delete(`${item.action}|${item.value}`);
+      return { value: item.value, action: item.action, isDone: true };
+    });
+  }
+
+  public async readBack(): Promise<Array<SecurityBlockHeldItem>> {
+    return Array.from(this.items.values()).map(
+      (item: {
+        value: string;
+        action: SecurityBlockAction;
+        expiresAt: Date | null;
+      }): SecurityBlockHeldItem => {
+        return {
+          value: item.value,
+          action: item.action,
+          expiresAt: item.expiresAt,
+        };
+      },
+    );
+  }
+
+  public async moveEnds(
+    updates: Array<SecurityBlockEndMove>,
+  ): Promise<Array<SecurityBlockWriteResult>> {
+    return updates.map((update: SecurityBlockEndMove) => {
+      if (this.updateError) {
+        return {
+          value: update.entry.value,
+          action: update.entry.action,
+          isDone: false,
+          error: this.updateError,
+        };
+      }
+
+      this.updates.push({
+        value: update.entry.value,
+        expiresAt: update.entry.expiresAt,
+      });
+      this.items.set(`${update.entry.action}|${update.entry.value}`, {
+        value: update.entry.value,
+        action: update.entry.action,
+        expiresAt: update.entry.expiresAt,
+      });
+
+      return {
+        value: update.entry.value,
+        action: update.entry.action,
+        isDone: true,
+      };
+    });
+  }
+}
+
+describe("a destination on every machine (#10346)", () => {
+  test("never holds an address blocked at the edge alone, and gives it no row", async () => {
+    const edge: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination();
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(edge, machines);
+
+    addBlock({ index: 1, value: "198.51.100.7" });
+    await pass(1);
+
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(rowOf(1, machines)).toBeUndefined();
+    expect(machines.applied).toEqual([]);
+  });
+
+  test("holds an address blocked everywhere, beside the edge", async () => {
+    const edge: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination();
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(edge, machines);
+
+    addBlock({
+      index: 1,
+      value: "198.51.100.7",
+      reach: SecurityBlockReach.Everywhere,
+    });
+    await pass(1);
+
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("holds a domain, a URL and a file, and says why it cannot hold a range", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "Evil.Example." });
+    addBlock({ index: 2, value: "https://evil.example/Login" });
+    addBlock({ index: 3, value: "44D88612FEA8A8F36DE82E1278ABB02F" });
+    addBlock({
+      index: 4,
+      value: "198.51.100.0/24",
+      reach: SecurityBlockReach.Everywhere,
+    });
+    await pass(1);
+
+    expect(machines.applied).toEqual([
+      "evil.example",
+      "https://evil.example/Login",
+      "44d88612fea8a8f36de82e1278abb02f",
+    ]);
+
+    for (const index of [1, 2, 3]) {
+      expect(stateOf(index, machines)).toBe(
+        SecurityBlockEnforcementState.Applied,
+      );
+    }
+
+    expect(stateOf(4, machines)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(4, machines)).toBe(
+      "Not applied: it blocks one address at a time",
+    );
+  });
+
+  test("a held URL its provider wrote in lower case is the block it was given", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    machines.items.set("Block|https://evil.example/login", {
+      value: "https://evil.example/login",
+      action: SecurityBlockAction.Block,
+      expiresAt: at(1 + 24 * 60),
+    });
+    addBlock({ index: 1, value: "https://evil.example/Login" });
+    await pass(1);
+
+    // Held, not added again, nor removed.
+    expect(machines.applied).toEqual([]);
+    expect(machines.items.size).toBe(1);
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("its blocks' ends are the provider's: a renewed block is renewed there, a block made permanent loses its end", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "evil.example" });
+    addBlock({ index: 2, value: "bad.example" });
+    await pass(1);
+
+    expect(machines.updates).toEqual([]);
+
+    const renewed: Date = at(7 * 24 * 60);
+    blocks.get(blockId(1).toString())!.expiresAt = renewed;
+    blocks.get(blockId(2).toString())!.expiresAt = null as unknown as Date;
+    await pass(2);
+
+    expect(machines.updates).toEqual([
+      { value: "evil.example", expiresAt: renewed },
+      { value: "bad.example", expiresAt: null },
+    ]);
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, machines)).toBeNull();
+
+    // Read back with the new ends: nothing to move on the next pass.
+    await pass(3);
+
+    expect(machines.updates.length).toBe(2);
+  });
+
+  test("an end within a minute of the block's is left alone", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    const block: SecurityBlock = addBlock({ index: 1, value: "evil.example" });
+    await pass(1);
+
+    machines.items.get("Block|evil.example")!.expiresAt = new Date(
+      new Date(block.expiresAt!).getTime() + 59 * 1000,
+    );
+    await pass(2);
+
+    expect(machines.updates).toEqual([]);
+  });
+
+  test("an end the provider would not move is said on the row, which still holds", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "evil.example" });
+    await pass(1);
+
+    machines.updateError = "HTTP 500";
+    blocks.get(blockId(1).toString())!.expiresAt = at(7 * 24 * 60);
+    await pass(2);
+
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, machines)).toBe(
+      "Its end at Microsoft Defender was not moved: HTTP 500",
+    );
+
+    machines.updateError = null;
+    await pass(3);
+
+    expect(errorOf(1, machines)).toBeNull();
+  });
+
+  test("a destination that cannot move an end is never asked to", () => {
+    const block: SecurityBlock = planBlock(1, "evil.example");
+    const plan: SecurityBlocklistDestinationPlan =
+      planSecurityBlocklistDestination({
+        destination: {
+          supports: (): SecurityBlockSupport => {
+            return { isSupported: true };
+          },
+        },
+        blocks: [block],
+        rowsByBlock: new Map(),
+        held: [
+          {
+            value: "evil.example",
+            action: SecurityBlockAction.Block,
+            expiresAt: new Date(0),
+          },
+        ],
+        capacity: { limit: null },
+        now: NOW,
+      });
+
+    expect(plan.toMoveEnd).toEqual([]);
+  });
+
+  test("an end the provider does not say is never moved", () => {
+    const destination: EveryMachineDestination = new EveryMachineDestination();
+    const plan: SecurityBlocklistDestinationPlan =
+      planSecurityBlocklistDestination({
+        destination,
+        blocks: [planBlock(1, "evil.example")],
+        rowsByBlock: new Map(),
+        held: [{ value: "evil.example", action: SecurityBlockAction.Block }],
+        capacity: { limit: null },
+        now: NOW,
+      });
+
+    expect(plan.toMoveEnd).toEqual([]);
+    expect(plan.toAdd).toEqual([]);
+  });
+
+  test("a case hears its block made on every machine, and its steps are checked at once", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "evil.example", hasCase: true });
+    await pass(1);
+
+    expect(linesSaying("is enforced at Microsoft Defender").length).toBe(1);
+    expect(checkRequests).toEqual([
+      { projectId: PROJECT_ID, securityCaseId: CASE_ID },
+    ]);
+  });
+});
+
+describe("getHeldItemKey, for every kind of value (#10346)", () => {
+  test("a value as blocks write it, without case", () => {
+    expect(getHeldItemKey("Evil.Example.", SecurityBlockAction.Block)).toBe(
+      "Block|evil.example",
+    );
+    expect(
+      getHeldItemKey("HTTPS://Evil.Example/Login", SecurityBlockAction.Block),
+    ).toBe(
+      getHeldItemKey("https://evil.example/login", SecurityBlockAction.Block),
+    );
+    expect(
+      getHeldItemKey(
+        "44D88612FEA8A8F36DE82E1278ABB02F",
+        SecurityBlockAction.BlockAndQuarantine,
+      ),
+    ).toBe("BlockAndQuarantine|44d88612fea8a8f36de82e1278abb02f");
+  });
+});
+
+/*
+ * A provider whose lists are replaced whole - an AWS WAF IP set (#10344),
+ * and as they come an Azure WAF custom rule or a Cloud Armor rule - takes a
+ * pass's removals and additions in one call (update), so each list is
+ * written once a pass however many blocks ended and began in it.
+ */
+describe("a destination that takes a pass's changes in one call", () => {
+  test("is given what ended and what began together, and its rows are written as remove and apply would write them", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await pass(1);
+
+    expect(destination.countCalls("update")).toBe(1);
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Applied);
+
+    setState(1, SecurityBlockState.Lifted);
+    addBlock({ index: 2, value: "35.205.11.132" });
+
+    await pass(2);
+
+    expect(
+      destination.calls
+        .filter((made: { call: string }): boolean => {
+          return made.call === "update";
+        })
+        .map((made: { values: Array<string> }): Array<string> => {
+          return made.values;
+        }),
+    ).toEqual([["+35.205.11.131"], ["-35.205.11.131", "+35.205.11.132"]]);
+    // Never the two calls of a destination that writes item by item.
+    expect(destination.countCalls("apply")).toBe(0);
+    expect(destination.countCalls("remove")).toBe(0);
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Removed);
+    expect(stateOf(2, destination)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(destination.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+  });
+
+  test("a pass with nothing to change does not call it", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await pass(1);
+    await pass(2);
+
+    expect(destination.countCalls("update")).toBe(1);
+    expect(destination.countCalls("readBack")).toBeGreaterThanOrEqual(3);
+  });
+
+  test("one that fails is the destination failing: each row says so, and waits its retry", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    destination.failNextCalls("update", 1, "The provider is down.");
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    const result: SecurityBlocklistPassResult = await pass(1);
+
+    expect(result.failed).toBe(1);
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Pending);
+    expect(errorOf(1, destination)).toBe(
+      "Could not write to Test destination: The provider is down.",
+    );
+    expect(retryAtOf(1, destination)).toEqual(
+      new Date(at(1).getTime() + SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS),
+    );
+  });
+
+  test("an entry it turns down says why, as one apply turned down would", async () => {
+    const destination: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({ batchesWrites: true });
+    enforceAt(destination);
+    destination.refuseValue("35.205.11.131", "the list is locked");
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await pass(1);
+
+    expect(stateOf(1, destination)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, destination)).toBe("Not applied: the list is locked");
+  });
+});
+
+describe("the destinations a project has in production", () => {
+  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), Azure WAF policies (#10348), Cloud Armor policies (#10349), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
+    SecurityBlockDestinations.resetSourcesForTests();
+
+    expect(SecurityBlockDestinations.hasSources()).toBe(true);
+    expect(
+      SecurityBlockDestinations.getSources().map(
+        (source: SecurityBlockDestinationSource): string => {
+          return source.provider;
+        },
+      ),
+    ).toEqual([
+      SecurityBlockDestinationProvider.Cloudflare,
+      SecurityBlockDestinationProvider.AwsWaf,
+      SecurityBlockDestinationProvider.AzureWaf,
+      SecurityBlockDestinationProvider.CloudArmor,
+      SecurityBlockDestinationProvider.Feed,
+      SecurityBlockDestinationProvider.MicrosoftDefender,
+      SecurityBlockDestinationProvider.CrowdStrike,
+    ]);
+  });
+});
+
+describe("a challenge where a destination cannot challenge (#10350)", () => {
+  function policyChallenge(index: number, value: string): SecurityBlock {
+    const block: SecurityBlock = addBlock({
+      index,
+      value,
+      action: SecurityBlockAction.Challenge,
+    });
+    block.source = SecurityBlockSource.AutomaticResponse;
+    block.challengeFallsBackToBlock = true;
+    return block;
+  }
+
+  test("an automatic response policy's is held there as a block, for the same time", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare", canChallenge: true },
+    );
+    const feed: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:feed", name: "Palo Alto feed", canChallenge: false },
+    );
+    enforceAt(edge, feed);
+    policyChallenge(1, "35.205.11.131");
+
+    await pass(2);
+
+    expect(edge.getOneUptimeValues(SecurityBlockAction.Challenge)).toEqual([
+      "35.205.11.131",
+    ]);
+    expect(feed.getOneUptimeValues(SecurityBlockAction.Block)).toEqual([
+      "35.205.11.131",
+    ]);
+    expect(feed.getOneUptimeValues(SecurityBlockAction.Challenge)).toEqual([]);
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Applied);
+
+    // Read back as the block it is there, a second pass changes nothing.
+    await pass(3);
+
+    expect(feed.getOneUptimeValues(SecurityBlockAction.Block)).toEqual([
+      "35.205.11.131",
+    ]);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("once it ends, the block it was held as is taken away", async () => {
+    const feed: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:feed", name: "Palo Alto feed", canChallenge: false },
+    );
+    enforceAt(feed);
+    policyChallenge(1, "35.205.11.131");
+
+    await pass(2);
+    setState(1, SecurityBlockState.Lifted);
+    await pass(3);
+
+    expect(feed.getOneUptimeValues()).toEqual([]);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Removed);
+  });
+
+  test("a person's challenge is never turned into a block behind their back: it is not applied there, saying why", async () => {
+    const feed: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:feed", name: "Palo Alto feed", canChallenge: false },
+    );
+    enforceAt(feed);
+    addBlock({
+      index: 1,
+      value: "35.205.11.131",
+      action: SecurityBlockAction.Challenge,
+    });
+
+    await pass(2);
+
+    expect(feed.getOneUptimeValues()).toEqual([]);
+    expect(stateOf(1, feed)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, feed)).toBe(
+      "Not applied: Palo Alto feed cannot challenge",
+    );
+  });
+
+  test("the plan asks each destination for the action it holds", () => {
+    const block: SecurityBlock = policyChallenge(1, "35.205.11.131");
+    const plan: SecurityBlocklistDestinationPlan =
+      planSecurityBlocklistDestination({
+        destination: new TestSecurityBlockDestination({ canChallenge: false }),
+        blocks: [block],
+        rowsByBlock: new Map(),
+        held: [],
+        capacity: { limit: null },
+        now: NOW,
+      });
+
+    expect(
+      plan.toAdd.map((entry: SecurityBlockEntry) => {
+        return entry.action;
+      }),
+    ).toEqual([SecurityBlockAction.Block]);
+    expect(plan.unsupported.size).toBe(0);
+  });
+});
+
+describe("a block whose address became protected after it was made (#10640)", () => {
+  let withheld: Array<string>;
+  let isReadable: boolean;
+  // What protects a withheld value, when it is not the value itself: a range holds a host.
+  let protectedValues: Map<string, string>;
+
+  beforeEach(() => {
+    withheld = [];
+    isReadable = true;
+    protectedValues = new Map();
+    jest
+      .spyOn(SecurityBlocklistFeedProtection, "check")
+      .mockImplementation(
+        async (data: {
+          entries: ReadonlyArray<SecurityBlocklistFeedEntry>;
+        }): Promise<SecurityBlocklistFeedProtectionCheck> => {
+          if (!isReadable) {
+            return { isReadable: false, served: [], withheld: [] };
+          }
+
+          return {
+            isReadable: true,
+            served: data.entries.filter((entry: SecurityBlocklistFeedEntry) => {
+              return !withheld.includes(entry.value);
+            }),
+            withheld: data.entries
+              .filter((entry: SecurityBlocklistFeedEntry) => {
+                return withheld.includes(entry.value);
+              })
+              .map((entry: SecurityBlocklistFeedEntry) => {
+                return {
+                  entry,
+                  protection: {
+                    source: SecurityProtectedAddressSource.Host,
+                    protectedValue:
+                      protectedValues.get(entry.value) || entry.value,
+                    name: "web-3",
+                  },
+                };
+              }),
+          };
+        },
+      );
+  });
+
+  test("is held back everywhere: taken off where it is held, its row and its case saying why, never naming the record", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare" },
+    );
+    enforceAt(edge);
+    addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+    addBlock({ index: 2, value: "35.205.11.132", hasCase: true });
+
+    await pass(2);
+    expect(edge.getOneUptimeValues().sort()).toEqual([
+      "35.205.11.131",
+      "35.205.11.132",
+    ]);
+
+    // A host comes up on the first address.
+    withheld = ["35.205.11.131"];
+    await pass(3);
+
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, edge)).toBe(
+      "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+    );
+    expect(errorOf(1, edge)).not.toContain("web-3");
+    expect(stateOf(2, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(
+      linesSaying("is not enforced at Cloudflare. Held back"),
+    ).toHaveLength(1);
+
+    // Said once: a pass that finds the same changes nothing.
+    await pass(4);
+    expect(linesSaying("Held back")).toHaveLength(1);
+  });
+
+  test("stays held back while what the project protects cannot be read, and nothing new is", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare" },
+    );
+    enforceAt(edge);
+    addBlock({ index: 1, value: "35.205.11.131" });
+    addBlock({ index: 2, value: "35.205.11.132" });
+
+    withheld = ["35.205.11.131"];
+    await pass(2);
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+
+    isReadable = false;
+    await pass(3);
+
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.132"]);
+    expect(errorOf(1, edge)).toContain("Held back: ");
+    expect(stateOf(2, edge)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("is held again once the address is no longer protected", async () => {
+    const edge: TestSecurityBlockDestination = new TestSecurityBlockDestination(
+      { key: "Test:edge", name: "Cloudflare" },
+    );
+    enforceAt(edge);
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    withheld = ["35.205.11.131"];
+    await pass(2);
+    expect(edge.getOneUptimeValues()).toEqual([]);
+
+    withheld = [];
+    await pass(3);
+
+    expect(edge.getOneUptimeValues()).toEqual(["35.205.11.131"]);
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, edge)).toBeNull();
+  });
+
+  test("names the block by id, one active block a value", () => {
+    const one: SecurityBlock = addBlock({ index: 1, value: "35.205.11.131" });
+
+    expect(
+      findSecurityBlocksHeldBack({
+        blocks: [one],
+        check: { isReadable: false, withheld: [] },
+      }),
+    ).toBeNull();
+    expect(toSecurityBlockProtectionEntries([one, one])).toHaveLength(1);
+    expect(
+      describeSecurityBlockHeldBack({
+        value: "35.205.11.0/24",
+        protection: {
+          source: SecurityProtectedAddressSource.Edge,
+          protectedValue: "35.205.11.0/24",
+          name: "Cloudflare",
+        },
+      }),
+    ).toContain("Cloudflare");
+  });
+
+  /*
+   * #10804: a held-back row says why in the reader's language. Its
+   * English text stays as it was - the column, the logs and the case's
+   * timeline read it - and beside it the row keeps the same as a reason
+   * the Dashboard words (errorReason), as a destination's own reasons are
+   * kept (#10629).
+   */
+  describe("its row says why in the reader's language (#10804)", () => {
+    const germanLocale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        const wording: unknown = germanLocale[text];
+
+        return typeof wording === "string" ? wording : undefined;
+      },
+      "de",
+    );
+
+    // The German Dashboard's wording of a key: a locale that lacks it fails here first.
+    function germanWording(key: string): string {
+      const wording: unknown = germanLocale[key];
+
+      expect({ key, worded: typeof wording === "string" }).toEqual({
+        key,
+        worded: true,
+      });
+
+      return wording as string;
+    }
+
+    function fillByHand(
+      template: string,
+      values: Record<string, string>,
+    ): string {
+      let text: string = template;
+
+      for (const [key, value] of Object.entries(values)) {
+        text = text.split(`{{${key}}}`).join(value);
+      }
+
+      return text;
+    }
+
+    function reasonOf(
+      index: number,
+      destination: SecurityBlockDestination,
+    ): SecurityBlockReason | null {
+      return readSecurityBlockReason(rowOf(index, destination)?.errorReason);
+    }
+
+    test("a held-back row keeps why as a reason, read in German as the chip beside it is, its English unchanged", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+
+      await pass(2);
+      withheld = ["35.205.11.131"];
+      await pass(3);
+
+      const reason: SecurityBlockReason | null = reasonOf(1, edge);
+
+      expect(reason).not.toBeNull();
+      expect(isSecurityBlockHeldBackReason(reason)).toBe(true);
+      expect(reason!.template).toBe(SECURITY_BLOCK_REASON_FRAMES.heldBack);
+      expect(errorOf(1, edge)).toBe(
+        "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+      );
+      expect(fillSecurityBlockReason(reason!)).toBe(errorOf(1, edge));
+      expect(wordSecurityBlockReason(reason!, german)).toBe(
+        fillByHand(germanWording(SECURITY_BLOCK_REASON_FRAMES.heldBack), {
+          value: "35.205.11.131",
+          protection: fillByHand(
+            germanWording(SECURITY_PROTECTED_OWN_ADDRESS),
+            { address: "35.205.11.131" },
+          ),
+        }),
+      );
+      // German, not English: the frame and what protects the address alike.
+      expect(wordSecurityBlockReason(reason!, german)).not.toContain(
+        "is protected now",
+      );
+      expect(wordSecurityBlockReason(reason!, german)).not.toContain(
+        "one of your project's own addresses",
+      );
+      // The record that protects it is never named, in any language.
+      expect(JSON.stringify(rowOf(1, edge)?.errorReason)).not.toContain(
+        "web-3",
+      );
+      // The case hears it once, in English, as before.
+      expect(
+        linesSaying("is not enforced at Cloudflare. Held back"),
+      ).toHaveLength(1);
+    });
+
+    test("a range that holds a protected address says how they meet, in the reader's language too", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.0/24" });
+
+      // A host comes up on an address the range holds.
+      withheld = ["35.205.11.0/24"];
+      protectedValues.set("35.205.11.0/24", "35.205.11.131");
+      await pass(2);
+
+      const reason: SecurityBlockReason | null = reasonOf(1, edge);
+
+      expect(reason?.template).toBe(
+        SECURITY_BLOCK_REASON_FRAMES.heldBackOverlapping,
+      );
+      expect(errorOf(1, edge)).toBe(
+        "Held back: 35.205.11.0/24 is protected now, so OneUptime took the block off. 35.205.11.0/24 holds 35.205.11.131. 35.205.11.131 is one of your project's own addresses.",
+      );
+
+      const worded: string = wordSecurityBlockReason(reason!, german);
+
+      expect(worded).toContain("35.205.11.0/24");
+      expect(worded).toContain("35.205.11.131");
+      expect(worded).not.toContain("holds 35.205.11.131");
+      expect(worded).not.toContain("is protected now");
+      expect(edge.getOneUptimeValues()).toEqual([]);
+    });
+
+    test("stays worded while what the project protects cannot be read: the row keeps the reason it had", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131" });
+
+      withheld = ["35.205.11.131"];
+      await pass(2);
+      const before: SecurityBlockReason | null = reasonOf(1, edge);
+      const writes: number = rowWrites.length;
+
+      isReadable = false;
+      await pass(3);
+
+      expect(reasonOf(1, edge)).toEqual(before);
+      expect(isSecurityBlockHeldBackReason(reasonOf(1, edge))).toBe(true);
+      expect(errorOf(1, edge)).toContain("Held back: ");
+      // Nothing it says changed, so nothing was written.
+      expect(
+        rowWrites.slice(writes).filter((write: { data: JSONObject }) => {
+          return (
+            write.data["errorReason"] !== undefined ||
+            write.data["error"] !== undefined
+          );
+        }),
+      ).toEqual([]);
+    });
+
+    test("a row held back before rows kept a reason gets one on the next pass that can read, its English and its case left as they were", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+
+      withheld = ["35.205.11.131"];
+      await pass(2);
+
+      // As an earlier version left it: the English, and no reason.
+      const row: SecurityBlockEnforcement = rowOf(1, edge)!;
+      const english: string = row.error!;
+      delete row.errorReason;
+      const lines: number = timelineLines().length;
+
+      // Unreadable: kept as it is, English only.
+      isReadable = false;
+      await pass(3);
+      expect(reasonOf(1, edge)).toBeNull();
+      expect(errorOf(1, edge)).toBe(english);
+
+      // Readable again: the reason is written, nothing else changes.
+      isReadable = true;
+      await pass(4);
+      expect(isSecurityBlockHeldBackReason(reasonOf(1, edge))).toBe(true);
+      expect(fillSecurityBlockReason(reasonOf(1, edge)!)).toBe(english);
+      expect(errorOf(1, edge)).toBe(english);
+      expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Failed);
+      expect(timelineLines()).toHaveLength(lines);
+    });
+
+    test("is held again once the address is no longer protected, its reason gone with its error", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131" });
+
+      withheld = ["35.205.11.131"];
+      await pass(2);
+      expect(reasonOf(1, edge)).not.toBeNull();
+
+      withheld = [];
+      await pass(3);
+
+      expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+      expect(rowOf(1, edge)?.errorReason || null).toBeNull();
+      expect(errorOf(1, edge)).toBeNull();
+    });
+
+    test("the finder hands each block the reason and its English, the same sentence twice", () => {
+      const one: SecurityBlock = addBlock({
+        index: 1,
+        value: "35.205.11.131",
+      });
+      const two: SecurityBlock = addBlock({
+        index: 2,
+        value: "35.205.11.132",
+      });
+
+      const found: Map<string, SecurityBlockHeldBack> | null =
+        findSecurityBlocksHeldBack({
+          blocks: [one, two],
+          check: {
+            isReadable: true,
+            withheld: [
+              {
+                entry: { value: "35.205.11.131", family: 4 } as never,
+                protection: {
+                  source: SecurityProtectedAddressSource.Edge,
+                  protectedValue: "35.205.11.131",
+                  name: "Cloudflare",
+                },
+              },
+            ],
+          },
+        });
+
+      expect(found).not.toBeNull();
+      expect(Array.from(found!.keys())).toEqual([one.id!.toString()]);
+
+      const heldBack: SecurityBlockHeldBack = found!.get(one.id!.toString())!;
+
+      expect(heldBack.error).toBe(fillSecurityBlockReason(heldBack.reason!));
+      expect(heldBack.error).toBe(
+        "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of Cloudflare's addresses, and Cloudflare is in front of your app: blocking it would take your site down.",
+      );
+      // An edge is no record of the project's: it is named.
+      expect(
+        getSecurityBlockHeldBackReason({
+          value: "35.205.11.131",
+          protection: {
+            source: SecurityProtectedAddressSource.Edge,
+            protectedValue: "35.205.11.131",
+            name: "Cloudflare",
+          },
+        }),
+      ).toEqual(heldBack.reason);
+    });
   });
 });

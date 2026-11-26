@@ -122,6 +122,8 @@ Bytt ut regionen og konto-ID-en med dine egne. Detektoren `host` leverer `host.n
 
 **Nettverk:** en tjeneste uten VPC-connector når internett direkte. Med **Outgoing network traffic: Custom VPC** går utgående trafikk gjennom VPC-en din, som trenger en NAT-gateway og en utgående regel i sikkerhetsgruppen for TCP 443 til OneUptime-verten.
 
+**Hva appens side viser:** forespørsler, feilrate og latens kommer fra appens spor. Koble til kontoen under **Sky → Koble til**, så får appens **Oversikt** en seksjon **Amazon CloudWatch**: tjenestens forespørsler, andelen besvart med en 5xx-status, svartid, CPU og minne, slik App Runner måler dem, uansett hva appen sender. OneUptime knytter appen til App Runner-tjenesten som dens `cloud.resource_id` nevner, ellers til den som heter det samme som dens `service.name`, i miljøets konto og region, og raden **Amazon CloudWatch-tilkobling** i dens **Oppsettsjekk** nevner tjenesten den ser etter så lenge ingen er lest. I **App-plattformer → Alle apper** og fanen **Apper** i et miljø viser en app som ikke sender spor, i stedet tjenestens tall fra Amazon CloudWatch.
+
 ## Google App Engine
 
 `cloud.platform`: `gcp_app_engine`. GCP-detektoren gjenkjenner App Engine standard og flexible fra `GAE_SERVICE`, `GAE_VERSION` og `GAE_INSTANCE` og metadataserveren. Den setter `cloud.account.id` (prosjektet), `cloud.region`, `faas.name`, `faas.version` og `faas.instance`. Som på Cloud Run får `faas.name` hver App Engine-tjeneste til også å vises under **Serverløse funksjoner**, mens miljøet samler prosjektet og regionen.
@@ -156,6 +158,8 @@ env_variables:
 
 **Nettverk:** App Engine standard når internett direkte. Instanser i flexible-miljøet ligger i en VPC: hvis subnettet ikke har eksterne IP-er, trenger de Cloud NAT og en utgående brannmurregel for TCP 443 til OneUptime-verten.
 
+**Hva appens side viser:** forespørsler, feilrate og latens kommer fra appens spor. Koble til prosjektet under **Sky → Koble til**, så får appens **Oversikt** en seksjon **Google Cloud Monitoring**: tjenestens forespørsler, andelen besvart med en 5xx-status, dens p95-latens og CPU og minne for instansene, slik App Engine måler dem, uansett hva appen sender. OneUptime knytter appen til App Engine-tjenesten som dens `faas.name` nevner, i miljøets prosjekt, og raden **Google Cloud Monitoring-tilkobling** i dens **Oppsettsjekk** nevner tjenesten den ser etter så lenge ingen er lest. I **App-plattformer → Alle apper** og fanen **Apper** i et miljø viser en app som ikke sender spor, i stedet tjenestens tall fra Google Cloud Monitoring.
+
 ## Azure App Service
 
 `cloud.platform`: `azure_app_service`. Azure-detektorene for Node.js og .NET leser variablene `WEBSITE_*` som App Service setter, og fyller ut `cloud.platform`, `cloud.region`, `service.instance.id` (fra `WEBSITE_INSTANCE_ID`), `deployment.environment` (sporet) og `host.id`, men ikke `cloud.account.id`: legg til abonnements-ID-en selv, ellers får miljønøkkelen et tomt kontosegment. Collectorens detektor `azureappservice` leser de samme variablene, setter også `cloud.account.id` og navngir instansen i `azure.app_service.instance.id`.
@@ -167,11 +171,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK-detektorene staver plattformen `azure.app_service`, med punktum; OneUptime skriver den om til `azure_app_service` når den mottas. I .NET legger du til `OpenTelemetry.Resources.Azure` og kaller `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. Andre språk legger til `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` i `OTEL_RESOURCE_ATTRIBUTES`, og henter `service.instance.id` fra `WEBSITE_INSTANCE_ID` i koden.
+SDK-detektorene staver plattformen `azure.app_service`, med punktum; OneUptime skriver den om til `azure_app_service` når den mottas. Hver stakk har sin egen ressursdetektor for App Service, som navngir hver instans og setter `cloud.resource_id` til nettstedets ID: det knytter appen til nettstedets tall fra Azure Monitor. Slå på den for stakken din:
+
+| Stakk | Ressursdetektoren for App Service |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, med `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | Java-agenten til OpenTelemetry, med `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, med `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, med `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Slå på appens systemtilordnede administrerte identitet (**Settings → Identity**), og gi den **Key Vault Secrets User** på hvelvet. Lagre hele headeren, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, som hemmeligheten `oneuptime-otlp-headers`.
@@ -182,9 +191,9 @@ SDK-detektorene staver plattformen `azure.app_service`, med punktum; OneUptime s
 
 **Nettverk:** App Service når internett direkte med mindre **VNet integration** med **Route All** er slått på. Da trenger VNet-et en NAT-gateway, eller en rute til en brannmur som tillater TCP 443 til OneUptime-verten.
 
-**Hva appens side viser:** forespørsler, feilrate og latens kommer fra appens spor, så en app som bare sender logger eller målinger, viser **Ingen spor mottatt** der, og dens **Oppsettsjekk** sier hva som må legges til. App Service gir ikke en app egen CPU eller eget minne, og flisene for CPU og minne sier det. Koble til abonnementet under **Sky → Koble til**, så får appens **Oversikt** en seksjon **Azure Monitor**: nettstedets forespørsler, server- og klientfeil, svartid, CPU-tid og minne, slik Azure måler dem, uansett hva appen sender. Fanen **Instanser** viser da instansene Azure kjører den på, og fanen **Revisjoner** utrullingene Azure lagrer.
+**Hva appens side viser:** forespørsler, feilrate og latens kommer fra appens spor, så en app som bare sender logger eller målinger, viser **Ingen spor mottatt** der, og dens **Oppsettsjekk** sier hva som må legges til. App Service gir ikke en app egen CPU eller eget minne, og flisene for CPU og minne sier det. Koble til abonnementet under **Sky → Koble til**, så får appens **Oversikt** en seksjon **Azure Monitor**: nettstedets forespørsler, server- og klientfeil, svartid, CPU-tid og minne, slik Azure måler dem, uansett hva appen sender. Fanen **Instanser** viser da instansene Azure kjører den på, og fanen **Revisjoner** utrullingene Azure lagrer. I **App-plattformer → Alle apper** og fanen **Apper** i et miljø viser en app som ikke sender spor, i stedet nettstedets tall fra Azure Monitor: forespørslene Azure telte, andelen besvart med en 5xx-status og gjennomsnittlig svartid. En app i en annen utrullingsplass enn produksjon, som detektorene navngir i `deployment.environment`, viser den plassens egne tall, instanser og utrullinger, aldri nettstedets: Azure Monitor måler hver plass som en egen ressurs.
 
-Appens fane **Oppsett** gir disse innstillingene som Azure Cloud Shell-kommandoer for .NET, Java, Node.js eller Python, med appens eget navn, ressursgruppe og abonnement i hver kommando. For nettstedets egne konsoll-, HTTP- og plattformlogger velger du også **Strøm målinger og logger** i abonnementets rad under **Sky → Koble til**: de vises i appens fane **Logger**, under **Fra Azures diagnoseinnstillinger**.
+Appens fane **Oppsett** gir disse innstillingene som Azure Cloud Shell-kommandoer for .NET, Java, Node.js eller Python, med appens eget navn, ressursgruppe og abonnement i hver kommando. For nettstedets egne konsoll-, HTTP- og plattformlogger velger du også **Strøm målinger og logger** i abonnementets rad under **Sky → Koble til**: de vises i appens fane **Logger**, under **Fra Azures diagnoseinnstillinger**. Miljøets oppsettsveiledning gir også trinnene for hver stakk, med plassholdere for appens navn og ressursgruppe.
 
 ## Azure Container Instances
 
@@ -250,7 +259,7 @@ Forespørsler, feilrate og latens kommer fra spor, så en app som bare sender lo
 :::
 
 :::details En App Service-app har ingen tall fra Azure Monitor
-Raden **Azure Monitor-tilkobling** i dens **Oppsettsjekk** sier hvorfor. OneUptime knytter appen til nettstedet via `cloud.resource_id`, som App Service-detektorene setter, ellers via dens `service.name` i abonnementet `cloud.account.id` nevner: gi appen samme navn som nettstedet, eller legg til `cloud.resource_id`. En Azure-tilkobling under **Sky → Koble til** må lese det abonnementet, med rollen Monitoring Reader på det. En utrullingsplass er en egen ressurs, som OneUptime ikke leser ennå.
+Raden **Azure Monitor-tilkobling** i dens **Oppsettsjekk** sier hvorfor. OneUptime knytter appen til nettstedet via `cloud.resource_id`, som App Service-detektorene setter, ellers via dens `service.name` i abonnementet `cloud.account.id` nevner: gi appen samme navn som nettstedet, eller legg til `cloud.resource_id`. En Azure-tilkobling under **Sky → Koble til** må lese det abonnementet, med rollen Monitoring Reader på det. En app i en annen utrullingsplass enn produksjon knyttes bare til den plassen på nettstedet, aldri til selve nettstedet: til en tilkobling leser plassen, nevner raden plassen den ser etter.
 :::
 
 :::details En endret Container Instances-variabel har ingen effekt

@@ -88,13 +88,42 @@ type FeatureCall =
   | { kind: "askAiTools"; file: string; chatFile: string };
 
 const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
+  /*
+   * OneUptime AI's analysis of an issue (#10369): a person's, from the
+   * issue's page or Explain with AI, and its own of a new issue (#10364),
+   * in its queue job - one file, one call.
+   */
   [DataSecurityAiFeature.ExplainIssue]: {
     kind: "ask",
-    file: "packages/Common/Server/API/DataSecurityAPI.ts",
+    file: `${AI_DIRECTORY}/DataSecurityIssueAnalysis.ts`,
+  },
+  [DataSecurityAiFeature.AnalyzeIssue]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataSecurityIssueAnalysis.ts`,
   },
   [DataSecurityAiFeature.SuggestFieldTypes]: {
     kind: "ask",
     file: `${AI_DIRECTORY}/FieldSuggestion.ts`,
+  },
+  // Verdicts on the findings that wait for a person (#10372), after a store's scan.
+  [DataSecurityAiFeature.JudgeFindings]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/FindingVerdicts.ts`,
+  },
+  // Owners for a store with none (#10374), in the engine's and the daily run's jobs.
+  [DataSecurityAiFeature.ProposeStoreOwners]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataStoreOwnerPlanner.ts`,
+  },
+  // Scrub rules for what Scrub It cannot cover (#10366), in the engine's job.
+  [DataSecurityAiFeature.WriteScrubRules]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ScrubRuleWriter.ts`,
+  },
+  // A pull request's sensitive data (#10376), in its production review.
+  [DataSecurityAiFeature.ReviewPullRequests]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/PullRequestLeakReview.ts`,
   },
   [DataSecurityAiFeature.FixIssue]: {
     kind: "codeTask",
@@ -108,6 +137,74 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     file: TOOLS_FILE,
     // The chat whose next calls read the tools' rows.
     chatFile: "packages/Common/Server/Utils/AI/Chat/ChatAgentRunner.ts",
+  },
+  // A name for a group of issues one mistake made (#10370), after each grouping.
+  [DataSecurityAiFeature.NameIssueGroup]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataSecurityIssueGroupNaming.ts`,
+  },
+  // The group's one pull request (#10370): a task in Code, as Fix with AI's is.
+  [DataSecurityAiFeature.FixIssueGroup]: {
+    kind: "codeTask",
+    file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
+    agentFile:
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
+  },
+  /*
+   * The paperwork (#10375): a store's record drafts, on their own in the
+   * daily run and when a person asks - one file, one call - an impact
+   * assessment, and a framework's audit evidence.
+   */
+  [DataSecurityAiFeature.DraftRecord]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RecordOfProcessingDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftRecordOnRequest]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RecordOfProcessingDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftImpactAssessment]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ImpactAssessmentDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftAuditEvidence]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/AuditEvidenceDrafter.ts`,
+  },
+  /*
+   * The company's own data types (#10371): drafted from a group of fields
+   * scans could not place, in the discovery's job - by names and shapes -
+   * and from a person's sentence and the shapes of their examples, on the
+   * data type form. Both prompts are the builder's, and neither holds a
+   * value.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataTypeDiscovery.ts`,
+  },
+  [DataSecurityAiFeature.DescribeDataType]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataTypeFromSentence.ts`,
+  },
+  // A service's telemetry leaks fixed in its code (#10367): a task in Code too.
+  [DataSecurityAiFeature.FixTelemetryLeaks]: {
+    kind: "codeTask",
+    file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
+    agentFile:
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
+  },
+  /*
+   * An exposure's write-up (#10377): on its own, from the run a Critical
+   * exposure's case starts, and when a person asks - one file, one call
+   * for each.
+   */
+  [DataSecurityAiFeature.DraftExposureAssessment]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ExposureAssessmentDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ExposureAssessmentDrafter.ts`,
   },
 };
 
@@ -560,14 +657,17 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       .sort();
 
     expect(asking).toEqual(
-      Object.values(FEATURE_CALLS)
-        .filter((call: FeatureCall): boolean => {
-          return call.kind === "ask";
-        })
-        .map((call: FeatureCall): string => {
-          return call.file;
-        })
-        .sort(),
+      Array.from(
+        new Set(
+          Object.values(FEATURE_CALLS)
+            .filter((call: FeatureCall): boolean => {
+              return call.kind === "ask";
+            })
+            .map((call: FeatureCall): string => {
+              return call.file;
+            }),
+        ),
+      ).sort(),
     );
   });
 
@@ -616,13 +716,15 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       (file: SourceFile): boolean => {
         return (
           DATA_SECURITY_FILE.test(file.file) &&
-          ["start", "startForOneUptime"].some((method: string): boolean => {
-            return findCalls(file, method).some(
-              (call: ts.CallExpression): boolean => {
-                return receiverOf(call, file.source) === "CodeTaskRuns";
-              },
-            );
-          })
+          ["start", "startForOneUptime", "startForDataSecurityIssue"].some(
+            (method: string): boolean => {
+              return findCalls(file, method).some(
+                (call: ts.CallExpression): boolean => {
+                  return receiverOf(call, file.source) === "CodeTaskRuns";
+                },
+              );
+            },
+          )
         );
       },
     ).map((file: SourceFile): string => {
@@ -640,6 +742,53 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
     );
     expect(task.text).toContain("message: request.text,");
     expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
+  });
+
+  test("a group's one pull request is queued only where its fix is listed, with the request the builder made", () => {
+    // A FixInfrastructureCode run (#10370) is queued, not started from a chat turn.
+    const queuing: Array<string> = SERVER_FILES.filter(
+      (file: SourceFile): boolean => {
+        return (
+          DATA_SECURITY_FILE.test(file.file) &&
+          findCalls(file, "enqueueSubjectCodeFixRun").some(
+            (call: ts.CallExpression): boolean => {
+              return receiverOf(call, file.source) === "SubjectCodeFixRun";
+            },
+          )
+        );
+      },
+    ).map((file: SourceFile): string => {
+      return file.file;
+    });
+
+    expect(queuing).toEqual([
+      (FEATURE_CALLS[DataSecurityAiFeature.FixIssueGroup] as { file: string })
+        .file,
+    ]);
+
+    const task: SourceFile = serverFile(queuing[0]!);
+
+    expect(task.text).toContain(
+      "taskType: CodeFixTaskType.FixInfrastructureCode,",
+    );
+    expect(task.text).toContain(
+      "infrastructureFix: { ...data.fix, request: request.text },",
+    );
+    expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
+    // A service's telemetry fix (#10367): queued from the same file, with the builder's request.
+    expect(
+      (
+        FEATURE_CALLS[DataSecurityAiFeature.FixTelemetryLeaks] as {
+          file: string;
+        }
+      ).file,
+    ).toBe(queuing[0]);
+    expect(task.text).toContain(
+      "taskType: CodeFixTaskType.FixSensitiveDataInTelemetry,",
+    );
+    expect(task.text).toContain(
+      "telemetryLeakFix: { ...data.fix, request: request.text },",
+    );
   });
 
   test("Ask AI's tools make every row they hand the model with the builder", () => {

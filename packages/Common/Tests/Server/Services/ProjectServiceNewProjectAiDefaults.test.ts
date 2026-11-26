@@ -75,8 +75,20 @@ const RETIRED_PULL_REQUEST_SWITCHES: Array<string> = [
   "enableAlertInstrumentationFixTasks",
 ];
 
+/*
+ * Letting OneUptime AI respond first to a new security case (#10353): it
+ * changes who hears about a case, and when, so it starts off for every
+ * project, new ones too, and a project turns it on.
+ */
+const RESPOND_FIRST_SWITCHES: Array<string> = [
+  "enableSecurityCaseAiRespondsFirst",
+];
+
 // The switches a new project starts without.
-const OFF_FOR_NEW_PROJECTS: Array<string> = [...FIX_SWITCHES];
+const OFF_FOR_NEW_PROJECTS: Array<string> = [
+  ...FIX_SWITCHES,
+  ...RESPOND_FIRST_SWITCHES,
+];
 
 /*
  * Rules on who approves what OneUptime AI proposes, never a feature to turn
@@ -102,6 +114,12 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
   "enableAutomaticAlertInvestigation",
   "enableAutomaticSecurityCaseTriage",
+  /*
+   * OneUptime AI working a case end to end (#10352): on for new projects,
+   * within the rows of What OneUptime AI may do on a case, which start
+   * where the issue recommends - containment asks first.
+   */
+  "enableAutomaticSecurityCaseResponse",
   "enableAutomaticPostmortemDraft",
   "enableAiInsights",
   "enableInsightFixTasks",
@@ -110,6 +128,7 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticExceptionRemediation",
   "enableAutomaticLogRemediation",
   "enableAutomaticMetricRemediation",
+  "enableAutomaticDataSecurityAi",
   "autoArchiveNonActionableExceptions",
 ];
 
@@ -154,7 +173,7 @@ async function runOnBeforeCreate(
 }
 
 describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
-  it("lists the ten per-feature AI switches", () => {
+  it("lists the per-feature AI switches", () => {
     expect([...NEW_PROJECT_AI_DEFAULT_COLUMNS].sort()).toEqual(
       [...AI_SWITCHES].sort(),
     );

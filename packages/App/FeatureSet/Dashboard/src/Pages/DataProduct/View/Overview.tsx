@@ -22,6 +22,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -140,6 +141,13 @@ const DataProductOverviewPage: FunctionComponent<
         columns={4}
         ariaLabel="Data product freshness"
         isLaidOutByOwnWidth={true}
+        footer={
+          // Who made the data product and who last changed it (#10461).
+          <RecordActivityLine
+            modelType={DataProduct}
+            recordId={dataProductId}
+          />
+        }
       >
         <EventStatTile
           variant="segment"

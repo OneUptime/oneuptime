@@ -23,6 +23,11 @@ import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationCon
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
+import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
+import ScrubRuleAddressesAPI from "Common/Server/API/ScrubRuleAddressesAPI";
+import ScrubRuleValueCountsAPI from "Common/Server/API/ScrubRuleValueCountsAPI";
+import DropFilterImpactAPI from "Common/Server/API/DropFilterImpactAPI";
+import DropFilterAPI from "Common/Server/API/DropFilterAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -641,6 +646,7 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import DataSecurityCustomDataTypeAPI from "Common/Server/API/DataSecurityCustomDataTypeAPI";
 import ServiceLevelObjectiveAPI from "Common/Server/API/ServiceLevelObjectiveAPI";
 import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
 import ServiceLevelObjectiveErrorBudgetPolicyTierAPI from "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI";
@@ -711,6 +717,15 @@ import SecurityCaseNoteService, {
 import SecurityCaseTaskService, {
   Service as SecurityCaseTaskServiceType,
 } from "Common/Server/Services/SecurityCaseTaskService";
+import SecurityCaseStepCheckService, {
+  Service as SecurityCaseStepCheckServiceType,
+} from "Common/Server/Services/SecurityCaseStepCheckService";
+import SecurityCaseAiActionService, {
+  Service as SecurityCaseAiActionServiceType,
+} from "Common/Server/Services/SecurityCaseAiActionService";
+import SecurityCasePullRequestService, {
+  Service as SecurityCasePullRequestServiceType,
+} from "Common/Server/Services/SecurityCasePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -719,9 +734,18 @@ import SecurityPlaybookService, {
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityAutomaticResponsePolicyAPI from "Common/Server/API/SecurityAutomaticResponsePolicyAPI";
+import SecurityAutomaticResponseActionService, {
+  Service as SecurityAutomaticResponseActionServiceType,
+} from "Common/Server/Services/SecurityAutomaticResponseActionService";
+import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI";
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
+import SecurityBlocklistFeedAPI from "Common/Server/API/SecurityBlocklistFeedAPI";
+import SecurityBlocklistFeedFetchService, {
+  Service as SecurityBlocklistFeedFetchServiceType,
+} from "Common/Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -758,12 +782,15 @@ import DataSecurityIssueService, {
 import DataSecurityIssueFeedService, {
   Service as DataSecurityIssueFeedServiceType,
 } from "Common/Server/Services/DataSecurityIssueFeedService";
+import DataSecurityAiProposalService, {
+  Service as DataSecurityAiProposalServiceType,
+} from "Common/Server/Services/DataSecurityAiProposalService";
+import DataSecurityAiDecisionService, {
+  Service as DataSecurityAiDecisionServiceType,
+} from "Common/Server/Services/DataSecurityAiDecisionService";
 import DataSecurityScanService, {
   Service as DataSecurityScanServiceType,
 } from "Common/Server/Services/DataSecurityScanService";
-import DataSecurityCustomDataTypeService, {
-  Service as DataSecurityCustomDataTypeServiceType,
-} from "Common/Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityCheckSettingService, {
   Service as DataSecurityCheckSettingServiceType,
 } from "Common/Server/Services/DataSecurityCheckSettingService";
@@ -1160,9 +1187,7 @@ import HostCollectorConfigVersionService, {
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
-import AuditLogService, {
-  AuditLogService as AuditLogServiceType,
-} from "Common/Server/Services/AuditLogService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -1184,6 +1209,7 @@ import ChangeEventService, {
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
+import AuditLogAPI from "Common/Server/API/AuditLogAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -1590,7 +1616,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
@@ -1968,9 +1993,14 @@ import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityAutomaticResponseAction from "Common/Models/DatabaseModels/SecurityAutomaticResponseAction";
+import SecurityBlocklistFeedFetch from "Common/Models/DatabaseModels/SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -1985,8 +2015,9 @@ import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
 import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
-import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import DataSecurityComplianceSetting from "Common/Models/DatabaseModels/DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
@@ -2148,12 +2179,14 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
+import UniqueNamesAPI from "Common/Server/API/UniqueNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
+import SecurityTrustedProxiesAPI from "Common/Server/API/SecurityTrustedProxiesAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
@@ -2163,6 +2196,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
@@ -4219,12 +4253,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Its reads, and the names of the records an entry's changes name (#10470).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
-        AuditLog,
-        AuditLogService,
-      ).getRouter(),
+      new AuditLogAPI(AuditLogService).getRouter(),
     );
 
     app.use(
@@ -4635,9 +4667,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<LogDropFilter, LogDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<LogDropFilter, LogDropFilterServiceType>(
         LogDropFilter,
         LogDropFilterService,
+        "log",
       ).getRouter(),
     );
 
@@ -4802,6 +4836,48 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * What OneUptime found when it checked a case's Response Plan steps
+     * (#10340): read by the case's own readers, for the Response Plan card.
+     * Its lists let nobody create, change or delete one: only the step
+     * checks write them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseStepCheck, SecurityCaseStepCheckServiceType>(
+        SecurityCaseStepCheck,
+        SecurityCaseStepCheckService,
+      ).getRouter(),
+    );
+
+    /*
+     * What OneUptime AI did, asked a person about or left to a person on a
+     * case it works (#10352), and why: read by the case's own readers, as
+     * the API Reference offers it. Its lists let nobody create, change or
+     * delete one: only OneUptime AI writes them, and a person approves,
+     * declines or undoes an action through the case's own routes.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseAiAction, SecurityCaseAiActionServiceType>(
+        SecurityCaseAiAction,
+        SecurityCaseAiActionService,
+      ).getRouter(),
+    );
+
+    /*
+     * A person's own pull request, linked to a case's Fix step (#10604):
+     * linked and taken off by whoever works the case, read by the case's
+     * readers. What it says of the pull request is OneUptime's to write.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCasePullRequest, SecurityCasePullRequestServiceType>(
+        SecurityCasePullRequest,
+        SecurityCasePullRequestService,
+      ).getRouter(),
+    );
+
     // A case's evidence, and the route its files download through.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4841,12 +4917,57 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityBlockAPI().getRouter(),
     );
 
+    // Automatic response policies, their page's overview, and what each did (#10350).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityAutomaticResponsePolicyAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityAutomaticResponseAction,
+        SecurityAutomaticResponseActionServiceType
+      >(
+        SecurityAutomaticResponseAction,
+        SecurityAutomaticResponseActionService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         SecurityBlockEnforcement,
         SecurityBlockEnforcementServiceType
       >(SecurityBlockEnforcement, SecurityBlockEnforcementService).getRouter(),
+    );
+
+    // The cloud WAFs that enforce the blocklist, with their set-up and removal (#10344).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlockCloudWafAPI().getRouter(),
+    );
+
+    /*
+     * Blocklist feeds (#10345): their CRUD, the rotation and revocation of
+     * their secrets, and the feeds firewalls read
+     * (/blocklist-feed/:feedId/..., no UserMiddleware - the secret is the
+     * credential), with every fetch of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlocklistFeedAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchServiceType
+      >(
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchService,
+      ).getRouter(),
     );
 
     /*
@@ -4948,6 +5069,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // What OneUptime AI proposes for a Data Security issue, and why it did or did not act (#10364): read here, acted on through DataSecurityAPI.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityAiProposal, DataSecurityAiProposalServiceType>(
+        DataSecurityAiProposal,
+        DataSecurityAiProposalService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityAiDecision, DataSecurityAiDecisionServiceType>(
+        DataSecurityAiDecision,
+        DataSecurityAiDecisionService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DataSecurityScan, DataSecurityScanServiceType>(
@@ -4956,15 +5094,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // The project's own data types' CRUD, with Describe It (#10371).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        DataSecurityCustomDataType,
-        DataSecurityCustomDataTypeServiceType
-      >(
-        DataSecurityCustomDataType,
-        DataSecurityCustomDataTypeService,
-      ).getRouter(),
+      new DataSecurityCustomDataTypeAPI().getRouter(),
     );
 
     app.use(
@@ -5293,9 +5426,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TraceDropFilter, TraceDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<TraceDropFilter, TraceDropFilterServiceType>(
         TraceDropFilter,
         TraceDropFilterService,
+        "trace",
       ).getRouter(),
     );
 
@@ -5420,6 +5555,33 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AiFirstResponderAPI);
+
+    /*
+     * What a scrub rule being written or turned on would take away from the
+     * monitors, dashboards, saved views, recording rules, SLOs and Security
+     * Events that read what it hides (#10433).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
+
+    /*
+     * The IP Address scrub rules that keep Security Events from naming an
+     * attacker's address, and Hash Instead, which switches one to Hash
+     * (#10396).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleAddressesAPI);
+
+    /*
+     * How many values each scrub rule changed in the last week, by service
+     * and version, for the scrub rule lists (#10366).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleValueCountsAPI);
+
+    /*
+     * What a drop or sample filter being written or turned on would take
+     * from Security Events, monitors, dashboards, saved views, recording
+     * rules and SLOs (#10436).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DropFilterImpactAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a
@@ -6785,6 +6947,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
 
     /*
+     * Names that repeat in a project (UniqueNamesAPI, #10761): whether a
+     * name a form takes is another record's, for the form to warn, and the
+     * names a project holds twice, for Project Settings to list beside
+     * Require Unique Names. A bare router for the same reason as
+     * OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UniqueNamesAPI);
+
+    /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member
      * or an on-call policy, see what it will send first and what became of
      * it after. A bare router for the same reason as OnCallReadinessAPI.
@@ -6826,6 +6997,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * never why. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectCanSendAPI);
+
+    /*
+     * What Security Events trusts as a proxy without being told
+     * (SecurityTrustedProxiesAPI, #10546): the edges the project connected
+     * and its own application load balancers, for Trusted Proxies to show.
+     * A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SecurityTrustedProxiesAPI);
 
     /*
      * What refers to a record (UsedByAPI, #6813): the status pages that
@@ -6905,6 +7084,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
+    );
+
+    /*
+     * Running a discovery scan again, on demand (Network > Discovery > Run
+     * Again, issue #10334). A bare router beside the scan's CRUD API, which
+     * claims no `/:id/run` path: the run is written as root, so its own
+     * check of who may edit scans is the gate.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceDiscoveryScanRunAPI,
     );
 
     /*

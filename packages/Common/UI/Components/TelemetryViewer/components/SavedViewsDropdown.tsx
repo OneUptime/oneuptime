@@ -118,6 +118,18 @@ export interface SavedViewsDropdownProps {
    * Without it the panel says labels.empty.
    */
   emptyContent?: ReactNode | undefined;
+  /*
+   * How many views the host has, when it hands over only its first ones
+   * (#10646): the trigger counts them all, and the search box shows as for
+   * a list that long. Unset, the views handed over are all there are.
+   */
+  totalCount?: number | undefined;
+  /*
+   * What is typed into the search box, as it is typed: a host that reads
+   * only its first views searches the rest on the server, and hands what it
+   * finds back with the views. The list still narrows what it holds.
+   */
+  onSearchTextChange?: ((text: string) => void) | undefined;
 }
 
 // Tailwind w-72: the panel's width, which it opens on the side with room for.
@@ -231,9 +243,17 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
    */
   const canClear: boolean = Boolean(props.onClear && selectedView);
 
-  const showSearch: boolean = shouldShowSavedViewsSearch(
+  /*
+   * How many views there are: a host that reads only its first ones says
+   * how many it has (totalCount, #10646), so the count and the search box
+   * answer for every view, not only the ones read.
+   */
+  const viewCount: number = Math.max(
+    props.totalCount ?? 0,
     props.savedViews.length,
   );
+
+  const showSearch: boolean = shouldShowSavedViewsSearch(viewCount);
 
   /*
    * A filter the user cannot see is a filter the user cannot cancel. Hosts
@@ -315,7 +335,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                 : "text-xs text-gray-500"
             }
           >
-            {props.savedViews.length.toLocaleString(getReaderNumberLocale())}
+            {viewCount.toLocaleString(getReaderNumberLocale())}
           </span>
         )}
         {props.showTriggerIcon ? (
@@ -391,6 +411,8 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                   className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
                   onChange={(text: string) => {
                     setSearchText(text);
+                    // A host that reads its first views only searches the rest.
+                    props.onSearchTextChange?.(text);
                   }}
                 />
               </div>

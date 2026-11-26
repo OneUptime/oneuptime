@@ -5,15 +5,17 @@ import LlmLogService from "../../../../Server/Services/LlmLogService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import DataSecurityAiCall from "../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
-import { DataSecurityAiPrompt } from "../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
-import { buildExplainIssuePrompt } from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import {
+  AiIssueDossier,
+  DataSecurityAiPrompt,
+} from "../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
+import { buildIssueAnalysisPrompt } from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import { buildFieldSuggestionPrompt } from "../../../../Server/Utils/AI/DataSecurity/FieldSuggestionPrompt";
 import LLMService from "../../../../Server/Utils/LLM/LLMService";
-import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
-import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
+import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import LlmType from "../../../../Types/LLM/LlmType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -30,22 +32,111 @@ import ts from "typescript";
  * Security keeps every page, check, scan and integration it has. That
  * holds because Data Security's own code - its scans, checks, issues,
  * integrations, owners, flows and jobs, on the workers and on a probe -
- * reaches OneUptime AI at two places only, each asking the switch first:
+ * reaches OneUptime AI at these places only, each asking the switch first
+ * or asking no model at all:
  *
  *   - a content scan that found fields no detector could place asks for
  *     suggestions only when AIService.isProjectAIEnabled says yes
  *     (DataSecurityFindingWriter; DataSecurityFindingWriter.test);
  *   - the job that asks runs FieldSuggestion.suggestForStore, which asks the
- *     switch again and sends nothing when it is off (FieldSuggestion.test).
+ *     switch again and sends nothing when it is off (FieldSuggestion.test);
+ *   - the job that works on a new issue runs DataSecurityAiEngine
+ *     .evaluateIssue (#10364), which reads Enable AI and Work on new issues
+ *     first and does nothing, and writes nothing, with either off
+ *     (DataSecurityAiEngine.test) - the analysis of the issue (#10369)
+ *     among what it does;
+ *   - the job that emails a store's owners runs DataSecurityOwnerNotice
+ *     .send (#10369), which waits for the analysis only while the engine
+ *     works on new issues, reads the analysis the issue keeps, and asks no
+ *     model (DataSecurityOwnerNotice.test; the whole way, from the issue
+ *     opening to the email, DataSecurityNewIssueAnalysis.test);
+ *   - the jobs that propose owners for stores that have none, and the owner
+ *     rules that keep them (#10374), run DataStoreOwnerProposalRun.run and
+ *     DataStoreOwnerRuleProposals.proposeForProject, which read the same
+ *     two switches first and ask nothing, and write nothing, when either is
+ *     off (DataStoreOwnerRunsAndRules.test);
+ *   - an issue that closes settles what OneUptime AI proposed for it
+ *     (DataSecurityAiProposals.onIssuesClosed, from the issue service, the
+ *     reconciler, and a fix followed to production that closes it -
+ *     DataSecurityIssueResolutions, #10368): it proves or expires proposals
+ *     already written and asks no model, so with AI off it has nothing to do
+ *     but that;
+ *   - the grouping of the issues one mistake made (#10370,
+ *     DataSecurityIssueGrouper), after each evaluation, has OneUptime AI
+ *     name each open group (DataSecurityIssueGroupNaming.nameGroups) and
+ *     propose its fix (DataSecurityIssueGroupProposals.proposeForGroups),
+ *     which read Enable AI and Work on new issues first and ask nothing,
+ *     and write nothing, with either off (DataSecurityIssueGroupNaming.test,
+ *     DataSecurityIssueGroupProposals.test); the rest it uses ranks the
+ *     repositories that declare the stores and reads their tags
+ *     (DeclaredCodeOwner, CloudAiTargets.getManagedAsCode), and asks no
+ *     model; it proves the group fixes OneUptime AI made
+ *     (DataSecurityIssueGroupFixProof.proveForProject, #10738), which reads
+ *     the issues those fixes closed and asks no model, and tells each issue
+ *     a group's waiting proposal expired
+ *     (DataSecurityIssueGroupTimelines.expireWaitingForGroup, #10741),
+ *     which writes a timeline line of fixed words and asks no model;
+ *   - the list of groups (DataSecurityIssueGroups) asks
+ *     AIService.isProjectAIEnabled, and with AI off shows no name OneUptime
+ *     AI gave a group: each goes by its cause's own words. For a reader held
+ *     to labels (#10739) it reads which issues a group's pull request lists
+ *     (DataSecurityFixTarget.readTask, issueIdsOfTask) and how a store's
+ *     tags declare it (CloudAiTargets.getManagedAsCode), and asks no model;
+ *   - the daily drafts of the record of processing (#10375) run
+ *     RecordOfProcessingDraftRun.run, which reads Enable AI and Work on new
+ *     issues first and asks nothing, and writes nothing, with either off;
+ *     the audit evidence's reader (AuditEvidenceReader) only shapes the
+ *     facts the page shows and a draft is built from, with the input
+ *     builder's types, and asks no model;
+ *   - the discovery of the data types a project's own fields make (#10371)
+ *     runs DataTypeDiscovery.runForProject, which decides the proofs under
+ *     way from their counts and asks no model, then asks
+ *     AIService.isProjectAIEnabled and drafts nothing with it off
+ *     (DataTypeDiscovery.test);
+ *   - the job that assesses an exposure a Critical issue opened a case for
+ *     (#10377) runs ExposureAssessmentRun.run: plain code's assessment -
+ *     the window, the reads, whose data, the secrets and the breach laws -
+ *     is worked out with no model, and OneUptime AI writes it up only once
+ *     Enable AI, Work on new issues and the issue's Analyze rule allow it
+ *     (ExposureAssessmentRun.test);
+ *   - the job that proposes each service's telemetry fix in its code
+ *     (#10367) runs TelemetryLeakFixProposals.proposeForProject, which
+ *     reads Enable AI and Work on new issues first and proposes nothing,
+ *     and writes nothing, with either off (TelemetryLeakFixProposals.test);
+ *     a fix a rule opens without asking is asked as a person's is, through
+ *     the Code task's gate (below).
  *
  * Everything else a person can start with AI is asked for on purpose, in
- * Data Security's API: Explain with AI and the field suggestions through
- * the one Data Security call, whose AIService.executeWithLogging refuses a
- * project with AI off before a model is asked (below); Fix with AI through
- * the Code task's gate, whose answer with AI off is what to fix, with
- * nothing started (DataSecurityCodeTask.test); and Ask AI's chat, which
- * the chat's own switch refuses. On the Dashboard, the issue's page draws
- * neither AI action with Enable AI off, and is whole without them
+ * Data Security's API: the analysis of an issue (Explain with AI) and the
+ * field suggestions through the one Data Security call, whose
+ * AIService.executeWithLogging refuses a project with AI off before a model
+ * is asked (below); Fix with AI through the Code task's gate, whose answer
+ * with AI off is what to fix, with nothing started
+ * (DataSecurityCodeTask.test); a group's pull request, through the same
+ * gate (DataSecurityIssueGroupFix: DataSecurityCodeTask.requestGroupFix
+ * asks CodeTaskGate.getBlocker before it builds the task's request,
+ * DataSecurityIssueGroupPrompt, and the plan shows the gate's refusal -
+ * DataSecurityIssueGroupFix.test), whose other reads say where the task
+ * stands and in which repositories the person may ask (AIRunService,
+ * CodeTaskThread, CodeTaskListRows, CodeTaskAccess, DeclaredCodeOwner,
+ * CloudAiTargets) and ask no model; a service's one pull request for its
+ * telemetry leaks (#10367), through the same gate (TelemetryLeakFix:
+ * DataSecurityCodeTask.requestTelemetryLeakFix asks CodeTaskGate.getBlocker
+ * before it builds the task's request, DataSecurityTelemetryFixPrompt -
+ * DataSecurityTelemetryFixRequest.test), whose other reads say whether a
+ * fix is on its way and in which repositories the person may ask
+ * (AIRunService, CodeFixOnItsWay, CodeTaskAccess,
+ * DataSecurityCodeTask.getAskableRepositories) and ask no model; where an
+ * issue's fix in code stands (DataSecurityIssueCodeFix), read for the
+ * person - its task, by the rule of who may see one (AIRunService,
+ * CodeTaskThread, CodeTaskListRows), its pull request and what production
+ * showed (FixProductionReportUtil), and its repository's name for a reader
+ * of it (CodeTaskAccess, DeclaredCodeOwner) - which asks no model
+ * (DataSecurityIssueCodeFix.test); and Ask AI's chat, which the chat's own
+ * switch refuses. On the Dashboard, the issue's page draws no analysis and
+ * no AI action with Enable AI off - so nothing opens the Fix with AI
+ * dialog of a telemetry issue (TelemetryFixModal, its words
+ * TelemetryFixCopy's) - and is whole without them
  * (DataSecurityIssuePageThroughTheServer.test); the pages below draw no
  * other.
  *
@@ -97,6 +188,278 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/FieldSuggestion",
       uses: ["DataSecurityFieldSuggestion.suggestForStore"],
+    },
+    // OneUptime AI's verdicts on findings (#10372): the switch is asked in the run.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/FindingVerdicts",
+      uses: ["DataSecurityFindingVerdicts.judgeStore"],
+    },
+    // The scans' tuning (#10372): asks no model, under the same switches.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityScanTuning",
+      uses: ["DataSecurityScanTuning.proposeForProject"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine",
+      uses: ["DataSecurityAiEngine.evaluateIssue"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice",
+      uses: ["DataSecurityOwnerNotice.send"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun",
+      uses: ["DataStoreOwnerProposalRun.run"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
+      uses: ["DataStoreOwnerRuleProposals.proposeForProject"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
+      uses: ["RecordOfProcessingDraftRun.run"],
+    },
+    /*
+     * An exposure's assessment (#10377): plain code's part asks no model;
+     * the run reads Enable AI and Work on new issues, and the rules, before
+     * OneUptime AI writes it up.
+     */
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun",
+      uses: ["ExposureAssessmentRun.run"],
+    },
+    // The data types a project's own fields make (#10371): drafted only with Enable AI on.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
+      uses: ["DataTypeDiscovery.runForProject"],
+    },
+    /*
+     * Each service's telemetry fix in its code (#10367): proposed only with
+     * Enable AI and Work on new issues on, and opened through the gate.
+     */
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals",
+      uses: ["TelemetryLeakFixProposals.proposeForProject"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["AiEvidenceRequirement", "AiIssueRecord", "AiStoreRecord"],
+    },
+  ],
+  "Common/Server/Services/DataSecurityIssueService.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper.ts": [
+    // A group fix proven by its issues' checks (#10738): reads, and asks no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupFixProof",
+      uses: ["DataSecurityIssueGroupFixProof.proveForProject"],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming",
+      uses: ["DataSecurityIssueGroupNaming.nameGroups"],
+    },
+    // A waiting proposal expired, on each issue's timeline (#10741): fixed words, no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines",
+      uses: [
+        "GroupProposalExpiry",
+        "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
+      ],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupProposals",
+      uses: ["DataSecurityIssueGroupProposals.proposeForGroups"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: [
+        "DeclaredCodeOwnerCandidate",
+        "getRepositoryFullName",
+        "DeclaredCodeOwner.rank",
+        "DeclaredCodeOwner.getBest",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueGroups.ts": [
+    {
+      module: "Common/Server/Services/AIService",
+      uses: ["AIService.isProjectAIEnabled"],
+    },
+    // A cut-down group's pull request, for a reader held to labels (#10739): reads only.
+    {
+      module: "Common/Server/Utils/AI/CodeFix/DataSecurityFixTarget",
+      uses: [
+        "DataSecurityFixTarget.readTask",
+        "DataSecurityFixTarget.issueIdsOfTask",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueGroupFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["AiGroupFixStore", "DataSecurityAiCodeRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
+      uses: [
+        "DataSecurityFixCode",
+        "getDataSecurityFixNoRepositoryMessage",
+        "DataSecurityCodeTask.requestGroupFix",
+      ],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt",
+      uses: ["buildIssueGroupFixRequest"],
+    },
+    // The waiting proposals a fix asked another way expires (#10741): fixed words, no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines",
+      uses: [
+        "GroupProposalExpiry",
+        "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
+      ],
+    },
+    // The reader's repositories, read by their ids (#10764): reads, and asks no model.
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: [
+        "CodeTaskAccess.listReadableRepositoriesByIds",
+        "CodeTaskAccess.canAskInRepository",
+        "CodeTaskAccess.findReadableRepository",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskGate",
+      uses: ["CodeTaskGate.getBlocker"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskListRows",
+      uses: [
+        "CodeTaskRepliesRead",
+        "CodeTaskListRows.readReplies",
+        "CodeTaskListRows.readPullRequests",
+        "CodeTaskListRows.key",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskThread",
+      uses: ["CodeTaskThread.findTasksHiddenFrom"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: [
+        "DeclaredCodeOwnerCandidate",
+        "getRepositoryFullName",
+        "DeclaredCodeOwner.findCandidates",
+        "DeclaredCodeOwner.getBest",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
+    },
+  ],
+  /*
+   * A service's one pull request for its telemetry leaks (#10367): asked
+   * through the Code task's gate before its request is built; the rest
+   * reads whether one is on its way and where the person may ask.
+   */
+  "Common/Server/Utils/DataSecurity/TelemetryLeakFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay",
+      uses: ["CodeFixOnItsWay.findTaskId", "CodeFixOnItsWay.ofTelemetryLeaks"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: ["CodeTaskAccess.listReadableRepositories"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["DataSecurityAiCodeRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
+      uses: [
+        "DataSecurityCodeTask.requestTelemetryLeakFix",
+        "DataSecurityCodeTask.getAskableRepositories",
+      ],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityTelemetryFixPrompt",
+      uses: ["buildTelemetryLeakFixRequest"],
+    },
+  ],
+  // Where an issue's fix in code stands (#10367), for the person: reads, and asks no model.
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueCodeFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeFix/FixProductionReportUtil",
+      uses: ["FixProductionReportUtil.fromPullRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: ["CodeTaskAccess.listReadableRepositories"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskListRows",
+      uses: [
+        "CodeTaskRepliesRead",
+        "CodeTaskListRows.readReplies",
+        "CodeTaskListRows.readPullRequests",
+        "CodeTaskListRows.key",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskThread",
+      uses: ["CodeTaskThread.findTasksHiddenFrom"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: ["getRepositoryFullName"],
     },
   ],
 };
@@ -239,7 +602,7 @@ function findAiReaches(file: string): Array<AiReach> {
   return reaches;
 }
 
-describe("Data Security's scans, checks and integrations reach OneUptime AI at two places only", () => {
+describe("Data Security's scans, checks and integrations reach OneUptime AI only where it asks the switch first, or asks no model", () => {
   const files: Array<string> = DATA_SECURITY_CODE.flatMap(listFiles);
 
   test("it reads Data Security's code, on the workers and on a probe", () => {
@@ -322,18 +685,32 @@ describe("with Enable AI off, the one Data Security call sends nothing", () => {
     projectId: PROJECT_ID,
   } as unknown as LlmProvider;
 
+  // The analysis of an issue (#10369), as a person asks for it.
   function explainPrompt(): DataSecurityAiPrompt {
-    const issue: DataSecurityIssue = new DataSecurityIssue();
-    issue.checkId = "public-read";
-    issue.title = "Anyone on the internet can read it";
-    issue.severity = SecuritySeverity.Critical;
-    issue.evidence = "The bucket policy grants s3:GetObject to *.";
-    const store: DataStore = new DataStore();
-    store.name = "acme-card-exports";
-    store.kind = DataStoreKind.AwsS3Bucket;
-    issue.dataStore = store;
+    const dossier: AiIssueDossier = {
+      issue: {
+        checkId: "public-read",
+        title: "Anyone on the internet can read it",
+        severity: SecuritySeverity.Critical,
+        evidence: "The bucket policy grants s3:GetObject to *.",
+      },
+      store: { name: "acme-card-exports", kind: DataStoreKind.AwsS3Bucket },
+      places: [],
+      access: [],
+      copies: [],
+      securityCaseIds: [],
+      responses: [],
+      proposals: [],
+      declaredCode: null,
+      owners: { recordIds: [], names: [], count: 0 },
+      now: new Date("2026-11-20T12:00:00.000Z"),
+    };
 
-    return buildExplainIssuePrompt({ issue });
+    return buildIssueAnalysisPrompt({
+      feature: DataSecurityAiFeature.ExplainIssue,
+      dossier,
+      language: "en",
+    });
   }
 
   function fieldPrompt(): DataSecurityAiPrompt {
@@ -375,7 +752,7 @@ describe("with Enable AI off, the one Data Security call sends nothing", () => {
   });
 
   test.each([
-    ["Explain with AI", explainPrompt],
+    ["The analysis of an issue", explainPrompt],
     ["the field suggestions", fieldPrompt],
   ])(
     "%s: refused with the switch's own sentence, and no model is asked",
@@ -423,7 +800,7 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
     );
   }
 
-  test("only the issue's page and the Fix with AI dialog it opens name one", () => {
+  test("only the issue's page, its analysis card and the Fix with AI dialog it opens name one", () => {
     const found: Record<string, Array<string>> = {};
 
     for (const file of [
@@ -441,16 +818,23 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
 
     expect(found).toEqual({
       [path.join("Pages", "DataSecurity", "IssueView", "Overview.tsx")]: [
-        "Explain with AI",
+        "Fix with AI",
+      ],
+      // The analysis card's words (#10369): its path to fixed offers Fix with AI.
+      [path.join("Components", "DataSecurity", "IssueAiAnalysisCopy.ts")]: [
         "Fix with AI",
       ],
       [path.join("Components", "DataSecurity", "IssueModals.tsx")]: [
         "Fix with AI",
       ],
+      // The title of the Fix with AI dialog a telemetry issue opens (#10367).
+      [path.join("Components", "DataSecurity", "TelemetryFixCopy.ts")]: [
+        "Fix with AI",
+      ],
     });
   });
 
-  test("the issue's page draws both only when the project's Enable AI offers them", () => {
+  test("the issue's page draws its analysis and Fix with AI only when the project's Enable AI offers them", () => {
     const page: string = fs.readFileSync(
       path.join(
         PACKAGES,
@@ -463,10 +847,20 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
 
     expect(page).toContain("const isAiOffered: boolean = useAiOffered();");
     expect(page.indexOf("if (isAiOffered) {")).toBeGreaterThan(0);
-    expect(page.indexOf('title: "Explain with AI"')).toBeGreaterThan(
+    expect(page.indexOf('title: "Fix with AI"')).toBeGreaterThan(
       page.indexOf("if (isAiOffered) {"),
     );
-    expect(gated).toContain('title: "Explain with AI"');
     expect(gated).toContain('title: "Fix with AI"');
+    // OneUptime AI's analysis (#10369), and every action it offers, is drawn once, behind the switch.
+    expect(page.split("<IssueAiAnalysisCard").length).toBe(2);
+    expect(page).toMatch(/\{isAiOffered \? \(\s*<IssueAiAnalysisCard\b/);
+    // A telemetry issue's Fix with AI dialog (#10367) is opened by Fix with AI alone.
+    expect(page.split('setDialog("telemetryFix")').length).toBe(2);
+    expect(
+      page.slice(
+        page.indexOf("const fixWithAi: () => Promise<void>"),
+        page.indexOf("await askForFix();"),
+      ),
+    ).toContain('setDialog("telemetryFix")');
   });
 });

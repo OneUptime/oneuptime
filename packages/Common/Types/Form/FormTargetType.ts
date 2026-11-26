@@ -1,11 +1,13 @@
 /*
  * What a form's submission creates. A form is built once and decides this
- * for every submission made through it: each one becomes a new incident, or
- * a new scheduled maintenance event, in the form's project.
+ * for every submission made through it: each one becomes a new incident, a
+ * new alert or a new scheduled maintenance event, in the form's project.
  *
- * Incidents and scheduled maintenance events are where Forms start. Another
- * kind of record is added here, with its fields in FormTargetCatalog, its
- * settings in FormTargetSettings and a target handler on the server
+ * Incidents and scheduled maintenance events are where Forms started, and
+ * alerts followed (#10760): a report that deserves a look, and the attention
+ * of the people who own it, without declaring an incident. Another kind of
+ * record is added here, with its fields in FormTargetCatalog, its settings
+ * in FormTargetSettings and a target handler on the server
  * (Server/Utils/Form/FormTargets) - nothing else in the form builder, the
  * public page or the submit route is written for one target in particular.
  *
@@ -15,11 +17,16 @@
 enum FormTargetType {
   Incident = "Incident",
   ScheduledMaintenance = "ScheduledMaintenance",
+  Alert = "Alert",
 }
 
-// Every target, in the order a picker lists them.
+/*
+ * Every target, in the order a picker lists them: what is wrong now - an
+ * incident, then the lighter alert - before what is planned.
+ */
 export const FORM_TARGET_TYPES: ReadonlyArray<FormTargetType> = [
   FormTargetType.Incident,
+  FormTargetType.Alert,
   FormTargetType.ScheduledMaintenance,
 ];
 
@@ -57,6 +64,13 @@ export const FORM_TARGET_TYPE_TEXT: Record<FormTargetType, FormTargetTypeText> =
       nounWithArticle: "a maintenance event",
       description:
         "Each submission schedules a maintenance event. Use it for change and maintenance requests.",
+    },
+    [FormTargetType.Alert]: {
+      title: "Alert",
+      noun: "alert",
+      nounWithArticle: "an alert",
+      description:
+        "Each submission creates an alert, so its owners are told without declaring an incident. Use it for warnings and things to check.",
     },
   };
 

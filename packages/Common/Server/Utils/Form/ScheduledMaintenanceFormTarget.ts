@@ -143,6 +143,7 @@ export default class ScheduledMaintenanceFormTarget
   public async validateReferences(data: {
     projectId: ObjectID;
     settings: JSONObject;
+    storedSettings?: JSONObject | undefined;
   }): Promise<void> {
     const read: ScheduledMaintenanceFormTargetSettings = readFormTargetSettings(
       {
@@ -156,6 +157,13 @@ export default class ScheduledMaintenanceFormTarget
       references: getFormTargetSettingReferences({
         targetType: FormTargetType.ScheduledMaintenance,
         settings: read,
+      }),
+      heldReferences: getFormTargetSettingReferences({
+        targetType: FormTargetType.ScheduledMaintenance,
+        settings: readFormTargetSettings({
+          targetType: FormTargetType.ScheduledMaintenance,
+          value: data.storedSettings,
+        }),
       }),
       getService: getReferenceService,
     });

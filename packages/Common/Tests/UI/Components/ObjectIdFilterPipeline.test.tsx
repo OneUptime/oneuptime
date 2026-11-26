@@ -9,6 +9,7 @@ import buildQueryFromFilterData, {
 import FieldType from "../../../UI/Components/Types/FieldType";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import Query from "../../../Types/BaseDatabase/Query";
 import Search from "../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
@@ -268,13 +269,18 @@ describe("filtering a model by its ObjectID", () => {
       expect((query._id as EqualTo<string>).toString()).toBe(USER_ID);
     });
 
-    test("'does not equal' becomes a NotEqual on _id", () => {
+    /*
+     * Anything but the id, a record with none kept (#10581) - on _id, which
+     * every record has, the same rows NotEqual gave.
+     */
+    test("'does not equal' becomes a NotEqualOrNull on _id", () => {
       renderForm();
 
       fireEvent.change(idInput(), { target: { value: USER_ID } });
       chooseOperator("does not equal");
 
-      expect(queryFromFilterData()._id).toBeInstanceOf(NotEqual);
+      expect(queryFromFilterData()._id).toBeInstanceOf(NotEqualOrNull);
+      expect(queryFromFilterData()._id).not.toBeInstanceOf(NotEqual);
     });
 
     test("'starts with' becomes a StartsWith on _id", () => {

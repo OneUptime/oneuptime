@@ -2,9 +2,9 @@ import { FilterOperator } from "./FilterChipDropdownTypes";
 import { ResourceFacet } from "./ResourceFacet";
 import { buildFacetDateRangeQuery } from "./FacetDateRange";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "Common/Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -23,6 +23,16 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * Both failures look identical from the outside: a chip lit over a list it is
  * not filtering.
+ *
+ * IS NOT KEEPS EMPTY VALUES (#10581). "Template is not X" is every monitor
+ * not linked to X - the ones linked to another template AND the ones linked
+ * to none. NotEqual (`<>`) and IncludesNone (`NOT IN`) are not true of an
+ * empty column, so written with them the chip dropped every monitor with no
+ * template, and every incident with no severity under "Severity is not
+ * Critical". "Is not" writes NotEqualOrNull and IncludesNoneOrNull, which
+ * keep the empty rows, as the Owner chip's "is not" and "does not contain"
+ * always have; "is not empty" is there for anyone who wants only the rows
+ * that have a value. On a column that is never empty the two read the same.
  */
 
 /**
@@ -73,10 +83,10 @@ export const defaultFacetQueryValue: DefaultFacetQueryValueFunction = (
   }
   if (isMulti) {
     return operator === "is_not"
-      ? new IncludesNone(values)
+      ? new IncludesNoneOrNull(values)
       : new Includes(values);
   }
-  return operator === "is_not" ? new NotEqual(values[0]!) : values[0];
+  return operator === "is_not" ? new NotEqualOrNull(values[0]!) : values[0];
 };
 
 /**
@@ -106,10 +116,12 @@ export const buildEntityFacetQuery: (
     return new ObjectID(v);
   });
   if (isMulti) {
-    return operator === "is_not" ? new IncludesNone(ids) : new Includes(ids);
+    return operator === "is_not"
+      ? new IncludesNoneOrNull(ids)
+      : new Includes(ids);
   }
-  // NotEqual only accepts string/number/Date — wrap ObjectID's string form.
-  return operator === "is_not" ? new NotEqual(values[0]!) : ids[0]!;
+  // NotEqualOrNull only accepts string/number/Date — wrap ObjectID's string form.
+  return operator === "is_not" ? new NotEqualOrNull(values[0]!) : ids[0]!;
 };
 
 /**
@@ -149,10 +161,12 @@ export const buildBooleanFacetQuery: (
   }
   const asBool: boolean = values[0] === "true";
   /*
-   * NotEqual<CompareType> can't take boolean; coerce to a string the
+   * NotEqualOrNull<CompareType> can't take boolean; coerce to a string the
    * ORM compares against. The Includes/equality path keeps the real bool.
+   * "Is not true" keeps a row whose flag was never set, as every "is not"
+   * keeps an empty value (IS NOT KEEPS EMPTY VALUES, above).
    */
-  return operator === "is_not" ? new NotEqual(String(asBool)) : asBool;
+  return operator === "is_not" ? new NotEqualOrNull(String(asBool)) : asBool;
 };
 
 export interface FacetColumnQuery {

@@ -42,7 +42,10 @@ jest.setTimeout(180_000);
  */
 
 import MultipartFormDataMiddleware, {
+  BUSBOY_MALFORMED_BODY_ERRORS,
+  getMultipartBodyLimit,
   getMultipartFormDataMiddleware,
+  isMalformedMultipartBodyError,
   MAX_MULTIPART_FIELD_ARRAY_INDEX,
   MAX_MULTIPART_FIELDS,
   MAX_MULTIPART_FIELD_BYTES,
@@ -60,9 +63,27 @@ import {
   NextFunction,
   RequestHandler,
 } from "../../../Server/Utils/Express";
+import {
+  LARGE_REQUEST_BODY_BYTES,
+  LARGE_REQUEST_BODY_LIMIT,
+  RequestBodyLimit,
+} from "../../../Server/Utils/RequestBodyLimit";
+import readRequestBodyRefusal, {
+  MULTIPART_LIMIT_TYPE,
+  MULTIPART_MALFORMED_TYPE,
+  REQUEST_BODY_REFUSAL_MESSAGES,
+  getTooLargeForRouteMessage,
+} from "../../../Server/Utils/RequestBodyRefusal";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import PayloadTooLargeException from "../../../Types/Exception/PayloadTooLargeException";
+import { UNEXPLAINED_ERROR_MESSAGES } from "../../../Types/Exception/UnexplainedError";
+import fs from "fs";
+import multer from "multer";
+import path from "path";
 import { Readable } from "stream";
+import zlib from "zlib";
 
 const BOUNDARY: string = "----oneuptimetestboundary";
 
@@ -114,6 +135,33 @@ interface RunOptions {
    * multipart request busboy cannot parse at all.
    */
   contentType?: string;
+  /*
+   * The bytes the request's route takes (RequestBodyLimit), as StartServer
+   * sets it on every request it routes. None: the most any route takes.
+   */
+  bodyLimit?: number;
+  // The body as sent, in place of the parts': a malformed one.
+  rawBody?: Buffer;
+  // The Content-Encoding the body is sent with.
+  contentEncoding?: string;
+}
+
+const MIB: number = 1024 * 1024;
+
+/*
+ * A body limit with room for a file at multer's own file limit and its
+ * part's headers: what the tests of multer's file limit run under. The
+ * routes that mount the middleware take 50 MiB as a whole, so through them
+ * a file at the file limit no longer fits (see "the body as a whole").
+ */
+const ROOM_FOR_A_FILE_AT_ITS_LIMIT: number = MAX_MULTIPART_FILE_BYTES + MIB;
+
+function routeLimit(bytes: number): RequestBodyLimit {
+  return {
+    bytes: bytes,
+    values: LARGE_REQUEST_BODY_LIMIT.values,
+    objectsArraysAndStrings: LARGE_REQUEST_BODY_LIMIT.objectsArraysAndStrings,
+  };
 }
 
 /*
@@ -129,12 +177,14 @@ function run(
       ? options.middleware
       : MultipartFormDataMiddleware;
 
-  const body: Buffer = buildMultipartBody(parts);
+  const body: Buffer =
+    options && options.rawBody ? options.rawBody : buildMultipartBody(parts);
 
   const req: Readable & {
     headers: Record<string, string>;
     body?: unknown;
     files?: unknown;
+    requestBodyLimit?: RequestBodyLimit;
   } = Readable.from([body]) as never;
 
   req.headers = {
@@ -144,6 +194,14 @@ function run(
         : `multipart/form-data; boundary=${BOUNDARY}`,
     "content-length": String(body.length),
   };
+
+  if (options && options.contentEncoding) {
+    req.headers["content-encoding"] = options.contentEncoding;
+  }
+
+  if (options && options.bodyLimit !== undefined) {
+    req.requestBodyLimit = routeLimit(options.bodyLimit);
+  }
 
   const res: ExpressResponse = {
     status: (): unknown => {
@@ -297,13 +355,16 @@ describe("MultipartFormData - normal bodies still parse", () => {
 
 describe("MultipartFormData - breaches answer 413, not 500", () => {
   test("one file over the size limit", async () => {
-    const outcome: Outcome = await run([
-      {
-        name: "big",
-        value: Buffer.alloc(MAX_MULTIPART_FILE_BYTES + 1),
-        filename: "big.bin",
-      },
-    ]);
+    const outcome: Outcome = await run(
+      [
+        {
+          name: "big",
+          value: Buffer.alloc(MAX_MULTIPART_FILE_BYTES + 1),
+          filename: "big.bin",
+        },
+      ],
+      { bodyLimit: ROOM_FOR_A_FILE_AT_ITS_LIMIT },
+    );
 
     expect(outcome.error).toBeInstanceOf(Exception);
     expect((outcome.error as Exception).code).toBe(
@@ -730,7 +791,7 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
           filename: "big.bin",
         },
       ],
-      { middleware: narrow },
+      { middleware: narrow, bodyLimit: ROOM_FOR_A_FILE_AT_ITS_LIMIT },
     );
 
     expect((outcome.error as Exception).code).toBe(
@@ -752,22 +813,27 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
      * before the +1 the parser killed it first, turning the 400 the endpoint
      * documents into a 413 it never saw. Narrowing the file COUNT must not
      * move that boundary either.
+     *
+     * Pinned in a body its route takes whole (ROOM_FOR_A_FILE_AT_ITS_LIMIT):
+     * the routes that mount the middleware take 50 MiB as a whole, which a
+     * file at the file limit, with its part's headers, does not fit in.
      */
     // One allocation, driven through both instances - it is 50 MiB.
     const atLimit: Buffer = Buffer.alloc(MAX_MULTIPART_FILE_BYTES);
 
     const atCeiling: Outcome = await run(
       [{ name: "atlimit", value: atLimit, filename: "atlimit.bin" }],
-      { middleware: narrow },
+      { middleware: narrow, bodyLimit: ROOM_FOR_A_FILE_AT_ITS_LIMIT },
     );
 
     expect(atCeiling.error).toBeUndefined();
     expect(files(atCeiling)[0]!.buffer.length).toBe(MAX_MULTIPART_FILE_BYTES);
 
     // The shared instance is the baseline the narrowed one must match.
-    const sharedAtCeiling: Outcome = await run([
-      { name: "atlimit", value: atLimit, filename: "atlimit.bin" },
-    ]);
+    const sharedAtCeiling: Outcome = await run(
+      [{ name: "atlimit", value: atLimit, filename: "atlimit.bin" }],
+      { bodyLimit: ROOM_FOR_A_FILE_AT_ITS_LIMIT },
+    );
 
     expect(sharedAtCeiling.error).toBeUndefined();
     expect(files(sharedAtCeiling)[0]!.buffer.length).toBe(
@@ -782,7 +848,7 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
           filename: "overlimit.bin",
         },
       ],
-      { middleware: narrow },
+      { middleware: narrow, bodyLimit: ROOM_FOR_A_FILE_AT_ITS_LIMIT },
     );
 
     expect((overCeiling.error as Exception).code).toBe(
@@ -956,32 +1022,471 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
     expect(outcome.nextCalls).toBe(1);
   });
 
-  test("a non-multer error passes straight through instead of becoming a 413", async () => {
+  test("a body busboy cannot read is refused 400 as the client's, never as too large", async () => {
     /*
      * A multipart Content-Type with no boundary makes busboy throw during
      * construction, which multer hands to next() as a plain Error. That is a
      * malformed request, not an oversized one, and the error mapping both
      * instances share must not launder it into a PayloadTooLargeException -
      * doing so would report every parser failure as "you sent too much".
+     * Nor is it the server's: handed on as it was, it was a 500 with an
+     * error-level log line, for any client (#10643).
      */
     const outcome: Outcome = await run(tinyFiles(1), {
       middleware: narrow,
       contentType: "multipart/form-data",
     });
 
-    expect(outcome.error).toBeInstanceOf(Error);
-    expect(outcome.error).not.toBeInstanceOf(Exception);
-    expect((outcome.error as Error).message).toContain("Boundary not found");
+    expect(outcome.error).toBeInstanceOf(BadRequestException);
+    expect(outcome.error).not.toBeInstanceOf(PayloadTooLargeException);
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: MULTIPART_MALFORMED_TYPE,
+      status: 400,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.multipartMalformed,
+    });
     expect(outcome.nextCalls).toBe(1);
   });
 
-  test("the default middleware treats that same non-multer error identically", async () => {
+  test("the default middleware treats that same body identically", async () => {
     const outcome: Outcome = await run(tinyFiles(1), {
       contentType: "multipart/form-data",
     });
 
-    expect(outcome.error).toBeInstanceOf(Error);
-    expect(outcome.error).not.toBeInstanceOf(Exception);
-    expect((outcome.error as Error).message).toContain("Boundary not found");
+    expect(outcome.error).toBeInstanceOf(BadRequestException);
+    expect(readRequestBodyRefusal(outcome.error)?.status).toBe(400);
+  });
+});
+
+/*
+ * A request whose body arrives a chunk at a time, read off only as it is
+ * asked for - as a socket's is - counting what was read off (`taken`).
+ */
+class CountingRequest extends Readable {
+  public headers: Record<string, string>;
+  public body?: unknown;
+  public files?: unknown;
+  public _body?: boolean;
+  public requestBodyLimit?: RequestBodyLimit;
+  public taken: number = 0;
+  private offset: number = 0;
+
+  public constructor(
+    private readonly bytes: Buffer,
+    headers: Record<string, string>,
+  ) {
+    super({ highWaterMark: 64 * 1024 });
+    this.headers = headers;
+  }
+
+  public override _read(): void {
+    if (this.offset >= this.bytes.length) {
+      this.push(null);
+      return;
+    }
+
+    const chunk: Buffer = this.bytes.subarray(
+      this.offset,
+      this.offset + 64 * 1024,
+    );
+
+    this.offset += chunk.length;
+    this.taken += chunk.length;
+    this.push(chunk);
+  }
+}
+
+interface Driven {
+  error: unknown;
+  nextCalls: number;
+}
+
+function drive(
+  req: Readable,
+  middleware: RequestHandler = MultipartFormDataMiddleware,
+): Promise<Driven> {
+  const res: ExpressResponse = {
+    status: (): unknown => {
+      return { send: (): void => {}, json: (): void => {} };
+    },
+    headersSent: false,
+    shouldKeepAlive: true,
+  } as unknown as ExpressResponse;
+
+  return new Promise<Driven>((resolve: (value: Driven) => void) => {
+    let nextCalls: number = 0;
+
+    middleware(req as unknown as ExpressRequest, res, ((
+      err?: unknown,
+    ): void => {
+      nextCalls++;
+      resolve({ error: err, nextCalls: nextCalls });
+    }) as NextFunction);
+  });
+}
+
+const MULTIPART_HEADERS: Record<string, string> = {
+  "content-type": `multipart/form-data; boundary=${BOUNDARY}`,
+};
+
+/*
+ * #10643: multer read the request itself, and nothing held a multipart body
+ * as a whole - fifty files of 50 MiB each passed every limit of multer's,
+ * held in memory before any key was checked - and a body multer refused was
+ * read to its end before the answer. Now the body is read as every body is
+ * (RequestBodyParser), held to what its route takes, and multer parses the
+ * bytes read.
+ */
+describe("MultipartFormData - the body as a whole is held to its route's limit (#10643)", () => {
+  test("the limit is the route's, as StartServer set it, else the most any route takes", () => {
+    expect(getMultipartBodyLimit({} as ExpressRequest)).toBe(
+      LARGE_REQUEST_BODY_BYTES,
+    );
+    expect(
+      getMultipartBodyLimit({
+        requestBodyLimit: routeLimit(MIB),
+      } as unknown as ExpressRequest),
+    ).toBe(MIB);
+  });
+
+  test("a body declared over its route's limit is refused 413 before a byte is read, and never parsed", async () => {
+    const body: Buffer = buildMultipartBody([
+      { name: "big", value: Buffer.alloc(2 * MIB, 1), filename: "big.bin" },
+    ]);
+    const req: CountingRequest = new CountingRequest(body, {
+      ...MULTIPART_HEADERS,
+      "content-length": String(body.length),
+    });
+    req.requestBodyLimit = routeLimit(MIB);
+
+    const outcome: Driven = await drive(req);
+
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: "entity.too.large",
+      status: 413,
+      message: getTooLargeForRouteMessage(MIB),
+    });
+    expect(req.taken).toBe(0);
+    expect(req.files).toBeUndefined();
+    expect(outcome.nextCalls).toBe(1);
+  });
+
+  test("a chunked body growing past it is refused at the chunk that does, and no more is read", async () => {
+    const body: Buffer = buildMultipartBody([
+      { name: "big", value: Buffer.alloc(4 * MIB, 1), filename: "big.bin" },
+    ]);
+    const req: CountingRequest = new CountingRequest(body, {
+      ...MULTIPART_HEADERS,
+      "transfer-encoding": "chunked",
+    });
+    req.requestBodyLimit = routeLimit(MIB);
+
+    const outcome: Driven = await drive(req);
+
+    expect(readRequestBodyRefusal(outcome.error)?.status).toBe(413);
+    expect(req.taken).toBeGreaterThan(MIB);
+    expect(req.taken).toBeLessThanOrEqual(MIB + 256 * 1024);
+    expect(req.files).toBeUndefined();
+  });
+
+  test("a body exactly at its route's limit is read whole and parsed", async () => {
+    const parts: Array<MultipartPart> = [
+      { name: "file", value: Buffer.alloc(MIB, 7), filename: "f.bin" },
+    ];
+    const body: Buffer = buildMultipartBody(parts);
+
+    const outcome: Outcome = await run(parts, { bodyLimit: body.length });
+
+    expect(outcome.error).toBeUndefined();
+    expect(files(outcome)[0]!.buffer.length).toBe(MIB);
+  });
+
+  test("through a route of 50 MiB, a file at multer's file limit does not fit with its part's headers", async () => {
+    const outcome: Outcome = await run([
+      {
+        name: "atlimit",
+        value: Buffer.alloc(MAX_MULTIPART_FILE_BYTES),
+        filename: "atlimit.bin",
+      },
+    ]);
+
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: "entity.too.large",
+      status: 413,
+      message: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
+    });
+    expect(outcome.req.files).toBeUndefined();
+  });
+
+  test("files each within multer's limits pass while the body fits, and are refused once it does not", async () => {
+    const megabyteFiles: Array<MultipartPart> = Array.from(
+      { length: MAX_MULTIPART_FILES },
+      (_v: unknown, i: number): MultipartPart => {
+        return {
+          name: `f${i}`,
+          value: Buffer.alloc(MIB, i),
+          filename: `f${i}.bin`,
+        };
+      },
+    );
+
+    const fits: Outcome = await run(megabyteFiles.slice(0, 40));
+
+    expect(fits.error).toBeUndefined();
+    expect(files(fits)).toHaveLength(40);
+
+    const past: Outcome = await run(megabyteFiles, { bodyLimit: 40 * MIB });
+
+    expect(readRequestBodyRefusal(past.error)?.status).toBe(413);
+    expect(past.req.files).toBeUndefined();
+  });
+});
+
+describe("MultipartFormData - a body sent compressed (#10643)", () => {
+  const parts: Array<MultipartPart> = [
+    { name: "name", value: Buffer.from("checkout") },
+    {
+      name: "profile",
+      value: Buffer.from("pprof bytes"),
+      filename: "cpu.pprof",
+    },
+  ];
+
+  test("a gzip body StartServer inflated is parsed from the bytes it left, its spent stream never read again", async () => {
+    /*
+     * As GzipRequestBody leaves it: the stream read to its end, the inflated
+     * bytes in req.body. multer used to pipe the spent stream into busboy:
+     * "Unexpected end of form", a 500 and an error-level log line.
+     */
+    const req: Readable & {
+      headers?: Record<string, string>;
+      body?: unknown;
+      files?: unknown;
+      _body?: boolean;
+    } = Readable.from([]);
+
+    req.resume();
+    await new Promise<void>((resolve: () => void) => {
+      req.once("end", resolve);
+    });
+
+    const inflated: Buffer = buildMultipartBody(parts);
+
+    // As the client sent it: gzip, with the length of the gzip.
+    req.headers = {
+      ...MULTIPART_HEADERS,
+      "content-encoding": "gzip",
+      "content-length": String(zlib.gzipSync(inflated).length),
+    };
+    req.body = inflated;
+
+    const outcome: Driven = await drive(req);
+
+    expect(outcome.error).toBeUndefined();
+    expect(req.body).toEqual({ name: "checkout" });
+    expect(
+      (req.files as Array<{ fieldname: string; buffer: Buffer }>).map(
+        (file: { fieldname: string; buffer: Buffer }): string => {
+          return `${file.fieldname}=${file.buffer.toString()}`;
+        },
+      ),
+    ).toEqual(["profile=pprof bytes"]);
+    expect(req._body).toBe(true);
+  });
+
+  test("a deflate body is inflated as body-parser inflates one, then parsed", async () => {
+    const outcome: Outcome = await run([], {
+      rawBody: zlib.deflateSync(buildMultipartBody(parts)),
+      contentEncoding: "deflate",
+    });
+
+    expect(outcome.error).toBeUndefined();
+    expect(outcome.req.body).toEqual({ name: "checkout" });
+    expect(
+      files(outcome).map((file: { fieldname: string }): string => {
+        return file.fieldname;
+      }),
+    ).toEqual(["profile"]);
+  });
+
+  test("a deflate body inflating past its route's limit is refused 413", async () => {
+    const outcome: Outcome = await run([], {
+      rawBody: zlib.deflateSync(
+        buildMultipartBody([
+          { name: "big", value: Buffer.alloc(4 * MIB), filename: "big.bin" },
+        ]),
+      ),
+      contentEncoding: "deflate",
+      bodyLimit: MIB,
+    });
+
+    expect(readRequestBodyRefusal(outcome.error)?.status).toBe(413);
+    expect(outcome.req.files).toBeUndefined();
+  });
+
+  test("a Content-Encoding nothing reads is refused 415 before a byte is read", async () => {
+    const body: Buffer = buildMultipartBody(parts);
+    const req: CountingRequest = new CountingRequest(body, {
+      ...MULTIPART_HEADERS,
+      "content-length": String(body.length),
+      "content-encoding": "br",
+    });
+
+    const outcome: Driven = await drive(req);
+
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: "encoding.unsupported",
+      status: 415,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.encodingUnsupported,
+    });
+    expect(req.taken).toBe(0);
+  });
+
+  test("a body of another type is passed on unread, as multer passed it on", async () => {
+    const body: Buffer = Buffer.from("main;work 12\n");
+    const req: CountingRequest = new CountingRequest(body, {
+      "content-type": "application/octet-stream",
+      "content-length": String(body.length),
+    });
+
+    const outcome: Driven = await drive(req);
+
+    expect(outcome.error).toBeUndefined();
+    expect(req.taken).toBe(0);
+    expect(req.files).toBeUndefined();
+    expect(req._body).toBeUndefined();
+  });
+});
+
+describe("MultipartFormData - a body that is no multipart form (#10643)", () => {
+  test.each([
+    ["no multipart form at all", Buffer.from("this is not a multipart body")],
+    [
+      "a part's header that never ends",
+      Buffer.from(`--${BOUNDARY}\r\nContent-Disposition: form-data; name="a"`),
+    ],
+    [
+      "a file cut off before its closing boundary",
+      Buffer.from(
+        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="f"; filename="f.bin"\r\n\r\nhalf a fi`,
+      ),
+    ],
+  ])(
+    "%s: refused 400 as the client's, in a sentence of its own - not a 500",
+    async (_kind: string, rawBody: Buffer) => {
+      const outcome: Outcome = await run([], { rawBody: rawBody });
+
+      expect(outcome.error).toBeInstanceOf(BadRequestException);
+      expect(readRequestBodyRefusal(outcome.error)).toEqual({
+        type: MULTIPART_MALFORMED_TYPE,
+        status: 400,
+        message: REQUEST_BODY_REFUSAL_MESSAGES.multipartMalformed,
+      });
+      expect(outcome.nextCalls).toBe(1);
+    },
+  );
+
+  test("busboy's words for a body it cannot read are told apart, and nothing else is", () => {
+    for (const message of BUSBOY_MALFORMED_BODY_ERRORS) {
+      expect(isMalformedMultipartBodyError(new Error(message))).toBe(true);
+    }
+
+    expect(
+      isMalformedMultipartBodyError(
+        new Error("Unsupported content type: text/plain"),
+      ),
+    ).toBe(true);
+
+    // The server's own faults stay the server's.
+    expect(isMalformedMultipartBodyError(new Error("ECONNRESET"))).toBe(false);
+    expect(
+      isMalformedMultipartBodyError(
+        new TypeError("Cannot read properties of undefined"),
+      ),
+    ).toBe(false);
+    expect(
+      isMalformedMultipartBodyError(
+        new multer.MulterError("LIMIT_FILE_SIZE", "big"),
+      ),
+    ).toBe(false);
+    expect(isMalformedMultipartBodyError("Unexpected end of form")).toBe(false);
+    expect(isMalformedMultipartBodyError(undefined)).toBe(false);
+  });
+
+  test("every error busboy raises over a body's bytes is one of those", () => {
+    /*
+     * Read from the busboy installed, so an upgrade that words one anew
+     * fails here rather than turning a client's body into a 500 again.
+     */
+    const directory: string = path.dirname(require.resolve("busboy"));
+    const sources: string = [
+      path.join(directory, "index.js"),
+      path.join(directory, "types", "multipart.js"),
+    ]
+      .map((file: string): string => {
+        return fs.readFileSync(file, "utf8");
+      })
+      .join("\n");
+
+    const messages: Array<string> = Array.from(
+      sources.matchAll(/new Error\(\s*['"`]([^'"`$]+)/g),
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+
+    expect(messages.length).toBeGreaterThan(4);
+
+    for (const message of messages) {
+      expect([
+        message,
+        BUSBOY_MALFORMED_BODY_ERRORS.has(message) ||
+          message === "Unsupported content type: ",
+      ]).toEqual([message, true]);
+    }
+  });
+});
+
+describe("MultipartFormData - multer's refusals are the client's body refused, in the same words (#10643)", () => {
+  test("a limit multer refuses stays the 413 it was, and is a refusal the error handler logs at debug", async () => {
+    const outcome: Outcome = await run(tinyFiles(MAX_MULTIPART_FILES + 1));
+
+    expect(outcome.error).toBeInstanceOf(PayloadTooLargeException);
+    expect((outcome.error as Exception).code).toBe(413);
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: MULTIPART_LIMIT_TYPE,
+      status: 413,
+      message: "Multipart request rejected: LIMIT_FILE_COUNT.",
+    });
+  });
+
+  test("a part multer refuses for its name stays the 400 it was, in the same words", async () => {
+    const outcome: Outcome = await run([], {
+      rawBody: Buffer.from(
+        `--${BOUNDARY}\r\nContent-Disposition: form-data\r\n\r\nvalue\r\n--${BOUNDARY}--\r\n`,
+      ),
+    });
+
+    expect(outcome.error).toBeInstanceOf(BadRequestException);
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: MULTIPART_MALFORMED_TYPE,
+      status: 400,
+      message: "Multipart request rejected: MISSING_FIELD_NAME.",
+    });
+  });
+
+  test("a refused body was read once, whole, and never drained after: multer was handed its bytes", async () => {
+    const body: Buffer = buildMultipartBody(tinyFiles(MAX_MULTIPART_FILES + 1));
+    const req: CountingRequest = new CountingRequest(body, {
+      ...MULTIPART_HEADERS,
+      "content-length": String(body.length),
+    });
+
+    const outcome: Driven = await drive(req);
+
+    expect(readRequestBodyRefusal(outcome.error)?.type).toBe(
+      MULTIPART_LIMIT_TYPE,
+    );
+    expect(req.taken).toBe(body.length);
+    expect(outcome.nextCalls).toBe(1);
   });
 });

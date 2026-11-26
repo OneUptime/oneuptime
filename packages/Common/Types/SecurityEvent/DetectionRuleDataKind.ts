@@ -59,6 +59,8 @@ export enum DetectionRuleDataKind {
   NetworkActivity = "network-activity",
   // Requests to web servers (OCSF HTTP Activity), as "Your logs" reads access logs.
   WebRequests = "web-requests",
+  // What Cloudflare's firewall did at the edge, which its connection reads.
+  Cloudflare = "cloudflare",
   // Kubernetes audit logs, which "Your logs" reads.
   KubernetesAuditLogs = "kubernetes-audit-logs",
   // An OpenStack cloud's audit trail, which "Your logs" reads.
@@ -94,6 +96,7 @@ export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleData
     DetectionRuleDataKind.AzureActivityLog,
     DetectionRuleDataKind.NetworkActivity,
     DetectionRuleDataKind.WebRequests,
+    DetectionRuleDataKind.Cloudflare,
     DetectionRuleDataKind.KubernetesAuditLogs,
     DetectionRuleDataKind.OpenStackAuditTrail,
     DetectionRuleDataKind.OneUptimeTraces,
@@ -167,6 +170,11 @@ const GOOGLE_WORKSPACE: {
   vendorNames: Array<string>;
   productNames: Array<string>;
 } = connectorStamp(SecurityEventConnectorProvider.GoogleWorkspace);
+
+const CLOUDFLARE: {
+  vendorNames: Array<string>;
+  productNames: Array<string>;
+} = connectorStamp(SecurityEventConnectorProvider.Cloudflare);
 
 export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefinition> =
   [
@@ -264,6 +272,17 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       classNames: ["HTTP Activity"],
       vendorNames: [],
       productNames: logFormatProduct(SecurityLogFormat.WebAttack),
+    },
+    {
+      /*
+       * By product alone: the rules read what Cloudflare's firewall says
+       * (its source, OneUptime's edge action), which only its connection's
+       * events carry.
+       */
+      kind: DetectionRuleDataKind.Cloudflare,
+      classNames: [],
+      vendorNames: [],
+      productNames: CLOUDFLARE.productNames,
     },
     {
       kind: DetectionRuleDataKind.KubernetesAuditLogs,

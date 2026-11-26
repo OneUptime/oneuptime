@@ -257,7 +257,7 @@ describe("SavedChatMessageNote.getFeedMarkdown", () => {
 });
 
 describe("SavedChatMessageNote.getSavedByName", () => {
-  test("whoever saved it, by name, else email; nobody when they wrote it, or cannot be read", async () => {
+  test("whoever saved it, by name, else the part of their email before the @; nobody when they wrote it, or cannot be read", async () => {
     const nitin: User = new User();
     nitin.name = new Name("Nitin Kumar");
     const findSpy: SpyInstance<typeof UserService.findOneById> = jest
@@ -275,12 +275,13 @@ describe("SavedChatMessageNote.getSavedByName", () => {
     emailOnly.email = new Email("nitin@example.com");
     findSpy.mockResolvedValue(emailOnly);
 
+    // Never the address: the note is posted to the record's channels (#10669).
     await expect(
       SavedChatMessageNote.getSavedByName({
         saved: FROM_SLACK,
         userId: NITIN_ID,
       }),
-    ).resolves.toBe("nitin@example.com");
+    ).resolves.toBe("nitin");
 
     // Nitin saving his own message.
     findSpy.mockClear();

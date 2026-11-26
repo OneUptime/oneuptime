@@ -1,6 +1,5 @@
 import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
-import User from "../../Models/DatabaseModels/User";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
@@ -14,11 +13,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
-import UserService from "./UserService";
-import FeedMarkdown, {
-  mdText,
-  MarkdownText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const SLO_OWNER_USER_SUBJECT: string = "SLO owner user";
 
@@ -144,35 +139,19 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        /*
+         * Named as the added entry names them, linked to their page: someone
+         * only invited by the name typed for them, never by an address, and
+         * no address after anybody's name (FeedPersonName, #10668).
+         */
+        const owner: MarkdownText | null = await SloFeedUtil.getUserMarkdown({
+          userId: userId,
+          projectId: projectId,
         });
 
-        const displayName: string =
-          await SloFeedUtil.getUserDisplayNameInProject({
-            user: user,
-            userId: userId,
-            projectId: projectId,
-          });
-
-        if (!user || !displayName) {
+        if (!owner) {
           continue;
         }
-
-        const email: string = user.email?.toString().trim() || "";
-
-        // The email is only worth repeating when the name is not the email.
-        const emailSuffix: MarkdownText =
-          email && email !== displayName
-            ? mdText` (${email})`
-            : FeedMarkdown.empty();
 
         await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
           {
@@ -182,7 +161,7 @@ export class Service extends DatabaseService<Model> {
               ServiceLevelObjectiveFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${displayName}**${emailSuffix} as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+              mdText`👨🏻‍💻 Removed **${owner}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
                 {
                   projectId: projectId,
                   sloId: serviceLevelObjectiveId,

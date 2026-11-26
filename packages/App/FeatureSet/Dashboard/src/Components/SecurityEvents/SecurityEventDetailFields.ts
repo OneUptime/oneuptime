@@ -1,13 +1,27 @@
+import { CLAIMED_IP } from "./ClaimedClientAddressCopy";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "Common/Types/JSON";
 import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  ClaimedClientAddress,
+  readClaimedClientAddress,
+} from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   HiddenClientAddress,
+  SCRUBBED_ADDRESS_ATTRIBUTES,
+  ScrubbedAddressRole,
   readHiddenClientAddress,
+  readHiddenTargetAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import {
+  SCRUBBED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_HIDDEN_BY_SCRUB_RULE,
+  readHiddenEventUser,
+} from "Common/Utils/SecurityEvent/ScrubbedUser";
 
 /*
  * What one security event says, as data.
@@ -37,9 +51,84 @@ export interface SecurityEventDetailField {
   isValueTranslated?: boolean | undefined;
   /*
    * The client address a scrub rule hid (#10397): what Principal IP says in
-   * the address's place, with the rule that hid it.
+   * the address's place, with the rule that hid it - or the destination's,
+   * on Target IP (#10419), as hiddenAddressRole says.
    */
   hiddenAddress?: HiddenClientAddress | undefined;
+  hiddenAddressRole?: ScrubbedAddressRole | undefined;
+  /*
+   * An address the request only claimed (#10416): said as claimed by the
+   * request, not verified, and never the event's address.
+   */
+  claimedAddress?: ClaimedClientAddress | undefined;
+  /*
+   * A user a scrub rule redacted or masked (#10435): what Principal User or
+   * Target User says in the user's place, whose filter shows every event
+   * whose user a rule hid.
+   */
+  isHiddenUser?: boolean | undefined;
+}
+
+/*
+ * Principal User or Target User for an event whose user a scrub rule
+ * redacted or masked (#10435): the sentence that says so, which filters
+ * the list to every event whose user of that role a rule hid. Null for an
+ * event that names its user - a Hash rule's token included, which names
+ * one user without saying who - or says nothing of one.
+ */
+export function buildHiddenUserField(
+  event: SecurityEventDetailSource,
+  role: ScrubbedUserRole,
+): SecurityEventDetailField | null {
+  const user: string =
+    role === ScrubbedUserRole.Principal
+      ? text(event.principalUser)
+      : text(event.targetUser);
+
+  if (user || !readHiddenEventUser(event, role)) {
+    return null;
+  }
+
+  return {
+    label:
+      role === ScrubbedUserRole.Principal ? "Principal User" : "Target User",
+    value: HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: true,
+    isHiddenUser: true,
+    facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SCRUBBED_USER_ATTRIBUTES[role].hidden}`,
+    facetValue: USER_HIDDEN_BY_SCRUB_RULE,
+  };
+}
+
+/*
+ * Claimed IP, beside Principal IP: an address the event's request claimed
+ * - X-Forwarded-For's, or client.address as instrumentation read it - that
+ * Security Events could not verify, so it blames none of it (#10416). It
+ * filters the list to every event that claimed the same address. Null for
+ * an event whose request claimed nothing beside its address.
+ */
+export function buildClaimedIpField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const claimedAddress: ClaimedClientAddress | null =
+    readClaimedClientAddress(event);
+
+  if (!claimedAddress) {
+    return null;
+  }
+
+  return {
+    label: CLAIMED_IP,
+    value: claimedAddress.address || HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: !claimedAddress.address,
+    claimedAddress,
+    ...(claimedAddress.address
+      ? {
+          facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress}`,
+          facetValue: claimedAddress.address,
+        }
+      : {}),
+  };
 }
 
 /*
@@ -106,7 +195,36 @@ export function buildHiddenPrincipalIpField(
     value: HIDDEN_BY_A_SCRUB_RULE,
     isValueTranslated: true,
     hiddenAddress,
+    hiddenAddressRole: ScrubbedAddressRole.Principal,
     facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden}`,
+    facetValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  };
+}
+
+/*
+ * Target IP for an event whose destination a scrub rule hid (#10419): a
+ * firewall's connection, an outbound transfer. The same sentence, with the
+ * rule that hid it, filtering the list to every event whose destination a
+ * scrub rule hid. Null for an event that names its destination, or says
+ * nothing of one.
+ */
+export function buildHiddenTargetIpField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const hiddenAddress: HiddenClientAddress | null =
+    readHiddenTargetAddress(event);
+
+  if (!hiddenAddress) {
+    return null;
+  }
+
+  return {
+    label: "Target IP",
+    value: HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: true,
+    hiddenAddress,
+    hiddenAddressRole: ScrubbedAddressRole.Target,
+    facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Target].hidden}`,
     facetValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   };
 }
@@ -172,7 +290,8 @@ export function buildSecurityEventOverviewFields(
     { label: "Rule ID", value: text(event.ruleId) },
     { label: "MITRE Tactics", value: joinArray(event.mitreTactics) },
     { label: "MITRE Techniques", value: joinArray(event.mitreTechniques) },
-    {
+    // A scrub rule hid it: said where the user would be (#10435).
+    buildHiddenUserField(event, ScrubbedUserRole.Principal) || {
       label: "Principal User",
       value: text(event.principalUser),
       facetKey: "principalUser",
@@ -188,6 +307,8 @@ export function buildSecurityEventOverviewFields(
       value: text(event.principalIp),
       facetKey: "principalIp",
     },
+    // An address the request only claimed: said as claimed, never blamed.
+    buildClaimedIpField(event) || { label: CLAIMED_IP, value: "" },
     { label: "Principal Process", value: text(event.principalProcess) },
     /*
      * The process the event is about - the one started, in a process
@@ -211,7 +332,7 @@ export function buildSecurityEventOverviewFields(
       label: "Parent Command Line",
       value: text(event.parentProcessCommandLine),
     },
-    {
+    buildHiddenUserField(event, ScrubbedUserRole.Target) || {
       label: "Target User",
       value: text(event.targetUser),
       facetKey: "targetUser",
@@ -221,7 +342,12 @@ export function buildSecurityEventOverviewFields(
       value: text(event.targetHost),
       facetKey: "targetHost",
     },
-    { label: "Target IP", value: text(event.targetIp), facetKey: "targetIp" },
+    // A scrub rule hid it: said where the destination would be (#10419).
+    buildHiddenTargetIpField(event) || {
+      label: "Target IP",
+      value: text(event.targetIp),
+      facetKey: "targetIp",
+    },
     {
       /*
        * The column is non-nullable with a 0 default, so 0 means "the source

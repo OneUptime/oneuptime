@@ -61,6 +61,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Okta System Log](/docs/integrations/okta) | Inkomend | Brengt aanmeldingen, accountwijzigingen en dreigingsdetecties van Okta naar Beveiligingsgebeurtenissen. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inkomend | Brengt aanmeldingen en directorywijzigingen van Microsoft Entra ID, en het Microsoft 365-auditlogboek, naar Beveiligingsgebeurtenissen. |
 | [Google Workspace](/docs/integrations/google-workspace) | Inkomend | Brengt aanmeldingen, beheerderswijzigingen en detecties van Google Workspace naar Beveiligingsgebeurtenissen. |
+| [Cloudflare](/docs/integrations/cloudflare) | Inkomend | Brengt wat de firewall van Cloudflare heeft geblokkeerd, uitgedaagd en vastgelegd naar Beveiligingsgebeurtenissen, naast wat je app bereikte. |
 
 ### Ticketing en IT-servicemanagement
 

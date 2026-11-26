@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Then apply it with `kubectl apply -f oneuptime-probe.yaml`.
 :::
 
 Host networking (`--network host`, `network_mode: host`) lets the probe use the host's own network, IPv6 included. See [Monitoring IPv6 destinations](#monitoring-ipv6-destinations) before you run it without host networking.
+
+Without host networking, as in the Kubernetes Deployment above or with Docker on a bridge network, the probe's checks leave the machine from the host's own address, which the probe cannot see from inside its container. `PROBE_HOST_IP_ADDRESSES` tells it that address, so that [Security Events](/docs/telemetry/security-events) knows the probe's polling, discovery sweeps and monitor checks for its own work. The Kubernetes Deployment sets it from `status.hostIPs`, which holds both addresses of a dual-stack node; on Kubernetes older than 1.29, use `status.hostIP`. On a Docker bridge network, give the host's address yourself, such as `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Check that it connects
 
@@ -146,10 +152,26 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Replace `<version>` with the release to run, such as `17.0.1`, and write the same image in `oneuptime-probe.yaml`, so that applying the file again keeps it.
+Replace `<version>` with the release to run, such as `17.1.0`, and write the same image in `oneuptime-probe.yaml`, so that applying the file again keeps it.
 :::
 
-The probe's page shows the release it runs, under **Probe Status**. A probe older than 17.0.1 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code): its page says so, and so does the form of a monitor it checks.
+The probe's page shows the release it runs, under **Probe Status**. A probe older than 17.1.0 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code): its page says so, and so does the form of a monitor it checks. The same goes for a probe too old to send an API monitor's request body that is a JSON array, a single value or text.
+
+When a probe falls a major release or more behind OneUptime, its owners are told once, with what it misses and a link to this section; a probe with no owners tells the Project Owners. They are told again only when it falls behind a later major release, or when it falls behind again after it was updated. Each person chooses how they hear of it with **Probe a major release behind**, under **User Settings → Notification Settings**: it starts on by email. A probe behind only by minor releases says so on its page, and nobody is told.
+
+## What a probe sends when it checks in
+
+Every request the probe sends carries its ID and key, the release it runs and what it can do, and once a minute it checks in with the addresses it knows itself by. Nothing else about your network is sent, beyond the results of its checks.
+
+| Field | Sent | What OneUptime does with it |
+| --- | --- | --- |
+| `probeVersion` | With every request | Keeps the release the probe runs. Its page and **Custom Probes** say when it is older than OneUptime, and its owners are told once when it falls a major release behind. |
+| `probeCapabilities` | With every request | Hands the probe only the work it can do. A check that needs a newer probe fails, with a sentence saying to update it. |
+| `probeInterfaceAddresses` | Once a minute | Keeps the addresses on the probe's network interfaces, and those `PROBE_HOST_IP_ADDRESSES` gives it. [Security Events](/docs/telemetry/security-events) knows the probe's own polling, discovery sweeps and monitor checks in your network flows by them, and the blocklist never blocks them. Loopback, link-local and multicast addresses are left out. |
+
+OneUptime also keeps the address the probe checks in from, as it sees it: your network's NAT, when it has one. The probe's page shows both under **Probe Status**, as **Check-In Address** and **Interface Addresses**, to whoever can read the probe, and neither for a probe that has not checked in yet.
+
+What a probe says of its own addresses is its word, and anyone holding its key could say any address. So Security Events never sets traffic aside for its address alone: each host and port it reached must also be one the probe is set to reach, and anything beyond that is reported, naming the probe.
 
 ## Connecting through a proxy
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ The limits a synthetic monitor runs within (how many run at once, their memory a
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | none | The proxy settings: see [Connecting through a proxy](#connecting-through-a-proxy). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Deadline for each request the probe sends to OneUptime. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Log a warning for requests to OneUptime slower than this. |
+| `PROBE_HOST_IP_ADDRESSES` | none | The host's IP addresses, separated by commas, for a probe without host networking: listed beside the probe's own each time it checks in. See [Run the probe](#run-the-probe). |
 
 ### Network discovery
 
@@ -430,7 +457,7 @@ A probe polls up to `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` network devices at o
 ### Other problems
 
 :::details The probe stops right after it starts
-Its log names what is missing: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set`, or `PROBE_ID or REGISTER_PROBE_KEY should be set`. When all three are set but the ID and key do not match a probe, the probe tries 10 times, 30 seconds apart, then stops with `Unable to register probe after 10 attempts`. Copy the ID and key again with **Show ID and Key**.
+Its log names what is missing: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set`, or `PROBE_ID is not set`. When all three are set but the ID and key do not match a probe, the probe tries 10 times, 30 seconds apart, then stops with `Unable to register probe after 10 attempts`. Copy the ID and key again with **Show ID and Key**.
 :::
 
 :::details The probe was working until someone reset its key

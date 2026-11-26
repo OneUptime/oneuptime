@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` con `"valid": true` | OneUptime acepta la clave. La respuesta también da su `keyType` y su `projectId`. Pasa a la siguiente comprobación. |
 | `401` con `"valid": false` | La clave falta, es desconocida, está revocada, desactivada o caducada, y el `message` dice cuál. Crea una clave activa en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
 
-Una aplicación web necesita una clave **Navegador**, y una aplicación móvil una clave **Servidor**: consulta [Configuración para navegadores](/docs/rum/browser-setup) y [Configuración para móviles](/docs/rum/mobile-setup). Los endpoints de exportación también rechazan una clave incorrecta con `401`, como pide la especificación OTLP, así que un SDK bien hecho registra el rechazo en lugar de reintentar. Esa línea pasa fácilmente desapercibida en la consola del navegador, y esta comprobación responde directamente.
+Una aplicación web necesita una clave **Navegador**, y una aplicación móvil una clave **Móvil**: consulta [Configuración para navegadores](/docs/rum/browser-setup) y [Configuración para móviles](/docs/rum/mobile-setup). Los endpoints de exportación también rechazan una clave incorrecta con `401`, como pide la especificación OTLP, así que un SDK bien hecho registra el rechazo en lugar de reintentar. Esa línea pasa fácilmente desapercibida en la consola del navegador, y esta comprobación responde directamente.
 
 OneUptime también cuenta lo que rechaza de una clave que conoce. La página de la clave, en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**, muestra en **Telemetría rechazada** lo rechazado en los últimos 30 días, y la **Comprobación de la configuración** de la página **Documentación** de la aplicación dice qué tipo de telemetría se rechaza, por qué y cómo arreglarlo. Una clave que falta o es desconocida no señala ningún proyecto, así que nada la cuenta: esta comprobación y el `401` es todo lo que hay.
 
@@ -87,14 +87,14 @@ Un navegador rara vez envía lotes tan grandes, salvo que los spans lleven atrib
 
 ## Comprobar dónde llega la telemetría
 
-La solicitud funciona, pero la aplicación aparece en **Productos → Servicios** en lugar de en **Productos → Recursos → Monitoreo de usuarios reales**. Es el informe más común, y la causa casi siempre es un recurso sin atributos de cliente. OneUptime solo archiva un lote como RUM cuando su recurso lleva uno de estos:
+La solicitud funciona, pero la aplicación aparece en **Productos → Servicios** en lugar de en **Productos → Recursos → Monitoreo de usuarios reales**. Es el informe más común, y la causa casi siempre es una clave que no es de Navegador ni de Móvil y que envía un recurso sin atributos de cliente. Todo lo que envía una clave de Navegador o de Móvil se archiva como RUM; con cualquier otra clave, OneUptime solo archiva un lote como RUM cuando su recurso lleva uno de estos:
 
 | Tipo | Atributos |
 | --- | --- |
 | Navegador | `browser.platform`, `browser.language` o un `browser.brands` no vacío |
 | Móvil | `device.id` o `device.model.identifier`, o `device.manufacturer` en un recurso sin identidad de host (`host.name`, `host.id` o `k8s.node.name`) |
 
-Un `service.name` por sí solo crea un servicio de backend. El SDK de OpenTelemetry para navegador no añade ningún atributo `browser.*` salvo que añadas el detector de recursos del navegador o los definas tú mismo: consulta [Configuración para navegadores](/docs/rum/browser-setup).
+Con cualquier otra clave, un `service.name` por sí solo crea un servicio de backend. El SDK de OpenTelemetry para navegador no añade ningún atributo `browser.*` salvo que añadas el detector de recursos del navegador o los definas tú mismo: consulta [Configuración para navegadores](/docs/rum/browser-setup).
 
 Para ver lo que envías de verdad, abre la solicitud OTLP en la pestaña Red y mira su carga: `resourceSpans[0].resource.attributes` es la lista que lo decide. Si no hay ningún atributo `browser.*`, el SDK no lo está añadiendo, diga lo que diga su documentación.
 
@@ -127,7 +127,7 @@ El gráfico vacío de la **Vista general** de la aplicación dice qué caso es, 
 
 Las excepciones necesitan un manejador de errores, porque el SDK no captura los errores no capturados: [Informar de errores no capturados](/docs/rum/browser-setup#informar-de-errores-no-capturados) tiene el código. Un error que maneja un error boundary o un `try`/`catch` nunca llega a la ventana, así que regístralo donde lo manejas, con `span.recordException`.
 
-Los registros necesitan un pipeline de registros y código que escriba entradas de registro, porque un `LoggerProvider` por sí solo no envía nada: [Añadir registros y métricas](/docs/rum/browser-setup#añadir-registros-y-métricas) tiene ambos. Construye el pipeline con el mismo `resource` que tus trazas, o los registros se archivan bajo un servicio backend.
+Los registros necesitan un pipeline de registros y código que escriba entradas de registro, porque un `LoggerProvider` por sí solo no envía nada: [Añadir registros y métricas](/docs/rum/browser-setup#añadir-registros-y-métricas) tiene ambos. Construye el pipeline con el mismo `resource` que tus trazas, para que los registros se archiven bajo la misma aplicación.
 
 Cuando llegan las cargas de página, la clave, sus orígenes permitidos y tu Content Security Policy también dejan pasar las excepciones y los registros, siempre que el exportador de registros use la misma clave y el mismo host. Un manejador de errores que aún no ha capturado nada no envía nada, exactamente igual que uno que nunca se añadió, así que lanza un error de prueba desde la consola del navegador para distinguirlos:
 

@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Bruk den deretter med `kubectl apply -f oneuptime-probe.yaml`.
 :::
 
 Med vertsnettverk (`--network host`, `network_mode: host`) bruker sonden vertens eget nettverk, IPv6 inkludert. Les [Overvåk IPv6-mål](#overvåk-ipv6-mål) før du kjører den uten vertsnettverk.
+
+Uten vertens nettverk, som i Kubernetes-Deployment ovenfor eller med Docker på et bridgenettverk, forlater sondens sjekker maskinen fra vertens egen adresse, som sonden ikke kan se fra innsiden av containeren sin. `PROBE_HOST_IP_ADDRESSES` forteller den adressen, slik at [Sikkerhetshendelser](/docs/telemetry/security-events) kjenner igjen sondens avspørringer, oppdagelser og monitorsjekker som dens eget arbeid. Kubernetes-Deployment setter den fra `status.hostIPs`, som inneholder begge adressene til en dual-stack-node; på Kubernetes eldre enn 1.29 bruker du `status.hostIP`. På et Docker-bridgenettverk oppgir du vertens adresse selv, for eksempel `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Sjekk at den kobler til
 
@@ -146,10 +152,26 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Erstatt `<version>` med versjonen som skal kjøre, for eksempel `17.0.1`, og skriv samme image i `oneuptime-probe.yaml`, slik at det blir værende når du bruker filen på nytt.
+Erstatt `<version>` med versjonen som skal kjøre, for eksempel `17.1.0`, og skriv samme image i `oneuptime-probe.yaml`, slik at det blir værende når du bruker filen på nytt.
 :::
 
-Sondens side viser versjonen den kjører, under **Sondestatus**. En sonde eldre enn 17.0.1 kan ikke generere kodene til en [engangskodehemmelighet](/docs/monitor/monitor-secrets#logg-inn-med-en-engangskode): siden dens sier det, og det gjør også skjemaet til en monitor den sjekker.
+Sondens side viser versjonen den kjører, under **Sondestatus**. En sonde eldre enn 17.1.0 kan ikke generere kodene til en [engangskodehemmelighet](/docs/monitor/monitor-secrets#logg-inn-med-en-engangskode): siden dens sier det, og det gjør også skjemaet til en monitor den sjekker. Det samme gjelder en sonde som er for gammel til å sende forespørselsteksten til en API-monitor når den er en JSON-matrise, én enkelt verdi eller tekst.
+
+Når en sonde kommer én hovedversjon eller mer bak OneUptime, varsles eierne én gang, med det den mangler og en lenke til denne delen; en sonde uten eiere varsler Prosjekteierne. De varsles igjen bare når den kommer bak en senere hovedversjon, eller når den kommer på etterskudd igjen etter å ha blitt oppdatert. Hver person velger hvordan de får vite det med **Sonde én hovedversjon bak**, under **Brukerinnstillinger → Varslingsinnstillinger**: i utgangspunktet på e-post. En sonde som bare ligger bak med mindre versjoner, sier det på siden sin, og ingen varsles.
+
+## Hva en sonde sender når den sender livstegn
+
+Hver forespørsel fra sonden inneholder ID-en og nøkkelen dens, versjonen den kjører og hva den kan, og én gang i minuttet sender den livstegn med adressene den kjenner seg selv ved. Ingenting annet om nettverket ditt sendes, utover resultatene av sjekkene den gjør.
+
+| Felt | Sendes | Hva OneUptime gjør med det |
+| --- | --- | --- |
+| `probeVersion` | Med hver forespørsel | Lagrer versjonen sonden kjører. Siden dens og **Egendefinerte sonder** viser når den er eldre enn OneUptime, og eierne varsles én gang når den kommer én hovedversjon bak. |
+| `probeCapabilities` | Med hver forespørsel | Gir sonden bare arbeidet den kan gjøre. En sjekk som trenger en nyere sonde, mislykkes, med en setning som sier at den må oppdateres. |
+| `probeInterfaceAddresses` | Én gang i minuttet | Lagrer adressene på sondens nettverksgrensesnitt, og dem `PROBE_HOST_IP_ADDRESSES` gir den. [Sikkerhetshendelser](/docs/telemetry/security-events) kjenner igjen sondens egne avspørringer, oppdagelser og monitorsjekker i nettverksflytene dine på dem, og blokkeringslisten blokkerer dem aldri. Loopback-, link-local- og multicastadresser utelates. |
+
+OneUptime lagrer også adressen sonden sender livstegn fra, slik OneUptime ser den: NAT-en til nettverket ditt, hvis det har en. Sondens side viser begge under **Sondestatus**, som **Meldeadresse** og **Grensesnittadresser**, for alle som kan lese sonden, og ingen av dem for en sonde som ikke har sendt livstegn ennå.
+
+Det en sonde sier om sine egne adresser, er dens ord, og alle med nøkkelen dens kunne oppgitt hvilken som helst adresse. Derfor legger Sikkerhetshendelser aldri trafikk til side bare på grunn av adressen: hver vert og port den nådde, må også være en sonden er satt til å nå, og alt utover det rapporteres, med sondens navn.
 
 ## Koble til gjennom en proxy
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Grensene en syntetisk overvåker kjører innenfor (hvor mange samtidig, minnet o
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | ingen | Proxyinnstillingene: se [Koble til gjennom en proxy](#koble-til-gjennom-en-proxy). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Frist for hver forespørsel sonden sender til OneUptime. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Logg en advarsel for forespørsler til OneUptime som er tregere enn dette. |
+| `PROBE_HOST_IP_ADDRESSES` | ingen | Vertens IP-adresser, atskilt med komma, for en sonde uten vertens nettverk: listet ved siden av sondens egne hver gang den sender livstegn. Se [Kjør sonden](#kjør-sonden). |
 
 ### Nettverks-discovery
 
@@ -430,7 +457,7 @@ En sonde poller opptil `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` nettverksenheter 
 ### Andre problemer
 
 :::details Sonden stopper rett etter at den starter
-Loggen dens nevner hva som mangler: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` eller `PROBE_ID or REGISTER_PROBE_KEY should be set`. Er alle tre satt, men ID og nøkkel passer ikke til noen sonde, prøver sonden 10 ganger med 30 sekunders mellomrom og stopper så med `Unable to register probe after 10 attempts`. Kopier ID og nøkkel på nytt med **Vis ID og nøkkel**.
+Loggen dens nevner hva som mangler: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` eller `PROBE_ID is not set`. Er alle tre satt, men ID og nøkkel passer ikke til noen sonde, prøver sonden 10 ganger med 30 sekunders mellomrom og stopper så med `Unable to register probe after 10 attempts`. Kopier ID og nøkkel på nytt med **Vis ID og nøkkel**.
 :::
 
 :::details Sonden fungerte til noen tilbakestilte nøkkelen

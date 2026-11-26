@@ -41,6 +41,11 @@ export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
 export const CLOUD_STREAMING_AZURE: string = "telemetry/cloud-streaming-azure";
 export const CLOUD_STREAMING_GOOGLE_CLOUD: string =
   "telemetry/cloud-streaming-google-cloud";
+export const CLOUD_AWS_WAF_BLOCKLIST: string =
+  "telemetry/cloud-aws-waf-blocklist";
+export const CLOUD_AZURE_WAF_BLOCKLIST: string =
+  "telemetry/cloud-azure-waf-blocklist";
+export const CLOUD_ARMOR_BLOCKLIST: string = "telemetry/cloud-armor-blocklist";
 
 export interface CloudDocsPage {
   page: string;
@@ -62,6 +67,12 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
     navTitle: "Stream Azure Monitor Metrics and Logs",
   },
   { page: CLOUD_STREAMING_GOOGLE_CLOUD, navTitle: "Stream Google Cloud Logs" },
+  { page: CLOUD_AWS_WAF_BLOCKLIST, navTitle: "Block Addresses in AWS WAF" },
+  {
+    page: CLOUD_AZURE_WAF_BLOCKLIST,
+    navTitle: "Block Addresses in Azure WAF",
+  },
+  { page: CLOUD_ARMOR_BLOCKLIST, navTitle: "Block Addresses in Cloud Armor" },
   { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
@@ -82,6 +93,7 @@ export const PRODUCTS_MENU_KEYS: Readonly<Record<string, string>> = {
   "App Platforms": "appPlatformsTitle",
   Cloud: "cloudTitle",
   "Project Settings": "projectSettingsTitle",
+  "Security Events": "securityEventsTitle",
 };
 
 // The paths through a cloud provider's console, kept as they are.
@@ -188,6 +200,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "Create",
   ],
   [CLOUD_TROUBLESHOOTING]: ["VPC egress: All traffic"],
+  // Azure WAF's mode that only logs, as the Azure portal names it.
+  [CLOUD_AZURE_WAF_BLOCKLIST]: ["Detection"],
   [CLOUD_ACCOUNTS]: [
     "Monitoring Reader",
     "Monitoring Viewer",
@@ -405,6 +419,8 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Google Cloud Shell",
     "An HTTPS address, on a self-hosted OneUptime.",
   ],
+  // The two ways a Cloud Armor policy holds the blocklist.
+  [CLOUD_ARMOR_BLOCKLIST]: ["Rules.", "Address groups."],
 };
 
 /*

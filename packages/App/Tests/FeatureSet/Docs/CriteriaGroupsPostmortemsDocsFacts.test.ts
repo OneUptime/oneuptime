@@ -823,8 +823,15 @@ describe("how criteria decide", () => {
     // The owners' job sends only rows nobody has been told about.
     expect(STATUS_CHANGE_NOTIFICATION_JOB).toContain("isOwnerNotified: false,");
     expect(MONITOR_STEPS_FORM).toContain('title="Default Monitor Status"');
+    /*
+     * Unless the recovery margin keeps its status (#10743): a criteria that
+     * brings it back has yet to match.
+     */
     expect(criteriaPage).toContain(
-      "When none matches, the monitor goes to its **Default Monitor Status**.",
+      "When none matches, the monitor goes to its **Default Monitor Status**, unless a criteria that brings it back has yet to match: see [When a criteria recovers](#when-a-criteria-recovers).",
+    );
+    expect(MONITOR_RESOURCE).toContain(
+      "!response.criteriaMetId &&\n        !isSnmpTrapEvent &&\n        (response.statusKeptForRecoveryCriteriaIds || []).length > 0 &&",
     );
     expect(criteriaPage).toContain(
       "The **Default Monitor Status** applies only when no criteria matches.",
@@ -983,6 +990,143 @@ describe("how criteria decide", () => {
       "That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. So is a Metrics monitor that watches a PromQL expression: each series the expression returns is judged on its own. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.",
     );
   });
+
+  /*
+   * Judging a window of checks, when a criteria recovers and when it is
+   * judged (#10355, #10743): the page says what the code does.
+   */
+  it("counts the window's checks per probe, in the database, and matches a growing count early", () => {
+    const counts: string = readCommonSource(
+      "Server/Utils/Monitor/Criteria/CheckWindowCounts.ts",
+    );
+
+    // One group a probe: a monitor checked from three probes counts each.
+    expect(counts).toContain("groupByAttributeKeys: [PROBE_ID_ATTRIBUTE]");
+    // More checks only add to a count or a number of changes.
+    expect(counts).toContain(
+      "data.type === EvaluateOverTimeType.Count ||\n      data.type === EvaluateOverTimeType.StatusChanges;",
+    );
+    expect(counts).toContain(
+      "(comparison.filterType === FilterType.GreaterThan ||\n        comparison.filterType === FilterType.GreaterThanOrEqualTo)",
+    );
+
+    // Windows of 2 minutes to 24 hours in the form.
+    const minutes: string = between(
+      readCommonSource("Types/Monitor/CriteriaFilter.ts"),
+      "export enum EvaluateOverTimeMinutes {",
+      "\n}\n",
+    );
+    expect(minutes).toContain('TwoMinutes = "2"');
+    expect(minutes).toContain('TwentyFourHours = "1440"');
+
+    // A Server monitor's Is Online is not counted.
+    expect(readCommonSource("Types/Monitor/CriteriaFilter.ts")).toContain(
+      "if (monitorType === MonitorType.Server && checkOn === CheckOn.IsOnline) {\n      return false;\n    }",
+    );
+
+    expect(criteriaPage).toContain(
+      "- **Each probe on its own.** **Count**, **Percentage** and **Status Changes** count the checks of the probe that made the check",
+    );
+    expect(criteriaPage).toContain(
+      "**Count** and **Status Changes** match early when they are already past **Greater Than** or **Greater Than Or Equal To**, since more checks only add to them; anything else waits for a full window.",
+    );
+    expect(criteriaPage).toContain("from 2 minutes to 24 hours");
+    expect(criteriaPage).toContain(
+      "A Server monitor's **Is Online** is not counted",
+    );
+  });
+
+  it("keeps a criteria with a recovery condition in effect until it is met, and an ungrouped monitor's status inside the margin", () => {
+    const evaluator: string = readCommonSource(
+      "Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
+    );
+
+    // In effect: its status, or an incident or alert it opened.
+    expect(evaluator).toContain(
+      "const isInEffect: boolean = await input.criteriaInEffect.isInEffect({",
+    );
+    // The margin, for a monitor that judges no series on its own (#10743).
+    expect(evaluator).toContain("GroupedMonitorRecovery.judgeWholeMonitor({");
+    expect(evaluator).toContain(
+      "if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {",
+    );
+
+    const wholeMonitor: string = between(
+      readCommonSource("Server/Utils/Monitor/GroupedMonitorRecovery.ts"),
+      "public static judgeWholeMonitor(input: {",
+      "\n  }\n",
+    );
+
+    // Kept for a problem criteria without a recovery condition of its own.
+    expect(wholeMonitor).toContain(
+      "!MonitorCriteriaInstance.hasRecoveryCondition(criteriaInstance.data)",
+    );
+    expect(wholeMonitor).toContain("recoveryCriteriaIds.length === 0");
+
+    expect(criteriaPage).toContain(
+      "**Recover only when a condition of its own is met** keeps the criteria in effect after its filters stop matching, until the filters under **Recover When** match.",
+    );
+    expect(criteriaPage).toContain(
+      "so at 89% the monitor stays where it is. Its incidents and alerts still resolve when their own criteria stops matching.",
+    );
+  });
+
+  it("skips a criteria outside its active hours, read on its time zone's clock", () => {
+    const evaluator: string = readCommonSource(
+      "Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
+    );
+
+    expect(evaluator).toContain(
+      "if (!CriteriaActiveHours.isActive({ criteria: criteriaInstance.data })) {",
+    );
+    expect(evaluator).toContain('skipCause: "outside-active-hours",');
+    expect(
+      readCommonSource("Server/Utils/Monitor/CriteriaActiveHours.ts"),
+    ).toContain("return WorkingHours.isWithin({");
+
+    expect(criteriaPage).toContain(
+      "Outside those hours the criteria is skipped as a disabled criteria is: it matches nothing, so what it opened resolves",
+    );
+  });
+
+  it("brings a grouped monitor back only once the hosts behind its status meet the criteria that brings it back (#10061)", () => {
+    const recovery: string = readCommonSource(
+      "Server/Utils/Monitor/GroupedMonitorRecovery.ts",
+    );
+
+    // "Only brings it back": the default status, and nothing opened.
+    const getRole: string = between(
+      recovery,
+      "public static getRole(input: {",
+      "\n  }\n",
+    );
+
+    expect(getRole).toContain("criteria.isEnabled === false");
+    expect(getRole).toContain(
+      "return MonitorCriteriaInstance.opensRecords(criteria)",
+    );
+    expect(getRole).toContain(": GroupedCriteriaRole.Recovery;");
+
+    /*
+     * It waits for the series behind the status, not for every series, nor
+     * for one its own criteria's recovery condition let go (#10355).
+     */
+    expect(recovery).toContain(
+      "behind.has(fingerprint) &&\n          !recovery.metSeries.has(fingerprint) &&\n          // Its own criteria's recovery condition let it go already.\n          !input.recoveredSeries?.has(fingerprint)",
+    );
+
+    // The first match after it, and the status kept while one waits.
+    expect(EVALUATOR).toContain(
+      "await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({",
+    );
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorResource.ts"),
+    ).toContain("await MonitorResourceUtil.keepStatusForSeriesBehindIt({");
+
+    expect(criteriaPage).toContain(
+      "> Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.",
+    );
+  });
 });
 
 // ---- What a criteria holds ----------------------------------------------------------
@@ -1083,7 +1227,7 @@ describe("what a criteria holds", () => {
     );
   });
 
-  it("keeps the switch, the description and, on Incoming Request monitors only, grouping under Settings", () => {
+  it("keeps the switch, the description, when it recovers and when it is judged and, on Incoming Request monitors only, grouping under Settings", () => {
     const settings: string = between(
       CRITERIA_INSTANCE_FORM,
       'title="Settings"',
@@ -1092,11 +1236,34 @@ describe("what a criteria holds", () => {
 
     expect(settings).toContain('title="Enable this criteria"');
     expect(settings).toContain('title={"Description"}');
+    // Its recovery condition and its active hours (#10355), off until needed.
+    expect(settings).toContain("<CriteriaRecoveryAndActiveHours");
     expect(settings).toContain(
       'props.monitorType === MonitorType.IncomingRequest && (\n            <div className="mt-6 border-t border-gray-100 pt-4">\n              <Toggle\n                value={showIncidentGrouping}\n                title="Group incidents and alerts by a payload field"',
     );
+
+    const recoveryAndActiveHours: string = readDashboardSource(
+      "Components/Form/Monitor/CriteriaRecoveryAndActiveHours.tsx",
+    );
+
+    expect(recoveryAndActiveHours).toContain(
+      'export const RECOVERY_TOGGLE_TITLE: string = translationKey(\n  "Recover only when a condition of its own is met",\n);',
+    );
+    expect(recoveryAndActiveHours).toContain(
+      'export const ACTIVE_HOURS_TOGGLE_TITLE: string = translationKey(\n  "Judge this criteria only on certain days and times",\n);',
+    );
+    expect(recoveryAndActiveHours).toContain(
+      "value={hasRecoveryCondition}\n          title={RECOVERY_TOGGLE_TITLE}",
+    );
+    expect(recoveryAndActiveHours).toContain(
+      "value={hasActiveHours}\n          title={ACTIVE_HOURS_TOGGLE_TITLE}",
+    );
+
     expect(parts).toContain(
-      "| **Settings** | **Enable this criteria**, an optional **Description** and, on Incoming Request monitors, **Group incidents and alerts by a payload field**. |",
+      "| **Settings** | **Enable this criteria**, an optional **Description**, when it recovers and when it is judged and, on Incoming Request monitors, **Group incidents and alerts by a payload field**. |",
+    );
+    expect(criteriaPage).toContain(
+      "**Recover only when a condition of its own is met** and **Judge this criteria only on certain days and times** are off for a new criteria.",
     );
   });
 });
@@ -3114,7 +3281,7 @@ describe("turning monitoring off for a whole group (#6401)", () => {
 
   it("asks before turning it off, and turns it back on at once", () => {
     expect(MonitorGroupMonitoringCopy.turnOffButton).toBe(
-      "Turn off monitoring",
+      "Turn monitoring off",
     );
     expect(MonitorGroupMonitoringCopy.turnOnButton).toBe("Turn monitoring on");
     // Off opens the dialog; on saves.
@@ -3122,7 +3289,7 @@ describe("turning monitoring off for a whole group (#6401)", () => {
     expect(GROUP_MONITORING_CARD).toContain("void turn(true);");
     expect(GROUP_MONITORING_CARD).toContain("<ConfirmModal");
     expect(turning).toContain(
-      "- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
+      "- **Turn monitoring off** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
     );
     expect(turning).toContain(
       "- **Turn monitoring on** saves at once. Each monitor's next check sets its status again.",
@@ -3200,6 +3367,33 @@ describe("a monitor group on a status page", () => {
     );
     expect(groupsPage).toContain(
       "**Add a Monitor Group instead.** appears in the dialog only while the **Monitor Groups** switch is on for the project.",
+    );
+  });
+
+  /*
+   * Edit resource opens on what the row shows, and its link swaps the
+   * picker for that dialog alone (#6540, #6559): the words come from the
+   * switch the Edit form draws, and saving clears what the row showed.
+   */
+  it("points a monitor's row at a group, and back, from Edit resource", () => {
+    expect(STATUS_PAGE_RESOURCE_PANEL).toContain('title="Edit resource"');
+    expect(STATUS_PAGE_RESOURCE_PANEL).toContain(
+      "targetType: getStatusPageResourceTargetType(statusPageResource),",
+    );
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
+      'translator.translateText("Show a Monitor instead.")',
+    );
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
+      'translator.translateText("Show a Monitor Group instead.")',
+    );
+    expect(STATUS_PAGE_RESOURCE_SERVICE).toContain(
+      "RelationIdUtil.stamp(updateData, MONITOR_GROUP_KEYS, null);",
+    );
+    expect(STATUS_PAGE_RESOURCE_SERVICE).toContain(
+      "RelationIdUtil.stamp(updateData, MONITOR_KEYS, null);",
+    );
+    expect(showing).toContain(
+      "A row that shows a monitor can show a group instead: open its **Edit resource**, the pencil on the row, and click **Show a Monitor Group instead.** under the dropdown. On a group's row, **Edit resource** opens with the group picked, and **Show a Monitor instead.** points the row at a monitor. Saving clears what the row showed before: a row shows one monitor or one monitor group, never both.",
     );
   });
 

@@ -166,6 +166,81 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * OneUptime AI's analysis of an issue (#10369): its verdicts, the
+   * questions it answers, what a hidden line rests on and how recently
+   * access was used, as the issue's page, the Issues list and AI Results
+   * draw them. The server keeps the same file's English for the owners'
+   * email. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts",
+    kind: "keys",
+  },
+  /*
+   * The issues one mistake made (#10370): a group's headline, "40 issues,
+   * one cause: the static-site module", and the words its cause is said
+   * with, as the Issues list and an issue's analysis draw them. The server
+   * keeps the same file's English for its proposals and pull requests. Only
+   * the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
+    kind: "keys",
+  },
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372):
+   * Confirm it, Not sensitive or Cannot tell, and the signs of a wrong
+   * match, as a finding's row, the findings' filter and Apply to Similar
+   * Findings draw them. The server keeps the same file's English. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+    kind: "keys",
+  },
+  /*
+   * The compliance paperwork (#10375): the record of processing's fields,
+   * legal bases, people, statuses and refusals; the kinds of fact a draft
+   * rests on; an impact assessment's parts and why a store needs one; and
+   * why an audit evidence paragraph is refused. Compliance, Review Drafts,
+   * a store's Settings and Impact Assessment draw them; the server keeps the
+   * same files' English for OneUptime AI and the exports. Only the words
+   * the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
+    kind: "keys",
+  },
+  /*
+   * Was it a breach? (#10377): the table of breach laws - what each asks,
+   * of whom, when, and what a person still checks - with the places and
+   * the data it names, and what the table does not cover and the parts of
+   * OneUptime AI's write-up, as a security case's Was It a Breach? and
+   * Breach Notices cards draw them. The server keeps the same files'
+   * English for OneUptime AI. Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/BreachLaws.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -381,11 +456,29 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*
+   * A moment's words in a sentence (#10622): "at 14:25" today, "on 27 Nov
+   * at 14:25" on another day, and since and until each way - so a sentence
+   * never puts a time's preposition before a day. Only the words the file
+   * marks are read.
+   */
+  { directory: "packages/Common/Utils/MomentPhrases.ts", kind: "keys" },
+  /*
    * What each placeholder a playbook's note or message may use stands for:
    * the step editor lists them under its field, said on hover.
    */
   {
     directory: "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
+    kind: "ui",
+  },
+  /*
+   * A case's Response Plan (#9557), shared with the server, OneUptime AI and
+   * the mobile app (#10340): every step's words and its buttons', and what
+   * OneUptime's own checks of the steps say. The card looks each up as it
+   * draws it; the server keeps a step's key and its evidence's keys, never
+   * the words.
+   */
+  {
+    directory: "packages/Common/Utils/SecurityCase/ResponsePlan",
     kind: "ui",
   },
   /*
@@ -457,6 +550,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * blocklist's rules.
    */
   { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
+  /*
+   * The ready automatic response policies' names and descriptions, and
+   * what is wrong with a project's own (#10350): the Automatic Response
+   * page says them in the reader's language, and the server answers an API
+   * client with the same words in English. Only the sentences the files
+   * mark are read: the rest is the policies' rules.
+   */
+  {
+    directory: "packages/Common/Types/SecurityAutomaticResponse",
+    kind: "keys",
+  },
   /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the
@@ -572,6 +676,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a discovery scan's Run Again was refused (issue #10334): already
+   * running, its probe not connected, and the rest - the words the server
+   * refuses with, said in the reader's language on the scan's row. Only the
+   * sentences the file marks are read.
+   */
+  {
+    directory: "packages/Common/Utils/NetworkDiscovery/DiscoveryScanRun.ts",
+    kind: "keys",
+  },
+  /*
    * Why Add or Delete is locked on the Global User Overrides page for a
    * reader whose permission to add or delete overrides covers only some
    * policies - the words the server refuses with. Only the sentences the
@@ -607,6 +721,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/OnCallDutyPolicy/UserOverrideTeamAccess.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a person, a team or an on-call schedule was not added to an
+   * escalation rule: the rule pages them already (#10465). The server
+   * refuses in English with their names in the sentence, and the Dashboard
+   * says it in the reader's language with the names as written. Only the
+   * sentences the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/EscalationRuleResponderOnce.ts",
     kind: "keys",
   },
   /*
@@ -754,6 +880,37 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Exception/UnexplainedError.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a notification method could not be verified or sent a test (#7272):
+   * the server's refusals, which the verify dialog and a Send Test's dialog
+   * say in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/UserNotification/ChannelVerificationMessages.ts",
+    kind: "keys",
+  },
+  /*
+   * Why an invitation was refused - the person is in the team already, or
+   * the Free plan has no room (#7271): the invite dialog says them in the
+   * reader's language. Only the words the file marks are read: the rest of
+   * the server's errors stay as they are.
+   */
+  { directory: "packages/Common/Server/Utils/Errors.ts", kind: "keys" },
+  /*
+   * A feature the project's plan does not include, and a value another
+   * record holds in a column that holds each value once (#7276): refusals
+   * with values in them, which every form and dialog says in the reader's
+   * language (ErrorInSentence). Only the words each file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Billing/PlanRequiredRefusal.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Database/UniqueValueTaken.ts",
     kind: "keys",
   },
   /*

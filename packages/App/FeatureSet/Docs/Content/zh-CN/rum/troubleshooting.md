@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` 且 `"valid": true` | OneUptime 接受该密钥。响应中还会给出它的 `keyType` 和 `projectId` 。继续下一项检查。 |
 | `401` 且 `"valid": false` | 密钥缺失、未知、已吊销、已关闭或已过期， `message` 会说明是哪一种。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个有效的密钥。 |
 
-Web 应用需要 **浏览器** 密钥，移动应用需要 **服务器** 密钥：参见 [浏览器端设置](/docs/rum/browser-setup) 和 [移动端设置](/docs/rum/mobile-setup) 。导出端点也会按 OTLP 规范的要求以 `401` 拒绝错误的密钥，因此行为良好的 SDK 会记录这次拒绝，而不是重试。这一行在浏览器控制台中很容易被忽略，而这项检查会直接给出答案。
+Web 应用需要 **浏览器** 密钥，移动应用需要 **移动端** 密钥：参见 [浏览器端设置](/docs/rum/browser-setup) 和 [移动端设置](/docs/rum/mobile-setup) 。导出端点也会按 OTLP 规范的要求以 `401` 拒绝错误的密钥，因此行为良好的 SDK 会记录这次拒绝，而不是重试。这一行在浏览器控制台中很容易被忽略，而这项检查会直接给出答案。
 
 OneUptime 还会统计它从已知密钥拒绝的内容。 **项目设置 → 遥测与 APM → 摄取密钥** 下的密钥页面在 **被拒绝的遥测** 中列出过去 30 天被拒绝的内容，应用程序 **文档** 页面上的 **设置检查** 会说明哪种遥测被拒绝、原因以及如何解决。缺失或未知的密钥不指向任何项目，因此不会被统计：只有这项检查和 `401` 能告诉你。
 
@@ -81,20 +81,20 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 **`422`.** OneUptime 在这里拒绝了该密钥，消息会说明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（包括协议和端口，如果有）不在该密钥的 **允许的来源** 中。 `This telemetry ingestion key has been disabled.` 表示有人关闭了该密钥。
 
-**`429`.** 该密钥的 **Requests Per Minute Limit** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在密钥上设置了自己的上限，否则 Browser 密钥对你所有访客合计每分钟允许 6000 个请求。
+**`429`.** 该密钥的 **每分钟请求数上限** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在密钥上设置了自己的上限，否则 Browser 密钥对你所有访客合计每分钟允许 6000 个请求。
 
 **带有 HTML 页面或空正文的 `403`。** OneUptime 对每次拒绝都以 JSON 响应，所以这个响应来自它前面的某个东西，通常是你自己域名上的 Web 应用防火墙（如果你通过它代理 OneUptime）。防火墙会解析 OTLP/JSON，并用它的注入规则检查每个 span 属性，因此 span 上一个带查询字符串的 URL 就足以被拦截，防火墙的日志会写明是哪条规则。仅在 OTLP 路径上将 OTLP 负载排除在检查之外： [你的 OpenTelemetry 请求也被阻止了](/docs/rum/session-replay-troubleshooting#你的-opentelemetry-请求也被阻止了) 说明了做法，也涵盖了位于同一防火墙后面的回放录制器。
 
 ## 检查遥测数据落在哪里
 
-请求成功了，但应用出现在 **产品 → 服务** 下，而不是 **产品 → 资源 → 真实用户监控** 下。这是最常见的问题，原因几乎总是资源上没有客户端属性。只有当一批数据的资源带有以下属性之一时，OneUptime 才会将其归为 RUM：
+请求成功了，但应用出现在 **产品 → 服务** 下，而不是 **产品 → 资源 → 真实用户监控** 下。这是最常见的问题，原因几乎总是使用了浏览器密钥或移动端密钥以外的密钥，发送的资源上又没有客户端属性。浏览器密钥或移动端密钥发送的所有内容都会归为 RUM；使用其他任何密钥时，只有当一批数据的资源带有以下属性之一时，OneUptime 才会将其归为 RUM：
 
 | 类型 | 属性 |
 | --- | --- |
 | 浏览器 | `browser.platform` 、 `browser.language` ，或非空的 `browser.brands` |
 | 移动端 | `device.id` 或 `device.model.identifier` ，或者在没有主机标识（ `host.name` 、 `host.id` 或 `k8s.node.name` ）的资源上的 `device.manufacturer` |
 
-仅有 `service.name` 会成为后端服务。OpenTelemetry 浏览器 SDK 不会添加任何 `browser.*` 属性，除非你添加浏览器资源检测器或自己设置它们：参见 [浏览器端设置](/docs/rum/browser-setup) 。
+使用其他任何密钥时，仅有 `service.name` 会成为后端服务。OpenTelemetry 浏览器 SDK 不会添加任何 `browser.*` 属性，除非你添加浏览器资源检测器或自己设置它们：参见 [浏览器端设置](/docs/rum/browser-setup) 。
 
 要查看你实际发送了什么，在 Network 选项卡中打开 OTLP 请求并查看其负载：起决定作用的是 `resourceSpans[0].resource.attributes` 列表。如果里面没有 `browser.*` 属性，那么无论文档怎么说，SDK 都没有添加它。
 
@@ -127,7 +127,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 异常需要错误处理程序，因为 SDK 不会捕获未捕获的错误：代码见 [上报未捕获的错误](/docs/rum/browser-setup#上报未捕获的错误)。由 error boundary 或 `try`/`catch` 处理的错误永远不会到达 window，所以要在处理它的地方用 `span.recordException` 记录。
 
-日志需要日志管道和写入日志记录的代码，因为单靠 `LoggerProvider` 什么也不会发送：两者都在 [添加日志和指标](/docs/rum/browser-setup#添加日志和指标) 中。用与追踪相同的 `resource` 构建管道，否则日志会被归到一个后端服务下。
+日志需要日志管道和写入日志记录的代码，因为单靠 `LoggerProvider` 什么也不会发送：两者都在 [添加日志和指标](/docs/rum/browser-setup#添加日志和指标) 中。用与追踪相同的 `resource` 构建管道，这样日志也会归到同一个应用程序下。
 
 如果页面加载能到达，那么只要日志导出器使用相同的密钥和主机，密钥、其允许的来源以及你的 Content Security Policy 也会放行异常和日志。尚未捕获任何错误的错误处理程序不会发送任何内容，这与从未添加的处理程序完全一样，所以要从浏览器控制台抛出一个测试错误来区分两者：
 

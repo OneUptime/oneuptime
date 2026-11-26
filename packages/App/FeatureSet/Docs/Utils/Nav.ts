@@ -980,6 +980,18 @@ const DocsNav: NavGroup[] = [
         title: "Stream Google Cloud Logs",
         url: "/docs/telemetry/cloud-streaming-google-cloud",
       },
+      {
+        title: "Block Addresses in AWS WAF",
+        url: "/docs/telemetry/cloud-aws-waf-blocklist",
+      },
+      {
+        title: "Block Addresses in Azure WAF",
+        url: "/docs/telemetry/cloud-azure-waf-blocklist",
+      },
+      {
+        title: "Block Addresses in Cloud Armor",
+        url: "/docs/telemetry/cloud-armor-blocklist",
+      },
     ],
   },
   {
@@ -1043,6 +1055,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Security Cases and Playbooks (SOAR)",
         url: "/docs/telemetry/security-cases",
+      },
+      {
+        title: "Automatic Response",
+        url: "/docs/telemetry/security-automatic-response",
+      },
+      {
+        title: "Blocklist Feeds for Firewalls and Proxies",
+        url: "/docs/telemetry/blocklist-feeds",
       },
       {
         title: "Entity Risk (Risk-Based Alerting)",
@@ -1498,6 +1518,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/google-workspace",
       },
       {
+        title: "Cloudflare",
+        url: "/docs/integrations/cloudflare",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },
@@ -1867,6 +1891,11 @@ const DocsNav: NavGroup[] = [
       {
         title: "Session Length",
         url: "/docs/self-hosted/session-length",
+      },
+      // Where the server sends its people for help, and what it hides (#10864-#10866).
+      {
+        title: "Help and Support",
+        url: "/docs/self-hosted/help-and-support",
       },
       // What the daily update and security advisory check sends, and how to turn it off.
       {

@@ -1,5 +1,6 @@
 import { AddBackupScriptLastRun1809183200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183200000-AddBackupScriptLastRun";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
+import Entities from "../../../../Models/DatabaseModels/Index";
 import {
   BackupScriptRun,
   readBackupScriptRun,
@@ -133,12 +134,17 @@ describePostgres("AddBackupScriptLastRun against Postgres", () => {
       await new AddBackupScriptLastRun1809183200000().up(queryRunner);
     });
 
-    // The model, on the migrated copy: how GlobalConfigService writes and reads it.
+    /*
+     * The model, on the migrated copy: how GlobalConfigService writes and
+     * reads it. Every model is registered, as the server registers them:
+     * each one relates to the person who last modified it (RecordActor,
+     * #10290), and TypeORM reads a relation from the model it names.
+     */
     models = new DataSource({
       type: "postgres",
       ...connection,
       schema: schema,
-      entities: [GlobalConfig],
+      entities: Entities,
       synchronize: false,
       extra: { options: `-c search_path=${schema},public` },
     });

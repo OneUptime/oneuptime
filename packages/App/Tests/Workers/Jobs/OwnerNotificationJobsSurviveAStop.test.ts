@@ -1097,10 +1097,28 @@ function idOf(user: User): string {
 }
 
 // Whether a feed item's details name the owner: by their markdown, or name and address.
+/*
+ * Whether the entry's details name the owner: as a link to their page (by
+ * their id, as a state change's details write them), or by their name alone,
+ * as the feed names a member - never their address (FeedPersonName,
+ * #10669). One line of the list, or one name of a sentence's list ("...
+ * reached them: Owner 1, Owner 2."), so "Owner 1" is not found in "Owner 12".
+ */
 function namesOwner(markdown: string, user: User): boolean {
-  return (
-    markdown.includes(idOf(user)) || markdown.includes(user.email!.toString())
-  );
+  if (markdown.includes(idOf(user))) {
+    return true;
+  }
+
+  const name: string = user.name!.toString();
+
+  return markdown.split("\n").some((line: string): boolean => {
+    return (
+      line === `- ${name}` ||
+      line.split(/: |, /).some((part: string): boolean => {
+        return part.replace(/^- /, "").replace(/\.$/, "") === name;
+      })
+    );
+  });
 }
 
 const NEVER: Promise<never> = new Promise<never>(() => {
@@ -3598,8 +3616,8 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         expect(jobCase.feedItems()).toEqual([
           {
             moreInformationInMarkdown:
-              "- Owner 1 (owner1@acme.test)\n- Owner 3 (owner3@acme.test)\n" +
-              "\nNot notified again, as the on-call page reached them: Owner 2 (owner2@acme.test).\n",
+              "- Owner 1\n- Owner 3\n" +
+              "\nNot notified again, as the on-call page reached them: Owner 2.\n",
           },
         ]);
 
@@ -3670,7 +3688,7 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
 
         expect(items).toHaveLength(2);
         expect(items[1]!.moreInformationInMarkdown).toBe(
-          "- Owner 1 (owner1@acme.test)\n- Owner 3 (owner3@acme.test)\n",
+          "- Owner 1\n- Owner 3\n",
         );
       });
 

@@ -38,10 +38,15 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext, {
+  getInfrastructureFixFolder,
+  getInfrastructureFixTaskContext,
   getInvestigationCodeFixTaskSnapshot,
+  getTelemetryLeakFixTaskContext,
   ImplicatedSpan,
+  InfrastructureFixTaskContext,
   InvestigationCodeFixTaskSnapshot,
   PerformanceFinding,
+  TelemetryLeakFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
 import SpanTreeAnalyzer from "../../Utils/Traces/SpanTreeAnalyzer";
 import {
@@ -1144,6 +1149,184 @@ export default class AIAgentDataAPI {
                     repository.gitHubAppInstallationId || null,
                   resolutionMethod: resolution.method,
                   resolutionEvidence: resolution.evidence,
+                },
+              ],
+            });
+          }
+
+          /*
+           * The fix of a group of Data Security issues' cause, once
+           * (FixInfrastructureCode, #10370): the request, the cause and the
+           * stores it fixes were captured at trigger time, and it works in
+           * the repository a person confirmed (the run's own), never one
+           * resolved here. The files that declare the stores, when known,
+           * are where the worker starts.
+           */
+          if (taskType === CodeFixTaskType.FixInfrastructureCode) {
+            const fix: InfrastructureFixTaskContext | null =
+              getInfrastructureFixTaskContext(
+                run.taskContext?.infrastructureFix,
+              );
+
+            if (!fix) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This infrastructure fix has no stored request: the task has nothing to work from.",
+                ),
+              );
+            }
+
+            const repository: CodeRepository | null = run.codeRepositoryId
+              ? await CodeRepositoryService.findOneBy({
+                  query: {
+                    _id: run.codeRepositoryId.toString(),
+                    projectId: run.projectId,
+                  },
+                  select: {
+                    _id: true,
+                    name: true,
+                    repositoryHostedAt: true,
+                    organizationName: true,
+                    repositoryName: true,
+                    mainBranchName: true,
+                    setupCommand: true,
+                    buildCommand: true,
+                    testCommand: true,
+                    gitHubAppInstallationId: true,
+                  },
+                  props: { isRoot: true },
+                })
+              : null;
+            const folder: string | null = getInfrastructureFixFolder(fix.paths);
+            const basePayload: JSONObject = {
+              subjectType: "infrastructure",
+              subjectTitle: fix.title,
+              // The request as Data Security's input builder wrote it: redacted there.
+              analysisMarkdown: fix.request,
+              serviceName: null,
+              projectId: run.projectId.toString(),
+              infrastructureFix: fix as unknown as JSONObject,
+            };
+
+            if (!repository) {
+              return Response.sendJsonObjectResponse(req, res, {
+                ...basePayload,
+                repositories: [],
+                resolutionError:
+                  "The repository this fix was asked in is no longer connected to the project. Connect it again in Code, then ask for the fix again from the Issues list.",
+              });
+            }
+
+            return Response.sendJsonObjectResponse(req, res, {
+              ...basePayload,
+              repositories: [
+                {
+                  id: repository.id!.toString(),
+                  name: repository.name || "",
+                  repositoryHostedAt: repository.repositoryHostedAt || "",
+                  organizationName: repository.organizationName || "",
+                  repositoryName: repository.repositoryName || "",
+                  mainBranchName: repository.mainBranchName || "main",
+                  // None for a global Runner, which runs no repository command.
+                  ...CodeFixAgentAuth.getRepositoryCommands(
+                    aiAgent,
+                    repository,
+                  ),
+                  servicePathInRepository: folder,
+                  gitHubAppInstallationId:
+                    repository.gitHubAppInstallationId || null,
+                  resolutionMethod: "only-repository",
+                  resolutionEvidence: `The repository a person confirmed for the fix of ${fix.cause || "these issues"}.`,
+                },
+              ],
+            });
+          }
+
+          /*
+           * A service's telemetry leaks, fixed in its code in one pull
+           * request (FixSensitiveDataInTelemetry, #10367): the request, and
+           * every leak with the places its records name, were captured at
+           * trigger time - places, keys, data types and masked templates,
+           * never a value - and it works in the repository the leaks were
+           * found in (the run's own), never one resolved here. The
+           * service's folder in it, when known, is where the worker starts.
+           */
+          if (taskType === CodeFixTaskType.FixSensitiveDataInTelemetry) {
+            const fix: TelemetryLeakFixTaskContext | null =
+              getTelemetryLeakFixTaskContext(run.taskContext?.telemetryLeakFix);
+
+            if (!fix) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This telemetry fix has no stored request: the task has nothing to work from.",
+                ),
+              );
+            }
+
+            const repository: CodeRepository | null = run.codeRepositoryId
+              ? await CodeRepositoryService.findOneBy({
+                  query: {
+                    _id: run.codeRepositoryId.toString(),
+                    projectId: run.projectId,
+                  },
+                  select: {
+                    _id: true,
+                    name: true,
+                    repositoryHostedAt: true,
+                    organizationName: true,
+                    repositoryName: true,
+                    mainBranchName: true,
+                    setupCommand: true,
+                    buildCommand: true,
+                    testCommand: true,
+                    gitHubAppInstallationId: true,
+                  },
+                  props: { isRoot: true },
+                })
+              : null;
+            const basePayload: JSONObject = {
+              subjectType: "service",
+              subjectTitle: fix.title,
+              // The request as Data Security's input builder wrote it: redacted there.
+              analysisMarkdown: fix.request,
+              serviceName: fix.serviceName || null,
+              projectId: run.projectId.toString(),
+              telemetryLeakFix: fix as unknown as JSONObject,
+            };
+
+            if (!repository) {
+              return Response.sendJsonObjectResponse(req, res, {
+                ...basePayload,
+                repositories: [],
+                resolutionError:
+                  "The repository this fix was asked in is no longer connected to the project. Connect it again in Code, then ask for the fix again with Fix with AI on one of the service's issues.",
+              });
+            }
+
+            return Response.sendJsonObjectResponse(req, res, {
+              ...basePayload,
+              repositories: [
+                {
+                  id: repository.id!.toString(),
+                  name: repository.name || "",
+                  repositoryHostedAt: repository.repositoryHostedAt || "",
+                  organizationName: repository.organizationName || "",
+                  repositoryName: repository.repositoryName || "",
+                  mainBranchName: repository.mainBranchName || "main",
+                  // None for a global Runner, which runs no repository command.
+                  ...CodeFixAgentAuth.getRepositoryCommands(
+                    aiAgent,
+                    repository,
+                  ),
+                  servicePathInRepository: fix.folder || null,
+                  gitHubAppInstallationId:
+                    repository.gitHubAppInstallationId || null,
+                  resolutionMethod: "only-repository",
+                  resolutionEvidence: `The repository ${fix.serviceName || "the service"}'s leaks are written in.`,
                 },
               ],
             });

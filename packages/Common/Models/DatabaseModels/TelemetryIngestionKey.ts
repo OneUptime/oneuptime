@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import ServerOwned from "../../Types/Database/ServerOwned";
 import Project from "./Project";
 import User from "./User";
@@ -47,6 +49,18 @@ const INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
 @EnableDocumentation()
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/telemetry-ingestion-key"))
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_TELEMETRYINGESTIONKEY_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "TelemetryIngestionKey",
 })
@@ -165,6 +179,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     ],
   })
   @Index()
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -277,54 +292,6 @@ export default class TelemetryIngestionKey extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -428,7 +395,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Key Type",
     description:
-      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. This cannot be changed after the key is created - create a new key instead.",
+      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP and its session replays, never from a web page. This cannot be changed after the key is created - create a new key instead.",
     defaultValue: TelemetryIngestionKeyType.Server,
     example: TelemetryIngestionKeyType.Server,
   })
@@ -477,7 +444,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.JSON,
     title: "Allowed Origins",
     description:
-      "Web origins (for example https://app.example.com or https://*.example.com) and exact React Native identities (for example app://com.example.mobile) that may use this key. Required on a Browser key. Web requests need a listed Origin; mobile replay requests without Origin need a listed app identity. app:// entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key.",
+      "Web origins (for example https://app.example.com or https://*.example.com) and exact React Native identities (for example app://com.example.mobile) that may use this key. Required on a Browser key. Web requests need a listed Origin; mobile replay requests without Origin need a listed app identity. app:// entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key and on a Mobile key, because neither a server nor a mobile app sends an Origin header.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -515,7 +482,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Pinned Service Name",
     description:
-      "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts.",
+      "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts. Required on a Mobile key, where it is the service.name of the app the key ships in, and the only RUM application it may send session replays for.",
     example: "checkout-web",
   })
   @Column({
@@ -649,7 +616,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.Number,
     title: "Requests Per Minute Limit",
     description:
-      "Maximum ingest requests per minute accepted with this key. Leave empty to use the shipped default for a Browser key, and to leave a Server key unlimited. The limit is per key, across every client using it, so it has to clear your whole fleet - see DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE for the default and the reasoning behind its size.",
+      "Maximum ingest requests per minute accepted with this key. Leave empty to use the shipped default for a Browser or Mobile key, and to leave a Server key unlimited. The limit is per key, across every client using it, so it has to clear your whole fleet - see DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE for the default and the reasoning behind its size.",
     example: 6000,
   })
   @Column({

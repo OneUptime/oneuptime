@@ -46,6 +46,8 @@ Tutto il resto si trova in **Altri campi**, chiuso finché non lo apri:
 
 Finché qualcuno si alterna e in **Altri campi** non cambia nulla, la sua intestazione chiusa dice cosa succederà: ogni persona è reperibile per una settimana, poi subentra la successiva.
 
+Anche una persona invitata al progetto che non vi è ancora entrata può alternarsi, ma nulla la avvisa finché non accetta il suo invito, e non le viene detto nulla. Il suo turno è un buco di copertura, e i canali e il feed di ogni policy di reperibilità che avvisa la pianificazione lo dicono, nominandola con il nome scritto con il suo invito, mai con il suo indirizzo e-mail: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." Anche `/oneuptime oncall` in Slack e `oncall` in Microsoft Teams lo dicono. Appena entra, gli avvisi la raggiungono, le viene detto quali policy di reperibilità la avvisano ora, e i canali ricevono "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Fino ad allora, [Prontezza e report](/docs/on-call/readiness) la elenca, con cosa fare.
+
 ## Livelli
 
 La rotazione di una pianificazione è fatta di livelli, nella sua pagina **Livelli**. I livelli si leggono dall'alto verso il basso: il livello più alto con qualcuno reperibile è quello che avvisa, quindi metti la rotazione principale in alto e la copertura di riserva sotto.

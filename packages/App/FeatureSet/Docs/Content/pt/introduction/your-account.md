@@ -23,8 +23,8 @@ Clique na sua foto, no canto superior direito do painel.
 
 | Item | O que faz |
 | --- | --- |
-| **Perfil** | Abre **Perfil do usuário**: seu nome, seu e-mail, seu fuso horário, seu idioma, sua foto e a segurança do seu login. |
-| **Configurações de admin** | Abre o Admin Dashboard. Só os administradores principais de uma instalação auto-hospedada o veem. |
+| **Perfil do usuário** | Abre **Perfil do usuário**: seu nome, seu e-mail, seu fuso horário, seu idioma, sua foto e a segurança do seu login. |
+| **Painel do administrador** | Abre o Admin Dashboard. Só os administradores principais de uma instalação auto-hospedada o veem. |
 | **Tema** | Define o tema do painel: **Claro**, **Escuro** ou **Sistema**, que é claro ou escuro conforme a configuração do seu dispositivo. |
 | **Sair** | Encerra sua sessão, na hora, em todos os servidores do OneUptime. Onde o seu administrador configurou, encerra também a sua sessão no provedor de identidade. |
 
@@ -35,7 +35,7 @@ Clique na sua foto, no canto superior direito do painel.
 :::steps
 ### Abrir seu perfil
 
-Clique na sua foto, no canto superior direito, e escolha **Perfil**. A página **Visão geral** abre no cartão **Informações básicas**: seu nome, seu e-mail, seu fuso horário e seu idioma.
+Clique na sua foto, no canto superior direito, e escolha **Perfil do usuário**. A página **Visão geral** abre no cartão **Informações básicas**: seu nome, seu e-mail, seu fuso horário e seu idioma.
 
 ### Editar seus dados
 
@@ -114,7 +114,7 @@ Abra **Segurança → Autenticação de dois fatores** e clique em **Ativar a au
 
 ### Configurá-la
 
-Para um aplicativo autenticador, escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
+Para um aplicativo autenticador, escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Em um celular, toque em **Adicionar à aplicação de autenticação** em vez de escanear: o aplicativo abre com sua conta já preenchida. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
 
 ### Guardar seus códigos de backup
 
@@ -127,7 +127,7 @@ Se você já tem um aplicativo em **Apps autenticadores** ou uma chave em **Chav
 
 Quando um administrador exige a autenticação de dois fatores e você ainda não configurou nada, seu próximo login com uma senha ou um link enviado por e-mail pede que você a configure antes de deixar você entrar. Escolha **Aplicativo autenticador** ou **Chave de segurança** e clique em **Continuar**:
 
-- **Aplicativo autenticador**: escaneie o código QR, digite o código de 6 dígitos que seu aplicativo mostra e clique em **Verificar e iniciar sessão**.
+- **Aplicativo autenticador**: escaneie o código QR, digite o código de 6 dígitos que seu aplicativo mostra e clique em **Verificar e iniciar sessão**. Em um celular, toque em **Adicionar à aplicação de autenticação** em vez de escanear.
 - **Chave de segurança**: clique em **Registrar chave de segurança** e siga as instruções do navegador. Toque em uma chave USB ou NFC, ou use a impressão digital, o rosto ou o bloqueio de tela do seu celular ou computador.
 
 Se você ainda não tem códigos de backup, o OneUptime os mostra então uma única vez, e você está conectado. **Escolher outra forma** volta à escolha. Um navegador que não consegue registrar uma chave de segurança, como um em uma página sem HTTPS, oferece só o aplicativo autenticador.
@@ -156,20 +156,23 @@ Algumas alterações pedem primeiro que você confirme que é você, mesmo que j
 - desativar a autenticação de dois fatores;
 - excluir sua conta.
 
-A janela **Confirme que é você** pede sua senha e, enquanto a autenticação de dois fatores estiver ativada, sua segunda etapa: um código do seu aplicativo autenticador, sua chave de segurança ou um dos seus códigos de backup. Com uma chave de acesso, clique em **Usar uma chave de acesso**. Se você entra apenas com login único, Google ou Microsoft, clique em **Entrar novamente**: o OneUptime faz seu provedor de identidade pedir que você entre de novo e depois traz você de volta à página. Em seguida, a alteração é feita.
+A janela **Confirme que é você** pede sua senha e, enquanto a autenticação de dois fatores estiver ativada, sua segunda etapa: um código do seu aplicativo autenticador, sua chave de segurança ou um dos seus códigos de backup. Com uma chave de acesso, clique em **Usar uma chave de acesso**. Se você entra apenas com login único, Google ou Microsoft, clique em **Entrar novamente**: o OneUptime faz seu provedor de identidade pedir que você entre de novo e depois traz você de volta à página. Em seguida, a alteração é feita. Se você entra apenas com o Vercel, que não pode confirmar que é você, escolha em vez disso **Entrar de outra forma** e entre com um link enviado para o seu e-mail.
 
 Depois que você confirma, não é perguntado de novo por 10 minutos nesse navegador. Cinco tentativas erradas encerram a sessão desse navegador, mas nunca bloqueiam sua conta: entre novamente e tente outra vez. O OneUptime envia um e-mail quando isso acontece, e sempre que um código de backup confirma que é você.
 
-Em um servidor auto-hospedado, os administradores principais confirmam da mesma forma que são eles antes de alterar como outra pessoa entra, tornar alguém administrador principal, alterar os provedores de login único ou as configurações de e-mail do servidor, ou criar uma chave de API mestra. A chave de API mestra não pode fazer essas alterações.
+Em um servidor auto-hospedado, os administradores principais confirmam da mesma forma que são eles antes de alterar como outra pessoa entra, excluir a conta de outra pessoa, tornar alguém administrador principal, alterar os provedores de login único ou as configurações de e-mail do servidor, ou criar uma chave de API mestra ou reativá-la. A chave de API mestra não pode fazer essas alterações.
 
 Entrar novamente só conta quando seu provedor de identidade informa que você entrou depois que o OneUptime enviou você até ele. Se o provedor fizer você entrar com uma sessão que ele já tem, sem pedir sua senha, isso não confirma nada: saia primeiro do provedor e depois clique em **Entrar novamente**. Onde seu servidor permite entrar com um link enviado por e-mail, **Entrar de outra forma** faz isso no lugar. O que o OneUptime pede a cada provedor, e o que um administrador pode mudar quando entrar novamente não confirma nada:
 
 | Provedor | O que o OneUptime pede | Quando não confirma nada |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` e quando você entrou (`AuthnInstant`) | Faça o provedor respeitar a solicitação, por exemplo com Honor Force Authentication no Okta. |
-| OpenID Connect | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Faça o provedor enviar `auth_time`. No Microsoft Entra ID, adicione-o ao token de ID como uma declaração opcional. |
+| OpenID Connect | `prompt=login` e `max_age=0` (Microsoft Entra ID: só `prompt=login`), e quando você entrou (`auth_time`) | Faça o provedor enviar `auth_time`. No Microsoft Entra ID, adicione-o ao token de ID como uma declaração opcional. |
 | Google | Quando você entrou (`auth_time`). Não é possível pedir ao Google que faça você entrar de novo. | Ative Session age claims para o aplicativo de login do Google do servidor, que precisa estar publicado e verificado. |
-| Microsoft | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Adicione `auth_time` ao token de ID do aplicativo de login da Microsoft do servidor como uma declaração opcional. |
+| Microsoft | `prompt=login`, e quando você entrou (`auth_time`) | Adicione `auth_time` ao token de ID do aplicativo de login da Microsoft do servidor como uma declaração opcional. |
+| Vercel | Nada: não é possível pedir ao Vercel que faça você entrar novamente, e ele não informa quando você entrou. | Nunca confirma. Escolha **Entrar de outra forma** e entre com um link enviado para o seu e-mail, ou defina uma senha com **Esqueceu a senha?** e confirme com ela. |
+
+O que configurar no Okta, no Microsoft Entra ID, no Keycloak e no Google Workspace está na página [SSO](/docs/identity/sso#entrar-novamente-para-confirmar-que-é-você).
 
 ## Seus projetos
 

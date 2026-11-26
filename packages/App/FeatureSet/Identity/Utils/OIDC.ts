@@ -15,6 +15,62 @@ import net, { LookupFunction } from "net";
 const OIDC_EGRESS_LABEL: string = "OIDC provider";
 
 /*
+ * Google's issuer, and what Sign In Again asks it for: when the person
+ * signed in (generateAuthorizationUrl), as Continue with Google does
+ * (Common/Server/Utils/GoogleSignIn/GoogleSignInClient).
+ */
+const GOOGLE_ISSUER_HOSTNAME: string = "accounts.google.com";
+
+const GOOGLE_AUTH_TIME_CLAIMS_REQUEST: string = JSON.stringify({
+  id_token: { auth_time: { essential: true } },
+});
+
+/*
+ * The Microsoft identity platform's hosts (Microsoft Entra ID), in every
+ * cloud it runs in: the global service, Microsoft Entra ID for US
+ * Government and Microsoft Entra China operated by 21Vianet ("Microsoft
+ * Entra authentication & national clouds",
+ * learn.microsoft.com/entra/identity-platform/authentication-national-cloud),
+ * each with the aliases Microsoft's own instance discovery names for it
+ * (discovery/instance?api-version=1.1 under the global service's common
+ * authority, whose address only Sign in with Microsoft spells out:
+ * MicrosoftCommonEndpointGuard), and the issuers their v1.0 discovery
+ * documents name: sts.windows.net, globally and for US Government, and
+ * sts.chinacloudapi.cn for 21Vianet. Azure Germany's host is still listed
+ * there, though that cloud closed in 2021. Sign In Again sends none of them
+ * max_age (generateAuthorizationUrl, #10529).
+ */
+export const MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES: ReadonlyArray<string> = [
+  "login.microsoftonline.com",
+  "login.windows.net",
+  "login.microsoft.com",
+  "sts.windows.net",
+  "login.microsoftonline.us",
+  "login.usgovcloudapi.net",
+  "login-us.microsoftonline.com",
+  "login.partner.microsoftonline.cn",
+  "login.chinacloudapi.cn",
+  "sts.chinacloudapi.cn",
+  "login.microsoftonline.de",
+];
+
+/*
+ * How far the provider's clock and this server's may disagree when an ID
+ * token's exp and nbf are checked: a minute, either way. openid-client
+ * allows no second unless told (its clock_tolerance), so an ID token
+ * that expired a moment before the callback read it - one the provider
+ * cut short, or a provider clock a second behind - failed the whole
+ * sign-in. A minute is what Sign in with Microsoft's and Google's verifier
+ * allows (Common/Server/Utils/Marketplace/RemoteJwtVerifier), and what
+ * Sign In Again allows the provider's clock
+ * (SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS); OpenID Connect Core 3.1.3.7
+ * leaves "some small leeway to account for clock skew". The token comes
+ * straight from the provider's token endpoint, for a code this sign-in
+ * just got, and its nonce is still checked (#10529).
+ */
+export const ID_TOKEN_CLOCK_TOLERANCE_IN_SECONDS: number = 60;
+
+/*
  * Put the egress guard on every socket openid-client opens.
  *
  * Validating discoveryURL on its own would be theatre: Issuer.discover fetches
@@ -145,6 +201,8 @@ export default class OIDCUtil {
       custom.http_options
     ] = guardLiteralHost;
 
+    client[custom.clock_tolerance] = ID_TOKEN_CLOCK_TOLERANCE_IN_SECONDS;
+
     return client;
   }
 
@@ -154,6 +212,30 @@ export default class OIDCUtil {
    * which also makes the ID token say when they authenticated (auth_time,
    * OpenID Connect Core 3.1.2.1) - OneUptime checks that time itself
    * (Utils/SignInAgain), so a provider that ignores both proves nothing.
+   *
+   * Google (Google Workspace as a provider, #10332) takes neither: its
+   * prompt is none, consent or select_account, and it documents no
+   * max_age. It sends auth_time only when the request asks for it with the
+   * claims parameter and the OAuth client has Session age claims on
+   * (developers.google.com/identity/openid-connect/openid-connect), so
+   * without asking, its Sign In Again could never confirm anyone. Asked of
+   * Google alone (isGoogleIssuer): the parameter is optional in OpenID
+   * Connect, and another provider might refuse it.
+   *
+   * Microsoft Entra ID (a project's or the server's provider, #10529) is
+   * sent prompt=login alone (isMicrosoftEntraId). Microsoft documents
+   * prompt=login ("forces the user to enter their credentials on that
+   * request", learn.microsoft.com/entra/identity-platform/v2-protocols-oidc)
+   * and documents no max_age. Two reports on Microsoft Q&A
+   * (learn.microsoft.com/answers/questions/1377508) describe an ID token
+   * that had already expired when it arrived - iat and nbf five minutes
+   * back, exp three seconds after auth_time, received a second after exp -
+   * and found max_age=0 had caused it: leaving it out gave the usual 60 to
+   * 90 minutes. OneUptime holds auth_time to the request itself, so
+   * max_age adds nothing there; Entra ID lists auth_time among the optional
+   * claims an app registration adds (optional-claims-reference), which is
+   * what the docs tell administrators to do. Fixed from Microsoft's docs
+   * and those reports, not checked against a live tenant.
    */
   public static generateAuthorizationUrl(data: {
     client: Client;
@@ -169,10 +251,66 @@ export default class OIDCUtil {
       nonce: data.nonce,
       code_challenge: data.codeChallenge,
       code_challenge_method: "S256",
-      ...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),
+      ...(data.isSignInAgain ? { prompt: "login" } : {}),
+      ...(data.isSignInAgain && !OIDCUtil.isMicrosoftEntraId(data.client)
+        ? { max_age: 0 }
+        : {}),
+      ...(data.isSignInAgain && OIDCUtil.isGoogleIssuer(data.client)
+        ? { claims: GOOGLE_AUTH_TIME_CLAIMS_REQUEST }
+        : {}),
     });
 
     return URL.fromString(url);
+  }
+
+  // Whether the provider is Google: its issuer, https://accounts.google.com.
+  public static isGoogleIssuer(client: Client): boolean {
+    return (
+      OIDCUtil.hostnameOf(client.issuer?.metadata?.issuer) ===
+      GOOGLE_ISSUER_HOSTNAME
+    );
+  }
+
+  /*
+   * Whether the provider is Microsoft Entra ID, in any of its clouds: its
+   * issuer, or the authorization endpoint Sign In Again sends the person
+   * to, is on a Microsoft identity platform host. Both are read, as a
+   * v1.0 discovery document names the issuer sts.windows.net, or
+   * sts.chinacloudapi.cn in 21Vianet's cloud, beside an authorization
+   * endpoint on its cloud's sign-in host.
+   */
+  public static isMicrosoftEntraId(client: Client): boolean {
+    return [
+      client.issuer?.metadata?.issuer,
+      client.issuer?.metadata?.authorization_endpoint,
+    ].some((address: unknown): boolean => {
+      const hostname: string | null = OIDCUtil.hostnameOf(address);
+
+      return (
+        hostname !== null &&
+        MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES.includes(hostname)
+      );
+    });
+  }
+
+  /*
+   * The host an issuer or an endpoint names, in lower case, or null when
+   * it names none. An issuer written without its scheme is read as https.
+   */
+  private static hostnameOf(address: unknown): string | null {
+    if (typeof address !== "string" || !address) {
+      return null;
+    }
+
+    try {
+      return (
+        new globalThis.URL(
+          address.includes("://") ? address : `https://${address}`,
+        ).hostname.toLowerCase() || null
+      );
+    } catch {
+      return null;
+    }
   }
 
   public static generateState(): string {

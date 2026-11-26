@@ -32,9 +32,20 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
  * Values are made here, never copied from anyone: drawn at random from the
  * shape of a type's own detector, with the check characters its validator
  * asks for found by trying them, and the structured ones (IBANs, Bitcoin
- * keys, JWTs, connection strings...) put together from random parts. No
- * secret is written in this file; each is assembled when the test runs, so
- * no scanner reading the source sees one.
+ * keys, JWTs, connection strings, passport numbers...) put together from
+ * random parts. No secret is written in this file; each is assembled when
+ * the test runs, so no scanner reading the source sees one.
+ *
+ * Each type draws from a stream of its own, seeded from its id (#10468).
+ * All types once shared one stream, so a change to one detector - how many
+ * draws its type took - redrew every type after it in the catalog, and
+ * checks failed in types the change never touched. And a near miss whose
+ * characters happen to pass another type's checks - a PESEL a check digit
+ * off that passes CUIT's mod 11 - is a real value of that type, not a
+ * precision fault: it is drawn again (isTakenByAnotherType). A change to a
+ * detector now redraws its own type alone, and every type holds whatever
+ * the corpus seed: of the seeds 1 to 100, 99 pass every check here, and the
+ * last a UK passport value whose digits pass a Hong Kong ID's check digit.
  */
 
 interface Labelled {
@@ -48,7 +59,37 @@ interface CorpusEntry {
   nearMisses: Array<Labelled>;
 }
 
-const random: SeededRandom = seededRandom(20_261_027);
+/*
+ * The seed the corpus is drawn from. Each type draws from a stream of its
+ * own, seeded from this and the type's id (seedOf), so a change to one
+ * detector - its pattern's shape, what its validator takes - changes how
+ * many draws that type uses and redraws no other type's values (#10468).
+ */
+const CORPUS_SEED: number = 20_261_027;
+
+// The seed of one type's stream: the first 32 bits of a hash of the corpus seed and the type's id.
+function seedOf(corpusSeed: number, dataTypeId: string): number {
+  const digest: Uint8Array = sha256(
+    new TextEncoder().encode(`${corpusSeed}:${dataTypeId}`),
+  );
+
+  return (
+    ((digest[0]! << 24) |
+      (digest[1]! << 16) |
+      (digest[2]! << 8) |
+      digest[3]!) >>>
+    0
+  );
+}
+
+// The stream of the type being drawn: buildEntry starts a new one for each type.
+let random: SeededRandom = seededRandom(CORPUS_SEED);
+
+// How many values a drawn type draws, at most, to find two with a near miss each.
+const DRAW_ATTEMPTS: number = 400;
+
+// How many times, at most, a built type is put together from new parts.
+const BUILD_ATTEMPTS: number = 20;
 
 const DIGITS: string = "0123456789";
 const UPPER: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -276,6 +317,63 @@ function isRefusedAlone(dataTypeId: string, text: string): boolean {
   });
 }
 
+function isSure(match: TextMatch): boolean {
+  return match.confidence !== DataConfidence.Low && !match.isTestValue;
+}
+
+/*
+ * Types the engine cannot tell apart by design - the same shape next to
+ * the same words. A finding of `found` on an example labelled `label`
+ * counts neither for nor against `found`; the label's own recall still
+ * counts the example as missed. Each is a known limit, with why.
+ */
+const KNOWN_CONFUSIONS: ReadonlyArray<{
+  found: string;
+  label: string;
+  reason: string;
+}> = [
+  {
+    found: "phone-number",
+    label: "uk-nhs-number",
+    reason:
+      "An NHS number written 3-3-4 with dashes has a North American phone number's shape, so one whose check digit fails is still that shape.",
+  },
+  {
+    found: "passport-number",
+    label: "uk-passport",
+    reason:
+      'A passport number of no country is letters and digits beside the word passport, which "uk passport" holds, so a UK passport number a digit short is still one.',
+  },
+];
+
+function isKnownConfusion(found: string, label: string): boolean {
+  return KNOWN_CONFUSIONS.some(
+    (confusion: { found: string; label: string }) => {
+      return confusion.found === found && confusion.label === label;
+    },
+  );
+}
+
+/*
+ * Whether the scanner, every detector running, finds another type in the
+ * text, sure enough to count. A near miss whose characters happen to pass
+ * another type's checks - a PESEL a check digit off that passes CUIT's mod
+ * 11, a CNP that passes Luhn, a token whose digits are a card number's - is
+ * a real value of that type, not a precision fault, so it is drawn again
+ * (#10468). A type another type takes every near miss of is then short of
+ * them, and a near miss built that way every time is kept, for the
+ * precision test to say.
+ */
+function isTakenByAnotherType(dataTypeId: string, text: string): boolean {
+  return findSensitiveValues(text).some((match: TextMatch) => {
+    return (
+      isSure(match) &&
+      match.dataTypeId !== dataTypeId &&
+      !isKnownConfusion(match.dataTypeId, dataTypeId)
+    );
+  });
+}
+
 function classOf(character: string): string {
   if (DIGITS.includes(character)) {
     return DIGITS;
@@ -356,12 +454,20 @@ const TEXT_FORMS: Array<(key: string, value: string) => string> = [
   jsonDocument,
 ];
 
-// Two values of the type drawn from its detectors' shapes.
-function drawnPositives(info: DataTypeInfo): Array<Labelled> {
-  const keyword: string = keywordOf(info.id);
+// The shapes of a type's detectors' patterns, to draw values from.
+function shapesOf(dataTypeId: string): Array<SyntaxNode> {
   const shapes: Array<SyntaxNode> = [];
 
-  for (const detector of getBuiltInDetectorsOf(info.id)) {
+  for (const detector of getBuiltInDetectorsOf(dataTypeId)) {
+    /*
+     * A pattern of Unicode classes (the u flag) is one LinearRegExp's parser
+     * reads as ASCII: \p{L} as the letters "p{L}". What it finds is labelled
+     * apart (READING_CASES).
+     */
+    if (detector.pattern.unicode) {
+      continue;
+    }
+
     try {
       shapes.push(
         parsePattern(detector.pattern.source, {
@@ -375,37 +481,7 @@ function drawnPositives(info: DataTypeInfo): Array<Labelled> {
     }
   }
 
-  const positives: Array<Labelled> = [];
-
-  for (
-    let attempt: number = 0;
-    attempt < 400 && positives.length < 2 && shapes.length > 0;
-    attempt++
-  ) {
-    const drawn: string = draw(shapes[random(shapes.length)]!);
-    const form: (key: string, value: string) => string =
-      TEXT_FORMS[positives.length]!;
-
-    if (drawn.length === 0) {
-      continue;
-    }
-
-    for (const value of withCheckCharacters(drawn)) {
-      const text: string = form(keyword, value);
-
-      if (
-        !positives.some((positive: Labelled) => {
-          return positive.value === value;
-        }) &&
-        isFoundAlone(info.id, text, value)
-      ) {
-        positives.push(labelled(info.id, text, value));
-        break;
-      }
-    }
-  }
-
-  return positives;
+  return shapes;
 }
 
 // The next character of the same kind, so a check digit is off by one.
@@ -479,63 +555,118 @@ const NEAR_MISSES_OF: Readonly<
 /*
  * Near misses of a drawn value, in a fixed order: the type's own, a check
  * character off, one character longer, inside a longer token, one shorter,
- * and - for a type that needs them - without its words. The first its own
- * detectors refuse is kept for each value.
+ * and - for a type that needs them - without its words.
  */
-function drawnNearMisses(
+function nearMissCandidates(
   info: DataTypeInfo,
-  positives: Array<Labelled>,
-): Array<Labelled> {
-  const nearMisses: Array<Labelled> = [];
+  value: string,
+  form: (key: string, value: string) => string,
+): Array<string> {
   const keyword: string = keywordOf(info.id);
   const needsWords: boolean = getBuiltInDetectorsOf(info.id).some(
     (detector: DataTypeDetector) => {
       return Boolean(detector.requiresContext);
     },
   );
-
-  positives.forEach((positive: Labelled, index: number) => {
-    const form: (key: string, value: string) => string = TEXT_FORMS[index]!;
-    const value: string = positive.value;
-    const lastPlace: number = value.search(/[A-Za-z0-9][^A-Za-z0-9]*$/);
-    const last: string = value[lastPlace] || "0";
-    const candidates: Array<string> = (
-      NEAR_MISSES_OF[info.id]?.(value) || []
-    ).map((nearMiss: string) => {
-      return form(keyword, nearMiss);
-    });
-
-    for (let step: number = 1; step < classOf(last).length; step++) {
-      candidates.push(
-        form(
-          keyword,
-          value.slice(0, lastPlace) +
-            nextOfClass(last, step) +
-            value.slice(lastPlace + 1),
-        ),
-      );
-    }
-
-    candidates.push(form(keyword, value + nextOfClass(last, 3)));
-    candidates.push(form(keyword, nextOfClass(value[0] || "0", 5) + value));
-    candidates.push(
-      form(keyword, value.slice(0, lastPlace) + value.slice(lastPlace + 1)),
-    );
-
-    if (needsWords) {
-      candidates.push(form("ref", value));
-    }
-
-    const refused: string | undefined = candidates.find((text: string) => {
-      return isRefusedAlone(info.id, text);
-    });
-
-    if (refused !== undefined) {
-      nearMisses.push(labelled(info.id, refused, ""));
-    }
+  const lastPlace: number = value.search(/[A-Za-z0-9][^A-Za-z0-9]*$/);
+  const last: string = value[lastPlace] || "0";
+  const candidates: Array<string> = (
+    NEAR_MISSES_OF[info.id]?.(value) || []
+  ).map((nearMiss: string) => {
+    return form(keyword, nearMiss);
   });
 
-  return nearMisses;
+  for (let step: number = 1; step < classOf(last).length; step++) {
+    candidates.push(
+      form(
+        keyword,
+        value.slice(0, lastPlace) +
+          nextOfClass(last, step) +
+          value.slice(lastPlace + 1),
+      ),
+    );
+  }
+
+  candidates.push(form(keyword, value + nextOfClass(last, 3)));
+  candidates.push(form(keyword, nextOfClass(value[0] || "0", 5) + value));
+  candidates.push(
+    form(keyword, value.slice(0, lastPlace) + value.slice(lastPlace + 1)),
+  );
+
+  if (needsWords) {
+    candidates.push(form("ref", value));
+  }
+
+  return candidates;
+}
+
+/*
+ * The near miss of a drawn value: the first candidate its type's own
+ * detectors refuse and no other type takes - or none, when every candidate
+ * its own detectors refuse is another type's value.
+ */
+function nearMissOf(
+  info: DataTypeInfo,
+  value: string,
+  form: (key: string, value: string) => string,
+): string | undefined {
+  return nearMissCandidates(info, value, form).find((text: string) => {
+    return (
+      isRefusedAlone(info.id, text) && !isTakenByAnotherType(info.id, text)
+    );
+  });
+}
+
+/*
+ * Two values of the type drawn from its detectors' shapes, each in its
+ * text form, with a near miss of each. A value with no near miss - every
+ * candidate its own detectors refuse is another type's value, or none is
+ * refused - is drawn again, so the type is short of values only when its
+ * detectors take every near miss, or another type takes every one: what
+ * "has two values and two near misses of every type" says.
+ */
+function drawnEntry(info: DataTypeInfo): CorpusEntry {
+  const keyword: string = keywordOf(info.id);
+  const shapes: Array<SyntaxNode> = shapesOf(info.id);
+  const entry: CorpusEntry = { positives: [], nearMisses: [] };
+
+  for (
+    let attempt: number = 0;
+    attempt < DRAW_ATTEMPTS && entry.positives.length < 2 && shapes.length > 0;
+    attempt++
+  ) {
+    const drawn: string = draw(shapes[random(shapes.length)]!);
+    const form: (key: string, value: string) => string =
+      TEXT_FORMS[entry.positives.length]!;
+
+    if (drawn.length === 0) {
+      continue;
+    }
+
+    for (const value of withCheckCharacters(drawn)) {
+      const text: string = form(keyword, value);
+
+      if (
+        entry.positives.some((positive: Labelled) => {
+          return positive.value === value;
+        }) ||
+        !isFoundAlone(info.id, text, value)
+      ) {
+        continue;
+      }
+
+      const nearMiss: string | undefined = nearMissOf(info, value, form);
+
+      if (nearMiss !== undefined) {
+        entry.positives.push(labelled(info.id, text, value));
+        entry.nearMisses.push(labelled(info.id, nearMiss, ""));
+      }
+
+      break;
+    }
+  }
+
+  return entry;
 }
 
 /*
@@ -544,6 +675,34 @@ function drawnNearMisses(
  * random parts, with near misses that break exactly that structure.
  */
 const BUILT: Readonly<Record<string, () => CorpusEntry>> = {
+  /*
+   * A passport number of no country: two letters and seven digits, or a
+   * letter and eight, beside the word. Drawn from the detector's shape -
+   * six to nine letters and digits - a value almost never had the five
+   * digits it asks for, so the type drew none in most streams (#10468).
+   * Its near misses: the number without the word, which is all that says
+   * what it is (no country's number has a check digit), and more letters
+   * than a passport number has.
+   */
+  "passport-number": (): CorpusEntry => {
+    const first: string = fake(UPPER, 2) + fake(DIGITS, 7);
+    const second: string = fake(UPPER, 1) + fake(DIGITS, 8);
+
+    return {
+      positives: [
+        labelled("passport-number", logLine("passport", first), first),
+        labelled("passport-number", jsonDocument("passport", second), second),
+      ],
+      nearMisses: [
+        labelled("passport-number", logLine("ref", first), ""),
+        labelled(
+          "passport-number",
+          jsonDocument("passport", fake(UPPER, 4) + fake(DIGITS, 4)),
+          "",
+        ),
+      ],
+    };
+  },
   "credit-card-number": (): CorpusEntry => {
     const card: (prefix: string) => string = (prefix: string): string => {
       const digits: string = prefix + fake(DIGITS, 15 - prefix.length);
@@ -931,60 +1090,294 @@ const VALUE_TYPES: Array<DataTypeInfo> = DATA_TYPE_CATALOG.filter(
   },
 );
 
-function buildCorpus(): Record<string, CorpusEntry> {
+/*
+ * Whether a built entry is as the corpus means it: each value found by its
+ * type's own detectors, and each near miss refused by them and taken by no
+ * other type.
+ */
+function isSound(dataTypeId: string, entry: CorpusEntry): boolean {
+  return (
+    entry.positives.every((positive: Labelled) => {
+      return isFoundAlone(dataTypeId, positive.text, positive.value);
+    }) &&
+    entry.nearMisses.every((nearMiss: Labelled) => {
+      return (
+        isRefusedAlone(dataTypeId, nearMiss.text) &&
+        !isTakenByAnotherType(dataTypeId, nearMiss.text)
+      );
+    })
+  );
+}
+
+/*
+ * A built type's entry, put together again from new parts while its parts
+ * fell badly - a random key that reads as a placeholder, an IBAN a
+ * character short whose digits are a card number's. One that is never
+ * sound is kept as it is last built, for the tests to say what is wrong.
+ */
+function builtEntry(info: DataTypeInfo): CorpusEntry {
+  let entry: CorpusEntry = BUILT[info.id]!();
+
+  for (
+    let attempt: number = 1;
+    attempt < BUILD_ATTEMPTS && !isSound(info.id, entry);
+    attempt++
+  ) {
+    entry = BUILT[info.id]!();
+  }
+
+  return entry;
+}
+
+// One type's values and near misses, drawn from its own stream.
+function buildEntry(info: DataTypeInfo, corpusSeed: number): CorpusEntry {
+  random = seededRandom(seedOf(corpusSeed, info.id));
+
+  return BUILT[info.id] ? builtEntry(info) : drawnEntry(info);
+}
+
+function buildCorpus(
+  corpusSeed: number,
+  types: ReadonlyArray<DataTypeInfo> = VALUE_TYPES,
+): Record<string, CorpusEntry> {
   const corpus: Record<string, CorpusEntry> = {};
 
-  for (const info of VALUE_TYPES) {
-    if (BUILT[info.id]) {
-      corpus[info.id] = BUILT[info.id]!();
-      continue;
-    }
-
-    const positives: Array<Labelled> = drawnPositives(info);
-
-    corpus[info.id] = {
-      positives,
-      nearMisses: drawnNearMisses(info, positives),
-    };
+  for (const info of types) {
+    corpus[info.id] = buildEntry(info, corpusSeed);
   }
 
   return corpus;
 }
 
-const CORPUS: Record<string, CorpusEntry> = buildCorpus();
+const CORPUS: Record<string, CorpusEntry> = buildCorpus(CORPUS_SEED);
 
 /*
- * Types the engine cannot tell apart by design - the same shape next to
- * the same words. A finding of `found` on an example labelled `label`
- * counts neither for nor against `found`; the label's own recall still
- * counts the example as missed. Each is a known limit, with why.
+ * VALUES WRITTEN THE WAYS THE DETECTORS NOW READ THEM TOO.
+ *
+ * An IPv6 address right after a key's colon (peer ip:2a00:..., #10936), an
+ * email address in a percent-encoded URL (jane.doe%40acmecorp.io, #10935),
+ * an email address in another script (张伟@acmecorp.io, почта@пример.рф,
+ * #10960) and a card number in fullwidth, Arabic-Indic or Persian digits,
+ * or two scripts at once (#10960) - each with near misses of the same
+ * writing that are no value: a clock or a link-local address after a key,
+ * an image asset's name encoded, an address with no top-level domain, a
+ * card a check digit off. Labelled apart from the corpus, which draws two
+ * values of each type from its detectors' shapes, and held to a precision
+ * and a recall of 1: every value found as its type, and nothing else found.
+ * Each case draws from a stream of its own, so the corpus draws as before.
  */
-const KNOWN_CONFUSIONS: ReadonlyArray<{
-  found: string;
-  label: string;
-  reason: string;
-}> = [
-  {
-    found: "phone-number",
-    label: "uk-nhs-number",
-    reason:
-      "An NHS number written 3-3-4 with dashes has a North American phone number's shape, so one whose check digit fails is still that shape.",
-  },
-  {
-    found: "passport-number",
-    label: "uk-passport",
-    reason:
-      'A passport number of no country is letters and digits beside the word passport, which "uk passport" holds, so a UK passport number a digit short is still one.',
-  },
-];
+const HAN: string = "张伟王芳李娜刘洋陈静杨磊赵敏黄勇周杰吴霞徐涛孙丽";
+const CYRILLIC: string = "абвгдежзиклмнопрстуфхцчшэюя";
+const LATIN_ACCENTED: string = "áéíóúüñçøåäöß";
+const FULLWIDTH_ZERO: number = 0xff10;
+const ARABIC_INDIC_ZERO: number = 0x0660;
+const PERSIAN_ZERO: number = 0x06f0;
 
-function isKnownConfusion(found: string, label: string): boolean {
-  return KNOWN_CONFUSIONS.some(
-    (confusion: { found: string; label: string }) => {
-      return confusion.found === found && confusion.label === label;
-    },
-  );
+// A digit string written in the digits of the script whose zero is given.
+function inScript(digits: string, zero: number): string {
+  return digits.replace(/[0-9]/g, (digit: string): string => {
+    return String.fromCharCode(zero + Number(digit));
+  });
 }
+
+// A Visa number that passes the Luhn check, no test number nor placeholder.
+function drawnCard(): string {
+  for (;;) {
+    const body: string = "4" + fake(DIGITS, 14);
+
+    for (const check of DIGITS) {
+      const number: string = body + check;
+      let sum: number = 0;
+
+      for (let index: number = 0; index < 16; index++) {
+        let digit: number = Number(number[15 - index]);
+
+        if (index % 2 === 1) {
+          digit = digit * 2 > 9 ? digit * 2 - 9 : digit * 2;
+        }
+
+        sum += digit;
+      }
+
+      if (sum % 10 === 0 && findSensitiveValues(number).some(isSure)) {
+        return number;
+      }
+    }
+  }
+}
+
+// A public IPv6 address of the global range, no documentation one.
+function drawnIpv6(): string {
+  for (;;) {
+    const address: string = `2${fake(HEX, 3)}:${fake(HEX, 4)}:${fake(HEX, 4)}::${fake(HEX, 1 + random(4))}`;
+
+    if (!address.startsWith("2001:") && !address.startsWith("2002:")) {
+      return address;
+    }
+  }
+}
+
+function drawnDomain(): string {
+  return `${fake(LOWER, 5 + random(5))}.${["io", "com", "net", "de"][random(4)]}`;
+}
+
+const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
+  // #10936
+  "ip-address: right after a key's colon": (): CorpusEntry => {
+    const first: string = drawnIpv6();
+    const second: string = drawnIpv6();
+
+    return {
+      positives: [
+        labelled(
+          "ip-address",
+          `2026-10-27T10:15:02Z INFO connection accepted peer ip:${first} port=443`,
+          first,
+        ),
+        labelled(
+          "ip-address",
+          `level=info msg="accepted" remote:${second} user=svc`,
+          second,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "ip-address",
+          `2026-10-27T10:15:02Z INFO tick time:${10 + random(13)}:${10 + random(50)}:${10 + random(50)} ok`,
+          "",
+        ),
+        labelled(
+          "ip-address",
+          `level=info msg="local" peer ip:fe80::${fake(HEX, 4)} user=svc`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10935
+  "email-address: in a percent-encoded URL": (): CorpusEntry => {
+    const first: string = `${fake(LOWER, 4 + random(4))}.${fake(LOWER, 3 + random(5))}%40${drawnDomain()}`;
+    const second: string = `${fake(LOWER, 5 + random(4))}%2Bnews%40${drawnDomain()}`;
+
+    return {
+      positives: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO GET /signup?email=${first} HTTP/1.1 200`,
+          first,
+        ),
+        labelled(
+          "email-address",
+          `{"url": "/welcome?to=${second}&step=2", "batch": "nightly"}`,
+          second,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO GET /assets/${fake(LOWER, 6)}%402x.png HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "email-address",
+          `{"url": "/search?q=${fake(LOWER, 6)}%40&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10960
+  "email-address: in another script": (): CorpusEntry => {
+    const han: string = `${fake(HAN, 2 + random(2))}@${drawnDomain()}`;
+    const cyrillic: string = `${fake(CYRILLIC, 5 + random(4))}@${fake(CYRILLIC, 6 + random(4))}.рф`;
+    const latin: string = `${fake(LOWER, 3)}${fake(LATIN_ACCENTED, 1)}${fake(LOWER, 3)}@${drawnDomain()}`;
+
+    return {
+      positives: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO invite sent to ${han} ok`,
+          han,
+        ),
+        labelled(
+          "email-address",
+          `{"email": "${cyrillic}", "batch": "nightly"}`,
+          cyrillic,
+        ),
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO invite sent to ${latin} ok`,
+          latin,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO mention ${fake(HAN, 2)}@${fake(HAN, 3)} ok`,
+          "",
+        ),
+        labelled(
+          "email-address",
+          `{"handle": "${fake(CYRILLIC, 5)}@${fake(CYRILLIC, 6)}.р", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10960
+  "credit-card-number: in another script's digits": (): CorpusEntry => {
+    const card: string = drawnCard();
+    const off: string = card.slice(0, 15) + String((Number(card[15]) + 1) % 10);
+    const grouped: (digits: string, separator: string) => string = (
+      digits: string,
+      separator: string,
+    ): string => {
+      return digits.replace(/([0-9]{4})(?=[0-9])/g, `$1${separator}`);
+    };
+    const fullwidth: string = inScript(grouped(card, " "), FULLWIDTH_ZERO);
+    const arabic: string = inScript(card, ARABIC_INDIC_ZERO);
+    const persian: string = inScript(grouped(card, "-"), PERSIAN_ZERO);
+    const mixed: string =
+      inScript(card.slice(0, 4), FULLWIDTH_ZERO) +
+      " " +
+      grouped(card.slice(4), " ");
+
+    return {
+      positives: [
+        labelled("credit-card-number", `カード番号：${fullwidth}`, fullwidth),
+        labelled("credit-card-number", `رقم البطاقة ${arabic}`, arabic),
+        labelled("credit-card-number", `شماره کارت ${persian}`, persian),
+        labelled("credit-card-number", `card ${mixed} declined`, mixed),
+      ],
+      nearMisses: [
+        labelled(
+          "credit-card-number",
+          `カード番号：${inScript(grouped(off, " "), FULLWIDTH_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "credit-card-number",
+          `رقم البطاقة ${inScript(off, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+};
+
+function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const [name, build] of Object.entries(READING_CASES_OF)) {
+    random = seededRandom(seedOf(corpusSeed, `readings:${name}`));
+    cases[name] = build();
+  }
+
+  return cases;
+}
+
+const READING_CASES: Record<string, CorpusEntry> =
+  buildReadingCases(CORPUS_SEED);
 
 interface Tally {
   right: number;
@@ -998,11 +1391,7 @@ interface Scores {
   missed: Array<string>;
 }
 
-function isSure(match: TextMatch): boolean {
-  return match.confidence !== DataConfidence.Low && !match.isTestValue;
-}
-
-function score(): Scores {
+function score(corpus: Record<string, CorpusEntry>): Scores {
   const byType: Map<string, Tally> = new Map();
   const tallyOf: (dataTypeId: string) => Tally = (
     dataTypeId: string,
@@ -1018,7 +1407,7 @@ function score(): Scores {
   };
   const scores: Scores = { byType, found: 0, positives: 0, missed: [] };
 
-  for (const entry of Object.values(CORPUS)) {
+  for (const entry of Object.values(corpus)) {
     for (const positive of entry.positives) {
       const start: number = positive.text.indexOf(positive.value);
       const end: number = start + positive.value.length;
@@ -1107,7 +1496,92 @@ describe("the accuracy corpus", () => {
     expect(wrong).toEqual([]);
   });
 
-  const scores: Scores = score();
+  /*
+   * #10468: each type draws from its own stream, so what one type draws
+   * cannot depend on any other's - drawn alone, or with the catalog read the
+   * other way round, every type draws the same values and near misses.
+   */
+  test("draws each type from a stream of its own, whatever the other types draw", () => {
+    const reversed: Record<string, CorpusEntry> = buildCorpus(
+      CORPUS_SEED,
+      [...VALUE_TYPES].reverse(),
+    );
+    const differ: Array<string> = VALUE_TYPES.filter((info: DataTypeInfo) => {
+      return (
+        JSON.stringify(reversed[info.id]) !== JSON.stringify(CORPUS[info.id])
+      );
+    }).map((info: DataTypeInfo) => {
+      return info.id;
+    });
+
+    expect(differ).toEqual([]);
+
+    for (const id of ["ip-address", "passport-number", "credit-card-number"]) {
+      const info: DataTypeInfo = VALUE_TYPES.find((type: DataTypeInfo) => {
+        return type.id === id;
+      })!;
+
+      expect(buildCorpus(CORPUS_SEED, [info])[id]).toEqual(CORPUS[id]);
+    }
+  });
+
+  test("seeds each type's stream from the corpus seed and the type's id", () => {
+    expect(seedOf(CORPUS_SEED, "ip-address")).toBe(
+      seedOf(CORPUS_SEED, "ip-address"),
+    );
+    expect(seedOf(CORPUS_SEED, "ip-address")).not.toBe(
+      seedOf(CORPUS_SEED, "email-address"),
+    );
+    expect(seedOf(CORPUS_SEED, "ip-address")).not.toBe(
+      seedOf(CORPUS_SEED + 1, "ip-address"),
+    );
+
+    const seeds: Set<number> = new Set(
+      VALUE_TYPES.map((info: DataTypeInfo) => {
+        return seedOf(CORPUS_SEED, info.id);
+      }),
+    );
+
+    expect(seeds.size).toBe(VALUE_TYPES.length);
+
+    for (const seed of seeds) {
+      expect(Number.isSafeInteger(seed) && seed >= 0 && seed < 2 ** 32).toBe(
+        true,
+      );
+    }
+  });
+
+  test("keeps no near miss another type takes as its own value", () => {
+    const taken: Array<string> = [];
+
+    for (const [dataTypeId, entry] of Object.entries(CORPUS)) {
+      for (const nearMiss of entry.nearMisses) {
+        if (isTakenByAnotherType(dataTypeId, nearMiss.text)) {
+          taken.push(`${dataTypeId} near miss: ${nearMiss.text}`);
+        }
+      }
+    }
+
+    expect(taken).toEqual([]);
+  });
+
+  test("builds passport numbers from parts, beside the word, and refuses them without it", () => {
+    const entry: CorpusEntry = CORPUS["passport-number"]!;
+
+    expect(entry.positives).toHaveLength(2);
+    expect(entry.nearMisses).toHaveLength(2);
+
+    for (const positive of entry.positives) {
+      expect(positive.value).toMatch(/^[A-Z]{1,2}[0-9]{7,8}$/);
+      expect(positive.value).toHaveLength(9);
+      expect(positive.text).toContain("passport");
+    }
+
+    expect(entry.nearMisses[0]!.text).not.toContain("passport");
+    expect(entry.nearMisses[0]!.text).toContain(entry.positives[0]!.value);
+  });
+
+  const scores: Scores = score(CORPUS);
 
   test("finds what every type finds with a precision of at least 0.95", () => {
     const belowThreshold: Array<string> = [];
@@ -1144,5 +1618,54 @@ describe("the accuracy corpus", () => {
       `recall ${recall.toFixed(3)}: missed ${scores.missed.join(" | ")}`,
       recall >= 0.9,
     ]).toEqual([expect.any(String), true]);
+  });
+});
+
+describe("values written the ways the detectors now read them too", () => {
+  test("each case has values its type's own detectors take, and near misses they refuse", () => {
+    const wrong: Array<string> = [];
+
+    for (const [name, entry] of Object.entries(READING_CASES)) {
+      expect([name, entry.positives.length >= 2]).toEqual([name, true]);
+      expect([name, entry.nearMisses.length >= 2]).toEqual([name, true]);
+
+      for (const positive of entry.positives) {
+        if (!isFoundAlone(positive.dataTypeId, positive.text, positive.value)) {
+          wrong.push(`not found alone: ${positive.text}`);
+        }
+      }
+
+      for (const nearMiss of entry.nearMisses) {
+        if (!isRefusedAlone(nearMiss.dataTypeId, nearMiss.text)) {
+          wrong.push(`found alone: ${nearMiss.text}`);
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  /*
+   * A precision and a recall of 1: every labelled value found as its type,
+   * and nothing else - no near miss, no other type - found in any of them.
+   */
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960)", () => {
+    const readingScores: Scores = score(READING_CASES);
+    const wrong: Array<string> = [];
+
+    for (const tally of readingScores.byType.values()) {
+      wrong.push(...tally.wrong);
+    }
+
+    expect({ wrong, missed: readingScores.missed }).toEqual({
+      wrong: [],
+      missed: [],
+    });
+    expect(readingScores.found).toBe(readingScores.positives);
+  });
+
+  test("draws each case from a stream of its own, the same for the same seed", () => {
+    expect(buildReadingCases(CORPUS_SEED)).toEqual(READING_CASES);
+    expect(buildReadingCases(CORPUS_SEED + 1)).not.toEqual(READING_CASES);
   });
 });

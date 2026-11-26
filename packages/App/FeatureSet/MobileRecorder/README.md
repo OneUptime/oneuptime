@@ -11,6 +11,9 @@ capturing screenshots or readable native text.
 - React Native 0.73 or newer.
 - `@react-native-async-storage/async-storage` installed in the application.
 - A OneUptime RUM application with session replay enabled.
+- An ingestion key: the app's **Mobile** key, the one its OpenTelemetry SDK
+  already sends with, or a **Browser** key that lists the app as
+  `app://com.example.yourapp`.
 - The Android application ID or iOS bundle ID added to that application's
   replay origin allowlist as `app://com.example.yourapp`.
 
@@ -57,7 +60,10 @@ export default function App() {
 `mobileAppIdentifier` is the installed binary's Android `applicationId` or
 iOS bundle identifier. It is canonicalized to lowercase and must contain at
 least two reverse-DNS labels. `appIdentifier` is the OneUptime RUM application
-identifier; the two identifiers are intentionally different.
+identifier; the two identifiers are intentionally different. With a Mobile
+key, `appIdentifier` is the key's Pinned Service Name: a Mobile key records
+only the app it is pinned to, and a recording for any other application is
+refused with a `422`.
 
 For manual lifecycle control, omit `options` from the provider and use the
 singleton:

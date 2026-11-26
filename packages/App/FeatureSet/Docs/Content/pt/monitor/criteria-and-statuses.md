@@ -5,13 +5,14 @@ Os critérios de um monitor decidem o que cada verificação significa: se o mon
 :::cards
 - [Como os critérios decidem](#como-os-critérios-decidem): De cima para baixo, e a primeira correspondência vence.
 - [O que um critério contém](#o-que-um-critério-contém): Filtros, uma condição de correspondência, ações e configurações.
+- [Julgar uma janela de verificações](#julgar-uma-janela-de-verificações): Contar verificações com falha, detectar instabilidade, ler um percentil.
 - [Alterar os critérios de um monitor](#alterar-os-critérios-de-um-monitor): Editar, adicionar, reordenar e testar critérios.
 - [Status de monitor](#status-de-monitor): Os status integrados e os seus próprios status.
 :::
 
 ## Como os critérios decidem
 
-Sempre que um monitor é verificado, seus critérios julgam o resultado do topo da lista para baixo. O primeiro critério cujos filtros correspondem decide o que acontece, e os critérios abaixo dele não são examinados nessa verificação. Quando nenhum corresponde, o monitor vai para o seu **Status Padrão do Monitor**.
+Sempre que um monitor é verificado, seus critérios julgam o resultado do topo da lista para baixo. O primeiro critério cujos filtros correspondem decide o que acontece, e os critérios abaixo dele não são examinados nessa verificação. Quando nenhum corresponde, o monitor vai para o seu **Status Padrão do Monitor**. Em vez disso, ele mantém seu status enquanto um critério que o traz de volta ainda não correspondeu: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
 
 ```mermaid title="Como cada verificação é julgada"
 flowchart TB
@@ -31,6 +32,8 @@ Um critério que corresponde mas não altera nenhum status ainda decide a verifi
 
 > [!NOTE]
 > Um monitor que abre um incidente ou alerta por host, contêiner, disco ou interface julga todos os critérios a cada verificação, de modo que dois hosts podem corresponder a dois critérios diferentes ao mesmo tempo. É um monitor cuja consulta tem um **Agrupar Por**, como um monitor de métricas ou de logs, ou um critério que indica `*` para cada disco ou interface. O mesmo vale para um monitor de métricas que observa uma expressão PromQL: cada série que a expressão retorna é julgada por si. Um monitor de requisições recebidas que agrupa incidentes por um campo do payload ainda para na primeira correspondência.
+>
+> Um monitor assim ainda tem um único status, definido pelo primeiro critério que corresponde. Um critério que apenas o traz de volta ao seu **Status Padrão do Monitor**, sem abrir incidente nem alerta, espera pelos hosts que atenderam a um critério que define outro status: corresponde quando cada um deles o atende, faça o que fizerem os outros hosts. Até lá, o monitor mantém seu status, mesmo quando nenhum critério corresponde, enquanto os incidentes e alertas de cada host continuam se resolvendo cada um por conta própria.
 
 ## O que um critério contém
 
@@ -41,7 +44,7 @@ Abra um critério: ele tem um nome e três seções, cada uma das quais se recol
 | **Nome dos Critérios** | O nome na lista de critérios e na causa raiz de cada incidente e alerta que o critério abre. **Adicionar critérios** dá a um novo critério o nome dos seus filtros, e o nome os acompanha até você digitar um próprio. |
 | **Filtros** | O que a verificação precisa mostrar, como um ou mais filtros. Os monitores de Kubernetes e de métricas os chamam de **Regras de alertas**. |
 | **Ações** | O que acontece quando os filtros correspondem: alterar o status, criar um alerta, declarar um incidente ou qualquer combinação. |
-| **Configurações** | **Habilitar este critério**, uma **Descrição** opcional e, nos monitores de requisições recebidas, **Group incidents and alerts by a payload field**. |
+| **Configurações** | **Habilitar este critério**, uma **Descrição** opcional, quando ele se recupera e quando é julgado e, em monitores de requisições recebidas, **Agrupar incidentes e alertas por um campo da carga útil**. |
 
 ### Filtros
 
@@ -49,7 +52,7 @@ Um filtro lê um dado da verificação e o compara: um **Tipo de filtro** (o que
 
 Com dois filtros ou mais, a **Condição de correspondência** aparece abaixo deles: **Todos** significa que todo filtro precisa corresponder, **Qualquer** que um basta. Um novo critério começa em **Todos**.
 
-Os filtros que medem cada verificação, como **Online**, **Código de status da resposta** e **Tempo de resposta (em ms)**, oferecem **Avaliar este critério durante um período de tempo**. Isso julga uma janela de verificações recentes em vez da última apenas, e começa com os últimos 5 minutos e **Todos os valores**, que só corresponde quando toda verificação da janela correspondeu. Veja [Avaliar durante um período de tempo](/docs/monitor/website-monitor#avaliar-durante-um-período-de-tempo).
+Os filtros que medem cada verificação, como **Online**, **Código de status da resposta** e **Tempo de resposta (em ms)**, oferecem **Avaliar este critério durante um período de tempo**. Isso julga uma janela de verificações recentes em vez da última apenas, e começa com os últimos 5 minutos e **Todos os valores**, que só corresponde quando toda verificação da janela correspondeu. A janela pode ter até 24 horas e contar as verificações, como explica [Julgar uma janela de verificações](#julgar-uma-janela-de-verificações). Veja [Avaliar durante um período de tempo](/docs/monitor/website-monitor#avaliar-durante-um-período-de-tempo).
 
 ### Ações
 
@@ -67,7 +70,70 @@ Um incidente ou alerta pede um título, uma **Gravidade** e, recolhidos, uma des
 
 **Habilitar este critério** vem ligado em todo novo critério. Desligue-o para manter um critério sem usá-lo: ele é ignorado em toda verificação, não altera nenhum status, não abre nada e seu cabeçalho mostra **Desabilitado**.
 
-**Group incidents and alerts by a payload field** abre um incidente para cada valor encontrado em uma requisição recebida, de modo que um único endereço de webhook pode manter vários incidentes abertos. Veja [Ativar o agrupamento de incidentes](/docs/monitor/incoming-request-monitor#ligar-o-agrupamento-de-incidentes).
+**Agrupar incidentes e alertas por um campo da carga útil** abre um incidente para cada valor encontrado em uma requisição recebida, de modo que um único endereço de webhook pode manter vários incidentes abertos. Veja [Ativar o agrupamento de incidentes](/docs/monitor/incoming-request-monitor#ligar-o-agrupamento-de-incidentes).
+
+**Recuperar apenas quando uma condição própria for atendida** e **Avaliar este critério apenas em certos dias e horários** vêm desativados em um critério novo. Veja [Quando um critério se recupera](#quando-um-critério-se-recupera) e [Apenas em certos dias e horários](#apenas-em-certos-dias-e-horários).
+
+## Julgar uma janela de verificações
+
+Com **Avaliar este critério durante um período de tempo** marcado, **Avaliar** diz como as verificações da janela são julgadas, e **No último período de** quanto dura a janela, de 2 minutos a 24 horas. A condição do próprio filtro, como **Online** definido como **Falso**, diz o que cada verificação deve mostrar.
+
+| Avaliar | Corresponde quando |
+| --- | --- |
+| **Todos os valores** | Todas as verificações da janela atenderam à condição. |
+| **Qualquer valor** | Pelo menos uma verificação da janela atendeu à condição. |
+| **Média**, **Soma**, **Valor máximo**, **Valor mínimo** | Esse valor, calculado sobre os valores da janela, atende à condição, como um tempo de resposta médio acima de 300 ms. |
+| **Percentil** | O percentil escolhido em **Percentil**, de p50 a p99, atende à condição: p95 acima de 300 ms significa que os 5% mais lentos das verificações passam de 300 ms. |
+| **Contagem** | O número de verificações que atenderam à condição é comparado conforme definido em **Verificações correspondentes**: **Maior que** 30, por exemplo. |
+| **Porcentagem** | A proporção delas entre as verificações da janela é comparada conforme definido em **Proporção de verificações correspondentes**: **Maior que** 10%, por exemplo. |
+| **Mudanças de status** | O número de vezes que as verificações passaram de atender à condição para não atender, ou o contrário, é comparado conforme definido em **Vezes que mudou**. Um dispositivo que cai e volta muda duas vezes. |
+| **Verificação anterior** | Esta verificação, comparada com a verificação anterior da mesma sonda: um tempo de resposta mais de 50% acima dela, por exemplo, ou um site que está fora do ar agora e antes não estava. Veja [Comparar uma verificação com a anterior](#comparar-uma-verificação-com-a-anterior). |
+
+Uma frase abaixo das configurações da janela repete o filtro como ele está definido: “Verificar se "Online" é falso em mais de 30 verificações do último período de 8 horas”.
+
+- **Cada sonda por si.** **Contagem**, **Porcentagem** e **Mudanças de status** contam as verificações da sonda que fez a verificação, então um monitor verificado a partir de três sondas não conta três vezes mais rápido, e suas sondas depois precisam concordar como em qualquer critério.
+- **Uma janela que ainda não está cheia.** Até que as verificações cheguem ao início da janela, um monitor que acabou de começar tem menos verificações do que terá. **Contagem** e **Mudanças de status** correspondem cedo quando já passaram de **Maior que** ou **Maior ou igual a**, já que mais verificações só aumentam esses números; todo o resto espera uma janela cheia.
+- **Uma janela sem verificações.** Enquanto a janela não tiver verificações, ou ainda não estiver cheia, **Se não houver dados** decide: **Ignore** espera, **Gatilho** corresponde, e **Treat As Zero** a julga como se as verificações que faltam não tivessem atendido à condição.
+
+As médias e os percentis leem os valores das verificações de todas as sondas, como **Média** sempre fez. **Contagem**, **Porcentagem** e **Mudanças de status** são oferecidos para todo filtro ao qual se oferece uma janela: em monitores Website, API, Ping, IP e Port, para CPU, memória, discos e carga de um servidor, para **Dispositivo SNMP online** e o tempo de resposta de um dispositivo de rede, para **Dias até a expiração** de um monitor de certificado SSL, e em monitores DNS, NTP, de banco de dados, de página de status externa e de status de sondas. **Online** de um monitor de servidor não é contado: é julgado pelo tempo desde o último relatório do servidor. Monitores de métricas e outros de telemetria julgam em vez disso o intervalo de tempo da sua consulta, com a agregação da própria consulta, que também lê percentis.
+
+### Exemplo: um ponto de acesso fora do ar e outro instável
+
+Um monitor Ping verifica um ponto de acesso de escritório a cada minuto. Antes que as janelas pudessem contar verificações, um ponto de acesso que caía o tempo todo parecia um fora do ar, ou nada demais. Estes três critérios, nesta ordem, distinguem os dois:
+
+| Critério | Filtro | Avaliar | Muda o status para |
+| --- | --- | --- | --- |
+| O ponto de acesso está fora do ar | **Online** é **Falso** | **Todos os valores**, **No último período de** 5 minutos | **Offline**, e declara um incidente de interrupção |
+| O ponto de acesso está instável | **Online** é **Falso** | **Mudanças de status**, **Maior que** 5, **No último período de** 1 hora | **Degradado**, e declara um incidente de instabilidade |
+| O ponto de acesso está online | **Online** é **Verdadeiro** | Não durante um período | **Operacional** |
+
+No segundo, ative **Recuperar apenas quando uma condição própria for atendida** com **Mudanças de status**, **Menor ou igual a** 1, **No último período de** 1 hora: o incidente de instabilidade fica aberto até o ponto de acesso ficar estável por uma hora, em vez de fechar no primeiro minuto em que ele responde. Para alertar quando ele falhar mais de 30 pings em 8 horas, defina o segundo critério como **Contagem**, **Maior que** 30, **No último período de** 8 horas.
+
+### Comparar uma verificação com a anterior
+
+**Verificação anterior** compara cada verificação com a verificação anterior da mesma sonda, e do mesmo disco para o uso de um disco. **No último período de** diz há quanto tempo essa verificação pode ter sido feita, então defina um período maior que o intervalo de monitoramento. Ele é oferecido para os mesmos filtros que **Contagem**.
+
+Um valor medido, como um tempo de resposta, corresponde quando fica acima da verificação anterior por mais que a variação definida em **Variação em relação à verificação anterior**, com **Maior que**, ou abaixo dela por mais que essa variação, com **Menor que**. A variação é um **Valor na unidade da verificação**, como 200 ms, ou um **Percentual da verificação anterior**, como 50%, e 0 corresponde a qualquer alta ou queda. **Igual a** e **Diferente de** comparam com o próprio valor anterior.
+
+Um filtro verdadeiro ou falso, como **Online**, e um filtro sobre o corpo, um cabeçalho ou uma expressão correspondem na verificação que começou a atender à condição: **Online** definido como **Falso** corresponde na verificação em que o site caiu, e só de novo na próxima queda.
+
+Nos dois casos ele corresponde em uma única verificação, e na seguinte o critério deixa de agir. Para que mantenha o status que define, ou deixe seu incidente aberto, dê a ele uma condição de recuperação própria: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
+
+Sem verificação anterior na janela, como na primeira verificação do monitor, em uma sonda recém-adicionada ou após uma lacuna, **Se não houver dados** decide: **Ignore** não corresponde, **Gatilho** corresponde e **Treat As Zero** compara como se a verificação anterior tivesse lido 0, ou não tivesse atendido à condição.
+
+A frase abaixo das configurações da janela repete isso: “Verificar se "Tempo de resposta (em ms)" está mais de 50% acima da verificação anterior”, ou “Verificar se "Online" é falso nesta verificação, mas não na anterior”.
+
+## Quando um critério se recupera
+
+Um critério para de agir assim que seus filtros deixam de corresponder: nessa verificação, seu incidente e seu alerta são resolvidos, quando **Resolver incidente automaticamente** e **Resolver alerta automaticamente** estão ativados, e o monitor passa para o próximo critério que corresponder.
+
+**Recuperar apenas quando uma condição própria for atendida** mantém o critério em vigor depois que seus filtros deixam de corresponder, até que os filtros em **Recupera quando** correspondam. Eles começam como o oposto dos filtros do critério, nos últimos 10 minutos, e podem usar tudo o que um filtro oferece, como uma janela que conta verificações. Um critério está em vigor enquanto o monitor tem o status que ele define ou está aberto um incidente ou alerta que ele declarou. Enquanto se mantém, ele conta como uma correspondência no seu lugar da lista: um critério acima dele que corresponda ainda assume.
+
+Quando nenhum critério corresponde, um monitor que um critério tirou do seu **Status Padrão do Monitor** mantém o status que tem, desde que também tenha um critério que apenas o traz de volta a esse status e não abre nada. Essa é a margem de recuperação: os modelos disparam acima de 90% e voltam em 81% ou menos, então em 89% o monitor fica onde está. Seus incidentes e alertas ainda são resolvidos quando o próprio critério deles deixa de corresponder. Um monitor sem um critério assim vai para o seu **Status Padrão do Monitor**, como sempre.
+
+## Apenas em certos dias e horários
+
+**Avaliar este critério apenas em certos dias e horários** define os dias, **Hora de início** e **Horário de término**, e **Fuso horário**, que começa como o seu. Fora desses horários o critério é ignorado como um critério desativado: não corresponde a nada, então o que ele abriu é resolvido, e o registro de avaliação diz que estava fora dos seus horários. Os horários são lidos no relógio desse fuso horário, então 08:00 continua 08:00 depois da mudança de horário, e horários que terminam antes de começar seguem até a manhã seguinte.
 
 ## Quando incidentes e alertas abrem e fecham
 
@@ -148,6 +214,23 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 
 > [!TIP]
 > Quando as respostas de um monitor de site ou de API forem sensíveis por si só, desative **Manter o conteúdo da resposta** no cartão **Conteúdo da resposta** da página **Avançado → Configurações** dele. Os registros de monitoramento, incidentes e alertas dele passam a guardar quais filtros corresponderam, o código de status e o tempo de resposta, e nenhuma parte da resposta. Um monitor de requisições recebidas tem o mesmo interruptor para as requisições que recebe: **Manter o conteúdo da solicitação**, no cartão **Conteúdo da solicitação**. O interruptor vale para as verificações executadas, e para os incidentes e alertas abertos, depois que você o muda. A última requisição na visão geral de um monitor de requisições recebidas segue o interruptor na hora.
+
+## Quanto tempo leva cada verificação
+
+O resumo de avaliação de cada verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor e, para a última verificação, na sua **Visão geral**, diz quando a verificação foi avaliada, quanto tempo levou a sua avaliação e, num monitor que julga cada host, contêiner ou grupo separadamente, quantas séries avaliou. O tempo vai de quando o OneUptime começou a ler os dados que a verificação julga até escrever o seu registro: a leitura dos dados, a avaliação dos critérios e a abertura de incidentes e alertas.
+
+Nos **Registros de monitoramento**, a coluna **Duração da verificação** mostra quanto tempo levou cada verificação e marca as verificações lentas. Um traço indica que a duração da verificação não foi registrada.
+
+Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa você. Demais é mais de um décimo do tempo entre as verificações do monitor, nunca menos de 5 segundos e nunca mais de um minuto:
+
+| Monitor verificado | Avisa após |
+| --- | --- |
+| A cada minuto | 6 segundos |
+| A cada 5 minutos | 30 segundos |
+| A cada 10 minutos ou com menos frequência | 1 minuto |
+| À medida que os resultados chegam, como solicitações e e-mails recebidos | 5 segundos |
+
+Um décimo deixa a um monitor espaço para crescer dez vezes antes que as suas verificações se sobreponham e fiquem para trás, então você fica sabendo cedo. Abaixo de 5 segundos, uma verificação está bem, por maior que seja: avaliar 16.000 séries leva cerca de 2,5 segundos. Acima de um minuto, ela ocupa um worker e os bancos de dados que lê durante todo esse tempo, seja qual for o seu intervalo. Para acelerá-la, restrinja os filtros das suas consultas, agrupe por menos atributos ou verifique-a com menos frequência.
 
 ## Alterar os critérios de um monitor
 

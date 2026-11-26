@@ -73,6 +73,7 @@ import NameTakenException, {
   NAME_TAKEN_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODES,
   REFUSAL_CODE_FIELD,
+  TAKEN_BY_ID_FIELD,
 } from "Common/Types/Exception/NameTakenException";
 import ValueTakenException, {
   TAKEN_FIELD_DETAIL,
@@ -88,7 +89,14 @@ import {
 import {
   ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
   getNameTakenRefusalText,
+  getRequiredUniqueNameTakenRefusal,
 } from "Common/Types/Database/UniqueName";
+import {
+  UNIQUE_NAME_CHECK_PARAMS,
+  UNIQUE_NAME_CHECK_ROUTE,
+  UNIQUE_NAME_DUPLICATES_ROUTE,
+} from "Common/Types/Database/RequiredUniqueNames";
+import Project from "Common/Models/DatabaseModels/Project";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -617,7 +625,10 @@ describe("OneUptime API Reference: a request and its answer", () => {
       "if (countCap !== undefined && count.toNumber() > countCap) {",
     );
     expect(getList).toContain("new PositiveNumber(countCap)");
-    expect(getList).toContain("{ isCountCapped: true }");
+    // Beside the retired columns a request still named (#10469).
+    expect(getList).toContain(
+      "{ isCountCapped: true, retiredColumns: retiredColumns }",
+    );
 
     const capped: JSONObject = new ListData({
       data: [],
@@ -939,9 +950,10 @@ describe("OneUptime API Reference: a request and its answer", () => {
     );
 
     /*
-     * The refusals it quotes, word for word: a named kind's, and the one
-     * every other kind with a name of its own answers a create with
-     * (DatabaseService.refuseTakenName).
+     * The refusals it quotes, word for word: a named kind's, the one every
+     * other kind with a name of its own answers a create with
+     * (DatabaseService.refuseTakenName), and a project's that requires
+     * unique names (#10761).
      */
     expect(
       codeBlocks(section, "text").map((block: string): string => {
@@ -950,6 +962,11 @@ describe("OneUptime API Reference: a request and its answer", () => {
     ).toEqual([
       getNameTakenRefusalText(ON_CALL_POLICY_NAME_TAKEN_REFUSAL, "Primary"),
       `${new IncidentSeverity().singularName} with the same name already exists.`,
+      getRequiredUniqueNameTakenRefusal({
+        kindLabel: new Monitor().singularName!,
+        name: "API Health Check",
+        isArchived: false,
+      }),
     ]);
     expect(readRepoFile(DATABASE_SERVICE)).toContain(
       "`${this.model.singularName} with the same name already exists.`",
@@ -967,6 +984,48 @@ describe("OneUptime API Reference: a request and its answer", () => {
 
       expect({ kind, named }).toEqual({ kind, named: true });
     }
+  });
+
+  /*
+   * #10761: a project may require unique names - a new one does - and then
+   * most other kinds a person names refuse a taken name too, with the same
+   * codes, the record that has it named by its ID. The project's column,
+   * the field and the two routes are the product's own.
+   */
+  it("says a project may require unique names, with the column, the record that has the name and the routes that answer for it", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Names another record has",
+    );
+
+    expect(section).toContain(
+      "A project that requires unique names, as a new project does",
+    );
+    expect(
+      new Project().getTableColumnMetadata("requireUniqueNames"),
+    ).toBeTruthy();
+    expect(section).toContain(
+      "The project's `requireUniqueNames` says whether it does",
+    );
+    expect(section).toContain(
+      `Such a refusal also carries \`${TAKEN_BY_ID_FIELD}\`, the ID of the record that has the name, when your key may read it.`,
+    );
+    // The answer carries it beside the code, when the server may say it.
+    expect(
+      new NameTakenException("x", {
+        id: "7f0b1d7e-0000-4000-8000-000000010761",
+      }).details,
+    ).toEqual({
+      [REFUSAL_CODE_FIELD]: NAME_TAKEN_REFUSAL_CODE,
+      [TAKEN_BY_ID_FIELD]: "7f0b1d7e-0000-4000-8000-000000010761",
+    });
+    expect(section).toContain(
+      "Records that shared a name before the project required unique names keep it until they are renamed",
+    );
+    expect(section).toContain(
+      `\`GET /api${UNIQUE_NAME_CHECK_ROUTE}?${UNIQUE_NAME_CHECK_PARAMS.tableName}=Monitor&${UNIQUE_NAME_CHECK_PARAMS.name}=API%20Health%20Check\``,
+    );
+    expect(section).toContain(`\`GET /api${UNIQUE_NAME_DUPLICATES_ROUTE}\``);
   });
 
   /*

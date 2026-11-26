@@ -134,6 +134,9 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<PodmanHost> =
     useInfrastructureResources<PodmanHost>({
+      valueField: "hostIdentifier",
+      searchFields: ["name", "hostIdentifier"],
+      heldValue: monitorStepPodmanMonitor.hostIdentifier,
       modelType: PodmanHost,
       select: {
         _id: true,
@@ -317,6 +320,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: PODMAN_HOST_ONBOARDING.addTitle,
           renderModal: (input: {

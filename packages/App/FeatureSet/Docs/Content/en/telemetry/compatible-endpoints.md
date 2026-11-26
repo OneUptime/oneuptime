@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-The `1` at the end of the DSN is required by Sentry's SDKs and not read. A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.
+The `1` at the end of the DSN is required by Sentry's SDKs and not read. A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it. Everything it sends is then filed as that browser app's RUM telemetry, never as a backend service.
 
 ### What an envelope becomes
 

@@ -23,8 +23,8 @@ Klicken Sie oben rechts im Dashboard auf Ihr Bild.
 
 | Eintrag | Was er tut |
 | --- | --- |
-| **Profil** | Öffnet **Benutzerprofil**: Ihren Namen, Ihre E-Mail-Adresse, Zeitzone, Sprache, Ihr Bild und die Sicherheit Ihrer Anmeldung. |
-| **Admin-Einstellungen** | Öffnet das Admin-Dashboard. Nur Master-Admins einer selbst gehosteten Installation sehen ihn. |
+| **Benutzerprofil** | Öffnet **Benutzerprofil**: Ihren Namen, Ihre E-Mail-Adresse, Zeitzone, Sprache, Ihr Bild und die Sicherheit Ihrer Anmeldung. |
+| **Admin-Dashboard** | Öffnet das Admin-Dashboard. Nur Master-Admins einer selbst gehosteten Installation sehen ihn. |
 | **Design** | Legt das Design des Dashboards fest: **Hell**, **Dunkel** oder **System**, das hell oder dunkel ist, je nachdem, wie Ihr Gerät eingestellt ist. |
 | **Abmelden** | Meldet Sie ab, sofort auf jedem OneUptime-Server. Wo Ihr Administrator es eingerichtet hat, meldet es Sie auch bei Ihrem Identitätsanbieter ab. |
 
@@ -35,7 +35,7 @@ Klicken Sie oben rechts im Dashboard auf Ihr Bild.
 :::steps
 ### Ihr Profil öffnen
 
-Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Übersicht** öffnet sich mit der Karte **Grundinformationen**: Ihrem Namen, Ihrer E-Mail-Adresse, Ihrer Zeitzone und Ihrer Sprache.
+Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Benutzerprofil**. Die Seite **Übersicht** öffnet sich mit der Karte **Grundinformationen**: Ihrem Namen, Ihrer E-Mail-Adresse, Ihrer Zeitzone und Ihrer Sprache.
 
 ### Ihre Angaben bearbeiten
 
@@ -114,7 +114,7 @@ Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder ei
 
 ### Ihn einrichten
 
-Für eine Authenticator-App scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben den sechsstelligen Code ein, den sie zeigt, und klicken auf **Verifizieren und abschließen**. Einem USB- oder NFC-Schlüssel geben Sie einen Namen und folgen der Aufforderung Ihres Browsers. Danach ist die Zwei-Faktor-Authentifizierung eingeschaltet, und die Karte zeigt **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
+Für eine Authenticator-App scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben den sechsstelligen Code ein, den sie zeigt, und klicken auf **Verifizieren und abschließen**. Auf einem Smartphone tippen Sie statt zu scannen auf **Zur Authenticator-App hinzufügen**: Ihre App öffnet sich mit Ihrem Konto bereits eingetragen. Einem USB- oder NFC-Schlüssel geben Sie einen Namen und folgen der Aufforderung Ihres Browsers. Danach ist die Zwei-Faktor-Authentifizierung eingeschaltet, und die Karte zeigt **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 
 ### Ihre Backup-Codes sichern
 
@@ -127,7 +127,7 @@ Haben Sie unter **Authenticator-Apps** schon eine App oder unter **Sicherheitssc
 
 Verlangt ein Administrator die Zwei-Faktor-Authentifizierung und haben Sie noch nichts eingerichtet, fordert Sie Ihre nächste Anmeldung mit Passwort oder einem per E-Mail gesendeten Link auf, sie einzurichten, bevor sie Sie hineinlässt. Wählen Sie **Authenticator-App** oder **Sicherheitsschlüssel** und klicken Sie auf **Weiter**:
 
-- **Authenticator-App**: Scannen Sie den QR-Code, geben Sie den sechsstelligen Code ein, den Ihre App zeigt, und klicken Sie auf **Bestätigen und anmelden**.
+- **Authenticator-App**: Scannen Sie den QR-Code, geben Sie den sechsstelligen Code ein, den Ihre App zeigt, und klicken Sie auf **Bestätigen und anmelden**. Auf einem Smartphone tippen Sie statt zu scannen auf **Zur Authenticator-App hinzufügen**.
 - **Sicherheitsschlüssel**: Klicken Sie auf **Sicherheitsschlüssel registrieren** und folgen Sie der Aufforderung Ihres Browsers. Berühren Sie einen USB- oder NFC-Schlüssel, oder nutzen Sie den Fingerabdruck, das Gesicht oder die Displaysperre Ihres Smartphones oder Computers.
 
 Haben Sie noch keine Backup-Codes, zeigt OneUptime sie Ihnen danach einmal, und Sie sind angemeldet. **Andere Methode wählen** führt zurück zur Auswahl. Ein Browser, der keinen Sicherheitsschlüssel registrieren kann, etwa auf einer Seite ohne HTTPS, bietet nur die Authenticator-App an.
@@ -156,20 +156,23 @@ Manche Änderungen verlangen zuerst eine Bestätigung, dass Sie es sind, auch we
 - die Zwei-Faktor-Authentifizierung ausschalten;
 - Ihr Konto löschen.
 
-Der Dialog **Bestätigen Sie, dass Sie es sind** fragt nach Ihrem Passwort und, solange die Zwei-Faktor-Authentifizierung eingeschaltet ist, nach Ihrem zweiten Schritt: einem Code aus Ihrer Authenticator-App, Ihrem Sicherheitsschlüssel oder einem Ihrer Backup-Codes. Mit einem Passkey klicken Sie stattdessen auf **Passkey verwenden**. Melden Sie sich nur über Single Sign-On, Google oder Microsoft an, klicken Sie auf **Erneut anmelden**: OneUptime lässt Ihren Identitätsanbieter Sie erneut anmelden und bringt Sie danach zur Seite zurück. Dann wird die Änderung ausgeführt.
+Der Dialog **Bestätigen Sie, dass Sie es sind** fragt nach Ihrem Passwort und, solange die Zwei-Faktor-Authentifizierung eingeschaltet ist, nach Ihrem zweiten Schritt: einem Code aus Ihrer Authenticator-App, Ihrem Sicherheitsschlüssel oder einem Ihrer Backup-Codes. Mit einem Passkey klicken Sie stattdessen auf **Passkey verwenden**. Melden Sie sich nur über Single Sign-On, Google oder Microsoft an, klicken Sie auf **Erneut anmelden**: OneUptime lässt Ihren Identitätsanbieter Sie erneut anmelden und bringt Sie danach zur Seite zurück. Dann wird die Änderung ausgeführt. Wenn Sie sich nur mit Vercel anmelden, das nicht bestätigen kann, dass Sie es sind, wählen Sie stattdessen **Anders anmelden** und melden Sie sich mit einem Link an, den Sie per E-Mail erhalten.
 
 Nachdem Sie bestätigt haben, werden Sie in diesem Browser 10 Minuten lang nicht erneut gefragt. Fünf falsche Versuche melden diesen Browser ab, sperren Ihr Konto aber nie: Melden Sie sich erneut an, und versuchen Sie es noch einmal. OneUptime schickt Ihnen eine E-Mail, wenn das passiert, und jedes Mal, wenn ein Backup-Code bestätigt, dass Sie es sind.
 
-Auf einem selbst gehosteten Server bestätigen Master-Admins auf dieselbe Weise, dass sie es sind, bevor sie ändern, wie sich jemand anderes anmeldet, jemanden zum Master-Admin machen, die Single-Sign-On-Anbieter oder die E-Mail-Einstellungen des Servers ändern oder einen Master-API-Schlüssel erstellen. Der Master-API-Schlüssel kann diese Änderungen nicht vornehmen.
+Auf einem selbst gehosteten Server bestätigen Master-Admins auf dieselbe Weise, dass sie es sind, bevor sie ändern, wie sich jemand anderes anmeldet, das Konto einer anderen Person löschen, jemanden zum Master-Admin machen, die Single-Sign-On-Anbieter oder die E-Mail-Einstellungen des Servers ändern oder einen Master-API-Schlüssel erstellen oder wieder einschalten. Der Master-API-Schlüssel kann diese Änderungen nicht vornehmen.
 
 Eine erneute Anmeldung zählt nur, wenn Ihr Identitätsanbieter angibt, dass Sie sich angemeldet haben, nachdem OneUptime Sie zu ihm geschickt hat. Meldet der Anbieter Sie mit einer Sitzung an, die er bereits hat, ohne nach Ihrem Passwort zu fragen, bestätigt das nichts: Melden Sie sich zuerst beim Anbieter ab, und klicken Sie dann auf **Erneut anmelden**. Wo Ihr Server die Anmeldung mit einem per E-Mail gesendeten Link erlaubt, tut **Anders anmelden** stattdessen genau das. Was OneUptime von jedem Anbieter verlangt und was ein Administrator ändern kann, wenn die erneute Anmeldung nichts bestätigt:
 
 | Anbieter | Was OneUptime verlangt | Wenn sie nichts bestätigt |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` und den Zeitpunkt Ihrer Anmeldung (`AuthnInstant`) | Lassen Sie den Anbieter die Anfrage befolgen, etwa mit Honor Force Authentication in Okta. |
-| OpenID Connect | `prompt=login` und `max_age=0` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Lassen Sie den Anbieter `auth_time` senden. Fügen Sie es in Microsoft Entra ID dem ID-Token als optionalen Claim hinzu. |
+| OpenID Connect | `prompt=login` und `max_age=0` (Microsoft Entra ID: nur `prompt=login`) sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Lassen Sie den Anbieter `auth_time` senden. Fügen Sie es in Microsoft Entra ID dem ID-Token als optionalen Claim hinzu. |
 | Google | Den Zeitpunkt Ihrer Anmeldung (`auth_time`). Google lässt sich nicht bitten, Sie erneut anzumelden. | Schalten Sie Session age claims für die Google-Anmelde-App des Servers ein, die veröffentlicht und verifiziert sein muss. |
-| Microsoft | `prompt=login` und `max_age=0` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Fügen Sie `auth_time` dem ID-Token der Microsoft-Anmelde-App des Servers als optionalen Claim hinzu. |
+| Microsoft | `prompt=login` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Fügen Sie `auth_time` dem ID-Token der Microsoft-Anmelde-App des Servers als optionalen Claim hinzu. |
+| Vercel | Nichts: Vercel lässt sich nicht bitten, Sie erneut anmelden zu lassen, und teilt nicht mit, wann Sie sich angemeldet haben. | Es bestätigt nie. Wählen Sie **Anders anmelden** und melden Sie sich mit einem Link an, den Sie per E-Mail erhalten, oder legen Sie mit **Passwort vergessen?** ein Passwort fest und bestätigen Sie damit. |
+
+Was Sie in Okta, Microsoft Entra ID, Keycloak und Google Workspace einstellen, steht auf der Seite [SSO](/docs/identity/sso#erneut-anmelden-um-zu-bestätigen-dass-sie-es-sind).
 
 ## Ihre Projekte
 

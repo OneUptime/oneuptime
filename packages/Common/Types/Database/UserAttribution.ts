@@ -1,4 +1,5 @@
 import { ColumnAccessControl } from "../BaseDatabase/AccessControl";
+import { RecordActorUtil } from "./RecordActor";
 
 /*
  * WHO DID SOMETHING TO A RECORD, AND WHEN, IS FOR ONEUPTIME TO SAY.
@@ -36,6 +37,11 @@ import { ColumnAccessControl } from "../BaseDatabase/AccessControl";
  * and asks for a decision on any act it has not seen before. A column whose
  * person a request does choose - whom to page, who owns a resource - is named
  * for that (`userId`, `ownerUserId`), never `<act>ByUser`.
+ *
+ * Every record also keeps what created it and what last changed it, by kind
+ * - a person, an API key, a workflow, an MCP client, a server admin or
+ * OneUptime itself - on the base model (RecordActor, #10290). Those columns
+ * are OneUptime's to say in the same way, and are covered here by name too.
  */
 
 // `createdByUserId`, `archivedByUser`, `markedAsResolvedByUserId`.
@@ -108,13 +114,24 @@ export default class UserAttribution {
     );
   }
 
+  /*
+   * Whether a column is one of the base model's columns that say what
+   * created a record and what last changed it (RecordActor).
+   */
+  public static isRecordActorColumn(
+    columnName: string | symbol | undefined,
+  ): boolean {
+    return RecordActorUtil.isColumn(columnName);
+  }
+
   // Whether OneUptime decides the column: who did something, or when.
   public static isDecidedByServer(
     columnName: string | symbol | undefined,
   ): boolean {
     return (
       UserAttribution.isColumn(columnName) ||
-      UserAttribution.isTimeColumn(columnName)
+      UserAttribution.isTimeColumn(columnName) ||
+      UserAttribution.isRecordActorColumn(columnName)
     );
   }
 
@@ -166,7 +183,8 @@ export default class UserAttribution {
    * Every column of a model that OneUptime decides: who did something to its
    * records, under both of their names - the ID columns and the relations
    * named for an act, and any relation over one of those ID columns whatever
-   * it is called - and when a switch was turned.
+   * it is called - when a switch was turned, and what created the record and
+   * last changed it.
    */
   public static getColumns(model: ModelWithUserAttribution): Array<string> {
     const columns: Array<string> = model.getTableColumns().columns;
@@ -180,7 +198,8 @@ export default class UserAttribution {
     return columns.filter((columnName: string): boolean => {
       if (
         idColumns.has(columnName) ||
-        UserAttribution.isTimeColumn(columnName)
+        UserAttribution.isTimeColumn(columnName) ||
+        UserAttribution.isRecordActorColumn(columnName)
       ) {
         return true;
       }

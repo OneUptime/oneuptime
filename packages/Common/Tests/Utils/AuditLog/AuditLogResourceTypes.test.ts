@@ -15,6 +15,7 @@ import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import {
   AUDIT_LOG_RESOURCE_TYPE_KEYS,
+  getAuditLogResourceTypesOfModel,
   getAuditLogResourceTypeSpellings,
   toAuditLogResourceTypeCondition,
   withAuditLogResourceTypeSpellings,
@@ -358,5 +359,90 @@ describe("a query of the audit log", () => {
       "User's On-Call Duty Escalation Rule",
       "Escalation Rule User",
     ]);
+  });
+});
+
+/*
+ * Every type a model's entries can carry (#10664): the one it is recorded
+ * under today, its name on screen, and the name it had before it was
+ * renamed, which its older entries keep. The reads and the export find a
+ * model by them; the Resource Type filter is not widened by a former name.
+ */
+describe("the types a model's entries can carry", () => {
+  test("a model never renamed: its one name", () => {
+    expect(
+      getAuditLogResourceTypesOfModel({
+        tableName: "Monitor",
+        singularName: "Monitor",
+      }),
+    ).toEqual(["Monitor"]);
+  });
+
+  test("a model renamed on screen (#6817): the name it kept, then the one on screen", () => {
+    expect(
+      getAuditLogResourceTypesOfModel({
+        tableName: "OnCallDutyPolicySchedule",
+        singularName: "On-Call Schedule",
+        apiSingularName: "On-Call Policy Schedule",
+      }),
+    ).toEqual(["On-Call Policy Schedule", "On-Call Schedule"]);
+  });
+
+  test("a model renamed outright: today's name, then the one its older entries carry", () => {
+    expect(
+      getAuditLogResourceTypesOfModel({
+        tableName: "AutoRemediationRule",
+        singularName: "AI Rule",
+        formerSingularName: "Auto Remediation Rule",
+      }),
+    ).toEqual(["AI Rule", "Auto Remediation Rule"]);
+  });
+
+  test("a former name already among them is not named twice, and a blank one is none", () => {
+    expect(
+      getAuditLogResourceTypesOfModel({
+        singularName: "Thing",
+        formerSingularName: "Thing",
+      }),
+    ).toEqual(["Thing"]);
+    expect(
+      getAuditLogResourceTypesOfModel({
+        singularName: "Thing",
+        formerSingularName: "  ",
+      }),
+    ).toEqual(["Thing"]);
+    expect(getAuditLogResourceTypesOfModel({})).toEqual([]);
+  });
+
+  test("each model's are read from the model itself, its type today first", () => {
+    for (const modelType of DatabaseModels as Array<DatabaseBaseModelType>) {
+      const model: DatabaseBaseModel = new modelType();
+      const types: Array<string> = getAuditLogResourceTypesOfModel(model);
+
+      expect({ table: model.tableName, first: types[0] }).toEqual({
+        table: model.tableName,
+        first: getApiSingularName(model),
+      });
+
+      if (model.formerSingularName) {
+        expect(types).toContain(model.formerSingularName);
+      }
+    }
+  });
+
+  /*
+   * The link's former name is the template's name today: a filter on the
+   * link's type that named it too would find every template's entries.
+   */
+  test("a filter on a renamed model's type is not widened by its former name", () => {
+    expect(
+      toAuditLogResourceTypeCondition(
+        "Status Page Subscriber Notification Template",
+      ),
+    ).toBe("Status Page Subscriber Notification Template");
+    expect(
+      toAuditLogResourceTypeCondition("Subscriber Notification Template"),
+    ).toBe("Subscriber Notification Template");
+    expect(getAuditLogResourceTypeSpellings("AI Rule")).toEqual(["AI Rule"]);
   });
 });

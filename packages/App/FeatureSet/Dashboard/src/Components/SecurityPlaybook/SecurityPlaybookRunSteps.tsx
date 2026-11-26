@@ -53,6 +53,12 @@ function getMarker(status: string | undefined): {
         icon: IconProp.Pause,
         className: "bg-amber-400 text-white",
       };
+    // A Page On-Call step held while OneUptime AI responds first (#10353).
+    case SecurityPlaybookStepStatus.WaitingForOneUptimeAi:
+      return {
+        icon: IconProp.Clock,
+        className: "bg-indigo-100 text-indigo-700",
+      };
     case SecurityPlaybookStepStatus.Running:
       return {
         icon: IconProp.Play,
@@ -81,12 +87,37 @@ export function describeRunTarget(
 ): string {
   switch (target.state) {
     case SecurityPlaybookTargetState.Proposed:
+      if (target.reason === SecurityPlaybookTargetReason.OnTheCase) {
+        return (
+          translator.translateText("One of the case's addresses") ||
+          "One of the case's addresses"
+        );
+      }
+
+      // Block the Whole Campaign (#10354): another address of the case's address's campaign.
+      if (target.reason === SecurityPlaybookTargetReason.InTheCampaign) {
+        return (
+          translator.translateText(
+            "Sent the same requests with the same tools as the case's address",
+          ) ||
+          "Sent the same requests with the same tools as the case's address"
+        );
+      }
+
       return target.reason === SecurityPlaybookTargetReason.ThreatIntel
         ? translator.translateText("Known to threat intel") ||
             "Known to threat intel"
         : translator.translateText("What the case is grouped on") ||
             "What the case is grouped on";
     case SecurityPlaybookTargetState.Protected:
+      // One of the project's own addresses, as the blocklist said it (#10342).
+      if (target.detail) {
+        return translator.translateTemplate(
+          "Protected (one of your own addresses): never blocked. {{why}}",
+          { why: target.detail },
+        );
+      }
+
       return target.protectedBy &&
         target.protectedBy.toLowerCase() !== target.value.toLowerCase()
         ? translator.translateTemplate(

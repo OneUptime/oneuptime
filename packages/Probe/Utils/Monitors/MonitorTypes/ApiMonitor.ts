@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorLogUrl from "../MonitorLogUrl";
 import MonitorRetry from "../MonitorRetry";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -12,8 +13,16 @@ import Sleep from "Common/Types/Sleep";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
-import API from "Common/Utils/API";
+import API, { APIRequestBody } from "Common/Utils/API";
+import MonitorRequestBody, {
+  MonitorRequestBodyReading,
+} from "Common/Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+  TEXT_REQUEST_BODY_CONTENT_TYPE,
+} from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -40,7 +49,8 @@ const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 export interface APIResponse {
   url: URL;
   requestHeaders: Headers;
-  requestBody: JSONObject;
+  // The body as configured, before its one-time codes are filled in.
+  requestBody?: string | undefined;
   isSecure: boolean;
   responseTimeInMS: PositiveNumber;
   statusCode: number | undefined;
@@ -59,8 +69,22 @@ export interface APIResponse {
 interface ApiMonitorRequest {
   url: string;
   headers: Headers;
-  body: JSONObject | undefined;
+  // The body's text, as written: JSON, or text sent as it is (#10736).
+  body: string | undefined;
 }
+
+/*
+ * What one attempt sends as its body - and the Content-Type it goes under
+ * when the headers name none, for a body that is not JSON - or where its
+ * body stops being JSON.
+ */
+type ApiMonitorBody =
+  | {
+      canSend: true;
+      data: APIRequestBody | undefined;
+      contentType?: string | undefined;
+    }
+  | { canSend: false; line: number | null; column: number | null };
 
 export default class ApiMonitor {
   /*
@@ -73,7 +97,7 @@ export default class ApiMonitor {
     url: URL,
     options: {
       requestHeaders?: Headers | undefined;
-      requestBody?: JSONObject | undefined;
+      requestBody?: string | undefined;
       totpCodes?: TotpCodeIssuer | undefined;
     },
   ): Promise<ApiMonitorRequest> {
@@ -90,11 +114,178 @@ export default class ApiMonitor {
     return await options.totpCodes.fill(configured);
   }
 
+  /*
+   * What an attempt's request carries as its body, its one-time codes
+   * filled in (#9737): the JSON as written, byte for byte, under the
+   * request's Content-Type - or, when that Content-Type is a form, an
+   * object's fields, as such a body has always been sent. A JSON body that
+   * is not JSON cannot be sent at all (MonitorRequestBody).
+   *
+   * A text body (#10736) is sent byte for byte and never parsed - XML,
+   * plain text, form fields written as a=1&b=2 - under the Content-Type the
+   * headers name, or text/plain.
+   */
+  private static getBody(
+    request: ApiMonitorRequest,
+    format: MonitorRequestBodyFormat,
+  ): ApiMonitorBody {
+    const text: string | undefined = MonitorRequestBody.getText(request.body);
+
+    if (text === undefined) {
+      return { canSend: true, data: undefined };
+    }
+
+    if (format === MonitorRequestBodyFormat.Text) {
+      return {
+        canSend: true,
+        data: Buffer.from(text, "utf8"),
+        contentType: TEXT_REQUEST_BODY_CONTENT_TYPE,
+      };
+    }
+
+    const reading: MonitorRequestBodyReading = MonitorRequestBody.read(text);
+
+    if (!reading.isJson) {
+      return { canSend: false, line: reading.line, column: reading.column };
+    }
+
+    if (
+      MonitorRequestBody.isObject(reading.value) &&
+      MonitorRequestBody.isSentAsForm(request.headers)
+    ) {
+      return { canSend: true, data: reading.value as JSONObject };
+    }
+
+    return { canSend: true, data: Buffer.from(reading.json, "utf8") };
+  }
+
+  /*
+   * The headers an attempt sends: the request's own, with the Content-Type
+   * of a body that is not JSON added when they name none - API.fetch would
+   * otherwise send it as application/json.
+   */
+  private static getHeadersToSend(
+    headers: Headers,
+    body: ApiMonitorBody,
+  ): Headers {
+    if (!body.canSend || !body.contentType) {
+      return headers;
+    }
+
+    const namesContentType: boolean = Object.keys(headers).some(
+      (name: string): boolean => {
+        return name.toLowerCase() === "content-type";
+      },
+    );
+
+    return namesContentType
+      ? headers
+      : { ...headers, "Content-Type": body.contentType };
+  }
+
+  /*
+   * The result of an attempt whose body is not JSON: nothing was sent, so
+   * nothing answered, and it is not tried again - every retry would send
+   * the same body. Its cause says so, in the reader's language on the
+   * monitor's summary (ProbeFailureCause.RequestBodyNotJson). The log says
+   * where the body stops being JSON, never what it holds: the server has
+   * filled the monitor's secrets into it.
+   */
+  private static getBodyNotSentResponse(data: {
+    url: URL;
+    requestType: HTTPMethod;
+    body: { line: number | null; column: number | null };
+    options: {
+      requestHeaders?: Headers | undefined;
+      requestBody?: string | undefined;
+      currentRetryCount?: number | undefined;
+      monitorId?: ObjectID | undefined;
+      attempts?: Array<ProbeAttempt> | undefined;
+    };
+  }): APIResponse {
+    const failureCause: string = writeProbeFailureCause(
+      ProbeFailureCause.RequestBodyNotJson,
+    );
+    const attempts: Array<ProbeAttempt> = data.options.attempts || [];
+    const at: Date = new Date();
+
+    attempts.push({
+      attemptNumber: data.options.currentRetryCount || 1,
+      attemptedAt: at,
+      responseReceivedAt: at,
+      responseTimeInMs: 0,
+      responseCode: undefined,
+      isOnline: false,
+      failureCause: failureCause,
+    });
+
+    const position: string =
+      data.body.line !== null && data.body.column !== null
+        ? ` at line ${data.body.line}, column ${data.body.column}`
+        : "";
+
+    // The monitor's own configuration, not a fault of OneUptime's.
+    logger.error(
+      `API Monitor - ${data.options.monitorId?.toString()} ${data.requestType} ${MonitorLogUrl.write(data.url)}: the request body is not valid JSON${position}, so the request was not sent.`,
+      EXTERNAL_FAULT,
+    );
+
+    return {
+      url: data.url,
+      isOnline: false,
+      isTimeout: false,
+      requestBody: data.options.requestBody,
+      requestHeaders: data.options.requestHeaders || {},
+      isSecure: data.url.protocol === Protocol.HTTPS,
+      responseTimeInMS: new PositiveNumber(0),
+      statusCode: undefined,
+      responseBody: "",
+      responseHeaders: {},
+      failureCause: failureCause,
+      probeAttempts: attempts,
+      totalAttempts: attempts.length,
+    };
+  }
+
+  /*
+   * A response as a log line writes it: without the request's headers and
+   * body, and with its URL's scheme and host alone. The server filled the
+   * monitor's secrets into all three before it handed the probe the check,
+   * and the logger's redaction knows a secret only by the name of the
+   * field that holds it - a token in an "X-Tenant" header, or a password
+   * in a body's "pass", went into the log as it was (#10735, #10782).
+   */
+  private static writeForLog(
+    response: APIResponse,
+    sentUrls: ReadonlyArray<string>,
+  ): string {
+    return MonitorLogUrl.scrub(
+      JSON.stringify({
+        ...response,
+        url: MonitorLogUrl.write(response.url),
+        requestHeaders: undefined,
+        requestBody: undefined,
+      }),
+      sentUrls,
+    );
+  }
+
   public static async ping(
     url: URL,
     options: {
       requestHeaders?: Headers | undefined;
-      requestBody?: JSONObject | undefined;
+      /*
+       * The body: JSON text as written - an object, an array or a single
+       * value (MonitorRequestBody). Sent byte for byte, or as a form's
+       * fields when the request's Content-Type is a form and the body an
+       * object.
+       */
+      requestBody?: string | undefined;
+      /*
+       * How the body is read (#10736): JSON, as above, when unset - every
+       * step saved before the format existed - or text, sent byte for byte.
+       */
+      requestBodyFormat?: MonitorRequestBodyFormat | undefined;
       requestType?: HTTPMethod | undefined;
       retry?: number | undefined;
       currentRetryCount?: number | undefined;
@@ -140,6 +331,36 @@ export default class ApiMonitor {
       return totpCodes ? totpCodes.redact(value) : value;
     };
 
+    const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
+
+    /*
+     * The URLs this attempt sends - the monitor's own, its one-time codes
+     * filled in, and each hop's as it goes out - which what it reports and
+     * logs names by their scheme, host and port alone: the server filled
+     * the monitor's secrets into them (#10785). Each is found exactly, so
+     * none is cut in two where no pattern can tell where it ends.
+     */
+    const sentUrls: Array<string> = [url.toString(), request.url];
+
+    const body: ApiMonitorBody = ApiMonitor.getBody(
+      request,
+      MonitorRequestBodyFormatUtil.read(options.requestBodyFormat),
+    );
+
+    if (!body.canSend) {
+      return ApiMonitor.getBodyNotSentResponse({
+        url: url,
+        requestType: requestType,
+        body: body,
+        options: options,
+      });
+    }
+
+    const headersToSend: Headers = ApiMonitor.getHeadersToSend(
+      request.headers,
+      body,
+    );
+
     const ownsExecutionContext: boolean = !options.executionContext;
     if (!options.executionContext) {
       options.executionContext = new HttpMonitorExecutionContext(
@@ -148,8 +369,6 @@ export default class ApiMonitor {
     }
     const executionContext: HttpMonitorExecutionContext =
       options.executionContext;
-
-    const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
     const timingCollector: HttpTimingCollector = new HttpTimingCollector();
 
@@ -167,7 +386,7 @@ export default class ApiMonitor {
     const attemptedAt: Date = new Date();
     try {
       logger.debug(
-        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
+        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - Retry: ${
           options.currentRetryCount
         }`,
       );
@@ -176,12 +395,12 @@ export default class ApiMonitor {
         initialUrl: string,
         initialMethod: HTTPMethod,
         initialHeaders: Headers,
-        initialBody?: JSONObject | undefined,
+        initialBody?: APIRequestBody | undefined,
       ) => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> = async (
         initialUrl: string,
         initialMethod: HTTPMethod,
         initialHeaders: Headers,
-        initialBody?: JSONObject | undefined,
+        initialBody?: APIRequestBody | undefined,
       ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const prepareRequest: (
           requestUrl: string,
@@ -216,16 +435,22 @@ export default class ApiMonitor {
         let currentUrl: string = initialUrl;
         let currentMethod: HTTPMethod = initialMethod;
         let currentHeaders: Headers = { ...initialHeaders };
-        let currentBody: JSONObject | undefined = initialBody;
+        let currentBody: APIRequestBody | undefined = initialBody;
         let redirectsFollowed: number = 0;
         let includeTlsClientIdentity: boolean = true;
 
         while (true) {
+          // A refusal of the address quotes it whole.
+          sentUrls.push(currentUrl);
+
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
             includeTlsClientIdentity,
           );
+
+          // "Request failed to <the URL dispatched>" names this one.
+          sentUrls.push(prepared.dispatchUrl, prepared.url.toString());
 
           const fetchOptions: any = {
             method: currentMethod,
@@ -249,7 +474,7 @@ export default class ApiMonitor {
             },
           };
 
-          if (currentBody) {
+          if (currentBody !== undefined) {
             fetchOptions.data = currentBody;
           }
 
@@ -304,8 +529,8 @@ export default class ApiMonitor {
         await executeRequest(
           request.url,
           requestType,
-          request.headers,
-          request.body,
+          headersToSend,
+          body.data,
         );
 
       if (
@@ -323,8 +548,8 @@ export default class ApiMonitor {
         result = await executeRequest(
           request.url,
           HTTPMethod.GET,
-          request.headers,
-          request.body,
+          headersToSend,
+          body.data,
         );
       }
 
@@ -416,7 +641,7 @@ export default class ApiMonitor {
         // A response that repeats a code it was sent never reports it.
         responseBody: redact(JSON.stringify(result.data || {})),
         responseHeaders: redact(result.headers),
-        requestBody: options.requestBody || {},
+        requestBody: options.requestBody,
         failureCause: "",
         isTimeout: false,
         probeAttempts: options.attempts,
@@ -426,7 +651,7 @@ export default class ApiMonitor {
       };
 
       logger.debug(
-        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} succeeded with status ${apiResponse.statusCode}`,
+        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} succeeded with status ${apiResponse.statusCode}`,
       );
 
       return apiResponse;
@@ -465,13 +690,27 @@ export default class ApiMonitor {
        * A request that failed on the probe itself (no usable IPv6, say) is
        * worded as such. A bare "connect EADDRNOTAVAIL ..." reads as the API
        * being down, and it goes on to be the incident's root cause.
+       *
+       * It names the URL the request went to by its scheme, host and port
+       * alone, as everything the check reports does (#10785): the server
+       * filled the monitor's secrets into it, and the cause is shown to
+       * everyone who can read the monitor. A code the request carried is
+       * taken out too.
        */
       const failureCause: string = redact(
-        RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
-          API.getFriendlyErrorMessage(err as Error),
+        MonitorUrlInText.writeUrls(
+          RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
+            API.getFriendlyErrorMessage(err as Error),
+          sentUrls,
+        ),
       );
-      // Said in the logs below; a code the request carried is taken out.
-      const errorText: string = redact(String(err));
+      /*
+       * Said in the logs below: a code the request carried is taken out,
+       * and the URL it was sent to written by its scheme and host (#10782).
+       */
+      const errorText: string = redact(
+        MonitorLogUrl.scrub(String(err), sentUrls),
+      );
 
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
@@ -523,21 +762,24 @@ export default class ApiMonitor {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText}`,
+            `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText}`,
           );
           return null;
         }
       }
 
-      // Get detailed error information
+      // Get detailed error information, its URLs written as the cause's.
       const requestFailedDetails: RequestFailedDetails = redact(
-        RequestFailedDetailsUtil.getRequestFailedDetails(err),
+        MonitorUrlInText.writeRequestFailedDetails(
+          RequestFailedDetailsUtil.getRequestFailedDetails(err),
+          sentUrls,
+        ),
       );
 
       const apiResponse: APIResponse = {
         url: url,
         isOnline: false,
-        requestBody: options.requestBody || {},
+        requestBody: options.requestBody,
         requestHeaders: options.requestHeaders || {},
         isSecure: url.protocol === Protocol.HTTPS,
         responseTimeInMS: new PositiveNumber(0),
@@ -560,7 +802,7 @@ export default class ApiMonitor {
           (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
-          `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText}`,
+          `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText}`,
         );
 
         apiResponse.failureCause = writeProbeTimeoutFailureCause(
@@ -588,8 +830,9 @@ export default class ApiMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText} Response: ${JSON.stringify(
+        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText} Response: ${ApiMonitor.writeForLog(
           apiResponse,
+          sentUrls,
         )}`,
         EXTERNAL_FAULT,
       );

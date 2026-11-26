@@ -1,8 +1,10 @@
+import { SessionReplayRecorderKind } from "../../../Types/Rum/SessionReplay";
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
   getIngestSurfaceReadableName,
 } from "../../../Types/Telemetry/TelemetryIngestSurface";
 
@@ -38,6 +40,8 @@ export enum TelemetryIngestionKeyRefusalReason {
   Disabled = "disabled",
   Expired = "expired",
   SurfaceNotAllowedForBrowserKey = "surface-not-allowed-for-browser-key",
+  // A Mobile key (issue #6457) off a mobile app's OTLP/HTTP surfaces.
+  SurfaceNotAllowedForMobileKey = "surface-not-allowed-for-mobile-key",
 }
 
 export interface TelemetryIngestionKeyRefusal {
@@ -65,7 +69,84 @@ export const TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL: Readonly<
     TelemetryIngestRefusalReason.KeyExpired,
   [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey]:
     TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere,
+  [TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey]:
+    TelemetryIngestRefusalReason.MobileKeyNotAllowedHere,
 };
+
+/*
+ * What a Mobile key is told on a surface it may not use (issue #6457). The
+ * HTTP guard (TelemetryIngest.getMobileKeyRefusalMessage) and this one say
+ * the same: what the key sends, and which key to use instead.
+ */
+export function getMobileKeySurfaceRefusalMessage(
+  surface: TelemetryIngestSurface | null,
+): string {
+  const readableSurfaceName: string = surface
+    ? getIngestSurfaceReadableName(surface)
+    : "this ingest endpoint";
+
+  return `A mobile ingestion key cannot be used for ${readableSurfaceName}: it sends only a mobile app's OTLP traces, logs and metrics over HTTP, and its session replays. Use a server ingestion key here.`;
+}
+
+/*
+ * Whether `appIdentifier` - the RUM application a session replay request
+ * names - is the app a Mobile key is pinned to (issue #10540). A RUM
+ * application is identified by its service.name, matched trimmed and
+ * without case (RumApplicationService, SessionReplayGateCache), so this
+ * matches the same way. No pin, or no identifier, is never a match.
+ */
+export function isMobileKeyPinnedToApp(data: {
+  pinnedServiceName: string | null | undefined;
+  appIdentifier: string | null | undefined;
+}): boolean {
+  const pinned: string = (data.pinnedServiceName || "").trim().toLowerCase();
+  const named: string = (data.appIdentifier || "").trim().toLowerCase();
+
+  return pinned.length > 0 && pinned === named;
+}
+
+export const MOBILE_KEY_SESSION_REPLAY_WEB_RECORDER_MESSAGE: string =
+  "A mobile ingestion key can send session replays only from a React Native app's recorder. Use a browser ingestion key in a web page.";
+
+export const MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE: string =
+  "A mobile ingestion key can send session replays only for the app it is pinned to. Set the recorder's appIdentifier to the key's Pinned Service Name, or send with that app's own mobile ingestion key.";
+
+/*
+ * Why a Mobile key may not send this session replay request, or null when
+ * it may (issue #10540). A Mobile key records its own app's sessions, so
+ * one key serves a React Native app's telemetry and its recordings:
+ *
+ *   - only from the React Native recorder (`rn-view-tree`): a page's
+ *     recorder sends with a Browser key, whose origins are checked;
+ *   - only for the RUM application its pinned service name names: the
+ *     recordings are filed under the application the request names, so a
+ *     copy must not be able to name another one.
+ *
+ * The rest is the application's and the key's, as for any key: the
+ * application's replay policy and allowed origins (its app:// identities),
+ * its byte budgets and the key's rate limit. Never names the pinned app:
+ * a caller holding a copy is not entitled to it.
+ */
+export function getMobileKeySessionReplayRefusalMessage(data: {
+  pinnedServiceName: string | null | undefined;
+  appIdentifier: string | null | undefined;
+  recorderKind: SessionReplayRecorderKind | null;
+}): string | null {
+  if (data.recorderKind !== "rn-view-tree") {
+    return MOBILE_KEY_SESSION_REPLAY_WEB_RECORDER_MESSAGE;
+  }
+
+  if (
+    !isMobileKeyPinnedToApp({
+      pinnedServiceName: data.pinnedServiceName,
+      appIdentifier: data.appIdentifier,
+    })
+  ) {
+    return MOBILE_KEY_SESSION_REPLAY_OTHER_APP_MESSAGE;
+  }
+
+  return null;
+}
 
 export default class TelemetryIngestionKeyGuard {
   /**
@@ -74,7 +155,10 @@ export default class TelemetryIngestionKeyGuard {
    * Order matters and mirrors the middleware: the kill switch is checked
    * first so that switching a leaked key off is the one action guaranteed to
    * stop it whatever else is true of the key, then expiry, then the
-   * browser-key surface rule.
+   * browser-key and mobile-key surface rules. gRPC and MQTT are never a
+   * Mobile key's: it sends over HTTP only, where its rate limit runs. The
+   * session replay probe admits one here, and then asks whether the app
+   * it names is the key's (isMobileKeyPinnedToApp), as the HTTP guard does.
    */
   public static getRefusal(data: {
     policy: TelemetryIngestionKeyPolicy;
@@ -106,6 +190,22 @@ export default class TelemetryIngestionKeyGuard {
         message: `A browser ingestion key cannot be used for ${getIngestSurfaceReadableName(
           data.surface,
         )}. Use a server ingestion key.`,
+      };
+    }
+
+    /*
+     * The sentence the HTTP guard sends for the same refusal
+     * (getMobileKeyRefusalMessage), so a key moved between transports reads
+     * the same explanation on both.
+     */
+    if (
+      policy.keyType === TelemetryIngestionKeyType.Mobile &&
+      !MOBILE_ALLOWED_INGEST_SURFACES.has(data.surface)
+    ) {
+      return {
+        reason:
+          TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForMobileKey,
+        message: getMobileKeySurfaceRefusalMessage(data.surface),
       };
     }
 

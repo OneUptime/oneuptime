@@ -59,6 +59,8 @@ Make an HTTP request to any URL. There is one block per method: **API Get (JSON)
 | **URL**             | The address to call, `http` or `https`.                                                                                              |
 | **Request Body**    | The JSON to send. Usually only `POST`, `PUT` and `PATCH` requests need one.                                                         |
 | **Request Headers** | Headers to send, such as an API key. Under **More fields**. Their values are hidden in the run's log.                                |
+| **Allow self-signed certificates** | Under **More fields**, off by default. If on, the block takes whatever certificate the server shows, so a self-signed one works, but it checks neither the host name nor the dates, and anyone on the network path could read the request, its headers included, and change the answer. |
+| **CA certificate** | Under **More fields**, while **Allow self-signed certificates** is off. The certificate, in PEM, of the CA that signed the server's certificate, or the server's own when it is self-signed. The block then trusts only that certificate, and still checks the host name and the dates. |
 
 | Output      | When                                                                                     |
 | ----------- | ---------------------------------------------------------------------------------------- |
@@ -70,6 +72,8 @@ Either way, the block returns **Response Status**, **Response Headers** and **Re
 A block reads at most 10 MB of an answer. A larger answer is not read: the block takes **Error**, with the reason.
 
 Redirects are not followed, so point the block at the address that answers. Requests go out from OneUptime: a URL that resolves to a private network address is refused unless a self-hosted administrator allows it, and the run stops with the reason. See [Outbound network access](/docs/workflows/configuration#outbound-network-access).
+
+A server whose certificate it signed itself, or one your own CA signed, is refused until the block trusts it: the block takes **Error**, nothing is sent, and **Error** says what to change. Paste the certificate that signed it in **CA certificate**: the CA's, or the server's own when it is self-signed. The block then checks the server's certificate against it, the host name and the dates included, so a server that only pretends to be yours is still refused. Turn on **Allow self-signed certificates** only when you cannot paste one. Either applies to this block's request alone, never to another block, another request of OneUptime or the connection to an outbound proxy. A server with such a certificate is usually on your own network, which the block reaches only when a self-hosted administrator allows private network addresses, as above.
 
 **API Get By ID (JSON)** reads one item by an ID that came from somewhere else, such as the issue key a webhook sent. Put `{id}` in its **URL** where the ID goes, as in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, and the ID in **ID**. The block puts the ID in only when it is a plain ID, at most 200 letters, digits, dashes and underscores, and percent-encodes it all the same: anything else, such as `x/../users`, takes **Error** before any request is sent, so text from outside cannot point the request somewhere else. Otherwise it works as **API Get (JSON)** does, and returns the same values.
 

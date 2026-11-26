@@ -46,7 +46,7 @@ jest.mock("../../../../Server/Utils/Logger");
  *
  * A Runbook HTTP step may skip the checks of the server's certificate, or
  * trust a CA certificate of its own. The egress guard puts that on the https
- * agent it builds for that one request (createPinnedAgentsForNodeHttp), and
+ * agent it builds for that one request (createPinnedAgents), and
  * nowhere else:
  *
  *   - directly, the agent's TLS connection to the target checks as told;
@@ -114,10 +114,10 @@ async function get(
   targetTls?: TargetTlsOptions | undefined,
 ): Promise<Outcome> {
   const pinned: { url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents =
-    await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(
+    await DataSourceEgressGuard.assertUrlAllowedAndPin(
       url,
       { targetLabel: "Test request" },
-      targetTls,
+      { tls: targetTls },
     );
 
   try {
@@ -224,11 +224,12 @@ describe("the agents built", () => {
   };
 
   test("carry the setting on the https agent only", () => {
-    const agents: PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgentsForNodeHttp(TARGET, {
-        rejectUnauthorized: false,
-        ca: "PEM",
-      });
+    const agents: PinnedAgents = DataSourceEgressGuard.createPinnedAgents(
+      TARGET,
+      {
+        tls: { rejectUnauthorized: false, ca: "PEM" },
+      },
+    );
 
     try {
       expect(agents.httpsAgent.options.rejectUnauthorized).toBe(false);
@@ -256,8 +257,10 @@ describe("the agents built", () => {
       { ca: "   " },
       { ca: [] },
     ] as Array<TargetTlsOptions | undefined>) {
-      const agents: PinnedAgents =
-        DataSourceEgressGuard.createPinnedAgentsForNodeHttp(TARGET, targetTls);
+      const agents: PinnedAgents = DataSourceEgressGuard.createPinnedAgents(
+        TARGET,
+        { tls: targetTls },
+      );
 
       try {
         expect({

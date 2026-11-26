@@ -152,12 +152,16 @@ describe("the client picker", () => {
     expect(resolveRumClient("mobile")).toBe("mobile");
   });
 
-  test("a browser is handed a Browser key, a mobile app a Server key", () => {
+  /*
+   * A mobile app ships its key to everyone who installs it, so it is never
+   * handed a Server key, which writes everything from anywhere (#6457).
+   */
+  test("a browser is handed a Browser key, a mobile app a Mobile key", () => {
     expect(getRumIngestionKeyType("browser")).toBe(
       TelemetryIngestionKeyType.Browser,
     );
     expect(getRumIngestionKeyType("mobile")).toBe(
-      TelemetryIngestionKeyType.Server,
+      TelemetryIngestionKeyType.Mobile,
     );
   });
 });
@@ -171,7 +175,7 @@ describe.each(CLIENT_KEYS)("the %s guide", (client: RumClient) => {
     expect(guide.keyStep?.endpointLabel).toBe("OTLP Endpoint");
     expect(guide.keyStep?.endpointValue).toBe(`${URL}/otlp`);
     expect(guide.keyStep?.description).toContain(
-      client === "mobile" ? "Server key" : "Browser key",
+      client === "mobile" ? "Mobile key" : "Browser key",
     );
     // Rendered as plain text.
     expect(guide.keyStep?.description).not.toMatch(/[`*[\]]/);
@@ -282,14 +286,14 @@ describe.each(CLIENT_KEYS)("the %s guide", (client: RumClient) => {
       "propagateTraceHeaderCorsUrls",
       "Never ship a Server ingestion key to a browser",
       "web_vital.lcp",
-      "Setting `service.name` alone is not enough",
+      "**Keep `browserDetector`.**",
     ];
     const mobileOnly: Array<string> = [
       "OTEL_RESOURCE_ATTRIBUTES",
       "device.model.identifier",
       "device.manufacturer",
-      "Mobile needs a Server key",
-      "release train",
+      "Anyone who has your app can copy its key",
+      "rotate the key with your releases",
       "opentelemetry-swift",
     ];
     for (const text of browserOnly) {
@@ -375,7 +379,7 @@ describe("the browser guide", () => {
       'import { defaultResource, detectResources, resourceFromAttributes } from "@opentelemetry/resources";',
       'import { browserDetector } from "@opentelemetry/opentelemetry-browser-detector";',
       'import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";',
-      "// browserDetector supplies the browser.* attributes that make this RUM.",
+      "// browserDetector supplies the browser.* attributes the Clients tab lists.",
       "const resource = defaultResource()",
       "  .merge(detectResources({ detectors: [browserDetector] }))",
       "const provider = new WebTracerProvider({",
@@ -399,9 +403,47 @@ describe("the browser guide", () => {
     expect(setup).toContain("the **first** import of your app");
   });
 
-  test("keeps the browser detector warning next to the snippet", () => {
+  /*
+   * A Browser key files everything it sends as this app (#10539), so the
+   * detector no longer decides whether it is RUM: the note next to the
+   * snippet says what it still does.
+   */
+  test("keeps the browser detector note next to the snippet", () => {
     expect(guide.steps[1]!.markdown).toContain(
-      "> **Setting `service.name` alone is not enough.** The OpenTelemetry browser SDKs do not add `browser.*` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.",
+      "> [!NOTE]\n> **Keep `browserDetector`.** Everything a Browser key sends is filed as this application, but the OpenTelemetry browser SDKs add no `browser.*` attributes unless you enable the browser resource detector or set them yourself — and without `browser.platform` the **Clients** tab lists no platforms.",
+    );
+    expect(guide.steps[1]!.markdown).not.toContain("alone is not enough");
+  });
+
+  /*
+   * What a copied Browser key writes is this page's browser RUM, never a
+   * host, a cluster or a backend Service (#10539). The guide says so where
+   * it says how a browser app is recognised, and the topic for an app
+   * filed as a Service names the key that files it here.
+   */
+  test("says a Browser key files everything it sends as this app", () => {
+    const recognised: string = topicNamed(
+      guide.advanced,
+      "How OneUptime recognises a browser app",
+    );
+    expect(recognised).toContain(
+      "Everything a Browser key sends is filed as this browser app, whatever its resource says. The key keeps only what a page says about itself on the resource — such as its `service.*`, `browser.*`, `user_agent.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.",
+    );
+    expect(recognised).toContain(
+      "With any other key, OneUptime classifies telemetry as **RUM** when its resource carries client attributes",
+    );
+    expect(
+      topicNamed(
+        guide.troubleshooting,
+        "The app shows up under Services instead of Real User Monitoring",
+      ),
+    ).toContain(
+      "The telemetry was sent with a key other than a Browser key, and its resource carries no browser attribute, so it was filed as a backend Service. Send with a Browser key (step 1), which files everything it sends as this app,",
+    );
+    expect(
+      topicNamed(guide.advanced, "Send logs, metrics and Core Web Vitals"),
+    ).toContain(
+      "Build them with the same `resource` object, so their logs and metrics are filed under this application too.",
     );
   });
 
@@ -487,22 +529,46 @@ describe("the mobile guide", () => {
       ].join("\n"),
     );
     expect(configure).toContain(
-      "Most mobile SDKs set the `device.*` attributes for you — verify it, and set them explicitly as above if the application is filed under Services instead.",
+      "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.",
     );
     expect(configure).toContain(`[Mobile Setup](${RUM_MOBILE_SETUP_DOCS_URL})`);
   });
 
-  test("keeps the warning that a mobile app needs a Server key", () => {
-    expect(guide.keyStep?.description).toContain(
-      "a Browser key is checked against the Origin header, which mobile SDKs do not send",
+  /*
+   * Whatever ships in an app is public (#6457): the guide says so, says
+   * what a copy of its Mobile key can and cannot do, and what it still can.
+   */
+  test("says the app ships a Mobile key, what a copy can do, and what it still can", () => {
+    expect(guide.keyStep?.description).toBe(
+      "Mobile apps send with a Mobile key. It ships inside your app, so anyone who has the app can copy it, but a copy can only send this app's traces, logs, metrics and session replays, all filed under the service name the key is pinned to. Pick a key or create one; the settings below update to use it.",
     );
-    expect(
-      topicNamed(guide.advanced, "Protect the key shipped in your app"),
-    ).toContain(
-      "> **Mobile needs a Server key, and a mobile bundle can be unpacked.** A Browser key is enforced against the `Origin` header, which a mobile SDK does not send, so it cannot be used here.",
+    const protect: string = topicNamed(
+      guide.advanced,
+      "Protect the key shipped in your app",
+    );
+    expect(protect).toContain(
+      "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs, metrics and session replays, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.",
+    );
+    expect(protect).toContain(
+      "Never ship a **Server** key in an app instead: it can write every kind of telemetry into this project, from anywhere, as any service.",
     );
     expect((guide.prerequisites || []).join("\n")).toContain(
+      "the **Mobile** key in step 1 is pinned to it",
+    );
+    expect(getSetupGuideMarkdown(guide)).not.toContain(
       "**Server** ingestion key",
+    );
+  });
+
+  // The refusal a Mobile key's session replays can meet (#10540).
+  test("a 422 says a Mobile key's session replays are its own app's", () => {
+    expect(
+      topicNamed(
+        guide.troubleshooting,
+        "The key check returns 401, or the key is refused",
+      ),
+    ).toContain(
+      "A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and its session replays, and never from a web page: an SDK that exports over gRPC, a request that carries an `Origin` header, or another app's recording, is refused.",
     );
   });
 
@@ -530,10 +596,20 @@ describe("the mobile guide", () => {
     ]);
   });
 
-  test("React Native is told it still needs a Server key", () => {
-    expect(
-      topicNamed(guide.advanced, "SDK notes for Android, iOS and React Native"),
-    ).toContain("It still sends with a **Server** key");
+  /*
+   * A React Native app ships one key (#10540): its session replays go with
+   * the same Mobile key, as the app its pinned service name names.
+   */
+  test("React Native sends with a Mobile key, like any mobile app, and so do its session replays", () => {
+    const notes: string = topicNamed(
+      guide.advanced,
+      "SDK notes for Android, iOS and React Native",
+    );
+    expect(notes).toContain(
+      "It sends with a **Mobile** key, like any mobile app, and so do its [session replays](/docs/telemetry/session-replay#install-in-react-native): give the replay SDK the same key, with the key's pinned service name as `appIdentifier`.",
+    );
+    expect(notes).not.toContain("**Server** key");
+    expect(notes).not.toContain("**Browser** key");
   });
 
   /*

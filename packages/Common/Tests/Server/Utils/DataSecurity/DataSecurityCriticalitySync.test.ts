@@ -16,6 +16,7 @@ import {
 } from "../../../../Server/Utils/DataSecurity/DataSecurityCriticalitySync";
 import logger from "../../../../Server/Utils/Logger";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
+import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -320,6 +321,31 @@ describe("syncProjectCriticality", () => {
     ]);
     // As OneUptime, never as a person.
     expect(create.mock.calls[0]![0]).toMatchObject({ props: { isRoot: true } });
+  });
+
+  /*
+   * The stores OneUptime declares (#10398) hold addresses by design and
+   * never raise a Data Security issue, so no case weighs them: no entry,
+   * and Data Security's own entry for one is taken back.
+   */
+  test("adds no entry for a store OneUptime declares, and takes back one it had", async () => {
+    const declared: DataStore = store(
+      "oneuptime:security-events",
+      DataSensitivity.Confidential,
+    );
+    declared.kind = DataStoreKind.SecurityEvents;
+    stores = [declared, store(ORDERS, DataSensitivity.Confidential)];
+    // An entry from before: the store is still there, and still Confidential.
+    entries = [own("oneuptime:security-events", DataSensitivity.Confidential)];
+
+    await syncProjectCriticality(PROJECT_ID);
+
+    expect(
+      created.map((model: SecurityEntityCriticalityEntry): string => {
+        return model.value || "";
+      }),
+    ).toEqual([`data-store:${ORDERS}`]);
+    expect(deleted).toEqual([entries[0]!.id!.toString()]);
   });
 
   test("an entry it adds passes the list's own checks", async () => {

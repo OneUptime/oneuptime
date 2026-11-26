@@ -4,6 +4,8 @@ import path from "path";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import {
   getNumberLocale,
+  getUnitAmountParts,
+  IntlTextPart,
   writeDigitsInLocale,
 } from "../../../Types/DateLanguage";
 import escapeRegExp from "../../../Utils/RegExpEscape";
@@ -13,6 +15,7 @@ import {
   ShowcaseRow,
   ShowcaseStat,
   formatShowcaseFigure,
+  formatShowcaseFigureParts,
   isShowcaseFigure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
 import { ProductOnboarding } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboarding";
@@ -59,8 +62,19 @@ import VMWARE_VCENTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Co
  *     names, drawn as written ("esx-03", "Ubuntu 24.04", "p95").
  *
  * Arabic says some small counts as words ("منطقتان", two regions), as its
- * grammar wants (WRITTEN_AS_A_WORD). A unit in a sentence ("TB", "ms",
- * "minutes") is left as each translator wrote it.
+ * grammar wants (WRITTEN_AS_A_WORD).
+ *
+ * A number's unit, too, is the tiles' (#7101). A tile writes Intl's short
+ * word for its unit in every language but English ("1,24 Sek.", "۱۸۴
+ * میلی‌ثانیه"); a sentence on the same card kept each translator's own ("s",
+ * "ms", "TB"), so a card read in two styles. Every unit symbol an English
+ * sentence writes after a number ("3.8 TB", "120 ms", "0.4 s") is now the
+ * word Intl writes for that language after it: "3,8 To", "120 мс", "۰٫۴
+ * ثانیه" (UNIT_SYMBOLS). Signal strength's "dBm" has no unit of Intl's and
+ * stays as written, as on the tiles (KEPT_UNITS). A duration said in words
+ * in a sentence ("18 minutes ago", "Last 30 days") is the language's grammar,
+ * not a tile's figure, and stays each language's own. English stays as it
+ * is.
  */
 
 interface SentenceNumber {
@@ -70,6 +84,68 @@ interface SentenceNumber {
   write: (language: string) => string;
   // What must come right after it, as a pattern: a percent sign.
   after: (language: string) => string;
+  /*
+   * The unit written after it: Intl's name for it ("terabyte"), or a unit
+   * kept as written ("dBm", KEPT_UNITS). None for a bare count.
+   */
+  unit?: string | undefined;
+}
+
+/*
+ * The unit symbols the English sentences write after a number, each with
+ * Intl's name for its unit: the tiles write "ms", "s", "MB" and "GB" so
+ * (formatShowcaseFigureParts), and every other language takes Intl's short
+ * word for it. A terabyte has no tile, and takes the same rule.
+ */
+const UNIT_SYMBOLS: Record<string, string> = {
+  ms: "millisecond",
+  s: "second",
+  MB: "megabyte",
+  GB: "gigabyte",
+  TB: "terabyte",
+};
+
+/*
+ * The units every language writes as English does, and why: kept off the
+ * rule above.
+ */
+const KEPT_UNITS: Record<string, string> = {
+  // Signal strength has no unit of Intl's: the tiles write it as written.
+  dBm: "dBm",
+};
+
+// What a number and its unit are written apart by: nothing, or a space.
+const UNIT_SPACE: string = "[ \\u00A0\\u202F]?";
+
+// The no-break spaces Intl holds a unit together with, as plain ones.
+const NO_BREAK_SPACES: RegExp = /[\u00A0\u202F]/g;
+
+// The scripts a unit's word ends in, to tell where the word ends.
+const UNIT_SCRIPTS: Array<string> = [
+  "Latin",
+  "Cyrillic",
+  "Arabic",
+  "Devanagari",
+  "Han",
+  "Hangul",
+  "Hiragana",
+  "Katakana",
+];
+
+/*
+ * Not the start of a longer word: "s" is no "sec", "ث" no "ثانية". A
+ * letter of another script may follow: Korean joins its particle to the
+ * unit, "512ms로".
+ */
+function notALongerWord(word: string): string {
+  const last: string = Array.from(word).pop() || "";
+  const script: string | undefined = UNIT_SCRIPTS.find(
+    (name: string): boolean => {
+      return new RegExp(`\\p{Script=${name}}`, "u").test(last);
+    },
+  );
+
+  return script ? `(?![\\p{Script=${script}}\\p{M}])` : "";
 }
 
 const LOCALES_DIR: string = path.resolve(
@@ -218,6 +294,11 @@ function negative(english: string, value: number): SentenceNumber {
   };
 }
 
+// `number`, with the unit it is written with after it (#7101).
+function withUnit(number: SentenceNumber, unit: string): SentenceNumber {
+  return { ...number, unit };
+}
+
 const BEFORE_NEGATIVE: Map<string, string> = new Map<string, string>([
   ["ar", ARABIC_MINUS_WORD],
 ]);
@@ -237,27 +318,48 @@ const SENTENCE_NUMBERS: Record<string, Array<SentenceNumber>> = {
     count("3", 3),
     count("8", 8),
   ],
-  "node-01 · ssd · 2.1 of 3.8 TB": [count("2.1", 2.1), count("3.8", 3.8)],
-  "node-03 · ssd · 2.4 of 3.8 TB": [count("2.4", 2.4), count("3.8", 3.8)],
-  "node-01 · ssd · 1.9 of 3.8 TB": [count("1.9", 1.9), count("3.8", 3.8)],
-  "node-02 · ssd · 2.0 of 3.8 TB": [count("2.0", 2), count("3.8", 3.8)],
+  "node-01 · ssd · 2.1 of 3.8 TB": [
+    count("2.1", 2.1),
+    withUnit(count("3.8", 3.8), "terabyte"),
+  ],
+  "node-03 · ssd · 2.4 of 3.8 TB": [
+    count("2.4", 2.4),
+    withUnit(count("3.8", 3.8), "terabyte"),
+  ],
+  "node-01 · ssd · 1.9 of 3.8 TB": [
+    count("1.9", 1.9),
+    withUnit(count("3.8", 3.8), "terabyte"),
+  ],
+  "node-02 · ssd · 2.0 of 3.8 TB": [
+    count("2.0", 2),
+    withUnit(count("3.8", 3.8), "terabyte"),
+  ],
   "osd.7 on node-03 is down, and 34 placement groups are degraded.": [
     count("34", 34),
   ],
   "AWS · 12 running tasks": [count("12", 12)],
-  "Task · 52% CPU · 512 MB": [percent("52", 52), count("512", 512)],
+  "Task · 52% CPU · 512 MB": [
+    percent("52", 52),
+    withUnit(count("512", 512), "megabyte"),
+  ],
   "Task · last seen 18 minutes ago": [count("18", 18)],
-  "Task · 31% CPU · 380 MB": [percent("31", 31), count("380", 380)],
-  "Task · 44% CPU · 610 MB": [percent("44", 44), count("610", 610)],
+  "Task · 31% CPU · 380 MB": [
+    percent("31", 31),
+    withUnit(count("380", 380), "megabyte"),
+  ],
+  "Task · 44% CPU · 610 MB": [
+    percent("44", 44),
+    withUnit(count("610", 610), "megabyte"),
+  ],
   "AWS · 248 resources": [count("248", 248)],
   "Last 30 days": [count("30", 30)],
   "RDS instance · CPU at 41%": [percent("41", 41)],
   "Load balancer · 6% of requests failed": [percent("6", 6)],
   "SQS queue · oldest message waiting 2 hours": [count("2", 2)],
-  "0.4 s behind the primary": [count("0.4", 0.4)],
+  "0.4 s behind the primary": [withUnit(count("0.4", 0.4), "second")],
   "191 of 200 in use": [count("191", 191), count("200", 200)],
   "1.9k per second": [abbreviated("1.9k", 1900)],
-  "412 GB": [count("412", 412)],
+  "412 GB": [withUnit(count("412", 412), "gigabyte")],
   "orders-pg is using 95% of max_connections. An alert was opened.": [
     percent("95", 95),
   ],
@@ -273,16 +375,37 @@ const SENTENCE_NUMBERS: Record<string, Array<SentenceNumber>> = {
   "Replicated · 2 of 3 running": [count("2", 2), count("3", 3)],
   "Replicated · 6 of 6 running": [count("6", 6)],
   "Global · 5 of 5 running": [count("5", 5)],
-  "Ubuntu 22.04 · amd64 · 8 cores · 32 GB": [count("8", 8), count("32", 32)],
-  "ext4 · 1.42 of 2 TB": [count("1.42", 1.42), count("2", 2)],
-  "xfs · 460 of 500 GB": [count("460", 460), count("500", 500)],
-  "ext4 · 61 of 120 GB": [count("61", 61), count("120", 120)],
-  "ext4 · 0.4 of 1 GB": [count("0.4", 0.4), count("1", 1)],
+  "Ubuntu 22.04 · amd64 · 8 cores · 32 GB": [
+    count("8", 8),
+    withUnit(count("32", 32), "gigabyte"),
+  ],
+  "ext4 · 1.42 of 2 TB": [
+    count("1.42", 1.42),
+    withUnit(count("2", 2), "terabyte"),
+  ],
+  "xfs · 460 of 500 GB": [
+    count("460", 460),
+    withUnit(count("500", 500), "gigabyte"),
+  ],
+  "ext4 · 61 of 120 GB": [
+    count("61", 61),
+    withUnit(count("120", 120), "gigabyte"),
+  ],
+  "ext4 · 0.4 of 1 GB": [
+    count("0.4", 0.4),
+    withUnit(count("1", 1), "gigabyte"),
+  ],
   "/var/lib/postgresql on prod-app-01 is 92% full.": [percent("92", 92)],
   "40 devices · MQTT": [count("40", 40)],
-  "87% battery · -61 dBm": [percent("87", 87), negative("-61", -61)],
+  "87% battery · -61 dBm": [
+    percent("87", 87),
+    withUnit(negative("-61", -61), "dBm"),
+  ],
   "Last seen 42 minutes ago": [count("42", 42)],
-  "79% battery · -70 dBm": [percent("79", 79), negative("-70", -70)],
+  "79% battery · -70 dBm": [
+    percent("79", 79),
+    withUnit(negative("-70", -70), "dBm"),
+  ],
   "12 nodes · 248 pods · 9 namespaces": [
     count("12", 12),
     count("248", 248),
@@ -324,20 +447,22 @@ const SENTENCE_NUMBERS: Record<string, Array<SentenceNumber>> = {
   ],
   "Disk will be full in about 6 days": [count("6", 6)],
   "Proxmox VE 8.2.4 · 3 nodes · 44 guests": [count("3", 3), count("44", 44)],
-  "INP 120 ms": [count("120", 120)],
-  "INP 540 ms": [count("540", 540)],
-  "INP 168 ms": [count("168", 168)],
-  "INP 190 ms": [count("190", 190)],
-  "The average INP of storefront-web rose to 512 ms.": [count("512", 512)],
-  "Invocation · 182 ms": [count("182", 182)],
-  "Invocation · 3.9 s": [count("3.9", 3.9)],
-  "Invocation · 41 ms": [count("41", 41)],
-  "Invocation · 96 ms": [count("96", 96)],
+  "INP 120 ms": [withUnit(count("120", 120), "millisecond")],
+  "INP 540 ms": [withUnit(count("540", 540), "millisecond")],
+  "INP 168 ms": [withUnit(count("168", 168), "millisecond")],
+  "INP 190 ms": [withUnit(count("190", 190), "millisecond")],
+  "The average INP of storefront-web rose to 512 ms.": [
+    withUnit(count("512", 512), "millisecond"),
+  ],
+  "Invocation · 182 ms": [withUnit(count("182", 182), "millisecond")],
+  "Invocation · 3.9 s": [withUnit(count("3.9", 3.9), "second")],
+  "Invocation · 41 ms": [withUnit(count("41", 41), "millisecond")],
+  "Invocation · 96 ms": [withUnit(count("96", 96), "millisecond")],
   "Purity//FA 6.7.3 · 48 volumes · 12 hosts": [
     count("48", 48),
     count("12", 12),
   ],
-  "Drive · 3.8 TB": [count("3.8", 3.8)],
+  "Drive · 3.8 TB": [withUnit(count("3.8", 3.8), "terabyte")],
   "Collected every 2 minutes": [count("2", 2)],
   "The fullest datastore at a glance, with warnings at 80% and 90%.": [
     percent("80", 80),
@@ -521,6 +646,95 @@ function getSentenceProblems(
   return problems;
 }
 
+/*
+ * The word `language` writes `unit` with after `value`: Intl's short word,
+ * as the tiles write it, or a kept unit as written.
+ */
+function unitWordOf(unit: string, value: number, language: string): string {
+  if (KEPT_UNITS[unit]) {
+    return KEPT_UNITS[unit] as string;
+  }
+
+  const parts: Array<IntlTextPart> = getUnitAmountParts({
+    value: Math.abs(value),
+    unit,
+    locale: language,
+    unitDisplay: "short",
+  }) || [{ type: "unit", value: `(no ${unit} in this engine)` }];
+
+  return parts
+    .filter((part: IntlTextPart): boolean => {
+      return part.type === "unit";
+    })
+    .map((part: IntlTextPart): string => {
+      return part.value;
+    })
+    .join("")
+    .replace(NO_BREAK_SPACES, " ");
+}
+
+// The unit symbol the English `key` writes right after `number`, if any.
+function englishUnitOf(key: string, number: SentenceNumber): string | null {
+  const symbols: string = [
+    ...Object.keys(UNIT_SYMBOLS),
+    ...Object.keys(KEPT_UNITS),
+  ]
+    .sort((a: string, b: string): number => {
+      return b.length - a.length;
+    })
+    .map((symbol: string): string => {
+      return escapeRegExp(symbol);
+    })
+    .join("|");
+  const match: RegExpExecArray | null = new RegExp(
+    `${englishPatternOf(number).source} ?(${symbols})(?![\\p{L}\\p{N}])`,
+    "u",
+  ).exec(key);
+
+  return match ? match[1] || null : null;
+}
+
+/*
+ * What is wrong with the units in `language`'s `sentence` for the English
+ * `key`: a number written with another unit than the tiles write (#7101).
+ */
+function getUnitProblems(
+  key: string,
+  language: string,
+  sentence: string,
+): Array<string> {
+  const problems: Array<string> = [];
+  const text: string = sentence.replace(NO_BREAK_SPACES, " ");
+
+  for (const number of SENTENCE_NUMBERS[key] || []) {
+    if (!number.unit || isWrittenAsAWord(key, language, number)) {
+      continue;
+    }
+
+    const word: string = unitWordOf(
+      number.unit,
+      Number(number.english.replace(/,/g, "")),
+      language,
+    );
+    const pattern: RegExp = new RegExp(
+      `${patternOf(number, language).source}${UNIT_SPACE}${escapeRegExp(
+        word,
+      )}${notALongerWord(word)}`,
+      "u",
+    );
+
+    if (!pattern.test(text)) {
+      problems.push(
+        `${language} ${JSON.stringify(sentence)}: ${number.write(
+          language,
+        )} is not written with ${JSON.stringify(word)} after it`,
+      );
+    }
+  }
+
+  return problems;
+}
+
 // The words a showcase draws, each an English translation key.
 function getDrawnWords(showcase: ResourceShowcase): Array<string> {
   return [
@@ -646,6 +860,31 @@ describe("the list of an example's sentence numbers is the whole of them", () =>
     }
   });
 
+  test("every number the English writes a unit symbol after is listed with that unit, and no other", () => {
+    const wrong: Array<string> = [];
+    let withUnits: number = 0;
+
+    for (const [key, numbers] of Object.entries(SENTENCE_NUMBERS)) {
+      for (const number of numbers) {
+        const symbol: string | null = englishUnitOf(key, number);
+        const unit: string | undefined = symbol
+          ? UNIT_SYMBOLS[symbol] || KEPT_UNITS[symbol]
+          : undefined;
+
+        if (unit !== number.unit) {
+          wrong.push(`${key}: ${number.english} ${symbol} as ${number.unit}`);
+        }
+
+        if (number.unit) {
+          withUnits++;
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
+    expect(withUnits).toBe(26);
+  });
+
   test("every language's sentence is in its locale file", () => {
     const missing: Array<string> = [];
 
@@ -679,6 +918,56 @@ describe("each language writes an example's sentence numbers its own way", () =>
       expect(problems).toEqual([]);
     },
   );
+
+  test.each(LANGUAGES)(
+    "%s: every unit after a number as the tiles write it (#7101)",
+    (language: string) => {
+      const problems: Array<string> = [];
+
+      for (const key of Object.keys(SENTENCE_NUMBERS)) {
+        const sentence: string | undefined = localeOf(language)[key];
+
+        if (sentence) {
+          problems.push(...getUnitProblems(key, language, sentence));
+        }
+      }
+
+      expect(problems).toEqual([]);
+    },
+  );
+
+  test("a sentence's unit is the tiles' own: the product's formatter writes the same word", () => {
+    const mismatches: Array<string> = [];
+
+    for (const language of LANGUAGES) {
+      const translator: Translator = translatorFor(language);
+
+      for (const [unit, figure] of [
+        ["millisecond", { milliseconds: 120 }],
+        ["second", { seconds: 3.9 }],
+        ["megabyte", { megabytes: 512 }],
+        ["gigabyte", { gigabytes: 412 }],
+      ] as Array<[string, Parameters<typeof formatShowcaseFigureParts>[0]]>) {
+        const tile: string = formatShowcaseFigureParts(
+          figure,
+          translator,
+        ).unit.replace(NO_BREAK_SPACES, " ");
+        const sentence: string = unitWordOf(unit, 2, language);
+
+        if (tile !== sentence) {
+          mismatches.push(
+            `${language} ${unit}: tile ${tile}, sentence ${sentence}`,
+          );
+        }
+      }
+    }
+
+    expect(mismatches).toEqual([]);
+    // Each language's own word, not English's symbol.
+    expect(unitWordOf("millisecond", 120, "fa")).toBe("میلی‌ثانیه");
+    expect(unitWordOf("second", 3.9, "de")).toBe("Sek.");
+    expect(unitWordOf("terabyte", 3.8, "fr")).toBe("To");
+  });
 
   test("German writes the point between thousands and the comma as its decimal sign", () => {
     const german: Record<string, string> = localeOf("de");
@@ -797,6 +1086,47 @@ describe("the check finds a number written the English way", () => {
     ).not.toEqual([]);
     expect(
       getSentenceProblems("87% battery · -61 dBm", "de", "87 % Akku · -61 dBm"),
+    ).toEqual([]);
+  });
+
+  test("a unit written another way than the tiles write it is found; the tiles' word and a kept unit pass", () => {
+    // Persian's sentence kept the English symbol beside a tile's word.
+    expect(getUnitProblems("INP 120 ms", "fa", "INP ۱۲۰ ms").length).toBe(1);
+    expect(getUnitProblems("INP 120 ms", "fa", "INP ۱۲۰ میلی‌ثانیه")).toEqual(
+      [],
+    );
+    // German's "s" and its word written out are each another way.
+    expect(
+      getUnitProblems("Invocation · 3.9 s", "de", "Aufruf · 3,9 s").length,
+    ).toBe(1);
+    expect(
+      getUnitProblems("Invocation · 3.9 s", "de", "Aufruf · 3,9 Sekunden")
+        .length,
+    ).toBe(1);
+    expect(
+      getUnitProblems("Invocation · 3.9 s", "de", "Aufruf · 3,9 Sek."),
+    ).toEqual([]);
+    // Korean joins its particle to the unit; Arabic's word written out is another way.
+    expect(
+      getUnitProblems(
+        "The average INP of storefront-web rose to 512 ms.",
+        "ko",
+        "storefront-web의 평균 INP가 512ms로 올라갔습니다.",
+      ),
+    ).toEqual([]);
+    expect(
+      getUnitProblems("Invocation · 3.9 s", "ar", "استدعاء · 3.9 ثانية").length,
+    ).toBe(1);
+    // French writes a terabyte "To", as its tiles do.
+    expect(
+      getUnitProblems("Drive · 3.8 TB", "fr", "Disque · 3,8 TB").length,
+    ).toBe(1);
+    expect(getUnitProblems("Drive · 3.8 TB", "fr", "Disque · 3,8 To")).toEqual(
+      [],
+    );
+    // Signal strength keeps its symbol in every language.
+    expect(
+      getUnitProblems("87% battery · -61 dBm", "de", "87 % Akku · -61 dBm"),
     ).toEqual([]);
   });
 

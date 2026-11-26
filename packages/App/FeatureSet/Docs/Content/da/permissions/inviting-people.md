@@ -71,7 +71,7 @@ Den, der logger ind eller tilmelder sig på en anden måde, accepterer et af to 
 
 | Hvor personen er | Hvad personen ser | Hvad personen klikker på |
 | --- | --- | --- |
-| Endnu ikke i noget projekt | Invitationen, på siden personen lander på efter login | **Accept & Join** eller **Decline** |
+| Endnu ikke i noget projekt | Invitationen, på siden personen lander på efter login | **Accept & Join** eller **Afvis** |
 | Allerede i et andet projekt | Den ventende invitation ved klokken øverst til højre, som åbner **Projektinvitationer** | **Accepter** eller **Afvis** |
 
 Når personen accepterer, er den med i projektet med det samme, med teamets tilladelser og den notifikationsopsætning, alle medlemmer starter med: se [Det, du starter med](/docs/notifications/index#det-starter-du-med). Afvisning sletter invitationen, så det kræver en ny at komme med senere.
@@ -132,8 +132,8 @@ At fjerne nogen tager personen ud af alle projektets teams. Personen mister adga
 
 ## Fejlfinding
 
-:::details "This user has already been invited to this team"
-Personen er allerede med i teamet, som medlem eller med en invitation, der ikke er accepteret. Åbn personen under **Brugere** for at se teamene, eller inviter personen til et andet team.
+:::details "This person has already been invited to this team, or is a member of it"
+Personen er allerede med i teamet, som medlem eller med en invitation, der ikke er accepteret. Åbn personen under **Brugere** for at se teamene, eller inviter personen til et andet team. Er personen ikke kommet med endnu, sender **Send invitation igen** i personens rækkemenu invitationsmailen igen.
 :::
 
 :::details "You have reached the user limit for the free plan"

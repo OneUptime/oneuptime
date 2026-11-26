@@ -58,13 +58,13 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande beg�
 
 ### Öppna en incident per larm
 
-Öppna **Inställningar** i samma kriterium och slå på **Group incidents and alerts by a payload field**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
+Öppna **Inställningar** i samma kriterium och slå på **Gruppera incidenter och larm efter ett fält i nyttolasten**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
 
 | Fält | Värde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Öppna en separat incident för varje…** | `requestBody.alerts[*].fingerprint` |
+| **Fält som signalerar återhämtning** | `requestBody.alerts[*].status` |
+| **Värde som betyder återhämtad** | `resolved` |
 
 ### Få monitorn online igen
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 En egenvärdad installation har sin egen värd i stället för `oneuptime.com`.
 :::
 
-`[*]` läser varje larm i en avisering, så en avisering med tre larm kan öppna tre incidenter, upp till **Max incidents per request** (`100` om du inte ändrar det). Varje larms egen `status` avgör vad som händer med dess incident: när ett larm i en avisering är löst och två fortfarande är utlösta stängs bara det lösta larmets incident. Se [Ta emot larm från ett annat system](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system) för vad varje inställning gör.
+`[*]` läser varje larm i en avisering, så en avisering med tre larm kan öppna tre incidenter, upp till **Max antal incidenter per förfrågan** (`100` om du inte ändrar det). Varje larms egen `status` avgör vad som händer med dess incident: när ett larm i en avisering är löst och två fortfarande är utlösta stängs bara det lösta larmets incident. Se [Ta emot larm från ett annat system](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system) för vad varje inställning gör.
 
 > [!WARNING]
 > Gruppera efter ett värde som skiljer sig från larm till larm inom en avisering. Alertmanagers `fingerprint` är en hash av ett larms hela etikettuppsättning, så den skiljer sig alltid. En etikett i din routes `group_by` skiljer sig aldrig: det är den som samlar larmen i en avisering. Att gruppera efter `requestBody.alerts[*].labels.alertname` med routen nedan slår ihop varje larm i en avisering till en incident, som får det första larmets status.
@@ -264,9 +264,9 @@ När watchdog-larmet inte har kommit på tio minuter går watchdog-monitorn offl
 :::details Incidenter skapas men löses aldrig
 - Kontrollera att ingen mottagare anger `send_resolved: false`: då skickar Alertmanager aldrig någon återhämtning.
 - Kriteriets incident behöver **Lös incident automatiskt**, under **Fler fält**.
-- **Field that signals recovery** måste vara `requestBody.alerts[*].status`, och **Value that means recovered** exakt `resolved`. Jämförelsen är skiftlägeskänslig.
-- Larm i en avisering utöver **Max incidents per request** läses inte alls, så deras återhämtningar går också förlorade.
-- En återhämtning som hoppas över i en skur (se nedan) lämnar sin incident öppen för alltid: Alertmanager upprepar utlösta larm, men aldrig en återhämtning. Lös en sådan incident manuellt.
+- **Fält som signalerar återhämtning** måste vara `requestBody.alerts[*].status`, och **Värde som betyder återhämtad** exakt `resolved`. Jämförelsen är skiftlägeskänslig.
+- Larm i en avisering utöver **Max antal incidenter per förfrågan** läses inte alls, så deras återhämtningar går också förlorade.
+- En återhämtning som hoppas över för att för många aviseringar väntade (se nedan) lämnar sin incident öppen för alltid: Alertmanager upprepar utlösta larm, men aldrig en återhämtning. Lös en sådan incident manuellt.
 :::
 
 :::details Ingen incident öppnas
@@ -282,11 +282,11 @@ En referens till ett fält som aviseringen inte har lämnas som den är skriven,
 :::
 
 :::details För många incidenter
-Gruppera din route efter färre etiketter, eller höj `group_interval`, så att Alertmanager skickar relaterade larm tillsammans. En lägre **Max incidents per request** begränsar incidenterna från en avisering, men larm utöver gränsen läses inte, så deras återhämtningar går också förlorade.
+Gruppera din route efter färre etiketter, eller höj `group_interval`, så att Alertmanager skickar relaterade larm tillsammans. En lägre **Max antal incidenter per förfrågan** begränsar incidenterna från en avisering, men larm utöver gränsen läses inte, så deras återhämtningar går också förlorade.
 :::
 
-:::details Aviseringar hoppas över under en skur
-När en nyare begäran når en monitor innan en tidigare har utvärderats, utvärderar OneUptime bara den nyaste, så att en enda avsändare inte kan översvämma en monitor. Den sista aviseringen i en skur utvärderas alltid, men en tidigare om andra larm kan hoppas över, eftersom Alertmanager skickar varje grupp till samma URL. Höj `group_wait` och `group_interval` för att sprida ut aviseringarna. På en egenvärdad installation anger du `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljö för att utvärdera varje begäran.
+:::details En skur av aviseringar
+En monitor vars kriterium grupperar efter ett fält, som den här guiden ställer in det, utvärderar varje avisering den tar emot, en i taget och i den ordning de kom, så en skur av utlösta och lösta larm öppnar och löser varje larms incident. Upp till 1 000 aviseringar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. Höj `group_wait` och `group_interval` för att skicka färre, större aviseringar. En monitor utan gruppering utvärderar bara den nyaste aviseringen som väntar på den.
 :::
 
 ## Säkerhet

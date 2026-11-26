@@ -375,7 +375,7 @@ O OneUptime atende OTLP/gRPC no mesmo host da aplicação web, na porta 443 com 
 
 Em uma instalação auto-hospedada, o gRPC só chega ao OneUptime por HTTPS: uma conexão HTTP em texto puro (h2c) é recusada. Se a sua instância é servida por HTTP simples, use OTLP/HTTP.
 
-Duas configurações de uma chave valem só para OTLP/HTTP: o **Requests Per Minute Limit** e o **Nome do serviço fixado**. Dados enviados por gRPC mantêm o `service.name` com que foram enviados e não contam para o limite.
+Duas configurações de uma chave valem só para OTLP/HTTP: o **Limite de solicitações por minuto** e o **Nome do serviço fixado**. Dados enviados por gRPC mantêm o `service.name` com que foram enviados e não contam para o limite.
 
 ### Respostas
 
@@ -389,7 +389,7 @@ O OneUptime responde a uma exportação assim que os dados entram na fila, e os 
 | `413` | — | A requisição é maior que o limite de tamanho. | Envie lotes menores. |
 | `415` | — | `Content-Encoding` não suportado. | Use `gzip`, `deflate` ou `zstd`, ou nenhuma compressão. |
 | `422` | `PERMISSION_DENIED` | A chave está desativada, ou é uma chave de navegador usada fora das origens permitidas. | Reative a chave, ou envie com uma chave de servidor. |
-| `429` | — | O **Requests Per Minute Limit** da chave foi atingido. | Nada no início: os exportadores tentam de novo depois do tempo de `Retry-After`. Aumente o limite se continuar acontecendo. |
+| `429` | — | O **Limite de solicitações por minuto** da chave foi atingido. | Nada no início: os exportadores tentam de novo depois do tempo de `Retry-After`. Aumente o limite se continuar acontecendo. |
 | `503` | `UNAVAILABLE` | O OneUptime está iniciando, ou a fila de ingestão está indisponível. | Nada: os exportadores OTLP repetem um `503` sozinhos. |
 
 `401`, `402`, `413`, `415` e `422` são erros permanentes para os exportadores OTLP: o exportador descarta o lote e registra o erro em vez de tentar de novo.
@@ -409,7 +409,7 @@ A página de cada chave, em **Configurações do projeto → Telemetria e APM �
 | **Nome do serviço fixado** | Quando definido, substitui `service.name` em tudo o que é enviado com esta chave por OTLP/HTTP. |
 | **Habilitado** | Desligue para parar na hora de aceitar dados enviados com a chave, sem excluí-la. |
 | **Expira em** | Depois dessa data a chave é recusada. Vazio significa que ela nunca expira. |
-| **Requests Per Minute Limit** | O máximo de requisições OTLP/HTTP por minuto aceitas com a chave, somando todos os clientes que a usam. Vazio significa sem limite numa chave de servidor, e 6.000 numa chave de navegador. |
+| **Limite de solicitações por minuto** | O máximo de requisições OTLP/HTTP por minuto aceitas com a chave, somando todos os clientes que a usam. Vazio significa sem limite numa chave de servidor, e 6.000 numa chave de navegador. |
 | **Usado pela última vez em** | Quando dados foram aceitos pela última vez com a chave. Use para encontrar chaves que podem ser trocadas ou excluídas com segurança. |
 
 **Redefinir chave secreta** na página da chave substitui o segredo. Toda aplicação e todo collector que envia com o antigo é recusado até você atualizá-lo. Para chaves de navegador, como trocar uma chave com segurança e o que cada recusa significa, veja [Chaves de ingestão](/docs/telemetry/ingestion-keys).

@@ -167,7 +167,7 @@ När de har samlats in visas mätvärdena i Metric Explorer under namn som `cust
 
 Vissa attributnamn tillhör OneUptime självt, och ett skript kan inte skriva dem. Om ditt skript anger ett av dem tas attributet bort — själva mätvärdet registreras ändå — och en varning med nyckelns namn skrivs till OneUptimes serverloggar. Det gäller:
 
-- Monitorns identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- Monitorns identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - Allt i namnrymderna `oneuptime.` eller `resource.` — de bär de identifierare som OneUptime sätter vid inmatning.
 - Attribut för resursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` och `docker.swarm.cluster.name`.
 

@@ -107,7 +107,7 @@ export interface ComponentProps {
 }
 
 // Where the pull request stands, as a small mark in the AI card's colours.
-const DeclaredCodeChangeMark: FunctionComponent<{
+export const DeclaredCodeChangeMark: FunctionComponent<{
   tone: DeclaredCodeChangeTone;
 }> = (props: { tone: DeclaredCodeChangeTone }): ReactElement => {
   return (

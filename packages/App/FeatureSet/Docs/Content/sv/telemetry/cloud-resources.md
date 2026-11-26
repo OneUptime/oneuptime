@@ -459,6 +459,7 @@ Varje datapunkt bär sin resurs Azure-resurs-ID (`azuremonitor.resource_id`), s�
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ En resurs i ett [anslutet konto](/docs/telemetry/cloud-accounts) erbjuds på sin
 :::
 
 Ett Service Bus-namnområde rapporterar sina mätvärden en gång per kö och ämne, och ett Event Hubs-namnområde en gång per event hub. Där de går att summera visar en rad på namnområdets flik **Mätvärden** deras summa, med **summa av serier** under. En monitor som skapats från den raden läser också summan, liksom en monitor som skapats via API:et eller Terraform utan aggregering. De andra raderna visar **genomsnitt av serier**, alltså den genomsnittliga kön eller event hubben: en latens och, över ett intervall på mer än 3 timmar, en mängd som namnområdet håller, till exempel väntande meddelanden.
+
+Anslutningen läser en Container Apps begäranden en gång per statuskodkategori för att skilja ut dess 5xx-svar, och raden för dess begäranden summerar dem på samma sätt: den visar deras summa, liksom en monitor som skapats från den raden.
 
 > [!IMPORTANT]
 > Molnövervakning publicerar varje tal några minuter efter den tid det mäter: 10 till 20 minuter för CloudWatch som avfrågas som ovan, några minuter för Azure Monitor och Cloud Monitoring. Det lagras under den tid det mäter. Ge en monitor över de här mätvärdena ett fönster som är längre än så (30 minuter för CloudWatch, 15 för de andra), annars ser den inga data och utlöses aldrig.

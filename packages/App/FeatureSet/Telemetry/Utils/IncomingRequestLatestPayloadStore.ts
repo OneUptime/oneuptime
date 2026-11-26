@@ -8,6 +8,14 @@ import { IncomingRequestIngestJobData } from "../Services/Queue/TelemetryQueueSe
  * The newest request an Incoming Request monitor received that no worker has
  * evaluated yet - one slot per monitor, in Redis.
  *
+ * AN EARLIER RELEASE'S STORE. This release keeps every request instead
+ * (IncomingRequestPendingStore, #10582): one slot evaluated only a monitor's
+ * newest request, which lost a grouped monitor's triggers and resets in a
+ * burst. The worker still reads this slot for a job an earlier release
+ * queued (one carrying coalescedPayloadId) - during an upgrade, its API pods
+ * may still queue them - so that job evaluates what it was queued for.
+ * Nothing in this release writes it but the tests of that path.
+ *
  * Why this exists: same-monitor ingest jobs are coalesced with BullMQ
  * deduplication (keepLastIfActive), which keeps at most one active and one
  * waiting job per monitor. BullMQ only keeps the LATEST payload when the

@@ -1,6 +1,7 @@
 import IconProp from "../../Icon/IconProp";
 import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../GoogleSecOpsRegion";
+import { ConnectorFieldChoicesFromProvider } from "./ConnectorFieldChoices";
 import SecurityEventConnectorProvider from "./SecurityEventConnectorProvider";
 import { translationKey } from "../../Translator";
 
@@ -74,6 +75,13 @@ export interface ConnectorField {
    * description names: the form folds it under More fields.
    */
   isAdvanced?: boolean | undefined;
+  /*
+   * The choices are the product's own, read with the credentials on the
+   * form: a Cloudflare token's accounts and zones (ConnectorFieldChoices).
+   * The form asks such a field after the credentials, as a picker of what
+   * they can read, never as a box to type an ID into.
+   */
+  choicesFromProvider?: ConnectorFieldChoicesFromProvider | undefined;
 }
 
 /*
@@ -99,6 +107,23 @@ export const ENTRA_BACKGROUND_SIGN_INS_KEY: string = "includeBackgroundSignIns";
 
 // The Google Workspace connection's option that also reads Drive activity.
 export const GOOGLE_WORKSPACE_DRIVE_KEY: string = "includeDrive";
+
+/*
+ * The setting that lets OneUptime enforce the project's blocklist through
+ * a connection (#10346): Microsoft Defender's indicators block domains,
+ * URLs, addresses and files on every machine, CrowdStrike Falcon's custom
+ * IOCs block files. Off until someone turns it on, with the permission it
+ * takes, and checked before every call that changes anything there: no
+ * connection may change what it was only allowed to read.
+ */
+export const BLOCK_INDICATORS_KEY: string = "blockIndicators";
+
+// Whether a connection's settings let OneUptime block through it.
+export function isBlockingTurnedOn(
+  config: Record<string, unknown> | null | undefined,
+): boolean {
+  return Boolean(config) && config![BLOCK_INDICATORS_KEY] === true;
+}
 
 /*
  * A two-option presentation of alertingOnly: the alerting records are
@@ -168,7 +193,24 @@ export interface SecurityEventConnectorDefinition {
    * generous overlap costs requests, never duplicates.
    */
   cursorOverlapInMinutes: number;
+  /*
+   * None of what the provider imports is an alert (OCSF Detection or
+   * Incident Finding, IMPORTED_ALERT_CLASS_UIDS): Cloudflare's firewall
+   * events are requests. So none opens a case on its own, the form does not
+   * ask Open Cases From, and cases come from the detection rules that read
+   * the events. Absent means the provider imports alerts.
+   */
+  importsNoAlerts?: boolean | undefined;
 }
+
+/*
+ * The most zones one Cloudflare connection reads. Each zone is its own query
+ * on every poll, and Cloudflare's GraphQL Analytics API allows 300 queries
+ * in five minutes: fifty zones read every five minutes leave room for the
+ * rest of what reads the account. An account with more zones takes a second
+ * connection for the rest.
+ */
+export const CLOUDFLARE_MAX_ZONES_PER_CONNECTION: number = 50;
 
 const MICROSOFT_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
   { label: translationKey("Azure public cloud"), value: "public" },
@@ -330,6 +372,19 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           defaultValue: "public",
           isAdvanced: true,
         },
+        {
+          key: BLOCK_INDICATORS_KEY,
+          title: translationKey(
+            "Block domains, addresses and files with Defender",
+          ),
+          description: translationKey(
+            "OneUptime adds Defender indicators for what you block. Needs the WindowsDefenderATP permission Ti.ReadWrite.All, with admin consent.",
+          ),
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
+        },
       ],
       secretFields: [
         {
@@ -387,6 +442,21 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
             },
           ],
           defaultValue: "us-1",
+        },
+        /*
+         * Files only: Falcon prevents a file's hash on Windows, Mac and
+         * Linux, and only detects a domain or an address there.
+         */
+        {
+          key: BLOCK_INDICATORS_KEY,
+          title: translationKey("Block files with CrowdStrike"),
+          description: translationKey(
+            "OneUptime adds custom IOCs that stop a file running on every computer. Needs the IOC Management: Read and Write scopes.",
+          ),
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
         },
       ],
       secretFields: [
@@ -773,12 +843,78 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "serviceAccountJson",
           title: translationKey("Service account JSON"),
+          /*
+           * The scopes its client ID is delegated: the audit scope polling
+           * reads with, and the group member scope a security case reads
+           * a group's member back with (#10901) - optional, and asked for
+           * here, where the delegation is set up.
+           */
           description: translationKey(
-            "A Google Cloud service-account key (JSON) whose client ID has domain-wide delegation for the admin.reports.audit.readonly scope.",
+            "A service-account key (JSON) delegated admin.reports.audit.readonly. Add admin.directory.group.member.readonly so security cases can read groups.",
           ),
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',
+        },
+      ],
+    },
+    {
+      provider: SecurityEventConnectorProvider.Cloudflare,
+      title: "Cloudflare",
+      vendorName: "Cloudflare",
+      productName: "Cloudflare WAF",
+      description: translationKey(
+        "Import what Cloudflare's firewall did with the requests it blocked, challenged or logged, as HTTP Activity events with each request's Ray ID.",
+      ),
+      category: "Cloud security",
+      icon: IconProp.Globe,
+      logo: ProviderLogo.Cloudflare,
+      docsPath: "/docs/integrations/cloudflare",
+      defaultPollIntervalInMinutes: 5,
+      supportsAlertingOnlyToggle: false,
+      // Drawn plural with an "s": Preview firewall events, Read firewall events.
+      importedRecordName: "firewall event",
+      /*
+       * Cloudflare's analytics are queryable a minute or two after the
+       * request, later when the edge is busy: each poll re-reads the ten
+       * minutes before its cursor, and the Ray ID dedupe drops what it has.
+       */
+      cursorOverlapInMinutes: 10,
+      importsNoAlerts: true,
+      configFields: [
+        {
+          key: "accountId",
+          title: translationKey("Account"),
+          description: translationKey(
+            "The Cloudflare account to read, from the accounts your API token can read.",
+          ),
+          type: "text",
+          required: true,
+          placeholder: translationKey("Select an account"),
+          choicesFromProvider: { isMultiple: false },
+        },
+        {
+          key: "zoneIds",
+          title: translationKey("Zones"),
+          description: translationKey(
+            "Leave empty to read every zone in the account, including zones added later.",
+          ),
+          type: "text",
+          required: false,
+          // Nothing picked is every zone: the placeholder says so.
+          placeholder: translationKey("All zones"),
+          choicesFromProvider: { isMultiple: true, parentKey: "accountId" },
+        },
+      ],
+      secretFields: [
+        {
+          key: "apiToken",
+          title: translationKey("API token"),
+          description: translationKey(
+            "A Cloudflare API token that can only read: Zone > Analytics > Read and Zone > Zone > Read, on the zones to import.",
+          ),
+          type: "password",
+          required: true,
         },
       ],
     },

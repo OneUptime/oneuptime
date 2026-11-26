@@ -46,6 +46,8 @@ Alt andet ligger under **Flere felter**, foldet sammen, indtil du åbner det:
 
 Så længe nogen skiftes, og intet under **Flere felter** er ændret, siger den sammenfoldede overskrift, hvad der vil ske: hver person har vagt i en uge, og så tager den næste over.
 
+Også en, der er inviteret til projektet, men endnu ikke er blevet medlem, kan skiftes til at have vagt, men intet tilkalder vedkommende, før invitationen er accepteret, og vedkommende får intet at vide. Tørnen er et hul i dækningen, og kanalerne og feedet for hver vagtpolitik, der tilkalder vagtplanen, siger det og nævner vedkommende ved det navn, der blev skrevet med invitationen, aldrig ved e-mailadressen: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` i Slack og `oncall` i Microsoft Teams siger det også. Når vedkommende bliver medlem, når tilkaldelser frem, vedkommende får at vide, hvilke vagtpolitikker der tilkalder vedkommende nu, og kanalerne får "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Indtil da viser [Parathed og rapporter](/docs/on-call/readiness) vedkommende, med hvad der skal gøres.
+
 ## Lag
 
 En vagtplans rotation består af lag, på dens side **Lag**. Lag læses oppefra og ned: det øverste lag med en person på vagt er det, der tilkalder, så læg hovedrotationen øverst og reservedækningen under den.

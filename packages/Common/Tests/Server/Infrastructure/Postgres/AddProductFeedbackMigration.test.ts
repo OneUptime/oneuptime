@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809122600000-AddMonitorStatusTimelineIsMonitoringOff";
 import { AddProductFeedback1809123000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123000000-AddProductFeedback";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -62,7 +63,11 @@ describe("AddProductFeedback1809123000000", () => {
     const modelColumns: Array<string> = Object.keys(
       getTableColumns(new ProductFeedback()),
     ).filter((column: string): boolean => {
-      return !addedLater.includes(column);
+      return (
+        !addedLater.includes(column) &&
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        !RecordActorUtil.isColumn(column)
+      );
     });
 
     for (const column of modelColumns) {

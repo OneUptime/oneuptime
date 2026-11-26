@@ -156,6 +156,11 @@ interface Source {
   method: string;
   // How many messages the source handed the loop back after before.
   oldMessagesPerHandBack: number | null;
+  /*
+   * When thirty messages of 7 ms each hand the loop back, when that is not
+   * once every three of them alone.
+   */
+  handBacksForSlowMessages?: Array<number> | undefined;
   setup: () => void;
   ingest: (count: number) => Promise<void>;
   stored: () => number;
@@ -248,6 +253,13 @@ const SOURCES: Array<Source> = [
     method: "deserializeSyslogMessage",
     // It never handed the loop back.
     oldMessagesPerHandBack: null,
+    /*
+     * Read in two passes (#10716): each message read and matched, then each
+     * project's share decided against its budgets, then the rows built -
+     * and the second pass asks the same budget before each row, so the
+     * 21 ms the first pass ends on are handed back too.
+     */
+    handBacksForSlowMessages: [21, 42, 63, 84, 105, 126, 147, 168, 189, 210],
     setup: (): void => {
       probeRows = 0;
       jest
@@ -292,7 +304,11 @@ describe.each(
     expect(fakeNow).toBe(210);
     expect(longestStretch()).toBeLessThan(EVENT_LOOP_BUDGET_MS + 7);
     // Handed back once every three messages: 21 ms each time.
-    expect(handBacksAt).toEqual([21, 42, 63, 84, 105, 126, 147, 168, 189]);
+    expect(handBacksAt).toEqual(
+      source.handBacksForSlowMessages || [
+        21, 42, 63, 84, 105, 126, 147, 168, 189,
+      ],
+    );
   });
 
   test("small messages are handed back no more often than before, and a short batch not at all", async () => {

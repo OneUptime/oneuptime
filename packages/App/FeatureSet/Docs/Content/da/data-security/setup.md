@@ -222,6 +222,8 @@ Datasikkerheds indstillinger er ét sæt pr. projekt i sektionen **Indstillinger
 | **Kontrollér konfiguration** | Til | Kører kontrollerne på hvert datalager. Slået fra åbnes, ændres eller lukkes intet problem. |
 | **Scan indhold** | Til | Tager prøver af datalagres indhold, hvor indholdstilladelsen er givet. |
 | **Scan telemetri** | Til | Tager prøver af projektets logs, traces, metrikker, undtagelser, afspilninger og AI-samtaler. |
+| **Find navne og gadeadresser** | Til | Gennemsøger fritekst efter personers navne og gadeadresser med en lille model inde i scanneren. Modellen er ikke OneUptime AI, og teksten forlader aldrig scanneren. Se [Navne og gadeadresser i fritekst](/docs/data-security/data-types#navne-og-gadeadresser-i-fritekst). |
+| **Find navne og gadeadresser i telemetri** | Fra | Den timevise telemetriscanning læser også logbrødtekster, undtagelsesbeskeder og AI-samtaler med modellen, op til ét minut hver time. Kun mens indstillingen ovenfor er slået til. |
 | **Gem maskerede prøver** | Til | Gemmer op til tre maskerede prøver med hvert fund. Slået fra gemmes kun antal. |
 | **Åbn sikkerhedssager** | Til | Åbner en sikkerhedssag, grupperet efter datalager, når et kritisk problem åbnes. |
 | **Udløs advarsler** | Fra | Udløser en advarsel, som tilkalder den, der har vagt, når et kritisk problem åbnes. |

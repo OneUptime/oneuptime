@@ -156,13 +156,15 @@ return {
 
 Un'esecuzione conserva fino a 20 screenshot, ciascuno fino a 10 MB e 50 MB in totale. Uno screenshot può anche comparire nell'incidente o nell'avviso aperto da un'esecuzione fallita (nella sua pagina e nelle email che lo riguardano) se lo inserite nella descrizione di incidente o di avviso del monitor. Consultate [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#mostrare-uno-screenshot).
 
+Quando un'esecuzione esaurisce il tempo, la sonda acquisisce anche uno screenshot di ogni pagina che lo script ha ancora aperta, così potete vedere dove si è fermato. Lo screenshot della prima pagina si chiama `timed-out-page`, e quelli delle altre `timed-out-page-2`, `timed-out-page-3` e così via, nell'ordine in cui le pagine sono state aperte. Il riepilogo del monitor li mostra come «Pagina quando lo script è andato in timeout» e «Pagina 2 quando lo script è andato in timeout», e la descrizione di un incidente o di un avviso può mostrarli come qualsiasi altro screenshot. Contano nei limiti sopra, dopo gli screenshot dello script stesso.
+
 Gli screenshot di un controllo restano nei log del monitor stesso, non nei log di un incidente o di un avviso né nei cambi di stato di un monitor: questi conservano il resto del controllo, e ogni esecuzione i cui screenshot sono stati omessi lo indica (`areScreenshotsOmitted`). Gli screenshot già salvati lì vengono cancellati dopo l'aggiornamento da un job che gira ogni ora, un po' alla volta, finché non ne resta nessuno.
 
 > [!NOTE]
 > In un'installazione self-hosted, PostgreSQL riutilizza lo spazio lasciato dagli screenshot cancellati, ma non lo restituisce al disco. Per ridurre il database una volta cancellati, eseguite `VACUUM FULL` sulle tabelle più grandi in una finestra di manutenzione, perché blocca ogni tabella mentre la riscrive, oppure usate `pg_repack`, che non la blocca.
 
 :::details Restituire gli screenshot (metodo precedente)
-Per compatibilità con il passato, potete anche restituire gli screenshot dallo script come parte del valore di ritorno. Gli screenshot restituiti così vengono conservati **solo** quando lo script termina normalmente: vanno persi se lo script genera un errore. Preferite il canale laterale descritto sopra quando volete prove dei fallimenti.
+Per compatibilità con il passato, potete anche restituire gli screenshot dallo script come parte del valore di ritorno. Gli screenshot restituiti così vengono conservati **solo** quando lo script termina normalmente: vanno persi se lo script genera un errore o esaurisce il tempo. Preferite il canale laterale descritto sopra quando volete prove dei fallimenti.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ I listener di eventi non possono attraversare il confine di isolamento. Usate `p
 :::
 
 :::details L'esecuzione va in timeout
-Attendete elementi precisi con `page.waitForSelector(...)` e un `timeout` più breve del limite dello script stesso, così l'esecuzione fallisce sul passaggio lento con un errore chiaro.
+**Mostra altri dettagli** nel riepilogo del monitor mostra «Pagina quando lo script è andato in timeout»: la pagina su cui si trovava lo script quando il suo tempo è scaduto. Perché l'esecuzione fallisca proprio sul passaggio lento, con un errore chiaro, attendete elementi precisi con `page.waitForSelector(...)` e un `timeout` più breve del limite dello script stesso.
 :::
 
 :::details Una sonda self-hosted dice di non trovare l'eseguibile del browser

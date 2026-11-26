@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` 且 `"valid": true` | OneUptime 接受該金鑰。回應也會提供它的 `keyType` 與 `projectId` 。繼續下一項檢查。 |
 | `401` 且 `"valid": false` | 金鑰遺失、未知、已撤銷、已關閉或已到期， `message` 會說明是哪一種。在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立一個有效的金鑰。 |
 
-Web 應用程式需要 **瀏覽器** 金鑰，行動應用程式需要 **伺服器** 金鑰：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 與 [行動端設定](/docs/rum/mobile-setup) 。匯出端點也會依 OTLP 規格的要求，以 `401` 拒絕錯誤的金鑰，因此行為良好的 SDK 會記錄這次拒絕，而不是重試。這一行在瀏覽器主控台中很容易被忽略，而這項檢查會直接告訴你答案。
+Web 應用程式需要 **瀏覽器** 金鑰，行動應用程式需要 **行動裝置** 金鑰：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 與 [行動端設定](/docs/rum/mobile-setup) 。匯出端點也會依 OTLP 規格的要求，以 `401` 拒絕錯誤的金鑰，因此行為良好的 SDK 會記錄這次拒絕，而不是重試。這一行在瀏覽器主控台中很容易被忽略，而這項檢查會直接告訴你答案。
 
 OneUptime 也會統計它從已知金鑰拒絕的內容。 **專案設定 → 遙測與 APM → 擷取金鑰** 下的金鑰頁面在 **被拒絕的遙測** 中列出過去 30 天被拒絕的內容，應用程式 **文件** 頁面上的 **設定檢查** 會說明哪種遙測被拒絕、原因以及如何解決。缺失或未知的金鑰不指向任何專案，因此不會被統計：只有這項檢查和 `401` 能告訴你。
 
@@ -81,20 +81,20 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 **`422`.** OneUptime 在這裡拒絕了該金鑰，訊息會說明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示頁面的確切來源（包括配置與連接埠，如果有）不在該金鑰的 **允許的來源** 中。 `This telemetry ingestion key has been disabled.` 表示有人關閉了該金鑰。
 
-**`429`.** 該金鑰的 **Requests Per Minute Limit** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在金鑰上設定了自己的上限，否則 Browser 金鑰對你所有訪客合計每分鐘允許 6000 個請求。
+**`429`.** 該金鑰的 **每分鐘請求數上限** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在金鑰上設定了自己的上限，否則 Browser 金鑰對你所有訪客合計每分鐘允許 6000 個請求。
 
 **帶有 HTML 頁面或空本文的 `403`。** OneUptime 對每次拒絕都以 JSON 回應，所以這個回應來自它前面的某個東西，通常是你自己網域上的 Web 應用程式防火牆（如果你透過它代理 OneUptime）。防火牆會剖析 OTLP/JSON，並用它的注入規則檢查每個 span 屬性，因此 span 上一個帶有查詢字串的 URL 就足以被封鎖，防火牆的日誌會寫出是哪條規則。只在 OTLP 路徑上將 OTLP 承載排除在檢查之外： [你的 OpenTelemetry 請求也被封鎖了](/docs/rum/session-replay-troubleshooting#你的-opentelemetry-請求也被封鎖了) 說明了做法，也涵蓋了位於同一防火牆後面的重播錄製器。
 
 ## 檢查遙測資料落在哪裡
 
-請求成功了，但應用程式出現在 **產品 → 服務** 下，而不是 **產品 → 資源 → 真實使用者監測** 下。這是最常見的回報，原因幾乎總是資源上沒有用戶端屬性。只有當一批資料的資源帶有下列屬性之一時，OneUptime 才會將其歸為 RUM：
+請求成功了，但應用程式出現在 **產品 → 服務** 下，而不是 **產品 → 資源 → 真實使用者監測** 下。這是最常見的回報，原因幾乎總是使用了瀏覽器金鑰或行動裝置金鑰以外的金鑰，傳送的資源上又沒有用戶端屬性。瀏覽器金鑰或行動裝置金鑰傳送的所有內容都會歸為 RUM；使用其他任何金鑰時，只有當一批資料的資源帶有下列屬性之一時，OneUptime 才會將其歸為 RUM：
 
 | 類型 | 屬性 |
 | --- | --- |
 | 瀏覽器 | `browser.platform` 、 `browser.language` ，或非空的 `browser.brands` |
 | 行動裝置 | `device.id` 或 `device.model.identifier` ，或是在沒有主機識別（ `host.name` 、 `host.id` 或 `k8s.node.name` ）的資源上的 `device.manufacturer` |
 
-只有 `service.name` 會成為後端服務。OpenTelemetry 瀏覽器 SDK 不會新增任何 `browser.*` 屬性，除非你加入瀏覽器資源偵測器或自行設定它們：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 。
+使用其他任何金鑰時，只有 `service.name` 會成為後端服務。OpenTelemetry 瀏覽器 SDK 不會新增任何 `browser.*` 屬性，除非你加入瀏覽器資源偵測器或自行設定它們：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 。
 
 若要查看你實際傳送了什麼，請在 Network 分頁中開啟 OTLP 請求並查看其承載：起決定作用的是 `resourceSpans[0].resource.attributes` 清單。如果其中沒有 `browser.*` 屬性，那麼無論文件怎麼說，SDK 都沒有新增它。
 
@@ -127,7 +127,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 例外需要錯誤處理常式，因為 SDK 不會擷取未攔截的錯誤：程式碼見 [回報未攔截的錯誤](/docs/rum/browser-setup#回報未攔截的錯誤)。由 error boundary 或 `try`/`catch` 處理的錯誤永遠不會到達 window，所以要在處理它的地方用 `span.recordException` 記錄。
 
-日誌需要日誌管線和寫入日誌記錄的程式碼，因為單靠 `LoggerProvider` 什麼也不會傳送：兩者都在 [加入日誌和指標](/docs/rum/browser-setup#加入日誌和指標) 中。用與追蹤相同的 `resource` 建立管線，否則日誌會被歸到一個後端服務下。
+日誌需要日誌管線和寫入日誌記錄的程式碼，因為單靠 `LoggerProvider` 什麼也不會傳送：兩者都在 [加入日誌和指標](/docs/rum/browser-setup#加入日誌和指標) 中。用與追蹤相同的 `resource` 建立管線，這樣日誌也會歸到同一個應用程式下。
 
 如果頁面載入能送達，那麼只要日誌匯出器使用相同的金鑰和主機，金鑰、其允許的來源以及你的 Content Security Policy 也會放行例外和日誌。尚未攔截任何錯誤的錯誤處理常式不會傳送任何內容，這與從未加入的處理常式完全一樣，所以要從瀏覽器主控台擲出一個測試錯誤來區分兩者：
 

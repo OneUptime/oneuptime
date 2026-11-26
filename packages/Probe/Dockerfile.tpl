@@ -109,6 +109,17 @@ COPY ./packages/Common/package*.json /usr/src/Common/
 # Set version in ./Common/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+# Data Security's names-and-addresses model, which the probe runs inside its
+# scanner on the databases it scans (Common/Server/Utils/DataSecurity/Model):
+# its files, fetched from the revision NameAddressModel.json pins and checked
+# against their SHA-256 (any other bytes stop the build), into
+# /usr/src/DataSecurityModel; and of ONNX Runtime's WebAssembly package only
+# what the model's thread loads in Node.js. As the App's image does
+# (packages/App/Dockerfile.tpl). Scripts/Docker/FetchDataSecurityModel.js.
+COPY ./packages/Common/Server/Utils/DataSecurity/Model/NameAddressModel.json /tmp/NameAddressModel.json
+COPY ./Scripts/Docker/FetchDataSecurityModel.js /tmp/FetchDataSecurityModel.js
+RUN node /tmp/FetchDataSecurityModel.js --manifest /tmp/NameAddressModel.json --runtime /usr/src/Common/node_modules/onnxruntime-web \
+    && rm /tmp/FetchDataSecurityModel.js /tmp/NameAddressModel.json
 # Common without its tests, which no image runs. They were 185 MB of this
 # copy, and one of their fixtures (an SVG data URI with a script in it) is what
 # ClamAV calls phishing. Left out as they are copied, because a later `rm` in

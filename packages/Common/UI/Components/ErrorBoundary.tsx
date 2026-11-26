@@ -1,11 +1,23 @@
 import { getReadingDirection } from "../../Types/ReadingDirection";
-import { downloadErrorSupportBundle } from "../Utils/ErrorSupportBundle";
+import {
+  HelpAndSupportSettings,
+  ONEUPTIME_SUPPORT_EMAIL,
+  getSupportEmailAddress,
+  isOneUptimeSupportEmail,
+} from "../../Types/HelpAndSupport/HelpAndSupport";
+import HelpAndSupport from "../Utils/HelpAndSupport";
+/*
+ * Type-only on purpose: the one place the support bundle is loaded is the
+ * import() below (errorSupportBundle).
+ */
+import type { DownloadErrorSupportBundleFunction } from "../Utils/ErrorSupportBundle";
+import { LazyLibrary } from "../Utils/LazyLibrary";
 import {
   isChunkLoadError,
   reloadPage,
 } from "../Utils/NewVersion/ChunkLoadError";
 import NewVersion, { NewVersionAudience } from "../Utils/NewVersion/NewVersion";
-import { Translator } from "../Utils/TranslateTemplate";
+import { Translator, translationKey } from "../Utils/TranslateTemplate";
 import useTranslator from "../Utils/UseTranslator";
 import {
   ALERT_ICON_PATH,
@@ -26,6 +38,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -85,8 +98,8 @@ interface FallbackComponentProps extends FallbackProps {
   getCapturedErrorDetails?: GetCapturedErrorDetailsFunction | undefined;
   /*
    * The screen's own words, for an error that has them (a page whose code
-   * would not download even after reloading). "Something went wrong" when
-   * not given.
+   * would not download even after reloading). CRASH_SCREEN_WORDS when not
+   * given.
    */
   title?: string | undefined;
   message?: string | undefined;
@@ -128,8 +141,64 @@ interface SupportBundleStatus {
   type: SupportBundleStatusType;
 }
 
-/** Where a reviewed support bundle should be sent. */
-export const SUPPORT_EMAIL: string = "support@oneuptime.com";
+/*
+ * Where a reviewed support bundle is sent by default: OneUptime's support.
+ * A server whose admins set an address of their own (Admin Dashboard >
+ * Settings > Help and Support, #10865) names that one instead, or none
+ * where they hid it (getSupportEmailAddress, from env.js, so the screen
+ * knows it however the page broke).
+ */
+export const SUPPORT_EMAIL: string = ONEUPTIME_SUPPORT_EMAIL;
+
+/*
+ * The support part's sentence when the bundle goes to the server's own
+ * team, or to nobody named: it does not say OneUptime Support.
+ */
+export const SUPPORT_BUNDLE_SENTENCE_FOR_OWN_TEAM: string = translationKey(
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.",
+);
+
+/*
+ * The support bundle is written only when somebody asks for one, from the
+ * support part of the screen. So it is a file of its own - 2 to 3.5 KiB
+ * gzipped of every page's first load
+ * (packages/Common/Scripts/first-load-budgets.js) - asked for as the
+ * support part is drawn, and there by the time its button is pressed. A
+ * status page's or a public dashboard's screen has no support part, and
+ * never loads it.
+ */
+const errorSupportBundle: LazyLibrary<DownloadErrorSupportBundleFunction> =
+  new LazyLibrary<DownloadErrorSupportBundleFunction>(
+    async (): Promise<DownloadErrorSupportBundleFunction> => {
+      return (await import("../Utils/ErrorSupportBundle"))
+        .downloadErrorSupportBundle;
+    },
+  );
+
+// Loads the support bundle's file, once however many ask; a failed load is retried.
+export const loadErrorSupportBundle: () => Promise<DownloadErrorSupportBundleFunction> =
+  (): Promise<DownloadErrorSupportBundleFunction> => {
+    return errorSupportBundle.load();
+  };
+
+/*
+ * What the screen says when a part of the page threw while it was drawn
+ * (#7270): what happened, in the title, and what to do next, under it. It
+ * read "Something went wrong" over "An unexpected error has occurred.
+ * Please reload the page to continue" - an empty phrase over a sentence
+ * that said nothing a person could not see (EMPTY_ERROR_PHRASES). If the
+ * reload does not help, the people who use OneUptime read what to do next
+ * in the support part under it; a visitor has only the reload.
+ */
+export const CRASH_SCREEN_WORDS: {
+  title: string;
+  message: string;
+} = {
+  title: translationKey("This page stopped working"),
+  message: translationKey(
+    "Part of this page ran into a problem. Reload the page to continue.",
+  ),
+};
 
 export const Fallback: FunctionComponent<FallbackComponentProps> = (
   props: FallbackComponentProps,
@@ -144,9 +213,29 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
 
   type DownloadSupportBundleFunction = () => void;
 
-  const downloadSupportBundle: DownloadSupportBundleFunction = (): void => {
-    setSupportBundleStatus(null);
+  type SayDownloadFailedFunction = (error: unknown) => void;
 
+  const sayDownloadFailed: SayDownloadFailedFunction = (
+    error: unknown,
+  ): void => {
+    // eslint-disable-next-line no-console
+    console.error("Unable to download the error support bundle:", error);
+    setSupportBundleStatus({
+      type: "error",
+      message:
+        translator.translateText(
+          "The support bundle could not be downloaded. Please try again.",
+        ) || "",
+    });
+  };
+
+  type WriteSupportBundleFunction = (
+    downloadErrorSupportBundle: DownloadErrorSupportBundleFunction,
+  ) => void;
+
+  const writeSupportBundle: WriteSupportBundleFunction = (
+    downloadErrorSupportBundle: DownloadErrorSupportBundleFunction,
+  ): void => {
     try {
       const capturedErrorDetails: CapturedErrorDetails | null =
         props.getCapturedErrorDetails?.(props.error) || null;
@@ -166,23 +255,52 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
           ) || "",
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Unable to download the error support bundle:", error);
-      setSupportBundleStatus({
-        type: "error",
-        message:
-          translator.translateText(
-            "The support bundle could not be downloaded. Please try again.",
-          ) || "",
-      });
+      sayDownloadFailed(error);
     }
   };
 
+  const downloadSupportBundle: DownloadSupportBundleFunction = (): void => {
+    setSupportBundleStatus(null);
+
+    /*
+     * Its file arrived as the support part was drawn: the bundle is written
+     * at once, while the press still counts as one for the browser's
+     * download. Should it still be on its way, or have failed, it is asked
+     * for again and written as it arrives.
+     */
+    const loaded: DownloadErrorSupportBundleFunction | null =
+      errorSupportBundle.getLoaded();
+
+    if (loaded) {
+      writeSupportBundle(loaded);
+      return;
+    }
+
+    errorSupportBundle.load().then(writeSupportBundle, sayDownloadFailed);
+  };
+
   const language: string =
-    props.language || getScreenLanguage(translator, "Something went wrong");
+    props.language || getScreenLanguage(translator, CRASH_SCREEN_WORDS.title);
   const showsSupport: boolean =
     props.showSupport ??
     NewVersion.getAudience() === NewVersionAudience.Members;
+
+  // The support bundle's file, asked for as the support part is drawn.
+  useEffect(() => {
+    if (showsSupport) {
+      errorSupportBundle.load().catch((): void => {
+        // Said if the button is pressed and it still cannot be loaded.
+      });
+    }
+  }, [showsSupport]);
+
+  /*
+   * Where the bundle goes: OneUptime's support, the server's own address,
+   * or nobody named (Help and Support, read from env.js).
+   */
+  const helpAndSupport: HelpAndSupportSettings = HelpAndSupport.getSettings();
+  const supportEmail: string | null = getSupportEmailAddress(helpAndSupport);
+  const isOneUptimeSupport: boolean = isOneUptimeSupportEmail(helpAndSupport);
 
   return (
     <div
@@ -195,13 +313,11 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
         <div className="oueb-badge">{getIcon(ALERT_ICON_PATH)}</div>
         <div role="alert">
           <h1 className="oueb-title" data-testid="error-boundary-title">
-            {props.title || translator.translateText("Something went wrong")}
+            {props.title || translator.translateText(CRASH_SCREEN_WORDS.title)}
           </h1>
           <p className="oueb-message">
             {props.message ||
-              translator.translateText(
-                "An unexpected error has occurred. Please reload the page to continue",
-              )}
+              translator.translateText(CRASH_SCREEN_WORDS.message)}
           </p>
         </div>
         <div className="oueb-actions">
@@ -244,9 +360,13 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
               {translator.translateText("Still stuck?")}
             </p>
             <p className="oueb-support-text">
-              {translator.translateText(
-                "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
-              )}
+              {isOneUptimeSupport
+                ? translator.translateText(
+                    "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
+                  )
+                : translator.translateText(
+                    SUPPORT_BUNDLE_SENTENCE_FOR_OWN_TEAM,
+                  )}
             </p>
             <div className="oueb-support-actions">
               <button
@@ -259,25 +379,29 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
                 {translator.translateText("Download support bundle")}
               </button>
             </div>
-            <p className="oueb-support-email">
-              {getIcon(MAIL_ICON_PATH)}
-              <span>
-                <TranslatedSentence
-                  template="Send it to {{email}}"
-                  slots={{
-                    email: (
-                      <a
-                        className="oueb-link"
-                        data-testid="error-boundary-support-email"
-                        href={`mailto:${SUPPORT_EMAIL}`}
-                      >
-                        {SUPPORT_EMAIL}
-                      </a>
-                    ),
-                  }}
-                />
-              </span>
-            </p>
+            {supportEmail ? (
+              <p className="oueb-support-email">
+                {getIcon(MAIL_ICON_PATH)}
+                <span>
+                  <TranslatedSentence
+                    template="Send it to {{email}}"
+                    slots={{
+                      email: (
+                        <a
+                          className="oueb-link"
+                          data-testid="error-boundary-support-email"
+                          href={`mailto:${supportEmail}`}
+                        >
+                          {supportEmail}
+                        </a>
+                      ),
+                    }}
+                  />
+                </span>
+              </p>
+            ) : (
+              <></>
+            )}
             <div
               role="status"
               data-testid="error-boundary-support-bundle-status"

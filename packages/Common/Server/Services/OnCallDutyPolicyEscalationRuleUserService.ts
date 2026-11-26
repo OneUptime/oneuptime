@@ -43,6 +43,14 @@ import OnCallChatByWorkspace, {
 } from "../Utils/OnCall/OnCallChatByWorkspace";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
+import EscalationRuleReach, {
+  EscalationRuleOfReach,
+  LASTING_PATHS,
+  ProjectUserPair,
+  RuleMembers,
+  RulePath,
+  RuleReach,
+} from "../Utils/OnCall/EscalationRuleReach";
 
 export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Model> {
   public constructor() {
@@ -124,14 +132,19 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     // Someone else is paged by the rule now: the header says so at once.
     await OnDutyPoliciesCache.forgetProjects([createdItem.projectId]);
 
+    /*
+     * The row's ids are read from its own columns - the person's
+     * (getUserIdOfRow), the rule's and the policy's (getRuleOfRow) - which
+     * every row holds: the policy and the rule are joined for their names
+     * alone, and nobody's User row at all (#10970).
+     */
     const createdModel: Model | null = await this.findOneById({
       id: createdItemId,
       select: {
         projectId: true,
-        user: {
-          timezone: true,
-          _id: true,
-        },
+        userId: true,
+        onCallDutyPolicyId: true,
+        onCallDutyPolicyEscalationRuleId: true,
         onCallDutyPolicyEscalationRule: {
           name: true,
           _id: true,
@@ -148,18 +161,136 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       },
     });
 
+    if (!createdModel) {
+      return createdItem;
+    }
+
     // send notification to the new current user.
 
-    const sendEmailToUserId: ObjectID | undefined | null =
-      createdModel?.user?.id;
+    const sendEmailToUserId: ObjectID | null =
+      Service.getUserIdOfRow(createdModel);
 
     if (!sendEmailToUserId) {
       return createdItem;
     }
 
-    if (!createdModel) {
+    const rule: EscalationRuleOfReach = this.getRuleOfRow(createdModel);
+    const onCallDutyPolicyId: ObjectID | null = rule.policyId;
+
+    // Required columns both: a row without them names nobody to tell or log.
+    if (!rule.projectId || !rule.ruleId || !onCallDutyPolicyId) {
+      logger.error(
+        `Escalation rule person ${createdItemId.toString()} was read back without its project, rule or policy; nobody was told or logged.`,
+        {
+          projectId: rule.projectId?.toString(),
+        } as LogAttributes,
+      );
+
       return createdItem;
     }
+
+    const projectId: ObjectID = rule.projectId;
+    const ruleId: ObjectID = rule.ruleId;
+
+    /*
+     * Who the rule pages now, and through what (EscalationRuleReach): this
+     * row pages a member of the project from now on, and someone only
+     * invited once they join - nothing reaches them before, not this
+     * message nor an on-call time log. They hear "added" once for the rule:
+     * not when a row made before this one - one of its teams they are in -
+     * pages them already. A read that fails tells and logs them as before.
+     */
+    const paths: Array<RulePath> | null = await this.readPathsOfRow({
+      rule: rule,
+      userId: sendEmailToUserId,
+      withSchedules: false,
+    });
+    const isPagedByRow: boolean =
+      paths === null || EscalationRuleReach.isPagedByRow(paths, createdItemId);
+    const isNewToRule: boolean =
+      paths === null ||
+      (isPagedByRow &&
+        !EscalationRuleReach.wasPagedBefore({
+          paths: paths,
+          rowId: createdItemId,
+          kinds: LASTING_PATHS,
+        }));
+
+    if (isNewToRule) {
+      await this.tellAdded({
+        createdModel: createdModel,
+        sendEmailToUserId: sendEmailToUserId,
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        ruleId: ruleId,
+      });
+    }
+
+    // add workspace message.
+
+    await this.writeAddedToFeed({
+      createdModel: createdModel,
+      addedUserId: sendEmailToUserId,
+      projectId: projectId,
+      onCallDutyPolicyId: onCallDutyPolicyId,
+    });
+
+    // Their on-call time on this rule, by name, while it pages them.
+    if (isPagedByRow) {
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        onCallDutyPolicyEscalationRuleId: ruleId,
+        userId: sendEmailToUserId,
+        startsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((error: Error) => {
+        logger.error(
+          `Error starting time log for user ${sendEmailToUserId.toString()}: ${error}`,
+          {
+            projectId: projectId.toString(),
+            userId: sendEmailToUserId.toString(),
+          } as LogAttributes,
+        );
+      });
+    }
+
+    return createdItem;
+  }
+
+  /*
+   * The person a row read back names: its userId column, which every row
+   * holds, else the relation, for a row handed over with it alone (#10970).
+   */
+  private static getUserIdOfRow(row: Model): ObjectID | null {
+    return row.userId || row.user?.id || null;
+  }
+
+  /*
+   * The paths by which `rule` pages the person now (EscalationRuleReach):
+   * none for someone it does not page, null when they could not be read.
+   */
+  private async readPathsOfRow(data: {
+    rule: EscalationRuleOfReach;
+    userId: ObjectID;
+    withSchedules: boolean;
+  }): Promise<Array<RulePath> | null> {
+    const reach: RuleReach | null = await EscalationRuleReach.readOrNull({
+      ...data.rule,
+      withSchedules: data.withSchedules,
+    });
+
+    return reach ? EscalationRuleReach.getPaths(reach, data.userId) : null;
+  }
+
+  // "You have been added to the on-call policy ...", as their settings say.
+  private async tellAdded(data: {
+    createdModel: Model;
+    sendEmailToUserId: ObjectID;
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    ruleId: ObjectID;
+  }): Promise<void> {
+    const { createdModel, sendEmailToUserId } = data;
 
     const vars: Dictionary<string> = {
       onCallPolicyName:
@@ -172,8 +303,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       reason: "You have been added to the on-call policy escalation rule.",
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-          createdModel!.projectId!,
-          createdModel.onCallDutyPolicy!.id!,
+          data.projectId,
+          data.onCallDutyPolicyId,
         )
       ).toString(),
     };
@@ -221,100 +352,86 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
-      projectId: createdModel!.projectId!,
+      projectId: data.projectId,
       emailEnvelope: emailMessage,
       smsMessage: sms,
       callRequestMessage: callMessage,
       pushNotificationMessage: pushMessage,
       whatsAppMessage,
       eventType,
-      onCallPolicyId: createdModel.onCallDutyPolicy!.id!,
-      onCallPolicyEscalationRuleId:
-        createdModel.onCallDutyPolicyEscalationRule!.id!,
+      onCallPolicyId: data.onCallDutyPolicyId,
+      onCallPolicyEscalationRuleId: data.ruleId,
+    });
+  }
+
+  /*
+   * "Added Ana to ... escalation rule ...": the policy's feed and its
+   * channels hear of every row, whoever else names the person - it is a
+   * change to the policy. Every line names them through one
+   * OnCallChatByWorkspace: someone only invited by the name typed for
+   * them, never their address (#10616).
+   */
+  private async writeAddedToFeed(data: {
+    createdModel: Model;
+    addedUserId: ObjectID;
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+  }): Promise<void> {
+    const { createdModel, addedUserId, projectId, onCallDutyPolicyId } = data;
+
+    const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+      projectId: projectId,
     });
 
-    // add workspace message.
+    const addedUserMarkdown: MarkdownText =
+      await chat.nameIn(null)(addedUserId);
 
-    const onCallDutyPolicyId: ObjectID | undefined | null =
-      createdModel.onCallDutyPolicy!.id;
-    const projectId: ObjectID | undefined = createdModel.projectId;
+    const policyLink: string = (
+      await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+        projectId,
+        onCallDutyPolicyId,
+      )
+    ).toString();
 
-    if (onCallDutyPolicyId) {
-      const addedUserMarkdown: MarkdownText =
-        await UserService.getUserMarkdownString({
-          userId: createdModel.user!.id!,
-          projectId: projectId!,
-        });
+    const chatPolicy: MarkdownText = OnCallChatText.policy({
+      name: createdModel.onCallDutyPolicy?.name || "",
+      link: policyLink,
+    });
 
-      const policyLink: string = (
-        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-          projectId!,
-          onCallDutyPolicyId!,
-        )
-      ).toString();
-
-      const chatPolicy: MarkdownText = OnCallChatText.policy({
-        name: createdModel.onCallDutyPolicy?.name || "",
-        link: policyLink,
-      });
-
-      const addedUserId: ObjectID = createdModel.user!.id!;
-
-      // Each workspace's line names them as it knows them (issue #7967).
-      const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-        await new OnCallChatByWorkspace({
-          projectId: projectId!,
-        }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+    // Each workspace's line names them as it knows them (issue #7967).
+    const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+      await chat.write(
+        async (writer: OnCallChatWriter): Promise<MarkdownText> => {
           return OnCallChatText.policyChange({
             emoji: "👨🏻‍💻",
             isAdded: true,
             what: mdText`**${await writer.nameOf(addedUserId)}**`,
             policy: chatPolicy,
           });
-        });
-
-      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
-        onCallDutyPolicyId: onCallDutyPolicyId,
-        projectId: projectId!,
-        onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
-        displayColor: Gray500,
-        feedInfoInMarkdown:
-          mdText`👨🏻‍💻 Added **${addedUserMarkdown}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
-        // The channels hear who and the policy, not the rule (issue #7549).
-        chatInfoInMarkdown: OnCallChatText.policyChange({
-          emoji: "👨🏻‍💻",
-          isAdded: true,
-          what: mdText`**${addedUserMarkdown}**`,
-          policy: chatPolicy,
-        }).toString(),
-        chatInfoByWorkspaceType: chatInfoByWorkspaceType,
-        userId: createdModel.createdByUserId! || undefined,
-        workspaceNotification: {
-          sendWorkspaceNotification: true,
-          leadWithAuthor: true,
         },
-      });
+      );
 
-      // also add on-call duty time log.
-      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
-        projectId: projectId!,
-        onCallDutyPolicyId: onCallDutyPolicyId!,
-        onCallDutyPolicyEscalationRuleId:
-          createdModel.onCallDutyPolicyEscalationRule!.id!,
-        userId: createdModel.user!.id!,
-        startsAt: OneUptimeDate.getCurrentDate(),
-      }).catch((error: Error) => {
-        logger.error(
-          `Error starting time log for user ${createdModel.user?.id}: ${error}`,
-          {
-            projectId: projectId?.toString(),
-            userId: createdModel.user?.id?.toString(),
-          } as LogAttributes,
-        );
-      });
-    }
-
-    return createdItem;
+    await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+      onCallDutyPolicyId: onCallDutyPolicyId,
+      projectId: projectId,
+      onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
+      displayColor: Gray500,
+      feedInfoInMarkdown:
+        mdText`👨🏻‍💻 Added **${addedUserMarkdown}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
+      // The channels hear who and the policy, not the rule (issue #7549).
+      chatInfoInMarkdown: OnCallChatText.policyChange({
+        emoji: "👨🏻‍💻",
+        isAdded: true,
+        what: mdText`**${addedUserMarkdown}**`,
+        policy: chatPolicy,
+      }).toString(),
+      chatInfoByWorkspaceType: chatInfoByWorkspaceType,
+      userId: createdModel.createdByUserId! || undefined,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        leadWithAuthor: true,
+      },
+    });
   }
 
   protected override async onBeforeDelete(
@@ -324,10 +441,10 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     const itemsToFetchBeforeDelete: Array<Model> =
       await this.findRowsAndHoldDeleteToThem(deleteBy, {
         projectId: true,
-        user: {
-          timezone: true,
-          _id: true,
-        },
+        // The ids from the row's own columns (getUserIdOfRow, getRuleOfRow, #10970).
+        userId: true,
+        onCallDutyPolicyId: true,
+        onCallDutyPolicyEscalationRuleId: true,
         onCallDutyPolicyEscalationRule: {
           name: true,
           _id: true,
@@ -344,88 +461,82 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       deleteBy.deletedByUser?.id || deleteBy.props.userId;
 
     for (const item of itemsToFetchBeforeDelete) {
-      const onCallDutyPolicyId: ObjectID | undefined =
-        item.onCallDutyPolicy!.id!;
+      const rule: EscalationRuleOfReach = this.getRuleOfRow(item);
+      const onCallDutyPolicyId: ObjectID | null = rule.policyId;
       const projectId: ObjectID | undefined = item.projectId;
-      const userId: ObjectID | undefined = item.user!.id!;
+      const userId: ObjectID | null = Service.getUserIdOfRow(item);
 
       if (onCallDutyPolicyId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // Someone only invited is named as the project knows them (#9823).
-        await PendingInviteeProfiles.nameInProject({
-          users: [user],
-          projectId: projectId,
-        });
-
         const onCallDutyPolicyName: string | null =
           item.onCallDutyPolicy?.name || "No name provided";
 
-        if (user && user.name) {
-          const policyLink: string = (
-            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-              projectId!,
-              onCallDutyPolicyId!,
-            )
-          ).toString();
+        const policyLink: string = (
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId,
+            onCallDutyPolicyId,
+          )
+        ).toString();
 
-          const chatPolicy: MarkdownText = OnCallChatText.policy({
-            name: onCallDutyPolicyName || "",
-            link: policyLink,
-          });
+        const chatPolicy: MarkdownText = OnCallChatText.policy({
+          name: onCallDutyPolicyName || "",
+          link: policyLink,
+        });
 
-          // Each workspace's line names them as it knows them (#7967).
-          const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-            await new OnCallChatByWorkspace({
-              projectId: projectId,
-            }).write(
-              async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-                return OnCallChatText.policyChange({
-                  emoji: "👨🏻‍💻",
-                  isAdded: false,
-                  what: mdText`**${await writer.nameOf(userId)}**`,
-                  policy: chatPolicy,
-                });
-              },
-            );
+        /*
+         * Every line names them through one OnCallChatByWorkspace, as the
+         * add does (#10616): someone only invited by the name typed for
+         * them, never their address. The feed used to name them by their
+         * name with their address after it - for someone only invited, the
+         * address they were invited at - and said nothing at all of a
+         * member with no name.
+         */
+        const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+          projectId: projectId,
+        });
 
-          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
-            onCallDutyPolicyId: onCallDutyPolicyId,
-            projectId: projectId,
-            /*
-             * A person taken out of an escalation rule: the policy pages
-             * them no more. It was filed as an owner removed, so the
-             * channels whose rules chose owners heard of it, and those that
-             * chose changes to the policy did not.
-             */
-            onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.UserRemoved,
-            displayColor: Red500,
-            feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
-            chatInfoInMarkdown: OnCallChatText.policyChange({
-              emoji: "👨🏻‍💻",
-              isAdded: false,
-              what: mdText`**${user.name.toString()}**`,
-              policy: chatPolicy,
-            }).toString(),
-            chatInfoByWorkspaceType: chatInfoByWorkspaceType,
-            userId: deleteByUserId || undefined,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-              leadWithAuthor: true,
+        const removedUserMarkdown: MarkdownText =
+          await chat.nameIn(null)(userId);
+
+        // Each workspace's line names them as it knows them (#7967).
+        const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+          await chat.write(
+            async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+              return OnCallChatText.policyChange({
+                emoji: "👨🏻‍💻",
+                isAdded: false,
+                what: mdText`**${await writer.nameOf(userId)}**`,
+                policy: chatPolicy,
+              });
             },
-          });
-        }
+          );
+
+        await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId,
+          /*
+           * A person taken out of an escalation rule: the policy pages
+           * them no more. It was filed as an owner removed, so the
+           * channels whose rules chose owners heard of it, and those that
+           * chose changes to the policy did not.
+           */
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.UserRemoved,
+          displayColor: Red500,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Removed **${removedUserMarkdown}** from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+          chatInfoInMarkdown: OnCallChatText.policyChange({
+            emoji: "👨🏻‍💻",
+            isAdded: false,
+            what: mdText`**${removedUserMarkdown}**`,
+            policy: chatPolicy,
+          }).toString(),
+          chatInfoByWorkspaceType: chatInfoByWorkspaceType,
+          userId: deleteByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            leadWithAuthor: true,
+          },
+        });
 
         /*
          * Close the removed user's open on-call time log. This MUST run
@@ -436,19 +547,20 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
          * open forever, showing them as perpetually on-call in reporting
          * (audit F19).
          */
-        OnCallDutyPolicyTimeLogService.endTimeLogForUser({
-          projectId: projectId,
-          onCallDutyPolicyId: onCallDutyPolicyId,
-          onCallDutyPolicyEscalationRuleId:
-            item.onCallDutyPolicyEscalationRule!.id!,
-          userId: userId,
-          endsAt: OneUptimeDate.getCurrentDate(),
-        }).catch((error: Error) => {
-          logger.error(`Error ending time log for user ${userId}: ${error}`, {
-            projectId: projectId?.toString(),
-            userId: userId?.toString(),
-          } as LogAttributes);
-        });
+        if (rule.ruleId) {
+          OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+            projectId: projectId,
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            onCallDutyPolicyEscalationRuleId: rule.ruleId,
+            userId: userId,
+            endsAt: OneUptimeDate.getCurrentDate(),
+          }).catch((error: Error) => {
+            logger.error(`Error ending time log for user ${userId}: ${error}`, {
+              projectId: projectId.toString(),
+              userId: userId.toString(),
+            } as LogAttributes);
+          });
+        }
       }
     }
 
@@ -473,13 +585,80 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       }),
     );
 
-    for (const deletedItem of deletedItems) {
-      const sendEmailToUserId: ObjectID | undefined | null =
-        deletedItem.user?.id;
+    /*
+     * Each person is told they were removed only when nothing on the rule
+     * pages them any more (EscalationRuleReach): not while one of its teams
+     * they are in, a schedule of it they are on call in, or its next in
+     * rotation still does - their time log stays open on those instead. A
+     * member of the project is told; someone only invited, or who has left,
+     * was told nothing when they were added and is told nothing now.
+     */
+    const reachByRule: Map<string, RuleReach | null> =
+      await EscalationRuleReach.readEach({
+        rules: deletedItems.map((deletedItem: Model): EscalationRuleOfReach => {
+          return this.getRuleOfRow(deletedItem);
+        }),
+        withSchedules: true,
+      });
 
-      if (!sendEmailToUserId) {
-        return onDelete;
+    const members: RuleMembers = await EscalationRuleReach.readMembers(
+      deletedItems
+        .filter((deletedItem: Model): boolean => {
+          return Boolean(
+            deletedItem.projectId && Service.getUserIdOfRow(deletedItem),
+          );
+        })
+        .map((deletedItem: Model): ProjectUserPair => {
+          return {
+            projectId: deletedItem.projectId!,
+            userId: Service.getUserIdOfRow(deletedItem)!,
+          };
+        }),
+    );
+
+    // One message for one person on one rule, however many rows went.
+    const told: Set<string> = new Set<string>();
+
+    for (const deletedItem of deletedItems) {
+      const sendEmailToUserId: ObjectID | null =
+        Service.getUserIdOfRow(deletedItem);
+      const projectId: ObjectID | undefined = deletedItem.projectId;
+      const rule: EscalationRuleOfReach = this.getRuleOfRow(deletedItem);
+      const onCallDutyPolicyId: ObjectID | null = rule.policyId;
+      const ruleId: ObjectID | undefined = rule.ruleId;
+
+      // Without them the row names nobody to tell, nor a log to keep.
+      if (!sendEmailToUserId || !projectId || !ruleId || !onCallDutyPolicyId) {
+        continue;
       }
+
+      const reach: RuleReach | null | undefined = reachByRule.get(
+        EscalationRuleReach.getRuleKey(rule),
+      );
+      const paths: Array<RulePath> = reach
+        ? EscalationRuleReach.getPaths(reach, sendEmailToUserId)
+        : [];
+
+      if (paths.length > 0) {
+        EscalationRuleReach.keepTimeLogsOpen({
+          ...rule,
+          userId: sendEmailToUserId,
+          paths: paths,
+        });
+
+        continue;
+      }
+
+      const toldKey: string = `${EscalationRuleReach.getRuleKey(rule)}:${sendEmailToUserId.toString().toLowerCase()}`;
+
+      if (
+        told.has(toldKey) ||
+        !members.isMember(projectId, sendEmailToUserId)
+      ) {
+        continue;
+      }
+
+      told.add(toldKey);
 
       const vars: Dictionary<string> = {
         onCallPolicyName:
@@ -494,8 +673,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
           "You have been removed from the on-call policy escalation rule.",
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-            deletedItem!.projectId!,
-            deletedItem.onCallDutyPolicy!.id!,
+            projectId,
+            onCallDutyPolicyId,
           )
         ).toString(),
       };
@@ -543,16 +722,15 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
       UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
-        projectId: deletedItem!.projectId!,
+        projectId: projectId,
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
         pushNotificationMessage: pushMessage,
         whatsAppMessage,
         eventType,
-        onCallPolicyId: deletedItem.onCallDutyPolicy!.id!,
-        onCallPolicyEscalationRuleId:
-          deletedItem.onCallDutyPolicyEscalationRule!.id!,
+        onCallPolicyId: onCallDutyPolicyId,
+        onCallPolicyEscalationRuleId: ruleId,
       });
     }
 

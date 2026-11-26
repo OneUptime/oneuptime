@@ -829,13 +829,12 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
     );
   });
 
-  test("who deleted a note is never the request's to say: it is taken out, not stored", async () => {
+  test("who created a note is never the request's to say: it is taken out, and the caller stamped", async () => {
     mockEventLookup(eventWithFlag(false));
 
     const note: ScheduledMaintenancePublicNote = buildNote({
       projectId: undefined,
     });
-    note.deletedByUserId = OTHER_USER_ID;
     note.createdByUserId = OTHER_USER_ID;
 
     const saved: ScheduledMaintenancePublicNote =
@@ -845,7 +844,6 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
       });
 
     expect(save).toHaveBeenCalledTimes(1);
-    expect(saved.deletedByUserId).toBeUndefined();
     expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
   });
 

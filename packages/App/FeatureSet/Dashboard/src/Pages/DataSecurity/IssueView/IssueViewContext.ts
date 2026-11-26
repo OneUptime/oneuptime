@@ -72,6 +72,9 @@ export const DATA_SECURITY_ISSUE_VIEW_SELECT: Select<DataSecurityIssue> = {
   firstDetectedAt: true,
   lastDetectedAt: true,
   resolvedAt: true,
+  // How it resolved, and the pull request, version and rule behind it (#10368).
+  resolution: true,
+  resolutionDetails: true,
   reopenCount: true,
   recheckRequestedAt: true,
   dataStoreId: true,

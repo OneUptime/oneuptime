@@ -348,7 +348,89 @@ export enum EvaluateOverTimeType {
   MunimumValue = "Minimum Value",
   AllValues = "All Values",
   AnyValue = "Any Value",
+  /*
+   * One figure for the window, like Average: the given percentile of the
+   * window's values (EvaluateOverTimeOptions.percentile, 95 when unset),
+   * compared with the filter's own threshold. "The 95th percentile of the
+   * response time over the last hour is above 300 ms" (#10355).
+   */
+  Percentile = "Percentile",
+  /*
+   * The window's checks, counted (#10355): the filter's own condition says
+   * which checks count - "Is Online is False" counts the failed ones - and
+   * countFilterType and countValue say how many it takes: "more than 30
+   * failed checks in the last 8 hours". Percentage compares their share of
+   * the window's checks instead, and Status Changes the number of times the
+   * condition changed between matching and not matching from one check to
+   * the next: how often a device went down or came back up.
+   *
+   * Each probe's checks are counted on their own, so a monitor checked from
+   * three probes does not count three times as fast, and the probes agree
+   * as for any other criteria (CheckWindowCounts on the server).
+   */
+  Count = "Count",
+  Percentage = "Percentage",
+  StatusChanges = "Status Changes",
+  /*
+   * This check compared with the one before it (#10821), probe by probe. A
+   * measured value is compared with a threshold made from the previous
+   * check's value, by the filter's own comparison: "Response Time Greater
+   * Than" with a change of 50% matches when this check's response time is
+   * more than 50% above the previous check's (changeType, changeValue). A
+   * yes or no check - a true/false series, or a body, header or expression
+   * judged from its match history - matches on the check that started to
+   * meet the filter's condition: the previous check did not.
+   *
+   * The window is how long ago the previous check may be. With none in it -
+   * the first check, or one after a gap longer than the window - If No Data
+   * decides (PreviousCheckComparison on the server).
+   */
+  PreviousCheck = "Previous Check",
 }
+
+/*
+ * How far a check must be from the previous one, for Previous Check: an
+ * amount in the check's own unit (200 ms, 1 day), or a share of the
+ * previous check's value, in % (50%).
+ */
+export enum PreviousCheckChangeType {
+  Amount = "Amount",
+  Percentage = "Percentage",
+}
+
+// A change written without a type: an amount, in the check's own unit.
+export const DEFAULT_PREVIOUS_CHECK_CHANGE_TYPE: PreviousCheckChangeType =
+  PreviousCheckChangeType.Amount;
+
+/*
+ * The change the criteria form starts a Previous Check at: more than 50%
+ * above (or below) the previous check. One the API leaves out is 0, any
+ * rise or fall past the previous value.
+ */
+export const DEFAULT_FORM_PREVIOUS_CHECK_CHANGE: {
+  changeType: PreviousCheckChangeType;
+  changeValue: number;
+} = {
+  changeType: PreviousCheckChangeType.Percentage,
+  changeValue: 50,
+};
+
+/*
+ * The percentiles the criteria form offers for EvaluateOverTimeType.
+ * Percentile, the default first. The API takes any above 0 and below 100.
+ */
+export const EVALUATE_OVER_TIME_PERCENTILE_OPTIONS: ReadonlyArray<number> = [
+  95, 50, 90, 99,
+];
+
+export const DEFAULT_EVALUATE_OVER_TIME_PERCENTILE: number = 95;
+
+/*
+ * The longest window a filter's checks are counted over, in minutes: a
+ * week. Monitor metrics are kept 30 days by default, so the checks are
+ * there; past a week a count says more about the past than about now.
+ */
+export const MAX_COUNTED_WINDOW_IN_MINUTES: number = 7 * 24 * 60;
 
 export enum NoDataPolicy {
   /*
@@ -494,6 +576,16 @@ export enum EvaluateOverTimeMinutes {
   ThirtyMinutes = "30",
   FortyFiveMinutes = "45",
   SixtyMinutes = "60",
+  /*
+   * Hours, for the windows a count is judged over (#10355): "more than 30
+   * failed checks in the last 8 hours". Offered for every kind of window.
+   */
+  TwoHours = "120",
+  FourHours = "240",
+  SixHours = "360",
+  EightHours = "480",
+  TwelveHours = "720",
+  TwentyFourHours = "1440",
 }
 
 export interface EvaluateOverTimeOptions {
@@ -507,6 +599,29 @@ export interface EvaluateOverTimeOptions {
    * of firing off the reading that happens to have just arrived.
    */
   onNoDataPolicy?: NoDataPolicy | undefined;
+  /*
+   * Percentile only: which one, above 0 and below 100. 95 when unset
+   * (DEFAULT_EVALUATE_OVER_TIME_PERCENTILE).
+   */
+  percentile?: number | undefined;
+  /*
+   * Count, Percentage and Status Changes only: how the window's number of
+   * matching checks - their share of its checks, in %, for Percentage; the
+   * times the condition changed, for Status Changes - is compared, and with
+   * what: Greater Than 30. Greater Than 0 when unset.
+   */
+  countFilterType?: FilterType | undefined;
+  countValue?: number | undefined;
+  /*
+   * Previous Check only, on a measured value: how far from the previous
+   * check's value this check must be, in the direction of the filter's own
+   * comparison - above it for Greater Than, below it for Less Than - as an
+   * amount in the check's unit, or a share of the previous value in %.
+   * Equal To and Not Equal To compare with the previous value itself. An
+   * amount of 0 when unset: any rise or fall.
+   */
+  changeType?: PreviousCheckChangeType | undefined;
+  changeValue?: number | undefined;
 }
 
 export interface CriteriaFilter {
@@ -893,6 +1008,26 @@ export class CriteriaFilterUtil {
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
       criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType;
 
+    /*
+     * A count of the window's checks reads every check as a yes or a no
+     * (CheckWindowCounts), so it is what it says on any check that can be
+     * counted at all. On one that cannot, it is judged as All Values. So is a
+     * comparison with the previous check (#10821): it reads the same record
+     * of the checks, a series or a match history.
+     */
+    if (
+      evaluateOverTimeType &&
+      (CriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType) ||
+        evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck)
+    ) {
+      return CriteriaFilterUtil.canCountChecks(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
+        ? evaluateOverTimeType
+        : EvaluateOverTimeType.AllValues;
+    }
+
     if (
       !evaluateOverTimeType ||
       evaluateOverTimeType === EvaluateOverTimeType.AllValues ||
@@ -908,6 +1043,310 @@ export class CriteriaFilterUtil {
     return EvaluateOverTimeType.AllValues;
   }
 
+  /*
+   * Whether a window type counts the window's checks (#10355): how many
+   * matched, their share, or how often the condition changed. The filter's
+   * own condition says which checks count; countFilterType and countValue
+   * say how many it takes.
+   */
+  public static isCountedWindowType(
+    evaluateOverTimeType: EvaluateOverTimeType | undefined,
+  ): boolean {
+    return (
+      evaluateOverTimeType === EvaluateOverTimeType.Count ||
+      evaluateOverTimeType === EvaluateOverTimeType.Percentage ||
+      evaluateOverTimeType === EvaluateOverTimeType.StatusChanges
+    );
+  }
+
+  /*
+   * Whether a window type reduces the window's values to one figure that the
+   * filter's own threshold is compared with: Average, Sum, Maximum Value,
+   * Minimum Value and Percentile.
+   */
+  public static isValueAggregateWindowType(
+    evaluateOverTimeType: EvaluateOverTimeType | undefined,
+  ): boolean {
+    return (
+      evaluateOverTimeType === EvaluateOverTimeType.Average ||
+      evaluateOverTimeType === EvaluateOverTimeType.Sum ||
+      evaluateOverTimeType === EvaluateOverTimeType.MaximumValue ||
+      evaluateOverTimeType === EvaluateOverTimeType.MunimumValue ||
+      evaluateOverTimeType === EvaluateOverTimeType.Percentile
+    );
+  }
+
+  /*
+   * Whether a check's checks can be counted over a window on this monitor
+   * type: every check that is offered a window is, since each of them has a
+   * series or a match history to count (isEvaluateOverTimeFilter), except on
+   * the monitors that receive rather than check - an Incoming Request or an
+   * Incoming Email monitor has no checks at a cadence to count. Without a
+   * monitor type, a check counts that can be counted on any monitor.
+   */
+  public static canCountChecks(
+    checkOn: CheckOn | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (!checkOn) {
+      return false;
+    }
+
+    if (
+      monitorType === MonitorType.IncomingRequest ||
+      monitorType === MonitorType.IncomingEmail
+    ) {
+      return false;
+    }
+
+    /*
+     * A Server monitor's Is Online is written only when its agent reports,
+     * so its series holds no failed check to count: a server that stops
+     * reporting writes nothing. Its offline criteria waits on the time since
+     * the last report instead (ServerMonitorCriteria).
+     */
+    if (monitorType === MonitorType.Server && checkOn === CheckOn.IsOnline) {
+      return false;
+    }
+
+    if (monitorType) {
+      return CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn, monitorType);
+    }
+
+    return (
+      CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn) ||
+      CriteriaFilterUtil.keepsMatchHistory(checkOn)
+    );
+  }
+
+  /*
+   * Whether this filter counts its window's checks: it is evaluated over a
+   * window of some minutes, its type is a count (isCountedWindowType), and
+   * its check can be counted on the monitor (canCountChecks).
+   */
+  public static isCountedOverChecks(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (
+      !criteriaFilter?.evaluateOverTime ||
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(criteriaFilter) <= 0
+    ) {
+      return false;
+    }
+
+    return CriteriaFilterUtil.isCountedWindowType(
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ),
+    );
+  }
+
+  /*
+   * Whether this filter compares this check with the previous one (#10821):
+   * it is evaluated over a window of some minutes - how long ago the
+   * previous check may be - its type is Previous Check, and its check keeps
+   * a record of its checks on the monitor to read the previous one from
+   * (canCountChecks).
+   */
+  public static isComparedWithPreviousCheck(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (
+      !criteriaFilter?.evaluateOverTime ||
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(criteriaFilter) <= 0
+    ) {
+      return false;
+    }
+
+    return (
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ) === EvaluateOverTimeType.PreviousCheck
+    );
+  }
+
+  /*
+   * Whether a comparison with the previous check compares a measured value -
+   * by a change, in the direction of the filter's comparison - rather than
+   * asking whether a yes or no check started to meet its condition
+   * (isJudgedCheckByCheck). A body, header or expression judged from its
+   * match history, and a true/false series, are yes or no checks.
+   */
+  public static comparesValueWithPreviousCheck(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    return (
+      CriteriaFilterUtil.isComparedWithPreviousCheck(
+        criteriaFilter,
+        monitorType,
+      ) &&
+      !CriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
+    );
+  }
+
+  /*
+   * How far from the previous check a measured value must be: its own, or
+   * an amount of 0 - any rise past the previous value for Greater Than, any
+   * fall for Less Than.
+   */
+  public static getPreviousCheckChange(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): { type: PreviousCheckChangeType; value: number } {
+    const type: PreviousCheckChangeType | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.changeType;
+    const value: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.changeValue,
+    );
+
+    return {
+      type:
+        type === PreviousCheckChangeType.Percentage
+          ? PreviousCheckChangeType.Percentage
+          : DEFAULT_PREVIOUS_CHECK_CHANGE_TYPE,
+      value: Number.isFinite(value) && value >= 0 ? value : 0,
+    };
+  }
+
+  /*
+   * Whether a comparison of a measured value with the previous check takes
+   * a change: Greater Than, Less Than and their "Or Equal To"s, which say
+   * above or below the previous value. Equal To and Not Equal To compare
+   * with the previous value itself: unchanged, or changed.
+   */
+  public static isPreviousCheckChangeComparison(
+    filterType: FilterType | undefined,
+  ): boolean {
+    return (
+      filterType === FilterType.GreaterThan ||
+      filterType === FilterType.GreaterThanOrEqualTo ||
+      filterType === FilterType.LessThan ||
+      filterType === FilterType.LessThanOrEqualTo
+    );
+  }
+
+  /*
+   * The threshold this check's value is compared with, made from the
+   * previous check's (#10821), and the comparison it is read with: the
+   * filter's own, so every check compares as it always has and needs no
+   * comparison of its own. The previous value plus the change for Greater
+   * Than (Or Equal To), minus it for Less Than (Or Equal To), the previous
+   * value itself for Equal To and Not Equal To.
+   *
+   * A share is of the previous value's size, so "50% above" a reading below
+   * zero (an optic's dBm) is still above it. Any rise from 0 is an endless
+   * share of it, and no rise none: from a previous value of 0, "at least 50%
+   * above" needs a rise, so Greater Than Or Equal To reads as Greater Than
+   * (and "at least 50% below" as Less Than).
+   *
+   * Null for a comparison that reads no number.
+   */
+  public static getPreviousCheckComparison(data: {
+    previousValue: number;
+    filterType: FilterType | undefined;
+    change: { type: PreviousCheckChangeType; value: number };
+  }): { filterType: FilterType; threshold: number } | null {
+    const previousValue: number = data.previousValue;
+
+    if (!Number.isFinite(previousValue) || !data.filterType) {
+      return null;
+    }
+
+    if (
+      data.filterType === FilterType.EqualTo ||
+      data.filterType === FilterType.NotEqualTo
+    ) {
+      return { filterType: data.filterType, threshold: previousValue };
+    }
+
+    if (!CriteriaFilterUtil.isPreviousCheckChangeComparison(data.filterType)) {
+      return null;
+    }
+
+    const isShare: boolean =
+      data.change.type === PreviousCheckChangeType.Percentage;
+    const changeValue: number =
+      Number.isFinite(data.change.value) && data.change.value > 0
+        ? data.change.value
+        : 0;
+    const amount: number = isShare
+      ? (Math.abs(previousValue) * changeValue) / 100
+      : changeValue;
+
+    const isAbove: boolean =
+      data.filterType === FilterType.GreaterThan ||
+      data.filterType === FilterType.GreaterThanOrEqualTo;
+
+    let filterType: FilterType = data.filterType;
+
+    if (isShare && changeValue > 0 && previousValue === 0) {
+      filterType = isAbove ? FilterType.GreaterThan : FilterType.LessThan;
+    }
+
+    return {
+      filterType: filterType,
+      threshold: isAbove ? previousValue + amount : previousValue - amount,
+    };
+  }
+
+  // The percentile a Percentile window reads: its own, or 95.
+  public static getPercentile(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): number {
+    const percentile: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.percentile,
+    );
+
+    return Number.isFinite(percentile) && percentile > 0 && percentile < 100
+      ? percentile
+      : DEFAULT_EVALUATE_OVER_TIME_PERCENTILE;
+  }
+
+  /*
+   * How a counted window's number is compared, and with what: its own, or
+   * "Greater Than 0" - at least one check matched, changed or failed.
+   */
+  public static getCountComparison(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): { filterType: FilterType; value: number } {
+    const filterType: FilterType | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.countFilterType;
+    const value: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.countValue,
+    );
+
+    return {
+      filterType:
+        filterType && CriteriaFilterUtil.isCountComparison(filterType)
+          ? filterType
+          : FilterType.GreaterThan,
+      value: Number.isFinite(value) ? value : 0,
+    };
+  }
+
+  // The comparisons a count, a share or a number of changes is read with.
+  public static readonly COUNT_COMPARISONS: ReadonlyArray<FilterType> = [
+    FilterType.GreaterThan,
+    FilterType.GreaterThanOrEqualTo,
+    FilterType.LessThan,
+    FilterType.LessThanOrEqualTo,
+    FilterType.EqualTo,
+    FilterType.NotEqualTo,
+  ];
+
+  public static isCountComparison(filterType: FilterType | undefined): boolean {
+    return Boolean(
+      filterType && CriteriaFilterUtil.COUNT_COMPARISONS.includes(filterType),
+    );
+  }
+
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
     monitorType?: MonitorType | undefined,
@@ -916,15 +1355,53 @@ export class CriteriaFilterUtil {
       return [];
     }
 
+    /*
+     * Counting the window's checks, where they can be counted (#10355), and
+     * comparing a check with the one before it, read from the same record
+     * of the checks (#10821).
+     */
+    const counts: Array<EvaluateOverTimeType> =
+      CriteriaFilterUtil.canCountChecks(criteriaFilter.checkOn, monitorType)
+        ? [
+            EvaluateOverTimeType.Count,
+            EvaluateOverTimeType.Percentage,
+            EvaluateOverTimeType.StatusChanges,
+            EvaluateOverTimeType.PreviousCheck,
+          ]
+        : [];
+
     if (
       CriteriaFilterUtil.isJudgedCheckByCheck(
         criteriaFilter.checkOn,
         monitorType,
       )
     ) {
-      return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
+      return [
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+        ...counts,
+      ];
     }
 
+    return [
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+      EvaluateOverTimeType.Percentile,
+      EvaluateOverTimeType.AllValues,
+      EvaluateOverTimeType.AnyValue,
+      ...counts,
+    ];
+  }
+
+  /*
+   * The aggregations a metric criteria reduces its series' data points with
+   * (MetricMonitorOptions.metricAggregationType). Not the window types that
+   * count checks or read a percentile: a metric query's own aggregation
+   * reads percentiles, and a metric monitor's window is its query's.
+   */
+  public static getMetricAggregationTypes(): Array<EvaluateOverTimeType> {
     return [
       EvaluateOverTimeType.Average,
       EvaluateOverTimeType.Sum,
@@ -1050,7 +1527,13 @@ export class CriteriaFilterUtil {
        */
       checkOn === CheckOn.ConnectedProbes ||
       checkOn === CheckOn.DisconnectedProbes ||
-      checkOn === CheckOn.ProbesBehind
+      checkOn === CheckOn.ProbesBehind ||
+      /*
+       * Written each check since #10905, so a certificate's days left can be
+       * compared with the previous check: down by more than one is a
+       * certificate replaced by one that expires sooner, up is a renewal.
+       */
+      checkOn === CheckOn.ExpiresInDays
     );
   }
 }

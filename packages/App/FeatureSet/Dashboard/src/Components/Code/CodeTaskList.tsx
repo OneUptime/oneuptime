@@ -188,6 +188,49 @@ export interface CodeTaskRepositoryHost {
 }
 
 /*
+ * The repository a row names, on a list across repositories: as the list
+ * read it with the task, by the repository's id (#10764) - else from the
+ * names a page handed in. None on a repository's own list.
+ */
+export const getRowRepositoryName: (
+  task: CodeTaskSummaryJSON,
+  props: Pick<ComponentProps, "repositoryNames">,
+) => string | undefined = (
+  task: CodeTaskSummaryJSON,
+  props: Pick<ComponentProps, "repositoryNames">,
+): string | undefined => {
+  if (task.repository?.name) {
+    return task.repository.name;
+  }
+
+  return props.repositoryNames && task.codeRepositoryId
+    ? props.repositoryNames.get(task.codeRepositoryId)
+    : undefined;
+};
+
+// Where a row's repository is hosted, as the list read it, for its mark.
+export const getRowRepositoryHost: (
+  task: CodeTaskSummaryJSON,
+  props: Pick<ComponentProps, "repositoryHosts" | "repositoryHost">,
+) => CodeTaskRepositoryHost | undefined = (
+  task: CodeTaskSummaryJSON,
+  props: Pick<ComponentProps, "repositoryHosts" | "repositoryHost">,
+): CodeTaskRepositoryHost | undefined => {
+  if (task.repository) {
+    return {
+      provider: task.repository.provider,
+      hostProduct: task.repository.hostProduct,
+    };
+  }
+
+  return (
+    (props.repositoryHosts && task.codeRepositoryId
+      ? props.repositoryHosts.get(task.codeRepositoryId)
+      : undefined) || props.repositoryHost
+  );
+};
+
+/*
  * A task list, newest first, the way coding agents list theirs: one row per
  * task - how it stands (its mark, and in words while it is moving or needs
  * someone), what it is about, where and who, when, its pull request, and
@@ -637,16 +680,13 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                   ? retryResult?.reasons.get(task.id)
                   : undefined
               }
-              repositoryName={
-                props.repositoryNames && task.codeRepositoryId
-                  ? props.repositoryNames.get(task.codeRepositoryId)
-                  : undefined
-              }
-              repositoryHost={
-                (props.repositoryHosts && task.codeRepositoryId
-                  ? props.repositoryHosts.get(task.codeRepositoryId)
-                  : undefined) || props.repositoryHost
-              }
+              repositoryName={getRowRepositoryName(task, {
+                repositoryNames: props.repositoryNames,
+              })}
+              repositoryHost={getRowRepositoryHost(task, {
+                repositoryHosts: props.repositoryHosts,
+                repositoryHost: props.repositoryHost,
+              })}
             />
           );
         })}

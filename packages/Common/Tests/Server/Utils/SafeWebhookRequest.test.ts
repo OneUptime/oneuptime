@@ -896,16 +896,29 @@ describe("an outbound proxy the operator configured keeps working", () => {
     checkAnswers["hooks.secure.example"] = [PUBLIC_ADDRESS];
     process.env["HTTPS_PROXY"] = `http://127.0.0.1:${proxy.port}`;
 
-    // The test's proxy refuses every tunnel, and that refusal is what comes back.
-    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    /*
+     * The test's proxy refuses every tunnel. The webhook never got the
+     * request, so it is the proxy's refusal that comes back, and not as an
+     * answer of the webhook's (#10442: Node's tunnel, not axios's).
+     */
+    let refusal: unknown = undefined;
+
+    try {
       await SafeWebhookRequest.post(
         "https://hooks.secure.example/hook",
         {},
         { validation: MEMBER_POLICY },
       );
+    } catch (error) {
+      refusal = error;
+    }
 
-    expect(response).toBeInstanceOf(HTTPErrorResponse);
-    expect(response.statusCode).toBe(403);
+    expect(refusal).toBeInstanceOf(APIException);
+    expect((refusal as Error).message).toBe(
+      "Request failed to https://hooks.secure.example/hook. The outbound proxy did not open a connection to hooks.secure.example:443: it answered HTTP/1.1 403 Forbidden. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.",
+    );
+    // The proxy's address is the operator's, and stays out of the error.
+    expect((refusal as Error).message).not.toContain(String(proxy.port));
     expect(proxy.connects).toEqual(["hooks.secure.example:443"]);
   });
 
@@ -1192,6 +1205,7 @@ describe("what API is handed", () => {
       ).sort(),
     ).toEqual(
       [
+        "disableProxy",
         "dispatchUrl",
         "doNotFollowRedirects",
         "httpAgent",
@@ -1200,6 +1214,10 @@ describe("what API is handed", () => {
         "useNodeHttpAdapter",
       ].sort(),
     );
+    // The agents go through the outbound proxy themselves (#10442).
+    expect(
+      (post.mock.calls[0]![0] as APIRequestOptions).options?.disableProxy,
+    ).toBe(true);
     // A sender that names no limit reads as much as a webhook does.
     expect(
       (post.mock.calls[0]![0] as APIRequestOptions).options?.maxContentLength,

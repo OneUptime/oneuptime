@@ -3,7 +3,6 @@ import Project from "./Project";
 import SecurityCase from "./SecurityCase";
 import SecurityEventConnection from "./SecurityEventConnection";
 import ThreatIntelFeed from "./ThreatIntelFeed";
-import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -563,46 +562,32 @@ export default class SecurityDetection extends BaseModel {
   })
   public matchedEvents?: JSONObject = undefined;
 
+  /*
+   * The firings the detection took last, by the names their source gave
+   * them (SecurityDetectionSignal.firingKey): at most
+   * SECURITY_DETECTION_FIRING_KEYS_KEPT, the latest last. A source that can
+   * judge the same events twice - a detection rule's run judged again after
+   * a worker stopped before it recorded where it got to (#10489) - hands the
+   * same firing under the same name, and a firing the detection took
+   * already adds nothing: its counts go up once.
+   *
+   * Read by OneUptime alone, never through the API.
+   */
   @ColumnAccessControl({
     create: [],
-    read: readPermissions,
+    read: [],
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "The person who deleted the detection.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the person who deleted the detection.",
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Recent Firing Keys",
+    description:
+      "The names of the latest firings the detection took, so that one handed again is taken once.",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.JSON,
     nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public deletedByUserId?: ObjectID = undefined;
+  public recentFiringKeys?: JSONArray = undefined;
 }

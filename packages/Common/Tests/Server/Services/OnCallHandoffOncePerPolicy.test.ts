@@ -16,9 +16,13 @@ import UserService from "../../../Server/Services/UserService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import logger from "../../../Server/Utils/Logger";
+import EscalationRuleReach, {
+  PolicyReachOfPerson,
+} from "../../../Server/Utils/OnCall/EscalationRuleReach";
 import OnCallHandoffPosts, {
   OnCallHandoff,
 } from "../../../Server/Utils/OnCall/OnCallHandoffPosts";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
 import URL from "../../../Types/API/URL";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
@@ -263,6 +267,25 @@ beforeEach(() => {
   jest.spyOn(logger, "debug").mockImplementation((() => {}) as never);
   jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
   jest.spyOn(UserService, "getTimezoneForUser").mockResolvedValue(null);
+
+  /*
+   * Everyone the hand-off names is a member of the project, and nothing on
+   * the policies pages them but the schedule: what changes when something
+   * else does, or for someone only invited, is OnCallHandoffSpeaksForThePolicy's
+   * (#10556).
+   */
+  jest
+    .spyOn(ProjectMembership, "getMemberUserIds")
+    .mockImplementation((async (data: { userIds: Array<ObjectID> }) => {
+      return new Set<string>(
+        data.userIds.map((userId: ObjectID): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+    }) as never);
+  jest
+    .spyOn(EscalationRuleReach, "readPolicyPathsOfPerson")
+    .mockResolvedValue(new Map() as PolicyReachOfPerson);
   jest
     .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
     .mockImplementation((async (_projectId: ObjectID, policyId: ObjectID) => {
@@ -346,7 +369,7 @@ describe("which policies post a handoff, and when", () => {
     ).toEqual(["Payments", "Checkout"]);
   });
 
-  test("the handoff carries who was and is on call, who is next and from when, and the schedule's zone", async () => {
+  test("the handoff carries who was and is on call, who is next and from when, the schedule's zone, and who of them a page reaches", async () => {
     await handoff({ before: BEFORE, after: AFTER });
 
     expect(posted[0]).toEqual({
@@ -362,6 +385,43 @@ describe("which policies post a handoff, and when", () => {
       handoffAt: TOMORROW,
       nextUserId: BOB,
       nextStartsAt: TOMORROW,
+      // Members, both (#10586).
+      currentUserIsMember: true,
+      nextUserIsMember: true,
+    });
+  });
+
+  test("REGRESSION: someone only invited, on call or next, is carried as no member: the posts say nothing pages them (#10586)", async () => {
+    jest
+      .spyOn(ProjectMembership, "getMemberUserIds")
+      .mockResolvedValue(new Set<string>([CARL.toString().toLowerCase()]));
+
+    await handoff({ before: BEFORE, after: AFTER });
+
+    expect(posted[0]).toMatchObject({
+      currentUserId: ANA,
+      currentUserIsMember: false,
+      nextUserId: BOB,
+      nextUserIsMember: false,
+    });
+  });
+
+  test("nobody on call, or nobody next, is no one to ask about", async () => {
+    await handoff({
+      before: BEFORE,
+      after: {
+        ...AFTER,
+        currentUserIdOnRoster: null,
+        rosterHandoffAt: null,
+        nextUserIdOnRoster: null,
+      },
+    });
+
+    expect(posted[0]).toMatchObject({
+      currentUserId: null,
+      currentUserIsMember: true,
+      nextUserId: null,
+      nextUserIsMember: true,
     });
   });
 

@@ -113,8 +113,10 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
   AlertReminderRule: ["alertSeverities", "labels"],
   /*
    * The AI rules of incidents and alerts (investigation rules merged in),
-   * and of the telemetry products: profile AI rules match the service the
-   * slow code is in (Types/AI/AiRuleCriteria holds each kind to its share).
+   * of the telemetry products - profile AI rules match the service the
+   * slow code is in - and of Data Security, which match an issue by its
+   * check, its store and its data (Types/AI/AiRuleCriteria holds each kind
+   * to its share).
    */
   AutoRemediationRule: [
     "monitors",
@@ -127,6 +129,15 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "services",
     "serviceLabels",
     "serviceNamePattern",
+    "dataSecurityChecks",
+    "dataSecurityCheckGroups",
+    "dataSecuritySeverities",
+    "dataStoreSensitivities",
+    "dataStoreKinds",
+    "dataStoreProviders",
+    "dataStoreEnvironments",
+    "dataStoreLabels",
+    "dataCategories",
   ],
   CephClusterLabelRule: [
     "cephClusterLabels",

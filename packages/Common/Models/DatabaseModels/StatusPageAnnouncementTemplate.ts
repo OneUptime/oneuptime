@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Monitor from "./Monitor";
 import Project from "./Project";
 import StatusPage from "./StatusPage";
@@ -90,6 +92,18 @@ import {
   icon: IconProp.Announcement,
   tableDescription: "Manage announcement templates for your status page",
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_STATUSPAGEANNOUNCEMENTTEMPLATE_PROJECT_NAME_KEY",
+  ["projectId", "templateName"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "StatusPageAnnouncementTemplate",
 })
@@ -202,6 +216,7 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
       Permission.EditStatusPageAnnouncementTemplate,
     ],
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -567,61 +582,4 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageAnnouncementTemplate,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

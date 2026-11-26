@@ -20,6 +20,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackOverview";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -1421,6 +1422,15 @@ const OpenStackCloudOverview: FunctionComponent<
                 })}
               </div>
             )}
+            {/*
+             * The cloud's line: its ID, who connected it and who last
+             * changed it (#10461).
+             */}
+            <RecordActivityLine
+              modelType={OpenStackCloud}
+              recordId={modelId}
+              className="mt-4 border-t border-gray-100 pt-3"
+            />
           </div>
         </Card>
       </div>

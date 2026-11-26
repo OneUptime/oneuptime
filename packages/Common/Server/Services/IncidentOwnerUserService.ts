@@ -8,9 +8,7 @@ import Model from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
-import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import IncidentService from "./IncidentService";
@@ -20,7 +18,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import logger from "../Utils/Logger";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<Model> {
@@ -106,20 +104,15 @@ export class Service extends ProjectReferencesService<Model> {
       const userId: ObjectID | undefined = item.userId;
 
       if (incidentId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // Someone only invited is named as the project knows them (#9823).
-        await PendingInviteeProfiles.nameInProject({
-          users: [user],
+        /*
+         * The entry is the channels' line too: the owner is named as the
+         * added entry names them, linked to their page - someone only
+         * invited by the name typed for them, never by an address, and no
+         * address after anybody's name (FeedPersonName, #10668). A member
+         * with no name is no longer taken off without a word.
+         */
+        const owner: MarkdownText = await UserService.getUserMarkdownString({
+          userId: userId,
           projectId: projectId,
         });
 
@@ -133,14 +126,14 @@ export class Service extends ProjectReferencesService<Model> {
           incidentNumberResult.numberWithPrefix ||
           "#" + incidentNumberResult.number;
 
-        if (user && user.name) {
+        if (!owner.isEmpty()) {
           await IncidentFeedService.createIncidentFeedItem({
             incidentId: incidentId,
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
+              mdText`👨🏻‍💻 Removed **${owner}** from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {

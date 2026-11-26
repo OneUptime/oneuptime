@@ -48,6 +48,8 @@ const NOT_THE_RESOURCE: Array<string> = [
   "team",
   "createdByUser",
   "deletedByUser",
+  // Who last modified the row, as every row says (#10290).
+  "lastModifiedByUser",
 ];
 
 interface OwnerTable {

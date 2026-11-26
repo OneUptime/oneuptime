@@ -311,7 +311,7 @@ describe("ModelSwitchRow never shows a state the record is not in", () => {
     const onSaved: MockFunction = getJestMockFunction();
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
 
@@ -321,7 +321,7 @@ describe("ModelSwitchRow never shows a state the record is not in", () => {
 
     expect(theSwitch()).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
     // The reason describes the switch, so a screen reader hears it there.
     expect(theSwitch().getAttribute("aria-describedby")).toContain(
@@ -850,7 +850,7 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
     plan = PlanType.Free;
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
 
@@ -863,7 +863,7 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
     expect(updateCall().data).toEqual({ enableEmbeddedOverallStatus: true });
     expect(theSwitch()).toHaveAttribute("aria-checked", "false");
     expect(screen.getByTestId(`${TEST_ID}-row`)).toHaveTextContent(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
     expect(leftover()).not.toBeInTheDocument();
   });

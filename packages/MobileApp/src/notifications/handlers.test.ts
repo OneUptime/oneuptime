@@ -805,6 +805,68 @@ describe("a security case page", () => {
     expect(container.navigations).toHaveLength(1);
     expect(container.navigations[0]!.screen).toBe("SecurityCaseDetail");
   });
+
+  /*
+   * A playbook step's approval names its run (PushNotificationUtil's
+   * runId): the case's screen opens on that approval, or says what became
+   * of it when somebody decided meanwhile (#10341).
+   */
+  const RUN_ID: string = "7a6b0000-0001-4000-8000-000000000001";
+
+  test("an approval's push opens the approval itself: its run goes to the case's screen", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    handlers.handleNotificationResponse(
+      tap({
+        type: "security-playbook-approval",
+        entityType: "security-case",
+        entityId: CASE_ID,
+        projectId: PROJECT_ID,
+        runId: RUN_ID,
+      }),
+    );
+
+    expect(container.navigations).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "SecurityCaseDetail",
+        params: { caseId: CASE_ID, projectId: PROJECT_ID, runId: RUN_ID },
+      },
+    ]);
+  });
+
+  test.each([
+    ["not an id", "../../settings"],
+    ["not text", 42],
+  ])(
+    "a run that is %s is left out: the case opens as any case does",
+    (_name: string, runId: unknown) => {
+      const handlers: HandlersModule = loadHandlers();
+      const container: FakeNavigationContainer =
+        createNavigationContainer(MAIN_TAB_ROUTES);
+      handlers.setNavigationRef(container.ref);
+
+      handlers.handleNotificationResponse(
+        tap({
+          entityType: "security-case",
+          entityId: CASE_ID,
+          projectId: PROJECT_ID,
+          runId,
+        }),
+      );
+
+      expect(container.navigations).toEqual([
+        {
+          routeName: "Inbox",
+          screen: "SecurityCaseDetail",
+          params: { caseId: CASE_ID, projectId: PROJECT_ID },
+        },
+      ]);
+    },
+  );
 });
 
 describe("a link to a security case, inside the app", () => {

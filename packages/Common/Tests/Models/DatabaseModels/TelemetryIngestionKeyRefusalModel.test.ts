@@ -130,6 +130,7 @@ describe("the refusal reasons it stores", () => {
       "key-expired",
       "origin-not-allowed",
       "browser-key-not-allowed-here",
+      "mobile-key-not-allowed-here",
       "pinned-key-not-allowed-here",
       "key-requests-per-minute",
       "key-daily-budget",

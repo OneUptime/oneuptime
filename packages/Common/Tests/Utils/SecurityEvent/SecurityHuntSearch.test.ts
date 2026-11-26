@@ -10,6 +10,11 @@ import {
   SECURITY_HUNT_MESSAGES,
   securityHuntFiltersToMap,
 } from "../../../Types/SecurityEvent/SecurityHunt";
+import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  getArrivalEventTimeBounds,
+  toSecurityEventArrivalQueryValue,
+} from "../../../Types/SecurityEvent/SecurityEventArrival";
 import { FACET_EXCLUDE_KEY_PREFIX } from "../../../UI/Components/TelemetryViewer/FacetSelection";
 import {
   SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX,
@@ -265,6 +270,82 @@ describe("what is wrong with a hunt's chips", () => {
         projectId: [],
       }),
     ).toBeNull();
+  });
+});
+
+describe("a scheduled run's read of what arrived (#10488)", () => {
+  const ARRIVAL: { arrivedAfter: Date; arrivedUntil: Date } = {
+    arrivedAfter: new Date("2026-10-29T10:58:00.000Z"),
+    arrivedUntil: new Date("2026-10-29T11:58:00.000Z"),
+  };
+
+  test("is the project, the run's arrivals under their own key, and the day before them as its time range", () => {
+    const query: Record<string, unknown> = buildSecurityHuntQuery({
+      projectId: PROJECT_ID,
+      searchQuery: "processname:powershell.exe commandline:-enc",
+      filters: { "!statusName": ["Failure"] },
+      arrival: ARRIVAL,
+    }) as Record<string, unknown>;
+    const bounds: { happenedAfter: Date; happenedBefore: Date } =
+      getArrivalEventTimeBounds(ARRIVAL);
+
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query[SECURITY_EVENT_ARRIVAL_QUERY_KEY]).toEqual({
+      arrivedAfter: "2026-10-29T10:58:00.000Z",
+      arrivedUntil: "2026-10-29T11:58:00.000Z",
+    });
+    expect(query["time"]).toEqual(
+      new InBetween<Date>(bounds.happenedAfter, bounds.happenedBefore),
+    );
+    // The search and the chips read as they always did.
+    expect(query["processName"]).toBe("powershell.exe");
+    expect(query["processCommandLine"]).toEqual(new Search("-enc"));
+    expect(query["statusName"]).toEqual(new NotEqual("Failure"));
+  });
+
+  test("is exactly what the Events page compiles over the same arrivals and time range", () => {
+    const filters: { [key: string]: Array<string> } = {
+      severityName: ["High", "Critical"],
+    };
+    const search: string = "user:svc-* -host:bastion-01";
+    const bounds: { happenedAfter: Date; happenedBefore: Date } =
+      getArrivalEventTimeBounds(ARRIVAL);
+
+    expect(
+      buildSecurityHuntQuery({
+        projectId: PROJECT_ID,
+        searchQuery: search,
+        filters,
+        arrival: ARRIVAL,
+      }),
+    ).toEqual(
+      buildSecurityEventSearchQuery({
+        base: {
+          projectId: PROJECT_ID,
+          time: new InBetween<Date>(
+            bounds.happenedAfter,
+            bounds.happenedBefore,
+          ),
+          [SECURITY_EVENT_ARRIVAL_QUERY_KEY]:
+            toSecurityEventArrivalQueryValue(ARRIVAL),
+        } as Query<SecurityEvent>,
+        search,
+        filters: securityHuntFiltersToMap(filters),
+      }),
+    );
+  });
+
+  test("a read by when events happened carries no arrivals", () => {
+    const query: Record<string, unknown> = buildSecurityHuntQuery({
+      projectId: PROJECT_ID,
+      searchQuery: "user:root",
+      filters: {},
+      startTime: START,
+      endTime: END,
+    }) as Record<string, unknown>;
+
+    expect(query[SECURITY_EVENT_ARRIVAL_QUERY_KEY]).toBeUndefined();
+    expect(query["time"]).toEqual(new InBetween<Date>(START, END));
   });
 });
 

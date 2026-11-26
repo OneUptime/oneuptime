@@ -16,10 +16,15 @@ import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
   actsOnSecurityEntities,
+  actsThroughBlocklist,
   doesActionNeedApprovalByDefault,
   getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  SecurityBlockAction,
+  SecurityBlockDuration,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import {
   DefenderIsolationType,
   SECURITY_PLAYBOOK_MAX_STEPS,
@@ -32,6 +37,7 @@ import {
   doesStepWaitOn,
   getStepsWaitingOn,
   parseSecurityPlaybookSteps,
+  readBlockAddressConfig,
   readTaskLines,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
@@ -100,16 +106,32 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
 
   test("only the actions that cut someone off are disruptive; every action on a connected product names its product and entity", () => {
     for (const action of SECURITY_PLAYBOOK_ACTIONS) {
+      // A block of an address acts through the blocklist, not a connection (#10342).
+      const isBlocklist: boolean = actsThroughBlocklist(action.type);
+
       expect(action.isDisruptive).toBe(
-        Boolean(action.connectionProvider) && !action.undoes,
+        (Boolean(action.connectionProvider) || isBlocklist) && !action.undoes,
       );
       expect(Boolean(action.entityType)).toBe(
-        Boolean(action.connectionProvider),
+        Boolean(action.connectionProvider) || isBlocklist,
       );
       expect(actsOnSecurityEntities(action)).toBe(
-        Boolean(action.connectionProvider),
+        Boolean(action.connectionProvider) || isBlocklist,
       );
     }
+
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress),
+    ).toMatchObject({
+      title: "Block the address",
+      category: SecurityPlaybookActionCategory.Contain,
+      entityType: SecurityEntityType.IpAddress,
+      isDisruptive: true,
+    });
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)
+        ?.connectionProvider,
+    ).toBeUndefined();
 
     expect(
       getSecurityPlaybookAction(SecurityPlaybookActionType.SuspendOktaUser),
@@ -161,6 +183,10 @@ describe("the undo actions", () => {
       [
         SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
         SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+      ],
+      [
+        SecurityPlaybookActionType.LiftAddressBlock,
+        SecurityPlaybookActionType.BlockAddress,
       ],
     ]);
 
@@ -647,6 +673,125 @@ describe("parseSecurityPlaybookSteps", () => {
       { url: "https://" },
       /https:\/\//,
     );
+  });
+
+  /*
+   * Send a webhook's certificate settings (#10440): a Runbook HTTP step's
+   * two, read as there - the switch only when exactly true, and the CA
+   * certificate while it is a certificate in PEM.
+   */
+  describe("Send a webhook's certificate settings", () => {
+    const URL_ONLY: Record<string, unknown> = {
+      url: "https://hooks.internal.example/soc",
+    };
+    const PEM: string =
+      "-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUQ0E=\n-----END CERTIFICATE-----";
+    const PRIVATE_KEY: string =
+      "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg==\n-----END PRIVATE KEY-----";
+
+    test("with neither, the step keeps its URL alone, as it always did", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, URL_ONLY).config,
+      ).toEqual({ url: "https://hooks.internal.example/soc" });
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: false,
+          caCertificate: "  ",
+        }).config,
+      ).toEqual({ url: "https://hooks.internal.example/soc" });
+    });
+
+    test("the switch is kept only when it is exactly true", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: true,
+        }).config,
+      ).toEqual({
+        url: "https://hooks.internal.example/soc",
+        allowSelfSignedCertificates: true,
+      });
+
+      for (const value of ["true", 1, "on", {}]) {
+        expectRejected(
+          SecurityPlaybookActionType.SendWebhook,
+          { ...URL_ONLY, allowSelfSignedCertificates: value },
+          /allowSelfSignedCertificates to true to skip the server's certificate checks, or to false to keep them/,
+        );
+      }
+    });
+
+    test("a CA certificate in PEM is kept, trimmed", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          caCertificate: `\n${PEM}\n\n`,
+        }).config,
+      ).toEqual({
+        url: "https://hooks.internal.example/soc",
+        caCertificate: PEM,
+      });
+    });
+
+    test.each([
+      ["text", "hello", /is not a certificate in PEM/],
+      [
+        "a runbook variable, which a playbook does not fill in",
+        "{{global.variables.INTERNAL_CA}}",
+        /is not a certificate in PEM/,
+      ],
+      ["a private key", PRIVATE_KEY, /holds a private key/],
+      [
+        "more than 64 KB",
+        `${PEM}\n${"x".repeat(70 * 1024)}`,
+        /longer than 64 KB/,
+      ],
+    ])(
+      "a CA certificate that is %s is refused, naming the step",
+      (_what: string, text: string, message: RegExp) => {
+        expectRejected(
+          SecurityPlaybookActionType.SendWebhook,
+          { ...URL_ONLY, caCertificate: text },
+          message,
+        );
+        expectRejected(
+          SecurityPlaybookActionType.SendWebhook,
+          { ...URL_ONLY, caCertificate: text },
+          /^Step 1 \(/,
+        );
+      },
+    );
+
+    test("a CA certificate that is not text is refused", () => {
+      expectRejected(
+        SecurityPlaybookActionType.SendWebhook,
+        { ...URL_ONLY, caCertificate: 42 },
+        /caCertificate to the CA's certificate in PEM, or leave it out/,
+      );
+    });
+
+    test("with the switch on, the CA certificate is not used: only a private key is still refused", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: true,
+          caCertificate: "not a certificate",
+        }).config,
+      ).toEqual({
+        url: "https://hooks.internal.example/soc",
+        allowSelfSignedCertificates: true,
+      });
+      expectRejected(
+        SecurityPlaybookActionType.SendWebhook,
+        {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: true,
+          caCertificate: PRIVATE_KEY,
+        },
+        /holds a private key/,
+      );
+    });
   });
 });
 
@@ -1609,5 +1754,116 @@ describe("the playbook templates", () => {
         SECURITY_PLAYBOOK_TASK_MAX_LENGTH,
       );
     }
+  });
+});
+
+/*
+ * Block the address and its undo (#10342): an address on the project's
+ * blocklist, through no connection of its own.
+ */
+describe("Block the address and Lift the block on the address", () => {
+  test("block for 24 hours unless the step says, and keep only Block or Challenge and a length", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.BlockAddress, {}).config,
+    ).toEqual({
+      blockAction: SecurityBlockAction.Block,
+      duration: SecurityBlockDuration.OneDay,
+    });
+    expect(
+      parseOne(SecurityPlaybookActionType.BlockAddress, {
+        blockAction: SecurityBlockAction.Challenge,
+        duration: SecurityBlockDuration.SevenDays,
+        connectionId: OTHER_ID,
+        somethingElse: "dropped",
+      }).config,
+    ).toEqual({
+      blockAction: SecurityBlockAction.Challenge,
+      duration: SecurityBlockDuration.SevenDays,
+    });
+  });
+
+  test("refuse an action or a length the blocklist does not know, naming the step", () => {
+    expectRejected(
+      SecurityPlaybookActionType.BlockAddress,
+      { blockAction: "Tarpit" },
+      /Block the address\): choose Block or Challenge/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.BlockAddress,
+      { duration: "Forever" },
+      /choose how long the block lasts/,
+    );
+  });
+
+  test("reads a step's settings as stored, falling back to a day of Block", () => {
+    expect(readBlockAddressConfig({})).toEqual({
+      blockAction: SecurityBlockAction.Block,
+      duration: SecurityBlockDuration.OneDay,
+    });
+    expect(
+      readBlockAddressConfig({
+        blockAction: SecurityBlockAction.Challenge,
+        duration: SecurityBlockDuration.UntilLifted,
+      }),
+    ).toEqual({
+      blockAction: SecurityBlockAction.Challenge,
+      duration: SecurityBlockDuration.UntilLifted,
+    });
+    expect(
+      readBlockAddressConfig({ blockAction: 7, duration: ["OneDay"] }),
+    ).toEqual({
+      blockAction: SecurityBlockAction.Block,
+      duration: SecurityBlockDuration.OneDay,
+    });
+  });
+
+  test("the lift takes no settings, and undoes the block", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.LiftAddressBlock, {
+        connectionId: OTHER_ID,
+      }).config,
+    ).toEqual({});
+    expect(
+      getSecurityPlaybookUndoAction(SecurityPlaybookActionType.BlockAddress)
+        ?.type,
+    ).toBe(SecurityPlaybookActionType.LiftAddressBlock);
+  });
+
+  test("a block waits for approval unless a Security Admin turned it off; its lift does not", () => {
+    const [block, lift]: Array<SecurityPlaybookStep> =
+      parseSecurityPlaybookSteps([
+        { action: SecurityPlaybookActionType.BlockAddress, config: {} },
+        { action: SecurityPlaybookActionType.LiftAddressBlock, config: {} },
+      ]);
+
+    expect(block!.requiresApproval).toBe(true);
+    expect(doesStepNeedApproval(block!)).toBe(true);
+    expect(lift!.requiresApproval).toBe(false);
+    expect(doesStepNeedApproval(lift!)).toBe(false);
+    expect(
+      doesActionNeedApprovalByDefault(
+        getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress),
+      ),
+    ).toBe(true);
+  });
+
+  test("both act on the case's addresses, through the blocklist", () => {
+    for (const type of [
+      SecurityPlaybookActionType.BlockAddress,
+      SecurityPlaybookActionType.LiftAddressBlock,
+    ]) {
+      expect(actsThroughBlocklist(type)).toBe(true);
+      expect(actsOnSecurityEntities(getSecurityPlaybookAction(type))).toBe(
+        true,
+      );
+      expect(getSecurityPlaybookAction(type)?.entityType).toBe(
+        SecurityEntityType.IpAddress,
+      );
+    }
+
+    expect(
+      actsThroughBlocklist(SecurityPlaybookActionType.SuspendOktaUser),
+    ).toBe(false);
+    expect(actsThroughBlocklist(undefined)).toBe(false);
   });
 });

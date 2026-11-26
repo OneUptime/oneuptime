@@ -461,6 +461,18 @@ describe("a step's More fields", () => {
       isSet: false,
     });
 
+    // One that names a runbook variable is set too, and shows neither (#10441).
+    expect(
+      item(
+        { caCertificate: "{{global.variables.INTERNAL_CA}}" },
+        "caCertificate",
+      ),
+    ).toEqual({
+      key: "caCertificate",
+      title: "CA certificate",
+      isSet: true,
+    });
+
     // Other step types fold neither.
     for (const type of [
       RunbookStepType.JavaScript,
@@ -505,6 +517,10 @@ describe("a step's More fields", () => {
       caCertificate: undefined,
     });
     expect(getCaCertificatePatch("")).toEqual({ caCertificate: undefined });
+    // A variable is written as typed, as a certificate is.
+    expect(getCaCertificatePatch(" {{local.variables.LAB_CA}}")).toEqual({
+      caCertificate: " {{local.variables.LAB_CA}}",
+    });
   });
 
   test("an AI step folds the switches, its provider and the context it reads; context off is said 'Off'", () => {

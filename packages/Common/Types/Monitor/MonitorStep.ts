@@ -130,7 +130,12 @@ import {
   readSecurityWatchlistFilters,
 } from "../SecurityEvent/SecurityWatchlistFilter";
 import { TotpSecrets, readTotpSecrets } from "../../Utils/Totp/TotpParameters";
+import { readSecretValuesToHide } from "../../Utils/Monitor/MonitorSecretValuesToHide";
 import { getPromQLMonitorExpressionProblem } from "../../Utils/PromQL/PromQLMonitorExpression";
+import MonitorRequestBody from "../../Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "./MonitorRequestBodyFormat";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -179,6 +184,12 @@ export interface MonitorStepType {
   requestType: HTTPMethod;
   requestHeaders?: Dictionary<string> | undefined;
   requestBody?: string | undefined;
+  /*
+   * How the body is sent (#10736): JSON when unset - as every step saved
+   * before the format existed is - or text, sent exactly as written
+   * (MonitorRequestBodyFormat).
+   */
+  requestBodyFormat?: MonitorRequestBodyFormat | undefined;
 
   // this is used for API and Website monitor
   doNotFollowRedirects?: boolean | undefined;
@@ -313,7 +324,27 @@ export interface MonitorStepType {
    * (MonitorStep.toDatabaseJSON).
    */
   totpSecrets?: TotpSecrets | undefined;
+
+  /*
+   * The values of the Text monitor secrets the server filled into this
+   * step, as it hands the step to a probe (issue #10875): what the probe
+   * hides in every line it logs while it runs the step
+   * (Common/Utils/Monitor/MonitorSecretValuesToHide). Never set by users,
+   * never stored (MonitorStep.toDatabaseJSON), and handed only to a probe
+   * that declares it hides them (ProbeCapability.HideSecretValuesInLogs).
+   */
+  secretValuesToHide?: Array<string> | undefined;
 }
+
+/*
+ * What a step carries only on its way to a probe, filled in by the server
+ * as it hands the step over: never written to the database
+ * (MonitorStep.toDatabaseJSON).
+ */
+const PROBE_ONLY_FIELDS: ReadonlyArray<string> = [
+  "totpSecrets",
+  "secretValuesToHide",
+];
 
 export default class MonitorStep extends DatabaseProperty {
   public data: MonitorStepType | undefined = undefined;
@@ -334,6 +365,7 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: HTTPMethod.GET,
       requestHeaders: undefined,
       requestBody: undefined,
+      requestBodyFormat: undefined,
       customCode: undefined,
       screenSizeTypes: undefined,
       browserTypes: undefined,
@@ -397,6 +429,7 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: HTTPMethod.GET,
       requestHeaders: undefined,
       requestBody: undefined,
+      requestBodyFormat: undefined,
       customCode: undefined,
       /*
        * A new Synthetic monitor starts in Chromium at a desktop size, so
@@ -621,6 +654,13 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setRequestBody(requestBody: string): MonitorStep {
     this.data!.requestBody = requestBody;
+    return this;
+  }
+
+  public setRequestBodyFormat(
+    requestBodyFormat: MonitorRequestBodyFormat | undefined,
+  ): MonitorStep {
+    this.data!.requestBodyFormat = requestBodyFormat;
     return this;
   }
 
@@ -912,6 +952,7 @@ export default class MonitorStep extends DatabaseProperty {
         requestType: HTTPMethod.GET,
         requestHeaders: undefined,
         requestBody: undefined,
+        requestBodyFormat: undefined,
         customCode: undefined,
         screenSizeTypes: undefined,
         browserTypes: undefined,
@@ -1033,6 +1074,23 @@ export default class MonitorStep extends DatabaseProperty {
 
     if (!value.data.requestType && monitorType === MonitorType.API) {
       return "Request Type is required";
+    }
+
+    /*
+     * An API monitor sends any JSON value as its body: an object, an array
+     * or a single value. One that is not JSON, whatever its placeholders
+     * hold, no check could send (MonitorRequestBody, #9737) - unless the
+     * step sends its body as text, as written (#10736).
+     */
+    const requestBodyError: string | null =
+      MonitorRequestBody.getUnreadableError({
+        monitorType: monitorType,
+        requestBody: value.data.requestBody,
+        requestBodyFormat: value.data.requestBodyFormat,
+      });
+
+    if (requestBodyError) {
+      return requestBodyError;
     }
 
     if (
@@ -1407,6 +1465,7 @@ export default class MonitorStep extends DatabaseProperty {
           requestType: this.data.requestType,
           requestHeaders: this.data.requestHeaders || undefined,
           requestBody: this.data.requestBody,
+          requestBodyFormat: this.data.requestBodyFormat,
           customCode: this.data.customCode,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
@@ -1523,6 +1582,9 @@ export default class MonitorStep extends DatabaseProperty {
               )
             : undefined,
           totpSecrets: MonitorStep.getTotpSecretsJSON(this.data.totpSecrets),
+          secretValuesToHide: MonitorStep.getSecretValuesToHideJSON(
+            this.data.secretValuesToHide,
+          ),
         },
       });
     }
@@ -1541,10 +1603,21 @@ export default class MonitorStep extends DatabaseProperty {
       : undefined;
   }
 
+  // The secret values a step hides in a probe's log as they travel, or nothing.
+  private static getSecretValuesToHideJSON(
+    secretValuesToHide: unknown,
+  ): Array<string> | undefined {
+    const read: Array<string> = readSecretValuesToHide(secretValuesToHide);
+
+    return read.length > 0 ? read : undefined;
+  }
+
   /*
    * A step as it is written to the database: what toJSON writes, without
-   * what only ever travels to a probe - the TOTP parameters the server
-   * hands it, which would put a seed into the monitor's own record.
+   * what only ever travels to a probe (PROBE_ONLY_FIELDS) - the TOTP
+   * parameters the server hands it, which would put a seed into the
+   * monitor's own record, and the values of the Text secrets filled into
+   * it, which the probe hides in its log (#10875).
    */
   public static toDatabaseJSON(json: JSONObject): JSONObject {
     const value: unknown = json["value"];
@@ -1552,14 +1625,18 @@ export default class MonitorStep extends DatabaseProperty {
     if (
       !value ||
       typeof value !== "object" ||
-      !Object.prototype.hasOwnProperty.call(value, "totpSecrets")
+      !PROBE_ONLY_FIELDS.some((field: string): boolean => {
+        return Object.prototype.hasOwnProperty.call(value, field);
+      })
     ) {
       return json;
     }
 
     const stored: JSONObject = { ...(value as JSONObject) };
 
-    delete stored["totpSecrets"];
+    for (const field of PROBE_ONLY_FIELDS) {
+      delete stored[field];
+    }
 
     return { ...json, value: stored };
   }
@@ -1651,7 +1728,19 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: (json["requestType"] as HTTPMethod) || HTTPMethod.GET,
       requestHeaders:
         (json["requestHeaders"] as Dictionary<string>) || undefined,
-      requestBody: (json["requestBody"] as string) ?? undefined,
+      /*
+       * Text, as the probe sends it: a body an API client wrote as a JSON
+       * value is read as that value's JSON (MonitorRequestBody).
+       */
+      requestBody: MonitorRequestBody.readWritten(json["requestBody"]),
+      /*
+       * As written, when it names a format, so an API client or Terraform
+       * reads back what it sent; none, which is JSON, otherwise - as every
+       * step saved before #10736 has.
+       */
+      requestBodyFormat: MonitorRequestBodyFormatUtil.readWritten(
+        json["requestBodyFormat"],
+      ),
       customCode: (json["customCode"] as string) ?? undefined,
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
@@ -1821,6 +1910,9 @@ export default class MonitorStep extends DatabaseProperty {
           )
         : undefined,
       totpSecrets: MonitorStep.getTotpSecretsJSON(json["totpSecrets"]),
+      secretValuesToHide: MonitorStep.getSecretValuesToHideJSON(
+        json["secretValuesToHide"],
+      ),
     }) as any;
 
     return monitorStep;

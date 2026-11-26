@@ -459,6 +459,7 @@ Cada punto de datos lleva el ID de recurso de Azure de su recurso (`azuremonitor
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ A un recurso de una [cuenta conectada](/docs/telemetry/cloud-accounts) se le ofr
 :::
 
 Un espacio de nombres de Service Bus informa sus métricas una vez por cola y tema, y uno de Event Hubs una vez por event hub. Donde se pueden sumar, una fila de la pestaña **Métricas** del espacio de nombres muestra su total e indica **total de las series** debajo. Un monitor creado a partir de esa fila también lee el total, igual que uno creado mediante la API o Terraform sin una agregación. Las demás filas indican **promedio de las series** y muestran la cola o el event hub promedio: una latencia y, en un rango de más de 3 horas, una cantidad que retiene el espacio de nombres, como los mensajes en espera.
+
+La conexión lee las solicitudes de una Container App una vez por categoría de código de estado, para distinguir sus respuestas 5xx, y la fila de sus solicitudes las suma del mismo modo: muestra su total, igual que un monitor creado a partir de esa fila.
 
 > [!IMPORTANT]
 > La supervisión de la nube publica cada valor unos minutos después del momento que mide: de 10 a 20 minutos para CloudWatch consultado como arriba, unos minutos para Azure Monitor y Cloud Monitoring. Se guarda en el momento que mide. Dé a un monitor sobre estas métricas una ventana más larga que eso (30 minutos para CloudWatch, 15 para los demás), o no verá datos y nunca se disparará.

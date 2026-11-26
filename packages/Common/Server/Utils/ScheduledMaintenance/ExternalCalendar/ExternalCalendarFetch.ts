@@ -119,14 +119,14 @@ export default class ExternalCalendarFetch {
   /*
    * The agents go through the outbound proxy the environment names for the
    * link (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY, apart from NO_PROXY's hosts),
-   * as every axios request of the server does; without one they dial the
+   * as every other request of the server does; without one they dial the
    * checked addresses only (#8932).
    */
   public static readonly defaultGuard: ExternalCalendarAddressGuard = async (
     url: string,
   ): Promise<{ url: URL } & PinnedAgents> => {
     const pinned: { url: URL } & PinnedAgents =
-      await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(url, {
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(url, {
         targetLabel: TARGET_LABEL,
       });
 

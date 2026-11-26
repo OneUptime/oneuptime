@@ -32,6 +32,7 @@ import SlackAuthAction, {
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 import SlackRemediationActions from "../Utils/Workspace/Slack/Actions/Remediation";
 import SlackPublicNoteApprovalActions from "../Utils/Workspace/Slack/Actions/PublicNoteApproval";
+import SlackSecurityPlaybookApprovalActions from "../Utils/Workspace/Slack/Actions/SecurityPlaybookApproval";
 import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
@@ -1306,6 +1307,28 @@ export default class SlackAPI {
             })
           ) {
             return SlackPublicNoteApprovalActions.handlePublicNoteApprovalAction(
+              {
+                slackRequest: authResult,
+                action: action,
+                req: req,
+                res: res,
+              },
+            );
+          }
+
+          /*
+           * A playbook step waiting for approval, in a channel or an
+           * approver's direct messages: Approve, Approve Some… and its
+           * form's submission, and Reject.
+           */
+          if (
+            SlackSecurityPlaybookApprovalActions.isSecurityPlaybookApprovalAction(
+              {
+                actionType: action.actionType,
+              },
+            )
+          ) {
+            return SlackSecurityPlaybookApprovalActions.handleSecurityPlaybookApprovalAction(
               {
                 slackRequest: authResult,
                 action: action,

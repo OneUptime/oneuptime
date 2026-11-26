@@ -20,11 +20,17 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityTelemetrySourcesCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityTelemetrySourcesCard";
 import { SECURITY_TELEMETRY_SOURCES_CARD_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityTelemetrySourcesModel";
+import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import ObjectID from "../../../Types/ObjectID";
-import { SecurityTelemetrySourceKind } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
+import {
+  SecurityTelemetrySignal,
+  SecurityTelemetrySourceKind,
+} from "../../../Types/SecurityEvent/SecurityTelemetrySource";
+import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -46,6 +52,8 @@ const CLOUD: SecurityTelemetrySourceKind =
 
 let stored: Array<SecurityTelemetrySource> = [];
 let cloudConnections: number | Error = 0;
+// What the count of OneUptime's own probes' set-aside traffic answers.
+let ownProbeTraffic: number | Error = 0;
 
 function source(
   kind: SecurityTelemetrySourceKind,
@@ -63,7 +71,19 @@ function source(
 beforeEach(() => {
   stored = [];
   cloudConnections = 0;
+  ownProbeTraffic = 0;
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest
+    .spyOn(AnalyticsModelAPI, "count")
+    .mockImplementation(async (modelType: unknown) => {
+      expect(modelType).toBe(SecurityEvent);
+
+      if (ownProbeTraffic instanceof Error) {
+        throw ownProbeTraffic;
+      }
+
+      return ownProbeTraffic;
+    });
   jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
   jest.spyOn(ModelAPI, "getList").mockImplementation(async () => {
     return {
@@ -276,5 +296,133 @@ describe("Your OneUptime data - Cloud audit logs", () => {
     expect(created.kind).toBe(CLOUD);
     expect(created.isEnabled).toBe(true);
     expect(created.projectId?.toString()).toBe(PROJECT_ID.toString());
+  });
+});
+
+/*
+ * OneUptime's own probes (#10429): their device polling, discovery and
+ * monitor checks are set aside, never reported as scans. The Network flows
+ * row says so, and, while on, how many it set aside over the last day, with
+ * the way to see them - nothing is set aside out of sight.
+ */
+describe("Your OneUptime data - Network flows and OneUptime's own probes", () => {
+  const FLOWS: SecurityTelemetrySourceKind =
+    SecurityTelemetrySourceKind.NetworkFlows;
+
+  test("says OneUptime's own probes' traffic is labelled and set aside, whether on or off", async () => {
+    await renderCard();
+
+    expect(
+      screen.getByTestId(`security-telemetry-source-own-traffic-note-${FLOWS}`),
+    ).toHaveTextContent(
+      "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.",
+    );
+    // Only network flows says it.
+    expect(
+      screen.getAllByText(/OneUptime's own probes that is exactly/),
+    ).toHaveLength(1);
+  });
+
+  test("on: how many sweeps and scans were set aside in the last day, with the way to see them", async () => {
+    stored = [source(FLOWS)];
+    ownProbeTraffic = 288;
+    await renderCard();
+
+    const line: HTMLElement = await screen.findByTestId(
+      `security-telemetry-source-own-probe-traffic-${FLOWS}`,
+    );
+
+    expect(line).toHaveTextContent(
+      "288 sweeps and scans by OneUptime's own probes were set aside in the last day. See them",
+    );
+
+    const link: HTMLElement = within(line).getByRole("link", {
+      name: "See them",
+    });
+    const href: string = decodeURIComponent(
+      decodeURIComponent(link.getAttribute("href") || ""),
+    );
+
+    expect(href).toContain(
+      `/dashboard/${PROJECT_ID.toString()}/security-events`,
+    );
+    expect(href).toContain(
+      `["attributes.oneuptime.signal","${SecurityTelemetrySignal.OneUptimeProbeTraffic}"]`,
+    );
+
+    // Over the same day the count read.
+    const [, query] = (AnalyticsModelAPI.count as unknown as jest.Mock).mock
+      .calls[0] as [unknown, Record<string, unknown>];
+    const day: InBetween<Date> = query["time"] as InBetween<Date>;
+
+    expect(href).toContain(new Date(day.startValue).toISOString());
+    expect(href).toContain(new Date(day.endValue).toISOString());
+    expect(
+      new Date(day.endValue).getTime() - new Date(day.startValue).getTime(),
+    ).toBe(24 * 60 * 60 * 1000);
+
+    // The count read the project's own probe traffic.
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["attributes"]).toEqual({
+      "oneuptime.signal": SecurityTelemetrySignal.OneUptimeProbeTraffic,
+    });
+  });
+
+  test("one set aside: the sentence agrees with it", async () => {
+    stored = [source(FLOWS)];
+    ownProbeTraffic = 1;
+    await renderCard();
+
+    expect(
+      await screen.findByTestId(
+        `security-telemetry-source-own-probe-traffic-${FLOWS}`,
+      ),
+    ).toHaveTextContent(
+      "1 sweep or scan by OneUptime's own probes was set aside in the last day.",
+    );
+  });
+
+  test("none set aside: nothing more is said", async () => {
+    stored = [source(FLOWS)];
+    ownProbeTraffic = 0;
+    await renderCard();
+
+    await waitFor(() => {
+      expect(AnalyticsModelAPI.count).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByTestId(
+        `security-telemetry-source-own-probe-traffic-${FLOWS}`,
+      ),
+    ).toBeNull();
+  });
+
+  test("a reader who may not read security events is told nothing of them", async () => {
+    stored = [source(FLOWS)];
+    ownProbeTraffic = new Error("You do not have permission to read this.");
+    await renderCard();
+
+    await waitFor(() => {
+      expect(AnalyticsModelAPI.count).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByTestId(
+        `security-telemetry-source-own-probe-traffic-${FLOWS}`,
+      ),
+    ).toBeNull();
+    expect(screen.queryByTestId("security-telemetry-sources-error")).toBeNull();
+  });
+
+  test("off: nothing is counted", async () => {
+    stored = [source(FLOWS, { isEnabled: false })];
+    ownProbeTraffic = 288;
+    await renderCard();
+
+    expect(AnalyticsModelAPI.count).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId(
+        `security-telemetry-source-own-probe-traffic-${FLOWS}`,
+      ),
+    ).toBeNull();
   });
 });

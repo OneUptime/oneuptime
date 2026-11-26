@@ -1,9 +1,18 @@
 import crypto from "crypto";
 import {
+  CaCertificatePemProblem,
   CaCertificateProblem,
+  HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
+  HttpStepCertificateSettings,
   getCaCertificateBlocks,
+  getCaCertificatePemShapeProblem,
   getCaCertificateShapeProblem,
+  getHttpStepCaCertificateVariableProblemMessage,
 } from "../../../Types/Runbook/HttpStepCertificates";
+import {
+  RunbookVariableReference,
+  parseSingleRunbookVariableReference,
+} from "../../../Types/Runbook/RunbookVariableReference";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 
 /*
@@ -15,24 +24,23 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
  * certificate as a CA without a word, and the step would then fail on a
  * certificate it was meant to trust, with nothing to say why. So a save of
  * steps through the API, Terraform or the editor is refused when an HTTP
- * request step's CA certificate is not one or is too long, while the step
- * checks certificates - and when it holds a private key, always - and when
+ * request step's CA certificate is not one or is too long, or names a
+ * runbook variable beside other text, while the step checks certificates -
+ * and when it holds a private key, always - and when
  * allowSelfSignedCertificates is anything but true or false, since a step
  * reads only true as on. The step's run checks again, for a step stored
  * before this check.
+ *
+ * A CA certificate that is one runbook variable alone (#10441) is taken as
+ * it is: a runbook may be written before its variables, by the API or
+ * Terraform, as a step's other references are. The step's run parses the
+ * variable's value, once it is filled in (getHttpStepCaCertificateRunRefusal).
  */
 
-// What is wrong with the text pasted as a CA certificate, or null.
-export function getCaCertificateProblem(
-  text: string | undefined | null,
-): CaCertificateProblem | null {
-  const shapeProblem: CaCertificateProblem | null =
-    getCaCertificateShapeProblem(text);
-
-  if (shapeProblem || typeof text !== "string" || !text.trim()) {
-    return shapeProblem;
-  }
-
+// The first certificate of a PEM text that does not parse, said so; or null.
+function getParseProblem(
+  text: string,
+): CaCertificateProblem.NotACertificate | null {
   for (const certificate of getCaCertificateBlocks(text)) {
     try {
       new crypto.X509Certificate(certificate);
@@ -42,6 +50,89 @@ export function getCaCertificateProblem(
   }
 
   return null;
+}
+
+/*
+ * What is wrong with what a step's CA certificate holds as written, or
+ * null: certificates in PEM, each parsed, or one runbook variable alone,
+ * whose value is checked when the step runs (getCaCertificatePemProblem).
+ */
+export function getCaCertificateProblem(
+  text: string | undefined | null,
+): CaCertificateProblem | null {
+  const shapeProblem: CaCertificateProblem | null =
+    getCaCertificateShapeProblem(text);
+
+  if (
+    shapeProblem ||
+    typeof text !== "string" ||
+    !text.trim() ||
+    parseSingleRunbookVariableReference(text)
+  ) {
+    return shapeProblem;
+  }
+
+  return getParseProblem(text);
+}
+
+/*
+ * What is wrong with the certificates a step trusts as it runs - the value
+ * of the variable its CA certificate names - or null: certificates in PEM,
+ * each parsed. Empty is no certificate, and a reference in a value is text,
+ * never read again.
+ */
+export function getCaCertificatePemProblem(
+  pem: string | undefined | null,
+): CaCertificatePemProblem | null {
+  return (
+    getCaCertificatePemShapeProblem(pem) ||
+    getParseProblem(typeof pem === "string" ? pem : "")
+  );
+}
+
+/*
+ * Why an HTTP request step is not sent for the CA certificate it would
+ * trust, or null - asked as it runs, its variables filled in, before
+ * anything is sent:
+ *
+ *   - when its CA certificate names a variable, the variable's value must be
+ *     certificates in PEM, and the error names the variable, never its
+ *     value, and says where to change it;
+ *   - when it holds the certificate itself, as a save checks it: for a step
+ *     stored before that check, or written around it.
+ */
+export function getHttpStepCaCertificateRunRefusal(data: {
+  // How the step checks certificates, read with its variables filled in.
+  settings: HttpStepCertificateSettings;
+  // The variable its stored CA certificate names (getHttpStepCaCertificateVariable).
+  variable: RunbookVariableReference | null;
+}): string | null {
+  if (data.settings.skipsCertificateChecks) {
+    return null;
+  }
+
+  if (data.variable) {
+    const problem: CaCertificatePemProblem | null = getCaCertificatePemProblem(
+      data.settings.caCertificate,
+    );
+
+    return problem
+      ? getHttpStepCaCertificateVariableProblemMessage({
+          problem,
+          reference: data.variable,
+        })
+      : null;
+  }
+
+  if (!data.settings.caCertificate) {
+    return null;
+  }
+
+  const problem: CaCertificateProblem | null = getCaCertificateProblem(
+    data.settings.caCertificate,
+  );
+
+  return problem ? HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem] : null;
 }
 
 // What a save that sets these is told, after the step's name.
@@ -61,6 +152,8 @@ export const CA_CERTIFICATE_SAVE_MESSAGES: Record<
     "has a private key in its CA certificate, where everyone who may read this runbook could read it. Paste only the certificate, and keep the key on the server.",
   [CaCertificateProblem.TooLong]:
     "has a CA certificate longer than 64 KB. Paste only the certificate of the CA that signed the server's certificate.",
+  [CaCertificateProblem.VariableAmongText]:
+    "has a CA certificate that names a runbook variable beside other text. Write only the variable that holds the certificate, such as {{global.variables.INTERNAL_CA}}, or paste only the certificate.",
 };
 
 // A step as a refusal names it: its title, or else its type.
@@ -75,7 +168,8 @@ function nameOf(step: Record<string, unknown>): string {
 /*
  * Why `steps` may not be saved because an HTTP request step's certificate
  * settings are not ones it can run with, or null. Reads only what the steps
- * hold: nothing else is asked.
+ * hold: nothing else is asked - not whether a variable a CA certificate
+ * names exists, which the step's run asks.
  */
 export function getHttpStepCertificateSaveRefusal(
   steps: unknown,

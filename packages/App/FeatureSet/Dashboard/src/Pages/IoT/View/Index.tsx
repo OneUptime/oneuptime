@@ -5,6 +5,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import IoTDeviceModel from "Common/Models/DatabaseModels/IoTDevice";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import PageMap from "../../../Utils/PageMap";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
@@ -62,6 +63,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
 import {
   fetchIoTInventoryRows,
@@ -790,6 +792,16 @@ const IoTFleetOverview: FunctionComponent<
               </div>
             )}
           </div>
+          {/*
+           * The fleet's line, at the hero's foot: its ID, who created it
+           * and who last modified it (#10461).
+           */}
+          <div
+            data-testid="iot-hero-record-line"
+            className="border-t border-gray-100 px-6 py-3"
+          >
+            <RecordActivityLine modelType={IoTFleet} recordId={modelId} />
+          </div>
         </div>
       </div>
     );
@@ -916,13 +928,11 @@ const IoTFleetOverview: FunctionComponent<
     return (
       <Card
         title={
-          <span className="inline-flex items-center gap-1.5">
-            {translator.translateText(ATTENTION_TITLE)}
-            <InfoTooltip
-              label={ATTENTION_TITLE}
-              text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention}
-            />
-          </span>
+          <WordsWithInfoTooltip
+            text={translator.translateText(ATTENTION_TITLE) || ATTENTION_TITLE}
+            label={ATTENTION_TITLE}
+            description={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention}
+          />
         }
         description="Devices that are offline, low on battery, or have a weak signal. Click through to investigate."
       >

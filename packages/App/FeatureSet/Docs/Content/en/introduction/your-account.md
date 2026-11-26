@@ -23,8 +23,8 @@ Click your picture at the top right of the dashboard.
 
 | Item | What it does |
 | --- | --- |
-| **Profile** | Opens **User Profile**: your name, email, time zone, language, picture and sign-in security. |
-| **Admin Settings** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
+| **User Profile** | Opens **User Profile**: your name, email, time zone, language, picture and sign-in security. |
+| **Admin Dashboard** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
 | **Theme** | Sets the dashboard's theme: **Light**, **Dark** or **System**, which is light or dark as your device is set. |
 | **Sign Out** | Signs you out, at once on every OneUptime server. Where your administrator has set it up, it signs you out of your identity provider too. |
 
@@ -35,7 +35,7 @@ Click your picture at the top right of the dashboard.
 :::steps
 ### Open your profile
 
-Click your picture at the top right and choose **Profile**. The **Overview** page opens on the **Basic Info** card: your name, email, time zone and language.
+Click your picture at the top right and choose **User Profile**. The **Overview** page opens on the **Basic Info** card: your name, email, time zone and language.
 
 ### Edit your details
 
@@ -114,7 +114,7 @@ Open **Security → Two-factor authentication** and click **Enable two-factor au
 
 ### Set it up
 
-For an authenticator app, scan the QR code with an app such as 1Password, Google Authenticator or Microsoft Authenticator, enter the 6-digit code it shows, and click **Verify and finish**. For a USB or NFC key, name it and follow your browser's prompt. Two-factor authentication is then on, and the card reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
+For an authenticator app, scan the QR code with an app such as 1Password, Google Authenticator or Microsoft Authenticator, enter the 6-digit code it shows, and click **Verify and finish**. On a phone, tap **Add to Authenticator App** instead of scanning: your app opens with your account filled in. For a USB or NFC key, name it and follow your browser's prompt. Two-factor authentication is then on, and the card reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
 
 ### Save your backup codes
 
@@ -127,7 +127,7 @@ If you already have an app under **Authenticator apps** or a key under **Securit
 
 When an administrator requires two-factor authentication and you have nothing set up yet, your next sign-in with a password or an emailed link asks you to set it up before it lets you in. Choose **Authenticator app** or **Security key**, and click **Continue**:
 
-- **Authenticator app**: scan the QR code, enter the 6-digit code your app shows, and click **Verify and Sign In**.
+- **Authenticator app**: scan the QR code, enter the 6-digit code your app shows, and click **Verify and Sign In**. On a phone, tap **Add to Authenticator App** instead of scanning.
 - **Security key**: click **Register Security Key** and follow your browser's prompt. Touch a USB or NFC key, or use your phone's or computer's fingerprint, face or screen lock.
 
 If you have no backup codes yet, OneUptime then shows them once, and you are signed in. **Choose another way** goes back to the choice. A browser that cannot register a security key, such as one on a page without HTTPS, offers only the authenticator app.
@@ -156,20 +156,23 @@ Some changes ask you to confirm it's you first, even though you are signed in, s
 - turn two-factor authentication off;
 - delete your account.
 
-**Confirm It's You** asks for your password, and for your second step while two-factor authentication is on: a code from your authenticator app, your security key or one of your backup codes. With a passkey, click **Use a Passkey** instead. If you sign in only through single sign-on, Google or Microsoft, click **Sign In Again**: OneUptime has your identity provider ask you to sign in again, then brings you back to the page. The change then goes through.
+**Confirm It's You** asks for your password, and for your second step while two-factor authentication is on: a code from your authenticator app, your security key or one of your backup codes. With a passkey, click **Use a Passkey** instead. If you sign in only through single sign-on, Google or Microsoft, click **Sign In Again**: OneUptime has your identity provider ask you to sign in again, then brings you back to the page. The change then goes through. If you sign in only with Vercel, which cannot confirm it's you, choose **Sign In Another Way** and sign in with a link emailed to you instead.
 
 Once you have confirmed, you are not asked again for 10 minutes in that browser. Five wrong attempts sign that browser out, but never lock your account: sign in again and try once more. OneUptime emails you when this happens, and whenever a backup code confirms it's you.
 
-On a self-hosted server, master admins confirm it's them in the same way before they change how someone else signs in, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key. The master API key cannot make these changes.
+On a self-hosted server, master admins confirm it's them in the same way before they change how someone else signs in, delete someone else's account, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key or turn it back on. The master API key cannot make these changes.
 
 Signing in again counts only when your identity provider says you signed in after OneUptime sent you to it. If the provider signs you in with a session it already has, without asking for your password, that confirms nothing: sign out of the provider first, then click **Sign In Again**. Where your server lets you sign in with an emailed link, **Sign In Another Way** does that instead. What OneUptime asks each provider for, and what an administrator can change when signing in again does not confirm:
 
 | Provider | What OneUptime asks for | When it does not confirm |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"`, and when you signed in (`AuthnInstant`) | Have the provider honor the request, such as with Honor Force Authentication in Okta. |
-| OpenID Connect | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |
+| OpenID Connect | `prompt=login` and `max_age=0` (Microsoft Entra ID: `prompt=login` alone), and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |
 | Google | When you signed in (`auth_time`). Google cannot be asked to have you sign in again. | Turn on Session age claims for the server's Google sign-in app, which must be published and verified. |
-| Microsoft | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |
+| Microsoft | `prompt=login`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |
+| Vercel | Nothing: Vercel cannot be asked to have you sign in again, and does not say when you signed in. | It never confirms. Choose **Sign In Another Way** and sign in with a link emailed to you, or set a password with **Forgot password?** and confirm with it. |
+
+What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.
 
 ## Your projects
 

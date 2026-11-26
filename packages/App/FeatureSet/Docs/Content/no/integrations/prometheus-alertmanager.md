@@ -58,13 +58,13 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Åpne én hendelse per varsel
 
-Åpne **Innstillinger** i det samme kriteriet, og slå på **Group incidents and alerts by a payload field**. Fyll den ut som nedenfor, slik at hvert varsel får sin egen hendelse, og gjenopprettingen løser den:
+Åpne **Innstillinger** i det samme kriteriet, og slå på **Grupper hendelser og varsler etter et felt i payloaden**. Fyll den ut som nedenfor, slik at hvert varsel får sin egen hendelse, og gjenopprettingen løser den:
 
 | Felt | Verdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Åpne en egen hendelse for hver…** | `requestBody.alerts[*].fingerprint` |
+| **Felt som signaliserer gjenoppretting** | `requestBody.alerts[*].status` |
+| **Verdi som betyr gjenopprettet** | `resolved` |
 
 ### Få monitoren tilkoblet igjen
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 :::
 
-`[*]` leser hvert varsel i en varsling, så en varsling med tre varsler kan åpne tre hendelser, opptil **Max incidents per request** (`100` med mindre du endrer det). Hvert varsels egen `status` avgjør hva som skjer med hendelsen: når ett varsel i en varsling er løst og to fortsatt er utløst, lukkes bare hendelsen til det løste varselet. Se [Motta varsler fra et annet system](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system) for hva hver innstilling gjør.
+`[*]` leser hvert varsel i en varsling, så en varsling med tre varsler kan åpne tre hendelser, opptil **Maks. hendelser per forespørsel** (`100` med mindre du endrer det). Hvert varsels egen `status` avgjør hva som skjer med hendelsen: når ett varsel i en varsling er løst og to fortsatt er utløst, lukkes bare hendelsen til det løste varselet. Se [Motta varsler fra et annet system](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system) for hva hver innstilling gjør.
 
 > [!WARNING]
 > Grupper etter en verdi som varierer fra varsel til varsel innenfor én varsling. Alertmanagers `fingerprint` er en hash av hele etikettsettet til et varsel, så den varierer alltid. En etikett i `group_by` for ruten din varierer aldri: det er nettopp den som samler varslene i én varsling. Gruppering etter `requestBody.alerts[*].labels.alertname` med ruten nedenfor slår sammen hvert varsel i en varsling til én hendelse, som får statusen til det første varselet.
@@ -264,9 +264,9 @@ Når watchdog-varselet ikke har kommet på ti minutter, blir watchdog-monitoren 
 :::details Hendelser opprettes, men løses aldri
 - Kontroller at ingen mottaker setter `send_resolved: false`: da sender Alertmanager aldri en gjenoppretting.
 - Hendelsen i kriteriet trenger **Løs hendelse automatisk**, under **Flere felt**.
-- **Field that signals recovery** må være `requestBody.alerts[*].status`, og **Value that means recovered** nøyaktig `resolved`. Sammenligningen skiller mellom store og små bokstaver.
-- Varsler i en varsling utover **Max incidents per request** leses ikke i det hele tatt, så gjenopprettingene deres går også tapt.
-- En gjenoppretting som hoppes over i et utbrudd (se nedenfor), lar hendelsen sin stå åpen for alltid: Alertmanager gjentar utløste varsler, men aldri en gjenoppretting. Løs en slik hendelse manuelt.
+- **Felt som signaliserer gjenoppretting** må være `requestBody.alerts[*].status`, og **Verdi som betyr gjenopprettet** nøyaktig `resolved`. Sammenligningen skiller mellom store og små bokstaver.
+- Varsler i en varsling utover **Maks. hendelser per forespørsel** leses ikke i det hele tatt, så gjenopprettingene deres går også tapt.
+- En gjenoppretting som hoppes over fordi for mange varslinger ventet (se nedenfor), lar hendelsen sin stå åpen for alltid: Alertmanager gjentar utløste varsler, men aldri en gjenoppretting. Løs en slik hendelse manuelt.
 :::
 
 :::details Ingen hendelse åpnes
@@ -282,11 +282,11 @@ En referanse til et felt som varslingen ikke har, blir stående slik den er skre
 :::
 
 :::details For mange hendelser
-Grupper ruten din etter færre etiketter, eller øk `group_interval`, slik at Alertmanager sender relaterte varsler sammen. En lavere **Max incidents per request** begrenser hendelsene fra én varsling, men varsler utover grensen leses ikke, så gjenopprettingene deres går også tapt.
+Grupper ruten din etter færre etiketter, eller øk `group_interval`, slik at Alertmanager sender relaterte varsler sammen. En lavere **Maks. hendelser per forespørsel** begrenser hendelsene fra én varsling, men varsler utover grensen leses ikke, så gjenopprettingene deres går også tapt.
 :::
 
-:::details Varslinger hoppes over under et utbrudd
-Når en nyere forespørsel når en monitor før en tidligere er evaluert, evaluerer OneUptime bare den nyeste, slik at én avsender ikke kan oversvømme en monitor. Den siste varslingen i et utbrudd evalueres alltid, men en tidligere om andre varsler kan hoppes over, fordi Alertmanager sender hver gruppe til den samme URL-en. Øk `group_wait` og `group_interval` for å spre varslingene. På en selvdriftet installasjon setter du `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i miljøet til OneUptime-appen for å evaluere hver forespørsel.
+:::details Et utbrudd av varslinger
+En monitor der kriteriet grupperer etter et felt, slik denne veiledningen setter det opp, evaluerer hver varsling den mottar, én om gangen og i den rekkefølgen de kom, så et utbrudd av utløste og løste varsler åpner og løser hendelsen for hvert varsel. Opptil 1 000 varslinger, eller 16 MB av dem, venter på å bli evaluert; utover det hoppes de eldste ventende over, og kortet **Monitor-sammendrag** sier hvor mange. Øk `group_wait` og `group_interval` for å sende færre, større varslinger. En monitor uten gruppering evaluerer bare den nyeste varslingen som venter på den.
 :::
 
 ## Sikkerhet

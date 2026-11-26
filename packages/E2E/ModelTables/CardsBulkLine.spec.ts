@@ -112,6 +112,42 @@ async function open(
     await document.fonts.ready;
   });
   await expect(page.getByTestId("table-skeleton-loader")).toHaveCount(0);
+  /*
+   * Its first page: ten cards on a phone, ten rows on a laptop. A page in
+   * German or Persian draws nothing until its words have loaded (a chunk of
+   * their own, read after the page's load), so no skeleton can also mean
+   * the list is not drawn yet.
+   */
+  await expect(page.locator("#Monitors-table-body > *")).toHaveCount(PAGE_SIZE);
+  await settle(page);
+}
+
+/*
+ * The fixture's Tailwind is written in the page as elements appear, so an
+ * element whose classes carry a transition animates into its styles on
+ * first paint: the cards come to rest about 2px lower over the first
+ * tenth of a second. Boxes are read once every finite animation has run.
+ */
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(async (): Promise<void> => {
+    await new Promise((resolve: (value: unknown) => void) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((animation: Animation): boolean => {
+          return animation.effect?.getTiming().iterations !== Infinity;
+        })
+        .map((animation: Animation): Promise<unknown> => {
+          return animation.finished.catch(() => {
+            return undefined;
+          });
+        }),
+    );
+  });
 }
 
 function band(page: Page): Locator {

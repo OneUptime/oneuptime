@@ -131,13 +131,14 @@ describe("RuleFeedMarkdown.ownersList", () => {
     ).toBe("- 👤 Ada Lovelace\n- 👤 Alan Turing\n- 👥 Platform\n- 👥 SRE");
   });
 
-  test("names a user by their email when they have no name", () => {
+  // Never the address: the feed is read beyond the project (#10669).
+  test("names a user by the part of their email before the @ when they have no name", () => {
     expect(
       RuleFeedMarkdown.ownersList({
         users: [user({ email: "ada@example.com" })],
         teams: [],
       }).toString(),
-    ).toBe("- 👤 ada@example.com");
+    ).toBe("- 👤 ada");
   });
 
   test("prefers a user's name to their email", () => {
@@ -184,10 +185,11 @@ describe("RuleFeedMarkdown.ownersList", () => {
 
   /*
    * An owner rule can name someone invited to the project who has not
-   * accepted: the project sees only what it invited of them - the name
-   * typed for them, else their address - never their own name (#9823).
+   * accepted: the feed names them by the name typed for them, else as
+   * someone who hasn't joined the project yet - never by their own name
+   * (#9823) or any address (#10668).
    */
-  test("lists someone only invited by the name typed for them, else their address", async () => {
+  test("lists someone only invited by the name typed for them, else as someone who hasn't joined the project yet - never an address", async () => {
     const pending: User = user({
       name: "Grace Hopper",
       email: "grace@example.com",
@@ -231,7 +233,7 @@ describe("RuleFeedMarkdown.ownersList", () => {
       ).toString();
 
       expect(list).toBe(
-        "- 👤 Grace from Payments\n- 👤 alan@example.com\n- 👤 Ada Lovelace\n- 👥 Platform",
+        "- 👤 Grace from Payments\n- 👤 someone who hasn't joined the project yet\n- 👤 Ada Lovelace\n- 👥 Platform",
       );
 
       // One read for every owner listed, in the project.

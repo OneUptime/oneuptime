@@ -1,12 +1,38 @@
 import SecurityBlock from "../../Models/DatabaseModels/SecurityBlock";
+import SecurityBlockEnforcement from "../../Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
+  SECURITY_REPEAT_OFFENDER_WINDOW_IN_MS,
+  SecurityRepeatOffenderRecord,
+  SecurityRepeatOffenderSummary,
+  getSecurityRepeatOffenderRecordBefore,
+  summarizeSecurityRepeatOffender,
+  writeSecurityRepeatOffenderSummary,
+} from "../../Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import {
   SECURITY_BLOCK_VALUE_MAX_LENGTH,
+  SecurityBlockReach,
+  SecurityBlockState,
+  getSecurityBlockValueKey,
+  isSecurityBlockInForce,
+  isSecurityBlockReach,
   isWiderThanLargestRange,
+  readSecurityBlockValue,
 } from "../../Types/SecurityBlocklist/SecurityBlock";
+import SecurityCaseService from "../Services/SecurityCaseService";
+import SecurityRepeatOffenders from "../Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import SecurityRepeatOffenderNetworks from "../Utils/SecurityAutomaticResponse/SecurityRepeatOffenderNetworks";
+import { isSecurityBlockEnforcementHolding } from "../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import QueryHelper from "../Types/Database/QueryHelper";
+import SecurityBlockEnforcementService from "../Services/SecurityBlockEnforcementService";
+import { SecurityBlockHolder } from "../../Types/SecurityBlocklist/SecurityBlockHolders";
 import { SecurityAddressProtection } from "../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -53,6 +79,25 @@ import CommonAPI from "./CommonAPI";
 export const SECURITY_BLOCK_CHECK_ROUTE: string = "/security-block/check";
 export const SECURITY_BLOCK_DESTINATIONS_ROUTE: string =
   "/security-block/destinations";
+/*
+ * What a case's Response Plan reads of the blocklist (#10346): what the
+ * project's destinations can hold, and the blocks in force on the values
+ * it names, with where each holds.
+ */
+export const SECURITY_BLOCK_FOR_VALUES_ROUTE: string =
+  "/security-block/for-values";
+
+// The most values one read of the plan's blocks asks for: a case's Contain steps name a few.
+export const SECURITY_BLOCK_FOR_VALUES_MAX: number = 50;
+
+/*
+ * Whether addresses were blocked before (#10354): every block of each in
+ * the 30 days before a case opened - of the address, or of a range around
+ * it - so the case says "Blocked twice before, last on 12 Nov (case
+ * CASE-812)" and its block step offers the ladder's next step.
+ */
+export const SECURITY_BLOCK_REPEAT_OFFENDERS_ROUTE: string =
+  "/security-block/repeat-offenders";
 
 export const CHECK_REFUSED_MESSAGE: string =
   "Checking an address takes a role that can block addresses.";
@@ -105,8 +150,20 @@ export default class SecurityBlockAPI extends BaseAPI<
               ? body["value"].slice(0, SECURITY_BLOCK_VALUE_MAX_LENGTH * 2)
               : "";
 
+          // Where it would be enforced: an address everywhere is covered only by a block everywhere.
+          const reach: SecurityBlockReach | undefined = isSecurityBlockReach(
+            body["reach"],
+          )
+            ? body["reach"]
+            : undefined;
+
           const check: Awaited<ReturnType<SecurityBlockServiceType["check"]>> =
-            await SecurityBlockService.check({ projectId, value, props });
+            await SecurityBlockService.check({
+              projectId,
+              value,
+              reach,
+              props,
+            });
 
           const protection: SecurityProtectionCheck | null = check.protection;
 
@@ -123,7 +180,7 @@ export default class SecurityBlockAPI extends BaseAPI<
             value: check.value?.value || null,
             indicatorType: check.value?.indicatorType || null,
             problem: check.problem,
-            isWiderThanLargestRange: check.value
+            isWiderThanLargestRange: check.value?.block
               ? isWiderThanLargestRange(check.value.block)
               : false,
             coveredBy: check.coveredBy
@@ -152,7 +209,7 @@ export default class SecurityBlockAPI extends BaseAPI<
             ),
             isYourAddress: Boolean(
               yourAddress &&
-                check.value &&
+                check.value?.block &&
                 NetworkAddressBlockUtil.contains(
                   check.value.block,
                   yourAddress,
@@ -187,15 +244,25 @@ export default class SecurityBlockAPI extends BaseAPI<
 
           const found: SecurityBlockDestinationsFound =
             await SecurityBlockDestinations.findForProject(projectId);
+          const holders: Array<SecurityBlockHolder> =
+            SecurityBlockDestinations.getHolders(found.destinations);
 
           return Response.sendJsonObjectResponse(req, res, {
             destinations: found.destinations.map(
-              (destination: SecurityBlockDestination): JSONObject => {
+              (destination: SecurityBlockDestination, index: number) => {
+                const holder: SecurityBlockHolder | undefined = holders[index];
+
                 return {
                   key: destination.key,
                   name: destination.name,
                   provider: destination.provider,
-                };
+                  // What it can hold (#10346): what a case's plan offers as one click.
+                  enforcesOnEveryMachine: Boolean(
+                    holder?.enforcesOnEveryMachine,
+                  ),
+                  blocks: holder ? [...holder.blocks] : [],
+                  quarantinesFiles: Boolean(holder?.quarantinesFiles),
+                } as JSONObject;
               },
             ),
             // A kind of destination that could not be listed: the page cannot tell it has none.
@@ -206,5 +273,276 @@ export default class SecurityBlockAPI extends BaseAPI<
         }
       },
     );
+
+    this.router.post(
+      SECURITY_BLOCK_FOR_VALUES_ROUTE,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityBlock,
+            props,
+            errorMessage: DESTINATIONS_REFUSED_MESSAGE,
+          });
+
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+
+          const values: Array<string> = Array.from(
+            new Set(
+              (Array.isArray(body["values"]) ? body["values"] : [])
+                .filter((value: unknown): value is string => {
+                  return (
+                    typeof value === "string" &&
+                    value.length <= SECURITY_BLOCK_VALUE_MAX_LENGTH * 2
+                  );
+                })
+                .map((value: string): string => {
+                  return getSecurityBlockValueKey(value);
+                })
+                .filter(Boolean),
+            ),
+          ).slice(0, SECURITY_BLOCK_FOR_VALUES_MAX);
+
+          const [found, blocks]: [
+            SecurityBlockDestinationsFound,
+            Array<SecurityBlock>,
+          ] = await Promise.all([
+            SecurityBlockDestinations.findForProject(projectId),
+            values.length > 0
+              ? SecurityBlockService.findBy({
+                  query: {
+                    projectId,
+                    state: SecurityBlockState.Active,
+                    value: QueryHelper.any(values),
+                  },
+                  select: {
+                    _id: true,
+                    value: true,
+                    reach: true,
+                    action: true,
+                    state: true,
+                    expiresAt: true,
+                  },
+                  skip: 0,
+                  limit: values.length * 2,
+                  props,
+                })
+              : Promise.resolve([]),
+          ]);
+
+          const now: Date = OneUptimeDate.getCurrentDate();
+          const inForce: Array<SecurityBlock> = blocks.filter(
+            (block: SecurityBlock): boolean => {
+              return Boolean(block.id) && isSecurityBlockInForce(block, now);
+            },
+          );
+
+          const enforcements: Array<SecurityBlockEnforcement> =
+            inForce.length > 0
+              ? await SecurityBlockEnforcementService.findBy({
+                  query: {
+                    projectId,
+                    securityBlockId: QueryHelper.any(
+                      inForce.map((block: SecurityBlock): ObjectID => {
+                        return block.id!;
+                      }),
+                    ),
+                  },
+                  select: {
+                    _id: true,
+                    securityBlockId: true,
+                    destinationName: true,
+                    state: true,
+                    lastConfirmedAt: true,
+                  },
+                  skip: 0,
+                  limit: inForce.length * 20,
+                  props,
+                })
+              : [];
+
+          return Response.sendJsonObjectResponse(req, res, {
+            holders: SecurityBlockDestinations.getHolders(
+              found.destinations,
+            ).map((holder: SecurityBlockHolder): JSONObject => {
+              return {
+                name: holder.name,
+                provider: holder.provider,
+                enforcesOnEveryMachine: holder.enforcesOnEveryMachine,
+                blocks: [...holder.blocks],
+                quarantinesFiles: holder.quarantinesFiles,
+              };
+            }),
+            blocks: inForce.map((block: SecurityBlock): JSONObject => {
+              return {
+                value: block.value || "",
+                reach: block.reach || SecurityBlockReach.Edge,
+                action: block.action || "",
+                // Only where a destination holds it now: a block nothing holds is not done.
+                enforcedAt: enforcements
+                  .filter((enforcement: SecurityBlockEnforcement): boolean => {
+                    return (
+                      enforcement.securityBlockId?.toString() ===
+                        block.id!.toString() &&
+                      isSecurityBlockEnforcementHolding(enforcement, now)
+                    );
+                  })
+                  .map((enforcement: SecurityBlockEnforcement): string => {
+                    return enforcement.destinationName || "";
+                  }),
+              };
+            }),
+            cannotTell: found.failedProviders.length > 0,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      SECURITY_BLOCK_REPEAT_OFFENDERS_ROUTE,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityBlock,
+            props,
+            errorMessage: DESTINATIONS_REFUSED_MESSAGE,
+          });
+
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+
+          return Response.sendJsonObjectResponse(req, res, {
+            offenders: (
+              await SecurityBlockAPI.readRepeatOffenders({
+                projectId,
+                body,
+                props,
+              })
+            ).map(writeSecurityRepeatOffenderSummary),
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+  }
+
+  /*
+   * The repeat offenders among the addresses asked about: blocked in the
+   * 30 days before the case opened (its own blocks left out), or before
+   * now when no case is named - an address's own blocks, its ranges', and
+   * those of the networks its Cloudflare events say it sent from (#10895).
+   * A case the caller may not read is not found. Addresses blocked never
+   * before are left out of the answer.
+   */
+  public static async readRepeatOffenders(data: {
+    projectId: ObjectID;
+    body: JSONObject;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SecurityRepeatOffenderSummary>> {
+    const values: Array<string> = Array.from(
+      new Set(
+        (Array.isArray(data.body["values"]) ? data.body["values"] : [])
+          .filter((value: unknown): value is string => {
+            return typeof value === "string" && value.length <= 100;
+          })
+          .map((value: string): string => {
+            return readSecurityBlockValue(value)?.value || "";
+          })
+          .filter(Boolean),
+      ),
+    ).slice(0, SECURITY_BLOCK_FOR_VALUES_MAX);
+
+    const caseId: string =
+      typeof data.body["securityCaseId"] === "string"
+        ? data.body["securityCaseId"].trim()
+        : "";
+    let before: Date = OneUptimeDate.getCurrentDate();
+    let excludingCaseId: string | null = null;
+
+    if (caseId) {
+      if (!ObjectID.isValidUUID(caseId)) {
+        throw new BadDataException("A valid case ID is required.");
+      }
+
+      const securityCase: SecurityCase | null =
+        await SecurityCaseService.findOneBy({
+          query: { _id: new ObjectID(caseId), projectId: data.projectId },
+          select: { _id: true, createdAt: true },
+          props: data.props,
+        });
+
+      if (!securityCase?.id) {
+        throw new NotFoundException("Security case not found.");
+      }
+
+      before = securityCase.createdAt
+        ? new Date(securityCase.createdAt)
+        : before;
+      excludingCaseId = securityCase.id.toString();
+    }
+
+    /*
+     * The networks each address sent from, as its Cloudflare events named
+     * them over the record's window (#10895): a network challenged by its
+     * ASN held the address too. One read for every address; a read that
+     * fails names none, and each record counts its own blocks.
+     */
+    const asnsOf: Map<
+      string,
+      Array<string>
+    > = await SecurityRepeatOffenderNetworks.readAsns({
+      projectId: data.projectId,
+      addresses: values,
+      since: new Date(before.getTime() - SECURITY_REPEAT_OFFENDER_WINDOW_IN_MS),
+      until: before,
+    });
+
+    const summaries: Array<SecurityRepeatOffenderSummary> = [];
+
+    for (const value of values) {
+      const asns: Array<string> = asnsOf.get(value) || [];
+      const record: SecurityRepeatOffenderRecord =
+        getSecurityRepeatOffenderRecordBefore({
+          record: await SecurityRepeatOffenders.read({
+            projectId: data.projectId,
+            value,
+            now: before,
+            ...(asns.length > 0 ? { asns } : {}),
+          }),
+          before,
+          excludingCaseId,
+        });
+
+      if (record.offenceCount > 0) {
+        summaries.push(summarizeSecurityRepeatOffender(record));
+      }
+    }
+
+    return summaries;
   }
 }

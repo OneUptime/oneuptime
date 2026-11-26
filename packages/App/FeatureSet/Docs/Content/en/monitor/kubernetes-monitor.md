@@ -116,7 +116,7 @@ These monitors always evaluate the **Metric Value** — the value of the configu
 
 ### Conditions
 
-Static thresholds are compared against the **Threshold** you enter: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.
+Static thresholds are compared against the **Threshold** you enter: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** and **Not Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.
 
 Baseline anomaly detection needs no threshold. Pick one of these conditions, and the form shows **Sensitivity** and **Baseline Window** instead:
 

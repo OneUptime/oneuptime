@@ -151,6 +151,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Bell,
         },
+        /*
+         * Who changed the rules above, what and when (#10462): most of them
+         * have no page of their own to hold their history.
+         */
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS
+              ] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
       ],
     },
     {

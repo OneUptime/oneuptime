@@ -83,6 +83,17 @@ Geheimnisse werden ausgefüllt, bevor das Skript eines Synthetischen Monitors od
 
 Verweist ein Monitor auf ein Geheimnis, das er nicht verwenden darf, bleibt der Verweis, wie er ist, und wird nicht durch den Wert ersetzt.
 
+Wenn die Prüfung eines Monitors vom Typ API, Website oder Externe Statusseite fehlschlägt, nennt ihr Fehler die URL nur mit Schema, Host und Port, etwa `https://api.example.com`, sodass ein Geheimnis in der URL nie angezeigt wird.
+
+Eine Prüfung kann den Wert eines Geheimnisses auch zurückgeben: Ein Browser nennt die URL einer Seite, die er nicht laden konnte, ein Skript protokolliert, was es enthält, und ein Server kann die Abfrage, die Header oder den Text zurückgeben, die er erhalten hat. OneUptime verbirgt den Wert überall, wo er in dem steht, was die Prüfung meldet: im Fehler, in den Protokollmeldungen und im Ergebnis eines Skripts, im Text und in den Headern einer Antwort sowie in der Fehlerursache der Prüfung und jedes Versuchs. So steht der Wert weder in den Protokollen des Monitors noch in seiner Zusammenfassung, im Ergebnis eines Monitortests oder in der Grundursache eines Vorfalls oder einer Warnung. OneUptime schreibt an seiner Stelle `[REDACTED]` und behält den Rest, sodass eine Seite unter `https://app.example.com/login?token={{monitorSecrets.Token}}`, die sich nicht laden lässt, als `https://app.example.com/login?token=[REDACTED]` gemeldet wird. Der Wert wird in jeder Groß- und Kleinschreibung gefunden und so, wie die Prüfung ihn auch geschrieben hat: prozentkodiert, in JSON oder HTML maskiert oder in Base64.
+
+OneUptime verbirgt nicht:
+
+- Einen Wert mit weniger als 4 Zeichen, Leerzeichen am Anfang und am Ende nicht mitgezählt. Ein so kurzer Wert ist Teil gewöhnlichen Textes, etwa von Zahlen und Wörtern.
+- Was ein Screenshot zeigt. Ein Screenshot ist ein Bild, ein Geheimnis, das die Seite auf dem Bildschirm zeigt, ist also darin zu sehen.
+
+Kriterien lesen eine Prüfung so, wie sie gemeldet wird. Schreiben Sie ein Kriterium gegen den Text rund um ein Geheimnis, etwa `ERR_NAME_NOT_RESOLVED` oder `token=`, statt gegen den Wert des Geheimnisses: Ein Kriterium sieht jeder, der den Monitor lesen kann.
+
 Wenn Sie einen Monitor testen, bevor Sie ihn speichern, werden nur Geheimnisse ausgefüllt, die für **Alle Monitore** verfügbar sind, weil ein neuer Monitor in keiner Liste steht und noch keine Beschriftungen hat. Nachdem Sie den Monitor gespeichert haben, verwenden Tests jedes Geheimnis, das der Monitor verwenden darf.
 
 ## Mit einem Einmalcode anmelden
@@ -128,7 +139,7 @@ return {
 Die Sonde gibt nie einen Code heraus, der nur noch weniger als fünf Sekunden gilt, oder weniger als ein Drittel des Zeitraums, wenn der Zeitraum kürzer ist: Sie wartet stattdessen auf den nächsten Code, höchstens fünf Sekunden, und rechnet diese Wartezeit nicht in die Ausführungszeit der Prüfung ein. Jeder Code, den eine Prüfung erzeugt, erscheint als Sternchen, etwa `******`, in ihren Protokollmeldungen, ihrem Ergebnis, ihrem Fehler und den Namen ihrer Screenshots. Ein Screenshot ist ein Bild der Seite, machen Sie ihn also, bevor der Code eingegeben wird, oder nachdem die Seite weitergegangen ist.
 
 > [!NOTE]
-> Die Sonde erzeugt die Codes, daher braucht eine benutzerdefinierte Sonde OneUptime 17.0.1 oder neuer. Auf einer älteren läuft eine Prüfung, die einen Code braucht, nicht, sondern schlägt mit einem Satz fehl, der sagt, dass die Sonde aktualisiert werden muss; das Formular des Monitors und die Seite der Sonde nennen eine zu alte Sonde, und [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren) erklärt, wie. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
+> Die Sonde erzeugt die Codes, daher braucht eine benutzerdefinierte Sonde OneUptime 17.1.0 oder neuer. Auf einer älteren läuft eine Prüfung, die einen Code braucht, nicht, sondern schlägt mit einem Satz fehl, der sagt, dass die Sonde aktualisiert werden muss; das Formular des Monitors und die Seite der Sonde nennen eine zu alte Sonde, und [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren) erklärt, wie. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
 
 ## Fehlerbehebung
 
@@ -144,12 +155,16 @@ Bevor ein Monitor gespeichert ist, werden nur Geheimnisse ausgefüllt, die für 
 Nur die Felder in der Tabelle oben nehmen Geheimnisse an. In jedem anderen Feld wird `{{monitorSecrets.NAME}}` gesendet, wie es geschrieben ist.
 :::
 
+:::details Eine Prüfung zeigt `[REDACTED]`, wo ein Wert stand
+Der Wert eines Geheimnisses stand in dem, was die Prüfung gemeldet hat, und OneUptime hat ihn verborgen. Der Text drumherum, etwa `token=[REDACTED]`, zeigt, wo das Skript oder die Anfrage das Geheimnis verwendet hat.
+:::
+
 :::details Die Website lehnt den Einmalcode ab
 Prüfen Sie, ob der Code unter **Aktueller Code** beim Speichern des Geheimnisses mit Ihrer Authenticator-App übereinstimmte, ob die Uhr der Sonde stimmt und ob ein Verweis in einem JSON-Request-Body in Anführungszeichen steht. Wenn die Anmeldung eine Weile braucht, bis sie die Abfrage des Codes erreicht, fordern Sie den Code dort mit `oneuptime.getTotpCode` an.
 :::
 
 :::details Die Prüfung meldet, dass die Sonde zu alt ist, um Einmalcodes zu erzeugen
-Die Sonde läuft mit einer Version vor OneUptime 17.0.1, die keine Einmalcodes erzeugen kann, daher wurde die Prüfung auf ihr nicht ausgeführt. Aktualisieren Sie die Sonde (siehe [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren)), oder lassen Sie den Monitor von Sonden mit 17.0.1 oder neuer prüfen.
+Die Sonde läuft mit einer Version vor OneUptime 17.1.0, die keine Einmalcodes erzeugen kann, daher wurde die Prüfung auf ihr nicht ausgeführt. Aktualisieren Sie die Sonde (siehe [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren)), oder lassen Sie den Monitor von Sonden mit 17.1.0 oder neuer prüfen.
 :::
 
 ## Nächste Schritte

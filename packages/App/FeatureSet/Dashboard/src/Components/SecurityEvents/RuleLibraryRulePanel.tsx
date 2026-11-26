@@ -1,3 +1,4 @@
+import DetectionRuleRetentionWarning from "./Retention/DetectionRuleRetentionWarning";
 import DetectionRuleSummary, {
   DetectionRuleTypeLabel,
 } from "./DetectionRuleSummary";
@@ -400,6 +401,11 @@ const RuleLibraryRulePanel: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {/*
+             * A window longer than the project keeps its security events
+             * (#10432), said before the rule is added.
+             */}
+            <DetectionRuleRetentionWarning shape={view.shape} />
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {facts.map(
                 (fact: {

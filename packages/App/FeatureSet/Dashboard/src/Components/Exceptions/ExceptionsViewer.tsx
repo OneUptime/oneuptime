@@ -39,6 +39,11 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
+  HashedAddressSignal,
+  getHashedAddressSearchTexts,
+} from "Common/Types/Telemetry/HashedAddressSearch";
+import useHashedAddressSearch from "../Telemetry/useHashedAddressSearch";
+import {
   FacetCountAnswer,
   FacetCountRequestPart,
   mergeFacetCountAnswers,
@@ -199,6 +204,10 @@ import {
   EXCEPTION_LIST_SELECT,
   readEveryMatchingException,
 } from "./ExceptionListRead";
+import {
+  idOf,
+  readSplitPairExceptionIds,
+} from "../../Utils/ExceptionSplitPairs";
 import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -744,6 +753,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     null,
   );
   const [isListStatsLoading, setIsListStatsLoading] = useState<boolean>(false);
+  /*
+   * The page's rows that are one of a pair a scrub rule split, by id: each
+   * says Split (ExceptionSplitPairs, #10897).
+   */
+  const [splitPairIds, setSplitPairIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
@@ -1718,6 +1734,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     exclusions,
   ]);
 
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the texts the list compares on an exception's message,
+   * and its occurrences' attributes and columns, asked about only when one
+   * holds an address. The list says so above its results.
+   */
+  const hashedAddressSearchTexts: Array<string> = useMemo((): Array<string> => {
+    return [
+      ...getHashedAddressSearchTexts(query, HashedAddressSignal.Exceptions),
+      ...getHashedAddressSearchTexts(
+        {
+          ...instanceScope.columnPredicates,
+          attributes: instanceScope.attributePredicates,
+        },
+        HashedAddressSignal.Exceptions,
+      ),
+      ...Object.values(instanceScope.attributeSelections).flat(),
+    ];
+  }, [query, instanceScope]);
+
+  const hashedAddresses: Array<string> = useHashedAddressSearch({
+    signal: HashedAddressSignal.Exceptions,
+    texts: hashedAddressSearchTexts,
+  });
+
   // Fetch exceptions
   const fetchExceptions: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -1786,6 +1827,32 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       isCancelled = true;
     };
   }, [exceptions, listWindow]);
+
+  /*
+   * Which of the page's rows are one of a pair a scrub rule split (#10897),
+   * read once its rows are in: two small reads (ExceptionSplitPairs). Best
+   * effort: the rows show without Split when they fail.
+   */
+  useEffect(() => {
+    if (exceptions.length === 0) {
+      setSplitPairIds(new Set<string>());
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void readSplitPairExceptionIds(exceptions).then(
+      (ids: Set<string>): void => {
+        if (!isCancelled) {
+          setSplitPairIds(ids);
+        }
+      },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [exceptions]);
 
   useEffect(() => {
     if (holdsReads) {
@@ -2891,6 +2958,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       items={exceptions}
       isLoading={isLoading || holdsReads}
       error={error || undefined}
+      hashedAddresses={hashedAddresses}
       onRefresh={() => {
         // A held read goes out by itself once what it waits for is in.
         if (holdsReads) {
@@ -2956,6 +3024,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             isStatsLoading={isListStatsLoading && !listStats}
             // Only All mixes statuses; a tab of one needs no word on each row.
             showStatus={status === "all"}
+            isSplitPair={splitPairIds.has(idOf(exception))}
           />
         );
       }}

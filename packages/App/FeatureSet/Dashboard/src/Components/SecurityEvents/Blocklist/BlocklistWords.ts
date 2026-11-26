@@ -1,22 +1,16 @@
 import { BlockValueCheck } from "./BlocklistApi";
 import {
-  SECURITY_BLOCK_SENTENCES,
   SecurityBlockSentence,
   getSecurityBlockAlreadyBlockedSentence,
+  getSecurityBlockCheckFailedSentence,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import {
-  SECURITY_PROTECTED_INSIDE_RANGE,
-  SECURITY_PROTECTED_RANGE_HOLDS,
   SecurityAddressProtection,
-  SecurityProtectionOverlap,
-  getSecurityProtectionOverlap,
+  getSecurityProtectionLead,
   getSecurityProtectionSentence,
 } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { joinSentences } from "Common/UI/Utils/SentenceSeparator";
-import NetworkAddressBlockUtil, {
-  NetworkAddressBlock,
-} from "Common/Utils/NetworkTraffic/NetworkAddressBlock";
 
 /*
  * What the Blocklist's dialogs say, in the reader's language, of a block
@@ -56,30 +50,15 @@ export function writeSecurityProtection(
     values,
   );
 
-  const valueBlock: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
-    data.value,
-  );
-  const protectedBlock: NetworkAddressBlock | null =
-    NetworkAddressBlockUtil.parse(data.protection.protectedValue);
+  // How the block meets what it protects: a range or a domain that holds it, or one inside it (#10346).
+  const lead: string | null = getSecurityProtectionLead({
+    value: data.value,
+    protectedValue: data.protection.protectedValue,
+  });
 
-  if (!valueBlock || !protectedBlock) {
-    return sentence;
-  }
-
-  switch (getSecurityProtectionOverlap({ value: valueBlock, protectedBlock })) {
-    case SecurityProtectionOverlap.BlockHoldsProtected:
-      return joinSentences([
-        translator.translateTemplate(SECURITY_PROTECTED_RANGE_HOLDS, values),
-        sentence,
-      ]);
-    case SecurityProtectionOverlap.BlockInsideProtected:
-      return joinSentences([
-        translator.translateTemplate(SECURITY_PROTECTED_INSIDE_RANGE, values),
-        sentence,
-      ]);
-    default:
-      return sentence;
-  }
+  return lead
+    ? joinSentences([translator.translateTemplate(lead, values), sentence])
+    : sentence;
 }
 
 /*
@@ -112,10 +91,10 @@ export function writeBlockRefusal(data: {
   }
 
   if (data.check.cannotTell) {
-    return writeBlockSentence(data.translator, {
-      template: SECURITY_BLOCK_SENTENCES.checkFailed,
-      values: { value },
-    });
+    return writeBlockSentence(
+      data.translator,
+      getSecurityBlockCheckFailedSentence(value),
+    );
   }
 
   return null;

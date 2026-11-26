@@ -12,6 +12,8 @@ import Express, {
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import SecurityEventsIngestService from "../Services/SecurityEventsIngestService";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -25,6 +27,24 @@ const setSecurityEventsProductType: RequestHandler = (
 };
 
 /*
+ * The batch, read once its ingest key is right (#10795), as the rest of
+ * telemetry's batches are (#10702): StartServer leaves the body unread
+ * (RequestBodyLimit), and nothing of it is read, inflated or parsed for a
+ * request without the right key. Every sender the docs and the Setup Guide
+ * show - curl, Fluent Bit's http output, a Google SecOps SOAR playbook's
+ * HTTP request - sends the key in a header (x-oneuptime-token). Read between
+ * the key and the ingestion budget, which measures it in Refuse mode
+ * (TelemetryIngest), with StartServer's own parsers: JSON parsed, held to
+ * 50 MB and 1,000,000 values, its text kept for the budget; a form parsed.
+ * A gzip JSON body is parsed as the same body uncompressed is: it was
+ * handed on as its bytes, and stored as one event of them.
+ */
+const readSecurityEventsBody: RequestHandler =
+  RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT, {
+    parseGzipJson: true,
+  });
+
+/*
  * Security events ingest. Accepts OCSF, Google SecOps UDM, SecOps
  * detection alerts, or generic security JSON — dialect named via
  * ?format=... / x-oneuptime-security-event-format, sniffed per event
@@ -34,7 +54,10 @@ router.post(
   "/security-events/v1/ingest",
   TelemetryIngestionDisabled.middleware,
   setSecurityEventsProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.SecurityEvents),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.SecurityEvents,
+    readSecurityEventsBody,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

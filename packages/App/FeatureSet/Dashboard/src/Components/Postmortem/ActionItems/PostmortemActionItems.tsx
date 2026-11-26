@@ -23,7 +23,15 @@ import {
   getUntrackedNoteItems,
   readNewActionItemTitle,
 } from "./PostmortemActionItemsModel";
-import CodeApi, { CodeRepositoryListItem } from "../../Code/CodeApi";
+import CodeApi, {
+  CodeRepositoriesResponse,
+  CodeRepositoryListItem,
+} from "../../Code/CodeApi";
+import {
+  CodeRepositoryListGroup,
+  CodeRepositoryListOrder,
+  CodeTaskSummaryJSON,
+} from "Common/Types/AI/CodeTask";
 import { GitPullRequestMark } from "../../Code/CodeMarks";
 import CodeTaskStageBadge from "../../Code/CodeTaskStageBadge";
 import useInsightFixTasks, {
@@ -36,7 +44,6 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import IncidentPostmortemActionItem from "Common/Models/DatabaseModels/IncidentPostmortemActionItem";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import CodeTaskStageUtil, {
   CodeTaskStage,
 } from "Common/Types/AI/CodeTaskStage";
@@ -117,6 +124,16 @@ export interface ComponentProps {
   postmortemNote?: string | null | undefined;
   // Bumped when the postmortem changes: the list is read again.
   refreshToken?: string | undefined;
+}
+
+/*
+ * The repositories OneUptime AI can work in, as the rows need them: whether
+ * there is one to offer a pull request in, and the one the dialog picks
+ * already when there is only one.
+ */
+interface ConnectedRepositories {
+  count: number;
+  only: CodeRepositoryListItem | null;
 }
 
 // The dialog open over the list, and the item it is about.
@@ -219,8 +236,14 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
   const [dialog, setDialog] = useState<ActionItemDialog>(null);
   const [dialogError, setDialogError] = useState<string>("");
   const [isDialogWorking, setIsDialogWorking] = useState<boolean>(false);
-  const [repositories, setRepositories] =
-    useState<Array<CodeRepositoryListItem> | null>(null);
+  /*
+   * The repositories OneUptime AI can work in, as far as the rows need
+   * them: how many there are, and the one when there is only one - read by
+   * the server over every repository the reader may read (#10764). Null
+   * until read.
+   */
+  const [connectedRepositories, setConnectedRepositories] =
+    useState<ConnectedRepositories | null>(null);
 
   // Only the newest read lands: a slow one never replaces a newer list.
   const latestReadRef: MutableRefObject<number> = useRef<number>(0);
@@ -309,16 +332,24 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
 
     let isCurrent: boolean = true;
 
-    CodeApi.getRepositories()
-      .then((response: { repositories: Array<CodeRepositoryListItem> }) => {
+    CodeApi.getRepositories({
+      group: CodeRepositoryListGroup.Connected,
+      order: CodeRepositoryListOrder.Name,
+      limit: 1,
+    })
+      .then((response: CodeRepositoriesResponse) => {
         if (isCurrent) {
-          setRepositories(response.repositories);
+          setConnectedRepositories({
+            count: response.count,
+            only:
+              response.count === 1 ? response.repositories[0] || null : null,
+          });
         }
       })
       .catch(() => {
         // Code cannot be read: the rows offer no pull request.
         if (isCurrent) {
-          setRepositories([]);
+          setConnectedRepositories({ count: 0, only: null });
         }
       });
 
@@ -326,12 +357,6 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
   }, [isAiOffered, hasOpenItem, updateGate.isAllowed]);
-
-  const connectedRepositories: Array<CodeRepositoryListItem> = (
-    repositories || []
-  ).filter((repository: CodeRepositoryListItem): boolean => {
-    return repository.isConnected;
-  });
 
   // The code tasks the items became, read together, and again while any moves.
   const codeTasks: InsightFixTasks = useInsightFixTasks(
@@ -687,12 +712,12 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
       : undefined;
 
     const codeTaskOffer: SuggestionOffer =
-      updateGate.isAllowed && repositories !== null
+      updateGate.isAllowed && connectedRepositories !== null
         ? getActionItemCodeTaskOffer({
             isAiEnabled: isAiOffered,
             isOpen,
             taskStage: task ? CodeTaskStageUtil.fromSummary(task) : null,
-            hasConnectedRepository: connectedRepositories.length > 0,
+            hasConnectedRepository: connectedRepositories.count > 0,
           })
         : SuggestionOffer.None;
 
@@ -1294,7 +1319,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           actionItemId={new ObjectID(dialog.item._id!.toString())}
           actionItemTitle={dialog.item.title || ""}
           kind={dialog.taskKind}
-          repositories={connectedRepositories}
+          onlyRepository={connectedRepositories?.only || null}
           onClose={() => {
             setDialog(null);
           }}

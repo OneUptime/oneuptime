@@ -61,14 +61,16 @@ export const SCRUB_UNAVAILABLE_SENTENCES: Readonly<
 /*
  * What a page says once Scrub It made, or found, the rule: one sentence,
  * the rule's name ({{name}}) a link to the list it is in (TelemetryRuleNotice).
+ * "Hides", whatever the rule's action: it said "masks" of a rule that
+ * redacts (#10433). Its name says whose records it scrubs.
  */
 export const SCRUB_NOTICES: Readonly<Record<DataSecurityScrubSignal, string>> =
   {
     log: translationKey(
-      "The scrub rule {{name}} now masks this data in new logs.",
+      "The scrub rule {{name}} now hides this data in new logs.",
     ),
     trace: translationKey(
-      "The scrub rule {{name}} now masks this data in new traces.",
+      "The scrub rule {{name}} now hides this data in new traces.",
     ),
     metric: translationKey(
       "The metric pipeline rule {{name}} now redacts this data in new metrics.",

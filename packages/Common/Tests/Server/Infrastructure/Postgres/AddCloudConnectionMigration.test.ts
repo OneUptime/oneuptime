@@ -1,3 +1,5 @@
+import { DELETED_BY_USER_ID_COLUMN } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddCloudConnection1805400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805400000000-AddCloudConnection";
 import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805450000000-AddCloudResourceCloudConnectionIndexAndKey";
@@ -127,7 +129,9 @@ function storedColumnsOf(
   return Object.keys(columns).filter((key: string): boolean => {
     return (
       columns[key]!.type !== TableColumnType.Entity &&
-      columns[key]!.type !== TableColumnType.EntityArray
+      columns[key]!.type !== TableColumnType.EntityArray &&
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      !RecordActorUtil.isColumn(key)
     );
   });
 }
@@ -231,7 +235,11 @@ describe("the cloud connection migrations", () => {
 
     expect(createTable).toContain('CREATE TABLE "CloudConnection"');
     expect([...columnsOf(createTable), ...added].sort()).toEqual(
-      storedColumnsOf(getTableColumns(new CloudConnection())).sort(),
+      [
+        ...storedColumnsOf(getTableColumns(new CloudConnection())),
+        // Dropped from every table later (DropDeletedByUserColumns, #10469).
+        DELETED_BY_USER_ID_COLUMN,
+      ].sort(),
     );
     // A new connection is read as soon as it is saved.
     expect(createTable).toContain('"isEnabled" boolean NOT NULL DEFAULT true');

@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` met `"valid": true` | OneUptime accepteert de sleutel. Het antwoord geeft ook het `keyType` en het `projectId`. Ga door naar de volgende controle. |
 | `401` met `"valid": false` | De sleutel ontbreekt, is onbekend, ingetrokken, uitgeschakeld of verlopen, en de `message` zegt welke. Maak een actieve sleutel aan onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
 
-Een web-app heeft een **Browser**-sleutel nodig, en een mobiele app een **Server**-sleutel: zie [Browserconfiguratie](/docs/rum/browser-setup) en [Mobiele configuratie](/docs/rum/mobile-setup). Ook de exportendpoints weigeren een verkeerde sleutel met `401`, zoals de OTLP-specificatie voorschrijft, dus een nette SDK logt de weigering in plaats van het opnieuw te proberen. Die regel valt in de browserconsole makkelijk weg, en deze controle geeft direct antwoord.
+Een web-app heeft een **Browser**-sleutel nodig, en een mobiele app een **Mobiel**-sleutel: zie [Browserconfiguratie](/docs/rum/browser-setup) en [Mobiele configuratie](/docs/rum/mobile-setup). Ook de exportendpoints weigeren een verkeerde sleutel met `401`, zoals de OTLP-specificatie voorschrijft, dus een nette SDK logt de weigering in plaats van het opnieuw te proberen. Die regel valt in de browserconsole makkelijk weg, en deze controle geeft direct antwoord.
 
 OneUptime telt ook wat het weigert van een sleutel die het kent. De pagina van de sleutel onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** toont onder **Geweigerde telemetrie** wat de afgelopen 30 dagen is geweigerd, en de **Configuratiecontrole** op de pagina **Documentatie** van de applicatie zegt welke soort telemetrie wordt geweigerd, waarom en hoe u dat oplost. Een ontbrekende of onbekende sleutel wijst geen project aan, dus niets telt hem: deze controle en de `401` zijn alles wat er is.
 
@@ -81,20 +81,20 @@ Een browser verstuurt zelden zulke grote batches, tenzij spans grote attributen 
 
 **`422`.** OneUptime heeft de sleutel hier geweigerd, en de melding zegt waarom. `Origin https://app.example.com is not allowed for this browser ingestion key.` betekent dat de exacte origin van de pagina, met haar schema en eventuele poort, ontbreekt in de **Toegestane origins** van de sleutel. `This telemetry ingestion key has been disabled.` betekent dat iemand de sleutel heeft uitgeschakeld.
 
-**`429`.** De **Requests Per Minute Limit** van de sleutel is op: `Too many telemetry requests for this ingestion key. Please retry later.` Een Browser-sleutel staat 6000 verzoeken per minuut toe voor al je bezoekers samen, tenzij je een eigen limiet op de sleutel instelt.
+**`429`.** De **Limiet voor verzoeken per minuut** van de sleutel is op: `Too many telemetry requests for this ingestion key. Please retry later.` Een Browser-sleutel staat 6000 verzoeken per minuut toe voor al je bezoekers samen, tenzij je een eigen limiet op de sleutel instelt.
 
 **`403` met een HTML-pagina, of een lege body.** OneUptime beantwoordt elke weigering in JSON, dus deze kwam van iets ervoor, meestal een web application firewall op je eigen domein, als je OneUptime daardoorheen leidt. De firewall parseert OTLP/JSON en vergelijkt elk span-attribuut met zijn injectieregels, dus een URL met een querystring op een span is genoeg om te blokkeren, en het firewalllog noemt de regel. Sluit de OTLP-payload alleen op de OTLP-paden uit van inspectie: [Je OpenTelemetry-verzoeken worden ook geblokkeerd](/docs/rum/session-replay-troubleshooting#je-opentelemetry-verzoeken-worden-ook-geblokkeerd) laat zien hoe, en behandelt ook de herhalingsrecorder achter dezelfde firewall.
 
 ## Controleren waar de telemetrie terechtkomt
 
-Het verzoek werkt, maar de app verschijnt onder **Producten → Services** in plaats van onder **Producten → Bronnen → Real User Monitoring**. Dit is de meest gemelde situatie, en de oorzaak is bijna altijd een resource zonder clientattributen. OneUptime archiveert een batch alleen als RUM wanneer de resource een van deze meedraagt:
+Het verzoek werkt, maar de app verschijnt onder **Producten → Services** in plaats van onder **Producten → Bronnen → Real User Monitoring**. Dit is de meest gemelde situatie, en de oorzaak is bijna altijd een andere sleutel dan een Browser- of Mobiel-sleutel, die een resource zonder clientattributen verstuurt. Alles wat een Browser- of Mobiel-sleutel verstuurt, wordt als RUM gearchiveerd; met elke andere sleutel archiveert OneUptime een batch alleen als RUM wanneer de resource een van deze meedraagt:
 
 | Soort | Attributen |
 | --- | --- |
 | Browser | `browser.platform`, `browser.language` of een niet-lege `browser.brands` |
 | Mobiel | `device.id` of `device.model.identifier`, of `device.manufacturer` op een resource zonder hostidentiteit (`host.name`, `host.id` of `k8s.node.name`) |
 
-Een `service.name` alleen maakt een backend-service aan. De OpenTelemetry-browser-SDK voegt geen `browser.*`-attributen toe, tenzij je de browser-resourcedetector toevoegt of ze zelf instelt: zie [Browserconfiguratie](/docs/rum/browser-setup).
+Met elke andere sleutel maakt een `service.name` alleen een backend-service aan. De OpenTelemetry-browser-SDK voegt geen `browser.*`-attributen toe, tenzij je de browser-resourcedetector toevoegt of ze zelf instelt: zie [Browserconfiguratie](/docs/rum/browser-setup).
 
 Om te zien wat je echt verstuurt, open je het OTLP-verzoek op het tabblad Netwerk en bekijk je de payload: `resourceSpans[0].resource.attributes` is de lijst die het bepaalt. Als er geen `browser.*`-attribuut is, voegt de SDK het niet toe, wat de documentatie ervan ook zegt.
 
@@ -127,7 +127,7 @@ De lege grafiek op het **Overzicht** van de applicatie zegt welk geval het is, e
 
 Uitzonderingen hebben een foutafhandelaar nodig, omdat de SDK onafgevangen fouten niet opvangt: [Onafgevangen fouten melden](/docs/rum/browser-setup#onafgevangen-fouten-melden) heeft de code. Een fout die een error boundary of een `try`/`catch` afhandelt, bereikt het venster nooit, dus leg hem vast waar je hem afhandelt, met `span.recordException`.
 
-Logs hebben een logpipeline nodig en code die logrecords schrijft, omdat een `LoggerProvider` op zichzelf niets verstuurt: [Logs en metrieken toevoegen](/docs/rum/browser-setup#logs-en-metrieken-toevoegen) heeft allebei. Bouw de pipeline met dezelfde `resource` als je traces, anders worden de logs onder een backend-service ingedeeld.
+Logs hebben een logpipeline nodig en code die logrecords schrijft, omdat een `LoggerProvider` op zichzelf niets verstuurt: [Logs en metrieken toevoegen](/docs/rum/browser-setup#logs-en-metrieken-toevoegen) heeft allebei. Bouw de pipeline met dezelfde `resource` als je traces, zodat de logs onder dezelfde applicatie worden ingedeeld.
 
 Als paginaladingen binnenkomen, laten de sleutel, de toegestane origins ervan en je Content Security Policy ook uitzonderingen en logs door, zolang de logexporter dezelfde sleutel en host gebruikt. Een foutafhandelaar die nog niets heeft opgevangen, verstuurt niets, precies zoals een die nooit is toegevoegd, dus gooi een testfout vanuit de console van de browser om de twee uit elkaar te houden:
 

@@ -2697,6 +2697,21 @@ describe("the Create monitor links' observed series", () => {
   });
 });
 
+/*
+ * The page's own reads of the queue's row. Its record line reads who created
+ * the queue and who last modified it once as well, in a read of its own
+ * (RecordActivityLine, #10290), which a tick does not repeat.
+ */
+type QueueRowReadsFunction = () => number;
+
+const queueRowReads: QueueRowReadsFunction = (): number => {
+  return getItemMock.mock.calls.filter((call: Array<unknown>): boolean => {
+    const request: { select?: Record<string, unknown> } | undefined =
+      call[0] as { select?: Record<string, unknown> } | undefined;
+    return request?.select?.["queueIdentifier"] === true;
+  }).length;
+};
+
 describe("the telemetry load", () => {
   test("a slow wider range never overwrites the newer one", async () => {
     getItemMock.mockResolvedValue(queueRow());
@@ -2759,7 +2774,7 @@ describe("the telemetry load", () => {
       mockAutoRefreshTick!();
       await Promise.resolve();
     });
-    expect(getItemMock).toHaveBeenCalledTimes(2);
+    expect(queueRowReads()).toBe(2);
     expect(requests.length).toBe(first);
 
     // Refresh is the reader's own: it replaces the running load.

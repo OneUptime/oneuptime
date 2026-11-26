@@ -91,7 +91,6 @@ const Harness: React.FunctionComponent<{
         setLogMonitor({ ...value });
       }}
       attributeKeys={["event.name", "event.device"]}
-      telemetryServices={[]}
     />
   );
 };

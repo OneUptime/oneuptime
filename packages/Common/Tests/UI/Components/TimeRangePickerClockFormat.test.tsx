@@ -449,20 +449,30 @@ describe("the picker never hand-rolls a date format again", () => {
    * file's own comments use to explain what went wrong, so a guard that reads
    * them would fail on a prose edit that changes no behaviour.
    */
-  const PICKER_SOURCE: string = fs
-    .readFileSync(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "UI",
-        "Components",
-        "Date",
-        "TimeRangePickerDropdown.tsx",
-      ),
-      "utf-8",
-    )
+  /*
+   * The picker and the module it names a range with (TimeRangeLabel, #10552),
+   * where the custom window's label is written.
+   */
+  const PICKER_SOURCE: string = [
+    "TimeRangePickerDropdown.tsx",
+    "TimeRangeLabel.ts",
+  ]
+    .map((file: string): string => {
+      return fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "UI",
+          "Components",
+          "Date",
+          file,
+        ),
+        "utf-8",
+      );
+    })
+    .join("\n")
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/\/\/.*$/gm, " ");
 

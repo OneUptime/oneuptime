@@ -52,6 +52,11 @@ export interface SubjectCodeFixRunInput {
    * it) - null when none resolved. Left out, it is decided here.
    */
   codeRepositoryId?: ObjectID | null | undefined;
+  /*
+   * The security case the fix is for, when a playbook's Fix With AI asked
+   * for it: the case keeps the pull request (#10347, #10370).
+   */
+  triggeredBySecurityCaseId?: ObjectID | undefined;
 }
 
 /*
@@ -382,6 +387,10 @@ export default class SubjectCodeFixRun {
 
     if (data.llmProviderId) {
       run.llmProviderId = data.llmProviderId;
+    }
+
+    if (data.triggeredBySecurityCaseId) {
+      run.triggeredBySecurityCaseId = data.triggeredBySecurityCaseId;
     }
 
     if (revalidateInvestigationSource) {

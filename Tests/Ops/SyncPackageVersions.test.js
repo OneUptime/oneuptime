@@ -259,6 +259,38 @@ describe("what it refuses to walk into", () => {
     }
   });
 
+  test("ignores an install moved aside, as one is to run the tests the way CI does", () => {
+    /*
+     * A package's node_modules renamed so its tests run with Common's and
+     * the App's packages alone: the commit hook ran the sync with it there,
+     * and rewrote the version of every package it holds.
+     */
+    const root = makeWorkspace("13.0.2");
+    const movedAside = [
+      writePackageJson(
+        root,
+        path.join("App", "FeatureSet", "Dashboard", "node_modules.aside", "react"),
+        { name: "react", version: "18.3.1" },
+      ),
+      writePackageJson(
+        root,
+        path.join("Common", "node_modules.off", "lodash"),
+        { name: "lodash", version: "4.17.21" },
+      ),
+    ];
+    // A folder that only contains the word is not an install.
+    const ours = writePackageJson(root, path.join("App", "my_node_modules_tool"), {
+      name: "tool",
+      version: "1.0.0",
+    });
+
+    run(root);
+
+    expect(readJson(movedAside[0]).version).toBe("18.3.1");
+    expect(readJson(movedAside[1]).version).toBe("4.17.21");
+    expect(readJson(ours).version).toBe("13.0.2");
+  });
+
   test("ignores .claude, so a nested agent worktree is not rewritten", () => {
     /*
      * The regression this entry was added for: agent worktrees are full

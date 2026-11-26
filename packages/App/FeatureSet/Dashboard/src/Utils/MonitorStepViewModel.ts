@@ -7,6 +7,7 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
+import { MonitorRequestBodyFormatUtil } from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
@@ -614,6 +615,11 @@ export default class MonitorStepViewModel {
   }
 
   private static getApiRows(data: MonitorStepType): Array<MonitorStepViewRow> {
+    // A text body is shown as it is written, never formatted as JSON (#10736).
+    const isTextBody: boolean = MonitorRequestBodyFormatUtil.isText(
+      data.requestBodyFormat,
+    );
+
     return compact([
       MonitorStepViewModel.getDestinationRow(
         data,
@@ -628,11 +634,24 @@ export default class MonitorStepViewModel {
         value: toText(data.requestType),
         placeholder: "No data entered",
       },
+      isTextBody
+        ? {
+            key: "requestBodyFormat",
+            title: "Request Body Format",
+            description: "The body is sent as text, exactly as written.",
+            valueType: MonitorStepViewValueType.Text,
+            value: "Text",
+            placeholder: "No data entered",
+            translateValue: true,
+          }
+        : null,
       {
         key: "requestBody",
         title: "Request Body",
         description: "Request Body to send, if any.",
-        valueType: MonitorStepViewValueType.JSON,
+        valueType: isTextBody
+          ? MonitorStepViewValueType.Code
+          : MonitorStepViewValueType.JSON,
         value: data.requestBody,
         placeholder: "No data entered",
       },

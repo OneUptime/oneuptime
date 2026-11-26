@@ -56,7 +56,7 @@ Rapporten tæller, hvad der blev oprettet og ikke overført, og viser hvert elem
 | --- | --- | --- |
 | Monitors | Monitorer | Fra en backup bliver hver monitor en monitor af samme type, med samme adresse, interval, timeout og de samme statuskoder, der tæller som oppe. Fra metriksiden overføres hver enkelt med en kontrol hvert femte minut: Tjek dem hver især efter importen. |
 
-- **HTTP(S)- og nøgleordsmonitorer** bliver webstedsmonitorer, eller API-monitorer, når de sender en anden metode, headers eller en JSON-body, med nøgleordet, hvor det skal være.
+- **HTTP(S)- og nøgleordsmonitorer** bliver webstedsmonitorer, eller API-monitorer, når de sender en anden metode, headers eller en body, med nøgleordet, hvor det skal være.
 - **JSON-forespørgselsmonitorer** bliver API-monitorer, uden forespørgslen: Tilføj den som kriterium i OneUptime.
 - **Ping-, port- og DNS-monitorer** bliver ping-, port- og DNS-monitorer.
 - **Push-monitorer** bliver monitorer for indgående anmodninger, som går ned, når der ikke er kommet en anmodning i intervallet og dets genforsøg. Hver får en ny adresse i OneUptime.

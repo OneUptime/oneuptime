@@ -1,3 +1,5 @@
+import { DELETED_BY_USER_ID_COLUMN } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809186905386-AddTelemetryIngestionTeamLabelBudgets";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import TelemetryIngestionTeamLabelBudget from "../../../../Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
@@ -137,6 +139,12 @@ describe("the team and label budgets migration", () => {
       .filter((column: string): boolean => {
         return !budget.isEntityColumn(column);
       })
+      .filter((column: string): boolean => {
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        return !RecordActorUtil.isColumn(column);
+      })
+      // Dropped from every table later (DropDeletedByUserColumns, #10469).
+      .concat([DELETED_BY_USER_ID_COLUMN])
       .sort();
 
     const created: Array<string> = Array.from(

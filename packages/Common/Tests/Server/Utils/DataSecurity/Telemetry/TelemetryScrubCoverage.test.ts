@@ -16,6 +16,9 @@ import DataSecurityCustomDataTypeService from "../../../../../Server/Services/Da
 import LogScrubRuleService from "../../../../../Server/Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../../../Server/Services/MetricPipelineRuleService";
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
+import Service from "../../../../../Models/DatabaseModels/Service";
+import ServiceService from "../../../../../Server/Services/ServiceService";
+import FindOneBy from "../../../../../Server/Types/Database/FindOneBy";
 import CreateBy from "../../../../../Server/Types/Database/CreateBy";
 import {
   buildMetricScrubFilters,
@@ -24,6 +27,9 @@ import {
   CoveringScrubRule,
   createScrubRuleForFinding,
   CreatedScrubRule,
+  planScrubItRule,
+  SCRUB_SERVICE_GONE,
+  ScrubItRule,
   DATA_SECURITY_SCRUB_RULE_NAME_PREFIX,
   DATA_TYPE_OF_SCRUB_PATTERN_TYPE,
   findCoveringScrubRule,
@@ -43,9 +49,11 @@ import {
   toCoveringMetricRule,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { validateMetricPipelineRuleFilters } from "../../../../../Server/Utils/MetricPipelineRuleValidation";
+import { getScrubRuleRegex } from "../../../../../Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
 import { validateScrubRule } from "../../../../../Server/Utils/ScrubRuleValidation";
 import {
   getScrubUnavailableReason,
+  ScrubTarget,
   TelemetryScrubUnavailableReason,
 } from "../../../../../Types/DataSecurity/TelemetryScrubTarget";
 import FilterCondition from "../../../../../Types/Filter/FilterCondition";
@@ -96,25 +104,6 @@ const APP_TELEMETRY_SERVICES: string = path.resolve(
   __dirname,
   "../../../../../../App/FeatureSet/Telemetry/Services",
 );
-
-function ingestSensitiveKeyRegex(fileName: string): RegExp {
-  const text: string = fs.readFileSync(
-    path.join(APP_TELEMETRY_SERVICES, fileName),
-    "utf8",
-  );
-  const declaration: string = "const SENSITIVE_KEY_REGEX: RegExp =";
-  const start: number = text.indexOf(declaration);
-
-  expect(start).toBeGreaterThanOrEqual(0);
-
-  const literalStart: number = text.indexOf("/", start + declaration.length);
-  const literal: string = text
-    .slice(literalStart, text.indexOf(";", literalStart))
-    .trim();
-  const lastSlash: number = literal.lastIndexOf("/");
-
-  return new RegExp(literal.slice(1, lastSlash), literal.slice(lastSlash + 1));
-}
 
 let ruleCount: number = 0;
 
@@ -179,6 +168,23 @@ function savedMetricRule(
   return saved;
 }
 
+// A service of the project as Scrub It reads it: checkout and payments, nothing else.
+function serviceNamed(id: string): Service | null {
+  const name: string | undefined = new Map<string, string>([
+    [CHECKOUT.toString().toLowerCase(), "checkout"],
+    [PAYMENTS.toString().toLowerCase(), "payments"],
+  ]).get(id.toLowerCase());
+
+  if (!name) {
+    return null;
+  }
+
+  const service: Service = new Service(new ObjectID(id));
+  service.name = name;
+
+  return service;
+}
+
 // A metric attribute finding of checkout's metrics.
 function metricFinding(
   location: string,
@@ -216,15 +222,29 @@ afterEach(() => {
 });
 
 describe("the sensitive-key pattern", () => {
-  test("is exactly the one both ingest engines read keys with", () => {
+  test("is exactly the one the ingest engines read keys with", () => {
+    // Both engines compile a rule through one step, in Common (#10366).
+    const compiled: ScrubRegExp | null = getScrubRuleRegex({
+      patternType: LogScrubPatternType.SensitiveKeys,
+    });
+
+    expect(compiled).not.toBeNull();
+    expect(INGEST_SENSITIVE_KEY_REGEX.source).toBe(compiled!.source);
+    expect(INGEST_SENSITIVE_KEY_REGEX.flags).toBe(compiled!.flags);
+  });
+
+  test("ingest keeps no copy of its own to drift from it", () => {
     for (const fileName of [
       "LogScrubRuleService.ts",
       "TraceScrubRuleService.ts",
     ]) {
-      const ingest: RegExp = ingestSensitiveKeyRegex(fileName);
+      const text: string = fs.readFileSync(
+        path.join(APP_TELEMETRY_SERVICES, fileName),
+        "utf8",
+      );
 
-      expect(INGEST_SENSITIVE_KEY_REGEX.source).toBe(ingest.source);
-      expect(INGEST_SENSITIVE_KEY_REGEX.flags).toBe(ingest.flags);
+      expect(text).not.toContain("const SENSITIVE_KEY_REGEX");
+      expect(text).toContain("compileScrubRule(rule)");
     }
   });
 });
@@ -359,7 +379,15 @@ describe("where a finding sits, as scrub rules see it", () => {
 });
 
 describe("a metric pipeline rule", () => {
+  // Scrub It's filter for an email address: the Email Address pattern type (#10934).
   const redactEmails: MetricPipelineRuleFilterCondition = {
+    checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+    attributeKey: "user.email",
+    conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+    value: "email",
+  };
+  // What it was before: the type's own pattern, frozen into the rule.
+  const frozenEmailPattern: MetricPipelineRuleFilterCondition = {
     checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
     attributeKey: "user.email",
     conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
@@ -510,7 +538,12 @@ describe("a metric pipeline rule", () => {
       ),
     ).toBe(false);
 
-    // A filter a person wrote never counts: it may let the data through.
+    /*
+     * A filter a person wrote never counts: it may let the data through. Nor
+     * does the frozen pattern a rule was made with before #10934, which
+     * leaves an address percent-encoded or in another script: the data
+     * migration moves such a rule to the pattern type.
+     */
     for (const filters of [
       [
         {
@@ -519,7 +552,17 @@ describe("a metric pipeline rule", () => {
           value: "user.logins",
         },
       ],
-      [{ ...redactEmails, value: "@acmecorp\\.io$" }],
+      [frozenEmailPattern],
+      [{ ...redactEmails, value: "phoneNumber" }],
+      [{ ...redactEmails, value: "ipAddress" }],
+      [{ ...redactEmails, attributeKey: "user.id" }],
+      [
+        {
+          ...redactEmails,
+          conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+          value: "@acmecorp\\.io$",
+        },
+      ],
       [
         redactEmails,
         {
@@ -543,10 +586,38 @@ describe("a metric pipeline rule", () => {
     }
   });
 
-  test("Scrub It's filter is the type's own pattern on the attribute's value, or none where no pattern finds the type", () => {
+  test("Scrub It's filter is the built-in Pattern Type for an IP address, an email address or a card, the type's own pattern for another, or none where no pattern finds the type", () => {
     expect(buildMetricScrubFilters("email-address", "user.email")).toEqual([
       redactEmails,
     ]);
+    expect(buildMetricScrubFilters("ip-address", "peer")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "peer",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: "ipAddress",
+      },
+    ]);
+    expect(buildMetricScrubFilters("credit-card-number", "card")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "card",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: "creditCard",
+      },
+    ]);
+    // The Phone Number and SSN patterns find less than the types' own do.
+    expect(buildMetricScrubFilters("phone-number", "caller")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "caller",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+        value: buildScrubPatternForDataType("phone-number"),
+      },
+    ]);
+    expect(buildMetricScrubFilters("us-ssn", "ssn")[0]?.conditionType).toBe(
+      MetricPipelineRuleFilterConditionType.MatchesRegex,
+    );
     // Found by the field's name, or one of the project's own: every value under the key.
     expect(buildMetricScrubFilters("person-name", "customer.name")).toEqual([]);
     expect(
@@ -556,11 +627,19 @@ describe("a metric pipeline rule", () => {
       ),
     ).toEqual([]);
     // Each runs at ingest: saved as a rule is checked.
-    expect(() => {
-      validateMetricPipelineRuleFilters(
-        buildMetricScrubFilters("github-token", "config.token"),
-      );
-    }).not.toThrow();
+    for (const dataTypeId of [
+      "github-token",
+      "ip-address",
+      "email-address",
+      "credit-card-number",
+      "phone-number",
+    ]) {
+      expect(() => {
+        validateMetricPipelineRuleFilters(
+          buildMetricScrubFilters(dataTypeId, "config.value"),
+        );
+      }).not.toThrow();
+    }
   });
 });
 
@@ -1221,6 +1300,14 @@ describe("Scrub It", () => {
     jest
       .spyOn(MetricPipelineRuleService, "findBy")
       .mockResolvedValue([] as never);
+    // The project's services, by the names a rule is given after them (#10433).
+    jest.spyOn(ServiceService, "findOneBy").mockImplementation((async (
+      findOneBy: FindOneBy<Service>,
+    ): Promise<Service | null> => {
+      return serviceNamed(
+        String((findOneBy.query as Record<string, unknown>)["_id"]),
+      );
+    }) as never);
     metricCreate = jest
       .spyOn(MetricPipelineRuleService, "create")
       .mockImplementation((async (
@@ -1432,6 +1519,7 @@ describe("Scrub It", () => {
   test("an email in a log body: the built-in email pattern on log bodies", async () => {
     const created: CreatedScrubRule = await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "email-address",
       location: "body",
@@ -1440,7 +1528,7 @@ describe("Scrub It", () => {
     expect(created).toEqual({
       signal: "log",
       scrubRuleId: "0192f1a0-0000-7000-8000-0000000d5101",
-      scrubRuleName: "Data Security: Email address in body",
+      scrubRuleName: "Data Security: Email address in log bodies of checkout",
     });
 
     const saved: LogScrubRule = createdLogRule();
@@ -1448,7 +1536,8 @@ describe("Scrub It", () => {
     expect(saved.projectId).toEqual(PROJECT_ID);
     expect(saved.patternType).toBe("email");
     expect(saved.fieldsToScrub).toBe("body");
-    expect(saved.scrubAction).toBe("redact");
+    // Personal data is masked, as a finding's samples are (#10366).
+    expect(saved.scrubAction).toBe("mask");
     expect(saved.isEnabled).toBe(true);
     expect(saved.description).toContain("Made by Data Security");
     expect(saved.description).toContain("from a finding");
@@ -1469,6 +1558,7 @@ describe("Scrub It", () => {
   test("a card in span attributes: the built-in card pattern, masked, on span attributes", async () => {
     const created: CreatedScrubRule = await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryTraces,
       dataTypeId: "credit-card-number",
       location: "attributes.payment.card",
@@ -1482,7 +1572,10 @@ describe("Scrub It", () => {
     expect(saved.patternType).toBe("creditCard");
     expect(saved.fieldsToScrub).toBe("attributes");
     expect(saved.scrubAction).toBe("mask");
-    expect(saved.name!.length).toBeLessThanOrEqual(50);
+    expect(saved.name).toBe(
+      "Data Security: Card number in span attributes of checkout",
+    );
+    expect(saved.name!.length).toBeLessThanOrEqual(100);
     expect(saved.name!.startsWith(DATA_SECURITY_SCRUB_RULE_NAME_PREFIX)).toBe(
       true,
     );
@@ -1499,6 +1592,7 @@ describe("Scrub It", () => {
   test("a GitHub token in a log attribute: a custom pattern ingest can scrub with", async () => {
     const created: CreatedScrubRule = await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "github-token",
       location: "attributes.config.github",
@@ -1558,6 +1652,7 @@ describe("Scrub It", () => {
   test("a secret under a sensitive key: a sensitive-keys rule", async () => {
     await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "github-token",
       location: "attributes.api_token",
@@ -1606,6 +1701,7 @@ describe("Scrub It", () => {
 
       const created: CreatedScrubRule = await createScrubRuleForFinding({
         projectId: PROJECT_ID,
+        serviceId: CHECKOUT,
         kind: DataStoreKind.TelemetryLogs,
         dataTypeId: EMPLOYEE,
         dataTypeName: "Staff number",
@@ -1613,7 +1709,7 @@ describe("Scrub It", () => {
       });
 
       expect(created.scrubRuleName).toBe(
-        "Data Security: Employee ID in attributes.api_token",
+        "Data Security: Employee ID in log attributes of checkout",
       );
       expect(createdLogRule().description).toContain("Employee ID");
       expect(JSON.stringify(createdLogRule())).not.toContain("custom:");
@@ -1625,6 +1721,7 @@ describe("Scrub It", () => {
 
       const created: CreatedScrubRule = await createScrubRuleForFinding({
         projectId: PROJECT_ID,
+        serviceId: CHECKOUT,
         kind: DataStoreKind.TelemetryTraces,
         dataTypeId: EMPLOYEE,
         dataTypeName: "Badge number",
@@ -1660,6 +1757,7 @@ describe("Scrub It", () => {
 
       await createScrubRuleForFinding({
         projectId: PROJECT_ID,
+        serviceId: CHECKOUT,
         kind: DataStoreKind.TelemetryLogs,
         dataTypeId: "github-token",
         location: "attributes.api_token",
@@ -1672,6 +1770,7 @@ describe("Scrub It", () => {
   test("a secret in a record's session.id: not a sensitive-keys rule, which keeps the record's own session id (#8924)", async () => {
     await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "github-token",
       location: "attributes.session.id",
@@ -1684,6 +1783,7 @@ describe("Scrub It", () => {
   test("a token in an exception message: a trace rule on events", async () => {
     await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryExceptions,
       dataTypeId: "json-web-token",
       location: "message",
@@ -1708,6 +1808,7 @@ describe("Scrub It", () => {
 
     const created: CreatedScrubRule = await createScrubRuleForFinding({
       projectId: PROJECT_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "email-address",
       location: "attributes.user.email",
@@ -1733,6 +1834,7 @@ describe("Scrub It", () => {
     await createScrubRuleForFinding({
       projectId: PROJECT_ID,
       userId: USER_ID,
+      serviceId: CHECKOUT,
       kind: DataStoreKind.TelemetryAiConversations,
       dataTypeId: "phone-number",
       location: "gen_ai.input.messages",
@@ -1807,5 +1909,174 @@ describe("Scrub It", () => {
 
     expect(logCreate).not.toHaveBeenCalled();
     expect(traceCreate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * WHOSE RECORDS SCRUB IT'S RULE CHANGES (#10433): the service the finding
+   * was seen in, and no other - or, for a RUM application's replays, which
+   * a rule cannot name, every service and app, said so.
+   */
+  describe("the service it is for", () => {
+    test("a log rule is its finding's service's, and its name and description say so", async () => {
+      const created: CreatedScrubRule = await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: "email-address",
+        location: "attributes.user.email",
+        serviceId: CHECKOUT,
+      });
+      const saved: LogScrubRule = createdLogRule();
+
+      expect(created.scrubRuleName).toBe(
+        "Data Security: Email address in log attributes of checkout",
+      );
+      expect(saved.serviceId?.toString()).toBe(CHECKOUT.toString());
+      expect(saved.description).toContain(
+        "It masks every email address in log attribute values from now on.",
+      );
+      expect(saved.description).toContain(
+        "It applies to the logs of checkout only: other services' logs are not changed.",
+      );
+      // Where it was found is said in the description, not taken for all it does.
+      expect(saved.description).toContain("attributes.user.email");
+    });
+
+    test("a trace rule too, for spans, exceptions and AI calls alike", async () => {
+      for (const [kind, location] of [
+        [DataStoreKind.TelemetryTraces, "attributes.user.email"],
+        [DataStoreKind.TelemetryExceptions, "message"],
+        [DataStoreKind.TelemetryAiConversations, "gen_ai.input.messages"],
+      ] as Array<[DataStoreKind, string]>) {
+        traceCreate.mockClear();
+
+        await createScrubRuleForFinding({
+          projectId: PROJECT_ID,
+          kind,
+          dataTypeId: "email-address",
+          location,
+          serviceId: PAYMENTS,
+        });
+
+        expect(createdTraceRule().serviceId?.toString()).toBe(
+          PAYMENTS.toString(),
+        );
+        expect(createdTraceRule().description).toContain(
+          "the spans of payments only",
+        );
+      }
+    });
+
+    test("a store kept without its service names it by its key", async () => {
+      await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: "email-address",
+        location: "body",
+        storeKey: `telemetry:${CHECKOUT.toString()}:Logs`,
+      });
+
+      expect(createdLogRule().serviceId?.toString()).toBe(CHECKOUT.toString());
+    });
+
+    test("a RUM application's replays: a rule for every service and app, which says so", async () => {
+      const created: CreatedScrubRule = await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetrySessionReplays,
+        dataTypeId: "email-address",
+        location: "logs.attributes.user.email",
+        storeKey:
+          "telemetry:0192f1a0-0000-7000-8000-0000000d5499:Session Replays",
+      });
+
+      expect(created.scrubRuleName).toBe(
+        "Data Security: Email address in log attributes",
+      );
+      expect(createdLogRule().serviceId).toBeUndefined();
+      expect(createdLogRule().description).toContain(
+        "It applies to the logs of every service and app in the project.",
+      );
+    });
+
+    test("a service that is gone gets no rule: one for every service would change what nobody found anything in", async () => {
+      for (const data of [
+        { serviceId: "0192f1a0-0000-7000-8000-0000000d5498" },
+        {},
+        { serviceId: "not-an-id" },
+      ]) {
+        await expect(
+          createScrubRuleForFinding({
+            projectId: PROJECT_ID,
+            kind: DataStoreKind.TelemetryLogs,
+            dataTypeId: "email-address",
+            location: "body",
+            ...data,
+          }),
+        ).rejects.toThrow(SCRUB_SERVICE_GONE);
+      }
+
+      expect(logCreate).not.toHaveBeenCalled();
+    });
+
+    test("a rule of another service does not cover the finding; one of its own, or of every service, does", async () => {
+      jest.spyOn(LogScrubRuleService, "findBy").mockResolvedValue([
+        savedLogRule({
+          _id: "0192f1a0-0000-7000-8000-0000000d5197",
+          name: "Payments' emails",
+          patternType: "email",
+          fieldsToScrub: "both",
+          serviceId: PAYMENTS,
+        }),
+      ] as never);
+
+      await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: "email-address",
+        location: "body",
+        serviceId: CHECKOUT,
+      });
+
+      // Payments' rule leaves checkout's logs as they are: a rule of checkout's is made.
+      expect(logCreate).toHaveBeenCalledTimes(1);
+
+      const covering: CreatedScrubRule = await createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryLogs,
+        dataTypeId: "email-address",
+        location: "body",
+        serviceId: PAYMENTS,
+      });
+
+      expect(covering.scrubRuleName).toBe("Payments' emails");
+      expect(logCreate).toHaveBeenCalledTimes(1);
+    });
+
+    test("the name and the plan are what the preview shows", async () => {
+      const rule: ScrubItRule = await planScrubItRule({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryTraces,
+        dataTypeId: "ip-address",
+        location: "attributes.client.address",
+        target: getScrubTarget(
+          DataStoreKind.TelemetryTraces,
+          "attributes.client.address",
+        ) as ScrubTarget & { signal: "log" | "trace" },
+        serviceId: CHECKOUT,
+      });
+
+      expect(rule).toEqual(
+        expect.objectContaining({
+          signal: "trace",
+          dataTypeName: "IP address",
+          name: "Data Security: IP address in span attributes of checkout",
+          scope: { serviceId: CHECKOUT, serviceName: "checkout" },
+          plan: {
+            patternType: "ipAddress",
+            scrubAction: "redact",
+            fieldsToScrub: "attributes",
+          },
+        }),
+      );
+    });
   });
 });

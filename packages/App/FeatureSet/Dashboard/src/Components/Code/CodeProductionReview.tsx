@@ -7,6 +7,10 @@ import {
   PRODUCTION_REVIEW_INCIDENTS_IN_ALL,
   PRODUCTION_REVIEW_MATCH_LABELS,
   PRODUCTION_REVIEW_SECTION_LABELS,
+  PRODUCTION_REVIEW_SENSITIVE_DATA_AI_NOTES,
+  PRODUCTION_REVIEW_SENSITIVE_DATA_COPY,
+  PRODUCTION_REVIEW_SENSITIVE_DATA_DROPPED,
+  PRODUCTION_REVIEW_SENSITIVE_DATA_MORE,
   PRODUCTION_REVIEW_SPANS_LAST_HOUR,
   PRODUCTION_REVIEW_WHERE_LABELS,
   ProductionReviewProviderLine,
@@ -50,13 +54,27 @@ import {
   ProductionReviewServiceJSON,
   ProductionReviewUtil,
 } from "Common/Types/CodeRepository/ProductionReview";
+import {
+  ProductionReviewLeakHeldBeforeJSON,
+  ProductionReviewLeakJSON,
+  ProductionReviewLeakProductionJSON,
+  ProductionReviewSensitiveDataJSON,
+  ProductionReviewSensitiveDataUtil,
+} from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
+import {
+  DataSecurityCheckInfo,
+  getDataSecurityCheck,
+} from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { toTracesExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalScope";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
@@ -407,7 +425,12 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const report: ProductionReviewReport = props.report;
-  const hasSignal: boolean = ProductionReviewUtil.hasSignal(report);
+  /*
+   * What production says of the change: the Sensitive data section above
+   * it is the diff's own, so "nothing in production" is said beside it.
+   */
+  const hasProductionSignal: boolean =
+    ProductionReviewUtil.hasProductionSignal(report);
   const notableIncidents: Array<ProductionReviewIncidentJSON> =
     ProductionReviewUtil.getNotableIncidents(report.incidents);
 
@@ -1300,6 +1323,314 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * The Sensitive data section (#10376): what the change writes of
+   * sensitive data to telemetry, leaves open in a store or adds a column
+   * for, read from the diff - first, as it is what the author can fix
+   * before anything merges. Each point is named by the Data Security check
+   * it is the early form of, with where it is, what kind of data, whether
+   * it fails the check, the sentence the rules or OneUptime AI wrote, what
+   * production already knows of it (only for who may read Data Security:
+   * the server leaves it out for anyone else), the fix and the change.
+   */
+  const renderSensitiveData: () => ReactElement = (): ReactElement => {
+    const section: ProductionReviewSensitiveDataJSON | undefined =
+      report.sensitiveData;
+    const points: Array<ProductionReviewLeakJSON> =
+      ProductionReviewSensitiveDataUtil.getPoints(section);
+
+    if (!section || points.length === 0) {
+      return <></>;
+    }
+
+    const notes: Array<string> = [];
+
+    if (section.moreCount > 0) {
+      notes.push(
+        translator.translatePlural(
+          PRODUCTION_REVIEW_SENSITIVE_DATA_MORE,
+          section.moreCount,
+        ),
+      );
+    }
+
+    if (section.droppedCount > 0) {
+      notes.push(
+        translator.translatePlural(
+          PRODUCTION_REVIEW_SENSITIVE_DATA_DROPPED,
+          section.droppedCount,
+        ),
+      );
+    }
+
+    notes.push(
+      section.aiNote
+        ? text(PRODUCTION_REVIEW_SENSITIVE_DATA_AI_NOTES[section.aiNote])
+        : text(
+            section.isAiRead
+              ? PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.byAi
+              : PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.byRules,
+          ),
+    );
+
+    return (
+      <ReviewSection
+        title={text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.title)}
+        window={text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.window)}
+        dataTestId="production-review-sensitive-data"
+      >
+        {points.map((point: ProductionReviewLeakJSON) => {
+          return renderSensitiveDataPoint(point);
+        })}
+        <li
+          className={`${ROW_CLASS_NAME} text-xs text-gray-500`}
+          data-testid="production-review-sensitive-data-notes"
+        >
+          {notes.map((note: string) => {
+            return <p key={note}>{note}</p>;
+          })}
+        </li>
+      </ReviewSection>
+    );
+  };
+
+  // A sentence the rules or OneUptime AI wrote, its code drawn as code.
+  const renderWithCode: (sentence: string) => Array<ReactElement> = (
+    sentence: string,
+  ): Array<ReactElement> => {
+    return splitPointText(sentence).map(
+      (part: { text: string; isCode: boolean }, index: number) => {
+        return part.isCode ? (
+          <CodeName key={index}>{part.text}</CodeName>
+        ) : (
+          <React.Fragment key={index}>{part.text}</React.Fragment>
+        );
+      },
+    );
+  };
+
+  const renderSensitiveDataPoint: (
+    point: ProductionReviewLeakJSON,
+  ) => ReactElement = (point: ProductionReviewLeakJSON): ReactElement => {
+    const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
+      point.checkId,
+    );
+    const name: string = check
+      ? translator.translateText(check.title) || check.title
+      : point.checkId;
+    const kinds: string = point.dataTypeNames
+      .slice(0, 2)
+      .map((typeName: string): string => {
+        return translator.translateText(typeName) || typeName;
+      })
+      .join(getInlineSeparator(translator.language));
+
+    return (
+      <li
+        key={point.key}
+        data-testid="production-review-sensitive-data-point"
+        data-fails-check={point.failsCheck ? "true" : "false"}
+        className={ROW_CLASS_NAME}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
+              {name}
+            </span>
+            {point.failsCheck ? (
+              <Badge
+                text={text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.failsCheck)}
+                tone="red"
+                dataTestId="production-review-sensitive-data-fails-check"
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+          <span className="flex-shrink-0 text-xs text-gray-500">
+            {translator.translateText(point.severity) || point.severity}
+          </span>
+        </div>
+        <Facts
+          items={[
+            fact(
+              "at",
+              <TranslatedSentence
+                template={PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.atLine}
+                slots={{
+                  path: <CodeName>{point.path}</CodeName>,
+                  line: translator.formatNumber(point.line),
+                }}
+              />,
+            ),
+            kinds ? fact("kinds", kinds) : null,
+            point.where
+              ? fact("where", <CodeName>{point.where}</CodeName>)
+              : null,
+          ]}
+        />
+        <p className="mt-2 text-sm leading-6 text-gray-700 [overflow-wrap:anywhere]">
+          {renderWithCode(point.text)}
+        </p>
+        {point.production ? (
+          renderSensitiveDataProduction(point.production)
+        ) : (
+          <></>
+        )}
+        <p className="mt-2 text-sm leading-6 text-gray-700 [overflow-wrap:anywhere]">
+          <span className="font-medium text-gray-900">
+            {text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.fix)}
+          </span>{" "}
+          {renderWithCode(point.fix)}
+        </p>
+        {point.suggestion ? (
+          <div className="mt-2" data-testid="production-review-suggestion">
+            <p className="text-xs font-medium text-gray-500">
+              {text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.suggestedChange)}
+            </p>
+            <pre
+              dir="ltr"
+              className="mt-1 overflow-x-auto rounded-md border border-gray-200 bg-gray-50 p-2 font-mono text-xs leading-5"
+            >
+              {point.suggestion.original.map((line: string, index: number) => {
+                return (
+                  <div key={`old-${index}`} className="text-red-700">
+                    {`- ${line}`}
+                  </div>
+                );
+              })}
+              {point.suggestion.replacement.map(
+                (line: string, index: number) => {
+                  return (
+                    <div key={`new-${index}`} className="text-emerald-700">
+                      {`+ ${line}`}
+                    </div>
+                  );
+                },
+              )}
+            </pre>
+          </div>
+        ) : (
+          <></>
+        )}
+      </li>
+    );
+  };
+
+  // What production knows of a point: never on a public repository's comment.
+  const renderSensitiveDataProduction: (
+    production: ProductionReviewLeakProductionJSON,
+  ) => ReactElement = (
+    production: ProductionReviewLeakProductionJSON,
+  ): ReactElement => {
+    const held: Array<ProductionReviewLeakHeldBeforeJSON> =
+      production.heldBefore || [];
+
+    return (
+      <div
+        data-testid="production-review-sensitive-data-production"
+        className="mt-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+      >
+        {held.length > 0 ? (
+          <div>
+            <p className="font-medium">
+              {text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.heldBefore)}
+            </p>
+            <ul className="mt-1 space-y-1">
+              {held.map(
+                (place: ProductionReviewLeakHeldBeforeJSON, index: number) => {
+                  return (
+                    <li key={`${place.serviceId}-${place.location}-${index}`}>
+                      <CodeMetaList
+                        className="text-xs text-amber-900"
+                        items={[
+                          fact(
+                            "service",
+                            <RowName
+                              route={recordRoute(
+                                PageMap.SERVICE_VIEW,
+                                place.serviceId,
+                              )}
+                            >
+                              <span className="font-medium">
+                                {place.serviceName}
+                              </span>
+                            </RowName>,
+                          ),
+                          fact(
+                            "kind",
+                            translator.translateText(place.storeKind) ||
+                              place.storeKind,
+                          ),
+                          fact(
+                            "location",
+                            <CodeName>{place.location}</CodeName>,
+                          ),
+                          fact(
+                            "type",
+                            translator.translateText(place.dataTypeName) ||
+                              place.dataTypeName,
+                          ),
+                          fact("seen", <CodeTimeAgo date={place.lastSeenAt} />),
+                        ]}
+                      />
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : (
+          <></>
+        )}
+        {production.maskedAtIngestBy !== undefined ? (
+          <p>
+            {production.maskedAtIngestBy ? (
+              <TranslatedSentence
+                template={PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.maskedBy}
+                slots={{
+                  rule: (
+                    <span className="font-medium">
+                      {production.maskedAtIngestBy}
+                    </span>
+                  ),
+                }}
+              />
+            ) : (
+              text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.masked)
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+        {production.store ? (
+          <p>
+            <TranslatedSentence
+              template={PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.store}
+              slots={{
+                store: (
+                  <RowName
+                    route={recordRoute(
+                      PageMap.DATA_SECURITY_STORE_VIEW,
+                      production.store.dataStoreId,
+                    )}
+                  >
+                    <span className="font-medium">{production.store.name}</span>
+                  </RowName>
+                ),
+                sensitivity:
+                  translator.translateText(production.store.sensitivity) ||
+                  production.store.sensitivity,
+              }}
+            />
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
+  /*
    * Above the findings, so no one reads "nothing found" without knowing
    * what was not read.
    */
@@ -1342,11 +1673,12 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="production-review" className="space-y-4">
+      {renderSensitiveData()}
       {renderPoints()}
       {renderServices()}
       {renderUnread()}
 
-      {hasSignal ? (
+      {hasProductionSignal ? (
         <>
           {renderData()}
           {renderExceptions()}

@@ -7,6 +7,9 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import * as SecurityEventAlerting from "../../../../Server/Utils/SecurityEvent/SecurityEventAlerting";
+import * as DataSecurityJobs from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import Project from "../../../../Models/DatabaseModels/Project";
 import DataSecurityIssueFeedService from "../../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../../Server/Services/DataSecurityIssueService";
 import DataStoreOwnerTeamService from "../../../../Server/Services/DataStoreOwnerTeamService";
@@ -25,6 +28,7 @@ import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetecti
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import URL from "../../../../Types/API/URL";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import { Blue500, Red500 } from "../../../../Types/BrandColors";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -73,6 +77,8 @@ interface OwnerFixture {
   teamsByStore: Map<string, Array<ObjectID>>;
   membersByTeam: Map<string, Array<{ userId: ObjectID; accepted: boolean }>>;
   users: Array<User>;
+  // People only invited to the project: not members until they accept (#10697).
+  invited: Set<string>;
 }
 
 let owners: OwnerFixture;
@@ -94,7 +100,9 @@ let issueLinkSpy: jest.SpyInstance;
 let ownerUsersSpy: jest.SpyInstance;
 let teamMembersSpy: jest.SpyInstance;
 let usersSpy: jest.SpyInstance;
+let projectMembersSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
+let exposureSpy: jest.SpyInstance;
 
 function userOf(name: string, email?: string): User {
   const user: User = new User(ObjectID.generate());
@@ -114,6 +122,7 @@ beforeEach(() => {
     teamsByStore: new Map(),
     membersByTeam: new Map(),
     users: [],
+    invited: new Set(),
   };
   setting = new DataSecuritySetting();
   setting.projectId = PROJECT_ID;
@@ -208,6 +217,9 @@ beforeEach(() => {
   notifiedSpy = jest
     .spyOn(DataSecurityIssueService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  exposureSpy = jest
+    .spyOn(DataSecurityJobs, "queueDataSecurityExposureAssessment")
+    .mockResolvedValue(true);
 
   ownerUsersSpy = jest
     .spyOn(DataStoreOwnerUserService, "findBy")
@@ -277,6 +289,15 @@ beforeEach(() => {
 
       return owners.users.filter((user: User) => {
         return ids.includes(user.id!.toString());
+      });
+    }) as never);
+
+  // Who has joined the project: everyone the fixture names but its invitees.
+  projectMembersSpy = jest
+    .spyOn(TeamMemberService, "filterUsersToProjectMembers")
+    .mockImplementation((async (data: { users: Array<User> }) => {
+      return data.users.filter((user: User): boolean => {
+        return !owners.invited.has(user.id!.toString());
       });
     }) as never);
 
@@ -906,6 +927,216 @@ describe("onIssuesOpened: the issue links to its security case", () => {
   });
 });
 
+/*
+ * A Critical exposure of a store with Restricted or Confidential data has
+ * its case assessed on its own (#10377): one queued job per case, once the
+ * issue is linked to it. Any other case about a store is assessed when a
+ * person asks, so nothing is queued for it.
+ */
+describe("onIssuesOpened: an exposure's case is assessed", () => {
+  function inCase(
+    issues: Array<OpenedIssueForIntegrations>,
+    caseId: ObjectID,
+  ): void {
+    for (const issue of issues) {
+      const detection: SecurityDetection = new SecurityDetection();
+      detection.fingerprint = `data-security-issue:${issue.issueId.toString()}`;
+      detection.securityCaseId = caseId;
+      detectionRows.push(detection);
+    }
+  }
+
+  function queued(): Array<{
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    dataSecurityIssueId: ObjectID;
+  }> {
+    return exposureSpy.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as {
+        projectId: ObjectID;
+        securityCaseId: ObjectID;
+        dataSecurityIssueId: ObjectID;
+      };
+    });
+  }
+
+  test("a Critical public bucket of Restricted data has its case assessed: one job, with the case and the issue", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      sensitivity: DataSensitivity.Restricted,
+    });
+    const caseId: ObjectID = ObjectID.generate();
+
+    inCase([issue], caseId);
+    await opened([issue]);
+
+    expect(queued()).toEqual([
+      {
+        projectId: PROJECT_ID,
+        securityCaseId: caseId,
+        dataSecurityIssueId: issue.issueId,
+      },
+    ]);
+  });
+
+  test("Confidential data is assessed on its own too", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      sensitivity: DataSensitivity.Confidential,
+      checkId: "shared-with-external-accounts",
+      title: "Shared with accounts outside your organization",
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(1);
+  });
+
+  test.each([
+    "public-read",
+    "public-write",
+    "snapshot-public",
+    "snapshot-shared-externally",
+    "shared-with-external-accounts",
+  ])(
+    "the exposure check %s is assessed on its own",
+    async (checkId: string) => {
+      const issue: OpenedIssueForIntegrations = issueOf({
+        severity: SecuritySeverity.Critical,
+        checkId,
+      });
+
+      inCase([issue], ObjectID.generate());
+      await opened([issue]);
+
+      expect(queued()).toHaveLength(1);
+    },
+  );
+
+  test("the website images bucket - Public data, open to anyone - gets no assessment of its own", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeName: "website-images",
+      sensitivity: DataSensitivity.Public,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+    // Its case still opens and the issue still links to it.
+    expect(casesSpy).toHaveBeenCalledTimes(1);
+    expect(notifiedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("Internal data gets no assessment of its own", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      sensitivity: DataSensitivity.Internal,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("a Critical issue that is not an exposure gets no assessment of its own", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      checkId: "encryption-at-rest",
+      title: "Not encrypted at rest",
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("a High exposure opens no case, so nothing is assessed", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(casesSpy).not.toHaveBeenCalled();
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("two exposures in one case queue one job; another case gets its own", async () => {
+    const publicRead: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const publicWrite: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      checkId: "public-write",
+      title: "Anyone on the internet can write to it",
+    });
+    const elsewhere: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeId: STORE_B,
+      storeName: "payments-db",
+    });
+    const caseA: ObjectID = ObjectID.generate();
+    const caseB: ObjectID = ObjectID.generate();
+
+    inCase([publicRead, publicWrite], caseA);
+    inCase([elsewhere], caseB);
+    await opened([publicRead, publicWrite, elsewhere]);
+
+    expect(
+      queued().map(
+        (job: { securityCaseId: ObjectID; dataSecurityIssueId: ObjectID }) => {
+          return [
+            job.securityCaseId.toString(),
+            job.dataSecurityIssueId.toString(),
+          ];
+        },
+      ),
+    ).toEqual([
+      [caseA.toString(), publicRead.issueId.toString()],
+      [caseB.toString(), elsewhere.issueId.toString()],
+    ]);
+  });
+
+  test("an exposure whose case is not found is not assessed", async () => {
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("with cases off, nothing is assessed", async () => {
+    setting.openCasesForCriticalIssues = false;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("a job that cannot be queued leaves the rest as it was: the case note still goes", async () => {
+    exposureSpy.mockResolvedValue(false);
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(1);
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.SecurityCaseOpened),
+    ).toHaveLength(1);
+  });
+});
+
 describe("onIssuesOpened: incidents", () => {
   test("incidents are off unless the project turns them on", async () => {
     await opened([issueOf({ severity: SecuritySeverity.Critical })]);
@@ -1312,6 +1543,74 @@ describe("onIssuesOpened: the store's owners", () => {
     ]);
   });
 
+  /*
+   * An owner only invited to the project - a direct owner row may name one
+   * (a pending membership is accepted for it) - hears nothing of the
+   * project's data until they join (#10697), whether a name was typed with
+   * their invitation or not, as owner-added notices tell accepted members
+   * only. A member is emailed as ever, with a name or none.
+   */
+  test("an owner only invited is not emailed, with a name typed for them or none; a member with no name is", async () => {
+    const ada: User = userOf("Ada from Legal", "ada@acme.io");
+    const bea: User = userOf("", "bea@acme.io");
+    const carl: User = userOf("", "carl@acme.io");
+    owners.invited = new Set([ada.id!.toString(), bea.id!.toString()]);
+    ownedBy(STORE_A, ada, bea, carl);
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+
+    await opened([issue]);
+
+    expect(
+      mails().map((mail: SentMail): string => {
+        return mail.toEmail;
+      }),
+    ).toEqual(["carl@acme.io"]);
+    // Asked of the project, about every owner the store has.
+    expect(projectMembersSpy).toHaveBeenCalledTimes(1);
+
+    const asked: { projectId: ObjectID; users: Array<User> } = projectMembersSpy
+      .mock.calls[0]![0] as never;
+
+    expect(asked.projectId).toEqual(PROJECT_ID);
+    expect(
+      asked.users
+        .map((user: User): string => {
+          return user.id!.toString();
+        })
+        .sort(),
+    ).toEqual(
+      [ada.id!.toString(), bea.id!.toString(), carl.id!.toString()].sort(),
+    );
+    // The timeline counts who was told: the one member.
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.OwnersNotified).map(
+        (feed: JSONObject): string => {
+          return String(feed["feedInfoInMarkdown"]);
+        },
+      ),
+    ).toEqual(["The store's owner was emailed about this issue."]);
+  });
+
+  test("a store whose owners are all only invited emails nobody, and its issue is not marked notified", async () => {
+    const ada: User = userOf("Ada from Legal", "ada@acme.io");
+    owners.invited = new Set([ada.id!.toString()]);
+    ownedBy(STORE_A, ada);
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+
+    await opened([issue]);
+
+    expect(mails()).toEqual([]);
+    expect(notifiedSpy).not.toHaveBeenCalledWith({
+      id: issue.issueId,
+      data: { isOwnerNotified: true },
+    });
+    expect(feedsOf(DataSecurityIssueFeedEventType.OwnersNotified)).toEqual([]);
+  });
+
   test("each store's owners hear of their store's issues only", async () => {
     ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
     ownedBy(STORE_B, userOf("Frank Owner", "frank@acme.io"));
@@ -1546,5 +1845,160 @@ describe("getOwnerUsers", () => {
     expect(await DataSecurityIntegrations.getOwnerUsers(STORE_A)).toEqual([]);
     expect(teamMembersSpy).not.toHaveBeenCalled();
     expect(usersSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * OneUptime AI's work on what opened (#10364): one queued job per issue
+ * while Enable AI and "Work on new Data Security issues" are on - and with
+ * either off, nothing queued and every integration as it always was.
+ */
+describe("onIssuesOpened: OneUptime AI's work", () => {
+  let projectSpy: jest.SpyInstance;
+  let queueSpy: jest.SpyInstance;
+
+  function projectWith(switches: Partial<Project>): void {
+    projectSpy.mockResolvedValue({
+      id: PROJECT_ID,
+      enableAi: true,
+      enableAutomaticDataSecurityAi: true,
+      ...switches,
+    } as unknown as Project);
+  }
+
+  beforeEach(() => {
+    projectSpy = jest.spyOn(ProjectService, "findOneById");
+    queueSpy = jest
+      .spyOn(DataSecurityJobs, "queueDataSecurityAiEvaluation")
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString(DASHBOARD));
+  });
+
+  /*
+   * While it works on new issues, the owners' email waits for its analysis
+   * (#10369): one held notice per store, sent by DataSecurityOwnerNotice
+   * (its own tests) - and nothing now.
+   */
+  test("while it works on new issues, the owners' email waits for its analysis: one held notice per store, and nothing sent now", async () => {
+    projectWith({});
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+    ownedBy(STORE_B, userOf("Bob Owner", "bob@acme.io"));
+    const heldSpy: jest.SpyInstance = jest
+      .spyOn(DataSecurityJobs, "queueDataSecurityOwnerNotice")
+      .mockResolvedValue(true);
+    const first: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const second: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+    const elsewhere: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeId: STORE_B,
+    });
+
+    await opened([first, second, elsewhere]);
+    await settle();
+
+    expect(mails()).toHaveLength(0);
+    expect(
+      heldSpy.mock.calls.map((call: Array<unknown>): Array<string> => {
+        const notice: DataSecurityJobs.HeldOwnerNotice =
+          call[0] as DataSecurityJobs.HeldOwnerNotice;
+
+        expect(notice.projectId).toEqual(PROJECT_ID);
+        expect(notice.attempt).toBe(1);
+
+        return [
+          notice.dataStoreId.toString(),
+          ...notice.issueIds.map((issueId: ObjectID): string => {
+            return issueId.toString();
+          }),
+        ];
+      }),
+    ).toEqual([
+      [STORE_A.toString(), first.issueId.toString(), second.issueId.toString()],
+      [STORE_B.toString(), elsewhere.issueId.toString()],
+    ]);
+    // OneUptime AI's work is queued all the same.
+    expect(queueSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test("an owners' email that cannot be held goes now, and says where OneUptime AI's proposals wait", async () => {
+    projectWith({});
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+    jest
+      .spyOn(DataSecurityJobs, "queueDataSecurityOwnerNotice")
+      .mockResolvedValue(false);
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+    await settle();
+
+    expect(mails()).toHaveLength(1);
+    expect(mails()[0]!.message).toContain(
+      "OneUptime AI looks at new issues as your AI rules allow.",
+    );
+    expect(mails()[0]!.message).toContain(
+      `${DASHBOARD}/${PROJECT_ID.toString()}/data-security/ai`,
+    );
+  });
+
+  test("queues one job per issue that opened, while both switches are on", async () => {
+    projectWith({});
+    const critical: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const low: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Low,
+    });
+
+    await opened([critical, low]);
+
+    expect(queueSpy.mock.calls).toEqual([
+      [{ projectId: PROJECT_ID, dataSecurityIssueId: critical.issueId }],
+      [{ projectId: PROJECT_ID, dataSecurityIssueId: low.issueId }],
+    ]);
+  });
+
+  test.each([
+    ["Enable AI is off", { enableAi: false }],
+    [
+      "Work on new Data Security issues is off",
+      { enableAutomaticDataSecurityAi: false },
+    ],
+  ])(
+    "%s: nothing is queued, and every integration runs as it always did",
+    async (_name: string, switches: Partial<Project>) => {
+      projectWith(switches);
+      ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+
+      await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+      await settle();
+
+      expect(queueSpy).not.toHaveBeenCalled();
+      expect(casesSpy).toHaveBeenCalledTimes(1);
+      expect(mails()).toHaveLength(1);
+      // The owners' email is as it always was: no word of OneUptime AI.
+      expect(mails()[0]!.message).not.toContain("OneUptime AI");
+    },
+  );
+
+  test("a project that cannot be read queues nothing, and the integrations still ran", async () => {
+    projectSpy.mockRejectedValue(new Error("the database went away"));
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(queueSpy).not.toHaveBeenCalled();
+    expect(casesSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  test("with nothing opened, the project is not even read", async () => {
+    await opened([]);
+
+    expect(projectSpy).not.toHaveBeenCalled();
+    expect(queueSpy).not.toHaveBeenCalled();
   });
 });

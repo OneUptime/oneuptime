@@ -51,7 +51,9 @@ flowchart TB
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
 | **Genehmigungen** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
 | **Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
+| **Automatische Reaktion** | Playbooks | Die Richtlinien, die eine angreifende Adresse bei der Erkennung mit einer Challenge belegen oder sperren, jede mit ihrem Testlauf und ihren Leitplanken |
 | **Sperrliste** | Playbooks | Die Adressen, die Ihr Projekt sperrt, bis wann, und wo jede Sperre durchgesetzt wird |
+| **Sperrlisten-Feeds** | Playbooks | Die geheimen URLs, von denen Ihre Firewalls und Proxys die Sperrliste lesen, und ihre Abrufe |
 | **Geschützte Entitäten** | Playbooks | Die Benutzer, Hosts und Adressen, die kein Playbook eindämmt und keine Sperre berührt |
 | **Einstellungen** | KI | Ob OneUptime AI jeden neuen Fall triagiert |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
@@ -131,6 +133,7 @@ Der Endpunkt antwortet mit `200`, sobald die Ereignisse in der Warteschlange ste
 Nennen Sie das Format mit `?format=`, mit dem Header `x-oneuptime-security-event-format` oder mit einem Feld `"format"` auf oberster Ebene. Lassen Sie es weg, wird das Format jedes Ereignisses einzeln ermittelt, sodass ein Webhook Erkennungen und rohe Ereignisse mischen kann.
 
 - Der Body kann ein Ereignis sein, ein Array von Ereignissen oder `{ "events": [...] }`.
+- Ein Batch kann mit gzip komprimiert und mit `Content-Encoding: gzip` gesendet werden: Er wird genauso gelesen wie derselbe Batch unkomprimiert. Die Ausgabe `http` von Fluent Bit komprimiert mit `compress gzip`, der Sink `http` von Vector mit `compression = "gzip"` und die Ausgabe `http` von Logstash mit `http_compression => true`. Komprimiert wird nur JSON gelesen: Ein komprimierter Body jedes anderen Typs wird mit `400` abgelehnt.
 - Der Header `x-oneuptime-service-name` nennt den Telemetrie-Dienst, zu dem die Ereignisse gehören. Ohne ihn gehören sie zu dem Dienst, der nach Produkt oder Anbieter des ersten Ereignisses benannt ist, oder zu `Security Events`.
 - Nichts geht verloren, weil es sich nicht zuordnen ließ: Jedes Feld der Quelle landet in den Attributen des Ereignisses.
 
@@ -172,6 +175,7 @@ Um Sicherheitslogs zu senden, die Sie schon sammeln, etwa von auditd, syslog ode
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -183,7 +187,7 @@ Die Seite **Einrichtungsanleitung**, unter **Verbindungen**, hat diese Snippets 
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
-Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag, jeder Webangriff und jede Anfrage nach einer sensiblen Datei darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
 
 Jede Art erreicht OneUptime als gewöhnliche Logs:
 
@@ -234,6 +238,16 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 - Mehr bringt der Lesevorgang des Kontos nicht: Datenereignisse, Data Access-Logs und die Logs von Microsoft Entra ID brauchen weiterhin **Ihre Protokolle** oder eine [Verbindung](/docs/integrations/microsoft-entra-id).
 - Jedes Ereignis nennt die Cloud-Ressourcen, um die es in seinem Eintrag geht, mit ihren eigenen IDs - einem ARN, einer Azure-Ressourcen-ID, einem Ressourcennamen von Google Cloud -, daher erscheint es auf der Seite **Sicherheitsereignisse** jeder dieser Ressourcen und auf der einer Serverless-Funktion, sobald ihre Telemetrie `cloud.account.id` und `cloud.region` setzt.
 
+### Die eigenen Sonden von OneUptime in Ihren Netzwerk-Flows
+
+Schalten Sie **Netzwerk-Flows** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann werden die Flows, die Ihre Netzwerkgeräte exportieren, auf Port-Scans, Netzwerk-Sweeps, Datenverkehr mit bekannt bösartigen Adressen und große Übertragungen nach außen gelesen. Die eigene Arbeit einer Sonde sieht dort wie ein Scan aus: Wer 40 Geräte über SNMP abfragt, erreicht alle fünf Minuten Port 161 auf 40 Hosts. Deshalb wird Datenverkehr einer der eigenen Sonden von OneUptime, der genau das ist, wofür die Sonde eingerichtet ist, beiseitegelegt:
+
+- die Netzwerkgeräte, die sie abfragt, per Ping und per SNMP auf ihrem Port;
+- der Bereich jedes ihrer Erkennungsscans, solange der Scan läuft;
+- die Hosts und Ports, die ihre Monitore prüfen.
+
+Er wird als informatives Ereignis `oneuptime-probe-traffic` aufbewahrt, das die Sonde nennt, und keine Regel liest es. **Netzwerk-Flows** zeigt, wie viel am letzten Tag beiseitegelegt wurde, mit **Anzeigen**. Alles andere von der Adresse einer Sonde wird gezählt wie jeder andere Datenverkehr, und ein Sweep oder Scan über die Arbeit der Sonde hinaus wird gemeldet, mit dem Namen der Sonde. Eine Sonde wird an der Adresse erkannt, von der aus sie sich meldet, und an den Adressen ihrer eigenen Netzwerkschnittstellen, die sie bei jeder Meldung auflistet.
+
 ### Ein Sicherheitsprodukt verbinden
 
 **Verbindungen** fragt ein Sicherheitsprodukt für Sie ab und importiert seine neuen Datensätze als Sicherheitsereignisse. Eine Verbindung enthält die Einstellungen des Produkts und verschlüsselte Zugangsdaten; ein Worker fragt sie in dem Intervall ab, das Sie festlegen, und überspringt bereits importierte Datensätze.
@@ -250,6 +264,7 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 | Okta System Log | Anmelde-, MFA-, Konto- und Richtlinienereignisse | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Anmeldungen, Verzeichnisänderungen und Risikoerkennungen, auf Wunsch fehlgeschlagene Hintergrund- und App-Anmeldungen, und aus dem Microsoft 365-Audit-Protokoll Weiterleitungen von E-Mails, Freigaben und Phishing-Urteile | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Anmeldungen, die eigenen Erkennungen von Google, Admin-Änderungen und App-Freigaben, und Freigaben in Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Was die Firewall am Edge blockiert, mit einer Challenge geprüft und protokolliert hat, als HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Die eigenen Warnungen des Produkts ab der Stufe, die in **Fälle eröffnen ab** eingestellt ist (**Hoch und höher**, sofern Sie keine andere Stufe wählen, oder **Nie**), eröffnen [Fälle](/docs/telemetry/security-cases), gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es jeweils geht.
 - Eine Verbindung liest Datensätze nach dem Zeitpunkt, zu dem das Produkt sie erstellt hat, nicht nach der Zeit der Aktivität, die sie beschreiben. Eine SIEM-Regel, die stündlich läuft, erstellt Erkennungen lange nach den Ereignissen, auf die sie passte, und diese werden trotzdem importiert.
@@ -272,6 +287,71 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 | Attribute | Der ganze Quell-Payload, auf Schlüssel mit Punkten abgeflacht |
 
 Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
+
+### Welche Adresse ein Ereignis nennt
+
+Ein Ereignis nennt die Adresse, von der eine Anfrage kam, nur dann, wenn der Absender der Anfrage sie nicht selbst hätte schreiben können. Diese Adresse ist verifiziert und wird zur **Quell-IP** des Ereignisses: Erkennungsregeln zählen sie, Threat Intelligence gleicht sie ab, und der **Reaktionsplan** eines Falls bietet an, sie zu sperren. Jede andere Adresse, die eine Anfrage nennt, ist nur behauptet: Das Ereignis behält sie als **Behauptete IP**, und nichts zählt oder sperrt sie.
+
+- Die eigene Adresse der Verbindung ist verifiziert: die `network.peer.address` eines Server-Spans oder das erste Feld einer Zeile im Zugriffslog eines Webservers. Niemand kann sie in eine Anfrage schreiben.
+- Hinter einem Proxy, dem Sie vertrauen, ist die Adresse der Verbindung die des Proxys, und der Client ist die Adresse, die der Proxy in `X-Forwarded-For` weitergegeben hat. Jeder Proxy hängt die Adresse an, von der er die Verbindung angenommen hat, daher liest OneUptime den Header von rechts und nimmt die erste Adresse, die kein Proxy ist, dem Sie vertrauen. Was ein Absender in den Header schreibt, landet links davon und bleibt eine Behauptung.
+- Eine Adresse, die eine Anfrage über sich selbst nennt, ist behauptet: `client.address`, die die Instrumentierung aus dem linken Teil des Headers füllt, der Rest von `X-Forwarded-For` und `Forwarded`.
+
+Eine behauptete Adresse wird nie aus einem Fall heraus gesperrt: Jeder kann `X-Forwarded-For: 192.0.2.44` senden, und eine Sperre würde treffen, wem auch immer 192.0.2.44 gehört. Ein Ereignis mit nur einer behaupteten Adresse hat einen **Reaktionsplan**, der Sie auffordert, die echte Adresse in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen.
+
+Zeichnen Sie zwei Dinge auf den Server-Spans Ihrer App auf, damit ihre Adressen verifiziert sind: die eigene Adresse der Verbindung, `network.peer.address`, die die HTTP-Instrumentierungen von OpenTelemetry setzen, und hinter einem Proxy den Header `X-Forwarded-For`, den sie als `http.request.header.x-forwarded-for` aufzeichnen, sobald Sie ihn in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` aufführen. Ein JSON-Zugriffslog wird genauso gelesen: Sein Client-Feld, etwa `remote_addr`, ist die Adresse der Verbindung, und sein Feld `http_x_forwarded_for` ist der Header.
+
+#### Vertrauenswürdige Proxys
+
+Sicherheitsereignisse glaubt einem Proxy, wer sein Client war, wenn seine Adresse eine der folgenden ist:
+
+| Vertrauenswürdig | Warum |
+| --- | --- |
+| Privat, Loopback oder Link-Local, etwa `10.0.0.5` | Immer: Niemand hat sie im Internet, also ist sie ein Load Balancer oder ein Ingress in Ihrem Netzwerk |
+| Unter **Vertrauenswürdige Proxys** aufgeführt | Sie haben sie aufgeführt |
+| In den veröffentlichten Bereichen eines Edge, das Sie verbunden haben, etwa [Cloudflare](/docs/integrations/cloudflare) | Solange die Verbindung besteht |
+| Einer Ihrer eigenen Application Load Balancer | Sofern Sie es nicht ausschalten |
+
+**Sicherheitsereignisse → Verbindungen → Weitere Einstellungen** enthält **Vertrauenswürdige Proxys**, die Liste, die Sie schreiben, und **Automatisch vertrauenswürdig**, das den Rest zeigt und warum. Führen Sie einen Proxy unter **Vertrauenswürdige Proxys** auf, eine Adresse oder einen Bereich pro Zeile, wenn seine Adresse öffentlich ist und ihm sonst nichts vertraut: ein CDN, das Sie nicht verbunden haben, ein Load Balancer, der Ihre App über das Internet erreicht, oder ein Reverse Proxy wie nginx auf einem Server mit öffentlicher Adresse vor Ihrer App. Bis dahin wird jeder Angriff über ihn dem Proxy zugeschrieben. Hinter einem globalen externen Application Load Balancer von Google Cloud kommen die Verbindungen Ihrer App von den Front-Ends von Google: Führen Sie `35.191.0.0/16` und `130.211.0.0/22` auf.
+
+Ihre eigenen Application Load Balancer sind die, die Ihre [verbundenen Cloud-Konten](/docs/telemetry/cloud-accounts) aufführen: AWS Application Load Balancer, AWS Classic Load Balancer, deren Listener alle HTTP oder HTTPS sind, Google Cloud Application Load Balancer und Azure Application Gateways, mit ihren öffentlichen Adressen. Jeder hängt den Client, den er weiterleitet, an `X-Forwarded-For` an. Ein Load Balancer von Google Cloud hängt seine eigene Adresse nach der des Clients an, und ein Application Gateway erreicht ein öffentliches Backend von seiner eigenen Adresse aus, daher würde ohne sie jeder Angriff über einen von ihnen dem Load Balancer zugeschrieben. **Ihre Load Balancer** auf **Automatisch vertrauenswürdig** führt sie auf, und ein Projektinhaber, Projektadministrator oder Sicherheits-Administrator kann es ausschalten.
+
+Nichts anderes von Ihnen ist automatisch vertrauenswürdig: nicht Ihre Hosts, Kubernetes-Knoten, Sonden oder virtuellen Maschinen, kein NAT-Gateway und kein Network, Gateway oder Azure Load Balancer. Sie leiten niemanden weiter oder geben eine Anfrage so weiter, wie sie kam, daher könnte alles, was auf ihnen läuft, jeden beliebigen Client nennen: eine Anfrage, die ein Monitor mit eigenen Headern sendet, ein Pod, ein Laptop hinter dem Gateway. Ist einer davon Ihr Proxy, fügen Sie ihn zu **Vertrauenswürdige Proxys** hinzu. Einem Kubernetes-Ingress wird so vertraut wie dem Load Balancer, der er ist: Ein GKE-Ingress ist ein Google Cloud Application Load Balancer, ein AKS-Ingress für Application Gateway ein Application Gateway und ein EKS-Ingress der Klasse `alb` ein AWS Application Load Balancer. Ein Ingress-Controller in Ihrem Cluster leitet von einer privaten Adresse aus weiter, der immer vertraut wird.
+
+Eine Änderung an einem davon wirkt innerhalb einer Minute, und einem neuen Load Balancer wird innerhalb von fünf vertraut.
+
+#### Zugriffslogs, die mit X-Forwarded-For enden
+
+Hinter einem Load Balancer protokollieren viele Webserver die weitergeleitete Adresse zuletzt, wie es das eigene Format `main` von nginx tut:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Eine Zeile sagt nie, was ihre Felder sind, daher wird ihr letztes Feld erst dann als `X-Forwarded-For` gelesen, wenn Sie **Protokolle enden mit X-Forwarded-For** auf **Zugriffsprotokolle** unter **Weitere Einstellungen** einschalten, und dann nur:
+
+- wenn das erste Feld der Zeile ein Proxy ist, dem Sie vertrauen: Eine Zeile von einem Client, der Ihren Webserver direkt erreicht hat, gehört diesem Client;
+- im Format combined, mit genau einem Feld in Anführungszeichen nach dem User-Agent und nichts danach;
+- wenn dieses Feld `-` ist oder eine Liste von Adressen, deren letzte keinen Port hat.
+
+Lassen Sie es aus, wenn Ihr Format mit einem anderen Header endet, der eine Adresse enthält, etwa `X-Real-IP`, oder wenn Ihr Webserver Header schreibt, ohne ihre Anführungszeichen zu maskieren, wie es `morgan` von Express tut: Der eigene User-Agent einer Anfrage könnte dann ein Feld hinzufügen. Ein JSON-Zugriffslog braucht keinen Schalter, da seine Felder benannt sind.
+
+### Von einer Bereinigungsregel verborgen
+
+Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbirgt die Adresse, von der ein Angriff kam, bevor Sicherheitsereignisse sie liest. Das Ereignis wird trotzdem gespeichert, ohne Adresse, und überall, wo es die Adresse nennen würde, sagt es, dass eine Scrub-Regel sie verborgen hat:
+
+- **Quell-IP** im Panel des Ereignisses nennt, wenn möglich, die Regel, die sie verborgen hat, als Link zu den **Scrub-Regeln** der Logs oder Traces. Der Filter daneben zeigt jedes Ereignis, dessen Adresse eine Scrub-Regel verborgen hat.
+- **Ziel-IP** sagt dasselbe, wenn eine Regel verborgen hat, wohin eine Verbindung ging: das Ziel einer Firewall oder wohin Daten gesendet wurden. Der Filter daneben zeigt jedes Ereignis, dessen Zieladresse eine Scrub-Regel verborgen hat.
+- **Was danach geschah** sagt, dass die Anfrage von einer Adresse kam, die eine Scrub-Regel verborgen hat, und **Kampagnen** fasst solche Anfragen in einer eigenen Zeile zusammen.
+- Ein Fall, dessen Ereignisse alle ihre Adresse verloren haben, sagt das in seinem **Reaktionsplan**: Statt die Adresse zu sperren, fordert er Sie auf, sie in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen und dort zu sperren, mit **Scrub-Regeln öffnen**.
+- Die **Übersicht** nennt die Regel, die die Adressen verbirgt, die Sicherheitsereignisse liest, ebenfalls mit **Scrub-Regeln öffnen**.
+
+Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodass das Ereignis sie nennt, es sei denn, ihr Token ist älter als 30 Tage oder entstand, bevor Token einen Schlüssel hatten: siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). Um diese Ereignisse zu finden, suchen Sie nach `@oneuptime.request.client_address_hidden:scrub-rule`. Was die Regel an der Stelle der Adresse hinterlassen hat, etwa `[REDACTED]`, steht in `oneuptime.request.client_address_scrubbed`. Für ein Ziel suchen Sie nach `@oneuptime.target_address_hidden:scrub-rule`.
+
+Eine Erkennungsregel, die pro Adresse zählt, sollte wie die Regeln der Regelbibliothek pro `principalIp` oder `targetIp` zählen, denn diese Felder nennen die Adresse hinter dem Token einer Regel, die hasht. Das eigene Adressfeld eines Formats, etwa `openstack.audit.initiator_address` oder `asa.src_ip`, enthält nur eine Adresse, die das Log geschrieben hat, und bleibt daher überall leer, wo eine Scrub-Regel eine verborgen hat.
+
+Eine Regel, die einen Benutzer schwärzt oder maskiert, verbirgt ihn genauso: Wo das Ereignis den Benutzer nennen würde, sagt **Quellbenutzer** oder **Zielbenutzer**, dass eine Scrub-Regel ihn verborgen hat. Wo Sicherheitsereignisse einen Benutzer liest, bewahrt eine Regel, die hasht, den Benutzer dafür auf: die `enduser.id` oder `user.id` einer Anfrage, den Benutzer eines KI-Aufrufs und einen Benutzer, den eine Logzeile nennt, etwa den Principal eines Cloud-Audit-Logs. So nennt das Ereignis den Benutzer hinter dem Token, ein Fall über ihn nennt das Konto, und ein Playbook kann darauf handeln wie bei jedem anderen Benutzer. Was die Regel hinterlassen hat, steht in `oneuptime.principal_user_hashed_as` oder `oneuptime.target_user_hashed_as`, damit Sie den Benutzer in Ihren Logs und Traces finden, die nur das Token enthalten. Ein Token, zu dem kein Benutzer aufbewahrt ist, etwa eines, das entstand, bevor Token einen Schlüssel hatten, bleibt der Benutzer des Ereignisses: Regeln zählen es als ein Konto, und kein Playbook handelt darauf.
 
 ## Sicherheitsereignisse erkunden
 
@@ -304,9 +384,29 @@ Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schwe
 
 Ein Ereignis aus einer Logzeile, die innerhalb einer getracten Anfrage geschrieben wurde, wird in diese Anfrage hinein verfolgt. Sein Panel zeigt, wie weit die Anfrage kam (**Abgelehnt**, **App erreicht**, **Fehlgeschlagen** oder **Datenbank erreicht**), wer sie gesendet hat, und verlinkt ihren Trace, ihre Ausnahme, ihre Sitzungswiedergabe und die Logzeile selbst. Auch eine Logzeile, ein Trace und eine Ausnahme, die Teil eines Angriffs sind, sagen das auf ihren eigenen Seiten.
 
+### Eine sensible Datei, die Ihre Website ausgeliefert hat
+
+Eine Anfrage nach einer Datei, die Geheimnisse enthält, etwa `/.env`, `/.git/config`, `/.aws/credentials` oder eine Kopie von `wp-config.php`, ist ein Leck, wenn Ihre Website sie mit der Datei selbst beantwortet hat: Wer sie angefordert hat, besitzt nun deren Passwörter, Schlüssel und Tokens. Eine Single-Page-App beantwortet jeden Pfad, den sie nicht hat, mit ihrer eigenen Seite und dem Status 200, daher verrät der Status 200 allein das nie. OneUptime liest, was die Antwort enthielt:
+
+- Ein Typ, der keine Webseite ist, etwa `text/plain` oder `application/octet-stream`: die Datei selbst.
+- Eine Webseite, oder JSON für eine Datei, die kein JSON ist: die eigene Seite Ihrer Website.
+- Nichts darin: Es wurde nichts entwendet.
+- Eine Größe und kein Typ, wie sie das Zugriffslog eines Webservers festhält: die Datei selbst, wenn kein anderer Pfad diese Größe erhielt und Ihre Website auf Pfade, die sie nicht hat, mit 404 antwortet, und die eigene Seite Ihrer Website, wenn zwei verschiedene Pfade eine Antwort derselben Größe erhielten. Lässt sich nichts erkennen, ist die Anfrage kein Ereignis.
+
+Eine ausgelieferte Datei hat den Schweregrad Kritisch, und die Regel **Sensitive file served** der Regelbibliothek eröffnet dazu einen Fall, mit Schritten, um die Datei vom Netz zu nehmen und zu rotieren, was sie enthält. Jede dieser Anfragen zählt auch für **Scanning for sensitive files**, auch eine, die eine Single-Page-App beantwortet hat. Eine Admin-Seite, die Ihre Website ausliefert, etwa die von WordPress, ist nie eine davon, und ein `wp-config.php`, das WordPress ausgeführt hat, ist die eigene Seite Ihrer Website. Die Firewall-Ereignisse von Cloudflare sagen nicht, was Ihr Ursprungsserver gesendet hat, daher zählt eine Anfrage, die Cloudflare durchgelassen hat, nur für das Scannen. Das Panel eines Ereignisses sagt unter **Was danach geschah**, was Ihre Website gesendet hat.
+
 ### Campaigns
 
-**Kampagnen** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst.
+**Kampagnen** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst. Eine Zeile, deren Adresse Ihre Sperrliste bereits enthält, sagt, bis wann sie gesperrt oder mit einer Challenge belegt ist, und nennt den Bereich oder das Netzwerk, das sie erfasst.
+
+Um mehrere Angreifer auf einmal zu sperren, wählen Sie ihre Zeilen aus und klicken Sie auf **Adressen sperren**. Ein Dialog listet jede Adresse, die er sperrt, und jede, die er auslässt, mit dem Grund: bereits gesperrt, eine Ihrer eigenen oder eine geschützte, eine, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat, oder eine, die OneUptime nicht prüfen konnte. Er sperrt für 24 Stunden, sofern Sie keine andere Dauer wählen, oder belegt die Adressen mit **Stattdessen Challenge** mit einer Challenge, und jede Sperre kommt als Ihre auf Ihre [Sperrliste](/docs/telemetry/security-cases#sperrliste).
+
+**Nach Netzwerk gruppieren** fasst die Adressen eines Netzwerks in einer Zeile zusammen: nach seiner ASN, wo die Ereignisse Ihrer [Cloudflare](/docs/integrations/cloudflare)-Verbindung eine nennen, sonst nach seinem /24 bei IPv4 oder seinem /48 bei IPv6. Die Zeile einer ASN listet die Bereiche, aus denen ihre Adressen gesendet haben. **Challenge für dieses Netzwerk** sagt, was es tun wird, wo und wie lange, bevor es das tut: 24 Stunden, sofern Sie keine andere Dauer wählen, und die nächste Stufe der Leiter für ein Netzwerk, das schon einmal eine Challenge erhalten hat. Cloudflare hält einen Bereich in seiner Challenge-Liste und eine ASN als IP Access Rule, die jeder Tarif hat. **Anfragen anzeigen** in der Zeile eines Netzwerks öffnet unter **Ereignisse**, was es gesendet hat: bei einer ASN nach der ASN, die ihre Cloudflare-Ereignisse tragen, und bei einem Bereich als Suche nach seinen Adressen, etwa `ip:203.0.113.*`, die Sie ändern können.
+
+- Ein Netzwerk, das eine Adresse enthält, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat, oder eine Ihrer eigenen, erhält nie eine Challenge, und der Dialog nennt, wer oder was es ist.
+- Ein Bereich, der größer als ein /24 ist (ein /48 bei IPv6), und eine ganze ASN erfordern einen Sicherheits-Administrator, einen Projektadministrator oder einen Projektinhaber. Die Zeile einer ASN bietet auch jeden ihrer Bereiche an, den jeder, der sperren darf, mit einer Challenge belegen kann.
+- Wenn OneUptime nicht feststellen kann, wer ein Netzwerk nutzt, weil es eine ganze ASN ist oder eine Scrub-Regel Client-Adressen verbirgt, kann nur ein Sicherheits-Administrator, ein Projektadministrator oder ein Projektinhaber es mit einer Challenge belegen, nachdem er angehakt hat, dass ihm das bewusst ist.
+- Solange Sicherheitsereignisse auf dem Server ausgeschaltet ist, wird nichts gesperrt oder mit einer Challenge belegt.
 
 ### Korrelieren
 
@@ -339,7 +439,7 @@ Eine Bedrohungssuche, die mit Filtern aus der Seitenleiste von Ereignisse gespei
 
 Eine geplante Bedrohungssuche benachrichtigt die Personen und Teams, die Sie unter **Benachrichtigen** wählen: mindestens eine Person oder ein Team und höchstens 50 insgesamt. Jeder Lauf:
 
-- liest die Ereignisse, deren Zeitpunkt nach dem vorherigen Lauf liegt, bis vor zwei Minuten, sodass jedes Ereignis einmal durchsucht wird. Der erste Lauf liest ab dem Zeitpunkt, zu dem der Zeitplan festgelegt oder die Suche zuletzt geändert wurde, und nach einem Ausfall holt ein Lauf höchstens einen Tag mehr als sein Intervall nach.
+- liest die Ereignisse, die nach dem vorherigen Lauf angekommen sind, bis vor zwei Minuten, wann immer sie geschehen sind, sodass jedes Ereignis einmal durchsucht wird, auch eines, das spät ankommt. Der erste Lauf liest ab dem Zeitpunkt, zu dem der Zeitplan festgelegt oder die Suche zuletzt geändert wurde, und nach einem Ausfall holt ein Lauf höchstens einen Tag mehr als sein Intervall nach. Ein Ereignis, das mehr als einen Tag nach seinem Geschehen ankommt, wird gespeichert und ist durchsuchbar, aber kein Lauf zählt es.
 - zählt die Ereignisse, die seine Suche dort findet, genau so, wie **Ereignisse** sie auflisten würde, und liest nur, was die Person lesen darf, unter der er läuft.
 - benachrichtigt, wenn er Ereignisse findet, die Personen, die die Bedrohungssuche nennt, und die Mitglieder der Teams, die sie nennt, sofern sie Bedrohungssuchen und Sicherheitsereignisse lesen dürfen.
 
@@ -349,11 +449,11 @@ Eine geplante Bedrohungssuche läuft unter der Person, die zuletzt ihren Zeitpla
 
 ### Ausführungsverlauf
 
-Jeder geplante Lauf wird 90 Tage aufbewahrt. **Ausführungsverlauf**, am Ende der Zeile, die sagt, was die Läufe einer Bedrohungssuche gefunden haben, listet sie mit dem neuesten zuerst: wann jeder lief und welche Ereignisse er durchsucht hat, dann wie viele er gefunden hat, mit **Anzeigen**, um diese Ereignisse auf der Seite der Bedrohungssuche zu öffnen; dass er nichts gefunden hat; oder warum er nicht laufen konnte. Wer eine Bedrohungssuche öffnen kann, kann auch ihre Läufe lesen.
+Jeder geplante Lauf wird 90 Tage aufbewahrt. **Ausführungsverlauf**, am Ende der Zeile, die sagt, was die Läufe einer Bedrohungssuche gefunden haben, listet sie mit dem neuesten zuerst: wann jeder lief und wann die Ereignisse ankamen, die er durchsucht hat, dann wie viele er gefunden hat, mit **Anzeigen**, um genau diese Ereignisse auf der Seite der Bedrohungssuche zu öffnen; dass er nichts gefunden hat; oder warum er nicht laufen konnte. Wer eine Bedrohungssuche öffnen kann, kann auch ihre Läufe lesen.
 
 ### Wer benachrichtigt wird
 
-Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und welches Zeitfenster er gelesen hat, und verlinkt auf die Seite der Bedrohungssuche mit diesen Ereignissen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
+Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und wann sie angekommen sind, und verlinkt auf die Seite der Bedrohungssuche mit genau diesen Ereignissen: der Filter **Angekommen** über dem Tag davor, den Sie entfernen können, um alles andere aus dieser Zeit zu sehen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
 
 Um in Slack, Microsoft Teams oder Mattermost zu posten, was Bedrohungssuchen finden, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams** oder **Mattermost**) eine Regel zu **Regeln für Bedrohungssuchen** hinzu, unterhalb der Regeln, die [Sicherheitsfälle](/docs/telemetry/security-cases#in-kanäle-von-slack-microsoft-teams-und-mattermost-posten) posten. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und, wenn Sie möchten, die Bedrohungssuchen, für die sie gilt, nach **Name der Bedrohungssuche**: ein Name, der Ihr Text ist, ihn enthält, mit ihm beginnt oder auf ihn endet. Jedes Mal, wenn ein geplanter Lauf Ereignisse findet, werden die Bedrohungssuche, ihre Suche, wie viele Ereignisse und wann mit einem Link zu ihnen gepostet, und keines der eigenen Worte eines Ereignisses. Eine Regel für Bedrohungssuchen richtet eine Rolle ein, die Sicherheits-Playbooks einrichten darf, etwa Projektinhaber, Projektadministrator oder Sicherheits-Administrator.
 
@@ -497,13 +597,16 @@ Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mi
 | Password Spraying: eine IP scheitert an 5 verschiedenen Konten | `principalIp` | `principalUser` | 5 |
 | Portscan: eine IP erreicht 20 verschiedene Ports | `principalIp` | `targetPort` | 20 |
 
+Eine Regel mit **Nach Feld gruppieren**, die mehr als ein Ereignis in einer Gruppe braucht, durch einen Schwellenwert über 1 oder ein **Feld für eindeutige Zählung**, lässt die Ereignisse aus, die keinen Wert für ihr Feld haben: Gezählt würden sie sich alle zu einem Wert summieren, jede fehlgeschlagene Anmeldung ohne Adresse zu einer IP-Adresse. Eine Regel, die bei jedem Ereignis auslöst, löst für sie weiter aus. **Erkennungsregeln** zeigt unter dem Namen einer Regel, wie viele der passenden Ereignisse des letzten Tages sie nicht zählen konnte, und die Zeile öffnet den Grund: wie viele keinen Wert hatten und wie viele davon eine Scrub-Regel verborgen hat, mit **Scrub-Regeln öffnen**. Eine Regel, die nichts von dem zählen konnte, worauf sie zutraf, kann nicht auslösen, und ihr **Status** sagt **Erfordert Aufmerksamkeit**. **Auf vergangene Ereignisse anwenden** sagt dasselbe für den Zeitraum, den es liest.
+
 ### Wann eine Regel läuft
 
 OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem letzten Lauf hinter sich haben. Jeder Lauf liest die Ereignisse, die zwischen dem vorigen Lauf und vor zwei Minuten bei OneUptime angekommen sind, gleich wann sie geschehen sind, und geht dann weiter. Die zwei Minuten lassen Ereignissen Zeit, die noch geschrieben werden:
 
 - Eine zählende Regel und eine Korrelation zählen in Zeitfenstern so lang wie das Intervall, lückenlos nach der Uhr: Bei einem Intervall von 10 Minuten fallen Fehlschläge um 09:58 und 10:01 in verschiedene Zeitfenster und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
-- Ein Ereignis, das verspätet eintrifft, liest der nächste Lauf trotzdem, einmal, und zählt es in dem Zeitfenster, in dem es geschehen ist: Eine Gruppe löst aus, wenn ihr Zeitfenster die Zählung erreicht, und höchstens einmal pro Zeitfenster. Eines, das mehr als einen Tag nach seinem Geschehen eintrifft, wird gespeichert und ist durchsuchbar, aber die Läufe der Regel lesen es nicht; **Auf vergangene Ereignisse anwenden** tut es.
+- Ein fehlgeschlagener Lauf, etwa einer, der zu lange dauert, lässt die Regel, wo sie war: Ihr **Status** zeigt **Ausführung fehlgeschlagen**, und sie wird beim nächsten Intervall erneut versucht, bei einem längeren Intervall innerhalb einer Stunde. Der Lauf, der gelingt, liest alles, was seit dem letzten gelungenen Lauf angekommen ist, wie lange das auch her ist, jeweils einen Tag. Ein Lauf, der angehalten wurde, nachdem er auf seine Treffer reagiert hat, wird wiederholt, ohne sie ihrem Fall ein zweites Mal hinzuzufügen.
+- Ein Ereignis, das verspätet eintrifft, liest der nächste Lauf trotzdem, einmal, und zählt es in dem Zeitfenster, in dem es geschehen ist: Eine Gruppe löst aus, wenn ihr Zeitfenster die Zählung erreicht, und höchstens einmal pro Zeitfenster. Eines, das mehr als einen Tag nach seinem Geschehen eintrifft, wird gespeichert und ist durchsuchbar, aber die Läufe der Regel lesen es nicht; **Auf vergangene Ereignisse anwenden** tut es. Das ist Absicht, damit ein Nachladen von Verlaufsdaten keine Warnungen über die Vergangenheit öffnet: Ist in den letzten 7 Tagen ein Ereignis so spät eingetroffen, sagt ein Hinweis über den Regeln, wie viele, aus welchen Quellen und wann sie aufgetreten sind, und öffnet **Auf vergangene Ereignisse anwenden** über diesen Zeitraum.
 - Jede Gruppe, die den Schwellenwert erreicht, wird zu einem Detection Finding, bis zu 10.000 pro Lauf. Warnungen, Vorfälle und Fälle öffnen sich für die 100 mit den höchsten Zählungen; die übrigen teilen sich einen Fall zur Regel, und **Letzter Fehler** der Regel nennt, wie viele Gruppen passten.
 
 ### Echtzeitregeln
@@ -557,6 +660,7 @@ Eine Ausnahme ist etwas, das eine Regel auslässt, weil Sie es erwarten, etwa ei
 | **Ein Zeitfenster** | Jedes Ereignis von **Beginnt am** bis **Endet am**, höchstens 30 Tage auseinander |
 
 - Werte passen unabhängig von Groß- und Kleinschreibung, und `*` steht für eine beliebige Zeichenfolge: `svc-*` lässt jedes Dienstkonto aus und `*.lab.example.com` jeden Host einer Domain. Eine IP-Adresse kann ein Bereich sein, etwa `10.20.0.0/16`. Ein Wert, der nur aus `*` besteht, wird abgelehnt: Um eine Regel zu stoppen, schalten Sie sie aus.
+- Ereignisse aus dem eigenen Audit-Log von OneUptime nennen einen Projekt-API-Schlüssel in `principalUser` als `api-key:` gefolgt von seiner ID, sodass zwei Schlüssel mit demselben Namen zwei Handelnde sind und kein Playbook einen Schlüssel als Benutzer zum Sperren anbietet. Der Name des Schlüssels steht weiterhin in der Nachricht des Ereignisses und in `audit.api_key_name`. Eine Ausnahme für den Namen eines Schlüssels, als Benutzer oder als Wert von `principalUser`, lässt weiterhin jeden Schlüssel dieses Namens aus, und eine für `api-key:` gefolgt von der ID des Schlüssels lässt nur diesen Schlüssel aus.
 - Jede Ausnahme sagt unter **Grund**, warum sie gilt, was jeder sieht, der die Liste liest, und hält fest, wer sie wann hinzugefügt hat. Für eine Entität oder einen Wert lässt sich **Läuft ab am** setzen, danach sieht die Regel sie wieder; ein Zeitfenster endet von selbst.
 - **Status** zeigt, wo jede steht: **Aktiv**, **Bevorstehend** für ein Zeitfenster, das noch nicht begonnen hat, **Abgelaufen** oder **Beendet**. Unter dem Namen einer Regel in **Erkennungsregeln** zählt eine Zeile ihre aktiven Ausnahmen, und **Ausnahmen anzeigen** in der Zeile der Regel öffnet die Liste, auf sie gefiltert.
 - Ausgelassene Ereignisse werden entfernt, bevor die Regel irgendetwas zählt, sodass sie nie zu ihrem **Schwellenwert der Trefferanzahl** zählen und keinen Fall, keine Warnung, keinen Vorfall und keinen Befund eröffnen. Ausnahmen gelten für jeden Lauf der Regel, Korrelationen eingeschlossen, und für **Auf vergangene Ereignisse anwenden**, aber nie für einen Testangriff, der prüft, dass Ereignisse ankommen.
@@ -635,6 +739,14 @@ Die Aktion **Monitor erstellen** in der Zeile einer Regel öffnet einen neuen Mo
 ## Aufbewahrung und Abrechnung
 
 Sicherheitsereignisse werden pro aufgenommenem GB abgerechnet, wie der Rest Ihrer Telemetrie, und für Ihre Telemetrie-Aufbewahrung behalten: die **Standardaufbewahrung (Tage)** des Projekts unter **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung**, oder eine Aufbewahrung, die am Telemetrie-Dienst festgelegt ist, zu dem sie gehören. Endet die Aufbewahrung eines Ereignisses, wird es gelöscht.
+
+Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die noch aufbewahrten Ereignisse und sagt, wenn es mehr bräuchte:
+
+- Eine Regel vom Typ **Zuerst gesehen**, deren Zeitspanne länger ist, als Ereignisse aufbewahrt werden, erkennt einen neuen Wert an den aufbewahrten Tagen: Mit einer Zeitspanne von 30 Tagen und 15 aufbewahrten Tagen sagen ihre Warnungen und Fälle `First awsRegion in 15 days`, und ein Wert, der zuletzt vor 20 Tagen gesehen wurde, gilt als neu. Ihre Zeile zeigt **Erfordert Aufmerksamkeit**, und **Fehler anzeigen** sagt, was zu ändern ist. Das Regelformular und die Details einer Regel in der Regelbibliothek sagen es, bevor sie gespeichert oder hinzugefügt wird. Eine Zählung oder eine Sequenz, deren Fenster länger ist, als Ereignisse aufbewahrt werden, zählt nur diese.
+- **Auf vergangene Ereignisse anwenden** über einen Zeitraum, der vor den aufbewahrten Ereignissen beginnt, sagt, dass Sicherheitsereignisse 15 Tage lang aufbewahrt werden und es daher 15 Tage zurückgeblickt hat, und was es nicht gefunden hat, gilt nur für diese Tage. Ein Ereignis, das früher geschah, aber verspätet eintraf, bleibt aufbewahrt und wird weiterhin gelesen. Eine Regel vom Typ **Zuerst gesehen** sagt, wie viel der 30 Tage vor dem Zeitraum sie sehen konnte.
+- Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
+
+**Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** listet die aktivierten Regeln auf, die weiter zurückblicken als ihre **Standardaufbewahrung (Tage)**. Um sie abzudecken, bewahren Sie Ereignisse länger auf, mit **Aufbewahrung ändern** unter einer Regel, oder verkürzen Sie die Zeitspanne einer Regel auf das Aufbewahrte. OneUptime bewahrt 15 Tage auf, sofern Sie es nicht ändern, denn die Aufbewahrung bestimmt, was Ihre Telemetrie kostet und wie lange personenbezogene Daten in Ereignissen, etwa Adressen und Benutzernamen, aufbewahrt werden. Eine neue Aufbewahrung gilt für Ereignisse, die ab dann eintreffen, sodass Regeln weiter zurückblicken, je älter diese Ereignisse werden.
 
 ## Fehlerbehebung
 

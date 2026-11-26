@@ -9,10 +9,12 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -202,6 +204,10 @@ export default class UUIDColumnFilter {
       return new NotEqual(this.getIdText(columnName, value.value));
     }
 
+    if (value instanceof NotEqualOrNull) {
+      return new NotEqualOrNull(this.getIdText(columnName, value.value));
+    }
+
     if (value instanceof EqualToOrNull) {
       return new EqualToOrNull(this.getIdText(columnName, value.value));
     }
@@ -247,6 +253,10 @@ export default class UUIDColumnFilter {
 
     if (value instanceof IncludesNone) {
       return new IncludesNone(this.getIdTexts(columnName, value.values));
+    }
+
+    if (value instanceof IncludesNoneOrNull) {
+      return new IncludesNoneOrNull(this.getIdTexts(columnName, value.values));
     }
 
     /*
@@ -304,6 +314,12 @@ export default class UUIDColumnFilter {
 
     if (value instanceof IncludesNone) {
       return new IncludesNone(this.getRelatedIdTexts(columnName, value.values));
+    }
+
+    if (value instanceof IncludesNoneOrNull) {
+      return new IncludesNoneOrNull(
+        this.getRelatedIdTexts(columnName, value.values),
+      );
     }
 
     if (value instanceof IncludesAnyOfGroups) {

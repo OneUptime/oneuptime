@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   RUM_CLIENT_KIND_BROWSER,
   RUM_CLIENT_KIND_MOBILE,
+  RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
   RumClientKind,
 } from "Common/Types/Rum/RumClientKind";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
@@ -4850,6 +4851,27 @@ export default abstract class OtelIngestBaseService {
   protected static getRumClientType(
     attributes: JSONArray,
   ): RumClientKind | null {
+    /*
+     * Stamped on everything a public ingestion key writes
+     * (PinRumClientResource): a Mobile key's is its app's mobile RUM
+     * (issue #6457), a Browser key's its page's browser RUM (issue #10539),
+     * whatever else the resource carried - read first, so a copied key's
+     * other client's attributes or a resource with no browser.* at all
+     * never file it as anything else, a backend Service included.
+     */
+    const stampedClientKind: string | null = this.getStringAttribute(
+      attributes,
+      RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+    );
+
+    if (stampedClientKind === RUM_CLIENT_KIND_MOBILE) {
+      return RUM_CLIENT_KIND_MOBILE;
+    }
+
+    if (stampedClientKind === RUM_CLIENT_KIND_BROWSER) {
+      return RUM_CLIENT_KIND_BROWSER;
+    }
+
     const hasBrowser: boolean = Boolean(
       this.getStringAttribute(attributes, "browser.platform") ||
         this.getStringAttribute(attributes, "browser.language") ||

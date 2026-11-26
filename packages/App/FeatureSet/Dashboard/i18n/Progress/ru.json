@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 8181
+    "keys": 63890,
+    "untranslated": 8264
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -40,6 +40,7 @@
     "CloudWatch Metric Streams",
     "Community Edition",
     "Container Apps",
+    "Core Web Vitals",
     "CrowdStrike",
     "DE",
     "DES",
@@ -150,6 +151,7 @@
     "Slug",
     "StatusPage",
     "Stripe Payments API",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",
@@ -168,6 +170,7 @@
     "VMware vCenter",
     "Valkey",
     "Vital",
+    "WAF",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -222,6 +225,7 @@
     "s",
     "security-alerts",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",

@@ -34,13 +34,9 @@ afterEach(() => {
 });
 
 const DROPDOWNS: {
-  onCallPolicyDropdownOptions: [];
-  labelDropdownOptions: [];
   teamDropdownOptions: [];
   userDropdownOptions: [];
 } = {
-  onCallPolicyDropdownOptions: [],
-  labelDropdownOptions: [],
   teamDropdownOptions: [],
   userDropdownOptions: [],
 };

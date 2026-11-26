@@ -128,7 +128,8 @@ type SignedInWith =
   | "SingleSignOn"
   | "SignInLink"
   | "Google"
-  | "GlobalOidc";
+  | "GlobalOidc"
+  | "Vercel";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "eeeeeeee-5555-4555-8555-eeeeeeeeeeee",
@@ -175,6 +176,9 @@ function signInOf(with_: SignedInWith, signedInAt: Date): SessionSignIn {
         ssoProviderName: "Entra",
         ssoProviderId: PROVIDER_ID,
       };
+    // Sign in with Vercel (#10331): what VercelSignIn keeps, and nothing more.
+    case "Vercel":
+      return { method: SignInMethod.Vercel };
   }
 }
 
@@ -1637,6 +1641,69 @@ describe("Sign In Again counts only when it proved its person was asked (#10217)
     expect(
       (await Reauthentication.getStatus(SESSION)).signInAgain?.canUseSignInLink,
     ).toBe(false);
+  });
+
+  /*
+   * SIGN IN WITH VERCEL CAN NEVER CONFIRM IT'S SOMEONE (#10331): Vercel
+   * cannot be asked to have the person sign in again, and its ID token
+   * does not say when they signed in. The status names it, so the prompt
+   * says so and offers what does - with no route of Vercel's own to send
+   * the person back through, as there is none that could confirm.
+   */
+  test("a session that signed in with Vercel: the status names Vercel, with no way back through it", async () => {
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInWith: "Vercel" });
+
+    expect((await Reauthentication.getStatus(SESSION)).signInAgain).toEqual({
+      route: null,
+      provider: SignInAgainProvider.Vercel,
+      providerName: "Vercel",
+      refusal: null,
+      canUseSignInLink: true,
+    } as ReauthenticationSignInAgain);
+  });
+
+  test("a session that signed in with Vercel a moment ago is not confirmed, and changes nothing", async () => {
+    useAccount({
+      ...SSO_ONLY_ACCOUNT,
+      signedInWith: "Vercel",
+      signedInMinutesAgo: 0,
+    });
+
+    const status: ReauthenticationStatus =
+      await Reauthentication.getStatus(SESSION);
+
+    expect(status.isConfirmed).toBe(false);
+    expect(status.confirmedUntil).toBeNull();
+
+    for (const purpose of Object.values(ReauthenticationPurpose)) {
+      expect(
+        await refusalOf(
+          Reauthentication.assertConfirmed(signedInProps(), purpose),
+        ),
+      ).toBeInstanceOf(ReauthenticationRequiredException);
+    }
+  });
+
+  test("a session that signed in with Vercel is told whether a sign-in link stands in", async () => {
+    useAccount({ ...SSO_ONLY_ACCOUNT, signedInWith: "Vercel" });
+
+    jest
+      .spyOn(GlobalConfigService, "getMagicLinkLoginTurnedOff")
+      .mockResolvedValue(true);
+
+    expect(
+      (await Reauthentication.getStatus(SESSION)).signInAgain?.canUseSignInLink,
+    ).toBe(false);
+  });
+
+  test("Vercel's way back goes through nothing of Vercel's: getSignInAgainRoute", () => {
+    expect(
+      Reauthentication.getSignInAgainRoute({ method: SignInMethod.Vercel }),
+    ).toEqual({
+      route: null,
+      provider: SignInAgainProvider.Vercel,
+      providerName: "Vercel",
+    });
   });
 
   test("an account that confirms in place has no Sign In Again in its status", async () => {

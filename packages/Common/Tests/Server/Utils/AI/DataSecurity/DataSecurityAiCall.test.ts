@@ -1,6 +1,20 @@
 import AIService, {
+  AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+  AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+  AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
   LLM_LOG_PREVIEW_NOT_KEPT,
 } from "../../../../../Server/Services/AIService";
@@ -11,15 +25,14 @@ import DataSecurityAiCall, {
   DATA_SECURITY_AI_CALL_LABELS,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
 import DataSecurityAiInput, {
+  AiIssueDossier,
   DataSecurityAiPrompt,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
-import { buildExplainIssuePrompt } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import { buildIssueAnalysisPrompt } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import { buildFieldSuggestionPrompt } from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestionPrompt";
 import LLMService, {
   LLMCompletionRequest,
 } from "../../../../../Server/Utils/LLM/LLMService";
-import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
-import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import LlmLog from "../../../../../Models/DatabaseModels/LlmLog";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -98,18 +111,32 @@ const RULE_PICK: LlmProvider = {
   projectId: PROJECT_ID,
 } as unknown as LlmProvider;
 
+// A person's analysis of an issue (#10369), as the issue's page asks for it.
 function explainPrompt(): DataSecurityAiPrompt {
-  const issue: DataSecurityIssue = new DataSecurityIssue();
-  issue.checkId = "public-read";
-  issue.title = "Anyone on the internet can read it";
-  issue.severity = SecuritySeverity.Critical;
-  issue.evidence = "The bucket policy grants s3:GetObject to *.";
-  const store: DataStore = new DataStore();
-  store.name = "acme-card-exports";
-  store.kind = DataStoreKind.AwsS3Bucket;
-  issue.dataStore = store;
+  const dossier: AiIssueDossier = {
+    issue: {
+      checkId: "public-read",
+      title: "Anyone on the internet can read it",
+      severity: SecuritySeverity.Critical,
+      evidence: "The bucket policy grants s3:GetObject to *.",
+    },
+    store: { name: "acme-card-exports", kind: DataStoreKind.AwsS3Bucket },
+    places: [],
+    access: [],
+    copies: [],
+    securityCaseIds: [],
+    responses: [],
+    proposals: [],
+    declaredCode: null,
+    owners: { recordIds: [], names: [], count: 0 },
+    now: new Date("2026-11-20T12:00:00.000Z"),
+  };
 
-  return buildExplainIssuePrompt({ issue });
+  return buildIssueAnalysisPrompt({
+    feature: DataSecurityAiFeature.ExplainIssue,
+    dossier,
+    language: "en",
+  });
 }
 
 function fieldPrompt(): DataSecurityAiPrompt {
@@ -250,8 +277,53 @@ describe("what every Data Security call keeps", () => {
     expect(DATA_SECURITY_AI_CALL_LABELS).toEqual({
       [DataSecurityAiFeature.ExplainIssue]:
         AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+      // OneUptime AI's own analysis of a new issue (#10364): autonomous, so budgeted.
+      [DataSecurityAiFeature.AnalyzeIssue]:
+        AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
       [DataSecurityAiFeature.SuggestFieldTypes]:
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+      // Its verdicts on the findings that wait for a person (#10372): autonomous, so budgeted.
+      [DataSecurityAiFeature.JudgeFindings]:
+        AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+      // OneUptime AI's owners for a store (#10374): autonomous, so budgeted.
+      [DataSecurityAiFeature.ProposeStoreOwners]:
+        AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+      // A group of issues' name, after each grouping (#10370): autonomous, so budgeted.
+      [DataSecurityAiFeature.NameIssueGroup]:
+        AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+      // OneUptime AI's scrub rules for what Scrub It cannot cover (#10366): autonomous, so budgeted.
+      [DataSecurityAiFeature.WriteScrubRules]:
+        AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+      // Its read of a pull request's sensitive data (#10376): autonomous, so budgeted.
+      [DataSecurityAiFeature.ReviewPullRequests]:
+        AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+      /*
+       * The compliance paperwork (#10375): the daily record drafts are
+       * autonomous, so budgeted; the drafts a person asks for have labels
+       * of their own.
+       */
+      [DataSecurityAiFeature.DraftRecord]:
+        AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+      [DataSecurityAiFeature.DraftRecordOnRequest]:
+        AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
+      [DataSecurityAiFeature.DraftImpactAssessment]:
+        AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
+      [DataSecurityAiFeature.DraftAuditEvidence]:
+        AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+      // A data type drafted from fields scans could not place (#10371): autonomous, so budgeted.
+      [DataSecurityAiFeature.DraftDataTypes]:
+        AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+      // ...and from a person's sentence, while they wait: not autonomous.
+      [DataSecurityAiFeature.DescribeDataType]:
+        AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+      /*
+       * An exposure's write-up (#10377): on its own it is autonomous, so
+       * budgeted; when a person asks, a label of its own.
+       */
+      [DataSecurityAiFeature.DraftExposureAssessment]:
+        AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+      [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]:
+        AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
     });
   });
 
@@ -424,9 +496,41 @@ describe("every call runs on the project's own model", () => {
 
     expect(sources).toEqual([
       DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.CodeAgent,
       DataSecurityAiModelSource.ProjectProvider,
+      // Verdicts on findings (#10372): the one Data Security call, as the suggestions'.
+      DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.Chat,
+      // Owners for data stores: the one Data Security call, as Explain's.
+      DataSecurityAiModelSource.ProjectProvider,
+      // A group's name (#10370): the one Data Security call too.
+      DataSecurityAiModelSource.ProjectProvider,
+      // A group's one pull request: the coding agent, as Fix with AI's.
+      DataSecurityAiModelSource.CodeAgent,
+      // Scrub rules for what Scrub It cannot cover (#10366): the same one call.
+      DataSecurityAiModelSource.ProjectProvider,
+      // A pull request's sensitive data: the repository's pick for its reviews.
+      DataSecurityAiModelSource.ProductionReview,
+      /*
+       * The compliance paperwork (#10375): a record's drafts, daily and on
+       * request, an impact assessment and audit evidence - the one call.
+       */
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      // The company's own data types (#10371), drafted and described: the one call.
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      // A service's telemetry leaks (#10367): the coding agent, as Fix with AI's.
+      DataSecurityAiModelSource.CodeAgent,
+      /*
+       * An exposure's write-up (#10377), on its own and on request: the one
+       * call, on the provider the AI rule picks, else the project's.
+       */
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
     ]);
   });
 });

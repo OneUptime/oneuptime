@@ -176,6 +176,41 @@ export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface
   ]);
 
 /*
+ * The only surfaces a Mobile key may write to (issue #6457): what a mobile
+ * app's OpenTelemetry SDK exports over OTLP/HTTP, and its own session
+ * replays (issue #10540), and nothing else. An ALLOWLIST for the same
+ * reason as the browser one above.
+ *
+ * Session replay is here so a React Native app ships one key, not a Mobile
+ * key for its OTLP beside a Browser key for its recordings. Only its own:
+ * the HTTP guard admits a Mobile key there only from the React Native
+ * recorder, and only for the RUM application its pinned service name names
+ * (getMobileKeySessionReplayRefusalMessage), under that application's
+ * replay policy, the key's rate limit and the Mobile key's refusals.
+ *
+ * Narrower than a Browser key's on purpose:
+ *
+ *   - OTLP over gRPC and MQTT are not here. Neither runs the per-key rate
+ *     limit (it is an HTTP guard's), and a public key without its limit is
+ *     what this key type exists to avoid. The mobile SDKs export over HTTP.
+ *   - Sentry is not here: the mobile SDKs the guides set up export OTLP,
+ *     and an envelope carries profiles too, which a Mobile key does not
+ *     send. (What a key's envelopes do write is pinned like its OTLP: they
+ *     are queued as OTLP jobs, TelemetryQueueService.addTelemetryIngestJob.)
+ *
+ * Everything else - profiles, source maps, dSYMs, syslog, security events,
+ * every agent registration and collector management surface - is a
+ * server's, and a key copied out of an app must not reach it.
+ */
+export const MOBILE_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface> =
+  new Set<TelemetryIngestSurface>([
+    TelemetryIngestSurface.OtelTraces,
+    TelemetryIngestSurface.OtelLogs,
+    TelemetryIngestSurface.OtelMetrics,
+    TelemetryIngestSurface.SessionReplay,
+  ]);
+
+/*
  * Typed as a total Record rather than a partial lookup so that adding a member
  * to the enum without naming it is a compile error, not a surface that
  * silently reports itself by its raw slug in a customer-facing error.

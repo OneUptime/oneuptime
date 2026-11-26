@@ -43,8 +43,51 @@ export enum DataSecurityIssueFeedEventType {
   // OneUptime AI's explanation, or a fix it was asked to open.
   AiExplanation = "AiExplanation",
   AiFixRequested = "AiFixRequested",
+  /*
+   * OneUptime AI analyzed the issue (#10369): one entry per analysis
+   * written, never per view, saying its verdict. The analysis itself is on
+   * the issue, read through its own route.
+   */
+  AiAnalysis = "AiAnalysis",
   // Public access blocked or sharing revoked from the issue (DataSecurityResponse).
   ResponseActionTaken = "ResponseActionTaken",
+  /*
+   * What OneUptime AI proposed for the issue, and what became of it
+   * (DataSecurityAiProposals, #10364): proposed; approved first, where two
+   * people approve a riskier change; made, after approval or without
+   * asking; dismissed; undone; or failed.
+   */
+  AiProposed = "AiProposed",
+  AiProposalApproved = "AiProposalApproved",
+  AiChangeMade = "AiChangeMade",
+  AiProposalDismissed = "AiProposalDismissed",
+  AiChangeUndone = "AiChangeUndone",
+  AiChangeFailed = "AiChangeFailed",
+  /*
+   * What OneUptime AI proposed for the issue's group, and still waited,
+   * is no longer needed (#10741): none of the group's issues is open, or
+   * its fix was asked for another way.
+   */
+  AiProposalExpired = "AiProposalExpired",
+  /*
+   * A telemetry issue resolved as contained at ingest (#10368): a scrub
+   * rule hides its data before it is stored, but the code still writes
+   * it. Not fixed, so not drawn as Resolved is.
+   */
+  Contained = "Contained",
+  /*
+   * The issue's fix followed to production (#10368): its pull request
+   * merged and shipped in a deploy; production proved it (Fixed in pull
+   * request #n, deployed in version x, verified at time t); it merged and,
+   * a day later, the store still failed its check (merged, not applied);
+   * the data came back - after the fix shipped, or in a later version; or
+   * production could not tell.
+   */
+  FixShipped = "FixShipped",
+  FixVerified = "FixVerified",
+  FixNotApplied = "FixNotApplied",
+  FixRegressed = "FixRegressed",
+  FixUnverifiable = "FixUnverifiable",
 }
 
 /*
@@ -283,6 +326,26 @@ export default class DataSecurityIssueFeed extends BaseModel {
   })
   public postedAt?: Date = undefined;
 
+  /*
+   * The OneUptime AI proposal an entry is about (#10366): a change it made
+   * without asking draws its Undo on the entry itself. None for every other
+   * entry. Kept as an id, not a relation: the entry outlives nothing it
+   * names, and the proposal is read with its own permissions.
+   */
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "OneUptime AI Proposal ID",
+    description:
+      "The OneUptime AI proposal this entry is about, when it is about one: a change made without asking offers its Undo here.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dataSecurityAiProposalId?: ObjectID = undefined;
+
   @ColumnAccessControl(columnAccess)
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
@@ -317,39 +380,4 @@ export default class DataSecurityIssueFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

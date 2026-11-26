@@ -139,14 +139,13 @@ describe("Set up logs", () => {
     expect(content.keyStep?.endpointValue).toBe(`${URL}/otlp/v1/logs`);
   });
 
-  test("installs the packages, adds the pipeline, writes records, then checks", () => {
+  test("installs the packages, adds the pipeline and writes records: the dialog's live step checks", () => {
     const content: SetupGuideContent = guide("logs");
 
     expect(titles(content)).toEqual([
       "Install the log packages",
       "Add a log pipeline to src/telemetry.ts",
       "Write log records",
-      "Check that they arrive",
     ]);
     expect(content.steps[0]!.markdown).toContain(getRumLogsInstallCommand());
     expect(content.steps[2]!.markdown).toContain(getRumLogRecordSnippet());

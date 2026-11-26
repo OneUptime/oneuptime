@@ -12,6 +12,7 @@ import { Results } from "../../../Services/AnalyticsDatabaseService";
 import AuditLogService from "../../../Services/AuditLogService";
 import { Statement } from "../../AnalyticsDatabase/Statement";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import AuditRecordNameReaders from "./AuditRecordNameReaders";
 import {
   TelemetryScanWindow,
   buildAuditRecordsStatement,
@@ -54,7 +55,14 @@ export function toAuditScanRecord(row: JSONObject): AuditScanRecord {
     apiKeyId: readRowText(row["apiKeyId"]),
     apiKeyName: readRowText(row["apiKeyName"]),
     mcpClientName: readRowText(row["mcpClientName"]),
+    workflowId: readRowText(row["workflowId"]),
     workflowName: readRowText(row["workflowName"]),
+    workflowRunAs: readRowText(row["workflowRunAs"]),
+    workflowRunAsCustomRoleName: readRowText(
+      row["workflowRunAsCustomRoleName"],
+    ),
+    workflowRunAsGiverName: readRowText(row["workflowRunAsGiverName"]),
+    workflowRunAsGiverApiKeyId: readRowText(row["workflowRunAsGiverApiKeyId"]),
   };
 }
 
@@ -66,6 +74,16 @@ export function toMassDeleteRow(row: JSONObject): MassDeleteRow {
     userType: readRowText(row["actorUserType"]),
     apiKeyId: readRowText(row["actorApiKeyId"]),
     apiKeyName: readRowText(row["actorApiKeyName"]),
+    // The deletes are summed per actor, never per client (MCP clients act as their member).
+    mcpClientName: "",
+    workflowId: readRowText(row["actorWorkflowId"]),
+    workflowName: readRowText(row["actorWorkflowName"]),
+    workflowRunAs: readRowText(row["actorWorkflowRunAs"]),
+    workflowRunAsCustomRoleName: readRowText(row["actorWorkflowRunAsRole"]),
+    workflowRunAsGiverName: readRowText(row["actorWorkflowRunAsGivenBy"]),
+    workflowRunAsGiverApiKeyId: readRowText(
+      row["actorWorkflowRunAsGiverApiKeyId"],
+    ),
     deletes: readRowNumber(row["deletes"]),
     sampleResourceTypes: readRowTextArray(row["sampleResourceTypes"]),
     firstAt: readRowDate(row["firstAt"]) || new Date(0),
@@ -100,8 +118,10 @@ export default class AuditLogSecurityScan {
     const events: Array<NormalizedSecurityEvent> = [];
 
     for (const row of rows) {
+      // Named only where every reader of security events reads the record (#10663).
       const event: NormalizedSecurityEvent | null = buildAuditRecordEvent(
         toAuditScanRecord(row),
+        AuditRecordNameReaders.get(),
       );
 
       if (event) {

@@ -57,7 +57,7 @@ Rapporten räknar vad som skapades och inte fördes över, och visar varje objek
 | Monitors | Monitorer | Varje monitor blir en monitor av samma typ, med samma adress, intervall och tidsgräns, och samma statuskoder som räknas som uppe. |
 | Public status pages | Statussidor | Varje sida visar samma monitorer: de den nämner, de med dess taggar eller alla, med drifttid och historikstaplar så som den visade dem. En sida med lösenord förs över som privat. |
 
-- **HTTP(S)- och nyckelordsmonitorer** blir webbplatsmonitorer, eller API-monitorer när de skickar en annan metod, headers eller en JSON-body. En nyckelordsmonitor går ner när nyckelordet dyker upp eller saknas, som i UptimeRobot, och matchar det exakt, inklusive versaler.
+- **HTTP(S)- och nyckelordsmonitorer** blir webbplatsmonitorer, eller API-monitorer när de skickar en annan metod, headers eller en body. En nyckelordsmonitor går ner när nyckelordet dyker upp eller saknas, som i UptimeRobot, och matchar det exakt, inklusive versaler.
 - **Ping- och portmonitorer** blir ping- och portmonitorer.
 - **Heartbeat-monitorer** blir monitorer för inkommande förfrågningar, som går ner när ingen förfrågan har kommit under intervallet och respitperioden. Var och en får en ny adress i OneUptime.
 - **DNS- och API-monitorer** blir DNS- och API-monitorer.

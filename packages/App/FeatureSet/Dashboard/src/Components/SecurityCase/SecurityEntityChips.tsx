@@ -8,8 +8,11 @@ import {
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
 
+import { ENTITY_ACTIONS_LABEL } from "./Response/SecurityCaseResponseCopy";
+import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -49,6 +52,12 @@ export interface SecurityEntityChipProps {
    * for the columns beside it (a case's Entities page).
    */
   isValueWrapped?: boolean | undefined;
+  /*
+   * What can be done with the entity, in a menu beside its chip - never
+   * inside it, the chip being a link: Block... on one of a case's
+   * addresses (#10342). MoreMenuItem elements.
+   */
+  menuItems?: Array<ReactElement> | undefined;
 }
 
 /*
@@ -106,17 +115,38 @@ export const SecurityEntityChip: FunctionComponent<SecurityEntityChipProps> = (
   const className: string =
     "group inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-700";
 
-  if (props.isLink === false) {
-    return <span className={className}>{content}</span>;
+  const chip: ReactElement =
+    props.isLink === false ? (
+      <span className={className}>{content}</span>
+    ) : (
+      <AppLink
+        to={getCorrelateRouteForEntity(props.entity.value)}
+        className={`${className} hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700`}
+      >
+        {content}
+      </AppLink>
+    );
+
+  if (!props.menuItems || props.menuItems.length === 0) {
+    return chip;
   }
 
   return (
-    <AppLink
-      to={getCorrelateRouteForEntity(props.entity.value)}
-      className={`${className} hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700`}
-    >
-      {content}
-    </AppLink>
+    <span className="inline-flex max-w-full items-center gap-0.5">
+      {chip}
+      <MoreMenu
+        menuIcon={IconProp.EllipsisHorizontal}
+        text=""
+        ariaLabel={translator.translateTemplate(ENTITY_ACTIONS_LABEL, {
+          value: props.entity.value,
+        })}
+        isAriaLabelTranslated={true}
+        isMenuPortaled={true}
+        dataTestId="security-entity-chip-menu"
+      >
+        {props.menuItems}
+      </MoreMenu>
+    </span>
   );
 };
 

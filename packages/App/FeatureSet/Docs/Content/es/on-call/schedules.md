@@ -46,6 +46,8 @@ Todo lo demás espera en **Más campos**, plegado hasta que lo abras:
 
 Mientras alguien se turna y no se cambia nada en **Más campos**, su encabezado plegado dice lo que pasará: cada persona está de guardia una semana y luego toma el relevo la siguiente.
 
+Alguien invitado al proyecto que aún no se ha unido también puede turnarse, pero nada le avisa hasta que acepta su invitación, y no se le dice nada. Su turno es un hueco de cobertura, y los canales y el feed de cada política de guardia que avisa a la programación lo dicen, nombrándole por el nombre escrito con su invitación, nunca por su dirección de correo: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` en Slack y `oncall` en Microsoft Teams también lo dicen. Cuando se une, los avisos le llegan, se le dice qué políticas de guardia le avisan ahora, y los canales oyen "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Hasta entonces, [Preparación e informes](/docs/on-call/readiness) lo muestra, con lo que hay que hacer.
+
 ## Capas
 
 La rotación de una programación se compone de capas, en su página **Capas**. Las capas se leen de arriba abajo: la capa más alta con alguien de guardia es la que avisa, así que pon la rotación principal arriba y la cobertura de respaldo debajo.

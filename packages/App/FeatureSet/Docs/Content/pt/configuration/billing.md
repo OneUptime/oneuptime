@@ -119,6 +119,8 @@ Quando o seu banco ainda está processando um pagamento, o OneUptime avisa: algu
 
 O uso de um dia aparece quando o dia termina, até por volta das 08:00 UTC do dia seguinte. Filtre por **Produto**, **Dia** ou **Serviço** para encontrar o que cresceu.
 
+Para enviar menos, um [filtro de descarte](/docs/telemetry/drop-filters-and-scrub-rules) joga fora os logs e spans que você nunca lê antes que sejam armazenados, e o que ele descarta não é cobrado. Antes de você salvar um, o formulário dele diz com quanto da telemetria do último dia ele corresponde, e o que ele levaria dos monitores, painéis, SLOs e Eventos de segurança que leem as mesmas entradas: veja [O que um filtro levaria](/docs/telemetry/drop-filters-and-scrub-rules#o-que-um-filtro-levaria).
+
 ## Saldos pré-pagos
 
 Mensagens de SMS, chamadas, WhatsApp e Telegram são pagas com o saldo do projeto, e o OneUptime AI com os créditos de IA dele. Você recarrega cada um com antecedência:
@@ -129,9 +131,9 @@ Mensagens de SMS, chamadas, WhatsApp e Telegram são pagas com o saldo do projet
 | OneUptime AI | **Configurações do projeto → IA → Créditos de IA** |
 
 :::steps
-### Recarregar agora
+### Adicionar ao saldo agora
 
-No cartão **Saldo Atual** da página, clique em **Recarregar Saldo**. Informe um valor de $20 a $1,000 e clique em **Recarregar**. O valor é cobrado no cartão do projeto.
+No cartão **Saldo Atual** da página, clique em **Adicionar ao saldo**. Informe um valor de $20 a $1,000 e clique em **Adicionar ao saldo**. O valor é cobrado no cartão do projeto.
 
 ### Ou deixar recarregar sozinho
 
@@ -150,7 +152,7 @@ Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime A
 | Ativar ou desativar SMS, chamadas, WhatsApp ou Telegram | Proprietário do projeto, **Manage Billing** ou **Administrador de cobrança** |
 | Adicionar um método de pagamento | Proprietário do projeto, **Manage Billing** ou **Create Payment Method** |
 | Pagar uma fatura | Proprietário do projeto, **Manage Billing** ou **Edit Invoices** |
-| Mudar o plano, recarregar um saldo ou mudar a recarga automática | Proprietário do projeto ou **Manage Billing** |
+| Mudar o plano, adicionar a um saldo ou mudar a recarga automática | Proprietário do projeto ou **Manage Billing** |
 
 Um botão que você não pode usar aparece bloqueado e diz quem pode. Veja [Usuários, equipes e permissões](/docs/permissions/index#equipes) para as funções de cobrança.
 

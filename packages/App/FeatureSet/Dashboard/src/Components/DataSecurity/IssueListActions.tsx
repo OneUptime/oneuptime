@@ -13,7 +13,7 @@ import {
   isIssueMoveOffered,
   readIssueId,
 } from "./IssueChanges";
-import { AcceptIssueRiskModal } from "./IssueModals";
+import { AcceptIssueRiskModal, NotAnIssueModal } from "./IssueModals";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -61,7 +61,9 @@ import React, { ReactElement, useState } from "react";
  * at a time through the API, so the server checks the permission on each
  * and writes each to its timeline. Bulk Actions asks first, naming the
  * issues, and its result lists the ones left alone ("Already resolved.")
- * and the ones the server refused, in its words.
+ * and the ones the server refused, in its words. Accept Risk and Not an
+ * Issue ask why in a dialog of their own, for one issue or the selection
+ * (#10369).
  *
  * Changing an issue is an update of it: a reader who may not (a Security
  * Viewer) sees the moves locked, saying what it takes; before the reader's
@@ -70,13 +72,18 @@ import React, { ReactElement, useState } from "react";
 
 /*
  * The question a row asks before a move that closes its issue. Accept Risk
- * asks in its own dialog; Reopen asks nothing - it is undone from the same
- * menu.
+ * and Not an Issue ask why in their own dialogs; Reopen asks nothing - it
+ * is undone from the same menu.
  */
 const ROW_QUESTIONS: Partial<Record<IssueMove, string>> = {
   [IssueMove.Resolve]: translationKey("Mark {{name}} resolved?"),
-  [IssueMove.NotAnIssue]: translationKey("Mark {{name}} as not an issue?"),
 };
+
+// The moves that ask why in a dialog before anything is written.
+const MOVES_WITH_A_REASON: ReadonlyArray<IssueMove> = [
+  IssueMove.Accept,
+  IssueMove.NotAnIssue,
+];
 
 // The moves Bulk Actions offers, in its menu's order.
 const BULK_MOVES: ReadonlyArray<IssueMove> = [
@@ -103,11 +110,13 @@ export interface IssueListActions {
   rowActions: Array<ActionButtonSchema<DataSecurityIssue>>;
   // In Bulk Actions, before the table's own Delete.
   bulkActions: Array<BulkActionButtonSchema<DataSecurityIssue>>;
-  // Accept Risk's dialog; drawn by the list beside its table.
+  // Accept Risk's and Not an Issue's dialogs; drawn by the list beside its table.
   modals: ReactElement;
 }
 
-interface AcceptDialog {
+interface ReasonDialog {
+  // Accept Risk, or Not an Issue.
+  move: IssueMove;
   issues: Array<DataSecurityIssue>;
   // Set for Bulk Actions: the run its progress dialog reports.
   bulkActionProps?: BulkActionOnClickProps<DataSecurityIssue> | undefined;
@@ -127,7 +136,7 @@ export default function useIssueListActions(
   config: IssueListActionsConfig,
 ): IssueListActions {
   const translator: Translator = useTranslator();
-  const [acceptDialog, setAcceptDialog] = useState<AcceptDialog | null>(null);
+  const [reasonDialog, setReasonDialog] = useState<ReasonDialog | null>(null);
 
   const gate: PermissionGateResult = PermissionGate.check(
     new DataSecurityIssue(),
@@ -161,11 +170,13 @@ export default function useIssueListActions(
   type StepFunction = (
     move: IssueMove,
     acceptance?: IssueAcceptance | undefined,
+    notAnIssueReason?: string | undefined,
   ) => (issue: DataSecurityIssue) => Promise<BulkItemOutcome>;
 
   const stepFor: StepFunction = (
     move: IssueMove,
     acceptance?: IssueAcceptance | undefined,
+    notAnIssueReason?: string | undefined,
   ) => {
     return async (issue: DataSecurityIssue): Promise<BulkItemOutcome> => {
       const reason: string | null = getIssueMoveSkipReason(issue, move);
@@ -174,7 +185,7 @@ export default function useIssueListActions(
         return bulkItemUnchanged(translator.translateText(reason) || reason);
       }
 
-      await write(issue, getIssueMoveWrite(move, acceptance));
+      await write(issue, getIssueMoveWrite(move, acceptance, notAnIssueReason));
 
       return BULK_ITEM_CHANGED;
     };
@@ -249,8 +260,8 @@ export default function useIssueListActions(
               onCompleteAction: VoidFunction,
               onError: ErrorFunction,
             ): Promise<void> => {
-              if (move === IssueMove.Accept) {
-                setAcceptDialog({ issues: [issue] });
+              if (MOVES_WITH_A_REASON.includes(move)) {
+                setReasonDialog({ move, issues: [issue] });
                 onCompleteAction();
                 return;
               }
@@ -299,9 +310,10 @@ export default function useIssueListActions(
             onClick: async (
               actionProps: BulkActionOnClickProps<DataSecurityIssue>,
             ): Promise<void> => {
-              if (move === IssueMove.Accept) {
-                // Asks why and until when first; the run starts from there.
-                setAcceptDialog({
+              if (MOVES_WITH_A_REASON.includes(move)) {
+                // Asks why first; the run starts from there.
+                setReasonDialog({
+                  move,
                   issues: actionProps.items,
                   bulkActionProps: actionProps,
                 });
@@ -312,7 +324,7 @@ export default function useIssueListActions(
             },
           };
 
-          if (move === IssueMove.Accept) {
+          if (MOVES_WITH_A_REASON.includes(move)) {
             return action;
           }
 
@@ -343,39 +355,66 @@ export default function useIssueListActions(
         },
       );
 
-  const modals: ReactElement = acceptDialog ? (
-    <AcceptIssueRiskModal
-      issues={acceptDialog.issues}
-      onClose={() => {
-        setAcceptDialog(null);
-      }}
-      onSubmit={async (acceptance: IssueAcceptance): Promise<void> => {
-        const dialog: AcceptDialog = acceptDialog;
+  /*
+   * One move's dialog done: the selection's run starts from it (its
+   * progress dialog takes over), or the one issue is saved with the
+   * dialog open, which says why if it cannot be.
+   */
+  const finish: (
+    dialog: ReasonDialog,
+    acceptance?: IssueAcceptance | undefined,
+    notAnIssueReason?: string | undefined,
+  ) => Promise<void> = async (
+    dialog: ReasonDialog,
+    acceptance?: IssueAcceptance | undefined,
+    notAnIssueReason?: string | undefined,
+  ): Promise<void> => {
+    if (dialog.bulkActionProps) {
+      setReasonDialog(null);
+      await runBulk(
+        dialog.bulkActionProps,
+        stepFor(dialog.move, acceptance, notAnIssueReason),
+      );
+      return;
+    }
 
-        if (dialog.bulkActionProps) {
-          // The progress dialog takes over from here.
-          setAcceptDialog(null);
-          await runBulk(
-            dialog.bulkActionProps,
-            stepFor(IssueMove.Accept, acceptance),
-          );
-          return;
-        }
+    const issue: DataSecurityIssue | undefined = dialog.issues[0];
 
-        const issue: DataSecurityIssue | undefined = dialog.issues[0];
+    if (issue) {
+      await write(
+        issue,
+        getIssueMoveWrite(dialog.move, acceptance, notAnIssueReason),
+      );
+    }
 
-        if (issue) {
-          // Saved with the dialog open, which says why if it cannot be.
-          await write(issue, getIssueMoveWrite(IssueMove.Accept, acceptance));
-        }
+    setReasonDialog(null);
+    config.onChanged();
+  };
 
-        setAcceptDialog(null);
-        config.onChanged();
-      }}
-    />
-  ) : (
-    <></>
-  );
+  const modals: ReactElement =
+    reasonDialog?.move === IssueMove.Accept ? (
+      <AcceptIssueRiskModal
+        issues={reasonDialog.issues}
+        onClose={() => {
+          setReasonDialog(null);
+        }}
+        onSubmit={async (acceptance: IssueAcceptance): Promise<void> => {
+          await finish(reasonDialog, acceptance);
+        }}
+      />
+    ) : reasonDialog?.move === IssueMove.NotAnIssue ? (
+      <NotAnIssueModal
+        issues={reasonDialog.issues}
+        onClose={() => {
+          setReasonDialog(null);
+        }}
+        onSubmit={async (reason: string): Promise<void> => {
+          await finish(reasonDialog, undefined, reason);
+        }}
+      />
+    ) : (
+      <></>
+    );
 
   return {
     rowActions: rowActions,

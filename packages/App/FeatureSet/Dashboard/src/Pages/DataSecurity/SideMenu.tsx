@@ -4,11 +4,14 @@ import {
   DataSecurityMenuItem,
   DataSecurityMenuSection,
 } from "../../Utils/DataSecurityNavigation";
+import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import Query from "Common/Types/BaseDatabase/Query";
+import { DataSecurityAiProposalStatus } from "Common/Types/DataSecurity/DataSecurityAi";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
 import ObjectID from "Common/Types/ObjectID";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
@@ -24,7 +27,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The Data Security side menu: its sections and their pages, as
  * DataSecurityNavigation.ts lists them, each page an entry of its own, lit
  * on its page. Beside Issues, how many are still open, in red: that is
- * what needs someone.
+ * what needs someone. Beside AI, how many of its proposals wait for a
+ * person, in amber.
  *
  * Settings, Rules, Help and Advanced fold by their titles. The Advanced
  * section holds the Scans, looked at when something needs checking, and
@@ -32,19 +36,34 @@ import React, { FunctionComponent, ReactElement } from "react";
  * from their clouds, which the Data Stores list leaves out.
  */
 
-interface MenuBadgeCount {
+export interface MenuBadgeCount {
   modelType: { new (): BaseModel };
   countQuery: Query<BaseModel>;
   badgeType: BadgeType;
 }
 
-function getBadgeCount(
+export function getBadgeCount(
   badge: DataSecurityMenuBadge | undefined,
 ): MenuBadgeCount | undefined {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   if (!badge || !projectId) {
     return undefined;
+  }
+
+  /*
+   * What OneUptime AI proposes, waiting for a person (#10364): amber, as
+   * approvals are elsewhere - nothing broke, someone is asked.
+   */
+  if (badge === "aiProposalsWaiting") {
+    return {
+      modelType: DataSecurityAiProposal,
+      countQuery: {
+        projectId: projectId,
+        status: DataSecurityAiProposalStatus.Proposed,
+      } as Query<BaseModel>,
+      badgeType: BadgeType.WARNING,
+    };
   }
 
   // The issues the Issues page opens on: the open ones.
@@ -67,21 +86,24 @@ const DataSecuritySideMenu: FunctionComponent = (): ReactElement => {
         items: section.items.map(
           (item: DataSecurityMenuItem): SideMenuItemProps => {
             const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
-            // A page under the entry keeps it lit: an identity's, under Access.
-            const activeRoute: Route | undefined = item.activePage
-              ? RouteUtil.populateRouteParams(
-                  RouteMap[item.activePage] as Route,
-                )
-              : undefined;
+            /*
+             * A page under the entry keeps it lit: an identity's, under
+             * Access; Review Drafts and Audit Evidence, under Compliance.
+             */
+            const activeRoute: Route | undefined = (item.activePages || [])
+              .map((page: PageMap): Route => {
+                return RouteUtil.populateRouteParams(RouteMap[page] as Route);
+              })
+              .find((route: Route): boolean => {
+                return Navigation.isOnThisPage(route);
+              });
 
             return {
               link: {
                 title: item.title,
                 to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
               },
-              ...(activeRoute && Navigation.isOnThisPage(activeRoute)
-                ? { activeRoute }
-                : {}),
+              ...(activeRoute ? { activeRoute } : {}),
               icon: item.icon,
               ...(count
                 ? {

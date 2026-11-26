@@ -6,6 +6,7 @@ Importe os alertas de cada carga de trabalho do [Microsoft Defender XDR](https:/
 - [Configurar a conexão](#configurar-a-conexão): Um registro de aplicativo, uma permissão e o formulário da conexão.
 - [O que é importado](#o-que-é-importado): Como cada alerta do Defender vira um evento de segurança.
 - [Como a consulta funciona](#como-a-consulta-funciona): A janela que cada consulta lê, e o que um locatário movimentado faz com ela.
+- [Bloquear com o Microsoft Defender](#bloquear-com-o-microsoft-defender): Aplique sua lista de bloqueio em cada dispositivo, com mais uma permissão.
 - [Solução de problemas](#solução-de-problemas): O que cada erro significa e o que mudar.
 :::
 
@@ -64,6 +65,7 @@ Clique em **Testar estas configurações** em **Testar antes de salvar**. O test
 | **ID do diretório (tenant)** | A página **Overview** do aplicativo. O GUID do locatário, ou um domínio verificado como `contoso.onmicrosoft.com`. |
 | **ID do aplicativo (cliente)** | A página **Overview** do aplicativo. O GUID do aplicativo que tem `SecurityAlert.Read.All`. |
 | **Nuvem** | **Nuvem pública do Azure**, que também atende o Microsoft 365 GCC, ou **Azure Government (EUA)** para GCC High (`login.microsoftonline.us` e `graph.microsoft.us`). O Microsoft 365 DoD e a nuvem 21Vianet na China não são suportados. |
+| **Bloquear domínios, endereços e arquivos com o Defender** | Desativada em uma conexão nova. Ativada, bloqueia o que a lista de bloqueio do seu projeto contém em cada dispositivo, e precisa de `Ti.ReadWrite.All` (veja [Bloquear com o Microsoft Defender](#bloquear-com-o-microsoft-defender)). |
 | **Segredo do cliente** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Atualizar credenciais** na conexão. |
 
 A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
@@ -130,6 +132,26 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 - **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
 - **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
+## Bloquear com o Microsoft Defender
+
+Ative **Bloquear domínios, endereços e arquivos com o Defender** em uma conexão, e a [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) do seu projeto é aplicada em cada dispositivo que o Microsoft Defender for Endpoint protege. Cada bloqueio vira um [indicador](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview) do Defender, arquivado sob o aplicativo `OneUptime`, que expira quando o bloqueio expira:
+
+| Na lista de bloqueio | Indicador do Defender | O que o Defender faz |
+| --- | --- | --- |
+| Um domínio | `DomainName`, `Block` | Bloqueia o domínio e cada nome abaixo dele |
+| Uma URL | `Url`, `Block` | Bloqueia a URL no Microsoft Edge, e o domínio dela nos outros navegadores |
+| Um endereço bloqueado em cada máquina | `IpAddress`, `Block` | Bloqueia as conexões com o endereço. Um intervalo nunca é enviado: o Defender aceita um endereço por vez |
+| Um arquivo | `FileSha256`, `FileSha1` ou `FileMd5`, `Block` | Impede que o arquivo seja executado |
+| Um arquivo bloqueado e em quarentena | O mesmo, `BlockAndRemediate` | Impede que o arquivo seja executado, e coloca em quarentena as cópias que encontra |
+
+A chave fica desativada em uma conexão nova: uma conexão criada para importar alertas só lê. Para ativá-la:
+
+1. No registro de aplicativo, vá em **API permissions → Add a permission → APIs my organization uses**, procure `WindowsDefenderATP`, escolha **Application permissions**, selecione `Ti.ReadWrite.All` e conceda o consentimento do administrador. É a única permissão de que o bloqueio precisa.
+2. No portal do Microsoft Defender, ative **Custom network indicators** e **Allow or block file** em **Settings → Endpoints → Advanced features**. Sem eles, o Defender guarda os indicadores mas não bloqueia nada; fora do Microsoft Edge, um domínio, uma URL ou um endereço só é bloqueado onde a proteção de rede está no modo de bloqueio.
+3. Na conexão, ative **Bloquear domínios, endereços e arquivos com o Defender** e clique em **Testar conexão**: **Block with Microsoft Defender** verifica a permissão.
+
+Um locatário guarda 15.000 indicadores, os próprios incluídos. Um bloqueio que o Defender não consegue guardar, ou que recusa, aparece como não aplicado na lista de bloqueio, com o motivo. O OneUptime só lê e remove os indicadores que adicionou para esta conexão, nunca um criado por uma pessoa. Quando o Defender o limita, ele tenta de novo na próxima passada.
+
 ## Testar conexão
 
 **Testar conexão** na linha de uma conexão, e **Testar estas configurações** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
@@ -140,6 +162,7 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | **Authenticate with Microsoft Entra** | O Microsoft Entra ID emite um token para o Microsoft Graph, na nuvem que você escolheu. Falha com um segredo errado ou expirado, um ID de locatário ou de cliente errado, ou a nuvem errada. |
 | **Read alerts from Microsoft Graph** | Um alerta criado nas últimas 24 horas pode ser lido (`$top=1`). Um `403` aqui é a permissão `SecurityAlert.Read.All` que falta, o consentimento do administrador que falta ou um locatário sem Defender XDR. |
 | **Alerts available to import** | Quantos alertas foram criados nas últimas 24 horas e nos últimos 7 dias, uma página de 100 para cada, então `100+` significa mais. Nenhum em 7 dias é um aviso, não uma falha. |
+| **Block with Microsoft Defender** | Só com **Bloquear domínios, endereços e arquivos com o Defender** ativado: o registro de aplicativo tem `Ti.ReadWrite.All`, e os indicadores podem ser lidos. A verificação diz quantos dos 15.000 indicadores do locatário o OneUptime tem, e não altera nenhum. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
 | **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 

@@ -194,12 +194,12 @@ export function getRumSignalSetupGuide(data: {
         ),
         markdown: codeBlock("ts", getRumLogRecordSnippet()),
       },
-      {
-        title: translationKey("Check that they arrive"),
-        description: translationKey(
-          "Deploy, then load a page that writes a record. It is on this app's Logs page within a minute, once the batch processor has exported it.",
-        ),
-      },
+      /*
+       * No "Check that they arrive" step: the dialog ends with one that
+       * waits for the first log and says when it arrives (issue #6379,
+       * RumSignalArrivalWatch). Exceptions keep theirs, which throws a test
+       * error for that step to see.
+       */
     ],
     links: getLinks("logs"),
   };

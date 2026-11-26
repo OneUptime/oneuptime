@@ -6,7 +6,7 @@ Un presupuesto de ingesta limita cuánta telemetría envía un proyecto en un d�
 - [Cómo funcionan los presupuestos](#cómo-funcionan-los-presupuestos): Tres niveles, contados a medida que llega la telemetría.
 - [Fijar los presupuestos predeterminados de todos los proyectos](#fijar-los-presupuestos-predeterminados-de-todos-los-proyectos): En los ajustes del Admin Dashboard.
 - [Dar a una clave de ingesta su propio presupuesto](#dar-a-una-clave-de-ingesta-su-propio-presupuesto): Una parte del presupuesto del proyecto.
-- [Dar a un equipo o a una etiqueta su propio presupuesto](#dar-a-un-equipo-o-a-una-etiqueta-su-propio-presupuesto): Para los servicios del equipo o con la etiqueta.
+- [Dar a un equipo o a una etiqueta su propio presupuesto](#dar-a-un-equipo-o-a-una-etiqueta-su-propio-presupuesto): Para los servicios, hosts y otros recursos del equipo o con la etiqueta.
 - [Alertar sobre un presupuesto](#alertar-sobre-un-presupuesto): Antes de que se agote, y cuando se agota.
 :::
 
@@ -98,7 +98,7 @@ Haga clic en **Guardar cambios**. El presupuesto de una clave no puede superar e
 
 ## Dar a un equipo o a una etiqueta su propio presupuesto
 
-El presupuesto de un equipo o de una etiqueta también es una parte del de su proyecto, para los servicios de los que el equipo es propietario o que llevan la etiqueta: el servicio desbocado de un equipo se detiene en el presupuesto de su equipo, mientras el resto del proyecto sigue enviando, incluso por el mismo collector y la misma clave de ingesta.
+El presupuesto de un equipo o de una etiqueta también es una parte del de su proyecto, para los servicios, hosts, clústeres y otros recursos de los que el equipo es propietario o que llevan la etiqueta: el servicio o el host desbocado de un equipo se detiene en el presupuesto de su equipo, mientras el resto del proyecto sigue enviando, incluso por el mismo collector y la misma clave de ingesta.
 
 :::steps
 ### Abrir la página Uso
@@ -114,8 +114,9 @@ En la tarjeta **Presupuestos de equipos y etiquetas**, haga clic en **Crear Pres
 Haga clic en **Crear Presupuesto**. El presupuesto de un equipo o de una etiqueta no puede superar el de su proyecto: OneUptime lo rechaza e indica el máximo posible.
 :::
 
-- **Qué cuenta.** Los registros, trazas, métricas y perfiles que los servicios del equipo, o los servicios con la etiqueta, envían por OpenTelemetry (OTLP). La telemetría de hosts y de otros recursos, los eventos de seguridad y los registros de Fluent Bit, Fluentd o syslog solo cuentan en los presupuestos del proyecto y de la clave.
-- **Cuando se agota, la telemetría se descarta.** La telemetría de esa señal de los servicios se descarta hasta el restablecimiento, y al emisor no se le avisa: recibió su respuesta cuando llegó la telemetría. Lo que se descarta deja de contar en el presupuesto del proyecto o de la clave.
+- **Qué cuenta.** Los registros, trazas, métricas y perfiles de cada servicio, host, clúster y otro recurso del que el equipo es propietario o que lleva la etiqueta, tanto si se envían por OpenTelemetry (OTLP) como, en el caso de los registros, desde Fluent Bit, Fluentd o syslog, incluido el syslog que los dispositivos de red envían a una sonda. Los eventos de seguridad solo cuentan en los presupuestos del proyecto y de la clave.
+- **De quién es un recurso.** Un servicio, un host u otro recurso es de un equipo cuando el equipo está entre sus propietarios, y de una etiqueta cuando lleva la etiqueta: los mismos propietarios y etiquetas que deciden quién puede leer su telemetría. Un cambio en ellos cuenta en menos de un minuto.
+- **Cuando se agota, la telemetría se descarta.** Su telemetría de esa señal se descarta hasta el restablecimiento, y al emisor no se le avisa: recibió su respuesta cuando llegó la telemetría. Lo que se descarta deja de contar en el presupuesto del proyecto o de la clave.
 - **A quién se avisa.** Los Propietarios del proyecto reciben un correo cuando el presupuesto supera el umbral de advertencia, y cuando se agota.
 - **Solo un presupuesto diario.** Un equipo o una etiqueta no tiene límite de frecuencia.
 - **Cuenta cada presupuesto.** La telemetría de un servicio cuenta en los presupuestos de sus equipos y sus etiquetas, y en los de la clave y el proyecto, y el primero que se agota la detiene. Cuando el presupuesto del proyecto se rebaja por debajo del de un equipo o una etiqueta, queda limitado al del proyecto.
@@ -134,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Los demás emisores HTTP reciben JSON.** Fluent Bit, Fluentd, Syslog y los demás endpoints HTTP reciben `error`, `message` y `resetsAt`, y `retryAfterSeconds` cuando se trata de un límite de frecuencia.
-- **A MQTT y a los flujos de la nube no se les puede avisar.** La telemetría que llega por MQTT o desde el flujo de un proveedor de nube se descarta cuando su presupuesto se agota. No se le aplica ningún límite de frecuencia: no se podría volver a enviar.
+- **A MQTT, a los flujos de la nube y a las sondas no se les puede avisar.** La telemetría que llega por MQTT o desde el flujo de un proveedor de nube se descarta cuando su presupuesto se agota, y también el syslog que los dispositivos de red envían a una sonda: los registros de cada dispositivo cuentan en el presupuesto de su propio proyecto. No se le aplica ningún límite de frecuencia: no se podría volver a enviar.
 - **Tampoco a los servicios de un equipo o de una etiqueta.** Cuando el presupuesto de un equipo o de una etiqueta se agota, su telemetría se acepta y luego se descarta: consulte [Dar a un equipo o a una etiqueta su propio presupuesto](#dar-a-un-equipo-o-a-una-etiqueta-su-propio-presupuesto).
 - **Los rechazos se cuentan.** Lo que un presupuesto agotado rechaza o descarta se cuenta como descartado, y cada solicitud que rechaza un límite de frecuencia, como limitada: consulte [Ver el uso y los descartes de hoy](#ver-el-uso-y-los-descartes-de-hoy).
 

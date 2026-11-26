@@ -89,6 +89,20 @@ jest.mock(
 );
 
 /*
+ * The store's record line (who created it and who last modified it,
+ * #10461) reads the store's activity columns itself: pinned in
+ * OverviewRecordLines, nothing here.
+ */
+jest.mock("../../../UI/Components/Detail/RecordActivityLine", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
+      return null;
+    },
+  };
+});
+
+/*
  * COLLECT NOW, PRESSED AFTER A COLLECTION FAILED (#9506).
  *
  * The person who saw "Collection failed" presses Collect Now and must see

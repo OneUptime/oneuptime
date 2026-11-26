@@ -118,13 +118,15 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **DNS ist online** und **DNS-Antwortzeit (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **DNS ist online** und **DNS-Antwortzeit (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für **DNS-Antwortzeit (in ms)**. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Perzentil** | Dieser Wert über das Fenster die Bedingung erfüllt, etwa die p95-Antwortzeit. Nur für **DNS-Antwortzeit (in ms)**. |
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Anzahl**, **Prozentsatz**, **Statuswechsel** | Wie viele Prüfungen die Bedingung erfüllt haben, ihr Anteil oder wie oft sie zwischen Erfüllen und Nichterfüllen gewechselt haben, wird mit der darunter eingestellten Zahl verglichen. |
+| **Vorherige Prüfung** | Diese Prüfung, verglichen mit der vorherigen Prüfung der Sonde, wie unter **Änderung gegenüber der vorherigen Prüfung** eingestellt: etwa eine Antwortzeit, die mehr als 50 % darüber liegt. Ein Filter, der wahr oder falsch ist, trifft bei der Prüfung zu, die die Bedingung zu erfüllen begann. |
 
 Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 

@@ -1,4 +1,14 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import ProbeOwnTraffic, {
+  ProbeFlowSources,
+} from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/ProbeOwnTraffic";
 import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import { Results } from "../../../../../Server/Services/AnalyticsDatabaseService";
 import AuditLogService from "../../../../../Server/Services/AuditLogService";
@@ -24,6 +34,9 @@ import {
   SecurityTelemetrySignal,
 } from "../../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { SSRF_FETCHED_ATTRIBUTE } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
+import SecurityEventRequestOutcome from "../../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE } from "../../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { SensitiveFileAnswer } from "../../../../../Utils/SecurityEvent/SensitiveFileProbe";
 
 /*
  * Each reader of "Your OneUptime data" turns the rows its queries return -
@@ -255,9 +268,114 @@ describe("the trace reader", () => {
       }),
     );
   });
+
+  /*
+   * #10912: a page of server spans asking for files that hold secrets is
+   * judged as the log scan judges a page - the same size answering two
+   * paths is the app's own page, and a 200 nothing decides is no event -
+   * and a probe that found nothing stays turned away after its trace is
+   * followed.
+   */
+  test("a page of spans for files that hold secrets is judged before it is stored", async () => {
+    const appSite: string = "0192f1a0-0000-7000-8000-00000000c402";
+    const quietSite: string = "0192f1a0-0000-7000-8000-00000000c403";
+    const spanOf: (data: {
+      spanId: string;
+      url: string;
+      size: string;
+      site: string;
+    }) => JSONObject = (data: {
+      spanId: string;
+      url: string;
+      size: string;
+      site: string;
+    }): JSONObject => {
+      return {
+        ...ATTACK_SPAN_ROW,
+        traceId: `4bf92f3577b34da6a3ce929d0e0e${data.spanId.slice(-4)}`,
+        spanId: data.spanId,
+        primaryEntityId: data.site,
+        attributes: {
+          "url.full": data.url,
+          "http.request.method": "GET",
+          "http.response.status_code": "200",
+          "http.response_content_length": data.size,
+          "network.peer.address": "203.0.113.9",
+        },
+      };
+    };
+
+    jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([]);
+    // A follow-up reads every 2xx as reaching the app.
+    jest
+      .spyOn(SecurityRequestTrace, "followEvents")
+      .mockImplementation((async (data: {
+        events: Array<NormalizedSecurityEvent>;
+      }): Promise<number> => {
+        for (const event of data.events) {
+          event.requestOutcome = SecurityEventRequestOutcome.ReachedApp;
+        }
+
+        return data.events.length;
+      }) as never);
+    jest.spyOn(SpanService, "executeQuery").mockResolvedValue(
+      answer([
+        spanOf({
+          spanId: "00f067aa0ba90001",
+          url: "https://app.example/.env",
+          size: "1789",
+          site: appSite,
+        }),
+        spanOf({
+          spanId: "00f067aa0ba90002",
+          url: "https://app.example/.git/config",
+          size: "1789",
+          site: appSite,
+        }),
+        spanOf({
+          spanId: "00f067aa0ba90003",
+          url: "https://quiet.example/.aws/credentials",
+          size: "412",
+          site: quietSite,
+        }),
+      ]) as never,
+    );
+
+    const read: TelemetryWindowRead = await TraceSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+
+    expect(read.events).toHaveLength(3);
+
+    const prepared: Array<NormalizedSecurityEvent> =
+      await TraceSecurityScan.prepareEvents({
+        projectId: PROJECT_ID,
+        events: read.events,
+      });
+
+    expect(
+      prepared.map((event: NormalizedSecurityEvent): string => {
+        return `${String(event.attributes[WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE])} ${String(event.requestOutcome)} ${event.severityName}`;
+      }),
+    ).toEqual([
+      `${SensitiveFileAnswer.OwnPage} ${SecurityEventRequestOutcome.Rejected} ${OcsfSeverity.Low}`,
+      `${SensitiveFileAnswer.OwnPage} ${SecurityEventRequestOutcome.Rejected} ${OcsfSeverity.Low}`,
+    ]);
+  });
 });
 
 describe("the flow reader", () => {
+  // A project with none of OneUptime's probes (FlowProbeOwnTraffic.test.ts reads theirs).
+  beforeEach(() => {
+    jest
+      .spyOn(ProbeOwnTraffic, "readSources")
+      .mockResolvedValue(
+        new ProbeFlowSources({ probes: [], globalProbeIds: [] }),
+      );
+  });
+
   function standFlows(data: {
     portScans?: Array<JSONObject>;
     sweeps?: Array<JSONObject>;
@@ -513,6 +631,125 @@ describe("the audit log reader", () => {
       SecurityTelemetrySignal.ApiKeyCreated,
     ]);
     expect(queries).toHaveLength(1);
+  });
+
+  /*
+   * #10663: the event is read by every reader of security events, and an
+   * API key's name is Project Owner's, Project Admin's and Read API Key's -
+   * not Security Viewer's. The scan asks the models, so it writes the key's
+   * event without the key's name, keeping its type, its id and who made it.
+   */
+  test("writes an API key's event without the key's name, which the Security tiers may not read", async () => {
+    jest.spyOn(AuditLogService, "executeQuery").mockImplementation((async (
+      statement: Statement,
+    ) => {
+      return statement.query.includes("AS deletes")
+        ? answer([])
+        : answer([RECORD]);
+    }) as never);
+
+    const read: TelemetryWindowRead = await AuditLogSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+
+    const event: NormalizedSecurityEvent = read.events[0]!;
+
+    expect(event.message).toBe("alice@example.com created an API key");
+    expect(event.targetResource).toBe(
+      "API Key: 0192f1a0-0000-7000-8000-00000000a402",
+    );
+    expect(event.attributes["audit.resource_name"]).toBeUndefined();
+    expect(event.attributes["audit.resource_id"]).toBe(
+      "0192f1a0-0000-7000-8000-00000000a402",
+    );
+    expect(event.attributes["audit.resource_type"]).toBe("API Key");
+    expect(event.principalUser).toBe("alice@example.com");
+    expect(JSON.stringify(event)).not.toContain("deploy-bot");
+  });
+
+  test("reads each workflow's deletes as that workflow's, and OneUptime's own apart (#10430)", async () => {
+    const nightly: string = "0192f1a0-0000-7000-8000-00000000a411";
+    const archiver: string = "0192f1a0-0000-7000-8000-00000000a412";
+    const workflowRow: (
+      id: string,
+      name: string,
+      deletes: string,
+    ) => JSONObject = (
+      id: string,
+      name: string,
+      deletes: string,
+    ): JSONObject => {
+      return {
+        actorUserType: "Workflow",
+        actorUserId: null,
+        actorUserName: null,
+        actorUserEmail: null,
+        actorApiKeyId: null,
+        actorApiKeyName: null,
+        actorWorkflowId: id,
+        actorWorkflowName: name,
+        actorWorkflowRunAs: "ProjectOwner",
+        actorWorkflowRunAsRole: "",
+        actorWorkflowRunAsGivenBy: "Jane Doe",
+        actorWorkflowRunAsGiverApiKeyId: "",
+        deletes,
+        sampleResourceTypes: ["Incident"],
+        firstAt: "2026-10-27 10:00:00",
+        lastAt: "2026-10-27 10:02:00",
+      };
+    };
+
+    jest.spyOn(AuditLogService, "executeQuery").mockImplementation((async (
+      statement: Statement,
+    ) => {
+      return statement.query.includes("AS deletes")
+        ? answer([
+            workflowRow(nightly, "Nightly Cleanup", "30"),
+            workflowRow(archiver, "Archive Old Incidents", "26"),
+            {
+              actorUserType: "System",
+              actorUserId: null,
+              actorUserName: null,
+              actorUserEmail: null,
+              actorApiKeyId: null,
+              actorApiKeyName: null,
+              actorWorkflowId: null,
+              actorWorkflowName: "",
+              actorWorkflowRunAs: "",
+              actorWorkflowRunAsRole: "",
+              actorWorkflowRunAsGivenBy: "",
+              actorWorkflowRunAsGiverApiKeyId: "",
+              deletes: "300",
+              sampleResourceTypes: ["Team Member"],
+              firstAt: "2026-10-27 10:00:00",
+              lastAt: "2026-10-27 10:01:00",
+            },
+          ])
+        : answer([]);
+    }) as never);
+
+    const read: TelemetryWindowRead = await AuditLogSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+
+    expect(signalsOf(read.events)).toEqual([
+      SecurityTelemetrySignal.MassDelete,
+      SecurityTelemetrySignal.MassDelete,
+      SecurityTelemetrySignal.OneUptimeMassDelete,
+    ]);
+    expect(
+      read.events.map((event: NormalizedSecurityEvent): string => {
+        return event.principalUser;
+      }),
+    ).toEqual([`workflow:${nightly}`, `workflow:${archiver}`, "oneuptime"]);
+    expect(read.events[0]!.message).toBe(
+      'The workflow "Nightly Cleanup", running as Project Owner with the permissions Jane Doe gave it, deleted 30 records in 2 minutes (Incident)',
+    );
+    expect(read.events[2]!.severityName).toBe("Informational");
   });
 });
 

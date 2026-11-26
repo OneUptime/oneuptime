@@ -37,6 +37,8 @@ export const UNDO_BUTTON_TITLES: Partial<
   [SecurityPlaybookActionType.EnableEntraIdUser]: translationKey("Enable"),
   [SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser]:
     translationKey("Unsuspend"),
+  // A block an address step made, lifted from its run (#10342).
+  [SecurityPlaybookActionType.LiftAddressBlock]: translationKey("Lift"),
 };
 
 export interface RunStepRow {

@@ -5,6 +5,7 @@ import FilterOperator from "./Types/FilterOperator";
 import OperatorSelector from "./OperatorSelector";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
@@ -64,7 +65,8 @@ const detectState: DetectStateFunction = (rawValue: unknown): NumberState => {
       endValue: "",
     };
   }
-  if (rawValue instanceof NotEqual) {
+  // NotEqual is how a link or a saved view made before #10581 wrote it.
+  if (rawValue instanceof NotEqualOrNull || rawValue instanceof NotEqual) {
     return {
       operator: FilterOperator.NotEqualTo,
       value: rawValue.toString(),
@@ -128,7 +130,8 @@ const buildValue: BuildValueFunction = (state: NumberState): unknown => {
     case FilterOperator.EqualTo:
       return hasStart ? new EqualTo(startNum as any) : undefined;
     case FilterOperator.NotEqualTo:
-      return hasStart ? new NotEqual(startNum as any) : undefined;
+      // Anything but the number, a record with none included (#10581).
+      return hasStart ? new NotEqualOrNull(startNum as any) : undefined;
     case FilterOperator.GreaterThan:
       return hasStart ? new GreaterThan(startNum) : undefined;
     case FilterOperator.LessThan:

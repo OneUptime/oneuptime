@@ -28,6 +28,16 @@ Test" workflow provides both:
   and `HelmEnvValuesQuoted.test.js` the `oneuptime` chart. Without helm on
   PATH their renders are skipped with the reason logged, except when `CI` is
   set: then they fail. GitHub's runners have helm.
+- **git, jq and bash.** `TerraformProviderPublishedRelease.test.js` runs
+  `Scripts/TerraformProvider/publish-terraform-provider.sh` end to end, as the
+  release does, against a bare git repository on disk (git's
+  `url.<base>.insteadOf` puts the provider's GitHub URLs on it), a stand-in
+  `gh` that keeps GitHub's releases in a JSON file and runs jq for `--jq`, as
+  gh does, stand-ins for GoReleaser, go, gpg and npm, and a stand-in of
+  OneUptime's GitHub API on 127.0.0.1 for the release notes
+  (`Utils/ProviderPublishWorld.js`). It reaches no network and takes ~20
+  seconds. `TerraformProviderReleaseNotes.test.js` reads pages from git
+  repositories it makes.
 - **git.** `HomeBlogClone.test.js` runs `packages/Home/Scripts/CloneBlog.sh`,
   the Home image's blog clone, with the real git against git's own
   `http-backend` on 127.0.0.1 - a server that stalls a pack part-way, never
@@ -1518,10 +1528,13 @@ What keeps the images free of the rest of what scanners reported, for every
 - the Kubernetes AI agent ships only node, tini, the CA store and one kubectl
   binary, copied in from a stage that checked it against a pinned sha256 (the
   download tool never ships), and runs the compiled agent as `node`;
-- the resource AI agent is one stage that installs only the CA store, tini
-  and, from Alpine's own packages, the programs its executors run (docker-cli,
-  govc, ceph19-common, util-linux-misc), and runs the compiled agent as `node`
-  by default;
+- the resource AI agent installs only the CA store, tini and, from Alpine's
+  own packages, two of the programs its executors run (ceph19-common,
+  util-linux-misc); the docker CLI and govc come from Docker's and VMware's
+  own releases, each copied in from a stage that checked it against a pinned
+  sha256 (Alpine's builds had high vulnerabilities: #9830, #10383), with the
+  docker CLI at or past the first release built with a fixed Go; it runs the
+  compiled agent as `node` by default;
 - E2E installs itself with `--ignore-scripts` (its `preinstall` would install
   a second, unpinned set of browsers and WebKit's libraries), only while no
   dependency has an install script, and installs exactly the engines its
@@ -1650,6 +1663,30 @@ daily `schedule` and on `workflow_dispatch` (`build.yml` is left out, with its
 reason: `test-release.yaml` builds the same images on every push to main). A
 workflow that checks only the pull requests touching certain paths may run on
 pushes touching them, and must filter those pushes by path too.
+
+### `JobsAfterToleratedFailures.test.js`
+
+No job is skipped by a failure another job runs past. Actions reads an `if`
+that calls no status function as `success() && if`, and a job's success() is
+false once any job before it failed, a job it needs or one before those. So
+when a job runs past a failure (`!cancelled()` or `always()`, without asking
+for that need's success), each job after it with a plain `if` is skipped by
+that failure even when every job it needs succeeded. release.yml's
+`finalize-github-release` publishes without the Android agent's APK, an app
+or the SBOM scan, and `android-agent-build` fails while the APK's signing key
+is not set: 17.1.0 and 17.2.0 published neither the MCP Registry entry, the
+coding agent plugin, the infrastructure agent's apt, yum, Homebrew and winget
+packages nor the Android agent on Google Play.
+
+The suite reads every workflow and, for each job that may fail, works out the
+jobs its failure keeps from running the way Actions does, then fails on each
+one with a plain `if` all of whose needs ran. It holds the six jobs after
+`finalize-github-release` to `afterEveryNeedSucceeded` (each need's result by
+name after `!cancelled()`, for `release`, in `Utils/ReleaseWorkflow.js`), and
+evaluates their conditions with success() read over every job before them:
+each runs whichever optional job failed, and none runs when a job it needs did
+not succeed, the run was cancelled or the branch is not `release`. A planted
+publisher with a plain `if` shows the check is real.
 
 ### `ReleaseE2ePipeline.test.js`
 

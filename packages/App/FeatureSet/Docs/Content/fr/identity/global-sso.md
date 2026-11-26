@@ -27,7 +27,7 @@ Pour le fournisseur propre à un seul projet, consultez [SSO](/docs/identity/sso
 :::steps
 ### Ouvrir la liste des fournisseurs
 
-Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard avec **Paramètres admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification unique**. La page liste les fournisseurs SAML de l'instance, puis ses fournisseurs OpenID Connect, et se termine par la carte **Exiger le SSO**.
+Connectez-vous en tant qu'administrateur principal et choisissez **Tableau de bord admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification unique**. La page liste les fournisseurs SAML de l'instance, puis ses fournisseurs OpenID Connect, et se termine par la carte **Exiger le SSO**.
 
 ### Créer le fournisseur
 
@@ -103,6 +103,12 @@ Enregistrez l'URI de redirection après déconnexion qu'affiche la carte **URL d
 :::
 
 L'emplacement de ces réglages chez Okta, Microsoft Entra ID, Auth0 et Keycloak est indiqué sur la page [SSO](/docs/identity/sso).
+
+## Se reconnecter pour confirmer que c'est bien vous
+
+Quelqu'un qui se connecte uniquement par un fournisseur global confirme que c'est bien lui avec **Se reconnecter** avant de modifier sa façon de se connecter ou de supprimer son compte : OneUptime le renvoie au fournisseur avec `ForceAuthn="true"` pour SAML, ou `prompt=login` et `max_age=0` pour OpenID Connect (seulement `prompt=login` pour Microsoft Entra ID), et ne le compte que lorsque le fournisseur indique, dans `AuthnInstant` ou `auth_time`, qu'il s'est connecté à ce moment-là ou après. Ajouter, modifier ou supprimer un fournisseur global vous demande d'abord de [confirmer que c'est bien vous](/docs/introduction/your-account#confirmer-que-cest-bien-vous).
+
+Les réglages à faire dans Okta, Microsoft Entra ID, Keycloak et Google Workspace sont indiqués sur la page [SSO](/docs/identity/sso#se-reconnecter-pour-confirmer-que-cest-bien-vous).
 
 ## Imposer le SSO
 
@@ -187,4 +193,5 @@ Toute l'instance exige le SSO, et il s'agissait d'une connexion avec un mot de p
 - [SSO](/docs/identity/sso): Configurer le fournisseur SAML ou OIDC propre à un projet.
 - [SCIM](/docs/identity/scim): Laisser votre fournisseur d'identité ajouter et retirer des personnes automatiquement.
 - [Utilisateurs, équipes et autorisations](/docs/permissions/index): Ce que les équipes rejointes par les nouveaux venus leur permettent de faire.
+- [Aide et support](/docs/self-hosted/help-and-support): Indiquer aux personnes qui ont besoin d'une invitation à qui la demander.
 :::

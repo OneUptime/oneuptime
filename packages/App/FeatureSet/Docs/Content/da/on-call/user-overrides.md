@@ -27,6 +27,7 @@ Mens en tilsidesættelse gælder, fra dens start til dens slutning:
 - Står der nogen under **Hvem dækker?**, får den person alle den fraværende persons tilkald fra alle vagtplaner, teams og regler, tilsidesættelsen gælder for. Tilkaldet når dem via deres egne personlige vagtregler.
 - Er der ingen til at dække, springes personen over. I en vagtplan går hver af deres vagter til den næste person i rotationen, som ikke er fraværende; er alle i et lag fraværende, overtager lagene under det. En regel, der nævner dem direkte eller via et team, tilkalder dem ikke, og politikkens kørsel viser, at de er fraværende, og til hvornår.
 - Tilsidesættelser kædes ikke sammen. Er den, der dækker, også fraværende, er det stadig dem, der tilkaldes for den person, de dækker for.
+- En, der er inviteret, men endnu ikke er blevet medlem af projektet, kan vælges under **Hvem dækker?**, men intet tilkalder vedkommende, før invitationen er accepteret, så indtil da tilkaldes ingen i stedet for den fraværende person. Formularen siger det, så snart du vælger vedkommende, og det gør linjen, som politikkens kanaler og feed får, også: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 Når tilsidesættelsen slutter, er tilkaldene deres igen. **Tidslinje for vagtplaner**, en vagtplans lag og kalenderfeedsene viser alle, hvem der har hver dækket vagt.
 

@@ -8,12 +8,21 @@ import {
   getSecurityPipelineStages,
   hasSecuritySources,
 } from "./SecuritySetupModel";
+import {
+  MISSING_TELEMETRY_SUMMARY,
+  MISSING_TELEMETRY_TITLE,
+  SOURCES_TELEMETRY_REFUSED,
+} from "../SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   PluralTemplate,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  RefusedTelemetry,
+  getRecentRefusedTelemetry,
+} from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * THE TOP OF THE SECURITY OVERVIEW, decided in one place.
@@ -21,7 +30,8 @@ import {
  * One card, drawn the way Home draws the top of a project (ProjectHealth):
  * a band that says in a sentence what the reader should know first - what
  * needs someone, that every open case is picked up, that nothing is watched
- * yet, or that all is quiet - and under it the pipeline, one cell per part
+ * yet, that part of what it reads was refused before it could be scanned,
+ * or that all is quiet - and under it the pipeline, one cell per part
  * of Security (sources, detections, cases, playbooks), each with its figure
  * and a status line that says whether that part is fine, needs a look, or
  * is not set up yet and where to set it up.
@@ -93,6 +103,12 @@ export enum SecurityHeadlineKind {
    * or threat intel feed reading your logs (isSecurityWatching).
    */
   NotSetUp = "not-set-up",
+  /*
+   * Nothing open and nothing waiting, but an ingestion budget or rate
+   * refused some of the logs or traces Security Events reads in the last
+   * day (#10431): never "All quiet" over what it could not see.
+   */
+  MissingTelemetry = "missing-telemetry",
   // Nothing open, nothing waiting, and Security is watching.
   Quiet = "quiet",
 }
@@ -261,10 +277,28 @@ export function isSecurityWatching(status: SecuritySetupStatus): boolean {
 }
 
 /*
+ * What an ingestion budget or rate refused of the telemetry Security Events
+ * reads that goes on now or ended in the last day (#10431): the band's and
+ * the card's to say, what goes on first.
+ */
+export function getRecentSecurityRefusedTelemetry(
+  status: SecuritySetupStatus | null,
+  now: Date,
+): Array<RefusedTelemetry> {
+  return status
+    ? getRecentRefusedTelemetry({
+        refusals: status.refusedTelemetry || [],
+        now,
+      })
+    : [];
+}
+
+/*
  * What the band says, most pressing first: what waits for a person, then
  * cases that are open but in hand, then - with nothing open - that nothing
- * is watched yet, or that all is quiet. Without the set-up figures (a read
- * that failed) the band says what the overview alone can tell.
+ * is watched yet, that part of what it reads was refused before it could be
+ * scanned, or that all is quiet. Without the set-up figures (a read that
+ * failed) the band says what the overview alone can tell.
  */
 export function getSecurityHeadline(data: {
   queue: SecurityOverviewQueue;
@@ -319,6 +353,23 @@ export function getSecurityHeadline(data: {
       summary: { text: NOT_SET_UP_SUMMARY },
       items: [],
       action: SecurityHeadlineAction.SetUp,
+    };
+  }
+
+  /*
+   * "All quiet" over telemetry that was refused would say nothing happened
+   * where Security Events could not look (#10431). Say so; the card's foot
+   * says what, when and whose budget.
+   */
+  if (getRecentSecurityRefusedTelemetry(status, now).length > 0) {
+    return {
+      kind: SecurityHeadlineKind.MissingTelemetry,
+      tone: SecurityStatusTone.Warning,
+      icon: IconProp.SignalSlash,
+      title: MISSING_TELEMETRY_TITLE,
+      summary: { text: MISSING_TELEMETRY_SUMMARY },
+      items: [],
+      action: SecurityHeadlineAction.None,
     };
   }
 
@@ -508,6 +559,20 @@ function getSourcesFigures(
     plural: SOURCES_FIGURE,
     count: countSecuritySources(status),
   };
+
+  /*
+   * Part of what the sources read was refused in the last day (#10431):
+   * never a green tick over it, whatever arrived beside it.
+   */
+  if (getRecentSecurityRefusedTelemetry(status, now).length > 0) {
+    return {
+      figure,
+      figureTone: SecurityStatusTone.Warning,
+      status: { text: SOURCES_TELEMETRY_REFUSED },
+      statusIcon: IconProp.SignalSlash,
+      statusTone: SecurityStatusTone.Warning,
+    };
+  }
 
   if (status.eventsLast24Hours > 0) {
     return {

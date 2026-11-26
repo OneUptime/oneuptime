@@ -25,6 +25,7 @@ import {
   turnOnGcsUniformAccess,
 } from "./Cloud/Gcp/GcpDataSecurityResponse";
 import { DataSecurityResponseOutcome } from "./Cloud/DataSecurityCloudTypes";
+import { getResponseActionStoreFeedMarkdown } from "./DataSecurityResponseFeed";
 import { queueDataSecurityConnectionRead } from "./DataSecurityJobs";
 import DataSecurityRunner from "./DataSecurityRunner";
 import { Gray500, Green500 } from "../../../Types/BrandColors";
@@ -44,12 +45,25 @@ import {
 import {
   CLUSTER_SNAPSHOT_DATA_STORE_KINDS,
   DataSecurityResponseAction,
+  getDataSecurityResponseActionForIssue,
   getDataSecurityResponseActions,
   isDataSecurityResponseAction,
 } from "../../../Types/DataSecurity/DataSecurityResponseAction";
+import DataSecurityIssueResolution, {
+  DataSecurityIssuePendingResolution,
+} from "../../../Types/DataSecurity/DataSecurityIssueResolution";
+import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { DataStorePostureFacts } from "../../../Types/DataSecurity/DataStorePosture";
+import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
+import logger from "../Logger";
+
+// The most issues a store has: one per check.
+const MAX_ISSUES_OF_A_STORE: number = 100;
 
 /*
  * FIXING A STORE FROM ITS ISSUE: DATA SECURITY'S RESPONSE ACTIONS.
@@ -125,15 +139,16 @@ export default class DataSecurityResponse {
     // Green when the store's configuration changed, grey when it was already so.
     const displayColor: Color = outcome.changed ? Green500 : Gray500;
 
+    // The line a change OneUptime made in its own session is tied to (DataSecurityResponseFeed).
     await DataStoreFeedService.createDataStoreFeedItem({
       projectId: data.projectId,
       dataStoreId: data.dataStoreId,
       dataStoreFeedEventType: DataStoreFeedEventType.ResponseActionTaken,
       displayColor: displayColor,
-      feedInfoInMarkdown: (outcome.changed
-        ? mdText`**${data.action}**, through the store's cloud connection: ${outcome.summary} The store is being checked again.`
-        : mdText`**${data.action}** changed nothing: ${outcome.summary}`
-      ).toString(),
+      feedInfoInMarkdown: getResponseActionStoreFeedMarkdown({
+        action: data.action,
+        outcome,
+      }).toString(),
       userId: data.userId,
     });
 
@@ -151,6 +166,15 @@ export default class DataSecurityResponse {
       });
     }
 
+    if (outcome.changed) {
+      await this.markIssuesFixedFromHere({
+        projectId: data.projectId,
+        store: target.store,
+        action: data.action,
+        userId: data.userId,
+      });
+    }
+
     if (outcome.changed && target.connection.id) {
       await queueDataSecurityConnectionRead({
         projectId: data.projectId,
@@ -159,6 +183,64 @@ export default class DataSecurityResponse {
     }
 
     return outcome;
+  }
+
+  /*
+   * The store's open issues this action fixes wait for their check to pass
+   * as fixed from here (#10368): the read that follows resolves each, and
+   * says it was this action, not a check that passed for no reason known.
+   * Never throws: the change is made either way.
+   */
+  public static async markIssuesFixedFromHere(data: {
+    projectId: ObjectID;
+    store: DataStore;
+    action: DataSecurityResponseAction;
+    userId?: ObjectID | undefined;
+    now?: Date | undefined;
+  }): Promise<void> {
+    try {
+      const issues: Array<DataSecurityIssue> =
+        await DataSecurityIssueService.findBy({
+          query: {
+            projectId: data.projectId,
+            dataStoreId: data.store.id!,
+            status: DataSecurityIssueStatus.Open,
+          },
+          select: { _id: true, checkId: true },
+          skip: 0,
+          limit: MAX_ISSUES_OF_A_STORE,
+          props: { isRoot: true },
+        });
+      const pending: DataSecurityIssuePendingResolution = {
+        resolution: DataSecurityIssueResolution.FixedFromHere,
+        responseAction: data.action,
+        at: (data.now || OneUptimeDate.getCurrentDate()).toISOString(),
+        ...(data.userId ? { userId: data.userId.toString() } : {}),
+      };
+
+      for (const issue of issues) {
+        if (
+          !issue.id ||
+          getDataSecurityResponseActionForIssue(
+            issue.checkId,
+            data.store.kind,
+          ) !== data.action
+        ) {
+          continue;
+        }
+
+        await DataSecurityIssueService.updateColumnsByIdWithoutHooks({
+          id: issue.id,
+          data: {
+            pendingResolution: pending as unknown as JSONObject,
+          } as never,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not note on store ${data.store.id?.toString()}'s issues that ${data.action} fixed them from here: ${error}`,
+      );
+    }
   }
 
   /*

@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab 在 HTTP 请求中
-把引用写在 [HTTP 请求步骤](/docs/runbooks/authoring#http-request)的 URL、请求头或正文中：
+把引用写在 [HTTP 请求步骤](/docs/runbooks/authoring#http-request)的 URL、请求头、正文或 **CA 证书** 中：
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+在 **CA 证书** 中，引用单独出现，例如 `{{global.variables.INTERNAL_CA}}`，而变量以 PEM 形式保存证书：每个指定它的步骤都信任同一个 CA，新的 CA 只需在一处设置。
 @tab SSH 登录
 [SSH 步骤](/docs/runbooks/authoring#ssh)在 **登录方式** 中选择保存其私钥或密码的机密变量，并在 **更多字段 → 密钥口令** 中选择其密钥的口令。值本身表明它是密钥还是密码。
 @tab Kubeconfig

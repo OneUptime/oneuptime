@@ -102,7 +102,7 @@ return { durationMs: Date.now() - start };
 | **URL** | 要呼叫的端點。 | 空白 |
 | **標頭（JSON）** | 位於 **更多欄位** 下。一個 JSON 物件，例如 `{ "Authorization": "Bearer ..." }`。不是有效 JSON 的標頭會使步驟失敗。 | 無 |
 | **允許自簽憑證** | 位於 **更多欄位** 下。開啟後，步驟接受伺服器出示的任何憑證，因此自簽憑證可以使用，但它既不檢查主機名稱也不檢查有效期，網路路徑上的任何人都可以讀取請求（包括其中的機密）並竄改回應。 | 關閉 |
-| **CA 憑證** | 在 **允許自簽憑證** 關閉時，位於 **更多欄位** 下。簽發伺服器憑證的 CA 的憑證（PEM），或在伺服器憑證為自簽時伺服器本身的憑證。步驟隨後只信任該憑證，並且仍會檢查主機名稱和有效期。 | 無 |
+| **CA 憑證** | 在 **允許自簽憑證** 關閉時，位於 **更多欄位** 下。簽發伺服器憑證的 CA 的憑證（PEM），在伺服器憑證為自簽時伺服器本身的憑證，或存放它的一個 [Runbook 變數](/docs/runbooks/variables)。步驟隨後只信任該憑證，並且仍會檢查主機名稱和有效期。 | 無 |
 | **本文** | 方法為 `POST`、`PUT`、`PATCH` 或 `DELETE` 時顯示。能剖析為 JSON 時以 JSON 傳送，否則以文字傳送。 | 無 |
 | **請求逾時** | 在步驟失敗前等待端點回應的時間。 | 30 秒 |
 
@@ -118,10 +118,12 @@ return { durationMs: Date.now() - start };
 
 憑證由伺服器自己簽發、或由你自己的 CA 簽發的伺服器，在步驟信任它之前都會被拒絕，並且不會傳送任何內容。步驟的錯誤以 "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." 開頭，並說明要改什麼。把簽發它的憑證貼到 **CA 憑證**：CA 的憑證，或在自簽時伺服器本身的憑證。步驟隨後會用它檢查伺服器的憑證，包括主機名稱和有效期，因此只是冒充你的伺服器的伺服器仍會被拒絕。只有在無法貼上憑證時，才開啟 **允許自簽憑證**。兩者都只作用於此步驟的請求，絕不作用於其他步驟、OneUptime 的其他請求或到輸出代理的連線。
 
+當許多步驟呼叫由你自己的 CA 簽發的服務時，把它的憑證存放在一個 [Runbook 變數](/docs/runbooks/variables) 中，並在 **CA 憑證** 中只寫 `{{global.variables.INTERNAL_CA}}`。步驟每次執行都會讀取該變數，因此 CA 更換時，你只需修改一次變數。一般變數就夠了，因為憑證不是機密；機密變數也可以，並會在步驟記錄的內容中隱藏。不存在的變數，或不包含憑證的變數，會在傳送任何內容之前讓步驟失敗，錯誤會指出該變數。在 **允許自簽憑證** 開啟期間，步驟不會讀取該變數。
+
 > [!TIP]
 > 若要改為在所有請求中一次信任你自己的 CA（包括監測器），自行託管的安裝會在其容器上設定 `NODE_EXTRA_CA_CERTS`。
 
-透過 API 和 Terraform，開關是步驟設定中的 `allowSelfSignedCertificates`，取值 `true` 或 `false`；CA 憑證是其中的 `caCertificate`，即文字形式的 PEM。當 `caCertificate` 不是憑證或包含私密金鑰時，儲存會被拒絕。
+透過 API 和 Terraform，開關是步驟設定中的 `allowSelfSignedCertificates`，取值 `true` 或 `false`；CA 憑證是其中的 `caCertificate`：文字形式的 PEM，或單獨的一個變數參照。當 `caCertificate` 兩者都不是或包含私密金鑰時，儲存會被拒絕。
 
 ```hcl
 config = {

@@ -1,6 +1,8 @@
 import DatabaseService from "./DatabaseService";
+import RequiredUniqueNames from "../Utils/Database/RequiredUniqueNames";
 import AuditLogService from "./AuditLogService";
 import ServiceService from "./ServiceService";
+import SecurityBlockCloudWafService from "./SecurityBlockCloudWafService";
 import { Service as SecurityEventConnectionServiceClass } from "./SecurityEventConnectionService";
 import Model from "../../Models/DatabaseModels/CloudConnection";
 import TelemetryService from "../../Models/DatabaseModels/Service";
@@ -11,10 +13,13 @@ import {
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
   CloudConnectionField,
+  WAF_BLOCKLIST_FIELD_KEY,
+  doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionAuthMethod,
   getCloudConnectionDefinition,
   getCloudConnectionFieldsForMethod,
   isCloudConnectionProvider,
+  isCloudConnectionWafBlocklistOn,
 } from "../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CLOUD_STREAM_KEY_WRITE_ATTEMPTS,
@@ -32,7 +37,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
@@ -363,6 +369,8 @@ export class Service extends DatabaseService<Model> {
 
     if (!createBy.data.name || !createBy.data.name.trim()) {
       createBy.data.name = Service.getDefaultName(settings);
+      // Nobody typed it: numbered, not refused, if it is taken.
+      RequiredUniqueNames.numberTakenNameOf(createBy);
     }
 
     createBy.data.config = settings.config;
@@ -470,10 +478,122 @@ export class Service extends DatabaseService<Model> {
       requireRequiredSecrets: true,
     });
 
+    const wafBefore: unknown = Service.parseJsonObject(
+      current.config,
+      "Settings",
+    )[WAF_BLOCKLIST_FIELD_KEY];
+    const wafAfter: unknown = settings.config[WAF_BLOCKLIST_FIELD_KEY];
+
+    if (
+      isCloudConnectionWafBlocklistOn(wafBefore) &&
+      !isCloudConnectionWafBlocklistOn(wafAfter)
+    ) {
+      await Service.refuseWhileEnforcingBlocklist({
+        projectId: current.projectId,
+        connectionId: new ObjectID(connectionId),
+        provider: current.provider,
+        doing: `turn off ${
+          definition.configFields.find((field: CloudConnectionField) => {
+            return field.key === WAF_BLOCKLIST_FIELD_KEY;
+          })?.title || "Block addresses in AWS WAF"
+        }`,
+      });
+    } else if (
+      current.provider === CloudProvider.AWS &&
+      doesCloudConnectionWafBlocklistAddRule(wafBefore) &&
+      !doesCloudConnectionWafBlocklistAddRule(wafAfter)
+    ) {
+      /*
+       * Its command then no longer lets OneUptime write the web ACLs: the
+       * rules it added would stay there, which Remove could no longer take
+       * out, and nobody would keep them.
+       */
+      await Service.refuseWhileEnforcingBlocklist({
+        projectId: current.projectId,
+        connectionId: new ObjectID(connectionId),
+        doing: 'pick "On, and I add the rule in code"',
+      });
+    }
+
     incoming["config"] = settings.config;
     incoming["secrets"] = JSON.stringify(settings.secrets);
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A connection that enforces the blocklist in a web ACL (#10344) keeps
+   * its setting and stays until each web ACL is removed from the Blocklist
+   * page, which takes OneUptime's rule out of it: turned off or deleted
+   * first, the web ACL would go on blocking what OneUptime's IP sets hold,
+   * and a block lifted would no longer reach it.
+   */
+  private static async refuseWhileEnforcingBlocklist(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+    // The connection's cloud, for what its WAFs are called; AWS's web ACLs when absent.
+    provider?: string | undefined;
+    // What the person tried, for the words: "delete this connection".
+    doing: string;
+  }): Promise<void> {
+    const count: number = await SecurityBlockCloudWafService.countForConnection(
+      {
+        projectId: data.projectId,
+        cloudConnectionId: data.connectionId,
+      },
+    );
+
+    if (count === 0) {
+      return;
+    }
+
+    // Azure WAF (#10348) and Cloud Armor (#10349) hold policies, AWS WAF web ACLs.
+    const names: { one: string; many: string; rule: string } =
+      data.provider === CloudProvider.Azure
+        ? { one: "a WAF policy", many: "WAF policies", rule: "its rules" }
+        : data.provider === CloudProvider.GCP
+          ? {
+              one: "a security policy",
+              many: "security policies",
+              rule: "its rules",
+            }
+          : { one: "a web ACL", many: "web ACLs", rule: "its rule" };
+
+    throw new BadDataException(
+      count === 1
+        ? data.provider === CloudProvider.Azure ||
+          data.provider === CloudProvider.GCP
+          ? `This connection enforces your blocklist in ${names.one}. Remove it under Cloud WAFs on the Blocklist page first, so OneUptime takes ${names.rule} out of it, then ${data.doing}.`
+          : `This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then ${data.doing}.`
+        : `This connection enforces your blocklist in ${count} ${names.many}. Remove them under Cloud WAFs on the Blocklist page first, so OneUptime takes ${names.rule} out of each, then ${data.doing}.`,
+    );
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    /*
+     * The connections the delete removes - the ones the caller may delete,
+     * in the delete's own window - and the delete held to them: a refusal
+     * names only a connection the caller would have deleted.
+     */
+    const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true, provider: true },
+    );
+
+    for (const connection of connections) {
+      if (connection.id && connection.projectId) {
+        await Service.refuseWhileEnforcingBlocklist({
+          projectId: connection.projectId,
+          connectionId: connection.id,
+          provider: connection.provider,
+          doing: "delete this connection",
+        });
+      }
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   /*

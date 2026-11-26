@@ -1,3 +1,4 @@
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import OpenStackCloudFeedService from "../../../Server/Services/OpenStackCloudFeedService";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
@@ -618,7 +619,9 @@ describe("RESOURCE_AI_AGENT_SELECT_WITHOUT_KEY", () => {
         column === "keyHash" ||
         ["deletedAt", "version", "createdByUserId", "deletedByUserId"].includes(
           column,
-        )
+        ) ||
+        // Who created the row and who last modified it (#10290), as above.
+        RECORD_ACTOR_COLUMNS.includes(column)
       ) {
         continue;
       }

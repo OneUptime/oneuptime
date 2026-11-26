@@ -87,6 +87,8 @@ const SECURITY_NOTICES: Array<NotificationRuleUpdateKind> = [
   Assigned,
   ApprovalRequested,
   ResponseTargets,
+  // OneUptime AI handing a case it worked to people (#10352).
+  AI,
 ];
 
 const NOT_CHOOSING: Array<NotificationRuleEventType> = Object.values(
@@ -285,7 +287,7 @@ describe("the updates each kind of rule chooses from", () => {
       Owners,
     ]);
 
-    // A security case's four notices, and nothing else (#7936).
+    // A security case's five notices, and nothing else (#7936, #10352).
     expect(
       NotificationRuleUpdates.getChoosableKinds(SECURITY_CASE_RULE),
     ).toEqual(SECURITY_NOTICES);
@@ -334,7 +336,15 @@ describe("the updates each kind of rule chooses from", () => {
 
   test("a security case's notices are its rules' alone, and its rules choose nothing else (#7936)", () => {
     for (const eventType of CHOOSING) {
-      for (const kind of SECURITY_NOTICES) {
+      /*
+       * AI is every record's that OneUptime AI works on: an incident's or
+       * alert's analysis and fixes, a case it hands to people (#10352).
+       */
+      for (const kind of SECURITY_NOTICES.filter(
+        (notice: NotificationRuleUpdateKind): boolean => {
+          return notice !== AI;
+        },
+      )) {
         expect({
           eventType,
           kind,
@@ -474,13 +484,15 @@ describe("Key updates only", () => {
     ]);
     /*
      * A security channel: what it has to act on - a case at its priority, a
-     * step waiting for approval, a target about to be missed - and not who
-     * a case is assigned to (#7936).
+     * step waiting for approval, a target about to be missed, a case
+     * OneUptime AI handed to people (#10352) - and not who a case is
+     * assigned to (#7936).
      */
     expect(NotificationRuleUpdates.getKeyKinds(SECURITY_CASE_RULE)).toEqual([
       PriorityReached,
       ApprovalRequested,
       ResponseTargets,
+      AI,
     ]);
   });
 
@@ -522,6 +534,15 @@ describe("Key updates only", () => {
         Other,
         Assigned,
       ]) {
+        /*
+         * A security case's AI notice is no analysis to read later: it is
+         * OneUptime AI handing a case to people, who must pick it up now
+         * (#10352).
+         */
+        if (eventType === SECURITY_CASE_RULE && noise === AI) {
+          continue;
+        }
+
         expect(NotificationRuleUpdates.getKeyKinds(eventType)).not.toContain(
           noise,
         );
@@ -1239,7 +1260,7 @@ describe("what is wrong with the updates a rule is saved with", () => {
         updatesToPost: [ApprovalRequested, PrivateNotes],
       }),
     ).toBe(
-      'updatesToPost lists "PrivateNotes", which Security Case rules cannot choose. They choose any of: PriorityReached, Assigned, ApprovalRequested, ResponseTargets.',
+      'updatesToPost lists "PrivateNotes", which Security Case rules cannot choose. They choose any of: PriorityReached, Assigned, ApprovalRequested, ResponseTargets, AI.',
     );
 
     // ...and an incident rule none of a security case's.

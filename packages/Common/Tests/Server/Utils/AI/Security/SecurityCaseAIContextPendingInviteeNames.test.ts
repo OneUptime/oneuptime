@@ -14,6 +14,7 @@ import SecurityCaseService from "../../../../../Server/Services/SecurityCaseServ
 import SecurityDetectionService from "../../../../../Server/Services/SecurityDetectionService";
 import SecurityPlaybookService from "../../../../../Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityService from "../../../../../Server/Services/SecurityProtectedEntityService";
+import { FEED_INVITEE_UNNAMED } from "../../../../../Server/Utils/Feed/FeedPersonName";
 import logger from "../../../../../Server/Utils/Logger";
 import PendingInviteeProfiles, {
   WithheldProfile,
@@ -27,6 +28,13 @@ import ObjectID from "../../../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import { InstructionLikeTextScan } from "../../../../../Utils/AI/InstructionLikeText";
 import {
+  FEED_PERSON_CASES,
+  FeedPersonCase,
+  expectNoAddressIn,
+  feedPersonAccount,
+  stubInvitations,
+} from "../../../../Helpers/FeedPersonCases";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -37,16 +45,18 @@ import {
 import type { SpyInstance } from "jest-mock";
 
 /*
- * THE CONTEXT ONEUPTIME AI TRIAGES A SECURITY CASE FROM NAMES PEOPLE AS THE
- * PROJECT KNOWS THEM (#9934).
+ * THE CONTEXT ONEUPTIME AI TRIAGES A SECURITY CASE FROM NAMES PEOPLE AS
+ * EVERY LINE NAMES THEM (#9934, #10681).
  *
  * The triage names who owns each host the case's entities are, and who
- * wrote each of the case's notes, and OneUptime AI can repeat those names
- * to anyone who asks. They are read as OneUptime, so a read of the account
- * would hand it the account's own name - of someone the project only
- * invited, whose own name it does not see until they join (#9823). Each
- * is named as the project knows them instead: the name typed for them,
- * else their address. A member is named by their own name.
+ * wrote each of the case's notes, and OneUptime AI repeats those names - in
+ * its triage on the case's timeline, and to anyone who asks. They are read
+ * as OneUptime, so a read of the account would hand it the account's own
+ * name - of someone the project only invited, whose own name it does not
+ * see until they join (#9823). Each is named through FeedPersonName
+ * instead: someone only invited by the name typed with their invitation,
+ * else as someone who hasn't joined the project yet; a member by their
+ * name, else the part of their address before the "@". Never an address.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -144,14 +154,14 @@ describe("the owners of the hosts the case's entities are", () => {
     });
   }
 
-  test("someone only invited by the name typed for them, else their address; a member by their own name", async () => {
+  test("someone only invited by the name typed for them, else as someone who hasn't joined; a member by their own name", async () => {
     const linked: Array<TriageLinkedHost> = await linkedHosts();
 
     expect(linked).toHaveLength(1);
     expect(linked[0]!.ownerUsers).toEqual([
       "Mia Member",
       "Ingrid from Security",
-      "uma@example.com",
+      FEED_INVITEE_UNNAMED,
     ]);
     expect(linked[0]!.ownerTeams).toEqual(["Platform"]);
     expectNoOwnNameOfAnInvitee(linked);
@@ -203,9 +213,11 @@ describe("the owners of the hosts the case's entities are", () => {
     }).contextSummary;
 
     expect(prompt).toContain("Ingrid from Security");
-    expect(prompt).toContain("uma@example.com");
+    expect(prompt).toContain(FEED_INVITEE_UNNAMED);
     expect(prompt).toContain("Mia Member");
     expectNoOwnNameOfAnInvitee(prompt);
+    // No address of the owners' is handed to OneUptime AI (#10681).
+    expect(prompt).not.toContain("@example.com");
   });
 });
 
@@ -224,7 +236,7 @@ describe("the authors of the case's notes", () => {
     jest.spyOn(SecurityPlaybookService, "findBy").mockResolvedValue([]);
   });
 
-  test("someone only invited by the name typed for them, else their address; a member by their own name", async () => {
+  test("someone only invited by the name typed for them, else as someone who hasn't joined; a member by their own name", async () => {
     const findNotes: SpyInstance<typeof SecurityCaseNoteService.findBy> = jest
       .spyOn(SecurityCaseNoteService, "findBy")
       .mockResolvedValue([
@@ -246,8 +258,9 @@ describe("the authors of the case's notes", () => {
       triage.notes.map((note: SecurityCaseTriageData["notes"][number]) => {
         return note.author;
       }),
-    ).toEqual(["Mia Member", "Ingrid from Security", "uma@example.com"]);
+    ).toEqual(["Mia Member", "Ingrid from Security", FEED_INVITEE_UNNAMED]);
     expectNoOwnNameOfAnInvitee(triage.notes);
+    expect(JSON.stringify(triage.notes)).not.toContain("@example.com");
 
     expect(findNotes.mock.calls[0]![0].select).toMatchObject({
       createdByUser: { _id: true, name: true, email: true },
@@ -285,3 +298,108 @@ describe("the authors of the case's notes", () => {
     expect(triage.notes[0]!.author).toBe("A teammate");
   });
 });
+
+// Every kind of person, as a host's owner and as a note's author (#10681).
+const SOMEONE_ID: ObjectID = new ObjectID(
+  "99340000-2222-4000-8000-0000000000d4",
+);
+
+describe.each(FEED_PERSON_CASES)(
+  "$label, in what OneUptime AI reads",
+  (who: FeedPersonCase) => {
+    beforeEach(() => {
+      stubInvitations(
+        new Map<string, WithheldProfile>(
+          who.invitation
+            ? [[SOMEONE_ID.toString().toLowerCase(), who.invitation]]
+            : [],
+        ),
+      );
+
+      jest.spyOn(DockerHostService, "findBy").mockResolvedValue([]);
+      jest.spyOn(PodmanHostService, "findBy").mockResolvedValue([]);
+      jest.spyOn(KubernetesClusterService, "findBy").mockResolvedValue([]);
+      jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([]);
+      jest.spyOn(HostService, "findBy").mockResolvedValue([
+        {
+          id: HOST_ID,
+          name: "web-1",
+          hostIdentifier: "i-0abc",
+          osType: "Linux",
+        } as unknown as Host,
+      ]);
+      jest.spyOn(HostOwnerTeamService, "findBy").mockResolvedValue([] as never);
+      jest
+        .spyOn(HostOwnerUserService, "findBy")
+        .mockResolvedValue([
+          { user: feedPersonAccount(SOMEONE_ID, who) },
+        ] as never);
+    });
+
+    test("as a host's owner, in the prompt too: named as every line does, and no address", async () => {
+      const linked: Array<TriageLinkedHost> =
+        await SecurityCaseAIContextBuilder.readLinkedHosts({
+          projectId: PROJECT_ID,
+          entities: [{ type: SecurityEntityType.Host, value: "web-1" }],
+        });
+
+      expect(linked[0]!.ownerUsers).toEqual([who.named]);
+
+      const prompt: string = SecurityCaseAIContextBuilder.buildContext({
+        triage: {
+          securityCase: {
+            id: CASE_ID,
+            _id: CASE_ID.toString(),
+            caseNumberWithPrefix: "CASE-9",
+            title: "Brute force against web-1",
+            entities: [{ type: SecurityEntityType.Host, value: "web-1" }],
+            detectionCount: 1,
+          } as unknown as SecurityCase,
+          detections: [],
+          detectionTotal: 0,
+          linkedHosts: linked,
+          incident: null,
+          protectedEntities: [],
+          playbooks: [],
+          notes: [],
+        },
+        scan: new InstructionLikeTextScan(),
+      }).contextSummary;
+
+      // Quoted, as every outside value the prompt holds is.
+      expect(prompt).toContain(`Owned by: "${who.named}".`);
+      expectNoAddressIn(prompt);
+    });
+
+    test("as a note's author: named so too", async () => {
+      jest.spyOn(SecurityCaseService, "findOneBy").mockResolvedValue({
+        id: CASE_ID,
+        _id: CASE_ID.toString(),
+        caseNumberWithPrefix: "CASE-9",
+        title: "Brute force",
+        entities: [],
+      } as unknown as SecurityCase);
+      jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([]);
+      jest
+        .spyOn(SecurityProtectedEntityService, "findBy")
+        .mockResolvedValue([]);
+      jest.spyOn(SecurityPlaybookService, "findBy").mockResolvedValue([]);
+      jest.spyOn(HostService, "findBy").mockResolvedValue([]);
+      jest.spyOn(SecurityCaseNoteService, "findBy").mockResolvedValue([
+        {
+          note: "Checked the VPN logs.",
+          createdByUser: feedPersonAccount(SOMEONE_ID, who),
+        },
+      ] as never);
+
+      const triage: SecurityCaseTriageData =
+        await SecurityCaseAIContextBuilder.read({
+          projectId: PROJECT_ID,
+          securityCaseId: CASE_ID,
+        });
+
+      expect(triage.notes[0]!.author).toBe(who.named);
+      expectNoAddressIn(JSON.stringify(triage.notes));
+    });
+  },
+);

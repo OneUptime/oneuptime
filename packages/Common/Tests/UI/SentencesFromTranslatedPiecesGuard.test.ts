@@ -2633,6 +2633,11 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     why: "Two whole sentences: where no code is waiting, then what to do next, each a notification method's own sentence looked up whole.",
   },
   {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/TelemetryFixModal.tsx",
+    text: '{typeof strategy.sentence === "string" ? translator.translateText(strategy.sentence)',
+    why: "Two whole sentences of a telemetry fix's plan (#10367): how OneUptime AI fixes the leaks, then why, each a sentence of TelemetryFixCopy looked up whole.",
+  },
+  {
     file: "packages/App/FeatureSet/Dashboard/src/Components/Permission/RolePickerOptions.ts",
     text: "`${english} ${translated}`",
     why: "What a role search reads, never drawn: the English words and the reader's side by side, so either finds the role.",
@@ -2696,6 +2701,16 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     file: "packages/App/FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembersCard.tsx",
     text: '{translator.translateText(productText.notFound)}{" "} <Link',
     why: "Why OneUptime cannot add you, a whole sentence for the chat product, then the link to connect your account.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntPanel.tsx",
+    text: '{uncounted.lines .map((sentence: RetrohuntSentence): string => { return writeRetrohuntSentence(translator, sentence); }) .join(" ")}',
+    why: "Why Run on Past Events could not count some events (#10415): whole sentences, each a plural template translated whole (\"1,204 matching events had no IP address, so this rule couldn't count them.\", then how many of them a scrub rule hid), read through the panel's writeRetrohuntSentence, then the link to Scrub Rules, an action of its own.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Uncounted/DetectionRuleUncountedModal.tsx",
+    text: '{detail.lines .map((sentence: RetrohuntSentence): string => { return writeRetrohuntSentence(translator, sentence); }) .join(" ")}',
+    why: "What a detection rule could not count in the last day (#10547), in Run on Past Events' own words: the same whole sentences, each a plural template translated whole, read through writeRetrohuntSentence, then the link to Scrub Rules, an action of its own.",
   },
   /*
    * A thing named by its kind, or a figure by its label, and its value:

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "17.2.0",
+  "version": "17.3.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -47,6 +47,7 @@
     "test-give-feedback-ui": "playwright test --config playwright.give-feedback-ui.config.ts",
     "test-feedback-questions-ui": "playwright test --config playwright.feedback-questions-ui.config.ts",
     "test-product-analytics-saved-views-ui": "playwright test --config playwright.product-analytics-saved-views-ui.config.ts",
+    "test-rum-setup-ui": "playwright test --config playwright.rum-setup-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
     "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
     "test-network-traffic-names-ui": "playwright test --config playwright.network-traffic-names-ui.config.ts",
@@ -116,6 +117,7 @@
     "test-dashboard-value-widget-ui": "playwright test --config playwright.dashboard-value-widget-ui.config.ts",
     "test-dashboard-table-thresholds-ui": "playwright test --config playwright.dashboard-table-thresholds-ui.config.ts",
     "test-dashboard-playlists-ui": "playwright test --config playwright.dashboard-playlists-ui.config.ts",
+    "test-dashboard-full-screen-ui": "playwright test --config playwright.dashboard-full-screen-ui.config.ts",
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-test-page-ui": "playwright test --config playwright.test-page-ui.config.ts",

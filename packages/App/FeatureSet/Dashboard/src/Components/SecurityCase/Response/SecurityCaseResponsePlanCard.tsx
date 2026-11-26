@@ -1,4 +1,37 @@
 import AddRuleExceptionModal from "../../SecurityEvents/RuleExceptions/AddRuleExceptionModal";
+import { BLOCK_ADMIN_PERMISSIONS } from "../../SecurityEvents/Blocklist/BlockAddressModal";
+import { LIFTED_TOAST } from "../../SecurityEvents/Blocklist/BlocklistCopy";
+import {
+  AddressBlockLine,
+  BlockHelp,
+  BlockStepActions,
+} from "./SecurityCaseBlockStep";
+import {
+  BlockChoice,
+  formatNamesInSentence,
+} from "./SecurityCaseBlockStepModel";
+import {
+  BlockFromCaseStarted,
+  blockFromCase,
+  liftBlockFromCase,
+  loadAddressBlocking,
+} from "./SecurityCaseAddressBlocks";
+import BlockWholeCampaignModal from "./BlockWholeCampaignModal";
+import {
+  readCampaignOfCaseAddress,
+  readRepeatOffenders,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentApi";
+import {
+  BLOCK_WHOLE_CAMPAIGN,
+  SECURITY_CAMPAIGN_TEST_IDS,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentCopy";
+import {
+  splitCampaignChecks,
+  writeCampaignOfAddressLine,
+  writeRepeatOffenderLine,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentModel";
+import { SecurityRepeatOffenderSummary } from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import { SecurityCampaignOfCaseAddress } from "Common/Types/SecurityEvent/SecurityCampaignContainment";
 import { ADD_EXCEPTION_DESCRIPTION } from "../../SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import { SecurityCaseValueLists } from "../SecurityCaseValues";
 import {
@@ -16,24 +49,69 @@ import {
   RESPONSE_MARK_NOT_DONE,
   RESPONSE_PHASE_TITLES,
   RESPONSE_PROGRESS,
+  RESPONSE_PROGRESS_CHECKED,
   RESPONSE_READY_TO_CONTAIN,
   RESPONSE_RULE_FALSE_POSITIVES,
   RESPONSE_TITLE,
   SECURITY_CASE_RESPONSE_TEST_IDS,
+  STEP_CHECKS_NOT_READ,
+  STEP_CHECK_CHECKED_AT,
+  STEP_CHECK_CONFIRM,
+  STEP_CHECK_CONFIRM_TOOLTIP,
+  STEP_CHECK_DOCS_LINK,
+  STEP_CHECK_DONE_ANYWAY,
+  STEP_CHECK_DONE_BY_CHECK,
+  STEP_CHECK_HIDE_HOW_WE_KNOW,
+  STEP_CHECK_HOW_WE_KNOW,
+  STEP_CHECK_STATE_LABELS,
   ACTION_COPY,
+  BLOCK_ASKED_TOAST,
+  BLOCK_STARTED_TOAST,
+  LIFTED_FROM_PLAN_REASON,
+  RESPONSE_BLOCKED,
+  UNLINKED_PULL_REQUEST_TOAST,
 } from "./SecurityCaseResponseCopy";
+import { readCaseBlocklist } from "../../SecurityEvents/Blocklist/BlocklistApi";
+import {
+  FixPullRequestList,
+  LinkPullRequestButton,
+  LinkPullRequestModal,
+} from "./SecurityCaseFixPullRequests";
+import {
+  FIX_PULL_REQUEST_SELECT,
+  canLinkPullRequest,
+  getFixPullRequestName,
+  isRouteFixStep,
+} from "./SecurityCaseFixPullRequestsModel";
+import {
+  STEP_CHECK_FACT_MARK_STYLES,
+  StepCheckFactMarkStyle,
+  StepCheckLinkTarget,
+  canConfirmStep,
+  getStepCheckDocsUrl,
+  getStepCheckLineClassName,
+  getStepCheckLinkTarget,
+  getStepCheckTone,
+  isCheckExplainedInline,
+  isDoneAnyway,
+  isDoneByCheckOnly,
+  readCheckSentence,
+} from "./SecurityCaseResponseChecks";
 import {
   RESPONSE_PLAYBOOK_SELECT,
+  RESPONSE_STEP_CHECK_SELECT,
   RESPONSE_TASK_SELECT,
   getCaseResponseVerdictTone,
   getResponseStepTitle,
   readResponsePlaybooks,
+  readResponseStepChecks,
   readResponseTasks,
 } from "./SecurityCaseResponseData";
 import {
   buildResponsePlan,
   getResponseStepKey,
   isAiStep,
+  readAddressBlockRuns,
   readPlaybookRuns,
 } from "./SecurityCaseResponsePlan";
 import {
@@ -47,7 +125,12 @@ import {
   ResponseStepCompletion,
   ResponseText,
 } from "./SecurityCaseResponseTypes";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import { isSecurityCaseTaken } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanInputs";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import { SECURITY_CASE_PULL_REQUESTS_MAX } from "Common/Types/SecurityCase/SecurityCasePullRequestLink";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
@@ -59,12 +142,33 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import { isSecurityCaseAiVerdict } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { SecurityCaseMatchesJson } from "Common/Types/SecurityCase/SecurityCaseMatches";
+import { ResponseLink } from "Common/Types/SecurityCase/SecurityCaseResponseLink";
+import {
+  SecurityCaseStepCheckSentence,
+  StepCheckFactMark,
+} from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import URL from "Common/Types/API/URL";
 import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
   SecurityEntity,
+  SecurityEntityType,
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  SecurityBlockDuration,
+  getSecurityBlockExpiry,
+  readSecurityBlockValue,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { getCaseBlockableAddresses } from "Common/Utils/SecurityCase/ResponsePlan/BlockableAddresses";
+import {
+  ResponseAddressBlock,
+  ResponseAddressBlocking,
+  ResponseBlockRequest,
+  ResponseBlocklist,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
+import Toast from "Common/UI/Utils/Toast";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -74,6 +178,7 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
@@ -110,9 +215,12 @@ import React, {
  * A step OneUptime can do has its button: Assign to Me, Run Playbook (the
  * playbook that contains an account or a host, or the one OneUptime AI
  * suggests), Add Exception (the rule and the entity filled in), Declare
- * Incident, Mark as Contained, Close Case. A step OneUptime cannot do - no
- * firewall OneUptime blocks an address in - says so ("Outside OneUptime"),
- * with what it acts on one click from the clipboard.
+ * Incident, Mark as Contained, Close Case - and, where Microsoft Defender
+ * or CrowdStrike blocks it on every machine, Block for 7 Days or Block File
+ * for a domain, a file or a command-and-control address (#10346), done once
+ * a product holds the block. A step OneUptime cannot do - no firewall
+ * OneUptime blocks an address in - says so ("Outside OneUptime"), with what
+ * it acts on one click from the clipboard.
  *
  * A step is ticked off where it is suggested: the tick makes it one of the
  * case's tasks, done, by whoever ticked it and when, so the Tasks page, the
@@ -124,6 +232,16 @@ import React, {
  *
  * OneUptime AI's own suggested steps, from its triage, fold under the plan's
  * own, in its words.
+ *
+ * OneUptime checks most steps itself (#10340, SecurityCaseStepCheck): a
+ * step it checked says so - Checked by OneUptime, with the line of its
+ * evidence and the rest under How We Know - apart from a person's tick
+ * ("Done by Jane Doe"). One that looks done offers Confirm, which makes it
+ * the person's tick; one OneUptime cannot tell about says why, with the
+ * docs that say how to let it check; and one that was done and stopped
+ * holding is said at the top of the card. Anyone may still tick a step by
+ * hand: one OneUptime does not see done is ticked "anyway". A card whose
+ * checks cannot be read still draws the plan, and says so.
  */
 
 export interface ComponentProps {
@@ -143,13 +261,72 @@ export interface ComponentProps {
 interface PlanData {
   tasks: Array<SecurityCaseTask>;
   playbooks: Array<SecurityPlaybook>;
+  /*
+   * The pull requests people linked to the case's Fix step (#10604); none
+   * when they could not be read, which leaves the step as it is.
+   */
+  pullRequests: Array<SecurityCasePullRequest>;
+  // What OneUptime found of the steps; none when they could not be read.
+  checks: Array<SecurityCaseStepCheck>;
+  isChecksUnread: boolean;
+  /*
+   * What the blocklist's destinations can hold and the blocks on the case's
+   * values (#10346); null when it could not be read, which leaves those
+   * steps to be done by hand.
+   */
+  blocklist: ResponseBlocklist | null;
   // The playbooks a run of which succeeded on the case, and where the others' latest runs stand.
   ranPlaybookIds: Array<string>;
   playbookRunStates: Record<string, ResponsePlaybookRunState>;
+  /*
+   * Where the blocklist is enforced and what it holds of the case's
+   * addresses (#10342); undefined when it could not be read, and the block
+   * step is then one done by hand.
+   */
+  addressBlocking: ResponseAddressBlocking | undefined;
+  /*
+   * The case's addresses blocked before it opened (#10354), by address as
+   * blocks write it: none for an address never blocked before, and none at
+   * all when the blocklist could not be read.
+   */
+  repeatOffenders: Map<string, SecurityRepeatOffenderSummary>;
+}
+
+// An address as blocks write it, the key the plan's per-address reads keep.
+function addressKey(address: string): string {
+  return readSecurityBlockValue(address)?.value || address.trim();
 }
 
 const PHASE_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
+
+// The kinds of value a step blocks through the blocklist (#10346).
+const BLOCKABLE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
+  SecurityEntityType.IpAddress,
+  SecurityEntityType.Domain,
+  SecurityEntityType.FileHash,
+];
+
+// The case's values the plan asks the blocklist about.
+export function getBlockableValues(
+  entities: ReadonlyArray<SecurityEntity>,
+): Array<string> {
+  const values: Array<string> = [];
+
+  for (const entity of entities) {
+    const value: string = (entity.value || "").trim();
+
+    if (
+      value &&
+      BLOCKABLE_ENTITY_TYPES.includes(entity.type) &&
+      !values.includes(value)
+    ) {
+      values.push(value);
+    }
+  }
+
+  return values;
+}
 
 // A sentence of the plan, in the reader's words.
 function readText(text: ResponseText, translator: Translator): string {
@@ -157,6 +334,11 @@ function readText(text: ResponseText, translator: Translator): string {
 
   for (const key of Object.keys(text.numbers || {})) {
     values[key] = translator.formatNumber(text.numbers![key] || 0);
+  }
+
+  // Names the sentence lists, as the reader's language lists them (#10342).
+  for (const key of Object.keys(text.lists || {})) {
+    values[key] = formatNamesInSentence(text.lists![key] || [], translator);
   }
 
   return typeof text.template === "string"
@@ -175,6 +357,13 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const [workingStepKey, setWorkingStepKey] = useState<string>("");
   const [isShowingAiSteps, setIsShowingAiSteps] = useState<boolean>(false);
   const [exceptionFor, setExceptionFor] = useState<ResponseAction | null>(null);
+  // The steps whose How We Know is open.
+  const [openHowWeKnow, setOpenHowWeKnow] = useState<Array<string>>([]);
+  // Link Pull Request's dialog, and the link being taken off (#10604).
+  const [isLinkingPullRequest, setIsLinkingPullRequest] =
+    useState<boolean>(false);
+  const [removingPullRequestId, setRemovingPullRequestId] =
+    useState<string>("");
 
   const caseUpdateGate: PermissionGateResult = PermissionGate.check(
     new SecurityCase(),
@@ -192,10 +381,61 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     new SecurityPlaybookRun(),
     ModelAction.Create,
   );
+  // A person's own fix, linked to the Fix step and taken off it (#10604).
+  const pullRequestLinkGate: PermissionGateResult = PermissionGate.check(
+    new SecurityCasePullRequest(),
+    ModelAction.Create,
+  );
+  const pullRequestUnlinkGate: PermissionGateResult = PermissionGate.check(
+    new SecurityCasePullRequest(),
+    ModelAction.Delete,
+  );
+  // A block from the plan is a one-step run that writes the blocklist (#10342): it takes both.
+  const blockCreateGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Create,
+  );
+  const blockUpdateGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Update,
+  );
+  const blockLockReason: string | undefined = !runGate.isAllowed
+    ? runGate.disabledReason || ""
+    : !blockCreateGate.isAllowed
+      ? blockCreateGate.disabledReason || ""
+      : undefined;
+  const liftLockReason: string | undefined = blockUpdateGate.isAllowed
+    ? undefined
+    : blockUpdateGate.disabledReason || "";
+  const mayBlockUntilLifted: boolean = PermissionGate.holdsAnyOf(
+    BLOCK_ADMIN_PERMISSIONS,
+  );
+
+  /*
+   * The case's addresses its block steps are about (#10342): its public
+   * ones, never one its requests only claimed. Read by the load below.
+   */
+  const blockableAddresses: Array<string> = getCaseBlockableAddresses({
+    entities: readSecurityEntities(props.securityCase.entities),
+    matches: props.matches,
+  });
+  const blockableAddressesKey: string = blockableAddresses.join(",");
+  const blockableAddressesRef: MutableRefObject<Array<string>> =
+    useRef<Array<string>>(blockableAddresses);
+  blockableAddressesRef.current = blockableAddresses;
   const exceptionGate: PermissionGateResult = PermissionGate.check(
     new DetectionRuleException(),
     ModelAction.Create,
   );
+  const blockGate: PermissionGateResult = PermissionGate.check(
+    new SecurityBlock(),
+    ModelAction.Create,
+  );
+
+  // The values the plan asks the blocklist about, as one key the read depends on.
+  const blockableValues: string = getBlockableValues(
+    readSecurityEntities(props.securityCase.entities),
+  ).join("\n");
 
   // Only the newest read lands: a slow one never replaces a newer one.
   const latestReadRef: MutableRefObject<number> = useRef<number>(0);
@@ -205,10 +445,13 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     latestReadRef.current = readNumber;
 
     try {
-      const [tasks, playbooks, runs]: [
+      const [tasks, playbooks, runs, checks, blocklist, pullRequests]: [
         ListResult<SecurityCaseTask>,
         ListResult<SecurityPlaybook>,
         ListResult<SecurityPlaybookRun>,
+        { rows: Array<SecurityCaseStepCheck>; isUnread: boolean },
+        ResponseBlocklist | null,
+        Array<SecurityCasePullRequest>,
       ] = await Promise.all([
         ModelAPI.getList<SecurityCaseTask>({
           modelType: SecurityCaseTask,
@@ -229,17 +472,115 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         ModelAPI.getList<SecurityPlaybookRun>({
           modelType: SecurityPlaybookRun,
           query: { securityCaseId: new ObjectID(caseIdText) },
-          select: { _id: true, securityPlaybookId: true, status: true },
+          // A one-step block's address is in its step's targets (#10342).
+          select: {
+            _id: true,
+            securityPlaybookId: true,
+            status: true,
+            steps: true,
+            stepResults: true,
+          },
           sort: { createdAt: SortOrder.Descending },
           skip: 0,
           limit: 100,
         }),
+        // Checks that cannot be read leave the plan as it is, and say so.
+        ModelAPI.getList<SecurityCaseStepCheck>({
+          modelType: SecurityCaseStepCheck,
+          query: { securityCaseId: new ObjectID(caseIdText) },
+          select: RESPONSE_STEP_CHECK_SELECT,
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: 100,
+        }).then(
+          (
+            result: ListResult<SecurityCaseStepCheck>,
+          ): { rows: Array<SecurityCaseStepCheck>; isUnread: boolean } => {
+            return { rows: result.data || [], isUnread: false };
+          },
+          (): { rows: Array<SecurityCaseStepCheck>; isUnread: boolean } => {
+            return { rows: [], isUnread: true };
+          },
+        ),
+        /*
+         * A blocklist that cannot be read - or a reader who may not read it -
+         * leaves the steps it would make one click to be done by hand.
+         */
+        (blockableValues
+          ? readCaseBlocklist(blockableValues.split("\n"))
+          : Promise.resolve(null)
+        ).catch((): null => {
+          return null;
+        }),
+        // Links that cannot be read - or a reader who may not read them - leave the Fix step as it is.
+        ModelAPI.getList<SecurityCasePullRequest>({
+          modelType: SecurityCasePullRequest,
+          query: { securityCaseId: new ObjectID(caseIdText) },
+          select: FIX_PULL_REQUEST_SELECT,
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: SECURITY_CASE_PULL_REQUESTS_MAX,
+        }).then(
+          (
+            result: ListResult<SecurityCasePullRequest>,
+          ): Array<SecurityCasePullRequest> => {
+            return result.data || [];
+          },
+          (): Array<SecurityCasePullRequest> => {
+            return [];
+          },
+        ),
       ]);
+
+      // The blocklist that cannot be read leaves the block step as one done by hand.
+      const addressBlocking: ResponseAddressBlocking | undefined =
+        await loadAddressBlocking({
+          addresses: blockableAddressesRef.current,
+          runStates: readAddressBlockRuns(
+            runs.data.map(
+              (
+                run: SecurityPlaybookRun,
+              ): {
+                securityPlaybookId?: unknown;
+                status: string;
+                steps?: unknown;
+                stepResults?: unknown;
+              } => {
+                return {
+                  securityPlaybookId: run.securityPlaybookId,
+                  status: run.status || "",
+                  steps: run.steps,
+                  stepResults: run.stepResults,
+                };
+              },
+            ),
+          ),
+        }).catch((): undefined => {
+          return undefined;
+        });
+
+      /*
+       * Its addresses blocked before it opened (#10354): a blocklist that
+       * cannot be read - or a reader who may not read it - says nothing of it.
+       */
+      const repeatOffenders: Map<string, SecurityRepeatOffenderSummary> =
+        await readRepeatOffenders({
+          securityCaseId: new ObjectID(caseIdText),
+          addresses: blockableAddressesRef.current,
+        }).catch((): Map<string, SecurityRepeatOffenderSummary> => {
+          return new Map();
+        });
 
       if (readNumber === latestReadRef.current) {
         setData({
           tasks: tasks.data,
           playbooks: playbooks.data,
+          pullRequests,
+          checks: checks.rows,
+          isChecksUnread: checks.isUnread,
+          addressBlocking,
+          repeatOffenders,
+          blocklist,
           ...readPlaybookRuns(
             runs.data.map(
               (
@@ -260,11 +601,83 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         setLoadError(API.getFriendlyMessage(err));
       }
     }
-  }, [caseIdText]);
+  }, [caseIdText, blockableValues]);
 
   useEffect(() => {
     void load();
-  }, [load, props.refreshToggle]);
+  }, [load, props.refreshToggle, blockableAddressesKey]);
+
+  /*
+   * The campaign of each of the case's addresses (#10354): the other
+   * addresses that sent the same requests with the same tools, which Block
+   * the Whole Campaign offers. Read once for the case's addresses - and
+   * again after a block of one - never on each of the plan's live reloads:
+   * it reads the window's events. Only for a person who may block from the
+   * case.
+   */
+  const [campaigns, setCampaigns] = useState<
+    Map<string, SecurityCampaignOfCaseAddress>
+  >(new Map());
+  const [campaignsReadToggle, setCampaignsReadToggle] = useState<number>(0);
+  const [wholeCampaign, setWholeCampaign] = useState<{
+    campaign: SecurityCampaignOfCaseAddress;
+    suggestedDuration: SecurityBlockDuration;
+    isCaseAddressBlocked: boolean;
+  } | null>(null);
+  const mayBlockCampaigns: boolean =
+    runGate.isAllowed && blockCreateGate.isAllowed;
+
+  useEffect(() => {
+    if (!mayBlockCampaigns || blockableAddresses.length === 0) {
+      setCampaigns(new Map());
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    void Promise.all(
+      blockableAddresses.map(
+        async (
+          address: string,
+        ): Promise<[string, SecurityCampaignOfCaseAddress | null]> => {
+          return [
+            addressKey(address),
+            await readCampaignOfCaseAddress({
+              securityCaseId: new ObjectID(caseIdText),
+              address,
+            }).catch((): null => {
+              return null;
+            }),
+          ];
+        },
+      ),
+    ).then(
+      (read: Array<[string, SecurityCampaignOfCaseAddress | null]>): void => {
+        if (!isCurrent) {
+          return;
+        }
+
+        const found: Map<string, SecurityCampaignOfCaseAddress> = new Map();
+
+        for (const [key, campaign] of read) {
+          if (campaign) {
+            found.set(key, campaign);
+          }
+        }
+
+        setCampaigns(found);
+      },
+    );
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    caseIdText,
+    blockableAddressesKey,
+    mayBlockCampaigns,
+    campaignsReadToggle,
+  ]);
 
   // A colleague ticking a step off - or a task changed on the Tasks page - reads it again.
   useEffect(() => {
@@ -274,22 +687,64 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const stops: Array<() => void> = [
+    const eventTypes: Array<ModelEventType> = [
       ModelEventType.Create,
       ModelEventType.Update,
       ModelEventType.Delete,
-    ].map((eventType: ModelEventType): (() => void) => {
-      return Realtime.listenToModelEvent<SecurityCaseTask>(
-        {
-          eventType,
-          modelType: SecurityCaseTask,
-          tenantId: projectId,
-        },
-        () => {
-          void load();
-        },
-      );
-    });
+    ];
+    const stops: Array<() => void> = [
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCaseTask>(
+          {
+            eventType,
+            modelType: SecurityCaseTask,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+      // OneUptime checking a step again reads the plan again too.
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCaseStepCheck>(
+          {
+            eventType,
+            modelType: SecurityCaseStepCheck,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+      // A block from the plan approved, made or failed (#10342).
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityPlaybookRun>(
+          {
+            eventType,
+            modelType: SecurityPlaybookRun,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+      // A colleague's linked pull request, or OneUptime seeing it merge or ship (#10604).
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCasePullRequest>(
+          {
+            eventType,
+            modelType: SecurityCasePullRequest,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+    ];
 
     return () => {
       for (const stop of stops) {
@@ -336,7 +791,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     entities,
     mitreTactics: securityCase.mitreTactics || [],
     mitreTechniques: securityCase.mitreTechniques || [],
-    isAssigned: Boolean(securityCase.assignedToUserId),
+    // Taken: by a person, or by OneUptime AI working it (#10352).
+    isAssigned: isSecurityCaseTaken(securityCase),
     hasIncident: Boolean(securityCase.incidentId),
     stage,
     hasContainedStatus: Boolean(
@@ -354,9 +810,177 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       suggestedPlaybookId: securityCase.aiSuggestedPlaybookId?.toString(),
       report: securityCase.aiTriageReport,
     },
+    checks: readResponseStepChecks(data.checks),
+    addressBlocking: data.addressBlocking,
+    blocklist: data.blocklist || undefined,
   });
 
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
+
+  // Takes a linked pull request off the case: the Fix step reads the rest (#10604).
+  const removePullRequest: (
+    row: SecurityCasePullRequest,
+  ) => Promise<void> = async (row: SecurityCasePullRequest): Promise<void> => {
+    const id: string = row._id?.toString() || row.id?.toString() || "";
+
+    if (!id || removingPullRequestId) {
+      return;
+    }
+
+    setRemovingPullRequestId(id);
+    setActionError("");
+
+    try {
+      await ModelAPI.deleteItem<SecurityCasePullRequest>({
+        modelType: SecurityCasePullRequest,
+        id: new ObjectID(id),
+      });
+
+      Toast.success(
+        translator.translateTemplate(UNLINKED_PULL_REQUEST_TOAST, {
+          pullRequest: getFixPullRequestName(row),
+        }),
+      );
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    } finally {
+      setRemovingPullRequestId("");
+    }
+  };
+
+  /*
+   * Blocks the step's address through the playbook engine (#10342): at
+   * once for someone who may let a block run without approval, else once
+   * someone else approves it. Why not - already blocked, protected - is
+   * said where the plan's errors are.
+   */
+  const blockAddress: (
+    step: ResponseStep,
+    choice: BlockChoice,
+  ) => Promise<void> = async (
+    step: ResponseStep,
+    choice: BlockChoice,
+  ): Promise<void> => {
+    const value: string = step.action?.entity?.value || "";
+
+    if (!value || workingStepKey) {
+      return;
+    }
+
+    setWorkingStepKey(step.key);
+    setActionError("");
+
+    try {
+      const started: BlockFromCaseStarted = await blockFromCase({
+        securityCaseId: props.caseId,
+        value,
+        blockAction: choice.blockAction,
+        duration: choice.duration,
+      });
+
+      Toast.success(
+        translator.translateTemplate(
+          started.needsApproval ? BLOCK_ASKED_TOAST : BLOCK_STARTED_TOAST,
+          { value },
+        ),
+      );
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    await load();
+    setWorkingStepKey("");
+  };
+
+  // Lifts the block that holds the step's address, as the Blocklist lifts it.
+  const liftBlock: (
+    step: ResponseStep,
+    block: ResponseAddressBlock,
+  ) => Promise<void> = async (
+    step: ResponseStep,
+    block: ResponseAddressBlock,
+  ): Promise<void> => {
+    if (workingStepKey) {
+      return;
+    }
+
+    setWorkingStepKey(step.key);
+    setActionError("");
+
+    try {
+      await liftBlockFromCase({
+        blockId: block.id,
+        reason: translator.translateText(LIFTED_FROM_PLAN_REASON),
+      });
+
+      Toast.success(
+        translator.translateTemplate(LIFTED_TOAST, { value: block.value }),
+      );
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    await load();
+    setWorkingStepKey("");
+  };
+
+  /*
+   * Blocks a step's value through the blocklist (#10346), as the person: the
+   * server refuses a protected value, or one nothing could hold, and says
+   * why; the step is done once a product holds the block.
+   */
+  const block: (
+    step: ResponseStep,
+    action: ResponseAction,
+  ) => Promise<void> = async (
+    step: ResponseStep,
+    action: ResponseAction,
+  ): Promise<void> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    const request: ResponseBlockRequest | undefined = action.block;
+
+    if (!projectId || !request || workingStepKey) {
+      return;
+    }
+
+    setWorkingStepKey(step.key);
+    setActionError("");
+
+    try {
+      const record: SecurityBlock = new SecurityBlock();
+      record.projectId = projectId;
+      record.value = request.value;
+      record.action = request.action;
+      record.reach = request.reach;
+      record.securityCaseId = props.caseId;
+
+      const expiresAt: Date | null = getSecurityBlockExpiry(
+        request.duration,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      if (expiresAt) {
+        record.expiresAt = expiresAt;
+      }
+
+      await ModelAPI.create<SecurityBlock>({
+        model: record,
+        modelType: SecurityBlock,
+      });
+
+      Toast.success(
+        translator.translateTemplate(RESPONSE_BLOCKED, {
+          value: request.value,
+        }),
+      );
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    setWorkingStepKey("");
+  };
 
   // Tick a step off - or on again: its task made, or changed.
   const toggle: (step: ResponseStep) => Promise<void> = async (
@@ -406,10 +1030,14 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     setWorkingStepKey("");
   };
 
-  const runAction: (action: ResponseAction) => void = (
+  const runAction: (action: ResponseAction, step: ResponseStep) => void = (
     action: ResponseAction,
+    step: ResponseStep,
   ): void => {
     switch (action.kind) {
+      case ResponseActionKind.BlockIndicator:
+        void block(step, action);
+        return;
       case ResponseActionKind.AssignToMe:
         props.onAssignToMe();
         return;
@@ -435,6 +1063,9 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           Navigation.navigate(action.route);
         }
         return;
+      // Its own buttons, beside the step (BlockStepActions).
+      case ResponseActionKind.BlockAddress:
+        return;
     }
   };
 
@@ -443,6 +1074,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     action: ResponseAction,
   ): string | undefined => {
     switch (action.kind) {
+      case ResponseActionKind.BlockIndicator:
+        return blockGate.isAllowed ? undefined : blockGate.disabledReason || "";
       case ResponseActionKind.RunPlaybook:
         return runGate.isAllowed ? undefined : runGate.disabledReason || "";
       case ResponseActionKind.AddRuleException:
@@ -451,11 +1084,222 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           : exceptionGate.disabledReason || "";
       case ResponseActionKind.OpenRoute:
         return undefined;
+      case ResponseActionKind.BlockAddress:
+        return blockLockReason;
       default:
         return caseUpdateGate.isAllowed
           ? undefined
           : caseUpdateGate.disabledReason || "";
     }
+  };
+
+  const sentenceText: (sentence: SecurityCaseStepCheckSentence) => string = (
+    sentence: SecurityCaseStepCheckSentence,
+  ): string => {
+    return readCheckSentence(sentence, translator);
+  };
+
+  // A link of the evidence: a page of the Dashboard, or the product's own, in a new tab.
+  const renderCheckLink: (link: ResponseLink, index: number) => ReactElement = (
+    link: ResponseLink,
+    index: number,
+  ): ReactElement => {
+    const target: StepCheckLinkTarget | null = getStepCheckLinkTarget(link);
+
+    if (!target) {
+      return <React.Fragment key={index} />;
+    }
+
+    return (
+      <Link
+        key={index}
+        to={target.url || target.route}
+        openInNewTab={Boolean(target.url)}
+        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+        dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.checkLink}
+      >
+        {translator.translateTemplate(target.title, target.values)}
+      </Link>
+    );
+  };
+
+  /*
+   * What OneUptime found of a step: its chip and its line, then - for a step
+   * it cannot tell about - why, at once, with the docs; for any other, what
+   * else it saw under How We Know.
+   */
+  const renderCheck: (step: ResponseStep) => ReactElement = (
+    step: ResponseStep,
+  ): ReactElement => {
+    const check: NonNullable<ResponseStep["check"]> = step.check!;
+    const isInline: boolean = isCheckExplainedInline(check);
+    const isOpen: boolean = openHowWeKnow.includes(step.key);
+    const docsUrl: URL | null = getStepCheckDocsUrl(check.evidence.docsPath);
+    /*
+     * A list of what OneUptime read back marks each line by what it says -
+     * done, still to do, a person's to confirm, how to let OneUptime read
+     * the rest - with an icon a glance can read (#10900, #10901). A list
+     * with no marks keeps its bullets.
+     */
+    const isMarked: boolean = check.evidence.facts.some(
+      (fact: SecurityCaseStepCheckSentence): boolean => {
+        return Boolean(fact.mark);
+      },
+    );
+    const facts: ReactElement =
+      check.evidence.facts.length > 0 ? (
+        <ul
+          className={
+            isMarked
+              ? "space-y-1 text-xs text-gray-600"
+              : "ms-4 list-disc space-y-0.5 text-xs text-gray-600"
+          }
+          data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFacts}
+        >
+          {check.evidence.facts.map(
+            (
+              fact: SecurityCaseStepCheckSentence,
+              index: number,
+            ): ReactElement => {
+              if (!isMarked) {
+                return <li key={index}>{sentenceText(fact)}</li>;
+              }
+
+              const mark: StepCheckFactMarkStyle | null = fact.mark
+                ? STEP_CHECK_FACT_MARK_STYLES[fact.mark]
+                : null;
+
+              return (
+                <li
+                  key={index}
+                  className="flex items-start gap-1.5"
+                  data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFact}
+                  data-fact-mark={fact.mark || ""}
+                >
+                  {mark ? (
+                    <Icon
+                      icon={mark.icon}
+                      className={`mt-px h-4 w-4 flex-none ${mark.className}`}
+                    />
+                  ) : (
+                    <span className="h-4 w-4 flex-none" aria-hidden="true" />
+                  )}
+                  <span
+                    className={`min-w-0 break-words ${
+                      fact.mark === StepCheckFactMark.HowToCheck
+                        ? "text-gray-700"
+                        : ""
+                    }`}
+                  >
+                    {sentenceText(fact)}
+                  </span>
+                </li>
+              );
+            },
+          )}
+        </ul>
+      ) : (
+        <></>
+      );
+    const links: ReactElement =
+      check.evidence.links.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {check.evidence.links.map(renderCheckLink)}
+        </div>
+      ) : (
+        <></>
+      );
+
+    return (
+      <div
+        className="space-y-1"
+        data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkLine}
+        data-check-state={check.state}
+      >
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkChip}>
+            <Pill
+              text={STEP_CHECK_STATE_LABELS[check.state]}
+              tone={getStepCheckTone(check.state)}
+            />
+          </span>
+          <p
+            className={`min-w-0 break-words text-xs ${getStepCheckLineClassName(
+              check.state,
+            )}`}
+          >
+            {sentenceText(check.evidence.sentence)}
+          </p>
+        </div>
+        {isInline ? (
+          <div className="space-y-1">
+            {facts}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {check.evidence.links.map(renderCheckLink)}
+              {docsUrl ? (
+                <Link
+                  to={docsUrl}
+                  openInNewTab={true}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                  dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.docsLink}
+                >
+                  {translator.translateText(STEP_CHECK_DOCS_LINK)}
+                </Link>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <button
+              type="button"
+              className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-expanded={isOpen}
+              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnow}
+              onClick={() => {
+                setOpenHowWeKnow(
+                  isOpen
+                    ? openHowWeKnow.filter((key: string): boolean => {
+                        return key !== step.key;
+                      })
+                    : [...openHowWeKnow, step.key],
+                );
+              }}
+            >
+              {translator.translateText(
+                isOpen ? STEP_CHECK_HIDE_HOW_WE_KNOW : STEP_CHECK_HOW_WE_KNOW,
+              )}
+            </button>
+            {isOpen ? (
+              <div
+                className="space-y-1"
+                data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.howWeKnowPanel}
+              >
+                {facts}
+                {links}
+                {check.checkedAt ? (
+                  <p
+                    className="text-xs text-gray-500"
+                    title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                      check.checkedAt,
+                    )}
+                  >
+                    {translator.translateTemplate(STEP_CHECK_CHECKED_AT, {
+                      time: OneUptimeDate.fromNow(check.checkedAt),
+                    })}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderStep: (step: ResponseStep) => ReactElement = (
@@ -472,12 +1316,20 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const tickGate: PermissionGateResult = step.taskId
       ? taskUpdateGate
       : taskCreateGate;
+    // A step OneUptime itself checked done, with no tick to take back, has nothing to tick.
+    const isDoneByCheck: boolean = isDoneByCheckOnly(step);
     const canTick: boolean =
       step.completion === ResponseStepCompletion.ByTask &&
       !isClosed &&
+      !isDoneByCheck &&
       tickGate.isAllowed &&
       !isWorking &&
       !workingStepKey;
+    const canConfirm: boolean =
+      canConfirmStep(step) &&
+      step.completion === ResponseStepCompletion.ByTask &&
+      !isClosed &&
+      tickGate.isAllowed;
     const isMarkContained: boolean =
       step.key === getResponseStepKey("contain:mark-contained");
     const isHighlighted: boolean =
@@ -485,6 +1337,34 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const actionLock: string | undefined = step.action
       ? getActionLock(step.action)
       : undefined;
+    // The route's Fix step takes a person's own pull request (#10604).
+    const isRouteFix: boolean = isRouteFixStep(step);
+    const canLink: boolean = canLinkPullRequest({
+      step,
+      isClosed,
+      isAllowed: pullRequestLinkGate.isAllowed,
+      linkedCount: data.pullRequests.length,
+      max: SECURITY_CASE_PULL_REQUESTS_MAX,
+    });
+    /*
+     * A block step's address (#10354): blocked before the case opened -
+     * the line says when and from which case, and its Block offers the
+     * ladder's next step - and its campaign, which Block the Whole Campaign
+     * blocks in one go.
+     */
+    const stepAddress: string = step.address ? addressKey(step.address) : "";
+    const repeat: SecurityRepeatOffenderSummary | undefined = stepAddress
+      ? data.repeatOffenders.get(stepAddress)
+      : undefined;
+    const repeatLine: string | null = repeat
+      ? writeRepeatOffenderLine({ summary: repeat, translator })
+      : null;
+    const campaign: SecurityCampaignOfCaseAddress | undefined = stepAddress
+      ? campaigns.get(stepAddress)
+      : undefined;
+    const campaignCount: number = campaign
+      ? splitCampaignChecks(campaign.addresses).blocking.length
+      : 0;
 
     return (
       <li
@@ -505,12 +1385,18 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             title={
               step.completion === ResponseStepCompletion.ByCase
                 ? translator.translateText(RESPONSE_DONE_BY_CASE)
-                : tickGate.isAllowed
-                  ? translator.translateTemplate(
-                      step.isDone ? RESPONSE_MARK_NOT_DONE : RESPONSE_MARK_DONE,
-                      { step: text },
-                    )
-                  : tickGate.disabledReason
+                : isDoneByCheck
+                  ? translator.translateText(STEP_CHECK_DONE_BY_CHECK)
+                  : tickGate.isAllowed
+                    ? translator.translateTemplate(
+                        step.isDone
+                          ? RESPONSE_MARK_NOT_DONE
+                          : isDoneAnyway(step)
+                            ? STEP_CHECK_DONE_ANYWAY
+                            : RESPONSE_MARK_DONE,
+                        { step: text },
+                      )
+                    : tickGate.disabledReason
             }
             data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkbox}
             onChange={() => {
@@ -542,6 +1428,89 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               >
                 {readText(step.detail, translator)}
               </p>
+            ) : (
+              <></>
+            )}
+            {step.addressBlock ? (
+              <AddressBlockLine
+                address={
+                  step.address ||
+                  step.action?.entity?.value ||
+                  step.copyValue ||
+                  ""
+                }
+                block={step.addressBlock}
+                liftLockReason={isClosed ? "" : liftLockReason}
+                isWorking={isWorking || Boolean(workingStepKey)}
+                onLift={() => {
+                  void liftBlock(step, step.addressBlock!);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+            {step.isBlockHelpShown && step.copyValue && !step.isDone ? (
+              <BlockHelp address={step.copyValue} />
+            ) : (
+              <></>
+            )}
+            {repeatLine ? (
+              <p
+                className="text-xs text-amber-700"
+                data-testid={SECURITY_CAMPAIGN_TEST_IDS.repeatLine}
+              >
+                {repeatLine}
+              </p>
+            ) : (
+              <></>
+            )}
+            {campaign && campaignCount > 0 && !isClosed ? (
+              <p
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600"
+                data-testid={SECURITY_CAMPAIGN_TEST_IDS.campaignLine}
+              >
+                <span className="min-w-0 break-words">
+                  {writeCampaignOfAddressLine({
+                    count: campaignCount,
+                    days: campaign.windowInDays,
+                    translator,
+                  })}
+                </span>
+                <Button
+                  title={BLOCK_WHOLE_CAMPAIGN}
+                  buttonStyle={ButtonStyleType.LINK}
+                  buttonSize={ButtonSize.Small}
+                  disabled={
+                    actionLock !== undefined ||
+                    isWorking ||
+                    Boolean(workingStepKey)
+                  }
+                  tooltip={actionLock || undefined}
+                  dataTestId={SECURITY_CAMPAIGN_TEST_IDS.blockWholeCampaign}
+                  onClick={() => {
+                    setWholeCampaign({
+                      campaign,
+                      suggestedDuration:
+                        repeat?.suggestedDuration ||
+                        SecurityBlockDuration.OneDay,
+                      isCaseAddressBlocked: Boolean(step.addressBlock),
+                    });
+                  }}
+                />
+              </p>
+            ) : (
+              <></>
+            )}
+            {step.check ? renderCheck(step) : <></>}
+            {isRouteFix ? (
+              <FixPullRequestList
+                rows={data.pullRequests}
+                canRemove={!isClosed && pullRequestUnlinkGate.isAllowed}
+                removingId={removingPullRequestId}
+                onRemove={(row: SecurityCasePullRequest) => {
+                  void removePullRequest(row);
+                }}
+              />
             ) : (
               <></>
             )}
@@ -609,8 +1578,41 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
-          {(step.action || (step.copyValue && !step.isDone)) && !isClosed ? (
+          {(step.action ||
+            canConfirm ||
+            canLink ||
+            (step.copyValue && !step.isDone)) &&
+          !isClosed ? (
             <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+              {canLink ? (
+                <LinkPullRequestButton
+                  isDisabled={Boolean(workingStepKey) || props.isWorking}
+                  onClick={() => {
+                    setIsLinkingPullRequest(true);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+              {canConfirm ? (
+                <Button
+                  title={STEP_CHECK_CONFIRM}
+                  buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  disabled={isWorking || Boolean(workingStepKey)}
+                  ariaLabel={translator.translateTemplate(
+                    STEP_CHECK_CONFIRM_TOOLTIP,
+                    { step: text },
+                  )}
+                  isAriaLabelTranslated={true}
+                  dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.confirm}
+                  onClick={() => {
+                    void toggle(step);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               {step.copyValue && !step.isDone ? (
                 <CopyTextButton
                   textToBeCopied={step.copyValue}
@@ -621,16 +1623,34 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
-              {step.action ? (
+              {step.action?.kind === ResponseActionKind.BlockAddress ? (
+                <BlockStepActions
+                  address={step.action.entity?.value || ""}
+                  lockReason={actionLock}
+                  mayBlockUntilLifted={mayBlockUntilLifted}
+                  suggestedDuration={repeat?.suggestedDuration}
+                  isWorking={
+                    isWorking || Boolean(workingStepKey) || props.isWorking
+                  }
+                  onBlock={(choice: BlockChoice) => {
+                    void blockAddress(step, choice);
+                  }}
+                />
+              ) : step.action ? (
                 <Button
                   title={step.action.title}
                   buttonStyle={ButtonStyleType.NORMAL}
                   buttonSize={ButtonSize.Small}
-                  disabled={actionLock !== undefined || props.isWorking}
+                  disabled={
+                    actionLock !== undefined ||
+                    props.isWorking ||
+                    Boolean(workingStepKey)
+                  }
+                  isLoading={isWorking}
                   tooltip={actionLock || undefined}
                   dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.action}
                   onClick={() => {
-                    runAction(step.action!);
+                    runAction(step.action!, step);
                   }}
                 />
               ) : (
@@ -646,6 +1666,11 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   };
 
   const aiSteps: Array<ResponseStep> = plan.steps.filter(isAiStep);
+  const regressedSteps: Array<ResponseStep> = plan.steps.filter(
+    (step: ResponseStep): boolean => {
+      return Boolean(step.check) && plan.regressedStepKeys.includes(step.key);
+    },
+  );
   const aiVerdict: string = isSecurityCaseAiVerdict(securityCase.aiVerdict)
     ? securityCase.aiVerdict
     : "";
@@ -660,15 +1685,57 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             className="whitespace-nowrap text-sm tabular-nums text-gray-500"
             data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.progress}
           >
-            {translator.translateTemplate(RESPONSE_PROGRESS, {
-              done: translator.formatNumber(plan.done),
-              total: translator.formatNumber(plan.total),
-            })}
+            {plan.checked > 0
+              ? translator.translatePlural(
+                  RESPONSE_PROGRESS_CHECKED,
+                  plan.checked,
+                  {
+                    done: translator.formatNumber(plan.done),
+                    total: translator.formatNumber(plan.total),
+                  },
+                )
+              : translator.translateTemplate(RESPONSE_PROGRESS, {
+                  done: translator.formatNumber(plan.done),
+                  total: translator.formatNumber(plan.total),
+                })}
           </span>
         }
       >
         <div className="space-y-4">
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
+
+          {/* A step that was done and stopped holding: the attacker is back. */}
+          {regressedSteps.length > 0 ? (
+            <div data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.regressed}>
+              <Alert
+                type={AlertType.DANGER}
+                title={
+                  <span className="block space-y-1">
+                    {regressedSteps.map((step: ResponseStep): ReactElement => {
+                      return (
+                        <span key={step.key} className="block">
+                          {sentenceText(step.check!.evidence.sentence)}
+                        </span>
+                      );
+                    })}
+                  </span>
+                }
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {data.isChecksUnread ? (
+            <p
+              className="text-xs text-gray-500"
+              data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checksNotRead}
+            >
+              {translator.translateText(STEP_CHECKS_NOT_READ)}
+            </p>
+          ) : (
+            <></>
+          )}
 
           {aiVerdict ? (
             <div
@@ -763,6 +1830,21 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         </div>
       </Card>
 
+      {isLinkingPullRequest ? (
+        <LinkPullRequestModal
+          securityCaseId={props.caseId}
+          onClose={() => {
+            setIsLinkingPullRequest(false);
+          }}
+          onLinked={() => {
+            setIsLinkingPullRequest(false);
+            void load();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       {exceptionFor ? (
         <AddRuleExceptionModal
           detectionRuleId={exceptionFor.detectionRuleId}
@@ -773,6 +1855,27 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           }}
           onSuccess={() => {
             setExceptionFor(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {wholeCampaign ? (
+        <BlockWholeCampaignModal
+          securityCaseId={props.caseId}
+          campaign={wholeCampaign.campaign}
+          suggestedDuration={wholeCampaign.suggestedDuration}
+          isCaseAddressBlocked={wholeCampaign.isCaseAddressBlocked}
+          onClose={() => {
+            setWholeCampaign(null);
+          }}
+          onStarted={() => {
+            setWholeCampaign(null);
+            setCampaignsReadToggle((toggle: number): number => {
+              return toggle + 1;
+            });
+            void load();
           }}
         />
       ) : (

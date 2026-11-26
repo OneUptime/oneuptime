@@ -14,6 +14,7 @@ import MonitorTestService, {
 } from "Common/Server/Services/MonitorTestService";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
+import MonitorCheckSecretValues from "Common/Server/Utils/Monitor/MonitorCheckSecretValues";
 import MonitorTestEvaluation from "Common/Server/Utils/Monitor/MonitorTestEvaluation";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import ProbeReportIdentity, {
@@ -21,6 +22,7 @@ import ProbeReportIdentity, {
 } from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 import { ProbeCapabilityUtil } from "Common/Types/Probe/ProbeCapability";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -199,9 +201,21 @@ export async function processProbeFromQueue(
 
   const reportingProbeId: ObjectID = readSenderOfResult(jobData);
 
-  const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-    queuedResult?.["probeMonitorResponse"] as JSONObject,
-  ) as unknown as ProbeMonitorResponse;
+  /*
+   * Every URL in what the probe says of the check - its failure cause, each
+   * attempt's, why its request failed - by its scheme, host and port alone
+   * (MonitorUrlInText, #10785): the server filled the monitor's secrets
+   * into the URL it handed the probe, and a custom probe from before this
+   * wrote that URL whole into its errors. Everything below reads the check
+   * as written here: the monitor's logs and summary, an incident's root
+   * cause and its notifications' templates, a Test Monitor run's result.
+   */
+  const probeResponse: ProbeMonitorResponse =
+    MonitorUrlInText.writeProbeResponse(
+      JSONFunctions.deserialize(
+        queuedResult?.["probeMonitorResponse"] as JSONObject,
+      ) as unknown as ProbeMonitorResponse,
+    );
 
   if (!probeResponse) {
     throw new BadDataException("ProbeMonitorResponse not found");
@@ -265,6 +279,20 @@ export async function processProbeFromQueue(
       });
 
     /*
+     * The values of the monitor secrets the test ran with, hidden wherever
+     * the check says them back - a script's error and log lines, a response
+     * that echoes the request - before it is judged or kept
+     * (MonitorCheckSecretValues, #10825). A monitor's check is read so as
+     * MonitorResource reads its monitor.
+     */
+    const testedCheck: ProbeMonitorResponse = monitorTest
+      ? await MonitorCheckSecretValues.hideInMonitorTestCheck({
+          check: probeResponse,
+          monitorTest: monitorTest,
+        })
+      : probeResponse;
+
+    /*
      * Which criteria the answer matches, judged as the monitor's checks are
      * and kept with it, so the result can say what would follow (#7074).
      * Only a test handed to this probe is judged - any other is refused
@@ -275,18 +303,18 @@ export async function processProbeFromQueue(
       monitorTest?.probeId?.toString() === reportingProbeId.toString()
         ? await MonitorTestEvaluation.evaluate({
             monitorTest: monitorTest,
-            probeResponse: probeResponse,
+            probeResponse: testedCheck,
           })
         : undefined;
 
     if (evaluationSummary) {
-      probeResponse.evaluationSummary = evaluationSummary;
+      testedCheck.evaluationSummary = evaluationSummary;
     }
 
     const stepResponse: MonitorStepProbeResponse = {
-      [probeResponse.monitorStepId.toString()]: {
+      [testedCheck.monitorStepId.toString()]: {
         ...MonitorRecordEvidence.toStoredTestResult({
-          probeResponse: probeResponse,
+          probeResponse: testedCheck,
           monitorSteps: monitorTest?.monitorSteps,
         }),
         monitoredAt: OneUptimeDate.getCurrentDate(),

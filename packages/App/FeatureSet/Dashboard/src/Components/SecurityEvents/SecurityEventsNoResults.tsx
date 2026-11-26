@@ -13,9 +13,16 @@ import {
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
 import { getTimeRangeCovering } from "./SecurityEventsTimeRange";
+import { isPeriodRefused } from "./RefusedTelemetry/RefusedTelemetryModel";
+import RefusedTelemetryRangeNote from "./RefusedTelemetry/RefusedTelemetryRangeNote";
+import useProjectRefusedTelemetry from "./RefusedTelemetry/useProjectRefusedTelemetry";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
   "security-events-no-results";
+// What an ingestion budget or rate refused in the window, under the message.
+export const SECURITY_EVENTS_NO_RESULTS_REFUSED_ID: string =
+  "security-events-no-results-refused";
 
 export interface ComponentProps {
   /*
@@ -26,6 +33,11 @@ export interface ComponentProps {
   latestEventTime?: Date | undefined;
   // Start of the window on screen.
   windowStartDate: Date;
+  /*
+   * Its end: what an ingestion budget or rate refused in the window is said
+   * under the message (#10431). Left out, the window runs until now.
+   */
+  windowEndDate?: Date | undefined;
   onShowTimeRange?: ((timeRange: RangeStartAndEndDateTime) => void) | undefined;
 }
 
@@ -58,11 +70,28 @@ export function getShowTimeRangeButtonTitle(
  * filters let through. SecurityEventsEmptyState is for the project that has
  * never received one; offering its setup guide here would send someone who is
  * already ingesting off to set up ingest.
+ *
+ * "No security events" over a window in which an ingestion budget or rate
+ * refused some of the logs or traces Security Events reads would say nothing
+ * happened where it could not look (#10431): it says, under the message,
+ * that events from then are missing.
  */
 const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const latest: Date | undefined = props.latestEventTime;
+  const refusals: Array<RefusedTelemetry> = useProjectRefusedTelemetry();
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const refusedNote: ReactElement | undefined = isPeriodRefused({
+    refusals,
+    from: props.windowStartDate,
+    to: props.windowEndDate || now,
+    now,
+  }) ? (
+    <RefusedTelemetryRangeNote
+      dataTestId={SECURITY_EVENTS_NO_RESULTS_REFUSED_ID}
+    />
+  ) : undefined;
 
   // Their newest event is inside the window, so it is the filters that emptied it.
   if (latest && latest.getTime() >= props.windowStartDate.getTime()) {
@@ -73,6 +102,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
         size={EmptyStateSize.Inline}
         title="No security events match these filters"
         description="Events have arrived in this time range, but none of them match the filters applied to the table. Clear or loosen a filter to see them."
+        footer={refusedNote}
       />
     );
   }
@@ -85,6 +115,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
         size={EmptyStateSize.Inline}
         title="No security events in this time range"
         description="Try a wider time range, or clear the filters applied to the table."
+        footer={refusedNote}
       />
     );
   }
@@ -108,17 +139,24 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
         },
       )}
       footer={
-        props.onShowTimeRange ? (
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              title={getShowTimeRangeButtonTitle(coveringRange)}
-              icon={IconProp.Clock}
-              buttonStyle={ButtonStyleType.NORMAL}
-              dataTestId={`${SECURITY_EVENTS_NO_RESULTS_ID}-show-range`}
-              onClick={() => {
-                props.onShowTimeRange?.(coveringRange);
-              }}
-            />
+        props.onShowTimeRange || refusedNote ? (
+          <div className="space-y-3">
+            {refusedNote}
+            {props.onShowTimeRange ? (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  title={getShowTimeRangeButtonTitle(coveringRange)}
+                  icon={IconProp.Clock}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  dataTestId={`${SECURITY_EVENTS_NO_RESULTS_ID}-show-range`}
+                  onClick={() => {
+                    props.onShowTimeRange?.(coveringRange);
+                  }}
+                />
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         ) : undefined
       }

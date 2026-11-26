@@ -32,7 +32,7 @@ flowchart TB
 
 - **En OneUptime Cloud, el plan Enterprise.** En otros planes, las páginas del registro de auditoría muestran qué hace la función y cómo obtenerla.
 - **Si lo aloja usted mismo, la Enterprise Edition**, con una licencia que incluya los registros de auditoría. Consulte [Edición Enterprise](/docs/self-hosted/enterprise).
-- **Un rol que pueda leer el registro de auditoría.** Propietario del proyecto, Administrador del proyecto, Administrador de ajustes o el permiso **Read Audit Log**. Activar el registro de auditoría y cambiar sus ajustes requiere un Propietario del proyecto, un Administrador del proyecto o el permiso para editar el proyecto.
+- **Un rol que pueda leer el registro de auditoría.** Propietario del proyecto, Administrador del proyecto, Administrador de ajustes o el permiso **Read Audit Log**. Una entrada muestra los valores de un campo solo si puede leer ese campo en el propio recurso, y el nombre de un recurso solo si puede leer el recurso. Activar el registro de auditoría y cambiar sus ajustes requiere un Propietario del proyecto, un Administrador del proyecto o el permiso para editar el proyecto.
 
 ## Activar el registro de auditoría
 
@@ -72,9 +72,13 @@ Un cambio en estos ajustes se aplica en menos de un minuto.
 
 Filtre por **Tipo de recurso**, **Nombre del recurso**, **Acción**, **Correo electrónico del usuario**, **Flujo de trabajo ejecutado como**, **Permisos del flujo de trabajo dados por** u **Hora**. Una modificación solo enumera los campos que cambiaron, antes y después, y un guardado que no cambia nada no añade ninguna entrada.
 
+Un campo que apunta a otro recurso, como el estado de un monitor, muestra el nombre actual de ese recurso con su ID debajo. Un recurso que no puede leer muestra **Nombre oculto**, y uno eliminado desde entonces muestra **Eliminado**.
+
 Un recurso sin nombre propio recibe el nombre de lo que lo nombra en OneUptime: una excepción, por su tipo y el comienzo de su mensaje, con los identificadores, las direcciones y todo lo que parezca un secreto enmascarados; una ejecución de un runbook, por su runbook; el número de teléfono de una política de llamadas entrantes, por el número; y una plantilla o un dominio, por su propio nombre.
 
 Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recursos tienen también su propia página **Registros de auditoría**, en una sección plegada de su menú lateral como **Avanzado**. Solo enumera las entradas de ese recurso, con las de lo que le pertenece: la página de un SLO muestra también sus reglas y propietarios.
+
+Las reglas de un producto también tienen una página propia, al final de la sección del menú que las enumera: **Registros de auditoría** en una sección **Reglas**, como **Incidentes → Reglas → Registros de auditoría**, y **Registros de auditoría de las reglas** en una sección **Ajustes** que contiene reglas de propietario y de etiquetas, como **Hosts → Ajustes → Registros de auditoría de las reglas**. Enumera todas las reglas de ese producto, incluidas las eliminadas. Las reglas de runbook son un único tipo de regla para alertas, incidentes y eventos de mantenimiento, así que su historial está en **Runbooks → Ajustes → Registros de auditoría de las reglas**.
 
 ## Qué se registra
 

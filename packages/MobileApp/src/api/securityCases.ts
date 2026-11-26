@@ -339,6 +339,114 @@ export async function fetchWaitingPlaybookRuns(
   return rowsOf<SecurityPlaybookRunItem>(response);
 }
 
+/*
+ * The case's playbook runs, the latest first: what the case's screen reads
+ * the targets its containment steps contained from, to release them.
+ */
+export async function fetchCasePlaybookRuns(
+  projectId: string,
+  caseId: string,
+): Promise<SecurityPlaybookRunItem[]> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/security-playbook-run/get-list?skip=0&limit=50",
+    {
+      query: { securityCaseId: caseId },
+      select: RUN_SELECT,
+      sort: { createdAt: "DESC" },
+    },
+    headers(projectId),
+  );
+
+  return rowsOf<SecurityPlaybookRunItem>(response);
+}
+
+/*
+ * A step's approval, as every chat copy of it says it (Common
+ * SecurityPlaybookApprovalWords): where it stands, what the step does and
+ * through what, each target with why, what it leaves alone, who asked, the
+ * evidence behind the case, and whether it can be undone. The step the run
+ * waits on - or, once it moved on, the last one it asked about.
+ */
+export interface PlaybookApprovalReadout {
+  runId: string;
+  stepIndex: number;
+  stepId: string;
+  // "Waiting", "Approved", "Rejected" or "No Longer Waiting".
+  standing: string;
+  // "Approval needed on SEC-12: ...", or who decided and when.
+  headline: string;
+  // An approved step: how it went since.
+  progress?: string;
+  // "Suspend the user in Okta, through Okta (acme)".
+  action: string;
+  targets: Array<string>;
+  leftAlone: Array<string>;
+  // Who or what asked.
+  source: string;
+  evidence: Array<string>;
+  // "Can be undone: ..." or "Cannot be undone from OneUptime."
+  undo: string;
+}
+
+function readTextList(value: unknown): Array<string> {
+  return Array.isArray(value)
+    ? value.filter((item: unknown): item is string => {
+        return typeof item === "string" && item.length > 0;
+      })
+    : [];
+}
+
+function readTextValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+export async function fetchPlaybookApproval(
+  projectId: string,
+  runId: string,
+): Promise<PlaybookApprovalReadout> {
+  const response: AxiosResponse = await apiClient.post(
+    `/api/security-playbook-run/${encodeURIComponent(runId)}/approval`,
+    {},
+    headers(projectId),
+  );
+  const data: Record<string, unknown> =
+    response.data && typeof response.data === "object" ? response.data : {};
+  const progress: string = readTextValue(data["progress"]);
+
+  return {
+    runId: readTextValue(data["runId"]) || runId,
+    stepIndex: typeof data["stepIndex"] === "number" ? data["stepIndex"] : 0,
+    stepId: readTextValue(data["stepId"]),
+    standing: readTextValue(data["standing"]),
+    headline: readTextValue(data["headline"]),
+    ...(progress ? { progress } : {}),
+    action: readTextValue(data["action"]),
+    targets: readTextList(data["targets"]),
+    leftAlone: readTextList(data["leftAlone"]),
+    source: readTextValue(data["source"]),
+    evidence: readTextList(data["evidence"]),
+    undo: readTextValue(data["undo"]),
+  };
+}
+
+/*
+ * Releases one target a containment step contained - unsuspends the
+ * account, lifts the host's containment, releases the device - through the
+ * step's own connection. The server checks the person may change the run,
+ * and records it on the step, the case's timeline and the audit log.
+ */
+export async function undoPlaybookTarget(
+  projectId: string,
+  runId: string,
+  data: { stepId: string; value: string },
+): Promise<void> {
+  await apiClient.post(
+    `/api/security-playbook-run/${encodeURIComponent(runId)}/undo`,
+    { stepId: data.stepId, value: data.value },
+    headers(projectId),
+  );
+}
+
 export type PlaybookDecision = "approve" | "reject";
 
 /*

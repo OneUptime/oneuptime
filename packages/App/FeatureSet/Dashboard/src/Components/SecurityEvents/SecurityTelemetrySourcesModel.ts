@@ -1,7 +1,18 @@
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
-import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE,
+  SecurityTelemetrySignal,
+  SecurityTelemetrySourceKind,
+} from "Common/Types/SecurityEvent/SecurityTelemetrySource";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "Your OneUptime data" on the Connections page, as data: one row per kind
@@ -33,6 +44,12 @@ export interface SecurityTelemetrySourceRow {
    * the minute's scan: "The first check runs within a minute."
    */
   waitingText?: string | undefined;
+  /*
+   * A translation key: how it tells OneUptime's own traffic from an
+   * attack's, under the switch (network flows: its probes', #10429). Such
+   * a row also counts what it set aside (countsOwnProbeTraffic).
+   */
+  ownTrafficNote?: string | undefined;
 }
 
 export const SECURITY_TELEMETRY_SOURCE_ROWS: ReadonlyArray<SecurityTelemetrySourceRow> =
@@ -54,6 +71,9 @@ export const SECURITY_TELEMETRY_SOURCE_ROWS: ReadonlyArray<SecurityTelemetrySour
       ),
       icon: IconProp.Signal,
       needsEnterprise: false,
+      ownTrafficNote: translationKey(
+        "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.",
+      ),
     },
     {
       kind: SecurityTelemetrySourceKind.AuditLog,
@@ -227,6 +247,71 @@ export function getSecurityTelemetrySourceStatus(
   }
 
   return status;
+}
+
+// ---------- OneUptime's own probes (#10429) ----------
+
+/*
+ * What a probe does that would read as a sweep or a scan - its device
+ * polling, discovery and monitor checks - is set aside as OneUptime's own:
+ * stored as Informational events of their own signal, read by no rule. The
+ * Network flows row says how many it set aside over the last day, and
+ * links to them, so nothing is set aside out of the security team's sight.
+ */
+
+// How far back the count reads.
+export const OWN_PROBE_TRAFFIC_LOOKBACK_IN_HOURS: number = 24;
+
+export const OWN_PROBE_TRAFFIC_SET_ASIDE: PluralTemplate = {
+  one: translationKey(
+    "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.",
+  ),
+  other: translationKey(
+    "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.",
+  ),
+};
+
+export const SEE_OWN_PROBE_TRAFFIC_LINK_TEXT: string =
+  translationKey("See them");
+
+export interface OwnProbeTrafficWindow {
+  start: Date;
+  end: Date;
+}
+
+// The day the count reads, ending now.
+export function getOwnProbeTrafficWindow(now: Date): OwnProbeTrafficWindow {
+  return {
+    start: new Date(
+      now.getTime() - OWN_PROBE_TRAFFIC_LOOKBACK_IN_HOURS * 60 * 60 * 1000,
+    ),
+    end: now,
+  };
+}
+
+// Whether a row counts what it set aside: one with a note on it, while on.
+export function countsOwnProbeTraffic(data: {
+  row: SecurityTelemetrySourceRow;
+  isOn: boolean;
+}): boolean {
+  return Boolean(data.row.ownTrafficNote) && data.isOn;
+}
+
+// The project's events set aside as OneUptime's own probes' over the window.
+export function buildOwnProbeTrafficQuery(data: {
+  projectId: ObjectID;
+  window: OwnProbeTrafficWindow;
+}): Query<SecurityEvent> {
+  const query: Record<string, unknown> = {
+    projectId: data.projectId,
+    time: new InBetween<Date>(data.window.start, data.window.end),
+    attributes: {
+      [SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE]:
+        SecurityTelemetrySignal.OneUptimeProbeTraffic,
+    },
+  };
+
+  return query as Query<SecurityEvent>;
 }
 
 /*

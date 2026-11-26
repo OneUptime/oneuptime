@@ -369,11 +369,41 @@ describe("doesScrubRuleScrubNothing - the rules table's flag", () => {
 
   test("does not flag a built-in pattern type, whatever customRegex holds", () => {
     for (const patternType of Object.values(LogScrubPatternType)) {
-      if (patternType === LogScrubPatternType.Custom) {
+      if (
+        patternType === LogScrubPatternType.Custom ||
+        patternType === LogScrubPatternType.NamedKeys
+      ) {
         continue;
       }
 
       expect(scrubsNothing({ patternType, customRegex: "" })).toBe(false);
     }
+  });
+
+  // Issue #10366: a Named Attributes rule scrubs what it names, so one that names none scrubs nothing.
+  test("flags a Named Attributes rule that names no attribute, whatever its fields say", () => {
+    for (const attributeKeys of [undefined, [], [""], "  "]) {
+      expect(
+        doesScrubRuleScrubNothing({
+          patternType: LogScrubPatternType.NamedKeys,
+          customRegex: "",
+          fieldsToScrub: "attributes",
+          attributeKeys,
+          knownPatternTypes: LOG_SCRUB_PATTERN_TYPES,
+          knownFieldsToScrub: LOG_SCRUB_FIELDS,
+        }),
+      ).toBe(true);
+    }
+
+    expect(
+      doesScrubRuleScrubNothing({
+        patternType: LogScrubPatternType.NamedKeys,
+        customRegex: "",
+        fieldsToScrub: "not-a-field",
+        attributeKeys: ["customer_name"],
+        knownPatternTypes: LOG_SCRUB_PATTERN_TYPES,
+        knownFieldsToScrub: LOG_SCRUB_FIELDS,
+      }),
+    ).toBe(false);
   });
 });

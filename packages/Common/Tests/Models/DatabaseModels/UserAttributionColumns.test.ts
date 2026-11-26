@@ -94,13 +94,13 @@ describe("which columns record a person doing something", () => {
     expect(ATTRIBUTION_COLUMNS.length).toBeGreaterThan(1500);
 
     expect(attributionIn("Incident")).toEqual(
-      expect.arrayContaining([
-        "createdByUser",
-        "createdByUserId",
-        "deletedByUser",
-        "deletedByUserId",
-      ]),
+      expect.arrayContaining(["createdByUser", "createdByUserId"]),
     );
+    /*
+     * Who deleted a record is no column: records are deleted outright, and
+     * the audit log's Delete entries say who deleted one (#10469).
+     */
+    expect(attributionIn("Incident")).not.toContain("deletedByUserId");
     expect(attributionIn("Monitor")).toEqual(
       expect.arrayContaining(["archivedByUser", "archivedByUserId"]),
     );
@@ -179,6 +179,11 @@ describe("which columns record a person doing something", () => {
     const wrong: Array<string> = [];
 
     for (const entry of ATTRIBUTION_COLUMNS) {
+      // What made a record and who last modified it: held below.
+      if (UserAttribution.isRecordActorColumn(entry.column)) {
+        continue;
+      }
+
       const metadata: TableColumnMetadata =
         new entry.modelType().getTableColumnMetadata(entry.column);
 
@@ -197,6 +202,51 @@ describe("which columns record a person doing something", () => {
 
       if (!isUserId && !isUserRelation) {
         wrong.push(`${entry.table}.${entry.column}: ${metadata.type}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  /*
+   * What made a record and who last modified it (Types/Database/RecordActor,
+   * #10290), on every model: a kind as text, the key's, workflow's or MCP
+   * client's id, when, and the person by id and by relation.
+   */
+  test("what made a record and who last modified it are a kind, an id, a time and a person, on every model", () => {
+    const EXPECTED_TYPES: Record<string, TableColumnType> = {
+      createdByActorType: TableColumnType.ShortText,
+      createdByActorId: TableColumnType.ObjectID,
+      lastModifiedAt: TableColumnType.Date,
+      lastModifiedByActorType: TableColumnType.ShortText,
+      lastModifiedByActorId: TableColumnType.ObjectID,
+      lastModifiedByUserId: TableColumnType.ObjectID,
+      lastModifiedByUser: TableColumnType.Entity,
+    };
+
+    const wrong: Array<string> = [];
+
+    for (const modelType of Models as Array<ModelType>) {
+      const covered: Array<string> = attributionIn(tableOf(modelType));
+
+      for (const [column, type] of Object.entries(EXPECTED_TYPES)) {
+        const metadata: TableColumnMetadata =
+          new modelType().getTableColumnMetadata(column);
+
+        if (!covered.includes(column)) {
+          wrong.push(`${tableOf(modelType)}.${column}: not covered`);
+        }
+
+        if (metadata?.type !== type) {
+          wrong.push(`${tableOf(modelType)}.${column}: ${metadata?.type}`);
+        }
+      }
+
+      if (
+        new modelType().getTableColumnMetadata("lastModifiedByUser")?.modelType
+          ?.name !== "User"
+      ) {
+        wrong.push(`${tableOf(modelType)}.lastModifiedByUser: not a user`);
       }
     }
 
@@ -233,6 +283,13 @@ describe("which columns record a person doing something", () => {
       "accepted",
       "acknowledged",
       "added",
+      /*
+       * SecurityCase.aiHoldEndedByUserId: who ended OneUptime AI's hold of a
+       * case's alerts, by pressing Page now or taking the case (#10353).
+       * SecurityCaseAiHold stamps it from the person who ended it, and leaves
+       * it empty when OneUptime ended it; no request chooses it.
+       */
+      "aiHoldEnded",
       "answered",
       "approved",
       "archived",
@@ -243,7 +300,13 @@ describe("which columns record a person doing something", () => {
        */
       "closed",
       "created",
-      "deleted",
+      /*
+       * SecurityCaseAiAction.decidedByUserId: who approved or declined what
+       * OneUptime AI asked on a case it works (#10352). The decisions on the
+       * case's card (SecurityCaseResponseDecisions, SecurityCaseHandOff)
+       * stamp it from the caller; no request chooses it.
+       */
+      "decided",
       "dismissed",
       /*
        * SecurityCaseTask.doneByUserId: who ticked a task on a security case
@@ -265,7 +328,22 @@ describe("which columns record a person doing something", () => {
        * once the approval has passed its checks; no request chooses it.
        */
       "firstApproved",
+      /*
+       * DataSecurityIssueGroup.fixRequestedByUserId: who last asked for a
+       * group of Data Security issues to be fixed in Code (#10370).
+       * DataSecurityIssueGroupFix stamps it from the caller, and leaves it
+       * empty for OneUptime AI; no request chooses it.
+       */
+      "fixRequested",
       "humanVerdict",
+      /*
+       * <every model>.lastModifiedByUserId: the person who last modified a
+       * record, or the member an MCP client modified it for (#10290).
+       * DatabaseService stamps it, with the kind and the time beside it, on
+       * each row an update made in a project really changes; no request
+       * chooses it (Types/Database/RecordActor).
+       */
+      "lastModified",
       /*
        * SecurityBlock.liftedByUserId: who lifted a block of the blocklist
        * (#10338). SecurityBlockService stamps it from the caller once the
@@ -296,6 +374,13 @@ describe("which columns record a person doing something", () => {
        * never writable through the API, so no request chooses it.
        */
       "merged",
+      /*
+       * SecurityAutomaticResponsePolicy.modeChangedByUserId: who last turned
+       * an automatic response policy off, into its trial run or on (#10350).
+       * The policy service stamps it from the caller as the mode changes;
+       * no request chooses it.
+       */
+      "modeChanged",
       "overrided",
       "pinned",
       "previewSeen",
@@ -311,6 +396,15 @@ describe("which columns record a person doing something", () => {
        * keeps who that was for each run, as the runner read it.
        */
       "runAsGiven",
+      /*
+       * NetworkDeviceDiscoveryScan.runRequestedByUserId: who last ran a
+       * discovery scan again on demand with Run Again (#10334), for the
+       * run on the row. NetworkDeviceDiscoveryScanService.runAgain stamps
+       * it from the caller once the run has passed its checks, and the
+       * requeue worker and an edit's retire clear it as they queue a run of
+       * their own; no request chooses it.
+       */
+      "runRequested",
       /*
        * IncidentVideoCall.rootCauseSuggestionReviewedByUserId: who used the
        * root cause OneUptime AI suggested from an incident call as the
@@ -338,6 +432,13 @@ describe("which columns record a person doing something", () => {
        * transcript routes stamp it from the caller; no request chooses it.
        */
       "transcriptAdded",
+      /*
+       * SecurityAutomaticResponsePolicy.trialSkippedByUserId: who turned a
+       * policy on before its week of trial run was over (#10350). The policy
+       * service stamps it from the caller as the policy is turned on, and
+       * clears it when a trial run starts again; no request chooses it.
+       */
+      "trialSkipped",
       "triggered",
       /*
        * DataSecurityComplianceSetting.turnedOffByUserId: who last turned a
@@ -348,6 +449,20 @@ describe("which columns record a person doing something", () => {
        * again; no request chooses it.
        */
       "turnedOff",
+      /*
+       * SecurityAutomaticResponsePolicy.turnedOnByUserId: who turned an
+       * automatic response policy on (#10350) - the approval its blocks run
+       * without. The policy service stamps it from the caller as the policy
+       * is turned on; no request chooses it.
+       */
+      "turnedOn",
+      /*
+       * DataSecurityAiProposal.undoneByUserId: who undid a change OneUptime
+       * AI made for a Data Security issue (#10364). DataSecurityAiProposals
+       * stamps it from the caller once the undo has passed its checks, and
+       * clears it when the undo could not be made; no request chooses it.
+       */
+      "undone",
       "viewed",
     ];
 
@@ -512,14 +627,29 @@ describe("the API offers each for reading only", () => {
       );
     }
 
+    /*
+     * A field as the spec writes it: its own schema, or the one it refers
+     * to - what created a record and who last modified it are each
+     * described once, by reference (ModelSchema.RECORD_ACTOR_SCHEMA_NAMES).
+     */
+    function resolved(field: JSONObject | undefined): JSONObject | undefined {
+      const ref: unknown = field?.["$ref"];
+
+      if (typeof ref !== "string") {
+        return field;
+      }
+
+      return schemas[ref.replace("#/components/schemas/", "")];
+    }
+
     test("a read schema marks each read-only, and no write schema has one", () => {
       const wrong: Array<string> = [];
       let readOnlySeen: number = 0;
 
       for (const entry of ATTRIBUTION_COLUMNS) {
-        const read: JSONObject | undefined = properties(
-          `${entry.table}ReadSchema`,
-        )[entry.column];
+        const read: JSONObject | undefined = resolved(
+          properties(`${entry.table}ReadSchema`)[entry.column],
+        );
 
         if (read) {
           if (read["readOnly"] !== true) {

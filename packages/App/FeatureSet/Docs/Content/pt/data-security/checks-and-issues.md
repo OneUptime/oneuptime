@@ -1,13 +1,15 @@
 # Verificações e problemas da Segurança de dados
 
-A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele.
+A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
 
 :::cards
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
 - [Todas as verificações](#todas-as-verificações): Todas as 34, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
-- [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema.
+- [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema, como cada um foi resolvido e as correções acompanhadas até a produção.
+- [A análise do OneUptime AI](#a-análise-do-oneuptime-ai): Se um problema é real, o que põe em risco, o que a correção quebraria e o caminho mais curto para a correção.
 - [Corrigir daqui](#corrigir-daqui): Feche uma exposição, ou ative uma proteção que falta, com um clique.
+- [Problemas com uma só causa](#problemas-com-uma-só-causa): Os problemas que um mesmo erro causou, agrupados, e sua causa corrigida uma só vez.
 :::
 
 ## Como uma verificação decide
@@ -152,13 +154,56 @@ O OneUptime abre, atualiza e resolve problemas à medida que as verificações r
 | Status | Como chega lá | O que vem depois |
 | --- | --- | --- |
 | **Aberto** | A verificação dele falha no repositório agora. | Ele conta na Visão geral, no resumo do repositório e na conformidade, até a verificação passar. |
-| **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada, ou o repositório dele foi arquivado. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
+| **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada, ou o repositório dele foi arquivado. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele diz como foi resolvido (veja abaixo). Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
 | **Aceito** | Uma pessoa escolheu **Aceitar o risco**, com um **Motivo** e uma data em **Aceito até**, no máximo daqui a um ano. | Ele fica fechado até essa data e depois abre de novo se a verificação ainda falhar. Aceite-o de novo então, se o motivo ainda for válido. |
-| **Não é um problema** | Uma pessoa escolheu **Não é um problema**: a descoberta estava errada. | Ele fica fechado, mesmo enquanto a verificação falha. **Reabrir** o devolve para Aberto. |
+| **Não é um problema** | Uma pessoa escolheu **Não é um problema** e disse por quê em **Motivo**: a detecção estava errada. | Continua fechado, mesmo enquanto a verificação falha, e guarda o motivo. **Reabrir** o devolve para Aberto. |
 
 As funções Membro de segurança, Administrador de segurança, Administrador do projeto e Proprietário do projeto podem mudar o status de um problema e **Atribuir** o problema a uma pessoa ou a uma equipe. Cada mudança é gravada na **Linha do tempo** do problema: quando ele abriu, cada mudança de gravidade, cada mudança de status e quem a fez, as reverificações pedidas e o que as integrações fizeram.
 
 Um problema que abre de novo mantém o seu histórico. Os riscos aceitos são examinados de novo todos os dias, então uma aceitação expira na hora certa mesmo quando nada foi varrido.
+
+### Como foi resolvido
+
+Um problema resolvido diz como foi resolvido, no topo da página dele e na lista de problemas, que pode ser filtrada por isso em **Resolução**:
+
+| Resolução | O que significa |
+| --- | --- |
+| **Corrigido no código** | O pull request de uma correção de código foi entregue, e a nova versão do serviço não grava mais os dados. O problema diz qual foi e quando: "Corrigido no pull request #482, implantado na versão 2.4.1, verificado". |
+| **Corrigido no código de infraestrutura** | Um pull request para o Terraform, CloudFormation ou Bicep que declara o repositório de dados passou pelo merge, e o repositório passou na verificação assim que a mudança foi aplicada. |
+| **Corrigido daqui** | Uma ação de resposta ([Corrigir daqui](#corrigir-daqui)) alterou o repositório, e a verificação dele passou depois. |
+| **Contido na ingestão** | Toda descoberta de um problema de telemetria é ocultada por uma regra de limpeza antes de ser armazenada. Isso não é uma correção: o código continua gravando os dados, no stdout e em todos os outros lugares para onde o serviço envia sua telemetria. O problema diz isso em âmbar, com o que a regra alterou na última semana, e oferece **Corrigir o código**. |
+| **Verificação aprovada** | A verificação dele passa sem nenhuma mudança feita pelo OneUptime. |
+| **Resolvido por uma pessoa** | Alguém escolheu **Marcar como resolvido**. O repositório é verificado de novo na hora, e o problema abre de novo se a verificação ainda falhar. |
+| **Não é mais verificado** | A verificação dele foi desativada ou não se aplica mais ao repositório. |
+| **Repositório arquivado** | O repositório dele sumiu da origem. |
+
+A Visão geral conta os problemas corrigidos na origem separadamente dos vazamentos apenas contidos na ingestão, e **Na sua telemetria** mantém à vista uma descoberta contida, com a marca **Limpo**, até o código parar de gravá-la.
+
+### Correções acompanhadas até a produção
+
+Um pull request que o OneUptime AI abriu para um problema (**Corrigir com IA**, ou um só pull request para um [grupo de problemas](#problemas-com-uma-só-causa)) ainda não corrigiu nada quando passa pelo merge. O OneUptime o acompanha até que a produção comprove a correção:
+
+- **Um vazamento no código.** O OneUptime espera um deploy registrado do serviço que contenha o merge e então observa a nova versão dele. Onde uma regra de limpeza oculta os dados, a regra não pode alterar nenhum valor nessa versão; onde nenhuma regra faz isso, nenhuma entrada dessa versão pode conter os dados nos lugares em que foram encontrados. A nova versão também precisa rodar por um dia e enviar pelo menos tantos logs ou spans quanto a antiga enviou na hora em que o vazamento foi visto pela última vez. Então o problema fica **Corrigido no código**. Um único valor alterado, ou uma única entrada que ainda contém os dados, significa que a correção não deteve o vazamento, e de uma versão que envia pouco demais em uma semana não dá para concluir nada. Os deploys são associados pelo commit: registre-os com `oneuptime deploy` ou envie `vcs.ref.head.revision` (veja [Deploys e alterações](/docs/telemetry/change-events)).
+- **A configuração de um repositório de dados.** Quando o pull request passa pelo merge, os repositórios dele são lidos de novo na hora. Cada problema cuja verificação passa depois disso fica **Corrigido no código de infraestrutura**. Quando um repositório ainda falha na verificação ao ser lido de novo um dia depois do merge, a correção ficou **mesclada, não aplicada**: os proprietários do repositório e a pessoa que pediu o pull request recebem um e-mail, uma única vez, e as linhas do tempo do problema e do repositório registram isso. Geralmente o que falta é um apply.
+- **A regra de limpeza é mantida.** Depois de uma correção de código verificada, a regra de limpeza que conteve o vazamento continua, então uma regressão fica oculta assim que chega. O problema diz que a regra não alterou nada desde a correção e oferece **Remover regra**.
+- **Uma regressão.** Uma correção verificada continua sendo observada depois: quando uma regra mantida volta a alterar valores, ou a varredura encontra os dados de novo, o problema abre de novo e diz qual versão os trouxe de volta. Ele fica aberto até ser corrigido de novo, mesmo enquanto uma regra oculta os dados.
+
+Cada etapa fica na **Linha do tempo** do problema e na do repositório, e Resultados de IA conta as correções verificadas por tipo (veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo)).
+
+## A análise do OneUptime AI
+
+Enquanto **Trabalhar em problemas novos** estiver ativado em **Segurança de dados → IA**, o OneUptime AI analisa sozinho cada problema novo ou reaberto de gravidade Crítica ou Alta, antes que alguém o abra; suas regras de IA de Segurança de dados podem escolher outros problemas. Qualquer problema pode ser analisado na sua página com **Analisar problema**. A análise abre a **Visão geral** do problema, em **Análise do OneUptime AI**, e responde a partir do que a Segurança de dados sabe:
+
+- se ele é real: **Real**, **Provavelmente intencional**, **Provavelmente uma detecção errada** ou **Não é possível dizer**, e por quê;
+- o que põe em risco: os dados e cerca de quantos registros, quem consegue alcançá-los, cópias deles em outros repositórios e os casos de segurança sobre eles;
+- o que a correção quebraria: os serviços vistos usando o repositório, as identidades que usaram seu acesso nos últimos 90 dias e as concessões que a correção remove e que algo ainda usa;
+- o caminho mais curto para a correção: o que o contém agora, o código que declara o repositório e quem deve fazer isso.
+
+Cada linha nomeia os fatos em que se baseia, listados abaixo dela por um botão como **Mostrar os 3 fatos em que se baseia**. Uma linha que não se baseia em nenhum fato é descartada, um veredito cujo motivo não se baseia em nenhum é **Não é possível dizer**, e um repositório de dados restritos nunca é **Provavelmente intencional** só pela palavra do OneUptime AI. Uma linha que se baseia em algo que você não pode ler, como quem consegue alcançar o repositório, fica oculta para você, e diz isso.
+
+O OneUptime AI nunca muda o problema: o status e a gravidade ficam com a verificação dele e com você. Para **Provavelmente intencional**, ele oferece **Aceitar o risco** com o motivo redigido, e **Público por design** para um repositório público; para **Provavelmente uma detecção errada**, **Não é um problema** com o motivo redigido. Nada muda até você escolher.
+
+A análise fica guardada no problema, com uma entrada na **Linha do tempo** dele a cada vez que é escrita, no idioma que a maioria dos membros do seu projeto escolheu (**Analisar novamente** a escreve no seu). Ela só é escrita de novo quando muda aquilo em que se baseia, então abrir o problema não pergunta nada ao OneUptime AI; **Analisar novamente** pergunta mesmo assim. **Problemas** filtra e mostra os problemas por **Veredito do OneUptime AI**. O que ela envia, e nunca envia, está em [OneUptime AI na Segurança de dados](/docs/data-security/ai). Com a IA desativada, não há análise.
 
 ## Corrigir daqui
 
@@ -178,6 +223,38 @@ Um problema aberto que uma única mudança nas configurações de um repositóri
 Ele pergunta primeiro, dizendo o que muda, o que para de funcionar e quanto custa. Ele muda as configurações do repositório, nunca os dados dele, e não muda nada que já esteja como deveria. Um repositório marcado como **Público por design** nunca é bloqueado.
 
 Ele age pela conexão de nuvem do repositório, então a conexão precisa de **Resposta de segurança de dados** ativada e do comando de configuração dela executado de novo (veja [Configurar a Segurança de dados](/docs/data-security/setup#deixe-a-segurança-de-dados-fechar-uma-exposição)). Até lá, o painel diz o que ativar. O repositório é verificado de novo logo depois, e o problema se resolve sozinho quando a verificação dele passa. A **Linha do tempo** do problema e a **Linha do tempo** do repositório dizem o que foi feito, e quem fez.
+
+## Problemas com uma só causa
+
+Um módulo do Terraform que desativa os logs de acesso cria quarenta buckets com quarenta problemas. A segurança de dados reúne os problemas que um mesmo erro causou, para que a causa seja corrigida uma só vez.
+
+**Agrupar por causa** em **Problemas** mostra cada grupo acima da lista: "40 problemas, uma só causa: o módulo static-site", o que sua verificação encontra, quantos estão corrigidos e quantos restam. Seus repositórios de dados se abrem abaixo dele, cada um com um link para o seu problema, e os filtros da lista os restringem como restringem as linhas. Os problemas sem grupo aparecem abaixo dos grupos. O agrupamento começa ativado quando um grupo tem cinco problemas, e o seu navegador guarda a sua escolha.
+
+São os fatos que formam um grupo, nunca o OneUptime AI. Problemas de uma mesma verificação, em repositórios de dados de uma mesma nuvem, formam um grupo quando seus repositórios compartilham um destes fatos, do mais forte ao mais fraco:
+
+| Fato | Onde é lido |
+| --- | --- |
+| O código que os declara | Um arquivo de um repositório conectado com o nome do módulo ou da stack que suas tags nomeiam |
+| A stack deles | A tag própria da stack do CloudFormation, ou uma tag que nomeia uma stack |
+| Uma tag | Uma tag que nomeia o módulo, a stack ou o componente que os criou, como `module` ou `component` |
+| Quem os criou | A identidade que os criou segundo o log de alterações da nuvem, para repositórios cujas tags não nomeiam nada do que os criou |
+| Um padrão de nome | Uma parte dos nomes deles que poucos outros repositórios têm, como `static-site-*` |
+
+Um grupo tem pelo menos dois problemas, um problema está em no máximo um grupo, e um problema fica no seu grupo enquanto seu repositório de dados compartilha o fato do grupo. Enquanto **Trabalhar em problemas novos** estiver ativado em **Segurança de dados → IA**, o OneUptime AI dá nome a cada grupo a partir dos seus fatos, como "o módulo static-site desativa os logs de acesso", e um nome que diz algo que os fatos não dizem não é mantido. Caso contrário, o grupo leva o nome do seu fato.
+
+**Corrigir a causa** em um grupo diz o que muda, o que fica de fora e por quê, antes que algo mude:
+
+- **Um só pull request**, para os repositórios de dados declarados como código: o OneUptime AI altera o módulo ou arquivo que os declara, no repositório que você confirmar, em vez de cada repositório de dados. O pull request lista cada repositório de dados e cada problema que corrige, e aparece em **Código** e na **Linha do tempo** de cada problema. Ele exige o mesmo que **Corrigir com IA**: permissão para alterar problemas de segurança de dados e um repositório em que o OneUptime AI possa trabalhar.
+- **Uma só aprovação**, para os repositórios de dados criados no console: em cada um, a mudança que [Corrigir daqui](#corrigir-daqui) faz para o seu tipo de repositório, pela sua conexão de nuvem. As mudanças são listadas tipo por tipo, cada uma com o que muda, o que deixa de funcionar e quanto custa, como Corrigir daqui diz (um snapshot compartilhado deixa de ser compartilhado, enquanto um banco de dados deixa de compartilhar cada um dos seus snapshots manuais), e uma só aprovação faz todas. Ela exige permissão para editar repositórios de dados.
+- **Deixados de fora**: um repositório marcado como **Público por design** nunca é bloqueado. Um repositório cuja análise diz que a correção tiraria um acesso que algo ainda usa espera você marcar **Corrigir mesmo assim**. Um repositório que nenhuma conexão de nuvem deixa a segurança de dados alterar fica para o seu console, com o motivo.
+
+Quando um grupo tem os dois tipos de repositório, um só clique faz as duas partes, e qualquer uma pode ficar de fora. Cada problema se resolve sozinho assim que sua verificação passa, e o grupo diz quantos restam até não restar nenhum. Um grupo com todos os problemas corrigidos fica na lista por sete dias.
+
+Uma correção que o OneUptime AI fez para um grupo está comprovada assim que cada problema que ela corrigiu foi fechado por essa correção: num pull request, cada problema que ele lista resolvido como **Corrigido no código de infraestrutura** por ele; na aprovação única, cada problema cujo repositório ela mudou resolvido como **Corrigido daqui**, pela mudança que fez. Um problema aceito, marcado como não sendo um problema, resolvido por uma pessoa ou excluído não comprova nada, e não se espera por um repositório que a aprovação deixou de fora, ou que encontrou já como deveria estar. [Resultados de IA](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo) conta uma correção comprovada entre as mudanças que funcionaram.
+
+O OneUptime AI propõe a correção de cada grupo como dizem suas regras de IA de segurança de dados: sem regras, o pull request espera por você em **Segurança de dados → IA**, e uma regra cuja **Correção** é **Sem perguntar** o abre sozinha. Uma mudança pelas conexões de nuvem sempre espera por você. Cada problema aberto a que uma proposta se refere diz isso na sua **Linha do tempo** quando o OneUptime AI propõe a correção do grupo, e de novo quando alguém a dispensa ou ela expira. Uma proposta mais recente que substitui outra ainda à espera só avisa os problemas que a anterior não avisou, e um grupo com mais de 200 problemas abertos fica em silêncio. Em um caso de segurança de dados, a etapa **Fix the code with AI** de um playbook pede o pull request do grupo do caso, e um pull request próprio para cada problema do caso que não está em nenhum grupo. Um problema de um grupo diz isso em **Análise do OneUptime AI**, com **Corrigir a causa**.
+
+Quem tem a leitura dos problemas de segurança de dados limitada a rótulos vê cada grupo reduzido aos repositórios de dados que pode ler: os números dele contam só os problemas desses repositórios, e ele leva o nome do seu fato tal como esses repositórios o dão, nunca o nome que o OneUptime AI lhe deu, que pode falar de repositórios que essa pessoa não pode ler. Um grupo do qual ela só pode ler um problema não é mostrado, e esse problema continua na sua lista. **Corrigir a causa** muda cada repositório que a causa criou, por isso exige ler os problemas de segurança de dados de todo o projeto: a pessoa vê o que faria, e por que não pode fazê-lo.
 
 ## Onde os dados de um problema de telemetria foram encontrados
 

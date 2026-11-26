@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` med `"valid": true` | OneUptime accepterer nøglen. Svaret oplyser også dens `keyType` og dens `projectId`. Gå videre til næste tjek. |
 | `401` med `"valid": false` | Nøglen mangler, er ukendt, tilbagekaldt, deaktiveret eller udløbet, og `message` siger hvilken. Opret en aktiv nøgle under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 
-En webapp har brug for en **Browser**-nøgle, og en mobilapp for en **Server**-nøgle: se [Browseropsætning](/docs/rum/browser-setup) og [Mobilopsætning](/docs/rum/mobile-setup). Eksportendpoints afviser også en forkert nøgle med `401`, som OTLP-specifikationen kræver, så et velopdragent SDK logger afvisningen i stedet for at prøve igen. Den linje er let at overse i browserkonsollen, og dette tjek svarer direkte.
+En webapp har brug for en **Browser**-nøgle, og en mobilapp for en **Mobil**-nøgle: se [Browseropsætning](/docs/rum/browser-setup) og [Mobilopsætning](/docs/rum/mobile-setup). Eksportendpoints afviser også en forkert nøgle med `401`, som OTLP-specifikationen kræver, så et velopdragent SDK logger afvisningen i stedet for at prøve igen. Den linje er let at overse i browserkonsollen, og dette tjek svarer direkte.
 
 OneUptime tæller også, hvad den afviser fra en nøgle, den kender. Nøglens side under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** viser under **Afvist telemetri**, hvad der er afvist de seneste 30 dage, og **Opsætningstjek** på applikationens side **Dokumentation** siger, hvilken slags telemetri der afvises, hvorfor, og hvordan du retter det. En manglende eller ukendt nøgle peger ikke på noget projekt, så intet tæller den: dette tjek og `401` er alt, hvad der er.
 
@@ -81,20 +81,20 @@ En browser sender sjældent så store batches, medmindre spans bærer store attr
 
 **`422`.** OneUptime afviste nøglen her, og beskeden siger hvorfor. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder, at sidens præcise oprindelse, med dens skema og eventuelle port, mangler i nøglens **Tilladte oprindelser**. `This telemetry ingestion key has been disabled.` betyder, at nogen har deaktiveret nøglen.
 
-**`429`.** Nøglens **Requests Per Minute Limit** er brugt op: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøgle tillader 6000 forespørgsler i minuttet for alle dine besøgende tilsammen, medmindre du sætter din egen grænse på nøglen.
+**`429`.** Nøglens **Grænse for anmodninger pr. minut** er brugt op: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøgle tillader 6000 forespørgsler i minuttet for alle dine besøgende tilsammen, medmindre du sætter din egen grænse på nøglen.
 
 **`403` med en HTML-side, eller en tom body.** OneUptime besvarer hver afvisning i JSON, så denne kom fra noget foran, normalt en webapplikationsfirewall på dit eget domæne, hvis du sender OneUptime igennem den. Firewallen parser OTLP/JSON og sammenligner hver span-attribut med sine injektionsregler, så en URL med en forespørgselsstreng på et span er nok til, at den blokerer, og firewallens log nævner reglen. Undtag OTLP-payloaden fra inspektion kun på OTLP-stierne: [Dine OpenTelemetry-forespørgsler bliver også blokeret](/docs/rum/session-replay-troubleshooting#dine-opentelemetry-forespørgsler-bliver-også-blokeret) viser hvordan, og dækker afspilningsoptageren bag den samme firewall.
 
 ## Tjek, hvor telemetrien ender
 
-Forespørgslen virker, men appen dukker op under **Produkter → Tjenester** i stedet for under **Produkter → Ressourcer → Overvågning af reelle brugere**. Det er den mest almindelige henvendelse, og årsagen er næsten altid en ressource uden klientattributter. OneUptime arkiverer kun en batch som RUM, når dens ressource bærer en af disse:
+Forespørgslen virker, men appen dukker op under **Produkter → Tjenester** i stedet for under **Produkter → Ressourcer → Overvågning af reelle brugere**. Det er den mest almindelige henvendelse, og årsagen er næsten altid en anden nøgle end en Browser- eller Mobil-nøgle, der sender en ressource uden klientattributter. Alt, hvad en Browser- eller Mobil-nøgle sender, arkiveres som RUM; med enhver anden nøgle arkiverer OneUptime kun en batch som RUM, når dens ressource bærer en af disse:
 
 | Type | Attributter |
 | --- | --- |
 | Browser | `browser.platform`, `browser.language` eller en ikke-tom `browser.brands` |
 | Mobil | `device.id` eller `device.model.identifier`, eller `device.manufacturer` på en ressource uden værtsidentitet (`host.name`, `host.id` eller `k8s.node.name`) |
 
-Et `service.name` alene opretter en backend-tjeneste. OpenTelemetry-browser-SDK'et tilføjer ingen `browser.*`-attributter, medmindre du tilføjer browserens ressourcedetektor eller selv sætter dem: se [Browseropsætning](/docs/rum/browser-setup).
+Med enhver anden nøgle opretter et `service.name` alene en backend-tjeneste. OpenTelemetry-browser-SDK'et tilføjer ingen `browser.*`-attributter, medmindre du tilføjer browserens ressourcedetektor eller selv sætter dem: se [Browseropsætning](/docs/rum/browser-setup).
 
 For at se, hvad du faktisk sender, skal du åbne OTLP-forespørgslen på fanen Netværk og se på dens payload: `resourceSpans[0].resource.attributes` er den liste, der afgør det. Hvis der ingen `browser.*`-attribut er, tilføjer SDK'et den ikke, uanset hvad dets dokumentation siger.
 
@@ -127,7 +127,7 @@ Det tomme diagram på applikationens **Oversigt** siger, hvilket tilfælde det e
 
 Undtagelser kræver en fejlhåndtering, fordi SDK'et ikke fanger ufangede fejl: [Rapporter ufangede fejl](/docs/rum/browser-setup#rapporter-ufangede-fejl) har koden. En fejl, som en error boundary eller en `try`/`catch` håndterer, når aldrig vinduet, så registrer den, hvor du håndterer den, med `span.recordException`.
 
-Logs kræver en logpipeline og kode, der skriver logposter, fordi en `LoggerProvider` alene ikke sender noget: [Tilføj logs og metrikker](/docs/rum/browser-setup#tilføj-logs-og-metrikker) har begge dele. Byg pipelinen med samme `resource` som dine spor, ellers arkiveres logsene under en backend-tjeneste.
+Logs kræver en logpipeline og kode, der skriver logposter, fordi en `LoggerProvider` alene ikke sender noget: [Tilføj logs og metrikker](/docs/rum/browser-setup#tilføj-logs-og-metrikker) har begge dele. Byg pipelinen med samme `resource` som dine spor, så logsene arkiveres under den samme applikation.
 
 Når sideindlæsninger ankommer, lukker nøglen, dens tilladte origins og din Content Security Policy også undtagelser og logs igennem, så længe logeksportøren bruger samme nøgle og vært. En fejlhåndtering, der endnu ikke har fanget noget, sender intet, præcis som en, der aldrig blev tilføjet, så kast en testfejl fra browserens konsol for at skelne de to:
 

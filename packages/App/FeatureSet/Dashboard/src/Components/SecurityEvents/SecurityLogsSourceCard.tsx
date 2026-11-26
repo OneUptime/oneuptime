@@ -40,8 +40,14 @@ import React, {
 import ErrorSentence, {
   ErrorInSentence,
 } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import RefusedTelemetryLines from "./RefusedTelemetry/RefusedTelemetryLines";
+import { readSourceRefusedTelemetry } from "./RefusedTelemetry/RefusedTelemetryModel";
+import { getRecentRefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 export const SECURITY_LOGS_SOURCE_CARD_ID: string = "security-logs-source";
+
+export const SECURITY_LOGS_SOURCE_REFUSED_TEST_ID: string =
+  "security-logs-source-refused";
 
 export const SECURITY_LOG_FORMAT_ICONS: Record<SecurityLogFormat, IconProp> = {
   [SecurityLogFormat.SshSignIn]: IconProp.Terminal,
@@ -514,6 +520,26 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
               },
             )}
           </p>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * What an ingestion budget or rate refused of the logs in the last
+         * day (#10431): the check never saw them.
+         */}
+        {isOn ? (
+          <RefusedTelemetryLines
+            refusals={getRecentRefusedTelemetry({
+              refusals: readSourceRefusedTelemetry({
+                lastScanResult: source?.lastScanResult,
+              }),
+              now: OneUptimeDate.getCurrentDate(),
+            })}
+            showsSource={false}
+            showsOpenBudgets={true}
+            dataTestId={SECURITY_LOGS_SOURCE_REFUSED_TEST_ID}
+          />
         ) : (
           <></>
         )}

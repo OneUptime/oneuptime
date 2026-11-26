@@ -19,6 +19,7 @@ import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import SecurityCaseNotifications from "../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import SecurityCaseSourceAlerts from "../../../Server/Utils/SecurityCase/SecurityCaseSourceAlerts";
+import { FEED_INVITEE_UNNAMED } from "../../../Server/Utils/Feed/FeedPersonName";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
@@ -264,8 +265,9 @@ describe("Assign to Me and Assign to Someone Else", () => {
 
   /*
    * A case can be assigned to someone invited to the project who has not
-   * accepted: the project sees only what it invited of them - the name
-   * typed for them, else their address - never their own name (#9823).
+   * accepted: the timeline names them by the name typed with their
+   * invitation, else as someone who hasn't joined the project yet - never
+   * by their own name (#9823), nor by any address (#10681).
    */
   test("a person only invited to the project: the timeline names them by the name typed for them", async () => {
     getJestSpyOn(UserService, "findOneById").mockImplementation(
@@ -306,8 +308,9 @@ describe("Assign to Me and Assign to Someone Else", () => {
     await move(caseBefore(), { assignedToUserId: DIEGO_ID.toString() });
 
     expect(feed[0]!.feedInfoInMarkdown).toContain(
-      "Assigned to **diego@example.com**",
+      `Assigned to **${FEED_INVITEE_UNNAMED}**`,
     );
+    expect(feed[0]!.feedInfoInMarkdown).not.toContain("diego@example.com");
   });
 
   test("Assign to Me: the reader is both who has it and who did it", async () => {

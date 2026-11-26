@@ -54,7 +54,9 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
   const SENTINEL_TOKEN: string = "sentinel-secret-ingestion-key-12345";
 
   let loggedErrorArgs: Array<Array<unknown>>;
+  let loggedDebugArgs: Array<Array<unknown>>;
   let errorSpy: { mockRestore: () => void };
+  let debugSpy: { mockRestore: () => void };
 
   const buildRequest: (headers: Record<string, string>) => ExpressRequest = (
     headers: Record<string, string>,
@@ -83,10 +85,18 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
         return undefined as never;
       });
     errorSpy = spy as { mockRestore: () => void };
+    loggedDebugArgs = [];
+    debugSpy = jest
+      .spyOn(logger, "debug")
+      .mockImplementation((...args: Array<unknown>) => {
+        loggedDebugArgs.push(args);
+        return undefined as never;
+      }) as unknown as { mockRestore: () => void };
   });
 
   afterEach(() => {
     errorSpy.mockRestore();
+    debugSpy.mockRestore();
   });
 
   test("invalid token: responds 401 and never logs the token value", async () => {
@@ -96,9 +106,18 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
 
     await runMiddleware(buildRequest({ "x-oneuptime-token": SENTINEL_TOKEN }));
 
-    // The invalid-token branch must still log — just without the secret.
-    expect(loggedErrorArgs.length).toBeGreaterThan(0);
-    for (const args of loggedErrorArgs) {
+    /*
+     * The invalid-token branch must still log — just without the secret,
+     * and at debug: it comes from anyone, and one error-level line a
+     * request was a flood the client paid nothing for (#10703).
+     */
+    expect(
+      loggedDebugArgs.map((args: Array<unknown>) => {
+        return args[0];
+      }),
+    ).toContain("Invalid service token.");
+    expect(loggedErrorArgs).toEqual([]);
+    for (const args of [...loggedErrorArgs, ...loggedDebugArgs]) {
       expect(JSON.stringify(args)).not.toContain(SENTINEL_TOKEN);
     }
 
@@ -122,10 +141,12 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
       "x-oneuptime-ingestion-key",
     ]) {
       loggedErrorArgs = [];
+      loggedDebugArgs = [];
       await runMiddleware(buildRequest({ [headerName]: SENTINEL_TOKEN }));
 
-      expect(loggedErrorArgs.length).toBeGreaterThan(0);
-      for (const args of loggedErrorArgs) {
+      expect(loggedDebugArgs.length).toBeGreaterThan(0);
+      expect(loggedErrorArgs).toEqual([]);
+      for (const args of [...loggedErrorArgs, ...loggedDebugArgs]) {
         expect(JSON.stringify(args)).not.toContain(SENTINEL_TOKEN);
       }
     }

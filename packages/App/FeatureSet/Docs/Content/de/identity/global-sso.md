@@ -27,7 +27,7 @@ Für den eigenen Anbieter eines einzelnen Projekts siehe [SSO](/docs/identity/ss
 :::steps
 ### Die Anbieterliste öffnen
 
-Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **Admin-Einstellungen** in Ihrem Benutzermenü. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
+Melden Sie sich als Master-Admin an und wählen Sie in Ihrem Benutzermenü **Admin-Dashboard**. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
 
 ### Den Anbieter anlegen
 
@@ -103,6 +103,12 @@ Registrieren Sie die Weiterleitungs-URI nach der Abmeldung, die die Karte **URL 
 :::
 
 Wo Okta, Microsoft Entra ID, Auth0 und Keycloak diese Einstellungen haben, steht auf der Seite [SSO](/docs/identity/sso).
+
+## Erneut anmelden, um zu bestätigen, dass Sie es sind
+
+Wer sich nur über einen globalen Anbieter anmeldet, bestätigt mit **Erneut anmelden**, dass er es ist, bevor er ändert, wie er sich anmeldet, oder sein Konto löscht: OneUptime schickt die Person mit `ForceAuthn="true"` für SAML oder `prompt=login` und `max_age=0` für OpenID Connect (an Microsoft Entra ID nur `prompt=login`) zurück zum Anbieter und zählt das nur, wenn der Anbieter in `AuthnInstant` oder `auth_time` sagt, dass sie sich zu diesem Zeitpunkt oder danach angemeldet hat. Wenn Sie einen globalen Anbieter hinzufügen, ändern oder löschen, werden Sie zuerst gebeten, [zu bestätigen, dass Sie es sind](/docs/introduction/your-account#bestätigen-dass-sie-es-sind).
+
+Was Sie in Okta, Microsoft Entra ID, Keycloak und Google Workspace einstellen, steht auf der Seite [SSO](/docs/identity/sso#erneut-anmelden-um-zu-bestätigen-dass-sie-es-sind).
 
 ## SSO durchsetzen
 
@@ -187,4 +193,5 @@ Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passke
 - [SSO](/docs/identity/sso): Den eigenen SAML- oder OIDC-Anbieter eines Projekts einrichten.
 - [SCIM](/docs/identity/scim): Ihren Identitätsanbieter Personen automatisch hinzufügen und entfernen lassen.
 - [Benutzer, Teams & Berechtigungen](/docs/permissions/index): Was die Teams, in die Neue kommen, ihnen erlauben.
+- [Hilfe und Support](/docs/self-hosted/help-and-support): Personen, die eine Einladung brauchen, sagen, wen sie fragen sollen.
 :::

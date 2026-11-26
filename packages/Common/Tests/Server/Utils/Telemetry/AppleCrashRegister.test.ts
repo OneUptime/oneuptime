@@ -388,3 +388,122 @@ describe("when the register cannot be read, each report counts on its own", () =
     ).toEqual([]);
   });
 });
+
+/*
+ * #10434: an occurrence also carries the exceptions it may already belong
+ * to, tried in order - its v1 and v2 fingerprints, the keyed one, and for a
+ * log record a scrub rule changed, the ones of what the rule left. A crash's
+ * second report is filed under the first's exception, so it carries the
+ * first's candidates too.
+ */
+describe("a repeat tries the exceptions its first report tries", () => {
+  async function reportWithCandidates(
+    signature: AppleCrashSignature,
+    candidates: Array<string> | undefined,
+    now: number = METRICKIT_PERIOD_END.getTime(),
+  ): Promise<{ id: string; repeats: RegisteredAppleCrash | null }> {
+    occurrenceNumber++;
+    const id: string = `occurrence-${occurrenceNumber}`;
+
+    const repeats: RegisteredAppleCrash | null =
+      await AppleCrashRegister.pairOrRecord({
+        projectId: PROJECT_ID,
+        primaryEntityId: APP_ID,
+        signature,
+        occurrence: {
+          id,
+          fingerprint: `v1-${id}`,
+          fingerprintV2: `v2-${id}`,
+          ...(candidates ? { fingerprintCandidates: candidates } : {}),
+        },
+        now,
+      });
+
+    return { id, repeats };
+  }
+
+  test("the first report's candidates are kept, and the repeat gets them in their order", async () => {
+    const first: { id: string; repeats: RegisteredAppleCrash | null } =
+      await reportWithCandidates(
+        kscrash(),
+        ["stored-v1", "stored-v2", "v1", "v2", "keyed"],
+        CRASHED_AT.getTime() + 2000,
+      );
+
+    expect(kept()[0]!.fingerprintCandidates).toEqual([
+      "stored-v1",
+      "stored-v2",
+      "v1",
+      "v2",
+      "keyed",
+    ]);
+
+    // The repeat's own candidates are not the ones it is filed under.
+    const second: { id: string; repeats: RegisteredAppleCrash | null } =
+      await reportWithCandidates(metricKit(), ["other"]);
+
+    expect(second.repeats).toMatchObject({
+      occurrenceId: first.id,
+      fingerprint: `v1-${first.id}`,
+      fingerprintV2: `v2-${first.id}`,
+      fingerprintCandidates: ["stored-v1", "stored-v2", "v1", "v2", "keyed"],
+    });
+  });
+
+  test("a report given no candidates keeps none, and its repeat has none to try", async () => {
+    await reportWithCandidates(
+      kscrash(),
+      undefined,
+      CRASHED_AT.getTime() + 2000,
+    );
+
+    expect(kept()[0]).not.toHaveProperty("fingerprintCandidates");
+
+    const second: { id: string; repeats: RegisteredAppleCrash | null } =
+      await reportWithCandidates(metricKit(), ["other"]);
+
+    expect(second.repeats).not.toBeNull();
+    expect(second.repeats!.fingerprintCandidates).toBeUndefined();
+  });
+
+  test("a report kept before candidates were, as the register holds it, still pairs", () => {
+    const recordedAt: number = METRICKIT_PERIOD_END.getTime();
+    const before: JSONObject = {
+      occurrenceId: "kept-before",
+      fingerprint: "v1-kept-before",
+      fingerprintV2: "v2-kept-before",
+      signature: kscrash() as unknown as JSONObject,
+      pairedWith: null,
+      recordedAt,
+    };
+
+    const entries: Array<RegisteredAppleCrash> = AppleCrashRegister.readEntries(
+      JSON.stringify([before]),
+      recordedAt,
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.fingerprintCandidates).toBeUndefined();
+  });
+
+  test("candidates that are not a list make the entry no report", () => {
+    const recordedAt: number = METRICKIT_PERIOD_END.getTime();
+
+    expect(
+      AppleCrashRegister.readEntries(
+        JSON.stringify([
+          {
+            occurrenceId: "x",
+            fingerprint: "v1-x",
+            fingerprintV2: "v2-x",
+            fingerprintCandidates: "v1-x",
+            signature: kscrash(),
+            pairedWith: null,
+            recordedAt,
+          },
+        ]),
+        recordedAt,
+      ),
+    ).toEqual([]);
+  });
+});

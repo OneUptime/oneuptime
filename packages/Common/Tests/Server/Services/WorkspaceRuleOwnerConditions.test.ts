@@ -31,6 +31,7 @@ import WorkspaceNotificationRuleService, {
 import { Service as WorkspaceNotificationSummaryServiceClass } from "../../../Server/Services/WorkspaceNotificationSummaryService";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition, {
   ConditionType,
@@ -720,7 +721,7 @@ describe("A change of owners checks the rules again", () => {
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue("Jane" as never);
+        .mockResolvedValue(FeedMarkdown.asMarkdown("Jane"));
       jest.spyOn(UserService, "findOneById").mockResolvedValue({
         name: "Jane",
         email: "jane@example.com",

@@ -1,4 +1,7 @@
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
 import { SharedNameFacts } from "Common/Types/Database/SharedNameMarks";
+import ObjectID from "Common/Types/ObjectID";
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
 import PageMap from "../../../Utils/PageMap";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -375,6 +378,85 @@ export const isStatusPageSetupFiltered: (
     getStatusPageNameIdentity(filter.search).length > 0 ||
     Boolean(filter.labelId)
   );
+};
+
+/*
+ * STEP 1'S LIST IS SEARCHED ON THE SERVER (#10580): the monitors and
+ * monitor groups whose name holds what was typed and that carry the label
+ * picked, a page of each by name, with how many match - so a monitor is
+ * found by its name however many the project has. The step used to read the
+ * first 10,000 monitors by name and search those in the browser, and a
+ * monitor past them was never listed.
+ */
+
+/*
+ * How many of each kind one search lists, by name: typing narrows the rest.
+ * More than a picker's 50, because "Select all" picks what the list shows,
+ * and a status page of a few hundred kiosks is picked by its label in one
+ * go; far fewer than the 10,000 the step used to draw.
+ */
+export const STATUS_PAGE_SETUP_PAGE_SIZE: number = 500;
+
+// A page a search found, and how many match in all.
+export interface StatusPageSetupFound<TItem> {
+  items: Array<TItem>;
+  count: number;
+}
+
+export const NOTHING_FOUND: StatusPageSetupFound<never> = {
+  items: [],
+  count: 0,
+};
+
+/*
+ * The records the list has shown so far - its first page, then what its
+ * searches found - each once, in the order the list first showed it: what
+ * is picked is named, and put on the page in this order, whichever search
+ * showed it.
+ */
+export const mergeSetupRecords: <TItem extends { id: string; name: string }>(
+  ...lists: Array<ReadonlyArray<TItem>>
+) => Array<TItem> = <TItem extends { id: string; name: string }>(
+  ...lists: Array<ReadonlyArray<TItem>>
+): Array<TItem> => {
+  const byId: Map<string, TItem> = new Map<string, TItem>();
+
+  for (const list of lists) {
+    for (const item of list) {
+      // The latest read of a record wins, where it was first listed.
+      byId.set(item.id, item);
+    }
+  }
+
+  return Array.from(byId.values());
+};
+
+// What a search adds to the project's own query: a name, a label.
+export const getStatusPageSetupSearchQuery: (filter: StatusPageSetupFilter) => {
+  name?: Search<string>;
+  labels?: Includes;
+} = (
+  filter: StatusPageSetupFilter,
+): {
+  name?: Search<string>;
+  labels?: Includes;
+} => {
+  // However the spaces run, as the list compares a name.
+  const search: string = filter.search
+    .normalize("NFC")
+    .trim()
+    .split(SPACES_BETWEEN_WORDS)
+    .filter(Boolean)
+    .join(" ");
+  const labelId: string | null =
+    filter.labelId && ObjectID.isValidUUID(filter.labelId)
+      ? filter.labelId
+      : null;
+
+  return {
+    ...(search ? { name: new Search<string>(search) } : {}),
+    ...(labelId ? { labels: new Includes([new ObjectID(labelId)]) } : {}),
+  };
 };
 
 export const matchesStatusPageSetupFilter: (data: {

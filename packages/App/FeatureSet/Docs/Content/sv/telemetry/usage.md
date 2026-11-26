@@ -97,7 +97,7 @@ Varje punkt har de här attributen:
 | `resourceName` | Dess namn när punkten skrevs. |
 
 - **Räknas när den kommer in.** Varje punkt är resursens andel av det som kom in, dekomprimerat, som intagningsbudgetar räknar det, så den kan visa mer än användningsraderna, som räknar det som lagrades.
-- **Skickat över OpenTelemetry.** De loggar, spår, mätvärden och profiler som skickas över OTLP räknas. Säkerhetshändelser, sessionsuppspelningar och loggarna från Fluent Bit, Fluentd eller syslog gör det inte.
+- **Vad som räknas.** De loggar, spår, mätvärden och profiler som skickas över OTLP räknas, och det gör även loggarna från Fluent Bit, Fluentd eller syslog, inklusive den syslog som nätverksenheter skickar till en sond. Säkerhetshändelser och sessionsuppspelningar gör det inte.
 - **Varje punkt hör till sin resurs.** Den som får läsa en tjänsts eller en resurs telemetri läser dess punkter: en roll som är begränsad till vissa etiketter ser bara deras.
 - **De kostar ingenting.** De här punkterna räknas inte mot någon budget eller som användning, och sparas lika länge som monitorernas mätvärden: 30 dagar om inte instansadministratören ändrar det. Namn på mätvärden som börjar med `oneuptime.telemetry.usage.` är reserverade för dem: mätvärden som dina applikationer skickar under ett sådant namn kasseras.
 - **Avstängt som standard.** Medan det är avstängt skrivs ingenting, och de punkter som redan har skrivits sparas tills de löper ut.

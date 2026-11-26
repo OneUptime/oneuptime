@@ -822,7 +822,7 @@ describe("Security Events on a Docker or Podman host, an OpenStack cloud, a serv
       folder: "Serverless",
       routes: "ServerlessRoutes.tsx",
       crumbs: "ServerlessBreadcrumbs.ts",
-      trail: ["Serverless Functions", "View Function"],
+      trail: ["Serverless", "View Function"],
       component: "ServerlessFunctionSecurityEvents",
       logsComponent: "ServerlessFunctionLogs",
       section: "Observability",

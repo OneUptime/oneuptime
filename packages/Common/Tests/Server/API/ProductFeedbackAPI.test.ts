@@ -40,6 +40,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import {
   FeedbackQuestionDecision,
+  GIVE_FEEDBACK_NOT_TAKEN_MESSAGE,
   GiveFeedbackCategory,
   GiveFeedbackDestination,
   ONEUPTIME_SUPPORT_EMAIL,
@@ -130,6 +131,7 @@ function routeFor(method: string, uri: string): RegisteredRoute {
 
 let props: DatabaseCommonInteractionProps;
 let isServerOn: jest.SpyInstance;
+let isGiveFeedbackTaken: jest.SpyInstance;
 let getSettings: jest.SpyInstance;
 let ask: jest.SpyInstance;
 let submit: jest.SpyInstance;
@@ -174,6 +176,10 @@ beforeEach(() => {
 
   isServerOn = jest
     .spyOn(ProductFeedbackService, "isServerOn")
+    .mockResolvedValue(true);
+  // Give feedback is taken here unless a test says it goes elsewhere (#10865).
+  isGiveFeedbackTaken = jest
+    .spyOn(ProductFeedbackService, "isGiveFeedbackTaken")
     .mockResolvedValue(true);
   getSettings = jest
     .spyOn(ProductFeedbackService, "getSettings")
@@ -309,6 +315,64 @@ describe("GET /product-feedback/settings", () => {
     });
     // Where it goes, never the admins' address.
     expect(JSON.stringify(answered())).not.toContain("@");
+  });
+
+  test("and, where the server's admins chose one, whether Give feedback is offered and the address or page it goes to (#10865)", async () => {
+    getSettings.mockResolvedValue({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportTeamByEmail,
+      isGiveFeedbackOffered: true,
+      giveFeedbackTo: "support-team@example.com",
+    });
+
+    await call("GET", PRODUCT_FEEDBACK_SETTINGS_ROUTE);
+
+    expect(answered()).toEqual({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportTeamByEmail,
+      isGiveFeedbackOffered: true,
+      giveFeedbackTo: "support-team@example.com",
+    });
+  });
+
+  test("and the page of the server's own that Give feedback opens (#10865)", async () => {
+    getSettings.mockResolvedValue({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportPage,
+      isGiveFeedbackOffered: true,
+      giveFeedbackUrl: "https://desk.example.com/feedback",
+    });
+
+    await call("GET", PRODUCT_FEEDBACK_SETTINGS_ROUTE);
+
+    expect(answered()).toEqual({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportPage,
+      isGiveFeedbackOffered: true,
+      giveFeedbackUrl: "https://desk.example.com/feedback",
+    });
+  });
+
+  test("and that Give feedback is not offered, where the admins hid it", async () => {
+    getSettings.mockResolvedValue({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+      isGiveFeedbackOffered: false,
+    });
+
+    await call("GET", PRODUCT_FEEDBACK_SETTINGS_ROUTE);
+
+    expect(answered()).toEqual({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+      isGiveFeedbackOffered: false,
+    });
   });
 
   test("an expired session is a 401, so the browser refreshes it and asks again", async () => {
@@ -517,6 +581,36 @@ describe("Give feedback, emailed to the team that reads it (#8893)", () => {
       version: "14.3.0",
     });
   };
+
+  test("where the server does not take it here - hidden, a page of its own, an address it cannot email - it is refused, never kept and never called sent (#10865)", async () => {
+    isGiveFeedbackTaken.mockResolvedValue(false);
+
+    const refusal: unknown = await giveFeedback();
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as BadDataException).message).toBe(
+      GIVE_FEEDBACK_NOT_TAKEN_MESSAGE,
+    );
+    expect(submit).not.toHaveBeenCalled();
+    expect(prepareEmail).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  test("the other kinds of answer are kept whatever Give feedback's destination", async () => {
+    isGiveFeedbackTaken.mockResolvedValue(false);
+
+    expect(
+      await call("POST", PRODUCT_FEEDBACK_ROUTE, {
+        kind: "setup_flow",
+        topic: "website_down",
+        score: 4,
+        page: "/dashboard/:projectId/monitors",
+        version: "14.3.0",
+      }),
+    ).toBeUndefined();
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(isGiveFeedbackTaken).not.toHaveBeenCalled();
+  });
 
   test("is kept first, then the Dashboard is told it is emailed and where the copy goes, and only then is it sent", async () => {
     prepareEmail.mockResolvedValue(DELIVERY);

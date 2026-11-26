@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
 import { AddNetworkDeviceRoleTable1790800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790800000000-AddNetworkDeviceRoleTable";
@@ -149,7 +150,10 @@ function persistedColumnsOf(model: BaseModel): Array<string> {
         model.getTableColumnMetadata(columnName).type;
 
       return (
-        type !== TableColumnType.Entity && type !== TableColumnType.EntityArray
+        type !== TableColumnType.Entity &&
+        type !== TableColumnType.EntityArray &&
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        !RecordActorUtil.isColumn(columnName)
       );
     });
 

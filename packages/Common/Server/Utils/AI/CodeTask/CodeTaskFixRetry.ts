@@ -83,6 +83,7 @@ export const CODE_TASK_FIX_TURN_SELECT: Select<AIRun> = {
   triggeredByIncidentId: true,
   triggeredByAlertId: true,
   triggeredByAiInsightId: true,
+  triggeredBySecurityCaseId: true,
   taskContext: true,
   llmProviderId: true,
   carriedIncidentIds: true,
@@ -252,6 +253,11 @@ export default class CodeTaskFixRetry {
 
     if (data.turn.triggeredByAiInsightId) {
       run.triggeredByAiInsightId = data.turn.triggeredByAiInsightId;
+    }
+
+    // A fix asked from a security case stays the case's: its pull request is too (#10347).
+    if (data.turn.triggeredBySecurityCaseId) {
+      run.triggeredBySecurityCaseId = data.turn.triggeredBySecurityCaseId;
     }
 
     if (data.turn.llmProviderId) {

@@ -3,6 +3,7 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import BaseService from "./BaseService";
 import MailService from "./MailService";
 import OnCallReadinessService, {
+  isInvitationNotAcceptedReadiness,
   ReadinessCoverageCell,
   ReadinessStatus,
   UserReadiness,
@@ -92,7 +93,9 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
  *   SkippedThrottled      - they were reminded inside the last 24h. Waiting is
  *                           the correct action; sending again is not.
  *   SkippedNotAMember     - the id is not in this project. Somebody is looking
- *                           at a stale list, or at the wrong project.
+ *                           at a stale list, or at the wrong project. Or they
+ *                           are only invited, and have not joined yet: their
+ *                           invitation asks them in, and nothing else may.
  *   SkippedNothingMissing - they are Ready. There is nothing to remind them of,
  *                           and a mail claiming otherwise would be a lie the
  *                           recipient can immediately check.
@@ -105,6 +108,14 @@ export enum SetupReminderOutcome {
   SkippedNothingMissing = "SkippedNothingMissing",
   Failed = "Failed",
 }
+
+/*
+ * Why someone only invited gets no reminder (SkippedNotAMember): they are not
+ * a member until they accept, and nothing about the project's on-call
+ * reaches them before - their invitation asks them in (#10412).
+ */
+export const SETUP_REMINDER_NOT_JOINED_MESSAGE: string =
+  "Has not joined this project yet - no reminder was sent. Their invitation asks them to join, and they are paged once they do.";
 
 export interface SetupReminderUserResult {
   userId: ObjectID;
@@ -388,6 +399,21 @@ export class OnCallSetupReminderService extends BaseService {
   }): Promise<SetupReminderUserResult> {
     const { context, userId, readiness, isMemberWithoutReadiness } = input;
 
+    /*
+     * Someone only invited (#10412) is not a member until they accept, and
+     * nothing about the project's on-call reaches them before - not a page,
+     * not "you were added to a policy", and not this mail either. Their
+     * invitation is what asks them in, and they are paged once they join.
+     * Their readiness says so already: no read of its own.
+     */
+    if (readiness && isInvitationNotAcceptedReadiness(readiness)) {
+      return {
+        userId: userId,
+        outcome: SetupReminderOutcome.SkippedNotAMember,
+        message: SETUP_REMINDER_NOT_JOINED_MESSAGE,
+      };
+    }
+
     if (!readiness) {
       if (isMemberWithoutReadiness) {
         logger.error(
@@ -651,10 +677,10 @@ export class OnCallSetupReminderService extends BaseService {
    *
    * TeamMember is the membership table for a project - even the creating owner
    * gets a row - so its absence is a definitive "not in this project".
-   * Invitation state is deliberately not part of the query, matching
-   * OnCallReadinessService and OnCallReadinessAPI: somebody with a pending
-   * invitation can already be sitting on an escalation rule, and they are
-   * exactly the person most likely to have set nothing up.
+   * Invitation state is not part of the query, matching OnCallReadinessService
+   * and OnCallReadinessAPI: somebody with a pending invitation can already be
+   * sitting on an escalation rule. They are told what is missing once they
+   * join, not before: sendSetupReminders skips them (#10412).
    */
   private async findMembersAmong(
     projectId: ObjectID,

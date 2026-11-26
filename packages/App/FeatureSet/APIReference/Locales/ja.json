@@ -34,6 +34,7 @@
     "pageNotFoundMetaDescription": "お探しのページは見つかりませんでした。",
     "required": "必須",
     "defaultValue": "デフォルト",
+    "readOnly": "読み取り専用",
     "or": "または",
     "copy": "コピー",
     "copied": "コピーしました!",

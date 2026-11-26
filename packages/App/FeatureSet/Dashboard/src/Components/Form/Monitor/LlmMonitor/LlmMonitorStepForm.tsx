@@ -1,7 +1,7 @@
+import { TELEMETRY_SERVICE_PICKER } from "../TelemetryScopePickers";
 import MonitorStepLlmMonitor, {
   MonitorStepLlmMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLlmMonitor";
-import Service from "Common/Models/DatabaseModels/Service";
 import ObjectID from "Common/Types/ObjectID";
 import {
   LlmAnswerIssue,
@@ -40,7 +40,6 @@ import { getLlmMonitorWindowOptions } from "../../../LlmAlerts/LlmMonitorWindow"
 export interface ComponentProps {
   monitorStepLlmMonitor: MonitorStepLlmMonitor;
   onMonitorStepLlmMonitorChanged: (value: MonitorStepLlmMonitor) => void;
-  telemetryServices: Array<Service>;
 }
 
 export interface LlmMonitorFormValues {
@@ -177,16 +176,7 @@ const LlmMonitorStepForm: FunctionComponent<ComponentProps> = (
               telemetryServiceIds: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: props.telemetryServices.map(
-              (service: Service): DropdownOption => {
-                return {
-                  label: service.name || "",
-                  value: service.id?.toString() || "",
-                  // An app's name is its owner's, drawn as written.
-                  isUserContent: true,
-                };
-              },
-            ),
+            dropdownModal: TELEMETRY_SERVICE_PICKER,
             title: "Apps",
             description:
               "The apps whose AI answers count. Leave empty to watch every app.",

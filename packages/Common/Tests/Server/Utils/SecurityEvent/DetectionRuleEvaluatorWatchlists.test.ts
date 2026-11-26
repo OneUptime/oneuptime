@@ -21,6 +21,7 @@ import SecurityEventService, {
 } from "../../../../Server/Services/SecurityEventService";
 import SecurityCaseIngest from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import SecurityEntityRiskRecorder from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import SecurityEventRetention from "../../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import logger from "../../../../Server/Utils/Logger";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
@@ -131,6 +132,10 @@ beforeEach(() => {
   } as never);
   getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
     [] as never,
+  );
+  // How long the project keeps its security events: a correlation reads only those.
+  getJestSpyOn(SecurityEventRetention, "getRetentionInDays").mockResolvedValue(
+    15 as never,
   );
   getJestSpyOn(AlertSeverityService, "findBy").mockResolvedValue([] as never);
   findDetectionMatches = getJestSpyOn(

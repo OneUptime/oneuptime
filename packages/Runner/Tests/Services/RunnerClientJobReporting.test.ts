@@ -29,8 +29,21 @@ jest.mock("axios", () => {
   return {
     __esModule: true,
     default: {
-      create: (): { post: PostMock } => {
-        return { post };
+      // RunnerClient routes each request with an interceptor (#10442).
+      create: (): {
+        post: PostMock;
+        interceptors: { request: { use: () => number } };
+      } => {
+        return {
+          post,
+          interceptors: {
+            request: {
+              use: (): number => {
+                return 0;
+              },
+            },
+          },
+        };
       },
     },
   };

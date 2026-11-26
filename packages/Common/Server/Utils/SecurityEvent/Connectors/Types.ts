@@ -5,6 +5,7 @@ import {
   SecurityConnectorSample,
 } from "../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { ConnectorFieldChoice } from "../../../../Types/SecurityEvent/Connectors/ConnectorFieldChoices";
 import {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -36,6 +37,20 @@ export interface SecurityConnectorSettings {
   config: JSONObject;
   secrets: JSONObject;
   alertingOnly: boolean;
+  /*
+   * Blocking at the provider (#10343), for a saved connection that has it
+   * on: Test Connection then also checks the write access it needs - and
+   * only then, so a connection that only reads is never asked for more.
+   * Absent for settings never saved, and for a connection without it.
+   */
+  blocking?: ConnectorBlockingSettings | undefined;
+}
+
+export interface ConnectorBlockingSettings {
+  // The project whose blocklist the connection enforces: the owner its lists name.
+  projectId: string;
+  // The zones it blocks in; empty for every zone the connection reads.
+  zoneIds: Array<string>;
 }
 
 /*
@@ -218,6 +233,24 @@ export interface SecurityEventConnector {
     window: ConnectorFetchWindow,
     options: ConnectorFetchOptions,
   ): Promise<ConnectorFetchResult>;
+
+  /*
+   * The choices of the catalog's fields whose choices are the product's own
+   * (ConnectorField.choicesFromProvider), read with the credentials in
+   * settings: a Cloudflare token's accounts and zones. The settings may not
+   * name a choice yet (the form asks for them after the credentials), so
+   * only the credentials are needed. Throws, with a message the person
+   * filling the form can act on, when the product cannot be read. Only a
+   * connector with such a field has it.
+   */
+  listFieldChoices?(
+    settings: SecurityConnectorSettings,
+    options: ConnectorFieldChoicesOptions,
+  ): Promise<Record<string, Array<ConnectorFieldChoice>>>;
+}
+
+export interface ConnectorFieldChoicesOptions {
+  requestTimeoutInMs: number;
 }
 
 export function toConnectorTestResult(

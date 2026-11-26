@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Talt igen; genåbnet,<br/>hvis den var løst"]
 ```
 
-- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse. En ny undtagelse grupperes i stedet efter sin type og funktionerne og filerne i din egen kode i sin stack trace: linjenumre, biblioteksframes og beskeden udelades, så varianter kastet fra den samme kode er én undtagelse. Uden stack trace grupperer beskeden den, som ovenfor. Undtagelser registreret før denne gruppering beholder deres.
+- **Én undtagelse pr. tjeneste og fejl.** Fingeraftrykket laves ud fra tjenesten, undtagelsestypen, beskeden og stack trace. Værdier, der ændrer sig fra kald til kald, tages ud først: UUID'er og andre ID'er, tidsstempler, IP- og e-mailadresser samt tal med syv cifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` én undtagelse. En ny undtagelse grupperes i stedet efter sin type og funktionerne og filerne i din egen kode i sin stack trace: linjenumre, biblioteksframes og beskeden udelades, så varianter kastet fra den samme kode er én undtagelse. Uden stack trace grupperer beskeden den, som ovenfor, og kortnumre skrevet i grupper, amerikanske socialsikringsnumre og telefonnumre, også internationale, tages også ud, så `Invalid SSN 123-45-6789 on file` og `Invalid SSN 987-65-4321 on file` er én undtagelse, og det samme er `call +44 20 7946 0958 failed` og `call +49 30 123456 failed`. Undtagelser registreret før denne gruppering beholder deres.
 - **En ny forekomst genåbner en løst undtagelse.** Sker den igen, efter at du har løst den, holdt rettelsen ikke, og undtagelsen markeres som **Regression**. En forekomst fra før du løste den, som først når OneUptime senere, genåbner den ikke.
 - **En arkiveret undtagelse forbliver arkiveret.** Dens nye forekomster tælles stadig, men de sender ikke længere notifikationer.
 
@@ -52,7 +52,7 @@ Gå til **Produkter → Observabilitet → Undtagelser**. Mærket på fanen **Un
 
 Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid. En række markeret **Regression** kom igen, efter at den var løst, og en markeret **Ny** blev set første gang inden for de seneste 24 timer.
 
-Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med.
+Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med. Et bruger-ID, som en rensningsregel har skjult, tælles aldrig som en bruger. Et hashet ID tælles stadig én gang, som en skjult bruger; forekomster, hvis ID er skjult eller maskeret, tælles som hændelser med en skjult bruger, da de ikke kan skelnes fra hinanden.
 
 ### Vælg, hvad der tæller som et problem
 
@@ -218,7 +218,11 @@ Tjek først visningen: **Problemer** skjuler brugerfejl og forventede afvisninge
 :::
 
 :::details Én fejl vises som flere undtagelser
-Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse. Nye undtagelser grupperes i stedet efter funktionerne i din egen kode, så det gælder mest undtagelser registreret før; flet to, der er den samme fejl, fra **Lignende undtagelser**.
+Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse. Nye undtagelser grupperes i stedet efter funktionerne i din egen kode eller efter en besked uden dens kort-, socialsikrings- og telefonnumre, så det gælder mest undtagelser registreret før; flet to, der er den samme fejl, fra **Lignende undtagelser**. En scrub-regel deler ikke en undtagelse: den grupperes efter det, den sagde, før reglerne kørte. En undtagelse fundet i logposter, som en regel delte i to i en tidligere version af OneUptime, forbliver to. Så snart en ny forekomst kommer, er begge markeret **Delt** på listen over undtagelser, og hver af dem nævner den anden på sin side: dér gør **Flet undtagelser** dem til én igen, uden OneUptime AI. Den ældste af de to beholdes, og **Fjern fletning** gør det om.
+:::
+
+:::details En undtagelses fingeraftryk ændrede sig
+Når en scrub-regel skjuler en del af det, en undtagelses fingeraftryk blev lavet af, for eksempel et kortnummer i dens besked, kunne enhver, der læser undtagelsen, hashe gæt på den skjulte værdi og sammenligne dem med fingeraftrykket. Derfor flytter OneUptime undtagelsen ved dens næste forekomst, som reglen ændrer, til et fingeraftryk med en nøgle, der tilhører dit projekt. Den forbliver den samme undtagelse, med sin status, tildeling, historik og sine tællinger. De forekomster, der blev registreret før, beholder det gamle fingeraftryk, indtil deres opbevaring udløber, og undtagelsens side viser dem stadig; derefter slettes det gamle fingeraftryk. En værdi, som OneUptime tager ud, før fingeraftrykket laves, for eksempel en e-mailadresse, ændrer intet.
 :::
 
 :::details En løst undtagelse bliver ved med at komme tilbage

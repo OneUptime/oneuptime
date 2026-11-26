@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Ja"| count["Räknas igen; öppnas<br/>igen om det var löst"]
 ```
 
-- **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag. Ett nytt undantag grupperas i stället efter sin typ och funktionerna och filerna i din egen kod i sin stack trace: radnummer, biblioteksramar och meddelandet räknas inte, så varianter som kastas från samma kod är ett undantag. Utan stack trace grupperar meddelandet det, som ovan. Undantag som registrerades före den här grupperingen behåller sin.
+- **Ett undantag per tjänst och fel.** Fingeravtrycket bildas av tjänsten, undantagstypen, meddelandet och stack trace. Värden som ändras från anrop till anrop tas bort först: UUID:er och andra ID:n, tidsstämplar, IP- och e-postadresser, och tal med sju siffror eller fler. Därför är `Order id=1042 not found` och `Order id=2077 not found` ett och samma undantag. Ett nytt undantag grupperas i stället efter sin typ och funktionerna och filerna i din egen kod i sin stack trace: radnummer, biblioteksramar och meddelandet räknas inte, så varianter som kastas från samma kod är ett undantag. Utan stack trace grupperar meddelandet det, som ovan, och kortnummer skrivna i grupper, amerikanska Social Security-nummer och telefonnummer, även internationella, tas också bort, så `Invalid SSN 123-45-6789 on file` och `Invalid SSN 987-65-4321 on file` är ett undantag, och det är `call +44 20 7946 0958 failed` och `call +49 30 123456 failed` också. Undantag som registrerades före den här grupperingen behåller sin.
 - **En ny förekomst öppnar ett löst undantag igen.** Om det händer igen efter att du har löst det höll inte rättelsen, och undantaget markeras som **Regression**. En förekomst från före lösningen som når OneUptime först senare öppnar det inte igen.
 - **Ett arkiverat undantag förblir arkiverat.** Dess nya förekomster räknas fortfarande, men de skickar inte längre aviseringar.
 
@@ -52,7 +52,7 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
-Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte.
+Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte. Ett användar-ID som en rensningsregel har dolt räknas aldrig som en användare. Ett hashat ID räknas ändå en gång, som en dold användare; förekomster vars ID har dolts helt eller delvis räknas som händelser med en dold användare, eftersom de inte går att skilja åt.
 
 ### Välj vad som räknas som ett problem
 
@@ -218,7 +218,11 @@ Kontrollera vyn först: **Problem** döljer användarfel och förväntade nekand
 :::
 
 :::details Ett fel visas som flera undantag
-Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**.
+Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, eller efter ett meddelande utan dess kort-, Social Security- och telefonnummer, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**. En scrub-regel delar inte ett undantag: det grupperas efter vad det sa innan reglerna kördes. Ett undantag från loggar som en regel delade i två i en tidigare version av OneUptime förblir delat. Så snart en ny förekomst kommer är båda märkta **Uppdelat** i listan över undantag, och sidan för vart och ett nämner det andra: där gör **Slå ihop undantag** dem till ett igen, utan OneUptime AI. Det äldsta av de två behålls, och **Dela upp** ångrar det.
+:::
+
+:::details Ett undantags fingeravtryck ändrades
+När en scrub-regel döljer en del av det som ett undantags fingeravtryck skapades av, till exempel ett kortnummer i dess meddelande, skulle alla som läser undantaget kunna hasha gissningar om det dolda värdet och jämföra dem med fingeravtrycket. Därför flyttar OneUptime undantaget vid nästa förekomst som regeln ändrar till ett fingeravtryck med en nyckel som hör till ditt projekt. Det förblir samma undantag, med sin status, tilldelning, historik och sina räknare. Förekomsterna som registrerades före behåller det gamla fingeravtrycket tills deras lagringstid går ut, och undantagets sida visar dem fortfarande; sedan tas det gamla fingeravtrycket bort. Ett värde som OneUptime tar bort innan fingeravtrycket skapas, till exempel en e-postadress, ändrar ingenting.
 :::
 
 :::details Ett löst undantag kommer tillbaka hela tiden

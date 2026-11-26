@@ -62,6 +62,18 @@ const ASSIGN_ONE_DESCRIPTION: string = translationKey(
   'Pick the person or team who fixes "{{issue}}".',
 );
 
+const NOT_AN_ISSUE_ONE_DESCRIPTION: string = translationKey(
+  'Say why "{{issue}}" is not an issue. It stays closed, and keeps the reason.',
+);
+
+const NOT_AN_ISSUE_SELECTED_DESCRIPTION: PluralTemplate = {
+  one: "Say why the {{count}} selected issue is not an issue. It stays closed, and keeps the reason.",
+  other:
+    "Say why the {{count}} selected issues are not issues. Each stays closed, and keeps the reason.",
+};
+
+const NOT_AN_ISSUE_REASON_KEY: string = "notAnIssueReason";
+
 const REASON_KEY: string = "acceptedReason";
 const UNTIL_KEY: string = "acceptedUntil";
 const ASSIGN_USER_KEY: string = "assignToUserId";
@@ -137,6 +149,11 @@ const IssueChangeModal: FunctionComponent<IssueChangeModalProps> = (
 export interface AcceptIssueRiskModalProps {
   // One issue (its page, a row's ⋯), or the issues selected.
   issues: Array<DataSecurityIssue>;
+  /*
+   * The reason to start from: OneUptime AI's draft, when its analysis says
+   * the issue is likely by design (#10369). The person edits it, or not.
+   */
+  draftReason?: string | undefined;
   onClose: () => void;
   onSubmit: (acceptance: IssueAcceptance) => Promise<void>;
 }
@@ -160,7 +177,10 @@ export const AcceptIssueRiskModal: FunctionComponent<
       : null;
 
   const initialValues: JSONObject = {
-    [REASON_KEY]: isOne && first?.acceptedReason ? first.acceptedReason : "",
+    [REASON_KEY]:
+      isOne && first?.acceptedReason
+        ? first.acceptedReason
+        : props.draftReason || "",
     [UNTIL_KEY]: OneUptimeDate.toString(
       currentUntil && !getAcceptedUntilProblem(currentUntil)
         ? currentUntil
@@ -233,6 +253,76 @@ export const AcceptIssueRiskModal: FunctionComponent<
           // The acceptance runs to the end of the day picked.
           until: OneUptimeDate.getEndOfDay(until),
         });
+      }}
+    />
+  );
+};
+
+export interface NotAnIssueModalProps {
+  // One issue (its page, a row's ⋯), or the issues selected.
+  issues: Array<DataSecurityIssue>;
+  /*
+   * The reason to start from: OneUptime AI's draft, when its analysis says
+   * the finding is likely wrong (#10369).
+   */
+  draftReason?: string | undefined;
+  onClose: () => void;
+  onSubmit: (reason: string) => Promise<void>;
+}
+
+/*
+ * Not an Issue (#10369): why the finding was wrong, as Accept Risk asks
+ * why the risk is acceptable. The issue stays closed, and keeps the reason,
+ * which OneUptime AI learns from which findings are noise.
+ */
+export const NotAnIssueModal: FunctionComponent<NotAnIssueModalProps> = (
+  props: NotAnIssueModalProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const first: DataSecurityIssue | undefined = props.issues[0];
+  const isOne: boolean = props.issues.length === 1;
+
+  return (
+    <IssueChangeModal
+      title="Not an Issue"
+      description={
+        isOne && first
+          ? translator.translateTemplate(NOT_AN_ISSUE_ONE_DESCRIPTION, {
+              issue: getIssueName(first, translator),
+            })
+          : translator.translatePlural(
+              NOT_AN_ISSUE_SELECTED_DESCRIPTION,
+              props.issues.length,
+            )
+      }
+      submitButtonText="Not an Issue"
+      name="data-security-issue-not-an-issue"
+      initialValues={{ [NOT_AN_ISSUE_REASON_KEY]: props.draftReason || "" }}
+      fields={[
+        {
+          field: { [NOT_AN_ISSUE_REASON_KEY]: true },
+          title: "Reason",
+          description:
+            "Why the finding was wrong, for whoever looks next. The issue and its timeline keep it.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: true,
+          placeholder:
+            "e.g. The detector read an order number as a card number.",
+        },
+      ]}
+      onClose={props.onClose}
+      onSubmit={async (values: FormValues<JSONObject>) => {
+        const record: JSONObject = values as JSONObject;
+        const reason: string =
+          typeof record[NOT_AN_ISSUE_REASON_KEY] === "string"
+            ? (record[NOT_AN_ISSUE_REASON_KEY] as string).trim()
+            : "";
+
+        if (!reason) {
+          return;
+        }
+
+        await props.onSubmit(reason);
       }}
     />
   );

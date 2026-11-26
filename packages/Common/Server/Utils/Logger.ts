@@ -16,6 +16,7 @@ import {
   redactLogString,
   redactLogValue,
 } from "./LogRedaction";
+import LogSecretValues from "./LogSecretValues";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
@@ -156,8 +157,17 @@ export default class logger {
    * Errors are special-cased: when nothing in the message or the stack needed
    * redacting -- the overwhelmingly common case -- the original Error is
    * returned untouched, so console still renders a real stack trace.
+   *
+   * While a probe runs a monitor's check, the values of the monitor secrets
+   * filled into it are hidden too, in any form (LogSecretValues, #10875):
+   * the logger cannot tell them by a field's name or a shape.
    */
   private static redactBody(body: LogBody): LogBody {
+    return LogSecretValues.hideInBody(this.redactCredentials(body)) as LogBody;
+  }
+
+  // What a credential looks like, by the field that holds it or its shape.
+  private static redactCredentials(body: LogBody): LogBody {
     try {
       if (typeof body === "string") {
         return redactLogString(body);
@@ -243,7 +253,7 @@ export default class logger {
         if (isSensitiveLogKey(key, value)) {
           sanitized[key] = REDACTED;
         } else if (typeof value === "string") {
-          sanitized[key] = redactLogString(value);
+          sanitized[key] = LogSecretValues.hideInText(redactLogString(value));
         } else {
           sanitized[key] = value;
         }
@@ -294,12 +304,17 @@ export default class logger {
       if (isNonActionableErrorClass(errorClass)) {
         /*
          * The platform correctly REFUSING a request is not an ERROR. This one
-         * guard reaches every logger.error call site in the product,
-         * including the three unconditional choke points — Response
-         * sendErrorResponse (which is the DOMINANT path: ~720 call sites
-         * answer 4xx directly and never throw, so this log line is the
-         * error's only report), the Express error handler, and the
-         * @CaptureSpan recorder.
+         * guard reaches every logger.error call site in the product. The two
+         * choke points that answer a client - Response.sendErrorResponse
+         * (~720 call sites answer 4xx directly and never throw) and the
+         * Express error handler - no longer bring a client's 4xx here: they
+         * log it at debug and count it by route, with a warn line a minute
+         * (ClientRefusalLog, #10768), since it came from anyone. Nor does
+         * the @CaptureSpan recorder bring a client's refusal thrown inside a
+         * request, which that answer logs (#10797). What they still log here
+         * is everything they do not take for a client's: every 5xx, a 4xx
+         * whose Exception declares another class, and - from the recorder -
+         * a class a site declared a client's outside any request.
          *
          * Deliberately NOT this.warn(): Logger.warn is gated on
          * DEBUG/INFO/WARN and config.example.env ships LOG_LEVEL=ERROR, so

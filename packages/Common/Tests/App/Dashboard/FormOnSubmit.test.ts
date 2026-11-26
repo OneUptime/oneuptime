@@ -35,6 +35,10 @@ import {
   getFormSettingsSteps,
   packFormSettingsValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormSettingsEditor";
+import Label from "../../../Models/DatabaseModels/Label";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -54,7 +58,10 @@ const USER_ID: string = "a0000000-0000-4000-8000-000000000007";
 const TEAM_ID: string = "a0000000-0000-4000-8000-000000000008";
 const PAGE_ID: string = "a0000000-0000-4000-8000-000000000009";
 const GONE_ID: string = "a0000000-0000-4000-8000-0000000000ff";
+const ARCHIVED_ID: string = "a0000000-0000-4000-8000-0000000000ee";
 const REGION_ID: string = "b0000000-0000-4000-8000-000000000001";
+const ALERT_SEVERITY_ID: string = "c0000000-0000-4000-8000-000000000001";
+const ALERT_STATE_ID: string = "c0000000-0000-4000-8000-000000000002";
 
 function records(...entries: Array<[string, string]>): Array<FormRecordOption> {
   return entries.map(([id, name]: [string, string]): FormRecordOption => {
@@ -84,6 +91,15 @@ const REFERENCE: FormReferenceData = {
     [FormTargetSettingReferenceModel.User]: records([USER_ID, "Ada"]),
     [FormTargetSettingReferenceModel.Team]: records([TEAM_ID, "SRE"]),
     [FormTargetSettingReferenceModel.StatusPage]: records([PAGE_ID, "Main"]),
+    // An alert form's severities and states (#10760).
+    [FormTargetSettingReferenceModel.AlertSeverity]: records([
+      ALERT_SEVERITY_ID,
+      "Needs a look",
+    ]),
+    [FormTargetSettingReferenceModel.AlertState]: records([
+      ALERT_STATE_ID,
+      "Looked at",
+    ]),
   },
   templateIdsWithSeverity: [TEMPLATE_ID],
 };
@@ -105,7 +121,9 @@ type RowKey =
   | "startsAt"
   | "endsAt"
   | "showOnStatusPages"
-  | "notifySubscribers";
+  | "notifySubscribers"
+  | "monitor"
+  | "initialState";
 
 type Rows = Partial<Record<RowKey, FormMappingRow>>;
 
@@ -436,6 +454,146 @@ describe("getFormMappingRows: how a submission becomes a maintenance event", () 
   });
 });
 
+describe("getFormMappingRows: how a submission becomes an alert", () => {
+  const ALERT: Array<FormField> = getDefaultFormFields(FormTargetType.Alert);
+
+  const ALERT_SEVERITY_QUESTION: FormField = {
+    id: "severity",
+    source: FormFieldSource.TargetField,
+    targetField: "alertSeverityId",
+    label: "How bad?",
+    isRequired: false,
+  };
+
+  const MONITOR_QUESTION: FormField = {
+    id: "monitor",
+    source: FormFieldSource.TargetField,
+    targetField: "monitor",
+    label: "Which service?",
+    isRequired: false,
+    allowedOptionIds: [MONITOR_ID],
+  };
+
+  function alertRows(
+    settings: JSONObject,
+    fields: Array<FormField> = ALERT,
+  ): Rows {
+    return rowsOf({ targetType: FormTargetType.Alert, fields, settings });
+  }
+
+  test("lists every field of the alert, in order", () => {
+    expect(Object.keys(alertRows({}))).toEqual([
+      "title",
+      "description",
+      "severity",
+      "monitor",
+      "labels",
+      "impactStartedAt",
+      "initialState",
+      "onCallPolicies",
+      "owners",
+      "customFields",
+      "otherAnswers",
+    ]);
+  });
+
+  test("the severity: the settings' alert severity, by name, or a warning", () => {
+    expect(
+      linesOf(alertRows({ alertSeverityId: ALERT_SEVERITY_ID }).severity),
+    ).toEqual(["Value:Needs a look"]);
+
+    const warned: FormMappingRow = alertRows({}).severity!;
+
+    expect(linesOf(warned)).toEqual([
+      `Warning:${FormsCopy.noAlertSeverityWarning}`,
+    ]);
+    expect(warned.lines[0]!.isCopy).toBe(true);
+    expect(FormsCopy.noAlertSeverityWarning).toBe(
+      "No severity: submissions are refused until you choose one here.",
+    );
+  });
+
+  test("an asked severity: the answer, then the settings' one when it is left empty", () => {
+    const lines: Array<string> = linesOf(
+      alertRows({ alertSeverityId: ALERT_SEVERITY_ID }, [
+        ...ALERT,
+        ALERT_SEVERITY_QUESTION,
+      ]).severity,
+    );
+
+    expect(lines[0]).toBe("Answer:How bad?");
+    expect(lines.join("\n")).toContain("Needs a look");
+  });
+
+  test("an incident severity in the settings is no alert severity", () => {
+    expect(
+      linesOf(alertRows({ incidentSeverityId: SEVERITY_ID }).severity),
+    ).toEqual([`Warning:${FormsCopy.noAlertSeverityWarning}`]);
+  });
+
+  test("the monitor: the answer, else the settings' one, by name", () => {
+    const set: FormMappingRow = alertRows({ monitorId: MONITOR_ID }).monitor!;
+
+    expect(set.title).toBe("Monitor");
+    expect(linesOf(set)).toEqual(["Value:API"]);
+
+    const asked: Array<string> = linesOf(
+      alertRows({ monitorId: MONITOR_ID }, [...ALERT, MONITOR_QUESTION])
+        .monitor,
+    );
+
+    expect(asked[0]).toBe("Answer:Which service?");
+    expect(asked.join("\n")).toContain("API");
+  });
+
+  test("the initial state: the settings' one, by name, else the usual starting state", () => {
+    const named: FormMappingRow = alertRows({
+      alertStateId: ALERT_STATE_ID,
+    }).initialState!;
+
+    expect(named.title).toBe(FormsCopy.initialState);
+    expect(linesOf(named)).toEqual(["Value:Looked at"]);
+    expect(linesOf(alertRows({}).initialState)).toEqual([
+      `Value:${FormsCopy.usualStartingState}`,
+    ]);
+    expect(FormsCopy.usualStartingState).toBe("The usual starting state.");
+  });
+
+  test("labels, on-call policies and owners, by name", () => {
+    const rows: Rows = alertRows({
+      labelIds: [LABEL_ID],
+      onCallDutyPolicyIds: [POLICY_ID],
+      ownerUserIds: [USER_ID],
+      ownerTeamIds: [TEAM_ID],
+    });
+
+    expect(linesOf(rows.labels).join("\n")).toContain("customer-report");
+    expect(linesOf(rows.onCallPolicies).join("\n")).toContain("Primary");
+    expect(linesOf(rows.owners).join("\n")).toContain("Ada");
+    expect(linesOf(rows.owners).join("\n")).toContain("SRE");
+  });
+
+  test("the other answers go on the alert's note; it has no status pages, template or window", () => {
+    const rows: Rows = alertRows({});
+
+    expect(linesOf(rows.otherAnswers)).toEqual([
+      `Value:${FormsCopy.otherAnswersAlert}`,
+    ]);
+
+    for (const key of [
+      "statusPages",
+      "incidentTemplate",
+      "startsAt",
+      "endsAt",
+      "monitors",
+      "showOnStatusPages",
+      "notifySubscribers",
+    ] as Array<RowKey>) {
+      expect({ key, row: rows[key] }).toEqual({ key, row: undefined });
+    }
+  });
+});
+
 describe("the On Submit settings dialog", () => {
   test("walks Defaults, Always Attach and Owners - and Publishing for a maintenance form", () => {
     expect(
@@ -476,7 +634,27 @@ describe("the On Submit settings dialog", () => {
     expect(fields[1]!.dropdownOptions).toEqual([
       { value: SEVERITY_ID, label: "Major", isUserContent: true },
     ]);
-    expect(fields[3]!.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+
+    /*
+     * What is always attached is searched on the server (#10646): never a
+     * list read of the project, which stopped at 10,000.
+     */
+    for (const [index, modelType] of [
+      [3, Monitor],
+      [4, Label],
+      [5, OnCallDutyPolicy],
+    ] as Array<[number, unknown]>) {
+      expect(fields[index]!.fieldType).toBe(
+        FormFieldSchemaType.MultiSelectDropdown,
+      );
+      expect(fields[index]!.dropdownModal).toEqual({
+        type: modelType,
+        labelField: "name",
+        valueField: "_id",
+        notFoundLabel: FormsCopy.deletedRecord,
+      });
+      expect(fields[index]!.dropdownOptions).toBeUndefined();
+    }
 
     // Owners: one people picker keeping people and teams where they were.
     const owners: Field<JSONObject> = fields[6]!;
@@ -493,6 +671,130 @@ describe("the On Submit settings dialog", () => {
     for (const field of fields) {
       expect(field.required).toBe(false);
     }
+  });
+
+  test("an alert form's fields: a severity, an initial state and a monitor to default to, labels and on-call policies to attach, and owners", () => {
+    expect(
+      getFormSettingsSteps(FormTargetType.Alert).map(
+        (step: { title: string }) => {
+          return step.title;
+        },
+      ),
+    ).toEqual([
+      FormsCopy.stepDefaults,
+      FormsCopy.stepAlwaysAttach,
+      FormsCopy.stepOwners,
+    ]);
+
+    const fields: Array<Field<JSONObject>> = getFormSettingsFields({
+      targetType: FormTargetType.Alert,
+      reference: REFERENCE,
+    });
+
+    expect(
+      fields.map((field: Field<JSONObject>): string => {
+        return `${field.stepId}:${Object.keys(field.field || {})[0]}`;
+      }),
+    ).toEqual([
+      "defaults:defaultTitle",
+      "defaults:alertSeverityId",
+      "defaults:alertStateId",
+      "defaults:monitorId",
+      "attach:labelIds",
+      "attach:onCallDutyPolicyIds",
+      "owners:owners",
+    ]);
+
+    // The alert's own severities and states, never the incident ones.
+    expect(fields[1]!.dropdownOptions).toEqual([
+      { value: ALERT_SEVERITY_ID, label: "Needs a look", isUserContent: true },
+    ]);
+    expect(fields[2]!.title).toBe(FormsCopy.initialState);
+    expect(fields[2]!.description).toBe(FormsCopy.initialStateDescription);
+    expect(fields[2]!.dropdownOptions).toEqual([
+      { value: ALERT_STATE_ID, label: "Looked at", isUserContent: true },
+    ]);
+    expect(FormsCopy.initialStateDescription).toBe(
+      "Leave empty for the usual starting state. A later state, such as Acknowledged, pages nobody.",
+    );
+
+    // One monitor, searched on the server like the records attached.
+    expect(fields[3]!.title).toBe(FormsCopy.defaultMonitor);
+    expect(fields[3]!.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(fields[3]!.dropdownModal).toEqual({
+      type: Monitor,
+      labelField: "name",
+      valueField: "_id",
+      notFoundLabel: FormsCopy.deletedRecord,
+    });
+
+    expect(fields[5]!.description).toBe(
+      FormsCopy.alertOnCallPoliciesDescription,
+    );
+    expect(fields[6]!.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+
+    for (const field of fields) {
+      expect(field.required).toBe(false);
+    }
+  });
+
+  test("an alert form saves what was chosen, and leaves out what was not", () => {
+    const packed: JSONObject = packFormSettingsValues({
+      targetType: FormTargetType.Alert,
+      values: {
+        defaultTitle: "  Something to check  ",
+        alertSeverityId: {
+          value: ALERT_SEVERITY_ID.toUpperCase(),
+          label: "Needs a look",
+        } as never,
+        alertStateId: "",
+        monitorId: { value: MONITOR_ID, label: "API" } as never,
+        labelIds: [{ value: LABEL_ID, label: "customer-report" }] as never,
+        onCallDutyPolicyIds: [],
+        ownerUserIds: [USER_ID] as never,
+        ownerTeamIds: null,
+      },
+    });
+
+    expect(packed).toEqual({
+      defaultTitle: "Something to check",
+      alertSeverityId: ALERT_SEVERITY_ID,
+      monitorId: MONITOR_ID,
+      labelIds: [LABEL_ID],
+      ownerUserIds: [USER_ID],
+    });
+    expect(
+      validateFormTargetSettings({
+        targetType: FormTargetType.Alert,
+        value: packed,
+      }),
+    ).toBeNull();
+  });
+
+  test("an alert form's stored settings start the dialog, and save back unchanged", () => {
+    const stored: JSONObject = {
+      defaultTitle: "Something to check",
+      alertSeverityId: ALERT_SEVERITY_ID,
+      alertStateId: ALERT_STATE_ID,
+      monitorId: MONITOR_ID,
+      labelIds: [LABEL_ID],
+      onCallDutyPolicyIds: [POLICY_ID],
+      ownerUserIds: [USER_ID],
+      ownerTeamIds: [TEAM_ID],
+    };
+
+    const initial: JSONObject = getFormSettingsInitialValues({
+      targetType: FormTargetType.Alert,
+      settings: stored,
+      reference: REFERENCE,
+    }) as JSONObject;
+
+    expect(
+      packFormSettingsValues({
+        targetType: FormTargetType.Alert,
+        values: initial,
+      }),
+    ).toEqual(stored);
   });
 
   test("a maintenance form's fields, its switches on the Publishing step", () => {
@@ -516,9 +818,75 @@ describe("the On Submit settings dialog", () => {
     ]);
     expect(fields[4]!.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
     expect(fields[5]!.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(fields[1]!.dropdownModal?.type).toBe(Monitor);
+    expect(fields[2]!.dropdownModal?.type).toBe(StatusPage);
+    expect(fields[3]!.dropdownModal?.type).toBe(Label);
   });
 
-  test("starts on the stored settings, dropping records the dialog cannot offer", () => {
+  /*
+   * The severity and the template are picked from short lists. One the
+   * settings hold that the list does not offer - deleted since - is shown
+   * "Deleted", never offered, so it can be seen and cleared; an archived
+   * one is shown marked Archived, never offered for a new pick.
+   */
+  test("a held severity or template the list does not offer is shown, never offered", () => {
+    const fields: Array<Field<JSONObject>> = getFormSettingsFields({
+      targetType: FormTargetType.Incident,
+      reference: {
+        ...REFERENCE,
+        lists: {
+          ...REFERENCE.lists,
+          [FormTargetSettingReferenceModel.IncidentSeverity]: [
+            { id: SEVERITY_ID, name: "Major" },
+            { id: ARCHIVED_ID, name: "Retired", isArchived: true },
+          ],
+        },
+      },
+      settings: {
+        incidentSeverityId: ARCHIVED_ID,
+        incidentTemplateId: GONE_ID,
+      },
+    });
+
+    const optionsOf: (key: string) => Array<DropdownOption> = (
+      key: string,
+    ): Array<DropdownOption> => {
+      return (fields.find((field: Field<JSONObject>): boolean => {
+        return Object.keys(field.field || {})[0] === key;
+      })?.dropdownOptions || []) as Array<DropdownOption>;
+    };
+
+    expect(optionsOf("incidentSeverityId")).toEqual([
+      { value: SEVERITY_ID, label: "Major", isUserContent: true },
+      {
+        value: ARCHIVED_ID,
+        label: "Retired",
+        isUserContent: true,
+        isArchived: true,
+        isDisabled: true,
+      },
+    ]);
+    expect(optionsOf("incidentTemplateId")).toEqual([
+      { value: TEMPLATE_ID, label: "Customer Report", isUserContent: true },
+      { value: BARE_TEMPLATE_ID, label: "Bare", isUserContent: true },
+      {
+        value: GONE_ID,
+        label: FormsCopy.deletedRecord,
+        isUserContent: false,
+        isNotFound: true,
+        isDisabled: true,
+      },
+    ]);
+  });
+
+  /*
+   * #10646: the dialog kept only the records it found in the project's
+   * first 10,000 of a kind, so one past them - or deleted since - was left
+   * out, and the next save dropped it. It starts on every record the
+   * settings hold now: one deleted since is shown "Deleted", to keep or
+   * take out.
+   */
+  test("starts on the stored settings whole, a record deleted since among them", () => {
     expect(
       getFormSettingsInitialValues({
         targetType: FormTargetType.Incident,
@@ -533,13 +901,22 @@ describe("the On Submit settings dialog", () => {
       }),
     ).toEqual({
       defaultTitle: "Report",
+      incidentSeverityId: GONE_ID,
       incidentTemplateId: TEMPLATE_ID,
-      monitorIds: [MONITOR_ID],
+      monitorIds: [MONITOR_ID, GONE_ID],
       labelIds: [],
       onCallDutyPolicyIds: [POLICY_ID],
       ownerUserIds: [],
       ownerTeamIds: [],
     });
+
+    // No list is needed to start on them.
+    expect(
+      getFormSettingsInitialValues({
+        targetType: FormTargetType.Incident,
+        settings: { monitorIds: [GONE_ID.toUpperCase()] },
+      })["monitorIds"],
+    ).toEqual([GONE_ID]);
 
     expect(
       getFormSettingsInitialValues({
@@ -712,6 +1089,24 @@ describe("naming records", () => {
       { value: TEAM_ID, label: "SRE", isUserContent: true },
     ]);
     expect(toDropdownOptions(undefined)).toEqual([]);
+  });
+
+  // ArchivedValuePicker's rule: shown, marked, never offered for a new pick.
+  test("as dropdown options, an archived record shown marked and never offered", () => {
+    expect(
+      toDropdownOptions(
+        [{ id: LABEL_ID, name: "old-team", isArchived: true }],
+        FormTargetSettingReferenceModel.Label,
+      ),
+    ).toEqual([
+      {
+        value: LABEL_ID,
+        label: "old-team",
+        isUserContent: true,
+        isArchived: true,
+        isDisabled: true,
+      },
+    ]);
   });
 
   /*

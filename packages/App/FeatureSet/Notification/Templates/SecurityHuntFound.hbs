@@ -4,7 +4,8 @@
   A scheduled hunt found security events (SecurityHuntScheduler,
   SecurityHuntNotifications). The hunt's name and its search are a person's
   words, written with a double stash. No event's own words are in it: the
-  button opens the hunt on the window its run read, as whoever opens it.
+  button opens the hunt on exactly the events its run counted - those that
+  arrived in its window, whenever they happened - as whoever opens it.
 --}}
 {{> Logo this}}
 {{> EmailTitle title=emailTitle }}
@@ -14,7 +15,7 @@
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Hunt: " plainText=huntName }}
 {{> DetailBoxField title="Found: " plainText=foundText }}
-{{> DetailBoxField title="Time Range: " plainText=windowText }}
+{{> DetailBoxField title="Arrived: " plainText=windowText }}
 {{> DetailBoxField title="Search: " plainText=huntSearch }}
 {{> DetailBoxField title="Project: " plainText=projectName }}
 {{> DetailBoxEnd this }}

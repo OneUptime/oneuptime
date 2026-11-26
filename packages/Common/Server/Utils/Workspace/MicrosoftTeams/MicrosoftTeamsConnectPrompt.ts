@@ -38,6 +38,7 @@ import {
 } from "../../AutoRemediation/RemediationChatWords";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 import WorkspacePublicNoteApproval from "../WorkspacePublicNoteApproval";
+import WorkspaceSecurityPlaybookApprovalPress from "../WorkspaceSecurityPlaybookApprovalPress";
 
 /*
  * "CONNECT YOUR MICROSOFT TEAMS ACCOUNT TO ACKNOWLEDGE THIS INCIDENT."
@@ -453,6 +454,20 @@ export default class MicrosoftTeamsConnectPrompt {
 
     if (approvalPress) {
       return approvalPress;
+    }
+
+    /*
+     * A playbook step waiting for approval: never decided for somebody
+     * once they connect - containment is decided by a press made knowing
+     * who they are, so they press again.
+     */
+    const stepPress: WorkspacePressDescription | null =
+      WorkspaceSecurityPlaybookApprovalPress.describe({
+        actionType: data.actionType,
+      });
+
+    if (stepPress) {
+      return stepPress;
     }
 
     const form: FormPress | undefined = FORM_PRESSES.get(data.actionType);

@@ -6,6 +6,7 @@
 - [设置连接](#设置连接): 一个应用注册、一项权限，以及连接的表单。
 - [导入的内容](#导入的内容): 每个 Defender 警报如何成为一个安全事件。
 - [轮询的工作方式](#轮询的工作方式): 每次轮询读取的时间窗口，以及繁忙的租户对它的影响。
+- [用 Microsoft Defender 封禁](#用-microsoft-defender-封禁): 多加一项权限，在每台设备上执行你的封禁列表。
 - [故障排除](#故障排除): 每个错误的含义，以及需要更改什么。
 :::
 
@@ -64,6 +65,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | **目录（租户）ID** | 应用的 **Overview** 页面。租户的 GUID，或已验证的域名，例如 `contoso.onmicrosoft.com`。 |
 | **应用程序（客户端）ID** | 应用的 **Overview** 页面。拥有 `SecurityAlert.Read.All` 的应用的 GUID。 |
 | **云** | **Azure 公有云**（也服务于 Microsoft 365 GCC），或用于 GCC High 的 **Azure Government（美国）** （`login.microsoftonline.us` 和 `graph.microsoft.us`）。不支持 Microsoft 365 DoD 和中国的 21Vianet 云。 |
+| **用 Defender 封禁域名、地址和文件** | 新连接上是关闭的。开启后，它会在每台设备上封禁你项目的封禁列表中的内容，并且需要 `Ti.ReadWrite.All`（见 [用 Microsoft Defender 封禁](#用-microsoft-defender-封禁)）。 |
 | **客户端密钥** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **更新凭据** 替换它。 |
 
 **轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
@@ -130,6 +132,26 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 - **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
 - 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
+## 用 Microsoft Defender 封禁
+
+在连接上开启 **用 Defender 封禁域名、地址和文件**，你项目的 [封禁列表](/docs/telemetry/security-cases#封禁列表) 就会在 Microsoft Defender for Endpoint 保护的每台设备上执行。每项封禁都会成为一个归在应用 `OneUptime` 名下的 Defender [指标](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview)，随封禁一起过期。
+
+| 封禁列表中的内容 | Defender 指标 | Defender 的做法 |
+| --- | --- | --- |
+| 域名 | `DomainName`、`Block` | 封禁该域名及其下的每个名称 |
+| URL | `Url`、`Block` | 在 Microsoft Edge 中封禁该 URL，在其他浏览器中封禁其域名 |
+| 在每台机器上封禁的地址 | `IpAddress`、`Block` | 封禁到该地址的连接。范围从不发送：Defender 一次只接受一个地址 |
+| 文件 | `FileSha256`、`FileSha1` 或 `FileMd5`，`Block` | 阻止该文件运行 |
+| 封禁并隔离的文件 | 同上，`BlockAndRemediate` | 阻止该文件运行，并隔离它找到的副本 |
+
+新连接上这个开关是关闭的：为导入警报而建的连接只读取。要开启它：
+
+1. 在应用注册中，转到 **API permissions → Add a permission → APIs my organization uses**，搜索 `WindowsDefenderATP`，选择 **Application permissions**，勾选 `Ti.ReadWrite.All`，并授予管理员同意。这是封禁唯一需要的权限。
+2. 在 Microsoft Defender 门户的 **Settings → Endpoints → Advanced features** 下开启 **Custom network indicators** 和 **Allow or block file**。没有它们，Defender 会保留指标，但什么都不封禁；在 Microsoft Edge 之外，只有网络保护处于封禁模式的地方，域名、URL 或地址才会被封禁。
+3. 在连接上开启 **用 Defender 封禁域名、地址和文件**，然后点击 **测试连接**：**Block with Microsoft Defender** 会检查该权限。
+
+一个租户最多保存 15,000 个指标，包括它自己的。Defender 无法保存或拒绝的封禁，会在封禁列表中显示为未生效，并说明原因。OneUptime 只读取和删除它为这个连接添加的指标，绝不动人创建的指标。Defender 限流时，它会在下一轮重试。
+
 ## 测试连接
 
 连接所在行中的 **测试连接** 和表单中的 **测试这些设置** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
@@ -140,6 +162,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID 在你选择的云中颁发用于 Microsoft Graph 的令牌。密码错误或已过期、租户或客户端 ID 错误，或者云选错时，此项失败。 |
 | **Read alerts from Microsoft Graph** | 可以读取过去 24 小时内创建的一个警报（`$top=1`）。这里出现 `403` 表示缺少 `SecurityAlert.Read.All` 权限、缺少管理员同意，或者租户没有 Defender XDR。 |
 | **Alerts available to import** | 过去 24 小时和过去 7 天内创建了多少警报，各读取一页 100 个，所以 `100+` 表示更多。7 天内一个都没有是警告，而不是失败。 |
+| **Block with Microsoft Defender** | 仅在开启 **用 Defender 封禁域名、地址和文件** 时：应用注册拥有 `Ti.ReadWrite.All`，并且可以读取指标。它会说明租户的 15,000 个指标中有多少属于 OneUptime，且不做任何更改。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
 | **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 

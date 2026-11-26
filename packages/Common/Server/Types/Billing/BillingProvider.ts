@@ -4,13 +4,44 @@
  * enterprise module (ee/Server/Billing).
  */
 import type Stripe from "stripe";
-import type { LiveUsageAuthorization } from "../../Services/PayAsYouGoBillingService";
-import type ServerMeteredPlan from "./MeteredPlan/ServerMeteredPlan";
+import type { LiveUsageAuthorization } from "./LiveUsageAuthorization";
 import type SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import type SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import type Dictionary from "../../../Types/Dictionary";
 import type Email from "../../../Types/Email";
+import type ProductType from "../../../Types/MeteredPlan/ProductType";
 import type ObjectID from "../../../Types/ObjectID";
+
+/*
+ * Import types here only from files that import no service. EnterpriseEdition
+ * reads this contract, and every server reaches EnterpriseEdition - each
+ * frontend's too, through StartServer - and TypeScript reads the file a type
+ * comes from even through `import type`. So a type taken from a service
+ * brings that service, and every service it imports, into every one of those
+ * programs. Two did (LiveUsageAuthorization, read from
+ * PayAsYouGoBillingService, and ServerMeteredPlan, which reads its price ids
+ * from BillingService): they held the Public Dashboard's type check to nearly
+ * all of Common/Server, 10,735 files, until it ran out of Node's default heap
+ * on the 17.3.0 release. Without them it reads under 4,000.
+ * Tests/Server/Enterprise/FrontendServersReadNoService.test.ts keeps it so.
+ */
+
+/*
+ * A metered plan, as the payment provider is handed one: what it calls on
+ * one. ServerMeteredPlan, and every plan in MeteredPlan/ that extends it,
+ * implements it.
+ */
+export interface BillingProviderMeteredPlan {
+  getProductType(): ProductType;
+  getPriceId(): string;
+  hasPriceId(): boolean;
+  reportQuantityToBillingProvider(
+    projectId: ObjectID,
+    options: {
+      meteredPlanSubscriptionId?: string | undefined;
+    },
+  ): Promise<void>;
+}
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -86,7 +117,7 @@ export default interface BillingProvider {
   subscribeToMeteredPlan(data: {
     projectId: ObjectID;
     customerId: string;
-    serverMeteredPlans: Array<ServerMeteredPlan>;
+    serverMeteredPlans: Array<BillingProviderMeteredPlan>;
     trialDate: Date | null;
     defaultPaymentMethodId?: string | undefined;
     promoCode?: string | undefined;
@@ -107,7 +138,7 @@ export default interface BillingProvider {
   subscribeToPlan(data: {
     projectId: ObjectID;
     customerId: string;
-    serverMeteredPlans: Array<ServerMeteredPlan>;
+    serverMeteredPlans: Array<BillingProviderMeteredPlan>;
     plan: SubscriptionPlan;
     quantity: number;
     isYearly: boolean;
@@ -124,7 +155,7 @@ export default interface BillingProvider {
 
   addOrUpdateMeteredPricingOnSubscription(
     subscriptionId: string,
-    serverMeteredPlan: ServerMeteredPlan,
+    serverMeteredPlan: BillingProviderMeteredPlan,
     quantity: number,
     options?: {
       liveAuthorization?: LiveUsageAuthorization | undefined;
@@ -147,7 +178,7 @@ export default interface BillingProvider {
     projectId: ObjectID;
     subscriptionId: string;
     meteredSubscriptionId: string;
-    serverMeteredPlans: Array<ServerMeteredPlan>;
+    serverMeteredPlans: Array<BillingProviderMeteredPlan>;
     newPlan: SubscriptionPlan;
     quantity: number;
     isYearly: boolean;

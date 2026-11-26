@@ -59,6 +59,8 @@ Gör en HTTP-förfrågan till valfri URL. Det finns ett block per metod: **API-a
 | **URL**             | Adressen som ska anropas, `http` eller `https`.                                                                                      |
 | **Begärandekropp**    | JSON:en som ska skickas. Vanligtvis är det bara `POST`-, `PUT`- och `PATCH`-förfrågningar som behöver en.                            |
 | **Begärandehuvuden** | Headers som ska skickas med, som en API-nyckel. Under **Fler fält**. Deras värden döljs i körningens logg.                           |
+| **Tillåt självsignerade certifikat** | Under **Fler fält**, av som standard. När den är på tar blocket vilket certifikat servern än visar, så ett självsignerat fungerar, men det kontrollerar varken värdnamnet eller giltighetsdatumen, och vem som helst på nätverksvägen kan läsa förfrågan, headers inräknade, och ändra svaret. |
+| **CA-certifikat** | Under **Fler fält**, så länge **Tillåt självsignerade certifikat** är av. Certifikatet, i PEM, från den CA som signerade serverns certifikat, eller serverns eget när det är självsignerat. Blocket litar då bara på det certifikatet, och kontrollerar fortfarande värdnamnet och giltighetsdatumen. |
 
 | Utgång      | När                                                                                            |
 | ----------- | ---------------------------------------------------------------------------------------------- |
@@ -70,6 +72,8 @@ Oavsett vilket returnerar blocket **Svarsstatus**, **Svarshuvuden** och **Svarst
 Ett block läser högst 10 MB av ett svar. Ett större svar läses inte: blocket tar **Fel**, med orsaken.
 
 Omdirigeringar följs inte, så peka blocket mot adressen som svarar. Förfrågningar skickas från OneUptime: en URL som pekar på en privat nätverksadress avvisas om inte en administratör för en självhostad installation tillåter det, och körningen stoppas med orsaken. Se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
+
+En server vars certifikat den själv har signerat, eller som din egen CA har signerat, avvisas tills blocket litar på den: blocket tar **Fel**, inget skickas, och **Fel** säger vad du ska ändra. Klistra in certifikatet som signerade det i **CA-certifikat**: CA:ns, eller serverns eget när det är självsignerat. Blocket kontrollerar då serverns certifikat mot det, värdnamn och giltighetsdatum inräknade, så en server som bara utger sig för att vara din avvisas fortfarande. Slå på **Tillåt självsignerade certifikat** bara när du inte kan klistra in ett. Båda gäller bara det här blockets förfrågan, aldrig ett annat block, en annan förfrågan från OneUptime eller anslutningen till en utgående proxy. En server med ett sådant certifikat finns oftast i ditt eget nätverk, som blocket bara når om en administratör för en självhostad installation tillåter privata nätverksadresser, som ovan.
 
 **API-anrop GET efter ID (JSON)** läser ett objekt utifrån ett ID som kom någon annanstans ifrån, till exempel ärendenyckeln som en webhook skickade. Sätt `{id}` i dess **URL** där ID:t ska stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, och ID:t i **ID**. Blocket sätter bara in ID:t när det är ett enkelt ID, högst 200 bokstäver, siffror, bindestreck och understreck, och procentkodar det ändå: allt annat, till exempel `x/../users`, tar **Fel** innan någon förfrågan skickas, så att text utifrån inte kan skicka förfrågan någon annanstans. I övrigt fungerar det som **API-anrop GET (JSON)** och returnerar samma värden.
 

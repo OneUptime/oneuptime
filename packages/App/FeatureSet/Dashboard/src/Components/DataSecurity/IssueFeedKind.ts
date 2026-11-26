@@ -5,6 +5,7 @@ import {
   FeedTone,
   SHARED_FEED_ENTRY_KINDS,
 } from "Common/UI/Components/Feed/FeedEntryKind";
+import { getAiFeedKind } from "./AiFeedKind";
 
 export type GetDataSecurityIssueFeedKindFunction = (
   eventType: string,
@@ -61,6 +62,9 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
         return SHARED_FEED_ENTRY_KINDS.AIRootCause;
       case DataSecurityIssueFeedEventType.AiFixRequested:
         return { icon: IconProp.Bolt, tone: FeedTone.AI };
+      // OneUptime AI's analysis of the issue, and its verdict (#10369).
+      case DataSecurityIssueFeedEventType.AiAnalysis:
+        return { icon: IconProp.Sparkles, tone: FeedTone.AI };
       /*
        * Public access blocked or sharing revoked from the issue, in the
        * colour the server chose: green when the store changed, grey when it
@@ -68,6 +72,35 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
        */
       case DataSecurityIssueFeedEventType.ResponseActionTaken:
         return { icon: IconProp.ShieldCheck, tone: FeedTone.Record };
+      /*
+       * What OneUptime AI proposed for the issue, and what became of it
+       * (#10364) - and for its group: proposed, dismissed or expired (#10741).
+       */
+      case DataSecurityIssueFeedEventType.AiProposed:
+      case DataSecurityIssueFeedEventType.AiProposalApproved:
+      case DataSecurityIssueFeedEventType.AiChangeMade:
+      case DataSecurityIssueFeedEventType.AiProposalDismissed:
+      case DataSecurityIssueFeedEventType.AiChangeUndone:
+      case DataSecurityIssueFeedEventType.AiChangeFailed:
+      case DataSecurityIssueFeedEventType.AiProposalExpired:
+        return getAiFeedKind(eventType);
+      /*
+       * Contained at ingest is no fix (#10368): hidden, in a warning's
+       * tone, never the green check a resolved issue gets.
+       */
+      case DataSecurityIssueFeedEventType.Contained:
+        return { icon: IconProp.EyeSlash, tone: FeedTone.Warning };
+      // The issue's fix followed to production (#10368).
+      case DataSecurityIssueFeedEventType.FixShipped:
+        return { icon: IconProp.RocketLaunch, tone: FeedTone.Info };
+      case DataSecurityIssueFeedEventType.FixVerified:
+        return { icon: IconProp.CheckCircle, tone: FeedTone.Success };
+      case DataSecurityIssueFeedEventType.FixNotApplied:
+        return { icon: IconProp.Clock, tone: FeedTone.Warning };
+      case DataSecurityIssueFeedEventType.FixRegressed:
+        return { icon: IconProp.Refresh, tone: FeedTone.Danger };
+      case DataSecurityIssueFeedEventType.FixUnverifiable:
+        return { icon: IconProp.QuestionMarkCircle, tone: FeedTone.Record };
       default:
         return undefined;
     }

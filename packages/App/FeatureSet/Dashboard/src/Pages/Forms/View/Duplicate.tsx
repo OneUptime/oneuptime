@@ -1,6 +1,13 @@
 import FormsCopy from "../../../Components/FormBuilder/FormsCopy";
+import { loadFormRecordOptions } from "../../../Components/FormBuilder/FormBuilderData";
+import {
+  FormReferenceRecord,
+  getHeldFormReferenceIds,
+  loadHeldFormReferenceRecords,
+} from "../../../Components/FormBuilder/OnSubmit/FormOnSubmitData";
 import {
   FormQuestionData,
+  getFormRecordOptionsWanted,
   loadFormQuestionData,
 } from "../../../Components/FormBuilder/Templates/FormQuestionData";
 import {
@@ -13,8 +20,23 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Form from "Common/Models/DatabaseModels/Form";
 import Route from "Common/Types/API/Route";
-import { FormField, readFormFields } from "Common/Types/Form/FormField";
-import { buildPublicForm } from "Common/Types/Form/FormPublic";
+import {
+  FormField,
+  FormFieldSource,
+  readFormFields,
+} from "Common/Types/Form/FormField";
+import {
+  buildPublicForm,
+  FormRecordOption,
+} from "Common/Types/Form/FormPublic";
+import {
+  FormTargetOptionsSource,
+  getFormTargetField,
+} from "Common/Types/Form/FormTargetCatalog";
+import {
+  FormTargetSettingReferenceModel,
+  getFormTargetSettingReferenceKeys,
+} from "Common/Types/Form/FormTargetSettings";
 import FormTargetType, {
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
@@ -23,7 +45,7 @@ import {
   limitFormTemplatesToQuestions,
   readFormTemplates,
 } from "Common/Types/Form/FormTemplate";
-import { JSONArray } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -92,12 +114,130 @@ const getCopyTemplates: GetCopyTemplatesFunction = async (
   }
 };
 
+type KeepRecordsStillThereFunction = (copy: Form) => Promise<void>;
+
+/*
+ * The records the copy names, kept where they are still there. A new form
+ * is judged whole, so the server refuses a copy whose questions offer, or
+ * whose settings name, a record deleted since - or a label or severity
+ * archived since, which no submitter may pick - though the original keeps
+ * it. Each record is read by its id, as the server reads it (#10646): one
+ * past the project's first 10,000 of its kind is never mistaken for one
+ * that is gone, and the copy keeps it. Without the reads (one failed), the
+ * copy is sent as it is, and the server says what it refuses.
+ */
+const keepRecordsStillThere: KeepRecordsStillThereFunction = async (
+  copy: Form,
+): Promise<void> => {
+  const targetType: FormTargetType = readFormTargetType(copy.targetType);
+  const fields: Array<FormField> = readFormFields(copy.fields);
+
+  try {
+    const offered: Map<FormTargetOptionsSource, Set<string>> = new Map();
+
+    for (const [source, wanted] of getFormRecordOptionsWanted({
+      targetType,
+      fields,
+    })) {
+      const found: Array<FormRecordOption> =
+        wanted.ids.length > 0
+          ? await loadFormRecordOptions(source, wanted.ids)
+          : [];
+
+      offered.set(
+        source,
+        new Set<string>(
+          found.map((record: FormRecordOption): string => {
+            return record.id;
+          }),
+        ),
+      );
+    }
+
+    const settings: Record<string, unknown> = {
+      ...((copy.targetSettings || {}) as Record<string, unknown>),
+    };
+
+    const heldIds: Map<
+      FormTargetSettingReferenceModel,
+      Array<string>
+    > = getHeldFormReferenceIds({ targetType, settings: settings });
+    const named: Map<FormTargetSettingReferenceModel, Set<string>> = new Map();
+
+    for (const [model, ids] of heldIds) {
+      const found: Array<FormReferenceRecord> = (
+        await loadHeldFormReferenceRecords({ model, ids })
+      ).records;
+
+      named.set(
+        model,
+        new Set<string>(
+          found.map((record: FormReferenceRecord): string => {
+            return record.id;
+          }),
+        ),
+      );
+    }
+
+    copy.fields = fields.map((field: FormField): FormField => {
+      const source: FormTargetOptionsSource | undefined =
+        field.source === FormFieldSource.TargetField
+          ? getFormTargetField(targetType, field.targetField)?.optionsSource
+          : undefined;
+      const there: Set<string> | undefined = source
+        ? offered.get(source)
+        : undefined;
+
+      if (!there || !field.allowedOptionIds) {
+        return field;
+      }
+
+      return {
+        ...field,
+        allowedOptionIds: field.allowedOptionIds.filter(
+          (id: string): boolean => {
+            return there.has(id.toLowerCase());
+          },
+        ),
+      };
+    }) as unknown as JSONArray;
+
+    for (const setting of getFormTargetSettingReferenceKeys(targetType)) {
+      const there: Set<string> | undefined = named.get(setting.model);
+      const value: unknown = settings[setting.key];
+
+      if (!there || value === undefined || value === null) {
+        continue;
+      }
+
+      if (setting.kind === "id") {
+        if (typeof value !== "string" || !there.has(value.toLowerCase())) {
+          delete settings[setting.key];
+        }
+
+        continue;
+      }
+
+      settings[setting.key] = (Array.isArray(value) ? value : []).filter(
+        (id: unknown): boolean => {
+          return typeof id === "string" && there.has(id.toLowerCase());
+        },
+      );
+    }
+
+    copy.targetSettings = settings as JSONObject;
+  } catch {
+    // The copy as it is: the server says what it refuses.
+  }
+};
+
 /*
  * The copy as it is saved: turned off, and without an IP allowlist the
  * original does not have - the allowlist needs the Scale plan, and sending
  * it empty would still ask for that plan. One the original has is copied:
- * dropping a form's network restriction must never be silent. Its templates
- * keep only what they can still use (getCopyTemplates).
+ * dropping a form's network restriction must never be silent. It names only
+ * the records that are still there (keepRecordsStillThere), and its
+ * templates keep only what they can still use (getCopyTemplates).
  */
 export const prepareFormCopy: (copy: Form) => Promise<void> = async (
   copy: Form,
@@ -107,6 +247,8 @@ export const prepareFormCopy: (copy: Form) => Promise<void> = async (
   if (!copy.ipWhitelist || !copy.ipWhitelist.trim()) {
     copy.removeValue("ipWhitelist");
   }
+
+  await keepRecordsStillThere(copy);
 
   if (Array.isArray(copy.templates)) {
     copy.templates = (await getCopyTemplates(copy)) as unknown as JSONArray;

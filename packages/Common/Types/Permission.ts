@@ -393,6 +393,17 @@ enum Permission {
   EditSecurityCaseTask = "EditSecurityCaseTask",
   ReadSecurityCaseTask = "ReadSecurityCaseTask",
 
+  // Security Case Step Checks (what OneUptime found of a Response Plan step, written by OneUptime)
+  ReadSecurityCaseStepCheck = "ReadSecurityCaseStepCheck",
+
+  // Security Case Pull Requests (a person's own fix, linked to a case's Fix step, #10604)
+  CreateSecurityCasePullRequest = "CreateSecurityCasePullRequest",
+  DeleteSecurityCasePullRequest = "DeleteSecurityCasePullRequest",
+  ReadSecurityCasePullRequest = "ReadSecurityCasePullRequest",
+
+  // Security Case AI Actions (what OneUptime AI did, asked or left on a case it works, written by OneUptime)
+  ReadSecurityCaseAiAction = "ReadSecurityCaseAiAction",
+
   // Security Case Evidence (files and links kept on a case)
   CreateSecurityCaseEvidence = "CreateSecurityCaseEvidence",
   DeleteSecurityCaseEvidence = "DeleteSecurityCaseEvidence",
@@ -443,6 +454,12 @@ enum Permission {
   EditSecurityBlock = "EditSecurityBlock",
   ReadSecurityBlock = "ReadSecurityBlock",
 
+  // Blocklist Feeds (the secret URLs firewalls and proxies read the blocklist from)
+  CreateSecurityBlocklistFeed = "CreateSecurityBlocklistFeed",
+  DeleteSecurityBlocklistFeed = "DeleteSecurityBlocklistFeed",
+  EditSecurityBlocklistFeed = "EditSecurityBlocklistFeed",
+  ReadSecurityBlocklistFeed = "ReadSecurityBlocklistFeed",
+
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
   DeleteDataStore = "DeleteDataStore",
@@ -472,6 +489,10 @@ enum Permission {
 
   // Data Security Issue Feed: what happened on an issue, written by OneUptime
   ReadDataSecurityIssueFeed = "ReadDataSecurityIssueFeed",
+
+  // Data Security AI: what OneUptime AI proposes for an issue, and why it did or did not act
+  ReadDataSecurityAiProposal = "ReadDataSecurityAiProposal",
+  ReadDataSecurityAiDecision = "ReadDataSecurityAiDecision",
 
   // Data Security Scans: what each scan read and found
   DeleteDataSecurityScan = "DeleteDataSecurityScan",
@@ -5540,9 +5561,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateStatusPageSubscriberNotificationTemplate,
-        title: "Create Status Page Subscriber Notification Template",
+        title: "Create Subscriber Notification Template",
         description:
-          "This permission can create Status Page Subscriber Notification Templates in this project.",
+          "This permission can create Subscriber Notification Templates in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5550,9 +5571,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteStatusPageSubscriberNotificationTemplate,
-        title: "Delete Status Page Subscriber Notification Template",
+        title: "Delete Subscriber Notification Template",
         description:
-          "This permission can delete Status Page Subscriber Notification Templates of this project.",
+          "This permission can delete Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5560,9 +5581,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditStatusPageSubscriberNotificationTemplate,
-        title: "Edit Status Page Subscriber Notification Template",
+        title: "Edit Subscriber Notification Template",
         description:
-          "This permission can edit Status Page Subscriber Notification Templates of this project.",
+          "This permission can edit Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5570,9 +5591,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadStatusPageSubscriberNotificationTemplate,
-        title: "Read Status Page Subscriber Notification Template",
+        title: "Read Subscriber Notification Template",
         description:
-          "This permission can read Status Page Subscriber Notification Templates of this project.",
+          "This permission can read Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6531,7 +6552,7 @@ export class PermissionHelper {
         permission: Permission.ReadAuditLog,
         title: "Read Audit Log",
         description:
-          "This permission can read audit log records of this project.",
+          "This permission can read audit log records of this project, with the values of the fields it may also read on each resource itself.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9463,6 +9484,62 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Security Case Step Check Permissions
+      {
+        permission: Permission.ReadSecurityCaseStepCheck,
+        title: "Read Security Case Step Check",
+        description:
+          "This permission can read what OneUptime found when it checked the steps of Security Cases' Response Plans of this project, and the evidence for it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Pull Request Permissions
+      {
+        permission: Permission.CreateSecurityCasePullRequest,
+        title: "Create Security Case Pull Request",
+        description:
+          "This permission can link a pull request to a Security Case of this project as its fix, for OneUptime to follow to its deploy.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCasePullRequest,
+        title: "Delete Security Case Pull Request",
+        description:
+          "This permission can take a pull request linked to a Security Case of this project off it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCasePullRequest,
+        title: "Read Security Case Pull Request",
+        description:
+          "This permission can read the pull requests linked to Security Cases of this project, and whether each merged and shipped.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case AI Action Permissions
+      {
+        permission: Permission.ReadSecurityCaseAiAction,
+        title: "Read Security Case AI Action",
+        description:
+          "This permission can read what OneUptime AI did, asked a person about or left to a person on the Security Cases of this project it works, and why.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Security Case Evidence Permissions
       {
         permission: Permission.CreateSecurityCaseEvidence,
@@ -9801,6 +9878,48 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Blocklist Feed Permissions
+      {
+        permission: Permission.CreateSecurityBlocklistFeed,
+        title: "Create Security Blocklist Feed",
+        description:
+          "This permission can create the Blocklist feeds of this project: the secret URLs firewalls and proxies read the Blocklist from.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityBlocklistFeed,
+        title: "Delete Security Blocklist Feed",
+        description:
+          "This permission can delete the Blocklist feeds of this project, which stops their URLs working.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityBlocklistFeed,
+        title: "Edit Security Blocklist Feed",
+        description:
+          "This permission can change, rotate and revoke the secrets of the Blocklist feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityBlocklistFeed,
+        title: "Read Security Blocklist Feed",
+        description:
+          "This permission can read the Blocklist feeds of this project and when each firewall last fetched one, never their secrets.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Data Store Permissions
       {
         permission: Permission.CreateDataStore,
@@ -9963,6 +10082,28 @@ export class PermissionHelper {
         title: "Read Data Security Issue Feed",
         description:
           "This permission can read the timelines of Data Security Issues of this project: what happened on each issue and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security AI Permissions
+      {
+        permission: Permission.ReadDataSecurityAiProposal,
+        title: "Read Data Security AI Proposal",
+        description:
+          "This permission can read what OneUptime AI proposes for the Data Security Issues of this project, and what it did without asking. Approving one takes the permission to make the change itself.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityAiDecision,
+        title: "Read Data Security AI Decision",
+        description:
+          "This permission can read why OneUptime AI did, or did not, act on each Data Security Issue of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19307,7 +19448,7 @@ export class PermissionHelper {
         permission: Permission.CreateForm,
         title: "Create Form",
         description:
-          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a maintenance event.",
+          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident, an alert or a maintenance event. Setting up a form that creates alerts also takes permission to create alerts.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

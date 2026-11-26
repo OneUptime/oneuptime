@@ -228,6 +228,10 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
       ["Project", "Scheduled Maintenance", "Rules", "Reminder Rules"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Scheduled Maintenance", "Rules", "Audit Logs"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

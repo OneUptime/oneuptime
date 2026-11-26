@@ -63,6 +63,17 @@ export class WebhookService extends BaseService {
       body["secret"] = message.secret;
     }
 
+    // How the receiver's certificate is checked, as the step says (#10440).
+    if (message.certificates) {
+      body["certificates"] = {
+        allowSelfSignedCertificates:
+          message.certificates.allowSelfSignedCertificates === true,
+        ...(message.certificates.caCertificate
+          ? { caCertificate: message.certificates.caCertificate }
+          : {}),
+      };
+    }
+
     if (options.projectId) {
       body["projectId"] = options.projectId.toString();
     }

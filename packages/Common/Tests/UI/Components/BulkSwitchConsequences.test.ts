@@ -119,7 +119,9 @@ describe("BulkSwitchConsequences: the catalog", () => {
         "SecurityPlaybook.isEnabled:off",
         "LogPipeline.isEnabled:off",
         "TracePipeline.isEnabled:off",
+        "LogDropFilter.isEnabled:on",
         "LogDropFilter.isEnabled:off",
+        "TraceDropFilter.isEnabled:on",
         "TraceDropFilter.isEnabled:off",
         "MonitorProbe.isEnabled:off",
         "CloudBudget.isEnabled:off",
@@ -426,6 +428,24 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
     "%s: ingest applies only the enabled ones",
     (_tableName: string, service: string) => {
       expect(readSource(service)).toContain("isEnabled: true,");
+    },
+  );
+
+  test.each([
+    [
+      "LogDropFilter",
+      "App/FeatureSet/Telemetry/Services/LogDropFilterService.ts",
+    ],
+    [
+      "TraceDropFilter",
+      "App/FeatureSet/Telemetry/Services/TraceDropFilterService.ts",
+    ],
+  ])(
+    "%s: an enabled filter drops what it matches within a minute - ingest reads the filters again every 60 seconds",
+    (_tableName: string, service: string) => {
+      expect(readSource(service)).toContain(
+        "const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds",
+      );
     },
   );
 

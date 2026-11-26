@@ -620,10 +620,14 @@ export default class AIRun extends BaseModel {
   public triggeredByAiInsightId?: ObjectID = undefined;
 
   /*
-   * Set when the run triages a security case (SecurityCaseTriageRunner):
-   * the case OneUptime AI read, whose card shows the run and whose timeline
-   * the report is posted to. A triage reads only; it never changes the case
-   * beyond the read it records on it.
+   * The security case the run is about. An Investigation run triages it
+   * (SecurityCaseTriageRunner): the case OneUptime AI read, whose card shows
+   * the run and whose timeline the report is posted to; a triage reads only,
+   * and never changes the case beyond the read it records on it. A CodeFix
+   * run fixes what the case's requests broke (#10347): Fix With AI asked
+   * for it from the case's playbook, and the pull request it opens carries
+   * the case (AIAgentTaskPullRequest.securityCaseId). Every reader of a
+   * case's triage asks for its Investigation runs alone.
    */
   @ColumnAccessControl({
     create: [],
@@ -642,7 +646,7 @@ export default class AIRun extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Triggered By Security Case ID",
     description:
-      "The security case this run triaged (for security case triage runs).",
+      "The security case this run is about: the case a triage run read, or the case a code fix was asked for from.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -650,6 +654,39 @@ export default class AIRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredBySecurityCaseId?: ObjectID = undefined;
+
+  /*
+   * Set when the run is about a Data Security issue (#10364): a code task
+   * Fix with AI started for one issue, and the AI runs OneUptime AI starts
+   * on its own for an issue. Only the issue's id: a run is read by every
+   * Project Member and Viewer, and what the issue says is for the people
+   * who read the issue.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Data Security Issue ID",
+    description:
+      "The Data Security issue this run is about: a fix asked for it, or work OneUptime AI started on it.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByDataSecurityIssueId?: ObjectID = undefined;
 
   /*
    * Set on RemediationPlan runs: the AutoRemediationSuggestion this planning
@@ -1637,45 +1674,6 @@ export default class AIRun extends BaseModel {
     type: ColumnType.Date,
   })
   public autoGradeAt?: Date = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.Entity, modelType: User })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

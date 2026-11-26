@@ -353,6 +353,9 @@ import GlobalSSOProject from "../../../Models/DatabaseModels/GlobalSsoProject";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import { SAML_SIGN_IN_AGAIN_NOTE_TEST_ID } from "../../../UI/Components/Sso/SamlSignInAgainNote";
+import { drawsItsOwnLines } from "../../../UI/Components/Table/ColumnLineText";
+import { SamlSignInAgainAdvice } from "../../../Types/SSO/SamlSignInAgainAdvice";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import ActionButtonSchema, {
   ActionButtonPlacement,
@@ -1090,6 +1093,72 @@ describe("the provider lists", () => {
       document.querySelectorAll('a[href="/docs/identity/global-sso"]'),
     ).toHaveLength(1);
   });
+
+  /*
+   * Under a Keycloak or an Okta SAML provider's name, as a project's SSO
+   * page draws it (#10530): the table reads each provider's issuer and
+   * sign-on URL for it. The OIDC table reads neither, and draws its names
+   * as it did.
+   */
+  test("a Keycloak or an Okta SAML provider's row says what Sign In Again needs of it", async () => {
+    await renderPage(PAGES[0]!);
+
+    const saml: MockProps = lastTable("global-sso-table");
+    const name: MockProps = (saml["columns"] as Array<MockProps>)[0]!;
+
+    expect(saml["selectMoreFields"]).toEqual({
+      issuerURL: true,
+      signOnURL: true,
+    });
+    expect(columnsOf(saml["columns"])).toEqual(["name", "isEnabled"]);
+    expect(name["title"]).toBe("Name");
+    expect(name["getLineText"]).toBe(drawsItsOwnLines);
+
+    const adviceUnder: (provider: GlobalSSO) => string | null = (
+      provider: GlobalSSO,
+    ): string | null => {
+      const cell: ReturnType<typeof render> = render(
+        (name["getElement"] as (item: GlobalSSO) => ReactElement)(provider),
+      );
+      const advice: string | null =
+        within(cell.container)
+          .queryByTestId(SAML_SIGN_IN_AGAIN_NOTE_TEST_ID)
+          ?.getAttribute("data-advice") || null;
+
+      expect(cell.container).toHaveTextContent(provider.name!);
+      cell.unmount();
+
+      return advice;
+    };
+
+    const keycloak: GlobalSSO = new GlobalSSO();
+    keycloak.name = "Company Keycloak";
+    keycloak.issuerURL = "https://sso.example.com/auth/realms/company";
+
+    const okta: GlobalSSO = new GlobalSSO();
+    okta.name = "Company Okta";
+    okta.issuerURL = "http://www.okta.com/exk1a2b3c4D5E6F7g8h9";
+
+    const entra: GlobalSSO = new GlobalSSO();
+    entra.name = "Company Entra ID";
+    entra.issuerURL =
+      "https://sts.windows.net/72f988bf-86f1-41af-91ab-2d7cd011db47/";
+
+    expect(adviceUnder(keycloak)).toBe(
+      SamlSignInAgainAdvice.KeycloakCannotBeChecked,
+    );
+    expect(adviceUnder(okta)).toBe(
+      SamlSignInAgainAdvice.TurnOnOktaHonorForceAuthentication,
+    );
+    expect(adviceUnder(entra)).toBeNull();
+
+    const oidc: MockProps = lastTable("global-oidc-table");
+
+    expect(oidc["selectMoreFields"]).toBeUndefined();
+    expect(
+      (oidc["columns"] as Array<MockProps>)[0]!["getElement"],
+    ).toBeUndefined();
+  });
 });
 
 /*
@@ -1450,6 +1519,84 @@ describe("the Global SSO provider page", () => {
 
         return provider;
       },
+    );
+  });
+
+  /*
+   * Under the issuer, which says which provider it is: what Sign In Again
+   * needs of a Keycloak or an Okta provider (#10530), and nothing under
+   * any other's.
+   */
+  test("says under a Keycloak or an Okta provider's issuer what Sign In Again needs of it", async () => {
+    await renderPage(PAGES[1]!);
+
+    const detailProps: MockProps = lastDetail("Global SSO Configuration")[
+      "modelDetailProps"
+    ] as MockProps;
+    const issuer: MockProps = (detailProps["fields"] as Array<MockProps>).find(
+      (field: MockProps): boolean => {
+        return field["title"] === "Issuer";
+      },
+    )!;
+
+    expect(issuer["fieldType"]).toBe(FieldType.Element);
+
+    const drawn: (
+      issuerURL: string,
+      signOnURL: string,
+    ) => {
+      text: string;
+      advice: string | null;
+    } = (
+      issuerURL: string,
+      signOnURL: string,
+    ): { text: string; advice: string | null } => {
+      const provider: GlobalSSO = new GlobalSSO();
+      provider.issuerURL = issuerURL;
+      provider.signOnURL = URL.fromString(signOnURL);
+
+      const cell: ReturnType<typeof render> = render(
+        (issuer["getElement"] as (item: GlobalSSO) => ReactElement)(provider),
+      );
+      const note: HTMLElement | null = within(cell.container).queryByTestId(
+        SAML_SIGN_IN_AGAIN_NOTE_TEST_ID,
+      );
+      const result: { text: string; advice: string | null } = {
+        text: cell.container.textContent || "",
+        advice: note?.getAttribute("data-advice") || null,
+      };
+
+      cell.unmount();
+
+      return result;
+    };
+
+    const keycloak: { text: string; advice: string | null } = drawn(
+      "https://keycloak.example.com/realms/acme",
+      "https://keycloak.example.com/realms/acme/protocol/saml",
+    );
+
+    expect(keycloak.advice).toBe(SamlSignInAgainAdvice.KeycloakCannotBeChecked);
+    expect(keycloak.text).toContain("https://keycloak.example.com/realms/acme");
+    expect(keycloak.text).toContain(
+      "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.",
+    );
+
+    expect(
+      drawn(
+        "http://www.okta.com/exk1a2b3c4D5E6F7g8h9",
+        "https://acme.okta.com/app/acme_oneuptime_1/exk1a2b3c4D5E6F7g8h9/sso/saml",
+      ).advice,
+    ).toBe(SamlSignInAgainAdvice.TurnOnOktaHonorForceAuthentication);
+
+    const entra: { text: string; advice: string | null } = drawn(
+      "https://sts.windows.net/72f988bf-86f1-41af-91ab-2d7cd011db47/",
+      "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/saml2",
+    );
+
+    expect(entra.advice).toBeNull();
+    expect(entra.text).toContain(
+      "https://sts.windows.net/72f988bf-86f1-41af-91ab-2d7cd011db47/",
     );
   });
 

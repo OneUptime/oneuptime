@@ -32,7 +32,8 @@ import crypto from "crypto";
  * the session's own sign-in with REAUTHENTICATE_QUERY_PARAM, and:
  *
  *   - its start asks the provider to authenticate the person again - SAML's
- *     ForceAuthn, OpenID Connect's prompt=login and max_age=0 - and keeps
+ *     ForceAuthn, OpenID Connect's prompt=login and max_age=0 (prompt=login
+ *     alone to Microsoft Entra ID, #10529) - and keeps
  *     when it sent them there, where only this server can have written it:
  *     signed into the AuthnRequest's ID, which the response names as its
  *     InResponseTo, or in the sign-in's own signed state cookie;
@@ -235,7 +236,7 @@ export default class SignInAgain {
     logger.warn(
       `A Sign In Again through ${data.providerKind} ${data.providerId.toString()} did not confirm it was its person: ${
         data.outcome.refusal === SignInAgainRefusal.ReusedSession
-          ? "the identity provider signed them in with a session it already had (it did not honor ForceAuthn, or prompt=login and max_age)"
+          ? "the identity provider signed them in with a session it already had (it did not honor ForceAuthn, or prompt=login)"
           : "the identity provider did not say when they signed in (no AuthnInstant, or no auth_time claim)"
       }.`,
     );

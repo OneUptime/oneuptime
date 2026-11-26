@@ -374,9 +374,10 @@ describe.each(OWNER_KINDS)("$label", (kind: OwnerKind) => {
   });
 
   /*
-   * An owner can be someone invited to the project who has not accepted:
-   * the project sees only what it invited of them - the name typed for
-   * them, else their address - never their account's own name (#9823).
+   * An owner can be someone invited to the project who has not accepted.
+   * Every kind's entry is its channels' line too, so it names them by the
+   * name typed for them, as text, never by their account's own name (#9823)
+   * nor any address, and no address follows the name (#10668).
    */
   test("someone only invited, added and removed: named by the name typed for them, never their own", async () => {
     jest
@@ -412,12 +413,23 @@ describe.each(OWNER_KINDS)("$label", (kind: OwnerKind) => {
     );
 
     expect(feedCalls).toHaveLength(2);
+
     expect(String(feedCalls[0]!["feedInfoInMarkdown"])).toContain(
-      `[Deane from Payments](${DASHBOARD}/${PROJECT_ID.toString()}/users/${DEANE_ID.toString()})`,
+      "Added **Deane from Payments** to the",
     );
     expect(String(feedCalls[1]!["feedInfoInMarkdown"])).toContain(
-      "Removed **Deane from Payments** (deane@example.com)",
+      "Removed **Deane from Payments** from the",
     );
+
+    for (const call of feedCalls) {
+      expect(String(call["feedInfoInMarkdown"])).not.toContain(
+        "deane@example.com",
+      );
+      // As text: a name an inviter typed links to nobody's page.
+      expect(String(call["feedInfoInMarkdown"])).not.toContain(
+        `/users/${DEANE_ID.toString()}`,
+      );
+    }
 
     for (const call of feedCalls) {
       expect(String(call["feedInfoInMarkdown"])).not.toContain("Deane Looi");
@@ -479,12 +491,13 @@ describe("a person taken off an on-call escalation rule", () => {
       sendWorkspaceNotification: true,
       leadWithAuthor: true,
     });
+    // Named as the add names them: a link to their page (#10616).
     expect(String(call["feedInfoInMarkdown"])).toContain(
-      "Removed **Deane Looi**",
+      `Removed **[Deane Looi](${DASHBOARD}/${PROJECT_ID.toString()}/users/${DEANE_ID.toString()})** from the`,
     );
   });
 
-  test("someone only invited is named by their address when no name was typed, never their own (#9823)", async () => {
+  test("someone only invited, with no name typed, is named neither by their own name (#9823) nor by an address (#10616)", async () => {
     jest
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
       .mockResolvedValue(
@@ -536,9 +549,12 @@ describe("a person taken off an on-call escalation rule", () => {
 
     const call: Record<string, unknown> = onlyFeedCall();
     expect(String(call["feedInfoInMarkdown"])).toContain(
-      "Removed **deane@example.com**",
+      "Removed **someone who hasn't joined the project yet** from the",
     );
     expect(String(call["feedInfoInMarkdown"])).not.toContain("Deane Looi");
+    expect(String(call["feedInfoInMarkdown"])).not.toContain(
+      "deane@example.com",
+    );
   });
 });
 

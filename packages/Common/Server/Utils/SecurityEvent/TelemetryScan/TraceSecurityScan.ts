@@ -12,12 +12,20 @@ import {
   getSecurityTelemetrySourceDefinition,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import {
+  NO_TRUSTED_PROXIES,
+  TrustedProxies,
+} from "../../../../Utils/SecurityEvent/ClientAddressTrust";
+import {
   TRACE_SCAN_ATTRIBUTES_READ,
   TraceScanSpan,
   buildTraceSecurityEvents,
   markSsrfFetched,
   readMetadataCallOf,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
+import {
+  judgeSensitiveFileAnswers,
+  keepSensitiveFileOutcomes,
+} from "../../../../Utils/SecurityEvent/SensitiveFileAnswers";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import SecurityEventService from "../../../Services/SecurityEventService";
 import SpanService from "../../../Services/SpanService";
@@ -25,7 +33,9 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
+import SecurityTrustedProxies from "../SecurityTrustedProxies";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
+import SecurityUserVaultLookup from "../UserVault/SecurityUserVaultLookup";
 import {
   TelemetryScanWindow,
   buildTraceCandidatesStatement,
@@ -49,6 +59,10 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *   - a request "Your logs" already reported - the app logged the attack,
  *     and the log scan, which settles sooner, made it an event - is left to
  *     that event, so one request is one event;
+ *   - a request for a file that holds secrets that the app answered, its
+ *     span saying nothing of what was sent, is decided by what the app
+ *     answered the page's other requests - its own page, or the file - or
+ *     is no event (#10912, SensitiveFileAnswers);
  *   - a forgery toward cloud metadata is told whether the app then called
  *     that address, from the client spans of its trace;
  *   - each request is followed into its trace (RequestTrace/
@@ -57,8 +71,15 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *   - a request whose client address a Hash rule hid names the address
  *     behind its token, when Security Events' address vault holds it
  *     (AddressVault/SecurityAddressVaultLookup.ts, #10395);
+ *   - a request or an AI call whose user a Hash rule hid names the user
+ *     behind its token, when Security Events' user vault holds it
+ *     (UserVault/SecurityUserVaultLookup.ts, #10632);
  *   - a request whose client address is still hidden names the project's
  *     rule that hid it (ScrubbedClientAddresses, #10397).
+ *
+ * Each span's events are read with the proxies the project trusts
+ * (SecurityTrustedProxies, #10416): a client address one of them forwarded
+ * is the event's, one the request only claims is kept as a claim.
  *
  * Each of those reads is bounded and failure-tolerant: one that fails is
  * logged and the events are stored as the spans said them.
@@ -164,8 +185,20 @@ export default class TraceSecurityScan {
 
     const events: Array<NormalizedSecurityEvent> = [];
 
+    /*
+     * An attack is blamed on an address its sender could not have written:
+     * the connection's own, or one a proxy the project trusts forwarded
+     * (#10416).
+     */
+    const trustedProxies: TrustedProxies =
+      rows.length > 0
+        ? await SecurityTrustedProxies.getForProject(data.window.projectId)
+        : NO_TRUSTED_PROXIES;
+
     for (const row of rows) {
-      events.push(...buildTraceSecurityEvents(toTraceScanSpan(row)));
+      events.push(
+        ...buildTraceSecurityEvents(toTraceScanSpan(row), { trustedProxies }),
+      );
     }
 
     return {
@@ -181,8 +214,14 @@ export default class TraceSecurityScan {
     projectId: ObjectID;
     events: Array<NormalizedSecurityEvent>;
   }): Promise<Array<NormalizedSecurityEvent>> {
-    const events: Array<NormalizedSecurityEvent> =
-      await this.leaveRequestsToTheirLogs(data);
+    /*
+     * A request for a file that holds secrets whose span says nothing of
+     * what was sent is decided by what the app answered the page's other
+     * requests, or is no event (#10912, SensitiveFileAnswers).
+     */
+    const events: Array<NormalizedSecurityEvent> = judgeSensitiveFileAnswers(
+      await this.leaveRequestsToTheirLogs(data),
+    );
 
     await this.markFetchedForgeries({ projectId: data.projectId, events });
 
@@ -193,11 +232,20 @@ export default class TraceSecurityScan {
       }),
     });
 
+    // A probe of a secret file the app answered with its own page reached nothing (#10912).
+    keepSensitiveFileOutcomes(events);
+
     /*
      * A client address a Hash rule hid names the address behind its token
      * (#10395), before the rule that hid an address still hidden is named.
      */
     await SecurityAddressVaultLookup.nameHashedAddresses({
+      projectId: data.projectId,
+      events,
+    });
+
+    // A user a Hash rule hid names the user behind its token (#10632).
+    await SecurityUserVaultLookup.nameHashedUsers({
       projectId: data.projectId,
       events,
     });

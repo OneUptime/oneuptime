@@ -324,8 +324,9 @@ describe("HTTP monitors to an IPv6 URL from a probe with no IPv6", () => {
         RequestFailedPhase.TCPConnection,
       );
       expect(response!.requestFailedDetails!.errorCode).toBe("EADDRNOTAVAIL");
+      // The URL by its scheme and host, the IPv6 host's brackets kept (#10785).
       expect(response!.requestFailedDetails!.rawErrorMessage).toBe(
-        `Request failed to ${CUSTOMER_URL}. connect EADDRNOTAVAIL ${CUSTOMER_ADDRESS}:443 - Local (:::0)`,
+        `Request failed to https://[${CUSTOMER_ADDRESS}]. connect EADDRNOTAVAIL ${CUSTOMER_ADDRESS}:443 - Local (:::0)`,
       );
     });
 

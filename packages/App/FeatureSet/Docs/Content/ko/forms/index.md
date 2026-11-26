@@ -1,6 +1,6 @@
 # 양식 개요
 
-양식은 링크가 있는 사람이라면 누구나 OneUptime 계정 없이 작성할 수 있는 페이지입니다. 제출될 때마다 프로젝트에 무언가가 만들어집니다. 문제 보고라면 **인시던트**, 변경 및 유지 관리 요청이라면 **유지 관리 이벤트** 입니다. 양식의 질문은 끌어서 놓는 빌더로 만들고, 답변이 레코드가 되는 방식을 정한 다음, 양식을 써야 할 사람들에게 링크를 공유합니다.
+양식은 링크가 있는 사람이라면 누구나 OneUptime 계정 없이 작성할 수 있는 페이지입니다. 제출될 때마다 프로젝트에 무언가가 만들어집니다. 문제 보고라면 **인시던트**, 주의할 일과 확인할 일이라면 **경고**, 변경 및 유지 관리 요청이라면 **유지 관리 이벤트** 입니다. 양식의 질문은 끌어서 놓는 빌더로 만들고, 답변이 레코드가 되는 방식을 정한 다음, 양식을 써야 할 사람들에게 링크를 공유합니다.
 
 문제를 알아차리거나 변경이 필요한 사람이 인시던트와 유지 관리를 운영하는 사람과 다를 때 양식을 사용하세요. 예를 들어 지원 상담원, 다른 부서의 동료, 매장 관리자, 고객사의 운영 팀입니다. 이들은 링크를 열고 질문에 답한 뒤 **제출** 을 누릅니다. 팀은 평범한 인시던트나 이벤트를 받게 되며, 그 필드에는 답변이 들어 있고 누가 보냈는지 기록한 비공개 메모가 붙어 있습니다.
 
@@ -13,16 +13,19 @@
 
 ## 양식의 작동 방식
 
-```mermaid title="작성된 양식에서 인시던트나 유지 관리 이벤트까지"
+```mermaid title="작성된 양식에서 인시던트, 경고 또는 유지 관리 이벤트까지"
 flowchart TB
     submitter["링크가 있는 사람<br/>(계정 불필요)"] --> page["양식의 페이지"]
     page -->|제출| checks["보호 장치와 답변 확인"]
     checks --> submission["양식과 함께<br/>보관되는 제출"]
     submission --> target{"제출할 때마다 만들어지는 항목"}
     target -->|인시던트| incident["인시던트<br/>(상태 페이지에 숨겨짐)"]
+    target -->|경고| alert["경고<br/>(소유자가 확인)"]
     target -->|예정된 유지 관리| event["유지 관리 이벤트<br/>(설정하지 않으면 숨겨짐)"]
     incident --> response["온콜 정책과<br/>규칙 실행"]
+    alert --> response
     incident --> note["비공개 메모: 보낸 사람과<br/>그 밖의 답변"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ flowchart TB
 | 제출할 때마다 만들어지는 항목 | 용도 | 일어나는 일 |
 | --- | --- | --- |
 | **인시던트** | 문제 보고 | 인시던트가 즉시 선언되므로 온콜 정책과 규칙이 실행되고 온콜 담당자에게 알림이 갑니다. 대응자가 게시할 때까지 상태 페이지에 표시되지 않습니다. |
+| **경고** | 주의할 일과 확인할 일 | 경고가 만들어지므로, 인시던트를 선언하지 않고도 소유자에게 알려지고 온콜 정책과 규칙이 실행됩니다. **인지됨** 같은 이후 상태로 시작하는 경고는 아무도 호출하지 않습니다. |
 | **예정된 유지 관리** | 변경 및 유지 관리 요청 | 제출자가 요청한 시간대에 유지 관리 이벤트가 예약됩니다. 양식에서 따로 정하지 않는 한 상태 페이지에 표시되지 않으며 구독자에게도 알리지 않습니다. |
 
-양식은 이 두 가지로 시작하며, 앞으로 더 많은 종류의 레코드가 추가될 예정입니다.
+경고를 만드는 양식을 설정하려면 경고를 만들 권한도 필요합니다. [권한](#권한) 을 참조하세요.
 
 ## 시작하기 전에
 
 - **양식이 포함된 요금제.** OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필요합니다. [요금제](#요금제) 를 참조하세요.
 - **양식을 만들 권한.** **Create Form** 은 프로젝트 소유자와 프로젝트 관리자, 그리고 이 권한을 준 역할에 있습니다. [권한](#권한) 을 참조하세요.
 - **인시던트 양식이라면 심각도.** 모든 인시던트에는 심각도가 필요합니다. 질문, 양식의 설정 또는 인시던트 템플릿에서 정해집니다. 심각도가 없으면 모든 제출이 거부됩니다. [제출로 만들어지는 항목](/docs/forms/on-submit#제출이-인시던트가-되는-과정) 을 참조하세요.
+- **경고 양식이라면 심각도.** 모든 경고에도 심각도가 필요합니다. 질문이나 양식의 설정에서 정해집니다. [제출이 경고가 되는 과정](/docs/forms/on-submit#제출이-경고가-되는-과정) 을 참조하세요.
 
 ## 첫 양식 만들기
 
@@ -144,6 +149,8 @@ flowchart TB
 | **Delete Form Domain** | 양식의 사용자 정의 도메인 제거. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
 | **Read Form Domain** | 양식의 사용자 정의 도메인, 그 DNS 레코드, 각 도메인이 HTTPS까지 어느 단계에 있는지 보기. | **Read Form** 이 있는 모든 사람 |
 
+**경고를 만드는 양식에는 경고를 만들 권한이 필요합니다.** 링크가 있는 누구나 경고를 만들고, 그 소유자에게 알리고, 온콜 담당자를 호출할 수 있으므로, 경고를 만드는 양식을 만들거나, 양식을 그런 양식으로 바꾸거나, 경고 양식의 질문, 템플릿 또는 **제출 시** 설정을 변경하려면 각각 경고를 만들 수 있는 권한도 필요합니다. 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 경고 관리자, 경고 구성원 또는 **Create Alert** 입니다. 양식의 이름, 링크, **제출 받기**, 브랜딩, **IP 허용 목록** 에는 **Form** 권한만 있으면 됩니다. 이 권한이 없으면 양식을 만들 때 **경고** 가 제공되지 않고, 양식의 **제출 시** 페이지에서도 잠겨 있으며, 툴팁이 필요한 권한을 알려 줍니다. 그래도 시도하는 요청은 "Only people who may create alerts can set up a form that creates them." 로 거부됩니다. 인시던트 양식과 유지 관리 양식에는 지금까지처럼 **Form** 권한만 있으면 됩니다.
+
 제출에는 모르는 사람이 입력한 내용 (이름, 이메일 주소, 레코드에 들어가지 않을 수도 있는 답변) 이 담겨 있으므로, **Read Form Submission** 을 부여하지 않으면 프로젝트 소유자와 프로젝트 관리자만 볼 수 있습니다. 양식을 볼 수 있는 사람은 누구나 그 링크를 보고 공유할 수 있습니다. 양식을 제출하는 데에는 아무 권한도 필요 없습니다. 역할과 세분화된 권한이 어떻게 결합되는지는 [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.
 
 ## 요금제
@@ -156,7 +163,7 @@ OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필�
 
 ### 질문과 설정
 
-양식의 질문은 `fields` 열 (양식이 묻는 순서대로 된 JSON 목록) 에, 제출 시 설정은 `targetSettings` 에 있습니다.
+양식의 `targetType` 은 각 제출이 만드는 것으로, `Incident`, `Alert` 또는 `ScheduledMaintenance` 입니다. 양식의 질문은 `fields` 열 (양식이 묻는 순서대로 된 JSON 목록) 에, 제출 시 설정은 `targetSettings` 에 있습니다. 경고 양식의 설정은 `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds`, `ownerTeamIds` 입니다.
 
 ```json
 {
@@ -199,8 +206,8 @@ OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필�
 | `source` | 묻는 것 |
 | --- | --- |
 | `Question` | 양식 자체의 질문으로, `type` 에 따라 답합니다: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File`, `MultipleFiles`. 드롭다운은 `dropdownOptions` 를 한 줄에 하나씩 나열합니다. |
-| `TargetField` | 양식이 만드는 항목의 필드로, `targetField` 로 지정합니다: 인시던트는 `title`, `description`, `incidentSeverityId`, `monitors`, `labels`, `impactStartedAt`, 유지 관리 이벤트는 `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages`, `labels`. 골라서 답하는 필드는 제공하는 레코드를 `allowedOptionIds` 에 나열합니다. |
-| `TargetCustomField` | 인시던트나 이벤트의 사용자 지정 필드 중 하나로, `customFieldId` 로 지정합니다. |
+| `TargetField` | 양식이 만드는 항목의 필드로, `targetField` 로 지정합니다: 인시던트는 `title`, `description`, `incidentSeverityId`, `monitors`, `labels`, `impactStartedAt`, 경고는 `title`, `description`, `alertSeverityId`, `monitor`, `labels`, `impactStartedAt`, 유지 관리 이벤트는 `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages`, `labels`. 골라서 답하는 필드는 제공하는 레코드를 `allowedOptionIds` 에 나열합니다. |
+| `TargetCustomField` | 인시던트, 경고 또는 이벤트의 사용자 지정 필드 중 하나로, `customFieldId` 로 지정합니다. |
 | `Submitter` | 제출자의 `Name` 또는 `Email` 로, `submitterField` 로 지정합니다. |
 
 `isHidden` 이 `true` 인 질문은 공개 페이지에 표시되지 않고, 필수가 되지 않으며, 제출이 지정한 템플릿으로만 답이 채워집니다. 그 템플릿이 질문을 묻는 경우는 예외입니다. `isRequired` 와 `isHidden` 은 양식의 기본값이며, 각 템플릿은 질문을 자기 방식대로 물을 수 있습니다.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 워크플로
 
-양식에는 자동 생성된 워크플로 구성 요소 (**양식 생성 시**, **양식 업데이트 시** 등) 가 있습니다. 양식이 만든 항목에 작업하려면 **인시던트 생성 시** 또는 **유지 관리 이벤트 생성 시** 를 사용하세요.
+양식에는 자동 생성된 워크플로 구성 요소 (**양식 생성 시**, **양식 업데이트 시** 등) 가 있습니다. 양식이 만든 항목에 작업하려면 **인시던트 생성 시**, **경고 생성 시** 또는 **유지 관리 이벤트 생성 시** 를 사용하세요.
 
 ### 공개 페이지 전용 엔드포인트
 

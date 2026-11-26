@@ -262,6 +262,68 @@ describe("GET /identity/vercel/sso", () => {
     );
   });
 
+  /*
+   * Never a Sign In Again (#10331): OneUptime cannot ask Vercel to have the
+   * person sign in again - Vercel starts the sign-in, and its SSO takes no
+   * prompt=login or max_age - and Vercel's ID token says nothing of when
+   * they signed in. So a sign-in from Vercel, with or without Sign In
+   * Again's query, keeps only that it was Vercel's: the session it makes is
+   * never confirmed by it (Common/Server/Utils/Reauthentication), and the
+   * prompt says so.
+   */
+  it.each([
+    ["without Sign In Again", {}],
+    ["asked as a Sign In Again", { reauthenticate: "true" }],
+  ] as Array<[string, Record<string, string>]>)(
+    "keeps only that the session signed in with Vercel, %s",
+    async (_name: string, query: Record<string, string>) => {
+      await signIn({ mode: "sso", code: "code-1", ...query });
+
+      const created: { signIn: unknown } = mocked(
+        UserSessionService.createSession,
+      ).mock.calls[0]![0] as { signIn: unknown };
+
+      expect(created.signIn).toEqual({ method: SignInMethod.Vercel });
+      expect(created.signIn).not.toHaveProperty("signInAgain");
+      expect(redirect).toHaveBeenCalled();
+    },
+  );
+
+  it("reads nothing from Vercel's ID token as when the person signed in, however fresh it is", async () => {
+    const now: number = Math.floor(Date.now() / 1000);
+
+    const caller: VercelMarketplaceCaller = VercelMarketplaceAuth.readCaller(
+      {
+        type: "id_token",
+        sub: "account:1a2b3c:user:4d5e6f",
+        account_id: "team_acme",
+        installation_id: "icfg_acme",
+        user_id: "user_ada",
+        user_role: "USER",
+        user_email: "ada@example.com",
+        user_email_verified: true,
+        // When the token was made, not when the person signed in to Vercel.
+        iat: now,
+        // Not a claim Vercel sends; read as nothing were it ever there.
+        auth_time: now,
+      },
+      "id_token",
+    );
+
+    expect(Object.keys(caller).sort()).toEqual(
+      [
+        "accountId",
+        "installationId",
+        "isUserEmailVerified",
+        "kind",
+        "userEmail",
+        "userId",
+        "userName",
+        "userRole",
+      ].sort(),
+    );
+  });
+
   it("lands on the billing page for an invoice link", async () => {
     await signIn({ code: "code-1", invoice_id: "inv_1" });
 

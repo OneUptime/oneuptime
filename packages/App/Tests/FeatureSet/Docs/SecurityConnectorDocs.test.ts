@@ -70,6 +70,7 @@ const OCSF_CLASSES_BY_PROVIDER: Record<
     "User Access Management",
     "File Hosting Activity",
   ],
+  [SecurityEventConnectorProvider.Cloudflare]: ["HTTP Activity"],
   [SecurityEventConnectorProvider.GoogleSecOps]: ["Detection Finding"],
 };
 

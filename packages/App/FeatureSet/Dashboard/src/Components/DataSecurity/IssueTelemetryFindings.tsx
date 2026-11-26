@@ -1,6 +1,5 @@
 import AppLink from "../AppLink/AppLink";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
-import DataSecurityApi from "./DataSecurityApi";
 import { SensitivityPill } from "./DataSecurityPills";
 import FindingOccurrences from "./FindingOccurrences";
 import { getTelemetryStoreOwnerRoute } from "./FindingOccurrenceLinks";
@@ -23,6 +22,16 @@ import {
 } from "./TelemetryScrubIt";
 import TelemetryRuleNotice from "./TelemetryRuleNotice";
 import DropMetricModal from "./DropMetricModal";
+import ScrubItModal from "./ScrubItModal";
+import HashInsteadNotice from "../Telemetry/HashInstead/HashInsteadNotice";
+import {
+  ScrubRulesHidingAddressesState,
+  useScrubRulesHidingAddresses,
+} from "../Telemetry/HashInstead/UseScrubRulesHidingAddresses";
+import {
+  findHidingRuleOfRecords,
+  ScrubRuleHidingAddresses,
+} from "Common/Types/Telemetry/ScrubRuleAddresses";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -32,13 +41,19 @@ import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green500 } from "Common/Types/BrandColors";
+import { Green500, Yellow500 } from "Common/Types/BrandColors";
+import DataSecurityIssueResolution from "Common/Types/DataSecurity/DataSecurityIssueResolution";
+import { RESOLUTION_LABELS } from "./IssueResolutionCopy";
 import {
   DataSecurityDropMetricResult,
   DataSecurityScrubResult,
   DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import { isMetricNameFinding } from "Common/Types/DataSecurity/TelemetryScrubTarget";
+import {
+  getScrubTarget,
+  isMetricNameFinding,
+  ScrubTarget,
+} from "Common/Types/DataSecurity/TelemetryScrubTarget";
 import {
   FINDING_FRESHNESS_IN_DAYS,
   getTelemetryCheckIdOfDataType,
@@ -57,7 +72,6 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -120,17 +134,21 @@ const MASKED_SAMPLES: string = translationKey("Masked samples");
 const SHOW_RECORDS: string = translationKey("Show the records it was seen in");
 const HIDE_RECORDS: string = translationKey("Hide the records");
 const SCRUBBED: string = translationKey("Scrubbed");
-const SCRUBBED_TOOLTIP: string = translationKey(
-  "A scrub rule masks this data at ingest. What was stored before keeps it until its retention ends.",
+export const SCRUBBED_TOOLTIP: string = translationKey(
+  "A scrub rule hides this data at ingest, but the code still writes it: contained, not fixed. What was stored before keeps it until its retention ends.",
+);
+// A finding a verified code fix stopped (#10368).
+export const FIXED_IN_CODE_TOOLTIP: string = translationKey(
+  "A code fix stopped it: the service's new version no longer writes this data. What was stored before keeps it until its retention ends.",
 );
 const RESOLVES_WHEN_SCRUBBED: string = translationKey(
-  "The issue resolves once every finding here is scrubbed and the store is checked again.",
+  "Scrubbing every finding here contains the issue at ingest. It counts as fixed once the code stops writing the data.",
 );
 const NO_SAMPLES_FOR_ROLE: string = translationKey(
   "Your role does not show masked samples, or the records they were seen in.",
 );
-const NOTHING_LEFT: string = translationKey(
-  "Nothing is left to scrub: every finding behind this issue is masked at ingest, or no longer seen.",
+export const NOTHING_LEFT: string = translationKey(
+  "Nothing is left to scrub: every finding behind this issue is hidden at ingest, or no longer seen.",
 );
 const MORE_IN_STORE: string = translationKey(
   "See everything found in this store",
@@ -142,6 +160,9 @@ interface ScrubNotice {
   // A Drop rule Drop This Metric made, rather than Scrub It's rule.
   isDrop?: boolean | undefined;
 }
+
+// The data type an IP Address rule hides (#10396).
+const IP_ADDRESS_DATA_TYPE: string = "ip-address";
 
 export interface ComponentProps {
   issue: DataSecurityIssue;
@@ -169,6 +190,8 @@ export function getIssueFindingsSelect(
     isConfirmed: true,
     isAiSuggested: true,
     lastSeenAt: true,
+    // Stopped by a verified code fix (#10368).
+    fixedAt: true,
     ...(canReadSamples ? { maskedSamples: true } : {}),
   };
 }
@@ -374,10 +397,21 @@ export const FindingSummary: FunctionComponent<{
         ) : (
           <></>
         )}
-        {finding.isScrubbed ? (
+        {finding.fixedAt ? (
+          <Pill
+            text={RESOLUTION_LABELS[DataSecurityIssueResolution.FixedInCode]}
+            color={Green500}
+            tooltip={FIXED_IN_CODE_TOOLTIP}
+          />
+        ) : finding.isScrubbed ? (
+          /*
+           * Hidden or dropped at ingest is contained, not fixed (#10368):
+           * amber, as the issue's resolution says it - the code still
+           * writes the data.
+           */
           <Pill
             text={isDropped ? DROPPED : SCRUBBED}
-            color={Green500}
+            color={Yellow500}
             tooltip={isDropped ? DROPPED_TOOLTIP : SCRUBBED_TOOLTIP}
           />
         ) : (
@@ -446,6 +480,12 @@ const FindingBlock: FunctionComponent<{
   storeKind?: string | null | undefined;
   // The service or RUM application the store's telemetry is sent under.
   ownerName: string;
+  /*
+   * The IP Address rule that hides this finding's addresses from Security
+   * Events too, when one does (#10396): said under it, with Hash Instead.
+   */
+  addressRule?: ScrubRuleHidingAddresses | undefined;
+  onAddressRuleSwitched?: (() => void) | undefined;
 }> = (props: {
   finding: DataStoreFinding;
   namer: DataTypeNamer;
@@ -459,6 +499,8 @@ const FindingBlock: FunctionComponent<{
   onDropMetric: () => void;
   storeKind?: string | null | undefined;
   ownerName: string;
+  addressRule?: ScrubRuleHidingAddresses | undefined;
+  onAddressRuleSwitched?: (() => void) | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const finding: DataStoreFinding = props.finding;
@@ -520,6 +562,25 @@ const FindingBlock: FunctionComponent<{
           <></>
         )}
       </div>
+
+      {/*
+       * Scrubbed by an IP Address rule that redacts or masks where Security
+       * Events reads the addresses: it says so, with Hash Instead (#10396).
+       */}
+      {finding.isScrubbed && props.addressRule ? (
+        <div className="mt-2">
+          <HashInsteadNotice
+            rule={props.addressRule}
+            namesRule={true}
+            onSwitched={() => {
+              props.onAddressRuleSwitched?.();
+            }}
+            dataTestId="data-security-issue-finding-hash-instead"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
       {/*
        * No rule reaches this place - a metric's name, a session's own
@@ -610,12 +671,46 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
   const [readCount, setReadCount] = useState<number>(0);
   // Which findings show their records: the first one, until a person says otherwise.
   const [openIds, setOpenIds] = useState<Set<string> | null>(null);
+  // The finding Scrub It's dialog is open on (ScrubItModal, #10433).
   const [scrubbing, setScrubbing] = useState<DataStoreFinding | null>(null);
-  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
-  const [scrubError, setScrubError] = useState<string>("");
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
   // The finding in a metric's name whose metrics the reader is asked about dropping.
   const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
+  /*
+   * The IP Address rules that keep Security Events from naming the
+   * addresses they hide (#10396): read for a store of logs or traces only.
+   */
+  const addressRules: ScrubRulesHidingAddressesState =
+    useScrubRulesHidingAddresses({
+      isEnabled:
+        props.store?.kind === DataStoreKind.TelemetryLogs ||
+        props.store?.kind === DataStoreKind.TelemetryTraces,
+    });
+  const addressRuleOf: (
+    finding: DataStoreFinding,
+  ) => ScrubRuleHidingAddresses | undefined = (
+    finding: DataStoreFinding,
+  ): ScrubRuleHidingAddresses | undefined => {
+    const target: ScrubTarget | null = getScrubTarget(
+      props.store?.kind,
+      (finding.location || "").trim(),
+    );
+
+    if (
+      finding.dataTypeId !== IP_ADDRESS_DATA_TYPE ||
+      !target ||
+      (target.signal !== "log" && target.signal !== "trace")
+    ) {
+      return undefined;
+    }
+
+    return (
+      findHidingRuleOfRecords(addressRules.rules, {
+        signal: target.signal,
+        serviceId: props.store?.serviceId?.toString() || null,
+      }) || undefined
+    );
+  };
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -685,32 +780,16 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     setOpenIds(next);
   };
 
-  const scrub: () => Promise<void> = async (): Promise<void> => {
-    const findingId: string = scrubbing?._id?.toString() || "";
-
-    if (!findingId) {
-      setScrubbing(null);
-      return;
-    }
-
-    setIsScrubbing(true);
-    setScrubError("");
-
-    try {
-      const result: DataSecurityScrubResult =
-        await DataSecurityApi.scrubFinding(new ObjectID(findingId));
-
-      setNotice({ ruleName: result.scrubRuleName, signal: result.signal });
-      setScrubbing(null);
-      setReadCount((count: number): number => {
-        return count + 1;
-      });
-      props.onChanged();
-    } catch (err) {
-      setScrubError(API.getFriendlyMessage(err));
-    }
-
-    setIsScrubbing(false);
+  // Scrub It made, or found, the rule: said on the page, the findings read again.
+  const onScrubbed: (result: DataSecurityScrubResult) => void = (
+    result: DataSecurityScrubResult,
+  ): void => {
+    setNotice({ ruleName: result.scrubRuleName, signal: result.signal });
+    setScrubbing(null);
+    setReadCount((count: number): number => {
+      return count + 1;
+    });
+    props.onChanged();
   };
 
   const ownerName: string = getTelemetryStoreOwnerName(props.store);
@@ -763,11 +842,8 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
                 location: finding.location,
                 gates: scrubGates,
               })}
-              isScrubbing={
-                isScrubbing && scrubbing?._id?.toString() === findingId
-              }
+              isScrubbing={false}
               onScrub={() => {
-                setScrubError("");
                 setScrubbing(finding);
               }}
               dropMetric={getDropMetricState({
@@ -780,6 +856,13 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
               }}
               storeKind={props.store?.kind}
               ownerName={ownerName}
+              addressRule={addressRuleOf(finding)}
+              onAddressRuleSwitched={() => {
+                addressRules.reload();
+                setReadCount((count: number): number => {
+                  return count + 1;
+                });
+              }}
             />
           );
         })}
@@ -851,24 +934,17 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      {scrubbing ? (
-        <ConfirmModal
-          title="Scrub This Data at Ingest"
-          description={
-            props.store?.kind === DataStoreKind.TelemetryMetrics
-              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change."
-              : "OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change."
-          }
-          submitButtonText="Scrub It"
-          isLoading={isScrubbing}
-          error={scrubError || undefined}
+      {/*
+       * What the rule does, whose records it changes and what reads the
+       * data it would hide, before it is made (#10433).
+       */}
+      {scrubbing?._id ? (
+        <ScrubItModal
+          findingId={new ObjectID(scrubbing._id.toString())}
           onClose={() => {
             setScrubbing(null);
-            setScrubError("");
           }}
-          onSubmit={() => {
-            void scrub();
-          }}
+          onScrubbed={onScrubbed}
         />
       ) : (
         <></>

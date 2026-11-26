@@ -1,6 +1,8 @@
 import { ClickHouseError, ClickHouseSettings } from "@clickhouse/client";
 import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import ServerException from "../../../Types/Exception/ServerException";
+import { JSONObject } from "../../../Types/JSON";
+import { EventLoopBudget } from "../EventLoop";
 
 /*
  * READING A CLICKHOUSE ANSWER (issue #4707).
@@ -54,6 +56,75 @@ const MAX_EXECUTION_TIME_SETTING: string = "max_execution_time";
 
 // An all-caps error type such as TIMEOUT_EXCEEDED, whole and nothing else.
 const ERROR_TYPE_PATTERN: RegExp = /^[A-Z][A-Z0-9_]{2,}$/;
+
+/*
+ * READING AN ANSWER ROW BY ROW, AS IT ARRIVES (issue #10316).
+ *
+ * FORMAT JSON is one document, so a read of it is held in full three times
+ * over - its text, the document parsed from it in one JSON.parse, and the
+ * rows built from that - and the parse holds the event loop for as long as
+ * the document takes: 50 to 75 ms for each 10 MB read of a grouped Metrics
+ * monitor over 16,000 series (#10108). A read that asks for ROWS_FORMAT is
+ * read line by line as its bytes come in (readRows): each row is parsed and
+ * handed on, and the event loop is handed back between rows once the read
+ * has used its budget, so no read holds it for longer than that and a row,
+ * and no read is ever held in memory as text.
+ *
+ * JSONCompactEachRowWithNames: a line of column names, then a line per row
+ * with its values in the same order and the same JSON FORMAT JSON writes
+ * them with, measured on ClickHouse 24.8 and 26.7. The names line is written
+ * even when there are no rows, so an empty body is still an answer that
+ * never started, as it is for FORMAT JSON - a row format without it would
+ * read the same as an answer with no rows.
+ *
+ * What ends such an answer early, measured on both:
+ *
+ *   - 26.x writes an error that came after the rows as the `__exception__`
+ *     block (see readTrailingError), then drops the connection: the body
+ *     ends in a socket error after the whole block has arrived.
+ *   - 24.x writes it as a last row of one value, the error's text
+ *     (`["Code: 159. DB::Exception: ... (TIMEOUT_EXCEEDED) ..."]`), and ends
+ *     the body cleanly - even under http_wait_end_of_query, where 26.x
+ *     answers with an HTTP error before any row.
+ *   - A body cut off mid-row ends without the row's newline.
+ *
+ * Each becomes what readJson makes of the same answer: a stop at the time
+ * limit is a QueryTimeoutException, any other error ClickHouse reports is a
+ * ClickHouseError with its code and type, and an answer that ended before
+ * it was complete is reported as one - its rows are never passed off as
+ * the whole answer.
+ */
+export const ROWS_FORMAT: string = "JSONCompactEachRowWithNames";
+
+const NEWLINE_BYTE: number = 0x0a;
+
+export interface ClickhouseRowsReadOptions extends ClickhouseReadOptions {
+  // The X-ClickHouse-Exception-Tag header, which frames a 26.x error block.
+  exceptionTag?: string | undefined;
+  /*
+   * The budget the read hands the event loop back by: the caller's, so a
+   * read and the work around it keep one clock. A new one when left out.
+   */
+  budget?: EventLoopBudget | undefined;
+}
+
+export interface ClickhouseRowsRead {
+  // The answer's columns, in the order ClickHouse wrote them.
+  columns: Array<string>;
+  // How many rows were handed on.
+  rowCount: number;
+}
+
+// Where a readRows has got to.
+interface RowsReadState {
+  // The names line, once it has come.
+  columns: Array<string> | null;
+  rowCount: number;
+  // A 26.x error block, as its text from its opening marker on.
+  errorBlock: string | null;
+  // The bytes of a line whose newline has not come yet.
+  partial: Array<Buffer>;
+}
 
 export interface ClickhouseErrorDetails {
   code: string;
@@ -312,6 +383,325 @@ export default class ClickhouseReadResult {
     };
 
     return resultSet;
+  }
+
+  /*
+   * A read's text asking for ROWS_FORMAT, as the client's query() asks for
+   * the format it is given: trailing semicolons taken off, then the clause.
+   */
+  public static withRowsFormat(query: string): string {
+    let text: string = query.trim();
+
+    while (text.endsWith(";")) {
+      text = text.substring(0, text.length - 1).trimEnd();
+    }
+
+    return `${text}\nFORMAT ${ROWS_FORMAT}`;
+  }
+
+  /*
+   * One ROWS_FORMAT answer, read as it arrives (see ROWS_FORMAT): each row,
+   * keyed by its column names as a FORMAT JSON row is, handed to onRow in
+   * the order ClickHouse wrote it, the event loop handed back between rows
+   * once the budget is spent. Resolves once the answer is whole; otherwise
+   * throws the error that ended it, as readJson would. `body` is the
+   * response's bytes in the chunks they arrive in, split anywhere: inside a
+   * row, inside a character.
+   */
+  public static async readRows(
+    body: AsyncIterable<unknown>,
+    onRow: (row: JSONObject) => void,
+    options: ClickhouseRowsReadOptions = {},
+  ): Promise<ClickhouseRowsRead> {
+    const budget: EventLoopBudget = options.budget || new EventLoopBudget();
+    const state: RowsReadState = {
+      columns: null,
+      rowCount: 0,
+      errorBlock: null,
+      partial: [],
+    };
+    const chunks: AsyncIterator<unknown> = body[Symbol.asyncIterator]();
+    let isBodyOver: boolean = false;
+
+    try {
+      for (;;) {
+        let next: IteratorResult<unknown>;
+
+        try {
+          next = await chunks.next();
+        } catch (error) {
+          isBodyOver = true;
+          throw ClickhouseReadResult.toBodyError(error, state, options);
+        }
+
+        if (next.done) {
+          isBodyOver = true;
+          break;
+        }
+
+        const chunk: Buffer = ClickhouseReadResult.toBuffer(next.value);
+        let start: number = 0;
+        let newline: number = chunk.indexOf(NEWLINE_BYTE);
+
+        while (newline !== -1) {
+          ClickhouseReadResult.readLine(
+            ClickhouseReadResult.takeLine(state, chunk, start, newline),
+            state,
+            onRow,
+            options,
+          );
+          start = newline + 1;
+
+          if (budget.isSpent()) {
+            await budget.handBack();
+          }
+
+          newline = chunk.indexOf(NEWLINE_BYTE, start);
+        }
+
+        if (start < chunk.length) {
+          state.partial.push(chunk.subarray(start));
+        }
+      }
+
+      return ClickhouseReadResult.finishRows(state, options);
+    } finally {
+      if (!isBodyOver) {
+        /*
+         * Stopped before the body ended (an error, a row onRow refused):
+         * the rest is not read, and the response is let go.
+         */
+        try {
+          await chunks.return?.();
+        } catch {
+          // What it was stopped for is what is thrown.
+        }
+      }
+    }
+  }
+
+  // A chunk of a response body as bytes.
+  private static toBuffer(chunk: unknown): Buffer {
+    if (Buffer.isBuffer(chunk)) {
+      return chunk;
+    }
+
+    if (chunk instanceof Uint8Array) {
+      return Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+    }
+
+    return Buffer.from(String(chunk), "utf8");
+  }
+
+  /*
+   * The text of the line that ends at `end` in `chunk`: what came of it in
+   * earlier chunks, then this one's part. Lines are cut at their newline
+   * byte, which UTF-8 never uses inside a character, and decoded whole.
+   */
+  private static takeLine(
+    state: RowsReadState,
+    chunk: Buffer,
+    start: number,
+    end: number,
+  ): string {
+    if (state.partial.length === 0) {
+      return chunk.toString("utf8", start, end);
+    }
+
+    state.partial.push(chunk.subarray(start, end));
+    const text: string = Buffer.concat(state.partial).toString("utf8");
+    state.partial = [];
+
+    return text;
+  }
+
+  private static readLine(
+    text: string,
+    state: RowsReadState,
+    onRow: (row: JSONObject) => void,
+    options: ClickhouseRowsReadOptions,
+  ): void {
+    if (state.errorBlock !== null) {
+      state.errorBlock += `${text}\n`;
+      return;
+    }
+
+    const line: string = text.endsWith("\r")
+      ? text.substring(0, text.length - 1)
+      : text;
+
+    if (line === EXCEPTION_MARKER) {
+      state.errorBlock = `${text}\n`;
+      return;
+    }
+
+    // The line break a 26.x error block opens with: never a row.
+    if (line.length === 0) {
+      return;
+    }
+
+    let value: unknown;
+
+    try {
+      value = JSON.parse(line);
+    } catch {
+      throw ClickhouseReadResult.toIncompleteAnswerError(options);
+    }
+
+    if (state.columns === null) {
+      if (!ClickhouseReadResult.isListOfText(value)) {
+        throw ClickhouseReadResult.toIncompleteAnswerError(options);
+      }
+
+      state.columns = value;
+      return;
+    }
+
+    if (Array.isArray(value) && value.length === state.columns.length) {
+      onRow(ClickhouseReadResult.toRow(state.columns, value));
+      state.rowCount++;
+      return;
+    }
+
+    const lateError: ClickhouseErrorDetails | null =
+      ClickhouseReadResult.readErrorRow(value);
+
+    if (lateError) {
+      throw ClickhouseReadResult.toReadError(
+        ClickhouseReadResult.toClickhouseError(lateError),
+        options,
+      );
+    }
+
+    throw ClickhouseReadResult.toIncompleteAnswerError(options);
+  }
+
+  private static isListOfText(value: unknown): value is Array<string> {
+    return (
+      Array.isArray(value) &&
+      value.every((item: unknown): boolean => {
+        return typeof item === "string";
+      })
+    );
+  }
+
+  /*
+   * A row as FORMAT JSON writes it: its values keyed by their columns, a
+   * later column of the same name over an earlier one, as JSON.parse does.
+   */
+  private static toRow(
+    columns: Array<string>,
+    values: Array<unknown>,
+  ): JSONObject {
+    const row: JSONObject = {};
+
+    for (let index: number = 0; index < columns.length; index++) {
+      const column: string = columns[index]!;
+
+      if (column === "__proto__") {
+        // A key of its own, as JSON.parse makes it - never the prototype.
+        Object.defineProperty(row, column, {
+          value: values[index],
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+        continue;
+      }
+
+      row[column] = values[index] as JSONObject[string];
+    }
+
+    return row;
+  }
+
+  /*
+   * 24.x's error after the rows: a row of one value, the error's text - or,
+   * in a format of objects, {"exception": "..."}. Null for anything else.
+   */
+  private static readErrorRow(value: unknown): ClickhouseErrorDetails | null {
+    let text: unknown = undefined;
+
+    if (Array.isArray(value)) {
+      text = value.length === 1 ? value[0] : undefined;
+    } else if (value && typeof value === "object") {
+      text = (value as { exception?: unknown }).exception;
+    }
+
+    if (typeof text !== "string" || !text.trim()) {
+      return null;
+    }
+
+    return ClickhouseReadResult.parseErrorText(text);
+  }
+
+  // The answer once its body has ended: whole, or the error that ended it.
+  private static finishRows(
+    state: RowsReadState,
+    options: ClickhouseRowsReadOptions,
+  ): ClickhouseRowsRead {
+    const rest: string =
+      state.partial.length > 0
+        ? Buffer.concat(state.partial).toString("utf8")
+        : "";
+    state.partial = [];
+
+    if (state.errorBlock !== null) {
+      const details: ClickhouseErrorDetails | null =
+        ClickhouseReadResult.readTrailingError(
+          state.errorBlock + rest,
+          options.exceptionTag,
+        );
+
+      throw details
+        ? ClickhouseReadResult.toReadError(
+            ClickhouseReadResult.toClickhouseError(details),
+            options,
+          )
+        : ClickhouseReadResult.toIncompleteAnswerError(options);
+    }
+
+    /*
+     * Every row ends in a newline: text after the last one is a row the
+     * answer was cut off in, whether or not what came of it parses.
+     */
+    if (rest.trim().length > 0 || state.columns === null) {
+      throw ClickhouseReadResult.toIncompleteAnswerError(options);
+    }
+
+    return { columns: state.columns, rowCount: state.rowCount };
+  }
+
+  /*
+   * What a body that failed part way is reported as: the error ClickHouse
+   * wrote before it let the connection go, when the whole of its block came
+   * (26.x drops the connection right after it), else the failure itself.
+   */
+  private static toBodyError(
+    error: unknown,
+    state: RowsReadState,
+    options: ClickhouseRowsReadOptions,
+  ): unknown {
+    if (state.errorBlock !== null) {
+      const rest: string =
+        state.partial.length > 0
+          ? Buffer.concat(state.partial).toString("utf8")
+          : "";
+      const details: ClickhouseErrorDetails | null =
+        ClickhouseReadResult.readTrailingError(
+          state.errorBlock + rest,
+          options.exceptionTag,
+        );
+
+      if (details) {
+        return ClickhouseReadResult.toReadError(
+          ClickhouseReadResult.toClickhouseError(details),
+          options,
+        );
+      }
+    }
+
+    return ClickhouseReadResult.toReadError(error, options);
   }
 
   // 24.x writes an error that came after the rows into the document itself.

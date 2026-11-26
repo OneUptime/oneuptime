@@ -263,7 +263,7 @@ async function call(data: {
 
   const text: string = await response.text();
 
-  // The job, when there is one, is queued just after the answer.
+  // The job, when there is one, is queued before the answer.
   for (let attempt: number = 0; attempt < 20; attempt++) {
     if (queued.length > before) {
       break;

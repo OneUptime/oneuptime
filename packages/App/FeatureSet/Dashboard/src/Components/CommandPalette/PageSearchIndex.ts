@@ -75,6 +75,12 @@ export enum PageSearchGate {
    * shown only where OneUptime Cloud records them.
    */
   DashboardRecording = "dashboard-recording",
+  /*
+   * The Mobile Apps page, where the server offers the mobile app: not where
+   * its admins took it away (Admin Dashboard > Settings > Help and Support,
+   * #10866), as the settings menu lists no such page there.
+   */
+  MobileApp = "mobile-app",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -206,6 +212,23 @@ const labelRules: PageFunction = (page: PageMap): PageSearchPage => {
     title: "Label Rules",
     icon: IconProp.Tag,
     keywords: ["add labels automatically", "auto label"],
+  };
+};
+
+/*
+ * Who changed a product's rules, what and when (#10462): "Audit Logs" in a
+ * Rules section, as Alerts' is, and "Rule Audit Logs" in a Settings section
+ * that holds the product's rules.
+ */
+const rulesAuditLogs: (page: PageMap, title: string) => PageSearchPage = (
+  page: PageMap,
+  title: string,
+): PageSearchPage => {
+  return {
+    page,
+    title,
+    icon: IconProp.List,
+    keywords: ["history", "who changed", "rule changes"],
   };
 };
 
@@ -477,11 +500,14 @@ const incidentAlertAiSection: (pages: {
 const resourceSettingsSections: (pages: {
   ownerRules: PageMap;
   labelRules: PageMap;
+  // The rules' history, last in the section (#10462).
+  rulesAuditLogs?: PageMap | undefined;
   archived: PageMap;
   more?: Array<PageSearchPage> | undefined;
 }) => Array<PageSearchSection> = (pages: {
   ownerRules: PageMap;
   labelRules: PageMap;
+  rulesAuditLogs?: PageMap | undefined;
   archived: PageMap;
   more?: Array<PageSearchPage> | undefined;
 }): Array<PageSearchSection> => {
@@ -491,6 +517,9 @@ const resourceSettingsSections: (pages: {
       pages: [
         ownerRules(pages.ownerRules),
         labelRules(pages.labelRules),
+        ...(pages.rulesAuditLogs
+          ? [rulesAuditLogs(pages.rulesAuditLogs, "Rule Audit Logs")]
+          : []),
         ...(pages.more || []),
       ],
     },
@@ -531,9 +560,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "rename project",
               "project id",
               "data residency",
+              // Require Unique Names (#10761), by what people ask for.
+              "duplicate names",
+              "same name",
             ],
             settings: [
               "Project Details",
+              "Unique Names",
+              "Require Unique Names",
               {
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
@@ -806,6 +840,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Mobile Apps",
             icon: IconProp.DevicePhoneMobile,
             keywords: ["ios", "android", "push notifications", "phone app"],
+            gate: PageSearchGate.MobileApp,
           },
         ],
       },
@@ -1231,6 +1266,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           ownerRules(PageMap.MONITORS_SETTINGS_OWNER_RULES),
           labelRules(PageMap.MONITORS_SETTINGS_LABEL_RULES),
+          rulesAuditLogs(
+            PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -1388,6 +1427,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Bell,
             keywords: ["reminders"],
           },
+          rulesAuditLogs(
+            PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -1600,6 +1643,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Reminder Rules",
             icon: IconProp.Bell,
             keywords: ["reminders"],
+          },
+          {
+            page: PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS,
+            title: "Audit Logs",
+            icon: IconProp.List,
+            keywords: ["history", "who changed", "rule changes"],
           },
         ],
       },
@@ -1876,6 +1925,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           ownerRules(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES),
           labelRules(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
+          rulesAuditLogs(
+            PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -1963,6 +2016,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Bell,
             keywords: ["reminders"],
           },
+          rulesAuditLogs(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -2713,6 +2770,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["run history", "soar runs"],
           },
           {
+            page: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+            title: "Automatic Response",
+            icon: IconProp.HandRaised,
+            keywords: [
+              "auto block",
+              "block scanners",
+              "block brute force",
+              "fail2ban",
+              "challenge bots",
+            ],
+            settings: [
+              /*
+               * Folded under the page's More settings (#10746): the result
+               * opens the fold at its card (HOURLY_LIMIT_CARD_KEY).
+               */
+              { name: "Hourly Limit", anchor: "hourly-limit" },
+            ],
+          },
+          {
             page: PageMap.SECURITY_BLOCKLIST,
             title: "Blocklist",
             icon: IconProp.NoSymbol,
@@ -2722,6 +2798,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "ip blocklist",
               "deny list",
               "lift a block",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_BLOCKLIST_FEEDS,
+            title: "Blocklist Feeds",
+            icon: IconProp.CloudArrowDown,
+            keywords: [
+              "blocklist feed",
+              "external dynamic list",
+              "threat feed",
+              "firewall feed url",
+              "palo alto edl",
+              "fortigate threat feed",
+              "nftables blocklist",
+              "nginx deny list",
             ],
           },
           {
@@ -2750,6 +2841,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "triage new cases",
               "oneuptime ai security",
               "automatic triage",
+              "automatic response",
+              "ai response",
+              "block on its own",
+              // The card under the switches: What OneUptime AI may do on a case.
+              "what oneuptime ai may do",
+              // OneUptime AI responding first to new cases (#10353).
+              "respond first",
+              "hold new cases",
+              "wait before paging",
+              "page now",
+            ],
+            settings: [
+              "Work cases end to end",
+              "Let OneUptime AI respond first",
             ],
           },
         ],
@@ -2813,7 +2918,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "case states",
               "custom case status",
               "case workflow",
+              "auto contain",
+              "verified containment",
             ],
+            settings: ["Mark Cases Contained When Verified"],
           },
           {
             page: PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS,
@@ -2913,6 +3021,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.DATA_SECURITY_AI,
+            title: "AI",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "data security ai",
+              "ai proposals",
+              "waiting for you",
+              "done by ai",
+              "approve ai changes",
+              "oneuptime ai data security",
+              "data security ai rules",
+              "what ai may do without asking",
+            ],
+            settings: ["Work on new issues"],
+          },
+          {
             page: PageMap.DATA_SECURITY_SENSITIVE_DATA,
             title: "Sensitive Data",
             icon: IconProp.Fingerprint,
@@ -2963,6 +3087,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "record of processing",
             ],
           },
+          /*
+           * Under Compliance, not in the menu (#10375): the record of
+           * processing's drafts, a store at a time, and a framework's audit
+           * evidence.
+           */
+          {
+            page: PageMap.DATA_SECURITY_REVIEW_DRAFTS,
+            title: "Review Drafts",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "record of processing",
+              "legal basis",
+              "retention",
+              "ropa",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_AUDIT_EVIDENCE,
+            title: "Audit Evidence",
+            icon: IconProp.DocumentText,
+            keywords: ["auditor", "soc 2 evidence", "gdpr evidence"],
+          },
         ],
       },
       {
@@ -2990,7 +3136,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
             title: "Scan Settings",
             icon: IconProp.Clock,
-            keywords: ["scan schedule", "scanning", "sampling"],
+            keywords: [
+              "scan schedule",
+              "scanning",
+              "sampling",
+              "names and street addresses",
+            ],
           },
           {
             page: PageMap.DATA_SECURITY_SETTINGS_AI,
@@ -3307,9 +3458,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.TOPOLOGY,
-            title: "Topology Map",
+            title: "Topology",
             icon: IconProp.FlowDiagram,
-            keywords: ["dependency map", "service map"],
+            // "Topology Map", the Inventory menu's old name for it, still finds it (#7474).
+            keywords: ["topology map", "dependency map", "service map"],
           },
           {
             page: PageMap.INVENTORY_ITEMS,
@@ -3400,6 +3552,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.SERVICE_SETTINGS_OWNER_RULES,
         labelRules: PageMap.SERVICE_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.SERVICE_ARCHIVED,
       }),
     ],
@@ -3521,6 +3674,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.HOST_SETTINGS_OWNER_RULES,
         labelRules: PageMap.HOST_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.HOST_ARCHIVED,
       }),
     ],
@@ -3559,6 +3713,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.KUBERNETES_SETTINGS_OWNER_RULES,
         labelRules: PageMap.KUBERNETES_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.KUBERNETES_ARCHIVED,
       }),
     ],
@@ -3580,6 +3735,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.DOCKER_SETTINGS_OWNER_RULES,
         labelRules: PageMap.DOCKER_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.DOCKER_ARCHIVED,
       }),
     ],
@@ -3601,6 +3757,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES,
         labelRules: PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.DOCKER_SWARM_ARCHIVED,
       }),
     ],
@@ -3622,6 +3779,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.PODMAN_SETTINGS_OWNER_RULES,
         labelRules: PageMap.PODMAN_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.PODMAN_ARCHIVED,
       }),
     ],
@@ -3854,6 +4012,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.PROXMOX_SETTINGS_OWNER_RULES,
         labelRules: PageMap.PROXMOX_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.PROXMOX_ARCHIVED,
       }),
     ],
@@ -3875,6 +4034,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
         labelRules: PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.OPENSTACK_ARCHIVED,
       }),
     ],
@@ -3896,6 +4056,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.VMWARE_SETTINGS_OWNER_RULES,
         labelRules: PageMap.VMWARE_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.VMWARE_ARCHIVED,
       }),
     ],
@@ -3917,6 +4078,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.CEPH_SETTINGS_OWNER_RULES,
         labelRules: PageMap.CEPH_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.CEPH_ARCHIVED,
       }),
     ],
@@ -3938,6 +4100,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES,
         labelRules: PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.STORAGE_ARRAYS_ARCHIVED,
       }),
     ],
@@ -4114,6 +4277,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Link Rules",
             icon: IconProp.Link,
           },
+          rulesAuditLogs(
+            PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -4201,6 +4368,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.IOT_SETTINGS_OWNER_RULES,
         labelRules: PageMap.IOT_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.IOT_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.IOT_ARCHIVED,
       }),
     ],
@@ -4334,6 +4502,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           ownerRules(PageMap.RUNBOOKS_SETTINGS_OWNER_RULES),
           labelRules(PageMap.RUNBOOKS_SETTINGS_LABEL_RULES),
+          rulesAuditLogs(
+            PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS,
+            "Rule Audit Logs",
+          ),
         ],
       },
     ],

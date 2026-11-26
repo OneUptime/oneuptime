@@ -225,12 +225,11 @@ export const CLI_RESERVED_FLAGS: ReadonlyArray<string> = [
 
 /*
  * Columns the server fills in, which no flag sets: the project comes from
- * the API key, and who created or deleted a record from the request.
+ * the API key, and who created a record from the request.
  */
 const SERVER_SET_COLUMNS: ReadonlyArray<string> = [
   "projectId",
   "createdByUserId",
-  "deletedByUserId",
 ];
 
 // Whether the server fills a column in, whatever a create or an update sends.

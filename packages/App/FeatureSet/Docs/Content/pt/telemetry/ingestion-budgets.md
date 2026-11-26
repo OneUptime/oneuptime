@@ -6,7 +6,7 @@ Um orçamento de ingestão limita quanta telemetria um projeto envia em um dia, 
 - [Como os orçamentos funcionam](#como-os-orçamentos-funcionam): Três níveis, contados à medida que a telemetria chega.
 - [Definir os orçamentos padrão de todos os projetos](#definir-os-orçamentos-padrão-de-todos-os-projetos): Nas configurações do Admin Dashboard.
 - [Dar a uma chave de ingestão um orçamento próprio](#dar-a-uma-chave-de-ingestão-um-orçamento-próprio): Uma parte do orçamento do projeto.
-- [Dar a uma equipe ou a um rótulo um orçamento próprio](#dar-a-uma-equipe-ou-a-um-rótulo-um-orçamento-próprio): Para os serviços da equipe ou com o rótulo.
+- [Dar a uma equipe ou a um rótulo um orçamento próprio](#dar-a-uma-equipe-ou-a-um-rótulo-um-orçamento-próprio): Para os serviços, hosts e outros recursos da equipe ou com o rótulo.
 - [Alertar sobre um orçamento](#alertar-sobre-um-orçamento): Antes de ele se esgotar, e quando se esgota.
 :::
 
@@ -98,7 +98,7 @@ Clique em **Salvar alterações**. O orçamento de uma chave não pode ser maior
 
 ## Dar a uma equipe ou a um rótulo um orçamento próprio
 
-O orçamento de uma equipe ou de um rótulo também é uma parte do orçamento do projeto, para os serviços de que a equipe é proprietária ou que têm o rótulo: o serviço descontrolado de uma equipe para no orçamento da equipe, enquanto o resto do projeto continua enviando, mesmo pelo mesmo coletor e pela mesma chave de ingestão.
+O orçamento de uma equipe ou de um rótulo também é uma parte do orçamento do projeto, para os serviços, hosts, clusters e outros recursos de que a equipe é proprietária ou que têm o rótulo: o serviço ou o host descontrolado de uma equipe para no orçamento da equipe, enquanto o resto do projeto continua enviando, mesmo pelo mesmo coletor e pela mesma chave de ingestão.
 
 :::steps
 ### Abrir a página Uso
@@ -114,8 +114,9 @@ No cartão **Orçamentos de equipes e rótulos**, clique em **Criar: Orçamento*
 Clique em **Criar: Orçamento**. O orçamento de uma equipe ou de um rótulo não pode ser maior que o do projeto: o OneUptime o recusa e diz qual é o máximo permitido.
 :::
 
-- **O que ele conta.** Os registros, traços, métricas e perfis que os serviços da equipe, ou os serviços com o rótulo, enviam pelo OpenTelemetry (OTLP). A telemetria de hosts e de outros recursos, os eventos de segurança e os registros do Fluent Bit, do Fluentd ou do syslog contam apenas nos orçamentos do projeto e da chave.
-- **Quando se esgota, a telemetria é descartada.** A telemetria desse sinal vinda dos serviços é descartada até a redefinição, e o remetente não é avisado: ele recebeu a resposta quando a telemetria chegou. O que é descartado deixa de contar no orçamento do projeto ou da chave.
+- **O que ele conta.** Os registros, traços, métricas e perfis de cada serviço, host, cluster e outro recurso de que a equipe é proprietária ou que tem o rótulo, sejam enviados pelo OpenTelemetry (OTLP) ou, no caso dos registros, pelo Fluent Bit, pelo Fluentd ou pelo syslog, incluindo o syslog que os dispositivos de rede enviam a uma sonda. Os eventos de segurança contam apenas nos orçamentos do projeto e da chave.
+- **De quem é um recurso.** Um serviço, um host ou outro recurso é de uma equipe quando a equipe está entre os seus proprietários, e de um rótulo quando tem o rótulo: os mesmos proprietários e rótulos que decidem quem pode ler a sua telemetria. Uma alteração neles conta em menos de um minuto.
+- **Quando se esgota, a telemetria é descartada.** A telemetria desse sinal vinda deles é descartada até a redefinição, e o remetente não é avisado: ele recebeu a resposta quando a telemetria chegou. O que é descartado deixa de contar no orçamento do projeto ou da chave.
 - **Quem é avisado.** Os Proprietários do projeto recebem um e-mail quando o orçamento passa do limite de aviso, e quando ele se esgota.
 - **Só um orçamento diário.** Uma equipe ou um rótulo não tem limite de taxa.
 - **Todo orçamento conta.** A telemetria de um serviço conta nos orçamentos das equipes e dos rótulos dele, e nos da chave e do projeto, e o primeiro que se esgotar a interrompe. Quando o orçamento do projeto é reduzido abaixo do de uma equipe ou de um rótulo, este fica limitado ao do projeto.
@@ -134,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Outros remetentes HTTP recebem JSON.** Fluent Bit, Fluentd, syslog e os outros endpoints HTTP recebem `error`, `message` e `resetsAt`, e também `retryAfterSeconds` quando é um limite de taxa que recusa.
-- **MQTT e as transmissões de nuvem não podem ser avisados.** A telemetria que chega por MQTT ou pela transmissão de um provedor de nuvem é descartada assim que o orçamento dela se esgota. Nenhum limite de taxa se aplica a ela: ela não poderia ser enviada de novo.
+- **MQTT, as transmissões de nuvem e as sondas não podem ser avisados.** A telemetria que chega por MQTT ou pela transmissão de um provedor de nuvem é descartada assim que o orçamento dela se esgota, e também o syslog que os dispositivos de rede enviam a uma sonda: os registros de cada dispositivo contam no orçamento do próprio projeto dele. Nenhum limite de taxa se aplica a ela: ela não poderia ser enviada de novo.
 - **Nem os serviços de uma equipe ou de um rótulo.** Quando o orçamento de uma equipe ou de um rótulo se esgota, a telemetria deles é aceita e depois descartada: veja [Dar a uma equipe ou a um rótulo um orçamento próprio](#dar-a-uma-equipe-ou-a-um-rótulo-um-orçamento-próprio).
 - **As recusas são contadas.** O que um orçamento esgotado recusa ou descarta é contado como descartado, e cada requisição que um limite de taxa recusa, como limitada: veja [Ver o uso e os descartes de hoje](#ver-o-uso-e-os-descartes-de-hoje).
 

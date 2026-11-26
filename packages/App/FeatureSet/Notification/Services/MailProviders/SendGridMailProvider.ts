@@ -19,6 +19,8 @@ import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import logger from "Common/Server/Utils/Logger";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import type { AxiosRequestConfig } from "axios";
 
 export interface SendGridSendOptions {
   /*
@@ -105,12 +107,48 @@ interface SendGridClientError {
     | undefined;
 }
 
+// Where @sendgrid/client sends every request (its baseUrl).
+const SENDGRID_API_URL: string = "https://api.sendgrid.com/";
+
+/*
+ * The client a MailService sends with, as @sendgrid/mail keeps it at run
+ * time: its typings name no way to reach it but setClient.
+ */
+interface SendGridMailClient {
+  client?: { setDefaultRequest: (key: string, value: unknown) => void };
+}
+
 /**
  * Sends mail through SendGrid's v3 Mail Send API (POST
  * https://api.sendgrid.com/v3/mail/send) with @sendgrid/mail, for an
  * installation whose Email Server Type is SendGrid.
  */
 export default class SendGridMailProvider {
+  /*
+   * @sendgrid/client sends with axios and left the outbound proxy to it,
+   * which sent the proxy's password percent-encoded, so behind a proxy whose
+   * password holds an @ or a : every email was refused with 407 (#10442).
+   * The client a send uses goes through the outbound proxy, or directly, as
+   * every request of the server goes (OutboundProxyAgents). With no proxy
+   * set, nothing about the client changes.
+   */
+  public static routeThroughOutboundProxy(service: MailService): void {
+    const client: SendGridMailClient["client"] = (
+      service as unknown as SendGridMailClient
+    ).client;
+    const route: AxiosRequestConfig = OutboundProxyAgents.routeAxiosRequest({
+      url: SENDGRID_API_URL,
+    });
+
+    if (!client || route.proxy !== false) {
+      return;
+    }
+
+    client.setDefaultRequest("proxy", false);
+    client.setDefaultRequest("httpAgent", route.httpAgent);
+    client.setDefaultRequest("httpsAgent", route.httpsAgent);
+  }
+
   /*
    * The Mail Send for an email: to, from (its name, or the product's), the
    * subject, the text and the HTML, and its inline images.
@@ -161,6 +199,7 @@ export default class SendGridMailProvider {
     const inlineImages: Array<EmailInlineImage> = options?.inlineImages || [];
 
     SendgridMail.setApiKey(config.apiKey);
+    SendGridMailProvider.routeThroughOutboundProxy(SendgridMail);
 
     const message: MailDataRequired = SendGridMailProvider.buildMessage(
       mail,
@@ -234,6 +273,7 @@ export default class SendGridMailProvider {
             const mailer: MailService = new MailService();
             mailer.setApiKey(config.apiKey);
             mailer.setTimeout(requestTimeoutMs);
+            SendGridMailProvider.routeThroughOutboundProxy(mailer);
 
             try {
               await mailer.send(message);

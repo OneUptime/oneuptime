@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab I en HTTP-begäran
-Skriv referensen i URL:en, headers eller body i ett [HTTP-begäransteg](/docs/runbooks/authoring#http-request):
+Skriv referensen i URL:en, headers, body eller **CA-certifikat** i ett [HTTP-begäransteg](/docs/runbooks/authoring#http-request):
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+I **CA-certifikat** står referensen ensam, till exempel `{{global.variables.INTERNAL_CA}}`, och variabeln innehåller certifikatet i PEM: varje steg som namnger den litar på samma CA, och en ny CA ställs in på ett ställe.
 @tab SSH-inloggning
 Ett [SSH-steg](/docs/runbooks/authoring#ssh) väljer under **Logga in med** den hemliga variabel som innehåller dess privata nyckel eller lösenord, och under **Fler fält → Nyckelns lösenfras** nyckelns lösenfras. Värdet visar om det är en nyckel eller ett lösenord.
 @tab Kubeconfig

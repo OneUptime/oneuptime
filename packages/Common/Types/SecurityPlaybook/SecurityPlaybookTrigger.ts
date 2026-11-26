@@ -13,12 +13,24 @@
  *  - Manual: never on its own; somebody runs it from a case.
  *
  * Every playbook can also be run by hand from a case, whatever its trigger.
+ *
+ * Automatic Response is a run's trigger, never a playbook's: an automatic
+ * response policy's block is a one-step run of the engine (#10350), as a
+ * person's block from a case is, started by the policy as the detection is
+ * made. It is left out of the triggers a playbook may choose.
  */
 enum SecurityPlaybookTrigger {
   CaseOpened = "Case Opened",
   DetectionAdded = "Detection Added",
   TriagedAsLikelyMalicious = "Triaged as Likely Malicious",
   Manual = "Manual",
+  AutomaticResponse = "Automatic Response",
+  /*
+   * A run OneUptime AI started while working the case (#10352): one step,
+   * no playbook (SecurityPlaybookRunService.startAiStepRun). Never a
+   * playbook's trigger - it is not in SECURITY_PLAYBOOK_TRIGGERS.
+   */
+  OneUptimeAi = "OneUptime AI",
 }
 
 export const SECURITY_PLAYBOOK_TRIGGERS: ReadonlyArray<SecurityPlaybookTrigger> =
@@ -42,6 +54,11 @@ export function isAiSecurityPlaybookTrigger(value: unknown): boolean {
     typeof value === "string" &&
     (AI_SECURITY_PLAYBOOK_TRIGGERS as ReadonlyArray<string>).includes(value)
   );
+}
+
+// A run OneUptime AI started while working the case (#10352).
+export function isOneUptimeAiRun(run: { trigger?: unknown }): boolean {
+  return run.trigger === SecurityPlaybookTrigger.OneUptimeAi;
 }
 
 export function isSecurityPlaybookTrigger(

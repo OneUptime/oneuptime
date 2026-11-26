@@ -31,6 +31,11 @@ import {
 } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
+import {
+  buildHoldsScrubPlaceholderSql,
+  buildHoldsSharedScrubPlaceholderSql,
+  buildIsScrubPseudonymSql,
+} from "./ScrubPlaceholderSql";
 import TelemetryReadAccess from "./TelemetryReadAccess";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
@@ -77,6 +82,8 @@ interface TrendRow {
 interface AffectedUsersRow {
   groupId: string;
   users: number;
+  hiddenUsers: number;
+  hiddenUserOccurrences: number;
 }
 
 function toNumber(value: unknown): number {
@@ -184,13 +191,33 @@ export default class ExceptionListStatsReader {
    * Distinct users per exception. Occurrences that name no user are left
    * out, so an exception none of whose occurrences names one counts nobody
    * rather than one "empty" user.
+   *
+   * The user id is read as stored, after the project's scrub rules, so it
+   * may be what a rule left (#10435). That is never counted as a user:
+   *
+   *   - users: the ids no rule touched;
+   *   - hiddenUsers: the ids a Hash rule left - one token per user, so each
+   *     is still counted once, as a user nobody can name;
+   *   - hiddenUserOccurrences: the occurrences whose id Redact or Mask left.
+   *     "[REDACTED]" is everybody a rule hid, so they are counted as
+   *     occurrences, never as one user - which is what every exception of
+   *     such a project read before: "1 user".
+   *
+   * Asked of each stored id, so the occurrences stored before this are read
+   * the same.
    */
   public static buildAffectedUsersStatement(
     query: ExceptionListStatsQuery,
   ): Statement {
     const statement: Statement = SQL`SELECT `;
     statement.append(ExceptionListStatsReader.groupColumn(query));
-    statement.append(SQL`, uniq(userId) AS users FROM ${TABLE_NAME}`);
+    statement.append(", uniqIf(userId, NOT ");
+    statement.append(buildHoldsScrubPlaceholderSql("userId"));
+    statement.append(") AS users, uniqIf(userId, ");
+    statement.append(buildIsScrubPseudonymSql("userId"));
+    statement.append(") AS hiddenUsers, countIf(");
+    statement.append(buildHoldsSharedScrubPlaceholderSql("userId"));
+    statement.append(SQL`) AS hiddenUserOccurrences FROM ${TABLE_NAME}`);
 
     ExceptionListStatsReader.appendWhere(statement, query);
 
@@ -239,6 +266,13 @@ export default class ExceptionListStatsReader {
   ): Array<AffectedUsersRow> {
     const out: Array<AffectedUsersRow> = [];
 
+    // A count the row does not hold, or holds as no count, is none.
+    const count: (value: unknown) => number = (value: unknown): number => {
+      const parsed: number = toNumber(value);
+
+      return Number.isNaN(parsed) || parsed < 0 ? 0 : Math.floor(parsed);
+    };
+
     for (const row of rows) {
       const users: number = toNumber(row["users"]);
 
@@ -249,6 +283,8 @@ export default class ExceptionListStatsReader {
       out.push({
         groupId: String(row["grp"] || "").toLowerCase(),
         users: Math.floor(users),
+        hiddenUsers: count(row["hiddenUsers"]),
+        hiddenUserOccurrences: count(row["hiddenUserOccurrences"]),
       });
     }
 
@@ -456,13 +492,13 @@ export default class ExceptionListStatsReader {
       trendById.set(row.groupId, trend);
     }
 
-    const usersById: Map<string, number> = new Map();
+    const usersById: Map<string, AffectedUsersRow> = new Map();
     if (userRows) {
       for (const row of ExceptionListStatsReader.toAffectedUsersRows(
         userRows,
       )) {
         if (exceptionById.has(row.groupId)) {
-          usersById.set(row.groupId, row.users);
+          usersById.set(row.groupId, row);
         }
       }
     }
@@ -479,9 +515,12 @@ export default class ExceptionListStatsReader {
 
       answered.add(id);
 
+      const users: AffectedUsersRow | undefined = usersById.get(id);
       const item: ExceptionListStatsItem = {
         telemetryExceptionId: exceptionById.get(id)!.id!.toString(),
-        affectedUsers: userRows ? usersById.get(id) || 0 : null,
+        affectedUsers: userRows ? users?.users || 0 : null,
+        hiddenUsers: users?.hiddenUsers || 0,
+        hiddenUserOccurrences: users?.hiddenUserOccurrences || 0,
         trend: trendById.get(id) || emptyExceptionTrend(),
       };
 

@@ -46,6 +46,14 @@ export const REASSIGN_ONE_ROLE_AT_A_TIME_MESSAGE: string =
 export const ALREADY_HOLDS_INCIDENT_ROLE_MESSAGE: string =
   "This person already holds this role on this incident. Choose someone else to hand it to.";
 
+/*
+ * A role given, or handed on, to someone who is not a member of the
+ * project - someone only invited included: nothing of the project reaches
+ * them until they join.
+ */
+export const NOT_A_PROJECT_MEMBER_ROLE_MESSAGE: string =
+  "This user is not a member of this project and cannot be assigned a role on this incident.";
+
 // And of a move to another role (#10274).
 export const ROLE_REQUIRED_MESSAGE: string =
   "A person on an incident always holds a role. To take them off this one, remove them from it instead.";
@@ -177,9 +185,7 @@ export class Service extends ProjectReferencesService<Model> {
         userId: createBy.data.userId,
       }))
     ) {
-      throw new BadDataException(
-        "This user is not a member of this project and cannot be assigned a role on this incident.",
-      );
+      throw new BadDataException(NOT_A_PROJECT_MEMBER_ROLE_MESSAGE);
     }
 
     // Check if this user is already assigned to this role for this incident
@@ -485,6 +491,24 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     const kind: RoleChangeKind = getRoleChangeKind(change);
+
+    /*
+     * Handed to someone else, they must be a member of the project, as
+     * anyone given a role is (onBeforeCreate). The check every update makes
+     * of a person (ProjectReferencesService) takes an invitation still
+     * waiting, so a Reassign could hand a role to someone who has not
+     * joined: nothing pages or tells them, and the role's lines named them
+     * by their invited address (#10668).
+     */
+    if (
+      !isSameId(change.fromUserId, change.toUserId) &&
+      !(await TeamMemberService.isUserMemberOfProject({
+        projectId: change.projectId,
+        userId: change.toUserId,
+      }))
+    ) {
+      throw new BadDataException(NOT_A_PROJECT_MEMBER_ROLE_MESSAGE);
+    }
 
     const holdsItAlready: Model | null = await this.findOneBy({
       query: {

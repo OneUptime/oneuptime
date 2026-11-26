@@ -5,6 +5,8 @@ import DataSecurityCustomDataType from "../../../Models/DatabaseModels/DataSecur
 import DataSecurityFlow from "../../../Models/DatabaseModels/DataSecurityFlow";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
+import DataSecurityAiDecision from "../../../Models/DatabaseModels/DataSecurityAiDecision";
+import DataSecurityAiProposal from "../../../Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityResidencyRule from "../../../Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecurityScan from "../../../Models/DatabaseModels/DataSecurityScan";
 import DataSecuritySetting from "../../../Models/DatabaseModels/DataSecuritySetting";
@@ -195,6 +197,32 @@ const MATRIX: ReadonlyArray<[string, ModelClass, Grants]> = [
       delete: NOBODY,
     },
   ],
+  /*
+   * What OneUptime AI proposes for an issue, and why it did or did not act
+   * (#10364): OneUptime's own records, read by the issue's readers. A
+   * proposal is approved, dismissed and undone only through Data
+   * Security's routes, never through its CRUD.
+   */
+  [
+    "DataSecurityAiProposal",
+    DataSecurityAiProposal,
+    {
+      create: NOBODY,
+      read: [...READERS, Permission.ReadDataSecurityAiProposal],
+      update: NOBODY,
+      delete: NOBODY,
+    },
+  ],
+  [
+    "DataSecurityAiDecision",
+    DataSecurityAiDecision,
+    {
+      create: NOBODY,
+      read: [...READERS, Permission.ReadDataSecurityAiDecision],
+      update: NOBODY,
+      delete: NOBODY,
+    },
+  ],
   [
     "DataSecurityScan",
     DataSecurityScan,
@@ -269,6 +297,8 @@ const WRITTEN_BY_ONEUPTIME: ReadonlyArray<ModelClass> = [
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityAiProposal,
+  DataSecurityAiDecision,
   DataSecurityScan,
 ];
 
@@ -329,7 +359,7 @@ describe("Data Security's permission matrix", () => {
   );
 
   test("the matrix covers every Data Security model, each once", () => {
-    expect(new Set(MODELS).size).toBe(18);
+    expect(new Set(MODELS).size).toBe(20);
     expect(
       MATRIX.map((row: [string, ModelClass, Grants]): string => {
         return new row[1]().tableName!;
@@ -406,7 +436,11 @@ describe("Data Security's permission matrix", () => {
   });
 
   test("a timeline is never rewritten: nobody edits or deletes a store's or an issue's", () => {
-    for (const Model of [DataStoreFeed, DataSecurityIssueFeed]) {
+    for (const Model of [
+      DataStoreFeed,
+      DataSecurityIssueFeed,
+      DataSecurityAiDecision,
+    ]) {
       const model: BaseModel = new Model();
 
       expect(grantsOf(model).update).toEqual([]);
@@ -415,12 +449,18 @@ describe("Data Security's permission matrix", () => {
     }
   });
 
-  test("on an issue, a person decides only its status, the accepted risk and who it is assigned to", () => {
+  /*
+   * Why it is not an issue (#10369) is a person's, as the accepted risk's
+   * reason is: written with the Not an issue status, which the service
+   * holds it to (DataSecurityIssueService), from the Dashboard's dialog.
+   */
+  test("on an issue, a person decides only its status, the accepted risk, why it is not an issue and who it is assigned to", () => {
     expect(editableColumns(new DataSecurityIssue())).toEqual(
       [
         "status",
         "acceptedReason",
         "acceptedUntil",
+        "notAnIssueReason",
         "assignedToUser",
         "assignedToUserId",
         "assignedToTeam",
@@ -486,6 +526,17 @@ describe("Data Security's permission matrix", () => {
       expect([column, columns[column]!.update]).toEqual([column, []]);
     }
 
+    /*
+     * OneUptime AI's drafts of the store's record of processing and its
+     * impact assessment (#10375) are served and written by their own
+     * routes, never read or written through the store's API.
+     */
+    for (const column of ["recordDrafts", "impactAssessment"]) {
+      expect([column, columns[column]!.read]).toEqual([column, []]);
+      expect([column, columns[column]!.create]).toEqual([column, []]);
+      expect([column, columns[column]!.update]).toEqual([column, []]);
+    }
+
     // And nothing else of a store is hidden from the people who may read it.
     expect(
       Object.entries(columns)
@@ -501,8 +552,12 @@ describe("Data Security's permission matrix", () => {
       "contentScanState",
       "fieldSuggestionState",
       "fingerprints",
+      // The impact assessment, served by its own route.
+      "impactAssessment",
       // Data Observability's schedule: when the store's tables are next collected.
       "nextTableHealthCollectionAt",
+      // OneUptime AI's drafts of the record of processing, served by its route.
+      "recordDrafts",
       // The database a collection read, for tying services' spans to its tables.
       "tableHealthTarget",
     ]);

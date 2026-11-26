@@ -67,7 +67,7 @@ El menú Red mantiene a la vista lo que abres cada día: **Vista general**, **Di
 | Sección | Páginas |
 | --- | --- |
 | **Topología** | **Topología del dispositivo**, **Dispositivos descubiertos**, **Matriz de latencia**, **Enlaces del sitio**, **Enlaces del dispositivo** |
-| **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas de nomenclatura**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces** |
+| **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas de nomenclatura**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces**, **Registros de auditoría** |
 | **Ajustes** | **Políticas de alertas**, **Credenciales SNMP**, **Roles de dispositivo**, **Tipos de sitio**, **Nombres de dirección**, **Plantillas de recopilación de OID** |
 | **Avanzado** | **Recorrido SNMP**, **Dispositivos archivados** |
 
@@ -575,7 +575,7 @@ Escribe el rango en **Objetivo del escaneo**, comprueba la **Sonda** y elige el 
 Solo un escaneo SNMP pide credenciales: al elegir **SNMP** se añade el paso **Credenciales SNMP**, con los conjuntos de credenciales que probar. Un [escaneo ICMP](#escaneos-icmp) no tiene segundo paso, e **Iniciar escaneo** está en la primera página.
 
 ### Iniciar el escaneo
-Haz clic en **Iniciar escaneo**. La sonda recorre el rango e informa de cuántos hosts escaneó y cuántos respondieron: cuántos respondieron a SNMP o, en un escaneo ICMP, cuántos respondieron al ping.
+Haz clic en **Iniciar escaneo**. La sonda recorre el rango e informa de cuántos hosts escaneó y cuántos respondieron: cuántos respondieron a SNMP o, en un escaneo ICMP, cuántos respondieron al ping. Para recorrer el rango de nuevo más tarde, haz clic en **Ejecutar de nuevo** en el escaneo.
 
 ### Importar lo que encontró
 Haz clic en **Revisar resultados** en el escaneo, elige los hosts que vas a importar y haz clic en **Siguiente**. Elige con qué frecuencia se comprueban y si cada uno recibe un monitor, y luego impórtalos; consulta [Importar lo que encontró un escaneo](#importar-lo-que-encontró-un-escaneo).
@@ -595,7 +595,7 @@ Plegados en **Más campos** del primer paso, para los escaneos que los necesitan
 | Nombre | Para qué es el escaneo, para distinguirlo de los demás. La lista muestra el objetivo del escaneo cuando está vacío. | Vacío |
 | Buscar nombres de Windows (NetBIOS) | Preguntar a cada host sin nombre de sistema SNMP por su nombre NetBIOS, su nombre de equipo Windows, por UDP 137. Ese nombre prevalece sobre el nombre DNS inverso del host. Solo direcciones privadas y sondas personalizadas; consulta [Cómo se nombran los dispositivos descubiertos](#cómo-se-nombran-los-dispositivos-descubiertos). | Activado |
 | Nombrar los dispositivos por su nombre de host corto | Nombrar los dispositivos importados por la primera parte de un nombre de host totalmente calificado: `core-sw-01` en lugar de `core-sw-01.corp.example.com`. | Desactivado |
-| Repetir este escaneo | Volver a ejecutar el escaneo cada cierto tiempo, el **Intervalo de nuevo escaneo (minutos)**, de al menos 15 minutos, para que el descubrimiento continúe; consulta [las reglas de importación automática](#importar-automáticamente-con-reglas-de-importación-automática). Los hosts que encuentra un escaneo repetido esperan tu revisión salvo que una regla de importación automática coincida con ellos. | Desactivado |
+| Repetir este escaneo | Volver a ejecutar el escaneo cada cierto tiempo, el **Intervalo de nuevo escaneo (minutos)**, de al menos 15 minutos, para que el descubrimiento continúe; consulta [las reglas de importación automática](#importar-automáticamente-con-reglas-de-importación-automática). Los hosts que encuentra un escaneo repetido esperan tu revisión salvo que una regla de importación automática coincida con ellos. Desactivado, el escaneo muestra **Bajo demanda** y vuelve a ejecutarse cada vez que haces clic en **Ejecutar de nuevo**. | Desactivado |
 
 ### Notación del objetivo del escaneo
 
@@ -647,6 +647,12 @@ Cuando los hosts que importas incluyen hosts SNMP, el paso **Monitoreo** de la i
 3. El paso **Importar** cuenta por separado dispositivos y monitores, a medida que cada uno se crea, ya existía o falla. Al terminar, enlaza a lo que creó y lista, bajo el motivo, cada host que no importó y cada dispositivo que importó sin su monitor. Un reintento vuelve a intentar solo los hosts que fallaron y nunca crea nada dos veces. **Detener importación** se detiene después del host que se está importando y conserva lo creado.
 
 La importación se ejecuta en el servidor y actúa en tu nombre: cada dispositivo y cada monitor se crea con tus permisos, y lo que no puedes crear se lista con el motivo. Puedes cerrar el diálogo en cualquier momento: la fila del escaneo muestra cuánto ha avanzado la importación, y **Ver progreso** la vuelve a abrir. **Importar más dispositivos** empieza de nuevo con los hosts que quedan. Una importación admite hasta 5.000 hosts; importa un escaneo mayor por partes, por subred o según lo que respondieron los hosts. Las importaciones de un proyecto se ejecutan de una en una: la que se pide mientras otra está en curso espera a que termine.
+
+### Ejecutar un escaneo de nuevo
+
+Un escaneo no se agota con su primera ejecución. Para recorrer el mismo rango de nuevo, por ejemplo después de instalar dispositivos nuevos, haz clic en **Ejecutar de nuevo** en la fila del escaneo, debajo de cuándo se ejecutó por última vez. El mismo escaneo vuelve a ejecutarse con su propio objetivo, su sonda, su método de escaneo y sus credenciales, así que no se crea un segundo escaneo: su fila muestra **En cola**, luego **Escaneando**, y los resultados de la nueva ejecución sustituyen a los anteriores a medida que llegan. Los dispositivos que ya importaste quedan como están. Un escaneo que no se repite muestra **Bajo demanda** en la lista, y se ejecuta cada vez que haces clic en **Ejecutar de nuevo**.
+
+**Ejecutar de nuevo** aparece en cuanto termina una ejecución, completada o fallida: mientras un escaneo está en cola o en curso, su progreso ocupa el lugar del botón, y se rechaza una segunda ejecución. También se rechaza una ejecución mientras la sonda del escaneo no está conectada a OneUptime, para que el escaneo conserve sus últimos resultados; inicia la sonda o elige otra sonda en **Editar**. Un escaneo que se repite conserva su programación: se repite con la misma frecuencia que antes, y su próxima ejecución se cuenta desde que termina esta. Ejecutar un escaneo requiere permiso para editar escaneos de descubrimiento; su fila indica quién lo ejecutó por última vez, y los registros de auditoría anotan cada ejecución como suya. Una clave de API con ese permiso también puede ejecutar un escaneo, con `POST /api/network-device-discovery-scan/<scan ID>/run`.
 
 ### Cómo se nombran los dispositivos descubiertos
 
@@ -731,7 +737,7 @@ En una regla, **Comprobar cada** fija con qué frecuencia la sonda del escaneo s
 
 Las reglas no tienen horario propio ni lo necesitan. Las reglas habilitadas se ejecutan solas sobre los resultados de cada escaneo a medida que llegan, incluidos los resultados parciales que sube un recorrido largo mientras sigue en curso, así que los hosts se importan un minuto después de encontrarse en lugar de al final del rango. Activa **Repetir este escaneo** en un escaneo de descubrimiento y la pareja se convierte en un acuerdo permanente: el escaneo vuelve a recorrer su rango con tu intervalo, y cada host nuevo que encuentra se importa sin que nadie pulse nada.
 
-Guardar una regla también la aplica a los resultados que el proyecto ya tiene: una regla que escribes o habilitas hoy alcanza en aproximadamente un minuto los hosts descubiertos en las últimas 24 horas, así que una regla escrita después de un escaneo puntual no se queda esperando un escaneo que no volverá a ejecutarse. Los resultados más antiguos no se tocan, porque importar un parque descubierto el mes pasado es una decisión, no un efecto secundario de guardar una regla. Los dos botones de una regla son la forma de tomar esa decisión, y alcanzan cada escaneo del proyecto, por antiguo que sea:
+Guardar una regla también la aplica a los resultados que el proyecto ya tiene: una regla que escribes o habilitas hoy alcanza en aproximadamente un minuto los hosts descubiertos en las últimas 24 horas, así que una regla escrita después de un escaneo no se queda esperando a que el escaneo vuelva a ejecutarse. Los resultados más antiguos no se tocan, porque importar un parque descubierto el mes pasado es una decisión, no un efecto secundario de guardar una regla. Para importar lo que un rango contiene hoy, haz clic en **Ejecutar de nuevo** en su escaneo: los resultados nuevos son recientes, y las reglas los importan en el minuto siguiente a su llegada. Para importar los resultados antiguos tal como están, usa los dos botones de una regla, que alcanzan cada escaneo del proyecto, por antiguo que sea:
 
 - **Simulación** evalúa cada escaneo terminado e informa de lo que la regla importaría y monitorearía. No se escribe nada, así que es la forma segura de ver qué reclamaría una regla antes de habilitarla sobre un parque en producción. Una regla deshabilitada puede simularse; solo una ejecución real exige que esté habilitada, por eso una regla creada en el panel empieza con **Habilitado** desactivado: simúlala y después actívala.
 - **Ejecutar regla** hace la misma evaluación y realiza la importación.

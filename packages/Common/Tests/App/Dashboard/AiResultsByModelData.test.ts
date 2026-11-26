@@ -4,6 +4,7 @@ import {
   AiResultsBreakdown,
   AiResultsCard,
   AiResultsCardKind,
+  AiResultsFact,
   AiResultsModelRow,
   AiResultsSegment,
   AiResultsWeekBar,
@@ -23,7 +24,13 @@ import {
   AiOutcomesPart,
 } from "../../../Types/AI/AiOutcomes";
 import { JSONObject } from "../../../Types/JSON";
-import { makeModels, makeOutcomes, toBody } from "./AiResultsFixtures";
+import {
+  makeDataSecurity,
+  makeIssueVerdicts,
+  makeModels,
+  makeOutcomes,
+  toBody,
+} from "./AiResultsFixtures";
 
 /*
  * AI RESULTS BY MODEL, AND WHAT EACH NUMBER OPENS (issues #7762, #7768), in
@@ -330,12 +337,28 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
   test("every segment of every card, and each part's outcomes exactly once", () => {
     const opened: Record<string, Array<string>> = {};
 
-    for (const card of getAiResultsCards(makeOutcomes())) {
+    for (const card of getAiResultsCards(
+      makeOutcomes({
+        dataSecurity: makeDataSecurity(),
+        issueVerdicts: makeIssueVerdicts(),
+        leaks: { fixed: 6, open: 2, foundAfter: 4 },
+      }),
+    )) {
       for (const breakdown of card.breakdowns as Array<AiResultsBreakdown>) {
         for (const segment of breakdown.segments as Array<AiResultsSegment>) {
           opened[segment.records.part] = [
             ...(opened[segment.records.part] || []),
             segment.records.outcome,
+          ];
+        }
+      }
+
+      // A count beside the bars that opens what it counts (#10364).
+      for (const fact of card.facts as Array<AiResultsFact>) {
+        if (fact.records) {
+          opened[fact.records.part] = [
+            ...(opened[fact.records.part] || []),
+            fact.records.outcome,
           ];
         }
       }
@@ -357,11 +380,39 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
       [AiOutcomesPart.RootCauses]: [
         ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.RootCauses],
       ],
+      // The issues analyzed open from their count beside the bars.
+      [AiOutcomesPart.DataSecurityAnalyses]: [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityAnalyses],
+      ],
+      [AiOutcomesPart.DataSecurityChanges]: [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityChanges],
+      ],
+      [AiOutcomesPart.DataSecurityProposals]: [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityProposals],
+      ],
+      // The bar's two, then what it could not tell and what waits beside it (#10369).
+      [AiOutcomesPart.IssueVerdicts]: [
+        "agreed",
+        "disagreed",
+        "cannotTell",
+        "waiting",
+      ],
+      // Caught and fixed, caught and still open, found after (#10376).
+      [AiOutcomesPart.Leaks]: [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.Leaks],
+      ],
     });
+    expect([...opened[AiOutcomesPart.IssueVerdicts]!].sort()).toEqual(
+      [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.IssueVerdicts]].sort(),
+    );
   });
 
   test("a segment's number is the count of the outcome it opens", () => {
-    const outcomes: AiOutcomes = makeOutcomes();
+    const outcomes: AiOutcomes = makeOutcomes({
+      dataSecurity: makeDataSecurity(),
+      issueVerdicts: makeIssueVerdicts(),
+      leaks: { fixed: 6, open: 2, foundAfter: 4 },
+    });
     const counts: Record<AiOutcomesPart, Record<string, number>> = {
       [AiOutcomesPart.Pages]: outcomes.pages as unknown as Record<
         string,
@@ -372,6 +423,19 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
       [AiOutcomesPart.PullRequestFixes]:
         outcomes.pullRequestFixes as unknown as Record<string, number>,
       [AiOutcomesPart.RootCauses]: outcomes.rootCauses as unknown as Record<
+        string,
+        number
+      >,
+      [AiOutcomesPart.DataSecurityAnalyses]: {
+        analyzed: outcomes.dataSecurity!.issuesAnalyzed!,
+      },
+      [AiOutcomesPart.DataSecurityChanges]: outcomes.dataSecurity!
+        .changes as unknown as Record<string, number>,
+      [AiOutcomesPart.DataSecurityProposals]: outcomes.dataSecurity!
+        .proposals as unknown as Record<string, number>,
+      [AiOutcomesPart.IssueVerdicts]:
+        outcomes.issueVerdicts as unknown as Record<string, number>,
+      [AiOutcomesPart.Leaks]: outcomes.leaks as unknown as Record<
         string,
         number
       >,
@@ -386,6 +450,15 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
           }).toEqual({
             label: segment.label,
             value: counts[segment.records.part][segment.records.outcome],
+          });
+        }
+      }
+
+      for (const fact of card.facts) {
+        if (fact.records) {
+          expect({ label: fact.label, value: fact.value }).toEqual({
+            label: fact.label,
+            value: counts[fact.records.part][fact.records.outcome],
           });
         }
       }

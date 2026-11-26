@@ -179,6 +179,11 @@ describe("the Runbooks side menu lists the Runner pages", () => {
       { title: "Global Variables", href: `${RUNBOOKS}/settings/variables` },
       { title: "Owner Rules", href: `${RUNBOOKS}/settings/owner-rules` },
       { title: "Label Rules", href: `${RUNBOOKS}/settings/label-rules` },
+      // The history of every runbook rule, Alerts', Incidents' and Scheduled Maintenance's (#10462).
+      {
+        title: "Rule Audit Logs",
+        href: `${RUNBOOKS}/settings/rules-audit-logs`,
+      },
     ]);
   });
 
@@ -245,10 +250,11 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     const hrefs: Array<string> = hrefsInMenu();
 
     /*
-     * Six Runbooks pages, then the Developer section's five (Terraform,
-     * Crossplane, API, CLI and AI Assistants).
+     * Seven Runbooks pages (Rule Audit Logs the last of its Settings, #10462),
+     * then the Developer section's five (Terraform, Crossplane, API, CLI and
+     * AI Assistants).
      */
-    expect(hrefs).toHaveLength(11);
+    expect(hrefs).toHaveLength(12);
     for (const href of hrefs) {
       expect(href).not.toMatch(/[:*]/);
       expect(matchRoutes(realRoutes, href)).not.toBeNull();

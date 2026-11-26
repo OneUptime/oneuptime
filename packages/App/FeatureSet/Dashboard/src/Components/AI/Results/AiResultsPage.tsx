@@ -42,7 +42,8 @@ import React, {
 /*
  * Settings → AI → AI Results (issue #6800): what OneUptime AI's work came
  * to for the project over the last 12 weeks - the pages it kept from waking
- * people, the fixes that worked, the root causes it got right - so a team
+ * people, the fixes that worked, the root causes it got right, the changes
+ * for Data Security issues that their checks proved (#10364) - so a team
  * can see whether it is worth keeping on, and whether it is getting better.
  *
  * It loads the project's outcomes (POST /ai-activity/outcomes, counted on

@@ -34,9 +34,15 @@ import React, {
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import joinAriaIds from "../../Utils/AriaIds";
-import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
+import {
+  canPickByLabel,
+  withLabels,
+  withSearchIn,
+} from "./EntityDropdownQuery";
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
+import useLabelSearch, { LabelSearch } from "./LabelSearch";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import { ARCHIVED_COLUMN } from "../../../Utils/ArchivableValues";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import {
   SharedNameMark,
@@ -203,6 +209,59 @@ export interface EntityDropdownProps {
    * none.
    */
   notFoundLabel?: string | undefined;
+  /*
+   * When valueField is not the record's id - an inventory item picked by its
+   * entityKey, an OpenStack project by its externalId, a metric by its name
+   * - what else names one record by it: the cloud a project id belongs to,
+   * say. A value the field holds is read by valueField within this (and
+   * the project), never narrowed by `query`, so one that is no longer
+   * pickable is still named. Unset, the value alone. Ignored while
+   * valueField is "_id" (a value is read by its id, as always).
+   */
+  heldValueQuery?: Record<string, unknown> | undefined;
+  /*
+   * The columns the reader's search looks in. Unset, labelField alone, as
+   * always: an inventory item is found by its name or by its key.
+   */
+  searchFields?: Array<string> | undefined;
+  /*
+   * A column drawn beside each option's name in the list, muted - an
+   * inventory item's type ("Pod"), so two of one name are told apart.
+   * Unset, none.
+   */
+  descriptionField?: string | undefined;
+  /*
+   * Whether archived values are offered too, marked Archived: a list's
+   * filter, whose records that have one stay findable by it (#10646).
+   * Unset, a dropdown of values that can be archived offers the live ones
+   * only (ArchivedValuePicker).
+   */
+  listsArchivedValues?: boolean | undefined;
+  /*
+   * Whether each record is read with its archive switch and marked Archived
+   * when it is: a model whose records can be archived though they are no
+   * values a record picks - a service, which archiving hides from its list
+   * while its telemetry keeps arriving - and which ArchivedValuePicker
+   * leaves alone (#10764). A search's read and a held value's read both
+   * select it. Unset, only an archivable value is marked.
+   */
+  marksArchivedRecords?: boolean | undefined;
+  /*
+   * How a record reads as an option, past the one built from labelField,
+   * colorField and descriptionField: a network device named by its hostname
+   * when it has no name, and without its hostname beside a name that is the
+   * same (#10646). Every record the dropdown reads - a search's, a held
+   * value's, a label's entries - goes through it. Unset, as built.
+   */
+  formatOption?:
+    | ((option: DropdownOption, record: BaseModel) => DropdownOption)
+    | undefined;
+  /*
+   * Take the focus as it is drawn, with its list closed: a picker that
+   * takes the place of the control that had it (a workspace rule's
+   * condition switched from a policy's name to the policies it names).
+   */
+  autoFocus?: boolean | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -454,12 +513,53 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * (ArchivedValuePicker); a value a record already has is read by its id
    * below, archived or not.
    */
-  const pickerQuery: Record<string, unknown> =
-    ArchivedValuePicker.getPickerQuery(modelType, props.query);
+  const pickerQuery: Record<string, unknown> = props.listsArchivedValues
+    ? { ...(props.query || {}) }
+    : ArchivedValuePicker.getPickerQuery(modelType, props.query);
+  /*
+   * The archive switch of a record that is no value (marksArchivedRecords):
+   * every read selects it, so an archived one is marked wherever it shows.
+   */
+  const recordArchiveSelect: Record<string, true> = props.marksArchivedRecords
+    ? { [ARCHIVED_COLUMN]: true }
+    : {};
+  /*
+   * What a search reads to mark an archived value it offers: a list's filter
+   * offers them (listsArchivedValues).
+   */
+  const archivedSelect: Record<string, true> = {
+    ...(props.listsArchivedValues
+      ? ArchivedValuePicker.getSelectedValueSelect(modelType)
+      : {}),
+    ...recordArchiveSelect,
+  };
   const baseQueryRef: React.MutableRefObject<Record<string, unknown>> =
     useRef<Record<string, unknown>>(pickerQuery);
   baseQueryRef.current = pickerQuery;
   const baseQueryKey: string = JSON.stringify(pickerQuery);
+  /*
+   * The columns a search looks in (searchFields; labelField unless named),
+   * and what a held value is read within (heldValueQuery), read from refs
+   * as the query is.
+   */
+  const searchFields: Array<string> =
+    props.searchFields && props.searchFields.length > 0
+      ? props.searchFields
+      : [labelField];
+  const searchFieldsRef: React.MutableRefObject<Array<string>> =
+    useRef<Array<string>>(searchFields);
+  searchFieldsRef.current = searchFields;
+  const searchFieldsKey: string = searchFields.join("|");
+  const heldValueQueryRef: React.MutableRefObject<
+    Record<string, unknown> | undefined
+  > = useRef<Record<string, unknown> | undefined>(props.heldValueQuery);
+  heldValueQueryRef.current = props.heldValueQuery;
+  const descriptionField: string | undefined = props.descriptionField;
+  // Read from a ref, so a caller's inline function never searches again.
+  const formatOptionRef: React.MutableRefObject<
+    EntityDropdownProps["formatOption"]
+  > = useRef<EntityDropdownProps["formatOption"]>(props.formatOption);
+  formatOptionRef.current = props.formatOption;
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -602,15 +702,22 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<Array<DropdownOption>>([]);
+  /*
+   * The search the server answered searchResults for (trimmed, lower-cased):
+   * its answer to the search typed now is shown as it came - a record found
+   * by another of its searchFields (a repository by its organization) has
+   * no word of the search in its name (#10764). Only an answer to an earlier
+   * search, while the next one is on its way, is narrowed to what was typed.
+   */
+  const [searchResultsQuery, setSearchResultsQuery] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [activeTab, setActiveTab] = useState<"options" | "labels">("options");
 
   // Labels tab state.
-  const [allLabels, setAllLabels] = useState<Array<Label>>([]);
-  const [isLoadingLabels, setIsLoadingLabels] = useState<boolean>(false);
-  const [labelsLoaded, setLabelsLoaded] = useState<boolean>(false);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
   const [isApplyingLabels, setIsApplyingLabels] = useState<boolean>(false);
   const [labelError, setLabelError] = useState<string>("");
@@ -888,6 +995,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (raw["isArchived"] === true) {
         option.isArchived = true;
       }
+      // What tells it apart, drawn beside its name (descriptionField).
+      if (descriptionField) {
+        const descriptionRaw: unknown = raw[descriptionField];
+
+        if (
+          descriptionRaw !== undefined &&
+          descriptionRaw !== null &&
+          String(descriptionRaw).trim()
+        ) {
+          option.description = String(descriptionRaw);
+        }
+      }
       /*
        * A team, a label, an on-call policy or a schedule, listed by its
        * name: what tells it from another of the same name (#10064).
@@ -900,10 +1019,24 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           option.sharedName = sharedName;
         }
       }
-      return option;
+      // How the caller has the record read (formatOption).
+      return formatOptionRef.current
+        ? formatOptionRef.current(option, item)
+        : option;
     },
-    [labelField, valueField, colorField],
+    [labelField, valueField, colorField, descriptionField],
   );
+
+  /*
+   * The columns every read selects beside the name: the value's own column
+   * when it is not the id (an inventory item's entityKey) - the option's
+   * value is read from it - and the description's. Nothing more for a
+   * dropdown by id with no description, as before.
+   */
+  const valueSelect: Record<string, true> = {
+    ...(valueField !== "_id" ? { [valueField]: true } : {}),
+    ...(descriptionField ? { [descriptionField]: true } : {}),
+  };
 
   /*
    * The columns each read selects beside the name, so records of one name
@@ -931,15 +1064,17 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     debounceRef.current = window.setTimeout(
       async () => {
         try {
-          const query: Query<BaseModel> = withSearch(
+          const query: Query<BaseModel> = withSearchIn(
             baseQueryRef.current,
-            labelField,
+            searchFieldsRef.current,
             trimmed,
           ) as Query<BaseModel>;
           const baseSelect: Record<string, true> = {
             _id: true,
             [labelField]: true,
+            ...valueSelect,
             ...sharedNameSelect,
+            ...archivedSelect,
           } as Record<string, true>;
           if (colorField) {
             baseSelect[colorField] = true;
@@ -966,9 +1101,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             optionsCacheRef.current.set(valueKey(opt.value), opt);
           }
           setSearchResults(options);
+          setSearchResultsQuery(trimmed.toLowerCase());
         } catch {
           if (mySeq === searchSeqRef.current) {
             setSearchResults([]);
+            setSearchResultsQuery(trimmed.toLowerCase());
           }
         } finally {
           if (mySeq === searchSeqRef.current) {
@@ -988,6 +1125,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     colorField,
     modelToOption,
     baseQueryKey,
+    searchFieldsKey,
   ]);
 
   /*
@@ -1014,20 +1152,32 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         const baseSelect: Record<string, true> = {
           _id: true,
           [labelField]: true,
+          ...valueSelect,
           ...sharedNameSelect,
           // An archived value a record still has is marked as one.
           ...ArchivedValuePicker.getSelectedValueSelect(modelType),
+          ...recordArchiveSelect,
         } as Record<string, true>;
         if (colorField) {
           baseSelect[colorField] = true;
         }
+        /*
+         * Read by the column the values are, never by the search's query:
+         * an id names one record; another column's value (an inventory
+         * item's entityKey) is read within heldValueQuery, and may name
+         * more than one.
+         */
+        const isIdValue: boolean = valueField === "_id";
         const result: ListResult<BaseModel> = await modelAPI.getList<BaseModel>(
           {
             modelType: modelType,
-            query: {
-              _id: new Includes(missing),
-            } as Query<BaseModel>,
-            limit: missing.length,
+            query: (isIdValue
+              ? { _id: new Includes(missing) }
+              : {
+                  ...(heldValueQueryRef.current || {}),
+                  [valueField]: new Includes(missing),
+                }) as Query<BaseModel>,
+            limit: isIdValue ? missing.length : LIMIT_PER_PROJECT,
             skip: 0,
             select: baseSelect as never,
             sort: {},
@@ -1070,57 +1220,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   ]);
 
   /*
-   * Lazy-load the project's labels the first time the user clicks the
-   * Labels tab — same gating as AffectedResourcesPicker. DON'T add
-   * isLoadingLabels to the deps; setting it inside the effect would
-   * self-cancel the in-flight request.
+   * The Labels tab's labels: the ones whose name holds what is typed,
+   * searched on the server while the tab is open (useLabelSearch) - never
+   * the project's first 10,000 filtered here (#10646).
    */
-  useEffect(() => {
-    if (!labelsTabEnabled || activeTab !== "labels" || labelsLoaded) {
-      return;
-    }
-    let cancelled: boolean = false;
-    const loadLabels: () => Promise<void> = async (): Promise<void> => {
-      setIsLoadingLabels(true);
-      setLabelError("");
-      try {
-        const result: ListResult<Label> = await modelAPI.getList<Label>({
-          modelType: Label,
-          query: {} as Query<Label>,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            // What tells labels of one name apart (#10064).
-            ...getSharedNameSelect(Label),
-          } as never,
-          sort: { name: SortOrder.Ascending } as never,
-        });
-        if (cancelled) {
-          return;
-        }
-        setAllLabels(result.data || []);
-        setLabelsLoaded(true);
-      } catch {
-        if (cancelled) {
-          return;
-        }
-        setLabelError(
-          "Failed to load labels. You may not have permission to read labels.",
-        );
-      } finally {
-        if (!cancelled) {
-          setIsLoadingLabels(false);
-        }
-      }
-    };
-    void loadLabels();
-    return () => {
-      cancelled = true;
-    };
-  }, [labelsTabEnabled, activeTab, labelsLoaded, modelAPI]);
+  const labelSearch: LabelSearch = useLabelSearch({
+    isActive: labelsTabEnabled && isOpen && activeTab === "labels",
+    searchText: searchQuery,
+    modelAPI: modelAPI,
+  });
+  const filteredLabels: Array<Label> = labelSearch.labels;
 
   /*
    * The labels of the Labels tab that share a name (#10064), each with the
@@ -1128,7 +1237,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    */
   const labelSharedNameMarks: Map<string, SharedNameMark> = useMemo(() => {
     return getSharedNameMarks(
-      allLabels.map((label: Label) => {
+      filteredLabels.map((label: Label) => {
         return {
           value: label._id?.toString() || "",
           label: label.name || "",
@@ -1137,18 +1246,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }),
       translator,
     );
-  }, [allLabels, translator.language]);
-
-  const filteredLabels: Array<Label> = useMemo(() => {
-    const q: string = searchQuery.trim().toLowerCase();
-    if (q === "") {
-      return allLabels;
-    }
-    return allLabels.filter((label: Label): boolean => {
-      const name: string = (label.name || "").toLowerCase();
-      return name.includes(q);
-    });
-  }, [allLabels, searchQuery]);
+  }, [filteredLabels, translator.language]);
 
   /*
    * Available results = initialFlat (the form's pre-fetched set, which has
@@ -1183,9 +1281,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       out.push(opt);
     }
     if (modelType) {
+      // The server's answer to this very search: as it came (searchFields).
+      const isAnswerToThisSearch: boolean = searchResultsQuery === q;
+
       for (const opt of searchResults) {
         const key: string = valueKey(opt.value);
-        if (!matches(opt)) {
+        if (!isAnswerToThisSearch && !matches(opt)) {
           continue;
         }
         const at: number | undefined = seen.get(key);
@@ -1204,7 +1305,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
     }
     return out;
-  }, [modelType, searchResults, searchQuery, initialFlat, getOptionText]);
+  }, [
+    modelType,
+    searchResults,
+    searchResultsQuery,
+    searchQuery,
+    initialFlat,
+    getOptionText,
+  ]);
 
   /*
    * Filter out the currently-selected key(s) ONLY in multi-select. For
@@ -1374,11 +1482,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
        */
       props.onLabelsBulkAdded?.(
         selectedLabelIds.map((labelId: string): BulkAddedLabel => {
-          const label: Label | undefined = allLabels.find(
-            (candidate: Label): boolean => {
-              return candidate._id?.toString() === labelId;
-            },
-          );
+          // Named by the search that offered it, whatever is typed now.
+          const label: Label | undefined = labelSearch.getLabel(labelId);
 
           return { id: labelId, name: label?.name || "" };
         }),
@@ -1608,6 +1713,25 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       : translator.translateText(props.placeholder || "Select...") || "";
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
+
+  /*
+   * autoFocus: the focus, once, as the dropdown is drawn - on the search
+   * box, or a single pick's value button - with the list kept closed.
+   */
+  useLayoutEffect(() => {
+    if (!props.autoFocus) {
+      return;
+    }
+
+    if (valueButtonRef.current) {
+      valueButtonRef.current.focus();
+      return;
+    }
+
+    keepMenuClosedOnFocusRef.current = true;
+    inputRef.current?.focus();
+    keepMenuClosedOnFocusRef.current = false;
+  }, []);
 
   useLayoutEffect(() => {
     if (!focusInputAfterClearRef.current || showSingleSelectedText) {
@@ -2273,6 +2397,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                             {getOptionText(opt)}
                           </span>
                         )}
+                        {/*
+                         * An archived value a list's filter offers
+                         * (listsArchivedValues), marked as one.
+                         */}
+                        {opt.isArchived && (
+                          <ArchivedTag
+                            isCompact={true}
+                            dataTestId="entity-dropdown-option-archived-tag"
+                          />
+                        )}
                         {opt.description && (
                           <span
                             className={`max-w-[50%] flex-none truncate text-xs ${
@@ -2314,7 +2448,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
           {activeTab === "labels" && (
             <div className="flex-1 overflow-auto py-1">
-              {isLoadingLabels && (
+              {labelSearch.isLoading && (
                 <div className="flex items-center px-3 py-2 text-gray-500">
                   <svg
                     className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
@@ -2340,34 +2474,44 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   <span>{translator.translateText("Loading labels...")}</span>
                 </div>
               )}
-              {!isLoadingLabels && labelError !== "" && (
-                <div className="px-3 py-2 text-red-600">
-                  {translator.translateText(labelError)}
-                </div>
-              )}
-              {!isLoadingLabels &&
+              {!labelSearch.isLoading &&
+                (labelError || labelSearch.error) !== "" && (
+                  <div className="px-3 py-2 text-red-600">
+                    {translator.translateText(labelError || labelSearch.error)}
+                  </div>
+                )}
+              {!labelSearch.isLoading &&
                 labelError === "" &&
-                labelsLoaded &&
-                allLabels.length === 0 && (
-                  <div className="px-3 py-2 text-gray-500">
+                labelSearch.error === "" &&
+                labelSearch.hasLoaded &&
+                filteredLabels.length === 0 &&
+                searchQuery.trim() === "" && (
+                  <div
+                    className="px-3 py-2 text-gray-500"
+                    data-testid="entity-dropdown-no-labels"
+                  >
                     {translator.translateText(
                       "No labels found in this project. Create labels first to use this shortcut.",
                     )}
                   </div>
                 )}
-              {!isLoadingLabels &&
+              {!labelSearch.isLoading &&
                 labelError === "" &&
-                labelsLoaded &&
-                allLabels.length > 0 &&
-                filteredLabels.length === 0 && (
-                  <div className="px-3 py-2 text-gray-500">
+                labelSearch.error === "" &&
+                labelSearch.hasLoaded &&
+                filteredLabels.length === 0 &&
+                searchQuery.trim() !== "" && (
+                  <div
+                    className="px-3 py-2 text-gray-500"
+                    data-testid="entity-dropdown-no-matching-labels"
+                  >
                     {translator.translateTemplate(
                       "No labels match “{{search}}”.",
                       { search: searchQuery.trim() },
                     )}
                   </div>
                 )}
-              {!isLoadingLabels &&
+              {!labelSearch.isLoading &&
                 filteredLabels.map(
                   (label: Label, idx: number): ReactElement => {
                     const labelId: string = label._id ? String(label._id) : "";
@@ -2563,6 +2707,25 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                       </div>
                     );
                   },
+                )}
+              {/*
+               * More labels match than one search lists: how many, and how
+               * to find the rest - typing more of a name narrows them.
+               */}
+              {!labelSearch.isLoading &&
+                labelSearch.count > filteredLabels.length && (
+                  <p
+                    className="px-3 py-2 text-xs text-gray-500"
+                    data-testid="entity-dropdown-more-labels"
+                  >
+                    {translator.translateTemplate(
+                      "Showing {{shown}} of {{total}}. Type to narrow the list.",
+                      {
+                        shown: translator.formatNumber(filteredLabels.length),
+                        total: translator.formatNumber(labelSearch.count),
+                      },
+                    )}
+                  </p>
                 )}
             </div>
           )}

@@ -2,7 +2,8 @@ import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import MonitorUtil from "../../Utils/Monitor";
-import TotpProbeGate, { ItemForProbeKind } from "../../Utils/TotpProbeGate";
+import ProbeStepGate, { ItemForProbeKind } from "../../Utils/ProbeStepGate";
+import PROBE_STEP_NEEDS from "../../Utils/ProbeStepNeeds";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -10,6 +11,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
@@ -331,6 +333,16 @@ router.post(
       let monitorsWithSecretPopulated: Array<Monitor> = [];
       const monitorWithSecretsPopulatePromises: Array<Promise<Monitor>> = [];
 
+      /*
+       * A probe that hides the values filled into a step in its own log is
+       * handed them beside the step (#10875); an older one is handed
+       * nothing more than it was.
+       */
+      const handSecretValuesToHide: boolean = ProbeStepGate.isDeclaredByRequest(
+        data,
+        ProbeCapability.HideSecretValuesInLogs,
+      );
+
       for (const monitor of monitors) {
         const monitorKey: string | undefined = monitor.id?.toString();
 
@@ -340,6 +352,7 @@ router.post(
             monitorKey && monitorIdsNeedingSecretsSet.has(monitorKey)
               ? secretsByMonitorId.get(monitorKey) || []
               : undefined,
+            { handSecretValuesToHide: handSecretValuesToHide },
           ),
         );
       }
@@ -349,16 +362,18 @@ router.post(
       );
 
       /*
-       * A step that needs a one-time code goes only to a probe that makes
-       * one; an older custom probe's is failed, as its own result, with a
-       * sentence saying to update the probe (TotpProbeGate, #9759).
+       * A step that needs a one-time code, or a request body only a newer
+       * probe sends, goes only to a probe that declares it can; an older
+       * custom probe's is failed, as its own result, with a sentence saying
+       * to update the probe (ProbeStepGate, #9759, #10737).
        */
       monitorsWithSecretPopulated =
-        await TotpProbeGate.keepStepsFromProbesTooOld({
+        await ProbeStepGate.keepStepsFromProbesTooOld({
           items: monitorsWithSecretPopulated,
           probeId: probeId,
           requestBody: data,
           kind: ItemForProbeKind.Monitor,
+          needs: PROBE_STEP_NEEDS,
         });
 
       /*
@@ -536,9 +551,17 @@ router.post(
         Promise<MonitorTest>
       > = [];
 
+      // As for monitors: only to a probe that hides them (#10875).
+      const handSecretValuesToHide: boolean = ProbeStepGate.isDeclaredByRequest(
+        data,
+        ProbeCapability.HideSecretValuesInLogs,
+      );
+
       for (const monitorTest of monitorTests) {
         monitorTestsWithSecretsPopulatePromises.push(
-          MonitorUtil.populateSecretsOnMonitorTest(monitorTest),
+          MonitorUtil.populateSecretsOnMonitorTest(monitorTest, {
+            handSecretValuesToHide: handSecretValuesToHide,
+          }),
         );
       }
 
@@ -546,13 +569,14 @@ router.post(
         monitorTestsWithSecretsPopulatePromises,
       );
 
-      // As for monitors: a test's step that needs a one-time code too (#9759).
+      // As for monitors: a test's step a probe cannot run too (#9759, #10737).
       monitorTestsWithSecretPopulated =
-        await TotpProbeGate.keepStepsFromProbesTooOld({
+        await ProbeStepGate.keepStepsFromProbesTooOld({
           items: monitorTestsWithSecretPopulated,
           probeId: probeId,
           requestBody: data,
           kind: ItemForProbeKind.MonitorTest,
+          needs: PROBE_STEP_NEEDS,
         });
 
       // A count, never the tests: they now hold the secrets' values.

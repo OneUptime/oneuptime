@@ -282,3 +282,26 @@ func TestACreateThatLeftOutAFieldWarns(t *testing.T) {
 		t.Fatalf("no answer warns: %v", diags)
 	}
 }
+
+func TestAWriteThatTakesWhatOthersReadWarns(t *testing.T) {
+	resp := &http.Response{Header: http.Header{}}
+	if diags := WriteWarnings(resp, "log drop filter"); len(diags) != 0 {
+		t.Fatalf("a write with nothing to say warns: %v", diags)
+	}
+
+	resp.Header.Add(writeWarningHeader, "Security Events read 12 of the 40 logs this filter matched in the last day, and 2 monitors read logs this filter drops.")
+	resp.Header.Add(writeWarningHeader, "  ")
+	diags := WriteWarnings(resp, "log drop filter")
+	if len(diags) != 1 || diags.HasError() {
+		t.Fatalf("want one warning, got %v", diags)
+	}
+	if got := diags[0].Summary(); got != "OneUptime saved the log drop filter: read what it takes" {
+		t.Errorf("the warning says %q", got)
+	}
+	if !strings.Contains(diags[0].Detail(), "2 monitors read logs this filter drops") {
+		t.Errorf("the warning does not say what the filter takes: %s", diags[0].Detail())
+	}
+	if diags := WriteWarnings(nil, "log drop filter"); len(diags) != 0 {
+		t.Fatalf("no answer warns: %v", diags)
+	}
+}

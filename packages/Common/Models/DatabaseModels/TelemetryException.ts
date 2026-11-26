@@ -118,6 +118,17 @@ import DatabaseServer from "./DatabaseServer";
   where: '"mergedIntoTelemetryExceptionId" IS NOT NULL',
 })
 /*
+ * The former fingerprints of an exception (#10619) and the exceptions a
+ * scrub rule split from one (#10618), by its id: what deleting it reads, and
+ * what an unmerge brings back with it. Partial, so each holds those few rows.
+ */
+@Index(["formerFingerprintOfTelemetryExceptionId"], {
+  where: '"formerFingerprintOfTelemetryExceptionId" IS NOT NULL',
+})
+@Index(["splitFromTelemetryExceptionId"], {
+  where: '"splitFromTelemetryExceptionId" IS NOT NULL',
+})
+/*
  * What an exception group's first occurrence gives it - its type, message
  * and stack trace, when and in which release and environment it was first
  * and last seen, how many times - a create gives (ServerOwned.AfterCreate):
@@ -521,88 +532,6 @@ export default class TelemetryException extends DatabaseBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadTelemetryException,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadTelemetryException,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -1904,4 +1833,163 @@ export default class TelemetryException extends DatabaseBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public mergedByUserId?: ObjectID = undefined;
+
+  /*
+   * AN EXCEPTION'S FORMER FINGERPRINT (#10619).
+   *
+   * Set on a row that is no exception of its own, only the fingerprint an
+   * exception had before OneUptime moved it to a private one: a scrub rule
+   * hid part of the text its old fingerprint was an unkeyed hash of, so
+   * whoever read that fingerprint could hash guesses at the hidden value
+   * (TelemetryExceptionRekey). The row keeps the old fingerprint as a merged
+   * alias of the exception's group - merged into the exception, or into the
+   * one it was merged into - so the occurrences recorded under it before
+   * the move, which keep it in ClickHouse, are still that exception's. It
+   * is never listed, merged or unmerged on its own, and goes with its
+   * exception when that one is deleted. Only OneUptime writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "formerFingerprintOfTelemetryExceptionId",
+    type: TableColumnType.Entity,
+    modelType: TelemetryException,
+    title: "Former Fingerprint Of Exception",
+    description:
+      "The exception whose former fingerprint this row keeps. OneUptime moved that exception to a private fingerprint because a scrub rule hid part of what its old one was made from; its occurrences recorded before the move keep the old one and count there.",
+  })
+  @ManyToOne(
+    () => {
+      return TelemetryException;
+    },
+    {
+      eager: false,
+      nullable: true,
+      // The former fingerprint goes with its exception.
+      onDelete: "CASCADE",
+      orphanedRowAction: "delete",
+    },
+  )
+  @JoinColumn({ name: "formerFingerprintOfTelemetryExceptionId" })
+  public formerFingerprintOfTelemetryException?: TelemetryException = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Former Fingerprint Of Exception ID",
+    description:
+      "ID of the exception whose former fingerprint this row keeps. Empty for an exception of its own.",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public formerFingerprintOfTelemetryExceptionId?: ObjectID = undefined;
+
+  /*
+   * THE EXCEPTION A SCRUB RULE SPLIT THIS ONE FROM (#10618).
+   *
+   * Before #10434 the logs ingest grouped an exception found in a log by
+   * the text the scrub rules left, so a rule that hid part of it split it:
+   * the rule's occurrences made this exception, while the one they were
+   * counted in before kept the rest. Ingest records the pair once it sees
+   * it - an occurrence that lands here under the text the rules left while
+   * an exception exists under what it said as it arrived - and the page
+   * offers to merge the two, the older one kept. Nothing is merged without
+   * a person. Only OneUptime writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "splitFromTelemetryExceptionId",
+    type: TableColumnType.Entity,
+    modelType: TelemetryException,
+    title: "Split From Exception",
+    description:
+      "The exception a scrub rule split this one from, in a version of OneUptime before scrub rules stopped splitting exceptions. Its occurrences were counted there before the rule.",
+  })
+  @ManyToOne(
+    () => {
+      return TelemetryException;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "splitFromTelemetryExceptionId" })
+  public splitFromTelemetryException?: TelemetryException = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Split From Exception ID",
+    description:
+      "ID of the exception a scrub rule split this one from. Empty for an exception no rule split.",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public splitFromTelemetryExceptionId?: ObjectID = undefined;
 }

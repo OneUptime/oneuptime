@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab In een HTTP-verzoek
-Schrijf de verwijzing in de URL, de headers of de body van een [HTTP-verzoekstap](/docs/runbooks/authoring#http-request):
+Schrijf de verwijzing in de URL, de headers, de body of het **CA-certificaat** van een [HTTP-verzoekstap](/docs/runbooks/authoring#http-request):
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+In **CA-certificaat** staat de verwijzing alleen, zoals `{{global.variables.INTERNAL_CA}}`, en de variabele bevat het certificaat in PEM: elke stap die haar noemt vertrouwt dezelfde CA, en een nieuwe CA stelt u op één plek in.
 @tab SSH-aanmelding
 Een [SSH-stap](/docs/runbooks/authoring#ssh) kiest onder **Aanmelden met** de geheime variabele die zijn privésleutel of wachtwoord bevat, en onder **Meer velden → Wachtwoordzin van de sleutel** de wachtwoordzin van zijn sleutel. De waarde zegt of het een sleutel of een wachtwoord is.
 @tab Kubeconfig

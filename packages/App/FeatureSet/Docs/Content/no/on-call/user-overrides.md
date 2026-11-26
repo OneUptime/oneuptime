@@ -27,6 +27,7 @@ Mens en overstyring gjelder, fra start til slutt:
 - Står det noen under **Hvem dekker?**, får den personen alle tilkallingene til personen som er borte, fra hver vaktplan, hvert team og hver regel overstyringen gjelder for. Tilkallingen når dem gjennom deres egne personlige vaktregler.
 - Er det ingen som dekker, hoppes personen over. I en vaktplan går hver av vaktene deres til neste person i rotasjonen som ikke er borte; er alle i et lag borte, tar lagene under over. En regel som nevner dem direkte, eller gjennom et team, tilkaller dem ikke, og kjøringen av policyen viser at de er borte, og til når.
 - Overstyringer kjedes ikke. Er personen som dekker, også borte, er det fortsatt de som tilkalles for personen de dekker for.
+- Noen som er invitert, men ennå ikke har blitt medlem av prosjektet, kan velges under **Hvem dekker?**, men ingenting varsler vedkommende før invitasjonen er godtatt, så inntil da varsles ingen i stedet for personen som er borte. Skjemaet sier det så snart du velger vedkommende, og det gjør også linjen som policyens kanaler og feed får: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 Når overstyringen slutter, er tilkallingene deres igjen. **Tidslinje for vaktplaner**, lagene i en vaktplan og kalenderfeedene viser alle hvem som har hver dekket vakt.
 

@@ -119,6 +119,8 @@ Quand votre banque traite encore un paiement, OneUptime l'indique : certaines ba
 
 L'utilisation d'un jour apparaît une fois la journée terminée, au plus tard vers 08:00 UTC le lendemain. Filtrez par **Produit**, **Jour** ou **Service** pour trouver ce qui a augmenté.
 
+Pour envoyer moins, un [filtre de suppression](/docs/telemetry/drop-filters-and-scrub-rules) jette les journaux et les spans que vous ne lisez jamais avant qu'ils ne soient stockés, et ce qu'il supprime n'est pas facturé. Avant que vous n'en enregistriez un, son formulaire dit quelle part de la télémétrie du dernier jour il cible, et ce qu'il prendrait aux moniteurs, tableaux de bord, SLO et Événements de sécurité qui lisent les mêmes enregistrements : voir [Ce qu'un filtre prendrait](/docs/telemetry/drop-filters-and-scrub-rules#ce-quun-filtre-prendrait).
+
 ## Soldes prépayés
 
 Les SMS, les appels téléphoniques et les messages WhatsApp et Telegram sont payés sur le solde du projet, et OneUptime AI sur ses crédits IA. Vous alimentez chacun à l'avance :
@@ -129,9 +131,9 @@ Les SMS, les appels téléphoniques et les messages WhatsApp et Telegram sont pa
 | OneUptime AI | **Paramètres du projet → IA → Crédits IA** |
 
 :::steps
-### Le recharger maintenant
+### Ajouter au solde maintenant
 
-Sur la carte **Solde actuel** de la page, cliquez sur **Recharger le solde**. Saisissez un montant de $20 à $1,000 et cliquez sur **Recharger**. Le montant est prélevé sur la carte du projet.
+Sur la carte **Solde actuel** de la page, cliquez sur **Ajouter au solde**. Saisissez un montant de $20 à $1,000 et cliquez sur **Ajouter au solde**. Le montant est prélevé sur la carte du projet.
 
 ### Ou le laisser se recharger
 
@@ -150,7 +152,7 @@ Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s
 | Activer ou désactiver les SMS, les appels, WhatsApp ou Telegram | Propriétaire du projet, **Manage Billing** ou **Administrateur de la facturation** |
 | Ajouter un moyen de paiement | Propriétaire du projet, **Manage Billing** ou **Create Payment Method** |
 | Payer une facture | Propriétaire du projet, **Manage Billing** ou **Edit Invoices** |
-| Changer de forfait, recharger un solde ou modifier la recharge automatique | Propriétaire du projet ou **Manage Billing** |
+| Changer de forfait, ajouter à un solde ou modifier la recharge automatique | Propriétaire du projet ou **Manage Billing** |
 
 Un bouton que vous ne pouvez pas utiliser apparaît verrouillé et dit qui le peut. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index#équipes) pour les rôles de facturation.
 

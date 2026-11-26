@@ -49,6 +49,7 @@ import ServiceViewCompliance from "../Pages/Service/View/Compliance";
 import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
 
 import ServiceSettingsLabelRules from "../Pages/Service/Settings/LabelRules";
+import ServiceRulesAuditLogs from "../Pages/Service/Settings/RulesAuditLogs";
 
 import ServiceArchived from "../Pages/Service/Archived";
 import ServiceLabelRule from "Common/Models/DatabaseModels/ServiceLabelRule";
@@ -104,6 +105,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SERVICE_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ServiceRoutePath[PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS] || ""
+          }
+          element={
+            <ServiceRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

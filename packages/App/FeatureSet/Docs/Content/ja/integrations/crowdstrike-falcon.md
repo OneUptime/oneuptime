@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-エンドポイント、ID、クラウドの検出による [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) のアラートを、OneUptime のセキュリティイベントにインポートします。そこではログ、トレース、メトリクスと並べて検索し、他のあらゆるソースと相関付け、重要なものについてオンコールを呼び出せます。OneUptime は作成した API クライアントを使って Falcon Alerts API からアラートを読み取り、Falcon に書き込むことはありません。
+エンドポイント、ID、クラウドの検出による [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) のアラートを、OneUptime のセキュリティイベントにインポートします。そこではログ、トレース、メトリクスと並べて検索し、他のあらゆるソースと相関付け、重要なものについてオンコールを呼び出せます。OneUptime は作成した API クライアントを使って Falcon Alerts API からアラートを読み取ります。Falcon に書き込むのは、オンにした場合に、ブロックするファイルをブロックするときだけです。
 
 :::cards
 - [接続を設定する](#接続を設定する): 1 つのスコープを持つ API クライアントと、接続のフォーム。
 - [インポートされる内容](#インポートされる内容): 各 Falcon アラートがセキュリティイベントになる仕組み。
 - [ポーリングの仕組み](#ポーリングの仕組み): 各ポーリングが読み取る時間枠と、負荷の高い CID での動作。
+- [CrowdStrike でファイルをブロックする](#crowdstrike-でファイルをブロックする): ブロックリストのファイルを、すべてのホストで実行させないようにします。
 - [トラブルシューティング](#トラブルシューティング): 各エラーの意味と変更すべき点。
 :::
 
@@ -33,7 +34,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 ### API クライアントを作成する
 
 1. Falcon コンソールで **Support and resources → API clients and keys** を開き、**Create API client** を選びます。
-2. `OneUptime security events` などの名前を付けます。**API scopes** で **Alerts → Read** をオンにし、他のスコープはすべてオフのままにします。接続が Falcon に書き込むことはありません。
+2. `OneUptime security events` などの名前を付けます。**API scopes** で **Alerts → Read** をオンにし、他のスコープはすべてオフのままにします。アラートの読み取りは Falcon に何も書き込みません。ファイルのブロックにはさらに 2 つ必要です ([CrowdStrike でファイルをブロックする](#crowdstrike-でファイルをブロックする) を参照)。
 3. クライアントを作成します。Falcon はクライアント ID、シークレット、ベース URL を一度だけ表示します。3 つともすぐにコピーしてください。シークレットは後でリセットできますが、二度と表示されません。
 
 ### Falcon クラウドを確認する
@@ -60,6 +61,7 @@ Falcon が表示したベース URL から、CID がどのクラウドにある�
 | --- | --- |
 | **クライアント ID** | クライアント作成時に Falcon が表示した API クライアントの ID。 |
 | **Falcon クラウド** | CID があるクラウド。**US-1 (api.crowdstrike.com)**、**US-2 (api.us-2.crowdstrike.com)**、**EU-1 (api.eu-1.crowdstrike.com)**、**US-GOV-1 (api.laggar.gcw.crowdstrike.com)** のいずれか。すべてのリクエストはそのクラウドの API ホストに送られます。 |
+| **CrowdStrike でファイルをブロック** | 新しい接続ではオフです。オンにすると、プロジェクトのブロックリストにあるファイルをすべてのホストで止め、**IOC Management → Read** と **Write** が必要です ([CrowdStrike でファイルをブロックする](#crowdstrike-でファイルをブロックする) を参照)。 |
 | **クライアントシークレット** | API クライアントのシークレット。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
 **ポーリング** ステップには、任意の **説明**、`1`～`1440` の整数で初期値 `5` の **ポーリング間隔（分）**、初期状態でオンの **有効** もあります。有効になっていない接続でも、テストや手動のポーリングはできます。
@@ -123,6 +125,17 @@ Falcon のエラーで完全に失敗した実行は、カーソルと時間枠�
 - **この時間範囲をインポート** は、確認後、カーソルを動かさずに最大 7 日間の範囲をインポートします。インポート済みのアラートはスキップされます。
 - 実行の **診断情報をコピー** は、サポート向けにその実行のレポートをコピーします。認証情報は含まれません。
 
+## CrowdStrike でファイルをブロックする
+
+接続で **CrowdStrike でファイルをブロック** をオンにすると、プロジェクトの [ブロックリスト](/docs/telemetry/security-cases#ブロックリスト) にあるファイルが、Falcon が保護するすべてのホストで止められます。各ファイルは、その SHA-256 または MD5 ハッシュのカスタム IOC になり、ソースは `OneUptime`、アクションは `prevent` で、Windows、Mac、Linux のホストに適用され、ブロックと一緒に期限切れになります。隔離もするファイルはブロックされ、Falcon がホストの防止ポリシーに従って隔離します。Falcon は SHA-1 ハッシュを照合できず、ドメインやアドレスは検出するだけなので、それらは送られません。[Microsoft Defender](/docs/integrations/microsoft-defender-xdr) でブロックしてください。
+
+新しい接続ではこのスイッチはオフです。オンにするには次のようにします。
+
+1. Falcon コンソールで **Support and resources → API clients and keys** を開き、API クライアントを編集して **IOC Management → Read** と **Write** をオンにします。
+2. 接続で **CrowdStrike でファイルをブロック** をオンにし、**接続をテスト** をクリックします。**Block with CrowdStrike Falcon** が、IOC を変更せずに両方のスコープを確認します。
+
+Falcon が拒否した IOC は、ブロックリストで適用されていないと表示され、その理由が示されます。OneUptime が読み取って変更するのは、この接続のために自分が追加した IOC だけで、人が作成したものには触れません。
+
 ## 接続をテスト
 
 接続の行にある **接続をテスト** と、フォームの **これらの設定をテスト** は、バックグラウンド worker ではなく API プロセスで実行されます。そのため、worker に問題がある場合でもテストは応答します。テストは次のチェックを順に実行します。
@@ -133,6 +146,7 @@ Falcon のエラーで完全に失敗した実行は、カーソルと時間枠�
 | **Authenticate with CrowdStrike Falcon** | クラウドのホストで、API クライアントの ID とシークレットを使った `POST /oauth2/token` がトークンを返すこと。 |
 | **Read alerts from the Falcon Alerts API** | 過去 24 時間を対象とした一件のアラート（`limit=1`）のクエリが受け入れられること。これにより **Alerts → Read** スコープが確認できます。 |
 | **Alerts available to import** | 過去 24 時間と過去 7 日間に作成されたアラートの数。7 日間に一件もない場合は失敗ではなく警告です。ポーリングは Falcon が作成するたびに新しいアラートをインポートします。 |
+| **Block with CrowdStrike Falcon** | **CrowdStrike でファイルをブロック** がオンの場合のみ: API クライアントが **IOC Management → Read** と **Write** を持つこと。OneUptime が Falcon に保持しているカスタム IOC の数を示し、何も変更しません。 |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 側の状態。プロセスが Worker キューのジョブを取得していること、ポーリングジョブが毎分実行されていること、セキュリティイベントのストアが応答すること。 |
 | **スケジュールされたポーリング** | 保存済みの接続について、ポーリングがオンであること、worker を待って止まっている実行がないこと、ポーリングが予定どおり実行されていること。 |
 

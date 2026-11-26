@@ -1,3 +1,4 @@
+import { RECORD_ACTOR_COLUMNS } from "../../../../Types/Database/RecordActor";
 import { SloProductOverhaul1793100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1793100000000-SloProductOverhaul";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Alert from "../../../../Models/DatabaseModels/Alert";
@@ -123,6 +124,9 @@ const MIGRATIONS_DIRECTORY: string = path.dirname(MIGRATION_PATH);
  */
 type ColumnsAddedLaterFunction = (tableName: string) => Set<string>;
 
+// The migration that adds the record actor columns to every table (#10290).
+const RECORD_ACTOR_COLUMNS_MIGRATION_TIMESTAMP: string = "1809187400000";
+
 const columnsAddedByLaterMigrations: ColumnsAddedLaterFunction = (
   tableName: string,
 ): Set<string> => {
@@ -164,6 +168,17 @@ const columnsAddedByLaterMigrations: ColumnsAddedLaterFunction = (
     while (match) {
       added.add(match[1]!);
       match = addColumn.exec(source);
+    }
+  }
+
+  /*
+   * A later migration that adds its columns to every table names no table
+   * in its source: what created each record and who last modified it
+   * (AddRecordCreatedByAndLastModifiedColumns, #10290).
+   */
+  if (laterTimestamps.has(RECORD_ACTOR_COLUMNS_MIGRATION_TIMESTAMP)) {
+    for (const column of RECORD_ACTOR_COLUMNS) {
+      added.add(column);
     }
   }
 

@@ -1359,14 +1359,14 @@ describe("a security case rule's step (#7936)", () => {
 
     expect(checkedAnswer()).toBe("Every update");
     expect(answer("Every update")).toHaveAccessibleDescription(
-      "New and raised cases, assignments, approvals needed and response targets.",
+      "New and raised cases, assignments, approvals needed, response targets and cases OneUptime AI hands to people.",
     );
     expect(answer("Key updates only")).toHaveAccessibleDescription(
-      "New and raised cases, approvals needed and response targets.",
+      "New and raised cases, approvals needed, response targets and cases OneUptime AI hands to people.",
     );
   });
 
-  test("its boxes are the four notices, each saying when it is posted", async () => {
+  test("its boxes are the five notices, each saying when it is posted", async () => {
     renderStep({
       rule: ruleOf([NotificationRuleUpdateKind.ApprovalRequested]),
       eventType: SECURITY_CASE,
@@ -1384,6 +1384,10 @@ describe("a security case rule's step (#7936)", () => {
     );
     expect(box("Response targets")).toHaveAccessibleDescription(
       "When a case is about to miss a response target, or misses it.",
+    );
+    // OneUptime AI handing a case it worked to people (#10352).
+    expect(box("Handed to people by OneUptime AI")).toHaveAccessibleDescription(
+      "When OneUptime AI stops working a case and says why.",
     );
     expect(tickedBoxes()).toEqual(["Approvals needed"]);
   });
@@ -1404,6 +1408,7 @@ describe("a security case rule's step (#7936)", () => {
       NotificationRuleUpdateKind.PriorityReached,
       NotificationRuleUpdateKind.ApprovalRequested,
       NotificationRuleUpdateKind.ResponseTargets,
+      NotificationRuleUpdateKind.AI,
     ]);
   });
 

@@ -1,0 +1,332 @@
+{
+  "_source": "The share by alice is Stratus Red Team's recorded ModifyDBSnapshotAttribute (aws.exfiltration.rds-share-snapshot, github.com/DataDog/stratus-red-team, docs/detonation-logs, Apache-2.0), with its account, key, Region, address and user agent replaced. The other records have its shape, made by OneUptime's own session (Data Security's Revoke sharing), by another session of the same role, and by OneUptime's session name signed with a key OneUptime was never handed.",
+  "Records": [
+    {
+      "awsRegion": "us-east-1",
+      "eventCategory": "Management",
+      "eventID": "0a1b2c3d-0001-4e5f-8a9b-0c1d2e3f4a01",
+      "eventName": "ModifyDBSnapshotAttribute",
+      "eventSource": "rds.amazonaws.com",
+      "eventTime": "2026-11-20T11:58:41Z",
+      "eventType": "AwsApiCall",
+      "eventVersion": "1.08",
+      "managementEvent": true,
+      "readOnly": false,
+      "recipientAccountId": "111122223333",
+      "requestID": "0a1b2c3d00014e5f8a9b0c1d2e3f4a01",
+      "requestParameters": {
+        "attributeName": "restore",
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19",
+        "valuesToRemove": [
+          "all",
+          "210987654321"
+        ]
+      },
+      "responseElements": {
+        "dBSnapshotAttributes": [
+          {
+            "attributeName": "restore",
+            "attributeValues": [
+              "444455556666"
+            ]
+          }
+        ],
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19"
+      },
+      "sourceIPAddress": "203.0.113.24",
+      "tlsDetails": {
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com",
+        "tlsVersion": "TLSv1.3"
+      },
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T11:58:40Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      }
+    },
+    {
+      "awsRegion": "us-east-1",
+      "eventCategory": "Management",
+      "eventID": "0a1b2c3d-0002-4e5f-8a9b-0c1d2e3f4a02",
+      "eventName": "ModifyDBClusterSnapshotAttribute",
+      "eventSource": "rds.amazonaws.com",
+      "eventTime": "2026-11-20T11:58:43Z",
+      "eventType": "AwsApiCall",
+      "eventVersion": "1.08",
+      "managementEvent": true,
+      "readOnly": false,
+      "recipientAccountId": "111122223333",
+      "requestID": "0a1b2c3d00024e5f8a9b0c1d2e3f4a02",
+      "requestParameters": {
+        "attributeName": "restore",
+        "dBClusterSnapshotIdentifier": "ledger-cluster-2026-11-19",
+        "valuesToRemove": [
+          "210987654321"
+        ]
+      },
+      "responseElements": {
+        "dBClusterSnapshotIdentifier": "ledger-cluster-2026-11-19",
+        "dBClusterSnapshotAttributes": [
+          {
+            "attributeName": "restore",
+            "attributeValues": []
+          }
+        ]
+      },
+      "sourceIPAddress": "203.0.113.24",
+      "tlsDetails": {
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com",
+        "tlsVersion": "TLSv1.3"
+      },
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T11:58:40Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      }
+    },
+    {
+      "awsRegion": "us-east-1",
+      "eventCategory": "Management",
+      "eventID": "fef2bf02-bbea-4d0f-a91c-e6ccfe3fba46",
+      "eventName": "ModifyDBSnapshotAttribute",
+      "eventSource": "rds.amazonaws.com",
+      "eventTime": "2024-08-01T12:38:06Z",
+      "eventType": "AwsApiCall",
+      "eventVersion": "1.08",
+      "managementEvent": true,
+      "readOnly": false,
+      "recipientAccountId": "111122223333",
+      "requestID": "3fd13676-52a0-4680-8491-71a8e28ea7f5",
+      "requestParameters": {
+        "attributeName": "restore",
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19",
+        "valuesToAdd": [
+          "210987654321"
+        ]
+      },
+      "responseElements": {
+        "dBSnapshotAttributes": [
+          {
+            "attributeName": "restore",
+            "attributeValues": [
+              "210987654321"
+            ]
+          }
+        ],
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19"
+      },
+      "sourceIPAddress": "198.51.100.77",
+      "tlsDetails": {
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com",
+        "tlsVersion": "TLSv1.3"
+      },
+      "userAgent": "aws-cli/2.17.20 md/awscrt#0.20.11 ua/2.0 os/linux#6.8.0 md/arch#x86_64 lang/python#3.11.9",
+      "userIdentity": {
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "accountId": "111122223333",
+        "arn": "arn:aws:iam::111122223333:user/alice",
+        "principalId": "AIDA2ALICEEXAMPLE001",
+        "type": "IAMUser",
+        "userName": "alice"
+      }
+    },
+    {
+      "awsRegion": "us-east-1",
+      "eventCategory": "Management",
+      "eventID": "0a1b2c3d-0004-4e5f-8a9b-0c1d2e3f4a04",
+      "eventName": "ModifyDBSnapshotAttribute",
+      "eventSource": "rds.amazonaws.com",
+      "eventTime": "2026-11-20T12:03:10Z",
+      "eventType": "AwsApiCall",
+      "eventVersion": "1.08",
+      "managementEvent": true,
+      "readOnly": false,
+      "recipientAccountId": "111122223333",
+      "requestID": "0a1b2c3d00044e5f8a9b0c1d2e3f4a04",
+      "requestParameters": {
+        "attributeName": "restore",
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19",
+        "valuesToAdd": [
+          "all"
+        ]
+      },
+      "responseElements": {
+        "dBSnapshotAttributes": [
+          {
+            "attributeName": "restore",
+            "attributeValues": [
+              "all",
+              "444455556666"
+            ]
+          }
+        ],
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19"
+      },
+      "sourceIPAddress": "198.51.100.77",
+      "tlsDetails": {
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com",
+        "tlsVersion": "TLSv1.3"
+      },
+      "userAgent": "aws-cli/2.17.20 md/awscrt#0.20.11 ua/2.0 os/linux#6.8.0",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:temp-admin",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/temp-admin",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ANOTHERSESSION1",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T11:58:40Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      }
+    },
+    {
+      "awsRegion": "us-east-1",
+      "eventCategory": "Management",
+      "eventID": "0a1b2c3d-0005-4e5f-8a9b-0c1d2e3f4a05",
+      "eventName": "ModifyDBSnapshotAttribute",
+      "eventSource": "rds.amazonaws.com",
+      "eventTime": "2026-11-20T12:04:22Z",
+      "eventType": "AwsApiCall",
+      "eventVersion": "1.08",
+      "managementEvent": true,
+      "readOnly": false,
+      "recipientAccountId": "111122223333",
+      "requestID": "0a1b2c3d00054e5f8a9b0c1d2e3f4a05",
+      "requestParameters": {
+        "attributeName": "restore",
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19",
+        "valuesToAdd": [
+          "210987654321"
+        ]
+      },
+      "responseElements": {
+        "dBSnapshotAttributes": [
+          {
+            "attributeName": "restore",
+            "attributeValues": [
+              "210987654321",
+              "444455556666"
+            ]
+          }
+        ],
+        "dBSnapshotIdentifier": "orders-nightly-2026-11-19"
+      },
+      "sourceIPAddress": "198.51.100.77",
+      "tlsDetails": {
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com",
+        "tlsVersion": "TLSv1.3"
+      },
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2NOTONEUPTIMES01",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T11:58:40Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      }
+    },
+    {
+      "awsRegion": "us-east-1",
+      "eventCategory": "Management",
+      "eventID": "0a1b2c3d-0006-4e5f-8a9b-0c1d2e3f4a06",
+      "eventName": "ModifyDBSnapshotAttribute",
+      "eventSource": "rds.amazonaws.com",
+      "eventTime": "2026-11-20T12:05:00Z",
+      "eventType": "AwsApiCall",
+      "eventVersion": "1.08",
+      "managementEvent": true,
+      "readOnly": false,
+      "recipientAccountId": "111122223333",
+      "requestID": "0a1b2c3d00064e5f8a9b0c1d2e3f4a06",
+      "requestParameters": null,
+      "responseElements": null,
+      "sourceIPAddress": "203.0.113.24",
+      "tlsDetails": {
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com",
+        "tlsVersion": "TLSv1.3"
+      },
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T11:58:40Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      }
+    }
+  ]
+}

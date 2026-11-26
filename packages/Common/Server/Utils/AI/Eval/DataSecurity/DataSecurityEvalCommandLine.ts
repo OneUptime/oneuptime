@@ -8,7 +8,8 @@ import { DataSecurityEvalCase } from "./DataSecurityEvalCase";
  * benchmark's --repeat and --report-markdown (BenchmarkCommandLine):
  *
  *   --feature=<id>[,<id>]   run only these features' cases: ExplainIssue,
- *                           FixIssue, SuggestFieldTypes, AskAi (any case)
+ *                           AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi,
+ *                           ProposeStoreOwners (any case)
  *   --case=<id>[,<id>]      run only these cases
  *   --changed-files=<path>  run only the features the files listed in it
  *                           (one path a line) change: what a pull request
@@ -66,7 +67,23 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts",
     features: [
       DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
       DataSecurityAiFeature.FixIssue,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+    features: [
+      DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
+    ],
+  },
+  // How an analysis's answer is held to its facts (#10369).
+  {
+    path: "packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts",
+    features: [
+      DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
     ],
   },
   {
@@ -76,6 +93,27 @@ const FEATURES_OF_FILE: ReadonlyArray<{
   {
     path: "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts",
     features: [DataSecurityAiFeature.SuggestFieldTypes],
+  },
+  // Verdicts on findings (#10372): what each is told, and how its answer is held.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingPrecedent.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Utils/DataSecurity/FindingJudgement.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
   },
   {
     path: "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts",
@@ -89,7 +127,152 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts",
     features: [
       DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
       DataSecurityAiFeature.FixIssue,
+    ],
+  },
+  // Owners for a store (#10374): what it is asked, and how its answer is held.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPrompt.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  {
+    path: "packages/Common/Utils/DataSecurity/DataStoreOwnerAnswer.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts",
+    features: [DataSecurityAiFeature.ProposeStoreOwners],
+  },
+  // Issues one mistake made (#10370): their name, and the fix of their cause.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt.ts",
+    features: [
+      DataSecurityAiFeature.NameIssueGroup,
+      DataSecurityAiFeature.FixIssueGroup,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming.ts",
+    features: [DataSecurityAiFeature.NameIssueGroup],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
+    features: [
+      DataSecurityAiFeature.NameIssueGroup,
+      DataSecurityAiFeature.FixIssueGroup,
+    ],
+  },
+  // Scrub rules for what Scrub It cannot cover (#10366): what it is told, and how its answer is read.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ScrubRuleWriter.ts",
+    features: [DataSecurityAiFeature.WriteScrubRules],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/ScrubRuleWriterPlace.ts",
+    features: [DataSecurityAiFeature.WriteScrubRules],
+  },
+  {
+    path: "packages/Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes.ts",
+    features: [DataSecurityAiFeature.WriteScrubRules],
+  },
+  // The compliance paperwork (#10375): what each draft is asked, and how its answer is held to its facts.
+  {
+    path: "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+      DataSecurityAiFeature.DraftAuditEvidence,
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingPrompt.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDossier.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentPrompt.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/AuditEvidencePrompt.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/AuditEvidenceDrafter.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  // An exposure's write-up (#10377): its words, its drafter, and the plain code and laws it rests on.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentPrompt.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/BreachLaws.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
     ],
   },
 ];

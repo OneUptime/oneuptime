@@ -1635,11 +1635,20 @@ describe("Core Concepts", () => {
       expect({ rule: rule, where: where }).toEqual({ rule: rule, where: true });
     }
 
-    // Every rule Incidents lists has its family.
-    for (const rule of menuSection(
+    /*
+     * Every rule Incidents lists has its family. The section's last entry,
+     * Audit Logs, is no kind of rule: it is their history (#10462).
+     */
+    const incidentRules: Array<string> = menuSection(
       dashboard("Pages/Incidents/SideMenu.tsx"),
       "Rules",
-    ).items) {
+    ).items;
+
+    expect(incidentRules[incidentRules.length - 1]).toBe("Audit Logs");
+
+    for (const rule of incidentRules.filter((item: string): boolean => {
+      return item !== "Audit Logs";
+    })) {
       expect({ rule: rule, named: rules.includes(rule) }).toEqual({
         rule: rule,
         named: true,
@@ -3824,13 +3833,16 @@ describe("Home Page & Shortcuts", () => {
       expect(`${fromTablet} ${fromLaptop}`).not.toContain(always);
     }
 
-    // Below md, the menu button's list starts with Search and ends with Help.
+    /*
+     * Below md, the menu button's list starts with Search and then Help,
+     * above Home and every product (#7473), and nothing is drawn at its end.
+     */
     const navBar: string = oneLine(dashboard("Components/NavBar/NavBar.tsx"));
 
     expect(navBar).toContain(
-      "return <PhoneMenuSearch closeMenu={closeMenu} />;",
+      "mobileMenuTop={(closeMenu: () => void): ReactElement => { return ( <> <PhoneMenuSearch closeMenu={closeMenu} /> <PhoneMenuHelp closeMenu={closeMenu} /> </> ); }}",
     );
-    expect(navBar).toContain("return <PhoneMenuHelp closeMenu={closeMenu} />;");
+    expect(navBar).not.toContain("mobileMenuBottom");
     expect(readSource(COMMON_DIR, "UI/Components/Navbar/NavBar.tsx")).toContain(
       "export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;",
     );
@@ -3841,7 +3853,7 @@ describe("Home Page & Shortcuts", () => {
     ).toContain('title: t("commandPalette.actions.askAi", "Ask AI"),');
 
     expect(HOME).toContain(
-      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.",
+      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move to the top of the menu button's list, **Help** right under **Search**; the bell and your picture stay.",
     );
   });
 
@@ -4015,7 +4027,7 @@ describe("Your Account", () => {
     dashboard("Locales/en.json"),
   ) as { userProfile: Record<string, string> };
 
-  it("lists the user menu as the header draws it: admin settings for master admins, the theme row with its three choices", () => {
+  it("lists the user menu as the header draws it: the Admin Dashboard for master admins, the theme row with its three choices", () => {
     const source: string = dashboard("Components/Header/UserProfile.tsx");
     const keys: Array<string> = Array.from(source.matchAll(USER_MENU_KEY)).map(
       (match: RegExpMatchArray): string => {
@@ -4023,10 +4035,10 @@ describe("Your Account", () => {
       },
     );
 
-    expect(keys).toEqual(["label", "profile", "adminSettings", "signOut"]);
+    expect(keys).toEqual(["label", "profile", "adminDashboard", "signOut"]);
 
     /*
-     * The theme is one row between Admin Settings and Sign Out, which draws
+     * The theme is one row between Admin Dashboard and Sign Out, which draws
      * its own words (Common's ThemeChoiceRow): "Theme", and Light, Dark and
      * System, in that order.
      */
@@ -4034,7 +4046,7 @@ describe("Your Account", () => {
     const themeRow: number = menu.indexOf("<ThemeChoiceRow />");
 
     expect(themeRow).toBeGreaterThan(
-      menu.indexOf('t("userProfile.adminSettings")'),
+      menu.indexOf('t("userProfile.adminDashboard")'),
     );
     expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.signOut")'));
 
@@ -4067,13 +4079,13 @@ describe("Your Account", () => {
       }),
     ).toEqual([
       english.userProfile["profile"] as string,
-      english.userProfile["adminSettings"] as string,
+      english.userProfile["adminDashboard"] as string,
       "Theme",
       english.userProfile["signOut"] as string,
     ]);
 
     expect(menu).toContain(
-      'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminSettings")}',
+      'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminDashboard")}',
     );
     expect((rows[1] as Array<string>)[1]).toContain(
       "Only master admins of a self-hosted installation see it.",
@@ -4416,6 +4428,40 @@ describe("Your Account", () => {
     );
   });
 
+  /*
+   * Add to Authenticator App (#6651): drawn by the one component both setups
+   * draw - the profile's and the one a sign-in asks for - on a touch screen
+   * only, and named by the docs in both, as a phone's way in place of the QR
+   * code.
+   */
+  it("says a phone taps Add to Authenticator App, where the setup draws it", () => {
+    const setupCode: string = readSource(
+      COMMON_DIR,
+      "UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode.tsx",
+    );
+
+    expect(setupCode).toContain('translateText("Add to Authenticator App")');
+    expect(setupCode).toContain("useState<boolean>(prefersTouch)");
+    expect(dashboard("Pages/Global/UserProfile/TwoFactorAuth.tsx")).toContain(
+      "<AuthenticatorAppSetupCode",
+    );
+    expect(readSource(ACCOUNTS_DIR, "Pages/Login.tsx")).toContain(
+      "<AuthenticatorAppSetupCode",
+    );
+
+    expect(sectionOf(YOUR_ACCOUNT, "### Set it up")).toContain(
+      "On a phone, tap **Add to Authenticator App** instead of scanning: your app opens with your account filled in.",
+    );
+    expect(
+      sectionOf(
+        YOUR_ACCOUNT,
+        "### Set up two-factor authentication while signing in",
+      ),
+    ).toContain(
+      "On a phone, tap **Add to Authenticator App** instead of scanning.",
+    );
+  });
+
   it("creates, joins and leaves projects with the controls that do it", () => {
     const picker: string = dashboard("Components/Header/ProjectPicker.tsx");
     const fields: string = readSource(
@@ -4626,7 +4672,7 @@ describe("Your Account", () => {
       "turnsTwoFactorAuthOff &&\n        (await this.isTwoFactorAuthOn(updateBy.props.userId!))",
     );
     expect(userService).toContain(
-      "await this.assertOwnAccountDeleteIsConfirmed(deleteBy, users);",
+      "await this.assertAccountDeleteIsConfirmed(deleteBy, users);",
     );
 
     // Passkeys, security keys and authenticator apps, added or removed.
@@ -4730,8 +4776,24 @@ describe("Your Account", () => {
       readSource(COMMON_DIR, "Types/Accounts/Reauthentication.ts"),
     ).toContain("An API key cannot make it.");
 
+    // Someone else's account deleted, and the master API key turned back on (#10330).
+    expect(readSource(COMMON_DIR, "Server/Services/UserService.ts")).toContain(
+      "deletesOwnAccount\n        ? ReauthenticationPurpose.DeleteAccount\n        : ReauthenticationPurpose.AdminChange,",
+    );
+
+    const globalConfigService: string = readSource(
+      COMMON_DIR,
+      "Server/Services/GlobalConfigService.ts",
+    );
+    expect(globalConfigService).toContain(
+      "await this.assertMasterApiKeyTurnOnIsConfirmed(\n      updateBy.data,\n      updateBy.props,\n    );",
+    );
+    expect(globalConfigService).toContain(
+      "return value !== undefined && value !== null && value !== false;",
+    );
+
     expect(YOUR_ACCOUNT).toContain(
-      "master admins confirm it's them in the same way before they change how someone else signs in, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key. The master API key cannot make these changes.",
+      "master admins confirm it's them in the same way before they change how someone else signs in, delete someone else's account, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key or turn it back on. The master API key cannot make these changes.",
     );
   });
 
@@ -4739,16 +4801,22 @@ describe("Your Account", () => {
     expect(readSource(IDENTITY_DIR, "Utils/SSO.ts")).toContain(
       'ForceAuthn="${data.forceAuthn ? "true" : "false"}"',
     );
-    expect(readSource(IDENTITY_DIR, "Utils/OIDC.ts")).toContain(
-      '...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),',
+    const oidc: string = readSource(IDENTITY_DIR, "Utils/OIDC.ts");
+    expect(oidc).toContain(
+      '...(data.isSignInAgain ? { prompt: "login" } : {}),',
+    );
+    // max_age=0 to every OpenID Connect provider but Microsoft Entra ID (#10529).
+    expect(oidc).toContain(
+      "...(data.isSignInAgain && !OIDCUtil.isMicrosoftEntraId(data.client)\n        ? { max_age: 0 }",
     );
 
+    // Sign in with Microsoft: prompt=login alone, no max_age (#10529).
     const microsoft: string = readSource(
       COMMON_DIR,
       "Server/Utils/MicrosoftSignIn/MicrosoftSignInClient.ts",
     );
     expect(microsoft).toContain('params.set("prompt", "login");');
-    expect(microsoft).toContain('params.set("max_age", "0");');
+    expect(microsoft).not.toContain('params.set("max_age"');
 
     const google: string = readSource(
       COMMON_DIR,
@@ -4770,12 +4838,52 @@ describe("Your Account", () => {
 
     for (const row of [
       '| SAML | `ForceAuthn="true"`, and when you signed in (`AuthnInstant`) | Have the provider honor the request, such as with Honor Force Authentication in Okta. |',
-      "| OpenID Connect | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |",
+      "| OpenID Connect | `prompt=login` and `max_age=0` (Microsoft Entra ID: `prompt=login` alone), and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |",
       "| Google | When you signed in (`auth_time`). Google cannot be asked to have you sign in again. | Turn on Session age claims for the server's Google sign-in app, which must be published and verified. |",
-      "| Microsoft | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |",
+      "| Microsoft | `prompt=login`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |",
+      "| Vercel | Nothing: Vercel cannot be asked to have you sign in again, and does not say when you signed in. | It never confirms. Choose **Sign In Another Way** and sign in with a link emailed to you, or set a password with **Forgot password?** and confirm with it. |",
     ]) {
       expect(YOUR_ACCOUNT).toContain(row);
     }
+
+    // And where each identity provider's own settings are (#10332).
+    expect(YOUR_ACCOUNT).toContain(
+      "What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.",
+    );
+  });
+
+  /*
+   * Sign in with Vercel cannot confirm it's you (#10331): the server names
+   * it, with no way back through it, and the prompt says so and offers the
+   * emailed link or a password - as the page says. That a sign-in from
+   * Vercel keeps no Sign In Again is ee's own test (VercelSignInAPI).
+   */
+  it("says Sign in with Vercel never confirms it's you, and what does, as the server and the prompt decide it (#10331)", () => {
+    expect(
+      readSource(
+        COMMON_DIR,
+        "Server/Utils/Reauthentication/Reauthentication.ts",
+      ),
+    ).toContain(
+      "if (signIn.method === SignInMethod.Vercel) {\n      return {\n        route: null,\n        provider: SignInAgainProvider.Vercel,",
+    );
+
+    const prompt: string = readSource(
+      COMMON_DIR,
+      "UI/Components/Reauthentication/ReauthenticationPrompt.tsx",
+    );
+
+    for (const words of [
+      "You signed in with Vercel, which cannot confirm it's you: Vercel cannot be asked to have you sign in again, and does not say when you signed in.",
+      "Choose Sign In Another Way, and sign in with a link emailed to you instead.",
+      "Set a password with Forgot password? on the sign-in page, then confirm it's you with it instead.",
+    ]) {
+      expect(prompt).toContain(`"${words}"`);
+    }
+
+    expect(YOUR_ACCOUNT).toContain(
+      "If you sign in only with Vercel, which cannot confirm it's you, choose **Sign In Another Way** and sign in with a link emailed to you instead.",
+    );
   });
 
   it("recovers sign-in with the sign-in page's own links, and a reset verifies the address", () => {

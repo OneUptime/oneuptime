@@ -27,6 +27,7 @@ Finché una sostituzione è in vigore, dal suo inizio alla sua fine:
 - Con qualcuno in **Chi sostituisce?**, quella persona riceve tutti gli avvisi della persona assente, da ogni pianificazione, team e regola a cui la sostituzione si applica. L'avviso la raggiunge tramite le sue regole di reperibilità personali.
 - Senza sostituto, la persona viene saltata. In una pianificazione di reperibilità, ogni suo turno passa alla persona successiva nella rotazione che non è assente; se tutti in un livello sono assenti, subentrano i livelli sottostanti. Una regola che la nomina direttamente, o tramite un team, non la avvisa, e l'esecuzione della policy dice che è assente, e fino a quando.
 - Le sostituzioni non si concatenano. Se anche il sostituto è assente, viene comunque avvisato lui per la persona che sostituisce.
+- Si può scegliere in **Chi sostituisce?** una persona invitata che non è ancora entrata nel progetto, ma nulla la avvisa finché non accetta il suo invito, quindi fino ad allora nessuno viene avvisato al posto della persona assente. Il modulo lo dice appena la scegli, e lo dice anche la riga che ricevono i canali e il feed della policy: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 Quando la sostituzione finisce, gli avvisi tornano alla persona. La **Cronologia delle reperibilità**, i livelli di una pianificazione e i feed del calendario mostrano tutti chi ha ogni turno sostituito.
 

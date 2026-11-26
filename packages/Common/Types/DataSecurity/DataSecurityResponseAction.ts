@@ -107,6 +107,45 @@ export const DATA_SECURITY_RESPONSE_ACTION_KINDS: Readonly<
 };
 
 /*
+ * The AWS operations each action makes, as the account's activity log
+ * names them (service:EventName): how a change OneUptime made in its own
+ * session is tied to the response action on the store's feed that made it
+ * (DataSecurityChangeSignals, #10428). Azure's and Google Cloud's are not
+ * told yet: their changes are marked as OneUptime's own only on AWS.
+ */
+export const DATA_SECURITY_RESPONSE_ACTION_AWS_OPERATIONS: Readonly<
+  Partial<Record<DataSecurityResponseAction, ReadonlyArray<string>>>
+> = {
+  [DataSecurityResponseAction.BlockPublicAccess]: [
+    "s3:PutBucketPublicAccessBlock",
+  ],
+  [DataSecurityResponseAction.RevokeSharing]: [
+    "rds:ModifyDBSnapshotAttribute",
+    "rds:ModifyDBClusterSnapshotAttribute",
+  ],
+  [DataSecurityResponseAction.TurnOnVersioning]: ["s3:PutBucketVersioning"],
+  [DataSecurityResponseAction.TurnOffObjectAcls]: [
+    "s3:PutBucketOwnershipControls",
+  ],
+  [DataSecurityResponseAction.TurnOnPointInTimeRecovery]: [
+    "dynamodb:UpdateContinuousBackups",
+  ],
+};
+
+// The response actions that make an AWS operation.
+export function getAwsResponseActionsMaking(
+  operation: string,
+): Array<DataSecurityResponseAction> {
+  return ALL_DATA_SECURITY_RESPONSE_ACTIONS.filter(
+    (action: DataSecurityResponseAction): boolean => {
+      return (
+        DATA_SECURITY_RESPONSE_ACTION_AWS_OPERATIONS[action] || []
+      ).includes(operation);
+    },
+  );
+}
+
+/*
  * The checks each action fixes: an issue of one of these, on a store the
  * action can change, offers the action on its page.
  */

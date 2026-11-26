@@ -178,4 +178,27 @@ describe("an AI insight's triage, read for everyone who may see the insight", ()
     expect(JSON.stringify(written)).toContain(SET_APART_MONITOR_NAME);
     expect(JSON.stringify(written)).toContain(OPEN_MONITOR_NAME);
   });
+
+  /*
+   * Unlike a security case's triage (#9632), an insight's counts every
+   * row: Project Member reads insights, and an investigation reads its
+   * summary again (query_ai_insights) for an incident's readers.
+   */
+  test("a team that reads every kind only for some labels narrows it though none of its members may read security cases", async () => {
+    readersOfAProject({
+      narrowedByLabels: true,
+      narrowedTeamReadsSecurityCases: false,
+    });
+    theInsight(SERVICE_ID);
+    const model: ModelReadingMonitors = modelReadsMonitors({
+      answerTail: ANSWER_TAIL,
+    });
+
+    await triage();
+
+    expect(model.toolProps).toEqual([
+      readAudienceProps(narrowedReaders({ Service: [SERVICE_ID.toString()] })),
+    ]);
+    expect(JSON.stringify(written)).not.toContain(SET_APART_MONITOR_NAME);
+  });
 });

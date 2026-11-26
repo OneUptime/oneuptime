@@ -8,6 +8,7 @@ import { WorkspacePayloadInlineImage } from "../../../../Types/Workspace/Workspa
 import API from "../../../../Utils/API";
 import { InlineImageDataUri } from "../../../../Utils/Markdown/InlineImageDataUri";
 import logger from "../../Logger";
+import OutboundProxyAgents from "../../OutboundProxyAgents";
 import SSRFProtection from "../../SSRFProtection";
 import OldestKeyMap from "../../../../Utils/OldestKeyMap";
 
@@ -251,7 +252,9 @@ export default class SlackInlineImages {
       const upload: AxiosResponse = await axios.post(
         uploadUrl,
         Buffer.from(data.image.base64, "base64"),
-        {
+        // Through the outbound proxy, or directly (OutboundProxyAgents).
+        OutboundProxyAgents.routeAxiosRequest({
+          url: uploadUrl,
           headers: {
             "Content-Type": "application/octet-stream",
           },
@@ -263,7 +266,7 @@ export default class SlackInlineImages {
           validateStatus: (): boolean => {
             return true;
           },
-        },
+        }),
       );
 
       if (upload.status < 200 || upload.status >= 300) {

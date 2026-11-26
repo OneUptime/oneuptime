@@ -50,6 +50,12 @@ import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
  *     what it could not load and why, and Try again loads it.
  *   - An issue the reader may not read, or that is not there, is said in
  *     place of the page, as before.
+ *   - OneUptime AI's analysis (#10369) is at the top of the issue, read from
+ *     the server's analysis route - never by asking OneUptime AI - for each
+ *     role as they may read what it rests on: a reader who may not read who
+ *     can reach the store reads that its lines on it are hidden, and none of
+ *     the grants. A verdict a person acts on offers the action, its reason
+ *     drafted, and nothing changes until they choose.
  */
 
 jest.mock("react-i18next", () => {
@@ -97,15 +103,45 @@ import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import DataSecurityAPI from "../../../Server/API/DataSecurityAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../../../Server/Utils/Express";
+import DataSecurityAiProposalService from "../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityCustomDataTypeService from "../../../Server/Services/DataSecurityCustomDataTypeService";
+import DataSecurityFlowService from "../../../Server/Services/DataSecurityFlowService";
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
+import DataStoreAccessService from "../../../Server/Services/DataStoreAccessService";
+import DataStoreOwnerTeamService from "../../../Server/Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "../../../Server/Services/DataStoreOwnerUserService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import DataSecurityAiInput, {
+  AiIssueDossier,
+} from "../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
+import {
+  DataSecurityAiVerdict,
+  DataSecurityAnalysisAnswer,
+  DataSecurityIssueAnalysisRecord,
+  holdAnalysisToFacts,
+  toDataSecurityIssueAnalysisJson,
+} from "../../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
+import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
+import {
+  DataStoreAccessLevel,
+  DataStorePrincipalType,
+} from "../../../Types/DataSecurity/DataStoreAccess";
 import DataSecurityCustomDataType from "../../../Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "../../../Models/DatabaseModels/Project";
+import SecuritySeverity from "../../../Types/SecuritySeverity";
 import Route from "../../../Types/API/Route";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -116,6 +152,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { getRecordActivitySelect } from "../../../UI/Components/Detail/DetailRecordActivity";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { customDomainCaller } from "../../Server/API/CustomDomainCallers";
 import DashboardRequestsOverHttp, {
@@ -139,6 +176,9 @@ const STORE_ID: string = "10238000-0000-4000-8000-0000000000b1";
 
 const ISSUE_PATH: string = `/api/data-security-issue/${ISSUE_ID}/get-item`;
 const STORE_PATH: string = `/api/data-store/${STORE_ID}/get-item`;
+const ANALYSIS_PATH: string = `/api/data-security-issue/${ISSUE_ID}/analysis`;
+const EXPLAIN_PATH: string = `/api/data-security-issue/${ISSUE_ID}/explain`;
+const ACCESS_ID: string = "10238000-0000-4000-8000-0000000000c1";
 
 // The issue's title, as the catalog's check words it.
 const TITLE: string = "Anyone on the internet can read it";
@@ -150,6 +190,32 @@ const NAME_REFUSAL: string =
   "Column name on Data Store does not support read on relation query.";
 
 const FLOW_TIMEOUT_IN_MS: number = 60000;
+
+/*
+ * The issue's line reads who created it and who last modified it in a read
+ * of its own (RecordActivityLine, #10461): a select of those columns alone,
+ * apart from the reads of the issue that draw its page.
+ */
+const RECORD_LINE_COLUMNS: Array<string> = Object.keys(
+  getRecordActivitySelect(new DataSecurityIssue(), (): boolean => {
+    return true;
+  }),
+);
+
+function isRecordLineRead(sent: SentRequest): boolean {
+  return Object.keys(
+    ((sent.body as JSONObject)["select"] as JSONObject) || {},
+  ).every((column: string): boolean => {
+    return RECORD_LINE_COLUMNS.includes(column);
+  });
+}
+
+// The reads of the issue that draw its page: every one but its line's.
+function issuePageReads(): Array<SentRequest> {
+  return server.sentTo("POST", ISSUE_PATH).filter((sent: SentRequest) => {
+    return !isRecordLineRead(sent);
+  });
+}
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: RouteMap[PageMap.DATA_SECURITY_ISSUE_VIEW] as Route,
@@ -217,6 +283,23 @@ function setCaller(permissions: Array<Permission>): void {
   jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue(permissions);
 }
 
+// Everyone may read the bucket, through its policy.
+function storedGrant(): StoredRow {
+  return {
+    _id: ACCESS_ID,
+    projectId: PROJECT_ID.toString(),
+    dataStoreId: STORE_ID,
+    principal: "*",
+    principalName: "Everyone",
+    principalType: "Public",
+    accessLevel: "Read",
+    grantedVia: "Bucket policy",
+    isPublic: true,
+    isExternal: true,
+    isSeenInTraces: false,
+  };
+}
+
 function useTables(issue: StoredRow): void {
   issues = useInMemoryTable(DataSecurityIssueService, [issue], {
     answersOnlySelectedColumns: true,
@@ -225,6 +308,115 @@ function useTables(issue: StoredRow): void {
     answersOnlySelectedColumns: true,
   });
   useInMemoryTable(DataSecurityCustomDataTypeService, []);
+  // What OneUptime AI's analysis rests on, read as each reader may (#10369).
+  useInMemoryTable(DataStoreAccessService, [storedGrant()], {
+    answersOnlySelectedColumns: true,
+  });
+  useInMemoryTable(DataSecurityFlowService, []);
+  useInMemoryTable(DataSecurityAiProposalService, []);
+  useInMemoryTable(DataStoreOwnerUserService, []);
+  useInMemoryTable(DataStoreOwnerTeamService, []);
+}
+
+const ANALYZED_AT: Date = new Date("2026-11-20T09:00:00.000Z");
+
+/*
+ * OneUptime AI's analysis as the issue keeps it (#10369): its facts made
+ * by the input builder from what the tables hold, and the answer held to
+ * them, as the analysis writes it.
+ */
+function keptAnalysis(
+  answer: DataSecurityAnalysisAnswer,
+  store: AiIssueDossier["store"] = {
+    _id: STORE_ID,
+    name: "customer-exports",
+    kind: DataStoreKind.AwsS3Bucket,
+    sensitivity: DataSensitivity.Restricted,
+    dataTypeIds: ["credit-card-number"],
+    exposure: DataStoreExposure.Public,
+  },
+): StoredRow {
+  const facts: AiIssueDossier = {
+    issue: {
+      _id: ISSUE_ID,
+      checkId: "public-read",
+      title: TITLE,
+      severity: SecuritySeverity.Critical,
+      evidence: EVIDENCE,
+      dataTypeIds: [...(store.dataTypeIds || [])],
+    },
+    store,
+    places: [],
+    access: [
+      {
+        _id: ACCESS_ID,
+        principal: "*",
+        principalName: "Everyone",
+        principalType: DataStorePrincipalType.Public,
+        accessLevel: DataStoreAccessLevel.Read,
+        grantedVia: "Bucket policy",
+        isPublic: true,
+        isExternal: true,
+      },
+    ],
+    copies: [],
+    securityCaseIds: [],
+    responses: [],
+    proposals: [],
+    declaredCode: null,
+    owners: { recordIds: [], names: [], count: 0 },
+    now: ANALYZED_AT,
+  };
+  const record: DataSecurityIssueAnalysisRecord = holdAnalysisToFacts({
+    answer,
+    facts: DataSecurityAiInput.analysisFacts({ dossier: facts }).facts,
+    language: "en",
+  })!;
+
+  return {
+    aiVerdict: record.verdict,
+    aiAnalysis: toDataSecurityIssueAnalysisJson(record),
+    aiAnalyzedAt: ANALYZED_AT,
+    aiAnalysisInputHash: "a".repeat(64),
+  };
+}
+
+const AI_REASON: string =
+  "Anyone on the internet can read the card numbers in customer-exports.";
+const AI_RISK: string =
+  "Card numbers, for anyone: Everyone can read them through the bucket policy.";
+const AI_BREAKS: string =
+  "Nothing OneUptime can see uses the bucket, so blocking public access breaks nothing.";
+
+const REAL: DataSecurityAnalysisAnswer = {
+  verdict: DataSecurityAiVerdict.Real,
+  lines: {
+    reason: { text: AI_REASON, facts: ["S2", "S1"] },
+    risk: { text: AI_RISK, facts: ["S1", "R0", "R1"] },
+    breaks: { text: AI_BREAKS, facts: ["N1"] },
+    path: { text: "Block public access for the bucket.", facts: ["S2"] },
+  },
+};
+
+// The project's AI, on the Dashboard and on the server.
+function turnAi(enableAi: boolean): void {
+  const project: Project = new Project();
+  project.id = PROJECT_ID;
+  project.enableAi = enableAi;
+  jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+  jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+    return { id: PROJECT_ID, enableAi } as unknown as Project;
+  }) as never);
+}
+
+async function analysisShown(): Promise<HTMLElement> {
+  await waitFor(() => {
+    expect(
+      screen.getByTestId("data-security-issue-ai-analysis-verdict"),
+    ).toBeInTheDocument();
+  });
+
+  return screen.getByTestId("data-security-issue-ai-analysis");
 }
 
 async function renderIssuePage(issueId: string = ISSUE_ID): Promise<void> {
@@ -291,7 +483,32 @@ function keepStoreNameOffRelations(): void {
     });
 }
 
+/*
+ * Data Security's own routes ask for a signed-in member before anything
+ * else: the session guards pass, as a signed-in member's request passes
+ * them, and the props are the caller's (CommonAPI, below).
+ */
+function passSessionGuards(): void {
+  jest.spyOn(UserMiddleware, "getUserMiddleware").mockImplementation((async (
+    _req: ExpressRequest,
+    _res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    next();
+  }) as never);
+  jest
+    .spyOn(UserMiddleware, "requireUserAuthentication")
+    .mockImplementation((async (
+      _req: ExpressRequest,
+      _res: ExpressResponse,
+      next: NextFunction,
+    ) => {
+      next();
+    }) as never);
+}
+
 beforeAll(async () => {
+  passSessionGuards();
   server = new DashboardRequestsOverHttp();
   await server.start([
     new BaseAPI<DataSecurityIssue, DatabaseService<BaseModel>>(
@@ -337,6 +554,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  // The session guards stay as the routers were built with them.
+  passSessionGuards();
 });
 
 describe("a data security issue's page, through the server", () => {
@@ -364,11 +583,31 @@ describe("a data security issue's page, through the server", () => {
 
       // One read of the issue, answered; the store was not read again.
       expect(
-        server.sentTo("POST", ISSUE_PATH).map((sent: SentRequest) => {
+        issuePageReads().map((sent: SentRequest) => {
           return sent.status;
         }),
       ).toEqual([200]);
       expect(server.sentTo("POST", STORE_PATH)).toEqual([]);
+
+      /*
+       * Its line - who created it and who last modified it - in a read of
+       * its own, answered, at the foot of the issue's first card.
+       */
+      await waitFor(() => {
+        expect(
+          server
+            .sentTo("POST", ISSUE_PATH)
+            .filter(isRecordLineRead)
+            .map((sent: SentRequest) => {
+              return sent.status;
+            }),
+        ).toEqual([200]);
+      });
+      expect(
+        within(screen.getByTestId("data-security-issue-header")).getByTestId(
+          "detail-record-line",
+        ),
+      ).toBeInTheDocument();
     },
     FLOW_TIMEOUT_IN_MS,
   );
@@ -398,11 +637,9 @@ describe("a data security issue's page, through the server", () => {
       );
       // The issue's read named nothing of the store it may not.
       expect(
-        (
-          (server.sentTo("POST", ISSUE_PATH)[0]!.body as JSONObject)[
-            "select"
-          ] as JSONObject
-        )["dataStore"],
+        ((issuePageReads()[0]!.body as JSONObject)["select"] as JSONObject)[
+          "dataStore"
+        ],
       ).not.toHaveProperty("dataTypeIds");
     },
     FLOW_TIMEOUT_IN_MS,
@@ -485,7 +722,7 @@ describe("a data security issue's page, through the server", () => {
        * The whole read, refused; the issue's own columns; then each record
        * it names on its own - the store's refused, the others answered.
        */
-      const issueReads: Array<SentRequest> = server.sentTo("POST", ISSUE_PATH);
+      const issueReads: Array<SentRequest> = issuePageReads();
       const readOf: (relation: string) => SentRequest | undefined = (
         relation: string,
       ): SentRequest | undefined => {
@@ -570,18 +807,17 @@ describe("a data security issue's page, through the server", () => {
   /*
    * Data Security whole without AI (#10365): with the project's Enable AI
    * off, the issue's page is all there - what is wrong, the evidence, the
-   * store and what it holds - and draws no AI action; with it on, both.
+   * store and what it holds - and draws no analysis and no AI action; with
+   * it on, OneUptime AI's analysis (#10369) and Fix with AI.
    */
   test.each([
     [false, []],
-    [true, ["Explain with AI", "Fix with AI"]],
+    [true, ["OneUptime AI Analysis", "Fix with AI"]],
   ])(
-    "with Enable AI %s, the page is whole and draws the AI actions %j",
+    "with Enable AI %s, the page is whole and draws %j",
     async (enableAi: boolean, actions: Array<string>) => {
-      const project: Project = new Project();
-      project.id = PROJECT_ID;
-      project.enableAi = enableAi;
-      jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+      turnAi(enableAi);
+      useTables(storedIssue(keptAnalysis(REAL)));
 
       await renderIssuePage();
       await issueShown();
@@ -593,11 +829,235 @@ describe("a data security issue's page, through the server", () => {
       expect(screen.getByText("On customer-exports")).toBeInTheDocument();
       expect(within(storeHolds()).getByText("Card number")).toBeInTheDocument();
 
+      if (enableAi) {
+        await analysisShown();
+      }
+
       expect(
-        ["Explain with AI", "Fix with AI"].filter((action: string) => {
+        ["OneUptime AI Analysis", "Fix with AI"].filter((action: string) => {
           return screen.queryAllByText(action).length > 0;
         }),
       ).toEqual(actions);
+      // With AI off, the page asks nothing of OneUptime AI's analysis.
+      expect(server.sentTo("POST", ANALYSIS_PATH).length).toBe(
+        enableAi ? 1 : 0,
+      );
+      expect(server.sentTo("POST", EXPLAIN_PATH)).toEqual([]);
+    },
+    FLOW_TIMEOUT_IN_MS,
+  );
+});
+
+interface AnalysisReader {
+  name: string;
+  permissions: Array<Permission>;
+  // Reads who can reach the store: the lines that rest on it.
+  readsAccess: boolean;
+}
+
+const ANALYSIS_READERS: Array<AnalysisReader> = [
+  {
+    name: "a project owner",
+    permissions: [Permission.ProjectOwner],
+    readsAccess: true,
+  },
+  {
+    name: "a project admin",
+    permissions: [Permission.ProjectAdmin],
+    readsAccess: true,
+  },
+  {
+    name: "a security admin",
+    permissions: [Permission.SecurityAdmin],
+    readsAccess: true,
+  },
+  {
+    name: "a security member",
+    permissions: [Permission.SecurityMember],
+    readsAccess: true,
+  },
+  {
+    name: "a security viewer",
+    permissions: [Permission.SecurityViewer],
+    readsAccess: true,
+  },
+  {
+    name: "a custom role that reads issues and their stores, not who can reach them",
+    permissions: [Permission.ReadDataSecurityIssue, Permission.ReadDataStore],
+    readsAccess: false,
+  },
+];
+
+describe("OneUptime AI's analysis on the issue's page, through the server (#10369)", () => {
+  beforeEach(() => {
+    turnAi(true);
+    useTables(storedIssue(keptAnalysis(REAL)));
+  });
+
+  test.each(ANALYSIS_READERS)(
+    "$name reads it at the top of the issue, as they may read what it rests on - and opening it asks OneUptime AI nothing",
+    async (reader: AnalysisReader) => {
+      setCaller(reader.permissions);
+
+      await renderIssuePage();
+      await issueShown();
+
+      const card: HTMLElement = await analysisShown();
+
+      expect(
+        screen.getByTestId("data-security-issue-ai-analysis-verdict"),
+      ).toHaveTextContent("Real");
+      expect(within(card).getByText(AI_REASON)).toBeInTheDocument();
+
+      if (reader.readsAccess) {
+        expect(within(card).getByText(AI_RISK)).toBeInTheDocument();
+        expect(within(card).getByText(AI_BREAKS)).toBeInTheDocument();
+      } else {
+        // Who can reach the store is not theirs: the lines say so, and no grant is drawn.
+        for (const part of ["risk", "breaks"]) {
+          expect(
+            screen.getByTestId(
+              `data-security-issue-ai-analysis-${part}-hidden`,
+            ),
+          ).toHaveTextContent(
+            "Hidden: it rests on who can reach the store, which you may not read.",
+          );
+        }
+
+        expect(card.textContent).not.toContain("Everyone");
+        expect(card.textContent).not.toContain("Bucket policy");
+      }
+
+      // The analysis the issue keeps, read once; nothing asked of OneUptime AI.
+      expect(
+        server.sentTo("POST", ANALYSIS_PATH).map((sent: SentRequest) => {
+          return sent.status;
+        }),
+      ).toEqual([200]);
+      expect(server.sentTo("POST", EXPLAIN_PATH)).toEqual([]);
+      expect(issues.updates).toEqual([]);
+    },
+    FLOW_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "an issue never analyzed says so, and offers Analyze Issue",
+    async () => {
+      useTables(storedIssue());
+
+      await renderIssuePage();
+      await issueShown();
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("data-security-issue-ai-analysis-none"),
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByText("Analyze Issue")).toBeInTheDocument();
+      expect(server.sentTo("POST", EXPLAIN_PATH)).toEqual([]);
+    },
+    FLOW_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "a public bucket of images it calls likely by design: Accept Risk with its reason drafted, Public By Design, and nothing changes until a person chooses",
+    async () => {
+      const draft: string =
+        "The bucket serves the website's public images through its CDN.";
+
+      setCaller([Permission.SecurityAdmin]);
+      useTables(
+        storedIssue(
+          keptAnalysis(
+            {
+              verdict: DataSecurityAiVerdict.LikelyByDesign,
+              lines: {
+                reason: {
+                  text: "It holds only the website's images, which are meant to be public.",
+                  facts: ["S3", "S1"],
+                },
+                risk: {
+                  text: "No sensitive data was found in it.",
+                  facts: ["S1"],
+                },
+                draft: { text: draft, facts: ["S3"] },
+              },
+            },
+            {
+              _id: STORE_ID,
+              name: "customer-exports",
+              kind: DataStoreKind.AwsS3Bucket,
+              sensitivity: DataSensitivity.Public,
+              dataTypeIds: [],
+              exposure: DataStoreExposure.Public,
+            },
+          ),
+        ),
+      );
+
+      await renderIssuePage();
+      await issueShown();
+      await analysisShown();
+
+      expect(
+        screen.getByTestId("data-security-issue-ai-analysis-verdict"),
+      ).toHaveTextContent("Likely by design");
+      expect(
+        screen.getByText("Nothing changes until you choose."),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("data-security-issue-ai-analysis-public-by-design"),
+      ).toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByTestId("data-security-issue-ai-analysis-accept"),
+      );
+
+      // Accept Risk opens with OneUptime AI's reason drafted: the person sends it, or not.
+      await waitFor(() => {
+        expect(screen.getByDisplayValue(draft)).toBeInTheDocument();
+      });
+      expect(issues.updates).toEqual([]);
+      expect(issues.get(ISSUE_ID)!["status"]).toBe("Open");
+    },
+    FLOW_TIMEOUT_IN_MS,
+  );
+
+  test(
+    "a reader who may not change the issue reads the verdict, and is offered nothing to change",
+    async () => {
+      setCaller([Permission.SecurityViewer]);
+      useTables(
+        storedIssue(
+          keptAnalysis({
+            verdict: DataSecurityAiVerdict.LikelyWrongFinding,
+            lines: {
+              reason: {
+                text: "The card number is a request id that happens to pass the Luhn check.",
+                facts: ["I1"],
+              },
+              draft: {
+                text: "The value is a request id, not a card number.",
+                facts: ["I1"],
+              },
+            },
+          }),
+        ),
+      );
+
+      await renderIssuePage();
+      await issueShown();
+      await analysisShown();
+
+      expect(
+        screen.getByTestId("data-security-issue-ai-analysis-verdict"),
+      ).toHaveTextContent("Likely a wrong finding");
+      expect(
+        screen.queryByTestId("data-security-issue-ai-analysis-not-an-issue"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("data-security-issue-ai-analysis-accept"),
+      ).not.toBeInTheDocument();
     },
     FLOW_TIMEOUT_IN_MS,
   );

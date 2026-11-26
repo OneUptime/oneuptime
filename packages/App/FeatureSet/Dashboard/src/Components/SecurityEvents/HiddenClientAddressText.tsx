@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import { CLAIMED_NOT_VERIFIED } from "./ClaimedClientAddressCopy";
 import {
   HIDDEN_BY_A_SCRUB_RULE,
   HIDDEN_BY_THE_SCRUB_RULE,
@@ -9,11 +10,22 @@ import Route from "Common/Types/API/Route";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { HiddenClientAddress } from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import {
+  HiddenClientAddress,
+  ScrubbedAddressRole,
+} from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export const HIDDEN_CLIENT_ADDRESS_TEST_ID: string =
   "security-hidden-client-address";
+
+// Where Target IP says a scrub rule hid the destination (#10419).
+export const HIDDEN_TARGET_ADDRESS_TEST_ID: string =
+  "security-hidden-target-address";
+
+export const CLAIMED_CLIENT_ADDRESS_TEST_ID: string =
+  "security-claimed-client-address";
 
 export interface ComponentProps {
   hidden: HiddenClientAddress;
@@ -87,7 +99,37 @@ export function readFieldValue(
   translator: Translator,
 ): ReactElement | string {
   if (field.hiddenAddress) {
-    return <HiddenClientAddressText hidden={field.hiddenAddress} />;
+    return (
+      <HiddenClientAddressText
+        hidden={field.hiddenAddress}
+        dataTestId={
+          field.hiddenAddressRole === ScrubbedAddressRole.Target
+            ? HIDDEN_TARGET_ADDRESS_TEST_ID
+            : HIDDEN_CLIENT_ADDRESS_TEST_ID
+        }
+      />
+    );
+  }
+
+  /*
+   * An address the request only claimed (#10416): the address, or that a
+   * scrub rule hid it, and always that it is claimed, not verified.
+   */
+  if (field.claimedAddress) {
+    const value: string = field.isValueTranslated
+      ? translator.translateText(field.value) || field.value
+      : field.value;
+
+    return (
+      <span data-testid={CLAIMED_CLIENT_ADDRESS_TEST_ID}>
+        <span className="[overflow-wrap:anywhere]">{value}</span>
+        <span className="text-gray-500">
+          <InlineSeparator />
+          {translator.translateText(CLAIMED_NOT_VERIFIED) ||
+            CLAIMED_NOT_VERIFIED}
+        </span>
+      </span>
+    );
   }
 
   return field.isValueTranslated

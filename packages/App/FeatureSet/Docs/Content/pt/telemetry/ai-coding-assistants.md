@@ -91,6 +91,7 @@ Como essas chaves são lidas:
 
 - **Cada chave também é lida com o prefixo `resource.`.** A ingestão OTLP armazena os atributos de recurso sob esse prefixo, então `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` chega como `resource.team.id`. As chaves sem prefixo são testadas primeiro, então um valor no span vence um do processo inteiro.
 - **A aba Uso mostra o e-mail de uma pessoa quando a chamada tem um, e o id caso contrário.** Linhas que mostram o mesmo e-mail são somadas, então um engenheiro em duas máquinas é uma linha só.
+- **Uma pessoa ou equipe ocultada por uma regra de limpeza nunca recebe gastos.** Uma chamada cujo e-mail foi ocultado por uma regra aparece com o seu id quando a regra deixou o id intacto. Caso contrário, a aba Uso a conta em uma única linha de gastos ocultados por uma regra de limpeza, seja qual for a ação da regra: ocultar, mascarar ou converter em hash.
 - **A identidade só é lida de chamadas de IA.** `user.id`, `user.email` e `team.id` são chaves genéricas que spans de navegador e de backend também carregam; só os spans já reconhecidos como chamadas de IA recebem as colunas.
 - **Os registros de log não são lidos para identidade.** Isso importa para o Codex, que coloca `user.email` só nos logs.
 - O LiteLLM escreve essas chaves de dois jeitos: o callback `otel` padrão dele usa o prefixo `metadata.`, e o modo opcional OpenTelemetry v2 (`LITELLM_OTEL_V2=true`) o namespace `litellm.`. O OneUptime lê ambos, então um proxy padrão funciona sem configuração extra.

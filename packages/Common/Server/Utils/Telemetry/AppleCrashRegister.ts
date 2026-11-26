@@ -44,6 +44,12 @@ export interface RegisteredAppleCrash {
   // Its exception's fingerprints, for a repeat to be filed under.
   fingerprint: string;
   fingerprintV2: string;
+  /*
+   * And the exceptions it may already belong to, tried in order (App's
+   * Telemetry/Utils/Exception.ts, OccurrenceFingerprints, #10434). Not kept
+   * by a report recorded before them, whose repeat tries its v1 alone.
+   */
+  fingerprintCandidates?: Array<string> | undefined;
   signature: AppleCrashSignature;
   // The occurrence that repeats it, once one has.
   pairedWith: string | null;
@@ -85,6 +91,8 @@ function isRegisteredCrash(value: unknown): value is RegisteredAppleCrash {
     typeof entry["occurrenceId"] === "string" &&
     typeof entry["fingerprint"] === "string" &&
     typeof entry["fingerprintV2"] === "string" &&
+    (entry["fingerprintCandidates"] === undefined ||
+      Array.isArray(entry["fingerprintCandidates"])) &&
     typeof entry["recordedAt"] === "number" &&
     Boolean(signature) &&
     typeof signature === "object" &&
@@ -182,6 +190,7 @@ export default class AppleCrashRegister {
       id: string;
       fingerprint: string;
       fingerprintV2: string;
+      fingerprintCandidates?: Array<string> | undefined;
     };
     now?: number | undefined;
   }): Promise<RegisteredAppleCrash | null> {
@@ -233,6 +242,9 @@ export default class AppleCrashRegister {
           occurrenceId: input.occurrence.id,
           fingerprint: input.occurrence.fingerprint,
           fingerprintV2: input.occurrence.fingerprintV2,
+          ...(input.occurrence.fingerprintCandidates
+            ? { fingerprintCandidates: input.occurrence.fingerprintCandidates }
+            : {}),
           signature: input.signature,
           pairedWith: null,
           recordedAt: now,

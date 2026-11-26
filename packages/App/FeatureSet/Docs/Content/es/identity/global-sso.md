@@ -27,7 +27,7 @@ Para el proveedor propio de un solo proyecto, consulta [SSO](/docs/identity/sso)
 :::steps
 ### Abrir la lista de proveedores
 
-Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajustes de admin** en tu menú de usuario. Después ve a **Ajustes** > **Inicio de sesión único**. Ahí están los proveedores SAML de la instancia, luego sus proveedores OpenID Connect y, al final, la tarjeta **Exigir SSO**.
+Inicia sesión como administrador maestro y elige **Panel de administración** en tu menú de usuario. Después ve a **Ajustes** > **Inicio de sesión único**. Ahí están los proveedores SAML de la instancia, luego sus proveedores OpenID Connect y, al final, la tarjeta **Exigir SSO**.
 
 ### Crear el proveedor
 
@@ -103,6 +103,12 @@ Registra en tu proveedor la URI de redirección tras cerrar sesión que muestra 
 :::
 
 Dónde guardan estos ajustes Okta, Microsoft Entra ID, Auth0 y Keycloak se explica en la página [SSO](/docs/identity/sso).
+
+## Volver a iniciar sesión para confirmar que eres tú
+
+Quien inicia sesión solo a través de un proveedor global confirma que es él con **Volver a iniciar sesión** antes de cambiar cómo inicia sesión o eliminar su cuenta: OneUptime lo devuelve al proveedor con `ForceAuthn="true"` para SAML, o `prompt=login` y `max_age=0` para OpenID Connect (solo `prompt=login` para Microsoft Entra ID), y solo lo cuenta cuando el proveedor dice, en `AuthnInstant` o `auth_time`, que inició sesión en ese momento o después. Al añadir, cambiar o eliminar un proveedor global, primero se te pide [confirmar que eres tú](/docs/introduction/your-account#confirmar-que-eres-tú).
+
+Qué configurar en Okta, Microsoft Entra ID, Keycloak y Google Workspace se explica en la página [SSO](/docs/identity/sso#volver-a-iniciar-sesión-para-confirmar-que-eres-tú).
 
 ## Imponer SSO
 
@@ -187,4 +193,5 @@ Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, cl
 - [SSO](/docs/identity/sso): Configurar el proveedor SAML u OIDC propio de un proyecto.
 - [SCIM](/docs/identity/scim): Deja que tu proveedor de identidad añada y quite personas automáticamente.
 - [Usuarios, equipos y permisos](/docs/permissions/index): Lo que permiten hacer los equipos a los que se unen los recién llegados.
+- [Ayuda y soporte](/docs/self-hosted/help-and-support): Decir a las personas que necesitan una invitación a quién pedirla.
 :::

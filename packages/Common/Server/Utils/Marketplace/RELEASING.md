@@ -329,15 +329,20 @@ The URLs each marketplace asks for (production):
 approved OneUptime Cloud; on 11 November the decision had been not to list it):
 see the hosting rule under
 [Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
-**Where it stands** (19 November 2026): the SaaS product `oneuptime-cloud`
+**Where it stands** (24 November 2026): the SaaS product `oneuptime-cloud`
 ("OneUptime") is in Producer Portal next to the self-hosted Kubernetes app
 ([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)),
-with steps 2 to 8 done: its product details and pricing are in Google's
-review, submitted that morning with the maintainer's go-ahead; production has
-the settings (step 7); and the Pub/Sub subscription pushes to it (step 6).
-**Left**: a test purchase (step 9), the technical integration's review once
-the pricing is approved (step 10), then **Publish** once all three reviews
-are approved (the maintainer's go-ahead).
+with steps 2 to 8 done: its product details were approved on 20 November,
+and its pricing has been in Google's review since 19 November (both
+submitted that day with the maintainer's go-ahead); production has the
+settings (step 7); and the Pub/Sub subscription pushes to it (step 6). A
+test purchase made an `Active` subscription (step 9), whose first usage
+report waits for its trial to end. Google approved OneUptime Cloud (case
+77068529) with an adjusted revenue share, which the maintainer accepted on
+the case on 19 November; Google's approval letter of that day sets it.
+Nothing is waiting on us. **Left**: the pricing's approval; the technical
+integration's review (step 10); then **Publish** once all three reviews are
+approved (the maintainer's go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listings,
@@ -519,11 +524,19 @@ rules do.
    `usageReportingId`, and after the next hour a `MarketplaceUsageReport` is
    `Reported`. Change plan and cancel from the Google Cloud console and watch
    the row follow. **Full Preview** tests a subscription as soon as the plan
-   exists; usage billing, only once the pricing is approved.
+   exists; usage billing, only once the pricing is approved. The first test
+   purchase (19 November 2026, with the test billing account that Producer
+   Portal's **Test Billing Accounts** page lists) made an `Active` row in
+   production. Its account is in a trial until 3 December, and trial hours
+   are not billed, so it has no `MarketplaceUsageReport` yet; changing plan
+   and cancelling are still to test.
 10. **Submit for review** - a maintainer's decision. Product details and
-    pricing went in on 19 November 2026. Google takes the technical
-    integration's review (**Submit** on its **Frontend integration** tab)
-    only after the pricing is approved. Then **Publish** (maintainer).
+    pricing went in on 19 November 2026. The technical integration's
+    **Submit** (on its **Frontend integration** tab) is open before the
+    pricing is approved (seen on 24 November), but Producer Portal asks for
+    the integration to be tested first, usage billing included, and usage
+    billing can be tested only once the pricing is approved: submit after
+    that. Then **Publish** (maintainer).
 
 What OneUptime does with Google's events:
 [GoogleCloudMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceInbound.ts).
@@ -632,9 +645,12 @@ the account and its gotchas. Use the same account.
      design: an email address Microsoft does not vouch for is never matched to
      a OneUptime user. Without `auth_time`, Sign In Again (#10217) never
      confirms it's someone who signs in only with Microsoft: it sends them
-     with `prompt=login` and `max_age=0`, and counts the sign-in only when the
-     ID token says they signed in after it sent them there
+     with `prompt=login`, and counts the sign-in only when the ID token says
+     they signed in after it sent them there
      ([MicrosoftSignInClient.ts](../MicrosoftSignIn/MicrosoftSignInClient.ts)).
+     It sends no `max_age`, which Microsoft does not document and which has
+     been reported to make Entra ID answer with an ID token that has already
+     expired (#10529).
      Add it under **Token configuration > Add optional claim > ID**.
      An existing OneUptime account whose address was never verified is sent a
      verification link instead of being signed in, as with Global OIDC; users
@@ -768,12 +784,16 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-17 | Google Cloud | Producer Portal requested on the self-hosted app's case (form and roles done); still pending                          | Agent      |
 | 2026-11-17 | Google Cloud | SaaS validation (case 77068529): the maintainer confirmed Google's sales and cost estimates                           | Maintainer |
 | 2026-11-19 | Google Cloud | Google approved OneUptime Cloud (case 77068529); decided: list it after all, hosting box ticked                       | Maintainer |
+| 2026-11-19 | Google Cloud | The approval came with an adjusted revenue share; the maintainer accepted it on the case                              | Maintainer |
 | 2026-11-19 | Google Cloud | SaaS product `oneuptime-cloud` ("OneUptime") created; listing, pricing and integration links filled in                | Agent      |
 | 2026-11-19 | Google Cloud | Product image, Tax Category and EULA (OneUptime's terms) entered                                                      | Maintainer |
 | 2026-11-19 | Google Cloud | Product details and pricing (`usage_units` at USD 0.01) submitted for review, with the maintainer's go-ahead          | Agent      |
 | 2026-11-19 | Google Cloud | Production configured: `marketplace@`'s key (made by the maintainer), the IDs and the push account                    | Maintainer |
 | 2026-11-19 | Google Cloud | Checked: sign-up URL configured; from an app pod the key gets a token, the Procurement API answers 200                | Agent      |
 | 2026-11-19 | Google Cloud | Pub/Sub push subscription created as `marketplace@` (temporary grants, revoked); set never to expire                  | Agent      |
+| 2026-11-19 | Google Cloud | Test purchase with the test billing account: production's row is Active, in its trial                                 | Maintainer |
+| 2026-11-20 | Google Cloud | Product details review of `oneuptime-cloud` approved                                                                  | Google     |
+| 2026-11-24 | Google Cloud | Pricing still in review (since 19 November); the integration review waits for usage billing tests                     | Agent      |
 
 ## Notes for agents driving the browser
 

@@ -22,6 +22,7 @@
 | `This project has been blocked` | 請主管理員解除專案的封鎖：請參閱[被封鎖的專案](#被封鎖的專案) |
 | `references records that are not in this project` | 使用你自己專案中記錄的 ID：請參閱[來自其他專案的 ID](#來自其他專案的-id) |
 | 資料來源傳回的 `Not Found` 或 `Ambiguous Match` | 修正查詢的引數：請參閱[找不到或找到多筆結果的查詢](#找不到或找到多筆結果的查詢) |
+| `and the project requires unique names` | 改用同類其他記錄都沒有的名稱，先重新命名另一筆記錄，或匯入占用該名稱的記錄：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
 | `There is already a team called`（標籤、待命策略、待命排程） | 改用同類其他記錄都沒有的名稱，或先為另一個重新命名：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
 | `with the same name already exists` | 改用同類其他記錄都沒有的名稱，或匯入占用該名稱的記錄：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
 | 網域、主機名稱或登入 URL 的 `already exists` | 改用其他記錄都沒有的值，或匯入占用該值的記錄：請參閱[其他記錄已在使用的網域和識別碼](#其他記錄已在使用的網域和識別碼) |
@@ -109,6 +110,8 @@ This network device references records that are not in this project: Network Sit
 ### 其他記錄已在使用的名稱
 
 團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格，許多其他類型也是如此，例如事件嚴重程度、監測器狀態和狀態頁。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 或 `Incident Severity with the same name already exists.` 先前就同名的記錄會保留名稱，儀表板中團隊、標籤、待命策略和待命排程的清單會標示它們。
+
+要求名稱唯一的專案（新專案預設如此，見**專案設定 → 基礎 → 專案 → 名稱唯一**）會對監測器、範本、API 金鑰以及你命名的大多數其他類型執行同樣的規則：`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 在專案提出這項要求之前就已同名的記錄會保留名稱，直到被重新命名，那張卡片會列出它們。
 
 Terraform 會平行執行同一次 apply 中的變更，因此如果建立或重新命名時使用的名稱正被另一個資源在同一次 apply 中透過重新命名或刪除讓出，在那個資源仍占用該名稱時可能會被拒絕。此時提供者會在最多 30 秒內再次請求，因此重新命名鏈（例如 A 改為 B，同時 B 改為 C）可以在一次 apply 中完成，接手被該 apply 刪除之資源名稱的資源也是如此。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，則永遠無法完成，設定之外的記錄占用的名稱也是如此，例如 OneUptime 隨專案建立的嚴重程度：30 秒後 apply 會失敗，並顯示 `The name was still taken after asking again for 30 seconds.` 請為資源取一個沒有人使用的名稱，或用 `terraform import` 匯入占用該名稱的記錄。如果是互換，請先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
 

@@ -281,6 +281,7 @@ describe("Security Events", () => {
           ProviderLogo.MicrosoftEntraId,
         [SecurityEventConnectorProvider.GoogleWorkspace]:
           ProviderLogo.GoogleWorkspace,
+        [SecurityEventConnectorProvider.Cloudflare]: ProviderLogo.Cloudflare,
         [SecurityEventConnectorProvider.GoogleSecOps]:
           ProviderLogo.GoogleSecurityOperations,
       },

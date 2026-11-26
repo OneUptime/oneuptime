@@ -37,7 +37,7 @@ To store less, two settings of the application's policy work together:
 ## Before you begin
 
 - A RUM application. Create one under **Products → Resources → Real User Monitoring**, or let your telemetry create it: see [Managing Applications](/docs/rum/applications).
-- A **Browser** ingestion key, from **Project Settings → Telemetry & APM → Ingestion Keys**. A Browser key works only from the origins you list on it: see [Set your allowed origins in production](#set-your-allowed-origins-in-production).
+- A **Browser** ingestion key, from **Project Settings → Telemetry & APM → Ingestion Keys**. A Browser key works only from the origins you list on it: see [Set your allowed origins in production](#set-your-allowed-origins-in-production). A React Native app sends with the **Mobile** key it already ships instead.
 
 Session Replay is on by default. Its settings are in three places:
 
@@ -162,7 +162,7 @@ export default function App() {
 }
 ```
 
-`appIdentifier` is the RUM application identifier. `mobileAppIdentifier` is the Android application id or iOS bundle identifier shipped in the binary, not a display name. Use the same value in the [`app://` allowlists](#set-your-allowed-origins-in-production). The SDK fetches the application's Replay Policy from `host`; sampling, trigger, consent, retention and upload budgets remain server-controlled.
+`token` is the app's **Mobile** key, the one its OpenTelemetry SDK sends with, and `appIdentifier` is the RUM application identifier: the key's **Pinned Service Name**, since a Mobile key records only its own app. `mobileAppIdentifier` is the Android application id or iOS bundle identifier shipped in the binary, not a display name. Use the same value in the [`app://` allowlists](#set-your-allowed-origins-in-production). The SDK fetches the application's Replay Policy from `host`; sampling, trigger, consent, retention and upload budgets remain server-controlled.
 :::
 
 The provider owns a non-collapsable native root and records its view tree and touch start/move/end events. If you already construct recorder instances yourself, pass one with `<OneUptimeReplayProvider recorder={recorder}>`. `MobileReplayRecorder` is also exported for isolated or multi-client integrations; most apps should use the singleton.
@@ -344,12 +344,12 @@ Session replay works out of the box with an empty origin allowlist, which accept
 
 Your ingestion token is shipped to the client — in page JavaScript or the mobile binary — so there are two fences, and they compose:
 
-- **On the key.** Create the ingestion key with **Browser** as its **Key Type**. For web, list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). For React Native, add the exact application identity as `app://com.example.storefront`. Give the key an **Expires At** too: a copied token then stops working on a date you chose rather than never.
+- **On the key.** For web, create the ingestion key with **Browser** as its **Key Type** and list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). For React Native, send with the app's **Mobile** key, which records only the app its **Pinned Service Name** names, or add the exact application identity as `app://com.example.storefront` to a Browser key. Give the key an **Expires At** too: a copied token then stops working on a date you chose rather than never.
 - **On the application.** **Replay Policy → Allowed origins** restricts who may write recordings into this application, whichever key they present. Add the same web origins and exact `app://` mobile identities here.
 
 An `app://` entry is the literal prefix plus the normalized Android application id or iOS bundle identifier supplied as `mobileAppIdentifier`. Matching is case-insensitive after trimming and lowercasing a valid reverse-DNS identifier. Mobile identities do **not** accept wildcards: `app://*.example.com` is invalid. The mobile SDK sends no browser `Origin`; it sends its recorder kind and app identity in dedicated headers. If a request does carry a real `Origin`, that origin always wins — mobile headers can never be used to bypass the browser-origin check.
 
-That mobile identity is self-asserted HTTP metadata, not Apple/Google platform attestation and not proof that the request came from your signed binary. Someone who extracts the client token can send a non-browser request with the same app-identity header. The exact `app://` entries still prevent accidental cross-app use and separate the mobile identities you intend to accept, but do not call them an authenticity boundary. Set an expiry, rotate exposed keys, and keep the rate and byte budgets enabled to bound abuse; never put a server secret in the app and treat it as recoverable protection.
+That mobile identity is self-asserted HTTP metadata, not Apple/Google platform attestation and not proof that the request came from your signed binary. Someone who extracts the client token can send a non-browser request with the same app-identity header. The exact `app://` entries still prevent accidental cross-app use and separate the mobile identities you intend to accept, but do not call them an authenticity boundary. A copied Mobile key can still send made-up recordings for its own app, up to its limit, but never another app's or from a web page. Set an expiry, rotate exposed keys, and keep the rate and byte budgets enabled to bound abuse; never put a server secret in the app and treat it as recoverable protection.
 
 A request has to pass both allowlists. For web requests, the browser-controlled `Origin` check prevents one website from reusing another site's key; for native requests, the controls above limit and compartmentalize a self-asserted identity. Set both allowlists before you point real traffic at either recorder; refused uploads show up on the **Health** page as `origin-not-allowed`.
 

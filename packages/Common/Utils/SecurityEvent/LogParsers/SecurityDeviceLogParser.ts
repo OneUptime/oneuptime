@@ -9,7 +9,9 @@ import {
   SecurityLogLine,
   buildLogSecurityEvent,
   cutText,
+  pickAddress,
   readIpAddress,
+  readIpAddressOnly,
   readPort,
   readRemoteIpAddress,
 } from "./SecurityLogLine";
@@ -237,6 +239,24 @@ function readField(
   }
 
   return "";
+}
+
+/*
+ * The address a record names under any of `keys`, each read by `read`:
+ * the first that is an address, else the first a scrub rule hid in its
+ * place (pickAddress, #10419) - so a hidden IPv4 source leaves the event
+ * the IPv6 one a record names beside it.
+ */
+function readAddressField(
+  fields: Record<string, string>,
+  keys: ReadonlyArray<string>,
+  read: (value: string) => string,
+): string {
+  return pickAddress(
+    keys.map((key: string): string => {
+      return read(fields[key] || "");
+    }),
+  );
 }
 
 function holdsAny(lowerText: string, words: ReadonlyArray<string>): boolean {
@@ -589,11 +609,16 @@ export default class SecurityDeviceLogParser {
     const record: DeviceRecord = reading.record;
     const fields: Record<string, string> = record.fields;
 
-    const sourceIp: string = readRemoteIpAddress(
-      readField(fields, ["src", "sourceAddress", "c6a2", "srcIP"]),
+    // Each the address, or what a scrub rule left in its place (#10419).
+    const sourceIp: string = readAddressField(
+      fields,
+      ["src", "sourceAddress", "c6a2", "srcIP"],
+      readRemoteIpAddress,
     );
-    const destinationIp: string = readIpAddress(
-      readField(fields, ["dst", "destinationAddress", "c6a3", "dstIP"]),
+    const destinationIp: string = readAddressField(
+      fields,
+      ["dst", "destinationAddress", "c6a3", "dstIP"],
+      readIpAddress,
     );
     const sourcePort: number = readPort(
       readField(fields, ["spt", "sourcePort", "srcPort"]),
@@ -625,9 +650,10 @@ export default class SecurityDeviceLogParser {
       "destinationHostName",
       "dstHostName",
     ]);
+    // A host the event names: an address a scrub rule hid is none (#10419).
     const deviceHost: string =
       readField(fields, ["dvchost", "deviceHostName", "devName"]) ||
-      readIpAddress(readField(fields, ["dvc", "deviceAddress", "devIP"]));
+      readIpAddressOnly(readField(fields, ["dvc", "deviceAddress", "devIP"]));
     const action: string = readField(fields, ["act", "deviceAction", "action"]);
     const outcome: string = readField(fields, [
       "outcome",

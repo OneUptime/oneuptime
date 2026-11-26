@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### Die Telemetrie-Datei anlegen
 
-Legen Sie `src/telemetry.ts` an. `browserDetector` fügt die `browser.*`-Attribute hinzu, durch die die Telemetrie als RUM eingeordnet wird, und `service.name` benennt die Anwendung.
+Legen Sie `src/telemetry.ts` an. `browserDetector` fügt die `browser.*`-Attribute hinzu, die die Seite **Clients** auflistet, und `service.name` benennt die Anwendung: Alles, was ein Browser-Schlüssel sendet, wird darunter als RUM eingeordnet.
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ Alles im Snippet wird an Ihre Besucher ausgeliefert, daher kann jeder das Token 
 | --- | --- |
 | **Zulässige Ursprünge** | Anfragen werden nur von diesen Ursprüngen angenommen, jeweils mit Schema und gegebenenfalls Port. Ein Host darf mit einem einzelnen Platzhalter `*.` beginnen: `https://*.example.com` deckt jede Subdomain von `example.com` ab, aber nicht `example.com` selbst. |
 | **Limit für Anfragen pro Minute** | Eine Obergrenze für alle Besucher, die den Schlüssel verwenden: 6000 Anfragen pro Minute, sofern Sie keine eigene festlegen. |
-| **Festgelegter Dienstname** | Erzwingt `service.name` auf allem, was der Schlüssel schreibt, sodass eine Kopie ihre Telemetrie nicht als einen Ihrer Backend-Dienste ausgeben kann. |
+| **Festgelegter Dienstname** | Erzwingt `service.name` auf allem, was der Schlüssel schreibt, sodass eine Kopie nur in diese eine Anwendung schreiben kann. |
 | **Läuft ab am** | Nach diesem Datum wird der Schlüssel nicht mehr angenommen. |
 | **Aktiviert** | Schalten Sie es aus, um einen durchgesickerten Schlüssel sofort zu stoppen. |
 
-Ein Browser-Schlüssel schreibt OTLP-Traces, -Logs und -Metriken, Sitzungswiedergaben sowie die Ereignisse eines [Sentry-SDKs im Browser](/docs/telemetry/compatible-endpoints#sentry-sdks); jeder andere Ingest-Weg lehnt ihn ab. Diese Einstellungen ändern Sie auf der eigenen Seite des Schlüssels. Der Schlüsseltyp lässt sich nach dem Erstellen des Schlüssels nicht mehr ändern.
+Ein Browser-Schlüssel schreibt OTLP-Traces, -Logs und -Metriken, Sitzungswiedergaben sowie die Ereignisse eines [Sentry-SDKs im Browser](/docs/telemetry/compatible-endpoints#sentry-sdks); jeder andere Ingest-Weg lehnt ihn ab. Alles, was er schreibt, wird als Browser-RUM eingeordnet, nie als Host, Cluster oder Backend-Dienst: Von der Ressource behält er nur, was eine Seite über sich selbst sagt, etwa die Attribute `service.*`, `browser.*` und `user_agent.*` und die Labels `oneuptime.label.*`. Diese Einstellungen ändern Sie auf der eigenen Seite des Schlüssels. Der Schlüsseltyp lässt sich nach dem Erstellen des Schlüssels nicht mehr ändern.
 
 > [!WARNING]
 > Legen Sie nie einen **Server**-Schlüssel in eine Seite. Ein Server-Schlüssel schreibt jede Art von Telemetrie von überall aus, ohne Ursprungsprüfung, sodass jeder, der Ihre Seite liest, in Ihr Projekt schreiben könnte.
@@ -179,7 +179,7 @@ Ein Browser-Schlüssel schreibt OTLP-Traces, -Logs und -Metriken, Sitzungswieder
 
 `browserDetector` liest die [UA Client Hints API](https://wicg.github.io/ua-client-hints/), die nur Chromium-Browser haben. In Safari und Firefox setzt er `browser.language` und `user_agent.original`, aber nicht `browser.platform`, `browser.brands` oder `browser.mobile`.
 
-Das reicht trotzdem, um die Telemetrie als RUM einzuordnen, weil `browser.language` allein einen Batch als Browser-RUM kennzeichnet. Die Seite **Clients** listet Plattformen jedoch aus `browser.platform` auf, daher fügen Besuche mit Safari und Firefox dort keine Zeile hinzu.
+Mit einem Browser-Schlüssel wird die Telemetrie ohnehin als RUM eingeordnet, und mit jedem anderen Schlüssel kennzeichnet `browser.language` allein einen Batch als Browser-RUM. Die Seite **Clients** listet Plattformen jedoch aus `browser.platform` auf, daher fügen Besuche mit Safari und Firefox dort keine Zeile hinzu.
 
 Um den Detektor wegzulassen oder jedem Browser eine Plattform zu geben, setzen Sie die Attribute selbst:
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-Bauen Sie sie mit demselben `resource`-Objekt. Eine Log- oder Metrik-Pipeline, deren Ressource kein `browser.*` hat, wird als eigener Backend-Dienst eingeordnet.
+Bauen Sie sie mit demselben `resource`-Objekt, damit ihre Logs und Metriken unter derselben Anwendung eingeordnet werden.
 
 Eine Log-Pipeline sendet nur die Einträge, die Ihr Code schreibt. Schreiben Sie also einen, wo immer etwas Wissenswertes passiert:
 
@@ -452,7 +452,7 @@ logger.emit({
 :::
 
 :::details Die App erscheint unter Dienste statt unter Real User Monitoring
-Die Ressource hat kein `browser.*`-Attribut, daher wurde die Telemetrie als Backend-Dienst eingeordnet. Fügen Sie `browserDetector` hinzu oder setzen Sie die Attribute wie in [`browser.*` ohne den Detektor setzen](#browser-ohne-den-detektor-setzen).
+Die Telemetrie wurde mit einem anderen Schlüssel als einem Browser-Schlüssel gesendet, und ihre Ressource hat kein `browser.*`-Attribut, daher wurde sie als Backend-Dienst eingeordnet. Senden Sie mit einem Browser-Schlüssel, der alles, was er sendet, als RUM einordnet, oder fügen Sie `browserDetector` hinzu oder setzen Sie die Attribute wie in [`browser.*` ohne den Detektor setzen](#browser-ohne-den-detektor-setzen).
 
 Prüfen Sie im Tab Netzwerk in der Nutzlast der Anfrage, was Sie senden: `resourceSpans[0].resource.attributes` ist die Liste, die darüber entscheidet. Der bereits angelegte Dienst wird nicht zu einer RUM-Anwendung. Löschen Sie ihn daher unter **Produkte → Dienste**, sobald RUM-Telemetrie eintrifft.
 :::

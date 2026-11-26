@@ -126,6 +126,13 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   AIRunEvent: AuditLogExemptionKind.RunRecord,
   AutoRemediationDecision: AuditLogExemptionKind.RunRecord,
   AutoRemediationSuggestion: AuditLogExemptionKind.RunRecord,
+  /*
+   * What OneUptime AI proposed for a Data Security issue, and why it did or
+   * did not act: OneUptime writes them as it works, and each change they
+   * lead to - a scrub rule - is recorded where it is made.
+   */
+  DataSecurityAiDecision: AuditLogExemptionKind.RunRecord,
+  DataSecurityAiProposal: AuditLogExemptionKind.RunRecord,
   DataSecurityScan: AuditLogExemptionKind.RunRecord,
   GuidedSetupRun: AuditLogExemptionKind.RunRecord,
   LlmLog: AuditLogExemptionKind.RunRecord,

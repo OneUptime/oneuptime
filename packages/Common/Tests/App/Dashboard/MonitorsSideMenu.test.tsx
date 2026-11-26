@@ -257,7 +257,7 @@ describe("Monitors side menu", () => {
   });
 
   describe("Rules", () => {
-    test("holds Owner Rules and Label Rules, at their old addresses", async () => {
+    test("holds Owner Rules and Label Rules, at their old addresses, then their history", async () => {
       await renderMonitorsMenu();
 
       expect(linksIn("Rules")).toEqual([
@@ -269,6 +269,11 @@ describe("Monitors side menu", () => {
           title: "Label Rules",
           href: routeFor(PageMap.MONITORS_SETTINGS_LABEL_RULES),
         },
+        // Who changed the rules above, what and when (#10462).
+        {
+          title: "Audit Logs",
+          href: routeFor(PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS),
+        },
       ]);
       expect(routeFor(PageMap.MONITORS_SETTINGS_OWNER_RULES)).toBe(
         `/dashboard/${PROJECT_ID}/monitors/settings/owner-rules`,
@@ -276,6 +281,18 @@ describe("Monitors side menu", () => {
       expect(routeFor(PageMap.MONITORS_SETTINGS_LABEL_RULES)).toBe(
         `/dashboard/${PROJECT_ID}/monitors/settings/label-rules`,
       );
+      expect(routeFor(PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS)).toBe(
+        `/dashboard/${PROJECT_ID}/monitors/settings/rules-audit-logs`,
+      );
+    });
+
+    test("opens itself on the rules' Audit Logs page, and marks it", async () => {
+      goTo(routeFor(PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS));
+      await renderMonitorsMenu();
+
+      expect(isExpanded("Rules")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Audit Logs"]);
+      expect(isExpanded("Settings")).toBe(false);
     });
 
     test("Settings no longer holds them", async () => {

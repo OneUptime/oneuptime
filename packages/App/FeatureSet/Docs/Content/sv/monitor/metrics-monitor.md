@@ -116,7 +116,7 @@ Ju längre fönstret är, desto bredare är varje tidsintervall, så en datapunk
 
 ## Kriterier
 
-Dessa monitorer utvärderar alltid **Mätvärde**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Ovanligt hög**, **Ovanligt låg**, **Ovanligt hög eller låg**, **Väntas stiga över** eller **Väntas sjunka under**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
+Dessa monitorer utvärderar alltid **Mätvärde**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Allt utom**, **Ovanligt hög**, **Ovanligt låg**, **Ovanligt hög eller låg**, **Väntas stiga över** eller **Väntas sjunka under**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
 
 | Villkor | Matchar när värdet är… |
 | --- | --- |
@@ -125,6 +125,7 @@ Dessa monitorer utvärderar alltid **Mätvärde**: det aggregerade värdet av de
 | **Mindre än** | under tröskelvärdet |
 | **Mindre än eller lika med** | lika med tröskelvärdet eller lägre |
 | **Lika med** | exakt tröskelvärdet |
+| **Inte lika med** | allt utom tröskelvärdet |
 | **Onormalt hög** | över det förväntade intervallet för den här timmen i veckan |
 | **Onormalt låg** | under det intervallet |
 | **Avvikande** | utanför det intervallet, åt vilket håll som helst |
@@ -193,6 +194,10 @@ Utan Group By är samma monitor en enda skalär: frågan slår ihop alla värdar
 
 Varje larm per grupp följer sin egen grupp. När värd A sjunker under tröskelvärdet igen löses dess larm av sig själv, och larmet för värd B förblir öppen tills värd B återhämtar sig. Att en grupp återhämtar sig stänger aldrig en annan grupps larm.
 
+### Varje serie i översikten
+
+Monitorns **Översikt** listar i **Serier** varje serie som den senaste kontrollen läste: seriens etiketter, så som dess larm namnger dem, dess senaste värde, de kriterier den uppfyller och dess öppna incident eller larm. En serie som håller monitorns status visar **Håller statusen**. En monitor med många serier listar 50 av dem, de som håller statusen eller uppfyller ett kriterium först, och säger hur många det finns.
+
 ### Vad varje larm sparar
 
 Varje larm eller incident som öppnas för en grupp sparar kontrollen som öppnade det bara för den gruppen: dess serie, dess punkter och sammanfattningen av utvärderingen. Ingen sparad kontroll är större än 256 KB, och loggarna för en kontroll som behövde kortas för att få plats säger det.
@@ -206,6 +211,7 @@ Larm och incidenter som öppnades före detta sparade alla grupper i utvärderin
 
 - **Grupperade monitorer utvärderar alla kriterier.** Allvarlighetsnivåer kan därför utlösas för olika grupper samtidigt: med "Critical: större än 95" ovanför "Warning: större än 80" öppnar en värd på 96 % en kritisk varning medan en värd på 85 % öppnar en vanlig varning i samma kontroll. En värd som överskrider båda nivåerna får ändå exakt en varning, från det första kriteriet som matchar, så **sortera kriterierna med det allvarligaste först**.
 - **Ogrupperade monitorer stannar vid det första kriteriet som matchar.** Bara det kriteriet utlöses, ännu ett skäl att lägga larmkriteriet ovanför det friska: ett brett friskt kriterium överst matchar i nästan varje kontroll och hindrar att larmkriteriet under det någonsin utvärderas.
+- **En grupperad monitors status kommer tillbaka med de serier som ändrade den.** Monitorn har en enda status, som sätts av det första kriterium som matchar. Ett kriterium som bara tar tillbaka den till dess **Standardstatus för övervakning** och inte öppnar något larm eller någon incident väntar på de serier som uppfyllde ett kriterium som sätter en annan status, och matchar när var och en av dem uppfyller det: en värd som aldrig var nära tröskeln tar inte tillbaka monitorn. Tills dess behåller monitorn sin status, även när inget kriterium matchar, så ett friskt kriterium en bit under tröskeln hindrar en serie som pendlar kring den från att växla statusen hela tiden. Varje series larm löses fortfarande var för sig.
 
 | Värd | Disk använd | Critical (> 95) | Warning (> 80) | Varning som ges |
 | --- | --- | --- | --- | --- |

@@ -28,6 +28,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const EVERYTHING: LocalSignInSettings = {
   hasPassword: true,
+  hasPasswordResetLink: true,
   isTwoFactorAuthEnabled: true,
   authenticatorAppCount: 2,
   passkeyAndSecurityKeyCount: 3,
@@ -173,6 +174,20 @@ describe("the template's variables", () => {
     expect(vars["clearedByServerAdmin"]).toBeUndefined();
   });
 
+  test("a project that has no name to read - deleted since the clear (#9991) - is named nowhere", () => {
+    for (const projectName of ["", "   "]) {
+      const vars: Dictionary<string> = getSignInSettingsClearedEmailVariables({
+        ...serverAdminData(),
+        clearedBy: SignInSettingsClearedBy.ProjectOwner,
+        projectName: projectName,
+      });
+
+      // The template then says "a project owner", and names no owners to ask.
+      expect(vars["clearedByProjectOwner"]).toBe("true");
+      expect("projectName" in vars).toBe(false);
+    }
+  });
+
   test("a row for each thing that was removed, with its count", () => {
     const vars: Dictionary<string> =
       getSignInSettingsClearedEmailVariables(serverAdminData());
@@ -182,6 +197,27 @@ describe("the template's variables", () => {
     expect(vars["removedAuthenticatorAppCount"]).toBe("2");
     expect(vars["removedBackupCodeCount"]).toBe("8");
     expect(vars["turnedOffTwoFactorAuth"]).toBe("true");
+  });
+
+  test("a reset link with a password beside it is named in the password's row, not again (#9992)", () => {
+    const vars: Dictionary<string> =
+      getSignInSettingsClearedEmailVariables(serverAdminData());
+
+    expect(vars["removedPassword"]).toBe("true");
+    expect(vars["removedPasswordResetLink"]).toBeUndefined();
+  });
+
+  test("a reset link alone - somebody who asked for one to set a first password - is its own row (#9992)", () => {
+    const vars: Dictionary<string> = getSignInSettingsClearedEmailVariables(
+      serverAdminData({
+        cleared: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
+      }),
+    );
+
+    expect(vars["removedPasswordResetLink"]).toBe("true");
+    expect(vars["removedPassword"]).toBeUndefined();
+    expect(vars["removedPasskeyCount"]).toBeUndefined();
+    expect(vars["turnedOffTwoFactorAuth"]).toBeUndefined();
   });
 
   test("no row for what the person did not have", () => {

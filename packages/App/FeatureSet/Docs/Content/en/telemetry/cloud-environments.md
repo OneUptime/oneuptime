@@ -102,7 +102,7 @@ Ingest creates environments for you, so there is nothing to type in. Open **App 
 
 ## Apps and deploys
 
-Each service an environment runs is an app of it, named the way the platform's console names it. **App Platforms → All Apps** lists every app with the revision it runs and its requests, error rate and p95 latency over the last hour, and an environment's **Apps** tab lists its own.
+Each service an environment runs is an app of it, named the way the platform's console names it. **App Platforms → All Apps** lists every app with the revision it runs and its requests, error rate and p95 latency over the last hour, and an environment's **Apps** tab lists its own. An App Service app that sends no traces shows its site's numbers from Azure Monitor there instead: the requests Azure counted, the share answered with a 5xx status and the average response time. So does an app on Container Apps, Cloud Run, App Engine or App Runner, with the numbers its own cloud measures; an ECS app's requests come from its traces alone.
 
 | Platform | App | Kept apart by | Revision |
 | --- | --- | --- | --- |

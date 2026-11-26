@@ -1,3 +1,4 @@
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import DashboardService, {
@@ -102,7 +103,7 @@ const PLANS: ReadonlyArray<PlanType> = [
 ];
 
 const refusalFor: (plan: PlanType) => string = (plan: PlanType): string => {
-  return `Please upgrade your plan to ${plan} to access this feature`;
+  return `This feature needs the ${plan} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.`;
 };
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -204,7 +205,7 @@ const stubRepository: (
       _where: unknown,
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
-      const written: Record<string, unknown> = { ...set };
+      const written: Record<string, unknown> = withoutLastModifiedStamp(set);
       delete written["version"];
       writes.push(written);
       return { affected: 1 };

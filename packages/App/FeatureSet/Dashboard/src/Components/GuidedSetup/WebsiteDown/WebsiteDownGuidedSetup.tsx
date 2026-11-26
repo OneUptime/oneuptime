@@ -4,6 +4,7 @@ import WebsiteDownApi, {
   WebsiteDownMonitorRecord,
   WebsiteDownOtherMonitor,
   WebsiteDownPolicyRecord,
+  WEBSITE_DOWN_STATUS_PAGE_PICKER,
   isPaymentRequired,
   mayAddPaymentMethod,
   mayAddToStatusPage,
@@ -50,10 +51,12 @@ import { mayCreateStatusPage } from "../StatusPage/StatusPageSetupApi";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import Dropdown, {
+import {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import { STATUS_PAGE_URL } from "Common/UI/Config";
 import {
   GuidedSetupEntryPoint,
@@ -307,7 +310,12 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   >([]);
   const [statusPageShowing, setStatusPageShowing] =
     useState<WebsiteDownStatusPageChoice | null>(null);
-  const [pickedStatusPageId, setPickedStatusPageId] = useState<string>("");
+  /*
+   * The page picked: any of the project's, found by the picker's search
+   * (#10646) - not only one of the first pages read.
+   */
+  const [pickedStatusPageChoice, setPickedStatusPageChoice] =
+    useState<WebsiteDownStatusPageChoice | null>(null);
 
   const executionLogId: string =
     typeof run[WebsiteDownRunValue.TestExecutionLogId] === "string"
@@ -528,9 +536,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       setWhoFacts(loadedWhoFacts);
       setStatusPages(loadedStatusPages);
       setStatusPageShowing(loadedShowing);
-      setPickedStatusPageId(
-        loadedShowing?.id || loadedStatusPages[0]?.id || "",
-      );
+      setPickedStatusPageChoice(loadedShowing || loadedStatusPages[0] || null);
       setOpenStepKey(
         getFirstOpenStepKey(
           getWebsiteDownProgress({
@@ -934,7 +940,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         setStatusPageShowing(showing);
 
         if (showing) {
-          setPickedStatusPageId(showing.id);
+          setPickedStatusPageChoice(showing);
         }
       }
 
@@ -1730,9 +1736,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
    * summary says which page shows it; or "Not now".
    */
   const pickedStatusPage: WebsiteDownStatusPageChoice | undefined =
-    statusPages.find((page: WebsiteDownStatusPageChoice): boolean => {
-      return page.id === pickedStatusPageId;
-    }) || statusPages[0];
+    pickedStatusPageChoice || statusPages[0];
 
   const addToStatusPage: () => Promise<void> = async (): Promise<void> => {
     if (!monitor || !pickedStatusPage) {
@@ -1783,12 +1787,14 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(false);
   };
 
-  const statusPageOptions: Array<DropdownOption> = statusPages.map(
-    (page: WebsiteDownStatusPageChoice): DropdownOption => {
-      // A page's name as the project wrote it.
-      return { value: page.id, label: page.name, isUserContent: true };
-    },
-  );
+  // The page picked, as its picker holds it: a page's name as written.
+  const pickedStatusPageOption: DropdownOption | undefined = pickedStatusPage
+    ? {
+        value: pickedStatusPage.id,
+        label: pickedStatusPage.name,
+        isUserContent: true,
+      }
+    : undefined;
 
   const statusPageContent: ReactElement = (
     <div className="space-y-4">
@@ -1801,24 +1807,38 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       </p>
       <div>
         <label
-          htmlFor="guided-setup-status-page"
+          id="guided-setup-status-page-label"
           className="block text-sm font-medium text-gray-700"
         >
           {translator.translateText(WEBSITE_DOWN_COPY.statusPageLabel)}
         </label>
         <div className="mt-1">
-          <Dropdown
-            inputId="guided-setup-status-page"
+          {/*
+           * Searched on the server as it is typed in (#10646): any of the
+           * project's live pages, not only the first ones read.
+           */}
+          <EntityDropdown
+            {...WEBSITE_DOWN_STATUS_PAGE_PICKER}
+            id="guided-setup-status-page"
             dataTestId="guided-setup-status-page"
-            options={statusPageOptions}
-            value={statusPageOptions.find((option: DropdownOption) => {
-              return option.value === pickedStatusPage?.id;
-            })}
+            ariaLabelledby="guided-setup-status-page-label"
+            className="relative w-full"
+            value={pickedStatusPageOption}
             isClearable={false}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (typeof value === "string") {
-                setPickedStatusPageId(value);
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+              change: DropdownChange,
+            ) => {
+              if (typeof value !== "string" || !value) {
+                return;
               }
+
+              setPickedStatusPageChoice({
+                id: value,
+                name:
+                  change.selectedOptions[0]?.label ||
+                  (pickedStatusPage?.id === value ? pickedStatusPage.name : ""),
+              });
             }}
           />
         </div>
@@ -2374,7 +2394,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
               WebsiteDownApi.loadStatusPages()
                 .then((pages: Array<WebsiteDownStatusPageChoice>) => {
                   setStatusPages(pages);
-                  setPickedStatusPageId(pages[0]?.id || "");
+                  setPickedStatusPageChoice(pages[0] || null);
                 })
                 .catch(() => {
                   setStatusPages([]);

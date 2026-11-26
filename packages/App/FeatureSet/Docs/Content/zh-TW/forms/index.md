@@ -1,6 +1,6 @@
 # 表單概覽
 
-表單是一個頁面，任何擁有其連結的人都可以填寫，不需要 OneUptime 帳號。每次提交都會在您的專案中建立一項內容：問題回報會建立一個 **事件**，變更和維護要求會建立一個 **維護事件**。您可以在拖放式建構器中設計表單的問題，決定答案如何變成紀錄，並將連結分享給應該使用它的人。
+表單是一個頁面，任何擁有其連結的人都可以填寫，不需要 OneUptime 帳號。每次提交都會在您的專案中建立一項內容：問題回報會建立一個 **事件**，警告和需要檢查的事項會建立一個 **警示**，變更和維護要求會建立一個 **維護事件**。您可以在拖放式建構器中設計表單的問題，決定答案如何變成紀錄，並將連結分享給應該使用它的人。
 
 當發現問題或需要變更的人，並不是負責處理事件和維護的人時，就可以使用表單：例如支援人員、其他部門的同事、門市經理或客戶的維運團隊。他們開啟連結、回答您的問題，然後按下 **提交**。您的團隊會收到一個一般的事件或維護事件，答案填在其欄位中，並附有一則記錄提交者身分的私人備註。
 
@@ -13,16 +13,19 @@
 
 ## 表單的運作方式
 
-```mermaid title="從填好的表單到事件或維護事件"
+```mermaid title="從填好的表單到事件、警示或維護事件"
 flowchart TB
     submitter["擁有連結的人<br/>（不需要帳號）"] --> page["表單的頁面"]
     page -->|提交| checks["保護措施和答案檢查"]
     checks --> submission["與表單一起<br/>保存的提交"]
     submission --> target{"每次提交建立"}
-    target -->|事件| incident["事件<br/>（在狀態頁面上隱藏）"]
-    target -->|排定維護| event["維護事件<br/>（除非另行設定，否則隱藏）"]
+    target -->|事件| incident["事件<br/>（在狀態頁面<br/>上隱藏）"]
+    target -->|警示| alert["警示<br/>（由其擁有者查看）"]
+    target -->|排定維護| event["維護事件<br/>（除非另行設定，<br/>否則隱藏）"]
     incident --> response["待命策略和<br/>規則開始執行"]
+    alert --> response
     incident --> note["私人備註：提交者<br/>和其他答案"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ flowchart TB
 | 每次提交建立 | 用途 | 會發生什麼 |
 | --- | --- | --- |
 | **事件** | 問題回報 | 會立即宣告一個事件，因此您的待命策略和規則會執行，待命人員會收到通知。在回應者發布之前，它不會出現在狀態頁面上。 |
+| **警示** | 警告和需要檢查的事項 | 會建立一個警示，因此不必宣告事件，其擁有者就會收到通知，其待命策略和規則也會執行。以較後的狀態（例如 **已確認**）開始的警示不會呼叫任何人。 |
 | **排定維護** | 變更和維護要求 | 會在提交者要求的時段內排定一個維護事件。除非表單另有設定，它不會出現在狀態頁面上，也不會通知任何訂閱者。 |
 
-表單目前支援這兩種，未來還會支援更多類型的紀錄。
+設定會建立警示的表單還需要建立警示的權限：請參閱 [權限](#權限)。
 
 ## 開始之前
 
 - **包含表單的方案。** 在 OneUptime Cloud 上，表單需要 **Growth** 或更高的方案。請參閱 [方案](#方案)。
 - **建立表單的權限。** **Create Form** 屬於專案擁有者和專案管理員，以及您授予該權限的角色。請參閱 [權限](#權限)。
 - **事件表單需要嚴重程度。** 每個事件都需要一個嚴重程度：來自某個問題、表單的設定或其事件範本。沒有嚴重程度時，每次提交都會被拒絕。請參閱 [提交會建立什麼](/docs/forms/on-submit#提交如何成為事件)。
+- **警示表單需要嚴重程度。** 每個警示也都需要一個嚴重程度：來自某個問題或表單的設定。請參閱 [提交如何成為警示](/docs/forms/on-submit#提交如何成為警示)。
 
 ## 建立您的第一個表單
 
@@ -144,6 +149,8 @@ flowchart TB
 | **Delete Form Domain** | 移除表單的自訂網域。 | 專案擁有者、專案管理員和 **Edit Form** |
 | **Read Form Domain** | 檢視表單的自訂網域、它們的 DNS 記錄，以及每個網域在通往 HTTPS 的路上走到了哪一步。 | 擁有 **Read Form** 的任何人 |
 
+**會建立警示的表單需要建立警示的權限。** 任何擁有其連結的人都可以建立警示、通知其擁有者並呼叫其待命人員，因此建立一個會建立警示的表單、把表單改為這種表單，以及變更警示表單的問題、範本或 **提交時** 設定，都還需要一個可以建立警示的權限：專案擁有者、專案管理員、專案成員、警示管理員、警示成員或 **Create Alert**。表單的名稱、連結、 **接受提交**、品牌和 **IP 允許清單** 只需要 **Form** 權限。沒有該權限時，建立表單時不會提供 **警示**，它在表單的 **提交時** 頁面上也會被鎖定，其提示會說明所需的權限；仍然嘗試的請求會被以 "Only people who may create alerts can set up a form that creates them." 拒絕。事件表單和維護表單和以前一樣只需要 **Form** 權限。
+
 提交中包含陌生人輸入的內容（姓名、電子郵件地址，以及可能永遠不會進入紀錄的答案），因此除非您授予 **Read Form Submission**，否則只有專案擁有者和專案管理員能看到它們。任何能讀取表單的人都能看到並分享其連結。提交表單不需要任何權限。關於角色和細部權限如何組合，請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 
 ## 方案
@@ -156,7 +163,7 @@ flowchart TB
 
 ### 問題和設定
 
-表單的問題在其 `fields` 欄中，這是一個依表單提問順序排列的 JSON 清單；其提交時設定在 `targetSettings` 中：
+表單的 `targetType` 是每次提交建立的內容：`Incident`、`Alert` 或 `ScheduledMaintenance`。表單的問題在其 `fields` 欄中，這是一個依表單提問順序排列的 JSON 清單；其提交時設定在 `targetSettings` 中——對於警示表單，為 `defaultTitle`、`alertSeverityId`、`alertStateId`、`monitorId`、`labelIds`、`onCallDutyPolicyIds`、`ownerUserIds` 和 `ownerTeamIds`：
 
 ```json
 {
@@ -199,8 +206,8 @@ flowchart TB
 | `source` | 詢問的內容 |
 | --- | --- |
 | `Question` | 表單自己的問題，依 `type` 作答：`Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date`、`DateTime`、`File` 或 `MultipleFiles`。下拉式選單會列出其 `dropdownOptions`，每行一個。 |
-| `TargetField` | 表單所建立內容的一個欄位，由 `targetField` 指定：事件為 `title`、`description`、`incidentSeverityId`、`monitors`、`labels` 和 `impactStartedAt`；維護事件為 `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages` 和 `labels`。透過選擇作答的欄位會在 `allowedOptionIds` 中列出其提供的紀錄。 |
-| `TargetCustomField` | 事件或維護事件的某個自訂欄位，由 `customFieldId` 指定。 |
+| `TargetField` | 表單所建立內容的一個欄位，由 `targetField` 指定：事件為 `title`、`description`、`incidentSeverityId`、`monitors`、`labels` 和 `impactStartedAt`；警示為 `title`、`description`、`alertSeverityId`、`monitor`、`labels` 和 `impactStartedAt`；維護事件為 `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages` 和 `labels`。透過選擇作答的欄位會在 `allowedOptionIds` 中列出其提供的紀錄。 |
+| `TargetCustomField` | 事件、警示或維護事件的某個自訂欄位，由 `customFieldId` 指定。 |
 | `Submitter` | 提交者的 `Name` 或 `Email`，由 `submitterField` 指定。 |
 
 `isHidden` 設為 `true` 的問題不會顯示在公開頁面上，永遠不是必填，只能由提交所指定的範本來回答，除非該範本會提出這個問題。`isRequired` 和 `isHidden` 是表單的預設值；每個範本都可以用自己的方式提出問題。
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 工作流程
 
-表單擁有自動產生的工作流程元件，例如 **建立表單時**、**更新表單時** 等。若要對表單建立的內容執行動作，請使用 **建立事件時** 或 **建立維護事件時**。
+表單擁有自動產生的工作流程元件，例如 **建立表單時**、**更新表單時** 等。若要對表單建立的內容執行動作，請使用 **建立事件時**、**建立警示時** 或 **建立維護事件時**。
 
 ### 公開頁面自己的端點
 

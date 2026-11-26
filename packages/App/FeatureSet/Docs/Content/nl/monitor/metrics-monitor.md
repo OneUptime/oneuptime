@@ -116,7 +116,7 @@ Hoe langer het venster, hoe breder elk tijdsinterval, dus één datapunt staat v
 
 ## Criteria
 
-Deze monitoren evalueren altijd de **Metriekwaarde**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Ongewoon hoog**, **Ongewoon laag**, **Ongewoon hoog of laag**, **Verwacht boven** of **Verwacht onder**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
+Deze monitoren evalueren altijd de **Metriekwaarde**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Alles behalve**, **Ongewoon hoog**, **Ongewoon laag**, **Ongewoon hoog of laag**, **Verwacht boven** of **Verwacht onder**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
 
 | Voorwaarde | Komt overeen wanneer de waarde… |
 | --- | --- |
@@ -125,6 +125,7 @@ Deze monitoren evalueren altijd de **Metriekwaarde**: de geaggregeerde waarde va
 | **Kleiner dan** | onder de drempel ligt |
 | **Kleiner dan of gelijk aan** | gelijk is aan de drempel of lager |
 | **Gelijk aan** | precies de drempel is |
+| **Niet gelijk aan** | iets anders dan de drempel is |
 | **Afwijkend hoog** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Afwijkend laag** | onder dat bereik ligt |
 | **Afwijkend** | buiten dat bereik ligt, in welke richting ook |
@@ -193,6 +194,10 @@ Zonder Group By is dezelfde monitor één scalair: de query voegt alle hosts sam
 
 Elke waarschuwing per groep volgt haar eigen groep. Wanneer host A weer onder de drempel zakt, wordt diens waarschuwing vanzelf opgelost, en de waarschuwing van host B blijft open tot host B herstelt. Het herstel van de ene groep sluit nooit de waarschuwing van een andere.
 
+### Elke reeks in het overzicht
+
+Het **Overzicht** van de monitor toont in **Reeksen** elke reeks die de laatste controle las: de labels van de reeks, zoals de waarschuwingen ze noemen, de laatste waarde, de criteria waaraan de reeks voldoet en het open incident of de open waarschuwing. Een reeks die de status van de monitor vasthoudt, toont **Houdt de status vast**. Een monitor met veel reeksen toont er 50, eerst de reeksen die de status vasthouden of aan een criterium voldoen, en zegt hoeveel het er zijn.
+
 ### Wat elke waarschuwing bewaart
 
 Elke waarschuwing of elk incident dat voor één groep wordt geopend, bewaart de controle die het opende alleen voor die groep: de reeks, de punten en de samenvatting van de evaluatie. Geen bewaarde controle is groter dan 256 KB, en de logboeken van een controle die moest worden ingekort om te passen, zeggen dat.
@@ -206,6 +211,7 @@ Waarschuwingen en incidenten die hiervoor werden geopend, bewaarden elke groep v
 
 - **Gegroepeerde monitoren evalueren elk criterium.** Ernstniveaus kunnen daardoor tegelijk bij verschillende groepen afgaan: met "Critical: groter dan 95" boven "Warning: groter dan 80" opent een host op 96% een kritieke waarschuwing terwijl een host op 85% bij dezelfde controle een gewone waarschuwing opent. Een host die beide niveaus overschrijdt, krijgt nog steeds precies één waarschuwing, van het eerste criterium dat overeenkomt, dus **zet de criteria op volgorde van ernstigst naar minst ernstig**.
 - **Niet-gegroepeerde monitoren stoppen bij het eerste criterium dat overeenkomt.** Alleen dat ene criterium gaat af, nog een reden om het waarschuwingscriterium boven het gezonde te zetten: een breed gezond criterium bovenaan komt bij bijna elke controle overeen en zorgt dat het waarschuwingscriterium eronder nooit wordt geëvalueerd.
+- **De status van een gegroepeerde monitor komt terug met de reeksen die hem veranderden.** De monitor heeft één status, bepaald door het eerste criterium dat overeenkomt. Een criterium dat hem alleen terugbrengt naar zijn **Standaard monitorstatus** en geen waarschuwing of incident opent, wacht op de reeksen die voldeden aan een criterium dat een andere status zet, en komt overeen zodra elk van hen eraan voldoet: een host die nooit in de buurt van de drempel kwam, brengt de monitor niet terug. Tot dan behoudt de monitor zijn status, ook als geen criterium overeenkomt, zodat een gezond criterium net onder de drempel voorkomt dat een reeks die eromheen schommelt de status steeds laat omslaan. De waarschuwing van elke reeks wordt nog steeds apart opgelost.
 
 | Host | Schijf gebruikt | Critical (> 95) | Warning (> 80) | Gegeven waarschuwing |
 | --- | --- | --- | --- | --- |

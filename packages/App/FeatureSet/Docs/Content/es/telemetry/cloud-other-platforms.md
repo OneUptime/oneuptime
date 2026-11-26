@@ -122,6 +122,8 @@ Sustituya la región y el ID de cuenta por los suyos. El detector `host` aporta 
 
 **Red:** un servicio sin conector de VPC llega a Internet directamente. Con **Outgoing network traffic: Custom VPC**, la salida pasa por su VPC, que necesita una puerta de enlace NAT y una regla de salida del grupo de seguridad por TCP 443 hacia el host de OneUptime.
 
+**Qué muestra la página de la aplicación:** las solicitudes, la tasa de errores y la latencia salen de las trazas de la aplicación. Conecte la cuenta en **Nube → Conectar**, y la **Vista general** de la aplicación añade una sección **Amazon CloudWatch**: las solicitudes del servicio, la proporción respondida con un estado 5xx, el tiempo de respuesta, la CPU y la memoria, tal como los mide App Runner, envíe lo que envíe la aplicación. OneUptime vincula la aplicación con el servicio de App Runner que nombra su `cloud.resource_id`, o si no, con el que se llama como su `service.name` en la cuenta y la región de su entorno, y la fila **Conexión de Amazon CloudWatch** de su **Comprobación de la configuración** nombra el servicio que busca mientras no se lea ninguno. En **Plataformas de aplicaciones → Todas las aplicaciones** y en la pestaña **Aplicaciones** de un entorno, una aplicación que no envía trazas muestra en su lugar las cifras del servicio según Amazon CloudWatch.
+
 ## Google App Engine
 
 `cloud.platform`: `gcp_app_engine`. El detector de GCP reconoce App Engine estándar y flexible por `GAE_SERVICE`, `GAE_VERSION` y `GAE_INSTANCE` y por el servidor de metadatos. Define `cloud.account.id` (el proyecto), `cloud.region`, `faas.name`, `faas.version` y `faas.instance`. Como en Cloud Run, `faas.name` hace que cada servicio de App Engine aparezca también en **Funciones serverless**, mientras el entorno agrupa el proyecto y la región.
@@ -156,6 +158,8 @@ env_variables:
 
 **Red:** App Engine estándar llega a Internet directamente. Las instancias del entorno flexible viven en una VPC: si la subred no tiene IP externas, necesitan Cloud NAT, y una regla de firewall de salida por TCP 443 hacia el host de OneUptime.
 
+**Qué muestra la página de la aplicación:** las solicitudes, la tasa de errores y la latencia salen de las trazas de la aplicación. Conecte el proyecto en **Nube → Conectar**, y la **Vista general** de la aplicación añade una sección **Google Cloud Monitoring**: las solicitudes del servicio, la proporción respondida con un estado 5xx, su latencia p95 y la CPU y la memoria de sus instancias, tal como los mide App Engine, envíe lo que envíe la aplicación. OneUptime vincula la aplicación con el servicio de App Engine que nombra su `faas.name`, en el proyecto de su entorno, y la fila **Conexión de Google Cloud Monitoring** de su **Comprobación de la configuración** nombra el servicio que busca mientras no se lea ninguno. En **Plataformas de aplicaciones → Todas las aplicaciones** y en la pestaña **Aplicaciones** de un entorno, una aplicación que no envía trazas muestra en su lugar las cifras del servicio según Google Cloud Monitoring.
+
 ## Azure App Service
 
 `cloud.platform`: `azure_app_service`. Los detectores de Azure de Node.js y .NET leen las variables `WEBSITE_*` que define App Service, y rellenan `cloud.platform`, `cloud.region`, `service.instance.id` (a partir de `WEBSITE_INSTANCE_ID`), `deployment.environment` (la ranura) y `host.id`, pero no `cloud.account.id`: añada usted el ID de suscripción, o la clave de entorno tendrá un segmento de cuenta vacío. El detector `azureappservice` del Collector lee las mismas variables, define también `cloud.account.id` y nombra la instancia en `azure.app_service.instance.id`.
@@ -167,11 +171,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-Los detectores de los SDK escriben la plataforma `azure.app_service`, con un punto; OneUptime la reescribe a `azure_app_service` al recibirla. En .NET, añada `OpenTelemetry.Resources.Azure` y llame a `.ConfigureResource(r => r.AddAzureAppServiceDetector())`. Los demás lenguajes añaden `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` a `OTEL_RESOURCE_ATTRIBUTES`, y toman `service.instance.id` de `WEBSITE_INSTANCE_ID` en el código.
+Los detectores de los SDK escriben la plataforma `azure.app_service`, con un punto; OneUptime la reescribe a `azure_app_service` al recibirla. Cada pila tiene su propio detector de recursos de App Service, que nombra cada instancia y pone en `cloud.resource_id` el ID del sitio: eso vincula la aplicación con las cifras de Azure Monitor de su sitio. Active el de su pila:
+
+| Pila | Su detector de recursos de App Service |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`, con `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | El agente Java de OpenTelemetry, con `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`, con `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`, con `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. Active la identidad administrada asignada por el sistema de la app (**Settings → Identity**), y concédale **Key Vault Secrets User** en el almacén. Guarde el encabezado completo, `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`, como el secreto `oneuptime-otlp-headers`.
@@ -182,9 +191,9 @@ Los detectores de los SDK escriben la plataforma `azure.app_service`, con un pun
 
 **Red:** App Service llega a Internet directamente salvo que esté activada la **VNet integration** con **Route All**. Entonces la VNet necesita una puerta de enlace NAT, o una ruta a un firewall que permita TCP 443 hacia el host de OneUptime.
 
-**Qué muestra la página de la aplicación:** las solicitudes, la tasa de errores y la latencia salen de las trazas de la aplicación, así que una aplicación que solo envía registros o métricas muestra ahí **No se recibieron trazas**, y su **Comprobación de la configuración** dice qué añadir. App Service no da a una aplicación CPU ni memoria propias, y sus mosaicos de CPU y memoria lo indican. Conecte la suscripción en **Nube → Conectar**, y la **Vista general** de la aplicación añade una sección **Azure Monitor**: las solicitudes, los errores de servidor y de cliente, el tiempo de respuesta, el tiempo de CPU y la memoria del sitio, tal como los mide Azure, envíe lo que envíe la aplicación. Su pestaña **Instancias** lista entonces las instancias en las que Azure la ejecuta, y su pestaña **Revisiones**, las implementaciones que Azure conserva.
+**Qué muestra la página de la aplicación:** las solicitudes, la tasa de errores y la latencia salen de las trazas de la aplicación, así que una aplicación que solo envía registros o métricas muestra ahí **No se recibieron trazas**, y su **Comprobación de la configuración** dice qué añadir. App Service no da a una aplicación CPU ni memoria propias, y sus mosaicos de CPU y memoria lo indican. Conecte la suscripción en **Nube → Conectar**, y la **Vista general** de la aplicación añade una sección **Azure Monitor**: las solicitudes, los errores de servidor y de cliente, el tiempo de respuesta, el tiempo de CPU y la memoria del sitio, tal como los mide Azure, envíe lo que envíe la aplicación. Su pestaña **Instancias** lista entonces las instancias en las que Azure la ejecuta, y su pestaña **Revisiones**, las implementaciones que Azure conserva. En **Plataformas de aplicaciones → Todas las aplicaciones** y en la pestaña **Aplicaciones** de un entorno, una aplicación que no envía trazas muestra en su lugar las cifras de su sitio según Azure Monitor: las solicitudes que contó Azure, la proporción respondida con un estado 5xx y el tiempo de respuesta medio. Una aplicación de una ranura de implementación distinta de la de producción, que los detectores nombran en `deployment.environment`, muestra las cifras, instancias e implementaciones propias de esa ranura, nunca las de su sitio: Azure Monitor mide cada ranura como un recurso propio.
 
-La pestaña **Configuración** de la aplicación da estos ajustes como comandos de Azure Cloud Shell para .NET, Java, Node.js o Python, con el nombre, el grupo de recursos y la suscripción de la propia aplicación en cada comando. Para los registros de consola, HTTP y de plataforma del propio sitio, elija también **Transmitir métricas y registros** en la fila de la suscripción en **Nube → Conectar**: aparecen en la pestaña **Registros** de la aplicación, en **Desde la configuración de diagnóstico de Azure**.
+La pestaña **Configuración** de la aplicación da estos ajustes como comandos de Azure Cloud Shell para .NET, Java, Node.js o Python, con el nombre, el grupo de recursos y la suscripción de la propia aplicación en cada comando. Para los registros de consola, HTTP y de plataforma del propio sitio, elija también **Transmitir métricas y registros** en la fila de la suscripción en **Nube → Conectar**: aparecen en la pestaña **Registros** de la aplicación, en **Desde la configuración de diagnóstico de Azure**. La guía de configuración del entorno también da los pasos de cada pila, con marcadores de posición para el nombre y el grupo de recursos de la aplicación.
 
 ## Azure Container Instances
 
@@ -250,7 +259,7 @@ Las solicitudes, la tasa de errores y la latencia salen de las trazas, así que 
 :::
 
 :::details Una app de App Service no tiene cifras de Azure Monitor
-La fila **Conexión de Azure Monitor** de su **Comprobación de la configuración** dice por qué. OneUptime vincula la app con su sitio por `cloud.resource_id`, que definen los detectores de App Service, o si no, por su `service.name` en la suscripción que nombra `cloud.account.id`: dé a la app el nombre de su sitio, o añada `cloud.resource_id`. Una conexión de Azure en **Nube → Conectar** debe leer esa suscripción, con el rol Monitoring Reader en ella. Una ranura de implementación es un recurso propio, que OneUptime aún no lee.
+La fila **Conexión de Azure Monitor** de su **Comprobación de la configuración** dice por qué. OneUptime vincula la app con su sitio por `cloud.resource_id`, que definen los detectores de App Service, o si no, por su `service.name` en la suscripción que nombra `cloud.account.id`: dé a la app el nombre de su sitio, o añada `cloud.resource_id`. Una conexión de Azure en **Nube → Conectar** debe leer esa suscripción, con el rol Monitoring Reader en ella. Una aplicación de una ranura de implementación distinta de la de producción se vincula solo con esa ranura de su sitio, nunca con el sitio en sí: hasta que una conexión lea la ranura, la fila nombra la ranura que busca.
 :::
 
 :::details Una variable de Container Instances cambiada no tiene efecto

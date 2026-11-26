@@ -390,7 +390,7 @@ function readWiredIngestRoutes(): Array<WiredIngestRoute> {
     let currentRoutePath: string | null = null;
     let isAwaitingRoutePath: boolean = false;
 
-    for (const line of lines) {
+    for (const [index, line] of lines.entries()) {
       const registration: RegExpMatchArray | null = line.match(
         /router\.(?:get|post|put|patch|delete|all)\(/,
       );
@@ -421,8 +421,16 @@ function readWiredIngestRoutes(): Array<WiredIngestRoute> {
         }
       }
 
-      const surfaceCall: RegExpMatchArray | null = line.match(
-        /TelemetryIngest\.forSurface\(\s*TelemetryIngestSurface\.([A-Za-z0-9_]+)\s*\)/,
+      /*
+       * The surface, and the route's body reader after it when it reads the
+       * body once the key is right (#10702): on the call's line, or - a
+       * call too long for one - on the line after it.
+       */
+      const call: string = line.includes("TelemetryIngest.forSurface(")
+        ? `${line} ${lines[index + 1] || ""}`
+        : line;
+      const surfaceCall: RegExpMatchArray | null = call.match(
+        /TelemetryIngest\.forSurface\(\s*TelemetryIngestSurface\.([A-Za-z0-9_]+)\s*[,)]/,
       );
 
       if (surfaceCall && surfaceCall[1]) {

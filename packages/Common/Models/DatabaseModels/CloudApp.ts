@@ -1,6 +1,5 @@
 import CloudResource from "./CloudResource";
 import Project from "./Project";
-import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -434,6 +433,63 @@ export default class CloudApp extends BaseModel {
   })
   public providerResourceId?: string = undefined;
 
+  /*
+   * The Cloud Resource the app runs as in its cloud's monitoring - an Azure
+   * App Service app's site, whose Azure Monitor numbers its page and lists
+   * show (#10407) - as OneUptime tied the two
+   * (Types/Cloud/CloudAppPlatformResourceMatch: by the app's
+   * cloud.resource_id, else by its name in the subscription its telemetry
+   * names). Kept so the lists, monitors and the AI read the app's site
+   * without looking it up again, and could never answer differently from
+   * its page.
+   *
+   * Set by OneUptime alone (CloudAppService.linkPlatformResources): when
+   * the app is discovered or its telemetry names another site, after each
+   * read of an Azure connection, and once an hour for every App Service
+   * app. Emptied when no live site matches any more - the site deleted, or
+   * moved to another resource group or subscription, which gives it a new
+   * id and a new row - and when its row is deleted (ON DELETE SET NULL).
+   * A site renamed in OneUptime keeps its row, and the app keeps it.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    manyToOneRelationColumn: "platformCloudResourceId",
+    type: TableColumnType.Entity,
+    modelType: CloudResource,
+    title: "Platform Cloud Resource",
+    description:
+      "The Cloud Resource this app runs as in its cloud's monitoring, such as an Azure App Service app's site.",
+  })
+  @ManyToOne(
+    () => {
+      return CloudResource;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "platformCloudResourceId" })
+  public platformCloudResource?: CloudResource = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    title: "Platform Cloud Resource ID",
+    description:
+      "ID of the Cloud Resource this app runs as in its cloud's monitoring, such as an Azure App Service app's site. Set by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public platformCloudResourceId?: ObjectID = undefined;
+
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({
     type: TableColumnType.ObjectID,
@@ -446,39 +502,4 @@ export default class CloudApp extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Relation to the user who deleted this row.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the user who deleted this row.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

@@ -41,6 +41,8 @@ const RUNNERS: string = `${RUNBOOKS}/runners`;
 const GLOBAL_VARIABLES: string = `${RUNBOOKS}/settings/variables`;
 const OWNER_RULES: string = `${RUNBOOKS}/settings/owner-rules`;
 const LABEL_RULES: string = `${RUNBOOKS}/settings/label-rules`;
+// Who changed the rules above, what and when (#10462).
+const RULE_AUDIT_LOGS: string = `${RUNBOOKS}/settings/rules-audit-logs`;
 // The pages' old addresses: AI Access, and Runner Credentials before it.
 const AI_ACCESS: string = `${RUNBOOKS}/runner-credentials`;
 const PROJECT_SETTINGS: string = `/dashboard/${PROJECT_ID}/settings`;
@@ -266,13 +268,17 @@ test.describe("at a laptop's 1280 pixels", () => {
       runnersBox!.y + runnersBox!.height,
     );
 
-    // Settings holds the variables and the rules, out of sight while folded.
+    /*
+     * Settings holds the variables, the rules and who changed the rules,
+     * out of sight while folded.
+     */
     const settings: Locator = await sectionBody(menu, "Settings");
 
     expect(await entries(settings)).toEqual([
       { href: GLOBAL_VARIABLES, text: "Global Variables" },
       { href: OWNER_RULES, text: "Owner Rules" },
       { href: LABEL_RULES, text: "Label Rules" },
+      { href: RULE_AUDIT_LOGS, text: "Rule Audit Logs" },
     ]);
     await expect(link(menu, GLOBAL_VARIABLES)).toBeHidden();
 

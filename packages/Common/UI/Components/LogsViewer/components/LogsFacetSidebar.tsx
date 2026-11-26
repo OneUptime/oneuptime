@@ -87,6 +87,9 @@ export interface LogsFacetSidebarProps {
   onRemoveFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
+  // Every saved view the host has, and its search of them (#10646).
+  savedViewCount?: number | undefined;
+  onSavedViewSearch?: ((text: string) => void) | undefined;
   selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
   // Toggling the applied view off here has to clear it, not re-apply it.
@@ -457,6 +460,8 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
             selectedSavedViewId={props.selectedSavedViewId}
             onSelect={props.onSavedViewSelect}
             onClear={props.onClearSavedView}
+            totalCount={props.savedViewCount}
+            onSearchTextChange={props.onSavedViewSearch}
           />
         )}
 

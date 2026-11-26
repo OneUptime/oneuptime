@@ -27,7 +27,10 @@ import OnCallChatByWorkspace, {
   OnCallChatTextByWorkspaceType,
   OnCallChatWriter,
 } from "../Utils/OnCall/OnCallChatByWorkspace";
-import OnCallChatText from "../Utils/OnCall/OnCallChatText";
+import OnCallChatText, {
+  OnCallOverrideCoverNotJoined,
+} from "../Utils/OnCall/OnCallChatText";
+import { FeedPersonStanding } from "../Utils/Feed/FeedPersonName";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../Utils/TeamMember/PendingInviteeProfiles";
@@ -1230,11 +1233,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           timezones: timezones,
         });
 
+      /*
+       * Every line names the person and their cover through one
+       * OnCallChatByWorkspace: someone only invited by the name typed for
+       * them, never their address (#10616).
+       */
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+      });
+
       const overrideUserMarkdown: MarkdownText =
-        await UserService.getUserMarkdownString({
-          userId: overrideUserId,
-          projectId: projectId!,
-        });
+        await chat.nameIn(null)(overrideUserId);
 
       const policyLink: string = (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -1245,9 +1255,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
       const routeAlertsToUserMarkdown: MarkdownText | undefined =
         routeAlertsToUserId
-          ? await UserService.getUserMarkdownString({
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
+          ? await chat.nameIn(null)(routeAlertsToUserId)
+          : undefined;
+
+      /*
+       * A cover who has not joined the project yet is paged by nothing until
+       * they do (#10670): every line says so, as a coverage gap's does.
+       */
+      const coverNotJoined: OnCallOverrideCoverNotJoined | undefined =
+        routeAlertsToUserId
+          ? await this.getCoverNotJoined({
+              chat: chat,
+              coverUserId: routeAlertsToUserId,
             })
           : undefined;
 
@@ -1256,7 +1275,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
        * happens to the person's turns instead.
        */
       const what: MarkdownText = routeAlertsToUserMarkdown
-        ? mdText`All alerts will be routed to **${routeAlertsToUserMarkdown}** from **${from}**  to **${until}**. `
+        ? mdText`All alerts will be routed to **${routeAlertsToUserMarkdown}** from **${from}**  to **${until}**. ${
+            coverNotJoined
+              ? OnCallChatText.coverNotJoinedSentence({
+                  cover: routeAlertsToUserMarkdown,
+                  person: overrideUserMarkdown,
+                  coverNotJoined: coverNotJoined,
+                })
+              : mdText``
+          }`
         : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
       const chatPolicy: MarkdownText = OnCallChatText.policy({
@@ -1270,10 +1297,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
        */
       const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
         createdItem.startsAt && createdItem.endsAt
-          ? await new OnCallChatByWorkspace({
-              projectId: projectId,
-              onCallDutyPolicyId: onCallDutyPolicyId,
-            }).write(
+          ? await chat.write(
               async (writer: OnCallChatWriter): Promise<MarkdownText> => {
                 return OnCallChatText.overrideAdded({
                   policy: chatPolicy,
@@ -1281,6 +1305,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
                   cover: routeAlertsToUserId
                     ? await writer.nameOf(routeAlertsToUserId)
                     : undefined,
+                  coverNotJoined: coverNotJoined,
                   from: createdItem.startsAt!,
                   until: createdItem.endsAt!,
                   moment: writer.moment,
@@ -1308,6 +1333,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
                 policy: chatPolicy,
                 person: overrideUserMarkdown,
                 cover: routeAlertsToUserMarkdown,
+                coverNotJoined: coverNotJoined,
                 from: createdItem.startsAt,
                 until: createdItem.endsAt,
                 moment: (date: Date): MarkdownText => {
@@ -1978,6 +2004,35 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
   }
 
   /*
+   * AN OVERRIDE'S COVER WHO HAS NOT JOINED THE PROJECT YET (#10670).
+   *
+   * "Who covers?" can name someone invited who has not accepted yet: the
+   * people picker offers them, and every way an override is written - the
+   * Dashboard, the API, Terraform, the MCP server - is held to the same
+   * membership check (ProjectScopedReferenceValidator), which accepts an
+   * invitation still waiting, as an escalation rule's and a schedule's
+   * rotation do (#10412). Nothing pages them until they join, so while they
+   * have not, the away person's pages reach nobody: a level that pages
+   * nobody passes on at once. The override is kept - it is planned ahead,
+   * often for someone about to join, and pages them once they do - and
+   * every line about it says so plainly, as the hand-off's coverage gap does
+   * (#10586): "Ivy covers for @ana from ... to ..., but Ivy hasn't joined
+   * the project yet, so nobody is paged in place of @ana until they do".
+   * Read once for the change (OnCallChatByWorkspace); undefined for a
+   * member, and when it cannot be read.
+   */
+  private async getCoverNotJoined(data: {
+    chat: OnCallChatByWorkspace;
+    coverUserId: ObjectID;
+  }): Promise<OnCallOverrideCoverNotJoined | undefined> {
+    const standing: FeedPersonStanding = await data.chat.getStanding(
+      data.coverUserId,
+    );
+
+    return standing?.isInvited ? { isNamed: standing.isNamed } : undefined;
+  }
+
+  /*
    * One entry in an on-call policy's feed - and one message in the chat
    * channels it posts to - for an edit of one of its overrides: what it is
    * now, then what changed and what it was. Global overrides belong to no
@@ -2046,13 +2101,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         });
       };
 
+      /*
+       * Every line names its people through one OnCallChatByWorkspace:
+       * someone only invited by the name typed for them, never their
+       * address (#10616).
+       */
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+      });
+
       const personMarkdown: (userId: string) => Promise<MarkdownText> = async (
         userId: string,
       ): Promise<MarkdownText> => {
-        return await UserService.getUserMarkdownString({
-          userId: new ObjectID(userId),
-          projectId: projectId,
-        });
+        return await chat.nameIn(null)(new ObjectID(userId));
       };
 
       const from: string = inTimezones(afterStartsAt);
@@ -2067,9 +2129,26 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         ? await personMarkdown(afterCoverId)
         : undefined;
 
+      // A cover who has not joined the project yet, as the add says it (#10670).
+      const coverNotJoined: OnCallOverrideCoverNotJoined | undefined =
+        afterCoverId
+          ? await this.getCoverNotJoined({
+              chat: chat,
+              coverUserId: new ObjectID(afterCoverId),
+            })
+          : undefined;
+
       // What it is now, as the add says it.
       const what: MarkdownText = coverMarkdown
-        ? mdText`All alerts will be routed to **${coverMarkdown}** from **${from}** to **${until}**.`
+        ? mdText`All alerts will be routed to **${coverMarkdown}** from **${from}** to **${until}**.${
+            coverNotJoined
+              ? mdText` ${OnCallChatText.coverNotJoinedSentence({
+                  cover: coverMarkdown,
+                  person: overrideUserMarkdown,
+                  coverNotJoined: coverNotJoined,
+                })}`
+              : mdText``
+          }`
         : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
       // And what it was.
@@ -2112,21 +2191,21 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
        * knows them, as a hand-off's does (issue #7967).
        */
       const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-        await new OnCallChatByWorkspace({
-          projectId: projectId,
-          onCallDutyPolicyId: onCallDutyPolicyId,
-        }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-          return OnCallChatText.overrideChanged({
-            policy: chatPolicy,
-            person: await writer.nameOf(overrideUserId),
-            cover: afterCoverId
-              ? await writer.nameOf(new ObjectID(afterCoverId))
-              : undefined,
-            from: afterStartsAt,
-            until: afterEndsAt,
-            moment: writer.moment,
-          });
-        });
+        await chat.write(
+          async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+            return OnCallChatText.overrideChanged({
+              policy: chatPolicy,
+              person: await writer.nameOf(overrideUserId),
+              cover: afterCoverId
+                ? await writer.nameOf(new ObjectID(afterCoverId))
+                : undefined,
+              coverNotJoined: coverNotJoined,
+              from: afterStartsAt,
+              until: afterEndsAt,
+              moment: writer.moment,
+            });
+          },
+        );
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
@@ -2145,6 +2224,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           policy: chatPolicy,
           person: overrideUserMarkdown,
           cover: coverMarkdown,
+          coverNotJoined: coverNotJoined,
           from: afterStartsAt,
           until: afterEndsAt,
           moment: (date: Date): MarkdownText => {
@@ -2285,11 +2365,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         const deleteByUserId: ObjectID | undefined | null =
           deleteBy.props.userId;
 
+        /*
+         * Every line names the person through one OnCallChatByWorkspace:
+         * someone only invited by the name typed for them, never their
+         * address (#10616).
+         */
+        const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+          projectId: projectId,
+        });
+
         const overrideUserMarkdown: MarkdownText =
-          await UserService.getUserMarkdownString({
-            userId: overrideUserId,
-            projectId: projectId!,
-          });
+          await chat.nameIn(null)(overrideUserId);
 
         const policyLink: string = (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -2305,14 +2391,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
         // Each workspace's line names the person as it knows them (#7967).
         const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-          await new OnCallChatByWorkspace({
-            projectId: projectId,
-          }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-            return OnCallChatText.overrideRemoved({
-              policy: chatPolicy,
-              person: await writer.nameOf(overrideUserId),
-            });
-          });
+          await chat.write(
+            async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+              return OnCallChatText.overrideRemoved({
+                policy: chatPolicy,
+                person: await writer.nameOf(overrideUserId),
+              });
+            },
+          );
 
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,

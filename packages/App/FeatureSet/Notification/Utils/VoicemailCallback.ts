@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger from "Common/Server/Utils/Logger";
 import Twilio from "twilio";
+import TwilioHttpClient from "./TwilioHttpClient";
 
 /*
  * WHAT THE ANSWERING MACHINE CALLBACK OF AN ON-CALL CALL DOES WITH THE
@@ -55,9 +56,11 @@ export async function leaveVoicemailMessage(data: {
   callLogId: ObjectID | string;
 }): Promise<boolean> {
   try {
+    // Through the outbound proxy, as every request of the server (#10721).
     const client: Twilio.Twilio = Twilio(
       data.account.accountSid,
       data.account.authToken,
+      { httpClient: TwilioHttpClient.create() },
     );
 
     await client.calls(data.callSid).update({

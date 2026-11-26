@@ -31,6 +31,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import Email from "../../../../../Types/Email";
 import EmailTemplateType from "../../../../../Types/Email/EmailTemplateType";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../../../../Types/JSON";
 import Name from "../../../../../Types/Name";
 import NotificationSettingEventType from "../../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -39,7 +40,15 @@ import PositiveNumber from "../../../../../Types/PositiveNumber";
 import {
   SecurityHuntRunWindow,
   SecurityHuntSchedule,
+  getSecurityHuntRunArrival,
 } from "../../../../../Types/SecurityEvent/SecurityHunt";
+import {
+  SECURITY_EVENTS_ARRIVED_AFTER_PARAM,
+  SECURITY_EVENTS_ARRIVED_UNTIL_PARAM,
+  getArrivalEventTimeBounds,
+  readSecurityEventArrivalRangeFromSearch,
+} from "../../../../../Types/SecurityEvent/SecurityEventArrival";
+import { DETECTION_LATE_EVENT_WINDOW_IN_MINUTES } from "../../../../../Types/SecurityEvent/DetectionFindingConstants";
 import Timezone from "../../../../../Types/Timezone";
 import { getJestSpyOn } from "../../../../Spy";
 import {
@@ -174,7 +183,7 @@ describe("what a message says", () => {
     );
   });
 
-  test("links to the hunt's page, on the run's window when there is one", async () => {
+  test("links to the hunt's page, on exactly the events its run counted when there is one", async () => {
     getJestSpyOn(DatabaseConfig, "getDashboardUrl").mockImplementation(
       (async (): Promise<URL> => {
         return URL.fromString(DASHBOARD);
@@ -194,13 +203,69 @@ describe("what a message says", () => {
       `${DASHBOARD}/${PROJECT_ID.toString()}/security-events/hunts/${HUNT_ID.toString()}`,
     );
     expect(onWindow.toString().startsWith(plain)).toBe(true);
-    // The Events page's own range params: a custom window, both ends as ISO.
+
     const query: URLSearchParams = new URLSearchParams(
       onWindow.toString().split("?")[1] || "",
     );
+
+    // What the run counted: the events that arrived in its window, as the page's chip.
+    expect(query.get(SECURITY_EVENTS_ARRIVED_AFTER_PARAM)).toBe(
+      "2026-10-28T10:00:00.000Z",
+    );
+    expect(query.get(SECURITY_EVENTS_ARRIVED_UNTIL_PARAM)).toBe(
+      "2026-10-29T10:00:00.000Z",
+    );
+    expect(readSecurityEventArrivalRangeFromSearch(query.toString())).toEqual(
+      getSecurityHuntRunArrival(WINDOW),
+    );
+
+    /*
+     * The page's own range params: every time those events can have
+     * happened - a day before the first arrived, to the most a source's
+     * clock runs ahead of the last - so one that arrived late is listed too.
+     */
     expect(query.get("range")).toBe("Custom");
-    expect(query.get("start")).toBe("2026-10-28T10:00:00.000Z");
-    expect(query.get("end")).toBe("2026-10-29T10:00:00.000Z");
+    expect(query.get("start")).toBe("2026-10-27T10:00:00.000Z");
+    expect(query.get("end")).toBe("2026-10-29T11:01:00.000Z");
+  });
+
+  test("its time range holds every event its run can have counted, the latest arrival's skew too", async () => {
+    getJestSpyOn(DatabaseConfig, "getDashboardUrl").mockImplementation(
+      (async (): Promise<URL> => {
+        return URL.fromString(DASHBOARD);
+      }) as never,
+    );
+
+    const query: URLSearchParams = new URLSearchParams(
+      (
+        await getHuntLinkInDashboard({
+          projectId: PROJECT_ID,
+          huntId: HUNT_ID,
+          window: WINDOW,
+        })
+      )
+        .toString()
+        .split("?")[1] || "",
+    );
+    const shown: { start: number; end: number } = {
+      start: new Date(query.get("start") || "").getTime(),
+      end: new Date(query.get("end") || "").getTime(),
+    };
+    const bounds: { happenedAfter: Date; happenedBefore: Date } =
+      getArrivalEventTimeBounds(getSecurityHuntRunArrival(WINDOW));
+
+    // The same bounds the run's own read is held to.
+    expect(shown.start).toBe(bounds.happenedAfter.getTime());
+    expect(shown.end).toBe(bounds.happenedBefore.getTime());
+
+    // An event that arrived in the window a day after it happened is inside.
+    const lateEvent: number =
+      WINDOW.startTime.getTime() +
+      1000 -
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60 * 1000;
+    expect(lateEvent).toBeGreaterThanOrEqual(shown.start);
+    // And so is one whose source's clock ran an hour ahead of when it arrived.
+    expect(WINDOW.endTime.getTime() + 60 * 60 * 1000).toBeLessThan(shown.end);
   });
 
   test("is the hunt, what it found and when, in every form, and the event type people chose to hear", () => {
@@ -542,6 +607,40 @@ describe("who is told", () => {
     expect(send).not.toHaveBeenCalled();
     // Nor its channels: nobody is waiting to hear.
     expect(post).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Nothing a hunt posts or sends names who was told (#10681). The people
+   * it tells kept their name, else their address - a member with no name by
+   * their address, one line away from a channel. They keep whom to tell and
+   * their time zone now, and neither a name nor an address is read.
+   */
+  test("the people told keep no name or address, none is read, and nothing sent or posted holds one", async () => {
+    const teamRead: Spy = getJestSpyOn(TeamMemberService, "findBy");
+
+    const told: Array<SecurityHuntRecipient> = await notify();
+
+    // Maya, with her time zone; Diego, who set none.
+    expect(
+      told.map((recipient: SecurityHuntRecipient): Array<string> => {
+        return Object.keys(recipient).sort();
+      }),
+    ).toEqual([["timezone", "userId"], ["userId"]]);
+
+    const huntRead: { select: JSONObject } = findHunt.mock.calls[0]![0] as {
+      select: JSONObject;
+    };
+
+    expect(huntRead.select["notifyUsers"]).toEqual({
+      _id: true,
+      timezone: true,
+    });
+    expect(
+      (teamRead.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual({ userId: true, user: { timezone: true } });
+
+    expect(JSON.stringify(send.mock.calls)).not.toContain("@");
+    expect(JSON.stringify(post.mock.calls)).not.toContain("@");
   });
 
   test("nobody, when no one it names can read it - but its channels still hear", async () => {

@@ -12,11 +12,11 @@ Instrumenta una aplicación Android nativa con OpenTelemetry Android para que se
 
 ## Cómo funciona
 
-OpenTelemetry Android se ejecuta dentro de tu aplicación. Envía trazas, registros y métricas a OneUptime por OTLP con una clave de ingesta de **Servidor**, y añade un encabezado W3C `traceparent` a las solicitudes que hace tu aplicación, para que los spans de tu backend se unan a las trazas de la aplicación.
+OpenTelemetry Android se ejecuta dentro de tu aplicación. Envía trazas, registros y métricas a OneUptime por OTLP con una clave de ingesta de **Móvil**, fijada a tu aplicación, y añade un encabezado W3C `traceparent` a las solicitudes que hace tu aplicación, para que los spans de tu backend se unan a las trazas de la aplicación.
 
 ```mermaid title="De la aplicación a OneUptime, y a través de tu backend"
 flowchart TB
-    app["Tu aplicación Android<br/>con OpenTelemetry Android"] -->|"OTLP con una<br/>clave de Servidor"| oneuptime["OneUptime"]
+    app["Tu aplicación Android<br/>con OpenTelemetry Android"] -->|"OTLP con una<br/>clave de Móvil"| oneuptime["OneUptime"]
     app -->|"solicitudes con un<br/>encabezado traceparent"| api["Tus API: pedidos,<br/>POS, pantalla de cocina"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Aplicación RUM móvil"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Antes de empezar
 
 - Una aplicación Android cuyo `minSdk` sea 23 o superior, compilada con `compileSdk` 34 o superior. Con un `minSdk` inferior a 26, activa la [expansión de sintaxis de la biblioteca principal](https://developer.android.com/studio/write/java8-support#library-desugaring), con Android Gradle Plugin 8.3.0 o posterior y `android.useFullClasspathForDexingTransform=true` en `gradle.properties`.
-- Una clave de ingesta de **Servidor**, creada en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** con **Crear clave de ingesta**. Una clave de **Navegador** se rechaza desde una aplicación: se comprueba contra el encabezado `Origin`, que una aplicación no envía.
+- Una clave de ingesta de **Móvil**, creada en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** con **Crear clave de ingesta**, con el `service.name` de tu aplicación en **Nombre de servicio fijado**. Una clave de **Navegador** se rechaza desde una aplicación: se comprueba contra el encabezado `Origin`, que una aplicación no envía.
 - Estos ajustes de OTLP. Si alojas OneUptime tú mismo, sustituye `https://oneuptime.com` por tu propio host.
 
 | Ajuste | Valor |
@@ -303,7 +303,7 @@ OpenTelemetry Android define `device.model.identifier` por sí mismo, así que l
 :::
 
 :::details No llega nada, o la clave se rechaza
-Ejecuta la comprobación de la clave de [Añadir OpenTelemetry Android](#añadir-opentelemetry-android). Un `401` significa que la clave es desconocida, se revocó, se desactivó o caducó. Una clave de **Navegador** se rechaza desde una aplicación: usa una clave de **Servidor**. Comprueba que `baseUrl` termina en `/otlp`, sin `/v1/traces`: el agente añade la ruta por su cuenta.
+Ejecuta la comprobación de la clave de [Añadir OpenTelemetry Android](#añadir-opentelemetry-android). Un `401` significa que la clave es desconocida, se revocó, se desactivó o caducó. Una clave de **Navegador** se rechaza desde una aplicación: usa una clave de **Móvil**. Comprueba que `baseUrl` termina en `/otlp`, sin `/v1/traces`: el agente añade la ruta por su cuenta.
 :::
 
 :::details Un fallo o un ANR no está en Excepciones

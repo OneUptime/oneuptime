@@ -9,6 +9,7 @@ import {
 import SigmaRuleSetParser, {
   minimumCountFor,
 } from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import { getDetectionRuleLookbackInSeconds } from "Common/Types/SecurityEvent/SecurityEventRetention";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -41,6 +42,12 @@ export interface DetectionRuleShape {
   minimumCount: number | null;
   // temporal: how many of its rules must match (all, without a condition).
   stepsNeeded: number | null;
+  /*
+   * How far back it reads before the events it judges (#10432): a First
+   * seen rule's history, a count's window, a sequence's and its counting
+   * step's; 0 for a single rule. What the events kept must cover.
+   */
+  lookbackInSeconds: number;
 }
 
 /*
@@ -94,6 +101,7 @@ export function readDetectionRuleShape(
       valueFields: [],
       minimumCount: null,
       stepsNeeded: null,
+      lookbackInSeconds: 0,
     };
   }
 
@@ -122,6 +130,7 @@ export function readDetectionRuleShape(
       correlation.type === SigmaCorrelationType.Temporal
         ? Math.min(steps.length, needed || steps.length)
         : null,
+    lookbackInSeconds: getDetectionRuleLookbackInSeconds(definition),
   };
 }
 

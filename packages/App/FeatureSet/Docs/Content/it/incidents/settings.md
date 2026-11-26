@@ -35,7 +35,7 @@ Ciò che OneUptime AI fa da sola non si imposta qui: ha una sezione propria, **I
 
 **Stato incidente** e **Gravità incidente** sono trattati in dettaglio in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte da **Modelli di incidenti**. I moduli che permettono a persone esterne al vostro team di segnalare incidenti sono un prodotto a sé: vedete [Moduli](/docs/forms/index). Gli strumenti che aprono incidenti da soli, come [Huntress](/docs/integrations/huntress), si configurano come flussi di lavoro.
 
-Espandete **Regole** e trovate altre otto pagine: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Regole dei promemoria**. Vengono trattate più sotto.
+Espandete **Regole** e trovate altre nove pagine: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Regole dei promemoria** e **Log di audit**: chi ha creato, modificato o eliminato una di queste regole, cosa ha modificato e quando, comprese le regole eliminate. Le regole vengono trattate più sotto.
 
 ## Modelli di incidenti
 

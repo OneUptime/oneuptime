@@ -15,10 +15,25 @@ import {
   SHOW_ALL,
   TIMES_COLUMN,
 } from "./RetrohuntCopy";
+import AppLink from "../../AppLink/AppLink";
+import {
+  CHANGE_RETENTION,
+  SECURITY_EVENT_RETENTION_TEST_IDS,
+} from "../Retention/SecurityEventRetentionCopy";
+import { getDataRetentionSettingsRoute } from "../Retention/SecurityEventRetentionModel";
+import { formatTimespan } from "../Timespan";
+import { OPEN_SCRUB_RULES } from "../HiddenClientAddressCopy";
+import RefusedTelemetryLines from "../RefusedTelemetry/RefusedTelemetryLines";
+import { RETROHUNT_REFUSED } from "../RefusedTelemetry/RefusedTelemetryCopy";
+import { getHiddenAddressRulesRoute } from "../HiddenClientAddressRoute";
+import Route from "Common/Types/API/Route";
 import {
   RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   RetrohuntSentence,
+  RetrohuntUncounted,
   getRetrohuntExceptionLines,
+  getRetrohuntKeptLines,
+  getRetrohuntUncounted,
   getRetrohuntFacts,
   getRetrohuntGroupLabel,
   getRetrohuntHeadline,
@@ -36,13 +51,18 @@ import {
   DetectionRetrohuntGroup,
   DetectionRetrohuntResult,
   isDetectionRetrohuntNoisy,
+  isDetectionRetrohuntPeriod,
 } from "Common/Types/SecurityEvent/DetectionRetrohunt";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  Translator,
+  composedValue,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
   ResizableColumns,
@@ -66,6 +86,12 @@ export interface ComponentProps {
    * each time a run starts, so a form's latest values are the ones run.
    */
   getRequest: (periodInHours: number) => JSONObject;
+  /*
+   * The period it first runs over: the last 7 days when left out. The
+   * notice about events that arrived late opens it on the period that
+   * reaches back to when they happened (#10491).
+   */
+  initialPeriodInHours?: number | undefined;
 }
 
 // One of the model's sentences, in the reader's language.
@@ -73,12 +99,20 @@ export function writeRetrohuntSentence(
   translator: Translator,
   sentence: RetrohuntSentence,
 ): string {
-  const values: Record<string, string | number> = {};
+  const values: TemplateValues = {};
 
   for (const key of Object.keys(sentence.values || {})) {
     const value: string | number = sentence.values![key]!;
     values[key] =
       typeof value === "number" ? translator.formatNumber(value) : value;
+  }
+
+  // A span of time, in the language the sentence comes out in (#10432).
+  for (const key of Object.keys(sentence.spans || {})) {
+    const seconds: number = sentence.spans![key]!;
+    values[key] = composedValue((inSentence: Translator): string => {
+      return formatTimespan(seconds, inSentence);
+    });
   }
 
   if (isPluralSentence(sentence)) {
@@ -98,17 +132,19 @@ export function writeRetrohuntSentence(
  * how often it would have fired, for whom, and what its exceptions kept
  * out (POST /detection-rule/retrohunt). Nothing is opened, sent or written.
  *
- * It runs as soon as it is shown, over the last 7 days, and again on
- * another period or on Run again; a form's rule that changes after a run
- * says so beside the answer. One quiet list of what it fired for, the ten
- * that fired most first.
+ * It runs as soon as it is shown, over the last 7 days (or the period it
+ * is opened on), and again on another period or on Run again; a form's
+ * rule that changes after a run says so beside the answer. One quiet list
+ * of what it fired for, the ten that fired most first.
  */
 const DetectionRuleRetrohuntPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [periodInHours, setPeriodInHours] = useState<number>(
-    RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
+    isDetectionRetrohuntPeriod(props.initialPeriodInHours)
+      ? props.initialPeriodInHours
+      : RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   );
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -268,6 +304,17 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       return writeRetrohuntSentence(translator, sentence);
     },
   );
+  // How far back the events it read go (#10432).
+  const keptLines: Array<string> = getRetrohuntKeptLines(result).map(
+    (sentence: RetrohuntSentence): string => {
+      return writeRetrohuntSentence(translator, sentence);
+    },
+  );
+  // What a rule that counts per value could not count (#10415), and why.
+  const uncounted: RetrohuntUncounted | null = getRetrohuntUncounted(result);
+  const scrubRulesRoute: Route | null = uncounted?.scrubRulesSignal
+    ? getHiddenAddressRulesRoute(uncounted.scrubRulesSignal)
+    : null;
   const groups: Array<DetectionRetrohuntGroup> = getRetrohuntVisibleGroups(
     result.groups,
     props.isShowingAll,
@@ -291,6 +338,35 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
         </p>
       </div>
 
+      {keptLines.length > 0 ? (
+        /*
+         * The period, or a First seen rule's history before it, reaches
+         * past the events the project keeps (#10432): how far back this
+         * read, so what it found - or did not - is about that.
+         */
+        <div
+          className="flex items-start gap-1.5 text-sm text-gray-700"
+          data-testid={SECURITY_EVENT_RETENTION_TEST_IDS.retrohuntKept}
+        >
+          <Icon
+            icon={IconProp.Clock}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+          />
+          <span>
+            {keptLines.join(" ")}{" "}
+            <AppLink
+              className="font-medium text-indigo-600 underline hover:text-indigo-500"
+              to={getDataRetentionSettingsRoute()}
+              dataTestId={SECURITY_EVENT_RETENTION_TEST_IDS.changeRetention}
+            >
+              {translator.translateText(CHANGE_RETENTION) || CHANGE_RETENTION}
+            </AppLink>
+          </span>
+        </div>
+      ) : (
+        <></>
+      )}
+
       {props.isStale ? (
         <p
           className="text-xs text-gray-500"
@@ -301,6 +377,20 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       ) : (
         <></>
       )}
+
+      {/*
+       * What an ingestion budget or rate refused in the period (#10431):
+       * the rule never saw it, so "would not have fired" may only mean it
+       * could not look. Without Open Budgets: it would leave a rule being
+       * written.
+       */}
+      <RefusedTelemetryLines
+        refusals={result.refusedTelemetry}
+        showsSource={true}
+        intro={RETROHUNT_REFUSED}
+        showsOpenBudgets={false}
+        dataTestId={RETROHUNT_TEST_IDS.refused}
+      />
 
       {isDetectionRetrohuntNoisy(result) ? (
         <div
@@ -337,6 +427,41 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
           <span>{exceptionLines.join(" ")}</span>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {uncounted ? (
+        <div
+          className="flex items-start gap-1.5 text-sm text-gray-700"
+          data-testid={RETROHUNT_TEST_IDS.uncounted}
+        >
+          <Icon
+            icon={IconProp.Info}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+          />
+          <span>
+            {uncounted.lines
+              .map((sentence: RetrohuntSentence): string => {
+                return writeRetrohuntSentence(translator, sentence);
+              })
+              .join(" ")}
+            {scrubRulesRoute ? (
+              <>
+                {" "}
+                <AppLink
+                  className="font-medium text-indigo-600 underline hover:text-indigo-500"
+                  to={scrubRulesRoute}
+                >
+                  {translator.translateText(OPEN_SCRUB_RULES) ||
+                    OPEN_SCRUB_RULES}
+                </AppLink>
+              </>
+            ) : (
+              <></>
+            )}
+          </span>
         </div>
       ) : (
         <></>

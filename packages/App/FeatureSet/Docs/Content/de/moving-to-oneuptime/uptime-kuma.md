@@ -56,7 +56,7 @@ Der Bericht zählt, was erstellt und nicht übernommen wurde, und listet jedes E
 | --- | --- | --- |
 | Monitors | Monitore | Aus einer Sicherung wird jeder Monitor zu einem Monitor derselben Art, mit derselben Adresse, demselben Intervall, Timeout und denselben Statuscodes, die als verfügbar gelten. Von der Metrikseite wird jeder mit einer Prüfung alle fünf Minuten übernommen: Prüfen Sie jeden nach dem Import. |
 
-- **HTTP(S)- und Keyword-Monitore** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie eine andere Methode, Header oder einen JSON-Body senden, mit dem Schlüsselwort dort, wo es hingehört.
+- **HTTP(S)- und Keyword-Monitore** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie eine andere Methode, Header oder einen Body senden, mit dem Schlüsselwort dort, wo es hingehört.
 - **JSON-Query-Monitore** werden zu API-Monitoren, ohne die Abfrage: Fügen Sie sie in OneUptime als Kriterium hinzu.
 - **Ping-, Port- und DNS-Monitore** werden zu Ping-, Port- und DNS-Monitoren.
 - **Push-Monitore** werden zu Monitoren für eingehende Anfragen, die ausfallen, wenn für das Intervall und seine Wiederholungen keine Anfrage gekommen ist. Jeder hat in OneUptime eine neue Adresse.

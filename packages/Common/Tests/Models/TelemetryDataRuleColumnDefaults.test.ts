@@ -14,7 +14,6 @@ import TracePipeline from "../../Models/DatabaseModels/TracePipeline";
 import TraceScrubRule from "../../Models/DatabaseModels/TraceScrubRule";
 import DatabaseService from "../../Server/Services/DatabaseService";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
-import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
@@ -180,7 +179,7 @@ describe("a create that leaves the defaulted columns out", () => {
 
     expect(() => {
       new RequiredColumnsCheck(LogScrubRule).check(row);
-    }).toThrow(new BadDataException("patternType is required"));
+    }).toThrow("patternType is required.");
 
     const required: Array<string> =
       (getCreateSchema(LogScrubRule)["required"] as Array<string>) || [];
@@ -197,7 +196,7 @@ describe("a create that leaves the defaulted columns out", () => {
 
     expect(() => {
       new RequiredColumnsCheck(LogDropFilter).check(row);
-    }).toThrow(new BadDataException("action is required"));
+    }).toThrow("action is required.");
   });
 });
 

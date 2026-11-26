@@ -146,9 +146,10 @@ export interface PickerResource {
   // Position in COMMON_RESOURCE_TABLE_NAMES, or null when not one of them.
   commonRank: number | null;
   /*
-   * Set when another resource has the same name (two models are both called
-   * "Subscriber Notification Template"): the table name in words, shown so
-   * the two can be told apart.
+   * Set when another resource has the same name (two models were both
+   * called "Subscriber Notification Template" until #10664, and
+   * ModelNamesAreUnique keeps any two from it now): the table name in
+   * words, shown so the two can be told apart.
    */
   disambiguation: string | null;
 }

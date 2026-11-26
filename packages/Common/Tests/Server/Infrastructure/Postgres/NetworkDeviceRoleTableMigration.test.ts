@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddNetworkDeviceRoleTable1790800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790800000000-AddNetworkDeviceRoleTable";
 import NetworkDeviceRole from "../../../../Models/DatabaseModels/NetworkDeviceRole";
@@ -167,7 +168,9 @@ describe("the NetworkDeviceRole table it creates", () => {
 
         return (
           type !== TableColumnType.Entity &&
-          type !== TableColumnType.EntityArray
+          type !== TableColumnType.EntityArray &&
+          // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+          !RecordActorUtil.isColumn(columnName)
         );
       },
     );

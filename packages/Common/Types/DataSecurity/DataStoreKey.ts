@@ -9,7 +9,8 @@ import { DataStoreKind } from "./DataStoreKind";
  * Cloud stores are keyed by their provider's own id (an ARN, an Azure
  * resource id, a Google Cloud resource name), lower-cased where the cloud
  * treats ids without case; telemetry stores by service and signal;
- * monitored databases by their Database product row.
+ * monitored databases by their Database product row; the stores OneUptime
+ * declares by their kind.
  */
 
 export function cloudDataStoreKey(data: {
@@ -49,6 +50,14 @@ export function readTelemetryDataStoreKeyOwnerId(
 
 export function databaseServerDataStoreKey(databaseServerId: string): string {
   return `database:${databaseServerId}`;
+}
+
+/*
+ * A store OneUptime declares (#10398): one of each kind in a project, so
+ * the kind alone is its key - "oneuptime:security-events".
+ */
+export function declaredDataStoreKey(kind: DataStoreKind): string {
+  return `oneuptime:${kind.toLowerCase().split(" ").join("-")}`;
 }
 
 /*

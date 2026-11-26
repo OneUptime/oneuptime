@@ -18,6 +18,7 @@ import {
   type PushPageActionRequest,
 } from "../oncall/pushPageAction";
 import { TEST_PAGE_ENTITY_TYPE } from "../oncall/testPage";
+import { isUuid } from "../security/caseLinks";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
@@ -169,13 +170,21 @@ function executeNavigation(data: NotificationData): void {
        * priority, one assigned to them or their team, or one whose playbook
        * waits for their approval (SecurityCaseNotifications sends all three
        * with entityType "security-case"). The case's screen leads with any
-       * approval it is waiting for.
+       * approval it is waiting for. An approval's push names its run
+       * (PushNotificationUtil's runId): the screen opens on that approval,
+       * or says what became of it when somebody decided meanwhile.
        */
       navigationRef.navigate(
         "Inbox",
         buildInboxDetailNavigation({
           name: "SecurityCaseDetail",
-          params: { caseId: entityId, projectId },
+          params: {
+            caseId: entityId,
+            projectId,
+            ...(typeof data.runId === "string" && isUuid(data.runId)
+              ? { runId: data.runId }
+              : {}),
+          },
         }),
       );
       break;

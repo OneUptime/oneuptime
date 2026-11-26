@@ -7,7 +7,9 @@ import { formatCompactDurationAgo } from "../../Utils/Milliseconds";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RowActions from "Common/UI/Components/ActionButton/RowActions";
-import ExceptionIssueBadges from "./ExceptionIssueBadges";
+import ExceptionIssueBadges, {
+  ExceptionSplitPill,
+} from "./ExceptionIssueBadges";
 import {
   getLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
@@ -52,6 +54,12 @@ export interface ExceptionRowProps {
    * does. Shown unless set to false.
    */
   showStatus?: boolean | undefined;
+  /*
+   * Whether it is one of a pair a scrub rule split - the split one, or the
+   * one it was split from (ExceptionSplitPairs, #10897): the row says
+   * Split, beside its other badges.
+   */
+  isSplitPair?: boolean | undefined;
 }
 
 // "5m ago", in the reader's language.
@@ -115,6 +123,14 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
    * as "nobody was affected" for a service that never sends a user id.
    */
   const affectedUsers: number = props.stats?.affectedUsers || 0;
+  /*
+   * A user id a scrub rule hid is never counted as a user (#10435): the row
+   * says how many users a Hash rule hid - each still one user - and how many
+   * events Redact or Mask hid the user of, which nobody can count as users.
+   * Before, every such event was "1 user".
+   */
+  const hiddenUsers: number = props.stats?.hiddenUsers || 0;
+  const hiddenUserOccurrences: number = props.stats?.hiddenUserOccurrences || 0;
 
   /*
    * Where the exception stands. From sm up it sits at the row's top right,
@@ -198,6 +214,8 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               )}
               {/* Regressed or New, and Unhandled: what to look at first. */}
               <ExceptionIssueBadges exception={exception} />
+              {/* One of a pair a scrub rule split, to merge (#10897). */}
+              {props.isSplitPair ? <ExceptionSplitPill /> : <></>}
               {/* Who owns it, when someone does. */}
               {assignee && (
                 <span
@@ -321,6 +339,62 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                         number: (
                           <span className="font-semibold tabular-nums text-gray-800">
                             {translator.formatNumber(affectedUsers)}
+                          </span>
+                        ),
+                      }}
+                    />
+                  </span>
+                </>
+              )}
+              {hiddenUsers > 0 && (
+                <>
+                  <span className="text-gray-300">
+                    <InlineSeparator markOnly />
+                  </span>
+                  <span
+                    title={translator.translateText(
+                      "Users whose ID a scrub rule hashed: each is counted once, but nobody can name them",
+                    )}
+                    data-testid="exception-row-hidden-users"
+                  >
+                    <TranslatedSentence
+                      template={{
+                        one: "{{number}} hidden user",
+                        other: "{{number}} hidden users",
+                      }}
+                      count={hiddenUsers}
+                      slots={{
+                        number: (
+                          <span className="font-semibold tabular-nums text-gray-800">
+                            {translator.formatNumber(hiddenUsers)}
+                          </span>
+                        ),
+                      }}
+                    />
+                  </span>
+                </>
+              )}
+              {hiddenUserOccurrences > 0 && (
+                <>
+                  <span className="text-gray-300">
+                    <InlineSeparator markOnly />
+                  </span>
+                  <span
+                    title={translator.translateText(
+                      "A scrub rule redacted or masked the user of these events, so they can't be counted as users",
+                    )}
+                    data-testid="exception-row-hidden-user-events"
+                  >
+                    <TranslatedSentence
+                      template={{
+                        one: "{{number}} event with a hidden user",
+                        other: "{{number}} events with a hidden user",
+                      }}
+                      count={hiddenUserOccurrences}
+                      slots={{
+                        number: (
+                          <span className="font-semibold tabular-nums text-gray-800">
+                            {translator.formatNumber(hiddenUserOccurrences)}
                           </span>
                         ),
                       }}

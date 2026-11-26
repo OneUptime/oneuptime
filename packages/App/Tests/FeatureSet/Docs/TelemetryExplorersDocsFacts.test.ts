@@ -98,6 +98,8 @@ import {
   ExceptionGroupingBasis,
   ExceptionGroupingKey,
   getExceptionGroupingKey,
+  getExceptionGroupingKeyV3,
+  getExceptionGroupingKeyV4,
 } from "Common/Server/Utils/Telemetry/ExceptionGrouping";
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
@@ -453,8 +455,9 @@ describe("Services (telemetry/services)", () => {
     expect(page).toContain(
       "**Containers name themselves.** Telemetry from the Docker and Podman agents names a service after its container when it has no `service.name`.",
     );
+    // And so is everything a Browser or a Mobile key sends (#6457, #10539).
     expect(page).toContain(
-      "Telemetry from a browser or a mobile app belongs to a [RUM application](/docs/rum/applications) instead.",
+      "Telemetry from a browser or a mobile app, and everything sent with a Browser or Mobile key, belongs to a [RUM application](/docs/rum/applications) instead.",
     );
   });
 
@@ -645,9 +648,11 @@ describe("Services (telemetry/services)", () => {
     expect(sectionByTitle(sections, "Services").items).toEqual([
       "All Services",
     ]);
+    // The rules, then their history (#10462).
     expect(sectionByTitle(sections, "Settings").items).toEqual([
       "Owner Rules",
       "Label Rules",
+      "Rule Audit Logs",
     ]);
     expect(sectionByTitle(sections, "Advanced").items).toEqual(["Archived"]);
     expect(startsCollapsed(menuSource, "Settings")).toBe(true);
@@ -1160,9 +1165,12 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       "Server/Services/LogSavedViewService.ts",
     );
 
-    // The viewer asks for, and saves to, its own page.
+    /*
+     * The viewer asks for, and saves to, its own page: every read of its
+     * views, the first ones and any held past them (#10646), by that query.
+     */
     expect(dashboardViewer).toContain(
-      "scope: getSavedViewScopeQueryValue(props.savedViewScope),",
+      "scope: getSavedViewScopeQueryValue(props.savedViewScope!),",
     );
     expect(dashboardViewer).toContain("savedView.scope = scope;");
     // The Logs page has its views; a cluster's and a host's tab have theirs.
@@ -2198,17 +2206,20 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   it("groups occurrences by service, type, message and stack trace, with changing values taken out", () => {
+    // The v1 fingerprint hashes its text: the service, message, stack and type.
+    expect(exceptionUtil).toContain(
+      "return fingerprintSha256(ExceptionUtil.getGroupingTextV1(data));",
+    );
     const fingerprint: string = between(
       exceptionUtil,
-      "public static getFingerprint(",
-      "return hash;",
+      "public static getGroupingTextV1(",
+      "type\n    );",
     );
 
     for (const part of [
       "primaryEntityId +",
       "normalizedMessage +",
       "normalizedStackTrace +",
-      "type,",
     ]) {
       expect(fingerprint).toContain(part);
     }
@@ -2900,6 +2911,18 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(logs).toContain("userId: readExceptionUserId([finalAttributes])");
     expect(row).toContain("affectedUsers > 0 &&");
 
+    // A user ID a scrub rule hid is never a user (#10435), and the row says so.
+    expect(page).toContain(
+      "A user ID a scrub rule hid is never counted as a user. A hashed ID still counts once, as a hidden user; occurrences whose ID was redacted or masked count as events with a hidden user, since they can't be told apart.",
+    );
+    expect(row).toContain("hiddenUsers > 0 &&");
+    expect(row).toContain("hiddenUserOccurrences > 0 &&");
+    expect(
+      readPackageFile(
+        "Common/Server/Utils/Telemetry/ExceptionListStatsReader.ts",
+      ),
+    ).toContain(") AS hiddenUserOccurrences FROM ");
+
     // Over the range picked: the rows' own range goes with the request.
     expect(exceptionsViewer).toContain("setListWindow(readWindow);");
     expect(exceptionsViewer).toContain(
@@ -2943,8 +2966,77 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     };
 
     expect(page).toContain(
-      "A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above. Exceptions recorded before this grouping keep theirs.",
+      "A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above, with card numbers written in groups, Social Security numbers and phone numbers, international ones included, taken out too, so `Invalid SSN 123-45-6789 on file` and `Invalid SSN 987-65-4321 on file` are one exception, and so are `call +44 20 7946 0958 failed` and `call +49 30 123456 failed`. Exceptions recorded before this grouping keep theirs.",
     );
+
+    // Grouping v4 (#10898): the page's two phone numbers are one exception.
+    const v4KeyOf: (message: string) => ExceptionGroupingKey = (
+      message: string,
+    ): ExceptionGroupingKey => {
+      return getExceptionGroupingKeyV4(
+        getExceptionGroupingKeyV3(
+          getExceptionGroupingKey({ exceptionType: "Error", message }),
+        ),
+      );
+    };
+    expect(v4KeyOf("call +44 20 7946 0958 failed")).toEqual(
+      v4KeyOf("call +49 30 123456 failed"),
+    );
+    // Which v3 kept apart; and the SSNs stay one under v4 too.
+    expect(
+      getExceptionGroupingKeyV3(
+        getExceptionGroupingKey({
+          exceptionType: "Error",
+          message: "call +44 20 7946 0958 failed",
+        }),
+      ),
+    ).not.toEqual(
+      getExceptionGroupingKeyV3(
+        getExceptionGroupingKey({
+          exceptionType: "Error",
+          message: "call +49 30 123456 failed",
+        }),
+      ),
+    );
+    expect(v4KeyOf("Invalid SSN 123-45-6789 on file")).toEqual(
+      v4KeyOf("Invalid SSN 987-65-4321 on file"),
+    );
+
+    // Grouping v3 (#10620): the page's two messages are one exception.
+    expect(
+      getExceptionGroupingKeyV3(
+        getExceptionGroupingKey({
+          exceptionType: "InvalidSsnError",
+          message: "Invalid SSN 123-45-6789 on file",
+        }),
+      ),
+    ).toEqual(
+      getExceptionGroupingKeyV3(
+        getExceptionGroupingKey({
+          exceptionType: "InvalidSsnError",
+          message: "Invalid SSN 987-65-4321 on file",
+        }),
+      ),
+    );
+    // A card in groups and a phone number too, as v2 kept them apart.
+    for (const [first, second] of [
+      [
+        "card 4111-1111-1111-1234 declined",
+        "card 5500 0000 0000 0004 declined",
+      ],
+      ["call 555-123-4567 failed", "call (555) 987-6543 failed"],
+    ] as Array<[string, string]>) {
+      const keyOf: (message: string) => ExceptionGroupingKey = (
+        message: string,
+      ): ExceptionGroupingKey => {
+        return getExceptionGroupingKey({ exceptionType: "Error", message });
+      };
+
+      expect(keyOf(first)).not.toEqual(keyOf(second));
+      expect(getExceptionGroupingKeyV3(keyOf(first))).toEqual(
+        getExceptionGroupingKeyV3(keyOf(second)),
+      );
+    }
 
     // Line numbers, library frames and the message are left out.
     expect(trace(10, "express", "Order 1001 failed")).toEqual(
@@ -2972,7 +3064,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
     // Both ingest paths store each occurrence under its exception's choice.
     for (const ingest of [tracesIngest, logsIngest]) {
-      expect(ingest).toContain("ExceptionUtil.getFingerprintV2({");
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
       expect(ingest).toContain(
         "await ExceptionUtil.assignRowGroupFingerprints(batch);",
       );
@@ -2980,14 +3072,146 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(exceptionUtil).toContain(
       "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
     );
-    // An exception recorded before keeps its first fingerprint.
-    expect(exceptionUtil).toContain(
-      "chosen.set(key, cached?.exists ? candidate.v1 : candidate.v2);",
+    /*
+     * An exception recorded before keeps its first fingerprint: v1's is tried
+     * first, then v2's, v3's and v4's, each with its keyed one, and a new
+     * exception is made under v4's (`fingerprintV2`, the one it is made under).
+     */
+    expect(exceptionUtil.replace(/\s+/g, " ")).toContain(
+      "const ofArrived: Array<string> = [ v1, keyedV1, v2, keyedV2, v3, keyedV3, v4, keyedV4, ];",
     );
+    expect(exceptionUtil).toContain("fingerprintV2: v4,");
+    expect(exceptionUtil).toContain("chosen.set(key, candidate.v2);");
 
     const troubleshooting: string = section(page, "## Troubleshooting");
     expect(troubleshooting).toContain(
-      "New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
+      "New exceptions are grouped by the functions of your own code instead, or by a message without its card, Social Security and phone numbers, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.",
+    );
+
+    /*
+     * A scrub rule splits no exception, and one a rule split before #10434
+     * keeps its occurrences: the logs ingest tries what it grouped by then.
+     */
+    expect(troubleshooting).toContain(
+      "A scrub rule doesn't split an exception: it is grouped by what it said before the rules ran. An exception found in logs that a rule split into two in an earlier version of OneUptime stays two.",
+    );
+    expect(logsIngest).toContain("findsGroupsOfStoredText: true,");
+  });
+
+  /*
+   * A pair a scrub rule split before #10434 (#10618): the split exception's
+   * page names the other once an occurrence records the pair, and Merge
+   * Exceptions there merges them without OneUptime AI, the older one kept,
+   * Unmerge after; only for someone who may edit exceptions.
+   */
+  it("offers Merge Exceptions on the page of an exception a rule split, without AI, the older one kept", () => {
+    const notice: string = readDashboardSource(
+      "Components/Exceptions/ExceptionSplitNotice.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const merge: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionMerge.ts",
+    );
+    const troubleshooting: string = section(page, "## Troubleshooting");
+
+    expect(troubleshooting).toContain(
+      "Once a new occurrence arrives, both are marked **Split** in the exceptions list, and each one's page names the other: **Merge Exceptions** there makes them one again, without OneUptime AI. The older of the two is kept, and **Unmerge** undoes it.",
+    );
+
+    /*
+     * Both are marked in the list (#10897): the split one by its row, the
+     * one it was split from by the read of the exceptions split from the
+     * page's rows; the pill says Split.
+     */
+    const badges: string = readDashboardSource(
+      "Components/Exceptions/ExceptionIssueBadges.tsx",
+    );
+    const row: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRow.tsx",
+    );
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const listRead: string = readDashboardSource(
+      "Components/Exceptions/ExceptionListRead.ts",
+    );
+    const splitPairs: string = readDashboardSource(
+      "Utils/ExceptionSplitPairs.ts",
+    );
+    expect(badges).toContain('translator.translateText("Split")');
+    expect(row).toContain("<ExceptionSplitPill />");
+    expect(viewer).toContain("readSplitPairExceptionIds(exceptions)");
+    expect(listRead).toContain("splitFromTelemetryExceptionId: true,");
+    expect(splitPairs.replace(/\s+/g, " ")).toContain(
+      "query: { splitFromTelemetryExceptionId: new Includes(rowIds) }",
+    );
+
+    // And each one's page names the other: the older one's too.
+    expect(explorer).toContain("splitInto={splitInto}");
+    expect(explorer.replace(/\s+/g, " ")).toContain(
+      "splitFromTelemetryExceptionId: props.telemetryExceptionId,",
+    );
+    expect(notice).toContain(
+      'template="A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here."',
+    );
+    expect(notice).toContain("mergeSplitExceptions(");
+
+    // Recorded when an occurrence lands on the split one, never merged by it.
+    expect(exceptionUtil).toContain(
+      "await ExceptionUtil.recordSplitPair(split);",
+    );
+    expect(exceptionUtil).toContain(
+      `SET "splitFromTelemetryExceptionId" = u."_id"`,
+    );
+    // The page names it, and merges with one request, for an editor only.
+    expect(explorer).toContain("<ExceptionSplitNotice");
+    expect(notice).toContain('title="Merge Exceptions"');
+    expect(notice).toContain("mergeSplitException(");
+    expect(notice.replace(/\s+/g, " ")).toContain(
+      "const canMerge: boolean = PermissionGate.check( new TelemetryException(), ModelAction.Update, ).isAllowed;",
+    );
+    expect(notice).not.toContain("useAiOffered");
+    // The older one survives, through the merge every merge goes through.
+    expect(merge).toContain("TelemetryExceptionMerge.olderOf(");
+    expect(merge).toContain("return TelemetryExceptionMerge.merge({");
+  });
+
+  /*
+   * An exception moved to a private fingerprint (#10619): on its next
+   * occurrence a rule changed, when its fingerprint hashes what the rule
+   * hid; the occurrences from before keep the old one until their retention
+   * ends, and then it is deleted; a folded value moves nothing.
+   */
+  it("says why an exception's fingerprint changed: moved to a private one, the old one kept until no occurrence carries it", () => {
+    const rekey: string = readCommonSource(
+      "Server/Utils/Telemetry/TelemetryExceptionRekey.ts",
+    );
+    const retire: string = readCommonSource(
+      "Server/Utils/Telemetry/FormerExceptionFingerprints.ts",
+    );
+    const troubleshooting: string = section(page, "## Troubleshooting");
+
+    expect(troubleshooting).toContain(
+      ":::details An exception's fingerprint changed\nWhen a scrub rule hides part of what an exception's fingerprint was made from, such as a card number in its message, anyone who reads the exception could hash guesses at the hidden value and compare them with the fingerprint. So on its next occurrence the rule changes, OneUptime moves the exception to a fingerprint keyed to your project. It stays the same exception, with its status, assignee, history and counts. The occurrences recorded before keep the old fingerprint until their retention ends, and the exception's page still shows them; then the old fingerprint is deleted. A value OneUptime takes out before it makes the fingerprint, such as an email address, changes nothing.\n:::",
+    );
+
+    // The same row takes the keyed fingerprint; the old one is kept merged into it.
+    expect(rekey).toContain(
+      `UPDATE "TelemetryException" SET "fingerprint" = $1, "updatedAt" = now() WHERE "_id" = $2`,
+    );
+    expect(rekey).toContain(
+      `"formerFingerprintOfTelemetryExceptionId") VALUES`,
+    );
+    // Moved only when the fingerprint hashes what a rule hid.
+    expect(exceptionUtil).toContain(
+      "const revealsV1: boolean = !isChangedOnlyWhereFolded(v1Text, storedV1Text);",
+    );
+    // Deleted once no occurrence still kept carries it.
+    expect(retire).toContain("AND retentionDate >= now() GROUP BY fingerprint");
+    expect(retire).toContain(
+      `DELETE FROM "TelemetryException" WHERE "_id" = ANY($1::uuid[]) AND "formerFingerprintOfTelemetryExceptionId" IS NOT NULL`,
     );
   });
 

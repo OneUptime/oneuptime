@@ -1,4 +1,6 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddLlmObservabilityConnection1804450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804450000000-AddLlmObservabilityConnection";
+import { DELETED_BY_USER_ID_COLUMN } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import LlmCostBudget from "../../../../Models/DatabaseModels/LlmCostBudget";
 import LlmObservabilityConnection from "../../../../Models/DatabaseModels/LlmObservabilityConnection";
@@ -74,7 +76,9 @@ function storedColumnsOf(
   return Object.keys(columns).filter((key: string): boolean => {
     return (
       columns[key]!.type !== TableColumnType.Entity &&
-      columns[key]!.type !== TableColumnType.EntityArray
+      columns[key]!.type !== TableColumnType.EntityArray &&
+      // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+      !RecordActorUtil.isColumn(key)
     );
   });
 }
@@ -126,7 +130,11 @@ describe("AddLlmObservabilityConnection1804450000000", () => {
 
     expect(createTable).toContain('CREATE TABLE "LlmObservabilityConnection"');
     expect(columnsOf(createTable).sort()).toEqual(
-      storedColumnsOf(getTableColumns(new LlmObservabilityConnection())).sort(),
+      [
+        ...storedColumnsOf(getTableColumns(new LlmObservabilityConnection())),
+        // Dropped from every table later (DropDeletedByUserColumns, #10469).
+        DELETED_BY_USER_ID_COLUMN,
+      ].sort(),
     );
   });
 

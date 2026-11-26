@@ -27,6 +27,7 @@ While an override is in force, from its start to its end:
 - With somebody under **Who covers?**, that person gets all of the away person's pages, from every schedule, team and rule the override applies to. The page reaches them as their How to Reach Me says.
 - With nobody to cover, the person is skipped. In an on-call schedule, each of their turns goes to the next person in the rotation who is not away; if everyone in a layer is away, the layers below it take over. A rule that names them directly, or through a team, does not page them, and the policy's run says they are away, and until when.
 - Overrides do not chain. If the person covering is away too, they are still the one paged for the person they cover.
+- Someone invited who has not joined the project yet can be picked under **Who covers?**, but nothing pages them until they accept their invitation, so until then nobody is paged in place of the person away. The form says so as soon as you pick them, and so does the line the policy's channels and feed get: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 Once the override ends, the pages are theirs again. The **Schedule Timeline**, a schedule's layers and the calendar feeds all show who has each covered shift.
 

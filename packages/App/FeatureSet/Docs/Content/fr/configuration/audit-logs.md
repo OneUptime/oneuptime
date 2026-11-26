@@ -32,7 +32,7 @@ flowchart TB
 
 - **Sur OneUptime Cloud, le forfait Enterprise.** Avec les autres forfaits, les pages du journal d'audit montrent ce que fait la fonctionnalité et comment l'obtenir.
 - **Quand vous hébergez vous-même, l'Enterprise Edition**, avec une licence qui inclut les journaux d'audit. Voir [Édition Enterprise](/docs/self-hosted/enterprise).
-- **Un rôle qui peut lire le journal d'audit.** Propriétaire du projet, Administrateur du projet, Administrateur des paramètres, ou l'autorisation **Read Audit Log**. Activer la journalisation d'audit et modifier ses paramètres demande un Propriétaire du projet, un Administrateur du projet, ou l'autorisation de modifier le projet.
+- **Un rôle qui peut lire le journal d'audit.** Propriétaire du projet, Administrateur du projet, Administrateur des paramètres, ou l'autorisation **Read Audit Log**. Une entrée n'affiche les valeurs d'un champ que si vous pouvez lire ce champ sur la ressource elle-même, et le nom d'une ressource que si vous pouvez lire la ressource. Activer la journalisation d'audit et modifier ses paramètres demande un Propriétaire du projet, un Administrateur du projet, ou l'autorisation de modifier le projet.
 
 ## Activer la journalisation d'audit
 
@@ -72,9 +72,13 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 
 Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur**, **Flux de travail exécuté en tant que**, **Autorisations du flux de travail données par** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
 
+Un champ qui pointe vers une autre ressource, comme le statut d'un moniteur, affiche le nom actuel de cette ressource, avec son ID en dessous. Une ressource que vous ne pouvez pas lire affiche **Nom masqué**, et une ressource supprimée depuis affiche **Supprimé**.
+
 Une ressource sans nom propre est nommée par ce qui la nomme dans OneUptime : une exception par son type et le début de son message, les identifiants, les adresses et tout ce qui ressemble à un secret étant masqués, une exécution de runbook par son runbook, le numéro de téléphone d'une politique d'appels entrants par le numéro, et un modèle ou un domaine par son propre nom.
 
 Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien d'autres ressources ont aussi leur propre page **Journaux d'audit**, dans une section repliée de leur menu latéral comme **Avancé**. Elle ne liste que les entrées de cette ressource, avec celles de ce qui lui appartient : la page d'un SLO montre aussi ses règles et ses propriétaires.
+
+Les règles d'un produit ont elles aussi leur propre page, à la fin de la section du menu qui les liste : **Journaux d'audit** dans une section **Règles**, comme **Incidents → Règles → Journaux d'audit**, et **Journaux d'audit des règles** dans une section **Paramètres** qui contient des règles de propriétaire et d'étiquettes, comme **Hôtes → Paramètres → Journaux d'audit des règles**. Elle liste toutes les règles de ce produit, y compris les règles supprimées. Les règles de runbook sont un seul type de règle pour les alertes, les incidents et les événements de maintenance : leur historique se trouve donc sous **Runbooks → Paramètres → Journaux d'audit des règles**.
 
 ## Ce qui est enregistré
 

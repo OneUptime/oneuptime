@@ -9,10 +9,35 @@ import {
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import {
+  ASSESS_EXPOSURE,
+  READS_NOT_LOGGED,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
+import {
+  BREACH_LAW_RULES,
+  BreachLawFamily,
+  BreachLawRule,
+} from "Common/Types/DataSecurity/BreachLaws";
+import {
+  ASSESSED_ON_ITS_OWN_SENSITIVITIES,
+  EXPOSING_CHANGE_LOOKBACK_IN_DAYS,
+} from "Common/Types/DataSecurity/ExposureAssessment";
+import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  ModelBudget,
+  ModelStoreBudget,
+} from "Common/Server/Utils/DataSecurity/Model/ModelBudget";
+import {
+  isTestPersonName,
+  isTestStreetAddress,
+  UNSURE_SCORE,
+} from "Common/Utils/DataSecurity/Model/RecognizedEntity";
+import ObjectID from "Common/Types/ObjectID";
+import {
   CARD_LINE,
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   strayMarkers,
@@ -75,9 +100,51 @@ import {
   DataSecurityCheckGroup,
   DataSecurityCheckInfo,
   DataSecurityCheckStatus,
+  checkAppliesToKind,
   getDataSecurityCheck,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import {
+  DECLARED_DATA_STORES,
+  DECLARED_STORE_PURPOSE,
+  DeclaredDataStoreInfo,
+  DeclaredStoreReaders,
+  DeclaredStoreRetentionBasis,
+  SECURITY_EVENTS_SCANS_ONLY_TEXT,
+  getDeclaredRetentionText,
+} from "Common/Types/DataSecurity/DeclaredDataStore";
+import { NETWORK_FLOW_RETENTION_IN_DAYS } from "Common/Types/NetFlow/NetworkFlowRetention";
+import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityAddressVaultRetention";
+import { SECURITY_USER_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityUserVaultRetention";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
+import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DATA_SECURITY_AI_VERDICT_TITLES,
+  DATA_SECURITY_AI_VERDICTS,
+} from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
+import {
+  DATA_SECURITY_AI_ALWAYS_ASKS,
+  DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES,
+  DataSecurityAiChangeSafety,
+} from "Common/Types/DataSecurity/DataSecurityAi";
+import { MIN_STORES_FOR_DATA_STORE_OWNER_RULE } from "Common/Types/DataSecurity/DataStoreOwnerProposal";
+import {
+  DATA_STORE_FINDING_VERDICT_LIMITS,
+  DATA_STORE_FINDING_VERDICT_TITLES,
+  DATA_STORE_FINDING_VERDICTS,
+  FindingWrongMatchSign,
+} from "Common/Types/DataSecurity/DataStoreFindingVerdict";
+import { SCAN_TUNING_LIMITS } from "Common/Types/DataSecurity/DataSecurityScanTuning";
+import {
+  getFindingNameKey,
+  getWrongMatchSigns,
+} from "Common/Utils/DataSecurity/FindingJudgement";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
@@ -116,6 +183,16 @@ import {
   MIN_UNPLACED_VALUES,
   valueShape,
 } from "Common/Utils/DataSecurity/UnplacedFields";
+import {
+  MIN_CANDIDATE_FIELDS,
+  MIN_CANDIDATE_STORES,
+} from "Common/Utils/DataSecurity/DataTypeCandidates";
+import {
+  DROPPED_DATA_TYPE_COOLDOWN_DAYS,
+  MAX_SCATTERED_MATCH_SHARE,
+  MIN_GROUP_MATCH_SHARE,
+  PROVING_HOURS,
+} from "Common/Utils/DataSecurity/DataTypeProposal";
 import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
@@ -156,6 +233,7 @@ import { MAX_MASKED_SAMPLES } from "Common/Utils/DataSecurity/FindingTally";
 import {
   maskCardNumber,
   maskEmail,
+  maskModelFoundValue,
   maskValue,
 } from "Common/Utils/DataSecurity/Masking";
 import {
@@ -328,9 +406,13 @@ function runsOn(check: DataSecurityCheckInfo): string {
     return "Every store";
   }
 
+  // No check applies to the stores OneUptime declares, whatever its families (#10398).
   const storing: Array<string> = Object.values(DataStoreFamily).filter(
     (family: string): boolean => {
-      return family !== DataStoreFamily.Telemetry;
+      return (
+        family !== DataStoreFamily.Telemetry &&
+        family !== DataStoreFamily.SecurityRecords
+      );
     },
   );
 
@@ -874,6 +956,15 @@ describe("Set Up Data Security", () => {
     const model: string = source(
       "Common/Models/DatabaseModels/DataSecuritySetting.ts",
     );
+    // A column the server writes for itself - the audit evidence it keeps (#10375) - is no setting.
+    const computed: Set<string> = new Set(
+      Array.from(
+        model.matchAll(/@TableColumn\(\{[^@]*?computed: true[^@]*?\}\)/g),
+        (match: RegExpMatchArray): string => {
+          return (match[0].match(/title: "([^"]+)"/) || [])[1] || "";
+        },
+      ),
+    );
     const titles: Array<string> = Array.from(
       model.matchAll(
         // A long description is written on the line below its key.
@@ -883,7 +974,11 @@ describe("Set Up Data Security", () => {
         // A severity's id column is the severity the form shows.
         return SEVERITY_ID_TITLES[match[1] as string] || (match[1] as string);
       },
-    );
+    ).filter((title: string): boolean => {
+      return !computed.has(title);
+    });
+
+    expect(computed).toEqual(new Set(["Audit Evidence"]));
 
     expect(
       settings.map((row: Array<string>): string => {
@@ -1114,6 +1209,234 @@ describe("Connect a Cloud Account's Data security section", () => {
 describe("Sensitive Data Types", () => {
   const page: string = english(DATA_TYPES);
 
+  /*
+   * The names-and-addresses model (#10373): what it reads, finds and keeps,
+   * the model and its licence and size, the scores a test holds, its
+   * budgets and its warnings - each as the code and the measured baseline
+   * hold them.
+   */
+  describe("Names and street addresses in free text", () => {
+    const model: string = section(
+      page,
+      "## Names and street addresses in free text",
+    );
+    const MODEL_DIRECTORY: string = "Common/Server/Utils/DataSecurity/Model";
+    const manifest: {
+      name: string;
+      revision: string;
+      licence: string;
+      files: Array<{ name: string; bytes: number }>;
+    } = JSON.parse(source(`${MODEL_DIRECTORY}/NameAddressModel.json`));
+    const baseline: {
+      written: {
+        falseFindingsPerThousandNegatives: number;
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+      benchmark: {
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+    } = JSON.parse(
+      source(
+        "Common/Tests/Server/Utils/DataSecurity/Model/NamesAndAddressesBaseline.json",
+      ),
+    );
+    const LANGUAGE_NAMES: Record<string, string> = {
+      en: "English",
+      es: "Spanish",
+      de: "German",
+      fr: "French",
+      it: "Italian",
+      pt: "Portuguese",
+      nl: "Dutch",
+      sv: "Swedish",
+      all: "All seven",
+    };
+
+    // A score table's rows, as the baseline's figures to two places.
+    function scoreRows(
+      languages: Record<string, Record<string, Record<string, number>>>,
+    ): Array<Array<string>> {
+      return Object.keys(LANGUAGE_NAMES)
+        .filter((language: string): boolean => {
+          return Boolean(languages[language]);
+        })
+        .map((language: string): Array<string> => {
+          const scores: Record<string, Record<string, number>> = languages[
+            language
+          ] as Record<string, Record<string, number>>;
+
+          return [
+            LANGUAGE_NAMES[language] as string,
+            (scores["person-name"]?.["precision"] as number).toFixed(2),
+            (scores["person-name"]?.["recall"] as number).toFixed(2),
+            (scores["postal-address"]?.["precision"] as number).toFixed(2),
+            (scores["postal-address"]?.["recall"] as number).toFixed(2),
+          ];
+        });
+    }
+
+    it("names the model, its licence, its size and its pinned revision", () => {
+      const bytes: number = manifest.files.reduce(
+        (total: number, file: { bytes: number }): number => {
+          return total + file.bytes;
+        },
+        0,
+      );
+      const table: Array<Array<string>> = rows(tables(model)[0]);
+
+      expect(manifest.licence).toBe("Apache-2.0");
+      expect(table[0]?.[0]).toContain(
+        `[${manifest.name}](https://huggingface.co/${manifest.name})`,
+      );
+      expect(table[0]?.[1]).toBe("Apache 2.0");
+      expect(table[0]?.[2]).toBe(`${Math.round(bytes / 1_000_000)} MB`);
+      expect(table[0]?.[3]).toBe(`\`${manifest.revision.slice(0, 7)}\``);
+    });
+
+    it("gives the scores a test holds, per language, on the written set and the benchmark", () => {
+      const [, written, benchmark] = tables(model);
+
+      expect(rows(written)).toEqual(scoreRows(baseline.written.languages));
+      expect(rows(benchmark)).toEqual(scoreRows(baseline.benchmark.languages));
+      expect(model).toContain(
+        `it makes ${baseline.written.falseFindingsPerThousandNegatives} false findings per 1,000`,
+      );
+    });
+
+    it("counts the written test set as it is", () => {
+      const cases: Array<{ language: string; text: string }> = JSON.parse(
+        source(
+          "Common/Tests/Utils/DataSecurity/Model/NamesAndAddressesTestSet.json",
+        ),
+      ).cases;
+      const negatives: number = cases.filter(
+        (item: { text: string }): boolean => {
+          return !item.text.includes("[[");
+        },
+      ).length;
+      const languages: number = new Set(
+        cases.map((item: { language: string }): string => {
+          return item.language;
+        }),
+      ).size;
+
+      expect(model).toContain(
+        `${cases.length} made-up sentences in seven languages`,
+      );
+      expect(languages).toBe(7);
+      expect(model).toContain(`of which ${negatives} hold neither`);
+    });
+
+    it("says what it reads, how sure it is and what it keeps, as the scanner holds it", () => {
+      const classifier: string = "Common/Utils/DataSecurity/FieldClassifier.ts";
+
+      expect(constant(classifier, "FREE_TEXT_AVERAGE_LENGTH")).toBe(80);
+      expect(constant(classifier, "MODEL_MAX_VALUES_PER_FIELD")).toBe(100);
+      expect(constant(classifier, "MODEL_MAX_CHARACTERS_PER_FIELD")).toBe(
+        32 * 1024,
+      );
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/NameAddressRecognizer.ts`,
+          "MODEL_MAX_TEXT_LENGTH",
+        ),
+      ).toBe(16 * 1024);
+      expect(model).toContain(
+        "A field whose values average more than 80 characters",
+      );
+      expect(model).toContain(
+        "It reads up to 100 different values of a field, 32 KB of text in all, and up to 16 KB of one value.",
+      );
+
+      expect(UNSURE_SCORE).toBe(0.6);
+      expect(model).toContain("with a score under 0.6");
+
+      for (const name of ["Jane Doe", "John Smith", "Max Mustermann"]) {
+        expect(isTestPersonName(name)).toBe(true);
+        expect(model).toContain(`\`${name}\``);
+      }
+
+      expect(isTestStreetAddress("123 Main Street")).toBe(true);
+      expect(model).toContain("`123 Main Street`");
+      expect(maskModelFoundValue("Maria Gonzalez")).toBe("M****");
+      expect(model).toContain("`M****`");
+
+      // The label the store's What's Inside page draws.
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Inside.tsx",
+        ),
+      ).toContain('"Found in free text by the scanner\'s model"');
+      expect(model).toContain("**Found in free text by the scanner's model**");
+    });
+
+    it("gives its budgets, its memory, and the warnings a scan writes, word for word", () => {
+      const budget: string = `${MODEL_DIRECTORY}/ModelBudget.ts`;
+
+      expect(constant(budget, "CONTENT_SCAN_MODEL_TIME_IN_MS")).toBe(120_000);
+      expect(constant(budget, "TELEMETRY_SCAN_MODEL_TIME_IN_MS")).toBe(60_000);
+      expect(constant(budget, "TELEMETRY_STORE_MODEL_TIME_IN_MS")).toBe(6_000);
+      expect(model).toContain(
+        "A content scan of a store gives it up to 2 minutes. The hourly telemetry scan gives it up to 1 minute in all and 6 seconds a store",
+      );
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/NameAddressRecognizer.ts`,
+          "IDLE_RELEASE_IN_MS",
+        ),
+      ).toBe(10 * 60 * 1000);
+      expect(model).toContain("given back after 10 minutes without a scan");
+
+      const store: ModelStoreBudget = new ModelBudget({
+        scanLimitInMs: 120_000,
+        storeLimitInMs: 6_000,
+      }).forStore("logs");
+
+      store.charge(6_000);
+      store.canSpend();
+      store.noteValues({ toRead: 500, read: 120 });
+
+      const missing: ModelStoreBudget = new ModelBudget({
+        scanLimitInMs: 1,
+        storeLimitInMs: 1,
+      }).forStore("probe");
+
+      missing.noteUnavailable(
+        "the model's model_quantized.onnx is not installed on this probe",
+        1,
+      );
+
+      const fence: string = only(
+        scanMarkdown(model).fences.filter((item: { lang: string }) => {
+          return item.lang === "text";
+        }),
+      ).code;
+
+      expect(fence.trim().split("\n")).toEqual([
+        ...store.getWarnings(),
+        ...missing.getWarnings(),
+      ]);
+    });
+
+    it("names the two settings and where they are, and says Test It does not show its findings", () => {
+      expect(model).toContain("**Find Names And Street Addresses** is on");
+      expect(model).toContain(
+        "**Find Names And Street Addresses In Telemetry**, under it, is off",
+      );
+      expect(model).toContain(
+        "**Data Security → Settings → Scan Settings**, under **What Data Security Reads**",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/Scanning.tsx",
+        ),
+      ).toContain('title="What Data Security Reads"');
+      expect(model).toContain(
+        "**Test It** runs in your browser, without the model",
+      );
+    });
+  });
+
   it("counts the data types and the countries of the national IDs", () => {
     const countries: Set<string> = new Set(
       DATA_TYPE_CATALOG.filter((info: DataTypeInfo): boolean => {
@@ -1218,6 +1541,194 @@ describe("Sensitive Data Types", () => {
     expect(section(page, "## How a value is found")).toContain(
       "**Confirm** on one that is right makes it High",
     );
+  });
+
+  it("says how OneUptime AI finds a data type of your own, proves it on your scans and offers it, as the product does (#10371)", () => {
+    const unplaced: string = section(
+      page,
+      "### Fields no detector could place",
+    );
+    const finds: string = section(page, "## Data types OneUptime AI finds");
+    const own: string = section(page, "## Your own data types");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataTypesToReviewCopy.ts",
+    );
+
+    // A telemetry scan's unplaced attributes, as the scanner bounds them.
+    expect(unplaced).toContain(
+      `at most ${constant(
+        `${SERVER}/Telemetry/TelemetryUnplacedAttributes.ts`,
+        "MAX_UNPLACED_ATTRIBUTES_PER_SERVICE",
+      )} a service each scan`,
+    );
+
+    // A group, a draft and its proof, by the product's own numbers.
+    expect([MIN_CANDIDATE_FIELDS, MIN_CANDIDATE_STORES]).toEqual([3, 2]);
+    expect(finds).toContain(
+      "Three or more fields in two or more stores make a group",
+    );
+    expect(finds).toContain(
+      `at most ${constant(
+        "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery.ts",
+        "MAX_DRAFTS_PER_RUN",
+      )} at a time`,
+    );
+    expect(finds).toContain(
+      `for up to ${PROVING_HOURS} hours or one scan interval, whichever is longer`,
+    );
+    expect(finds).toContain(
+      `at least ${Math.round(MIN_GROUP_MATCH_SHARE * 100)}% of its fields' values and at most ${Math.round(MAX_SCATTERED_MATCH_SHARE * 100)}% of the other values`,
+    );
+    expect(finds).toContain(
+      `its group is not drafted again for ${DROPPED_DATA_TYPE_COOLDOWN_DAYS} days`,
+    );
+
+    // The sentence it quotes is the card's own, and so are its buttons.
+    expect(copy).toContain(
+      '"Matches {{share}} of the values in these {{count}} fields, and {{elsewhere}} of values elsewhere in the same stores."',
+    );
+    expect(finds).toContain(
+      '"Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores."',
+    );
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+      "Describe It",
+      "Fill In the Form",
+    ]) {
+      expect(copy).toContain(`translationKey("${label}")`);
+    }
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+    ]) {
+      expect(finds).toContain(`**${label}**`);
+    }
+
+    expect(own).toContain("**Describe It**");
+    expect(own).toContain("**Fill In the Form**");
+  });
+
+  /*
+   * OneUptime AI's verdicts on findings, Apply to Similar Findings and what
+   * the team's decisions say of the scans (#10372), as the product has
+   * them: the verdicts and buttons the Dashboard draws, the precedent's
+   * limit and the names it matches by, the signs of a wrong match, and the
+   * tuning's thresholds.
+   */
+  it("says what OneUptime AI's verdicts rest on, and what it decides on its own, as the product does", () => {
+    const verdicts: string = section(page, "## OneUptime AI's verdicts");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
+    );
+    const aiCopy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+
+    for (const verdict of DATA_STORE_FINDING_VERDICTS) {
+      expect(verdicts).toContain(
+        `**${DATA_STORE_FINDING_VERDICT_TITLES[verdict]}**`,
+      );
+    }
+
+    expect(copy).toContain('translationKey("Show the decisions")');
+    expect(verdicts).toContain("**Show the decisions**");
+    expect(copy).toContain(
+      '"Your team marked {{field}} not sensitive on {{count}} stores."',
+    );
+    expect(verdicts).toContain(
+      '"Your team marked `order_number` not sensitive on 4 stores"',
+    );
+
+    // At most ten decisions, the same name first, however it is written.
+    expect(DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedent).toBe(10);
+    expect(verdicts).toContain("at most ten");
+    expect(verdicts).toContain(
+      "`order_number`, `orderNumber` and `public.orders.order_number` are all",
+    );
+
+    const key: string | null = getFindingNameKey({ location: "order_number" });
+
+    expect(key).not.toBeNull();
+
+    for (const location of ["orderNumber", "public.orders.order_number"]) {
+      expect({ location, key: getFindingNameKey({ location }) }).toEqual({
+        location,
+        key,
+      });
+    }
+
+    expect(getFindingNameKey({ location: "order_ref" })).not.toBe(key);
+
+    // The id fields it names are signs of a wrong match for a card number.
+    for (const location of ["order_number", "invoice_no", "ref_id"]) {
+      expect(verdicts).toContain(`\`${location}\``);
+      expect({
+        location,
+        signs: getWrongMatchSigns({
+          location,
+          dataTypeId: "credit-card-number",
+          confidence: "High",
+        }),
+      }).toEqual({
+        location,
+        signs: [FindingWrongMatchSign.IdFieldWithLuhnNumbers],
+      });
+    }
+
+    // What it may do on its own is a rule's, in the rule form's words.
+    expect(aiCopy).toContain(
+      '[DataSecurityAiWork.Judge]: translationKey("Judge")',
+    );
+    expect(aiCopy).toContain(
+      '[DataSecurityAiAutonomy.WithoutAsking]: translationKey("Automatically")',
+    );
+    expect(verdicts).toContain("whose **Judge** is **Automatically**");
+    expect(verdicts).toContain(
+      "**It never marks a finding as not sensitive**, under any rule.",
+    );
+    expect(verdicts).toContain(
+      `at most ${
+        constant(
+          "Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+          "MAX_FINDINGS_PER_VERDICT_REQUEST",
+        ) *
+        constant(
+          "Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+          "MAX_VERDICT_REQUESTS_PER_RUN",
+        )
+      } of a store's findings after a scan`,
+    );
+  });
+
+  it("names Apply to Similar Findings and the scans' tuning as the Dashboard and the code have them", () => {
+    const similar: string = section(page, "## Similar findings");
+    const tuning: string = section(
+      page,
+      "## What your decisions say of the scans",
+    );
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
+    );
+
+    expect(copy).toContain(
+      'title: translationKey("Apply to Similar Findings")',
+    );
+    expect(similar).toContain("**Apply to Similar Findings**");
+    expect(copy).toContain('notNow: translationKey("Not Now")');
+    expect(similar).toContain("**Not Now**");
+
+    expect(tuning).toContain(
+      `at least ${SCAN_TUNING_LIMITS.minFindingsToTurnOff} findings, on at least ${SCAN_TUNING_LIMITS.minStoresToTurnOff} stores`,
+    );
+    expect(tuning).toContain(
+      `at least ${SCAN_TUNING_LIMITS.minFindingsToExclude} of them`,
+    );
+    expect(tuning).toContain("**Never Sensitive** is never proposed");
   });
 
   it("gives the scanner's own windows, context and field thresholds", () => {
@@ -1517,6 +2028,85 @@ describe("Data Security Checks and Issues", () => {
     expect(modals).toContain('title: "Accepted Until"');
   });
 
+  it("says what OneUptime AI's analysis is as the issue's page and the Issues list name it (#10369)", () => {
+    const analysis: string = section(page, "## OneUptime AI's analysis");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueAiAnalysisCopy.ts",
+    );
+    const list: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Issues.tsx",
+    );
+
+    /*
+     * Its card, its buttons and the action it offers, as the card names
+     * them - each a key of its own, however the formatter wraps it.
+     */
+    const isKey: (name: string) => boolean = (name: string): boolean => {
+      return new RegExp(
+        `translationKey\\(\\s*"${escapeRegExp(name)}",?\\s*\\)`,
+      ).test(copy);
+    };
+
+    for (const name of [
+      "OneUptime AI Analysis",
+      "Analyze Issue",
+      "Analyze Again",
+      "Public By Design",
+      "Nothing changes until you choose.",
+    ]) {
+      expect({ name, isKey: isKey(name) }).toEqual({ name, isKey: true });
+    }
+
+    for (const name of [
+      "OneUptime AI Analysis",
+      "Analyze Issue",
+      "Analyze Again",
+      "Public By Design",
+    ]) {
+      expect(analysis).toContain(`**${name}**`);
+    }
+
+    expect(analysis).toContain("Nothing changes until you choose.");
+    expect(copy).toContain('other: "Show the {{count}} facts it rests on"');
+    expect(analysis).toContain("**Show the 3 facts it rests on**");
+
+    // Every verdict, by the title the card draws.
+    for (const verdict of DATA_SECURITY_AI_VERDICTS) {
+      expect(analysis).toContain(
+        `**${DATA_SECURITY_AI_VERDICT_TITLES[verdict]}**`,
+      );
+    }
+
+    // The Issues list filters and shows issues by it.
+    expect(list).toContain('title: "OneUptime AI Verdict"');
+    expect(analysis).toContain("**OneUptime AI Verdict**");
+
+    // Out of the box, the issues it analyzes on its own.
+    expect([...DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES]).toEqual([
+      SecuritySeverity.Critical,
+      SecuritySeverity.High,
+    ]);
+    expect(analysis).toContain(
+      "each new or reopened Critical or High issue by itself",
+    );
+  });
+
+  it("says Not an Issue asks why, as its dialog asks, and the issue keeps the reason (#10369)", () => {
+    const modals: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueModals.tsx",
+    );
+    const service: string = source(
+      "Common/Server/Services/DataSecurityIssueService.ts",
+    );
+
+    expect(modals).toContain('title="Not an Issue"');
+    expect(modals).toContain('title: "Reason"');
+    expect(service).toContain("notAnIssueReason");
+    expect(page).toContain(
+      "A person chose **Not an Issue** and said why in **Reason**",
+    );
+  });
+
   it("puts check settings where the Dashboard has them", () => {
     const checks: string = source(
       "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/Checks.tsx",
@@ -1770,8 +2360,27 @@ describe("Sensitive Data in Telemetry", () => {
     expect(scrub).toContain(
       'export const DATA_SECURITY_SCRUB_RULE_NAME_PREFIX: string = "Data Security: ";',
     );
+    /*
+     * An email address in a log's attributes, found in checkout's logs: the
+     * name says what it hides, in which records and whose (#10433).
+     */
+    expect(
+      nameScrubItRule({
+        plan: {
+          patternType: "email",
+          scrubAction: "redact",
+          fieldsToScrub: "attributes",
+        },
+        signal: "log",
+        dataTypeName: "Email address",
+        scope: {
+          serviceId: new ObjectID("6b6b6b6b-0000-4000-8000-0000000000b2"),
+          serviceName: "checkout",
+        },
+      }),
+    ).toBe("Data Security: Email address in log attributes of checkout");
     expect(section(page, "## Scrub It")).toContain(
-      '"Data Security: Email address in attributes.user.email"',
+      '"Data Security: Email address in log attributes of checkout"',
     );
     expect(scrub).toContain(
       "LogScrubPatternType.CreditCard,\n  LogScrubPatternType.SSN,\n  LogScrubPatternType.PhoneNumber,\n]);",
@@ -2177,6 +2786,314 @@ describe("Data Security Compliance", () => {
       "Security Viewers see what is turned off, and why.",
     );
   });
+
+  it("lists the stores OneUptime keeps for the project's security, with the purpose, retention and readers it declares (#10398)", () => {
+    const record: string = section(page, "## Record of processing");
+    const declared: string = section(
+      page,
+      "### Stores OneUptime keeps for your security",
+    );
+    const dashboard: string = "App/FeatureSet/Dashboard/src";
+    const card: string = source(
+      `${dashboard}/Components/DataSecurity/RecordOfProcessingCard.tsx`,
+    );
+    const exported: string = source(
+      `${dashboard}/Components/DataSecurity/ComplianceExport.ts`,
+    );
+    const copy: string = source(
+      `${dashboard}/Components/DataSecurity/DeclaredStoreCopy.ts`,
+    );
+    const declaring: string = source(`${SERVER}/DeclaredDataStores.ts`);
+    const flows: string = source(
+      "Common/Models/AnalyticsModels/NetworkFlow.ts",
+    );
+
+    // The card at the end of Compliance, and its exports.
+    expect(card).toContain('title="Record of Processing"');
+    expect(card).toContain('title: "Export CSV",');
+    expect(card).toContain('title: "Export JSON",');
+    expect(source(`${dashboard}/Pages/DataSecurity/Compliance.tsx`)).toContain(
+      "<RecordOfProcessingCard />",
+    );
+    expect(record).toContain(
+      "It is the **Record of Processing** card at the end of **Data Security → Compliance**, with **Export CSV** and **Export JSON**.",
+    );
+
+    // The columns from Purpose on, in the CSV's order and by its names.
+    const header: Array<string> = Array.from(
+      (
+        exported.match(
+          /RECORD_OF_PROCESSING_HEADER: CsvRow = \[([^\]]*)\]/,
+        )?.[1] || ""
+      ).matchAll(/"([^"]+)"/g),
+      (match: RegExpMatchArray): string => {
+        return (match[1] as string).toLowerCase();
+      },
+    );
+    const columns: Array<string> = rows(tables(record)[0]).map(
+      (row: Array<string>): string => {
+        return (row[0] as string).toLowerCase();
+      },
+    );
+
+    expect(header).toContain("who can read");
+    expect(header).toContain("declared by");
+    expect(columns.slice(columns.indexOf("purpose"))).toEqual(
+      header.slice(header.indexOf("purpose")),
+    );
+
+    // The four stores, as the catalog has them: declared, never scanned, never checked.
+    const kinds: Array<DataStoreKindInfo> = DATA_STORE_KINDS.filter(
+      (info: DataStoreKindInfo): boolean => {
+        return info.isDeclared;
+      },
+    );
+    const names: Array<string> = kinds.map(
+      (info: DataStoreKindInfo): string => {
+        return info.kind;
+      },
+    );
+    const stores: Array<Array<string>> = rows(tables(declared)[0]);
+
+    expect(
+      DECLARED_DATA_STORES.map((info: DeclaredDataStoreInfo): string => {
+        return info.kind;
+      }),
+    ).toEqual(names);
+    expect(
+      stores.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(names);
+    expect(declared).toContain(
+      `to protect your network: ${names
+        .slice(0, -1)
+        .map((name: string): string => {
+          return `**${name}**`;
+        })
+        .join(", ")} and **${names[names.length - 1]}**.`,
+    );
+
+    for (const info of kinds) {
+      expect({ kind: info.kind, scanned: info.contentScannable }).toEqual({
+        kind: info.kind,
+        scanned: false,
+      });
+
+      for (const check of DATA_SECURITY_CHECKS) {
+        expect({
+          kind: info.kind,
+          check: check.id,
+          applies: checkAppliesToKind(check, info.kind),
+        }).toEqual({ kind: info.kind, check: check.id, applies: false });
+      }
+    }
+
+    expect(declared).toContain(
+      "Four stores hold IP addresses and user names on purpose, to protect your network:",
+    );
+    expect(declared).toContain(
+      "so no scan reads them, no check applies to them, and holding these addresses and names never raises an issue",
+    );
+
+    // What each holds.
+    expect(
+      DECLARED_DATA_STORES.map((info: DeclaredDataStoreInfo): Array<string> => {
+        return [...info.dataTypeIds];
+      }),
+    ).toEqual([
+      ["ip-address", "username", "email-address"],
+      ["ip-address"],
+      ["ip-address"],
+      ["username", "email-address"],
+    ]);
+    expect(stores[0]?.[1]).toBe(
+      "The IP addresses, user names and email addresses of who acted and what it touched",
+    );
+    expect(stores[1]?.[1]).toBe("The IP addresses of who talked to whom");
+    expect(stores[2]?.[1]).toContain(
+      "The IP address behind each token an IP Address rule that hashes left in the logs and traces",
+    );
+    expect(stores[3]?.[1]).toBe(
+      "The user behind each token a rule that hashes left where [Security Events](/docs/telemetry/security-events) reads a user in your logs and traces",
+    );
+
+    // Why, in GDPR's own terms.
+    expect(declared).toContain(
+      `Each one's purpose is "${DECLARED_STORE_PURPOSE}".`,
+    );
+
+    // How long: the project's retention for security events, read now; the flows' and the vaults' own.
+    expect(
+      DECLARED_DATA_STORES.map((info: DeclaredDataStoreInfo): string => {
+        return info.retentionBasis;
+      }),
+    ).toEqual([
+      DeclaredStoreRetentionBasis.SecurityEvents,
+      DeclaredStoreRetentionBasis.NetworkFlows,
+      DeclaredStoreRetentionBasis.AddressVault,
+      DeclaredStoreRetentionBasis.UserVault,
+    ]);
+    expect(declaring).toMatch(
+      /SecurityEventRetention\.getRetentionInDays\(data\.projectId, \{\s*isFresh: true,/,
+    );
+    expect(stores[0]?.[2]).toBe(
+      "Your project's [telemetry retention](/docs/telemetry/data-retention), read whenever the record is, so a change shows at once",
+    );
+    expect(flows).toMatch(
+      /toDateTime\(ingestedAt\) \+ INTERVAL \$\{NETWORK_FLOW_RETENTION_IN_DAYS\} DAY DELETE/,
+    );
+    expect(stores[1]?.[2]).toBe(
+      `${NETWORK_FLOW_RETENTION_IN_DAYS} days after a flow arrives`,
+    );
+    // The record keeps the figure on its word's line; the table writes a space.
+    expect(stores[2]?.[2]).toBe(
+      getDeclaredRetentionText({
+        basis: DeclaredStoreRetentionBasis.AddressVault,
+        retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
+    );
+    expect(stores[3]?.[2]).toBe(
+      getDeclaredRetentionText({
+        basis: DeclaredStoreRetentionBasis.UserVault,
+        retentionInDays: SECURITY_USER_VAULT_RETENTION_IN_DAYS,
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
+    );
+
+    // Who can read: the tables' own readers, or nobody but Security Events' scans.
+    const permissions: Array<PermissionProps> =
+      PermissionHelper.getAllPermissionProps();
+    const eventReaders: Array<PermissionProps> = new SecurityEvent()
+      .getReadPermissions()
+      .map((permission: Permission): PermissionProps => {
+        return permissions.find((props: PermissionProps): boolean => {
+          return props.permission === permission;
+        }) as PermissionProps;
+      });
+    const roles: Array<string> = eventReaders
+      .filter((props: PermissionProps): boolean => {
+        return props.isRolePermission;
+      })
+      .map((props: PermissionProps): string => {
+        return `${props.title}s`;
+      });
+    const others: Array<string> = eventReaders
+      .filter((props: PermissionProps): boolean => {
+        return !props.isRolePermission;
+      })
+      .map((props: PermissionProps): string => {
+        return props.title;
+      });
+
+    expect(
+      DECLARED_DATA_STORES.map((info: DeclaredDataStoreInfo): string => {
+        return info.readers;
+      }),
+    ).toEqual([
+      DeclaredStoreReaders.Roles,
+      DeclaredStoreReaders.Roles,
+      DeclaredStoreReaders.SecurityEventsScansOnly,
+      DeclaredStoreReaders.SecurityEventsScansOnly,
+    ]);
+    expect(declaring).toContain(
+      "return [...new SecurityEvent().getReadPermissions()];",
+    );
+    expect(declaring).toContain(
+      "return [...new NetworkFlow().getReadPermissions()];",
+    );
+    expect(stores[0]?.[3]).toBe(
+      `${roles.join(", ")} and anyone with ${others.join(" or ")}`,
+    );
+    // A flow is read through the device that exported it.
+    expect(flows).toContain(
+      '@OwnedThrough("networkDeviceId", NetworkDevice, {',
+    );
+    expect([...new NetworkFlow().getReadPermissions()].sort()).toEqual(
+      [...new NetworkDevice().getReadPermissions()].sort(),
+    );
+    expect(stores[1]?.[3]).toBe("Whoever may read network devices");
+    expect(stores[2]?.[3]).toBe(
+      `${SECURITY_EVENTS_SCANS_ONLY_TEXT}: no person, page, export, API or AI tool`,
+    );
+    expect(stores[3]?.[3]).toBe(stores[2]?.[3]);
+
+    // The team's own words are kept; a field left empty keeps OneUptime's.
+    expect(declaring).toContain(
+      "purpose: data.store.purpose?.trim() || data.declared.purpose,",
+    );
+    expect(declaring).toContain(
+      "retention: data.store.retention?.trim() || data.declared.retentionText,",
+    );
+    expect(
+      source(`${dashboard}/Pages/DataSecurity/StoreView/Settings.tsx`),
+    ).toContain('editButtonText="Edit Record"');
+    expect(copy).toContain('"Leave it empty to keep what OneUptime fills in."');
+    expect(declared).toContain(
+      "use **Edit Record** in the store's **Settings**: a field left empty keeps OneUptime's.",
+    );
+
+    /*
+     * Listed while its data is kept: each vault for its days, and a day for
+     * the schedule. The address vault while an IP Address rule hashes, the
+     * user vault while a rule of any other pattern does.
+     */
+    expect(SECURITY_USER_VAULT_RETENTION_IN_DAYS).toBe(
+      SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+    );
+    expect(declared).toContain(
+      `the address vault while an enabled IP Address rule hashes logs or traces Security Events reads, the user vault while an enabled rule of any other pattern does, each for ${
+        SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS +
+        constant(
+          `${SERVER}/DeclaredDataStores.ts`,
+          "ADDRESS_VAULT_STORE_GRACE_IN_DAYS",
+        )
+      } days after`,
+    );
+    expect(declaring).toMatch(
+      /patternType: LogScrubPatternType\.IPAddress,\s*scrubAction: LogScrubAction\.Hash,/,
+    );
+    expect(declaring).toMatch(
+      /patternType: new NotEqual<LogScrubPatternType>\(\s*LogScrubPatternType\.IPAddress,?\s*\),\s*scrubAction: LogScrubAction\.Hash,/,
+    );
+    expect(declaring).toContain("data: { isArchived: true } as never,");
+    expect(declaring).toContain(
+      "// Its data is back: so is the store, with the team's purpose and retention.",
+    );
+    expect(declared).toContain(
+      "Once its data is gone the store is archived, and it comes back with your purpose and retention if the data does.",
+    );
+
+    // Marked on the stores list, and left out of the Overview and the scores.
+    expect(copy).toContain('"Declared by OneUptime",');
+    expect(
+      source(`${dashboard}/Components/DataSecurity/StoreNameCell.tsx`),
+    ).toContain("kindInfo?.isDeclared");
+
+    for (const file of [
+      "Common/Server/API/DataSecurityAPI.ts",
+      `${SERVER}/ResourceDataSecurity.ts`,
+    ]) {
+      expect(source(file)).toContain(
+        "return !isDeclaredDataStoreKind(store.kind);",
+      );
+    }
+
+    expect(declared).toContain(
+      "On **Data Stores** they are marked **Declared by OneUptime**, and the **Overview** and the framework scores leave them out.",
+    );
+
+    // The API's record says the same, in a declared store's own object.
+    expect(
+      source("Common/Types/DataSecurity/DataSecurityApiTypes.ts"),
+    ).toContain("declared?: DataSecurityDeclaredStore | undefined;");
+    expect(english(INTEGRATIONS)).toContain(
+      "A store OneUptime keeps for your security has a `declared` object: its own purpose and retention, and who can read it",
+    );
+  });
 });
 
 describe("Closing an exposure", () => {
@@ -2563,16 +3480,94 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.resourceScope,
       DATA_SECURITY_API_ROUTES.resourceCompliance,
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
+      DATA_SECURITY_API_ROUTES.declaredStore("<id>"),
       DATA_SECURITY_API_ROUTES.scanNow("<id>"),
       DATA_SECURITY_API_ROUTES.checkNow("<id>"),
       DATA_SECURITY_API_ROUTES.scrubFinding("<id>"),
       DATA_SECURITY_API_ROUTES.dropMetricImpact("<id>"),
       DATA_SECURITY_API_ROUTES.dropMetric("<id>"),
       DATA_SECURITY_API_ROUTES.explainIssue("<id>"),
+      DATA_SECURITY_API_ROUTES.issueAnalysis("<id>"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),
       DATA_SECURITY_API_ROUTES.respond("<id>"),
+      DATA_SECURITY_API_ROUTES.approveAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.dismissAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.undoAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.exposureAssessment("<id>"),
+      DATA_SECURITY_API_ROUTES.assessExposure("<id>"),
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment("<id>"),
+      DATA_SECURITY_API_ROUTES.editExposureAssessment("<id>"),
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces("<id>"),
     ]);
+  });
+
+  /*
+   * Was it a breach? (#10377): which exposures are assessed on their own,
+   * how far back the window's change is looked for, the line on reads, the
+   * laws the table covers, and that nothing is sent and none of it is legal
+   * advice - as the code has them.
+   */
+  it("says how an exposure is assessed, as the assessment works it out", () => {
+    const breach: string = section(page, "## Was it a breach?").replace(
+      /\s+/g,
+      " ",
+    );
+
+    // Assessed on its own: Critical exposures of Restricted or Confidential data.
+    expect(
+      ASSESSED_ON_ITS_OWN_SENSITIVITIES.map((sensitivity: string): string => {
+        return `**${sensitivity}**`;
+      }),
+    ).toEqual(["**Restricted**", "**Confidential**"]);
+    expect(breach).toContain(
+      "A Critical exposure of a store with **Restricted** or **Confidential** data",
+    );
+    expect(breach).toContain(`**${ASSESS_EXPOSURE}**`);
+    expect(breach).toContain(
+      `when one was logged in the ${EXPOSING_CHANGE_LOOKBACK_IN_DAYS} days before it was found`,
+    );
+    // The reads line, word for word as the card draws it.
+    expect(breach).toContain(`"${READS_NOT_LOGGED}"`);
+
+    // Every family of the table is named, and nothing the table does not hold.
+    const named: Record<BreachLawFamily, string> = {
+      [BreachLawFamily.Gdpr]: "GDPR Articles 33 and 34",
+      [BreachLawFamily.UkGdpr]: "UK GDPR Articles 33 and 34",
+      [BreachLawFamily.Hipaa]: "HIPAA's Breach Notification Rule",
+      [BreachLawFamily.PciDss]: "PCI DSS requirement 12.10.1",
+      [BreachLawFamily.Lgpd]: "Brazil's LGPD",
+      [BreachLawFamily.Dpdp]: "India's DPDP Rules",
+      [BreachLawFamily.CertIn]: "CERT-In directions",
+      [BreachLawFamily.California]: "California",
+      [BreachLawFamily.Colorado]: "Colorado",
+      [BreachLawFamily.Florida]: "Florida",
+      [BreachLawFamily.NewYork]: "New York",
+      [BreachLawFamily.Texas]: "Texas",
+      [BreachLawFamily.Washington]: "Washington",
+    };
+    const families: Array<string> = [
+      ...new Set(
+        BREACH_LAW_RULES.map((rule: BreachLawRule): string => {
+          return rule.family;
+        }),
+      ),
+    ].sort();
+
+    expect(Object.keys(named).sort()).toEqual(families);
+
+    for (const words of Object.values(named)) {
+      expect({ words, said: breach.includes(words) }).toEqual({
+        words,
+        said: true,
+      });
+    }
+
+    expect(breach).toContain("Nothing is sent anywhere");
+    expect(breach).toContain("not legal advice");
+    expect(breach).toContain(
+      "](/docs/telemetry/security-cases#was-it-a-breach)",
+    );
   });
 
   it("names the records the MCP server has tools for, and a Terraform resource, by their models' names", () => {
@@ -2612,6 +3607,229 @@ describe("Data Security Integrations", () => {
     expect(page).toContain(
       `\`oneuptime_${residencyRule.toLowerCase().split(" ").join("_")}\``,
     );
+  });
+
+  /*
+   * A pull request's production review reads its diff for what Data
+   * Security would find once it ships (#10376): what Data Security knows
+   * sharpens the points only where it may be read, and AI Results counts
+   * what was caught against what the scans found after.
+   */
+  it("says what a pull request's review reads for Data Security, and where what it knows is said", () => {
+    const pullRequests: string = section(page, "## Pull requests");
+    const sensitiveData: string = source(
+      "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData.ts",
+    ).replace(/\s+/g, " ");
+    const types: string = source(
+      "Common/Types/CodeRepository/ProductionReviewSensitiveData.ts",
+    );
+
+    expect(pullRequests).toContain(
+      "](/docs/ai/ai-agent#production-review-of-pull-requests)",
+    );
+    // The project's own data types, by their name hints.
+    expect(sensitiveData).toContain("DataSecurityCustomDataTypeService");
+    expect(pullRequests).toContain(
+      "your own data types are read by their name hints, as the scans read them",
+    );
+    // Held before: the service's telemetry findings of the last 7 days.
+    expect(types).toContain("heldBeforeDays: 7,");
+    expect(pullRequests).toContain(
+      "where the service's telemetry held the same kind of data in the last 7 days",
+    );
+    // Public By Design: no point for being public.
+    expect(sensitiveData).toContain(
+      "store.isPublicByDesign === true && PUBLIC_BY_DESIGN_CHECK_IDS.includes(candidate.checkId)",
+    );
+    expect(pullRequests).toContain(
+      "A store marked **Public By Design** makes no point for being public.",
+    );
+    expect(pullRequests).toContain(
+      "A public repository's comment says only what the diff shows.",
+    );
+    expect(pullRequests).toContain(
+      "**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**",
+    );
+  });
+
+  it("says what OneUptime AI does on its own as Data Security → AI names it", () => {
+    // On OneUptime AI's own page; Integrations points there.
+    const onItsOwn: string = section(english(AI), "## On its own");
+    expect(section(page, "## OneUptime AI")).toContain(
+      "](/docs/data-security/ai)",
+    );
+    const menu: string = source(
+      "App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts",
+    );
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+    const switches: string = source(
+      "App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy.ts",
+    );
+
+    // The page, its switch, its lists and their buttons, by the names the Dashboard draws.
+    expect(menu).toMatch(/page: PageMap\.DATA_SECURITY_AI,\s+title: "AI"/);
+    expect(onItsOwn).toContain("**Data Security → AI**");
+    expect(switches).toContain('title: translationKey("Work on new issues")');
+    expect(onItsOwn).toContain("**Work on new issues**");
+
+    for (const name of [
+      "Waiting for you",
+      "Approve",
+      "Dismiss proposal",
+      "Done by AI",
+      "Undo",
+      "Why AI did not act",
+    ]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(onItsOwn).toContain(`**${name}**`);
+    }
+
+    // An issue's AI card, above How to Fix, and the Overview's line.
+    const issueOverview: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/IssueView/Overview.tsx",
+    );
+    expect(issueOverview.indexOf("<IssueAiCard")).toBeGreaterThan(-1);
+    expect(issueOverview.indexOf("<IssueAiCard")).toBeLessThan(
+      issueOverview.indexOf('"How to Fix"'),
+    );
+    expect(copy).toContain('title: translationKey("OneUptime AI")');
+    expect(onItsOwn).toContain(
+      "the **OneUptime AI** card above **How to Fix**",
+    );
+    expect(copy).toContain("OneUptime AI contained {{count}} leaks this week.");
+    expect(onItsOwn).toContain(
+      "how many leaks OneUptime AI contained this week and how many proposals wait for you",
+    );
+
+    // On for new projects, as the server makes them.
+    const projectService: string = source(
+      "Common/Server/Services/ProjectService.ts",
+    );
+    const defaults: string = projectService.slice(
+      projectService.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
+    );
+    expect(defaults.slice(0, defaults.indexOf("];"))).toContain(
+      '"enableAutomaticDataSecurityAi"',
+    );
+    expect(onItsOwn).toContain("as it is for new projects");
+
+    // Out of the box, the issues it works on.
+    expect([...DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES]).toEqual([
+      SecuritySeverity.Critical,
+      SecuritySeverity.High,
+    ]);
+    expect(onItsOwn).toContain("each new Critical or High issue");
+
+    // Deleting data and paging people always ask, whatever a rule says.
+    expect([...DATA_SECURITY_AI_ALWAYS_ASKS]).toEqual(
+      expect.arrayContaining([
+        DataSecurityAiChangeSafety.Deletes,
+        DataSecurityAiChangeSafety.Pages,
+      ]),
+    );
+    expect(onItsOwn).toContain(
+      "it never deletes data or pages anyone without asking",
+    );
+
+    // The AI rules, by the names their table and form draw.
+    const rules: string = section(english(AI), "### AI rules");
+
+    for (const name of [
+      "AI Rules",
+      "Analyze",
+      "Contain",
+      "Fix",
+      "Judge",
+      "Off",
+      "Suggest",
+      // The autonomy that runs without approval, as the rules' form draws it (e76f1ced289).
+      "Automatically",
+    ]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(rules).toContain(`**${name}**`);
+    }
+
+    /*
+     * The retired word is gone from the page, as it is from the Dashboard:
+     * from the whole page, since a row of What OneUptime AI sees names a
+     * rule's Fix setting too (Fix the cause).
+     */
+    expect(copy).not.toContain('translationKey("Without asking")');
+    expect(english(AI)).not.toContain("**Without asking**");
+
+    // Suggest wins over Automatically, as the engine decides it.
+    expect(rules).toContain("**Suggest** wins over **Automatically**");
+    expect(source("Common/Types/DataSecurity/DataSecurityAi.ts")).toContain(
+      "otherwise the careful answer wins - Suggest when any rule that",
+    );
+
+    /*
+     * Who changes them, as the model's own access control says: Project
+     * Owners and Admins and the AI rule permissions - no Security role.
+     */
+    expect(rules).toContain(
+      "Project Owners and Admins change them, and so does anyone given the AI rule permissions",
+    );
+    const access: string = source(
+      "Common/Models/DatabaseModels/AutoRemediationRule.ts",
+    )
+      .split("@TableAccessControl(")[1]!
+      .split("})")[0]!;
+
+    for (const permission of [
+      "Permission.ProjectOwner",
+      "Permission.ProjectAdmin",
+      "Permission.CreateAutoRemediationRule",
+      "Permission.EditAutoRemediationRule",
+    ]) {
+      expect(access).toContain(permission);
+    }
+    expect(access).not.toContain("Permission.Security");
+  });
+
+  it("says what OneUptime AI proposes for stores with no owners, as the product does (#10374)", () => {
+    const onItsOwn: string = section(english(AI), "## On its own");
+    const owners: string = section(page, "### Owners OneUptime AI proposes");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+    const menu: string = source(
+      "App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts",
+    );
+
+    // The list, its buttons and the pages it is on, by the names they draw.
+    for (const name of ["Owners to review", "Change and Approve"]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(onItsOwn).toContain(`**${name}**`);
+    }
+    expect(owners).toContain("**Owners to review**");
+    expect(menu).toContain('title: "Data Stores"');
+    expect(onItsOwn).toContain("on this page and on **Data Stores**");
+    expect(owners).toContain("on **Data Stores** or **Data Security → AI**");
+
+    // The check a sensitive store's owners make pass, by its title.
+    expect(
+      DATA_SECURITY_CHECKS.find((check: DataSecurityCheckInfo): boolean => {
+        return check.id === "no-owner";
+      })?.title,
+    ).toBe("Nobody owns this sensitive store");
+    expect(onItsOwn).toContain("**Nobody owns this sensitive store**");
+
+    // An owner changes who is told: it always asks, whatever a rule says.
+    expect([...DATA_SECURITY_AI_ALWAYS_ASKS]).toContain(
+      DataSecurityAiChangeSafety.ChangesWhoIsTold,
+    );
+    expect(onItsOwn).toContain(
+      "Adding an owner changes who is told, so it always waits for you, whatever an AI rule says.",
+    );
+
+    // A rule is proposed for three or more stores that rest on one fact.
+    expect(MIN_STORES_FOR_DATA_STORE_OWNER_RULE).toBe(3);
+    expect(onItsOwn).toContain("When three or more stores' owners rest on");
+    expect(owners).toContain("Where three or more stores' owners rest on");
+    expect(owners).toContain("joins **Owner Rules** once approved");
   });
 
   it("names the AI actions as the API and the Dashboard do", () => {
@@ -2756,3 +3974,81 @@ describe.each(TRANSLATED_LANGUAGES)(
     });
   },
 );
+
+/*
+ * ISSUES WITH ONE CAUSE, AFTER ITS FOLLOW-UPS (#10738-#10742): what the
+ * page says of a group's fix, its proof, its timelines and a reader held to
+ * labels is what the code does - its numbers read from the code, its
+ * resolutions the ones the page's own table names.
+ */
+describe("Issues with one cause, after #10738-#10742", () => {
+  function groups(): string {
+    return section(english(CHECKS), "## Issues with one cause");
+  }
+
+  test("a group of more than the code's cap of open issues is not told of its proposal (#10741)", () => {
+    const most: number = constant(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines.ts",
+      "MAX_TIMELINE_ISSUES",
+    );
+
+    expect(most).toBe(200);
+    expect(groups()).toContain(
+      `a group of more than ${most} open issues stays quiet`,
+    );
+    expect(groups()).toContain(
+      "A newer proposal that replaces one still waiting tells only the issues the earlier one did not",
+    );
+    expect(english(AI)).toContain(
+      "is on the timeline of each open issue it is for when it is proposed, dismissed or expires",
+    );
+    // A case's playbook asks a telemetry leak's service fix (#10740 after #10367).
+    expect(english(AI)).toContain(
+      "A security playbook's **Fix the code with AI** step asks for it on a Data Security case about the service's telemetry",
+    );
+  });
+
+  test("a group's fix is proven by the resolutions the page's own table names (#10738)", () => {
+    const named: Array<string> = rows(
+      tables(section(english(CHECKS), "### How it was resolved"))[0],
+    ).map((row: Array<string>): string => {
+      return row[0] || "";
+    });
+
+    for (const resolution of [
+      "**Fixed in infrastructure code**",
+      "**Fixed from here**",
+    ]) {
+      expect(named).toContain(resolution);
+      expect(groups()).toContain(`resolved as ${resolution}`);
+    }
+
+    expect(groups()).toContain(
+      "[AI Results](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing) counts a proven fix among the changes that worked",
+    );
+  });
+
+  test("the one approval lists each kind's own change, as Fix it from here says it (#10742)", () => {
+    expect(groups()).toContain(
+      "the change [Fix it from here](#fix-it-from-here) makes for its kind of store",
+    );
+    expect(groups()).toContain(
+      "The changes are listed kind by kind, each with what it changes, what stops working and what it costs",
+    );
+  });
+
+  test("a reader held to labels sees groups cut down to their stores, and asks for no fix (#10739)", () => {
+    expect(groups()).not.toContain(
+      "Only people who read Data Security issues across the whole project see groups",
+    );
+    expect(groups()).toContain(
+      "sees each group cut down to the stores they may read",
+    );
+    expect(groups()).toContain(
+      "A group of which they may read a single issue is not shown, and that issue stays in their list.",
+    );
+    expect(groups()).toContain(
+      "so it takes a read of Data Security issues across the whole project",
+    );
+  });
+});

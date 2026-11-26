@@ -44,6 +44,7 @@ import IssueTelemetryFindings, {
   getFindingsBehindIssue,
   getIssueFindingsSelect,
   ISSUE_TELEMETRY_FINDINGS_TEST_ID,
+  NOTHING_LEFT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueTelemetryFindings";
 import {
   getOpenedLogLineWindow,
@@ -51,6 +52,7 @@ import {
   OPENED_LOG_LINE_TIME_SLACK_IN_MS,
   readOpenedLogLineAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Logs/useOpenedLogLine";
+import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
@@ -65,11 +67,19 @@ import {
   DataSecurityOccurrenceRecordKind,
   DataSecurityOccurrencesSource,
   DataSecurityOccurrencesUnavailableReason,
+  DataSecurityScrubImpact,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import {
+  getEmptyTelemetryFieldReadersByKind,
+  TelemetryFieldPart,
+  TelemetryFieldReaderKind,
+  TelemetryFieldReaders,
+  TelemetryFieldUse,
+} from "../../../Types/Telemetry/TelemetryFieldReaders";
 import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -205,8 +215,56 @@ let stored: Array<DataStoreFinding>;
 let listSpy: ReturnType<typeof jest.spyOn>;
 let occurrencesSpy: SpyInstance<typeof DataSecurityApi.getFindingOccurrences>;
 let scrubSpy: SpyInstance<typeof DataSecurityApi.scrubFinding>;
+let impactSpy: SpyInstance<typeof DataSecurityApi.getScrubImpact>;
+// The IP Address rules hiding addresses from Security Events (#10396): none, unless a test says.
+let addressRulesSpy: SpyInstance<
+  typeof ScrubRuleAddressesApi.getRulesHidingAddresses
+>;
 let onChanged: Mock<() => void>;
 let occurrences: DataSecurityFindingOccurrences;
+
+const MONITOR_ID: string = "7c7c7c7c-0000-4000-8000-0000000000c3";
+
+/*
+ * What Scrub It's dialog is told before the rule is made (#10433): a rule
+ * for the spans of the service the finding was in, and a monitor that
+ * filters on the attribute it would hide.
+ */
+function ppsImpact(): DataSecurityScrubImpact {
+  const readers: TelemetryFieldReaders = {
+    kinds: getEmptyTelemetryFieldReadersByKind(true),
+    securityEvents: { isChecked: true, sources: [], loses: [] },
+  };
+
+  readers.kinds[TelemetryFieldReaderKind.Monitor].readers = [
+    {
+      id: MONITOR_ID,
+      name: "PPS lookups",
+      reads: [
+        {
+          part: TelemetryFieldPart.Attributes,
+          key: "user.pps",
+          use: TelemetryFieldUse.Filter,
+        },
+      ],
+    },
+  ];
+
+  return {
+    isAvailable: true,
+    rule: {
+      signal: "trace",
+      name: "Data Security: Ireland PPS number in span attributes of checkout",
+      scrubAction: "redact",
+      patternType: "custom",
+      fieldsToScrub: "attributes",
+      dataTypeName: "Ireland PPS number",
+      serviceId: "6b6b6b6b-0000-4000-8000-0000000000b2",
+      serviceName: "checkout",
+    },
+    readers,
+  };
+}
 
 function findingListCalls(): Array<{
   query: Record<string, unknown>;
@@ -304,6 +362,12 @@ beforeEach(() => {
     scrubRuleId: "9c9c9c9c-0000-4000-8000-0000000000c9",
     scrubRuleName: "Data Security: Ireland PPS number in attributes.user.pps",
   });
+  impactSpy = jest
+    .spyOn(DataSecurityApi, "getScrubImpact")
+    .mockResolvedValue(ppsImpact());
+  addressRulesSpy = jest
+    .spyOn(ScrubRuleAddressesApi, "getRulesHidingAddresses")
+    .mockResolvedValue({ isChecked: true, signalsRead: [], rules: [] });
 });
 
 afterEach(() => {
@@ -554,6 +618,93 @@ describe("the card", () => {
     ).toBeEnabled();
   });
 
+  /*
+   * An IP address scrubbed by a Redact or Mask rule where Security Events
+   * reads the spans says what it costs, with Hash Instead (#10396): the
+   * switch is the person's, and the rules are read again after it.
+   */
+  test("a scrubbed IP address names the rule that hides it from Security Events, and Hash Instead switches it", async () => {
+    const RULE_ID: string = "9d9d9d9d-0000-4000-8000-0000000000d9";
+
+    stored = [
+      findingOf(IP_ID, {
+        dataTypeId: "ip-address",
+        dataTypeName: "IP address",
+        sensitivity: DataSensitivity.Confidential,
+        location: "attributes.http.client_ip",
+        maskedSamples: ["81.***.***.***"],
+        isScrubbed: true,
+      }),
+    ];
+    addressRulesSpy.mockResolvedValue({
+      isChecked: true,
+      signalsRead: ["trace"],
+      rules: [
+        {
+          signal: "trace",
+          ruleId: RULE_ID,
+          ruleName: "Scrub IP addresses",
+          scrubAction: "redact",
+        },
+      ],
+    });
+    const hashSpy: SpyInstance<typeof ScrubRuleAddressesApi.hashInstead> = jest
+      .spyOn(ScrubRuleAddressesApi, "hashInstead")
+      .mockResolvedValue({
+        signal: "trace",
+        ruleId: RULE_ID,
+        ruleName: "Scrub IP addresses",
+        scrubAction: "hash",
+      });
+
+    renderCard();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "data-security-issue-finding-hash-instead",
+    );
+
+    expect(notice).toHaveTextContent(
+      "The scrub rule Scrub IP addresses also hides addresses from Security Events, so it can't tell you which address to block.",
+    );
+
+    fireEvent.click(
+      within(notice).getByRole("button", { name: "Hash Instead" }),
+    );
+
+    await waitFor(() => {
+      expect(hashSpy).toHaveBeenCalledWith({
+        signal: "trace",
+        ruleId: RULE_ID,
+      });
+    });
+    // The rules are read again: the one switched no longer hides anything.
+    await waitFor(() => {
+      expect(addressRulesSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("an IP address finding says nothing of Security Events while no rule hides addresses from it", async () => {
+    stored = [
+      findingOf(IP_ID, {
+        dataTypeId: "ip-address",
+        dataTypeName: "IP address",
+        location: "attributes.http.client_ip",
+        isScrubbed: true,
+      }),
+    ];
+
+    renderCard();
+
+    await screen.findAllByTestId("data-security-issue-finding");
+    await waitFor(() => {
+      expect(addressRulesSpy).toHaveBeenCalled();
+    });
+
+    expect(
+      screen.queryByTestId("data-security-issue-finding-hash-instead"),
+    ).not.toBeInTheDocument();
+  });
+
   test("Scrub It asks first, makes the rule, says which, reads the findings again and tells the issue", async () => {
     renderCard();
 
@@ -568,6 +719,22 @@ describe("the card", () => {
     expect(
       await screen.findByText("Scrub This Data at Ingest"),
     ).toBeInTheDocument();
+    // What the rule does, and to whose spans (#10433)...
+    expect(
+      await screen.findByTestId("data-security-scrub-it-scope"),
+    ).toHaveTextContent(
+      "OneUptime adds a scrub rule to the spans checkout sends, before they are stored. Other services' spans stay as they are.",
+    );
+    expect(impactSpy).toHaveBeenCalledWith(new ObjectID(PPS_ID));
+    // ...and the monitor it would leave matching nothing, opening it.
+    expect(
+      within(screen.getByTestId("telemetry-field-readers-Monitor"))
+        .getByText("PPS lookups")
+        .closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/${MONITOR_ID}`,
+    );
     expect(scrubSpy).not.toHaveBeenCalled();
 
     const before: number = findingListCalls().length;
@@ -585,7 +752,7 @@ describe("the card", () => {
 
     expect(scrubSpy).toHaveBeenCalledWith(new ObjectID(PPS_ID));
     expect(notice).toHaveTextContent(
-      "The scrub rule Data Security: Ireland PPS number in attributes.user.pps now masks this data in new traces.",
+      "The scrub rule Data Security: Ireland PPS number in attributes.user.pps now hides this data in new traces.",
     );
     // One sentence: the rule's name in it opens the list the rule is in.
     expect(
@@ -618,6 +785,8 @@ describe("the card", () => {
     fireEvent.click(
       within(blocks[0]!).getByTestId("data-security-issue-finding-scrub"),
     );
+    // Pressed once the dialog has said what the rule does.
+    await screen.findByTestId("data-security-scrub-it-scope");
     fireEvent.click(
       within(await screen.findByRole("dialog")).getByRole("button", {
         name: "Scrub It",
@@ -667,11 +836,10 @@ describe("the card", () => {
     stored = [stored[3]!, stored[4]!];
     renderCard();
 
-    expect(
-      await screen.findByText(
-        "Nothing is left to scrub: every finding behind this issue is masked at ingest, or no longer seen.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(NOTHING_LEFT)).toBeInTheDocument();
+    expect(NOTHING_LEFT).toBe(
+      "Nothing is left to scrub: every finding behind this issue is hidden at ingest, or no longer seen.",
+    );
   });
 
   test("a read that fails says so, and reads again when asked", async () => {

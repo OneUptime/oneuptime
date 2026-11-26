@@ -36,6 +36,7 @@ import PodmanHostDelete from "../Pages/Podman/View/Delete";
 import PodmanHostDocumentation from "../Pages/Podman/View/Documentation";
 import PodmanSettingsOwnerRules from "../Pages/Podman/Settings/OwnerRules";
 import PodmanSettingsLabelRules from "../Pages/Podman/Settings/LabelRules";
+import PodmanRulesAuditLogs from "../Pages/Podman/Settings/RulesAuditLogs";
 import PodmanArchived from "../Pages/Podman/Archived";
 import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
 import PodmanHostOwnerRule from "Common/Models/DatabaseModels/PodmanHostOwnerRule";
@@ -94,6 +95,18 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             <PodmanSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.PODMAN_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={PodmanRoutePath[PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS] || ""}
+          element={
+            <PodmanRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS] as Route
+              }
             />
           }
         />

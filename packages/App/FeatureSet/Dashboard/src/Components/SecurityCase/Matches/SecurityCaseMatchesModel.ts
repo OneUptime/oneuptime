@@ -2,6 +2,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { withRouteQueryParams } from "../../../Utils/TelemetryTabScope";
 import { toSecurityEvent } from "../Evidence/EventEvidence";
+import { getResponseLinkRoute } from "../Response/SecurityCaseResponseLinks";
 import { getEntityRiskRoute } from "../../SecurityEvents/EntityRisk/EntityRiskModel";
 import {
   SecurityEventLogsLink,
@@ -10,7 +11,6 @@ import {
   getSecurityEventLogsLink,
   getSecurityEventTraceRoute,
 } from "../../SecurityEvents/SecurityEventTelemetryLinks";
-import { getSecurityEventsTimeRangeLinkParams } from "../../SecurityEvents/SecurityEventsTimeRange";
 import {
   BASIS_NOTES,
   EVENT_FROM_LOG_LINE,
@@ -48,17 +48,13 @@ import {
   SecurityCaseMatchRuleJson,
   SecurityCaseMatchedDetectionJson,
   SecurityCaseMatchedEventJson,
+  getDetectionEntity,
 } from "Common/Types/SecurityCase/SecurityCaseMatches";
 import {
   SecurityEntity,
   SecurityEntityType,
-  inferSecurityEntityType,
-  securityEntityTypeForField,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import SecurityEventRequestOutcome, {
-  SECURITY_REQUEST_ATTRIBUTES,
-} from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
-import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -71,6 +67,16 @@ import {
   toLogsExplorerQueryParams,
   toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
+import {
+  RESPONSE_EVENTS_PADDING_IN_MINUTES,
+  getDetectionEventsLink,
+  getDetectionWindow,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanLinks";
+import {
+  RequestOutcomeSummary,
+  RequestOutcomeSummaryKind,
+  getRequestOutcomeSummary,
+} from "Common/Utils/SecurityCase/RequestOutcomeSummary";
 
 /*
  * WHY A CASE WAS OPENED, AS DATA: what the case's "Why This Case Was
@@ -89,7 +95,8 @@ export const MATCHED_EVENTS_SHOWN: number = 5;
 export const LOOK_NEXT_MAX_TRACES: number = 20;
 
 // Padding either side of a detection's window for the explorers it opens.
-export const LOOK_NEXT_PADDING_IN_MINUTES: number = 5;
+export const LOOK_NEXT_PADDING_IN_MINUTES: number =
+  RESPONSE_EVENTS_PADDING_IN_MINUTES;
 
 // ---------- How a rule counts ----------
 
@@ -232,68 +239,13 @@ export function getBasisNote(
 
 // ---------- How far its requests got ----------
 
-export enum RequestOutcomeSummaryKind {
-  // Every followed request was turned away.
-  AllTurnedAway = "AllTurnedAway",
-  // At least one got past the app's checks: it reached a handler, errored or reached the database.
-  SomeGotThrough = "SomeGotThrough",
-  // No request was followed into its trace.
-  NotFollowed = "NotFollowed",
-}
-
-export interface RequestOutcomeSummary {
-  kind: RequestOutcomeSummaryKind;
-  // Requests followed into their trace.
-  followed: number;
-  // Of those, the ones past the app's checks.
-  through: number;
-  // Each outcome and how many, the most serious first, none for an unfollowed request.
-  tally: Array<{ outcome: SecurityEventRequestOutcome; count: number }>;
-}
-
-const OUTCOMES_MOST_SERIOUS_FIRST: ReadonlyArray<SecurityEventRequestOutcome> =
-  [
-    SecurityEventRequestOutcome.ReachedDatabase,
-    SecurityEventRequestOutcome.Errored,
-    SecurityEventRequestOutcome.ReachedApp,
-    SecurityEventRequestOutcome.Rejected,
-  ];
-
-export function getRequestOutcomeSummary(
-  outcomes: Record<string, number>,
-): RequestOutcomeSummary {
-  const tally: Array<{ outcome: SecurityEventRequestOutcome; count: number }> =
-    [];
-  let followed: number = 0;
-  let through: number = 0;
-
-  for (const outcome of OUTCOMES_MOST_SERIOUS_FIRST) {
-    const count: number = Math.max(0, Math.trunc(outcomes[outcome] || 0));
-
-    if (count === 0) {
-      continue;
-    }
-
-    tally.push({ outcome, count });
-    followed += count;
-
-    if (outcome !== SecurityEventRequestOutcome.Rejected) {
-      through += count;
-    }
-  }
-
-  return {
-    kind:
-      followed === 0
-        ? RequestOutcomeSummaryKind.NotFollowed
-        : through > 0
-          ? RequestOutcomeSummaryKind.SomeGotThrough
-          : RequestOutcomeSummaryKind.AllTurnedAway,
-    followed,
-    through,
-    tally,
-  };
-}
+/*
+ * The summary of how far a detection's requests got is shared with the
+ * case's Response Plan, on the server too (Common/Utils/SecurityCase/
+ * RequestOutcomeSummary).
+ */
+export type { RequestOutcomeSummary };
+export { RequestOutcomeSummaryKind, getRequestOutcomeSummary };
 
 // The sentence the summary is said in; null when no request was followed.
 export function getRequestOutcomeSentence(
@@ -487,60 +439,21 @@ function window(detection: SecurityCaseMatchedDetectionJson): {
   start: Date;
   end: Date;
 } | null {
-  const first: string | null = detection.windowStart || detection.firstSeenAt;
-  const last: string | null = detection.windowEnd || detection.lastSeenAt;
-
-  if (!first || !last) {
-    return null;
-  }
-
-  const padding: number = LOOK_NEXT_PADDING_IN_MINUTES * 60 * 1000;
-  const start: Date = new Date(new Date(first).getTime() - padding);
-  const end: Date = new Date(new Date(last).getTime() + padding);
-
-  return Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())
-    ? null
-    : { start, end };
+  return getDetectionWindow(detection, LOOK_NEXT_PADDING_IN_MINUTES);
 }
 
 // The Events explorer on what a detection is about, over its window.
 export function getDetectionEventsRoute(
   detection: SecurityCaseMatchedDetectionJson,
 ): Route | null {
-  const value: string = detection.groupValue.trim();
-  const range: { start: Date; end: Date } | null = window(detection);
-
-  if (!value || !range) {
-    return null;
-  }
-
-  return (
-    RouteUtil.populateRouteParams(
-      RouteMap[PageMap.SECURITY_EVENTS] as Route,
-    ) as Route
-  ).addQueryParams({
-    search: encodeURIComponent(`observable:${buildSearchTokenValue(value)}`),
-    ...getSecurityEventsTimeRangeLinkParams(range.start, range.end),
-  });
+  return getResponseLinkRoute(getDetectionEventsLink(detection));
 }
 
-// The entity a detection is about, typed by the field its rule groups by or by its shape.
-export function getDetectionEntity(
-  detection: SecurityCaseMatchedDetectionJson,
-): SecurityEntity | null {
-  const value: string = detection.groupValue.trim();
-
-  if (!value || value.includes(" / ")) {
-    return null;
-  }
-
-  return {
-    type:
-      securityEntityTypeForField(detection.rule?.groupByField) ||
-      inferSecurityEntityType(value),
-    value,
-  };
-}
+/*
+ * The entity a detection is about, typed by the field its rule groups by or
+ * by its shape: shared with the case's Response Plan, on the server too.
+ */
+export { getDetectionEntity };
 
 export type LookNextKey =
   | "entity"

@@ -1,12 +1,14 @@
 import APIException from "../../../Types/Exception/ApiException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { redactLogString } from "../LogRedaction";
+import OutboundFetch from "../OutboundFetch";
 
 /*
  * The one HTTP path every meeting provider client takes: a deadline on every
  * request, the body read as text and parsed only when it is a JSON object,
  * and a short, redacted summary of an error body for the message a person
- * reads.
+ * reads. Every request goes through the server's outbound proxy, or
+ * directly, as every request of the server does (OutboundFetch, #10720).
  *
  * The fetch is injectable so the provider tests exercise the real request
  * construction and response parsing against recorded shapes, without a
@@ -110,7 +112,7 @@ export default class VideoCallHttpClient {
         (async (): Promise<VideoCallHttpResponse> => {
           const fetchImplementation: VideoCallFetch =
             this.fetchImplementation ||
-            (globalThis.fetch as unknown as VideoCallFetch);
+            (OutboundFetch.fetch as unknown as VideoCallFetch);
 
           const response: VideoCallFetchResponse = await fetchImplementation(
             data.url,

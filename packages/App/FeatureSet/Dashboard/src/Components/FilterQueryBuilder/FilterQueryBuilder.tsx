@@ -40,6 +40,18 @@ export interface ComponentProps {
   config: FilterBuilderConfig;
   title?: string | undefined;
   description?: string | undefined;
+  /*
+   * Drawn under the conditions while they are edited, from the query as
+   * it is now: what a drop filter's query would take (#10436).
+   */
+  renderPreview?: ((query: string) => ReactElement | undefined) | undefined;
+  /*
+   * Asked before the query is saved; false keeps the dialog open, as it
+   * was. A drop filter asks to confirm when something reads what it takes.
+   */
+  onBeforeSave?: ((query: string) => Promise<boolean>) | undefined;
+  // Told once the query is saved.
+  onSaved?: ((query: string) => void) | undefined;
 }
 
 const operatorLabels: Record<string, string> = {
@@ -147,6 +159,11 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
+      if (props.onBeforeSave && !(await props.onBeforeSave(modalQuery || ""))) {
+        // Asked, and told no: the dialog stays as it was.
+        return;
+      }
+
       await ModelAPI.updateById({
         modelType: props.modelType,
         id: props.modelId,
@@ -159,6 +176,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
       setConditions(parsed.conditions);
       setConnector(parsed.connector);
       setShowModal(false);
+      props.onSaved?.(modalQuery || "");
     } catch {
       setError("Failed to save filter conditions.");
     } finally {
@@ -495,6 +513,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
               onChange={setModalQuery}
               config={config}
             />
+            {props.renderPreview ? props.renderPreview(modalQuery) : <></>}
           </div>
         </Modal>
       )}

@@ -5,7 +5,7 @@ import { flattenPayload, parseEventTime } from "../NormalizerHelpers";
 import { SecurityRecordReading } from "../SecurityRecordReading";
 import {
   boundAttributes,
-  readRemoteIpAddress,
+  readRemoteIpAddressOnly,
 } from "../LogParsers/SecurityLogLine";
 
 /*
@@ -208,7 +208,7 @@ export function readClientIp(value: string): string {
     address = address.slice(0, address.indexOf(":"));
   }
 
-  return readRemoteIpAddress(address);
+  return readRemoteIpAddressOnly(address);
 }
 
 // The schema's CreationTime is UTC written without a zone.
@@ -507,7 +507,7 @@ export function readMicrosoft365Record(
       message: `Microsoft Defender for Office 365: ${malware ? "malware" : "phishing"} mail${sender ? ` from ${sender}` : ""}${recipients[0] ? ` to ${recipients[0]}${recipients.length > 1 ? ` and ${recipients.length - 1} more` : ""}` : ""}`,
       ruleName: `${verdict} mail`,
       principalUser: sender,
-      principalIp: readRemoteIpAddress(text(record["SenderIp"])),
+      principalIp: readRemoteIpAddressOnly(text(record["SenderIp"])),
       targetUser: recipients[0] || "",
       targetResource: text(record["Subject"]),
     };

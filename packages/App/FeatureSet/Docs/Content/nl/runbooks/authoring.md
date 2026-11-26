@@ -102,7 +102,7 @@ Een uitgaande HTTP-aanroep, gedaan door de OneUptime Worker. Er is geen Runner n
 | **URL** | Het endpoint dat wordt aangeroepen. | Leeg |
 | **Headers (JSON)** | Onder **Meer velden**. Een JSON-object, zoals `{ "Authorization": "Bearer ..." }`. Headers die geen geldige JSON zijn, laten de stap mislukken. | Geen |
 | **Zelfondertekende certificaten toestaan** | Onder **Meer velden**. Staat deze aan, dan neemt de stap elk certificaat dat de server toont, zodat een zelfondertekend certificaat werkt, maar controleert hij noch de hostnaam noch de geldigheidsdatums, en kan iedereen op het netwerkpad het verzoek, geheimen inbegrepen, lezen en het antwoord wijzigen. | Uit |
-| **CA-certificaat** | Onder **Meer velden**, zolang **Zelfondertekende certificaten toestaan** uit staat. Het certificaat, in PEM, van de CA die het certificaat van de server heeft ondertekend, of dat van de server zelf als het zelfondertekend is. De stap vertrouwt dan alleen dat certificaat, en controleert nog steeds de hostnaam en de geldigheidsdatums. | Geen |
+| **CA-certificaat** | Onder **Meer velden**, zolang **Zelfondertekende certificaten toestaan** uit staat. Het certificaat, in PEM, van de CA die het certificaat van de server heeft ondertekend, of dat van de server zelf als het zelfondertekend is, of één [runbookvariabele](/docs/runbooks/variables) die het bevat. De stap vertrouwt dan alleen dat certificaat, en controleert nog steeds de hostnaam en de geldigheidsdatums. | Geen |
 | **Body** | Getoond voor `POST`, `PUT`, `PATCH` en `DELETE`. Verzonden als JSON wanneer het als JSON te lezen is, anders als tekst. | Geen |
 | **Time-out van verzoek** | Hoe lang op het antwoord van het endpoint wordt gewacht voordat de stap mislukt. | 30 seconden |
 
@@ -118,10 +118,12 @@ Handig voor: een PagerDuty-incident openen, naar een Slack-webhook posten, de op
 
 Een server waarvan het certificaat door hemzelf of door uw eigen CA is ondertekend, wordt geweigerd totdat de stap hem vertrouwt, en er wordt niets verzonden. De fout van de stap zegt wat u moet wijzigen: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Plak het certificaat dat het heeft ondertekend in **CA-certificaat**: dat van de CA, of dat van de server zelf als het zelfondertekend is. De stap controleert het certificaat van de server dan daartegen, hostnaam en geldigheidsdatums inbegrepen, zodat een server die zich alleen voordoet als de uwe nog steeds wordt geweigerd. Zet **Zelfondertekende certificaten toestaan** alleen aan als u er geen kunt plakken. Beide gelden alleen voor het verzoek van deze stap, nooit voor een andere stap, een ander verzoek van OneUptime of de verbinding met een uitgaande proxy.
 
+Als veel stappen diensten aanroepen die uw eigen CA heeft ondertekend, bewaar dan het certificaat ervan in een [runbookvariabele](/docs/runbooks/variables) en schrijf alleen `{{global.variables.INTERNAL_CA}}` in **CA-certificaat**. De stap leest de variabele bij elke uitvoering, dus als de CA verandert, wijzigt u de variabele één keer. Een gewone variabele is genoeg, want een certificaat is geen geheim; een geheime werkt ook, en wordt verborgen in wat de stap vastlegt. Een variabele die er niet is, of die geen certificaat bevat, laat de stap mislukken voordat er iets wordt verzonden, en de fout noemt de variabele. Zolang **Zelfondertekende certificaten toestaan** aan staat, leest de stap de variabele niet.
+
 > [!TIP]
 > Om in plaats daarvan uw eigen CA voor alle verzoeken tegelijk te vertrouwen, monitoren inbegrepen, stelt een zelf gehoste installatie `NODE_EXTRA_CA_CERTS` in op haar containers.
 
-Via de API en Terraform is de schakelaar `allowSelfSignedCertificates` in de configuratie van de stap, `true` of `false`, en het CA-certificaat haar `caCertificate`, de PEM als tekst. Opslaan wordt geweigerd als `caCertificate` geen certificaat is of een privésleutel bevat.
+Via de API en Terraform is de schakelaar `allowSelfSignedCertificates` in de configuratie van de stap, `true` of `false`, en het CA-certificaat haar `caCertificate`: de PEM als tekst, of één variabeleverwijzing alleen. Opslaan wordt geweigerd als `caCertificate` geen van beide is, of een privésleutel bevat.
 
 ```hcl
 config = {

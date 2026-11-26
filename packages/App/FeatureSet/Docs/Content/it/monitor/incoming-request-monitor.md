@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. Aprite il criterio ed espandete **Impostazioni**.
-2. Attivate **Group incidents and alerts by a payload field**.
-3. Compilate **Open a separate incident for each…**. Perché ogni incidente si risolva da solo, compilate anche il campo e il valore sotto **Auto-resolve each incident when…** (più sotto). Poi salvate il monitor.
+2. Attivate **Raggruppa incidenti e avvisi per un campo del payload**.
+3. Compilate **Apri un incidente separato per ogni…**. Perché ogni incidente si risolva da solo, compilate anche il campo e il valore sotto **Risolvi automaticamente ogni incidente quando…** (più sotto). Poi salvate il monitor.
 :::
 
 | Campo | Esempio | Cosa fa |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Il percorso i cui valori distinti separano gli incidenti |
-| Field that signals recovery | `requestBody.alerts[*].status` | Il percorso controllato per decidere che un avviso si è ripristinato |
-| Value that means recovered | `resolved` | Il valore esatto che segnala il ripristino |
-| Max incidents per request | `100` (predefinito) | Limite di sicurezza, perché un campo con molti valori non possa aprire incidenti senza limiti |
+| Apri un incidente separato per ogni… | `requestBody.alerts[*].labels.alertname` | Il percorso i cui valori distinti separano gli incidenti |
+| Campo che segnala il ripristino | `requestBody.alerts[*].status` | Il percorso controllato per decidere che un avviso si è ripristinato |
+| Valore che indica il ripristino | `resolved` | Il valore esatto che segnala il ripristino |
+| Numero massimo di incidenti per richiesta | `100` (predefinito) | Limite di sicurezza, perché un campo con molti valori non possa aprire incidenti senza limiti |
 
 Il raggruppamento appartiene al criterio in cui è attivato. Gli altri criteri del monitor non raggruppano: quando uno di essi corrisponde a una richiesta, apre il suo incidente e il suo avviso come farebbe su un monitor in cui nessun criterio raggruppa.
 
@@ -383,16 +383,20 @@ La scheda **Riepilogo del monitor** nella **Panoramica** del monitor mostra che 
 
 Un webhook descrive solo ciò che c'è in quel payload, quindi OneUptime non risolve mai un incidente perché la sua chiave ha smesso di comparire. Un incidente viene risolto solo quando un payload dice esplicitamente che quella chiave si è ripristinata. Devono valere entrambe le cose:
 
-1. **Field that signals recovery** e **Value that means recovered** sono impostati e corrispondono al payload. Il confronto è esatto e sensibile a maiuscole e minuscole: `Resolved` non corrisponde a `resolved`.
+1. **Campo che segnala il ripristino** e **Valore che indica il ripristino** sono impostati e corrispondono al payload. Il confronto è esatto e sensibile a maiuscole e minuscole: `Resolved` non corrisponde a `resolved`.
 2. L'incidente del criterio ha **Risoluzione automatica dell'incidente** attiva, sotto **Altri campi** nel modulo dell'incidente. Senza questa opzione, gli eventi di ripristino corrispondenti vengono ignorati e gli incidenti restano aperti. (Lo stesso vale per gli avvisi e **Risoluzione automatica dell'avviso**.) Il criterio offline predefinito la ha attiva fin dall'inizio; un incidente che aggiungete voi a un criterio parte con l'opzione disattivata.
 
-**Max incidents per request** limita l'estrazione, non solo la creazione. Anche per il ripristino le chiavi oltre il limite sono invisibili, quindi in un payload con più chiavi distinte del limite, un avviso che riporta `resolved` oltre quel limite non chiuderà il suo incidente.
+Anche un avviso che aggiungete voi a un criterio parte con **Risoluzione automatica dell'avviso** disattivata, quindi un ripristino lascia l'avviso aperto finché l'opzione non viene attivata. **Risolvi automaticamente ogni incidente quando…** indica quali incidenti e avvisi del criterio un ripristino risolve, e nomina ciascuno di quelli che lascerebbe aperti, con un pulsante che attiva la relativa opzione. La scheda **Riepilogo del monitor** nella **Panoramica** del monitor nomina ogni incidente e avviso che un ripristino ha lasciato aperto, e perché.
+
+Un rientro risolve solo gli incidenti e gli avvisi del criterio che lo legge: quello i cui **Campo che segnala il ripristino** e **Valore che indica il ripristino** corrispondono al payload. Gli incidenti e gli avvisi di un altro criterio per lo stesso valore restano aperti, e quelli di un criterio che lascia vuoti quei campi si risolvono a mano.
+
+**Numero massimo di incidenti per richiesta** limita l'estrazione, non solo la creazione. Anche per il ripristino le chiavi oltre il limite sono invisibili, quindi in un payload con più chiavi distinte del limite, un avviso che riporta `resolved` oltre quel limite non chiuderà il suo incidente.
 
 > [!NOTE]
-> Quando un monitor riceve richieste più in fretta di quanto OneUptime riesca a valutarle, valuta la più recente e salta quelle intermedie, quindi una raffica di webhook può lasciare non valutato un avviso attivo o uno risolto. Su un server self-hosted, impostare `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` nell'ambiente dell'app OneUptime fa valutare ogni richiesta da sola.
+> Un monitor con un criterio che raggruppa per un campo del payload valuta ogni richiesta che riceve, una alla volta e nell'ordine in cui sono arrivate, quindi una raffica di avvisi e rientri apre e risolve l'incidente e l'avviso di ogni valore. Fino a 1.000 richieste, o 16 MB, attendono di essere valutate; oltre, le più vecchie in attesa vengono saltate, e la scheda **Riepilogo del monitor** dice quante. Indica anche il limite raggiunto, e un'installazione self-hosted può modificarli entrambi: vedete [Note per l'installazione self-hosted](#note-per-linstallazione-self-hosted). Un monitor senza raggruppamento valuta solo la più recente delle richieste che lo attendono.
 
 > [!NOTE]
-> Se **Field that signals recovery** contiene `[*]` ma **Open a separate incident for each…** no, una richiesta è ripristinata solo quando ogni elemento di quell'array lo dice. Con `requestBody.alerts[*].status` e `resolved`, un incidente raggruppato per `requestBody.groupLabels.alertname` si risolve quando tutti gli avvisi di una richiesta sono risolti, e resta aperto finché uno è ancora attivo.
+> Se **Campo che segnala il ripristino** contiene `[*]` ma **Apri un incidente separato per ogni…** no, una richiesta è ripristinata solo quando ogni elemento di quell'array lo dice. Con `requestBody.alerts[*].status` e `resolved`, un incidente raggruppato per `requestBody.groupLabels.alertname` si risolve quando tutti gli avvisi di una richiesta sono risolti, e resta aperto finché uno è ancora attivo.
 
 > [!WARNING]
 > Un percorso di ripristino senza `[*]` viene valutato sull'intero payload, quindi un `status: resolved` a livello di payload risolve ogni chiave di quel payload, compresi gli avvisi il cui stato è ancora attivo.
@@ -517,6 +521,18 @@ Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** 
 :::details Il mittente riceve un 500
 La richiesta dichiara `Content-Type: application/json` ma il suo corpo non è un oggetto né un array JSON. Inviate JSON valido, oppure un tipo di contenuto diverso.
 :::
+
+## Note per l'installazione self-hosted
+
+Un monitor che raggruppa per un campo del payload tiene ogni richiesta in Valkey finché non arriva il suo turno. In un'installazione self-hosted, tre impostazioni lo limitano. Con Docker Compose impostatele in `config.env`; con Helm, sotto `incomingRequests` nei valori del chart, che dà le stesse ai pod dell'app e dei worker:
+
+| Impostazione | Valore Helm | Predefinito | Intervallo | Cosa limita |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | da `10` a `100000` | Le richieste che un monitor tiene in attesa. Oltre, le più vecchie in attesa vengono saltate. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | da `1` a `512` | I megabyte di richieste che un monitor tiene in attesa. Oltre, le più vecchie in attesa vengono saltate. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | da `1` a `1000` | Le richieste che un job valuta prima che il job del monitor torni in coda, dietro ogni job già in attesa. |
+
+Alzate le prime due per mittenti che inviano raffiche più forti, come uno switch di core che cade e fa scattare migliaia di avvisi in una volta, e abbassate la seconda per un Valkey piccolo. Quando delle richieste vengono saltate, la scheda **Riepilogo del monitor** dice quale limite è stato raggiunto. Un valore che non è un numero intero nel suo intervallo non viene usato: si usa quello predefinito, e l'app registra un avvertimento che nomina l'impostazione.
 
 ## Passi successivi
 

@@ -14,6 +14,10 @@ import {
   SHOW_THEM,
 } from "./HuntsCopy";
 import { HUNT_RUN_HISTORY_PAGE_SIZE, getHuntRunWindow } from "./HuntsModel";
+import { HUNT_RUN_REFUSED } from "../RefusedTelemetry/RefusedTelemetryCopy";
+import { isPeriodRefused } from "../RefusedTelemetry/RefusedTelemetryModel";
+import useProjectRefusedTelemetry from "../RefusedTelemetry/useProjectRefusedTelemetry";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import RelativeTime from "../../EpisodeView/RelativeTime";
 import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -123,22 +127,55 @@ const RunCell: FunctionComponent<{ run: SecurityHuntRun }> = (props: {
 };
 
 /*
+ * Under a run that searched a window in which an ingestion budget or rate
+ * refused some of the telemetry Security Events reads (#10431): what it
+ * found - or that it found nothing - is not all there was.
+ */
+const RefusedNote: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <span
+      className="inline-flex items-start gap-1 text-xs font-normal text-amber-800"
+      data-testid={`${HUNTS_TEST_IDS.runRow}-refused`}
+    >
+      <Icon
+        icon={IconProp.SignalSlash}
+        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+      />
+      <span>
+        {translator.translateText(HUNT_RUN_REFUSED) || HUNT_RUN_REFUSED}
+      </span>
+    </span>
+  );
+};
+
+/*
  * The Found column: how many events the run's search found, with Show them
  * - the explorer on that run's window; that it found nothing; or, in red,
  * that it could not run, and why (its window is searched again by the next
- * run).
+ * run). Under what it found, or that it found nothing, that some of the
+ * telemetry of its window was refused, when it was.
  */
 const FoundCell: FunctionComponent<{
   run: SecurityHuntRun;
   onShowWindow: (window: SecurityHuntRunWindow) => void;
+  refusals: ReadonlyArray<RefusedTelemetry>;
 }> = (props: {
   run: SecurityHuntRun;
   onShowWindow: (window: SecurityHuntRunWindow) => void;
+  refusals: ReadonlyArray<RefusedTelemetry>;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const run: SecurityHuntRun = props.run;
   const result: SecurityHuntRunResult = getSecurityHuntRunResult(run);
   const window: SecurityHuntRunWindow | null = getHuntRunWindow(run);
+  const isRefused: boolean = isPeriodRefused({
+    refusals: props.refusals,
+    from: window?.startTime || null,
+    to: window?.endTime || null,
+    now: OneUptimeDate.getCurrentDate(),
+  });
 
   if (result === SecurityHuntRunResult.Failed) {
     const error: string =
@@ -163,40 +200,46 @@ const FoundCell: FunctionComponent<{
 
   if (result === SecurityHuntRunResult.NothingFound) {
     return (
-      <span
-        className="text-sm font-normal text-gray-500"
-        data-state={result}
-        data-testid={`${HUNTS_TEST_IDS.runRow}-found`}
-      >
-        {translator.translateText(RUN_NOTHING_FOUND) || RUN_NOTHING_FOUND}
-      </span>
+      <div className="grid min-w-0 grid-cols-1 gap-0.5">
+        <span
+          className="text-sm font-normal text-gray-500"
+          data-state={result}
+          data-testid={`${HUNTS_TEST_IDS.runRow}-found`}
+        >
+          {translator.translateText(RUN_NOTHING_FOUND) || RUN_NOTHING_FOUND}
+        </span>
+        {isRefused ? <RefusedNote /> : <></>}
+      </div>
     );
   }
 
   return (
-    <span
-      className="flex flex-wrap items-center gap-x-3 gap-y-0.5"
-      data-state={result}
-      data-testid={`${HUNTS_TEST_IDS.runRow}-found`}
-    >
-      <span className="text-sm font-medium tabular-nums text-gray-900">
-        {translator.translatePlural(FOUND_EVENT_COUNT, run.eventCount || 0)}
+    <div className="grid min-w-0 grid-cols-1 gap-0.5">
+      <span
+        className="flex flex-wrap items-center gap-x-3 gap-y-0.5"
+        data-state={result}
+        data-testid={`${HUNTS_TEST_IDS.runRow}-found`}
+      >
+        <span className="text-sm font-medium tabular-nums text-gray-900">
+          {translator.translatePlural(FOUND_EVENT_COUNT, run.eventCount || 0)}
+        </span>
+        {window ? (
+          <button
+            type="button"
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            data-testid={HUNTS_TEST_IDS.runShowThem}
+            onClick={() => {
+              props.onShowWindow(window);
+            }}
+          >
+            {translator.translateText(SHOW_THEM) || SHOW_THEM}
+          </button>
+        ) : (
+          <></>
+        )}
       </span>
-      {window ? (
-        <button
-          type="button"
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          data-testid={HUNTS_TEST_IDS.runShowThem}
-          onClick={() => {
-            props.onShowWindow(window);
-          }}
-        >
-          {translator.translateText(SHOW_THEM) || SHOW_THEM}
-        </button>
-      ) : (
-        <></>
-      )}
-    </span>
+      {isRefused ? <RefusedNote /> : <></>}
+    </div>
   );
 };
 
@@ -221,6 +264,8 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
+  // What a budget or a rate refused of what the hunt's events come from (#10431).
+  const refusals: Array<RefusedTelemetry> = useProjectRefusedTelemetry();
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -299,7 +344,13 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
       wrapMaxWidthClassName: "max-w-[18rem]",
       contentClassName: "min-w-[8rem]",
       getElement: (run: SecurityHuntRun): ReactElement => {
-        return <FoundCell run={run} onShowWindow={props.onShowWindow} />;
+        return (
+          <FoundCell
+            run={run}
+            onShowWindow={props.onShowWindow}
+            refusals={refusals}
+          />
+        );
       },
     },
   ];

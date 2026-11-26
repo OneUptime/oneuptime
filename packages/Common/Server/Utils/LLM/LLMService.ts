@@ -1285,6 +1285,8 @@ export default class LLMService {
       useNodeHttpAdapter: true,
       httpAgent: pinnedAgents.httpAgent,
       httpsAgent: pinnedAgents.httpsAgent,
+      // The agents go through the outbound proxy themselves.
+      disableProxy: true,
       /*
        * The URL the guard checked, whose host name is the one the agents
        * dial (and an outbound proxy's, which they look up as usual).

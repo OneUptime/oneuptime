@@ -7,7 +7,9 @@ Sécurité des données note neuf référentiels d'après ce que ses analyses on
 - [Comment un référentiel est noté](#comment-un-référentiel-est-noté): Exigences satisfaites, en échec et non évaluées.
 - [Sur la page d'une ressource](#sur-la-page-dune-ressource): La conformité d'un cluster, d'un hôte, d'une base de données, d'un service ou d'une ressource cloud, et ce qui y est désactivé.
 - [Les exigences et leurs contrôles](#les-exigences-et-leurs-contrôles): Chaque exigence, et les contrôles qui en sont la preuve.
-- [Registre des traitements](#registre-des-traitements): L'article 30 du RGPD, rédigé à partir de vos magasins de données.
+- [Registre des traitements](#registre-des-traitements): L'article 30 du RGPD, rédigé à partir de vos magasins de données, avec les brouillons de OneUptime AI à confirmer.
+- [Analyses d'impact](#analyses-dimpact): Une analyse d'impact relative à la protection des données pour chaque magasin de données qui en a besoin.
+- [Preuves d'audit](#preuves-daudit): Ce qu'un auditeur lit sous chaque exigence, exporté avec votre registre et l'historique des problèmes.
 :::
 
 ## Les référentiels
@@ -177,7 +179,7 @@ Les Membres de la sécurité, Administrateurs de la sécurité, Administrateurs 
 
 ## Registre des traitements
 
-L'article 30 du RGPD vous demande de tenir un registre de vos activités de traitement. Sécurité des données rédige la partie qui porte sur l'endroit où sont conservées les données personnelles : une ligne pour chaque magasin de données qui contient des données personnelles.
+L'article 30 du RGPD vous demande de tenir un registre de vos activités de traitement. Sécurité des données rédige la partie qui porte sur l'endroit où sont conservées les données personnelles : une ligne pour chaque magasin de données qui contient des données personnelles. C'est la carte **Registre des traitements** à la fin de **Sécurité des données → Conformité**, avec **Exporter en CSV** et **Exporter en JSON**.
 
 | Colonne | D'où elle vient |
 | --- | --- |
@@ -185,11 +187,71 @@ L'article 30 du RGPD vous demande de tenir un registre de vos activités de trai
 | Environnement | Les étiquettes ou le nom du magasin de données, ou ce que vous avez réglé |
 | Sensibilité, catégories et types de données | Ce que les analyses ont trouvé, ou la sensibilité que vous avez réglée |
 | Propriétaires | Les propriétaires du magasin de données : des personnes et les membres de ses équipes |
-| Finalité | Ce que vous écrivez dans la **Finalité** du magasin de données : pourquoi il contient des données personnelles |
-| Conservation | Ce que vous écrivez dans la **Conservation** du magasin de données : combien de temps les données y sont conservées |
+| Finalité | Ce que vous écrivez ou confirmez dans la **Finalité** du magasin de données : pourquoi il contient des données personnelles. OneUptime la renseigne pour les magasins de données qu'il conserve pour votre sécurité |
+| Conservation | Ce que vous écrivez ou confirmez dans la **Conservation** du magasin de données : combien de temps les données y sont conservées. OneUptime la renseigne pour les magasins de données qu'il conserve pour votre sécurité, et pour la télémétrie d'un service à partir de la conservation de la télémétrie de votre projet |
+| Qui peut lire | Qui peut lire un magasin de données que OneUptime conserve pour votre sécurité |
 | Référentiels | Les référentiels que ses types de données font entrer dans le périmètre |
+| Déclaré par | OneUptime, pour les magasins de données qu'il conserve pour votre sécurité |
+| Base légale | Ce que vous écrivez ou confirmez : la base légale du magasin de données au titre de l'article 6 du RGPD, parmi le consentement, le contrat, l'obligation légale, les intérêts vitaux, la mission d'intérêt public et les intérêts légitimes. Les intérêts légitimes pour les magasins de données que OneUptime conserve pour votre sécurité |
+| Personnes concernées | Ce que vous écrivez ou confirmez : les personnes sur lesquelles portent les données du magasin, par exemple des clients, des utilisateurs, des employés ou des patients |
+| Destinataires | Déduits des flux de données du magasin : les hôtes extérieurs et les fournisseurs d'IA auxquels ses données sont envoyées, et les magasins de données qui en détiennent une copie |
+| Transferts | Déduits de la région du magasin de données, des régions vers lesquelles son cloud le copie et des régions de ses copies, comparées aux pays où se trouvent les personnes concernées : chaque transfert hors de ces pays, ou la raison pour laquelle il n'est pas connu |
+| Analyse d'impact | Si le magasin de données a besoin d'une analyse d'impact relative à la protection des données, et où elle en est : non requise, requise, rédigée ou modifiée |
+| En attente de revue | Les champs dont le brouillon attend une personne. Un brouillon n'est jamais dans le registre, ni dans ses exports, tant que personne ne l'a confirmé |
 
-Remplissez **Finalité** et **Conservation** dans les **Paramètres** de chaque magasin de données : ce sont les deux choses qu'aucune analyse ne peut savoir. L'API de Sécurité des données fournit aussi le registre et les scores, à `/data-security/record-of-processing`, `/data-security/compliance` et, pour une seule ressource, `/data-security/resource-compliance`, à quiconque peut lire les magasins de données (voir [Intégrations de Sécurité des données](/docs/data-security/integrations#api-terraform-et-mcp)).
+Pour un magasin de données que Sécurité des données a trouvé, aucune analyse ne peut savoir pourquoi il contient des données personnelles, combien de temps, sur quelle base ni sur qui : écrivez-le dans ses **Paramètres**, ou confirmez les brouillons de OneUptime AI. L'API de Sécurité des données fournit aussi le registre et les scores, à `/data-security/record-of-processing`, `/data-security/compliance` et, pour une seule ressource, `/data-security/resource-compliance`, à quiconque peut lire les magasins de données (voir [Intégrations de Sécurité des données](/docs/data-security/integrations#api-terraform-et-mcp)).
+
+### Les brouillons de OneUptime AI
+
+OneUptime AI rédige la **Finalité**, la **Conservation**, la **Base légale** et les **Personnes concernées** d'un magasin de données à partir de ce que Sécurité des données en sait : les types de données trouvés, son nom, ses balises et sa description, les services qui l'utilisent et ce que leurs équipes ont écrit de leur rôle, où vont ses données et où elles sont conservées. Il ne voit jamais une valeur de vos données (voir [OneUptime AI dans Sécurité des données](/docs/data-security/ai)).
+
+- **Un brouillon porte la mention Brouillon** et dit pourquoi, avec les faits sur lesquels il repose à portée de clic. Il n'entre dans le registre que lorsque vous appuyez sur **Confirmer**, ou que vous le reformulez avec vos propres mots via **Modifier**.
+- **Vos mots ne sont jamais remplacés par un brouillon.** Un champ que vous avez écrit n'est plus jamais rédigé. Un brouillon que vous avez confirmé n'est rédigé à nouveau que si un fait sur lequel il repose change, et il est alors proposé, pas appliqué : marqué **Modification proposée**, avec ce qui a changé, **Utiliser le nouveau brouillon** et **Conserver la valeur actuelle**.
+- **Examiner les brouillons**, sur la carte **Registre des traitements**, parcourt un par un les magasins de données dont les brouillons vous attendent. Les **Paramètres** d'un magasin de données ont les mêmes champs, avec **Rédiger avec OneUptime AI** pour ceux qui sont vides.
+- **De lui-même**, OneUptime AI rédige une fois par jour les champs vides des magasins de données les plus risqués, tant que **Travailler sur les nouveaux problèmes** est activé dans **Sécurité des données → IA**, comme vos règles IA le permettent.
+
+La conservation de la télémétrie d'un service, les destinataires et les transferts sont déduits par du code simple, jamais rédigés. Les brouillons sont un point de départ, pas un conseil juridique : faites-les vérifier par la personne responsable de votre conformité.
+
+### Magasins de données que OneUptime conserve pour votre sécurité
+
+Quatre magasins de données contiennent des adresses IP et des noms d'utilisateur à dessein, pour protéger votre réseau : **Événements de sécurité**, **Flux réseau**, **Coffre d'adresses de sécurité** et **Coffre d'utilisateurs de sécurité**. Le registre liste chacun de ceux que votre projet possède. OneUptime les déclare au lieu de les trouver : ce qu'ils contiennent est connu par conception, donc aucune analyse ne les lit, aucun contrôle ne s'y applique, et le fait qu'ils contiennent ces adresses et ces noms n'est jamais un problème, puisque c'est leur raison d'être. Ils portent la mention **Déclaré par OneUptime** dans **Magasins de données**, et la **Vue d'ensemble** et les scores des référentiels les laissent de côté.
+
+| Magasin de données | Ce qu'il contient | Conservation | Qui peut le lire |
+| --- | --- | --- | --- |
+| Événements de sécurité | Les adresses IP, noms d'utilisateur et adresses e-mail de qui a agi et de ce qui a été touché | La [conservation de la télémétrie](/docs/telemetry/data-retention) de votre projet, lue chaque fois que le registre l'est, si bien qu'un changement s'applique aussitôt | Propriétaires du projet, Administrateurs du projet, Administrateurs de la sécurité, Membres de la sécurité, Lecteurs de la sécurité et quiconque a Read Security Event |
+| Flux réseau | Les adresses IP de qui a communiqué avec qui | 30 jours après l'arrivée d'un flux | Quiconque peut lire les appareils réseau |
+| Coffre d'adresses de sécurité | L'adresse IP derrière chaque jeton qu'une règle d'adresse IP qui hache a laissé dans les journaux et les traces que lit [Événements de sécurité](/docs/telemetry/security-events) | 30 jours après la dernière apparition d'une adresse | Seules les analyses d'Événements de sécurité, au sein de OneUptime : aucune personne, page, exportation, API ni aucun outil d'IA |
+| Coffre d'utilisateurs de sécurité | L'utilisateur derrière chaque jeton qu'une règle qui hache a laissé là où [Événements de sécurité](/docs/telemetry/security-events) lit un utilisateur dans les journaux et les traces | 30 jours après la dernière apparition d'un utilisateur | Seules les analyses d'Événements de sécurité, au sein de OneUptime : aucune personne, page, exportation, API ni aucun outil d'IA |
+
+La finalité de chacun est « Sécurité des réseaux et de l'information (considérant 49 du RGPD) ». Pour écrire votre propre finalité ou durée de conservation, utilisez **Modifier le registre** dans les **Paramètres** du magasin de données : un champ laissé vide garde celle de OneUptime.
+
+Un magasin de données est listé tant que votre projet conserve ses données : le coffre d'adresses, tant qu'une règle d'adresse IP activée hache les journaux ou les traces que lit Événements de sécurité, le coffre d'utilisateurs, tant qu'une règle activée de tout autre modèle le fait, et chacun pendant 31 jours ensuite (voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). Une fois ses données disparues, le magasin de données est archivé, et il revient avec votre finalité et votre durée de conservation si les données reviennent.
+
+## Analyses d'impact
+
+L'article 35 du RGPD exige une analyse d'impact relative à la protection des données avant un traitement susceptible d'engendrer un risque élevé. Sécurité des données indique quels magasins de données en ont besoin : un magasin de données qui contient des catégories particulières de données, comme des données de santé, des données sur de nombreuses personnes (environ 100 000 enregistrements ou plus), ou des données qui quittent les pays des personnes concernées.
+
+La page **Analyse d'impact** d'un magasin de données, dans son menu sous **Paramètres**, indique pourquoi le magasin en a besoin, ou qu'il n'en a pas besoin. **Rédiger l'analyse d'impact** demande à OneUptime AI les quatre parties qu'exige l'article 35(7), à partir du registre du magasin, de ses problèmes ouverts et de ceux corrigés récemment, de son degré d'exposition, du nombre de ceux qui peuvent y accéder et de son chiffrement :
+
+| Partie | Article |
+| --- | --- |
+| Le traitement et ses finalités | Art. 35(7)(a) |
+| Nécessité et proportionnalité | Art. 35(7)(b) |
+| Risques pour les personnes concernées | Art. 35(7)(c) |
+| Mesures pour faire face aux risques | Art. 35(7)(d) |
+
+Chaque partie indique qui l'a écrite et quand, avec les faits sur lesquels repose une partie rédigée. **Modifier** fait d'une partie la vôtre, et elle n'est plus jamais rédigée ; **Rédiger à nouveau** ne rédige que les parties que personne n'a modifiées. Une partie écrite sur des faits qui ont changé depuis le signale. **Exporter en PDF** et **Exporter en Markdown** téléchargent l'analyse d'impact.
+
+## Preuves d'audit
+
+**Preuves d'audit**, sur le référentiel que vous choisissez dans **Sécurité des données → Conformité**, montre ce qu'un auditeur lit sous chacune de ses exigences, sur les 30, 90, 180 ou 365 derniers jours :
+
+- les magasins de données de son périmètre, et l'état de ses contrôles ;
+- les problèmes de ses contrôles ouverts et corrigés sur la période, et la rapidité de leur correction ;
+- les risques acceptés à son titre, avec leurs motifs et leur expiration ;
+- les ressources qui l'ont désactivé, et pourquoi.
+
+**Rédiger les preuves** demande à OneUptime AI un paragraphe sous chaque exigence, fidèle à ces faits ; **Modifier** fait d'un paragraphe le vôtre, et il n'est plus jamais rédigé. Une exigence sans paragraphe montre ses preuves telles quelles. **Exporter en PDF** et **Exporter en Markdown** téléchargent les preuves avec deux annexes : le registre des traitements des magasins de données du périmètre, et l'historique des problèmes qu'elles citent.
 
 ## Prochaines étapes
 

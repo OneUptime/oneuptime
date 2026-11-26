@@ -33,11 +33,14 @@ import {
  * HOW MUCH A READ CAN SEND. @clickhouse/client sends query parameters in
  * the request URL, and ClickHouse takes at most 128 KiB per parameter
  * (http_max_field_value_size) and 1 MiB for the whole URL
- * (http_max_uri_size), both counted URL-encoded. A list's values are split
- * over parameters of at most MAX_WATCHLIST_BYTES_PER_PARAMETER, and a read
- * is checked against MAX_DETECTION_READ_PARAMETER_BYTES before it is sent
- * (assertDetectionReadFits), so a rule that reads more than one request
- * carries fails with what to do, never with ClickHouse's "URI too long".
+ * (http_max_uri_size), both counted URL-encoded - and ClickHouse 26.7 at
+ * most 1,000 fields in all (http_max_fields; 24.8 took a million). A list's
+ * values are split over parameters of at most
+ * MAX_WATCHLIST_BYTES_PER_PARAMETER, and a read is checked against
+ * MAX_DETECTION_READ_PARAMETER_BYTES and MAX_DETECTION_READ_PARAMETERS
+ * before it is sent (assertDetectionReadFits), so a rule that reads more
+ * than one request carries fails with what to do, never with ClickHouse's
+ * "URI too long" or "Too many form fields".
  */
 
 // The lambda parameter for an array column's elements: named so no column can shadow it.
@@ -51,6 +54,17 @@ export const MAX_WATCHLIST_BYTES_PER_PARAMETER: number = 100 * 1024;
  * 1 MiB, less room for the query id, the settings and the database name.
  */
 export const MAX_DETECTION_READ_PARAMETER_BYTES: number = 900 * 1024;
+
+/*
+ * The most parameters a detection read may send. Each is a field of the
+ * request's URL, beside the query id, the database and the read's
+ * settings, and ClickHouse 26.7 refuses a request of more than 1,000
+ * fields (http_max_fields, "Too many form fields"). A watchlist's values go
+ * together, a parameter per MAX_WATCHLIST_BYTES_PER_PARAMETER; it is a rule
+ * that lists very many values of its own, each a parameter
+ * (SigmaClickhouseCompiler), that could pass it (#10520).
+ */
+export const MAX_DETECTION_READ_PARAMETERS: number = 900;
 
 /*
  * A string as @clickhouse/client writes it into a parameter: tab, line
@@ -221,10 +235,23 @@ function formatKilobytes(bytes: number): string {
 
 /*
  * Refuse a detection read too large to send in one request: a rule that
- * reads long watchlists, more than once in a correlation. The message is the
- * rule's error, so it says what to do.
+ * reads long watchlists, more than once in a correlation, or that lists
+ * more values of its own than one request has fields for. The message is
+ * the rule's error, so it says what to do.
  */
 export function assertDetectionReadFits(statement: Statement): void {
+  const parameters: number = Object.keys(statement.query_params).length;
+
+  if (parameters > MAX_DETECTION_READ_PARAMETERS) {
+    throw new BadDataException(
+      `This rule compares more values than one read can send to the database: about ${parameters.toLocaleString(
+        "en-US",
+      )}, where ${MAX_DETECTION_READ_PARAMETERS.toLocaleString(
+        "en-US",
+      )} fit. Put a long list of values in a watchlist and match it with |expand: a read sends a watchlist's values together.`,
+    );
+  }
+
   const bytes: number = getStatementParameterUrlBytes(statement);
 
   if (bytes > MAX_DETECTION_READ_PARAMETER_BYTES) {

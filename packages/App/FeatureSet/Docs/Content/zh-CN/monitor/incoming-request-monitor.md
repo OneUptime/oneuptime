@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. 打开条件并展开 **设置**。
-2. 打开 **Group incidents and alerts by a payload field**。
-3. 填写 **Open a separate incident for each…**。如果希望每个事件自动解决，还要填写 **Auto-resolve each incident when…** 下的字段和值（见下文）。然后保存监视器。
+2. 打开 **按负载字段对事件和警报分组**。
+3. 填写 **为以下每个值分别打开一个事件…**。如果希望每个事件自动解决，还要填写 **在以下情况下自动解决每个事件…** 下的字段和值（见下文）。然后保存监视器。
 :::
 
 | 字段 | 示例 | 作用 |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | 用其不同的值把事件分开的路径 |
-| Field that signals recovery | `requestBody.alerts[*].status` | 用于判断某条警报已恢复所检查的路径 |
-| Value that means recovered | `resolved` | 表示已恢复的确切值 |
-| Max incidents per request | `100`（默认） | 安全上限，避免取值很多的字段打开无数个事件 |
+| 为以下每个值分别打开一个事件… | `requestBody.alerts[*].labels.alertname` | 用其不同的值把事件分开的路径 |
+| 表示恢复的字段 | `requestBody.alerts[*].status` | 用于判断某条警报已恢复所检查的路径 |
+| 表示已恢复的值 | `resolved` | 表示已恢复的确切值 |
+| 每个请求的最大事件数 | `100`（默认） | 安全上限，避免取值很多的字段打开无数个事件 |
 
 分组只属于开启它的那个条件。监视器的其他条件不分组：当其中一个与请求匹配时，它会像在没有任何条件分组的监视器上一样，打开自己的事件和警报。
 
@@ -383,16 +383,20 @@ flowchart TB
 
 一个 Webhook 只描述该负载中的内容，因此 OneUptime 绝不会因为某个键不再出现就解决它的事件。只有当负载明确表示该键已恢复时，事件才会被解决。以下两点必须同时成立：
 
-1. **Field that signals recovery** 和 **Value that means recovered** 已设置并与负载匹配。比较是精确且区分大小写的：`Resolved` 不匹配 `resolved`。
+1. **表示恢复的字段** 和 **表示已恢复的值** 已设置并与负载匹配。比较是精确且区分大小写的：`Resolved` 不匹配 `resolved`。
 2. 条件的事件打开了 **自动解决事件**，该选项位于事件表单的 **更多字段** 下。没有它，匹配的恢复事件会被忽略，事件保持打开。（警报和 **自动解决警报** 同理。）默认的离线条件一开始就打开了它；你自己添加到条件中的事件一开始是关闭的。
 
-**Max incidents per request** 限制的是提取，而不仅是创建。超出上限的键对恢复判断同样不可见，因此在一个不同键数量超过上限的负载中，超出上限部分报告 `resolved` 的警报不会关闭它的事件。
+你自己添加到条件中的警报，一开始也关闭了 **自动解决警报**，因此在打开它之前，恢复会让警报保持打开。**在以下情况下自动解决每个事件…** 会显示恢复会解决该条件的哪些事件和警报，并列出它会保持打开的每一项，附带一个打开相应开关的按钮。监视器 **概览** 上的 **监视器摘要** 卡片会列出恢复保持打开的每个事件和警报，以及原因。
+
+恢复只会解决读取它的那个条件的事件和警报，也就是 **表示恢复的字段** 和 **表示已恢复的值** 与负载匹配的条件。同一个值在其他条件下的事件和警报会保持打开，而将这些字段留空的条件，其事件和警报需要手动解决。
+
+**每个请求的最大事件数** 限制的是提取，而不仅是创建。超出上限的键对恢复判断同样不可见，因此在一个不同键数量超过上限的负载中，超出上限部分报告 `resolved` 的警报不会关闭它的事件。
 
 > [!NOTE]
-> 当一个监视器收到请求的速度快于 OneUptime 评估它们的速度时，OneUptime 会评估最新的请求并跳过中间的请求，因此一波突发的 Webhook 可能让某条触发中或已解决的警报得不到评估。在自托管服务器上，在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，即可单独评估每一个请求。
+> 某个条件按负载字段分组的监视器，会按到达顺序逐个评估它收到的每一个请求，因此一波突发的警报和恢复会为每个值打开并解决各自的事件和警报。最多有 1,000 个请求（或 16 MB）可以等待评估；超出后，等待中最早的请求会被跳过， **监视器摘要** 卡片会显示跳过了多少个。它还会说明达到了哪个上限；在自托管安装中，两个上限都可以更改，参见 [自托管说明](#自托管说明)。没有分组的监视器只评估等待中的最新请求。
 
 > [!NOTE]
-> 如果 **Field that signals recovery** 包含 `[*]`，而 **Open a separate incident for each…** 不包含，那么只有当该数组的每个元素都表示已恢复时，请求才算已恢复。使用 `requestBody.alerts[*].status` 和 `resolved` 时，按 `requestBody.groupLabels.alertname` 分组的事件会在请求的所有警报都已解决时解决，只要还有一个仍在触发就保持打开。
+> 如果 **表示恢复的字段** 包含 `[*]`，而 **为以下每个值分别打开一个事件…** 不包含，那么只有当该数组的每个元素都表示已恢复时，请求才算已恢复。使用 `requestBody.alerts[*].status` 和 `resolved` 时，按 `requestBody.groupLabels.alertname` 分组的事件会在请求的所有警报都已解决时解决，只要还有一个仍在触发就保持打开。
 
 > [!WARNING]
 > 不带 `[*]` 的恢复路径会针对整个负载求值，因此负载层级的 `status: resolved` 会解决该负载中的每一个键，包括自身状态仍在触发中的警报。
@@ -517,6 +521,18 @@ Event Grid 会验证这样的端点：它把验证码原样回传，或者它的
 :::details 发送方收到 500
 请求声明了 `Content-Type: application/json`，但请求体不是 JSON 对象或数组。请发送有效的 JSON，或使用其他内容类型。
 :::
+
+## 自托管说明
+
+按负载字段分组的监视器会把每个请求保存在 Valkey 中，直到轮到它为止。在自托管安装中，有三项设置对此加以限制。使用 Docker Compose 时，在 `config.env` 中设置；使用 Helm 时，在 chart 值的 `incomingRequests` 下设置，它会为 app 和 worker 的 Pod 提供相同的值：
+
+| 设置 | Helm 值 | 默认值 | 范围 | 限制的内容 |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` 到 `100000` | 一个监视器保留的等待中请求数。超出后，等待中最早的请求会被跳过。 |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` 到 `512` | 一个监视器保留的等待中请求的 MB 数。超出后，等待中最早的请求会被跳过。 |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` 到 `1000` | 一个作业评估的请求数，之后监视器的作业会重新排队，排在所有已在等待的作业之后。 |
+
+如果发送方的突发更猛烈，例如核心交换机宕机后一次触发数千条警报，就调高前两项；如果 Valkey 较小，就调低第二项。请求被跳过时， **监视器摘要** 卡片会说明达到了哪个上限。不是其范围内整数的值不会被使用：改用默认值，应用会记录一条注明该设置名称的警告日志。
 
 ## 后续步骤
 

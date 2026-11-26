@@ -81,6 +81,7 @@ import {
   ResourceResponse,
 } from "./Botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
+import BotFrameworkRouting from "./BotFrameworkRouting";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
 import MicrosoftTeamsCutChatIds from "./MicrosoftTeamsCutChatIds";
@@ -92,6 +93,8 @@ import MicrosoftTeamsAuthAction, {
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
 import MicrosoftTeamsRemediationActions from "./Actions/Remediation";
 import MicrosoftTeamsPublicNoteApprovalActions from "./Actions/PublicNoteApproval";
+import MicrosoftTeamsSecurityPlaybookApprovalActions from "./Actions/SecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApproval from "../WorkspaceSecurityPlaybookApproval";
 import {
   MicrosoftTeamsActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -483,8 +486,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
     logger.debug(`Tenant ID: ${MicrosoftTeamsAppTenantId}`);
 
+    /*
+     * Each of the SDK's requests - the token check of every incoming
+     * activity, the bot's own tokens, its replies - on the outbound proxy's
+     * route, as every other request of the server (issue #10763).
+     */
     const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
-      new ConfigurationBotFrameworkAuthentication(
+      BotFrameworkRouting.createAuthentication(
         this.getBotAuthenticationOptions(),
       );
     const adapter: CloudAdapter = new CloudAdapter(botFrameworkAuthentication);
@@ -5937,6 +5945,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * A playbook step waiting for approval, on its card in a channel,
+       * a chat or an approver's personal chat: Approve, Approve Some… and
+       * the card it answers with, and Reject.
+       */
+      if (
+        MicrosoftTeamsSecurityPlaybookApprovalActions.isSecurityPlaybookApprovalAction(
+          actionType,
+        )
+      ) {
+        await MicrosoftTeamsSecurityPlaybookApprovalActions.handle({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
+
+      /*
        * A fix OneUptime AI proposes for approval: Review and approve, its
        * card's Approve and run, and Dismiss.
        */
@@ -6600,9 +6629,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       | undefined;
     const from: JSONObject =
       (data.activity["from"] as JSONObject | undefined) || {};
+    /*
+     * The project a card was sent for (MicrosoftTeamsCardProject), or the
+     * one a playbook step's approval value was signed for - a card posted
+     * to a channel or chat of no one project names it that way
+     * (WorkspaceSecurityPlaybookApproval).
+     */
     const drawnForProjectId: string | undefined =
       data.chosenProjectId?.toString() ||
-      MicrosoftTeamsCardProject.readDrawnForProjectId(data.activity["value"]);
+      MicrosoftTeamsCardProject.readDrawnForProjectId(data.activity["value"]) ||
+      WorkspaceSecurityPlaybookApproval.readValue(
+        data.actionValue,
+      )?.projectId.toString();
 
     return {
       recordIds: data.actionValue ? [data.actionValue] : [],
@@ -7651,9 +7689,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * The AAD group id for a team, which is what Graph calls the team id and what
    * every notification rule stores. Teams normally puts it on the activity as
-   * channelData.team.aadGroupId; when it does not, TeamsInfo.getTeamDetails
-   * fetches it. Returns undefined rather than throwing — a missing group id
-   * degrades the record, it does not invalidate the install.
+   * channelData.team.aadGroupId; when it does not, the team's details from
+   * the Bot Connector have it (BotFrameworkRouting.getTeamDetails). Returns
+   * undefined rather than throwing — a missing group id degrades the
+   * record, it does not invalidate the install.
    */
   public static async resolveGraphTeamIdFromBotActivity(data: {
     team: JSONObject | undefined;
@@ -7667,7 +7706,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     try {
-      const teamDetails: TeamDetails = await TeamsInfo.getTeamDetails(
+      // On the bot's HttpClient: TeamsInfo's own client takes no route.
+      const teamDetails: TeamDetails = await BotFrameworkRouting.getTeamDetails(
         data.turnContext,
       );
 

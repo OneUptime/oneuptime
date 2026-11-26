@@ -28,6 +28,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
@@ -77,7 +78,12 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  *   - What Data Security Reads, and When an Issue Opens: one switch each,
  *     saving the moment it is flipped (ModelSwitchRow); under Raise alerts
  *     and Declare incidents, while each is on, the severity of what it
- *     opens.
+ *     opens. When an Issue Opens ends with the way to Data Security → AI,
+ *     where what OneUptime AI does on a new issue is set.
+ *   - Find names and street addresses: the small model that runs inside
+ *     the scanner (#10373). It is not OneUptime AI and is set here, beside
+ *     what scans read, not on the AI page; under it, while it is on, Also
+ *     in telemetry, for the hourly telemetry scan.
  *   - Cloud Accounts: what a scan may read in a cloud account is not set
  *     here but on the account's cloud connection - Off, Configuration only,
  *     or Configuration and content samples - with a way to the connections.
@@ -333,6 +339,17 @@ const READ_SWITCHES: Array<ScanningSwitch> = [
     dataTestId: "data-security-scan-telemetry",
   },
   {
+    column: "isModelScanEnabled",
+    title: translationKey("Find names and street addresses"),
+    description: translationKey(
+      "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.",
+    ),
+    descriptionWhenOff: translationKey(
+      "Free text is not read for names and street addresses. Fields named for them are still found.",
+    ),
+    dataTestId: "data-security-find-names-and-addresses",
+  },
+  {
     column: "keepMaskedSamples",
     title: translationKey("Keep masked samples"),
     description: translationKey(
@@ -344,6 +361,22 @@ const READ_SWITCHES: Array<ScanningSwitch> = [
     dataTestId: "data-security-keep-masked-samples",
   },
 ];
+
+/*
+ * Under Find names and street addresses, while it is on: the hourly
+ * telemetry scan reads its bodies with the model too. Off until a project
+ * turns it on, since every hour of every service would share the model's
+ * minute of time; with the switch above off, it does nothing, as the
+ * server reads both.
+ */
+const TELEMETRY_MODEL_SWITCH: ScanningSwitch = {
+  column: "isTelemetryModelScanEnabled",
+  title: translationKey("Also in telemetry"),
+  description: translationKey(
+    "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.",
+  ),
+  dataTestId: "data-security-find-names-and-addresses-in-telemetry",
+};
 
 const OPEN_CASES_SWITCH: ScanningSwitch = {
   column: "openCasesForCriticalIssues",
@@ -381,6 +414,21 @@ const NOTIFY_OWNERS_SWITCH: ScanningSwitch = {
   dataTestId: "data-security-notify-owners",
 };
 
+/*
+ * What OneUptime AI does when an issue opens (#10364) is set on Data
+ * Security → AI, beside what it proposes and did: this row says so and
+ * leads there.
+ */
+const AI_ROW: { title: string; description: string; link: string } = {
+  title: translationKey("OneUptime AI"),
+  description: translationKey(
+    "Whether OneUptime AI works on new issues, and what it may change without asking, is set on Data Security's AI page.",
+  ),
+  link: translationKey("Open AI settings"),
+};
+
+export const SCANNING_AI_ROW_TEST_ID: string = "data-security-scanning-ai";
+
 // The three levels a cloud connection grants, as its form names them.
 const CLOUD_LEVELS: Array<{ title: string; description: string }> = [
   {
@@ -403,6 +451,21 @@ const CLOUD_LEVELS: Array<{ title: string; description: string }> = [
   },
 ];
 
+// A column's stored value, or its default while the row never had it set.
+const readSwitchValue: (
+  setting: DataSecuritySetting,
+  column: ModelSwitchColumn<DataSecuritySetting>,
+) => boolean = (
+  setting: DataSecuritySetting,
+  column: ModelSwitchColumn<DataSecuritySetting>,
+): boolean => {
+  const stored: unknown = setting[column];
+
+  return typeof stored === "boolean"
+    ? stored
+    : getColumnBooleanDefault(new DataSecuritySetting(), column);
+};
+
 interface SwitchRowProps {
   definition: ScanningSwitch;
   setting: DataSecuritySetting;
@@ -413,12 +476,11 @@ const SwitchRow: FunctionComponent<SwitchRowProps> = (
   props: SwitchRowProps,
 ): ReactElement => {
   const definition: ScanningSwitch = props.definition;
-  const stored: unknown = props.setting[definition.column];
   // A column the row never had set reads as its default.
-  const initialValue: boolean =
-    typeof stored === "boolean"
-      ? stored
-      : getColumnBooleanDefault(new DataSecuritySetting(), definition.column);
+  const initialValue: boolean = readSwitchValue(
+    props.setting,
+    definition.column,
+  );
 
   return (
     <div className="px-5 py-4 md:px-6">
@@ -437,6 +499,45 @@ const SwitchRow: FunctionComponent<SwitchRowProps> = (
         dataTestId={definition.dataTestId}
       />
     </div>
+  );
+};
+
+/*
+ * Find names and street addresses, with Also in telemetry under it while it
+ * is on. The switch under it is drawn again each time the one above is
+ * turned on, from where it was last left here - not from the row the page
+ * first read - so it never shows a state the record is not in.
+ */
+const ModelScanSwitchRow: FunctionComponent<{
+  definition: ScanningSwitch;
+  setting: DataSecuritySetting;
+}> = (props: {
+  definition: ScanningSwitch;
+  setting: DataSecuritySetting;
+}): ReactElement => {
+  const [isTelemetryOn, setIsTelemetryOn] = useState<boolean>(
+    readSwitchValue(props.setting, TELEMETRY_MODEL_SWITCH.column),
+  );
+
+  return (
+    <SwitchRow
+      definition={props.definition}
+      setting={props.setting}
+      childrenWhileOn={
+        <ModelSwitchRow<DataSecuritySetting>
+          modelType={DataSecuritySetting}
+          modelId={props.setting.id!}
+          column={TELEMETRY_MODEL_SWITCH.column}
+          initialValue={isTelemetryOn}
+          title={TELEMETRY_MODEL_SWITCH.title}
+          getDescription={(): string => {
+            return TELEMETRY_MODEL_SWITCH.description;
+          }}
+          onChange={setIsTelemetryOn}
+          dataTestId={TELEMETRY_MODEL_SWITCH.dataTestId}
+        />
+      }
+    />
   );
 };
 
@@ -798,6 +899,16 @@ const DataSecurityScanning: FunctionComponent<
           data-testid={SCANNING_READS_CARD_TEST_ID}
         >
           {READ_SWITCHES.map((definition: ScanningSwitch): ReactElement => {
+            if (definition.column === "isModelScanEnabled") {
+              return (
+                <ModelScanSwitchRow
+                  key={definition.column}
+                  definition={definition}
+                  setting={setting}
+                />
+              );
+            }
+
             return (
               <SwitchRow
                 key={definition.column}
@@ -839,6 +950,25 @@ const DataSecurityScanning: FunctionComponent<
             }
           />
           <SwitchRow definition={NOTIFY_OWNERS_SWITCH} setting={setting} />
+          <div
+            className="px-5 py-4 md:px-6"
+            data-testid={SCANNING_AI_ROW_TEST_ID}
+          >
+            <div className="text-sm font-medium text-gray-900">
+              {translator.translateText(AI_ROW.title)}
+            </div>
+            <div className="mt-0.5 text-sm text-gray-500">
+              {translator.translateText(AI_ROW.description)}
+            </div>
+            <Link
+              className="mt-1 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DATA_SECURITY_AI] as Route,
+              )}
+            >
+              {translator.translateText(AI_ROW.link)}
+            </Link>
+          </div>
         </div>
       </Card>
 

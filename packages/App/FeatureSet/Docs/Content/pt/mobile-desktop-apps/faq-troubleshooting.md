@@ -34,7 +34,7 @@ Sim. Cada celular ou tablet é um dispositivo push próprio, com as suas própri
 :::details O que posso fazer no aplicativo?
 - **Home**: o que precisa de atenção no projeto: incidentes e alertas ativos, casos de segurança abertos se o seu papel permitir vê-los, monitores com problemas e eventos agrupados.
 - **Monitors**: todos os monitores, filtrados por estado, com os detalhes deles.
-- **Inbox**: incidentes e alertas, e os episódios que os agrupam. Abra um para usar **Acknowledge**, **Resolve** ou **Add Note**. Se o seu papel permitir ver os casos de segurança do projeto, **Security** lista os abertos: abra um para usar **Approve** ou **Reject** em uma etapa de playbook aguardando aprovação, assumir o caso com **Assign to me** ou usar **Close case**.
+- **Inbox**: incidentes e alertas, e os episódios que os agrupam. Abra um para usar **Acknowledge**, **Resolve** ou **Add Note**. Se o seu papel permitir ver os casos de segurança do projeto, **Security** lista os abertos: abra um para usar **Approve** ou **Reject** em uma etapa de playbook aguardando aprovação, assumir o caso com **Assign to me** ou usar **Close case**. Uma etapa que aguarda aprovação mostra o que vai fazer e as provas por trás dela, e **Undo** libera o que um playbook conteve.
 - **On-Call**: se você está de plantão e até quando, quem mais está, os acionamentos enviados a você, e **Cover for me**, que passa os seus acionamentos a um colega por um tempo.
 - **Settings**: os seus projetos e o login único, a aparência, os alertas críticos e o som de alarme, **Biometric Unlock**, o seu feed de calendário de plantão e **Sign Out**.
 

@@ -6,6 +6,7 @@ import MonitorType, {
 } from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import { LOGGED_SERIES_FIELD, LoggedSeries } from "./StoredCheckEvidence";
+import MetricFormulaEvaluator from "../Metrics/MetricFormulaEvaluator";
 import TelemetryObservation, {
   TelemetryObservationKind,
 } from "../../Types/Monitor/TelemetryObservation";
@@ -214,7 +215,9 @@ export default class MonitorLogSummaryUtil {
    * result per query and formula, and on a grouped monitor seriesBreakdown,
    * one entry per series. A grouped monitor also seeds a series for each
    * host or device that stopped reporting, with no data; those are not
-   * counted, so "3 series" is the series that reported.
+   * counted, so "3 series" is the series that reported. An ungrouped one
+   * counts the data points of what its criteria compare: a formula's, not
+   * the query it is computed from as well (getComparedResults).
    */
   private static getMetricObservation(
     logBody: JSONObject,
@@ -270,7 +273,12 @@ export default class MonitorLogSummaryUtil {
       }
     }
 
-    const dataPoints: number = this.countDataPoints(metricResult);
+    const dataPoints: number = this.countDataPoints(
+      this.getComparedResults({
+        metricResult: metricResult,
+        metricViewConfig: logBody["metricViewConfig"],
+      }),
+    );
 
     if (dataPoints > 0) {
       return {
@@ -280,6 +288,84 @@ export default class MonitorLogSummaryUtil {
     }
 
     return { kind: TelemetryObservationKind.NoMetricData, count: 0 };
+  }
+
+  /*
+   * The results of an ungrouped check that its criteria compare: each
+   * formula's, and each query's that no formula is computed from (#10063).
+   * metricResult holds the queries' results, then the formulas', and a
+   * formula's points are computed from its queries', point for point: counted
+   * on top of them, High Filesystem Usage's `host_filesystem_ratio * 100`
+   * read "20 data points" for the 10 minutes of a 10 minute window. A body
+   * whose results do not line up with its queries and formulas - written
+   * before they were stored, or trimmed - is counted whole, as before.
+   */
+  private static getComparedResults(data: {
+    metricResult: unknown;
+    metricViewConfig: unknown;
+  }): Array<unknown> {
+    if (!Array.isArray(data.metricResult)) {
+      return [];
+    }
+
+    const view: JSONObject | null =
+      data.metricViewConfig &&
+      typeof data.metricViewConfig === "object" &&
+      !Array.isArray(data.metricViewConfig)
+        ? (data.metricViewConfig as JSONObject)
+        : null;
+
+    const queryConfigs: unknown = view?.["queryConfigs"];
+    const formulaConfigs: unknown = view?.["formulaConfigs"];
+
+    if (
+      !Array.isArray(queryConfigs) ||
+      !Array.isArray(formulaConfigs) ||
+      formulaConfigs.length === 0 ||
+      data.metricResult.length !== queryConfigs.length + formulaConfigs.length
+    ) {
+      return data.metricResult;
+    }
+
+    // The queries the formulas are computed from, as the formulas name them.
+    const readByFormula: Set<string> = new Set<string>();
+
+    for (const formulaConfig of formulaConfigs) {
+      const formula: unknown = (
+        (formulaConfig as JSONObject | null)?.["metricFormulaData"] as
+          | JSONObject
+          | undefined
+      )?.["metricFormula"];
+
+      if (typeof formula !== "string") {
+        continue;
+      }
+
+      for (const variable of MetricFormulaEvaluator.getReferencedVariables(
+        formula,
+      )) {
+        readByFormula.add(variable.toLowerCase());
+      }
+    }
+
+    return data.metricResult.filter(
+      (_result: unknown, index: number): boolean => {
+        if (index >= queryConfigs.length) {
+          return true;
+        }
+
+        const alias: unknown = (
+          (queryConfigs[index] as JSONObject | null)?.["metricAliasData"] as
+            | JSONObject
+            | undefined
+        )?.["metricVariable"];
+
+        return (
+          typeof alias !== "string" ||
+          !readByFormula.has(alias.replace(/^\$/, "").toLowerCase())
+        );
+      },
+    );
   }
 
   // The data points in a list of AggregatedResults: each one's `data`.

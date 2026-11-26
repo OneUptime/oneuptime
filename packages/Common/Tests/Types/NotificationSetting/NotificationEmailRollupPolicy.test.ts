@@ -36,7 +36,7 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 70 members, split 8 / 62", () => {
+  test("the enum still has exactly 73 members, split 10 / 63", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -65,14 +65,19 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * workflow or a runbook, and of an on-call policy, schedule or incoming
      * call policy (#9700), which roll up too. 70 with being made an owner of
      * a monitor group or a Runner (#9758), which roll up with the monitors'
-     * and the runbooks' emails.
+     * and the runbooks' emails. 71 with a step of a security case that
+     * stopped holding (#10340), never rolled up: the attacker is back. 72
+     * with a security case OneUptime AI handed to people (#10352), never
+     * rolled up: a case nobody is working has to be picked up now. 73 with
+     * a custom probe a major release behind (#9977), which rolls up with the
+     * probes' other emails: it is told once, and waits well.
      */
-    expect(allEventTypes.length).toBe(70);
-    expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(8);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(62);
+    expect(allEventTypes.length).toBe(73);
+    expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(10);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(63);
   });
 
-  test("their union is exactly the enum, so a 71st member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 74th member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -98,7 +103,7 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
 });
 
 describe("NotificationEmailRollupPolicy - never rolled up", () => {
-  test("holds exactly the five time-critical on-call events, the SLA breach, a security case's response target and a public note waiting for approval, and nothing else", () => {
+  test("holds exactly the five time-critical on-call events, the SLA breach, a security case's response target, a step of one that stopped holding and one OneUptime AI handed to people, and a public note waiting for approval, and nothing else", () => {
     expect(Array.from(NEVER_ROLLED_UP_EVENT_TYPES).sort()).toEqual(
       [
         NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
@@ -108,6 +113,8 @@ describe("NotificationEmailRollupPolicy - never rolled up", () => {
         NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
         NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
         NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+        NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+        NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
         NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
       ].sort(),
     );

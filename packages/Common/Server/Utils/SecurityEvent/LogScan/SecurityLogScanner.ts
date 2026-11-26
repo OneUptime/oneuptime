@@ -7,6 +7,10 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import { readClickhouseDate } from "../../../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import SecurityLogParser from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
+import {
+  judgeSensitiveFileAnswers,
+  keepSensitiveFileOutcomes,
+} from "../../../../Utils/SecurityEvent/SensitiveFileAnswers";
 import SecurityLogFormat, {
   SECURITY_LOG_FORMAT_ATTRIBUTE,
   readLastFoundAtByFormat,
@@ -30,15 +34,29 @@ import SecurityProjectWork, {
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
+import SecurityTrustedProxies from "../SecurityTrustedProxies";
+import {
+  NO_TRUSTED_PROXIES,
+  TrustedProxies,
+} from "../../../../Utils/SecurityEvent/ClientAddressTrust";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
+import SecurityUserVaultLookup from "../UserVault/SecurityUserVaultLookup";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
 import OpenStackAuditJoin from "./OpenStackAuditJoin";
+import OneUptimeAwsSessions from "../../CloudConnection/Aws/OneUptimeAwsSessions";
 import SecurityLogCases, {
   LOG_THREATS_PER_SCAN_LIMIT,
   SecurityLogThreatsResult,
 } from "../../SecurityCase/SecurityLogCases";
+import RefusedTelemetryReader from "../RefusedTelemetryReader";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryObservation,
+  RefusedTelemetryRecord,
+} from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * "Your logs" (SecurityLogSource): every minute, for each project that
@@ -151,6 +169,14 @@ export interface SecurityLogScanResult {
   partialWindowProcessed: number;
   scannedFrom: string;
   scannedTo: string;
+  /*
+   * The stretches in which an ingestion budget or rate refused this
+   * project's logs (#10431), kept from scan to scan for as long as a
+   * retrohunt can ask about them, and the budget counters they were last
+   * read with (Utils/SecurityEvent/RefusedTelemetry).
+   */
+  refusedTelemetry: Array<RefusedTelemetry>;
+  refusedTelemetryObservation: RefusedTelemetryObservation | null;
 }
 
 function readCursor(value: string | undefined): Date | null {
@@ -324,6 +350,15 @@ export default class SecurityLogScanner {
       lastFoundAtByFormat[format] = previousFoundAt[format]!.toISOString();
     }
 
+    // What a budget or a rate refused of the logs since the last turn (#10431).
+    const refused: RefusedTelemetryRecord =
+      await RefusedTelemetryReader.observe({
+        projectId,
+        signal: ProductType.Logs,
+        lastScanResult: previous,
+        now,
+      });
+
     const result: SecurityLogScanResult = {
       logsRead: 0,
       eventsFound: 0,
@@ -338,6 +373,8 @@ export default class SecurityLogScanner {
       partialWindowProcessed: 0,
       scannedFrom: cursor.toISOString(),
       scannedTo: cursor.toISOString(),
+      refusedTelemetry: refused.refusals,
+      refusedTelemetryObservation: refused.observation,
     };
 
     let serviceMetadata: TelemetryServiceMetadata | null = null;
@@ -385,9 +422,20 @@ export default class SecurityLogScanner {
 
         const events: Array<NormalizedSecurityEvent> = [];
 
+        /*
+         * A request's attack is blamed on an address its sender could not
+         * have written: one a proxy the project trusts forwarded, or the
+         * connection's own (#10416).
+         */
+        const trustedProxies: TrustedProxies =
+          rows.length > 0
+            ? await SecurityTrustedProxies.getForProject(projectId)
+            : NO_TRUSTED_PROXIES;
+
         for (const row of rows) {
           events.push(
             ...SecurityLogParser.parse({
+              trustedProxies,
               body: typeof row["body"] === "string" ? row["body"] : "",
               attributes: readAttributes(row["attributes"]),
               time: readClickhouseDate(row["time"]) || now,
@@ -516,10 +564,34 @@ export default class SecurityLogScanner {
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
   }): Promise<SecurityLogStoredEvents> {
+    /*
+     * A request for a file that holds secrets that the site answered with
+     * what no record says - the file, or the site's own page - is decided
+     * by what the same site answered the page's other requests, or is no
+     * event (#10912, SensitiveFileAnswers).
+     */
+    const events: Array<NormalizedSecurityEvent> = judgeSensitiveFileAnswers(
+      data.events,
+    );
+
+    if (events.length === 0) {
+      return { events: [], rows: [] };
+    }
+
+    /*
+     * A CloudTrail call OneUptime's own session made - Data Security's
+     * reads of the account - is marked as OneUptime's own (#10427), so the
+     * rules that should leave it out can.
+     */
+    await OneUptimeAwsSessions.markSecurityEvents({
+      projectId: data.projectId.toString(),
+      events,
+    });
+
     // An OpenStack event says which project by ID: this names it, as a case will.
     await OpenStackAuditJoin.enrichEvents({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     /*
@@ -530,32 +602,51 @@ export default class SecurityLogScanner {
      */
     await SecurityRequestTrace.followEvents({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     /*
-     * A client address a Hash rule hid - in the line's client field, or in
-     * the trace it was followed into - names the address behind its token,
-     * when Security Events' address vault holds it (#10395).
+     * A request for a secret file the site answered with its own page found
+     * nothing, however the trace read its status (#10912).
+     */
+    keepSensitiveFileOutcomes(events);
+
+    /*
+     * An address a Hash rule hid - the field a format reads the source or
+     * the destination from (#10419), or the trace a line was followed into -
+     * names the address behind its token, when Security Events' address
+     * vault holds it (#10395): every token of the page, of every format, in
+     * one lookup.
      */
     await SecurityAddressVaultLookup.nameHashedAddresses({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     /*
-     * A client address a scrub rule hid that is still hidden names the
-     * project's rule that did (#10397).
+     * A user a Hash rule hid - where a format reads who acted or who was
+     * acted on, or the user of the trace a line was followed into - names
+     * the user behind its token, when Security Events' user vault holds it
+     * (#10632): every token of the page in one lookup.
+     */
+    await SecurityUserVaultLookup.nameHashedUsers({
+      projectId: data.projectId,
+      events,
+    });
+
+    /*
+     * An address a scrub rule hid that is still hidden names the project's
+     * rule that did (#10397).
      */
     await ScrubbedClientAddresses.nameScrubRules({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     // Threat intel stamps its matches before the rows are built, as ingest does.
     await ThreatIntelEnricher.enrichNormalizedEvents({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     const retentionDays: number = resolveTelemetryRetentionInDays({
@@ -580,7 +671,7 @@ export default class SecurityLogScanner {
     const split: {
       shared: Array<SharedRecordGroup>;
       rest: Array<NormalizedSecurityEvent>;
-    } = SecurityEventStoreOnce.split(data.events);
+    } = SecurityEventStoreOnce.split(events);
     const stored: Array<NormalizedSecurityEvent> = [...split.rest];
     const rows: Array<JSONObject> = split.rest.map(toRow);
 
@@ -594,9 +685,9 @@ export default class SecurityLogScanner {
           projectId: data.projectId,
           group,
           insert: async (
-            events: Array<NormalizedSecurityEvent>,
+            groupEvents: Array<NormalizedSecurityEvent>,
           ): Promise<void> => {
-            const groupRows: Array<JSONObject> = events.map(toRow);
+            const groupRows: Array<JSONObject> = groupEvents.map(toRow);
 
             // Seen by the next way to look, before the lock is released.
             await SecurityEventService.insertJsonRows(groupRows, {

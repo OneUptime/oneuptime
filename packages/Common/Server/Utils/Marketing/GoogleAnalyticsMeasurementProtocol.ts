@@ -11,6 +11,7 @@ import {
 } from "../../../Types/Marketing/Attribution";
 import { JSONObject } from "../../../Types/JSON";
 import logger from "../Logger";
+import OutboundProxyAgents from "../OutboundProxyAgents";
 
 /*
  * The Google Analytics property the product's pages load
@@ -262,14 +263,16 @@ export default class GoogleAnalyticsMeasurementProtocol {
     await axios.post(
       GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_URL,
       this.buildRequestBody(purchase),
-      {
+      // Through the outbound proxy, or directly (OutboundProxyAgents).
+      OutboundProxyAgents.routeAxiosRequest({
+        url: GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_URL,
         params: {
           measurement_id: GOOGLE_ANALYTICS_MEASUREMENT_ID,
           api_secret: GoogleAnalyticsMeasurementProtocolApiSecret,
         },
         headers: { "content-type": "application/json" },
         timeout: REQUEST_TIMEOUT_MS,
-      },
+      }),
     );
 
     logger.debug(

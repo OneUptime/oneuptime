@@ -65,11 +65,14 @@ import {
 })
 @TableMetadata({
   tableName: "DockerSwarmClusterLabelRule",
-  singularName: "DockerSwarm Cluster Label Rule",
-  pluralName: "DockerSwarm Cluster Label Rules",
+  singularName: "Docker Swarm Cluster Label Rule",
+  pluralName: "Docker Swarm Cluster Label Rules",
+  // Was "DockerSwarm Cluster Label Rule" (#7474): its API names stay.
+  apiSingularName: "DockerSwarm Cluster Label Rule",
+  apiPluralName: "DockerSwarm Cluster Label Rules",
   icon: IconProp.Tag,
   tableDescription:
-    "Configure rules for automatically attaching labels to DockerSwarm clusters when matching DockerSwarm clusters are created",
+    "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created",
 })
 export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -163,7 +166,7 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Name of this DockerSwarm cluster label rule",
+    description: "Name of this Docker Swarm cluster label rule",
   })
   @Column({
     nullable: false,
@@ -195,7 +198,7 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Description",
-    description: "Description of this DockerSwarm cluster label rule",
+    description: "Description of this Docker Swarm cluster label rule",
   })
   @Column({
     nullable: true,
@@ -264,9 +267,9 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: Label,
-    title: "DockerSwarm Cluster Labels",
+    title: "Docker Swarm Cluster Labels",
     description:
-      "Only trigger for DockerSwarm clusters that already have at least one of these labels. Leave empty to match regardless of labels.",
+      "Only trigger for Docker Swarm clusters that already have at least one of these labels. Leave empty to match regardless of labels.",
   })
   @ManyToMany(
     () => {
@@ -309,9 +312,9 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
-    title: "DockerSwarm Cluster Name Pattern",
+    title: "Docker Swarm Cluster Name Pattern",
     description:
-      "Regex (case-insensitive) matched against the DockerSwarm cluster name. Leave empty to match any name.",
+      "Regex (case-insensitive) matched against the Docker Swarm cluster name. Leave empty to match any name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -342,9 +345,9 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
-    title: "DockerSwarm Cluster Description Pattern",
+    title: "Docker Swarm Cluster Description Pattern",
     description:
-      "Regex (case-insensitive) matched against the DockerSwarm cluster description. Leave empty to match any description.",
+      "Regex (case-insensitive) matched against the Docker Swarm cluster description. Leave empty to match any description.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -380,7 +383,7 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
     modelType: Label,
     title: "Labels to Add",
     description:
-      "Labels to attach to the DockerSwarm cluster when this rule matches. Already-attached labels are not duplicated.",
+      "Labels to attach to the Docker Swarm cluster when this rule matches. Already-attached labels are not duplicated.",
   })
   @ManyToMany(
     () => {
@@ -465,50 +468,4 @@ export default class DockerSwarmClusterLabelRule extends RuleBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

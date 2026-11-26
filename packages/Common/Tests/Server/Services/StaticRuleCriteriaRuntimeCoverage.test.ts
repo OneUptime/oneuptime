@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "@jest/globals";
 import RULE_CRITERIA_FIELDS_BY_MODEL from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import { DATA_SECURITY_AI_RULE_CRITERIA_FIELDS } from "../../../Utils/DataSecurity/DataSecurityAiRuleMatch";
 
 interface FormCoverage {
   fields: Set<string>;
@@ -80,15 +81,28 @@ function extractSharedMatcherMethodFields(
 }
 
 /*
- * AI rules have a second form: a telemetry product's AI rules
+ * AI rules have more forms than one: a telemetry product's AI rules
  * (TelemetryAiRulesTable) - the same model, with the lane's trigger, whose
  * conditions are about a service and are evaluated by TelemetryAiRules
- * (Common/Types/AI/TelemetryAi). Between them the two forms offer every
- * field the model registers; each is held to its own evaluator.
+ * (Common/Types/AI/TelemetryAi) - and Data Security's (DataSecurityAiRulesTable,
+ * #10364), whose conditions are about an issue, its store and its data, and
+ * the service of a store that is a service's telemetry, evaluated by
+ * DataSecurityAiRuleMatch for the engine that selects the rules
+ * (DataSecurityAiEngine). Between them the forms offer every field the model
+ * registers; each is held to its own evaluator.
  */
 interface SecondRuleForm {
   formFile: string;
   evaluatorFile: string;
+  // The file that selects the rule's criteria, when another evaluates them.
+  selectingFile?: string | undefined;
+  /*
+   * The fields the evaluator hands the shared matcher, when it names them
+   * in a list of its own rather than as its legacyFields literal.
+   */
+  evaluatedFields?: ReadonlyArray<string> | undefined;
+  // That list's name, as the evaluator writes it.
+  evaluatedFieldsName?: string | undefined;
 }
 
 // An evaluator reads a rule's criteria, and hands them to the shared matcher.
@@ -96,17 +110,35 @@ const SELECTS_CRITERIA: RegExp = /criteria\s*:\s*true/;
 const CALLS_SHARED_CRITERIA_MATCHER: RegExp =
   /RuleCriteriaMatcher\.matchesWithLegacy(?:Sync)?\(/;
 
-const SECOND_RULE_FORMS: Record<string, SecondRuleForm> = {
-  AutoRemediationRule: {
-    formFile: path.join(
-      DASHBOARD_SOURCE_ROOT,
-      "Components/TelemetryAi/TelemetryAiRulesTable.tsx",
-    ),
-    evaluatorFile: path.join(
-      COMMON_ROOT,
-      "Server/Utils/AI/TelemetryAi/TelemetryAiRules.ts",
-    ),
-  },
+const SECOND_RULE_FORMS: Record<string, Array<SecondRuleForm>> = {
+  AutoRemediationRule: [
+    {
+      formFile: path.join(
+        DASHBOARD_SOURCE_ROOT,
+        "Components/TelemetryAi/TelemetryAiRulesTable.tsx",
+      ),
+      evaluatorFile: path.join(
+        COMMON_ROOT,
+        "Server/Utils/AI/TelemetryAi/TelemetryAiRules.ts",
+      ),
+    },
+    {
+      formFile: path.join(
+        DASHBOARD_SOURCE_ROOT,
+        "Components/DataSecurity/DataSecurityAiRulesTable.tsx",
+      ),
+      evaluatorFile: path.join(
+        COMMON_ROOT,
+        "Utils/DataSecurity/DataSecurityAiRuleMatch.ts",
+      ),
+      selectingFile: path.join(
+        COMMON_ROOT,
+        "Server/Utils/AI/DataSecurity/DataSecurityAiEngine.ts",
+      ),
+      evaluatedFields: DATA_SECURITY_AI_RULE_CRITERIA_FIELDS,
+      evaluatedFieldsName: "DATA_SECURITY_AI_RULE_CRITERIA_FIELDS",
+    },
+  ],
 };
 
 /*
@@ -215,7 +247,7 @@ const MATCH_CRITERIA_FORM: RegExp =
 function discoverStaticRuleForms(): {
   formFiles: Array<string>;
   formsByModel: Map<string, FormCoverage>;
-  secondFormsByModel: Map<string, FormCoverage>;
+  secondFormsByModel: Map<string, Array<FormCoverage>>;
   productFormsByModel: Map<string, FormCoverage>;
   metricPipelineFile: string;
 } {
@@ -231,7 +263,7 @@ function discoverStaticRuleForms(): {
     "Pages/Metrics/Settings/PipelineRules.tsx",
   );
   const formsByModel: Map<string, FormCoverage> = new Map();
-  const secondFormsByModel: Map<string, FormCoverage> = new Map();
+  const secondFormsByModel: Map<string, Array<FormCoverage>> = new Map();
   const productFormsByModel: Map<string, FormCoverage> = new Map();
   const modelTypePattern: RegExp = /modelType=\{([A-Za-z][A-Za-z0-9]*Rule)\}/g;
 
@@ -257,9 +289,23 @@ function discoverStaticRuleForms(): {
 
       expect(fields.size).toBeGreaterThan(0);
 
-      if (SECOND_RULE_FORMS[modelName]?.formFile === filePath) {
-        expect(secondFormsByModel.has(modelName)).toBe(false);
-        secondFormsByModel.set(modelName, { fields, filePath });
+      if (
+        (SECOND_RULE_FORMS[modelName] || []).some(
+          (second: SecondRuleForm): boolean => {
+            return second.formFile === filePath;
+          },
+        )
+      ) {
+        const seconds: Array<FormCoverage> =
+          secondFormsByModel.get(modelName) || [];
+
+        expect(
+          seconds.some((coverage: FormCoverage): boolean => {
+            return coverage.filePath === filePath;
+          }),
+        ).toBe(false);
+        seconds.push({ fields, filePath });
+        secondFormsByModel.set(modelName, seconds);
         continue;
       }
 
@@ -337,9 +383,10 @@ describe("static rule criteria runtime coverage", () => {
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
   /*
-   * 82 forms and 92 models: the investigation rules' form and model went
-   * when they became AI rules - AiRulesTable for incidents and alerts, and
-   * TelemetryAiRulesTable for the telemetry products, for the one model -
+   * 83 forms and 92 models: the investigation rules' form and model went
+   * when they became AI rules - AiRulesTable for incidents and alerts,
+   * TelemetryAiRulesTable for the telemetry products and
+   * DataSecurityAiRulesTable for Data Security's issues, for the one model -
    * Data Security's label and owner rules for data stores came, App
    * Platforms' pages for the cloud rules' environments, the alert incident
    * rules' page (AlertIncidentRules) for its model, OpenStack's label and
@@ -348,12 +395,29 @@ describe("static rule criteria runtime coverage", () => {
    * owner rules for pipelines, on the page of its table owner rules (issue
    * #9527).
    */
-  test("all 82 static match-criteria forms route their 92 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(82);
+  test("all 83 static match-criteria forms route their 92 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(83);
     expect(formsByModel.size).toBe(92);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
     );
+
+    // Every further form is found, and only those.
+    for (const [modelName, seconds] of Object.entries(SECOND_RULE_FORMS)) {
+      expect(
+        (secondFormsByModel.get(modelName) || [])
+          .map((coverage: FormCoverage): string => {
+            return coverage.filePath;
+          })
+          .sort(),
+      ).toEqual(
+        seconds
+          .map((second: SecondRuleForm): string => {
+            return second.formFile;
+          })
+          .sort(),
+      );
+    }
     expect([...productFormsByModel.keys()].sort()).toEqual(
       Object.keys(PRODUCT_RULE_FORMS).sort(),
     );
@@ -372,14 +436,16 @@ describe("static rule criteria runtime coverage", () => {
         throw new Error(`No rule criteria fields registered for ${modelName}`);
       }
 
-      const secondForm: FormCoverage | undefined =
-        secondFormsByModel.get(modelName);
+      const secondForms: Array<FormCoverage> =
+        secondFormsByModel.get(modelName) || [];
 
       expect([...registeredFields].sort()).toEqual(
         [
           ...new Set<string>([
             ...form.fields,
-            ...(secondForm ? [...secondForm.fields] : []),
+            ...secondForms.flatMap((second: FormCoverage): Array<string> => {
+              return [...second.fields];
+            }),
           ]),
         ].sort(),
       );
@@ -387,7 +453,7 @@ describe("static rule criteria runtime coverage", () => {
       const productForm: FormCoverage | undefined =
         productFormsByModel.get(modelName);
 
-      for (const coverage of [form, secondForm, productForm].filter(
+      for (const coverage of [form, ...secondForms, productForm].filter(
         (candidate: FormCoverage | undefined): candidate is FormCoverage => {
           return candidate !== undefined;
         },
@@ -574,10 +640,26 @@ describe("static rule criteria runtime coverage", () => {
     },
   );
 
-  test.each(Object.entries(SECOND_RULE_FORMS))(
-    "%s's second form is evaluated, every field, by its own evaluator",
-    (modelName: string, second: SecondRuleForm) => {
-      const form: FormCoverage | undefined = secondFormsByModel.get(modelName);
+  test.each(
+    Object.entries(SECOND_RULE_FORMS).flatMap(
+      ([modelName, seconds]: [string, Array<SecondRuleForm>]): Array<
+        [string, string, SecondRuleForm]
+      > => {
+        return seconds.map(
+          (second: SecondRuleForm): [string, string, SecondRuleForm] => {
+            return [modelName, path.basename(second.formFile), second];
+          },
+        );
+      },
+    ),
+  )(
+    "%s's further form %s is evaluated, every field, by its own evaluator",
+    (modelName: string, _formName: string, second: SecondRuleForm) => {
+      const form: FormCoverage | undefined = (
+        secondFormsByModel.get(modelName) || []
+      ).find((coverage: FormCoverage): boolean => {
+        return coverage.filePath === second.formFile;
+      });
 
       expect(form).toBeDefined();
 
@@ -587,11 +669,24 @@ describe("static rule criteria runtime coverage", () => {
       );
 
       expect(evaluatorSource).toContain(modelName);
-      expect(evaluatorSource).toMatch(SELECTS_CRITERIA);
+      // It reads the rule's criteria, itself or through the engine that selects the rules.
+      expect(
+        fs.readFileSync(second.selectingFile || second.evaluatorFile, "utf8"),
+      ).toMatch(SELECTS_CRITERIA);
       expect(evaluatorSource).toMatch(CALLS_SHARED_CRITERIA_MATCHER);
-      expect([...extractLegacyFields(evaluatorSource)].sort()).toEqual(
-        [...form!.fields].sort(),
-      );
+
+      if (second.evaluatedFields) {
+        // Its fields, by the list it hands the shared matcher as its legacyFields.
+        expect(evaluatorSource).toMatch(
+          new RegExp(`legacyFields\\s*:\\s*${second.evaluatedFieldsName}\\b`),
+        );
+      }
+
+      expect(
+        [
+          ...(second.evaluatedFields || extractLegacyFields(evaluatorSource)),
+        ].sort(),
+      ).toEqual([...form!.fields].sort());
 
       // And none of them is a field the first form already offers.
       const firstForm: FormCoverage | undefined = formsByModel.get(modelName);

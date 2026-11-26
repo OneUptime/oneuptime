@@ -56,7 +56,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Panoramica** | **Tutti gli eventi di manutenzione**, **Eventi di manutenzione in corso**, il cui badge conta gli eventi in corso in questo momento, e **Calendario della manutenzione**: ogni evento su un mese, una settimana o un giorno, accanto ai calendari esterni al progetto che aggiungete. |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di quale il progetto ha collegato, oppure **Collega un'area di lavoro** se non ne ha nessuno. |
-| **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Regole dei promemoria**.                               |
+| **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Regole dei promemoria**, **Log di audit**: chi ne ha creata, modificata o eliminata una, e quando. |
 | **Impostazioni** | **Stato della manutenzione**, **Modelli di manutenzione**, **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
 
 **Panoramica** è aperta; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **Crossplane**, **API**, **CLI** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.

@@ -578,13 +578,18 @@ describe("getErrorReader: the page's reader", () => {
 
     expect(importsOf("UI/Utils/ErrorInSentence.ts")).toEqual(
       [
+        "../../Types/Billing/PlanRequiredRefusal",
         "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
         "../../Types/DataObservability/DataCheckRefusals",
         "../../Types/Database/UniqueName",
+        "../../Types/Database/UniqueValueTaken",
         "../../Types/Exception/RefusalWithValues",
         "../../Types/Exception/UnexplainedError",
+        "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce",
+        "../../Types/SecurityCase/SecurityCasePullRequestLink",
         "../../Types/Translator",
         "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+        "../../Utils/NetworkDiscovery/DiscoveryScanRun",
         "./SentenceSeparator",
       ].sort(),
     );
@@ -619,6 +624,13 @@ describe("getErrorReader: the page's reader", () => {
      */
     expect(
       importsOf("Types/CloudConnection/AwsRoleExternalIdRefusal.ts"),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
+    /*
+     * A person, a team or a schedule an escalation rule pages already
+     * (#10465): the indexes' names and the sentences, nothing of the server.
+     */
+    expect(
+      importsOf("Types/OnCallDutyPolicy/EscalationRuleResponderOnce.ts"),
     ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
   });
 });

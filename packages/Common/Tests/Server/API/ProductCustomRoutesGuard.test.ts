@@ -98,8 +98,14 @@ const READ_HELPER: string =
   "A helper that registers reads for its callers: each call is listed in readHelpers, with why.";
 const FEED_FALLBACK: string =
   "It answers a write to a calendar feed's address with 405: a feed only reads.";
+const BLOCKLIST_FEED_FALLBACK: string =
+  "It answers a write to a blocklist feed's address with 405: a firewall only reads a feed.";
 const PAGE_LINK: string =
   "A page's own link or key press: the person paged answers it. What already runs keeps running, and refusing the answer would page everyone up the policy.";
+const STOPS_AI: string =
+  "Take Over stops OneUptime AI working a case and hands it to people: stopping OneUptime AI is never held back while a product is switched off, and it writes only that the case is the people's now (SecurityCaseHandOff).";
+const PAGES_PEOPLE: string =
+  "Page now ends OneUptime AI's hold of a new case's alerts and alerts people at once: getting people on a case is never held back while a product is switched off - with Security Events off, every hold ends within a minute anyway (SecurityCaseAiHold) - and it writes only that the hold ended, as theirs.";
 const IN_FIX: string =
   "Refused in RemediationApproval once the fix is read (RemediationFixProducts): its incident's or alert's product, Runbooks for a fix that starts a runbook, Cloud for a dry run - a Slack or Microsoft Teams press too.";
 
@@ -388,6 +394,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
+  /*
+   * Describe a data type: OneUptime AI drafts one from a sentence or a
+   * group of unplaced fields for the data type form. It saves nothing, but
+   * it asks OneUptime AI for Data Security, so it is refused while Data
+   * Security is off.
+   */
+  "packages/Common/Server/API/DataSecurityCustomDataTypeAPI.ts": {
+    products: [ProductKey.DataSecurity],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
     products: [ProductKey.Cloud],
     leftAlone: {},
@@ -401,6 +417,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     leftAlone: {},
   },
   "packages/Common/Server/API/NetworkDeviceDiscoveryImportAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {},
+  },
+  // Run Again on a discovery scan (#10334): it queues a sweep, a write.
+  "packages/Common/Server/API/NetworkDeviceDiscoveryScanRunAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},
   },
@@ -651,6 +672,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${basePath}/setup/status`": READ,
       "`${basePath}/:caseId/ai-triage`": READ,
       "`${basePath}/:caseId/ai-triage/evidence`": READ,
+      // The case's OneUptime AI card: what it did, asked about or left (#10352).
+      "`${basePath}/:caseId/ai-response`": READ,
+      "`${basePath}/:caseId/ai-response/take-over`": STOPS_AI,
+      // OneUptime AI responding first to a case: alert people now (#10353).
+      "`${basePath}/:caseId/ai-response/page-now`": PAGES_PEOPLE,
     },
   },
   "packages/Common/Server/API/SecurityCaseContextAPI.ts": {
@@ -664,7 +690,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/SecurityAttackCampaignAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {
-      '"/security-event/attack-campaigns"': READ,
+      SECURITY_ATTACK_CAMPAIGNS_ROUTE: READ,
     },
   },
   "packages/Common/Server/API/SecurityCaseEvidenceAPI.ts": {
@@ -697,7 +723,37 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // The cloud WAFs the blocklist is enforced in: candidates, Check Again and Remove (#10344).
+  "packages/Common/Server/API/SecurityBlockCloudWafAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  /*
+   * Blocklist feeds (#10345): Rotate Secret and Revoke Secret name the
+   * product; what a firewall fetches is a read, and a write to a feed's
+   * address is answered 405.
+   */
+  "packages/Common/Server/API/SecurityBlocklistFeedAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {
+      BLOCKLIST_FEED_FALLBACK_ROUTE: BLOCKLIST_FEED_FALLBACK,
+    },
+  },
+  // Automatic response (#10350): the policies' overview names the product.
+  "packages/Common/Server/API/SecurityAutomaticResponsePolicyAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  /*
+   * What Security Events trusts as a proxy without being listed (#10546):
+   * the edges and the project's own load balancers, named on Trusted
+   * Proxies.
+   */
+  "packages/Common/Server/API/SecurityTrustedProxiesAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
@@ -793,6 +849,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     readHelpers: {
       read: {
         '"/code-task/repositories"': READ,
+        '"/code-task/repositories-by-id"': READ,
         '"/code-task/repository/:repositoryId"': READ,
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,
@@ -1171,8 +1228,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         /*
          * #9820: a project's owners counting and clearing the sign-in
          * settings its people saved before it managed sign-in with SSO.
+         * #9993: and, from the project's Users list, which of the people
+         * it shows still have some (a POST that only reads, for the ids
+         * it names), and the clear of one of them - of no one product, as
+         * Users is always on.
          */
-        "packages/Common/Server/API/ProjectAPI.ts": 9,
+        "packages/Common/Server/API/ProjectAPI.ts": 11,
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
@@ -1223,8 +1284,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "The server's own setup, which a master admin changes or the server reads - switching a product on again among it.",
       {
-        // #9762: clearing the sign-in settings of everyone the server's SSO requirement covers.
-        "packages/Common/Server/API/GlobalConfigAPI.ts": 7,
+        /*
+         * #9762: clearing the sign-in settings of everyone the server's SSO
+         * requirement covers. #10864-#10866: where the server sends its
+         * people for help (Settings > Help and Support).
+         */
+        "packages/Common/Server/API/GlobalConfigAPI.ts": 8,
         "packages/Common/Server/API/ProbeAPI.ts": 1,
         "packages/Common/Server/API/RunnerAPI.ts": 1,
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
@@ -1368,9 +1433,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
+      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks, and which addresses a log, trace or exception search matched by the token an IP Address rule hashed them to (#10418), which reads the project's scrub rules and no record: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
       {
-        "packages/Common/Server/API/TelemetryAPI.ts": 72,
+        "packages/Common/Server/API/TelemetryAPI.ts": 75,
       },
     ),
     ...decided(
@@ -1388,9 +1453,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366).",
       {
         "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
+        "packages/Common/Server/API/ScrubRuleReadersAPI.ts": 1,
+        "packages/Common/Server/API/DropFilterImpactAPI.ts": 1,
+        "packages/Common/Server/API/ScrubRuleValueCountsAPI.ts": 1,
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,
@@ -1401,6 +1469,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/AIReadinessAPI.ts": 1,
         "packages/Common/Server/API/AIDailyUsageAPI.ts": 1,
         "packages/App/FeatureSet/BaseAPI/API/ReceivingGaps.ts": 1,
+      },
+    ),
+    ...decided(
+      "The IP Address scrub rules that hide addresses from Security Events (#10396): which they are, which only reads, and Hash Instead, which switches one to Hash through its service as the person, so a rule of Logs or Traces switched off is refused where every write is (ProductWriteRefusal).",
+      {
+        "packages/Common/Server/API/ScrubRuleAddressesAPI.ts": 2,
       },
     ),
     ...decided(

@@ -1,12 +1,9 @@
 import { jest } from "@jest/globals";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import AIRunEventService from "../../Server/Services/AIRunEventService";
 import AIRunService from "../../Server/Services/AIRunService";
-import ApiKeyPermissionService from "../../Server/Services/ApiKeyPermissionService";
 import MonitorService from "../../Server/Services/MonitorService";
-import TeamPermissionService from "../../Server/Services/TeamPermissionService";
 import LinkedAffectedResources from "../../Server/Utils/AffectedResources/LinkedAffectedResources";
 import ObservabilityAssistant, {
   ObservabilityAssistantRequest,
@@ -20,10 +17,10 @@ import { ToolExecutionResult } from "../../Server/Utils/AI/Toolbox/ToolTypes";
 import DataAlertLineageReader from "../../Server/Utils/DataObservability/DataAlertLineage";
 import ReadAudienceReader from "../../Server/Utils/ReadAudience/ReadAudienceReader";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { stubProjectPermissionRows } from "./ProjectPermissionRows";
 import { keptForAudience } from "./ReadAudienceFixtures";
 
 /*
@@ -36,6 +33,10 @@ import { keptForAudience } from "./ReadAudienceFixtures";
  *     them out from the project's permission rows - a project whose roles
  *     narrow nobody, or one where a team reads every kind only for some
  *     labels - and from what the subject names. No telemetry is set apart.
+ *     The team's member is also on the Security team, so the narrowing
+ *     reaches somebody who may read security cases too, unless the suite
+ *     says none of its members may (#9632): a case's triage counts it only
+ *     then; every other run, either way.
  *   - modelReadsMonitors: the real engine, with the model replaced by one
  *     that reads the project's monitors with query_monitors, through the
  *     props the engine hands every tool, and answers with what it read.
@@ -64,24 +65,42 @@ function monitor(id: string, name: string): Monitor {
   return row;
 }
 
-export function readersOfAProject(data: { narrowedByLabels: boolean }): void {
-  const labelled: TeamPermission = new TeamPermission();
-  labelled.permission = Permission.ProjectMember;
+// The project's teams: one that reads every kind only for some labels, and Security.
+const NARROWED_TEAM_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-000000000001";
+const SECURITY_TEAM_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-000000000002";
+const NARROWED_MEMBER_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-000000000003";
+const ANALYST_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-000000000004";
+const LABEL_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-000000000005";
 
-  jest
-    .spyOn(TeamPermissionService, "findAllBy")
-    .mockImplementation((async (findAllBy: {
-      query: Record<string, unknown>;
-    }): Promise<Array<TeamPermission>> => {
-      if (findAllBy.query["scope"] === PermissionScope.Owned) {
-        return [];
-      }
-
-      return data.narrowedByLabels ? [labelled] : [];
-    }) as never);
-  jest
-    .spyOn(ApiKeyPermissionService, "findAllBy")
-    .mockResolvedValue([] as never);
+export function readersOfAProject(data: {
+  narrowedByLabels: boolean;
+  /*
+   * Whether somebody on the team narrowed by labels may read security cases
+   * (a Security Viewer through the Security team). Default yes.
+   */
+  narrowedTeamReadsSecurityCases?: boolean | undefined;
+}): void {
+  stubProjectPermissionRows({
+    teamRows: [
+      { teamId: SECURITY_TEAM_ID, permission: Permission.SecurityViewer },
+      ...(data.narrowedByLabels
+        ? [
+            {
+              teamId: NARROWED_TEAM_ID,
+              permission: Permission.ProjectMember,
+              labelIds: [LABEL_ID],
+            },
+          ]
+        : []),
+    ],
+    members: [
+      { teamId: SECURITY_TEAM_ID, userId: ANALYST_ID },
+      { teamId: NARROWED_TEAM_ID, userId: NARROWED_MEMBER_ID },
+      ...(data.narrowedTeamReadsSecurityCases === false
+        ? []
+        : [{ teamId: SECURITY_TEAM_ID, userId: NARROWED_MEMBER_ID }]),
+    ],
+  });
   jest
     .spyOn(LinkedAffectedResources, "readForIncident")
     .mockResolvedValue([] as never);

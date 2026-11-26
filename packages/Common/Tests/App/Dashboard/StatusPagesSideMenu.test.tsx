@@ -124,7 +124,7 @@ describe("Status Pages side menu", () => {
     expect(isExpanded("Status Pages")).toBe(true);
   });
 
-  test("Rules holds Owner Rules and Label Rules, at their old addresses", async () => {
+  test("Rules holds Owner Rules and Label Rules, at their old addresses, then their history", async () => {
     await renderStatusPagesMenu();
 
     expect(linksIn("Rules")).toEqual([
@@ -136,10 +136,28 @@ describe("Status Pages side menu", () => {
         title: "Label Rules",
         href: routeFor(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
       },
+      // Who changed the rules above, what and when (#10462).
+      {
+        title: "Audit Logs",
+        href: routeFor(PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS),
+      },
     ]);
     expect(routeFor(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES)).toBe(
       `/dashboard/${PROJECT_ID}/status-pages/settings/owner-rules`,
     );
+    expect(routeFor(PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS)).toBe(
+      `/dashboard/${PROJECT_ID}/status-pages/settings/rules-audit-logs`,
+    );
+    expect(iconCountIn("Rules")).toBe(3);
+  });
+
+  test("Rules opens itself on the rules' Audit Logs page, and marks it", async () => {
+    goTo(routeFor(PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS));
+    await renderStatusPagesMenu();
+
+    expect(isExpanded("Rules")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Audit Logs"]);
+    expect(isExpanded("Settings")).toBe(false);
   });
 
   test("Settings keeps what is not a rule", async () => {

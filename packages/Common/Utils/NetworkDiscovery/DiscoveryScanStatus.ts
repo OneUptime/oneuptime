@@ -41,12 +41,39 @@ export const DiscoveryScanStatus: {
 };
 
 /*
- * A recurring scan keeps its previous inventory until new results arrive.
- * The claim marker lets the dashboard distinguish that inventory from current
+ * A scan run again - on its schedule, or on demand with Run Again (issue
+ * #10334) - keeps its previous inventory until new results arrive. The
+ * claim marker lets the dashboard distinguish that inventory from current
  * progress; the first partial or final report replaces it.
  */
 export const DISCOVERY_SCAN_STARTED_MESSAGE: string =
   "Scan started. Waiting for the first progress update.";
+
+/*
+ * True while a scan's probe has claimed its run and not yet reported on it:
+ * In Progress, with the claim marker above still in its status message. The
+ * hosts on such a row are the PREVIOUS run's - the claim does not clear
+ * them, the run's first report does - so nothing may treat them as this
+ * run's: the Review dialog offers none of them, an import of them is
+ * refused (DiscoveryImportRunner), and auto import rules leave them alone
+ * (NetworkDeviceAutoImportRuleEngineService). The previous run may even have
+ * failed, and a failed run's hosts are imported only when someone decides
+ * to. Nullish-safe, like isDiscoveryScanInProgress.
+ */
+export function isDiscoveryScanWaitingForFirstReport(
+  scan:
+    | {
+        status?: string | undefined | null;
+        statusMessage?: string | undefined | null;
+      }
+    | null
+    | undefined,
+): boolean {
+  return (
+    scan?.status === DiscoveryScanStatus.InProgress &&
+    scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
+  );
+}
 
 /*
  * The statuses whose stored results are worth importing from automatically.

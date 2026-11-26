@@ -428,7 +428,9 @@ test.describe("the Admin Dashboard's Users list", () => {
       "1 User not added",
     );
     await expect(page.getByTestId("bulk-action-failed-items-group")).toHaveText(
-      ["User: Grace HopperThis user has already been invited to this team."],
+      [
+        "User: Grace HopperThis person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.",
+      ],
     );
     await screenshot(page, "admin-users-add-to-project-completed");
 

@@ -5,6 +5,7 @@ Projektindstillinger rummer det, der gælder for hele projektet: navnet, de vær
 :::cards
 - [Find en indstilling](#find-en-indstilling): Hvad hvert afsnit i sidemenuen rummer.
 - [Projektets detaljer](#projektets-detaljer): Navnet, ID'et og supportadgang.
+- [Unikke navne](#unikke-navne): Om to poster af samme slags må dele et navn.
 - [Produkter](#produkter): De produkter, dette projekt viser, og dem, det skjuler.
 - [Etiketter](#etiketter): Mærker til ressourcer, tilladelser og regler.
 - [Slet projektet](#slet-projektet): Hvad det kræver, og hvad der forsvinder med det.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Afsnit | Sider | Hvor du læser mere |
 | --- | --- | --- |
-| **Grundlæggende** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
+| **Grundlæggende** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Unikke navne](#unikke-navne), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring**, **Forbrug** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention), [Telemetriforbrug](/docs/telemetry/usage) |
 | **Notifikationer** | **Notifikationskanaler**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## Projektets detaljer
 
-**Projektindstillinger → Grundlæggende → Projekt** rummer to kort.
+**Projektindstillinger → Grundlæggende → Projekt** rummer projektets kort: **Projektdetaljer**, **Unikke navne** og, i OneUptime Cloud, **Kundesupportadgang**.
 
 **Projektdetaljer** viser projektets navn og ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Data Residency**: i OneUptime Cloud, hvor dit projekts data skal ligge, når OneUptime har registreret det. Kun OneUptime angiver det.
 
 **Kundesupportadgang** afgør i OneUptime Cloud, om OneUptimes supportteam må åbne projektet. Slå **Giv OneUptime-support adgang til dette projekt** til, når du vil have hjælp: OneUptime spørger først, fordi support så kan se og ændre alt i projektet, og du klikker på **Giv support adgang**. Slå det fra, når de er færdige: det gemmes med det samme. Projektejere og Projektadministratorer ændrer det.
+
+## Unikke navne
+
+**Unikke navne**, under **Projektindstillinger → Grundlæggende → Projekt**, afgør, om to poster af samme slags må dele et navn i projektet. Så længe **Kræv unikke navne** er slået til, afviser OneUptime et navn, som en anden post af samme slags allerede har, uanset om det skrives her, sendes via API'et eller angives i Terraform, og uanset store og små bogstaver og mellemrum: `API Health Check` og `api health check` er ét navn. Kontakten gemmer, når du slår den om. Projektejere og Projektadministratorer ændrer det.
+
+Den er slået til i et nyt projekt. Et projekt, der fandtes i forvejen, beholder den slået fra, fordi projektets API-klienter og Terraform-konfigurationer kan regne med navne, der gentager sig: slå den til, når du er klar.
+
+Under kontakten viser kortet hvert navn, projektet allerede har mere end én gang, slags for slags, med et link til hver post og den dag, den blev oprettet. At slå kontakten til afviser intet, der allerede findes: de poster virker fortsat, indtil nogen omdøber dem, og kun en ny post eller en omdøbning skal have sit eget navn. At gemme en post med dens eget navn igen, uanset store og små bogstaver, er ingen omdøbning.
+
+Uanset hvad kontakten siger, advarer en formular, mens du skriver et navn, som en anden post af samme slags allerede har, og linker til den post. Så længe kontakten er slået til, siger advarslen også, at det ville blive afvist at gemme.
+
+Kontakten gælder de slags, du navngiver og vælger efter navn: monitorer, monitorgrupper, sonder, SLO'er, skabelonerne til hændelser, alarmer, vedligeholdelse og statussider, API-nøgler, indtagelsesnøgler, brugerdefinerede roller, LLM-udbydere, pipelines, budgetter og forbindelser. Begivenheder og registreringer af noget, der skete, gentager deres navne med vilje og er udeladt: hændelser, alarmer, episoder, vedligeholdelseshændelser og meddelelser på statussider, og det samme gælder det, OneUptime opdager, såsom værter og pods. Teams, mærkater, vagtpolitikker, vagtplaner, statussider, arbejdsgange og nogle andre slags har et navn for sig i hvert projekt, uanset hvad kontakten siger.
+
+Når OneUptime navngiver en post for dig, såsom en monitor lavet ud fra en anbefaling eller en importeret, og navnet er taget, tilføjer det et tal i stedet for at afvise det: `API Health Check 2`.
 
 ## Produkter
 
@@ -145,6 +160,10 @@ Omdøbning kræver en Projektejer eller tilladelse til at redigere projektet ell
 
 :::details Slet Projekt forbliver låst i dialogen
 Skriv projektets navn præcis, som dialogen viser det: store og små bogstaver tæller.
+:::
+
+:::details Et navn afvises, fordi projektet kræver unikke navne
+En anden post af samme slags har navnet, uanset store og små bogstaver og mellemrum. Vælg et andet navn, eller omdøb den anden post først: **Unikke navne**, under **Projektindstillinger → Grundlæggende → Projekt**, viser de navne, projektet har mere end én gang, med et link til hver post. Hvis kun en arkiveret post har navnet, så fjern den fra arkivet, eller vælg et andet navn.
 :::
 
 ## Næste skridt

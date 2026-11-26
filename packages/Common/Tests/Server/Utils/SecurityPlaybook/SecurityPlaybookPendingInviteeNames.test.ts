@@ -23,6 +23,7 @@ import SecurityPlaybookActions, {
   PlaybookStepContext,
   PlaybookStepOutcome,
 } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookActions";
+import { FEED_INVITEE_UNNAMED } from "../../../../Server/Utils/Feed/FeedPersonName";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
@@ -52,10 +53,13 @@ import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub"
  *   - {{assignee}}, which a note, an email, a channel post, an incident,
  *     a page, a runbook and a data store owner's message are written with.
  *
- * Until they accept, the project sees only what it invited (#9823): the
- * name typed for them, else their address - never their account's own
- * name, which would tell whoever set up the playbook whose the address is.
- * A member is named by their own name.
+ * Until they accept, they are named by the name typed with their
+ * invitation, else as someone who hasn't joined the project yet - never by
+ * their account's own name (#9823), which would tell whoever set up the
+ * playbook whose the address is, nor by any address, which a channel's
+ * readers outside the project would see (#10681). A member is named by
+ * their own name. SecurityPlaybookLinesNamePeople holds every kind of
+ * person to it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -236,15 +240,16 @@ describe("Add tasks names who it handed them to", () => {
     expect(withheldIn.mock.calls[0]![0].userIds).toEqual([INVITEE_ID]);
   });
 
-  test("someone only invited with no name typed, by their address", async () => {
+  test("someone only invited with no name typed, as someone who hasn't joined - never by their address (#10681)", async () => {
     withheld = new Map<string, WithheldProfile>([
       [INVITEE_ID, { inviteeName: null }],
     ]);
 
     const summary: string = await addTasksFor(INVITEE_ID);
 
-    expect(summary).toBe("Added 2 tasks for **ingrid@example.com**.");
+    expect(summary).toBe(`Added 2 tasks for **${FEED_INVITEE_UNNAMED}**.`);
     expect(summary).not.toContain(INVITEES_OWN_NAME);
+    expect(summary).not.toContain("ingrid@example.com");
   });
 
   test("a member, by their own name", async () => {
@@ -277,13 +282,13 @@ describe("{{assignee}}: whom the case is assigned to", () => {
     expect(withheldIn.mock.calls[0]![0].projectId).toBe(PROJECT_ID);
   });
 
-  test("someone only invited with no name typed, by their address", async () => {
+  test("someone only invited with no name typed, as someone who hasn't joined - never by their address (#10681)", async () => {
     withheld = new Map<string, WithheldProfile>([
       [INVITEE_ID, { inviteeName: null }],
     ]);
 
     expect(await assigneeValue({ userId: INVITEE_ID })).toBe(
-      "ingrid@example.com",
+      FEED_INVITEE_UNNAMED,
     );
   });
 

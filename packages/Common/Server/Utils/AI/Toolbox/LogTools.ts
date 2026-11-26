@@ -40,6 +40,8 @@ import {
   windowValues,
 } from "./ReadTableWords";
 import { readAttributeFilter } from "./MetricAttributeQuery";
+import HashedAddressSearch from "../../Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../../../Types/Telemetry/HashedAddressSearch";
 
 // Keep pivoted histogram rows under the serializer's 50-row cap.
 const MAX_HISTOGRAM_BUCKETS: number = 48;
@@ -286,6 +288,11 @@ export const LogHistogramTool: ObservabilityTool = {
       ctx.props,
     );
 
+    const bodySearchText: string | undefined = ToolArgs.getString(
+      args,
+      "bodySearchText",
+    );
+
     const buckets: Array<HistogramBucket> =
       await LogAggregationService.getHistogram({
         projectId: ctx.projectId,
@@ -293,7 +300,13 @@ export const LogHistogramTool: ObservabilityTool = {
         endTime: endTime,
         bucketSizeInMinutes: bucketSizeInMinutes,
         severityTexts: ToolArgs.getStringArray(args, "severityTexts"),
-        bodySearchText: ToolArgs.getString(args, "bodySearchText"),
+        bodySearchText: bodySearchText,
+        // An address searched for counts its hashed logs too, as search_logs finds them (#10418).
+        hashedAddresses: await HashedAddressSearch.getTokensForRequest({
+          projectId: ctx.projectId,
+          signal: HashedAddressSignal.Logs,
+          request: { bodySearchText },
+        }),
         ...ToolArgs.scopeServiceIds(scope, serviceId),
       });
 

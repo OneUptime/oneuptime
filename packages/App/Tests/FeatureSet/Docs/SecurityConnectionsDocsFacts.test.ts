@@ -7,6 +7,7 @@ import {
   ENTRA_ID,
   GOOGLE_SECOPS,
   GOOGLE_WORKSPACE,
+  CLOUDFLARE,
   OKTA,
   SECURITY_CONNECTION_PAGES,
   SENTINEL,
@@ -21,9 +22,11 @@ import {
 } from "./DocsDashboardLabels";
 import {
   bold,
+  boldIn,
   codeIn,
   englishPage,
   englishSection,
+  lineStartingWith,
   readRepoFile,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
@@ -74,6 +77,8 @@ import MicrosoftSentinelClient, {
 } from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelClient";
 import ElasticSecurityConnector from "Common/Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityConnector";
 import GoogleWorkspaceConnector from "Common/Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceConnector";
+import { CLOUDFLARE_BLOCKING_CHECK_NAMES } from "Common/Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareBlocking";
+import CloudflareConnector from "Common/Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareConnector";
 import MicrosoftEntraIdConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftEntraId/MicrosoftEntraIdConnector";
 import MicrosoftSentinelConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelConnector";
 import OktaConnector from "Common/Server/Utils/SecurityEvent/Connectors/Okta/OktaConnector";
@@ -99,6 +104,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import {
+  BLOCK_INDICATORS_KEY,
   ConnectorField,
   ENTRA_BACKGROUND_SIGN_INS_KEY,
   SecurityEventConnectorCatalog,
@@ -107,6 +113,11 @@ import {
 import { SecurityConnectorCheck } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityEventFormat from "Common/Types/SecurityEvent/SecurityEventFormat";
+import {
+  CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION,
+  CLOUDFLARE_LIST_EDIT_PERMISSION,
+  CLOUDFLARE_WAF_EDIT_PERMISSION,
+} from "Common/Types/SecurityBlocklist/CloudflareBlocking";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
 import { isTranslatableTerm } from "Common/Types/Translator";
 import CrowdStrikeFalconNormalizer from "Common/Utils/SecurityEvent/Connectors/CrowdStrikeFalconNormalizer";
@@ -194,6 +205,11 @@ const CONNECTION_PAGES: Array<ConnectionPage> = [
     page: GOOGLE_WORKSPACE,
     provider: SecurityEventConnectorProvider.GoogleWorkspace,
     messagePrefix: "Google Workspace",
+  },
+  {
+    page: CLOUDFLARE,
+    provider: SecurityEventConnectorProvider.Cloudflare,
+    messagePrefix: "Cloudflare",
   },
 ];
 
@@ -298,6 +314,12 @@ const OTHER_CONNECTION_SETTINGS: Partial<
     },
     alertingOnly: false,
   },
+  [SecurityEventConnectorProvider.Cloudflare]: {
+    provider: SecurityEventConnectorProvider.Cloudflare,
+    config: { accountId: "9a7806061c88ada191ed06f989cc3dac" },
+    secrets: { apiToken: "TestOnlyCloudflareToken0123456789abcdefgh" },
+    alertingOnly: false,
+  },
 };
 
 function crowdStrikeSettings(): SecurityConnectorSettings {
@@ -343,6 +365,10 @@ function connectorFor(
 
   if (provider === SecurityEventConnectorProvider.GoogleWorkspace) {
     return new GoogleWorkspaceConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.Cloudflare) {
+    return new CloudflareConnector(transport);
   }
 
   return new CrowdStrikeFalconConnector(transport);
@@ -500,9 +526,14 @@ describe("every connection page's form", () => {
       expect(englishPage(entry.page)).toContain(
         `click ${bold("Add connection")}, choose ${bold(definition.title)}`,
       );
-      // Settings, then Credentials: the secret fields are on the step after.
+      /*
+       * Settings, then Credentials: the secret fields are on the step after.
+       * A provider whose settings are all picked from what its credentials
+       * read (Cloudflare) skips the Connection step and picks them on the
+       * Credentials step, after the credentials.
+       */
       expect(form).toContain(
-        'steps.push({ id: CONNECTION_STEP_ID, title: "Connection" });',
+        'steps.push({\n      id: CONNECTION_STEP_ID,\n      title: "Connection",',
       );
       expect(form).toContain(
         'steps.push({ id: CREDENTIALS_STEP_ID, title: "Credentials" });',
@@ -594,6 +625,7 @@ const OVERLAP_IN_MINUTES: Partial<
   [SecurityEventConnectorProvider.OktaSystemLog]: 15,
   [SecurityEventConnectorProvider.MicrosoftEntraId]: 30,
   [SecurityEventConnectorProvider.GoogleWorkspace]: 120,
+  [SecurityEventConnectorProvider.Cloudflare]: 10,
 };
 
 describe("every connection page's polling", () => {
@@ -735,9 +767,18 @@ describe("every connection page's test checklist", () => {
       const peer: FakePeer = fakePeer((): DataSourceHttpResponse => {
         return json(401, { error: "invalid_client" });
       });
+      /*
+       * Its blocking switch on, as a connection that blocks has it (#10346):
+       * the page lists every check, the blocking one among them, which
+       * only such a connection's test reports.
+       */
+      const settings: SecurityConnectorSettings = settingsFor(entry.provider);
       const report: { checks: Array<SecurityConnectorCheck> } =
         await SecurityEventConnectionTester.test({
-          settings: settingsFor(entry.provider),
+          settings: {
+            ...settings,
+            config: { ...settings.config, [BLOCK_INDICATORS_KEY]: true },
+          },
           connectorOverride: connectorFor(entry.provider, peer.transport),
           platformOverride: {
             workerConsumers: 1,
@@ -768,6 +809,58 @@ describe("every connection page's test checklist", () => {
       expect(documented).toEqual(reported);
     },
   );
+});
+
+describe("Cloudflare's blocking", () => {
+  const BLOCKING: string = "## Block addresses at Cloudflare";
+
+  it("names the write permissions as blocking asks for and checks them", () => {
+    expect(
+      tableWithHeader(englishSection(CLOUDFLARE, BLOCKING), "Permission").map(
+        (row: Array<string>): Array<string> => {
+          return codeIn(row[0] as string);
+        },
+      ),
+    ).toEqual([
+      [CLOUDFLARE_LIST_EDIT_PERMISSION],
+      [CLOUDFLARE_WAF_EDIT_PERMISSION],
+      [CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION],
+    ]);
+  });
+
+  it("names the checks blocking adds to a test as the test report does, in the order they run: IP Access Rules' own where they are used, else the ASN challenge's (#10894)", () => {
+    expect(
+      boldIn(
+        lineStartingWith(
+          englishSection(CLOUDFLARE, BLOCKING),
+          `While blocking is on, ${bold("Test connection")} runs the same checks:`,
+        ),
+      ),
+    ).toEqual([
+      "Test connection",
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.setup,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.lists,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.rules,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.accessRules,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges,
+    ]);
+  });
+
+  it("says the ASN challenge's check only warns, so Turn On Blocking still turns blocking on (#10894)", () => {
+    const section: string = englishSection(CLOUDFLARE, BLOCKING);
+
+    expect(
+      lineStartingWith(
+        section,
+        `On the connection's row, select ${bold("Block Addresses")}.`,
+      ),
+    ).toContain(
+      `${bold("Turn On Blocking")} turns blocking on only when every check passes, but for ${bold(CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges)}, which only warns`,
+    );
+    expect(section).toContain(
+      `${bold("Check Permissions")} and ${bold("Test connection")} warn first, under ${bold(CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges)}, when the token lacks \`${CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION}\``,
+    );
+  });
 });
 
 describe("Microsoft Sentinel", () => {
@@ -1835,8 +1928,8 @@ describe("every connection page in every language: the labels built from a sente
       }
     }
 
-    // Ten Preview buttons, Returned by Google SecOps and three switches.
-    expect(labels).toBe(14);
+    // Eleven Preview buttons, Returned by Google SecOps and three switches.
+    expect(labels).toBe(15);
     expect(tried).toBe(TRANSLATED_LANGUAGES.length * labels);
   });
 });

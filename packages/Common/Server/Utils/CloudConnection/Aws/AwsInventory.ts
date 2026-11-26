@@ -24,7 +24,9 @@ import {
   AWS_INVENTORY_TYPES,
   AwsInventoryContext,
   AwsInventoryType,
+  ELASTIC_IP,
   addAwsLoadBalancerEdges,
+  addAwsNatGatewayAddresses,
   buildAwsInventoryItem,
 } from "./AwsInventoryCatalog";
 
@@ -287,6 +289,13 @@ async function listRegion(data: {
       listedByType.get("AWS::ElasticLoadBalancingV2::TargetGroup") || [],
     listedByItem,
     context,
+  });
+
+  // A NAT gateway's public addresses, from the Elastic IPs it names (#10504).
+  addAwsNatGatewayAddresses({
+    items: outcome.items,
+    elasticIps: listedByType.get(ELASTIC_IP) || [],
+    listedByItem,
   });
 
   return outcome;

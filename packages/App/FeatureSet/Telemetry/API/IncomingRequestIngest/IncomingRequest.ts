@@ -1,6 +1,7 @@
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsException";
 import { JSONObject } from "Common/Types/JSON";
 import Express, {
@@ -36,6 +37,10 @@ const router: ExpressRouter = Express.getRouter();
  * (StartServer's jsonBodyParserOptions), and nginx's for /heartbeat.
  */
 export const TEXT_BODY_LIMIT: string = "50mb";
+
+// What a request that could not be queued for its monitor is answered, 503.
+export const INCOMING_REQUEST_NOT_QUEUED_MESSAGE: string =
+  "This request could not be queued for its monitor. Send it again.";
 
 /*
  * A text/plain body is read as the JSON object or array it holds - how
@@ -156,17 +161,11 @@ const processIncomingRequest: RequestHandler = async (
     }
 
     /*
-     * Answered at once: a handshake with what its service expects, any other
+     * A handshake is answered with what its service expects, any other
      * request with the empty body it always got.
      */
     const answeredVerification: WebhookVerificationAnswer | null =
       verification && secretDecision.mayRecordArrival ? verification : null;
-
-    if (answeredVerification) {
-      WebhookVerification.send(res, answeredVerification);
-    } else {
-      Response.sendEmptySuccessResponse(req, res);
-    }
 
     /*
      * A CloudEvents validation (OPTIONS) is the subscription asking, not a
@@ -174,18 +173,74 @@ const processIncomingRequest: RequestHandler = async (
      * heartbeat nor reaches the criteria. Every other request does, a
      * handshake included, as it always has.
      */
-    if (req.method === "OPTIONS") {
+    const isForTheMonitor: boolean = req.method !== "OPTIONS";
+
+    /*
+     * Queued before it is answered, for the worker to evaluate. Then a
+     * request the sender sends once this one was answered - a reset after
+     * its trigger - is queued after it, and its monitor evaluates the two in
+     * that order (IncomingRequestPendingStore). And one that cannot be queued
+     * is answered 503, for the sender to send again, rather than 200 and
+     * lost.
+     */
+    if (isForTheMonitor) {
+      try {
+        await TelemetryQueueService.addIncomingRequestIngestJob({
+          secretKey: monitorSecretKeyAsString,
+          requestHeaders: requestHeaders,
+          requestBody: requestBody,
+          requestMethod: req.method,
+          receivedViaProbeId: probeIdHeader,
+          receivedAt: receivedAt,
+          /*
+           * A signature checked here presents the secret it was made with:
+           * the worker decides on it with the rest.
+           */
+          presentedSecretHashes: secretDecision.signedWithSecretHash
+            ? Array.from(
+                new Set<string>([
+                  ...presented.secretHashes,
+                  secretDecision.signedWithSecretHash,
+                ]),
+              )
+            : presented.secretHashes,
+          signatureProblem: secretDecision.signatureProblem,
+          /*
+           * The monitor learns its service was answered, and offers no link
+           * to confirm by hand. Not for a request a probe relayed: the probe
+           * has answered its sender itself, with the empty body.
+           */
+          answeredVerification:
+            answeredVerification && !probeIdHeader
+              ? answeredVerification.provider
+              : undefined,
+        });
+      } catch {
+        // What failed is logged where it failed (TelemetryQueueService).
+        throw new ServiceUnavailableException(
+          INCOMING_REQUEST_NOT_QUEUED_MESSAGE,
+        );
+      }
+    }
+
+    if (answeredVerification) {
+      WebhookVerification.send(res, answeredVerification);
+    } else {
+      Response.sendEmptySuccessResponse(req, res);
+    }
+
+    if (!isForTheMonitor) {
       return;
     }
 
     /*
      * Record the arrival now, not when a worker gets to the job: the
      * heartbeat cron judges liveness from this, so a Telemetry backlog (or a
-     * coalesced request that is never processed on its own) cannot make a
-     * live sender look silent. Best effort - never throws. Only once the
-     * request is known to count: one the endpoint could not check against
-     * its project's secret requirement is recorded by the worker, if the
-     * worker accepts it.
+     * request the monitor does not evaluate on its own) cannot make a live
+     * sender look silent. Best effort - never throws. Only once the request
+     * is known to count: one the endpoint could not check against its
+     * project's secret requirement is recorded by the worker, if the worker
+     * accepts it.
      */
     if (secretDecision.mayRecordArrival) {
       await IncomingRequestReceivedAtStore.advanceIfTracked({
@@ -193,38 +248,6 @@ const processIncomingRequest: RequestHandler = async (
         receivedAt: receivedAt,
       });
     }
-
-    // Add to queue for asynchronous processing
-    await TelemetryQueueService.addIncomingRequestIngestJob({
-      secretKey: monitorSecretKeyAsString,
-      requestHeaders: requestHeaders,
-      requestBody: requestBody,
-      requestMethod: req.method,
-      receivedViaProbeId: probeIdHeader,
-      receivedAt: receivedAt,
-      /*
-       * A signature checked here presents the secret it was made with: the
-       * worker decides on it with the rest.
-       */
-      presentedSecretHashes: secretDecision.signedWithSecretHash
-        ? Array.from(
-            new Set<string>([
-              ...presented.secretHashes,
-              secretDecision.signedWithSecretHash,
-            ]),
-          )
-        : presented.secretHashes,
-      signatureProblem: secretDecision.signatureProblem,
-      /*
-       * The monitor learns its service was answered, and offers no link to
-       * confirm by hand. Not for a request a probe relayed: the probe has
-       * answered its sender itself, with the empty body.
-       */
-      answeredVerification:
-        answeredVerification && !probeIdHeader
-          ? answeredVerification.provider
-          : undefined,
-    });
 
     return;
   } catch (err) {

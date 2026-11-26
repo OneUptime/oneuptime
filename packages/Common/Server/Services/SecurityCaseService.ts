@@ -3,12 +3,10 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import ProjectService from "./ProjectService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import TeamService from "./TeamService";
-import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Utils/Feed/FeedPersonName";
 import Model from "../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../Models/DatabaseModels/SecurityCaseFeed";
 import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -58,6 +56,9 @@ import {
   statusChangedMarkdown,
 } from "../../Utils/SecurityCase/SecurityCaseMarkdown";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
+import { SecurityCaseAiResponseState } from "../../Types/SecurityCase/SecurityCaseAi";
+import { SecurityCaseAiHoldOutcome } from "../../Types/SecurityCase/SecurityCaseAiHold";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import SecurityCasePriorities from "../../Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses, {
@@ -81,10 +82,20 @@ import {
  *    starts the Case Opened playbooks, once the case has the detection their
  *    conditions read.
  *  - playbookName: a playbook step made the change; the feed says so.
+ *  - containedByStepChecks: OneUptime moved the case to Contained itself,
+ *    having verified every step of its Response Plan that contains the
+ *    threat (StepChecks, #10340); the feed says so.
  */
 export const SECURITY_CASE_OPENED_BY_DETECTION_KEY: string =
   "openedByDetection";
 export const SECURITY_CASE_PLAYBOOK_NAME_KEY: string = "playbookName";
+/*
+ * OneUptime AI made the change, working the case (#10352): the feed names
+ * it as the change's actor, and a close it made stamps aiClosedAt.
+ */
+export const SECURITY_CASE_AI_ACTOR_KEY: string = "byOneUptimeAi";
+export const SECURITY_CASE_CONTAINED_BY_CHECKS_KEY: string =
+  "containedByStepChecks";
 
 /*
  * The case's two references, as a write can name them: a form writes the
@@ -145,6 +156,30 @@ interface CaseStateBeforeUpdate {
   nextTargetCheckAt: Date | null;
   // The setup test's case has no targets (isSetupTestCase).
   groupingKey: string | undefined;
+  // Where OneUptime AI stood on the case, and when it closed it (#10352).
+  aiResponseState: SecurityCaseAiResponseState | undefined;
+  aiClosedAt: Date | undefined;
+  // Whether OneUptime AI was responding first to it (#10353).
+  aiHoldOutcome: SecurityCaseAiHoldOutcome | undefined;
+}
+
+/*
+ * What follows a close OneUptime AI made being reopened (#10352): loaded
+ * when it is needed, since the responder's module reads this service.
+ */
+function loadSecurityCaseResponseEvents(): typeof import("../Utils/AI/Security/Response/SecurityCaseResponseEvents").default {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("../Utils/AI/Security/Response/SecurityCaseResponseEvents")
+    .default;
+}
+
+/*
+ * OneUptime AI responding first to a case (#10353): loaded when it is
+ * needed, since its module reads this service.
+ */
+function loadSecurityCaseAiHold(): typeof import("../Utils/SecurityCase/SecurityCaseAiHold").default {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("../Utils/SecurityCase/SecurityCaseAiHold").default;
 }
 
 // The case columns its response targets are read from, as a hook reads them.
@@ -430,6 +465,15 @@ export class Service extends ProjectReferencesService<Model> {
           data.setColumnValue(column, value);
         }
       }
+
+      /*
+       * OneUptime checks the steps of its Response Plan itself, from the
+       * first minute (Server/Utils/SecurityCase/StepChecks). A case opened
+       * closed has none left to check.
+       */
+      if (!created.closes) {
+        data.nextStepCheckAt = now;
+      }
     }
 
     if (created.closes) {
@@ -486,6 +530,17 @@ export class Service extends ProjectReferencesService<Model> {
       createdItem.projectId &&
       !isSetupTestCase(createdItem)
     ) {
+      /*
+       * Whether OneUptime AI responds first to the case (#10353), decided
+       * before anybody is told: a held case's notice waits for it. Never
+       * throws.
+       */
+      await loadSecurityCaseAiHold().onCaseOpened({
+        projectId: createdItem.projectId,
+        securityCaseId: createdItem.id,
+        isOpenedByDetection: openedByDetection,
+      });
+
       await SecurityCaseNotifications.caseReachedPriority({
         projectId: createdItem.projectId,
         securityCaseId: createdItem.id,
@@ -572,6 +627,9 @@ export class Service extends ProjectReferencesService<Model> {
         acknowledgedAt: true,
         containedAt: true,
         groupingKey: true,
+        aiResponseState: true,
+        aiClosedAt: true,
+        aiHoldOutcome: true,
         ...TARGET_SELECT,
       },
     );
@@ -608,6 +666,9 @@ export class Service extends ProjectReferencesService<Model> {
         nextDueAt: row.nextDueAt || null,
         nextTargetCheckAt: row.nextTargetCheckAt || null,
         groupingKey: row.groupingKey,
+        aiResponseState: row.aiResponseState,
+        aiClosedAt: row.aiClosedAt,
+        aiHoldOutcome: row.aiHoldOutcome,
       });
     }
 
@@ -638,6 +699,12 @@ export class Service extends ProjectReferencesService<Model> {
             SECURITY_CASE_PLAYBOOK_NAME_KEY
           ] as string)
         : undefined;
+    const byStepChecks: boolean =
+      onUpdate.updateBy.miscDataProps?.[
+        SECURITY_CASE_CONTAINED_BY_CHECKS_KEY
+      ] === true;
+    const byOneUptimeAi: boolean =
+      onUpdate.updateBy.miscDataProps?.[SECURITY_CASE_AI_ACTOR_KEY] === true;
 
     for (const updatedId of updatedItemIds) {
       const old: CaseStateBeforeUpdate | undefined = before.get(
@@ -665,6 +732,8 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: old.projectId,
           userId,
           playbookName,
+          byStepChecks,
+          byOneUptimeAi,
           values,
         });
       } catch (error) {
@@ -692,10 +761,17 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     userId: ObjectID | undefined;
     playbookName: string | undefined;
+    byStepChecks?: boolean | undefined;
+    // OneUptime AI made the change, working the case (#10352).
+    byOneUptimeAi?: boolean | undefined;
     values: ProjectSecurityCaseValues;
   }): Promise<void> {
     const { old, data, caseId, projectId, userId, playbookName, values } =
       input;
+    // OneUptime AI's name, for a change it made (#10352): the feed's actor.
+    const aiName: string | undefined = input.byOneUptimeAi
+      ? `${ProductBrandingText.getProductName()} AI`
+      : undefined;
     const now: Date = OneUptimeDate.getCurrentDate();
     // Dates and ids as themselves: the hook-free write runs them through the columns' transformers.
     const stamps: Record<string, unknown> = {};
@@ -731,10 +807,45 @@ export class Service extends ProjectReferencesService<Model> {
         stamps["verdict"] = verdict;
         stamps["closedAt"] = now;
         stamps["closedByUserId"] = userId || null;
+        // A closed case's steps are not checked any more (StepChecks).
+        stamps["nextStepCheckAt"] = null;
+        /*
+         * OneUptime AI is done with a closed case (#10352): it looks at it
+         * no more, and a close it made is the overview's "resolved by
+         * OneUptime AI".
+         */
+        if (old.aiResponseState) {
+          stamps["aiResponseState"] = SecurityCaseAiResponseState.Finished;
+        }
+        stamps["aiNextLookAt"] = null;
+        if (input.byOneUptimeAi) {
+          stamps["aiClosedAt"] = now;
+        }
       } else if (change.reopens) {
         stamps["verdict"] = null;
         stamps["closedAt"] = null;
         stamps["closedByUserId"] = null;
+        /*
+         * Reopened, a close OneUptime AI made is taken back (#10352): the
+         * case is no longer one it resolved, and its close reads as undone
+         * by whoever reopened it (SecurityCaseResponseEvents).
+         */
+        if (old.aiClosedAt) {
+          stamps["aiClosedAt"] = null;
+          await loadSecurityCaseResponseEvents().closeWasReopened({
+            projectId,
+            securityCaseId: caseId,
+            userId,
+          });
+        }
+
+        // Reopened, its steps are checked again from now.
+        if (
+          !old.groupingKey ||
+          !isSetupTestCase({ groupingKey: old.groupingKey })
+        ) {
+          stamps["nextStepCheckAt"] = now;
+        }
       } else if (isClosedNow) {
         verdict = isSecurityCaseVerdict(data["verdict"])
           ? data["verdict"]
@@ -762,6 +873,8 @@ export class Service extends ProjectReferencesService<Model> {
           verdict,
           reopens: change.reopens,
           playbookName,
+          aiName,
+          byStepChecks: input.byStepChecks === true && change.contains,
         }).toString(),
         moreInformationInMarkdown:
           change.closes && typeof data["closingNote"] === "string"
@@ -815,6 +928,7 @@ export class Service extends ProjectReferencesService<Model> {
             SecurityCasePriorities.find(values.priorities, newPriorityId),
           ),
           playbookName,
+          aiName,
         }).toString(),
         eventType: SecurityCaseFeedEventType.PriorityChanged,
         displayColor: Orange500,
@@ -892,6 +1006,39 @@ export class Service extends ProjectReferencesService<Model> {
       await this.updateColumnsByIdWithoutHooks({
         id: caseId,
         data: stamps as unknown as PartialEntity<Model>,
+      });
+    }
+
+    /*
+     * A case OneUptime AI holds while it responds first (#10353): a person
+     * who assigned it to somebody or moved its status on has it, and
+     * nobody else is alerted; a rise, or a case contained or closed some
+     * other way, is reviewed now (SecurityCaseAiHold). A playbook, OneUptime
+     * AI and its checks are no person.
+     */
+    if (old.aiHoldOutcome === SecurityCaseAiHoldOutcome.Holding) {
+      const isPersonsChange: boolean = Boolean(
+        userId &&
+          !playbookName &&
+          input.byOneUptimeAi !== true &&
+          input.byStepChecks !== true,
+      );
+
+      await loadSecurityCaseAiHold().onCaseChanged({
+        projectId,
+        securityCaseId: caseId,
+        byUserId: isPersonsChange ? userId : undefined,
+        isAssignedToPerson: Boolean(userChanged && data["assignedToUserId"]),
+        isStatusChanged: Boolean(newStatusId && newStatusId !== old.statusId),
+        isPriorityRaised: Boolean(
+          newPriorityId &&
+            newPriorityId !== old.priorityId &&
+            SecurityCasePriorities.isMoreUrgent(
+              values.priorities,
+              newPriorityId,
+              old.priorityId,
+            ),
+        ),
       });
     }
   }
@@ -1029,31 +1176,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A person as the project names them: someone only invited to it by the
-   * name typed for them, else their address - never their account's own
-   * name, which it does not see until they join (#9823).
+   * Whom the case is assigned to, as its timeline says it - and the
+   * timeline is read through the API and workflows, by whoever they hand it
+   * to: named through FeedPersonName (#10681). Someone only invited by the
+   * name typed with their invitation, else "someone who hasn't joined the
+   * project yet", never by their account's own name (#9823); a member by
+   * their name, else the part of their address before the "@". Never an
+   * address. "a user" for somebody who is gone.
    */
   private async getUserName(
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<string> {
-    const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    await PendingInviteeProfiles.nameInProject({
-      users: [user],
-      projectId: projectId,
-    });
-
-    return user?.name?.toString() || user?.email?.toString() || "a user";
+    return (
+      (await FeedPersonName.getText({
+        userId: userId,
+        projectId: projectId,
+      })) || "a user"
+    );
   }
 
   private async getTeamName(teamId: ObjectID): Promise<string> {

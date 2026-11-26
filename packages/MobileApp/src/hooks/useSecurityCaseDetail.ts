@@ -1,9 +1,12 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
+  fetchCasePlaybookRuns,
+  fetchPlaybookApproval,
   fetchSecurityCaseById,
   fetchSecurityCaseFeed,
   fetchSecurityCaseNotes,
   fetchWaitingPlaybookRuns,
+  type PlaybookApprovalReadout,
 } from "../api/securityCases";
 import { isAccessDenied } from "./useSecurityCases";
 import type {
@@ -64,6 +67,41 @@ export function useSecurityCaseNotes(
       return fetchSecurityCaseNotes(projectId, caseId);
     },
     enabled: Boolean(projectId) && Boolean(caseId) && enabled,
+    retry: retryUnlessDenied,
+  });
+}
+
+// The case's playbook runs, the latest first: what their steps contained.
+export function useCasePlaybookRuns(
+  projectId: string,
+  caseId: string,
+  enabled: boolean = true,
+): UseQueryResult<SecurityPlaybookRunItem[], Error> {
+  return useQuery({
+    queryKey: ["security-playbook-runs", projectId, caseId],
+    queryFn: () => {
+      return fetchCasePlaybookRuns(projectId, caseId);
+    },
+    enabled: Boolean(projectId) && Boolean(caseId) && enabled,
+    retry: retryUnlessDenied,
+  });
+}
+
+/*
+ * A step's approval, as its chat messages say it: the evidence on the
+ * approval card, or what became of an approval a push named.
+ */
+export function usePlaybookApproval(
+  projectId: string,
+  runId: string | null,
+  enabled: boolean = true,
+): UseQueryResult<PlaybookApprovalReadout, Error> {
+  return useQuery({
+    queryKey: ["security-playbook-approval", projectId, runId],
+    queryFn: () => {
+      return fetchPlaybookApproval(projectId, runId as string);
+    },
+    enabled: Boolean(projectId) && Boolean(runId) && enabled,
     retry: retryUnlessDenied,
   });
 }

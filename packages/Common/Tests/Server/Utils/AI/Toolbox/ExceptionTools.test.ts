@@ -333,7 +333,7 @@ describe("top_exceptions", () => {
 
   test("redacts secrets in exception messages before they reach the model, but not in the widget", async () => {
     const message: string =
-      "auth failed for ops@example.com with password=hunter22 from 10.0.0.5";
+      "auth failed for ops@example.com with password=hunter22 from 203.0.113.5";
     jest
       .spyOn(TelemetryExceptionService, "findBy")
       .mockResolvedValue([exception({ message: message, occuranceCount: 1 })]);
@@ -345,7 +345,7 @@ describe("top_exceptions", () => {
 
     expect(result.dataForLlm).not.toContain("ops@example.com");
     expect(result.dataForLlm).not.toContain("hunter22");
-    expect(result.dataForLlm).not.toContain("10.0.0.5");
+    expect(result.dataForLlm).not.toContain("203.0.113.5");
     expect(result.dataForLlm).toContain("[redacted-email]");
     expect(result.dataForLlm).toContain("password=[redacted]");
     expect(result.dataForLlm).toContain("[redacted-ip]");

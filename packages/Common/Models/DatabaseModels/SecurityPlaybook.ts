@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Project from "./Project";
 import SecurityCasePriority from "./SecurityCasePriority";
 import User from "./User";
@@ -94,6 +96,18 @@ const editableColumnAccess: {
   update: updatePermissions,
 })
 @CrudApiEndpoint(new Route("/security-playbook"))
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_SECURITYPLAYBOOK_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "SecurityPlaybook",
 })
@@ -154,6 +168,7 @@ export default class SecurityPlaybook extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -205,7 +220,16 @@ export default class SecurityPlaybook extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: Object.values(SecurityPlaybookTrigger),
+    /*
+     * A playbook's: never OneUptime AI's own runs' (SecurityPlaybookTrigger.OneUptimeAi).
+     * SECURITY_PLAYBOOK_TRIGGERS, its members as written, so the subset is read where it is.
+     */
+    allowedValues: [
+      SecurityPlaybookTrigger.CaseOpened,
+      SecurityPlaybookTrigger.DetectionAdded,
+      SecurityPlaybookTrigger.TriagedAsLikelyMalicious,
+      SecurityPlaybookTrigger.Manual,
+    ],
     canReadOnRelationQuery: true,
     title: "Trigger",
     description:
@@ -396,47 +420,4 @@ export default class SecurityPlaybook extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "The person who deleted the playbook.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the person who deleted the playbook.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

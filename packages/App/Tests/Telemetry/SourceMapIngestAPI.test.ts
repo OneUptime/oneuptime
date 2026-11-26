@@ -174,6 +174,38 @@ jest.mock("Common/Server/Middleware/MultipartFormData", () => {
   };
 });
 
+/*
+ * The upload reader the route builds (#10673), recorded: what it was handed
+ * - the multipart middleware above all - and the handler it gave back,
+ * which is what the route mounts behind the key check.
+ */
+interface UploadReaderBuild {
+  readers: {
+    limit: unknown;
+    multipart: unknown;
+    json?: boolean | undefined;
+    bytes?: boolean | undefined;
+  };
+  handler: unknown;
+}
+
+const uploadReaderBuilds: Array<UploadReaderBuild> = [];
+
+jest.mock("Common/Server/Middleware/RequestBodyAfterAuthentication", () => {
+  return {
+    __esModule: true,
+    default: {
+      readUpload: (readers: UploadReaderBuild["readers"]): unknown => {
+        const handler: unknown = jest.fn();
+
+        uploadReaderBuilds.push({ readers: readers, handler: handler });
+
+        return handler;
+      },
+    },
+  };
+});
+
 jest.mock("Common/Server/Utils/Response", () => {
   return {
     __esModule: true,
@@ -406,14 +438,17 @@ describe("route registration", () => {
     expect(registeredPostHandlers[UPLOAD_ROUTE]).toBeDefined();
   });
 
-  test("middleware order: ingestion-disabled gate → multipart → bearer adapter → auth → handler", () => {
+  test("middleware order: ingestion-disabled gate → bearer adapter → auth → upload reader → handler", () => {
     const handlers: Array<unknown> = registeredPostHandlers[UPLOAD_ROUTE]!;
 
     expect(handlers).toHaveLength(5);
     expect(handlers[0]).toBe(ingestionDisabledMiddleware);
-    expect(handlers[1]).toBe(multipartMiddleware);
-    // handlers[2] is the local bearer-token adapter (asserted behaviourally below)
-    expect(handlers[3]).toBe(authMiddleware);
+    // handlers[1] is the local bearer-token adapter (asserted behaviourally below)
+    expect(handlers[2]).toBe(authMiddleware);
+    // The body is read behind the key check (#10673), never before it.
+    expect(uploadReaderBuilds).toHaveLength(1);
+    expect(handlers[3]).toBe(uploadReaderBuilds[0]!.handler);
+    expect(handlers).not.toContain(multipartMiddleware);
   });
 
   test("the mounted multipart middleware is built from SOURCE_MAP_MAX_FILES_PER_REQUEST", () => {
@@ -429,7 +464,8 @@ describe("route registration", () => {
     expect(multipartMiddlewareBuilds[0]!.maxFiles).toBe(
       realEnvironmentConfig.SourceMapMaxFilesPerRequest,
     );
-    expect(registeredPostHandlers[UPLOAD_ROUTE]![1]).toBe(
+    // Handed to the upload reader, which runs it once the key is checked.
+    expect(uploadReaderBuilds[0]!.readers.multipart).toBe(
       multipartMiddlewareBuilds[0]!.middleware,
     );
   });
@@ -461,7 +497,7 @@ describe("route registration", () => {
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
-    ) => void = registeredPostHandlers[UPLOAD_ROUTE]![2] as never;
+    ) => void = registeredPostHandlers[UPLOAD_ROUTE]![1] as never;
 
     const req: ExpressRequest = makeRequest({
       headers: { authorization: "Bearer secret-token" },
@@ -479,7 +515,7 @@ describe("route registration", () => {
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
-    ) => void = registeredPostHandlers[UPLOAD_ROUTE]![2] as never;
+    ) => void = registeredPostHandlers[UPLOAD_ROUTE]![1] as never;
 
     const req: ExpressRequest = makeRequest({
       headers: {

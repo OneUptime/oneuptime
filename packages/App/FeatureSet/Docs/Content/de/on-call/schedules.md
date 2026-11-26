@@ -46,6 +46,8 @@ Alles andere liegt unter **Weitere Felder**, eingeklappt, bis Sie es öffnen:
 
 Solange sich jemand abwechselt und unter **Weitere Felder** nichts geändert ist, sagt die eingeklappte Überschrift, was geschehen wird: Jede Person ist eine Woche in Bereitschaft, dann übernimmt die nächste.
 
+Auch jemand, der in das Projekt eingeladen, ihm aber noch nicht beigetreten ist, kann sich abwechseln, doch nichts alarmiert die Person, bis sie ihre Einladung annimmt, und ihr wird nichts mitgeteilt. Ihr Dienst ist eine Abdeckungslücke, und die Kanäle und der Feed jeder Bereitschaftsrichtlinie, die den Plan alarmiert, sagen das und nennen sie mit dem Namen, der mit der Einladung eingegeben wurde, nie mit ihrer E-Mail-Adresse: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` in Slack und `oncall` in Microsoft Teams sagen es auch. Sobald sie beitritt, erreichen Alarmierungen sie, ihr wird mitgeteilt, welche Bereitschaftsrichtlinien sie jetzt alarmieren, und die Kanäle hören "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Bis dahin führt [Einsatzbereitschaft & Berichte](/docs/on-call/readiness) sie auf, mit dem, was zu tun ist.
+
 ## Ebenen
 
 Die Rotation eines Plans besteht aus Ebenen, auf seiner Seite **Ebenen**. Die Ebenen werden von oben nach unten gelesen: Die oberste Ebene, in der jemand Bereitschaft hat, ist die, die alarmiert. Legen Sie die Hauptrotation also nach oben und die Vertretung darunter.

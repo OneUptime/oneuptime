@@ -23,7 +23,7 @@ import Headers from "Common/Types/API/Headers";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
-import { JSONObject } from "Common/Types/JSON";
+import { APIRequestBody } from "Common/Utils/API";
 import { HTTPResponseBodyBudget } from "Common/Utils/HTTPResponseBodyReader";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
@@ -189,7 +189,8 @@ export interface RedirectRequest {
   url: string;
   method: HTTPMethod;
   headers: Headers;
-  body?: JSONObject | undefined;
+  // What the request carries: bytes as written, or a form's fields (ApiMonitor).
+  body?: APIRequestBody | undefined;
   crossesOrigin?: true | undefined;
 }
 
@@ -628,7 +629,7 @@ export default class HttpMonitorRequest {
     responseHeaders: Headers;
     currentMethod: HTTPMethod;
     requestHeaders?: Headers | undefined;
-    requestBody?: JSONObject | undefined;
+    requestBody?: APIRequestBody | undefined;
     redirectsFollowed: number;
   }): RedirectRequest | null {
     if (![301, 302, 303, 307, 308].includes(data.statusCode)) {
@@ -659,7 +660,7 @@ export default class HttpMonitorRequest {
     }
 
     let method: HTTPMethod = data.currentMethod;
-    let body: JSONObject | undefined = data.requestBody;
+    let body: APIRequestBody | undefined = data.requestBody;
     let rewroteToGet: boolean = false;
 
     if (

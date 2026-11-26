@@ -10,19 +10,24 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { SecurityEntityType } from "../../Types/SecurityCase/SecurityEntity";
 import {
+  PROTECTED_DOMAIN_PROBLEM,
   PROTECTED_ENTITY_VALUE_MAX_LENGTH,
+  PROTECTED_FILE_HASH_PROBLEM,
   ProtectedEntityRule,
   isProtectedEntityType,
   normalizeProtectedAddressValue,
+  normalizeProtectedDomainValue,
   normalizeProtectedEntityValue,
+  normalizeProtectedFileHashValue,
 } from "../../Types/SecurityPlaybook/SecurityProtectedEntity";
 
 /*
- * The project's protected users, hosts and addresses. A row is a user or a
- * host and a value (or `*` pattern) for it, or an address or a range of
- * addresses, held to those, trimmed - an address written the one way blocks
- * are - and listed once: the same value twice for the same kind is refused,
- * whatever its case.
+ * The project's protected users, hosts, addresses, domains and files. A row
+ * is a user or a host and a value (or `*` pattern) for it, an address or a
+ * range of addresses, a domain (or `*.` and one), or a file's hash, held to
+ * those, trimmed - an address, a domain and a hash written the one way
+ * blocks are - and listed once: the same value twice for the same kind is
+ * refused, whatever its case.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -32,7 +37,7 @@ export class Service extends ProjectReferencesService<Model> {
   private static readType(value: unknown): SecurityEntityType {
     if (!isProtectedEntityType(value)) {
       throw new BadDataException(
-        "Choose what to protect: a User, a Host or an IP Address. Containment acts on nothing else.",
+        "Choose what to protect: a User, a Host, an IP Address, a Domain or a File Hash. Containment acts on nothing else.",
       );
     }
 
@@ -55,6 +60,28 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       return address;
+    }
+
+    // A domain written as blocks are, or *. and one for every name under it (#10346).
+    if (entityType === SecurityEntityType.Domain) {
+      const domain: string | null = normalizeProtectedDomainValue(text);
+
+      if (!domain) {
+        throw new BadDataException(PROTECTED_DOMAIN_PROBLEM);
+      }
+
+      return domain;
+    }
+
+    // A file by its MD5, SHA-1 or SHA-256 hash, in lower-case hex (#10346).
+    if (entityType === SecurityEntityType.FileHash) {
+      const hash: string | null = normalizeProtectedFileHashValue(text);
+
+      if (!hash) {
+        throw new BadDataException(PROTECTED_FILE_HASH_PROBLEM);
+      }
+
+      return hash;
     }
 
     if (!text) {

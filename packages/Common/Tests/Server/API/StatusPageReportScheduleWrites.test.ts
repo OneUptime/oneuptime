@@ -1,3 +1,4 @@
+import { withoutLastModifiedStamp } from "../TestingUtils/LastModifiedStamp";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
@@ -110,7 +111,7 @@ const PLANS: ReadonlyArray<PlanType> = [
 ];
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const NOW: Date = OneUptimeDate.fromString("2026-10-04T12:00:00.000Z");
 
@@ -339,7 +340,7 @@ beforeEach(() => {
       where: { _id: string },
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
-      const written: Record<string, unknown> = { ...set };
+      const written: Record<string, unknown> = withoutLastModifiedStamp(set);
       delete written["version"];
       writes.push({ statusPageId: where._id.toString(), data: written });
       return { affected: 1 };

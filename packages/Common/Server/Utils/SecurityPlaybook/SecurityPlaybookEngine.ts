@@ -48,16 +48,33 @@ import {
 import { evaluateSecurityPlaybookStepCondition } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import FeedMarkdown, {
   MarkdownText,
+  mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
 import {
+  aiStepRunFailedMarkdown,
+  aiStepRunMarkdown,
   approvalRequestedMarkdown,
+  oneStepRunFailedMarkdown,
+  oneStepRunMarkdown,
   playbookFailedMarkdown,
   playbookFinishedMarkdown,
   playbookInterruptedMarkdown,
   playbookStepMarkdown,
   playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import { readOneStepRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
+import { isOneUptimeAiRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import ProductBrandingText from "../ProductBrandingText";
+import SecurityCaseResponseAfterClose from "../AI/Security/Response/SecurityCaseResponseAfterClose";
+import SecurityCaseResponseNudge from "../AI/Security/Response/SecurityCaseResponseNudge";
 import PartialEntity from "../../../Types/Database/PartialEntity";
+import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
+import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
+import SecurityCaseAiHold from "../SecurityCase/SecurityCaseAiHold";
+import {
+  SecurityCaseAiHoldOutcome,
+  SecurityCaseAiHoldPageDecision,
+} from "../../../Types/SecurityCase/SecurityCaseAiHold";
 
 export const SECURITY_PLAYBOOK_RUN_JOB: string =
   "SecurityPlaybooks:RunPlaybook";
@@ -108,6 +125,11 @@ export function getStepTitle(step: SecurityPlaybookStep): string {
  * before it does anything. Approving it (SecurityPlaybookRunAPI) records the
  * decision on the step and queues the run again, which carries on from that
  * step; rejecting it ends the run.
+ *
+ * A Page On-Call step of a run that started on its own waits while
+ * OneUptime AI responds first to the case (#10353): the run stops in
+ * Waiting for OneUptime AI until the hold ends, then pages - or skips the
+ * page, when the case was resolved with nobody alerted or a person took it.
  *
  * A step that acts on users or hosts picks its targets first, by the target
  * rule (SecurityPlaybookTargets), and keeps them on its result: the approver
@@ -174,6 +196,7 @@ export default class SecurityPlaybookEngine {
         _id: true,
         projectId: true,
         securityCaseId: true,
+        securityPlaybookId: true,
         playbookName: true,
         status: true,
         steps: true,
@@ -182,6 +205,9 @@ export default class SecurityPlaybookEngine {
         threatIntelMatched: true,
         startedAt: true,
         triggeredByUserId: true,
+        securityAutomaticResponsePolicyId: true,
+        trigger: true,
+        createdAt: true,
       },
       props: {
         isRoot: true,
@@ -278,6 +304,19 @@ export default class SecurityPlaybookEngine {
     const projectId: ObjectID = run.projectId;
     const securityCaseId: ObjectID = run.securityCaseId;
     const playbookName: string = run.playbookName || "Playbook";
+    /*
+     * A person's one-step run from a case (#10342) has no playbook: its
+     * timeline says what its step did, not that a playbook started and
+     * finished around it.
+     */
+    /*
+     * A run OneUptime AI started while working the case (#10352): one step,
+     * no playbook, as a person's one-step run - its timeline says what its
+     * step did, as OneUptime AI's.
+     */
+    const isOneUptimeAi: boolean = isOneUptimeAiRun(run);
+    const isOneStepRun: boolean = readOneStepRun(run) !== null || isOneUptimeAi;
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
 
     if (!run.startedAt) {
       await SecurityPlaybookRunService.updateColumnsByIdWithoutHooks({
@@ -375,6 +414,73 @@ export default class SecurityPlaybookEngine {
           threatIntelMatched,
         });
         return;
+      }
+
+      /*
+       * A Page On-Call step while OneUptime AI responds first to the case
+       * (#10353, SecurityCaseAiHold): a run that started on its own waits,
+       * in Waiting for OneUptime AI, until the hold ends - then pages, or
+       * skips the page when the case was resolved with nobody alerted or a
+       * person took it.
+       */
+      if (step.action === SecurityPlaybookActionType.PageOnCall) {
+        const page: {
+          decision: SecurityCaseAiHoldPageDecision;
+          outcome: SecurityCaseAiHoldOutcome | null;
+        } = await SecurityCaseAiHold.getPageDecision({
+          projectId,
+          securityCaseId,
+          run,
+        });
+
+        if (page.decision === SecurityCaseAiHoldPageDecision.Wait) {
+          await this.waitForOneUptimeAi({
+            runId,
+            projectId,
+            securityCaseId,
+            playbookName,
+            stepNumber,
+            stepTitle,
+            index,
+            results,
+            threatIntelMatched,
+          });
+          return;
+        }
+
+        if (page.decision === SecurityCaseAiHoldPageDecision.Skip) {
+          const message: string = SecurityCaseAiHold.getPageSkippedMessage(
+            page.outcome,
+          );
+
+          results[index] = {
+            ...results[index]!,
+            status: SecurityPlaybookStepStatus.Skipped,
+            completedAt: OneUptimeDate.getCurrentDate().toISOString(),
+            message: clampStepResultText(message),
+          };
+
+          await this.saveProgress({
+            runId,
+            results,
+            currentStepIndex: index + 1,
+            threatIntelMatched,
+          });
+
+          await SecurityCaseFeedService.createSecurityCaseFeedItem({
+            projectId,
+            securityCaseId,
+            feedInfoInMarkdown: playbookStepMarkdown({
+              playbookName,
+              stepNumber,
+              stepTitle,
+              summary: mdText`${message}`,
+            }).toString(),
+            eventType: SecurityCaseFeedEventType.PlaybookStep,
+            displayColor: Indigo500,
+          });
+          continue;
+        }
       }
 
       if (
@@ -540,6 +646,10 @@ export default class SecurityPlaybookEngine {
           securityCase,
           triggeredByUserId: run.triggeredByUserId,
           targets: results[index]!.targets,
+          isOneStepRun,
+          automaticResponsePolicyId:
+            run.securityAutomaticResponsePolicyId || undefined,
+          isOneUptimeAi,
         });
       } catch (error) {
         outcome = {
@@ -576,16 +686,46 @@ export default class SecurityPlaybookEngine {
         threatIntelMatched,
       });
 
+      /*
+       * A step somebody approved: its approval message, in every channel
+       * and direct message it was sent to, says how the step went
+       * (WorkspaceSecurityPlaybookApprovalMessages).
+       */
+      if (results[index]!.approval) {
+        WorkspaceSecurityPlaybookApprovalMessages.refreshInBackground({
+          projectId,
+          runId,
+        });
+      }
+
+      /*
+       * A step that ran may have done one of the case's Response Plan steps
+       * - suspended the account, contained the host - or undone one:
+       * OneUptime checks them at once (#10340). A playbook's steps in a row
+       * are one check.
+       */
+      if (outcome.status !== SecurityPlaybookStepStatus.Skipped) {
+        await SecurityCaseStepChecks.requestCheck({
+          projectId,
+          securityCaseId,
+        });
+      }
+
       if (summaryText && !outcome.hasWrittenOwnFeed) {
         await SecurityCaseFeedService.createSecurityCaseFeedItem({
           projectId,
           securityCaseId,
-          feedInfoInMarkdown: playbookStepMarkdown({
-            playbookName,
-            stepNumber,
-            stepTitle,
-            summary: outcome.summary,
-          }).toString(),
+          feedInfoInMarkdown: (isOneUptimeAi
+            ? aiStepRunMarkdown({ aiName, summary: outcome.summary })
+            : isOneStepRun
+              ? oneStepRunMarkdown({ summary: outcome.summary })
+              : playbookStepMarkdown({
+                  playbookName,
+                  stepNumber,
+                  stepTitle,
+                  summary: outcome.summary,
+                })
+          ).toString(),
           moreInformationInMarkdown: outcome.detailsInMarkdown?.toString(),
           eventType:
             outcome.feedEventType || SecurityCaseFeedEventType.PlaybookStep,
@@ -604,14 +744,19 @@ export default class SecurityPlaybookEngine {
           runId,
           status: SecurityPlaybookRunStatus.Failed,
           errorMessage: `Step ${stepNumber} (${stepTitle}) failed: ${outcome.error || "no reason was given."}`,
+          aiCase: isOneUptimeAi ? { projectId, securityCaseId } : undefined,
           feed: {
             projectId,
             securityCaseId,
-            markdown: playbookFailedMarkdown({
-              playbookName,
-              stepNumber,
-              stepTitle,
-            }),
+            markdown: isOneUptimeAi
+              ? aiStepRunFailedMarkdown({ aiName, stepTitle })
+              : isOneStepRun
+                ? oneStepRunFailedMarkdown({ stepTitle })
+                : playbookFailedMarkdown({
+                    playbookName,
+                    stepNumber,
+                    stepTitle,
+                  }),
             detailsInMarkdown: outcome.error
               ? FeedMarkdown.multilineText(outcome.error)
               : undefined,
@@ -619,6 +764,16 @@ export default class SecurityPlaybookEngine {
         });
         return;
       }
+    }
+
+    // A one-step run's step said what it did: nothing finished around it.
+    if (isOneStepRun) {
+      await this.finishRun({
+        runId,
+        status: SecurityPlaybookRunStatus.Succeeded,
+        aiCase: isOneUptimeAi ? { projectId, securityCaseId } : undefined,
+      });
+      return;
     }
 
     const counts: { succeeded: number; skipped: number; failed: number } = {
@@ -649,6 +804,82 @@ export default class SecurityPlaybookEngine {
         }),
       },
     });
+  }
+
+  /*
+   * A Page On-Call step that waits while OneUptime AI responds first to the
+   * case (#10353): the step says so, and the run waits in Waiting for
+   * OneUptime AI from Running, as one waiting for approval does. The hold's
+   * end queues it again (SecurityCaseAiHold), and it carries on from this
+   * step. A hold that ended between reading it and the run waiting carries
+   * the run on at once.
+   */
+  private static async waitForOneUptimeAi(data: {
+    runId: ObjectID;
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    playbookName: string;
+    stepNumber: number;
+    stepTitle: string;
+    index: number;
+    results: Array<SecurityPlaybookStepResult>;
+    threatIntelMatched: boolean;
+  }): Promise<void> {
+    const { results } = data;
+
+    results[data.index] = {
+      ...results[data.index]!,
+      status: SecurityPlaybookStepStatus.WaitingForOneUptimeAi,
+    };
+
+    await this.saveProgress({
+      runId: data.runId,
+      results,
+      currentStepIndex: data.index,
+      threatIntelMatched: data.threatIntelMatched,
+    });
+
+    const isWaiting: boolean =
+      await SecurityPlaybookRunService.compareAndSetColumnsByIdWithoutHooks({
+        id: data.runId,
+        data: {
+          status: SecurityPlaybookRunStatus.WaitingForOneUptimeAi,
+        },
+        expectedData: {
+          status: SecurityPlaybookRunStatus.Running,
+        },
+      });
+
+    if (!isWaiting) {
+      return;
+    }
+
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+    await SecurityCaseFeedService.createSecurityCaseFeedItem({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      feedInfoInMarkdown: playbookStepMarkdown({
+        playbookName: data.playbookName,
+        stepNumber: data.stepNumber,
+        stepTitle: data.stepTitle,
+        summary: mdText`waits while ${aiName} responds first. It pages if people are alerted, and is skipped if nobody has to be.`,
+      }).toString(),
+      eventType: SecurityCaseFeedEventType.PlaybookStep,
+      displayColor: Indigo500,
+    });
+
+    if (
+      !(await SecurityCaseAiHold.isHeld({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+      }))
+    ) {
+      await SecurityCaseAiHold.carryOnWaitingRuns({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+      });
+    }
   }
 
   /*
@@ -735,6 +966,8 @@ export default class SecurityPlaybookEngine {
           detailsInMarkdown?: MarkdownText | undefined;
         }
       | undefined;
+    // A run OneUptime AI started while working this case (#10352).
+    aiCase?: { projectId: ObjectID; securityCaseId: ObjectID } | undefined;
   }): Promise<void> {
     const errorMessage: string | undefined = clampStepResultText(
       data.errorMessage || undefined,
@@ -756,6 +989,19 @@ export default class SecurityPlaybookEngine {
           status: SecurityPlaybookRunStatus.Running,
         },
       });
+
+    /*
+     * One of OneUptime AI's own steps finished (#10352): it looks at the
+     * case again, and reads how the step went. A close of its own ended its
+     * work on the case, so what follows that close - its closing report, and
+     * for a false positive or a benign case the case's blocks lifted and its
+     * rule offered an exception - is carried out here, at once, with no look
+     * (#10847, SecurityCaseResponseAfterClose). Neither throws.
+     */
+    if (finished && data.aiCase) {
+      await SecurityCaseResponseNudge.lookNow(data.aiCase);
+      await SecurityCaseResponseAfterClose.followUp(data.aiCase);
+    }
 
     if (!finished || !data.feed) {
       return;

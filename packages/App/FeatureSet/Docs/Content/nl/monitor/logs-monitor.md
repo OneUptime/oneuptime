@@ -237,7 +237,7 @@ De waarde van elk Group By-attribuut is een [templatevariabele](/docs/monitor/in
 - **Elk criterium wordt geëvalueerd**, net als bij een gegroepeerde metrics-monitor, dus verschillende groepen kunnen tegelijk aan verschillende criteria voldoen. Een groep die aan twee criteria voldoet, krijgt nog steeds één waarschuwing, van het eerste; zet de criteria dus op volgorde van ernstigst naar minst ernstig.
 - **Een groep bestaat alleen als hij in het tijdvenster iets heeft gelogd.** Criteria als **Gelijk aan 0** en **Kleiner dan** gaan daarom alleen af voor groepen die minstens één keer hebben gelogd; om gewaarschuwd te worden wanneer logs helemaal niet meer binnenkomen, gebruikt u een monitor zonder Group By.
 - **Anomaliedetectie** (**Afwijkend hoog**, **Afwijkend laag**, **Afwijkend**) wordt niet per groep geëvalueerd (de baseline omvat de hele monitor), dus die filters komen bij een gegroepeerde monitor nooit overeen.
-- De status van de monitor volgt het eerste criterium waaraan een groep voldoet. Voldoet geen enkele groep aan een criterium, dan gaat de monitor terug naar zijn standaardstatus.
+- De status van de monitor volgt het eerste criterium waaraan een groep voldoet. Een criterium dat de monitor alleen terugbrengt naar zijn standaardstatus en geen waarschuwing of incident opent, wacht op de groepen die voldeden aan een criterium dat een andere status zet, tot elk van hen eraan voldoet of in het tijdvenster niets logt. Voldoet geen enkele groep aan een criterium en wordt op geen enkele gewacht, dan gaat de monitor terug naar zijn standaardstatus.
 
 ## Problemen oplossen
 

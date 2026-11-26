@@ -80,7 +80,8 @@ export default class AuditLog extends AnalyticsBaseModel {
     const resourceNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "resourceName",
       title: "Resource Name",
-      description: "Display name of the resource at the time of the change.",
+      description:
+        'Display name of the resource at the time of the change. "[HIDDEN]" when you may not read the resource itself.',
       required: false,
       type: TableColumnType.Text,
       accessControl: {
@@ -480,7 +481,7 @@ export default class AuditLog extends AnalyticsBaseModel {
       key: "changes",
       title: "Changes",
       description:
-        "Field-level changes for Update actions, or full snapshot for Create/Delete. Redacted fields are omitted.",
+        'Field-level changes for Update actions, or full snapshot for Create/Delete. Redacted fields are omitted. A field you may not read on the resource itself is still named, with "[HIDDEN]" in place of its values and valueHidden set to true.',
       required: true,
       defaultValue: [],
       type: TableColumnType.JSONArray,

@@ -24,6 +24,8 @@ import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ObjectID from "Common/Types/ObjectID";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+// The reads alone, which import no React: the pickers' hooks are elsewhere.
+import MetricTypeSearch from "./MetricTypeReads";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
@@ -597,8 +599,15 @@ export default class MetricUtil {
      */
     const metricTypes: Array<MetricType> =
       data.metricTypes ??
-      (await MetricUtil.loadAllMetricsTypes({ includeAttributes: false }))
-        .metricTypes;
+      (
+        await MetricUtil.loadAllMetricsTypes({
+          includeAttributes: false,
+          // The queries' own metrics, however they sort (#10691).
+          metricNames: MetricTypeSearch.getMetricNamesIn(
+            metricViewData.queryConfigs,
+          ),
+        })
+      ).metricTypes;
 
     const nativeUnitsByMetricName: Map<string, string> = new Map<
       string,
@@ -953,6 +962,15 @@ export default class MetricUtil {
 
   public static async loadAllMetricsTypes(options?: {
     includeAttributes?: boolean;
+    /*
+     * The metrics the page's queries chart: read by their names, wherever
+     * they sort, and added to the list (#10691). The list is the project's
+     * first 10,000 by name, and a charted metric past them had no unit and
+     * no kind of counter. A page still reading what it charts (a
+     * dashboard's widgets) hands the names as they will come: the list is
+     * read meanwhile.
+     */
+    metricNames?: Array<string> | Promise<Array<string>> | undefined;
   }): Promise<{
     metricTypes: Array<MetricType>;
     telemetryAttributes: Array<string>;
@@ -976,30 +994,59 @@ export default class MetricUtil {
       };
     }
 
-    const metrics: ListResult<MetricType> = await ModelAPI.getList({
-      modelType: MetricType,
-      select: {
-        name: true,
-        unit: true,
-        /*
-         * Counter semantics (denormalized at ingest) — lets the query
-         * editor suggest the per-second rate transform for cumulative
-         * monotonic counters.
-         */
-        isMonotonic: true,
-        aggregationTemporality: true,
-      },
-      query: {
-        projectId: ProjectUtil.getCurrentProjectId()!,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      sort: {
-        name: SortOrder.Ascending,
-      },
-    });
+    const [metrics, metricNames]: [ListResult<MetricType>, Array<string>] =
+      await Promise.all([
+        ModelAPI.getList({
+          modelType: MetricType,
+          select: {
+            name: true,
+            unit: true,
+            /*
+             * Counter semantics (denormalized at ingest) — lets the query
+             * editor suggest the per-second rate transform for cumulative
+             * monotonic counters.
+             */
+            isMonotonic: true,
+            aggregationTemporality: true,
+          },
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        }),
+        Promise.resolve(options?.metricNames || []).catch((): Array<string> => {
+          // What the page charts could not be read: it charts nothing.
+          return [];
+        }),
+      ]);
 
-    const metricTypes: Array<MetricType> = metrics.data;
+    let metricTypes: Array<MetricType> = metrics.data;
+
+    const listed: Set<string> = new Set<string>(
+      metricTypes.map((metricType: MetricType): string => {
+        return metricType.name || "";
+      }),
+    );
+    const unlisted: Array<string> = metricNames.filter(
+      (name: string): boolean => {
+        return Boolean(name) && !listed.has(name);
+      },
+    );
+
+    if (unlisted.length > 0) {
+      try {
+        metricTypes = MetricTypeSearch.merge(
+          metricTypes,
+          await MetricTypeSearch.readByNames(unlisted),
+        );
+      } catch {
+        // Unknown still: the queries chart them without a unit.
+      }
+    }
 
     let telemetryAttributes: Array<string> = [];
     let telemetryAttributesError: string | undefined;

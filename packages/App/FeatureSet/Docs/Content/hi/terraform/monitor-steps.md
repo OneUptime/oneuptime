@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | वेबसाइट, API | HTTP मेथड: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` या `PATCH`। सेट न होने पर सर्वर `GET` इस्तेमाल करता है। |
 | `request_headers` | map(string) | वेबसाइट, API | भेजने के हेडर: `{ "Accept" = "application/json" }`। |
 | `request_body` | string | API | अनुरोध का बॉडी, टेक्स्ट के रूप में। |
+| `request_body_format` | string | API | `request_body` कैसे भेजा जाता है: `json`, डिफ़ॉल्ट, किसी भी JSON मान के लिए; `text` ऐसी बॉडी के लिए जो ठीक वैसे ही भेजी जाती है जैसी लिखी गई है, जैसे XML या फ़ॉर्म फ़ील्ड। |
 | `do_not_follow_redirects` | bool | वेबसाइट, API | रीडायरेक्ट का पालन करने के बजाय पहले जवाब पर रुकें। |
 | `allow_self_signed_certificates` | bool | वेबसाइट, API | स्व-हस्ताक्षरित TLS प्रमाणपत्र स्वीकार करें। |
 | `tls_client_certificate` | string | वेबसाइट, API | म्यूचुअल TLS के लिए क्लाइंट प्रमाणपत्र: PEM, या `{{monitorSecrets.name}}` संदर्भ। |
@@ -237,6 +238,10 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `description` | string | वह विवरण जो डैशबोर्ड दिखाता है। |
 | `filter_condition` | string (आवश्यक) | `All`: हर फ़िल्टर को मेल खाना चाहिए। `Any`: एक काफ़ी है। |
 | `filters` | list (आवश्यक) | शर्तें, कम से कम एक: [फ़िल्टर संदर्भ](#फ़िल्टर-संदर्भ) देखें। |
+| `recovery_filters` | list | `filters` जैसे फ़िल्टर, जिन्हें मानदंड के काम बंद करने से पहले मेल खाना होता है, बजाय इसके कि उसके `filters` के मेल न खाते ही वह बंद हो जाए। |
+| `recovery_filter_condition` | string | `recovery_filters` कैसे जुड़ते हैं: `All` (डिफ़ॉल्ट) या `Any`। |
+| `active_hours` | object | मानदंड को केवल इन `days` (सोमवार `0` है, रविवार `6`) पर `from` से `to` (`"08:00"`) तक आँकें; इनके बाहर उसे बंद किए गए मानदंड की तरह छोड़ दिया जाता है। |
+| `active_hours_timezone` | string | वह समय क्षेत्र जिसमें `active_hours` पढ़े जाते हैं, जैसे `Europe/Oslo`। इसे `active_hours` के साथ सेट करें। |
 | `change_monitor_status` | bool | क्या मेल होने पर मॉनिटर की स्थिति बदलती है। |
 | `monitor_status_id` | string | उस `oneuptime_monitor_status` का ID जिसमें बदलना है। इसे तब सेट करें जब `change_monitor_status` `true` हो। |
 | `create_incidents` | bool | क्या मेल होने पर घटनाएँ खुलती हैं। |
@@ -283,15 +288,87 @@ criteria = [
 ]
 ```
 
+### यह कब रिकवर होता है और कब आँका जाता है
+
+यह मानदंड साइट को केवल ओस्लो के कामकाजी घंटों में, सोमवार से शुक्रवार, आँकता है, और उसे तब तक offline रखता है जब तक वह 10 मिनट तक हर जाँच का जवाब न दे दे:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## फ़िल्टर संदर्भ
 
 किसी फ़िल्टर में `check_on` (क्या देखना है), `filter_type` (कैसे तुलना करनी है) और `value` (किससे तुलना करनी है, स्ट्रिंग के रूप में; `True` और `False` जैसी सही-या-गलत जाँचों के लिए इसे छोड़ दें) होते हैं।
 
-कोई फ़िल्टर आख़िरी जाँच के बजाय समय की एक अवधि को भी परख सकता है: `evaluate_over_time = true` सेट करें, अवधि की लंबाई `evaluate_over_time_minutes` में, और `evaluate_over_time_type` में यह कि अवधि को कैसे पढ़ा जाए: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` या `Any Value`।
+कोई फ़िल्टर आख़िरी जाँच के बजाय समय की एक अवधि को भी परख सकता है: `evaluate_over_time = true` सेट करें, अवधि की लंबाई `evaluate_over_time_minutes` में, और `evaluate_over_time_type` में यह कि अवधि को कैसे पढ़ा जाए: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` या `Previous Check`। `Percentile`, `evaluate_over_time_percentile` के पर्सेंटाइल की तुलना फ़िल्टर के मान से करता है (सेट न होने पर 95)। `Count`, `Percentage` और `Status Changes` हर प्रोब के लिए विंडो की उन जाँचों को गिनते हैं जिन्होंने शर्त पूरी की, उनका प्रतिशत हिस्सा, या वे शर्त पूरी करने और न करने के बीच कितनी बार बदलीं, और उस संख्या की तुलना `evaluate_over_time_count_filter_type` के अनुसार `evaluate_over_time_count_value` से करते हैं (सेट न होने पर `Greater Than` 0)।
 
 `All Values` का मतलब है कि अवधि की हर जाँच ने नियम तोड़ा, इसलिए यह तभी मेल खाता है जब अवधि डेटा से भर चुकी हो: अभी बना मॉनिटर अपनी पहली जाँच पर मेल खाने के बजाय अपनी अवधि भरने का इंतज़ार करता है। इसे मॉनिटर के `monitoring_interval` से कम से कम दोगुनी अवधि दें; नहीं तो अवधि में एक ही जाँच होती है, और "सभी मान" का मतलब वही हो जाता है जो "कोई भी मान" का। `Any Value` जानबूझकर नियम तोड़ने वाली एक जाँच पर मेल खाता है।
 
 `evaluate_over_time_no_data_policy` बताता है कि जब तक अवधि में पर्याप्त डेटा न हो, तब तक फ़िल्टर क्या करता है: `Ignore` (डिफ़ॉल्ट) मेल नहीं खाता, `Trigger` गायब डेटा को विफलता मानता है, जैसे heartbeat करता है, और `Treat As Zero` अवधि की तुलना एक अकेले शून्य के रूप में करता है।
+
+`Previous Check` हर जाँच की तुलना उसी प्रोब की पिछली जाँच से करता है, जो उससे अधिकतम `evaluate_over_time_minutes` पहले हुई हो। मापा गया मान कोई `value` नहीं लेता: `filter_type` उसकी तुलना `evaluate_over_time_change_value` जितना खिसकाए गए पिछले मान से करता है, `Greater Than` के लिए ऊपर और `Less Than` के लिए नीचे, जाँच की अपनी इकाई में `Amount` के रूप में या पिछले मान के `Percentage` के रूप में, जैसा `evaluate_over_time_change_type` कहता है (सेट न होने पर `Amount` 0: कोई भी बढ़त या गिरावट)। सही या गलत होने वाला फ़िल्टर उस जाँच पर मेल खाता है जिसने शर्त पूरी करना शुरू किया। पिछली जाँच न हो तो `evaluate_over_time_no_data_policy` तय करता है।
+
+यह मानदंड तब एक अलर्ट खोलता है जब किसी जाँच में पिछली जाँच से दोगुने से अधिक समय लगता है:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### फ़िल्टर क्या जाँच सकता है
 

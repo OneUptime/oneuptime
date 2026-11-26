@@ -32,7 +32,7 @@ flowchart TB
 
 - **Su OneUptime Cloud, il piano Enterprise.** Con gli altri piani, le pagine del log di audit mostrano che cosa fa la funzionalità e come ottenerla.
 - **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i log di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
-- **Un ruolo che può leggere il registro di audit.** Proprietario del progetto, Amministratore del progetto, Amministratore delle impostazioni o l'autorizzazione **Read Audit Log**. Per attivare il log di audit e cambiarne le impostazioni serve un Proprietario del progetto, un Amministratore del progetto o il permesso di modificare il progetto.
+- **Un ruolo che può leggere il registro di audit.** Proprietario del progetto, Amministratore del progetto, Amministratore delle impostazioni o l'autorizzazione **Read Audit Log**. Una voce mostra i valori di un campo solo se puoi leggere quel campo sulla risorsa stessa, e il nome di una risorsa solo se puoi leggere la risorsa. Per attivare il log di audit e cambiarne le impostazioni serve un Proprietario del progetto, un Amministratore del progetto o il permesso di modificare il progetto.
 
 ## Attivare il registro di audit
 
@@ -72,9 +72,13 @@ Una modifica di queste impostazioni vale entro un minuto.
 
 Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente**, **Flusso di lavoro eseguito come**, **Autorizzazioni del flusso di lavoro concesse da** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
 
+Un campo che rimanda a un'altra risorsa, come lo stato di un monitor, mostra il nome attuale di quella risorsa, con il suo ID sotto. Una risorsa che non puoi leggere mostra **Nome nascosto**, e una eliminata nel frattempo mostra **Eliminato**.
+
 Una risorsa senza un nome proprio prende il nome da ciò che la nomina in OneUptime: un'eccezione dal suo tipo e dall'inizio del suo messaggio, con identificatori, indirizzi e tutto ciò che sembra un segreto mascherati, un'esecuzione di un runbook dal suo runbook, il numero di telefono di una politica chiamate in arrivo dal numero stesso, e un modello o un dominio dal proprio nome.
 
 Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anche una propria pagina **Log di audit**, in una sezione chiusa del loro menu laterale come **Avanzato**. Elenca solo le voci di quella risorsa, con quelle di ciò che le appartiene: la pagina di uno SLO mostra anche le sue regole e i suoi proprietari.
+
+Anche le regole di un prodotto hanno una propria pagina, alla fine della sezione del menu che le elenca: **Log di audit** in una sezione **Regole**, come **Incidenti → Regole → Log di audit**, e **Log di audit delle regole** in una sezione **Impostazioni** che contiene regole del proprietario ed etichette, come **Host → Impostazioni → Log di audit delle regole**. Elenca tutte le regole di quel prodotto, comprese quelle eliminate. Le regole di runbook sono un unico tipo di regola per avvisi, incidenti ed eventi di manutenzione, quindi la loro cronologia è in **Runbook → Impostazioni → Log di audit delle regole**.
 
 ## Che cosa viene registrato
 

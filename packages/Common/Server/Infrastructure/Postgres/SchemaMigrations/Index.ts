@@ -1135,6 +1135,62 @@ import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
 import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
+import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
+import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
+import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
+import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
+import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
+import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
+import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "./1809187421500-AddAIAgentTaskPullRequestSecurityCase";
+import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "./1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
+import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
+import { AllowDataSecurityAiProposalsForStoresAndRules1809187429100 } from "./1809187429100-AllowDataSecurityAiProposalsForStoresAndRules";
+import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecurityBlockCloudWaf";
+import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleService";
+import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
+import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
+import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-AddDataSecurityIssueAiAnalysis";
+import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
+import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
+import { AddDiscoveryScanRunRequested1809187450000 } from "./1809187450000-AddDiscoveryScanRunRequested";
+import { AddDiscoveryScanRunRequestedByUserKey1809187450010 } from "./1809187450010-AddDiscoveryScanRunRequestedByUserKey";
+import { AddSecurityCaseAiResponse1809187452000 } from "./1809187452000-AddSecurityCaseAiResponse";
+import { AddSecurityCaseAiNextLookIndex1809187452010 } from "./1809187452010-AddSecurityCaseAiNextLookIndex";
+import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-AddCloudWafAndEnforcementReasons";
+import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
+import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
+import { AddScrubRuleNamedKeysAndProof1809187470400 } from "./1809187470400-AddScrubRuleNamedKeysAndProof";
+import { AddCodeRepositoryProductionReviewFailOnLeak1809187470500 } from "./1809187470500-AddCodeRepositoryProductionReviewFailOnLeak";
+import { DropDeletedByUserColumns1809187480000 } from "./1809187480000-DropDeletedByUserColumns";
+import { AddSecurityCaseAiRespondsFirst1809187490000 } from "./1809187490000-AddSecurityCaseAiRespondsFirst";
+import { AddSecurityCaseAiHoldUntilIndex1809187490010 } from "./1809187490010-AddSecurityCaseAiHoldUntilIndex";
+import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSecurityAutomaticResponse";
+import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
+import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
+import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
+import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
+import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "./1809187540373-AddDataSecurityNamesAndAddressesModel";
+import { AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618 } from "./1809187540618-AddTelemetryExceptionFormerFingerprintAndSplitFrom";
+import { AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628 } from "./1809187540628-AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys";
+import { AddFormSubmissionAlert1809187540760 } from "./1809187540760-AddFormSubmissionAlert";
+import { AddFormSubmissionAlertIndexAndKey1809187540770 } from "./1809187540770-AddFormSubmissionAlertIndexAndKey";
+import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "./1809187550746-AddSecurityAutomaticResponseHourlyLimit";
+import { AddSecurityCasePullRequest1809187560604 } from "./1809187560604-AddSecurityCasePullRequest";
+import { AddProbeMajorVersionBehindNotifiedFor1809187570000 } from "./1809187570000-AddProbeMajorVersionBehindNotifiedFor";
+import { AddDataStoreFindingAiScrubRules1809187570752 } from "./1809187570752-AddDataStoreFindingAiScrubRules";
+import { AddDataSecurityIssueCodeFixTask1809187580367 } from "./1809187580367-AddDataSecurityIssueCodeFixTask";
+import { AddDataSecurityIssueCodeFixTaskIndex1809187580377 } from "./1809187580377-AddDataSecurityIssueCodeFixTaskIndex";
+import { AddProjectSecurityTrustedProxySwitches1809187580546 } from "./1809187580546-AddProjectSecurityTrustedProxySwitches";
+import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
+import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
+import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
+import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 
 export default [
   InitialMigration,
@@ -2274,4 +2330,60 @@ export default [
   AddFormPrivateUsersAndSingleSignOn1809187140120,
   AddProjectAmazonSesIamRole1809187142000,
   AddSecurityBlocklist1809187150000,
+  AddDataSecurityAiRules1809187364000,
+  AddAIRunDataSecurityIssueIndex1809187364100,
+  AddProjectSecurityTrustedProxies1809187364416,
+  AddCloudAppPlatformCloudResource1809187383700,
+  AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
+  AddSecurityCaseStepChecks1809187390000,
+  AddSecurityCaseNextStepCheckIndex1809187390010,
+  AddRecordCreatedByAndLastModifiedColumns1809187400000,
+  AddDetectionRunMarksAndFiringKeys1809187421130,
+  AddDetectionRuleLastFailedAt1809187421140,
+  AddAIAgentTaskPullRequestSecurityCase1809187421500,
+  AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510,
+  AddProbeInterfaceIpAddresses1809187429000,
+  AllowDataSecurityAiProposalsForStoresAndRules1809187429100,
+  AddSecurityBlockCloudWaf1809187430000,
+  AddScrubRuleService1809187433000,
+  AddScrubRuleServiceIndexesAndKeys1809187433010,
+  AddSecurityEventConnectionBlocking1809187434300,
+  AddDataSecurityIssueAiAnalysis1809187436369,
+  AddSecurityBlocklistFeeds1809187440000,
+  AddSecurityBlockReachAndWiderValue1809187440100,
+  AddSecurityBlockValueReachIndex1809187440110,
+  AddDiscoveryScanRunRequested1809187450000,
+  AddDiscoveryScanRunRequestedByUserKey1809187450010,
+  AddSecurityCaseAiResponse1809187452000,
+  AddSecurityCaseAiNextLookIndex1809187452010,
+  AddCloudWafAndEnforcementReasons1809187455000,
+  AddDataSecurityIssueGroups1809187470370,
+  AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
+  AddScrubRuleNamedKeysAndProof1809187470400,
+  AddCodeRepositoryProductionReviewFailOnLeak1809187470500,
+  DropDeletedByUserColumns1809187480000,
+  AddSecurityCaseAiRespondsFirst1809187490000,
+  AddSecurityCaseAiHoldUntilIndex1809187490010,
+  AddSecurityAutomaticResponse1809187500000,
+  AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
+  AddDataSecurityIssueResolution1809187510368,
+  AddDataStoreFindingAiVerdicts1809187520372,
+  AddDataSecurityComplianceDrafts1809187530375,
+  AddDataSecurityNamesAndAddressesModel1809187540373,
+  AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618,
+  AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628,
+  AddFormSubmissionAlert1809187540760,
+  AddFormSubmissionAlertIndexAndKey1809187540770,
+  AddSecurityAutomaticResponseHourlyLimit1809187550746,
+  AddSecurityCasePullRequest1809187560604,
+  AddProbeMajorVersionBehindNotifiedFor1809187570000,
+  AddDataStoreFindingAiScrubRules1809187570752,
+  AddDataSecurityIssueCodeFixTask1809187580367,
+  AddDataSecurityIssueCodeFixTaskIndex1809187580377,
+  AddProjectSecurityTrustedProxySwitches1809187580546,
+  AddSecurityCaseExposureAssessment1809187590377,
+  AddHelpAndSupport1809187600000,
+  AddGroupIncidentsByEpisodeToStatusPage1809187610767,
+  AddProjectRequireUniqueNames1809187640000,
+  AddUniqueNameIndexes1809187640010,
 ];

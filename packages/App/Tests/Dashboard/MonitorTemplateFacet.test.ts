@@ -22,6 +22,7 @@ import { FilterOperator } from "../../FeatureSet/Dashboard/src/Components/Resour
 import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
@@ -128,8 +129,35 @@ describe("what the Template chip asks the database", () => {
   test("'is not' excludes rather than includes", () => {
     const value: unknown = columnQuery("is_not", [TEMPLATE_A])!.value;
 
-    expect(value).toBeInstanceOf(IncludesNone);
+    expect(value).toBeInstanceOf(IncludesNoneOrNull);
     expect(value).not.toBeInstanceOf(Includes);
+  });
+
+  /*
+   * "Template is not X" is every monitor not linked to X: the ones linked
+   * to another template and the ones linked to none (#10581). IncludesNone
+   * (`NOT IN`) is not true of an empty column, so it dropped every monitor
+   * with no template; what Postgres answers is pinned in
+   * Common/Tests/Server/API/ListIsNotFilterPostgres.test.ts.
+   */
+  test("'is not' keeps the monitors linked to no template", () => {
+    const value: unknown = columnQuery("is_not", [
+      TEMPLATE_A,
+      TEMPLATE_B,
+    ])!.value;
+
+    expect(value).toBeInstanceOf(IncludesNoneOrNull);
+    expect(value).not.toBeInstanceOf(IncludesNone);
+    expect(
+      ((value as IncludesNoneOrNull).values as Array<unknown>).map(
+        (id: unknown): string => {
+          return String(id);
+        },
+      ),
+    ).toEqual([TEMPLATE_A, TEMPLATE_B]);
+    expect(columnQuery("is_not", [TEMPLATE_A])!.field).toBe(
+      "monitorTemplateId",
+    );
   });
 
   /*

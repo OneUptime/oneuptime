@@ -23,6 +23,7 @@ import {
   makeSecurityCaseFeedItem,
   makeSecurityCasePriorities,
   makeSecurityCaseStatuses,
+  makeContainedPlaybookRun,
   makeWaitingPlaybookRun,
 } from "../__tests__/testSupport";
 import type {
@@ -34,6 +35,7 @@ import type {
   SecurityCaseStatusItem,
   SecurityPlaybookRunItem,
 } from "../api/types";
+import type { PlaybookApprovalReadout } from "../api/securityCases";
 
 /*
  * The screen a security-case page lands on. A responder woken at night reads
@@ -76,6 +78,14 @@ const mockNotes: { current: Query<NoteItem[]> } = {
 const mockRuns: { current: Query<SecurityPlaybookRunItem[]> } = {
   current: {} as Query<SecurityPlaybookRunItem[]>,
 };
+const mockCaseRuns: { current: Query<SecurityPlaybookRunItem[]> } = {
+  current: {} as Query<SecurityPlaybookRunItem[]>,
+};
+// Each run's approval as the server words it, and whether the screen asked.
+const mockApprovals: {
+  current: Record<string, PlaybookApprovalReadout>;
+  asked: Array<{ runId: string | null; enabled: boolean }>;
+} = { current: {}, asked: [] };
 const mockUsers: { current: ProjectUserItem[] } = { current: [] };
 const mockUsersProject: { current: string | null } = { current: null };
 const mockUserId: { current: string | null } = { current: ME };
@@ -96,6 +106,26 @@ jest.mock("../hooks/useSecurityCaseDetail", () => {
     },
     useCaseWaitingPlaybookRuns: () => {
       return mockRuns.current;
+    },
+    useCasePlaybookRuns: () => {
+      return mockCaseRuns.current;
+    },
+    usePlaybookApproval: (
+      _projectId: string,
+      runId: string | null,
+      enabled: boolean = true,
+    ) => {
+      mockApprovals.asked.push({ runId, enabled });
+      const data: PlaybookApprovalReadout | undefined =
+        runId && enabled ? mockApprovals.current[runId] : undefined;
+      return {
+        data,
+        isLoading: false,
+        isError: false,
+        isSuccess: Boolean(data),
+        error: null,
+        refetch: jest.fn(),
+      };
     },
   };
 });
@@ -142,6 +172,7 @@ jest.mock("../api/securityCases", () => {
     updateSecurityCase: jest.fn(),
     decidePlaybookStep: jest.fn(),
     createSecurityCaseNote: jest.fn(),
+    undoPlaybookTarget: jest.fn(),
   };
 });
 
@@ -185,6 +216,9 @@ const decideMock: jest.MockedFunction<
 const noteMock: jest.MockedFunction<
   typeof securityCasesApi.createSecurityCaseNote
 > = jest.mocked(securityCasesApi.createSecurityCaseNote);
+const undoMock: jest.MockedFunction<
+  typeof securityCasesApi.undoPlaybookTarget
+> = jest.mocked(securityCasesApi.undoPlaybookTarget);
 const alertSpy: jest.SpiedFunction<typeof Alert.alert> = jest
   .spyOn(Alert, "alert")
   .mockImplementation((): void => {
@@ -231,14 +265,16 @@ const QUERY_WRAPPER: () => ReturnType<typeof createQueryWrapper> = () => {
   return createQueryWrapper(createTestQueryClient());
 };
 
-async function renderScreen(): Promise<Awaited<ReturnType<typeof render>>> {
+async function renderScreen(
+  extraParams: { runId?: string } = {},
+): Promise<Awaited<ReturnType<typeof render>>> {
   return render(
     <SecurityCaseDetailScreen
       {...({
         route: {
           key: "SecurityCaseDetail-1",
           name: "SecurityCaseDetail",
-          params: { caseId: CASE_ID, projectId: PROJECT_ID },
+          params: { caseId: CASE_ID, projectId: PROJECT_ID, ...extraParams },
         },
         navigation: { navigate: mockNavigate },
       } as unknown as React.ComponentProps<typeof SecurityCaseDetailScreen>)}
@@ -272,6 +308,12 @@ beforeEach(() => {
   mockFeed.current = query<SecurityCaseFeedItem[]>([]);
   mockNotes.current = query<NoteItem[]>([]);
   mockRuns.current = query<SecurityPlaybookRunItem[]>([]);
+  mockCaseRuns.current = query<SecurityPlaybookRunItem[]>([]);
+  mockApprovals.current = {};
+  mockApprovals.asked = [];
+  undoMock.mockReset();
+  undoMock.mockResolvedValue(undefined);
+  alertSpy.mockClear();
   updateMock.mockReset();
   updateMock.mockResolvedValue(undefined);
   decideMock.mockReset();
@@ -1059,6 +1101,262 @@ describe("a playbook step waiting for an approval", () => {
     ).toBeTruthy();
     await fireEvent.press(
       screen.getByRole("button", { name: "Retry approvals" }),
+    );
+    expect(refetch).toHaveBeenCalled();
+  });
+});
+
+/*
+ * The approval's evidence, a push that named its run, and the undo of what
+ * a playbook contained (#10341): the phone says what the approval's Slack
+ * and Microsoft Teams messages say, opens the approval the push was about -
+ * or says what became of it - and releases a contained target from the
+ * case.
+ */
+const OTHER_RUN_ID: string = "7a6b0000-0009-4000-8000-000000000009";
+
+// What the screen asked about a run's approval, and whether it meant it.
+type AskedApproval = { runId: string | null; enabled: boolean };
+
+// A button of the confirmation an undo asks with.
+type ConfirmButton = { text?: string; style?: string; onPress?: () => void };
+
+function readout(
+  overrides: Partial<PlaybookApprovalReadout> = {},
+): PlaybookApprovalReadout {
+  return {
+    runId: RUN_ID,
+    stepIndex: 0,
+    stepId: "step-1",
+    standing: "Waiting",
+    headline: "Approval needed on CASE-142: Credential stuffing",
+    action: "Suspend the user in Okta, through Okta (acme)",
+    targets: ["alice@acme.test: the case is grouped on it"],
+    leftAlone: [],
+    source: "Asked by playbook Contain a compromised account.",
+    evidence: ["Nothing it acts on is on your protected list."],
+    undo: "Can be undone: each one, with Unsuspend the user in Okta on the case.",
+    ...overrides,
+  };
+}
+
+describe("the approval's evidence on the case's screen", () => {
+  beforeEach(() => {
+    mockRuns.current = query<SecurityPlaybookRunItem[]>([
+      makeWaitingPlaybookRun({ _id: RUN_ID }),
+    ]);
+  });
+
+  test("what will be done and through what, who asked, the evidence and the undo", async () => {
+    mockApprovals.current = { [RUN_ID]: readout() };
+
+    await renderScreen();
+
+    const card: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "playbook-approval-card",
+    );
+    expect(
+      within(card).getByTestId("playbook-approval-action"),
+    ).toHaveTextContent("Suspend the user in Okta, through Okta (acme)");
+    expect(
+      within(card).getByText("• Nothing it acts on is on your protected list."),
+    ).toBeTruthy();
+    expect(
+      within(card).getByTestId("playbook-approval-undo"),
+    ).toHaveTextContent(
+      "Can be undone: each one, with Unsuspend the user in Okta on the case.",
+    );
+  });
+
+  test("evidence about another step of the run - it moved on meanwhile - is not shown on this one", async () => {
+    mockApprovals.current = { [RUN_ID]: readout({ stepIndex: 3 }) };
+
+    await renderScreen();
+
+    expect(screen.queryByTestId("playbook-approval-evidence")).toBeNull();
+    expect(screen.getByTestId("playbook-approve")).toBeTruthy();
+  });
+});
+
+describe("a push about an approval", () => {
+  test("opens on the approval it named, ahead of the case's other waiting ones", async () => {
+    mockRuns.current = query<SecurityPlaybookRunItem[]>([
+      makeWaitingPlaybookRun({ _id: OTHER_RUN_ID, playbookName: "Older" }),
+      makeWaitingPlaybookRun({ _id: RUN_ID, playbookName: "Pushed" }),
+    ]);
+
+    await renderScreen({ runId: RUN_ID });
+
+    const where: Array<ReturnType<typeof screen.getByTestId>> =
+      screen.getAllByTestId("playbook-approval-where");
+    expect(where).toHaveLength(2);
+    expect(where[0]).toHaveTextContent(/^Playbook Pushed waits at step 1/);
+    expect(where[1]).toHaveTextContent(/^Playbook Older waits at step 1/);
+    expect(screen.queryByTestId("playbook-approval-decided")).toBeNull();
+  });
+
+  test("decided since by somebody else: says who, when and how it went, and asks nothing", async () => {
+    mockApprovals.current = {
+      [RUN_ID]: readout({
+        standing: "Approved",
+        headline: "Approved by Priya Shah at 10:43 UTC",
+        progress: "Done at 10:44 UTC.",
+        targets: ["alice@acme.test: done · suspended"],
+      }),
+    };
+
+    await renderScreen({ runId: RUN_ID });
+
+    expect(
+      screen.getByTestId("playbook-approval-decided-headline"),
+    ).toHaveTextContent("Approved by Priya Shah at 10:43 UTC");
+    expect(
+      screen.getByTestId("playbook-approval-decided-progress"),
+    ).toHaveTextContent("Done at 10:44 UTC.");
+    expect(screen.queryByTestId("playbook-approval-card")).toBeNull();
+  });
+
+  test("what became of it is read only once the waiting runs are known", async () => {
+    mockRuns.current = query<SecurityPlaybookRunItem[]>([], {
+      isSuccess: false,
+      isLoading: true,
+      data: undefined,
+    });
+    mockApprovals.current = { [RUN_ID]: readout({ standing: "Approved" }) };
+
+    await renderScreen({ runId: RUN_ID });
+
+    expect(
+      mockApprovals.asked.filter((asked: AskedApproval) => {
+        return asked.runId === RUN_ID && asked.enabled;
+      }),
+    ).toEqual([]);
+    expect(screen.queryByTestId("playbook-approval-decided")).toBeNull();
+  });
+
+  test("a run id that is not an id is not asked about", async () => {
+    await renderScreen({ runId: "../../admin" });
+
+    expect(
+      mockApprovals.asked.some((asked: AskedApproval) => {
+        return asked.runId === "../../admin";
+      }),
+    ).toBe(false);
+    expect(screen.queryByTestId("playbook-approval-decided")).toBeNull();
+  });
+});
+
+describe("undoing what a playbook contained", () => {
+  beforeEach(() => {
+    mockCaseRuns.current = query<SecurityPlaybookRunItem[]>([
+      makeContainedPlaybookRun(),
+    ]);
+  });
+
+  function confirmButtons(): Array<{
+    text?: string;
+    style?: string;
+    onPress?: () => void;
+  }> {
+    return (alertSpy.mock.calls[0]![2] ?? []) as Array<{
+      text?: string;
+      style?: string;
+      onPress?: () => void;
+    }>;
+  }
+
+  test("lists what the case's playbooks contained, each with Undo", async () => {
+    await renderScreen();
+
+    expect(screen.getByTestId("playbook-contained-section")).toBeTruthy();
+    expect(screen.getByTestId("playbook-undo-alice@acme.test")).toBeTruthy();
+    // Left out by the approver: nothing of the step's to undo.
+    expect(screen.queryByTestId("playbook-undo-bob@acme.test")).toBeNull();
+  });
+
+  test("asks first, as the dashboard does, and does nothing until confirmed", async () => {
+    await renderScreen();
+
+    await fireEvent.press(screen.getByTestId("playbook-undo-alice@acme.test"));
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      "Unsuspend the user in Okta",
+      "alice@acme.test gets its access back, undoing step 2. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.",
+      expect.any(Array),
+    );
+    expect(
+      confirmButtons().map((button: ConfirmButton) => {
+        return [button.text, button.style];
+      }),
+    ).toEqual([
+      ["Cancel", "cancel"],
+      ["Unsuspend the user in Okta", "destructive"],
+    ]);
+    expect(undoMock).not.toHaveBeenCalled();
+  });
+
+  test("confirmed, the step's undo is sent and the case read again", async () => {
+    await renderScreen();
+
+    await fireEvent.press(screen.getByTestId("playbook-undo-alice@acme.test"));
+    await act(async () => {
+      confirmButtons()[1]!.onPress!();
+    });
+
+    await waitFor(() => {
+      expect(undoMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        "7a6b0000-0002-4000-8000-000000000002",
+        { stepId: "suspend", value: "alice@acme.test" },
+      );
+    });
+    expect(mockSuccessFeedback).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockCaseRuns.current.refetch).toHaveBeenCalled();
+    });
+    expect(mockFeed.current.refetch).toHaveBeenCalled();
+  });
+
+  test("a refused undo says why in the server's words, and the runs are read again", async () => {
+    undoMock.mockRejectedValue(
+      refused(
+        400,
+        "This run is still running. Undo a step once it has stopped.",
+      ),
+    );
+    await renderScreen();
+
+    await fireEvent.press(screen.getByTestId("playbook-undo-alice@acme.test"));
+    await act(async () => {
+      confirmButtons()[1]!.onPress!();
+    });
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenLastCalledWith(
+        "Could not undo step 2",
+        "This run is still running. Undo a step once it has stopped.",
+      );
+    });
+    expect(mockErrorFeedback).toHaveBeenCalled();
+    expect(mockCaseRuns.current.refetch).toHaveBeenCalled();
+  });
+
+  test("a read of the runs that failed says so, with a retry", async () => {
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+    mockCaseRuns.current = query<SecurityPlaybookRunItem[]>([], {
+      isError: true,
+      refetch: refetch as never,
+    });
+
+    await renderScreen();
+
+    expect(
+      screen.getByText("Could not read what the case's playbooks contained."),
+    ).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Retry playbook runs" }),
     );
     expect(refetch).toHaveBeenCalled();
   });

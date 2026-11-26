@@ -17,6 +17,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseChanges";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import { NOT_ENFORCED_ANYWHERE_ERROR } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookAddressBlocks";
 import { CREATE_FROM_TEMPLATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplateModel";
 import {
   ATTACK_COVERAGE_VIEW_LABELS,
@@ -93,12 +94,22 @@ import {
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { SecurityProtectedAddressSource } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
 import {
+  BLOCK_DOMAIN_TITLE,
+  BLOCK_FILE_TITLE,
   ENFORCED_AT_COLUMN_TITLE,
+  EVERY_MACHINE_FIELD_TITLE,
   EXTEND_ACTION,
   LIFT_ACTION,
   LIFT_SELECTED_TITLE,
   NOTHING_ENFORCES_TITLE,
+  QUARANTINE_FIELD_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCopy";
+import {
+  BLOCKLIST_KINDS,
+  BLOCKLIST_KIND_DEFAULT_DURATIONS,
+  BLOCKLIST_KIND_WORDS,
+  BlocklistKind,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistKinds";
 import { AUTOMATIC_PROTECTIONS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ProtectedEntities/AutomaticProtectionsCopy";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import {
@@ -117,6 +128,7 @@ import {
   WHY_OPENED_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
 import { RESPONSE_STEPS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsCopy";
+import { WAS_IT_A_BREACH } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
 import {
   SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
   SECURITY_DETECTION_MATCHED_EVENTS_MAX,
@@ -127,10 +139,17 @@ import { THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION } from "Common/Types/Securit
 import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
+  ACTION_BLOCK_FOR_A_DAY,
   ACTION_CLOSE_CASE,
   ACTION_DECLARE_INCIDENT,
   ACTION_MARK_CONTAINED,
   ACTION_RUN_PLAYBOOK,
+  BLOCK_CHALLENGE_INSTEAD,
+  BLOCK_FOR_SEVEN_DAYS,
+  BLOCK_FROM_CASE_MENU_ITEM,
+  BLOCK_HELP_SHOW,
+  BLOCK_UNTIL_LIFTED,
+  LINK_PULL_REQUEST,
   RESPONSE_BY_HAND,
   RESPONSE_PHASE_TITLES,
   RESPONSE_TITLE,
@@ -153,9 +172,24 @@ import {
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
 import { MAX_EVIDENCE_DETECTIONS } from "Common/Server/Utils/SecurityPlaybook/SecurityCaseEvidence";
 import {
+  GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE,
   GOOGLE_WORKSPACE_DIRECTORY_SECURITY_SCOPE,
   GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE,
 } from "Common/Server/Utils/SecurityEvent/Response/GoogleWorkspaceResponseClient";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudConnectionField,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
+  getCloudConnectionDefinition,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
+import {
+  AWS_SECURITY_CASE_CHECKS_ACTIONS,
+  AWS_SECURITY_CASE_CHECKS_GROUP_NAME,
+  AWS_SECURITY_CASE_CHECKS_POLICY_NAME,
+  getAwsAccessKeySetupCommand,
+  getAwsRoleSetupCommand,
+  getAwsSecurityCaseChecksPolicyDocument,
+} from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   SECURITY_PLAYBOOK_MAX_CONDITIONS_PER_STEP,
   SecurityPlaybookConditionMatch,
@@ -208,6 +242,8 @@ import {
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
+  actsThroughBlocklist,
+  getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
@@ -226,6 +262,30 @@ import {
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
+import { STEP_CHECK_DOCS_PATH } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheck";
+import {
+  FIX_ROUTE_MIN_PROOF,
+  FIX_ROUTE_PROOF_CONFIDENCE,
+  FIX_ROUTE_WATCH_DAYS,
+} from "Common/Server/Utils/SecurityCase/StepChecks/FixRouteStepCheck";
+import { getStepCheck } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheckRegistry";
+import {
+  ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+  ENTRA_ID_DIRECTORY_READ_PERMISSION,
+} from "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import SecurityCaseStepCheckState, {
+  SECURITY_CASE_STEP_CHECK_STATES,
+} from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
+import {
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+  STEP_CHECK_CONFIRM,
+  STEP_CHECK_DOCS_LINK,
+  STEP_CHECK_HOW_WE_KNOW,
+  STEP_CHECK_STATE_LABELS,
+} from "Common/Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import {
   SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES,
@@ -267,6 +327,19 @@ const MINUTE_IN_MS: number = 60 * 1000;
 
 function englishPage(): string {
   return readPage("en", PAGE);
+}
+
+// The AWS connection's Security case checks setting, as its form asks it (#10900).
+function securityCaseChecksField(): CloudConnectionField {
+  const field: CloudConnectionField | undefined = getCloudConnectionDefinition(
+    CloudProvider.AWS,
+  )?.configFields.find((candidate: CloudConnectionField): boolean => {
+    return candidate.key === SECURITY_CASE_CHECKS_FIELD_KEY;
+  });
+
+  expect(field).toBeDefined();
+
+  return field as CloudConnectionField;
 }
 
 function source(relative: string): string {
@@ -690,6 +763,7 @@ describe("Security Cases and Playbooks docs", () => {
           title !== "Impact" &&
           title !== "MITRE ATT&CK" &&
           title !== WHY_OPENED_TITLE &&
+          title !== WAS_IT_A_BREACH &&
           title !== RESPONSE_TITLE
         );
       });
@@ -816,6 +890,237 @@ describe("Security Cases and Playbooks docs", () => {
         said: true,
       });
     }
+  });
+
+  it("says how OneUptime checks a step: each state as the plan's chip names it, its buttons by their words, and where its docs link lands", () => {
+    const heading: string = "How OneUptime checks a step";
+    const checks: string = flat(section(page, heading));
+    const states: Array<Array<string>> = rowsOf(heading);
+
+    // Every state a check can be in, in the order the model lists them, as its chip draws it.
+    expect(
+      column(states, 0).map((cell: string): string => {
+        return cell.replace(/\*\*/g, "");
+      }),
+    ).toEqual(
+      SECURITY_CASE_STEP_CHECK_STATES.map((state: string): string => {
+        return STEP_CHECK_STATE_LABELS[
+          state as keyof typeof STEP_CHECK_STATE_LABELS
+        ];
+      }),
+    );
+
+    for (const words of [
+      STEP_CHECK_CONFIRM,
+      STEP_CHECK_DOCS_LINK,
+      STEP_CHECK_HOW_WE_KNOW,
+    ]) {
+      expect({ words, said: checks.includes(`**${words}**`) }).toEqual({
+        words,
+        said: true,
+      });
+    }
+
+    // A step OneUptime cannot tell about links here, to this section.
+    expect(STEP_CHECK_DOCS_PATH).toBe(
+      `/${PAGE}#${slugifyMarkdownHeading(heading)}`,
+    );
+
+    // The Response Plan points to it.
+    expect(flat(section(page, "Work a case"))).toContain(
+      `[${heading}](#${slugifyMarkdownHeading(heading)})`,
+    );
+  });
+
+  it("says what OneUptime reads to check the Fix steps, and how much evidence proves a fix, as the checks hold it (#10347)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const steps: Array<Array<string>> = rowsOf(
+      "How OneUptime checks a step",
+      1,
+    );
+    const fixWithAi: string =
+      SECURITY_PLAYBOOK_ACTIONS.find(
+        (definition: SecurityPlaybookActionDefinition): boolean => {
+          return definition.type === SecurityPlaybookActionType.FixWithAi;
+        },
+      )?.title || "";
+
+    // A row for each Fix step a check reads, as the registry holds them.
+    for (const kind of [
+      "fix:public-app",
+      "fix:credentials",
+      "fix:brute-force",
+      // What the attack changed on accounts is read back too (#10603).
+      "fix:account-changes",
+    ]) {
+      expect(getStepCheck(kind)?.kind).toBe(kind);
+    }
+    // A Fix step no check reads stays a person's, and has no row.
+    expect(getStepCheck("fix:persistence")).toBeNull();
+    expect(column(steps, 0)).toEqual(
+      expect.arrayContaining([
+        "Fix the route the attack went to",
+        "Reset the password",
+        "Make sure the accounts use MFA",
+        "Undo what changed on the account",
+      ]),
+    );
+
+    // How much evidence counts as proof, and how long the route is watched.
+    expect(FIX_ROUTE_PROOF_CONFIDENCE).toBe(0.95);
+    expect(FIX_ROUTE_MIN_PROOF).toBe(3);
+    expect(FIX_ROUTE_WATCH_DAYS).toBe(7);
+    expect(checks).toContain(
+      `at least one would almost surely (${FIX_ROUTE_PROOF_CONFIDENCE * 100}%) have got through had nothing changed, and never fewer than ${FIX_ROUTE_MIN_PROOF}.`,
+    );
+    expect(checks).toContain(
+      `watches the route for ${FIX_ROUTE_WATCH_DAYS} days after the fix ships`,
+    );
+    expect(checks).toContain("a deploy alone is not a fix");
+    expect(checks).toContain(
+      `the step stays **${STEP_CHECK_STATE_LABELS[SecurityCaseStepCheckState.LooksDone]}** for you to confirm`,
+    );
+
+    // The playbook step whose pull request is kept on the case, by its title.
+    expect(fixWithAi).toBe("Fix the code with AI");
+    expect(checks).toContain(
+      `A pull request **${fixWithAi}** opened is kept on the case`,
+    );
+    expect(flat(section(page, "Responding through OneUptime"))).toContain(
+      `Each pull request is kept on the case, and the Response Plan's Fix step reads whether it shipped and turned the attack away: see [How OneUptime checks a step](#how-oneuptime-checks-a-step).`,
+    );
+
+    // A pull request of a person's own, linked on the route's Fix step (#10604), by the button's words.
+    expect(LINK_PULL_REQUEST).toBe("Link Pull Request");
+    expect(checks).toContain(
+      `one you linked with **${LINK_PULL_REQUEST}**, or any deploy`,
+    );
+    expect(checks).toContain(
+      `**${LINK_PULL_REQUEST}**, on the route's Fix step, takes its address.`,
+    );
+    expect(checks).toContain(
+      "Its repository must be connected under Code (GitHub, GitLab, Forgejo or Gitea)",
+    );
+
+    // What the account changes' check says, in the states the card draws (#10603).
+    expect(checks).toContain(
+      `the step looks done, never checked: a change made another way may not be in the case's events`,
+    );
+    for (const state of [
+      SecurityCaseStepCheckState.NotDone,
+      SecurityCaseStepCheckState.Regressed,
+    ]) {
+      expect(checks).toContain(`**${STEP_CHECK_STATE_LABELS[state]}**`);
+    }
+    expect(checks).toContain(
+      `the ${ENTRA_ID_DIRECTORY_READ_PERMISSION} and ${ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION} application permissions`,
+    );
+
+    // The permission the Entra ID MFA read asks for, as its client names it.
+    expect(ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION).toBe(
+      "UserAuthenticationMethod.Read.All",
+    );
+    expect(checks).toContain(
+      `takes the ${ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION} application permission`,
+    );
+  });
+
+  it("says the account changes' check reads a Google Workspace group with one more scope, and AWS IAM through the account's cloud connection with Security case checks on, as the readers ask for them (#10900, #10901)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const undo: Array<string> | undefined = rowsOf(
+      "How OneUptime checks a step",
+      1,
+    ).find((row: Array<string>): boolean => {
+      return row[0] === "Undo what changed on the account";
+    });
+    const setting: string = securityCaseChecksField().title;
+    const settingAnchor: string = slugifyMarkdownHeading(setting);
+
+    // The row: every product it reads back in, and that what it cannot read comes with what to grant.
+    expect(undo).toBeDefined();
+    expect(undo![1]).toContain(
+      "each read back in Okta, Microsoft Entra ID, Google Workspace or AWS IAM",
+    );
+    expect(undo![1]).toContain(
+      "the step names one by one for you to confirm, with what to grant so it can",
+    );
+    expect(undo![1]).not.toContain("such as anything in AWS IAM");
+
+    // Google Workspace's group: the one more scope its client asks for.
+    expect(GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE).toBe(
+      "https://www.googleapis.com/auth/admin.directory.group.member.readonly",
+    );
+    expect(checks).toContain(
+      `in Google Workspace, the scopes [Containment](#containment) lists, and \`${GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE}\` for a group;`,
+    );
+
+    // AWS: the account's connection, the setting by the form's title, and the section that grants it.
+    expect(setting).toBe("Security case checks");
+    expect(checks).toContain(
+      `in AWS, the account's [cloud connection](/docs/telemetry/cloud-accounts#${settingAnchor}) with **${setting}** on.`,
+    );
+    expect(
+      scanMarkdown(readPage("en", "telemetry/cloud-accounts")).headings.some(
+        (heading: DocsHeading): boolean => {
+          return heading.level === 2 && heading.text === setting;
+        },
+      ),
+    ).toBe(true);
+    expect(checks).toContain(
+      "Each change in AWS is read only through a cloud connection that reaches the account it was made in: the one whose **Cloud audit logs** read its CloudTrail event, a role in that account, your organization's, or an access key of that account.",
+    );
+    expect(checks).toContain(
+      `A connection with **${setting}** off is asked nothing, so no refused call shows in your CloudTrail`,
+    );
+    expect(checks).toContain(
+      "each change is marked undone, still there or yours to confirm, beside how to let OneUptime read the rest.",
+    );
+
+    // The step's own lines name the setting, and the scope, as the docs do.
+    expect(CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION).toContain(
+      `with ${setting} on.`,
+    );
+    expect(CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED).toContain(
+      `turn on ${setting}, and run the command it shows.`,
+    );
+    expect(CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS).toContain(
+      "add the scope {{scope}} to the connection's domain-wide delegation",
+    );
+
+    // The Google Workspace page says where the scope is added, and why.
+    const google: string = flat(
+      readPage("en", "integrations/google-workspace"),
+    );
+
+    expect(google).toContain(
+      `4. To let a [security case](/docs/telemetry/security-cases#${slugifyMarkdownHeading("How OneUptime checks a step")}) check that an account an attack added to a group was taken out of it, add \`${GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE}\` the same way.`,
+    );
+    expect(google).toContain(
+      "Without it, the case names each such change for you to confirm, and says which scope to add.",
+    );
+  });
+
+  it("names the switch that marks a case Contained once its containment is verified as the Case Statuses page titles it, and who may turn it off", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const statusesPage: string = source(
+      `${DASHBOARD}/Pages/SecurityEvents/Settings/CaseStatuses.tsx`,
+    );
+
+    expect(statusesPage).toContain('"Mark Cases Contained When Verified"');
+    expect(checks).toContain(
+      "**Mark Cases Contained When Verified**, under **Products → Security Events → Settings → Case Statuses**",
+    );
+
+    // On in every project; only a Project Owner or Project Admin changes it.
+    expect(checks).toContain("The setting is on in every project");
+    expect(checks).toContain(
+      "a Project Owner or Project Admin can turn it off",
+    );
+    expect(
+      new Project().getColumnAccessControlFor(
+        "markSecurityCaseContainedWhenVerified",
+      )?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
   });
 
   it("says what the case's header keeps on every page, and where a link to the case lands", () => {
@@ -1419,18 +1724,57 @@ describe("Security Cases and Playbooks docs", () => {
         },
       );
 
-    // Okta, CrowdStrike, Defender, and Microsoft Entra ID and Google Workspace's two each.
-    expect(disruptive).toHaveLength(8);
+    /*
+     * Okta, CrowdStrike, Defender, Microsoft Entra ID and Google Workspace's
+     * two each, and blocking an address (#10342).
+     */
+    expect(disruptive).toHaveLength(9);
     expect(
       disruptive.every((action: SecurityPlaybookActionDefinition): boolean => {
         return action.category === SecurityPlaybookActionCategory.Contain;
       }),
     ).toBe(true);
     expect(page).toContain(
-      "The eight steps that cut someone off always do, unless a Security Admin turns it off.",
+      "The nine steps that cut someone off always do, unless a Security Admin turns it off.",
     );
     expect(flat(section(page, "Approval"))).toContain(
-      "The eight steps that cut someone off wait for approval.",
+      "The nine steps that cut someone off wait for approval.",
+    );
+  });
+
+  /*
+   * #10342: a case's address is blocked from its Response Plan in one
+   * click, through the playbook engine, with the words its card draws.
+   */
+  it("says how an address is blocked from a case, in the words the step and its menu draw", () => {
+    const text: string = flat(section(page, "Block an address from a case"));
+
+    expect(ACTION_BLOCK_FOR_A_DAY).toBe("Block for 24 Hours");
+    expect(BLOCK_CHALLENGE_INSTEAD).toBe("Challenge Instead");
+    expect(BLOCK_FOR_SEVEN_DAYS).toBe("Block for 7 Days");
+    expect(BLOCK_UNTIL_LIFTED).toBe("Block Until Lifted");
+    expect(BLOCK_HELP_SHOW).toBe("How to Block It");
+    expect(BLOCK_FROM_CASE_MENU_ITEM).toBe("Block…");
+
+    for (const words of [
+      `**${ACTION_BLOCK_FOR_A_DAY}**`,
+      `**${BLOCK_CHALLENGE_INSTEAD}**`,
+      `**${BLOCK_FOR_SEVEN_DAYS}**`,
+      `**${BLOCK_UNTIL_LIFTED}**`,
+      `**${BLOCK_HELP_SHOW}**`,
+      `**${BLOCK_FROM_CASE_MENU_ITEM}**`,
+      "**Lift**",
+    ]) {
+      expect(text).toContain(words);
+    }
+
+    // The approval rule is a playbook's: someone else's, unless the person may turn it off.
+    expect(text).toContain(
+      "It waits for someone else's approval, unless you are a Security Admin, a Project Admin or a Project Owner.",
+    );
+    // A block nothing enforces fails a playbook's step, in the step's own words.
+    expect(flat(section(page, "Containment"))).toContain(
+      `"${NOT_ENFORCED_ANYWHERE_ERROR}"`,
     );
   });
 
@@ -1782,7 +2126,10 @@ describe("Security Cases and Playbooks docs", () => {
     const containRows: Array<Array<string>> = rowsOf("Containment");
     const containTitles: Array<string> = SECURITY_PLAYBOOK_ACTIONS.filter(
       (action: SecurityPlaybookActionDefinition): boolean => {
-        return action.category === SecurityPlaybookActionCategory.Contain;
+        return (
+          action.category === SecurityPlaybookActionCategory.Contain &&
+          !actsThroughBlocklist(action.type)
+        );
       },
     ).map((action: SecurityPlaybookActionDefinition): string => {
       return action.title;
@@ -1790,6 +2137,10 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(containRows, 0).join(", ").split(", ").sort()).toEqual(
       [...containTitles].sort(),
+    );
+    // The blocklist's steps need no connection of their own (#10342): said beside the table.
+    expect(flat(section(page, "Containment"))).toContain(
+      `**${getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)!.title}** and **${getSecurityPlaybookAction(SecurityPlaybookActionType.LiftAddressBlock)!.title}** act through your [Blocklist](#blocklist), which its destinations enforce, so they need no connection of their own.`,
     );
     expect(page).toContain(
       `A step acts on at most ${CONTAINMENT_ENTITY_LIMIT} users or hosts.`,
@@ -1874,13 +2225,47 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toContain("Protected Entities");
     expect(page).toContain(
-      "**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts and IP addresses no playbook contains and the blocklist never blocks",
+      "**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts, IP addresses, domains and files no playbook contains and the blocklist never blocks",
     );
     expect(PROTECTED_ENTITY_TYPES).toEqual([
       SecurityEntityType.User,
       SecurityEntityType.Host,
       SecurityEntityType.IpAddress,
+      SecurityEntityType.Domain,
+      SecurityEntityType.FileHash,
     ]);
+
+    // A domain protects itself and refuses the domains above it; `*.` protects every name under it (#10346).
+    expect(page).toContain(
+      "A domain entry, such as `status.acme.com`, is never blocked, nor is a domain above it, whose block would block it too; write `*.` before a domain, such as `*.acme.com`, to protect every name under it as well.",
+    );
+    const statusDomain: Array<{ type: SecurityEntityType; value: string }> = [
+      { type: SecurityEntityType.Domain, value: "status.acme.com" },
+    ];
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "acme.com",
+        rules: statusDomain,
+      }),
+    ).toBeDefined();
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "evil.acme.com",
+        rules: statusDomain,
+      }),
+    ).toBeUndefined();
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "evil.acme.com",
+        rules: [{ type: SecurityEntityType.Domain, value: "*.acme.com" }],
+      }),
+    ).toBeDefined();
+    expect(page).toContain(
+      "A file hash entry, MD5, SHA-1 or SHA-256, protects that file: list the hashes of the software you ship.",
+    );
     expect(page).toContain(
       "An address entry is an address or a range, such as `203.0.113.0/24`, which protects every address in it.",
     );
@@ -1919,7 +2304,34 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toContain("Blocklist");
     expect(blocklist).toContain(
-      "**Blocklist**, under **Playbooks** in the menu, lists the IP addresses and ranges your project blocks",
+      "**Blocklist**, under **Playbooks** in the menu, lists what your project blocks, on a tab of each kind, **Addresses**, **Domains and URLs** and **Files**",
+    );
+    expect(
+      BLOCKLIST_KINDS.map((kind: BlocklistKind): string => {
+        return BLOCKLIST_KIND_WORDS[kind].plural;
+      }),
+    ).toEqual(["Addresses", "Domains and URLs", "Files"]);
+
+    // Domains, URLs and files, on every machine, for as long as each tab says (#10346).
+    expect([
+      BLOCK_DOMAIN_TITLE,
+      BLOCK_FILE_TITLE,
+      QUARANTINE_FIELD_TITLE,
+    ]).toEqual(["Block Domain or URL", "Block File", "Quarantine It"]);
+    expect(blocklist).toContain(
+      "**Block Domain or URL** and **Block File** block on every machine, through a [Microsoft Defender](/docs/integrations/microsoft-defender-xdr) or [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) connection with blocking turned on",
+    );
+    expect(BLOCKLIST_KIND_DEFAULT_DURATIONS).toEqual({
+      [BlocklistKind.Addresses]: SecurityBlockDuration.OneDay,
+      [BlocklistKind.DomainsAndUrls]: SecurityBlockDuration.SevenDays,
+      [BlocklistKind.Files]: SecurityBlockDuration.ThirtyDays,
+    });
+    expect(blocklist).toContain(
+      "A domain or a URL is blocked for 7 days and a file for 30 unless you choose otherwise.",
+    );
+    expect(EVERY_MACHINE_FIELD_TITLE).toBe("Block on Every Machine Too");
+    expect(blocklist).toContain(
+      "**Block on Every Machine Too**, on **Block Address**, blocks an address on every machine as well as at the edge",
     );
 
     // Every block expires: a day unless chosen otherwise.
@@ -1957,7 +2369,7 @@ describe("Security Cases and Playbooks docs", () => {
       "**Lift** ends a block, on one row or several at once, and **Extend** moves its end.",
     );
 
-    // What protects an address, each a source the check reads.
+    // What protects an address, each a source the check reads; and a domain or a file (#10346).
     expect(Object.values(SecurityProtectedAddressSource).sort()).toEqual(
       [
         SecurityProtectedAddressSource.ProtectedEntity,
@@ -1972,7 +2384,16 @@ describe("Security Cases and Playbooks docs", () => {
         SecurityProtectedAddressSource.GlobalProbe,
         SecurityProtectedAddressSource.OneUptimeCloud,
         SecurityProtectedAddressSource.Edge,
+        SecurityProtectedAddressSource.OneUptime,
+        SecurityProtectedAddressSource.EndpointProduct,
+        SecurityProtectedAddressSource.Monitor,
+        SecurityProtectedAddressSource.StatusPage,
+        SecurityProtectedAddressSource.ProjectDomain,
+        SecurityProtectedAddressSource.EmptyFile,
       ].sort(),
+    );
+    expect(blocklist).toContain(
+      "Nor are its own domains blocked: OneUptime's, Microsoft Defender's and CrowdStrike Falcon's, the hosts your monitors check, your status pages' and verified domains, and your cloud resources' DNS names and zones, nor the hash of an empty file.",
     );
     expect(blocklist).toContain(
       "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app.",
@@ -2027,16 +2448,17 @@ describe("Security Cases and Playbooks docs", () => {
       ]!;
     });
 
-    // Okta's and Google Workspace's undo are both Unsuspend.
+    // Okta's and Google Workspace's undo are both Unsuspend; a block's is Lift (#10342).
     expect(undoable).toEqual([
       "Unsuspend",
       "Lift Containment",
       "Release",
       "Enable",
       "Unsuspend",
+      "Lift",
     ]);
     expect(flat(section(page, "Undo"))).toContain(
-      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone.",
+      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release**, **Enable** or **Lift**. A sign-out cannot be undone.",
     );
   });
 
@@ -2150,7 +2572,7 @@ describe("Security Cases and Playbooks docs", () => {
     );
   });
 
-  it("names the five notifications as Notification Settings lists them, on by email and push", () => {
+  it("names the seven notifications as Notification Settings lists them, on by email and push", () => {
     const settingsPage: string = source(
       `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
     );
@@ -2165,9 +2587,11 @@ describe("Security Cases and Playbooks docs", () => {
       "Playbook step waiting for my approval",
       "Security case response target",
       "Security case task assigned to me",
+      "Security case step stopped holding",
+      "OneUptime AI handed a security case to people",
     ]);
     expect(flat(section(page, "Notifications"))).toContain(
-      "OneUptime tells people about five things on a case.",
+      "OneUptime tells people about seven things on a case.",
     );
 
     for (const label of column(notificationRows, 0)) {
@@ -2189,6 +2613,8 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(notificationRows, 2)).toEqual([
       "Email and push, for High and Critical cases",
+      "Email and push",
+      "Email and push",
       "Email and push",
       "Email and push",
       "Email and push",
@@ -2221,7 +2647,24 @@ describe("Security Cases and Playbooks docs", () => {
     );
     // The app opens the case's own screen from them.
     expect(handlers).toMatch(
-      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
+      /case "security-case": \/\*.{0,800}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId, /,
+    );
+    /*
+     * An approval's push names its run: the screen opens on that approval,
+     * with its evidence, or says what became of it (#10341).
+     */
+    expect(
+      flat(source("Common/Server/Utils/PushNotificationUtil.ts")),
+    ).toContain("...(params.runId ? { runId: params.runId } : {}),");
+    expect(handlers).toContain(
+      '...(typeof data.runId === "string" && isUuid(data.runId) ? { runId: data.runId } : {}),',
+    );
+    expect(caseScreen).toContain(
+      "<PlaybookApprovalDecidedNotice readout={decidedApproval} />",
+    );
+    expect(approval).toContain('testID="playbook-approval-evidence"');
+    expect(englishPage()).toContain(
+      "A push about a step waiting for your approval opens on that approval, with its evidence; when somebody decided it since, the case says who, when and how the step went.",
     );
     // Where the waiting step is decided, the case taken on and closed.
     expect(approval).toContain('label="Approve"');
@@ -2385,6 +2828,7 @@ describe("Security Cases and Playbooks docs", () => {
       "Assignments",
       "Approvals needed",
       "Response targets",
+      "Handed to people by OneUptime AI",
     ]);
     expect(rules).toContain(
       `A rule's **Updates** step picks which of these notices it posts: ${titles
@@ -2584,5 +3028,113 @@ describe("Security Cases and Playbooks docs", () => {
       "Matrix",
     );
     expect(TACTIC_LIBRARY_COUNT).toBe("+{{count}} in the Rule Library");
+  });
+});
+
+/*
+ * FIX THE CODE WITH AI ON A DATA SECURITY CASE (#10740): an issue in no
+ * group gets its own pull request, a few at most - the page's number is the
+ * step's - and the step never changes a store through its cloud connection.
+ */
+describe("Fix the code with AI on a Data Security case (#10740)", () => {
+  test("asks for each issue in no group, up to the step's own cap - a telemetry leak's service once - and changes no store through its cloud", () => {
+    const capped: RegExpMatchArray | null = source(
+      "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookIssueGroupFix.ts",
+    ).match(/\bMAX_CASE_ISSUES_FIXED: number = (\d+);/);
+    const words: Record<string, string> = { "5": "five" };
+
+    expect(capped?.[1]).toBe("5");
+
+    const step: string = flat(englishPage());
+
+    expect(step).toContain(
+      `and for each other issue, up to ${words[capped?.[1] || ""]}, a pull request of its own in the repository the code that declares its store is in`,
+    );
+    // A leak in a service's telemetry: the service's one pull request (#10367).
+    expect(step).toContain(
+      "or, for a leak in a service's telemetry, the service's one pull request for its leaks, in the repository they are written in.",
+    );
+    expect(step).toContain(
+      "It never changes a store through its cloud connection (see [Issues with one cause](/docs/data-security/checks-and-issues#issues-with-one-cause)).",
+    );
+  });
+});
+
+/*
+ * Connect a Cloud Account's Security case checks section (#10900): what a
+ * security case reads of an IAM user, the policy that grants it and the
+ * commands that put it there, as the setup commands write them.
+ */
+describe("Connect a Cloud Account's Security case checks section", () => {
+  const cloudAccounts: string = readPage("en", "telemetry/cloud-accounts");
+  const field: CloudConnectionField = securityCaseChecksField();
+  const checks: string = section(cloudAccounts, field.title);
+  const blocks: Array<string> = scanMarkdown(checks)
+    .fences.filter((fence: { lang: string }): boolean => {
+      return fence.lang === "bash";
+    })
+    .map((fence: { code: string }): string => {
+      return fence.code;
+    });
+
+  it("names the setting as the form asks it: folded, off until turned on, and the command changing with it", () => {
+    expect(field.isAdvanced).toBe(true);
+    expect(field.defaultValue).toBe("off");
+    expect(field.changesSetupCommand).toBe(true);
+    expect(flat(checks)).toContain(
+      `Under **More fields**, **${field.title}** is **Off** until you turn it on, and the command the form shows changes with it.`,
+    );
+    expect(flat(checks)).toContain(
+      "Each action only reads, and none reads a secret: an access key's ID and whether it is active, never the key, and that a console password is set, never the password.",
+    );
+    expect(checks).toContain(
+      `](/docs/telemetry/security-cases#${slugifyMarkdownHeading("How OneUptime checks a step")})`,
+    );
+  });
+
+  it("lists every action the policy grants, in its order, each once", () => {
+    const table: Array<Array<string>> = tables(checks)[0] as Array<
+      Array<string>
+    >;
+
+    expect(table[0]).toEqual([
+      "What the case reads of each user its CloudTrail events name",
+      "Actions",
+    ]);
+    expect(
+      table.slice(1).flatMap((row: Array<string>): Array<string> => {
+        return codeSpans(row[1] as string);
+      }),
+    ).toEqual([...AWS_SECURITY_CASE_CHECKS_ACTIONS]);
+  });
+
+  it("shows the role's line and the access key's command word for word, as the form shows them", () => {
+    expect(blocks).toEqual([
+      `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '${getAwsSecurityCaseChecksPolicyDocument("on")}'`,
+      getAwsAccessKeySetupCommand({ securityCaseChecks: "on" }),
+    ]);
+    // The role's own command is the project's: the page shows only the line it adds.
+    expect(
+      getAwsRoleSetupCommand({
+        trustedPrincipalArn: "arn:aws:iam::123456789012:root",
+        externalId: "oneuptime-0123456789abcdef0123456789abcdef",
+        securityCaseChecks: "on",
+      }).split("\n"),
+    ).toContain(blocks[0] as string);
+    expect(checks).toContain(
+      `With an **Access key**, the policy goes on a group of the same name, \`${AWS_SECURITY_CASE_CHECKS_GROUP_NAME}\`, that the user joins:`,
+    );
+  });
+
+  it("says a case asks IAM nothing through a connection with it off, and that Off leaves the policy in place", () => {
+    expect(flat(checks)).toContain(
+      `asks IAM nothing through a connection whose **${field.title}** is **Off**`,
+    );
+    expect(flat(checks)).toContain(
+      "**Off** adds nothing, so it leaves what an earlier command granted in place until you delete it",
+    );
+    expect(checks).toContain(
+      `\`aws iam delete-role-policy --role-name <your role> --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME}\``,
+    );
   });
 });

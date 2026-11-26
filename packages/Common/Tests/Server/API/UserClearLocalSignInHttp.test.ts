@@ -138,6 +138,7 @@ const PATH: string = `/user/${PERSON_ID}/${CLEAR_LOCAL_SIGN_IN_ACTION}`;
 const ANSWER: ClearLocalSignInAnswer = {
   cleared: {
     hasPassword: true,
+    hasPasswordResetLink: true,
     isTwoFactorAuthEnabled: false,
     authenticatorAppCount: 0,
     passkeyAndSecurityKeyCount: 1,

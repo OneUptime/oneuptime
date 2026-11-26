@@ -43,6 +43,7 @@ import OTelIngestService, {
 import logger from "../../../../Server/Utils/Logger";
 import SecurityCaseIngest from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import SecurityEntityRiskRecorder from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import SecurityEventRetention from "../../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import {
   SQL,
   Statement,
@@ -185,6 +186,10 @@ beforeEach(() => {
   );
   getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
     [] as never,
+  );
+  // The 15 days a project keeps its security events unless it changed them.
+  getJestSpyOn(SecurityEventRetention, "getRetentionInDays").mockResolvedValue(
+    15 as never,
   );
   updateOneById = getJestSpyOn(
     DetectionRuleService,
@@ -650,6 +655,82 @@ describe("a rule that counts, in real time", () => {
     expect(result?.alertsCreated).toBe(1);
     expect(result?.casesOpened).toBe(1);
     expect(findDetectionMatches).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #10432: a First seen rule checking events as they arrive tells a value
+   * is new by the history the project keeps, and when its timespan is
+   * longer than that, its row says so - as a scheduled run's does - while
+   * its schedule stays as it was.
+   */
+  test("a First seen rule whose timespan is longer than the events are kept says so on its row", async () => {
+    const findMatches: Spy = getJestSpyOn(
+      CorrelationRuleMatcher,
+      "findMatches",
+    ).mockResolvedValue({
+      groups: [],
+      readFrom: START,
+      candidatesCapped: false,
+    } as never);
+
+    await DetectionRuleEvaluator.evaluateRealTime(
+      rule(`title: Sign-in from a new country
+correlation:
+  type: new_value
+  rules: [sign_in]
+  group-by: [principalUser]
+  timespan: 30d
+  condition:
+    field: country
+---
+title: Sign-in
+name: sign_in
+detection:
+  selection:
+    statusName: Success
+  condition: selection`),
+      {
+        restrictTo: restriction(),
+        startTime: START,
+        endTime: END,
+        candidates: CANDIDATES,
+      },
+    );
+
+    const input: CorrelationRuleMatchInput = findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+    expect(input.kept?.retentionInDays).toBe(15);
+
+    const data: JSONObject = (
+      updateOneById.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(String(data["lastError"])).toContain(
+      "This run looked back 15 days, not the 30 days this rule asks for",
+    );
+    // Real time leaves the schedule as it was.
+    expect(data["lastEvaluatedAt"]).toBeUndefined();
+  });
+
+  test("a count whose window fits in the events kept says nothing", async () => {
+    getJestSpyOn(CorrelationRuleMatcher, "findMatches").mockResolvedValue({
+      groups: [],
+      readFrom: START,
+      candidatesCapped: false,
+    } as never);
+
+    await DetectionRuleEvaluator.evaluateRealTime(rule(CORRELATION), {
+      restrictTo: restriction(),
+      startTime: START,
+      endTime: END,
+      candidates: CANDIDATES,
+    });
+
+    const data: JSONObject = (
+      updateOneById.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(data["lastError"]).toBeNull();
   });
 });
 

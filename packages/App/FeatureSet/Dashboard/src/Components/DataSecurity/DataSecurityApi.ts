@@ -1,3 +1,7 @@
+import {
+  DESCRIBE_DATA_TYPE_ROUTE,
+  DescribeDataTypeRequest,
+} from "Common/Types/DataSecurity/DataTypeDescribe";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -8,22 +12,45 @@ import Timezone from "Common/Types/Timezone";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityAiInputResponse,
+  DataSecurityApplyToSimilarResult,
+  DataSecuritySimilarFinding,
+  DataSecuritySimilarFindings,
   DataSecurityComplianceResponse,
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
+  DataSecurityExposureAssessmentResponse,
+  DataSecurityIssueAnalysisResult,
+  DataSecurityIssueContainment,
+  DataSecurityIssueContainmentRule,
   DataSecurityMetricUser,
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
+  DataSecurityIssueCodeFixJSON,
+  DataSecurityIssueCodeFixResult,
+  DataSecuritySecretSighting,
+  DataSecurityTelemetryFixPlanJSON,
+  DataSecurityTelemetryFixPlanResult,
   DataSecurityOverview,
+  DataSecurityDeclaredStoreResponse,
+  DataSecurityAuditEvidenceResponse,
+  DataSecurityImpactAssessmentResponse,
+  DataSecurityRecordDraftResult,
+  DataSecurityRecordFieldResult,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
   DataSecurityResponseAvailability,
   DataSecurityResponseResult,
+  DataSecurityScrubImpact,
+  DataSecurityScrubProofSummary,
   DataSecurityScrubResult,
+  DataSecurityScrubRulePlan,
+  DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { readScrubRuleKeys } from "Common/Types/Telemetry/ScrubRuleKeys";
+import { readTelemetryFieldReaders } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DataStoreResourceKind,
   isDataStoreResourceKind,
@@ -32,7 +59,34 @@ import {
   MetricOutputReaders,
   readMetricOutputReaders,
 } from "Common/Types/Metrics/MetricOutputReaders";
+import { readDataSecurityIssueAnalysisView } from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
+import {
+  DataSecurityIssueGroupJSON,
+  DataSecurityIssueGroupsJSON,
+} from "Common/Types/DataSecurity/DataSecurityIssueGroup";
+import {
+  DataSecurityIssueGroupFixPart,
+  DataSecurityIssueGroupFixPlanJSON,
+  DataSecurityIssueGroupFixResultJSON,
+} from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  readTelemetryLeakFixIssue,
+  readTelemetryLeakFixLeak,
+  readTelemetryLeakList,
+  readTelemetryLeakTexts,
+  TelemetryLeakFixIssue,
+  TelemetryLeakFixLeak,
+} from "Common/Types/DataSecurity/TelemetryLeakFix";
+import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
+import { ImpactAssessmentPart } from "Common/Types/DataSecurity/ImpactAssessment";
+import { ExposureDraftPart } from "Common/Types/DataSecurity/ExposureAssessment";
+import { BreachPlace } from "Common/Types/DataSecurity/BreachLaws";
+import {
+  RecordField,
+  RecordFieldAction,
+  RecordFieldValue,
+} from "Common/Types/DataSecurity/RecordOfProcessing";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -52,6 +106,80 @@ export class DataSecurityApiError extends Error {
     super(message);
     this.statusCode = statusCode;
   }
+}
+
+function readCount(value: JSONValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.trunc(value)
+    : null;
+}
+
+function readOptionalText(value: JSONValue | undefined): string | undefined {
+  return typeof value === "string" && value ? value : undefined;
+}
+
+/*
+ * An issue's containment as the server sent it (#10368): each rule read on
+ * its own, and one of the wrong shape left out. None for an answer of no
+ * containment.
+ */
+export function readIssueContainment(
+  value: JSONValue | undefined,
+): DataSecurityIssueContainment | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const rules: Array<DataSecurityIssueContainmentRule> = [];
+
+  for (const item of Array.isArray(json["rules"]) ? json["rules"] : []) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const rule: JSONObject = item as JSONObject;
+    const id: string | undefined = readOptionalText(rule["id"]);
+    const signal: string | undefined = readOptionalText(rule["signal"]);
+
+    if (!id || !signal) {
+      continue;
+    }
+
+    const read: DataSecurityIssueContainmentRule = {
+      id,
+      signal,
+      name: readOptionalText(rule["name"]) || "",
+      valuesChanged: readCount(rule["valuesChanged"]),
+      isKept: rule["isKept"] === true,
+    };
+    const lastChangedAt: string | undefined = readOptionalText(
+      rule["lastChangedAt"],
+    );
+    const lastChangedVersion: string | undefined = readOptionalText(
+      rule["lastChangedVersion"],
+    );
+
+    if (lastChangedAt) {
+      read.lastChangedAt = lastChangedAt;
+    }
+
+    if (lastChangedVersion) {
+      read.lastChangedVersion = lastChangedVersion;
+    }
+
+    if (rule["valuesChangedSinceFix"] !== undefined) {
+      read.valuesChangedSinceFix = readCount(rule["valuesChangedSinceFix"]);
+    }
+
+    rules.push(read);
+  }
+
+  return {
+    days: readCount(json["days"]) || 0,
+    containedFindingCount: readCount(json["containedFindingCount"]) || 0,
+    rules,
+  };
 }
 
 async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
@@ -76,6 +204,42 @@ async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
     : {};
 }
 
+// The counts a planned rule's proof is said in (#10366).
+const SCRUB_PROOF_COUNTS: ReadonlyArray<keyof DataSecurityScrubProofSummary> = [
+  "recordsRead",
+  "findingRecordsRead",
+  "valuesWithData",
+  "valuesStillWithData",
+  "otherValues",
+  "otherValuesChanged",
+];
+
+/*
+ * What a planned rule was proven on, as the server answers it: counts,
+ * never a value. One missing or no count, and there is no proof.
+ */
+function readScrubProof(
+  value: JSONValue | undefined,
+): DataSecurityScrubProofSummary | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const proof: Partial<DataSecurityScrubProofSummary> = {};
+
+  for (const name of SCRUB_PROOF_COUNTS) {
+    const count: number | null = readCount((value as JSONObject)[name]);
+
+    if (count === null) {
+      return null;
+    }
+
+    proof[name] = count;
+  }
+
+  return proof as DataSecurityScrubProofSummary;
+}
+
 function readIds(value: JSONValue | undefined): Array<string> {
   if (!Array.isArray(value)) {
     return [];
@@ -90,6 +254,19 @@ function readIds(value: JSONValue | undefined): Array<string> {
   }
 
   return ids;
+}
+
+// The group an analysis points at (#10370), when the answer holds one.
+function readIssueGroup(
+  value: JSONValue | undefined,
+): DataSecurityIssueGroupJSON | null {
+  return value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as JSONObject)["groupId"] === "string" &&
+    typeof (value as JSONObject)["issueCount"] === "number"
+    ? (value as unknown as DataSecurityIssueGroupJSON)
+    : null;
 }
 
 /*
@@ -183,10 +360,189 @@ export default class DataSecurityApi {
     })) as unknown as DataSecurityResourceComplianceResponse;
   }
 
-  public static async getRecordOfProcessing(): Promise<DataSecurityRecordOfProcessingResponse> {
+  /*
+   * The record of processing (#10398, #10375): every store with personal
+   * data the reader may read - or one of them, with the facts its drafts
+   * rest on.
+   */
+  public static async getRecordOfProcessing(
+    options: { dataStoreId?: ObjectID | undefined } = {},
+  ): Promise<DataSecurityRecordOfProcessingResponse> {
     return (await post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
+      options.dataStoreId
+        ? { dataStoreId: options.dataStoreId.toString() }
+        : {},
     )) as unknown as DataSecurityRecordOfProcessingResponse;
+  }
+
+  /*
+   * One press on a field of a store's record (#10375): confirm OneUptime
+   * AI's draft - the one the reader was shown - write their own words, or
+   * take or keep a proposed change.
+   */
+  public static async applyRecordField(data: {
+    dataStoreId: string;
+    field: RecordField;
+    action: RecordFieldAction;
+    value?: RecordFieldValue | null | undefined;
+    shownDraftedAt?: string | undefined;
+  }): Promise<DataSecurityRecordFieldResult> {
+    return (await post(DATA_SECURITY_API_ROUTES.recordField(data.dataStoreId), {
+      field: data.field,
+      action: data.action,
+      ...(data.value !== undefined ? { value: data.value as JSONValue } : {}),
+      ...(data.shownDraftedAt ? { shownDraftedAt: data.shownDraftedAt } : {}),
+    })) as unknown as DataSecurityRecordFieldResult;
+  }
+
+  // OneUptime AI's drafts of one store's record, now (#10375).
+  public static async draftRecord(data: {
+    dataStoreId: string;
+    force?: boolean | undefined;
+  }): Promise<DataSecurityRecordDraftResult> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftRecord(data.dataStoreId),
+      data.force ? { force: true } : {},
+    )) as unknown as DataSecurityRecordDraftResult;
+  }
+
+  // A store's impact assessment, as the reader may read it (#10375).
+  public static async getImpactAssessment(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityImpactAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.impactAssessment(dataStoreId.toString()),
+    )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  public static async draftImpactAssessment(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityImpactAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftImpactAssessment(dataStoreId.toString()),
+    )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  public static async editImpactAssessment(data: {
+    dataStoreId: ObjectID;
+    part: ImpactAssessmentPart;
+    markdown: string;
+  }): Promise<DataSecurityImpactAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.editImpactAssessment(
+        data.dataStoreId.toString(),
+      ),
+      { part: data.part, markdown: data.markdown },
+    )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  /*
+   * A security case's exposure assessment (#10377): what plain code works
+   * out of the store it is about, and OneUptime AI's write-up. Nothing
+   * any of these does sends anything anywhere.
+   */
+  public static async getExposureAssessment(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposureAssessment(securityCaseId.toString()),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // ...started by a person: of the store they pick, when the case is about more than one.
+  public static async assessExposure(data: {
+    securityCaseId: ObjectID;
+    dataStoreId?: string | undefined;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.assessExposure(data.securityCaseId.toString()),
+      data.dataStoreId ? { dataStoreId: data.dataStoreId } : {},
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  public static async draftExposureAssessment(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment(
+        securityCaseId.toString(),
+      ),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  public static async editExposureAssessment(data: {
+    securityCaseId: ObjectID;
+    part: ExposureDraftPart;
+    markdown: string;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(
+        data.securityCaseId.toString(),
+      ),
+      { part: data.part, markdown: data.markdown },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // Where the people the data is about live; none takes the answer back.
+  public static async setExposurePeoplePlaces(data: {
+    securityCaseId: ObjectID;
+    places: Array<BreachPlace>;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(
+        data.securityCaseId.toString(),
+      ),
+      { places: data.places },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // A framework's audit evidence over a period (#10375).
+  public static async getAuditEvidence(data: {
+    framework: ComplianceFramework;
+    periodInDays: number;
+  }): Promise<DataSecurityAuditEvidenceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.auditEvidence, {
+      framework: data.framework,
+      periodInDays: data.periodInDays,
+    })) as unknown as DataSecurityAuditEvidenceResponse;
+  }
+
+  public static async draftAuditEvidence(data: {
+    framework: ComplianceFramework;
+    periodInDays: number;
+  }): Promise<DataSecurityAuditEvidenceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.draftAuditEvidence, {
+      framework: data.framework,
+      periodInDays: data.periodInDays,
+    })) as unknown as DataSecurityAuditEvidenceResponse;
+  }
+
+  public static async editAuditEvidence(data: {
+    framework: ComplianceFramework;
+    periodInDays: number;
+    requirement: string;
+    text: string;
+  }): Promise<DataSecurityAuditEvidenceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.editAuditEvidence, {
+      framework: data.framework,
+      periodInDays: data.periodInDays,
+      requirement: data.requirement,
+      text: data.text,
+    })) as unknown as DataSecurityAuditEvidenceResponse;
+  }
+
+  /*
+   * What the record says of one of the stores OneUptime keeps for the
+   * project's security (#10398): what it holds, why, for how long and who
+   * can read it.
+   */
+  public static async getDeclaredStore(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityDeclaredStoreResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.declaredStore(dataStoreId.toString()),
+    )) as unknown as DataSecurityDeclaredStoreResponse;
   }
 
   public static async scanNow(dataStoreId: ObjectID): Promise<void> {
@@ -203,6 +559,161 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.scrubFinding(findingId.toString()),
     )) as unknown as DataSecurityScrubResult;
+  }
+
+  /*
+   * What Scrub It would do for a finding (#10433): the rule it would make -
+   * its action, the parts it scrubs and whose - and what reads the data it
+   * would hide. Asked before the rule is made, which it never makes. Read
+   * defensively, as the drop's impact is.
+   */
+  public static async getScrubImpact(
+    findingId: ObjectID,
+  ): Promise<DataSecurityScrubImpact> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.scrubImpact(findingId.toString()),
+    );
+    const textOf: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const signalOf: (value: unknown) => DataSecurityScrubSignal = (
+      value: unknown,
+    ): DataSecurityScrubSignal => {
+      return value === "trace" || value === "metric" ? value : "log";
+    };
+    const impact: DataSecurityScrubImpact = {
+      isAvailable: answer["isAvailable"] === true,
+    };
+
+    if (textOf(answer["unavailableReason"])) {
+      impact.unavailableReason = textOf(answer["unavailableReason"]);
+    }
+
+    const existing: JSONObject = (
+      answer["existingRule"] && typeof answer["existingRule"] === "object"
+        ? answer["existingRule"]
+        : {}
+    ) as JSONObject;
+
+    if (textOf(existing["id"])) {
+      impact.existingRule = {
+        id: textOf(existing["id"]),
+        name: textOf(existing["name"]),
+        signal: signalOf(existing["signal"]),
+      };
+    }
+
+    const rule: JSONObject = (
+      answer["rule"] && typeof answer["rule"] === "object" ? answer["rule"] : {}
+    ) as JSONObject;
+
+    if (textOf(rule["name"])) {
+      const plan: DataSecurityScrubRulePlan = {
+        signal: signalOf(rule["signal"]),
+        name: textOf(rule["name"]),
+        scrubAction: textOf(rule["scrubAction"]),
+        patternType: textOf(rule["patternType"]),
+        fieldsToScrub: textOf(rule["fieldsToScrub"]),
+        dataTypeName: textOf(rule["dataTypeName"]),
+      };
+
+      if (ObjectID.isValidUUID(textOf(rule["serviceId"]))) {
+        plan.serviceId = textOf(rule["serviceId"]);
+        plan.serviceName = textOf(rule["serviceName"]);
+      }
+
+      /*
+       * What the dialog says of the rule beside its action: why an IP
+       * Address rule hashes rather than redacts (#10396), the attributes it
+       * names, and what it was proven on (#10366). A key that is no text is
+       * no key, and a proof with a count that is no count is none: the
+       * dialog never says a rule was proven when it cannot say on what.
+       */
+      if (rule["hashesForSecurityEvents"] === true) {
+        plan.hashesForSecurityEvents = true;
+      }
+
+      const attributeKeys: Array<string> = readScrubRuleKeys(
+        Array.isArray(rule["attributeKeys"]) ? rule["attributeKeys"] : [],
+      );
+
+      if (attributeKeys.length > 0) {
+        plan.attributeKeys = attributeKeys;
+      }
+
+      const proof: DataSecurityScrubProofSummary | null = readScrubProof(
+        rule["proof"],
+      );
+
+      if (proof) {
+        plan.proof = proof;
+      }
+
+      impact.rule = plan;
+    }
+
+    if (answer["readers"] && typeof answer["readers"] === "object") {
+      impact.readers = readTelemetryFieldReaders(answer["readers"]);
+    }
+
+    return impact;
+  }
+
+  /*
+   * A proposal of OneUptime AI's (#10364), approved as the person shown it:
+   * the plan they read (its fingerprint) - a proposal that changed since is
+   * not approved.
+   */
+  /*
+   * Approves the plan the person was shown (its fingerprint) - or, for an
+   * owner proposal changed first (#10374), the owners they picked instead.
+   */
+  public static async approveAiProposal(data: {
+    proposalId: ObjectID;
+    expectedPlanFingerprint: string;
+    changes?: JSONObject | undefined;
+  }): Promise<JSONObject> {
+    return await post(
+      DATA_SECURITY_API_ROUTES.approveAiProposal(data.proposalId.toString()),
+      {
+        expectedPlanFingerprint: data.expectedPlanFingerprint,
+        ...(data.changes ? { changes: data.changes } : {}),
+      },
+    );
+  }
+
+  public static async dismissAiProposal(data: {
+    proposalId: ObjectID;
+    reason: string;
+  }): Promise<JSONObject> {
+    return await post(
+      DATA_SECURITY_API_ROUTES.dismissAiProposal(data.proposalId.toString()),
+      { reason: data.reason },
+    );
+  }
+
+  public static async undoAiProposal(
+    proposalId: ObjectID,
+  ): Promise<JSONObject> {
+    return await post(
+      DATA_SECURITY_API_ROUTES.undoAiProposal(proposalId.toString()),
+    );
+  }
+
+  /*
+   * Describe It (#10371): the data type form's values, drafted by OneUptime
+   * AI from a sentence and the shapes of the person's examples - never the
+   * examples. Nothing is saved.
+   */
+  public static async describeDataType(
+    request: DescribeDataTypeRequest,
+  ): Promise<JSONObject> {
+    const answer: JSONObject = await post(DESCRIBE_DATA_TYPE_ROUTE, request);
+    const values: JSONValue | undefined = answer["dataType"];
+
+    return values && typeof values === "object" && !Array.isArray(values)
+      ? (values as JSONObject)
+      : {};
   }
 
   /*
@@ -343,6 +854,78 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityDropMetricResult;
   }
 
+  /*
+   * The findings like one a person decided (#10372): the same data type in
+   * a field of the same name, undecided, on the stores they may read. Read
+   * defensively: a row that is not one is left out.
+   */
+  public static async getSimilarFindings(
+    findingId: ObjectID,
+  ): Promise<DataSecuritySimilarFindings> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.similarFindings(findingId.toString()),
+    );
+    const text: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const findings: Array<DataSecuritySimilarFinding> = Array.isArray(
+      answer["findings"],
+    )
+      ? (answer["findings"] as Array<JSONValue>)
+          .filter((entry: JSONValue): entry is JSONObject => {
+            return (
+              Boolean(entry) &&
+              typeof entry === "object" &&
+              !Array.isArray(entry) &&
+              ObjectID.isValidUUID(text((entry as JSONObject)["findingId"]))
+            );
+          })
+          .map((entry: JSONObject): DataSecuritySimilarFinding => {
+            return {
+              findingId: text(entry["findingId"]),
+              dataStoreId: text(entry["dataStoreId"]),
+              storeName: text(entry["storeName"]),
+              storeKind: text(entry["storeKind"]),
+              location: text(entry["location"]),
+              locationKind: text(entry["locationKind"]),
+              dataTypeId: text(entry["dataTypeId"]),
+              dataTypeName: text(entry["dataTypeName"]),
+              confidence: text(entry["confidence"]),
+              aiVerdict: text(entry["aiVerdict"]),
+              isSameStore: entry["isSameStore"] === true,
+            };
+          })
+      : [];
+
+    return {
+      findingId: text(answer["findingId"]),
+      decision: text(answer["decision"]),
+      reason: text(answer["reason"]),
+      hasName: answer["hasName"] === true,
+      findings,
+    };
+  }
+
+  // The same decision, with the person's reason, on the findings they keep ticked.
+  public static async applyToSimilarFindings(data: {
+    findingId: ObjectID;
+    findingIds: Array<string>;
+  }): Promise<DataSecurityApplyToSimilarResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.applyToSimilarFindings(
+        data.findingId.toString(),
+      ),
+      { findingIds: data.findingIds },
+    );
+
+    return {
+      decision:
+        typeof answer["decision"] === "string" ? answer["decision"] : "",
+      applied: typeof answer["applied"] === "number" ? answer["applied"] : 0,
+      skipped: typeof answer["skipped"] === "number" ? answer["skipped"] : 0,
+    };
+  }
+
   // The newest records a telemetry finding's data was seen in, read now.
   public static async getFindingOccurrences(
     findingId: ObjectID,
@@ -361,12 +944,56 @@ export default class DataSecurityApi {
     };
   }
 
+  /*
+   * OneUptime AI's analysis of an issue (#10369), as the reader may read
+   * it: the one the issue keeps when nothing it rests on changed, else one
+   * written now - and with `force` (Analyze Again) one written now whatever
+   * changed.
+   */
   public static async explainIssue(
     issueId: ObjectID,
+    options: { force?: boolean | undefined } = {},
   ): Promise<DataSecurityExplainResult> {
-    return (await post(
+    const answer: JSONObject = await post(
       DATA_SECURITY_API_ROUTES.explainIssue(issueId.toString()),
-    )) as unknown as DataSecurityExplainResult;
+      options.force ? { force: true } : {},
+    );
+
+    return {
+      markdown:
+        typeof answer["markdown"] === "string" ? answer["markdown"] : "",
+      analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+      isNew: answer["isNew"] === true,
+      group: readIssueGroup(answer["group"]),
+    };
+  }
+
+  // The analysis the issue keeps, as the reader may read it: no model call.
+  public static async getIssueAnalysis(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueAnalysisResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueAnalysis(issueId.toString()),
+    );
+
+    return {
+      analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+      group: readIssueGroup(answer["group"]),
+    };
+  }
+
+  /*
+   * What hides a telemetry issue's data at ingest, and what each rule
+   * changed lately and since a verified code fix (#10368).
+   */
+  public static async getIssueContainment(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueContainment | null> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueContainment(issueId.toString()),
+    );
+
+    return readIssueContainment(answer["containment"]);
   }
 
   // Which response actions a store can take now, and why not.
@@ -409,13 +1036,179 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityAiInputResponse;
   }
 
+  /*
+   * Fix with AI on an issue. For a service's telemetry issue (#10367) it
+   * names the plan the person was shown, and a plan that changed since
+   * starts nothing and comes back to show again.
+   */
   public static async fixIssueWithAi(
     issueId: ObjectID,
     codeRepositoryId?: ObjectID | undefined,
+    expectedPlanFingerprint?: string | undefined,
   ): Promise<DataSecurityFixResult> {
     return (await post(
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId.toString()),
-      codeRepositoryId ? { codeRepositoryId: codeRepositoryId.toString() } : {},
+      {
+        ...(codeRepositoryId
+          ? { codeRepositoryId: codeRepositoryId.toString() }
+          : {}),
+        ...(expectedPlanFingerprint ? { expectedPlanFingerprint } : {}),
+      },
     )) as unknown as DataSecurityFixResult;
   }
+
+  /*
+   * What Fix with AI on a telemetry issue would do now (#10367): one pull
+   * request for every open leak of the issue's service, with where each is
+   * written and the files OneUptime AI starts from - or why there is none.
+   */
+  public static async getIssueFixPlan(
+    issueId: ObjectID,
+  ): Promise<DataSecurityTelemetryFixPlanResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(issueId.toString()),
+    );
+
+    return {
+      plan: readTelemetryFixPlan(answer["plan"]),
+      ...(typeof answer["message"] === "string"
+        ? { message: answer["message"] }
+        : {}),
+    };
+  }
+
+  /*
+   * Where the issue's fix in code stands, for the reader (#10367): its
+   * pull request and its state - and for a secret, where it was seen.
+   */
+  public static async getIssueCodeFix(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueCodeFixResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueCodeFix(issueId.toString()),
+    );
+    const fix: unknown = answer["fix"];
+
+    return {
+      fix:
+        fix && typeof fix === "object" && !Array.isArray(fix)
+          ? (fix as unknown as DataSecurityIssueCodeFixJSON)
+          : null,
+      secretSightings: Array.isArray(answer["secretSightings"])
+        ? (answer[
+            "secretSightings"
+          ] as unknown as Array<DataSecuritySecretSighting>)
+        : [],
+    };
+  }
+
+  /*
+   * The project's groups of issues one mistake made (#10370), for the
+   * Issues list's Group by cause: none for a reader whose read of issues is
+   * held to labels.
+   */
+  public static async getIssueGroups(
+    data: { groupIds?: Array<string> | undefined } = {},
+  ): Promise<DataSecurityIssueGroupsJSON> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueGroups,
+      data.groupIds && data.groupIds.length > 0
+        ? { groupIds: data.groupIds }
+        : {},
+    );
+
+    return {
+      groups: Array.isArray(answer["groups"])
+        ? (answer["groups"] as unknown as Array<DataSecurityIssueGroupJSON>)
+        : [],
+      largestGroupSize:
+        typeof answer["largestGroupSize"] === "number"
+          ? answer["largestGroupSize"]
+          : 0,
+    };
+  }
+
+  // What a group's fix would do now, for the reader: its parts, and what each leaves out.
+  public static async getIssueGroupFixPlan(
+    groupId: string,
+  ): Promise<DataSecurityIssueGroupFixPlanJSON> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueGroupFixPlan(groupId),
+    );
+
+    return {
+      ...(answer as unknown as DataSecurityIssueGroupFixPlanJSON),
+      leftOut: Array.isArray(answer["leftOut"])
+        ? (answer[
+            "leftOut"
+          ] as unknown as DataSecurityIssueGroupFixPlanJSON["leftOut"])
+        : [],
+    };
+  }
+
+  /*
+   * The group's fix, with one press: the parts the person chose, on the
+   * plan they were shown - refused when it changed since.
+   */
+  public static async fixIssueGroup(data: {
+    groupId: string;
+    parts: Array<DataSecurityIssueGroupFixPart>;
+    planFingerprint: string;
+    codeRepositoryId?: string | undefined;
+    includeDataStoreIds?: Array<string> | undefined;
+  }): Promise<DataSecurityIssueGroupFixResultJSON> {
+    return (await post(DATA_SECURITY_API_ROUTES.fixIssueGroup(data.groupId), {
+      parts: data.parts,
+      expectedPlanFingerprint: data.planFingerprint,
+      ...(data.codeRepositoryId
+        ? { codeRepositoryId: data.codeRepositoryId }
+        : {}),
+      ...(data.includeDataStoreIds && data.includeDataStoreIds.length > 0
+        ? { includeDataStoreIds: data.includeDataStoreIds }
+        : {}),
+    })) as unknown as DataSecurityIssueGroupFixResultJSON;
+  }
+}
+
+/*
+ * A telemetry fix's plan as the server sent it (#10367), read defensively:
+ * its leaks and issues each read whole, or left out - null for none.
+ */
+export function readTelemetryFixPlan(
+  value: unknown,
+): DataSecurityTelemetryFixPlanJSON | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const plan: DataSecurityTelemetryFixPlanJSON =
+    value as unknown as DataSecurityTelemetryFixPlanJSON;
+  const leaks: Array<TelemetryLeakFixLeak> = readTelemetryLeakList(
+    plan.leaks,
+    readTelemetryLeakFixLeak,
+    100,
+  );
+  const issues: Array<TelemetryLeakFixIssue> = readTelemetryLeakList(
+    plan.issues,
+    readTelemetryLeakFixIssue,
+    100,
+  );
+
+  if (typeof plan.fingerprint !== "string" || leaks.length === 0) {
+    return null;
+  }
+
+  return {
+    ...plan,
+    leaks,
+    issues,
+    startFiles: readTelemetryLeakTexts(plan.startFiles, 20, 500),
+    redactionKeys: readTelemetryLeakTexts(plan.redactionKeys, 100, 500),
+    redactionDataTypes: readTelemetryLeakTexts(
+      plan.redactionDataTypes,
+      100,
+      200,
+    ),
+    repositories: Array.isArray(plan.repositories) ? plan.repositories : [],
+  };
 }

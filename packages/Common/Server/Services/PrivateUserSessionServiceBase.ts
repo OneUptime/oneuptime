@@ -163,6 +163,8 @@ export default abstract class PrivateUserSessionServiceBase<
     /*
      * Login codes use this same column for their five-minute expiry. Purge
      * expired credentials and their device metadata after 30 more days.
+     * The daily purge reads only Server/Services/Index.ts, so each kind's
+     * service is listed there (#10792, PurgedServicesRegisteredGuard).
      */
     this.hardDeleteItemsOlderThanInDays("refreshTokenExpiresAt", 30);
   }

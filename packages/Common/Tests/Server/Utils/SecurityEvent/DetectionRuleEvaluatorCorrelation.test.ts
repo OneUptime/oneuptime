@@ -7,7 +7,8 @@
  * ATT&CK tags, its sentence of what happened, and each grouped value typed
  * by its own field. A correlation that reads the project's other rules has
  * them resolved, and one that names a rule no longer there fails the run
- * into the rule's Last Error.
+ * into the rule's Last Error. Every read is of the events the project still
+ * keeps, and a rule whose window is longer than that says so (#10432).
  */
 
 jest.mock("isolated-vm", () => {
@@ -21,6 +22,7 @@ import CorrelationRuleMatcher, {
   CorrelationRuleMatchInput,
 } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
 import ProjectSigmaRules from "../../../../Server/Utils/SecurityEvent/Correlation/ProjectSigmaRules";
+import SecurityEventRetention from "../../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import { CORRELATION_TEMPORAL_CANDIDATE_LIMIT } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationQueries";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import Alert from "../../../../Models/DatabaseModels/Alert";
@@ -146,6 +148,25 @@ const WINDOW_START: Date = new Date(
   Math.floor(Date.now() / (5 * 60 * 1000)) * (5 * 60 * 1000) - 5 * 60 * 1000,
 );
 
+// How long the project keeps its security events, unless a test says otherwise.
+const RETENTION_IN_DAYS: number = 15;
+
+const FIRST_SEEN_YAML: string = `title: AWS activity in a region the account never used
+correlation:
+  type: new_value
+  rules: [cloudtrail_call]
+  group-by: [targetHost]
+  timespan: 30d
+  condition:
+    field: awsRegion
+---
+title: CloudTrail call
+name: cloudtrail_call
+detection:
+  selection:
+    productName: AWS CloudTrail
+  condition: selection`;
+
 interface Spies {
   findMatches: Spy;
   findDetectionMatches: Spy;
@@ -230,6 +251,9 @@ beforeEach(() => {
   // No rule skips anything unless a test says so.
   getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
     [] as never,
+  );
+  getJestSpyOn(SecurityEventRetention, "getRetentionInDays").mockResolvedValue(
+    RETENTION_IN_DAYS as never,
   );
 });
 
@@ -528,5 +552,137 @@ detection:
       "203.0.113.0/24",
     );
     expect(result.exceptionsApplied).toBe(1);
+  });
+});
+
+/*
+ * HOW FAR BACK THE EVENTS GO (#10432). A correlation reads only the events
+ * the project still keeps, at the moment it reads, and is told how long
+ * that is - a First seen rule words its sentence by it. A rule whose window
+ * reaches past the kept events says so on its row, as a note about its own
+ * work (Needs attention), with what to change; one whose window fits says
+ * nothing.
+ */
+describe("DetectionRuleEvaluator: a correlation and the events the project keeps", () => {
+  function lastError(spies: Spies): unknown {
+    return (spies.updateOneById.mock.calls[0]![0] as { data: JSONObject }).data[
+      "lastError"
+    ];
+  }
+
+  test("every read is of the events kept as it runs, and it is told how long they are kept", async () => {
+    const spies: Spies = installSpies([MATCH]);
+    const before: number = Date.now();
+
+    await DetectionRuleEvaluator.evaluateRule(buildRule(SEQUENCE_YAML));
+
+    const input: CorrelationRuleMatchInput = spies.findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+
+    expect(input.kept?.retentionInDays).toBe(RETENTION_IN_DAYS);
+    expect(input.kept?.at.getTime()).toBeGreaterThanOrEqual(before);
+    expect(input.kept?.at.getTime()).toBeLessThanOrEqual(Date.now());
+    expect(
+      (
+        SecurityEventRetention.getRetentionInDays as unknown as Spy
+      ).mock.calls[0]![0]!.toString(),
+    ).toBe(PROJECT_ID.toString());
+  });
+
+  test("a 30-day First seen rule in a project keeping 15 days says it looked back 15, and what to change", async () => {
+    const spies: Spies = installSpies([]);
+
+    await DetectionRuleEvaluator.evaluateRule(buildRule(FIRST_SEEN_YAML));
+
+    expect(lastError(spies)).toBe(
+      "This run looked back 15 days, not the 30 days this rule asks for: security events are kept for 15 days, so a value last seen before then reads as new. Keep them for at least 30 days under Project Settings > Telemetry & APM > Data Retention, or shorten the rule's timespan to 15 days.",
+    );
+  });
+
+  test("the note is a note about the run's own work, never a failure", async () => {
+    const spies: Spies = installSpies([]);
+
+    await DetectionRuleEvaluator.evaluateRule(buildRule(FIRST_SEEN_YAML));
+
+    expect(String(lastError(spies)).startsWith("This run ")).toBe(true);
+    // Where the rule got to is recorded as for any run that worked.
+    const data: JSONObject = (
+      spies.updateOneById.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+    expect(data["lastFailedAt"]).toBeNull();
+    expect(data["lastEvaluatedAt"]).toBeInstanceOf(Date);
+  });
+
+  test("with 30 days kept or more, the same rule says nothing", async () => {
+    for (const retentionInDays of [30, 45, 90]) {
+      jest.restoreAllMocks();
+      mockProjectStates();
+      getJestSpyOn(AlertService, "findBy").mockResolvedValue([] as never);
+      getJestSpyOn(AlertSeverityService, "findBy").mockResolvedValue(
+        [] as never,
+      );
+      getJestSpyOn(
+        OTelIngestService,
+        "telemetryServiceFromName",
+      ).mockResolvedValue(SERVICE_METADATA as never);
+      getJestSpyOn(
+        DetectionRuleExceptionService,
+        "findAllBy",
+      ).mockResolvedValue([] as never);
+      getJestSpyOn(
+        SecurityEventRetention,
+        "getRetentionInDays",
+      ).mockResolvedValue(retentionInDays as never);
+
+      const spies: Spies = installSpies([]);
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule(FIRST_SEEN_YAML));
+
+      expect(lastError(spies)).toBeNull();
+    }
+  });
+
+  test("a ten-minute sequence fits in a day kept, and says nothing", async () => {
+    (
+      SecurityEventRetention.getRetentionInDays as unknown as Spy
+    ).mockResolvedValue(1 as never);
+    const spies: Spies = installSpies([]);
+
+    await DetectionRuleEvaluator.evaluateRule(buildRule(SEQUENCE_YAML));
+
+    expect(lastError(spies)).toBeNull();
+  });
+
+  test("a run that read its candidate limit and reaches past the kept events says both", async () => {
+    const spies: Spies = installSpies([]);
+    spies.findMatches.mockResolvedValue({
+      groups: [],
+      readFrom: new Date(),
+      candidatesCapped: true,
+    } as never);
+
+    await DetectionRuleEvaluator.evaluateRule(buildRule(FIRST_SEEN_YAML));
+
+    const message: string = String(lastError(spies));
+
+    expect(message).toContain(
+      `This run checked the ${CORRELATION_TEMPORAL_CANDIDATE_LIMIT} most recently active groups; the next runs check the rest.`,
+    );
+    expect(message).toContain("This run looked back 15 days");
+  });
+
+  test("a single rule reads nothing before its events: no retention is read, and nothing said", async () => {
+    const spies: Spies = installSpies([]);
+
+    await DetectionRuleEvaluator.evaluateRule(
+      buildRule(`title: Failed sign-in
+detection:
+  selection:
+    statusName: Failure
+  condition: selection`),
+    );
+
+    expect(SecurityEventRetention.getRetentionInDays).not.toHaveBeenCalled();
+    expect(lastError(spies)).toBeNull();
   });
 });

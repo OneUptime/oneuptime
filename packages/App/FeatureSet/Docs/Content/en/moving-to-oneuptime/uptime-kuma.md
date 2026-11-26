@@ -56,7 +56,7 @@ The report counts what was created and not brought over, and lists every item wi
 | --- | --- | --- |
 | Monitors | Monitors | From a backup, each monitor becomes a monitor of the same kind, with the same address, interval, timeout and status codes that count as up. From the metrics page, each one comes over checked every five minutes: check each one after the import. |
 
-- **HTTP(S) and keyword monitors** become website monitors, or API monitors when they send another method, headers or a JSON body, with the keyword where it should be.
+- **HTTP(S) and keyword monitors** become website monitors, or API monitors when they send another method, headers or a body, with the keyword where it should be.
 - **JSON query monitors** become API monitors, without the query: add it as criteria in OneUptime.
 - **Ping, port and DNS monitors** become ping, port and DNS monitors.
 - **Push monitors** become incoming request monitors, which go down when no request has come for the interval and its retries. Each has a new address in OneUptime.

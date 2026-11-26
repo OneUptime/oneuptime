@@ -1,6 +1,6 @@
 # Formulieren – overzicht
 
-Een formulier is een pagina die iedereen met de link kan invullen, zonder OneUptime-account. Elke inzending maakt iets aan in uw project: een **incident**, voor probleemmeldingen, of een **onderhoudsgebeurtenis**, voor wijzigings- en onderhoudsverzoeken. U bouwt de vragen van het formulier in een editor met slepen en neerzetten, bepaalt hoe de antwoorden het record worden en deelt de link met de mensen die het moeten gebruiken.
+Een formulier is een pagina die iedereen met de link kan invullen, zonder OneUptime-account. Elke inzending maakt iets aan in uw project: een **incident**, voor probleemmeldingen, een **waarschuwing**, voor signalen en zaken om na te kijken, of een **onderhoudsgebeurtenis**, voor wijzigings- en onderhoudsverzoeken. U bouwt de vragen van het formulier in een editor met slepen en neerzetten, bepaalt hoe de antwoorden het record worden en deelt de link met de mensen die het moeten gebruiken.
 
 Gebruik een formulier als de mensen die een probleem opmerken, of een wijziging nodig hebben, niet degenen zijn die uw incidenten en onderhoud afhandelen: supportmedewerkers, collega's van een andere afdeling, een filiaalmanager, het operationele team van een klant. Ze openen de link, beantwoorden uw vragen en klikken op **Verzenden**. Uw team krijgt een gewoon incident of een gewone gebeurtenis, met de antwoorden in de velden en een privénotitie die vastlegt wie het heeft verzonden.
 
@@ -13,16 +13,19 @@ Gebruik een formulier als de mensen die een probleem opmerken, of een wijziging 
 
 ## Zo werkt een formulier
 
-```mermaid title="Van een ingevuld formulier naar een incident of onderhoudsgebeurtenis"
+```mermaid title="Van een ingevuld formulier naar een incident, waarschuwing of onderhoudsgebeurtenis"
 flowchart TB
     submitter["Iemand met de link,<br/>zonder account"] --> page["De pagina van het formulier"]
     page -->|Verzenden| checks["Beveiliging en<br/>controle van de antwoorden"]
     checks --> submission["Inzending, bewaard<br/>bij het formulier"]
     submission --> target{"Elke inzending maakt aan"}
-    target -->|Incident| incident["Incident, verborgen<br/>op statuspagina's"]
-    target -->|Gepland onderhoud| event["Onderhoudsgebeurtenis,<br/>verborgen tenzij ingesteld"]
+    target -->|Incident| incident["Incident,<br/>verborgen op<br/>statuspagina's"]
+    target -->|Waarschuwing| alert["Waarschuwing,<br/>na te kijken door<br/>haar eigenaren"]
+    target -->|Gepland onderhoud| event["Onderhoudsgebeurtenis,<br/>verborgen tenzij<br/>ingesteld"]
     incident --> response["Dienstbeleid en<br/>regels worden uitgevoerd"]
-    incident --> note["Privénotitie: wie het verzond,<br/>overige antwoorden"]
+    alert --> response
+    incident --> note["Privénotitie:<br/>wie het verzond,<br/>overige antwoorden"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Wanneer u een formulier maakt, kiest u wat **Elke inzending maakt aan**. U kunt 
 | Elke inzending maakt aan | Gebruiken voor | Wat er gebeurt |
 | --- | --- | --- |
 | **Incident** | Probleemmeldingen | Er wordt meteen een incident gemeld, zodat uw dienstbeleid en regels worden uitgevoerd en de mensen met dienst worden ingelicht. Het blijft van statuspagina's af tot iemand die het afhandelt het publiceert. |
+| **Waarschuwing** | Signalen en zaken om na te kijken | Er wordt een waarschuwing aangemaakt, zodat haar eigenaren worden ingelicht en haar dienstbeleid en regels worden uitgevoerd, zonder dat er een incident wordt gemeld. Een waarschuwing die in een latere status begint, zoals **Bevestigd**, roept niemand op. |
 | **Gepland onderhoud** | Wijzigings- en onderhoudsverzoeken | Er wordt een onderhoudsgebeurtenis gepland voor het tijdvak dat de inzender vraagt. Tenzij het formulier anders zegt, blijft ze van de statuspagina's af en licht ze geen abonnees in. |
 
-Formulieren beginnen met deze twee; meer soorten records volgen.
+Een formulier instellen dat waarschuwingen aanmaakt, vraagt daarnaast de machtiging om waarschuwingen aan te maken: zie [Machtigingen](#machtigingen).
 
 ## Voordat u begint
 
 - **Een abonnement met formulieren.** Op OneUptime Cloud hebben formulieren het abonnement **Growth** of hoger nodig. Zie [Abonnement](#abonnement).
 - **De machtiging om formulieren te maken.** **Create Form** hebben Projecteigenaren en Projectbeheerders, en de rollen waaraan u het geeft. Zie [Machtigingen](#machtigingen).
 - **Voor een incidentformulier een ernst.** Elk incident heeft er een nodig: uit een vraag, uit de instellingen van het formulier of uit het incidentsjabloon. Zonder ernst wordt elke inzending geweigerd. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#hoe-een-inzending-een-incident-wordt).
+- **Voor een waarschuwingsformulier een ernst.** Ook elke waarschuwing heeft er een nodig: uit een vraag of uit de instellingen van het formulier. Zie [Hoe een inzending een waarschuwing wordt](/docs/forms/on-submit#hoe-een-inzending-een-waarschuwing-wordt).
 
 ## Uw eerste formulier maken
 
@@ -144,6 +149,8 @@ Met formulieren kunnen mensen buiten uw team incidenten en onderhoudsgebeurtenis
 | **Delete Form Domain** | De aangepaste domeinen van een formulier verwijderen. | Projecteigenaar, Projectbeheerder en **Edit Form** |
 | **Read Form Domain** | De aangepaste domeinen van een formulier zien, hun DNS-records en hoe ver elk is op weg naar HTTPS. | Iedereen met **Read Form** |
 
+**Een formulier dat waarschuwingen aanmaakt, vraagt de machtiging om waarschuwingen aan te maken.** Iedereen met de link kan waarschuwingen aanmaken, hun eigenaren inlichten en hun mensen met dienst oproepen, dus een formulier maken dat waarschuwingen aanmaakt, een formulier daarin omzetten en de vragen, sjablonen of instellingen onder **Bij verzenden** van een waarschuwingsformulier wijzigen, vraagt elk ook een machtiging die waarschuwingen mag aanmaken: Projecteigenaar, Projectbeheerder, Projectlid, Waarschuwingsbeheerder, Waarschuwingslid of **Create Alert**. De naam, de link, **Accepteert inzendingen**, de huisstijl en de **IP-toelatingslijst** vragen alleen de machtigingen **Form**. Zonder die machtiging wordt de keuze **Waarschuwing** niet aangeboden wanneer u een formulier maakt, en is ze vergrendeld op de pagina **Bij verzenden** ervan, met een tooltip die de machtiging noemt; een aanvraag die het toch probeert, wordt geweigerd met "Only people who may create alerts can set up a form that creates them." Incident- en onderhoudsformulieren vragen, zoals altijd, alleen de machtigingen **Form**.
+
 Inzendingen bevatten wat onbekenden hebben ingetypt (namen, e-mailadressen en antwoorden die misschien nooit in het record terechtkomen), dus alleen Projecteigenaren en Projectbeheerders zien ze, tenzij u **Read Form Submission** verleent. Wie een formulier kan lezen, kan de link zien en delen. Een formulier verzenden vraagt helemaal geen machtiging. Hoe rollen en gedetailleerde machtigingen samenwerken, leest u in [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
 ## Abonnement
@@ -156,7 +163,7 @@ Formulieren zijn een gewone API-resource op `/api/form`, en hun inzendingen op `
 
 ### Vragen en instellingen
 
-De vragen van een formulier zijn de kolom `fields`, een JSON-lijst in de volgorde waarin het formulier ze stelt, en de instellingen onder Bij verzenden zijn de `targetSettings`:
+Het `targetType` van een formulier is wat elke inzending aanmaakt: `Incident`, `Alert` of `ScheduledMaintenance`. De vragen zijn de kolom `fields`, een JSON-lijst in de volgorde waarin het formulier ze stelt, en de instellingen onder Bij verzenden zijn de `targetSettings` — voor een waarschuwingsformulier `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` en `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Elke vraag heeft een eigen `id` (letters, cijfers, `-` en `_`), een `source`, ee
 | `source` | Wat ze vraagt |
 | --- | --- |
 | `Question` | Een eigen vraag van het formulier, beantwoord volgens `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` of `MultipleFiles`. Een keuzelijst toont haar `dropdownOptions`, één per regel. |
-| `TargetField` | Een veld van wat het formulier aanmaakt, aangewezen door `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` en `impactStartedAt` voor een incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` en `labels` voor een onderhoudsgebeurtenis. Een veld dat door te kiezen wordt beantwoord, toont de records die het aanbiedt in `allowedOptionIds`. |
-| `TargetCustomField` | Een van de aangepaste velden van het incident of de gebeurtenis, aangewezen door `customFieldId`. |
+| `TargetField` | Een veld van wat het formulier aanmaakt, aangewezen door `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` en `impactStartedAt` voor een incident; `title`, `description`, `alertSeverityId`, `monitor`, `labels` en `impactStartedAt` voor een waarschuwing; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` en `labels` voor een onderhoudsgebeurtenis. Een veld dat door te kiezen wordt beantwoord, toont de records die het aanbiedt in `allowedOptionIds`. |
+| `TargetCustomField` | Een van de aangepaste velden van het incident, de waarschuwing of de gebeurtenis, aangewezen door `customFieldId`. |
 | `Submitter` | `Name` of `Email` van de inzender, aangewezen door `submitterField`. |
 
 Een vraag met `isHidden` op `true` wordt niet op de openbare pagina getoond, is nooit verplicht en wordt alleen beantwoord vanuit het sjabloon dat een inzending noemt, tenzij dat sjabloon haar stelt. `isRequired` en `isHidden` zijn de standaard van het formulier; elk sjabloon kan een vraag op zijn eigen manier stellen.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ Het antwoord op een bestandsvraag zijn de bestanden zoals ze zijn opgeslagen, el
 
 ### Workflows
 
-Formulieren hebben de gegenereerde workflowcomponenten: **Bij aanmaken: Formulier**, **Bij bijwerken: Formulier** enzovoort. Gebruik **Bij aanmaken: Incident** of **Bij aanmaken: Onderhoudsgebeurtenis** om te reageren op wat een formulier heeft aangemaakt.
+Formulieren hebben de gegenereerde workflowcomponenten: **Bij aanmaken: Formulier**, **Bij bijwerken: Formulier** enzovoort. Gebruik **Bij aanmaken: Incident**, **Bij aanmaken: Waarschuwing** of **Bij aanmaken: Onderhoudsgebeurtenis** om te reageren op wat een formulier heeft aangemaakt.
 
 ### De eigen eindpunten van de openbare pagina
 

@@ -98,7 +98,7 @@ Runbook si trova in **Prodotti**, nel gruppo **Dashboard e automazione**.
 | Le **Impostazioni** di un runbook | Disattivare **Esegui questo runbook** senza eliminare il runbook. |
 | **Runbook → Esecuzioni** | Tutte le esecuzioni di tutti i runbook del progetto. |
 | **Runbook → Agenti di runbook** | Installare i [Runner](/docs/runbooks/agents) su cui girano i passaggi dei runbook. |
-| **Runbook → Impostazioni** | Gestire, in **Variabili globali**, le variabili che ogni runbook può [usare](/docs/runbooks/variables), e le **Regole del proprietario** e **Regole etichette** che aggiungono proprietari ed etichette ai nuovi runbook. |
+| **Runbook → Impostazioni** | Gestire, in **Variabili globali**, le variabili che ogni runbook può [usare](/docs/runbooks/variables), e le **Regole del proprietario** e **Regole etichette** che aggiungono proprietari ed etichette ai nuovi runbook. **Log di audit delle regole** elenca chi ha creato, modificato o eliminato queste regole e le regole di runbook di ogni prodotto, e quando. |
 | **Incidenti / Avvisi / Manutenzione programmata → Regole → Regole di runbook** | Creare le regole che avviano automaticamente i runbook. |
 | Un incidente, un avviso o un evento di manutenzione → **Runbook** | Vedere le esecuzioni collegate e fare clic su **Esegui Runbook** per avviarne una. |
 

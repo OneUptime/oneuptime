@@ -38,6 +38,7 @@ En detalle, OneUptime lee estos ajustes en este orden, y decide el primero que e
 - **Los ajustes 1 a 5 son anulaciones de retención.** Forman parte de la [Edición Enterprise](/docs/self-hosted/enterprise), y del plan Scale en OneUptime Cloud. Sin ellas, cada entrada se conserva según el valor predeterminado del proyecto.
 - **Un cambio se aplica a la telemetría nueva.** Una entrada conserva la fecha que se le marcó: una retención más corta no la elimina antes, y una más larga no la conserva más tiempo. Las entradas nuevas siguen un cambio en unos cinco minutos.
 - **Las excepciones siguen a aquello en lo que se encontraron.** Una excepción se conserva tanto tiempo como el span o el registro del que salió. Las Session Replays tienen su propia retención: consulte [Otros datos con su propia retención](#otros-datos-con-su-propia-retención).
+- **Los eventos de seguridad se conservan igual.** Las reglas de detección, Ejecutar sobre eventos pasados y las cacerías solo leen hasta donde se conservan los eventos de seguridad, y lo dicen donde necesitarían más: consulta [Eventos de seguridad](/docs/telemetry/security-events).
 
 ## Antes de empezar
 

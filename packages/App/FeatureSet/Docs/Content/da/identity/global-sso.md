@@ -27,7 +27,7 @@ Se [SSO](/docs/identity/sso) for et enkelt projekts egen udbyder.
 :::steps
 ### Åbn listen over udbydere
 
-Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i din brugermenu. Gå derefter til **Indstillinger** > **Single sign-on**. Siden viser instansens SAML-udbydere, derefter dens OpenID Connect-udbydere og til sidst kortet **Kræv SSO**.
+Log ind som master-admin, og vælg **Admin-dashboard** i din brugermenu. Gå derefter til **Indstillinger** > **Single sign-on**. Siden viser instansens SAML-udbydere, derefter dens OpenID Connect-udbydere og til sidst kortet **Kræv SSO**.
 
 ### Opret udbyderen
 
@@ -103,6 +103,12 @@ Registrer den omdirigerings-URI efter log ud, som kortet **Identitetsudbyderens 
 :::
 
 Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse indstillinger, står på siden [SSO](/docs/identity/sso).
+
+## Log ind igen for at bekræfte, at det er dig
+
+En person, der kun logger ind via en global udbyder, bekræfter, at det er dem, med **Log ind igen**, før de ændrer, hvordan de logger ind, eller sletter deres konto: OneUptime sender dem tilbage til udbyderen med `ForceAuthn="true"` for SAML eller `prompt=login` og `max_age=0` for OpenID Connect (kun `prompt=login` til Microsoft Entra ID) og tæller det kun, når udbyderen i `AuthnInstant` eller `auth_time` siger, at de loggede ind på eller efter det tidspunkt. Når du tilføjer, ændrer eller sletter en global udbyder, bliver du først bedt om at [bekræfte, at det er dig](/docs/introduction/your-account#bekræft-at-det-er-dig).
+
+Hvad du skal indstille i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#log-ind-igen-for-at-bekræfte-at-det-er-dig).
 
 ## Gennemtving SSO
 
@@ -187,4 +193,5 @@ Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle
 - [SSO](/docs/identity/sso): Opsæt et projekts egen SAML- eller OIDC-udbyder.
 - [SCIM](/docs/identity/scim): Lad din identitetsudbyder tilføje og fjerne personer automatisk.
 - [Brugere, teams og tilladelser](/docs/permissions/index): Hvad de teams, nye personer kommer med i, giver dem lov til.
+- [Hjælp og support](/docs/self-hosted/help-and-support): Fortæl folk, der har brug for en invitation, hvem de skal spørge.
 :::

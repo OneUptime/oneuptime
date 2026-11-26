@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | ウェブサイト、API | HTTP メソッド: `GET`、`POST`、`PUT`、`DELETE`、`HEAD`、`PATCH`。未設定ならサーバーは `GET` を使います。 |
 | `request_headers` | map(string) | ウェブサイト、API | 送信するヘッダー: `{ "Accept" = "application/json" }`。 |
 | `request_body` | string | API | テキストで書いたリクエストボディ。 |
+| `request_body_format` | string | API | `request_body` の送り方。`json`（既定）は任意の JSON 値、`text` は XML やフォームのフィールドなど、書いたとおりに送るボディです。 |
 | `do_not_follow_redirects` | bool | ウェブサイト、API | リダイレクトをたどらず、最初の応答で止めます。 |
 | `allow_self_signed_certificates` | bool | ウェブサイト、API | 自己署名の TLS 証明書を受け入れます。 |
 | `tls_client_certificate` | string | ウェブサイト、API | 相互 TLS 用のクライアント証明書: PEM、または `{{monitorSecrets.name}}` の参照。 |
@@ -237,6 +238,10 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `description` | string | ダッシュボードに表示される説明。 |
 | `filter_condition` | string (必須) | `All`: すべてのフィルターが一致する必要があります。`Any`: ひとつで十分です。 |
 | `filters` | list (必須) | 条件式。少なくともひとつ必要です: [フィルターのリファレンス](#フィルターのリファレンス) を参照。 |
+| `recovery_filters` | list | `filters` と同じ形のフィルターです。`filters` が一致しなくなった時点ではなく、これらが一致してはじめて条件は働かなくなります。 |
+| `recovery_filter_condition` | string | `recovery_filters` の組み合わせ方: `All` (既定) または `Any`。 |
+| `active_hours` | object | 条件を判定するのは、これらの `days` (月曜が `0`、日曜が `6`) の `from` から `to` まで (`"08:00"`) だけです。それ以外の時間は、無効な条件と同じくスキップされます。 |
+| `active_hours_timezone` | string | `active_hours` を読むタイムゾーン。例: `Europe/Oslo`。`active_hours` と一緒に設定します。 |
 | `change_monitor_status` | bool | 一致したときにモニターのステータスを変えるかどうか。 |
 | `monitor_status_id` | string | 変更先の `oneuptime_monitor_status` の ID。`change_monitor_status` が `true` のときに設定します。 |
 | `create_incidents` | bool | 一致したときにインシデントを開くかどうか。 |
@@ -283,15 +288,87 @@ criteria = [
 ]
 ```
 
+### 回復するときと判定されるとき
+
+この条件は、オスロの営業時間 (月曜から金曜) だけサイトを判定し、10 分間すべてのチェックに応答するまでサイトを offline のままにします。
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## フィルターのリファレンス
 
 フィルターには `check_on` (何を見るか)、`filter_type` (どう比較するか)、`value` (何と比較するか。文字列で書きます。`True` や `False` のような真偽のチェックでは書きません) があります。
 
-フィルターは、最新のチェックの代わりに時間枠を判定することもできます。`evaluate_over_time = true` を設定し、`evaluate_over_time_minutes` に時間枠の長さを、`evaluate_over_time_type` に時間枠の読み方を指定します: `Average`、`Sum`、`Maximum Value`、`Minimum Value`、`All Values`、`Any Value`。
+フィルターは、最新のチェックの代わりに時間枠を判定することもできます。`evaluate_over_time = true` を設定し、`evaluate_over_time_minutes` に時間枠の長さを、`evaluate_over_time_type` に時間枠の読み方を指定します: `Average`、`Sum`、`Maximum Value`、`Minimum Value`、`Percentile`、`All Values`、`Any Value`、`Count`、`Percentage`、`Status Changes`、`Previous Check`。`Percentile` は `evaluate_over_time_percentile` のパーセンタイルをフィルターの値と比較します (未設定なら 95)。`Count`、`Percentage`、`Status Changes` は、プローブごとに、条件を満たした期間内のチェックの数、その割合 (%)、または条件を満たす状態と満たさない状態の間で変化した回数を数え、その数を `evaluate_over_time_count_filter_type` の指定どおりに `evaluate_over_time_count_value` と比較します (未設定なら `Greater Than` 0)。
 
 `All Values` は時間枠内のすべてのチェックがルールに違反したことを意味するので、時間枠がデータで埋まってはじめて一致します。作成したばかりのモニターは、最初のチェックで一致するのではなく、時間枠が埋まるのを待ちます。時間枠はモニターの `monitoring_interval` の 2 倍以上にしてください。そうしないと時間枠にはチェックが 1 回しか入らず、「すべての値」は「いずれかの値」と同じ意味になります。`Any Value` は、ルールに違反したチェックが 1 回あれば一致します。これは意図した動作です。
 
 `evaluate_over_time_no_data_policy` は、時間枠に十分なデータがない間にフィルターがどうするかを決めます。`Ignore` (既定) は一致せず、`Trigger` は heartbeat と同じようにデータがないことを障害として扱い、`Treat As Zero` は時間枠を 1 つのゼロとして比較します。
+
+`Previous Check` は、各チェックを、`evaluate_over_time_minutes` 以内に行われた同じプローブの前回のチェックと比較します。測定値は `value` を取りません。`filter_type` が、前回の値を `evaluate_over_time_change_value` だけ動かした値と比較します (`Greater Than` では上へ、`Less Than` では下へ)。その変化は `evaluate_over_time_change_type` の指定どおり、チェック自体の単位での `Amount` か、前回の値に対する `Percentage` です (未設定なら `Amount` 0: どんな上昇や下降でも)。真か偽のフィルターは、条件を満たし始めたチェックで一致します。前回のチェックがない場合は `evaluate_over_time_no_data_policy` が決めます。
+
+この条件は、チェックに前回の 2 倍を超える時間がかかったときにアラートを開きます。
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### フィルターがチェックできるもの
 

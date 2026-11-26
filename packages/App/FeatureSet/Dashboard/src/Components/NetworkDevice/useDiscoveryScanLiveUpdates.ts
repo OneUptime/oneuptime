@@ -138,6 +138,16 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
               isRecurring: true,
               rescanIntervalInMinutes: true,
               isSnmpEnabled: true,
+              /*
+               * Who asked for the run on the row (Run Again, #10334): a
+               * scheduled run that comes due clears it, and the row stops
+               * naming them as it turns Queued.
+               */
+              runRequestedAt: true,
+              runRequestedByUser: {
+                name: true,
+                email: true,
+              },
             },
           });
         if (!mountedRef.current || generation !== generationRef.current) {

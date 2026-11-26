@@ -1,4 +1,5 @@
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SetupGuideContent,
@@ -16,9 +17,11 @@ import {
  * The two options differ in the one thing that matters most: the key. A
  * browser snippet ships to every visitor, so it must carry a Browser key —
  * accepted only from the origins it lists. A mobile SDK sends no Origin
- * header, so a Browser key is refused there and a mobile app has to ship a
- * Server key instead. getRumIngestionKeyType narrows the key picker to the
- * right kind for the option on screen.
+ * header, so a Browser key is refused there; a mobile app ships a Mobile key
+ * (issue #6457), pinned to the app, which sends only that app's traces,
+ * logs and metrics and is never a Server key's secret.
+ * getRumIngestionKeyType narrows the key picker to the right kind for the
+ * option on screen.
  *
  * OneUptime files telemetry as RUM when its resource carries a client
  * attribute (OtelIngestBaseService.getRumClientType) — browser.* for web,
@@ -84,16 +87,38 @@ export function resolveRumClient(client: string | null | undefined): RumClient {
 
 /*
  * The kind of key the option's snippet may carry. A browser page can only
- * be handed a Browser key; a mobile app cannot use one at all, because a
- * Browser key is checked against the Origin header and mobile SDKs send none.
+ * be handed a Browser key. A mobile app cannot use one, because a Browser
+ * key is checked against the Origin header and mobile SDKs send none, and it
+ * must never ship a Server key, which writes everything from anywhere: it
+ * ships a Mobile key, which can write only that app's telemetry (#6457).
  */
 export function getRumIngestionKeyType(
   client: RumClient,
 ): TelemetryIngestionKeyType {
   return client === "mobile"
-    ? TelemetryIngestionKeyType.Server
+    ? TelemetryIngestionKeyType.Mobile
     : TelemetryIngestionKeyType.Browser;
 }
+
+/*
+ * What the key step says under each option's key picker, and the hint under
+ * its endpoint: keys of the locale files, as every guide's are.
+ */
+export const RUM_MOBILE_KEY_STEP_DESCRIPTION: string = translationKey(
+  "Mobile apps send with a Mobile key. It ships inside your app, so anyone who has the app can copy it, but a copy can only send this app's traces, logs, metrics and session replays, all filed under the service name the key is pinned to. Pick a key or create one; the settings below update to use it.",
+);
+
+export const RUM_BROWSER_KEY_STEP_DESCRIPTION: string = translationKey(
+  "Everything in the snippet ships to your users' browsers, so this must be a Browser key: it is accepted only from the origins you list. Never put a Server key in a page — anyone who reads it can write into this project. Pick a key or create one; the snippet below updates to use it.",
+);
+
+export const RUM_MOBILE_ENDPOINT_HINT: string = translationKey(
+  "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it.",
+);
+
+export const RUM_BROWSER_ENDPOINT_HINT: string = translationKey(
+  "The browser exporter takes the full URL of each signal: this address plus /v1/traces.",
+);
 
 /*
  * OTEL_RESOURCE_ATTRIBUTES values are percent-decoded, so a name with a
@@ -159,14 +184,19 @@ function getPlaceholderNotes(data: RumGuideData): Array<string> {
 const NEVER_SHIP_A_SERVER_KEY: string = `> [!WARNING]
 > **Never ship a Server ingestion key to a browser.** A Server key has full ingest access from anywhere, with no origin check. Once it is in page source, anyone who finds it can write forged spans, logs and metrics into this project — poisoning dashboards, firing false alerts and running up your metered usage — until you notice and rotate it.`;
 
-const SERVICE_NAME_IS_NOT_ENOUGH: string = `> [!WARNING]
-> **Setting \`service.name\` alone is not enough.** The OpenTelemetry browser SDKs do not add \`browser.*\` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.`;
+/*
+ * A Browser key files everything it sends as this app (#10539), so the
+ * browser attributes no longer decide whether it is RUM: they fill the
+ * Clients tab.
+ */
+const KEEP_THE_BROWSER_DETECTOR: string = `> [!NOTE]
+> **Keep \`browserDetector\`.** Everything a Browser key sends is filed as this application, but the OpenTelemetry browser SDKs add no \`browser.*\` attributes unless you enable the browser resource detector or set them yourself — and without \`browser.platform\` the **Clients** tab lists no platforms.`;
 
 const DEVICE_MANUFACTURER_CAVEAT: string =
   "`device.manufacturer` also marks a batch as mobile, but only on a resource that carries no `host.name` or `host.id` — it doubles as the make of a physical machine on a host's inventory item. Set `device.id` or `device.model.identifier` as well and the distinction never comes up.";
 
-const MOBILE_NEEDS_A_SERVER_KEY: string = `> [!WARNING]
-> **Mobile needs a Server key, and a mobile bundle can be unpacked.** A Browser key is enforced against the \`Origin\` header, which a mobile SDK does not send, so it cannot be used here. Assume the token shipped in your app will be extracted, and use the controls that do apply: pin a service name on the key so extracted copies cannot forge backend telemetry, set a requests-per-minute limit and an expiry, and rotate the key with each release train.`;
+const A_MOBILE_KEY_CAN_BE_COPIED: string = `> [!NOTE]
+> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs, metrics and session replays, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.`;
 
 /* ------------------------------------------------------------ Browser */
 
@@ -190,7 +220,7 @@ import { defaultResource, detectResources, resourceFromAttributes } from "@opent
 import { browserDetector } from "@opentelemetry/opentelemetry-browser-detector";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
-// browserDetector supplies the browser.* attributes that make this RUM.
+// browserDetector supplies the browser.* attributes the Clients tab lists.
 const resource = defaultResource()
   .merge(detectResources({ detectors: [browserDetector] }))
   .merge(
@@ -284,7 +314,7 @@ import "./telemetry";
 // ... the rest of your app`,
 )}
 
-${[getAppNameNote(data), SERVICE_NAME_IS_NOT_ENOUGH, ...getPlaceholderNotes(data)].join("\n\n")}`,
+${[getAppNameNote(data), KEEP_THE_BROWSER_DETECTOR, ...getPlaceholderNotes(data)].join("\n\n")}`,
     },
     {
       title: "Allow OneUptime in your Content Security Policy",
@@ -312,8 +342,10 @@ function getBrowserAdvancedTopics(data: RumGuideData): Array<SetupGuideTopic> {
     {
       title: "How OneUptime recognises a browser app",
       summary:
-        "Any browser attribute plus service.name makes a RUM application; service.name alone makes a backend Service.",
-      markdown: `OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of \`browser.platform\`, \`browser.language\` or a non-empty \`browser.brands\`. The application is identified by \`service.name\` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.
+        "A Browser key files everything it sends as this app; with any other key, a browser attribute plus service.name makes a RUM application.",
+      markdown: `Everything a Browser key sends is filed as this browser app, whatever its resource says. The key keeps only what a page says about itself on the resource — such as its \`service.*\`, \`browser.*\`, \`user_agent.*\` and \`telemetry.*\` attributes and its \`oneuptime.label.*\` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.
+
+With any other key, OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of \`browser.platform\`, \`browser.language\` or a non-empty \`browser.brands\`. The application is identified by \`service.name\` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.
 
 | Attribute | Required | What it does |
 |---|---|---|
@@ -394,7 +426,7 @@ ${codeBlock(
   @opentelemetry/sdk-metrics @opentelemetry/exporter-metrics-otlp-http`,
 )}
 
-Their exporters send to \`${data.oneuptimeUrl}/otlp/v1/logs\` and \`${data.oneuptimeUrl}/otlp/v1/metrics\` with the same \`x-oneuptime-token\` header — [Browser Setup](${RUM_BROWSER_SETUP_DOCS_URL}) has the code. Build them with the same \`resource\` object: a pipeline whose resource lacks \`browser.*\` is filed as a separate backend Service.
+Their exporters send to \`${data.oneuptimeUrl}/otlp/v1/logs\` and \`${data.oneuptimeUrl}/otlp/v1/metrics\` with the same \`x-oneuptime-token\` header — [Browser Setup](${RUM_BROWSER_SETUP_DOCS_URL}) has the code. Build them with the same \`resource\` object, so their logs and metrics are filed under this application too.
 
 The **Core Web Vitals** card — LCP, INP, CLS, FCP and TTFB — is filled only from metrics your app reports, under names such as \`web_vital.lcp\`. [Core Web Vitals](${RUM_WEB_VITALS_DOCS_URL}) lists the names OneUptime reads and wires up the \`web-vitals\` library.`,
     },
@@ -455,7 +487,7 @@ function getBrowserTroubleshootingTopics(
     },
     {
       title: "The app shows up under Services instead of Real User Monitoring",
-      markdown: `The resource carries no browser attribute, so the telemetry was filed as a backend Service. Enable \`browserDetector\` as in step 3, or set the \`browser.*\` attributes yourself (**How OneUptime recognises a browser app** under Advanced).
+      markdown: `The telemetry was sent with a key other than a Browser key, and its resource carries no browser attribute, so it was filed as a backend Service. Send with a Browser key (step 1), which files everything it sends as this app, or set the \`browser.*\` attributes yourself (**How OneUptime recognises a browser app** under Advanced).
 
 Confirm what you send in DevTools → **Network** → the OTLP request → **Payload**: \`resourceSpans[0].resource.attributes\` is the list that decides it.
 
@@ -501,7 +533,7 @@ export function getRumMobileResourceAttributes(appName: string): string {
 function getMobilePrerequisites(): Array<string> {
   return [
     "An iOS, Android or React Native app with an OpenTelemetry SDK — opentelemetry-swift, OpenTelemetry Android, or the OpenTelemetry JavaScript SDK",
-    "A **Server** ingestion key — a Browser key is refused from a native app",
+    "The `service.name` your app reports — the **Mobile** key in step 1 is pinned to it",
   ];
 }
 
@@ -521,7 +553,7 @@ OTEL_RESOURCE_ATTRIBUTES="${getRumMobileResourceAttributes(data.appName)}"`,
 These are the standard OpenTelemetry settings: an SDK that reads them from its environment takes them as they are. Otherwise set the same endpoint, \`x-oneuptime-token\` header and resource attributes on the SDK's OTLP exporter and resource in code — [Mobile Setup](${RUM_MOBILE_SETUP_DOCS_URL}) shows it for Android, iOS and React Native.
 
 ${[
-  "Most mobile SDKs set the `device.*` attributes for you — verify it, and set them explicitly as above if the application is filed under Services instead.",
+  "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.",
   getAppNameNote(data),
   ...getPlaceholderNotes(data),
 ].join("\n\n")}`,
@@ -532,9 +564,9 @@ ${[
         "Check the key, then run the app and look for it under Real User Monitoring.",
       markdown: `${codeBlock("bash", tokenCheckCommand(data))}
 
-\`200\` with \`"valid": true\` means OneUptime accepts the key; \`401\` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.
+\`200\` with \`"valid": true\` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. \`401\` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.
 
-Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry. If it appears under Services instead, the \`device.*\` attributes are not reaching the resource — see Troubleshooting below.`,
+Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.`,
     },
   ];
 }
@@ -545,7 +577,9 @@ function getMobileAdvancedTopics(data: RumGuideData): Array<SetupGuideTopic> {
       title: "How OneUptime recognises a mobile app",
       summary:
         "service.name plus device.id or device.model.identifier makes a mobile RUM application.",
-      markdown: `OneUptime classifies telemetry as **mobile RUM** when its resource carries \`device.id\` or \`device.model.identifier\`. The application is identified by \`service.name\` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.
+      markdown: `Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its \`service.*\`, \`device.*\`, \`os.*\` and \`telemetry.*\` attributes and its \`oneuptime.label.*\` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.
+
+With any other key, OneUptime classifies telemetry as **mobile RUM** when its resource carries \`device.id\` or \`device.model.identifier\`. The application is identified by \`service.name\` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.
 
 | Attribute | Required | What it does |
 |---|---|---|
@@ -560,10 +594,12 @@ ${DEVICE_MANUFACTURER_CAVEAT}
     {
       title: "Protect the key shipped in your app",
       summary:
-        "Mobile apps need a Server key, so pin a service name on it, set a limit and an expiry, and rotate it.",
-      markdown: `${MOBILE_NEEDS_A_SERVER_KEY}
+        "A Mobile key can only send this app's telemetry. Set an expiry, rotate it with your releases, and turn it off if it is misused.",
+      markdown: `${A_MOBILE_KEY_CAN_BE_COPIED}
 
-All three are on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**: **Pinned Service Name** replaces \`service.name\` on everything the key writes, **Requests Per Minute Limit** caps the key across every copy of your app, and **Expires At** stops it being accepted after a date.`,
+Each of these is on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**: **Pinned Service Name** is the app everything the key sends is filed under, **Requests Per Minute Limit** caps the key across every copy of your app, **Expires At** stops it being accepted after a date, and **Enabled** turns it off at once.
+
+Never ship a **Server** key in an app instead: it can write every kind of telemetry into this project, from anywhere, as any service.`,
     },
     {
       title: "SDK notes for Android, iOS and React Native",
@@ -571,7 +607,7 @@ All three are on the key's page in **Project Settings > Telemetry & APM > Ingest
         "Which device attributes each SDK sets for you, and where to find its code.",
       markdown: `- **Android** — the [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent (\`io.opentelemetry.android:android-agent\`) sets \`device.model.identifier\`, \`device.model.name\` and \`device.manufacturer\` on its own resource, so classification works without extra configuration, and it reports crashes, ANRs, slow and frozen frames, app starts and sessions by itself. It names the app after its launcher label unless you set \`service.name\`, and it sends no \`device.id\`. [Android Setup](${RUM_ANDROID_SETUP_DOCS_URL}) has the Gradle dependency, the code and what each of those becomes in OneUptime.
 - **iOS / Swift** — with [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), set \`device.model.identifier\` and \`device.manufacturer\` on the resource yourself: the resource an SDK version contributes has changed between releases.
-- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](${RUM_BROWSER_SETUP_DOCS_URL}) with two differences: there is no \`browserDetector\`, and you set \`device.manufacturer\` and \`device.model.identifier\` yourself so the telemetry classifies as mobile. It still sends with a **Server** key, like any mobile app.
+- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](${RUM_BROWSER_SETUP_DOCS_URL}) with two differences: there is no \`browserDetector\`, and you set \`device.manufacturer\` and \`device.model.identifier\` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app, and so do its [session replays](${SESSION_REPLAY_DOCS_URL}#install-in-react-native): give the replay SDK the same key, with the key's pinned service name as \`appIdentifier\`.
 - **Anything else** — Flutter, Unity, .NET MAUI or a hand-rolled OTLP writer work the same way, as long as the resource carries \`service.name\` plus one \`device.*\` attribute.
 
 The mobile OpenTelemetry SDKs change their builder APIs between releases. [Mobile Setup](${RUM_MOBILE_SETUP_DOCS_URL}) has code for each; check the method names against the version you pin.`,
@@ -609,13 +645,13 @@ function getMobileTroubleshootingTopics(): Array<SetupGuideTopic> {
   return [
     {
       title: "The key check returns 401, or the key is refused",
-      markdown: `A \`401\` means the key is unknown, revoked, disabled or expired: pick or create a Server key in step 1 and rebuild the app with it.
+      markdown: `A \`401\` means the key is unknown, revoked, disabled or expired: pick or create a Mobile key in step 1 and rebuild the app with it.
 
-A Browser key passes the check but is refused from a mobile app, because it needs an \`Origin\` header and mobile SDKs send none. Use a **Server** key.`,
+A \`422\` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and its session replays, and never from a web page: an SDK that exports over gRPC, a request that carries an \`Origin\` header, or another app's recording, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an \`Origin\` header and mobile SDKs send none.`,
     },
     {
       title: "The app shows up under Services instead of Real User Monitoring",
-      markdown: `The resource carries no \`device.id\` or \`device.model.identifier\`, so the telemetry was filed as a backend Service. Set them on the SDK's resource, as in step 2.
+      markdown: `The telemetry was sent with a Server key, and its resource carries no \`device.id\` or \`device.model.identifier\`, so it was filed as a backend Service. Send with a Mobile key (step 1), which files everything it sends as this app, or set them on the SDK's resource, as in step 2.
 
 ${DEVICE_MANUFACTURER_CAVEAT}
 
@@ -681,12 +717,10 @@ export function getRumSetupGuide(
   if (client === "mobile") {
     return {
       keyStep: {
-        description:
-          "Mobile apps send with a Server key: a Browser key is checked against the Origin header, which mobile SDKs do not send. The key ships inside your app, so treat it as public — Advanced shows how to limit what an extracted copy can do.",
+        description: RUM_MOBILE_KEY_STEP_DESCRIPTION,
         endpointLabel: "OTLP Endpoint",
         endpointValue: `${options.oneuptimeUrl}/otlp`,
-        endpointHint:
-          "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it.",
+        endpointHint: RUM_MOBILE_ENDPOINT_HINT,
       },
       prerequisites: getMobilePrerequisites(),
       steps: getMobileSteps(data),
@@ -698,12 +732,10 @@ export function getRumSetupGuide(
 
   return {
     keyStep: {
-      description:
-        "Everything in the snippet ships to your users' browsers, so this must be a Browser key: it is accepted only from the origins you list. Never put a Server key in a page — anyone who reads it can write into this project. Pick a key or create one; the snippet below updates to use it.",
+      description: RUM_BROWSER_KEY_STEP_DESCRIPTION,
       endpointLabel: "OTLP Endpoint",
       endpointValue: `${options.oneuptimeUrl}/otlp`,
-      endpointHint:
-        "The browser exporter takes the full URL of each signal: this address plus /v1/traces.",
+      endpointHint: RUM_BROWSER_ENDPOINT_HINT,
     },
     prerequisites: getBrowserPrerequisites(),
     steps: getBrowserSteps(data),

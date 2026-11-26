@@ -119,6 +119,8 @@ Når din bank stadig behandler en betaling, siger OneUptime det: nogle banker er
 
 En dags forbrug vises, når dagen er slut, senest omkring kl. 08:00 UTC dagen efter. Filtrér efter **Produkt**, **Dag** eller **Tjeneste** for at finde det, der er vokset.
 
+For at sende mindre smider et [drop-filter](/docs/telemetry/drop-filters-and-scrub-rules) de logs og spans, du aldrig læser, væk, før de bliver gemt, og det, det kasserer, faktureres ikke. Før du gemmer et, siger dets formular, hvor meget af det seneste døgns telemetri det matcher, og hvad det ville tage fra de monitorer, dashboards, SLO'er og Sikkerhedsbegivenheder, der læser de samme poster: se [Hvad et filter ville tage](/docs/telemetry/drop-filters-and-scrub-rules#hvad-et-filter-ville-tage).
+
 ## Forudbetalte saldi
 
 SMS, opkald, WhatsApp- og Telegram-beskeder betales fra projektets saldo, og OneUptime AI fra dets AI-kreditter. Du fylder hver af dem op på forhånd:
@@ -129,9 +131,9 @@ SMS, opkald, WhatsApp- og Telegram-beskeder betales fra projektets saldo, og One
 | OneUptime AI | **Projektindstillinger → AI → AI-kreditter** |
 
 :::steps
-### Genoplad nu
+### Tilføj til den nu
 
-Klik på **Genoplad saldo** på sidens kort **Aktuel saldo**. Indtast et beløb fra $20 til $1,000, og klik på **Genoplad**. Beløbet trækkes på projektets kort.
+Klik på **Tilføj til saldo** på sidens kort **Aktuel saldo**. Indtast et beløb fra $20 til $1,000, og klik på **Tilføj til saldo**. Beløbet trækkes på projektets kort.
 
 ### Eller lad den genopfylde sig selv
 
@@ -150,7 +152,7 @@ Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper,
 | Slå SMS, opkald, WhatsApp eller Telegram til eller fra | Projektejer, **Manage Billing** eller **Faktureringsadministrator** |
 | Tilføje en betalingsmetode | Projektejer, **Manage Billing** eller **Create Payment Method** |
 | Betale en faktura | Projektejer, **Manage Billing** eller **Edit Invoices** |
-| Skifte plan, genoplade en saldo eller ændre automatisk genopfyldning | Projektejer eller **Manage Billing** |
+| Skifte plan, tilføje til en saldo eller ændre automatisk genopfyldning | Projektejer eller **Manage Billing** |
 
 En knap, du ikke må bruge, vises låst og siger, hvem der må. Se [Brugere, teams og tilladelser](/docs/permissions/index#teams) for faktureringsrollerne.
 

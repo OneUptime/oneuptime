@@ -459,6 +459,7 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ stateDiagram-v2
 :::
 
 Service Bus の名前空間はメトリクスをキューとトピックごとに 1 回ずつ、Event Hubs の名前空間はイベントハブごとに 1 回ずつ報告します。合計できるメトリクスでは、名前空間の **メトリクス** タブの行にその合計が表示され、その下に **系列の合計** と表示されます。その行から作成したモニターも合計を読み取り、API や Terraform で集計方法を指定せずに作成したモニターも同じです。それ以外の行には **系列の平均**、つまり平均的なキューまたはイベントハブが表示されます。レイテンシーと、3 時間を超える範囲では待機中のメッセージなど名前空間が保持する量が、これに当たります。
+
+接続は Container App のリクエストをステータス コードのカテゴリごとに読み取り、5xx の応答を区別します。そのリクエストの行も同じように合計を表示し、その行から作成したモニターも同じです。
 
 > [!IMPORTANT]
 > クラウドの監視は、各値を計測した時刻の数分後に公開します。上記のようにポーリングする CloudWatch では 10〜20 分、Azure Monitor と Cloud Monitoring では数分です。値は計測した時刻で保存されます。これらのメトリクスを監視するモニターには、その遅れより長いウィンドウ (CloudWatch では 30 分、ほかは 15 分) を設定してください。そうしないとデータが見えず、アラートが発生しません。

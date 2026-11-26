@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
@@ -281,6 +282,8 @@ export default class DataReconciliationSync {
       await MonitorService.updateOneById({
         id: live.id,
         data: { name, monitorSteps: steps } as never,
+        // A name OneUptime picked: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
         props: data.props,
       });
 
@@ -296,6 +299,8 @@ export default class DataReconciliationSync {
 
     const created: Monitor = await MonitorService.create({
       data: monitor,
+      // A name OneUptime picked: numbered, not refused, if it is taken.
+      miscDataProps: getNumbersTakenNameData(),
       props: data.props,
     });
 

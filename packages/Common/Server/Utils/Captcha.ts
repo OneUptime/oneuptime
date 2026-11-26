@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import BadDataException from "../../Types/Exception/BadDataException";
 import logger from "./Logger";
+import OutboundProxyAgents from "./OutboundProxyAgents";
 import { CaptchaEnabled, CaptchaSecretKey } from "../EnvironmentConfig";
 
 export interface VerifyCaptchaOptions {
@@ -9,6 +10,7 @@ export interface VerifyCaptchaOptions {
 }
 
 const REQUEST_TIMEOUT_MS: number = 5000;
+const HCAPTCHA_VERIFY_URL: string = "https://hcaptcha.com/siteverify";
 const GENERIC_ERROR_MESSAGE: string =
   "Captcha verification failed. Please try again.";
 
@@ -76,14 +78,16 @@ class CaptchaUtil {
 
     const response: AxiosResponse<HCaptchaResponse> =
       await axios.post<HCaptchaResponse>(
-        "https://hcaptcha.com/siteverify",
+        HCAPTCHA_VERIFY_URL,
         params.toString(),
-        {
+        // Through the outbound proxy, or directly (OutboundProxyAgents).
+        OutboundProxyAgents.routeAxiosRequest({
+          url: HCAPTCHA_VERIFY_URL,
           headers: {
             "content-type": "application/x-www-form-urlencoded",
           },
           timeout: REQUEST_TIMEOUT_MS,
-        },
+        }),
       );
 
     if (!response.data?.success) {

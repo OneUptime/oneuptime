@@ -482,8 +482,8 @@ Kubernetes 叢集或基礎架構資源上的調查和修正，現在是 AI 代�
 
 這兩個開關過去會攔住一些修正。為了在它們消失後不會有任何東西在沒有人參與的情況下開始變更您的系統，伺服器升級會把這些修正改為先詢問：
 
-- 在曾關閉 **Enable Auto-Remediation** 的專案中，**Full Auto** 規則會變為 **Suggest**，設定為 **自動** 或 **略過核准** 的叢集和資源會變為 **請求核准**。
-- 在從未開啟 **Enable AI Command Execution** 的專案中，讓 AI 撰寫指令的 **Full Auto** 規則會變為 **Suggest**。AI 透過您繫結到它的 Runner（使用 Kubernetes 憑證）存取的 Kubernetes 叢集，會從 **自動** 或 **略過核准** 變為 **請求核准**。透過 Kubernetes AI 代理程式存取的叢集會保留其模式，資源也一樣：它們從來不需要那個開關。
+- 在曾關閉 **Enable Auto-Remediation** 的專案中，**Full Auto** 規則會變為 **建議**，設定為 **自動** 或 **略過核准** 的叢集和資源會變為 **請求核准**。
+- 在從未開啟 **Enable AI Command Execution** 的專案中，讓 AI 撰寫指令的 **Full Auto** 規則會變為 **建議**。AI 透過您繫結到它的 Runner（使用 Kubernetes 憑證）存取的 Kubernetes 叢集，會從 **自動** 或 **略過核准** 變為 **請求核准**。透過 Kubernetes AI 代理程式存取的叢集會保留其模式，資源也一樣：它們從來不需要那個開關。
 
 不會關閉任何東西。被其中一個開關壓住的規則、叢集和資源會開始提出修正，每個修正仍然等待人來處理。若要讓專案不進行自動補救，請關閉 **啟用 AI**，或關閉 **自動修正新事件** 和 **自動修正新警示**（事件或警示 → 人工智慧 → 設定；請參閱 [修正新事件和警示有自己的開關](#修正新事件和警示有自己的開關)）。設定了 `enableAutoRemediation` 或 `enableAiCommandExecution`（Terraform 中為 `enable_auto_remediation` 或 `enable_ai_command_execution`）的 API 用戶端和 Terraform 設定應停止設定它們。
 

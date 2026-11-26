@@ -94,7 +94,9 @@ describe("change event wire values", () => {
       ChangeEventAttribute.CloudOperation,
       ChangeEventAttribute.CloudActor,
       ChangeEventAttribute.CloudEventId,
+      ChangeEventAttribute.CloudGrantsAccess,
       ChangeEventAttribute.CloudAccountRecordId,
+      ChangeEventAttribute.MadeBy,
     ];
 
     for (const key of ownKeys) {

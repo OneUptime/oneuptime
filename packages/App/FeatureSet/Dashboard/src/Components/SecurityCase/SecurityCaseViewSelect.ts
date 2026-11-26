@@ -27,6 +27,8 @@ export const SECURITY_CASE_VIEW_SELECT: Select<SecurityCase> = {
   lastDetectedAt: true,
   acknowledgedAt: true,
   containedAt: true,
+  // How fast an automatic response policy blocked its address (#10350).
+  timeToBlockInSeconds: true,
   closedAt: true,
   createdAt: true,
   // Its response targets: the header's chip and the Overview's figures.
@@ -63,6 +65,9 @@ export const SECURITY_CASE_VIEW_SELECT: Select<SecurityCase> = {
   aiTriageReport: true,
   aiTriagedAt: true,
   aiTriagePromptInjectionSuspected: true,
+  // Where OneUptime AI stands on the case it works (#10352).
+  aiResponseState: true,
+  aiTookCaseAt: true,
 };
 
 /*

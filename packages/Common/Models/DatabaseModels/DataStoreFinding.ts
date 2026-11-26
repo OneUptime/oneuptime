@@ -22,7 +22,9 @@ import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import DataCategory from "../../Types/DataSecurity/DataCategory";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
 import DataConfidence from "../../Types/DataSecurity/DataConfidence";
+import { DataStoreFindingVerdict } from "../../Types/DataSecurity/DataStoreFindingVerdict";
 import { FindingSampleRecord } from "../../Types/DataSecurity/FindingSampleRecord";
+import { JSONObject } from "../../Types/JSON";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -41,6 +43,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * A row can be OneUptime AI's suggestion for a field no detector placed
  * (isAiSuggested, with its reason): it is Low confidence and matched no
  * value, so it counts only once a person confirms it.
+ *
+ * A finding that waits for a person carries OneUptime AI's verdict on it
+ * (aiVerdict, #10372) - Confirm, Not sensitive or Cannot tell - with the
+ * team's earlier decisions on findings like it that the verdict cites.
+ * People decide: OneUptime AI never marks a finding not sensitive, and
+ * confirms one on its own only where an AI rule says so (isConfirmedByAi).
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -110,6 +118,17 @@ const peopleEditableColumnAccess: {
   create: [],
   read: readPermissions,
   update: updatePermissions,
+};
+
+// OneUptime's own bookkeeping, read through no route.
+const hiddenColumnAccess: {
+  create: Array<Permission>;
+  read: Array<Permission>;
+  update: Array<Permission>;
+} = {
+  create: [],
+  read: [],
+  update: [],
 };
 
 const restrictedColumnAccess: {
@@ -569,6 +588,25 @@ export default class DataStoreFinding extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    title: "Found By Model",
+    description:
+      "Found in free text by the names-and-addresses model that runs inside the scanner, not by a pattern.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isFoundByModel?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    computed: true,
+    canReadOnRelationQuery: true,
     title: "Scrubbed",
     description:
       "For telemetry: a scrub rule already masks this data at ingest.",
@@ -668,6 +706,177 @@ export default class DataStoreFinding extends BaseModel {
   })
   public aiReason?: string = undefined;
 
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372):
+   * Confirm, Not sensitive or Cannot tell, from the finding's facts and the
+   * team's earlier decisions on findings like it
+   * (Types/DataSecurity/DataStoreFindingVerdict). A proposal, never a
+   * decision: OneUptime AI never marks a finding Not Sensitive, and
+   * confirms one only where an AI rule says so.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(DataStoreFindingVerdict),
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "OneUptime AI's Verdict",
+    description:
+      "OneUptime AI's verdict on a finding that waits for a person: Confirm, NotSensitive or CannotTell. A person decides.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiVerdict?: DataStoreFindingVerdict = undefined;
+
+  /*
+   * The verdict's reason, the reason a person could give for Not
+   * Sensitive, and the earlier decisions it cites - each the finding, its
+   * store, its location and the person's reason - in the project's
+   * language (DataStoreFindingVerdictRecord).
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Why OneUptime AI Gave Its Verdict",
+    description:
+      "OneUptime AI's reason for its verdict, a reason a person could give, and the earlier decisions on findings like it that it cites.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiVerdictAnalysis?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "OneUptime AI's Verdict At",
+    description: "When OneUptime AI last gave its verdict on the finding.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiVerdictAt?: Date = undefined;
+
+  /*
+   * What the verdict was written from, hashed: a scan that changed nothing
+   * of it makes no model call. OneUptime's own, read through no route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "OneUptime AI's Verdict Input Hash",
+    description:
+      "A hash of what OneUptime AI's verdict was written from, so an unchanged finding is not judged again.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiVerdictInputHash?: string = undefined;
+
+  /*
+   * What OneUptime AI was told when it last wrote a scrub rule for this
+   * place, hashed (#10752): its data type, where it sits, the names of the
+   * attributes beside it and the shapes of its values
+   * (ScrubRuleWriter.getScrubRuleWriterInputHash). An evaluation of the
+   * issue that tells it the same reuses the answer below and makes no model
+   * call. OneUptime's own, read through no route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "OneUptime AI's Scrub Rule Input Hash",
+    description:
+      "A hash of what OneUptime AI was told when it last wrote a scrub rule for this place, so a place told the same is not asked again.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiScrubRuleInputHash?: string = undefined;
+
+  /*
+   * What OneUptime AI wrote for this place from that input (#10752): its
+   * rules - a pattern, or the place's attribute to hide whole - or none,
+   * which is an answer too. Proven again on the newest records before it
+   * is offered, as a fresh answer is. OneUptime's own, read through no
+   * route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "OneUptime AI's Scrub Rules",
+    description:
+      "The scrub rules OneUptime AI last wrote for this place, a pattern or the attribute to hide whole, or none when it could write none.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiScrubRules?: JSONObject = undefined;
+
+  /*
+   * OneUptime AI confirmed the finding on its own, where an AI rule sets
+   * Judge to Without asking (#10372). Its own confirmations are never
+   * precedent for its verdicts. A person's decision clears it.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Confirmed by OneUptime AI",
+    description:
+      "OneUptime AI confirmed the finding without asking, as one of the project's AI rules allows. Undo it from Data Security > AI.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isConfirmedByAi?: boolean = undefined;
+
+  /*
+   * When the finding was last confirmed or marked not sensitive: newer
+   * decisions are cited first as precedent (#10372).
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Decided At",
+    description: "When the finding was last confirmed or marked not sensitive.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public decidedAt?: Date = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "lastScanId",
@@ -737,4 +946,27 @@ export default class DataStoreFinding extends BaseModel {
     nullable: true,
   })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * For telemetry: when a code fix stopped this finding, as production
+   * proved it (#10368) - the service's new version writes no more of the
+   * data. What was stored before is old data waiting for its retention,
+   * so it no longer keeps its issue open. A scan that finds it again is
+   * the leak coming back, and the issue opens again, naming the version.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Fixed At",
+    description:
+      "For telemetry: when a code fix was verified to have stopped this finding in production. It no longer counts toward its issue unless a scan finds it again.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public fixedAt?: Date = undefined;
 }

@@ -126,6 +126,7 @@ import {
   tokenizeResourceCommand,
 } from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { readOpenStackChange } from "../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 import logger from "../Logger";
 import FeedMarkdown, {
   MarkdownText,
@@ -1048,7 +1049,12 @@ async function loadSuggestionAsRoot(
   return suggestion;
 }
 
-// Who approved a fix, by name, else by email: null when it cannot be read.
+/*
+ * Who approved a fix, as every feed entry and channel line names a member
+ * (FeedPersonName): by name, else by the part of their address before the
+ * "@" - never the address, which the fix's channels are not all the
+ * project's people to read (#10669). Null when it cannot be read.
+ */
 async function getApproverName(userId: ObjectID): Promise<string | null> {
   try {
     const user: User | null = await UserService.findOneById({
@@ -1057,8 +1063,10 @@ async function getApproverName(userId: ObjectID): Promise<string | null> {
       props: { isRoot: true },
     });
 
-    const name: string =
-      user?.name?.toString().trim() || user?.email?.toString().trim() || "";
+    const name: string = FeedPersonNameRule.getMemberName({
+      name: user?.name,
+      email: user?.email,
+    });
 
     return name || null;
   } catch (error) {

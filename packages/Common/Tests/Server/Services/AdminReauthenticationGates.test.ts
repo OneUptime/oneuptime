@@ -16,11 +16,17 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 });
 
 import Redis from "../../../Server/Infrastructure/Redis";
-import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import GlobalConfigService, {
+  Service as GlobalConfigServiceClass,
+} from "../../../Server/Services/GlobalConfigService";
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import UserService from "../../../Server/Services/UserService";
+import UserService, {
+  SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE,
+  Service as UserServiceClass,
+} from "../../../Server/Services/UserService";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import {
   OnCreate,
@@ -32,6 +38,8 @@ import EmailAddressChangedNotice from "../../../Server/Utils/EmailChange/EmailAd
 import EmailChangeConfirmation from "../../../Server/Utils/EmailChange/EmailChangeConfirmation";
 import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
 import IdentityProviderSignOutCheck from "../../../Server/Utils/IdentityProviderSignOutCheck";
+import logger from "../../../Server/Utils/Logger";
+import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentication";
 import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -89,15 +97,23 @@ import {
  *
  * The changes: another person's email address and password (PUT
  * /api/user/:id); who is a master admin; the server's own SAML and OpenID
- * Connect providers; the server's email settings; and deleting your own
- * account. The routes in front of the rest - Set Password, resetting
- * two-factor authentication and the others - are
- * Tests/Server/API/AdminReauthenticationRoutes.test.ts.
+ * Connect providers; the server's email settings; deleting your own
+ * account; and (#10330) deleting someone else's account and turning the
+ * master API key back on, each recorded in the server's log with who did
+ * it. The routes in front of the rest - Set Password, resetting two-factor
+ * authentication and the others - are
+ * Tests/Server/API/AdminReauthenticationRoutes.test.ts, and the delete and
+ * the switch through the real HTTP routes are
+ * Tests/Server/API/AdminDeleteAndMasterApiKeyOverHttp.test.ts.
  */
 
 interface UserHooks {
   onBeforeUpdate: (updateBy: UpdateBy<User>) => Promise<OnUpdate<User>>;
   onBeforeDelete: (deleteBy: DeleteBy<User>) => Promise<OnDelete<User>>;
+  onDeleteSuccess: (
+    onDelete: OnDelete<User>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ) => Promise<OnDelete<User>>;
 }
 
 interface ProviderHooks<T extends GlobalSso | GlobalOidc> {
@@ -109,6 +125,13 @@ interface ProviderHooks<T extends GlobalSso | GlobalOidc> {
 interface GlobalConfigHooks {
   onBeforeUpdate: (
     updateBy: UpdateBy<GlobalConfig>,
+  ) => Promise<OnUpdate<GlobalConfig>>;
+  onBeforeCreate: (
+    createBy: CreateBy<GlobalConfig>,
+  ) => Promise<OnCreate<GlobalConfig>>;
+  onUpdateSuccess: (
+    onUpdate: OnUpdate<GlobalConfig>,
+    updatedItemIds: Array<ObjectID>,
   ) => Promise<OnUpdate<GlobalConfig>>;
 }
 
@@ -541,11 +564,7 @@ describe("deleting your own account (Danger Zone > Delete Account, #10220)", () 
     );
   });
 
-  test("a master admin deleting someone else's account, and a root delete, are as they were", async () => {
-    await expect(
-      userHooks.onBeforeDelete(userDelete(masterAdmin(), REAUTH_OTHER_USER_ID)),
-    ).resolves.toBeDefined();
-
+  test("a root delete - the server's own - is not asked", async () => {
     await expect(
       userHooks.onBeforeDelete(userDelete({ isRoot: true })),
     ).resolves.toBeDefined();
@@ -558,6 +577,444 @@ describe("deleting your own account (Danger Zone > Delete Account, #10220)", () 
       ),
       ReauthenticationPurpose.DeleteAccount,
     );
+  });
+});
+
+/*
+ * A MASTER ADMIN DELETING SOMEONE ELSE'S ACCOUNT (#10330): Admin Dashboard
+ * > Users > Delete, or DELETE /api/user/:id. Only an account in no project
+ * can be deleted, so it takes nobody's projects, but it cannot be undone:
+ * whoever held a master admin's session could delete any such account
+ * without their password. Now it waits for the master admin's own session,
+ * as their other changes to someone else's account do.
+ */
+describe("deleting someone else's account, from a master admin (Admin Dashboard > Users > Delete, #10330)", () => {
+  test("refused until the master admin's own session confirms, through inside the window, refused after it", async () => {
+    expectRefusal(
+      await refusalOf(
+        userHooks.onBeforeDelete(
+          userDelete(masterAdmin(), REAUTH_OTHER_USER_ID),
+        ),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+
+    await confirm();
+
+    await expect(
+      userHooks.onBeforeDelete(userDelete(masterAdmin(), REAUTH_OTHER_USER_ID)),
+    ).resolves.toBeDefined();
+
+    minutesPass(REAUTHENTICATION_WINDOW_IN_MINUTES + 1);
+
+    expectRefusal(
+      await refusalOf(
+        userHooks.onBeforeDelete(
+          userDelete(masterAdmin(), REAUTH_OTHER_USER_ID),
+        ),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+  });
+
+  test("a wrong password confirms nothing, and the delete stays refused", async () => {
+    await refusalOf(
+      Reauthentication.confirm({
+        session: { userId: REAUTH_USER_ID, sessionId: REAUTH_SESSION_ID },
+        proof: { password: "a guess" },
+        clientIp: "203.0.113.9",
+      }),
+    );
+
+    expectRefusal(
+      await refusalOf(
+        userHooks.onBeforeDelete(
+          userDelete(masterAdmin(), REAUTH_OTHER_USER_ID),
+        ),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+  });
+
+  test("another session's confirmation does not count: only the master admin's own", async () => {
+    await Reauthentication.confirm({
+      session: { userId: REAUTH_USER_ID, sessionId: ObjectID.generate() },
+      proof: { password: RIGHT_PASSWORD },
+      clientIp: "203.0.113.9",
+    });
+
+    expectRefusal(
+      await refusalOf(
+        userHooks.onBeforeDelete(
+          userDelete(masterAdmin(), REAUTH_OTHER_USER_ID),
+        ),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+  });
+
+  test("an account still in a project is told whose it is first, and the master admin is asked nothing", async () => {
+    const membership: TeamMember = new TeamMember();
+    membership._id = ObjectID.generate().toString();
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([membership]);
+    const assertConfirmed: SpyInstance<
+      typeof Reauthentication.assertConfirmed
+    > = jest.spyOn(Reauthentication, "assertConfirmed");
+
+    const refusal: Exception = await refusalOf(
+      userHooks.onBeforeDelete(userDelete(masterAdmin(), REAUTH_OTHER_USER_ID)),
+    );
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal).not.toBeInstanceOf(ReauthenticationRequiredException);
+    expect(refusal.message).toBe(SOMEONES_ACCOUNT_IN_A_PROJECT_MESSAGE);
+    // Never "your account": it is not theirs.
+    expect(refusal.message).not.toContain("your account");
+    expect(assertConfirmed).not.toHaveBeenCalled();
+  });
+
+  test("the master API key - no session - is refused with what to do, and cannot confirm", async () => {
+    expectNoSessionRefusal(
+      await refusalOf(
+        userHooks.onBeforeDelete(
+          userDelete(masterApiKey(), REAUTH_OTHER_USER_ID),
+        ),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+  });
+
+  test("a root delete of someone's account - the server's own - is not asked", async () => {
+    await expect(
+      userHooks.onBeforeDelete(
+        userDelete({ isRoot: true }, REAUTH_OTHER_USER_ID),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("a delete that reaches their own account and someone else's asks as deleting their own", async () => {
+    jest
+      .spyOn(
+        UserService as unknown as {
+          findRowsAndHoldDeleteToThem: () => Promise<Array<User>>;
+        },
+        "findRowsAndHoldDeleteToThem",
+      )
+      .mockResolvedValue([ownRow(), someonesRow()] as never);
+
+    expectRefusal(
+      await refusalOf(
+        userHooks.onBeforeDelete(
+          userDelete(masterAdmin(), REAUTH_OTHER_USER_ID),
+        ),
+      ),
+      ReauthenticationPurpose.DeleteAccount,
+    );
+  });
+
+  test("a delete that reaches no account asks nothing: nothing is deleted", async () => {
+    jest
+      .spyOn(
+        UserService as unknown as {
+          findRowsAndHoldDeleteToThem: () => Promise<Array<User>>;
+        },
+        "findRowsAndHoldDeleteToThem",
+      )
+      .mockResolvedValue([] as never);
+    const assertConfirmed: SpyInstance<
+      typeof Reauthentication.assertConfirmed
+    > = jest.spyOn(Reauthentication, "assertConfirmed");
+
+    await expect(
+      userHooks.onBeforeDelete(userDelete(masterAdmin(), REAUTH_OTHER_USER_ID)),
+    ).resolves.toBeDefined();
+    expect(assertConfirmed).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * RECORDED (#10330): an account in no project has no audit log to say it
+ * went, so the server's log says whose it was and who deleted it - by
+ * their ids, never an address.
+ */
+describe("a deleted account is recorded for whoever runs the server", () => {
+  test.each([
+    [
+      "by a master admin",
+      (): DatabaseCommonInteractionProps => {
+        return masterAdmin();
+      },
+      REAUTH_OTHER_USER_ID,
+      `Account of user ${REAUTH_OTHER_USER_ID.toString()} deleted by master admin ${REAUTH_USER_ID.toString()}.`,
+    ],
+    [
+      "by its owner",
+      (): DatabaseCommonInteractionProps => {
+        return ownSession();
+      },
+      REAUTH_USER_ID,
+      `Account of user ${REAUTH_USER_ID.toString()} deleted by its owner.`,
+    ],
+    [
+      "by OneUptime",
+      (): DatabaseCommonInteractionProps => {
+        return { isRoot: true };
+      },
+      REAUTH_OTHER_USER_ID,
+      `Account of user ${REAUTH_OTHER_USER_ID.toString()} deleted by OneUptime.`,
+    ],
+  ] as Array<[string, () => DatabaseCommonInteractionProps, ObjectID, string]>)(
+    "%s: once it is gone, by their ids",
+    async (
+      _name: string,
+      props: () => DatabaseCommonInteractionProps,
+      accountId: ObjectID,
+      line: string,
+    ) => {
+      jest
+        .spyOn(RealtimeAccessChanges, "announce")
+        .mockImplementation(() => {});
+      const info: SpyInstance<typeof logger.info> = jest
+        .spyOn(logger, "info")
+        .mockImplementation(() => {});
+
+      await userHooks.onDeleteSuccess(
+        { deleteBy: userDelete(props(), accountId), carryForward: null },
+        [accountId],
+      );
+
+      expect(info).toHaveBeenCalledWith(line);
+      expect(
+        UserServiceClass.getAccountDeletedLogLine({
+          userId: accountId,
+          props: props(),
+        }),
+      ).toBe(line);
+      // Never an address.
+      expect(line).not.toContain("@");
+    },
+  );
+});
+
+/*
+ * TURNING THE MASTER API KEY BACK ON (#10330): Admin Dashboard > Settings >
+ * API Key's Enabled switch, or a write of isMasterApiKeyEnabled through the
+ * API. Its value cannot be read back, so whoever holds the session cannot
+ * use it, but whoever holds the key could again. Making a new one has
+ * asked since #10216; turning one back on asks the same now. Turning it off
+ * asks nothing.
+ */
+describe("turning the master API key back on (Admin Dashboard > Settings > API Key, #10330)", () => {
+  const switchUpdate: (
+    value: unknown,
+    props: DatabaseCommonInteractionProps,
+  ) => UpdateBy<GlobalConfig> = (
+    value: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): UpdateBy<GlobalConfig> => {
+    return {
+      query: { _id: ObjectID.getZeroObjectID().toString() },
+      data: { isMasterApiKeyEnabled: value },
+      props: props,
+      limit: 1,
+      skip: 0,
+    } as unknown as UpdateBy<GlobalConfig>;
+  };
+
+  test("refused until the master admin's own session confirms, through inside the window, refused after it", async () => {
+    expectRefusal(
+      await refusalOf(
+        globalConfigHooks.onBeforeUpdate(switchUpdate(true, masterAdmin())),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+
+    await confirm();
+
+    await expect(
+      globalConfigHooks.onBeforeUpdate(switchUpdate(true, masterAdmin())),
+    ).resolves.toBeDefined();
+
+    minutesPass(REAUTHENTICATION_WINDOW_IN_MINUTES + 1);
+
+    expectRefusal(
+      await refusalOf(
+        globalConfigHooks.onBeforeUpdate(switchUpdate(true, masterAdmin())),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+  });
+
+  test.each([
+    ["the text true", "true"],
+    ["the number 1", 1],
+    ["yes", "yes"],
+  ] as Array<[string, unknown]>)(
+    "a value the database reads as on - %s - is asked as on is",
+    async (_name: string, value: unknown) => {
+      expectRefusal(
+        await refusalOf(
+          globalConfigHooks.onBeforeUpdate(switchUpdate(value, masterAdmin())),
+        ),
+        ReauthenticationPurpose.AdminChange,
+      );
+    },
+  );
+
+  test.each([
+    ["turned off", false],
+    ["cleared", null],
+  ] as Array<[string, unknown]>)(
+    "%s, it asks nothing: taking a way in away must be possible at once",
+    async (_name: string, value: unknown) => {
+      const assertConfirmed: SpyInstance<
+        typeof Reauthentication.assertConfirmed
+      > = jest.spyOn(Reauthentication, "assertConfirmed");
+
+      await expect(
+        globalConfigHooks.onBeforeUpdate(switchUpdate(value, masterAdmin())),
+      ).resolves.toBeDefined();
+      expect(assertConfirmed).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the master API key cannot turn itself back on, nor be turned on with it: refused, with what to do", async () => {
+    expectNoSessionRefusal(
+      await refusalOf(
+        globalConfigHooks.onBeforeUpdate(switchUpdate(true, masterApiKey())),
+      ),
+      ReauthenticationPurpose.AdminChange,
+    );
+  });
+
+  test("the master API key can still turn itself off", async () => {
+    await expect(
+      globalConfigHooks.onBeforeUpdate(switchUpdate(false, masterApiKey())),
+    ).resolves.toBeDefined();
+  });
+
+  test("OneUptime's own write - a new key, turned on as it is made - is not asked", async () => {
+    await expect(
+      globalConfigHooks.onBeforeUpdate(switchUpdate(true, { isRoot: true })),
+    ).resolves.toBeDefined();
+  });
+
+  test("a setting beside it that is not the switch asks nothing", async () => {
+    const assertConfirmed: SpyInstance<
+      typeof Reauthentication.assertConfirmed
+    > = jest.spyOn(Reauthentication, "assertConfirmed");
+
+    await expect(
+      globalConfigHooks.onBeforeUpdate({
+        query: { _id: ObjectID.getZeroObjectID().toString() },
+        data: { disableSignup: true },
+        props: masterAdmin(),
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<GlobalConfig>),
+    ).resolves.toBeDefined();
+    expect(assertConfirmed).not.toHaveBeenCalled();
+  });
+
+  test("a create through the API that turns it on is asked as an update is", async () => {
+    const config: GlobalConfig = new GlobalConfig();
+    config.isMasterApiKeyEnabled = true;
+
+    const created: (
+      props: DatabaseCommonInteractionProps,
+    ) => Promise<unknown> = (
+      props: DatabaseCommonInteractionProps,
+    ): Promise<unknown> => {
+      return globalConfigHooks.onBeforeCreate({
+        data: config,
+        props: props,
+      } as unknown as CreateBy<GlobalConfig>);
+    };
+
+    expectRefusal(
+      await refusalOf(created(masterAdmin())),
+      ReauthenticationPurpose.AdminChange,
+    );
+    expectNoSessionRefusal(
+      await refusalOf(created(masterApiKey())),
+      ReauthenticationPurpose.AdminChange,
+    );
+
+    await confirm();
+
+    await expect(created(masterAdmin())).resolves.toBeDefined();
+  });
+
+  describe("recorded for whoever runs the server, with who did it", () => {
+    test.each([
+      [
+        "turned on by a master admin",
+        true,
+        (): DatabaseCommonInteractionProps => {
+          return masterAdmin();
+        },
+        `The master API key was turned on by master admin ${REAUTH_USER_ID.toString()}.`,
+      ],
+      [
+        "turned off by a master admin",
+        false,
+        (): DatabaseCommonInteractionProps => {
+          return masterAdmin();
+        },
+        `The master API key was turned off by master admin ${REAUTH_USER_ID.toString()}.`,
+      ],
+      [
+        "turned off by the master API key itself",
+        false,
+        (): DatabaseCommonInteractionProps => {
+          return masterApiKey();
+        },
+        'The master API key was turned off by the API key "Master API Key".',
+      ],
+    ] as Array<
+      [string, unknown, () => DatabaseCommonInteractionProps, string]
+    >)(
+      "%s",
+      async (
+        _name: string,
+        value: unknown,
+        props: () => DatabaseCommonInteractionProps,
+        line: string,
+      ) => {
+        const info: SpyInstance<typeof logger.info> = jest
+          .spyOn(logger, "info")
+          .mockImplementation(() => {});
+
+        expect(
+          GlobalConfigServiceClass.getMasterApiKeySwitchLogLine({
+            data: { isMasterApiKeyEnabled: value },
+            props: props(),
+          }),
+        ).toBe(line);
+
+        await globalConfigHooks.onUpdateSuccess(
+          { updateBy: switchUpdate(value, props()), carryForward: null },
+          [ObjectID.getZeroObjectID()],
+        );
+
+        expect(info).toHaveBeenCalledWith(line);
+      },
+    );
+
+    test("nothing is recorded for a write that does not switch it, nor for OneUptime's own", () => {
+      expect(
+        GlobalConfigServiceClass.getMasterApiKeySwitchLogLine({
+          data: { disableSignup: true },
+          props: masterAdmin(),
+        }),
+      ).toBeNull();
+      expect(
+        GlobalConfigServiceClass.getMasterApiKeySwitchLogLine({
+          data: { isMasterApiKeyEnabled: true },
+          props: { isRoot: true },
+        }),
+      ).toBeNull();
+    });
   });
 });
 

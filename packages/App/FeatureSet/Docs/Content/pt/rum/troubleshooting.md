@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` com `"valid": true` | O OneUptime aceita a chave. A resposta também informa o seu `keyType` e o seu `projectId`. Passe para a próxima verificação. |
 | `401` com `"valid": false` | A chave está ausente, é desconhecida, foi revogada, desativada ou expirou, e a `message` diz qual. Crie uma chave ativa em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. |
 
-Um aplicativo web precisa de uma chave **Navegador**, e um aplicativo móvel de uma chave **Servidor**: consulte [Configuração para navegadores](/docs/rum/browser-setup) e [Configuração para dispositivos móveis](/docs/rum/mobile-setup). Os endpoints de exportação também rejeitam uma chave errada com `401`, como a especificação OTLP pede, então um SDK bem-comportado registra a rejeição em vez de tentar de novo. Essa linha passa despercebida com facilidade no console do navegador, e esta verificação responde diretamente.
+Um aplicativo web precisa de uma chave **Navegador**, e um aplicativo móvel de uma chave **Celular**: consulte [Configuração para navegadores](/docs/rum/browser-setup) e [Configuração para dispositivos móveis](/docs/rum/mobile-setup). Os endpoints de exportação também rejeitam uma chave errada com `401`, como a especificação OTLP pede, então um SDK bem-comportado registra a rejeição em vez de tentar de novo. Essa linha passa despercebida com facilidade no console do navegador, e esta verificação responde diretamente.
 
 O OneUptime também conta o que recusa de uma chave que conhece. A página da chave, em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**, mostra em **Telemetria recusada** o que foi recusado nos últimos 30 dias, e a **Verificação da configuração** na página **Documentação** da aplicação diz que tipo de telemetria é recusado, por quê e como corrigir. Uma chave ausente ou desconhecida não indica nenhum projeto, então nada a conta: esta verificação e o `401` são tudo o que há.
 
@@ -81,20 +81,20 @@ Um navegador raramente envia lotes tão grandes, a menos que os spans carreguem 
 
 **`422`.** O OneUptime recusou a chave aqui, e a mensagem diz por quê. `Origin https://app.example.com is not allowed for this browser ingestion key.` significa que a origem exata da página, com o seu esquema e a sua porta, se houver, está faltando nos **Origens permitidas** da chave. `This telemetry ingestion key has been disabled.` significa que alguém desativou a chave.
 
-**`429`.** O **Requests Per Minute Limit** da chave se esgotou: `Too many telemetry requests for this ingestion key. Please retry later.` Uma chave Browser permite 6000 requisições por minuto para todos os seus visitantes juntos, a menos que você defina um limite próprio na chave.
+**`429`.** O **Limite de solicitações por minuto** da chave se esgotou: `Too many telemetry requests for this ingestion key. Please retry later.` Uma chave Browser permite 6000 requisições por minuto para todos os seus visitantes juntos, a menos que você defina um limite próprio na chave.
 
 **`403` com uma página HTML, ou um corpo vazio.** O OneUptime responde a toda recusa em JSON, então este veio de algo na frente dele, normalmente um firewall de aplicações web no seu próprio domínio, se você faz o OneUptime passar por ele. O firewall analisa OTLP/JSON e compara cada atributo de span com as suas regras de injeção, então uma URL com uma query string em um span basta para ele bloquear, e o log do firewall indica a regra. Exclua o payload OTLP da inspeção só nos caminhos OTLP: [Suas requisições do OpenTelemetry também são bloqueadas](/docs/rum/session-replay-troubleshooting#suas-requisições-do-opentelemetry-também-são-bloqueadas) mostra como, e cobre o gravador de reproduções atrás do mesmo firewall.
 
 ## Verificar onde a telemetria chega
 
-A requisição funciona, mas o aplicativo aparece em **Produtos → Serviços** em vez de **Produtos → Recursos → Monitoramento de Usuários Reais**. É o relato mais comum, e a causa quase sempre é um recurso sem atributos de cliente. O OneUptime só arquiva um lote como RUM quando o recurso dele carrega um destes:
+A requisição funciona, mas o aplicativo aparece em **Produtos → Serviços** em vez de **Produtos → Recursos → Monitoramento de Usuários Reais**. É o relato mais comum, e a causa quase sempre é uma chave que não é Navegador nem Celular, enviando um recurso sem atributos de cliente. Tudo o que uma chave Navegador ou Celular envia é arquivado como RUM; com qualquer outra chave, o OneUptime só arquiva um lote como RUM quando o recurso dele carrega um destes:
 
 | Tipo | Atributos |
 | --- | --- |
 | Navegador | `browser.platform`, `browser.language` ou um `browser.brands` não vazio |
 | Móvel | `device.id` ou `device.model.identifier`, ou `device.manufacturer` em um recurso sem identidade de host (`host.name`, `host.id` ou `k8s.node.name`) |
 
-Um `service.name` sozinho cria um serviço de backend. O SDK do OpenTelemetry para navegador não adiciona nenhum atributo `browser.*` a menos que você adicione o detector de recursos do navegador ou os defina você mesmo: consulte [Configuração para navegadores](/docs/rum/browser-setup).
+Com qualquer outra chave, um `service.name` sozinho cria um serviço de backend. O SDK do OpenTelemetry para navegador não adiciona nenhum atributo `browser.*` a menos que você adicione o detector de recursos do navegador ou os defina você mesmo: consulte [Configuração para navegadores](/docs/rum/browser-setup).
 
 Para ver o que você realmente envia, abra a requisição OTLP na aba Rede e olhe o payload dela: `resourceSpans[0].resource.attributes` é a lista que decide. Se não houver nenhum atributo `browser.*`, o SDK não o está adicionando, diga o que disser a documentação dele.
 
@@ -127,7 +127,7 @@ O gráfico vazio na **Visão geral** da aplicação diz qual é o caso, e a **Ve
 
 As exceções precisam de um manipulador de erros, porque o SDK não captura erros não tratados: [Relatar erros não tratados](/docs/rum/browser-setup#relatar-erros-não-tratados) tem o código. Um erro que um error boundary ou um `try`/`catch` trata nunca chega à janela, então registre-o onde você o trata, com `span.recordException`.
 
-Os registros precisam de um pipeline de registros e de código que escreva entradas de registro, porque um `LoggerProvider` sozinho não envia nada: [Adicionar registros e métricas](/docs/rum/browser-setup#adicionar-registros-e-métricas) tem os dois. Monte o pipeline com o mesmo `resource` dos seus traços, ou os registros são arquivados sob um serviço de backend.
+Os registros precisam de um pipeline de registros e de código que escreva entradas de registro, porque um `LoggerProvider` sozinho não envia nada: [Adicionar registros e métricas](/docs/rum/browser-setup#adicionar-registros-e-métricas) tem os dois. Monte o pipeline com o mesmo `resource` dos seus traços, para que os registros sejam arquivados sob a mesma aplicação.
 
 Quando os carregamentos de página chegam, a chave, as origens permitidas dela e a sua Content Security Policy também deixam passar as exceções e os registros, desde que o exportador de registros use a mesma chave e o mesmo host. Um manipulador de erros que ainda não capturou nada não envia nada, exatamente como um que nunca foi adicionado, então lance um erro de teste no console do navegador para diferenciar os dois:
 

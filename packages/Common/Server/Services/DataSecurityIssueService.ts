@@ -8,6 +8,7 @@ import { OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
+import DataSecurityAiProposals from "../Utils/AI/DataSecurity/DataSecurityAiProposals";
 import DataSecurityIssueAlerts, {
   ClosedDataSecurityIssue,
 } from "../Utils/DataSecurity/DataSecurityIssueAlerts";
@@ -21,6 +22,9 @@ import ObjectID from "../../Types/ObjectID";
 import DataSecurityIssueStatus, {
   isDataSecurityIssueStatus,
 } from "../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution, {
+  toResolutionDetailsJSON,
+} from "../../Types/DataSecurity/DataSecurityIssueResolution";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
@@ -150,12 +154,28 @@ export class Service extends ProjectReferencesService<Model> {
         data["acceptedReason"] = null;
         data["acceptedUntil"] = null;
       }
+
+      /*
+       * Why it is not an issue (#10369): kept with that status, and asked
+       * for in the Dashboard's dialog. Through the API it may be left out,
+       * as it could before there was a reason to give.
+       */
+      data["notAnIssueReason"] =
+        status === DataSecurityIssueStatus.NotAnIssue &&
+        typeof data["notAnIssueReason"] === "string" &&
+        data["notAnIssueReason"].trim()
+          ? data["notAnIssueReason"].trim()
+          : null;
     } else if (
       data["acceptedReason"] !== undefined ||
       data["acceptedUntil"] !== undefined
     ) {
       throw new BadDataException(
         "Accept the risk by setting the issue's status to Accepted, with a reason and an expiry date.",
+      );
+    } else if (data["notAnIssueReason"] !== undefined) {
+      throw new BadDataException(
+        "Say an issue is not an issue by setting its status to Not an issue, with the reason.",
       );
     }
 
@@ -223,6 +243,26 @@ export class Service extends ProjectReferencesService<Model> {
       data["resolvedAt"] = now;
       data["recheckRequestedAt"] = now;
     }
+
+    /*
+     * How it resolved (#10368): a person who marks it resolved resolved
+     * it; any other status a person sets leaves it unresolved. What a
+     * change waited on (a response action's) is no longer waited on.
+     */
+    data["resolution"] =
+      data["status"] === DataSecurityIssueStatus.Resolved
+        ? DataSecurityIssueResolution.ResolvedByPerson
+        : null;
+    data["resolutionDetails"] =
+      data["status"] === DataSecurityIssueStatus.Resolved
+        ? toResolutionDetailsJSON({
+            at: OneUptimeDate.getCurrentDate().toISOString(),
+            ...(updateBy.props.userId
+              ? { userId: updateBy.props.userId.toString() }
+              : {}),
+          })
+        : null;
+    data["pendingResolution"] = null;
   }
 
   @CaptureSpan()
@@ -274,7 +314,11 @@ export class Service extends ProjectReferencesService<Model> {
               )}**: ${String(data["acceptedReason"] || "")}`
             : status === DataSecurityIssueStatus.Resolved
               ? mdText`Marked resolved. The store is being checked again; the issue opens again if its check still fails.`
-              : mdText`Status changed from **${change.fromStatus || "Open"}** to **${status}**.`
+              : status === DataSecurityIssueStatus.NotAnIssue &&
+                  typeof data["notAnIssueReason"] === "string" &&
+                  data["notAnIssueReason"]
+                ? mdText`Marked not an issue: ${String(data["notAnIssueReason"])}`
+                : mdText`Status changed from **${change.fromStatus || "Open"}** to **${status}**.`
           ).toString(),
           userId,
         });
@@ -305,6 +349,24 @@ export class Service extends ProjectReferencesService<Model> {
       await DataSecurityIssueAlerts.resolveForClosedIssues({
         projectId: new ObjectID(projectId),
         issues: closed,
+      });
+    }
+
+    /*
+     * Nor does it need what OneUptime AI proposed for it (#10364): a
+     * person accepted it, set it aside or marked it resolved, which is no
+     * check passing, so nothing is proven by it.
+     */
+    if (status && status !== DataSecurityIssueStatus.Open) {
+      await DataSecurityAiProposals.onIssuesClosed({
+        issueIds: changes
+          .filter((change: IssueChange): boolean => {
+            return change.fromStatus !== status;
+          })
+          .map((change: IssueChange): ObjectID => {
+            return new ObjectID(change.id);
+          }),
+        checkPassed: false,
       });
     }
 

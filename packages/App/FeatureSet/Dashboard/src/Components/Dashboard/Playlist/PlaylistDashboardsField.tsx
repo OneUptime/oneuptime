@@ -1,22 +1,22 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   DASHBOARD_PLAYLIST_MAX_DASHBOARDS,
   DashboardPlaylistDashboard,
   isSameDashboardId,
   readDashboardPlaylistDashboards,
 } from "Common/Types/Dashboard/DashboardPlaylist";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
-import Dropdown, {
+import {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
@@ -30,10 +30,14 @@ import {
   PlaylistListedDashboard,
   PlaylistReadableDashboard,
   addPlaylistDashboard,
+  getAddablePlaylistDashboardsQuery,
+  getNothingToAddText,
+  getPlaylistDashboardIds,
   getPlaylistListedDashboards,
   movePlaylistDashboard,
   removePlaylistDashboard,
 } from "./PlaylistDashboards";
+import { readPlaylistDashboards } from "./PlaylistRead";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
@@ -62,43 +66,18 @@ export interface ComponentProps {
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
   ariaDescribedby?: string | undefined;
-  // For tests: the project's dashboards, instead of reading them.
+  /*
+   * For tests: the list's dashboards as the viewer may read them, instead
+   * of readPlaylistDashboards, and the API the picker searches and counts
+   * the dashboards it could add with.
+   */
   readDashboards?:
-    | (() => Promise<Array<PlaylistReadableDashboard>>)
+    | ((
+        dashboards: ReadonlyArray<DashboardPlaylistDashboard>,
+      ) => Promise<Array<PlaylistReadableDashboard>>)
     | undefined;
+  modelAPI?: typeof ModelAPI | undefined;
 }
-
-// Every dashboard of the project the viewer may read, by name.
-export const readProjectDashboards: () => Promise<
-  Array<PlaylistReadableDashboard>
-> = async (): Promise<Array<PlaylistReadableDashboard>> => {
-  const result: ListResult<Dashboard> = await ModelAPI.getList<Dashboard>({
-    modelType: Dashboard,
-    query: {},
-    select: {
-      _id: true,
-      name: true,
-      isArchived: true,
-    },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    sort: {
-      name: SortOrder.Ascending,
-    },
-  });
-
-  return result.data
-    .filter((dashboard: Dashboard): boolean => {
-      return Boolean(dashboard._id);
-    })
-    .map((dashboard: Dashboard): PlaylistReadableDashboard => {
-      return {
-        id: dashboard._id!.toString(),
-        name: dashboard.name || "",
-        isArchived: Boolean(dashboard.isArchived),
-      };
-    });
-};
 
 /*
  * A row's Move up, Move down and Remove. Grey-500 at rest: an icon that is
@@ -127,20 +106,41 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
     return readDashboardPlaylistDashboards(props.initialValue);
   });
 
-  const [available, setAvailable] = useState<Array<PlaylistReadableDashboard>>(
+  // The list's dashboards as the viewer may read them, by their ids.
+  const [readable, setReadable] = useState<Array<PlaylistReadableDashboard>>(
     [],
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
+  /*
+   * How many dashboards could still be added (getAddablePlaylistDashboardsQuery),
+   * counted on the server as the list changes: none says why in the picker.
+   * Null until counted, or when the count fails (the picker stays open).
+   */
+  const [addableCount, setAddableCount] = useState<number | null>(null);
 
   // Bumped after each pick, so the picker opens empty again.
   const [pickerKey, setPickerKey] = useState<number>(0);
 
+  const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
+
   const readDashboardsRef: React.MutableRefObject<
-    () => Promise<Array<PlaylistReadableDashboard>>
-  > = useRef<() => Promise<Array<PlaylistReadableDashboard>>>(
-    props.readDashboards || readProjectDashboards,
-  );
+    (
+      dashboards: ReadonlyArray<DashboardPlaylistDashboard>,
+    ) => Promise<Array<PlaylistReadableDashboard>>
+  > = useRef<
+    (
+      dashboards: ReadonlyArray<DashboardPlaylistDashboard>,
+    ) => Promise<Array<PlaylistReadableDashboard>>
+  >(props.readDashboards || readPlaylistDashboards);
+
+  // Which dashboards the list holds, once each: what is read and counted again.
+  const listedIdsKey: string = getPlaylistDashboardIds(dashboards)
+    .map((id: string): string => {
+      return id.toLowerCase();
+    })
+    .sort()
+    .join(",");
 
   /*
    * The form learns a CustomComponent's value only when it reports one, and
@@ -180,14 +180,20 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
     setDashboards(incoming);
   }, [props.initialValue]);
 
+  /*
+   * The list's dashboards, named by their ids as the viewer may read them -
+   * deleted or out of their reach, one is named as such - read again when
+   * the list holds another dashboard.
+   */
   useEffect(() => {
     let isCurrent: boolean = true;
 
     readDashboardsRef
-      .current()
+      .current(dashboards)
       .then((result: Array<PlaylistReadableDashboard>) => {
         if (isCurrent) {
-          setAvailable(result);
+          setReadable(result);
+          setLoadError("");
           setIsLoading(false);
         }
       })
@@ -201,7 +207,32 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [listedIdsKey]);
+
+  // How many could still be added, as the list stands.
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    modelAPI
+      .count<Dashboard>({
+        modelType: Dashboard,
+        query: getAddablePlaylistDashboardsQuery(dashboards),
+      })
+      .then((count: number) => {
+        if (isCurrent) {
+          setAddableCount(count);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setAddableCount(null);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [listedIdsKey]);
 
   const update: (next: Array<DashboardPlaylistDashboard>) => void = (
     next: Array<DashboardPlaylistDashboard>,
@@ -212,32 +243,14 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
 
   const listed: Array<PlaylistListedDashboard> = getPlaylistListedDashboards({
     dashboards: dashboards,
-    readable: available,
+    readable: readable,
   });
-
-  // The dashboards that can be added: not archived, and not in the list yet.
-  const pickable: Array<DropdownOption> = available
-    .filter((dashboard: PlaylistReadableDashboard): boolean => {
-      return (
-        !dashboard.isArchived &&
-        !dashboards.some((entry: DashboardPlaylistDashboard): boolean => {
-          return isSameDashboardId(entry.dashboardId, dashboard.id);
-        })
-      );
-    })
-    .map((dashboard: PlaylistReadableDashboard): DropdownOption => {
-      return {
-        value: dashboard.id,
-        label:
-          dashboard.name ||
-          translator.translateText("Untitled dashboard") ||
-          "",
-        isUserContent: true,
-      };
-    });
 
   const isFull: boolean =
     dashboards.length >= DASHBOARD_PLAYLIST_MAX_DASHBOARDS;
+
+  // Nothing left to add: the project has no dashboard, or each is listed.
+  const hasNothingToAdd: boolean = addableCount === 0;
 
   const getName: (item: PlaylistListedDashboard) => string = (
     item: PlaylistListedDashboard,
@@ -263,14 +276,8 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (available.length === 0) {
-      return (
-        translator.translateText("This project has no dashboards yet") || ""
-      );
-    }
-
-    if (pickable.length === 0) {
-      return translator.translateText("Every dashboard is in the list") || "";
+    if (hasNothingToAdd) {
+      return translator.translateText(getNothingToAddText(dashboards)) || "";
     }
 
     return translator.translateText("Add a dashboard...") || "";
@@ -413,20 +420,55 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
        * control the form's error marks, and it says the error under itself
        * as every other field of the form does.
        */}
-      <Dropdown
+      {/*
+       * Searched on the server as the editor types, 50 by name, within the
+       * dashboards that can be added (#10580): every one of the project's,
+       * however many it has.
+       */}
+      <EntityDropdown
         key={pickerKey}
-        options={pickable}
+        modelType={Dashboard}
+        modelAPI={modelAPI}
+        labelField="name"
+        valueField="_id"
+        query={getAddablePlaylistDashboardsQuery(dashboards)}
+        emptyListText={getNothingToAddText(dashboards)}
         placeholder={getPickerPlaceholder()}
         // Worded here, a count among them: drawn as given.
         isPlaceholderTranslated={true}
-        ariaLabel="Add a dashboard"
+        ariaLabel={translator.translateText("Add a dashboard") || ""}
         dataTestId="playlist-dashboards-picker"
-        disabled={isLoading || isFull || pickable.length === 0}
+        disabled={isFull || hasNothingToAdd}
         error={props.error || undefined}
         isClearable={false}
-        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+        onChange={(
+          value: DropdownValue | Array<DropdownValue> | null,
+          change: DropdownChange,
+        ) => {
           if (typeof value !== "string" || isFull) {
             return;
+          }
+
+          /*
+           * Named from the pick at once, before the list's dashboards are
+           * read again: the search's answer is what the viewer may read.
+           */
+          const picked: DropdownOption | undefined =
+            change?.selectedOptions.find((option: DropdownOption): boolean => {
+              return isSameDashboardId(String(option.value), value);
+            });
+
+          if (picked) {
+            setReadable(
+              (
+                current: Array<PlaylistReadableDashboard>,
+              ): Array<PlaylistReadableDashboard> => {
+                return [
+                  ...current,
+                  { id: value, name: picked.label, isArchived: false },
+                ];
+              },
+            );
           }
 
           update(addPlaylistDashboard(dashboards, value));

@@ -6,6 +6,7 @@
 - [接続を設定する](#接続を設定する): アプリの登録、1 つのアクセス許可、接続のフォーム。
 - [インポートされる内容](#インポートされる内容): 各 Defender アラートがセキュリティイベントになる仕組み。
 - [ポーリングの仕組み](#ポーリングの仕組み): 各ポーリングが読み取る時間枠と、負荷の高いテナントでの動作。
+- [Microsoft Defender でブロックする](#microsoft-defender-でブロックする): アクセス許可をもう 1 つ追加して、ブロックリストをすべてのデバイスに適用します。
 - [トラブルシューティング](#トラブルシューティング): 各エラーの意味と変更すべき点。
 :::
 
@@ -64,6 +65,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | **ディレクトリ (テナント) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。 |
 | **アプリケーション (クライアント) ID** | アプリの **Overview** ページ。`SecurityAlert.Read.All` を持つアプリの GUID。 |
 | **クラウド** | Microsoft 365 GCC も対象とする **Azure パブリック クラウド**、または GCC High 向けの **Azure Government (米国)**（`login.microsoftonline.us` と `graph.microsoft.us`）。Microsoft 365 DoD と中国の 21Vianet クラウドはサポートされていません。 |
+| **Defender でドメイン、アドレス、ファイルをブロック** | 新しい接続ではオフです。オンにすると、プロジェクトのブロックリストにあるものをすべてのデバイスでブロックし、`Ti.ReadWrite.All` が必要です ([Microsoft Defender でブロックする](#microsoft-defender-でブロックする) を参照)。 |
 | **クライアントシークレット** | シークレットの **Value**。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
 **ポーリング** ステップには、任意の **説明**、`1`～`1440` の整数で初期値 `5` の **ポーリング間隔（分）**、初期状態でオンの **有効** もあります。
@@ -130,6 +132,26 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 - **この時間範囲をインポート** は、確認後、カーソルを動かさずに最大 7 日間の範囲をインポートします。インポート済みのアラートはスキップされます。
 - 実行の **診断情報をコピー** は、サポート向けにその実行のレポートをコピーします。認証情報は含まれません。
 
+## Microsoft Defender でブロックする
+
+接続で **Defender でドメイン、アドレス、ファイルをブロック** をオンにすると、プロジェクトの [ブロックリスト](/docs/telemetry/security-cases#ブロックリスト) が、Microsoft Defender for Endpoint が保護するすべてのデバイスに適用されます。各ブロックは、アプリケーション `OneUptime` の下に登録される Defender の [インジケーター](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview) になり、ブロックと一緒に期限切れになります。
+
+| ブロックリスト上 | Defender のインジケーター | Defender の動作 |
+| --- | --- | --- |
+| ドメイン | `DomainName`、`Block` | ドメインとその配下のすべての名前をブロックします |
+| URL | `Url`、`Block` | Microsoft Edge では URL を、他のブラウザーではそのドメインをブロックします |
+| すべてのマシンでブロックされたアドレス | `IpAddress`、`Block` | アドレスへの接続をブロックします。範囲は送信されません。Defender はアドレスを一つずつ受け取ります |
+| ファイル | `FileSha256`、`FileSha1`、`FileMd5` のいずれか、`Block` | ファイルの実行を止めます |
+| ブロックして隔離するファイル | 同じもの、`BlockAndRemediate` | ファイルの実行を止め、見つけたコピーを隔離します |
+
+新しい接続ではこのスイッチはオフで、アラートのインポート用に作った接続は読み取りしか行いません。オンにするには次のようにします。
+
+1. アプリの登録で **API permissions → Add a permission → APIs my organization uses** に移動し、`WindowsDefenderATP` を検索して **Application permissions** を選び、`Ti.ReadWrite.All` を選択して管理者の同意を与えます。ブロックに必要なアクセス許可はこれだけです。
+2. Microsoft Defender ポータルの **Settings → Endpoints → Advanced features** で **Custom network indicators** と **Allow or block file** をオンにします。これらがないと、Defender はインジケーターを保持しても何もブロックしません。Microsoft Edge 以外では、ドメイン、URL、アドレスはネットワーク保護がブロック モードの場所でのみブロックされます。
+3. 接続で **Defender でドメイン、アドレス、ファイルをブロック** をオンにし、**接続をテスト** をクリックします。**Block with Microsoft Defender** がアクセス許可を確認します。
+
+1 つのテナントが保持できるインジケーターは、テナント自身のものも含めて 15,000 個です。Defender が保持できない、または拒否したブロックは、ブロックリストで適用されていないと表示され、その理由が示されます。OneUptime が読み取って削除するのは、この接続のために自分が追加したインジケーターだけで、人が作成したものには触れません。Defender にスロットリングされた場合は、次の処理で再試行します。
+
 ## 接続をテスト
 
 接続の行にある **接続をテスト** と、フォームの **これらの設定をテスト** は、バックグラウンド worker ではなく API プロセスで実行されます。そのため、worker に問題がある場合でもテストは応答します。テストは次のチェックを順に実行します。
@@ -140,6 +162,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 | **Authenticate with Microsoft Entra** | 選んだクラウドで、Microsoft Entra ID が Microsoft Graph 用のトークンを発行すること。シークレットの誤りや期限切れ、テナント ID やクライアント ID の誤り、クラウドの誤りで失敗します。 |
 | **Read alerts from Microsoft Graph** | 過去 24 時間に作成されたアラートを一件読み取れること（`$top=1`）。ここでの `403` は、`SecurityAlert.Read.All` のアクセス許可の不足、管理者の同意の不足、または Defender XDR のないテナントを意味します。 |
 | **Alerts available to import** | 過去 24 時間と過去 7 日間に作成されたアラートの数。それぞれ一ページ 100 件までなので、`100+` はそれ以上を意味します。7 日間に一件もない場合は失敗ではなく警告です。 |
+| **Block with Microsoft Defender** | **Defender でドメイン、アドレス、ファイルをブロック** がオンの場合のみ: アプリの登録が `Ti.ReadWrite.All` を持ち、インジケーターを読み取れること。テナントの 15,000 個のインジケーターのうち OneUptime がいくつ保持しているかを示し、何も変更しません。 |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 側の状態。プロセスが Worker キューのジョブを取得していること、ポーリングジョブが毎分実行されていること、セキュリティイベントのストアが応答すること。 |
 | **スケジュールされたポーリング** | 保存済みの接続について、ポーリングがオンであること、worker を待って止まっている実行がないこと、ポーリングが予定どおり実行されていること。 |
 

@@ -40,6 +40,8 @@ import {
   recordAiLaneAdvancedRules,
   SECURITY_AI_SWITCHES,
   SecurityAiSettingsCopy,
+  DATA_SECURITY_AI_SWITCHES,
+  DataSecurityAiSettingsCopy,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
   TELEMETRY_AI_SWITCHES,
@@ -109,6 +111,7 @@ const INCIDENT_PAGE: string = "Pages/Incidents/Settings/IncidentAISettings.tsx";
 const ALERT_PAGE: string = "Pages/Alerts/Settings/AlertAISettings.tsx";
 const INSIGHTS_PAGE: string = "Pages/AIInsights/Settings.tsx";
 const SECURITY_PAGE: string = "Pages/SecurityEvents/AISettings.tsx";
+const DATA_SECURITY_PAGE: string = "Pages/DataSecurity/AI.tsx";
 const AI_FEATURES_PAGE: string = "Pages/Settings/AIFeatures.tsx";
 const NOTICE: string = "Components/AISettings/ProjectAiNotice.tsx";
 const SWITCHES_CARD: string = "Components/AISettings/ProjectAiSwitchesCard.tsx";
@@ -186,13 +189,15 @@ const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS[
 
 /*
  * Every switch on the pages, the ones under a switch too: Incidents, Alerts,
- * AI Insights, and Security Events → AI → Settings (triaging new cases).
+ * AI Insights, Security Events → AI → Settings (triaging new cases) and
+ * Data Security → AI (working on new issues).
  */
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
   ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Incident]),
   ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Alert]),
   ...AI_INSIGHTS_SWITCHES,
   ...SECURITY_AI_SWITCHES,
+  ...DATA_SECURITY_AI_SWITCHES,
   // Each telemetry product's AI → Settings: the Profiler's, finding slow code.
   ...TELEMETRY_AI_LANE_LIST.flatMap(
     (lane: TelemetryAiLane): Array<ProjectAiSwitchDefinition<string>> => {
@@ -600,7 +605,7 @@ describe("the pages draw switches first, and fold the limits", () => {
     },
   );
 
-  test("Security Events → AI → Settings is the notice and its one switch, triaging new cases", () => {
+  test("Security Events → AI → Settings is the notice, its two switches - triaging new cases and working them - and what OneUptime AI may do on a case", () => {
     const page: string = readDashboard(SECURITY_PAGE);
 
     expect(page).toContain(
@@ -615,7 +620,18 @@ describe("the pages draw switches first, and fold the limits", () => {
           return definition.column;
         },
       ),
-    ).toEqual(["enableAutomaticSecurityCaseTriage"]);
+    ).toEqual([
+      "enableAutomaticSecurityCaseTriage",
+      // Working a case end to end (#10352), within the card under the switches.
+      "enableAutomaticSecurityCaseResponse",
+    ]);
+    // The notice, then the switches, then what OneUptime AI may do on a case.
+    expect(page.indexOf("<ProjectAiNotice")).toBeLessThan(
+      page.indexOf("<ProjectAiSwitchesCard"),
+    );
+    expect(page.indexOf("<ProjectAiSwitchesCard")).toBeLessThan(
+      page.indexOf("<SecurityCaseAiLimitsCard"),
+    );
     /*
      * The card says what the Incidents' and Alerts' AI settings say: their
      * title, and that it works on its own and can be turned off. It used to
@@ -627,6 +643,36 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
     expect(SecurityAiSettingsCopy.cardDescription).toBe(
       "It works on security cases on its own. Turn off anything you do not want it to do.",
+    );
+  });
+
+  test("Data Security → AI starts with the notice and its one switch, working on new issues", () => {
+    const page: string = readDashboard(DATA_SECURITY_PAGE);
+
+    expect(page).toContain(
+      "<ProjectAiNotice context={ProjectAiNoticeContext.DataSecurity} />",
+    );
+    expect(page).toContain("switches={DATA_SECURITY_AI_SWITCHES}");
+    expect(page).toContain("cardTitle={DataSecurityAiSettingsCopy.cardTitle}");
+    // The notice and the switch come before the lists of what AI proposed and did.
+    expect(page.indexOf("<ProjectAiNotice")).toBeLessThan(
+      page.indexOf("<ProjectAiSwitchesCard"),
+    );
+    expect(page.indexOf("<ProjectAiSwitchesCard")).toBeLessThan(
+      page.indexOf("<ModelTable"),
+    );
+    expect(
+      DATA_SECURITY_AI_SWITCHES.map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      ),
+    ).toEqual(["enableAutomaticDataSecurityAi"]);
+    expect(DataSecurityAiSettingsCopy.cardTitle).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
+    );
+    expect(DataSecurityAiSettingsCopy.cardDescription).toBe(
+      "It works on Data Security issues on its own. Turn off anything you do not want it to do.",
     );
   });
 

@@ -70,9 +70,11 @@ Kortet **Dine logs**, øverst på **Forbindelser**, kræver ingen installation. 
 | Fortinet FortiGate | IPS- og antivirusfund, afvist trafik, VPN- og administratorlogins samt konfigurationsændringer fra FortiGates egen syslog |
 | Cisco ASA | Afviste forbindelser, fund fra trusselsregistrering og IPS, VPN- og administratorlogins samt kommandoer fra Cisco ASA og Firepower Threat Defense |
 | Kubernetes-auditlogs | Ændringer i klyngen, shells åbnet i pods, læste secrets og afviste anmodninger |
-| Webangreb | Anmodninger i en webservers adgangslog, der forsøger SQL-injektion, path traversal eller Log4Shell |
+| Webangreb | Anmodninger i en webservers adgangslog, der forsøger SQL-injektion, path traversal eller Log4Shell, anmodninger om følsomme filer såsom `/.env` eller `/.git/config`, som dit websted afviste eller ikke har, og en fil med hemmeligheder, som dit websted leverede |
 
 Dine logs forbliver, som de er. Kun de linjer, der betyder noget for sikkerheden, bliver til hændelser: aldrig hver side, en webserver har leveret, eller hver læsning af et API.
+
+En fil med hemmeligheder, som dit websted leverede, såsom `/.env`, er et læk, og regelbibliotekets regel **Sensitive file served** åbner en sag med alvorligheden Kritisk om den. En single-page-apps egen side for en sti, den ikke har, er aldrig et læk. Se [En følsom fil leveret af dit websted](/docs/telemetry/security-events#en-følsom-fil-leveret-af-dit-websted).
 
 En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller et IPS-fund fra en FortiGate, åbner en sag, som et forbundet produkts advarsel gør. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**.
 

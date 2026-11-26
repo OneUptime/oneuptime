@@ -16,8 +16,10 @@ import API from "Common/Utils/API";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import Register from "../../Services/Register";
+import * as NetworkInterfaces from "../../Utils/PacketCapture/NetworkInterfaces";
 import {
   checkAliveAndReport,
+  readInterfaceAddressesForCheckIn,
   resetAliveCheckInProgress,
 } from "../../Jobs/Alive";
 
@@ -185,5 +187,146 @@ describe("checkAliveAndReport — registered probe", () => {
     await checkAliveAndReport();
 
     expect(postSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * A probe says, when it checks in, the addresses on its own network
+ * interfaces (#10429): the flows its devices export show its polls coming
+ * from them, and Security Events reads them to know the probe's own work
+ * from a scan. Whatever its packet capture setting.
+ */
+describe("checkAliveAndReport — the probe's own addresses", () => {
+  beforeEach(() => {
+    LocalCache.setString(
+      "PROBE",
+      "PROBE_ID",
+      "11111111-2222-3333-4444-555555555555",
+    );
+  });
+
+  test("the heartbeat lists them, as OneUptime keeps them", async () => {
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockReturnValue([
+        "10.0.0.2/24",
+        "fe80::1/64",
+        "10.20.0.2/24",
+        "2001:db8::2/64",
+        "10.0.0.2/24",
+      ]);
+
+    await checkAliveAndReport();
+
+    const calls: Array<PostCall> = postCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body["probeInterfaceAddresses"]).toEqual([
+      "10.0.0.2",
+      "10.20.0.2",
+      "2001:db8::2",
+    ]);
+    // Still the probe's own heartbeat.
+    expect(calls[0]!.body["probeId"]).toBe(
+      "11111111-2222-3333-4444-555555555555",
+    );
+  });
+
+  test("a probe with no address worth keeping says so: an empty list", () => {
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockReturnValue(["fe80::1/64", "169.254.10.1/16"]);
+
+    expect(readInterfaceAddressesForCheckIn()).toEqual({
+      probeInterfaceAddresses: [],
+    });
+  });
+
+  test("interfaces that cannot be read leave the field out, and the heartbeat still goes", async () => {
+    jest.spyOn(logger, "debug").mockImplementation(() => {
+      // Keep test output clean.
+    });
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockImplementation(() => {
+        throw new Error("EACCES: /sys/class/net");
+      });
+
+    await checkAliveAndReport();
+
+    const calls: Array<PostCall> = postCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).not.toHaveProperty("probeInterfaceAddresses");
+    expect(calls[0]!.body["probeKey"]).toBe("test-probe-key");
+  });
+});
+
+/*
+ * A probe without host networking (#10633) - a Kubernetes pod, a container
+ * on a Docker bridge network - holds an address of its own network, and its
+ * polls leave the host source-NATed to the host's address. Told its host's
+ * addresses (PROBE_HOST_IP_ADDRESSES), it lists them beside its interfaces'.
+ */
+describe("checkAliveAndReport — the host's addresses, for a probe without host networking", () => {
+  test("a probe told its host's address lists it beside its interfaces'", () => {
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockReturnValue(["10.244.1.7/24", "fe80::a8b9:1/64"]);
+
+    expect(readInterfaceAddressesForCheckIn(["10.0.0.4"])).toEqual({
+      probeInterfaceAddresses: ["10.0.0.4", "10.244.1.7"],
+    });
+  });
+
+  test("a dual-stack node's two addresses, as status.hostIPs gives them", () => {
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockReturnValue(["10.244.1.7/24", "fd00:10:244:1::7/64"]);
+
+    // IPv4 first, then IPv6, each in OneUptime's one order.
+    expect(readInterfaceAddressesForCheckIn(["10.0.0.4", "fd00::4"])).toEqual({
+      probeInterfaceAddresses: [
+        "10.0.0.4",
+        "10.244.1.7",
+        "fd00:10:244:1::7",
+        "fd00::4",
+      ],
+    });
+  });
+
+  test("one told nothing lists only its interfaces', as before", () => {
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockReturnValue(["172.17.0.2/16"]);
+
+    // This probe's environment sets no PROBE_HOST_IP_ADDRESSES.
+    expect(readInterfaceAddressesForCheckIn()).toEqual({
+      probeInterfaceAddresses: ["172.17.0.2"],
+    });
+    expect(readInterfaceAddressesForCheckIn([])).toEqual({
+      probeInterfaceAddresses: ["172.17.0.2"],
+    });
+  });
+
+  test("a host address an interface already holds is listed once", () => {
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockReturnValue(["10.0.0.4/24"]);
+
+    expect(readInterfaceAddressesForCheckIn(["10.0.0.4"])).toEqual({
+      probeInterfaceAddresses: ["10.0.0.4"],
+    });
+  });
+
+  test("interfaces that cannot be read leave the field out even so: the host's alone would replace the interfaces' OneUptime kept", () => {
+    jest.spyOn(logger, "debug").mockImplementation(() => {
+      // Keep test output clean.
+    });
+    jest
+      .spyOn(NetworkInterfaces, "listInterfaceAddresses")
+      .mockImplementation(() => {
+        throw new Error("EACCES: /sys/class/net");
+      });
+
+    expect(readInterfaceAddressesForCheckIn(["10.0.0.4"])).toEqual({});
   });
 });

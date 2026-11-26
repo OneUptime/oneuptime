@@ -1,9 +1,12 @@
 import {
   AI_OUTCOMES_UNKNOWN_MODEL,
   AiOutcomes,
+  AiOutcomesDataSecurity,
+  AiOutcomesIssueVerdicts,
   AiOutcomesModels,
   AiOutcomesWeek,
 } from "../../../Types/AI/AiOutcomes";
+import { DataSecurityAiProposalKind } from "../../../Types/DataSecurity/DataSecurityAi";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -15,6 +18,12 @@ import { JSONObject } from "../../../Types/JSON";
  *   Pages Avoided         17 of 35 held pages, 2 still held
  *   Fixes Verified        11 of 16 checked fixes (7 of 10 run, 4 of 6 PRs)
  *   Root Causes Confirmed 11 of 16 judged, 6 by a responder, 20 finished
+ *
+ * Data Security (#10364) is left out (null) unless a suite gives it
+ * (makeDataSecurity): 9 of 13 changes made worked, 3 waiting for the
+ * issue's check, 1 undone, 2 that could not be made; 5 proposals approved
+ * and 2 dismissed; 14 issues analyzed; 3 h 25 min from an issue opening to
+ * its check passing, over 8 issues.
  */
 
 export const AI_RESULTS_WEEK_STARTS: Array<string> = [
@@ -50,6 +59,13 @@ export const ROOT_CAUSES_JUDGED_BY_WEEK: Array<number> = [
 export const ROOT_CAUSES_CONFIRMED_BY_WEEK: Array<number> = [
   0, 0, 1, 1, 1, 0, 1, 1, 2, 2, 1, 1,
 ];
+// Data Security's changes made, and the ones that worked: 13 and 9.
+export const DATA_SECURITY_CHANGES_MADE_BY_WEEK: Array<number> = [
+  0, 0, 0, 1, 0, 2, 1, 0, 3, 2, 3, 1,
+];
+export const DATA_SECURITY_CHANGES_PROVEN_BY_WEEK: Array<number> = [
+  0, 0, 0, 1, 0, 1, 1, 0, 2, 2, 2, 0,
+];
 
 export function makeWeeks(
   counts: Partial<
@@ -68,9 +84,38 @@ export function makeWeeks(
           ROOT_CAUSES_CONFIRMED_BY_WEEK)[index]!,
         rootCausesJudged: (counts.rootCausesJudged ||
           ROOT_CAUSES_JUDGED_BY_WEEK)[index]!,
+        dataSecurityChangesProven: (counts.dataSecurityChangesProven ||
+          DATA_SECURITY_CHANGES_PROVEN_BY_WEEK)[index]!,
+        dataSecurityChangesMade: (counts.dataSecurityChangesMade ||
+          DATA_SECURITY_CHANGES_MADE_BY_WEEK)[index]!,
+        verdictsAgreed: counts.verdictsAgreed?.[index] || 0,
+        verdictsDecided: counts.verdictsDecided?.[index] || 0,
+        // Leaks caught before they merged, of all counted (#10376).
+        leaksCaught: counts.leaksCaught?.[index] || 0,
+        leaksCounted: counts.leaksCounted?.[index] || 0,
       };
     },
   );
+}
+
+/*
+ * OneUptime AI's verdicts on Data Security issues (#10369): eleven issues
+ * analyzed, seven decided - five as it said - three still open, and one it
+ * could not tell about.
+ */
+export function makeIssueVerdicts(
+  overrides: Partial<AiOutcomesIssueVerdicts> = {},
+): AiOutcomesIssueVerdicts {
+  return {
+    agreed: 5,
+    disagreed: 2,
+    waiting: 3,
+    cannotTell: 1,
+    real: 6,
+    likelyByDesign: 3,
+    likelyWrongFinding: 1,
+    ...overrides,
+  };
 }
 
 // Twelve weeks of zeros: nothing finished yet.
@@ -86,6 +131,8 @@ export function makeQuietWeeks(): Array<AiOutcomesWeek> {
     fixesChecked: zeros,
     rootCausesConfirmed: zeros,
     rootCausesJudged: zeros,
+    dataSecurityChangesProven: zeros,
+    dataSecurityChangesMade: zeros,
   });
 }
 
@@ -122,9 +169,38 @@ export function makeOutcomes(overrides: Partial<AiOutcomes> = {}): AiOutcomes {
       judgedByPeople: 6,
       completed: 20,
     },
+    dataSecurity: null,
     models: null,
     weeks: makeWeeks(),
     isPartial: false,
+    ...overrides,
+  };
+}
+
+/*
+ * Data Security's part (#10364), for a reader of its proposals: one kind,
+ * scrub rules, adding up to the weeks' 9 of 13.
+ */
+export function makeDataSecurity(
+  overrides: Partial<AiOutcomesDataSecurity> = {},
+): AiOutcomesDataSecurity {
+  return {
+    issuesAnalyzed: 14,
+    changes: { proven: 9, waiting: 3, undone: 1, failed: 2 },
+    proposals: { approved: 5, dismissed: 2 },
+    kinds: [
+      {
+        kind: DataSecurityAiProposalKind.ScrubTelemetry,
+        proven: 9,
+        waiting: 3,
+        undone: 1,
+        failed: 2,
+        approved: 5,
+        dismissed: 2,
+      },
+    ],
+    medianMinutesToCheckPassed: 205,
+    issuesCheckPassed: 8,
     ...overrides,
   };
 }

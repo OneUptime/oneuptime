@@ -268,6 +268,14 @@ Ud over meddelelsen indeholder hver sådan afvisning en `refusalCode`, der siger
 
 En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig, men aldrig til en anden posts navn. For teams, etiketter, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens. Arkiverede etiketter og vagtpolitikker er udeladt.
 
+Et projekt, der kræver unikke navne, som et nyt projekt gør, holder de fleste andre slags, du navngiver, til samme regel, blandt dem monitorer, monitorgrupper, sonder, skabeloner, API-nøgler og pipelines, med de samme koder. Projektets `requireUniqueNames` siger, om det gør, og en Projektejer eller Projektadministrator ændrer det under projektindstillingerne i dashboardet:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Sådan en afvisning har også `takenById`, ID'et på den post, der har navnet, når din nøgle må læse den. Poster, der delte et navn, før projektet krævede unikke navne, beholder det, indtil de omdøbes, og én opdatering kan ikke give flere poster af samme slags det samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på, om et navn er taget, før du sender det, og `GET /api/unique-names/duplicates` viser de navne, projektet har mere end én gang, slags for slags.
+
 #### Værdier, som en anden post allerede har
 
 Nogle værdier, der ikke er et navn, hører også til én post hver: en statussides, et dashboards eller en formulars domæne, et projektdomæne, en værts eller en Kubernetes-klynges identifikator, en SSO-udbyders login-URL og en API-nøgles tilladelse, blandt andre. En oprettelse, eller en opdatering, der ændrer en af dem, til en værdi, som en anden post har, afvises med en `400`, der siger det:

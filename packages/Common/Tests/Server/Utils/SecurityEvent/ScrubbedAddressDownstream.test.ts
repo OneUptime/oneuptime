@@ -72,6 +72,7 @@ function hiddenEvents(): Array<NormalizedSecurityEvent> {
     attributes: {
       "url.path": "/download",
       "url.query": "file=../../../../etc/passwd",
+      "network.peer.address": IPV4_ADDRESS_MASK,
       "client.address": IPV4_ADDRESS_MASK,
       "enduser.id": "user-42",
     },

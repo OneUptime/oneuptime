@@ -42,6 +42,7 @@ import NetworkDeviceSettingsAddressNames from "../Pages/NetworkDevice/Settings/A
 import NetworkDeviceSettingsNamingRules from "../Pages/NetworkDevice/Settings/NamingRules";
 import NetworkDeviceSettingsSnmpCredentialProfiles from "../Pages/NetworkDevice/Settings/SnmpCredentialProfiles";
 import NetworkDeviceSettingsAlertPolicies from "../Pages/NetworkDevice/Settings/AlertPolicies";
+import NetworkRulesAuditLogs from "../Pages/NetworkDevice/Settings/RulesAuditLogs";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
 import NetworkDeviceAuditLogs from "../Pages/NetworkDevice/View/AuditLogs";
@@ -170,6 +171,24 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS
+            ] || ""
+          }
+          element={
+            <NetworkRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS
+                ] as Route
               }
             />
           }

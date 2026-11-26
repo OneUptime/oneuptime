@@ -102,7 +102,7 @@ Uma chamada HTTP de saída, feita pelo Worker do OneUptime. Nenhum Runner é nec
 | **URL** | O endpoint a chamar. | Vazio |
 | **Cabeçalhos (JSON)** | Em **Mais campos**. Um objeto JSON, como `{ "Authorization": "Bearer ..." }`. Headers que não são JSON válido fazem a etapa falhar. | Nenhum |
 | **Permitir certificados autoassinados** | Em **Mais campos**. Ativado, a etapa aceita qualquer certificado que o servidor apresente, então um autoassinado funciona, mas ela não verifica nem o nome do host nem as datas de validade, e qualquer pessoa no caminho da rede poderia ler a solicitação, segredos incluídos, e alterar a resposta. | Desativado |
-| **Certificado da CA** | Em **Mais campos**, enquanto **Permitir certificados autoassinados** está desativado. O certificado, em PEM, da CA que assinou o certificado do servidor, ou o do próprio servidor quando ele é autoassinado. A etapa então confia apenas nesse certificado, e continua verificando o nome do host e as datas de validade. | Nenhum |
+| **Certificado da CA** | Em **Mais campos**, enquanto **Permitir certificados autoassinados** está desativado. O certificado, em PEM, da CA que assinou o certificado do servidor, ou o do próprio servidor quando ele é autoassinado, ou uma [variável de runbook](/docs/runbooks/variables) que o contenha. A etapa então confia apenas nesse certificado, e continua verificando o nome do host e as datas de validade. | Nenhum |
 | **Corpo** | Mostrado para `POST`, `PUT`, `PATCH` e `DELETE`. Enviado como JSON quando puder ser interpretado como JSON, e como texto caso contrário. | Nenhum |
 | **Tempo limite da solicitação** | Por quanto tempo esperar a resposta do endpoint antes de fazer a etapa falhar. | 30 segundos |
 
@@ -118,10 +118,12 @@ A etapa dá certo com uma resposta `2xx` ou `3xx` e falha com qualquer outra, co
 
 Um servidor cujo certificado ele mesmo assinou, ou que sua própria CA assinou, é recusado até que a etapa confie nele, e nada é enviado. O erro da etapa diz o que mudar: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Cole o certificado que o assinou em **Certificado da CA**: o da CA, ou o do próprio servidor quando ele é autoassinado. A etapa então verifica o certificado do servidor com ele, nome do host e datas de validade incluídos, então um servidor que só finge ser o seu continua sendo recusado. Ative **Permitir certificados autoassinados** só quando não puder colar um. Cada um vale apenas para a solicitação desta etapa, nunca para outra etapa, outra solicitação do OneUptime ou a conexão com um proxy de saída.
 
+Quando muitas etapas chamam serviços que sua própria CA assinou, guarde o certificado dela em uma [variável de runbook](/docs/runbooks/variables) e escreva apenas `{{global.variables.INTERNAL_CA}}` em **Certificado da CA**. A etapa lê a variável toda vez que é executada, então, quando a CA muda, você muda a variável uma única vez. Uma variável comum basta, pois um certificado não é um segredo; uma secreta também funciona, e fica oculta no que a etapa registra. Uma variável que não existe, ou que não contém nenhum certificado, faz a etapa falhar antes que algo seja enviado, e o erro nomeia a variável. Enquanto **Permitir certificados autoassinados** estiver ativado, a etapa não lê a variável.
+
 > [!TIP]
 > Para confiar em vez disso na sua própria CA em todas as solicitações de uma vez, monitores incluídos, uma instalação auto-hospedada define `NODE_EXTRA_CA_CERTS` nos seus contêineres.
 
-Pela API e pelo Terraform, o interruptor é o `allowSelfSignedCertificates` da configuração da etapa, `true` ou `false`, e o certificado da CA é o seu `caCertificate`, o PEM como texto. Um salvamento é recusado quando `caCertificate` não é um certificado ou contém uma chave privada.
+Pela API e pelo Terraform, o interruptor é o `allowSelfSignedCertificates` da configuração da etapa, `true` ou `false`, e o certificado da CA é o seu `caCertificate`: o PEM como texto, ou uma única referência de variável. Um salvamento é recusado quando `caCertificate` não é nenhum dos dois, ou contém uma chave privada.
 
 ```hcl
 config = {

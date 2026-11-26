@@ -308,8 +308,12 @@ export default class Reauthentication {
    * The start of the sign-in a session's sign-in record names, under
    * Identity's address: a project's or the server's own SAML or OpenID
    * Connect provider by its id (kept since #10217), Google, Microsoft.
-   * Anything else - a sign-in link, Vercel, a session that does not say -
-   * goes to the sign-in page, where the person chooses.
+   * Vercel has none OneUptime could start and have it ask again
+   * (SignInAgainProvider.Vercel, #10331): named, so the prompt says that it
+   * cannot confirm it's them and what does, and the sign-in page, where an
+   * emailed link or a password does. Anything else - a sign-in link, a
+   * session that does not say - goes to the sign-in page, where the person
+   * chooses.
    */
   public static getSignInAgainRoute(signIn: SessionSignIn | null): {
     route: string | null;
@@ -343,6 +347,14 @@ export default class Reauthentication {
         route: "/microsoft/sign-in",
         provider: SignInAgainProvider.Microsoft,
         providerName: "Microsoft",
+      };
+    }
+
+    if (signIn.method === SignInMethod.Vercel) {
+      return {
+        route: null,
+        provider: SignInAgainProvider.Vercel,
+        providerName: "Vercel",
       };
     }
 

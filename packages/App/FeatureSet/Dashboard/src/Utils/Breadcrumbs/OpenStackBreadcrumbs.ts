@@ -486,6 +486,10 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "OpenStack", "Settings", "Rule Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "OpenStack", "Settings", "Label Rules", "View Rule"],
     ),

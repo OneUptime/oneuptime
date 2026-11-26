@@ -70,9 +70,11 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, no necesit
 | Fortinet FortiGate | Hallazgos de IPS y antivirus, tráfico denegado, inicios de sesión de VPN y de administradores, y cambios de configuración del propio syslog de FortiGate |
 | Cisco ASA | Conexiones denegadas, hallazgos de detección de amenazas y de IPS, inicios de sesión de VPN y de administradores, y comandos de Cisco ASA y Firepower Threat Defense |
 | Registros de auditoría de Kubernetes | Cambios en el clúster, shells abiertos en pods, secretos leídos y solicitudes rechazadas |
-| Ataques web | Solicitudes del registro de acceso de un servidor web que intentan inyección SQL, recorrido de rutas o Log4Shell |
+| Ataques web | Solicitudes del registro de acceso de un servidor web que intentan inyección SQL, recorrido de rutas o Log4Shell, solicitudes de archivos sensibles como `/.env` o `/.git/config` que su sitio rechazó o no tiene, y un archivo con secretos que su sitio sirvió |
 
 Sus registros quedan como están. Solo las líneas que importan para la seguridad se convierten en eventos: nunca cada página que sirvió un servidor web ni cada lectura de una API.
+
+Un archivo con secretos que su sitio sirvió, como `/.env`, es una fuga, y la regla **Sensitive file served** de la Biblioteca de reglas abre un caso crítico sobre él. La página que una aplicación de una sola página devuelve para una ruta que no tiene nunca lo es. Consulte [Un archivo sensible que tu sitio sirvió](/docs/telemetry/security-events#un-archivo-sensible-que-tu-sitio-sirvió).
 
 Una amenaza que un producto de seguridad escribe en sus registros, como un hallazgo CEF o LEEF o un hallazgo de IPS de un FortiGate, abre un caso como lo hace la alerta de un producto conectado. **Abrir casos a partir de**, en **Tus registros**, indica a partir de qué gravedad: **Alta y superior** salvo que elija otra, o **Nunca**.
 

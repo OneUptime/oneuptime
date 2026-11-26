@@ -71,7 +71,7 @@ Wie inlogt, of zich op een andere manier registreert, accepteert op een van twee
 
 | Waar de persoon is | Wat die ziet | Waar die op klikt |
 | --- | --- | --- |
-| Nog in geen enkel project | De uitnodiging, op de pagina waar die na het inloggen terechtkomt | **Accept & Join**, of **Decline** |
+| Nog in geen enkel project | De uitnodiging, op de pagina waar die na het inloggen terechtkomt | **Accept & Join**, of **Weigeren** |
 | Al in een ander project | De openstaande uitnodiging bij de bel rechtsboven, die **Projectuitnodigingen** opent | **Accepteren**, of **Afwijzen** |
 
 Na het accepteren zit de persoon meteen in het project, met de machtigingen van het team en de meldingsinstellingen waarmee elk lid begint: zie [Waarmee u begint](/docs/notifications/index#waarmee-je-begint). Weigeren verwijdert de uitnodiging, dus later toetreden vraagt een nieuwe.
@@ -132,8 +132,8 @@ Verwijderen haalt iemand uit elk team van het project. Die persoon verliest mete
 
 ## Problemen oplossen
 
-:::details "This user has already been invited to this team"
-Die persoon zit al in dat team, als lid of met een uitnodiging die nog niet is geaccepteerd. Open die persoon bij **Gebruikers** om de teams te zien, of nodig die uit voor een ander team.
+:::details "This person has already been invited to this team, or is a member of it"
+Die persoon zit al in dat team, als lid of met een uitnodiging die nog niet is geaccepteerd. Open die persoon bij **Gebruikers** om de teams te zien, of nodig die uit voor een ander team. Is die persoon nog niet lid geworden, dan verstuurt **Uitnodiging opnieuw verzenden** in het rijmenu de uitnodigingsmail nog een keer.
 :::
 
 :::details "You have reached the user limit for the free plan"

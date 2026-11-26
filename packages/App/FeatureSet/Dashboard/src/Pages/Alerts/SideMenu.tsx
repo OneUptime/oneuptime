@@ -231,6 +231,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Bell,
         },
+        // Who changed the rules above, what and when (#10290).
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
       ],
     },
     {

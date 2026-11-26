@@ -583,21 +583,27 @@ describe("every documented model's query, sort and select", () => {
     });
   });
 
-  test("lists no field nobody may read: an incident's deletedByUserId, which the API refuses", () => {
+  test("lists no field nobody may read: an incident's aiInvestigationDecision, which the API refuses", () => {
     for (const kind of SCHEMA_KINDS) {
+      expect(propertiesOf(schemaOf(Incident, kind))).not.toHaveProperty(
+        "aiInvestigationDecision",
+      );
+      // Nor who deleted it, which no record ever held (#10469).
       expect(propertiesOf(schemaOf(Incident, kind))).not.toHaveProperty(
         "deletedByUserId",
       );
     }
 
     expect(() => {
-      runQuery(Incident, { deletedByUserId: A_UUID });
-    }).toThrow("You do not have permissions to query on - deletedByUserId.");
+      runQuery(Incident, { aiInvestigationDecision: A_UUID });
+    }).toThrow(
+      "You do not have permissions to query on - aiInvestigationDecision.",
+    );
 
     expect(() => {
       SelectPermission.checkSelectPermission(
         Incident,
-        { deletedByUserId: true } as never,
+        { aiInvestigationDecision: true } as never,
         EVERYBODY,
       );
     }).toThrow();

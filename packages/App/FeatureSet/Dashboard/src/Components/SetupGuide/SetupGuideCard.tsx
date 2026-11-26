@@ -122,6 +122,12 @@ export interface ComponentProps {
    * when the project already has a key of that name.
    */
   newKeyName: string;
+  /*
+   * The service.name a Mobile key made here is pinned to, when the guide
+   * knows the app (a RUM app's Documentation tab, issue #6457). Left out,
+   * the key's form asks for it.
+   */
+  newKeyPinnedServiceName?: string | undefined;
   keyStepDescription?: string | undefined;
 
   getContent: (context: SetupGuideRenderContext) => SetupGuideContent;
@@ -309,6 +315,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
                 endpointHint={keyStep.endpointHint}
                 keyTypeFilter={keyTypeFilter}
                 newKeyName={props.newKeyName}
+                newKeyPinnedServiceName={props.newKeyPinnedServiceName}
                 onSelectedKeyChange={setSelectedKey}
                 hideValues={keyStep.hideValues}
               />

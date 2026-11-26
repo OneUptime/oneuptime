@@ -1288,6 +1288,19 @@ export interface AzureKeyMetric {
    * publishes; this says why.
    */
   onlyWhen?: CloudKeyMetricCondition | undefined;
+  /*
+   * The dimension it alone is read split by, a series per value
+   * (getAzureKeyMetricSplit): a Container App's Requests by
+   * statusCodeCategory (#10837), whose 5xx series are its server errors -
+   * a count, whose series add up to the whole it read before, as its page,
+   * its monitors and its readings add them (CloudResourceMetricAggregation,
+   * CloudResourceReadings). Asked in a call of its own, since a call's
+   * filter splits every metric in it that has the dimension: the type's
+   * resources share it in batches, as they share their other metrics' call
+   * (AzureMetricReads). A stream never writes it: a diagnostic setting
+   * exports the metric whole (isAzureStreamedKeyMetric).
+   */
+  splitBy?: string | undefined;
 }
 
 /*
@@ -1348,12 +1361,37 @@ export const AZURE_DIMENSION_ATTRIBUTE_PREFIX: string = "metadata_";
 export const AZURE_ENTITY_NAME_ATTRIBUTE: string = `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${AZURE_ENTITY_NAME_DIMENSION.toLowerCase()}`;
 
 /*
+ * The Azure Monitor dimension a Container App's Requests are split by: the
+ * category of the status code each was answered with ("2xx", "5xx"), as
+ * Microsoft's supported metrics of Microsoft.App/containerapps list it -
+ * and the attribute its series carry it in.
+ */
+export const AZURE_STATUS_CODE_CATEGORY_DIMENSION: string =
+  "statusCodeCategory";
+export const AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE: string = `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${AZURE_STATUS_CODE_CATEGORY_DIMENSION.toLowerCase()}`;
+
+/*
+ * The attribute an Azure series split by `dimension` carries its value in,
+ * as the read writes it: metadata_ and the dimension's name, lowercased.
+ */
+export function getAzureDimensionAttribute(dimension: string): string {
+  return `${AZURE_DIMENSION_ATTRIBUTE_PREFIX}${dimension.trim().toLowerCase()}`;
+}
+
+/*
  * Series of one metric a split read asks Azure Monitor for at most (its
  * `top`, 10 unless asked): the queues, topics and event hubs of one
  * namespace a read reads, as many as the Queues guide asks the
  * azure_monitor receiver to read (maximum_number_of_records_per_resource).
  */
 export const AZURE_MAX_SPLIT_SERIES_PER_METRIC: number = 1000;
+
+/*
+ * Series a key metric split alone asks for at most (AzureKeyMetric.splitBy):
+ * Azure Monitor's own default `top`, as metrics:getBatch documents it - a
+ * status code's categories are five at most, so it is never reached.
+ */
+export const AZURE_KEY_METRIC_SPLIT_TOP: number = 10;
 
 function azure(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group };
@@ -1372,6 +1410,15 @@ function azure60(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
 // A metric Azure Monitor keeps at six hours at its finest, read every six.
 function azure360(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group, grain: AZURE_SIX_HOURLY_GRAIN };
+}
+
+// A count read split by one of its dimensions, in a call of its own.
+function azureSplit(
+  name: string,
+  group: CloudKeyMetricGroup,
+  splitBy: string,
+): AzureKeyMetric {
+  return { name, group, splitBy };
 }
 
 /*
@@ -1501,6 +1548,25 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
        * between those reads.
        */
       azure360("FileSystemUsage", G.Storage),
+    ],
+  },
+  {
+    /*
+     * A site's deployment slot other than production (#6793), which Azure
+     * Monitor measures as a resource of its own: the numbers an App
+     * Platforms app of the slot shows (its Azure Monitor section and its
+     * lists), each as the site's. Every one is kept at a minute, so a slot
+     * is one call a read, as a site is; its Health check and file system,
+     * each a call of its own, are left to the site.
+     */
+    type: "Microsoft.Web/sites/slots",
+    metrics: [
+      azure("Requests", G.Traffic),
+      azure("Http5xx", G.Errors),
+      azure("Http4xx", G.Errors),
+      azure("HttpResponseTime", G.Latency),
+      azure("CpuTime", G.Compute),
+      azure("MemoryWorkingSet", G.Memory),
     ],
   },
   {
@@ -1847,7 +1913,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.App/containerApps",
     metrics: [
-      azure("Requests", G.Traffic),
+      // By status code category: its 5xx are its app's server errors.
+      azureSplit("Requests", G.Traffic, AZURE_STATUS_CODE_CATEGORY_DIMENSION),
       azure("UsageNanoCores", G.Compute),
       azure("WorkingSetBytes", G.Memory),
       azure("RestartCount", G.Availability),
@@ -2231,6 +2298,29 @@ export function getAzureKeyMetrics(
   return AZURE_KEY_METRICS_BY_TYPE.get(type.trim().toLowerCase());
 }
 
+/*
+ * The dimension this key metric of the type alone is read split by
+ * (AzureKeyMetric.splitBy): a Container App's Requests, by
+ * statusCodeCategory. Undefined for every other metric, and for one of a
+ * type whose every metric is split (splitByDimension).
+ */
+export function getAzureKeyMetricSplit(
+  type: string,
+  metricName: string,
+): string | undefined {
+  const name: string = (metricName || "").trim().toLowerCase();
+
+  if (!name) {
+    return undefined;
+  }
+
+  return (getAzureKeyMetrics(type || "")?.metrics || []).find(
+    (metric: AzureKeyMetric): boolean => {
+      return metric.name.toLowerCase() === name;
+    },
+  )?.splitBy;
+}
+
 // The Azure Monitor names of a type's key metrics, in order.
 export function getAzureKeyMetricNames(type: string): Array<string> {
   return (getAzureKeyMetrics(type || "")?.metrics || []).map(
@@ -2430,7 +2520,10 @@ export function isAzureKeyMetricExportedByDiagnosticSettings(
  * across dimension values" (Azure Monitor documentation) - one total for
  * the namespace, which would count each queue's messages a second time
  * beside its own series. So the read writes every metric of such a type,
- * streamed or not, and a stream none.
+ * streamed or not, and a stream none. Nor a metric the read splits alone
+ * (AzureKeyMetric.splitBy), for the same reason: a Container App's Requests,
+ * whose status code categories the read writes, and a stream would add
+ * their whole a second time.
  *
  * Whether the metric is read a minute at a time - the only grain a stream
  * delivers - is the caller's to check.
@@ -2441,6 +2534,7 @@ export function isAzureStreamedKeyMetric(
 ): boolean {
   return (
     !getAzureKeyMetrics(type || "")?.splitByDimension &&
+    !getAzureKeyMetricSplit(type, metricName) &&
     isAzureKeyMetricExportedByDiagnosticSettings(type, metricName)
   );
 }
@@ -3126,6 +3220,24 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         "ALIGN_MAX",
         "1",
         G.Compute,
+      ),
+      /*
+       * The CPU and memory of a service's running instances, as its app's
+       * page shows them (#10838): Google files both on the gae_app
+       * resource, with no environment named, as it files the flexible
+       * environment's own (flex/cpu/utilization) apart.
+       */
+      gcp(
+        "appengine.googleapis.com/system/cpu/utilization",
+        "ALIGN_MEAN",
+        "1",
+        G.Compute,
+      ),
+      gcp(
+        "appengine.googleapis.com/system/memory/usage",
+        "ALIGN_MEAN",
+        "By",
+        G.Memory,
       ),
     ],
   },

@@ -404,14 +404,13 @@ describe("descriptions", () => {
 
 describe("bookkeeping fields", () => {
   /*
-   * Every model carries the soft-delete pair and an optimistic-locking
+   * Every model carries the soft-delete time and an optimistic-locking
    * counter. Shown, they say nothing and add a "(known after apply)" line to
    * every plan.
    */
   test("are not part of a resource", () => {
     const schema: Record<string, TerraformAttribute> = getMonitor().schema;
     expect(schema["deleted_at"]).toBeUndefined();
-    expect(schema["deleted_by_user_id"]).toBeUndefined();
     expect(schema["version"]).toBeUndefined();
   });
 

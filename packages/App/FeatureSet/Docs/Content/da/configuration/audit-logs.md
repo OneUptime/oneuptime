@@ -32,7 +32,7 @@ flowchart TB
 
 - **I OneUptime Cloud: Enterprise-planen.** På andre planer viser auditloggens sider, hvad funktionen gør, og hvordan du får den.
 - **Når du selv hoster: Enterprise Edition**, med en licens, der omfatter auditlogs. Se [Enterprise Edition](/docs/self-hosted/enterprise).
-- **En rolle, der må læse auditloggen.** Projektejer, Projektadministrator, Indstillingsadministrator eller tilladelsen **Read Audit Log**. At slå auditlogning til og ændre dens indstillinger kræver en Projektejer, en Projektadministrator eller tilladelse til at redigere projektet.
+- **En rolle, der må læse auditloggen.** Projektejer, Projektadministrator, Indstillingsadministrator eller tilladelsen **Read Audit Log**. En post viser kun et felts værdier, hvis du må læse feltet på selve ressourcen, og kun en ressources navn, hvis du må læse ressourcen. At slå auditlogning til og ændre dens indstillinger kræver en Projektejer, en Projektadministrator eller tilladelse til at redigere projektet.
 
 ## Slå auditlogning til
 
@@ -72,9 +72,13 @@ En ændring af disse indstillinger træder i kraft inden for et minut.
 
 Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail**, **Arbejdsgang kørt som**, **Arbejdsgangens tilladelser givet af** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
 
+Et felt, der peger på en anden ressource, f.eks. en monitors status, viser ressourcens nuværende navn med dens ID nedenunder. En ressource, du ikke må læse, viser **Navn skjult**, og en, der siden er slettet, viser **Slettet**.
+
 En ressource uden sit eget navn får navn efter det, der navngiver den i OneUptime: en undtagelse efter sin type og begyndelsen af sin meddelelse, med id'er, adresser og alt, der ligner en hemmelighed, maskeret, en kørsel af en runbook efter sin runbook, telefonnummeret på en politik for indgående opkald efter nummeret, og en skabelon eller et domæne efter sit eget navn.
 
 Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer har også deres egen side **Auditlogs** i et sammenfoldet afsnit af deres sidemenu, som **Avanceret**. Den viser kun den ressources poster, sammen med posterne for det, der hører til den: et SLO's side viser også dets regler og ejere.
+
+Et produkts regler har også deres egen side, sidst i det afsnit af menuen, der viser dem: **Auditlogs** i et afsnit **Regler**, som **Hændelser → Regler → Auditlogs**, og **Auditlogs for regler** i et afsnit **Indstillinger**, der rummer ejer- og etiketregler, som **Værter → Indstillinger → Auditlogs for regler**. Den viser alle produktets regler, også slettede. Runbook-regler er én slags regel for advarsler, hændelser og vedligeholdelseshændelser, så deres historik findes under **Runbooks → Indstillinger → Auditlogs for regler**.
 
 ## Hvad registreres
 

@@ -44,7 +44,9 @@ import { getMetadataArgsStorage } from "typeorm";
  *     it; the same for labels. Everyone who may read the subject and the
  *     kind then reads all of it, so the run reads all of it and loses
  *     nothing - the many projects that set no permission scope read as
- *     before.
+ *     before. A run posted only where its subject is read (a security
+ *     case's triage) weighs only the teams, roles and keys that reach
+ *     somebody who may read the subject (ReadAudienceReader, #9632).
  *   - A KIND SOMEBODY IS NARROWED ON is read as nobody in particular may
  *     read it (#9562): none that an owner sets apart, when some read of it
  *     is limited to owners; none that a label sets apart, when some read of

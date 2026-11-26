@@ -183,6 +183,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Probes,
   [NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION]:
     RollupCategory.Probes,
+  // A probe a major release behind (#9977): told once, filed with its other notices.
+  [NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION]:
+    RollupCategory.Probes,
 
   // AI Agent Status change Notification
   [NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION]:
@@ -273,6 +276,12 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
   [NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION]:
     RollupCategory.SecurityCases,
   [NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION]:
+    RollupCategory.SecurityCases,
+  // Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+  [NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION]:
+    RollupCategory.SecurityCases,
+  // Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+  [NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION]:
     RollupCategory.SecurityCases,
 
   /*

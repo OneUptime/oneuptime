@@ -65,6 +65,7 @@ import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResourc
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
+import MonitorEvaluationClock from "../../../../Server/Utils/Monitor/MonitorEvaluationClock";
 import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MonitorStatusTimelineUtil from "../../../../Server/Utils/Monitor/MonitorStatusTimeline";
 import MonitorSummaryCapture from "../../../../Server/Utils/Monitor/MonitorSummaryCapture";
@@ -90,6 +91,7 @@ import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
+import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import {
   CheckOn,
   EvaluateOverTimeType,
@@ -506,5 +508,181 @@ describe("a Logs monitor's check", () => {
         logBody: logBody,
       }),
     ).toEqual({ kind: TelemetryObservationKind.Logs, count: 12 });
+  });
+});
+
+/*
+ * #10063: a check whose criteria compare a formula, as the Host templates
+ * that scale a ratio do. The row holds the query's points and the formula's
+ * computed from them; Observed counts what the criteria compared, once.
+ */
+describe("a Host monitor's check whose criteria compare a formula", () => {
+  const FORMULA_ALIAS: string = "percent";
+
+  test("its row's Observed counts the formula's data points, not its query's as well", async () => {
+    const aboveNinetyPercent: MonitorCriteriaInstance =
+      new MonitorCriteriaInstance();
+    aboveNinetyPercent.data = {
+      ...ABOVE_90.data!,
+      id: "above-90-percent",
+      filters: [
+        {
+          ...ABOVE_90.data!.filters[0]!,
+          metricMonitorOptions: {
+            metricAlias: FORMULA_ALIAS,
+            metricAggregationType: EvaluateOverTimeType.AnyValue,
+          },
+        },
+      ],
+    };
+
+    const metricViewConfig: MetricsViewConfig = {
+      queryConfigs: [QUERY],
+      formulaConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: FORMULA_ALIAS,
+            title: "CPU (%)",
+            description: "",
+            legend: "",
+            legendUnit: "%",
+          },
+          metricFormulaData: { metricFormula: "a * 100" },
+        },
+      ],
+    };
+
+    setUpMonitor({
+      monitorType: MonitorType.Host,
+      criteria: aboveNinetyPercent,
+      stepData: {
+        hostMonitor: {
+          hostIdentifier: "web-01",
+          rollingTime: RollingTime.Past5Minutes,
+          metricViewConfig: metricViewConfig,
+        },
+      } as unknown as JSONObject,
+    });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const minutes: Array<number> = [1, 2, 3, 4, 5];
+
+    const pointsOf: (scale: number) => AggregatedResult = (
+      scale: number,
+    ): AggregatedResult => {
+      return {
+        data: minutes.map((minute: number) => {
+          return {
+            timestamp: OneUptimeDate.addRemoveSeconds(now, -60 * minute),
+            value: 0.95 * scale,
+          };
+        }),
+      };
+    };
+
+    await MonitorResourceUtil.monitorResource({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      metricViewConfig: metricViewConfig as never,
+      // The query's five points, then the formula's computed from them.
+      metricResult: [pointsOf(1), pointsOf(100)],
+      startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
+        RollingTime.Past5Minutes,
+        now,
+      ),
+    } as MetricMonitorResponse);
+
+    const rows: Array<JSONObject> = await loggedRows();
+
+    expect(rows).toHaveLength(1);
+
+    const logBody: JSONObject = readBack(rows[0]!);
+
+    expect(evaluationOf(logBody).criteriaResults[0]?.met).toBe(true);
+    expect(
+      MonitorLogSummaryUtil.getTelemetryObservation({
+        monitorType: MonitorType.Host,
+        logBody: logBody,
+      }),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 5 });
+  });
+});
+
+/*
+ * HOW LONG IT TOOK (#10317): the row's evaluation summary says how long the
+ * evaluation took - from a telemetry check's reads, which the worker began
+ * before monitorResource, until the row was written - and how often the
+ * monitor is evaluated, which the summary weighs it against.
+ */
+describe("a check's row says how long its evaluation took", () => {
+  let clock: number = 0;
+
+  beforeEach(() => {
+    clock = 10_000;
+    jest.spyOn(MonitorEvaluationClock, "now").mockImplementation((): number => {
+      // Each look at the clock: 250 ms on.
+      clock += 250;
+      return clock;
+    });
+  });
+
+  test("from its beginning to its row, in milliseconds", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    // One look as it began, one as its row was written.
+    expect(evaluation.durationInMs).toBe(250);
+  });
+
+  test("a telemetry check's counts its reads, begun by the worker before it", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]), {
+      evaluationStartedAtMs: 1_000,
+    });
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    // Read at 1,000, written once the clock was looked at once: 10,250.
+    expect(evaluation.durationInMs).toBe(9_250);
+  });
+
+  test("and how often its monitor is evaluated: its schedule, or every minute for a telemetry monitor with none", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+    monitor.monitoringInterval = "*/5 * * * *";
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    expect(evaluationOf(readBack((await loggedRows())[0]!)).intervalInMs).toBe(
+      5 * 60 * 1000,
+    );
+
+    insertJsonRows.mockClear();
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([40, 41]));
+
+    expect(evaluationOf(readBack((await loggedRows())[0]!)).intervalInMs).toBe(
+      60 * 1000,
+    );
+  });
+
+  test("an ungrouped check judged no series, and says none", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    expect(evaluation.seriesJudged).toBeUndefined();
   });
 });

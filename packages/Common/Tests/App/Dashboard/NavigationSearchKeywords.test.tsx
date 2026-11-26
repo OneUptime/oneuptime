@@ -65,7 +65,9 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["prometheus", "Metrics", PageMap.METRICS],
   ["error tracking", "Exceptions", PageMap.EXCEPTIONS],
   ["genai", "AI / LLM", PageMap.LLM],
-  ["copilot", "Chat", PageMap.AI_COPILOT],
+  ["copilot", "Ask AI", PageMap.AI_COPILOT],
+  // Its name in the menu until #7474.
+  ["chat", "Ask AI", PageMap.AI_COPILOT],
   ["ai agents", "Code", PageMap.CODE],
   // Tasks and Code Repositories became Code, so their words lead there.
   ["tasks", "Code", PageMap.CODE],

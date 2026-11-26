@@ -500,6 +500,12 @@ const SecurityPlaybookViewPage: FunctionComponent<
                 placeholder: "No description.",
                 colSpan: 3,
               },
+              {
+                // The playbook's line: its ID, who created it and who last changed it.
+                field: { _id: true },
+                title: "ID",
+                fieldType: FieldType.ObjectID,
+              },
             ],
           }}
         />

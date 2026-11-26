@@ -1,7 +1,16 @@
 import FormsCopy from "../FormsCopy";
-import { FormReferenceData, toDropdownOptions } from "./FormOnSubmitData";
-import { FormRecordOption } from "Common/Types/Form/FormPublic";
 import {
+  FormReferenceData,
+  FormReferenceRecord,
+  toDropdownOptions,
+} from "./FormOnSubmitData";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import {
+  AlertFormTargetSettings,
   FormTargetSettingReferenceModel,
   FormTargetSettings,
   IncidentFormTargetSettings,
@@ -10,6 +19,7 @@ import {
 } from "Common/Types/Form/FormTargetSettings";
 import FormTargetType from "Common/Types/Form/FormTargetType";
 import { JSONObject } from "Common/Types/JSON";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
@@ -22,11 +32,28 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
  * maintenance event, whether it is published - so no step is a wall of
  * dropdowns (and long forms walk steps; see LongFormStepsGuard).
  *
- * The dropdowns offer the project's records as they are now. A record a
- * setting names but that was deleted since is not among them, so the dialog
- * starts without it and saving leaves it out. Owners are one people picker,
- * people and teams in one list, as everywhere else owners are picked; it
- * keeps the people in ownerUserIds and the teams in ownerTeamIds.
+ * The dialog starts from the stored settings whole: a record they name is
+ * never left out because a list did not have it (#10646). The dialog used to
+ * keep only the records it found among the project's first 10,000 of a
+ * kind, so a monitor past them was dropped from the form the next time the
+ * dialog was saved, whatever was changed.
+ *
+ * What is always attached is picked from the server, searched as it is
+ * typed in, however many monitors, labels, policies or status pages the
+ * project has (EntityDropdown); a record held is named by its id, and one
+ * deleted since reads "Deleted", in muted italics, to keep or take out. The
+ * severity and the template are picked from the project's short lists, a
+ * held one they do not offer (archived or deleted since) shown and marked.
+ * Saving keeps whatever was left, as it was left: the server judges only
+ * the records the dialog adds (FormTargetHelpers.validateSettingReferences).
+ * Owners are one people picker, people and teams in one list, as everywhere
+ * else owners are picked; it keeps the people in ownerUserIds and the teams
+ * in ownerTeamIds.
+ *
+ * An alert form (#10760) starts from its defaults - the title, the
+ * severity, the state an alert starts in and its one monitor - then what is
+ * always attached (labels, on-call policies), then its owners: an incident
+ * form's steps, without a template, which alerts do not have.
  */
 
 export const FORM_SETTINGS_STEP_DEFAULTS: string = "defaults";
@@ -57,44 +84,156 @@ export const getFormSettingsSteps: GetFormSettingsStepsFunction = (
   return steps;
 };
 
-type MultiSelectFunction = (data: {
+// The model each always-attached list is picked from, searched on the server.
+export const FORM_SETTINGS_PICKED_MODELS: Partial<
+  Record<FormTargetSettingReferenceModel, DatabaseBaseModelType>
+> = {
+  [FormTargetSettingReferenceModel.Monitor]: Monitor,
+  [FormTargetSettingReferenceModel.Label]: Label,
+  [FormTargetSettingReferenceModel.OnCallDutyPolicy]: OnCallDutyPolicy,
+  [FormTargetSettingReferenceModel.StatusPage]: StatusPage,
+};
+
+type SingleSelectFunction = (data: {
   key: string;
   title: string;
   description: string;
   stepId: string;
-  records: Array<FormRecordOption> | undefined;
-  // What the records are, which says how their names read.
   model: FormTargetSettingReferenceModel;
 }) => Field<JSONObject>;
 
-const multiSelect: MultiSelectFunction = (data: {
+/*
+ * One record picked from the server - an alert's monitor - searched by name
+ * as it is typed in, however many the project has. The one the setting
+ * holds is read by its id; one deleted since reads "Deleted".
+ */
+const singleSelect: SingleSelectFunction = (data: {
   key: string;
   title: string;
   description: string;
   stepId: string;
-  records: Array<FormRecordOption> | undefined;
   model: FormTargetSettingReferenceModel;
 }): Field<JSONObject> => {
+  const modelType: DatabaseBaseModelType | undefined =
+    FORM_SETTINGS_PICKED_MODELS[data.model];
+
+  if (!modelType) {
+    throw new Error(`No picker for ${data.model}.`);
+  }
+
   return {
     field: { [data.key]: true },
     title: data.title,
     description: data.description,
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownOptions: toDropdownOptions(data.records, data.model),
+    fieldType: FormFieldSchemaType.Dropdown,
+    dropdownModal: {
+      type: modelType,
+      labelField: "name",
+      valueField: "_id",
+      notFoundLabel: FormsCopy.deletedRecord,
+    },
     required: false,
     stepId: data.stepId,
   };
 };
 
+type MultiSelectFunction = (data: {
+  key: string;
+  title: string;
+  description: string;
+  stepId: string;
+  model: FormTargetSettingReferenceModel;
+}) => Field<JSONObject>;
+
+/*
+ * A list of records always attached, picked from the server: every record
+ * of the kind the reader may see, searched by name as it is typed in, an
+ * archived label left out for a new pick (ArchivedValuePicker). The ones
+ * the setting holds are read by their ids, so each is named however many
+ * the project has; one deleted since reads "Deleted".
+ */
+const multiSelect: MultiSelectFunction = (data: {
+  key: string;
+  title: string;
+  description: string;
+  stepId: string;
+  model: FormTargetSettingReferenceModel;
+}): Field<JSONObject> => {
+  const modelType: DatabaseBaseModelType | undefined =
+    FORM_SETTINGS_PICKED_MODELS[data.model];
+
+  if (!modelType) {
+    throw new Error(`No picker for ${data.model}.`);
+  }
+
+  return {
+    field: { [data.key]: true },
+    title: data.title,
+    description: data.description,
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownModal: {
+      type: modelType,
+      labelField: "name",
+      valueField: "_id",
+      notFoundLabel: FormsCopy.deletedRecord,
+    },
+    required: false,
+    stepId: data.stepId,
+  };
+};
+
+type ToSingleSelectOptionsFunction = (data: {
+  records: Array<FormReferenceRecord> | undefined;
+  model: FormTargetSettingReferenceModel;
+  heldId: string | undefined;
+}) => Array<DropdownOption>;
+
+/*
+ * A short list's options - the severities, the templates - and, when the
+ * setting holds one the project no longer has, that one too: "Deleted", in
+ * muted italics, never offered for a pick, so it can be seen and cleared.
+ */
+const toSingleSelectOptions: ToSingleSelectOptionsFunction = (data: {
+  records: Array<FormReferenceRecord> | undefined;
+  model: FormTargetSettingReferenceModel;
+  heldId: string | undefined;
+}): Array<DropdownOption> => {
+  const options: Array<DropdownOption> = toDropdownOptions(
+    data.records,
+    data.model,
+  );
+  const heldId: string | undefined = data.heldId?.toLowerCase();
+
+  if (
+    heldId &&
+    !options.some((option: DropdownOption): boolean => {
+      return String(option.value).toLowerCase() === heldId;
+    })
+  ) {
+    options.push({
+      value: heldId,
+      label: FormsCopy.deletedRecord,
+      isUserContent: false,
+      isNotFound: true,
+      isDisabled: true,
+    });
+  }
+
+  return options;
+};
+
 export type GetFormSettingsFieldsFunction = (data: {
   targetType: FormTargetType;
   reference: FormReferenceData;
+  // The stored settings, so a severity or template held is shown.
+  settings?: unknown;
 }) => Array<Field<JSONObject>>;
 
 /** The dialog's fields, each on its step. */
 export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
   targetType: FormTargetType;
   reference: FormReferenceData;
+  settings?: unknown;
 }): Array<Field<JSONObject>> => {
   const lists: FormReferenceData["lists"] = data.reference.lists;
 
@@ -117,6 +256,65 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
     }),
   ];
 
+  if (data.targetType === FormTargetType.Alert) {
+    const heldAlert: AlertFormTargetSettings = readFormTargetSettings({
+      targetType: FormTargetType.Alert,
+      value: data.settings,
+    }) as AlertFormTargetSettings;
+
+    return [
+      defaultTitle,
+      {
+        field: { alertSeverityId: true },
+        title: FormsCopy.defaultSeverity,
+        description: FormsCopy.defaultSeverityDescription,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: toSingleSelectOptions({
+          records: lists[FormTargetSettingReferenceModel.AlertSeverity],
+          model: FormTargetSettingReferenceModel.AlertSeverity,
+          heldId: heldAlert.alertSeverityId,
+        }),
+        required: false,
+        stepId: FORM_SETTINGS_STEP_DEFAULTS,
+      },
+      {
+        field: { alertStateId: true },
+        title: FormsCopy.initialState,
+        description: FormsCopy.initialStateDescription,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: toSingleSelectOptions({
+          records: lists[FormTargetSettingReferenceModel.AlertState],
+          model: FormTargetSettingReferenceModel.AlertState,
+          heldId: heldAlert.alertStateId,
+        }),
+        required: false,
+        stepId: FORM_SETTINGS_STEP_DEFAULTS,
+      },
+      singleSelect({
+        key: "monitorId",
+        title: FormsCopy.defaultMonitor,
+        description: FormsCopy.defaultMonitorDescription,
+        stepId: FORM_SETTINGS_STEP_DEFAULTS,
+        model: FormTargetSettingReferenceModel.Monitor,
+      }),
+      multiSelect({
+        key: "labelIds",
+        title: FormsCopy.alwaysLabels,
+        description: FormsCopy.alwaysLabelsDescription,
+        stepId: FORM_SETTINGS_STEP_ATTACH,
+        model: FormTargetSettingReferenceModel.Label,
+      }),
+      multiSelect({
+        key: "onCallDutyPolicyIds",
+        title: FormsCopy.onCallPolicies,
+        description: FormsCopy.alertOnCallPoliciesDescription,
+        stepId: FORM_SETTINGS_STEP_ATTACH,
+        model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
+      }),
+      ...owners,
+    ];
+  }
+
   if (data.targetType === FormTargetType.ScheduledMaintenance) {
     return [
       defaultTitle,
@@ -125,7 +323,6 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
         title: FormsCopy.alwaysMonitors,
         description: FormsCopy.alwaysMonitorsDescription,
         stepId: FORM_SETTINGS_STEP_ATTACH,
-        records: lists[FormTargetSettingReferenceModel.Monitor],
         model: FormTargetSettingReferenceModel.Monitor,
       }),
       multiSelect({
@@ -133,7 +330,6 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
         title: FormsCopy.alwaysStatusPages,
         description: FormsCopy.alwaysStatusPagesDescription,
         stepId: FORM_SETTINGS_STEP_ATTACH,
-        records: lists[FormTargetSettingReferenceModel.StatusPage],
         model: FormTargetSettingReferenceModel.StatusPage,
       }),
       multiSelect({
@@ -141,7 +337,6 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
         title: FormsCopy.alwaysLabels,
         description: FormsCopy.alwaysLabelsDescription,
         stepId: FORM_SETTINGS_STEP_ATTACH,
-        records: lists[FormTargetSettingReferenceModel.Label],
         model: FormTargetSettingReferenceModel.Label,
       }),
       ...owners,
@@ -164,6 +359,11 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
     ];
   }
 
+  const held: IncidentFormTargetSettings = readFormTargetSettings({
+    targetType: FormTargetType.Incident,
+    value: data.settings,
+  }) as IncidentFormTargetSettings;
+
   return [
     defaultTitle,
     {
@@ -171,10 +371,11 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       title: FormsCopy.defaultSeverity,
       description: FormsCopy.defaultSeverityDescription,
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: toDropdownOptions(
-        lists[FormTargetSettingReferenceModel.IncidentSeverity],
-        FormTargetSettingReferenceModel.IncidentSeverity,
-      ),
+      dropdownOptions: toSingleSelectOptions({
+        records: lists[FormTargetSettingReferenceModel.IncidentSeverity],
+        model: FormTargetSettingReferenceModel.IncidentSeverity,
+        heldId: held.incidentSeverityId,
+      }),
       required: false,
       stepId: FORM_SETTINGS_STEP_DEFAULTS,
     },
@@ -183,10 +384,11 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       title: FormsCopy.incidentTemplate,
       description: FormsCopy.incidentTemplateDescription,
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: toDropdownOptions(
-        lists[FormTargetSettingReferenceModel.IncidentTemplate],
-        FormTargetSettingReferenceModel.IncidentTemplate,
-      ),
+      dropdownOptions: toSingleSelectOptions({
+        records: lists[FormTargetSettingReferenceModel.IncidentTemplate],
+        model: FormTargetSettingReferenceModel.IncidentTemplate,
+        heldId: held.incidentTemplateId,
+      }),
       required: false,
       stepId: FORM_SETTINGS_STEP_DEFAULTS,
     },
@@ -195,7 +397,6 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       title: FormsCopy.alwaysMonitors,
       description: FormsCopy.alwaysMonitorsDescription,
       stepId: FORM_SETTINGS_STEP_ATTACH,
-      records: lists[FormTargetSettingReferenceModel.Monitor],
       model: FormTargetSettingReferenceModel.Monitor,
     }),
     multiSelect({
@@ -203,7 +404,6 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       title: FormsCopy.alwaysLabels,
       description: FormsCopy.alwaysLabelsDescription,
       stepId: FORM_SETTINGS_STEP_ATTACH,
-      records: lists[FormTargetSettingReferenceModel.Label],
       model: FormTargetSettingReferenceModel.Label,
     }),
     multiSelect({
@@ -211,81 +411,75 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       title: FormsCopy.onCallPolicies,
       description: FormsCopy.onCallPoliciesDescription,
       stepId: FORM_SETTINGS_STEP_ATTACH,
-      records: lists[FormTargetSettingReferenceModel.OnCallDutyPolicy],
       model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
     }),
     ...owners,
   ];
 };
 
-type KeepKnownFunction = (
-  ids: Array<string> | undefined,
-  records: Array<FormRecordOption> | undefined,
-) => Array<string>;
-
-// The ids that still name a record the dialog can offer.
-const keepKnown: KeepKnownFunction = (
-  ids: Array<string> | undefined,
-  records: Array<FormRecordOption> | undefined,
-): Array<string> => {
-  const known: Set<string> = new Set<string>(
-    (records || []).map((record: FormRecordOption): string => {
-      return record.id;
-    }),
-  );
-
-  return (ids || []).filter((id: string): boolean => {
-    return known.has(id.toLowerCase());
-  });
-};
-
 export type GetFormSettingsInitialValuesFunction = (data: {
   targetType: FormTargetType;
   settings: unknown;
-  reference: FormReferenceData;
+  reference?: FormReferenceData | undefined;
 }) => JSONObject;
 
-/** What the dialog starts from: the stored settings, deleted records left out. */
+/*
+ * What the dialog starts from: the stored settings, every record they name
+ * kept - one deleted since too, which its picker shows as "Deleted" to keep
+ * or take out.
+ */
 export const getFormSettingsInitialValues: GetFormSettingsInitialValuesFunction =
   (data: {
     targetType: FormTargetType;
     settings: unknown;
-    reference: FormReferenceData;
+    reference?: FormReferenceData | undefined;
   }): JSONObject => {
-    const lists: FormReferenceData["lists"] = data.reference.lists;
     const read: FormTargetSettings = readFormTargetSettings({
       targetType: data.targetType,
       value: data.settings,
     });
 
+    if (data.targetType === FormTargetType.Alert) {
+      const settings: AlertFormTargetSettings = read as AlertFormTargetSettings;
+
+      const alertValues: JSONObject = {
+        defaultTitle: settings.defaultTitle || "",
+        labelIds: settings.labelIds || [],
+        onCallDutyPolicyIds: settings.onCallDutyPolicyIds || [],
+        ownerUserIds: settings.ownerUserIds || [],
+        ownerTeamIds: settings.ownerTeamIds || [],
+      };
+
+      for (const key of ["alertSeverityId", "alertStateId", "monitorId"]) {
+        const id: unknown = (settings as Record<string, unknown>)[key];
+
+        if (typeof id === "string" && id) {
+          alertValues[key] = id;
+        }
+      }
+
+      return alertValues;
+    }
+
+    const maintenanceOrIncident:
+      | IncidentFormTargetSettings
+      | ScheduledMaintenanceFormTargetSettings = read as
+      | IncidentFormTargetSettings
+      | ScheduledMaintenanceFormTargetSettings;
+
     const values: JSONObject = {
-      defaultTitle: read.defaultTitle || "",
-      monitorIds: keepKnown(
-        read.monitorIds,
-        lists[FormTargetSettingReferenceModel.Monitor],
-      ),
-      labelIds: keepKnown(
-        read.labelIds,
-        lists[FormTargetSettingReferenceModel.Label],
-      ),
-      ownerUserIds: keepKnown(
-        read.ownerUserIds,
-        lists[FormTargetSettingReferenceModel.User],
-      ),
-      ownerTeamIds: keepKnown(
-        read.ownerTeamIds,
-        lists[FormTargetSettingReferenceModel.Team],
-      ),
+      defaultTitle: maintenanceOrIncident.defaultTitle || "",
+      monitorIds: maintenanceOrIncident.monitorIds || [],
+      labelIds: maintenanceOrIncident.labelIds || [],
+      ownerUserIds: maintenanceOrIncident.ownerUserIds || [],
+      ownerTeamIds: maintenanceOrIncident.ownerTeamIds || [],
     };
 
     if (data.targetType === FormTargetType.ScheduledMaintenance) {
       const settings: ScheduledMaintenanceFormTargetSettings =
         read as ScheduledMaintenanceFormTargetSettings;
 
-      values["statusPageIds"] = keepKnown(
-        settings.statusPageIds,
-        lists[FormTargetSettingReferenceModel.StatusPage],
-      );
+      values["statusPageIds"] = settings.statusPageIds || [];
       values["showOnStatusPages"] = settings.showOnStatusPages === true;
       values["notifySubscribers"] = settings.notifySubscribers === true;
 
@@ -295,28 +489,15 @@ export const getFormSettingsInitialValues: GetFormSettingsInitialValuesFunction 
     const settings: IncidentFormTargetSettings =
       read as IncidentFormTargetSettings;
 
-    const severity: Array<string> = keepKnown(
-      settings.incidentSeverityId ? [settings.incidentSeverityId] : [],
-      lists[FormTargetSettingReferenceModel.IncidentSeverity],
-    );
-
-    const template: Array<string> = keepKnown(
-      settings.incidentTemplateId ? [settings.incidentTemplateId] : [],
-      lists[FormTargetSettingReferenceModel.IncidentTemplate],
-    );
-
-    if (severity[0]) {
-      values["incidentSeverityId"] = severity[0];
+    if (settings.incidentSeverityId) {
+      values["incidentSeverityId"] = settings.incidentSeverityId;
     }
 
-    if (template[0]) {
-      values["incidentTemplateId"] = template[0];
+    if (settings.incidentTemplateId) {
+      values["incidentTemplateId"] = settings.incidentTemplateId;
     }
 
-    values["onCallDutyPolicyIds"] = keepKnown(
-      settings.onCallDutyPolicyIds,
-      lists[FormTargetSettingReferenceModel.OnCallDutyPolicy],
-    );
+    values["onCallDutyPolicyIds"] = settings.onCallDutyPolicyIds || [];
 
     return values;
   };
@@ -388,13 +569,15 @@ export const packFormSettingsValues: PackFormSettingsValuesFunction = (data: {
           "ownerUserIds",
           "ownerTeamIds",
         ]
-      : [
-          "monitorIds",
-          "labelIds",
-          "onCallDutyPolicyIds",
-          "ownerUserIds",
-          "ownerTeamIds",
-        ];
+      : data.targetType === FormTargetType.Alert
+        ? ["labelIds", "onCallDutyPolicyIds", "ownerUserIds", "ownerTeamIds"]
+        : [
+            "monitorIds",
+            "labelIds",
+            "onCallDutyPolicyIds",
+            "ownerUserIds",
+            "ownerTeamIds",
+          ];
 
   for (const key of listKeys) {
     const ids: Array<string> = readChoices(values[key]);
@@ -414,7 +597,12 @@ export const packFormSettingsValues: PackFormSettingsValuesFunction = (data: {
     return settings;
   }
 
-  for (const key of ["incidentSeverityId", "incidentTemplateId"]) {
+  const idKeys: Array<string> =
+    data.targetType === FormTargetType.Alert
+      ? ["alertSeverityId", "alertStateId", "monitorId"]
+      : ["incidentSeverityId", "incidentTemplateId"];
+
+  for (const key of idKeys) {
     const id: string | undefined = readChoice(values[key]);
 
     if (id) {

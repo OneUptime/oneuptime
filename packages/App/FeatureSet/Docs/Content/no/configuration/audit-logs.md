@@ -32,7 +32,7 @@ flowchart TB
 
 - **I OneUptime Cloud: Enterprise-abonnementet.** På andre abonnementer viser revisjonsloggens sider hva funksjonen gjør og hvordan du får den.
 - **Når du selvhoster: Enterprise Edition**, med en lisens som inkluderer revisjonslogger. Se [Enterprise Edition](/docs/self-hosted/enterprise).
-- **En rolle som kan lese revisjonsloggen.** Prosjekteier, Prosjektadministrator, Innstillingsadministrator eller tillatelsen **Read Audit Log**. Å slå på revisjonslogging og endre innstillingene krever en Prosjekteier, en Prosjektadministrator eller tillatelse til å redigere prosjektet.
+- **En rolle som kan lese revisjonsloggen.** Prosjekteier, Prosjektadministrator, Innstillingsadministrator eller tillatelsen **Read Audit Log**. En oppføring viser verdiene i et felt bare hvis du kan lese feltet på selve ressursen, og navnet på en ressurs bare hvis du kan lese ressursen. Å slå på revisjonslogging og endre innstillingene krever en Prosjekteier, en Prosjektadministrator eller tillatelse til å redigere prosjektet.
 
 ## Slå på revisjonslogging
 
@@ -72,9 +72,13 @@ En endring av disse innstillingene trer i kraft innen ett minutt.
 
 Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post**, **Arbeidsflyt kjørt som**, **Arbeidsflytens tillatelser gitt av** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
 
+Et felt som peker til en annen ressurs, for eksempel statusen til en monitor, viser ressursens nåværende navn med ID-en under. En ressurs du ikke kan lese, viser **Navn skjult**, og en som er slettet siden, viser **Slettet**.
+
 En ressurs uten eget navn får navn etter det som navngir den i OneUptime: et unntak etter typen og begynnelsen av meldingen, med ID-er, adresser og alt som ligner en hemmelighet maskert, en kjøring av en runbook etter runbooken, telefonnummeret til en policy for innkommende anrop etter nummeret, og en mal eller et domene etter sitt eget navn.
 
 Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har også sin egen side **Revisjonslogger** i en sammenslått seksjon av sidemenyen, som **Avansert**. Den viser bare den ressursens oppføringer, sammen med oppføringene for det som hører til den: siden til et SLO viser også reglene og eierne.
+
+Reglene til et produkt har også en egen side, sist i menyseksjonen som viser dem: **Revisjonslogger** i en seksjon **Regler**, som **Hendelser → Regler → Revisjonslogger**, og **Revisjonslogger for regler** i en seksjon **Innstillinger** med eier- og etikettregler, som **Verter → Innstillinger → Revisjonslogger for regler**. Den viser alle reglene til produktet, også slettede. Runbook-regler er én type regel for varsler, hendelser og vedlikeholdshendelser, så historikken deres ligger under **Runbooks → Innstillinger → Revisjonslogger for regler**.
 
 ## Hva som registreres
 

@@ -12,6 +12,7 @@ import VMwareVCenters from "../Pages/VMware/VCenters";
 import VMwareDocumentation from "../Pages/VMware/Documentation";
 import VMwareSettingsOwnerRules from "../Pages/VMware/Settings/OwnerRules";
 import VMwareSettingsLabelRules from "../Pages/VMware/Settings/LabelRules";
+import VMwareRulesAuditLogs from "../Pages/VMware/Settings/RulesAuditLogs";
 import VMwareArchived from "../Pages/VMware/Archived";
 import VMwareVCenterOverview from "../Pages/VMware/View/Index";
 import VMwareVCenterHosts from "../Pages/VMware/View/Hosts";
@@ -97,6 +98,18 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
             <VMwareSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.VMWARE_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={VMwareRoutePath[PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS] || ""}
+          element={
+            <VMwareRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS] as Route
+              }
             />
           }
         />

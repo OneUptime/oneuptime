@@ -36,6 +36,20 @@ import {
 } from "../../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import { buildTelemetrySecurityEvent } from "../../../../../Utils/SecurityEvent/TelemetryScan/TelemetrySecurityEvent";
+import Redis from "../../../../../Server/Infrastructure/Redis";
+import RefusedTelemetryReader from "../../../../../Server/Utils/SecurityEvent/RefusedTelemetryReader";
+import TelemetryIngestionBudgetStatusReader from "../../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetStatusReader";
+import ProductType from "../../../../../Types/MeteredPlan/ProductType";
+import {
+  TelemetryIngestionBudgetScope,
+  TelemetryIngestionBudgetSignalStatus,
+  TelemetryIngestionBudgetState,
+  TelemetryIngestionBudgetStatus,
+} from "../../../../../Types/Telemetry/TelemetryIngestionBudget";
+import {
+  RefusedTelemetryKind,
+  readRefusedTelemetryRecord,
+} from "../../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * "Your OneUptime data", end to end with the databases stood in for: which
@@ -392,6 +406,91 @@ describe("what a scan stores", () => {
     );
   });
 
+  /*
+   * OneUptime's own probes doing what they are set to do (#10429): their
+   * traffic is stored, so it stays visible, but it is set aside - never a
+   * security event found, and the source never says it found one for it.
+   */
+  test("OneUptime's own probe traffic is stored and counted apart, never as found", async () => {
+    const probeTraffic: (eventUid: string) => NormalizedSecurityEvent = (
+      eventUid: string,
+    ): NormalizedSecurityEvent => {
+      return buildTelemetrySecurityEvent({
+        kind: SecurityTelemetrySourceKind.NetworkFlows,
+        signal: SecurityTelemetrySignal.OneUptimeProbeTraffic,
+        time: new Date("2026-10-27T11:50:00.000Z"),
+        eventUid,
+        classUid: 4001,
+        activityName: "Traffic",
+        statusName: "",
+        severity: OcsfSeverity.Informational,
+        message: "OneUptime's own probe traffic",
+        principalIp: "10.0.0.250",
+        attributes: {},
+      });
+    };
+    const plan: { settleInSeconds: number; windowInSeconds: number } =
+      TELEMETRY_SCAN_PLANS[SecurityTelemetrySourceKind.NetworkFlows];
+    const cursor: string = new Date(
+      NOW.getTime() - plan.settleInSeconds * 1000 - plan.windowInSeconds * 1000,
+    ).toISOString();
+
+    const onlyOwn: Harness = stand({
+      reads: [
+        {
+          events: [probeTraffic("own-1"), probeTraffic("own-2")],
+          recordsRead: 2,
+          pageRows: 0,
+          hasMore: false,
+        },
+      ],
+    });
+
+    const setAside: SecurityTelemetryScanResult =
+      await SecurityTelemetryScanner.scanSource(
+        source(SecurityTelemetrySourceKind.NetworkFlows, cursor),
+      );
+
+    expect(
+      onlyOwn.inserted.map((row: JSONObject): unknown => {
+        return row["eventUid"];
+      }),
+    ).toEqual(["own-1", "own-2"]);
+    expect(setAside.eventsFound).toBe(0);
+    expect(setAside.bySignal).toEqual({});
+    expect(setAside.setAsideBySignal).toEqual({
+      "oneuptime-probe-traffic": 2,
+    });
+    // The source does not say it found a security event.
+    expect(onlyOwn.updates[0]!["lastEventFoundAt"]).toBeUndefined();
+    expect(
+      (onlyOwn.updates[0]!["lastScanResult"] as JSONObject)["setAsideBySignal"],
+    ).toEqual({ "oneuptime-probe-traffic": 2 });
+
+    jest.restoreAllMocks();
+
+    const both: Harness = stand({
+      reads: [
+        {
+          events: [probeTraffic("own-3"), event("scan-1")],
+          recordsRead: 2,
+          pageRows: 0,
+          hasMore: false,
+        },
+      ],
+    });
+
+    const mixed: SecurityTelemetryScanResult =
+      await SecurityTelemetryScanner.scanSource(
+        source(SecurityTelemetrySourceKind.NetworkFlows, cursor),
+      );
+
+    expect(mixed.eventsFound).toBe(1);
+    expect(mixed.bySignal).toEqual({ "port-scan": 1 });
+    expect(mixed.setAsideBySignal).toEqual({ "oneuptime-probe-traffic": 1 });
+    expect(both.updates[0]!["lastEventFoundAt"]).toEqual(NOW);
+  });
+
   test("a window that finds nothing stores nothing, and asks for no service", async () => {
     const harness: Harness = stand({});
     const plan: { settleInSeconds: number; windowInSeconds: number } =
@@ -623,4 +722,138 @@ describe("cloud audit logs, read with each cloud account's own read", () => {
       ].sort(),
     );
   });
+});
+
+/*
+ * #10431: the traces a used-up traces budget refused never reach the Span
+ * table. The traces' scan reads the budget's counters each turn and keeps
+ * what was refused on its result; the kinds that read nothing a telemetry
+ * budget refuses keep nothing of it.
+ */
+describe("what a budget refused of the traces", () => {
+  afterEach(() => {
+    RefusedTelemetryReader.clearCache();
+  });
+
+  const tracesSignal: (
+    data: Partial<TelemetryIngestionBudgetSignalStatus>,
+  ) => TelemetryIngestionBudgetSignalStatus = (
+    data: Partial<TelemetryIngestionBudgetSignalStatus>,
+  ): TelemetryIngestionBudgetSignalStatus => {
+    return {
+      signal: ProductType.Traces,
+      dailyBudgetBytes: 5_000_000,
+      dailyBudgetSource: null,
+      rateLimitBytesPerSecond: null,
+      rateLimitSource: null,
+      usedBytes: 5_000_000,
+      droppedBytes: 2_048,
+      droppedRequests: 12,
+      throttledRequests: 0,
+      percentUsed: 100,
+      state: TelemetryIngestionBudgetState.Exhausted,
+      warningCrossedAt: null,
+      exhaustedAt: "2026-10-27T11:40:00.000Z",
+      ...data,
+    };
+  };
+
+  const tracesUsedUp: TelemetryIngestionBudgetStatus = {
+    dayStartsAt: "2026-10-27T00:00:00.000Z",
+    resetsAt: "2026-10-28T00:00:00.000Z",
+    resetTime: "00:00",
+    timezone: "UTC",
+    warningPercent: 80,
+    countersAvailable: true,
+    project: {
+      scope: TelemetryIngestionBudgetScope.Project,
+      signals: [tracesSignal({})],
+    },
+    ingestionKeys: [],
+    // A team whose own traces budget is used up too.
+    teamsAndLabels: [
+      {
+        scope: TelemetryIngestionBudgetScope.Team,
+        teamId: "0192f1a0-0000-7000-8000-00000000t301",
+        teamName: "Payments",
+        signals: [
+          tracesSignal({
+            exhaustedAt: "2026-10-27T11:10:00.000Z",
+            droppedBytes: 900,
+            droppedRequests: 3,
+          }),
+        ],
+      },
+    ],
+  };
+
+  test("the traces' scan keeps when, whose and how much on its result", async () => {
+    const harness: Harness = stand({});
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+    jest
+      .spyOn(TelemetryIngestionBudgetStatusReader, "getProjectStatus")
+      .mockResolvedValue(tracesUsedUp);
+
+    const result: SecurityTelemetryScanResult =
+      await SecurityTelemetryScanner.scanSource(
+        source(SecurityTelemetrySourceKind.Traces, "2026-10-27T11:55:00.000Z"),
+      );
+
+    expect(result.refusedTelemetry).toEqual([
+      {
+        signal: ProductType.Traces,
+        kind: RefusedTelemetryKind.BudgetUsedUp,
+        scope: TelemetryIngestionBudgetScope.Team,
+        scopeId: "0192f1a0-0000-7000-8000-00000000t301",
+        scopeName: "Payments",
+        from: "2026-10-27T11:10:00.000Z",
+        to: null,
+        refusedBytes: 900,
+        refusedRequests: 3,
+      },
+      {
+        signal: ProductType.Traces,
+        kind: RefusedTelemetryKind.BudgetUsedUp,
+        scope: TelemetryIngestionBudgetScope.Project,
+        scopeId: PROJECT_ID.toString(),
+        scopeName: "",
+        from: "2026-10-27T11:40:00.000Z",
+        to: null,
+        refusedBytes: 2_048,
+        refusedRequests: 12,
+      },
+    ]);
+
+    expect(
+      readRefusedTelemetryRecord(
+        harness.updates[0]!["lastScanResult"] as JSONObject,
+      ).refusals,
+    ).toEqual(result.refusedTelemetry);
+  });
+
+  test.each([
+    SecurityTelemetrySourceKind.NetworkFlows,
+    SecurityTelemetrySourceKind.AuditLog,
+    SecurityTelemetrySourceKind.RumSessions,
+  ])(
+    "%s reads nothing a telemetry budget refuses, and keeps nothing of it",
+    async (kind: SecurityTelemetrySourceKind) => {
+      const harness: Harness = stand({});
+      jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+      const read: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(TelemetryIngestionBudgetStatusReader, "getProjectStatus")
+        .mockResolvedValue(tracesUsedUp);
+
+      const result: SecurityTelemetryScanResult =
+        await SecurityTelemetryScanner.scanSource(
+          source(kind, "2026-10-27T11:50:00.000Z"),
+        );
+
+      expect(read).not.toHaveBeenCalled();
+      expect(result.refusedTelemetry).toBeUndefined();
+      expect(
+        Object.keys(harness.updates[0]!["lastScanResult"] as JSONObject),
+      ).not.toContain("refusedTelemetry");
+    },
+  );
 });

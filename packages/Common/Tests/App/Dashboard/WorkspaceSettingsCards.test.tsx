@@ -38,14 +38,31 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 interface MockAuthState {
   isProjectConnected: boolean;
   isUserConnected: boolean;
+  /*
+   * What the project's Microsoft Teams connection says of its organization
+   * (MicrosoftTeamsOrganization): its tenant, and the name and domain
+   * admin consent kept. Nothing, as a connection read before they were.
+   */
+  teamsOrganization: {
+    tenantId?: string;
+    name?: string;
+    domain?: string;
+  } | null;
 }
 
 const mockAuthState: MockAuthState = {
   isProjectConnected: true,
   isUserConnected: false,
+  teamsOrganization: null,
 };
 
 const deleteItemMock: MockFunction = getJestMockFunction();
+
+// The Dashboard's API.get: what the server answers each route with.
+const apiGetMock: MockFunction = getJestMockFunction();
+
+// Where the page sends the browser (Navigation.navigate).
+const navigateMock: MockFunction = getJestMockFunction();
 
 const TEAMS_CLIENT_ID: string = "11111111-2222-3333-4444-555555555555";
 
@@ -70,7 +87,9 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       getQueryStringByName: () => {
         return null;
       },
-      navigate: () => {},
+      navigate: (...args: Array<unknown>) => {
+        return navigateMock(...args);
+      },
       getLocation: () => {
         return { pathname: "/" };
       },
@@ -123,8 +142,8 @@ jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
-      get: async () => {
-        return { data: {} };
+      get: (...args: Array<unknown>) => {
+        return apiGetMock(...args);
       },
       getFriendlyMessage: (error: unknown) => {
         return String(error);
@@ -159,9 +178,20 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
                         return "project-auth-token-id";
                       },
                     },
+                    workspaceProjectId:
+                      mockAuthState.teamsOrganization?.tenantId,
                     miscData: {
                       teamName: "Acme",
                       adminConsentGranted: true,
+                      ...(mockAuthState.teamsOrganization
+                        ? {
+                            tenantId: mockAuthState.teamsOrganization.tenantId,
+                            organizationName:
+                              mockAuthState.teamsOrganization.name,
+                            organizationDomain:
+                              mockAuthState.teamsOrganization.domain,
+                          }
+                        : {}),
                     },
                   },
                 ],
@@ -327,8 +357,12 @@ let refresh: MockFunction;
 beforeEach(() => {
   mockAuthState.isProjectConnected = true;
   mockAuthState.isUserConnected = false;
+  mockAuthState.teamsOrganization = null;
   deleteItemMock.mockReset();
   deleteItemMock.mockResolvedValue(undefined as never);
+  apiGetMock.mockReset();
+  apiGetMock.mockResolvedValue({ data: {} } as never);
+  navigateMock.mockReset();
   refresh = jest
     .spyOn(ConnectedWorkspaces, "refresh")
     .mockResolvedValue(undefined) as unknown as MockFunction;
@@ -558,6 +592,7 @@ const TEAMS_PROJECT_CARD: DrawnCard = {
 const TEAMS_PROJECT_MENU: Array<string> = [
   "View Teams",
   "Reset Admin Consent",
+  "Connect a Different Organization",
   "Uninstall OneUptime from Microsoft Teams",
 ];
 
@@ -599,15 +634,26 @@ describe("Project Settings > Microsoft Teams", () => {
     );
   });
 
-  test("Reset Admin Consent, from the ⋯: the card asks for consent again", async () => {
+  test("Reset Admin Consent, from the ⋯: the card asks for consent again, and its ⋯ can still move or uninstall the project", async () => {
     await renderTeams("project");
 
     await openMoreMenu("Manage the Microsoft Teams connection");
     await pickMenuItem("Reset Admin Consent");
 
-    expect(cardIn("microsoft-teams-project-connection").buttons).toEqual([
-      "Grant Admin Consent",
-    ]);
+    expect(cardIn("microsoft-teams-project-connection")).toEqual({
+      title: "Grant Admin Consent",
+      description:
+        "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels.",
+      buttons: ["Grant Admin Consent"],
+      moreMenu: "Manage the Microsoft Teams connection",
+    });
+    expect(await openMoreMenu("Manage the Microsoft Teams connection")).toEqual(
+      [
+        "View Teams",
+        "Connect a Different Organization",
+        "Uninstall OneUptime from Microsoft Teams",
+      ],
+    );
     expect(deleteItemMock).not.toHaveBeenCalled();
   });
 
@@ -662,6 +708,227 @@ describe("Project Settings > Microsoft Teams", () => {
     ]);
     expect(screen.queryByTestId("microsoft-teams-your-account")).toBeNull();
     expect(screen.queryByText(INSTALL_CARD_TITLE)).toBeNull();
+  });
+});
+
+/*
+ * THE ORGANIZATION THE PROJECT IS CONNECTED TO (Teams store certification,
+ * ticket 5877223).
+ *
+ * Every Microsoft sign-in for a connected project goes to its Microsoft
+ * 365 organization, and Microsoft stops anybody from another one on its
+ * own page - "Selected user account does not exist in tenant 'Contoso'" -
+ * without sending them back. A store reviewer who opened a test project
+ * connected to another reviewer's test tenant read "Consent is granted for
+ * your Microsoft 365 organization", signed in with their own, and was
+ * stopped. The cards now name the organization - every Microsoft 365
+ * developer tenant is called Contoso, so by its domain too - and a project
+ * can be moved to a different organization from the project card's ⋯.
+ */
+const CONTOSO: { tenantId: string; name: string; domain: string } = {
+  tenantId: "1c0f7a2e-3b4d-4e5f-8a9b-0c1d2e3f4a5b",
+  name: "Contoso",
+  domain: "m365x11111111.onmicrosoft.com",
+};
+
+const CONSENT_AT_ANY_ORGANIZATION: string =
+  "https://login.microsoftonline.com/organizations/v2.0/adminconsent?client_id=11111111-2222-3333-4444-555555555555";
+
+// The route a call to the Dashboard's API.get asked for.
+function routeOf(call: Array<unknown>): string {
+  return String((call[0] as { url?: unknown } | undefined)?.url || "");
+}
+
+describe("Microsoft Teams: the organization the project is connected to", () => {
+  test("its name and domain, on the project's card and on yours as the organization to sign in to", async () => {
+    mockAuthState.teamsOrganization = CONTOSO;
+    await renderTeams("project");
+
+    expect(cardIn("microsoft-teams-project-connection")).toEqual({
+      ...TEAMS_PROJECT_CARD,
+      description:
+        "Consent is granted for the Microsoft 365 organization Contoso (m365x11111111.onmicrosoft.com), so OneUptime can post to its teams' channels.",
+    });
+    expect(cardIn("microsoft-teams-your-account")).toEqual({
+      ...TEAMS_CONNECT_CARD,
+      description:
+        "This project is connected to the Microsoft 365 organization Contoso (m365x11111111.onmicrosoft.com). Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+    });
+  });
+
+  test("on User Settings, where each member connects, the same organization", async () => {
+    mockAuthState.teamsOrganization = CONTOSO;
+    await renderTeams("user");
+
+    expect(cardIn("microsoft-teams-your-account").description).toBe(
+      "This project is connected to the Microsoft 365 organization Contoso (m365x11111111.onmicrosoft.com). Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+    );
+    expect(allButtons()).toEqual(["Connect my account with Microsoft Teams"]);
+  });
+
+  test("a connection made before organizations were named: by its tenant ID", async () => {
+    mockAuthState.teamsOrganization = { tenantId: CONTOSO.tenantId };
+    await renderTeams("project");
+
+    expect(cardIn("microsoft-teams-project-connection").description).toBe(
+      "Consent is granted for the Microsoft 365 organization with tenant ID 1c0f7a2e-3b4d-4e5f-8a9b-0c1d2e3f4a5b, so OneUptime can post to its teams' channels.",
+    );
+    expect(cardIn("microsoft-teams-your-account").description).toBe(
+      "This project is connected to the Microsoft 365 organization with tenant ID 1c0f7a2e-3b4d-4e5f-8a9b-0c1d2e3f4a5b. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+    );
+  });
+
+  test("a name without a domain, or a domain without a name: whichever is known", async () => {
+    mockAuthState.teamsOrganization = {
+      tenantId: CONTOSO.tenantId,
+      domain: CONTOSO.domain,
+    };
+    await renderTeams("project");
+
+    expect(cardIn("microsoft-teams-project-connection").description).toBe(
+      "Consent is granted for the Microsoft 365 organization m365x11111111.onmicrosoft.com, so OneUptime can post to its teams' channels.",
+    );
+
+    cleanup();
+    mockAuthState.teamsOrganization = {
+      tenantId: CONTOSO.tenantId,
+      name: CONTOSO.name,
+    };
+    await renderTeams("project");
+
+    expect(cardIn("microsoft-teams-project-connection").description).toBe(
+      "Consent is granted for the Microsoft 365 organization Contoso, so OneUptime can post to its teams' channels.",
+    );
+  });
+
+  test("Reset Admin Consent: consent is asked of an admin of that organization, the only one Microsoft takes", async () => {
+    mockAuthState.teamsOrganization = CONTOSO;
+    await renderTeams("project");
+
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Reset Admin Consent");
+
+    expect(cardIn("microsoft-teams-project-connection").description).toBe(
+      "A Microsoft 365 admin of the organization Contoso (m365x11111111.onmicrosoft.com) grants the OneUptime app consent again, so it can post to its teams' channels.",
+    );
+
+    cleanup();
+    mockAuthState.teamsOrganization = { tenantId: CONTOSO.tenantId };
+    await renderTeams("project");
+
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Reset Admin Consent");
+
+    expect(cardIn("microsoft-teams-project-connection").description).toBe(
+      "A Microsoft 365 admin of the organization with tenant ID 1c0f7a2e-3b4d-4e5f-8a9b-0c1d2e3f4a5b grants the OneUptime app consent again, so it can post to its teams' channels.",
+    );
+  });
+
+  test("Connect a Different Organization, from the ⋯: asked first - what goes with it - and Cancel leaves everything as it was", async () => {
+    mockAuthState.teamsOrganization = CONTOSO;
+    await renderTeams("project");
+
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Connect a Different Organization");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(
+      within(dialog).getByText(
+        "Connect a different Microsoft 365 organization?",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
+    );
+
+    await click("Cancel");
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(cardIn("microsoft-teams-project-connection").title).toBe(
+      "Admin Consent Completed",
+    );
+  });
+
+  test("Connect a Different Organization, confirmed: the connection goes first, then consent starts again, for any organization", async () => {
+    mockAuthState.teamsOrganization = CONTOSO;
+    mockAuthState.isUserConnected = true;
+    apiGetMock.mockImplementation((async (...args: Array<unknown>) => {
+      return routeOf(args).includes("/microsoft-teams/admin-consent")
+        ? { data: { authorizationUrl: CONSENT_AT_ANY_ORGANIZATION } }
+        : { data: {} };
+    }) as never);
+    await renderTeams("project");
+
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Connect a Different Organization");
+    await click("Disconnect and Continue");
+
+    // The project's connection, deleted as Uninstall deletes it.
+    expect(deleteItemMock).toHaveBeenCalledTimes(1);
+    expect(
+      (deleteItemMock.mock.calls[0]![0] as { modelType: unknown }).modelType,
+    ).toBe(WorkspaceProjectAuthToken);
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // Then consent, which the server sends to any organization now.
+    const consentCalls: Array<number> = apiGetMock.mock.calls
+      .map((call: Array<unknown>, index: number): number => {
+        return routeOf(call).includes("/microsoft-teams/admin-consent")
+          ? index
+          : -1;
+      })
+      .filter((index: number): boolean => {
+        return index >= 0;
+      });
+
+    expect(consentCalls).toHaveLength(1);
+    expect(deleteItemMock.mock.invocationCallOrder[0]!).toBeLessThan(
+      apiGetMock.mock.invocationCallOrder[consentCalls[0]!]!,
+    );
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(String(navigateMock.mock.calls[0]![0])).toContain(
+      "/organizations/v2.0/adminconsent",
+    );
+
+    // Until Microsoft sends the browser back, the page is a project not connected.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(cardIn("microsoft-teams-project-connection")).toEqual({
+      title: "Grant Admin Consent",
+      description:
+        "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels.",
+      buttons: ["Grant Admin Consent"],
+    });
+    expect(allButtons()).not.toContain("Disconnect");
+  });
+
+  test("a disconnect that fails is said in the dialog, which stays open, and consent does not start", async () => {
+    mockAuthState.teamsOrganization = CONTOSO;
+    deleteItemMock.mockRejectedValue(
+      new Error("You do not have permission to delete this.") as never,
+    );
+    await renderTeams("project");
+
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Connect a Different Organization");
+    await click("Disconnect and Continue");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(
+      within(dialog).getByText(
+        "Error: You do not have permission to delete this.",
+        { exact: false },
+      ),
+    ).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(cardIn("microsoft-teams-project-connection").title).toBe(
+      "Admin Consent Completed",
+    );
   });
 });
 

@@ -61,6 +61,10 @@ jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormBuilderData",
   () => {
     return {
+      // The real module, its loaders replaced below.
+      ...(jest.requireActual(
+        "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormBuilderData",
+      ) as Record<string, unknown>),
       __esModule: true,
       loadFormCustomFields: (...args: Array<unknown>): unknown => {
         return loadCustomFieldsMock(...args);

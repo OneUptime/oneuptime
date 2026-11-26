@@ -1,11 +1,10 @@
-import {
-  SQL,
-  Statement,
-  escapeIlikePattern,
-} from "../Utils/AnalyticsDatabase/Statement";
+import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
 import Timezone from "../../Types/Timezone";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import HashedAddressSearch, {
+  HashedAddressTokens,
+} from "../Utils/Telemetry/HashedAddressSearch";
 import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
@@ -31,6 +30,11 @@ import {
   clampLogErrorPattern,
 } from "../Utils/Telemetry/LogErrorPatternSql";
 import LogNumericAttributeSql from "../Utils/Telemetry/LogNumericAttributeSql";
+import { buildTelemetryFilterCondition } from "../Utils/Telemetry/TelemetryFilterQuerySql";
+import {
+  readTelemetryFilterQuery,
+  ReadTelemetryFilterQuery,
+} from "../../Utils/Telemetry/TelemetryFilterQuery";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import {
   getLogAnalyticsNumericAggregationType,
@@ -94,6 +98,13 @@ export interface HistogramRequest {
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
+  /*
+   * The project's IP Address Hash tokens, when the request's search names
+   * an address and the project hashes addresses out of its logs: its free
+   * text and attribute filters then match an address's token too
+   * (HashedAddressSearch, #10418). Set by the server, never sent.
+   */
+  hashedAddresses?: HashedAddressTokens | undefined;
 }
 
 export interface FacetValue {
@@ -130,6 +141,13 @@ export interface FacetRequest {
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
+  /*
+   * The project's IP Address Hash tokens, when the request's search names
+   * an address and the project hashes addresses out of its logs: its free
+   * text and attribute filters then match an address's token too
+   * (HashedAddressSearch, #10418). Set by the server, never sent.
+   */
+  hashedAddresses?: HashedAddressTokens | undefined;
 }
 
 export type AnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -195,6 +213,13 @@ export interface AnalyticsRequest {
    * them: only the app.jank events at one threshold, say.
    */
   attributes?: LogAttributeFilters | undefined;
+  /*
+   * The project's IP Address Hash tokens, when the request's search names
+   * an address and the project hashes addresses out of its logs: its free
+   * text and attribute filters then match an address's token too
+   * (HashedAddressSearch, #10418). Set by the server, never sent.
+   */
+  hashedAddresses?: HashedAddressTokens | undefined;
   limit?: number | undefined;
 }
 
@@ -252,6 +277,13 @@ export interface ErrorPatternFilters {
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
+  /*
+   * The project's IP Address Hash tokens, when the request's search names
+   * an address and the project hashes addresses out of its logs: its free
+   * text and attribute filters then match an address's token too
+   * (HashedAddressSearch, #10418). Set by the server, never sent.
+   */
+  hashedAddresses?: HashedAddressTokens | undefined;
   /*
    * Leave out the lines that record an exception in their attributes
    * (LOG_EXCEPTION_ATTRIBUTE_KEYS): an error with an exception is grouped,
@@ -1253,6 +1285,7 @@ export class LogAggregationService {
       | "spanIds"
       | "sessionIds"
       | "attributes"
+      | "hashedAddresses"
     >,
   ): void {
     TelemetryReadScopeUtil.appendServiceFilter(statement, request);
@@ -1328,11 +1361,12 @@ export class LogAggregationService {
        * treatment here a "100% CPU" filter counted every log line in the
        * chart while the table below it showed only the matching ones.
        */
-      statement.append(
-        SQL` AND body ILIKE ${{
-          type: TableColumnType.Text,
-          value: `%${escapeIlikePattern(request.bodySearchText.trim())}%`,
-        }}`,
+      statement.append(" AND ").append(
+        HashedAddressSearch.containsCondition({
+          column: "body",
+          text: request.bodySearchText.trim(),
+          tokens: request.hashedAddresses,
+        }),
       );
     }
 
@@ -1350,7 +1384,10 @@ export class LogAggregationService {
      */
     appendAttributeFilters({
       statement: statement,
-      attributes: request.attributes,
+      attributes: HashedAddressSearch.bindSerializedAttributes(
+        request.attributes,
+        request.hashedAddresses,
+      ),
       validateKey: (attributeKey: string): void => {
         LogAggregationService.validateFacetKey(attributeKey);
       },
@@ -1382,6 +1419,8 @@ export class LogAggregationService {
     spanIds?: Array<string> | undefined;
     sessionIds?: Array<string> | undefined;
     attributes?: LogAttributeFilters | undefined;
+    // The project's IP Address Hash tokens, as the histogram's (HistogramRequest).
+    hashedAddresses?: HashedAddressTokens | undefined;
   }): Promise<Array<JSONObject>> {
     const maxLimit: number = Math.min(request.limit || 10000, 10000);
 
@@ -1608,7 +1647,13 @@ export class LogAggregationService {
      */
     totalStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
-    // Get matching count using the filter query as body search
+    /*
+     * The logs the filter's query matches, read as ingest reads it
+     * (TelemetryFilterQuerySql, #10436). It was searched for as text in the
+     * body, so "severityText = 'Debug'" counted the logs whose body held
+     * those words. A query ingest cannot read matches nothing there, and so
+     * nothing here.
+     */
     const matchStatement: Statement = SQL`
       SELECT count() AS cnt
       FROM ${LogAggregationService.TABLE_NAME}
@@ -1628,10 +1673,20 @@ export class LogAggregationService {
 
     matchStatement.append(LogAggregationService.RETENTION_FILTER);
 
-    LogAggregationService.appendCommonFilters(matchStatement, {
-      ...request,
-      bodySearchText: request.filterQuery,
-    });
+    LogAggregationService.appendCommonFilters(matchStatement, request);
+
+    const filter: ReadTelemetryFilterQuery = readTelemetryFilterQuery(
+      request.filterQuery,
+    );
+
+    if (filter.kind === "expr") {
+      matchStatement.append(" AND ");
+      matchStatement.append(
+        buildTelemetryFilterCondition({ signal: "log", expr: filter.expr }),
+      );
+    } else {
+      matchStatement.append(" AND 0");
+    }
 
     // Same cap, and the same stop, as the total above.
     matchStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));

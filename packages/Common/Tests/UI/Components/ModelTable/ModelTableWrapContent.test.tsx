@@ -172,13 +172,15 @@ const WRAP_CELL_CLASS_NAME: string =
 /*
  * A one-line value's wrapper: capped at 20rem, always together with the clip
  * and the ellipsis that keep a line that does not wrap inside its box - never
- * the bare cap #3585 was - with a record's link laid out as a line of text
- * so its name can end in "...", and what it holds on the row's line: a
- * page's own text-sm span (a key in a mono font) on the row's 24px line
- * too, not text-sm's 20px one 2px above its neighbours.
+ * the bare cap #3585 was - unless the value is a list (data-table-list), whose
+ * items each clip their own line and keep room for a focused resource's ring
+ * at its sides (#6862); with a record's link laid out as a line of text so
+ * its name can end in "...", and what it holds on the row's line: a page's
+ * own text-sm span (a key in a mono font) on the row's 24px line too, not
+ * text-sm's 20px one 2px above its neighbours.
  */
 const ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
+  "max-w-[20rem] overflow-x-clip text-ellipsis [&:has(>[data-table-list])]:overflow-x-visible [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * Any other column's value but a date's, a number's, a tick's or a
@@ -190,7 +192,7 @@ const ONE_LINE_CONTENT_CLASS_NAME: string =
  * breaks between words.
  */
 const GIVING_ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:[&:dir(rtl)]:[word-break:normal] data-[give=line]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[give=line]:line-clamp-1 data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full data-[whole=true]:min-w-[var(--ou-table-whole-width)] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
+  "max-w-[20rem] data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:[&:dir(rtl)]:[word-break:normal] data-[give=line]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[give=line]:line-clamp-1 data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full data-[whole=true]:min-w-[var(--ou-table-whole-width)] overflow-x-clip text-ellipsis [&:has(>[data-table-list])]:overflow-x-visible [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The row's name - its first column - has the same wrapper, and while its
@@ -200,7 +202,7 @@ const GIVING_ONE_LINE_CONTENT_CLASS_NAME: string =
  * narrows below 10rem. A line read right to left breaks between words.
  */
 const NAME_ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:[&:dir(rtl)]:[word-break:normal] data-[fill=true]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
+  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:[&:dir(rtl)]:[word-break:normal] data-[fill=true]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&:has(>[data-table-list])]:overflow-x-visible [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The default cap a wrapping column gets when it names no width of its own.

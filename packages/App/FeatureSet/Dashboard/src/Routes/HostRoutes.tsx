@@ -15,6 +15,7 @@ import HostCollectorConfigs from "../Pages/Host/CollectorConfigs";
 import HostCollectorConfigView from "../Pages/Host/CollectorConfigView";
 import HostSettingsOwnerRules from "../Pages/Host/Settings/OwnerRules";
 import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
+import HostRulesAuditLogs from "../Pages/Host/Settings/RulesAuditLogs";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
 import HostRecommendations from "../Pages/Host/View/Recommendations";
@@ -94,6 +95,18 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.HOST_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={HostRoutePath[PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS] || ""}
+          element={
+            <HostRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS] as Route
+              }
             />
           }
         />

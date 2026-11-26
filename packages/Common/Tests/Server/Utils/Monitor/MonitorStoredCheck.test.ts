@@ -1,4 +1,5 @@
 import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
+import EvaluationEventSeries from "../../../../Server/Utils/Monitor/EvaluationEventSeries";
 import MonitorEvidenceRedaction from "../../../../Server/Utils/Monitor/MonitorEvidenceRedaction";
 import MonitorRecordEvidence from "../../../../Server/Utils/Monitor/MonitorRecordEvidence";
 import MonitorStoredCheck from "../../../../Server/Utils/Monitor/MonitorStoredCheck";
@@ -172,6 +173,53 @@ describe("a record about one series of a grouped metric monitor", () => {
       expect(log["seriesBreakdown"] as Array<JSONObject>).toHaveLength(10);
       expect(log[EVIDENCE_SCOPE_FIELD]).toBeUndefined();
     }
+  });
+
+  test("leaves out the evaluation's list of every series it read (#10062), which a record of one series does not need", () => {
+    const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 10 });
+    const withTable: DataToProcess = {
+      ...fleet.check,
+      evaluationSummary: {
+        evaluatedAt: new Date(),
+        criteriaResults: [],
+        events: [],
+        series: {
+          count: 10,
+          rows: [
+            {
+              fingerprint: fingerprintOf(3),
+              labels: seriesLabels(3),
+              valueKind: "Metric",
+              metCriteriaIds: [],
+            },
+          ],
+        },
+      },
+    } as unknown as DataToProcess;
+
+    const scoped: JSONObject = stored({
+      check: withTable,
+      seriesFingerprint: fingerprintOf(3),
+    });
+    const summary: JSONObject = scoped["evaluationSummary"] as JSONObject;
+
+    expect(summary).toBeDefined();
+    expect(summary["series"]).toBeUndefined();
+    expect(summary["criteriaResults"]).toEqual([]);
+
+    // The whole monitor's record - a change of its status - keeps it.
+    const whole: JSONObject = stored({ check: withTable });
+    expect(
+      ((whole["evaluationSummary"] as JSONObject)["series"] as JSONObject)[
+        "count"
+      ],
+    ).toBe(10);
+
+    // The check handed in is left as it was.
+    expect(
+      (withTable as unknown as { evaluationSummary: JSONObject })
+        .evaluationSummary["series"],
+    ).toBeDefined();
   });
 
   test("never changes the check it was handed: the next record still reads it", () => {
@@ -424,5 +472,183 @@ describe("what a series' record keeps does not grow with the fleet", () => {
     expect(bytes(JSON.parse(JSON.stringify(fleet.check)))).toBeGreaterThan(
       500 * bytes(inFleet),
     );
+  });
+});
+
+/*
+ * The regression of #10841: each record kept every event the evaluation
+ * had added before it - the k-th alert of a fleet-wide problem the "Alert
+ * created" events of the k-1 before it - so what an alert kept, and the
+ * work of keeping it, grew with the alerts opened before it. A record about
+ * one series keeps the events about the whole monitor and its own series.
+ */
+describe("the events a series' record keeps", () => {
+  function event(input: {
+    type: string;
+    title: string;
+    seriesFingerprint?: string | undefined;
+  }): JSONObject {
+    return {
+      type: input.type,
+      title: input.title,
+      ...(input.seriesFingerprint
+        ? { seriesFingerprint: input.seriesFingerprint }
+        : {}),
+    };
+  }
+
+  function withEvents(
+    fleet: GroupedMetricCheck,
+    events: Array<JSONObject>,
+  ): DataToProcess {
+    return {
+      ...fleet.check,
+      evaluationSummary: {
+        evaluatedAt: new Date(),
+        criteriaResults: [],
+        events: events,
+      },
+    } as unknown as DataToProcess;
+  }
+
+  function eventsOf(log: JSONObject): Array<JSONObject> {
+    return (log["evaluationSummary"] as JSONObject)[
+      "events"
+    ] as Array<JSONObject>;
+  }
+
+  const MONITOR_WIDE: JSONObject = event({
+    type: "criteria-met",
+    title: "Criteria met: Restarted",
+  });
+
+  test("are the whole monitor's and its own series', in their order: never another series'", () => {
+    const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 10 });
+    const events: Array<JSONObject> = [
+      MONITOR_WIDE,
+      event({
+        type: "alert-created",
+        title: "Alert created: series 1",
+        seriesFingerprint: fingerprintOf(1),
+      }),
+      event({
+        type: "incident-created",
+        title: "Incident created: series 3",
+        seriesFingerprint: fingerprintOf(3),
+      }),
+      event({
+        type: "alert-skipped",
+        title: "Alert already active: series 2",
+        seriesFingerprint: fingerprintOf(2),
+      }),
+    ];
+
+    const log: JSONObject = stored({
+      check: withEvents(fleet, events),
+      seriesFingerprint: fingerprintOf(3),
+    });
+
+    expect(eventsOf(log)).toEqual([MONITOR_WIDE, events[2]]);
+  });
+
+  test("a record about the whole monitor keeps every event", () => {
+    const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 10 });
+    const events: Array<JSONObject> = [
+      MONITOR_WIDE,
+      event({
+        type: "alert-created",
+        title: "Alert created: series 1",
+        seriesFingerprint: fingerprintOf(1),
+      }),
+    ];
+
+    expect(eventsOf(stored({ check: withEvents(fleet, events) }))).toEqual(
+      events,
+    );
+    expect(
+      eventsOf(
+        stored({
+          check: withEvents(fleet, events),
+          seriesFingerprint: MetricSeriesFingerprint.WholeMonitorFingerprint,
+        }),
+      ),
+    ).toEqual(events);
+  });
+
+  test("never changes the events it was handed: the next record still reads them all", () => {
+    const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 10 });
+    const check: DataToProcess = withEvents(fleet, [
+      MONITOR_WIDE,
+      event({
+        type: "alert-created",
+        title: "Alert created: series 1",
+        seriesFingerprint: fingerprintOf(1),
+      }),
+    ]);
+    const before: string = JSON.stringify(check);
+
+    stored({ check: check, seriesFingerprint: fingerprintOf(4) });
+
+    expect(JSON.stringify(check)).toBe(before);
+  });
+
+  test("an event that names no series, as every event stored before did, is the whole monitor's", () => {
+    expect(EvaluationEventSeries.of(undefined)).toEqual({});
+    expect(EvaluationEventSeries.of(null)).toEqual({});
+    expect(EvaluationEventSeries.of("")).toEqual({});
+    expect(
+      EvaluationEventSeries.of(MetricSeriesFingerprint.WholeMonitorFingerprint),
+    ).toEqual({});
+    expect(EvaluationEventSeries.of(fingerprintOf(1))).toEqual({
+      seriesFingerprint: fingerprintOf(1),
+    });
+
+    const events: Array<unknown> = [
+      { type: "alert-created", title: "From before" },
+      { type: "alert-created", title: "Empty", seriesFingerprint: "" },
+      null,
+      "text",
+    ];
+
+    // Nothing left out: the very array, not a copy.
+    expect(
+      EvaluationEventSeries.keptFor({
+        events: events,
+        fingerprint: fingerprintOf(1),
+      }),
+    ).toBe(events);
+  });
+
+  test("the 500th alert of a check keeps what the first does: its record does not grow with the alerts opened before it", () => {
+    const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 600 });
+    const events: Array<JSONObject> = [MONITOR_WIDE];
+    const sizes: Array<number> = [];
+
+    for (let index: number = 0; index < 500; index++) {
+      const log: JSONObject = stored({
+        check: withEvents(fleet, events),
+        seriesFingerprint: fingerprintOf(index),
+      });
+
+      // The whole monitor's event, and none of the alerts before it.
+      expect(eventsOf(log)).toEqual([MONITOR_WIDE]);
+      sizes.push(bytes(log));
+
+      // Its own creation, added once it is opened, as MonitorAlert adds it.
+      events.push(
+        event({
+          type: "alert-created",
+          title: `Alert created: series ${index}`,
+          seriesFingerprint: fingerprintOf(index),
+        }),
+      );
+    }
+
+    /*
+     * One series' labels and points differ from another's by a few hundred
+     * bytes of digits. Kept with the events before it, the 500th alert kept
+     * about 50 KB more than the first.
+     */
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThan(1024);
   });
 });

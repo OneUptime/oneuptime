@@ -2,8 +2,23 @@ import { Blue500, Red500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { doesScrubRuleScrubNothing } from "Common/Types/Telemetry/ScrubRule";
+import {
+  readScrubRuleKeys,
+  SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+} from "Common/Types/Telemetry/ScrubRuleKeys";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * The attributes a rule names (#10366), under its pattern: the ones a
+ * Named Attributes rule hides whole, or the only ones a pattern rule reads
+ * - Data Security's rules name the attribute the data was found in.
+ */
+export const SCRUB_RULE_HIDES_KEYS: string = translationKey("Hides: {{keys}}");
+export const SCRUB_RULE_ONLY_IN_KEYS: string =
+  translationKey("Only in: {{keys}}");
 
 /*
  * A scrub rule's pattern type in the rules table - and, beside it, a red
@@ -26,6 +41,8 @@ export interface ComponentProps {
   patternType: string | undefined;
   customRegex: string | undefined;
   fieldsToScrub: string | undefined;
+  // The attributes it names (#10366).
+  attributeKeys?: unknown;
   // How each pattern type is drawn.
   patternTypes: Record<string, ScrubRulePatternPillConfig>;
   // The pattern types ingest scrubs with (LOG_ / TRACE_SCRUB_PATTERN_TYPES).
@@ -37,7 +54,9 @@ export interface ComponentProps {
 const ScrubRulePatternPill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const key: string = props.patternType || "unknown";
+  const keys: Array<string> = readScrubRuleKeys(props.attributeKeys);
   const config: ScrubRulePatternPillConfig = props.patternTypes[key] || {
     label: key,
     color: Blue500,
@@ -49,6 +68,7 @@ const ScrubRulePatternPill: FunctionComponent<ComponentProps> = (
     patternType: props.patternType,
     customRegex: props.customRegex,
     fieldsToScrub: props.fieldsToScrub,
+    attributeKeys: props.attributeKeys,
     knownPatternTypes: props.knownPatternTypes,
     knownFieldsToScrub: props.knownFieldsToScrub,
   });
@@ -70,6 +90,21 @@ const ScrubRulePatternPill: FunctionComponent<ComponentProps> = (
             tooltip="This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it."
           />
         </span>
+      )}
+      {keys.length > 0 ? (
+        <span
+          className="basis-full text-xs text-gray-500 break-all"
+          data-testid="scrub-rule-keys"
+        >
+          {translator.translateTemplate(
+            props.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE
+              ? SCRUB_RULE_HIDES_KEYS
+              : SCRUB_RULE_ONLY_IN_KEYS,
+            { keys: keys.join(", ") },
+          )}
+        </span>
+      ) : (
+        <></>
       )}
     </div>
   );

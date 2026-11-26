@@ -210,3 +210,43 @@ describe("saving a rule that reads a watchlist", () => {
     expect(loadLists).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A rule that lists its own values sends each as a parameter of its read,
+ * and ClickHouse 26.7 takes at most 1,000 fields in a request (#10520): a
+ * rule too long for one read is refused at the save, with what to do, not
+ * as its error at its first run.
+ */
+describe("saving a rule that lists its own values", () => {
+  // A rule matching any of `count` user names, listed in it.
+  function usersRule(count: number): string {
+    const users: string = Array.from(
+      { length: count },
+      (_value: unknown, index: number): string => {
+        return `      - user${index}`;
+      },
+    ).join("\n");
+
+    return `title: Listed users\ndetection:\n  s:\n    principalUser:\n${users}\n  condition: s\n`;
+  }
+
+  test("more values than one read can carry are refused at the save, with what to do", async () => {
+    await expect(
+      service.onBeforeCreate({
+        data: rule(usersRule(1000), PROJECT_ID),
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(
+      "This rule compares more values than one read can send to the database: about 1,000, where 900 fit. Put a long list of values in a watchlist and match it with |expand: a read sends a watchlist's values together.",
+    );
+    expect(loadLists).not.toHaveBeenCalled();
+  });
+
+  test("as many as one read carries save", async () => {
+    const data: DetectionRule = rule(usersRule(400), PROJECT_ID);
+
+    await service.onBeforeCreate({ data, props: { isRoot: true } });
+
+    expect(data.name).toBe("Listed users");
+  });
+});

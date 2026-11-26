@@ -1069,7 +1069,7 @@ Ett moln skriver väldigt mycket som ingen läser. Första gången ett projekts 
 | **OpenStack: health checks** | En lastbalanserare som frågar varje API efter `/` eller `/healthcheck`: en rad med några sekunders mellanrum, per API, per kontrollernod | Vid en kontroll var 2:a sekund, 43,200 rader om dagen för varje API på varje kontrollernod. Vid de 220 till 490 byte som de här raderna var på våra testmoln är det 10 till 21 MB om dagen. Detta är aritmetik utifrån en rads storlek: våra testmoln har ingen lastbalanserare | Ingenting en människa läser. Samma rad från en människa ser likadan ut |
 | **OpenStack: routine notifications** | `metrics.update`, och varje `*.exists` och `*.usage`. Se [Livscykelhändelser](#livscykelhändelser) | Inte mätt: våra inspelningar är för korta för att hålla många. Det växer med antalet instanser | Ingenting som säger att något ändrats. Slå av det här för att behålla varje notis |
 
-Dessa filter matchar bara det OneUptime läste från ett moln loggar, så inget annat i ett projekt berörs.
+Dessa filter matchar bara det OneUptime läste från ett moln loggar, så inget annat i ett projekt berörs. Så som OneUptime skapade dem behåller de varje rad som [Säkerhetshändelser](/docs/telemetry/security-events) läser: en inloggning, en attack i en begäran, en granskningspost. Ändrar du ett av dem släpper det allt det matchar, som ett eget filter.
 
 ### Hemligheter i loggar
 

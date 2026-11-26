@@ -137,6 +137,14 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/");
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+  /*
+   * How long the project keeps its security events (#10432): not known
+   * here, so a rule's details say nothing of it (SecurityEventRetentionUi
+   * covers what they say).
+   */
+  jest
+    .spyOn(SecurityCaseApi, "getSecurityEventRetention")
+    .mockResolvedValue(null);
   jest.spyOn(ModelAPI, "getList").mockImplementation(async () => {
     if (listFailure) {
       throw listFailure;

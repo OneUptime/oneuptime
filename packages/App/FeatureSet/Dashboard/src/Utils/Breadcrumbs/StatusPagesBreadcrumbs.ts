@@ -259,6 +259,10 @@ export function getStatusPagesBreadcrumbs(
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Status Pages", "Rules", "Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "Status Pages", "Rules", "Label Rules", "View Rule"],
     ),

@@ -6,6 +6,7 @@ import OperatorSelector from "./OperatorSelector";
 import Search from "../../../Types/BaseDatabase/Search";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
@@ -73,7 +74,8 @@ const detectCurrentState: DetectCurrentStateFunction = (
   if (rawValue instanceof EqualTo) {
     return { operator: FilterOperator.EqualTo, value: rawValue.toString() };
   }
-  if (rawValue instanceof NotEqual) {
+  // NotEqual is how a link or a saved view made before #10581 wrote it.
+  if (rawValue instanceof NotEqualOrNull || rawValue instanceof NotEqual) {
     return { operator: FilterOperator.NotEqualTo, value: rawValue.toString() };
   }
   if (rawValue instanceof IsNull) {
@@ -110,7 +112,12 @@ const buildQueryValue: BuildQueryValueFunction = (
     case FilterOperator.EqualTo:
       return value ? new EqualTo(value) : undefined;
     case FilterOperator.NotEqualTo:
-      return value ? new NotEqual(value) : undefined;
+      /*
+       * Anything but the value, an empty one included (#10581), as "Does
+       * not contain" always has been: a record with no value does not
+       * equal it either. "Is not empty" leaves the empty ones out.
+       */
+      return value ? new NotEqualOrNull(value) : undefined;
     case FilterOperator.IsEmpty:
       return new IsNull();
     case FilterOperator.IsNotEmpty:

@@ -27,7 +27,7 @@ För ett enskilt projekts egen leverantör, se [SSO](/docs/identity/sso).
 :::steps
 ### Öppna listan över leverantörer
 
-Logga in som master admin och öppna Admin Dashboard med **Admin-inställningar** i användarmenyn. Gå sedan till **Inställningar** > **Enkel inloggning**. Sidan listar instansens SAML-leverantörer, sedan dess OpenID Connect-leverantörer och sist kortet **Kräv SSO**.
+Logga in som master admin och välj **Administratörspanel** i användarmenyn. Gå sedan till **Inställningar** > **Enkel inloggning**. Sidan listar instansens SAML-leverantörer, sedan dess OpenID Connect-leverantörer och sist kortet **Kräv SSO**.
 
 ### Skapa leverantören
 
@@ -103,6 +103,12 @@ Registrera den omdirigerings-URI efter utloggning som kortet **Identitetsleveran
 :::
 
 Var Okta, Microsoft Entra ID, Auth0 och Keycloak har de här inställningarna står på sidan [SSO](/docs/identity/sso).
+
+## Logga in igen för att bekräfta att det är du
+
+Den som bara loggar in via en global leverantör bekräftar att det är de med **Logga in igen** innan de ändrar hur de loggar in eller tar bort sitt konto: OneUptime skickar tillbaka dem till leverantören med `ForceAuthn="true"` för SAML, eller `prompt=login` och `max_age=0` för OpenID Connect (bara `prompt=login` till Microsoft Entra ID), och räknar det bara när leverantören i `AuthnInstant` eller `auth_time` säger att de loggade in vid det tillfället eller senare. När du lägger till, ändrar eller tar bort en global leverantör blir du först ombedd att [bekräfta att det är du](/docs/introduction/your-account#bekräfta-att-det-är-du).
+
+Vad du ska ställa in i Okta, Microsoft Entra ID, Keycloak och Google Workspace står på sidan [SSO](/docs/identity/sso#logga-in-igen-för-att-bekräfta-att-det-är-du).
 
 ## Kräv SSO
 
@@ -187,4 +193,5 @@ Hela instansen kräver SSO, och det här var en inloggning med lösenord, passny
 - [SSO](/docs/identity/sso): Konfigurera ett projekts egen SAML- eller OIDC-leverantör.
 - [SCIM](/docs/identity/scim): Låt din identitetsleverantör lägga till och ta bort personer automatiskt.
 - [Användare, team och behörigheter](/docs/permissions/index): Vad teamen som nya personer går med i låter dem göra.
+- [Hjälp och support](/docs/self-hosted/help-and-support): Tala om för personer som behöver en inbjudan vem de ska fråga.
 :::

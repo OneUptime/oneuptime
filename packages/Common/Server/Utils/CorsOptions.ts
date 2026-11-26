@@ -1,5 +1,6 @@
 import type { CorsOptions as ExpressCorsOptions } from "cors";
 import { FIELDS_LEFT_OUT_HEADER } from "../../Types/API/FieldsLeftOut";
+import { WRITE_WARNING_HEADER } from "../../Types/API/WriteWarnings";
 
 /*
  * CORS options for the shared Express app.
@@ -35,6 +36,12 @@ export const CORS_EXPOSED_HEADERS: Array<string> = [
    * that creates records with a project's API key.
    */
   FIELDS_LEFT_OUT_HEADER.toLowerCase(),
+  /*
+   * What a write through the API does that its caller should know - a drop
+   * filter that takes what monitors or Security Events read
+   * (Types/API/WriteWarnings, #10436) - for the same page.
+   */
+  WRITE_WARNING_HEADER.toLowerCase(),
 ];
 
 /*

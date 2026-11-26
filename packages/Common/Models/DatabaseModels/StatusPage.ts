@@ -594,52 +594,6 @@ export default class StatusPage extends BaseModel {
   })
   public createdByUserId?: ObjectID = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
-
   /*
    * Archiving takes a status page offline without deleting it, its
    * subscribers or its history: it leaves the Status Pages list, every
@@ -3900,6 +3854,66 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Growth,
   })
   public showEpisodeLabelsOnStatusPage?: boolean = undefined;
+
+  /*
+   * How the page lays out an incident that belongs to an episode it shows,
+   * while it shows both lists (showIncidentsOnStatusPage and
+   * showEpisodesOnStatusPage). On, the episode is one card that lists its
+   * incidents - the ones the page shows on their own - and the resources
+   * they affect, and those incidents get no card of their own; an incident
+   * in no episode the page shows keeps its own card
+   * (Common/Utils/StatusPage/IncidentGrouping). Off, every incident and
+   * every episode has a card of its own, as pages always had them.
+   *
+   * On for a new page. A page made before the setting existed keeps it off,
+   * so it shows what it always showed until someone turns it on
+   * (AddGroupIncidentsByEpisodeToStatusPage).
+   *
+   * Not plan-gated, like onlyShowScopedIncidents: it shows nothing the page
+   * does not show already, only how.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show Incidents Grouped by Episode",
+    description:
+      "When on, an episode shows on the status page as one card that lists its incidents and the resources they affect, instead of a card for each of its incidents.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: false,
+  })
+  public groupIncidentsByEpisode?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

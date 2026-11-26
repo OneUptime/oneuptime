@@ -5,6 +5,7 @@ Le impostazioni del progetto raccolgono ciò che vale per l'intero progetto: il 
 :::cards
 - [Trovare un'impostazione](#trovare-unimpostazione): Che cosa contiene ogni sezione del menu laterale.
 - [I dettagli del progetto](#i-dettagli-del-progetto): Il nome, l'ID e l'accesso del supporto.
+- [Nomi univoci](#nomi-univoci): Se due record dello stesso tipo possono avere lo stesso nome.
 - [Prodotti](#prodotti): I prodotti che questo progetto mostra e quelli che nasconde.
 - [Etichette](#etichette): Contrassegni per risorse, autorizzazioni e regole.
 - [Eliminare il progetto](#eliminare-il-progetto): Che cosa serve, e che cosa se ne va con lui.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Sezione | Pagine | Dove leggere di più |
 | --- | --- | --- |
-| **Base** | **Progetto**, **Prodotti**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Prodotti](#prodotti), [Etichette](#etichette) |
+| **Base** | **Progetto**, **Prodotti**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Nomi univoci](#nomi-univoci), [Prodotti](#prodotti), [Etichette](#etichette) |
 | **Area di lavoro** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochiamate** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochiamate](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati**, **Utilizzo** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention), [Utilizzo della telemetria](/docs/telemetry/usage) |
 | **Notifiche** | **Canali di notifica**, **Log di notifica**, **App mobili** | [Notifiche](#notifiche) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## I dettagli del progetto
 
-**Impostazioni del progetto → Base → Progetto** contiene due schede.
+**Impostazioni del progetto → Base → Progetto** contiene le schede del progetto: **Dettagli del progetto**, **Nomi univoci** e, su OneUptime Cloud, **Accesso dell'assistenza clienti**.
 
 **Dettagli del progetto** mostra il nome del progetto e il suo ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Data Residency**: su OneUptime Cloud, dove devono stare i dati del tuo progetto, quando OneUptime lo ha registrato. Solo OneUptime lo imposta.
 
 **Accesso dell'assistenza clienti**, su OneUptime Cloud, decide se il team di supporto di OneUptime può aprire il progetto. Attiva **Consenti al supporto di OneUptime di accedere a questo progetto** quando vuoi il suo aiuto: OneUptime chiede prima, perché il supporto potrà vedere e modificare tutto nel progetto, e tu fai clic su **Fai entrare il supporto**. Disattivalo quando ha finito: viene salvato subito. I Proprietari del progetto e gli Amministratori del progetto lo modificano.
+
+## Nomi univoci
+
+**Nomi univoci**, in **Impostazioni del progetto → Base → Progetto**, decide se due record dello stesso tipo possono avere lo stesso nome nel progetto. Finché **Richiedi nomi univoci** è attivo, OneUptime rifiuta un nome che un altro record dello stesso tipo ha già, che sia digitato qui, inviato tramite l'API o impostato in Terraform, e qualunque siano maiuscole e spazi: `API Health Check` e `api health check` sono un solo nome. L'interruttore salva appena lo sposti. I Proprietari del progetto e gli Amministratori del progetto lo modificano.
+
+È attivo in un nuovo progetto. Un progetto che esisteva già prima lo tiene disattivato, perché i client dell'API e le configurazioni Terraform del progetto possono contare su nomi che si ripetono: attivalo quando sei pronto.
+
+Sotto l'interruttore, la scheda elenca ogni nome che il progetto ha già più di una volta, tipo per tipo, con un link a ogni record e il giorno in cui è stato creato. Attivare l'interruttore non rifiuta nulla di ciò che esiste: quei record continuano a funzionare finché qualcuno non li rinomina, e solo un nuovo record o una rinomina hanno bisogno di un nome proprio. Salvare di nuovo un record con il suo stesso nome, con qualunque maiuscola, non è una rinomina.
+
+Qualunque cosa dica l'interruttore, un modulo avvisa mentre digiti un nome che un altro record del suo tipo ha già, con un link a quel record. Finché l'interruttore è attivo, l'avviso dice anche che il salvataggio verrebbe rifiutato.
+
+L'interruttore vale per i tipi a cui dai un nome e che scegli per nome: monitor, gruppi di monitor, sonde, SLO, i modelli di incidenti, avvisi, manutenzioni e pagine di stato, chiavi API, chiavi di acquisizione, ruoli personalizzati, provider LLM, pipeline, budget e connessioni. Gli eventi e le registrazioni di ciò che è accaduto ripetono i loro nomi per natura e restano esclusi: incidenti, avvisi, episodi, eventi di manutenzione e annunci delle pagine di stato, e così ciò che OneUptime scopre, come host e pod. Team, etichette, criteri di reperibilità, programmi di reperibilità, pagine di stato, flussi di lavoro e alcuni altri tipi hanno un nome proprio in ogni progetto, qualunque cosa dica l'interruttore.
+
+Quando OneUptime dà un nome a un record per te, come un monitor creato da un suggerimento o uno importato, e il nome è già preso, aggiunge un numero invece di rifiutarlo: `API Health Check 2`.
 
 ## Prodotti
 
@@ -145,6 +160,10 @@ Per rinominare il progetto serve un Proprietario del progetto, oppure il permess
 
 :::details Elimina: Progetto resta bloccato nella finestra
 Scrivi il nome del progetto esattamente come lo mostra la finestra: maiuscole e minuscole contano.
+:::
+
+:::details Un nome viene rifiutato perché il progetto richiede nomi univoci
+Un altro record dello stesso tipo ha quel nome, qualunque siano maiuscole e spazi. Scegli un altro nome, o rinomina prima l'altro record: **Nomi univoci**, in **Impostazioni del progetto → Base → Progetto**, elenca i nomi che il progetto ha più di una volta, con un link a ogni record. Se solo un record archiviato ha quel nome, annullane l'archiviazione o scegli un altro nome.
 :::
 
 ## Passi successivi

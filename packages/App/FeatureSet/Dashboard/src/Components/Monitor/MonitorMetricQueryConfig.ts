@@ -6,11 +6,17 @@ import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
+import MonitorStepSeries from "Common/Types/Monitor/MonitorStepSeries";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import { Translator } from "Common/Types/Translator";
+import {
+  Translator,
+  fillTemplate,
+  getInlineSeparator,
+} from "Common/Types/Translator";
 import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 
 /*
@@ -29,6 +35,11 @@ export type GetSeriesResolverArgs = {
    * named by its metric (a Server monitor's CPU), in their words.
    */
   translator?: Translator | undefined;
+  /*
+   * The monitor's steps: on a monitor with several, each step's checks are
+   * a line of their own, named by the step (#10906).
+   */
+  monitorSteps?: MonitorSteps | undefined;
 };
 
 /*
@@ -48,12 +59,61 @@ const translateChartWord: (
   return translator.translateText(text) || text;
 };
 
+// A series' attributes, as the aggregate hands them: an object, or its JSON.
+function readSeriesAttributes(
+  data: AggregateModel | undefined,
+): JSONObject | null {
+  const attributes: unknown = data?.["attributes"];
+
+  if (typeof attributes === "string") {
+    try {
+      return JSONFunctions.parseJSONObject(attributes);
+    } catch {
+      return null;
+    }
+  }
+
+  return attributes && typeof attributes === "object"
+    ? (attributes as JSONObject)
+    : null;
+}
+
 /*
  * Shared title resolver for a chart series. Extracted so each category's
  * MetricView can reuse the same logic for probe name / disk path / interface
  * grouping without duplicating the closure.
+ *
+ * On a monitor with several steps, each step's checks are a series of their
+ * own (their rows name their step, #10906): one probe's two steps would
+ * otherwise share its name and be drawn as one line between them. Each is
+ * named by its step too: "London · Step 2".
  */
 export function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
+  const series: ChartSeries = resolveSeriesTitleOfItsOwn(args);
+
+  const stepNumber: number | null = MonitorStepSeries.getStepNumber({
+    attributes: readSeriesAttributes(args.data),
+    monitorSteps: args.monitorSteps,
+  });
+
+  if (stepNumber === null) {
+    return series;
+  }
+
+  const stepName: string = args.translator
+    ? args.translator.translateTemplate("Step {{number}}", {
+        number: stepNumber,
+      })
+    : fillTemplate("Step {{number}}", { number: stepNumber });
+
+  return {
+    ...series,
+    title: `${series.title}${getInlineSeparator(args.translator?.language)}${stepName}`,
+  };
+}
+
+// The series' own title: its probe, disk or interface, or its metric.
+function resolveSeriesTitleOfItsOwn(args: GetSeriesResolverArgs): ChartSeries {
   const { data, monitorType, monitorMetricType, probes } = args;
 
   const fallback: ChartSeries = {
@@ -139,6 +199,8 @@ export function buildMonitorMetricQueryConfig(data: {
   metric: MonitorMetricType;
   probes: Array<Probe>;
   translator?: Translator | undefined;
+  // On a monitor with several steps, each step's checks are a line of their own.
+  monitorSteps?: MonitorSteps | undefined;
 }): MetricQueryConfigData {
   const monitorMetricType: MonitorMetricType = data.metric;
   const monitorType: MonitorType = data.monitorType;
@@ -196,6 +258,7 @@ export function buildMonitorMetricQueryConfig(data: {
         monitorMetricType: monitorMetricType,
         probes: data.probes,
         translator: translator,
+        monitorSteps: data.monitorSteps,
       });
     },
   };

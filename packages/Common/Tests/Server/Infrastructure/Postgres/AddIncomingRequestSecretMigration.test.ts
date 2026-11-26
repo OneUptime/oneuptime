@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddIncomingRequestSecret1809178800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178800000-AddIncomingRequestSecret";
 import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181830000-AddIncomingRequestSecretMonitorAccess";
@@ -97,7 +98,11 @@ describe("AddIncomingRequestSecret migration", () => {
       getTableColumns(new IncomingRequestSecret()),
     ).filter((column: string) => {
       // Relations are their id columns in SQL.
-      return !["project", "createdByUser", "deletedByUser"].includes(column);
+      return (
+        !["project", "createdByUser", "deletedByUser"].includes(column) &&
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        !RecordActorUtil.isColumn(column)
+      );
     });
 
     for (const column of columns) {

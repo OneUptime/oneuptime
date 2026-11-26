@@ -204,26 +204,45 @@ function hostMonitor(data: {
 
 function metricsMonitor(
   queries: Array<QuerySpec>,
-  options?: { isPromQL?: boolean },
+  options?: { promQLQuery?: string; name?: string },
 ): Monitor {
-  return monitorOf(MonitorType.Metrics, [
-    stepWith((step: MonitorStep) => {
-      step.setMetricMonitor({
-        ...(options?.isPromQL
-          ? {
-              queryLanguage: MetricMonitorQueryLanguage.PromQL,
-              promQLQuery: 'windows_service_status{name="Spooler"} != 4',
-            }
-          : {}),
-        metricViewConfig: hostMonitorConfig({
-          hostIdentifier: "",
-          queries: queries,
-        }).metricViewConfig,
-        rollingTime: RollingTime.Past5Minutes,
-        telemetryServiceIds: [],
-      });
-    }),
-  ]);
+  return monitorOf(
+    MonitorType.Metrics,
+    [
+      stepWith((step: MonitorStep) => {
+        step.setMetricMonitor({
+          ...(options?.promQLQuery !== undefined
+            ? {
+                queryLanguage: MetricMonitorQueryLanguage.PromQL,
+                promQLQuery: options.promQLQuery,
+              }
+            : {}),
+          metricViewConfig:
+            queries.length > 0
+              ? hostMonitorConfig({
+                  hostIdentifier: "",
+                  queries: queries,
+                }).metricViewConfig
+              : { queryConfigs: [], formulaConfigs: [] },
+          rollingTime: RollingTime.Past5Minutes,
+          telemetryServiceIds: [],
+        });
+      }),
+    ],
+    options?.name,
+  );
+}
+
+// A Metrics monitor written in PromQL, the builder's queries kept from before.
+function promQLMonitor(
+  promQLQuery: string,
+  name?: string,
+  builderQueries: Array<QuerySpec> = [],
+): Monitor {
+  return metricsMonitor(builderQueries, {
+    promQLQuery: promQLQuery,
+    ...(name ? { name } : {}),
+  });
 }
 
 function find(
@@ -458,14 +477,199 @@ describe("monitors that watch a Windows service", () => {
         ),
       ).toEqual([]);
     });
+  });
 
-    test("not one written in PromQL: its expression is not read", () => {
+  /*
+   * #10452: a Metrics monitor written in PromQL is read by its expression
+   * (HostServicePromQL pins the expressions one by one). These pin what the
+   * list does with them.
+   */
+  describe("one written in PromQL", () => {
+    // What a match says, its doubt included.
+    function findWithDoubt(
+      monitors: Array<Monitor>,
+      watched: HostServiceMonitorSubject,
+    ): Array<{
+      name: string;
+      isForThisService: boolean;
+      uncertainLabels: Array<string> | null;
+    }> {
+      return Monitors.findMonitorsWatchingHostService({
+        monitors: monitors,
+        subject: watched,
+      }).map((match: HostServiceMonitorMatch) => {
+        return {
+          name: match.monitor.name || "",
+          isForThisService: match.isForThisService,
+          uncertainLabels: match.doubt ? match.doubt.uncertainLabels : null,
+        };
+      });
+    }
+
+    test("one that reads the service on the host is listed, as surely as a builder's", () => {
+      expect(
+        findWithDoubt(
+          [
+            promQLMonitor(
+              'windows_service_status{name="Spooler", resource_host_name="web-01"} != 4',
+              "Spooler down",
+            ),
+            promQLMonitor("windows_service_status != 4", "Any service down"),
+          ],
+          subject(WINDOWS, "Spooler"),
+        ),
+      ).toEqual([
+        { name: "Spooler down", isForThisService: true, uncertainLabels: null },
+        {
+          name: "Any service down",
+          isForThisService: false,
+          uncertainLabels: null,
+        },
+      ]);
+    });
+
+    test("one it should not claim is not listed: another service, another host, another metric", () => {
       expect(
         find(
-          [metricsMonitor([SPOOLER], { isPromQL: true })],
+          [
+            promQLMonitor('windows_service_status{name="W3SVC"} != 4'),
+            promQLMonitor(
+              'windows_service_status{name="Spooler", resource_host_name="web-02"} != 4',
+            ),
+            promQLMonitor('windows_service_status{name!="Spooler"} != 4'),
+            promQLMonitor(
+              'system_cpu_utilization{resource_host_name="web-01"}',
+            ),
+            promQLMonitor('windows_service_status{name="Spooler"'),
+            promQLMonitor(""),
+          ],
           subject(WINDOWS, "Spooler"),
         ),
       ).toEqual([]);
+    });
+
+    test("its expression is read, not the builder's queries it keeps from before", () => {
+      // Written in PromQL for another service, after a builder query of this one.
+      expect(
+        find(
+          [
+            promQLMonitor('windows_service_status{name="W3SVC"}', "W3SVC", [
+              SPOOLER,
+            ]),
+          ],
+          subject(WINDOWS, "Spooler"),
+        ),
+      ).toEqual([]);
+
+      // And the other way round: its builder queries were of another service.
+      expect(
+        find(
+          [
+            promQLMonitor(
+              'windows_service_status{name="Spooler"} != 4',
+              "Spooler",
+              [
+                {
+                  metricName: "windows.service.status",
+                  attributes: { name: "W3SVC" },
+                },
+              ],
+            ),
+          ],
+          subject(WINDOWS, "Spooler"),
+        ),
+      ).toEqual([{ name: "Spooler", isForThisService: true }]);
+    });
+
+    test("one the page cannot be sure of is listed with what it cannot check", () => {
+      expect(
+        findWithDoubt(
+          [
+            promQLMonitor(
+              'windows_service_status{name="Spooler", startup_mode="auto_start"} != 4',
+              "Auto-start services down",
+            ),
+            promQLMonitor(
+              'windows_service_status != 4 unless windows_service_status{name=~"Spool.*"}',
+              "Services down, but Spooler",
+            ),
+          ],
+          subject(WINDOWS, "Spooler"),
+        ),
+      ).toEqual([
+        {
+          name: "Auto-start services down",
+          isForThisService: true,
+          uncertainLabels: ["startup_mode"],
+        },
+        {
+          name: "Services down, but Spooler",
+          isForThisService: false,
+          uncertainLabels: [],
+        },
+      ]);
+    });
+
+    test("a systemd unit's page lists the PromQL monitors of its state, and not a Windows service's", () => {
+      expect(
+        find(
+          [
+            promQLMonitor(
+              'systemd_unit_state{systemd_unit_active_state="failed"} == 1',
+              "Failed units",
+            ),
+            promQLMonitor(
+              'systemd_unit_state{resource_systemd_unit_name="nginx.service", systemd_unit_active_state="active"} != 1',
+              "nginx down",
+            ),
+            promQLMonitor(
+              'systemd_unit_state{resource_systemd_unit_name="cron.service"} != 1',
+              "cron down",
+            ),
+            promQLMonitor(
+              'windows_service_status{name="nginx.service"} != 4',
+              "A Windows service",
+            ),
+          ],
+          subject(SYSTEMD, "nginx.service"),
+        ),
+      ).toEqual([
+        { name: "Failed units", isForThisService: false },
+        { name: "nginx down", isForThisService: true },
+      ]);
+    });
+
+    test("a monitor with a step the page is sure of is sure, whatever its other steps", () => {
+      const monitor: Monitor = monitorOf(MonitorType.Metrics, [
+        stepWith((step: MonitorStep) => {
+          step.setMetricMonitor({
+            queryLanguage: MetricMonitorQueryLanguage.PromQL,
+            promQLQuery:
+              'windows_service_status{startup_mode="auto_start"} != 4',
+            metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+            rollingTime: RollingTime.Past5Minutes,
+          });
+        }),
+        stepWith((step: MonitorStep) => {
+          step.setMetricMonitor({
+            metricViewConfig: hostMonitorConfig({
+              hostIdentifier: "",
+              queries: [SPOOLER],
+            }).metricViewConfig,
+            rollingTime: RollingTime.Past5Minutes,
+          });
+        }),
+      ]);
+
+      const matches: Array<HostServiceMonitorMatch> =
+        Monitors.findMonitorsWatchingHostService({
+          monitors: [monitor],
+          subject: subject(WINDOWS, "Spooler"),
+        });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.doubt).toBeUndefined();
+      expect(matches[0]!.isForThisService).toBe(true);
     });
   });
 

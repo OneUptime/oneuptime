@@ -4,6 +4,7 @@ Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det
 
 :::cards
 - [Security Operations](#security-operations): Ett säkerhetsärende för varje datalager med ett kritiskt problem.
+- [Var det ett dataintrång?](#var-det-ett-dataintrång): Varje kritisk exponering bedöms: hur länge, vem som kunde läsa data, vems data det var och vilka lagar om dataintrång som kan gälla.
 - [Larm och jour](#larm-och-jour): Larma den som har jour när ett kritiskt problem öppnas.
 - [Incidenter](#incidenter): Deklarera en incident för ett intrång som din incidentprocess ska hantera.
 - [Ägare](#ägare): Vem som äger varje datalager, angivet för hand eller via regler, och e-postmeddelandet de får.
@@ -46,6 +47,22 @@ Därifrån hanteras ärendet som vilket annat som helst: det tilldelas, får ant
 
 Varje säkerhetsärende, oavsett vad som öppnade det, visar data i riskzonen under **Påverkan**: de datalager med känsliga data som ärendet gäller, och varje datalager som dess användare och roller kan nå, det känsligaste först, med vad vart och ett innehåller, ungefär hur många poster, hur exponerat det är och hur många identiteter som kan nå det. En antagen rollsession som ärendet nämner räknas som sin roll, och en e-postadress som de molnanvändare den hör till. Det läses med läsarens egna behörigheter, så en roll som inte får läsa Datasäkerhet ser att den här delen är utelämnad.
 
+## Var det ett dataintrång?
+
+En kritisk exponering av ett datalager med känsligheten **Begränsad** eller **Konfidentiell** - datalagret är öppet för vem som helst på internet, delat med konton utanför dina, eller en ögonblicksbild som andra kan återställa - får sitt ärende bedömt på egen hand när ärendet öppnas. Alla andra ärenden om ett datalager bedöms när en person trycker på **Bedöm denna exponering** på ärendets **Översikt**. Vanlig kod räknar ut bedömningen utifrån det som OneUptime har registrerat, och räknar ut den på nytt varje gång den läses:
+
+- **Hur länge det var öppet**: från den ändring i molnets logg som exponerade datalagret, när en sådan loggades under de 30 dagarna innan det hittades, annars åtminstone sedan Datasäkerhet hittade det; tills Datasäkerhets egen åtgärd stängde det, en ändring stängde det eller en kontroll fann det stängt.
+- **Vem som kunde läsa det**: om datalagret loggade läsningar. Där det inte gjorde det säger bedömningen ”Läsningar loggades inte. Behandla data som lästa.” Den räknar de konton utanför ditt företag som kunde läsa datalagret, och hur många av dem som använde sin åtkomst medan det var öppet, utan att någonsin nämna dem vid namn.
+- **Vems data det var**: vad datalagret innehåller, ungefär hur många poster, vilka de gäller och var personerna bor, så som data visar och så som en person anger.
+- **Hemligheterna att byta ut**: varje hemlighet som hittades i datalagret medan det var öppet, efter typ och var den hittades, aldrig dess värde.
+- **Lagarna om dataintrång som kan gälla**: varje rad i OneUptimes tabell över lagar om dataintrång, med vad den kräver, av vem, dess tidsfrist räknad från när Datasäkerhet hittade exponeringen och vad en person fortfarande kontrollerar innan den gäller.
+
+Tabellen täcker GDPR artikel 33 och 34, UK GDPR artikel 33 och 34, HIPAA:s Breach Notification Rule, krav 12.10.1 i PCI DSS, Brasiliens LGPD, Indiens DPDP Rules och CERT-In:s direktiv, samt lagarna om dataintrång i Kalifornien, Colorado, Florida, New York, Texas och Washington. Varje rad länkar till lagens egen text, dess källa, och anger vilken dag den senast kontrollerades mot den. Det som tabellen inte täcker - ett annat land, en annan amerikansk delstat, var din organisation är etablerad, dina avtal - säger bedömningen i klartext.
+
+OneUptime AI sammanställer bedömningen så som dina AI-regler för Datasäkerhet tillåter, eller när en person ber om det: vad den betyder, ett meddelande till tillsynsmyndigheten, ett meddelande till de berörda personerna och en intern sammanfattning (se [OneUptime AI i Datasäkerhet](/docs/data-security/ai)). Varje utkast håller sig till bedömningens fakta: ett utkast med ett tal eller en lag som inget av dem innehåller kasseras. Inget skickas någonstans: ett meddelande är text som en person redigerar och kopierar, och bedömningen och varje utkast säger att de inte är juridisk rådgivning.
+
+Ärendets läsare som också får läsa datalagret och dess fynd ser bedömningen, eftersom den nämner vad datalagret innehåller. Att bedöma, skriva utkast, redigera ett meddelande och ange var personerna bor kräver dessutom behörighet att redigera ärendet. Se [Var det ett dataintrång?](/docs/telemetry/security-cases#var-det-ett-dataintrång) för ärendets kort.
+
 ## Larm och jour
 
 Med **Skapa larm** påslaget skapar ett kritiskt problem ett larm, med namnet ”Data Security:” följt av problemets titel och datalagret. Larmet når den som har jour via sina egna regler, som vilket annat larm som helst (se [Larm](/docs/alerts/index) och [Jour](/docs/on-call/index)). Ett problem har högst ett öppet larm åt gången, hur ofta det än utvärderas. **Larmallvar** anger larmets allvarlighetsgrad; lämnas den tom är det projektets allvarligaste.
@@ -66,6 +83,8 @@ Ett datalagers ägare är personer och team, på datalagrets sida **Ägare**. De
 
 Med **Avisera ägare** påslaget skickar varje utvärdering som öppnar problem på ett datalager ett e-postmeddelande till dess ägare – personerna som äger det, och medlemmarna i de team som gör det, upp till 50 – med en rubrik som anger hur många nya problem datalagret har, till exempel ”Data Security: 2 new issues on orders-db”. Det listar varje nytt problems allvarlighetsgrad och titel och datalagrets känslighet, och länkar till datalagret. Det innehåller aldrig något prov.
 
+Medan OneUptime AI själv arbetar med nya problem väntar e-postmeddelandet på dess analys, i upp till 10 minuter, och ger varje analyserat problem två rader till: dess bedömning och varför, och den kortaste vägen till åtgärdat. Varje ägare får de rader ägaren får läsa: en ägare som inte får läsa problemet får inga, och en rad som bygger på något ägaren inte får läsa utelämnas.
+
 ### Ägarregler och etikettregler
 
 Regler anger ägare och etiketter åt dig, när datalager hittas:
@@ -77,6 +96,10 @@ Regler anger ägare och etiketter åt dig, när datalager hittas:
 
 En regel matchar ett datalager via dess etiketter, via ett mönster för dess namn eller beskrivning, eller via **Molntaggmönster**: ett mönster som matchas mot var och en av datalagrets molntaggar, skrivna `key=value`. `^team=payments$` matchar varje datalager som är taggat `team=payments`, och `^env=` varje datalager med en `env`-tagg. Ett nytt datalager får projektets regler i samma ögonblick som det hittas, och en ägarregels **Avisera ägare** anger om de ägare som den lägger till underrättas. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) beskriver hur varje regel matchar och när regler körs.
 
+### Ägare som OneUptime AI föreslår
+
+Ett datalager utan ägare kan få dem från OneUptime AI. Den läser det som redan pekar på en ägare - datalagrets molntaggar, tjänsterna som använder det, kodägarna för filen som deklarerar det, och vem som ändrade eller lade till det - och föreslår utifrån det ditt eget projekts team och personer. Inget ändras förrän en person godkänner det under **Ägare att granska**, under **Datalager** eller **Datasäkerhet → AI**, och de ägare som läggs till får besked som alla ägare. När ägarna till tre eller fler datalager vilar på en tagg eller en början på namnet föreslår den också den ägarregel som håller nästa liknande datalager med en ägare, och som kommer med bland **Ägarregler** när den har godkänts. [OneUptime AI i Datasäkerhet](/docs/data-security/ai) säger vad den skickar och när den körs.
+
 ## Arbetsflöden
 
 **Datalager** och **Datasäkerhetsproblem** är utlösare för arbetsflöden, var och en med **Vid skapande**, **Vid uppdatering**, **Vid skapande eller uppdatering** och **Vid borttagning**. Välj dem i panelen **Lägg till utlösare**, under **OneUptime-resurser**.
@@ -87,12 +110,22 @@ En regel matchar ett datalager via dess etiketter, via ett mönster för dess na
 
 Se [Utlösare för arbetsflöden](/docs/workflows/triggers) för de fält som varje utlösare skickar vidare.
 
+## Pull requests
+
+En läcka är billigast att rätta innan den mergas. I ett repository som är anslutet under **Kod** med produktionsgranskningar påslagna har granskningen av varje pull request ett avsnitt **Känsliga data**, läst från dess diff: kod som skriver personuppgifter eller en hemlighet till telemetri, infrastrukturkod som gör ett datalager offentligt eller stänger av dess kryptering, säkerhetskopior eller loggning, och migreringar som lägger till kolumner för personuppgifter, lösenord eller kortdata. Varje punkt nämner den datasäkerhetskontroll som ändringen skulle misslyckas med när den väl rullats ut, och dina egna datatyper läses utifrån sina namntips, så som skanningarna läser dem. Se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests).
+
+Det som Datasäkerhet vet gör de punkterna skarpare, i ett privat repositorys kommentar och, i Kod, för dem som får läsa Datasäkerhets fynd: var tjänstens telemetri innehöll samma typ av data de senaste 7 dagarna, den rensningsregel som maskerar dem vid inmatning, och det datalager som en resurs är, med dess känslighet. Ett datalager markerat **Offentlig avsiktligt** ger ingen punkt för att det är offentligt. Ett offentligt repositorys kommentar säger bara vad diffen visar.
+
+**Läckor fångade före merge** på **Projektinställningar → AI → AI-resultat** räknar de läckor som granskningar fångade i pull requests, rättade där eller ännu inte, bredvid de problem som skanningarna öppnade för samma kontroller efter att koden rullats ut.
+
 ## OneUptime AI
 
 Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, var och en med sitt namn (dina egna datatyper med namnet du gav dem), bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI. Vad var och en skickar, vad den aldrig skickar och vilken modell den körs på finns på [OneUptime AI i Datasäkerhet](/docs/data-security/ai).
 
-- **Förklara med AI** skriver, för datalagrets ägare, vad som är fel, vad som kan hända och de exakta stegen för att åtgärda det i deras moln. Förklaringen sparas på problemets **Tidslinje**. Varken problemet som skickades eller svaret sparas i **Projektinställningar → AI → AI-loggar**, som alla med rollen Projektmedlem eller Tittare kan läsa: raden säger bara att anropet gjordes och vad det kostade. Alla som kan läsa problemet kan fråga.
-- **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när du kan fråga i flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga, i ett arkiv som de får ändra under **Kod**, som det krävs för att fråga AI där: en säkerhetsroll läser och ändrar inga arkiv på egen hand, så ge också deras team **Read Code Repository** och **Edit Code Repository**. När AI inte kan arbeta nu – den är avstängd, projektet har slut på AI-krediter, de dagliga gränserna är nådda eller ingen Runner är online – säger Åtgärda med AI vad som behöver åtgärdas och startar ingenting.
+- **Analysera problemet**, högst upp på problemets sida, låter OneUptime AI skriva sin analys: om problemet är verkligt, vad det sätter på spel, vad åtgärden skulle förstöra och den kortaste vägen till åtgärdat (se [Datasäkerhetskontroller och problem](/docs/data-security/checks-and-issues)). Den skickar också vem som kan nå lagret - varje behörighet och ungefär när den senast användes, och de tjänster som setts använda det -, kopior av dess data i andra lager, dess säkerhetsärenden, den responsåtgärd som åtgärdar problemet, det repository och de filer som deklarerar lagret, och hur många ägare det har, aldrig vilka de är. Analysen sparas på problemet, dess bedömning i problemets **Tidslinje**. Varken det som skickades eller svaret sparas i **Projektinställningar → AI → AI-loggar**, som alla med rollen Projektmedlem eller Tittare kan läsa: den raden säger bara att anropet gjordes och vad det kostade. Alla som kan läsa problemet kan be om den, och **Förklara med AI** via API:et och MCP-servern svarar med samma analys.
+- **Åtgärda med AI** ber OneUptime AI att åtgärda problemet i din infrastrukturkod – Terraform, CloudFormation, Bicep eller liknande – med den minsta ändring som får kontrollen att godkännas, och att öppna en pull request. Den kräver att arkivet som innehåller datalagrets infrastrukturkod är anslutet under **Kod**: välj det under **Arkiv** när du kan fråga i flera. Pull requesten visas under **Kod** (se [Kod](/docs/ai/ai-agent)). Rollen Säkerhetsmedlem och högre kan fråga, i ett arkiv som de får ändra under **Kod**, som det krävs för att fråga AI där: en säkerhetsroll läser och ändrar inga arkiv på egen hand, så ge också deras team **Read Code Repository** och **Edit Code Repository**. När AI inte kan arbeta nu – den är avstängd, projektet har slut på AI-krediter, de dagliga gränserna är nådda eller ingen Runner är online – säger Åtgärda med AI vad som behöver åtgärdas och startar ingenting. För ett problem i en tjänsts telemetri visar den först en pull request för varje läcka i tjänsten, med var posterna säger att varje läcka skrivs - aldrig ett värde - och där datan skrivs på fler än tre ställen lägger den i stället till ett redigeringssteg med ett test: se [Åtgärda det i koden](/docs/data-security/telemetry#åtgärda-det-i-koden).
+
+OneUptime AI arbetar också på egen hand med varje nytt problem, som dina AI-regler tillåter: se [OneUptime AI i datasäkerhet](/docs/data-security/ai).
 
 ### Fråga AI
 
@@ -116,7 +149,7 @@ Två ändringar stänger ett molndatalagers exponering, var och en via datalagre
 
 En person kör en av dem från ett öppet problem som den åtgärdar, med **Åtgärda härifrån** (se [Kontroller och problem i Datasäkerhet](/docs/data-security/checks-and-issues#åtgärda-härifrån)). En playbook i Security Operations kör dem som steg i kategorin **Begränsa**, **Blockera offentlig åtkomst till datalager** och **Återkalla delning av datalager**: på varje datalager som ärendet gäller, högst 10, vart och ett ett steg som börjar med **Kräver godkännande** påslaget. Ett datalager som är markerat **Offentlig avsiktligt** blockeras aldrig. I båda fallen anger datalagrets tidslinje vad som gjordes, och datalagret kontrolleras igen direkt, så problemet löses när ändringen har fått effekt.
 
-Playbook-mallen **Stäng en dataexponering** besvarar de ärenden som Datasäkerhet öppnar: den skickar e-post till datalagrets ägare, blockerar offentlig åtkomst och återkallar delning när en person har godkänt varje steg, och lägger till responsens checklista i ärendet som uppgifter – vem som läste data medan de var exponerade, om det är ett intrång som du måste anmäla, vilka hemligheter som ska roteras och vad som ska skrivas när ärendet stängs. Lägg till den från **Skapa från mall** bland projektets playbooks.
+Playbook-mallen **Stäng en dataexponering** besvarar de ärenden som Datasäkerhet öppnar: den skickar e-post till datalagrets ägare, blockerar offentlig åtkomst och återkallar delning när en person har godkänt varje steg, och lägger till responsens checklista i ärendet som uppgifter – vem som läste data medan de var exponerade, om det är ett intrång som du måste anmäla, vilka hemligheter som ska roteras och vad som ska skrivas när ärendet stängs. Lägg till den från **Skapa från mall** bland projektets playbooks. Ärendets kort **Var det ett dataintrång?** besvarar var och en av de uppgifterna (se [Var det ett dataintrång?](#var-det-ett-dataintrång)).
 
 ## API, Terraform och MCP
 
@@ -130,6 +163,7 @@ Allt som Datasäkerhet sparar är en post i OneUptimes API, som läses med samma
 | Anpassade datatyper, kontrollinställningar, efterlevnadsinställningar och hemvistregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets inställningar | `/data-security-setting` |
 | Ägare, ägarregler och etikettregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Vad OneUptime AI föreslår för ett problem, och varför den agerade eller inte agerade på ett | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Några svar räknas ut på begäran i stället för att lagras. Vart och ett är en `POST`:
 
@@ -139,16 +173,26 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-security/compliance` | Varje ramverks poäng och krav |
 | `/data-security/resource-scope` | Datalagren för en resurs – ett Kubernetes-kluster, en Docker- eller Podman-värd, en databas, en tjänst eller en molnresurs – och vilken resurs efterlevnadsreglage de följer |
 | `/data-security/resource-compliance` | En resurs ramverk: deras poäng för resursens datalager, och vad som är avstängt för den |
-| `/data-security/record-of-processing` | GDPR-registret över behandling, en rad för varje datalager som innehåller personuppgifter |
+| `/data-security/record-of-processing` | GDPR-registret över behandling, en rad för varje datalager som innehåller personuppgifter. Ett datalager som OneUptime sparar för din säkerhet har ett objekt `declared`: sitt eget syfte och sin egen lagringstid, och vem som kan läsa det |
+| `/data-store/<id>/declared` | Vad registret säger om ett datalager som OneUptime sparar för din säkerhet: vad det innehåller, varför, hur länge och vem som kan läsa det |
 | `/data-store/<id>/scan-now` | **Skanna nu**: tar prov på datalagrets innehåll nu |
 | `/data-store/<id>/check-now` | **Kontrollera nu**: läser datalagrets konfiguration igen och kör dess kontroller |
 | `/data-store-finding/<id>/scrub` | **Rensa** på ett telemetrifynd |
 | `/data-store-finding/<id>/drop-metric-impact` | Vad **Kassera det här mätvärdet** skulle kassera för ett fynd i ett mätvärdes namn: hur många mätvärden, och de monitorer, instrumentpaneler, SLO:er och inspelningsregler som läser dem |
 | `/data-store-finding/<id>/drop-metric` | **Kassera det här mätvärdet**: en pipelineregel för mätvärden som för gott kasserar de nya datapunkterna från tjänstens mätvärden med ett sådant namn. Den tar `{"confirmDataLoss": true}` |
-| `/data-security-issue/<id>/explain` | **Förklara med AI** på ett problem |
+| `/data-security-issue/<id>/explain` | **Förklara med AI**: OneUptime AI:s analys av ett problem, så som **Analysera problemet** skriver den. Den svarar med den analys som problemet sparar när inget som den bygger på har ändrats, och skriver annars en ny; `{"force": true}` skriver en ny, som **Analysera igen** |
+| `/data-security-issue/<id>/analysis` | Den analys som problemet sparar, så som du får läsa den. Den frågar aldrig OneUptime AI |
 | `/data-security-issue/<id>/fix-with-ai` | **Åtgärda med AI** på ett problem |
 | `/data-store/<id>/response-actions` | Vilka responsåtgärder datalagret kan utföra nu, och varför inte |
 | `/data-store/<id>/respond` | En responsåtgärd på datalagret, till exempel **Blockera offentlig åtkomst** eller **Slå på versionshantering**, med problemet som den kördes från |
+| `/data-security-ai-proposal/<id>/approve` | **Godkänn** på en ändring som OneUptime AI föreslår, som görs med dina egna behörigheter. Tar `expectedPlanFingerprint` för förslaget som du visades, och avvisar ett som har ändrats sedan dess |
+| `/data-security-ai-proposal/<id>/dismiss` | **Avfärda förslaget**, med `{"reason": "..."}`, som läggs på problemets tidslinje |
+| `/data-security-ai-proposal/<id>/undo` | **Ångra** på en ändring som OneUptime AI gjorde: den tas tillbaka, och datalagret kontrolleras igen |
+| `/security-case/<id>/exposure-assessment` | Ett säkerhetsärendes exponeringsbedömning, så som du får läsa den: det som vanlig kod räknar ut om datalagret som ärendet gäller, och OneUptime AI:s sammanställning |
+| `/security-case/<id>/exposure-assessment/assess` | **Bedöm denna exponering**: startar ärendets bedömning, av det datalager som `{"dataStoreId": "..."}` anger när ärendet gäller fler än ett |
+| `/security-case/<id>/exposure-assessment/draft` | **Skriv utkast med OneUptime AI**: OneUptime AI sammanställer varje del som ingen person har redigerat. Inget skickas |
+| `/security-case/<id>/exposure-assessment/edit` | En del med en persons egna ord, till exempel `{"part": "regulatorNotice", "markdown": "..."}`, som aldrig får något nytt utkast |
+| `/security-case/<id>/exposure-assessment/people` | Var personerna som data gäller bor, till exempel `{"places": ["EEA", "GB"]}`; en tom lista tar tillbaka svaret |
 
 [Terraform-providern](/docs/terraform/index) har en resurs för varje sorts post som du skapar – datalager som du lägger till själv, anpassade datatyper, kontrollinställningar, efterlevnadsinställningar, hemvistregler, ägar- och etikettregler – uppkallad efter posten, till exempel `oneuptime_residency_rule`.
 

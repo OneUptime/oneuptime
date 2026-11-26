@@ -8,6 +8,7 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import {
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -2373,6 +2374,8 @@ describe("the criteria of the telemetry-backed monitors", () => {
         FilterType.GreaterThanOrEqualTo,
         FilterType.LessThanOrEqualTo,
         FilterType.EqualTo,
+        // A state written as a number is asked "anything but" (#10449).
+        FilterType.NotEqualTo,
         FilterType.AnomalouslyHigh,
         FilterType.AnomalouslyLow,
         FilterType.Anomalous,
@@ -2384,7 +2387,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
     );
 
     const written: string =
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** or **Not Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.";
 
     // The forecast conditions, as the Condition dropdown draws them.
     const forecastWritten: string =
@@ -2396,7 +2399,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
     }
 
     expect(englishPage(KUBERNETES)).toContain(
-      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** and **Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
+      "**Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** and **Not Equal To**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything.",
     );
 
     // The words the Condition dropdown draws for the two data conditions.
@@ -2413,7 +2416,12 @@ describe("the criteria of the telemetry-backed monitors", () => {
   });
 
   it("aggregate the window as the pages list", () => {
-    expect(Object.values(EvaluateOverTimeType)).toEqual([
+    /*
+     * What a telemetry-backed monitor's rule aggregates its query's window
+     * with, as the form offers it. The counts and Percentile came with
+     * #10355 for a check's own window, and are not offered here (#10824).
+     */
+    expect(CommonCriteriaFilterUtil.getMetricAggregationTypes()).toEqual([
       "Average",
       "Sum",
       "Maximum Value",
@@ -2421,6 +2429,9 @@ describe("the criteria of the telemetry-backed monitors", () => {
       "All Values",
       "Any Value",
     ]);
+    expect(source(`${FORMS}/CriteriaFilter.tsx`)).toContain(
+      "CriteriaFilterUtil.getMetricAggregationTypes().map(",
+    );
 
     /*
      * All Values over the whole window: its data must cover the window, not
@@ -2455,7 +2466,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
           return cells[0] as string;
         },
       ),
-    ).toEqual(Object.values(EvaluateOverTimeType));
+    ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
   });
 
   it("detect anomalies with the sensitivities and baseline windows the pages give", () => {
@@ -3646,13 +3657,39 @@ describe(`${SERVER}`, () => {
     expect(form).toMatch(
       new RegExp('<FieldLabelElement\\s+title="Evaluate"\\s+description='),
     );
+    // Minutes up to an hour, then hours up to a day (#10355).
     expect(form).toMatch(
-      new RegExp(
-        '<FieldLabelElement\\s+title="For the last \\(in minutes\\)"\\s+description=',
-      ),
+      new RegExp('<FieldLabelElement\\s+title="For the last"\\s+description='),
     );
+    /*
+     * What Evaluate offers a server's numeric filter, in the order the
+     * dropdown lists it (#10355): the aggregates, a percentile, every or
+     * any check, the counts, and the previous check (#10821).
+     */
+    expect(
+      CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+        {
+          checkOn: CheckOn.CPUUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+        },
+        MonitorType.Server,
+      ),
+    ).toEqual([
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+      EvaluateOverTimeType.Percentile,
+      EvaluateOverTimeType.AllValues,
+      EvaluateOverTimeType.AnyValue,
+      EvaluateOverTimeType.Count,
+      EvaluateOverTimeType.Percentage,
+      EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
+    ]);
     expect(page).toContain(
-      "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value)",
+      "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, Percentile, All Values, Any Value, Count, Percentage, Status Changes, Previous Check)",
     );
     expect(
       tableBody(sectionOf(SERVER, "### Evaluate over a period of time")).map(

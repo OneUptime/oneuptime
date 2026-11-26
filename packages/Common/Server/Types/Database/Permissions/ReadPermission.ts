@@ -55,9 +55,10 @@ export interface LabelledReferences {
  * suggested, the audit log entry an audit log export's cursor stands at
  * (entries are kept in ClickHouse and carry no labels), the incident or
  * alert severity an on-call test page runs the On-Call Rules of
- * (severities carry no labels), and the monitor's fire drill an on-call
+ * (severities carry no labels), the monitor's fire drill an on-call
  * test page was part of (a drill has no record of its own: it is kept as
- * its tests alone).
+ * its tests alone), and the security case priority OneUptime AI responds
+ * first below (case priorities carry no labels).
  */
 export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
   new Set<string>([
@@ -71,6 +72,10 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "AIRun.codeTaskId",
     // The code task a postmortem's action item became: an AIRun, which carries no labels.
     "IncidentPostmortemActionItem.codeTaskId",
+    // The code task that opens a Data Security issue group's pull request (#10370): an AIRun too.
+    "DataSecurityIssueGroup.codeTaskId",
+    // The code task whose pull request fixes a Data Security issue in code (#10367): an AIRun too.
+    "DataSecurityIssue.codeFixTaskId",
     "SecurityCase.aiSuggestedPlaybookId",
     "AuditLogExport.cursorEntryId",
     "OnCallDutyPolicyExecutionLog.testPageSeverityId",
@@ -80,6 +85,8 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
      * own, so the id names no labelled record to weigh the test by.
      */
     "OnCallDutyPolicyExecutionLog.testPageFireDrillId",
+    // The case priority OneUptime AI responds first below (#10353): a SecurityCasePriority.
+    "Project.securityCaseAiHoldBelowPriorityId",
   ]);
 
 /*
@@ -1088,7 +1095,10 @@ export default class ReadPermission {
    *     boundary, longest name first.
    *
    * Only models that carry labels are kept. Who did something to the row
-   * (`createdByUserId`) names a user, and users carry no labels. A plain id
+   * (`createdByUserId`) names a user, and users carry no labels; nor is the
+   * API key, workflow or MCP client that created or last modified it
+   * (`createdByActorId`, `lastModifiedByActorId`, #10290) a record the row
+   * is about - it is who acted, which every row has. A plain id
    * column whose name says nothing (`resourceId`, which several kinds of
    * resource share) names a record of any kind: it is weighed against every
    * model that carries labels (anyKindColumns), unless it is known to name
@@ -1172,7 +1182,7 @@ export default class ReadPermission {
         column.type !== TableColumnType.ObjectID ||
         !columnName.endsWith("Id") ||
         keyColumns.has(columnName) ||
-        UserAttribution.isColumn(columnName) ||
+        UserAttribution.isDecidedByServer(columnName) ||
         PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS.has(
           `${model.tableName}.${columnName}`,
         ) ||

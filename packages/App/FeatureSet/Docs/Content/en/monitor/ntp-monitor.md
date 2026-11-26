@@ -119,7 +119,7 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 
 ### Evaluating over a period of time
 
-**Evaluate this criteria over a period of time** is a checkbox under every NTP filter. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**. Only checks the server answered have a stratum, an offset and a root dispersion, so a window of silence has no data for those filters, and **If No Data** decides what happens.
+**Evaluate this criteria over a period of time** is a checkbox under every NTP filter. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 minutes to 24 hours, under **For the last**. Only checks the server answered have a stratum, an offset and a root dispersion, so a window of silence has no data for those filters, and **If No Data** decides what happens.
 
 ### Example criteria
 

@@ -112,6 +112,7 @@ import {
   NUMBER_PREFIX_PATH,
 } from "../Components/NumberPrefix/NumberPrefixSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
+import IncidentRulesAuditLogs from "../Pages/Incidents/Settings/IncidentRulesAuditLogs";
 import IncidentAIInsights from "../Pages/Incidents/AI/Insights";
 import IncidentAILogs from "../Pages/Incidents/AI/Logs";
 
@@ -740,6 +741,21 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS] ||
+            ""
+          }
+          element={
+            <IncidentRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

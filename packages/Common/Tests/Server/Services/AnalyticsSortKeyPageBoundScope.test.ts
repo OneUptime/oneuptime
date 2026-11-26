@@ -97,12 +97,26 @@ const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
   RumSessionChunkV1: true,
   RumSessionV1: true,
   /*
+   * How many values each scrub rule changed, an hour a row (#10366): an
+   * aggregate target with no _id, read by the scrub rule lists' own route
+   * (ScrubRuleValueCountsAPI) alone - nobody may read it through the
+   * generic API - and never listed.
+   */
+  ScrubRuleValueCountV1: false,
+  /*
    * Security Events' address vault (#10395): an aggregate target with no
    * _id, read by Security Events' scans alone - its service refuses every
    * generic read - and never listed.
    */
   SecurityAddressVaultV1: false,
+  // Its twin for users (#10632): the same, on the same terms.
+  SecurityUserVaultV1: false,
   SecurityEventItemV1: true,
+  /*
+   * Events that arrived too late for the rules (#10491): an aggregate
+   * target with no _id, read by its own statement and never listed.
+   */
+  SecurityEventLateArrivalV1: false,
   SloHistory: true,
   SpanCountBaseline: false,
   SpanItemV3: true,

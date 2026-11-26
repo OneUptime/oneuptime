@@ -18,11 +18,19 @@ import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddres
  * refuses a block of any address in them, and says why.
  *
  * Each edge lists the security connections that say a project sits behind
- * it. Cloudflare's connection comes with #10339, which names its provider
- * here (connectorProviders); until then no project has connected one, and
- * its ranges protect nothing. Its ranges are read from the addresses
- * Cloudflare publishes them at, at most once a day, and the copy below
- * stands in when they cannot be read (a server with no way out).
+ * it (connectorProviders): Cloudflare's is its connection (#10339). A
+ * project that has one is behind Cloudflare, so the blocklist refuses to
+ * block Cloudflare's addresses (#10338), and the scans trust them as the
+ * proxy that forwards the client (SecurityTrustedProxies, #10416). An edge
+ * that names no connection is behind no project, and nothing is read for
+ * it. Its ranges are read from the addresses Cloudflare publishes them at,
+ * at most once a day, and the copy below stands in when they cannot be read
+ * (a server with no way out).
+ *
+ * Asking costs one count of the project's connections of the edge's kind
+ * (SecurityEventConnectionService.countBy): each time the blocklist checks
+ * a block, and each time a scan reads its trusted proxies, which it keeps
+ * for a minute. A suite that reaches either stubs that count.
  */
 
 export interface SecurityEdge {
@@ -70,8 +78,8 @@ export const CLOUDFLARE_EDGE: SecurityEdge = {
     "2a06:98c0::/29",
     "2c0f:f248::/32",
   ],
-  // #10339 adds Cloudflare's connection here.
-  connectorProviders: [],
+  // A project with a Cloudflare connection, enabled or paused, sits behind Cloudflare (#10565).
+  connectorProviders: [SecurityEventConnectorProvider.Cloudflare],
 };
 
 export const SECURITY_EDGES: ReadonlyArray<SecurityEdge> = [CLOUDFLARE_EDGE];

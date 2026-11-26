@@ -140,8 +140,6 @@ async function renderRule(options?: {
           changes.push(value);
         }}
         incidentSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={USERS}
         incidentRoleOptions={options?.roles ?? ROLES}
       />,

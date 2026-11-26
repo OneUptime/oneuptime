@@ -4,6 +4,10 @@ import {
   OneUptimeRequest,
   OneUptimeResponse,
 } from "./Express";
+import ClientRefusalLog, {
+  isClientErrorStatus,
+  isClientRefusal,
+} from "./ClientRefusalLog";
 import JsonToCsv from "./JsonToCsv";
 import logger, { getLogAttributesFromRequest } from "./Logger";
 import { sendUnexplainedError } from "./UnexplainedServerError";
@@ -28,6 +32,7 @@ import MimeType from "../../Types/File/MimeType";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import RetiredColumns from "./Database/RetiredColumns";
 import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
 import { getProductBrandingViewVariables } from "./ProductBrandingViewVariables";
 import { createHash } from "crypto";
@@ -79,6 +84,15 @@ export interface CalendarResponseData {
 export interface ListResponseOptions {
   hasMore?: boolean | undefined;
   isCountCapped?: boolean | undefined;
+}
+
+/*
+ * What an answer of records adds to each: the columns the request selected
+ * that no model has now, answered as null as they always were
+ * (RetiredColumns, #10469).
+ */
+export interface EntityResponseOptions {
+  retiredColumns?: ReadonlyArray<string> | undefined;
 }
 
 export enum CalendarResponseDisposition {
@@ -139,6 +153,19 @@ const ALLOWED_MIME_TYPES: Set<string> = new Set<string>([
 
 // What an unrecognised fileType degrades to: opaque bytes, never a document.
 const FALLBACK_MIME_TYPE: string = "application/octet-stream";
+
+export interface ErrorResponseOptions {
+  /*
+   * The request is refused for what its client sent - no ingestion key, a
+   * wrong one, one switched off or over its rate - and nothing is wrong with
+   * the server, and the caller logs or counts it itself: logged at debug
+   * alone, not counted by route (TelemetryIngest counts its own, #10703). A
+   * refusal of a client without it is told apart by its status and its
+   * Exception (ClientRefusalLog.isClientRefusal, #10768). A 5xx is logged
+   * at error whatever this says.
+   */
+  isClientRefusal?: boolean | undefined;
+}
 
 export default class Response {
   @CaptureSpan()
@@ -441,6 +468,7 @@ export default class Response {
     _req: ExpressRequest,
     res: ExpressResponse,
     error: Exception,
+    options?: ErrorResponseOptions | undefined,
   ): void {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -457,7 +485,22 @@ export default class Response {
       ? error.code
       : 500;
 
-    logger.error(error, getLogAttributesFromRequest(_req as any));
+    /*
+     * A refusal of what the client sent is no fault of the server's: logged
+     * at debug - where its caller logs or counts it as it chooses (#10703),
+     * or counted by its route, with a warn line a minute (ClientRefusalLog,
+     * #10768). It came from anyone, and a client that kept sending what is
+     * refused wrote one error-level line a request. Every 5xx, and every
+     * refusal whose Exception does not say the fault is the client's, is
+     * logged at error.
+     */
+    if (options?.isClientRefusal && isClientErrorStatus(status)) {
+      logger.debug(error, getLogAttributesFromRequest(_req as any));
+    } else if (isClientRefusal(error, status)) {
+      ClientRefusalLog.log(_req, error, status);
+    } else {
+      logger.error(error, getLogAttributesFromRequest(_req as any));
+    }
 
     /*
      * No message, or only "Server Error": the answer says what happened and
@@ -486,7 +529,7 @@ export default class Response {
     list: Array<BaseModel | AnalyticsDataModel>,
     count: PositiveNumber | number,
     modelType: { new (): BaseModel | AnalyticsDataModel },
-    options?: ListResponseOptions | undefined,
+    options?: (ListResponseOptions & EntityResponseOptions) | undefined,
   ): void {
     if (!(count instanceof PositiveNumber)) {
       count = new PositiveNumber(count);
@@ -510,6 +553,11 @@ export default class Response {
       );
     }
 
+    RetiredColumns.answerAsNull(
+      jsonArray as Array<JSONObject>,
+      options?.retiredColumns || [],
+    );
+
     return this.sendJsonArrayResponse(req, res, jsonArray, count, options);
   }
 
@@ -520,15 +568,18 @@ export default class Response {
     item: BaseModel | AnalyticsDataModel | null,
     modelType: { new (): BaseModel | AnalyticsDataModel },
     options?:
-      | {
+      | ({
           miscData?: JSONObject;
-        }
+        } & EntityResponseOptions)
       | undefined,
   ): void {
     let response: JSONObject = {};
 
     if (item && item instanceof BaseModel) {
-      response = BaseModel.toJSON(item, modelType as DatabaseBaseModelType);
+      response = RetiredColumns.answerAsNull(
+        BaseModel.toJSON(item, modelType as DatabaseBaseModelType),
+        options?.retiredColumns || [],
+      );
     }
 
     if (item && item instanceof AnalyticsDataModel) {

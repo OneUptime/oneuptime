@@ -13,6 +13,7 @@ import ProxmoxClusters from "../Pages/Proxmox/Clusters";
 import ProxmoxDocumentation from "../Pages/Proxmox/Documentation";
 import ProxmoxSettingsOwnerRules from "../Pages/Proxmox/Settings/OwnerRules";
 import ProxmoxSettingsLabelRules from "../Pages/Proxmox/Settings/LabelRules";
+import ProxmoxRulesAuditLogs from "../Pages/Proxmox/Settings/RulesAuditLogs";
 import ProxmoxArchived from "../Pages/Proxmox/Archived";
 import ProxmoxClusterOverview from "../Pages/Proxmox/View/Index";
 import ProxmoxClusterNodes from "../Pages/Proxmox/View/Nodes";
@@ -99,6 +100,20 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.PROXMOX_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS] || ""
+          }
+          element={
+            <ProxmoxRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

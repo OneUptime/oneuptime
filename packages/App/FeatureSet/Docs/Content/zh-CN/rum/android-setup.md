@@ -12,11 +12,11 @@
 
 ## 工作原理
 
-OpenTelemetry Android 在你的应用内运行。它使用 **服务器** 摄取密钥，通过 OTLP 将追踪、日志和指标发送到 OneUptime，并在应用发出的请求上添加 W3C `traceparent` 请求头，让后端的 span 加入应用的追踪。
+OpenTelemetry Android 在你的应用内运行。它使用固定到你的应用的 **移动端** 摄取密钥，通过 OTLP 将追踪、日志和指标发送到 OneUptime，并在应用发出的请求上添加 W3C `traceparent` 请求头，让后端的 span 加入应用的追踪。
 
 ```mermaid title="从应用到 OneUptime，并贯穿你的后端"
 flowchart TB
-    app["你的 Android 应用<br/>集成 OpenTelemetry Android"] -->|"使用服务器密钥<br/>的 OTLP"| oneuptime["OneUptime"]
+    app["你的 Android 应用<br/>集成 OpenTelemetry Android"] -->|"使用移动端密钥<br/>的 OTLP"| oneuptime["OneUptime"]
     app -->|"带 traceparent<br/>请求头的请求"| api["你的 API：订单、<br/>POS、厨房显示屏"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["移动端 RUM 应用程序"]
@@ -26,7 +26,7 @@ flowchart TB
 ## 开始之前
 
 - 一个 `minSdk` 为 23 或更高、使用 `compileSdk` 34 或更高版本构建的 Android 应用。如果 `minSdk` 低于 26，请开启 [核心库脱糖](https://developer.android.com/studio/write/java8-support#library-desugaring) ，并使用 Android Gradle Plugin 8.3.0 或更高版本，在 `gradle.properties` 中设置 `android.useFullClasspathForDexingTransform=true` 。
-- 一个 **服务器** 摄取密钥，在 **项目设置 → 遥测与 APM → 摄取密钥** 中通过 **创建摄取密钥** 创建。应用发来的 **浏览器** 密钥会被拒绝：它要根据 `Origin` 请求头进行检查，而应用不发送这个请求头。
+- 一个 **移动端** 摄取密钥，在 **项目设置 → 遥测与 APM → 摄取密钥** 中通过 **创建摄取密钥** 创建，并将其 **固定的服务名称** 设为你的应用的 `service.name`。应用发来的 **浏览器** 密钥会被拒绝：它要根据 `Origin` 请求头进行检查，而应用不发送这个请求头。
 - 以下 OTLP 设置。如果你自行托管 OneUptime，请将 `https://oneuptime.com` 替换为你自己的主机。
 
 | 设置 | 值 |
@@ -35,7 +35,7 @@ flowchart TB
 | 请求头 | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> 密钥会随应用一起发布，而应用可以被解包，所以请假定有人会复制它。在密钥的页面上设置 **固定的服务名称** 、 **Requests Per Minute Limit** 和 **过期时间** 日期，并随每次发布轮换密钥。
+> 密钥会随应用一起发布，而应用可以被解包，所以请假定有人会复制它。在密钥的页面上设置 **固定的服务名称** 、 **每分钟请求数上限** 和 **过期时间** 日期，并随每次发布轮换密钥。
 
 ## 添加 OpenTelemetry Android
 
@@ -303,7 +303,7 @@ OpenTelemetry Android 会自行设置 `device.model.identifier` ，所以应用�
 :::
 
 :::details 没有数据到达，或密钥被拒绝
-运行 [添加 OpenTelemetry Android](#添加-opentelemetry-android) 中的密钥检查。 `401` 表示密钥未知、已撤销、已关闭或已过期。应用发来的 **浏览器** 密钥会被拒绝：请使用 **服务器** 密钥。检查 `baseUrl` 是否以 `/otlp` 结尾、不带 `/v1/traces` ：代理会自行添加路径。
+运行 [添加 OpenTelemetry Android](#添加-opentelemetry-android) 中的密钥检查。 `401` 表示密钥未知、已撤销、已关闭或已过期。应用发来的 **浏览器** 密钥会被拒绝：请使用 **移动端** 密钥。检查 `baseUrl` 是否以 `/otlp` 结尾、不带 `/v1/traces` ：代理会自行添加路径。
 :::
 
 :::details 崩溃或 ANR 没有出现在异常中

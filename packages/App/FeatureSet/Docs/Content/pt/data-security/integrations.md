@@ -4,6 +4,7 @@ A Segurança de dados não tem um sistema de acionamento nem uma fila de seguran
 
 :::cards
 - [Security Operations](#security-operations): Um caso de segurança para cada repositório com um problema Crítico.
+- [Foi uma violação de dados?](#foi-uma-violação-de-dados): Cada exposição Crítica avaliada: por quanto tempo, quem podia lê-la, de quem eram os dados e as leis sobre violações de dados que podem se aplicar.
 - [Alertas e plantão](#alertas-e-plantão): Acione quem estiver de plantão quando um problema Crítico abrir.
 - [Incidentes](#incidentes): Declare um incidente para uma violação que o seu processo de incidentes deve tratar.
 - [Proprietários](#proprietários): Quem é proprietário de cada repositório, definido manualmente ou por regras, e o e-mail que recebem.
@@ -46,6 +47,22 @@ A partir daí o caso é tratado como qualquer outro: atribuído, anotado, fechad
 
 Qualquer caso de segurança, seja lá o que o tenha aberto, mostra os dados em risco no seu **Impacto**: os repositórios com dados sensíveis de que o caso trata, e cada repositório que os usuários e funções dele podem alcançar, o mais sensível primeiro, com o que cada um contém, cerca de quantos registros, o quão exposto está e quantas identidades podem alcançá-lo. Uma sessão de função assumida que o caso nomeia conta como a função dela, e um endereço de e-mail como os usuários de nuvem a que ele pertence. A leitura usa as próprias permissões de quem lê, então uma função que não pode ler a Segurança de dados vê que essa parte ficou de fora.
 
+## Foi uma violação de dados?
+
+Uma exposição Crítica de um repositório com dados de sensibilidade **Restrito** ou **Confidencial** - aberto a qualquer pessoa na internet, compartilhado com contas de fora da sua, ou um snapshot que outros podem restaurar - tem o seu caso avaliado por conta própria, assim que o caso é aberto. Qualquer outro caso sobre um repositório de dados é avaliado quando uma pessoa aciona **Avaliar esta exposição** na **Visão geral** dele. Código simples calcula a avaliação a partir do que o OneUptime registrou, e a calcula de novo cada vez que ela é lida:
+
+- **Por quanto tempo ficou aberto**: desde a mudança no log da sua nuvem que expôs o repositório, quando uma foi registrada nos 30 dias antes de a exposição ser encontrada, ou, caso contrário, pelo menos desde que a Segurança de dados a encontrou; até quando a própria resposta da Segurança de dados a fechou, uma mudança a fechou ou uma verificação a encontrou fechada.
+- **Quem podia lê-lo**: se o repositório registrava as leituras. Onde não registrava, a avaliação diz "As leituras não foram registradas. Considere que os dados foram lidos." Ela conta as contas de fora da sua empresa que podiam ler o repositório, e quantas delas usaram o próprio acesso enquanto ele estava aberto, sem nunca nomeá-las.
+- **De quem eram os dados**: o que o repositório contém, cerca de quantos registros, a quem eles se referem e onde moram os titulares, segundo os dados e segundo o que uma pessoa informa.
+- **Os segredos a trocar**: cada segredo encontrado no repositório enquanto ele estava aberto, pelo tipo e pelo local onde foi encontrado, nunca o valor dele.
+- **As leis sobre violações de dados que podem se aplicar**: cada linha da tabela de leis sobre violações de dados do OneUptime, com o que ela exige, de quem, o prazo dela contado a partir de quando a Segurança de dados encontrou a exposição, e o que uma pessoa ainda verifica antes que ela se aplique.
+
+A tabela cobre os artigos 33 e 34 do GDPR, os artigos 33 e 34 do UK GDPR, a Breach Notification Rule da HIPAA, o requisito 12.10.1 do PCI DSS, a LGPD do Brasil, as DPDP Rules e as diretivas do CERT-In da Índia, e as leis sobre violações de dados da Califórnia, do Colorado, da Flórida, de Nova York, do Texas e de Washington. Cada linha tem um link para o texto da própria lei, a sua fonte, e diz o dia em que foi verificada com base nele pela última vez. O que a tabela não cobre - outro país, outro estado dos EUA, onde a sua organização está estabelecida, os seus contratos - a avaliação diz em palavras simples.
+
+O OneUptime AI redige a avaliação conforme as suas regras de IA da Segurança de dados permitem, ou quando uma pessoa pede: o que isso significa, uma notificação ao órgão regulador, uma notificação aos titulares afetados e um resumo interno (veja [OneUptime AI na Segurança de dados](/docs/data-security/ai)). Cada rascunho é confrontado com os fatos da avaliação: um número ou uma lei que nenhum deles contém o descarta. Nada é enviado a lugar nenhum: uma notificação é um texto que uma pessoa edita e copia, e a avaliação e cada rascunho dizem que não são aconselhamento jurídico.
+
+Os leitores do caso que também podem ler o repositório e as descobertas dele veem a avaliação, já que ela nomeia o que o repositório contém. Avaliar, redigir, editar uma notificação e informar onde moram os titulares também exigem permissão para editar o caso. Veja [Foi uma violação de dados?](/docs/telemetry/security-cases#foi-uma-violação-de-dados) para os cartões do caso.
+
 ## Alertas e plantão
 
 Com **Gerar alertas** ativado, um problema Crítico gera um alerta, chamado "Data Security:" seguido do título do problema e do repositório. O alerta aciona quem estiver de plantão pelas próprias regras dele, como qualquer outro alerta (veja [Alertas](/docs/alerts/index) e [Plantão](/docs/on-call/index)). Um problema tem no máximo um alerta aberto por vez, por mais que seja avaliado. **Severidade do alerta** define a severidade do alerta; deixada vazia, é a mais grave do projeto.
@@ -66,6 +83,8 @@ Os proprietários de um repositório são pessoas e equipes, na página **Propri
 
 Com **Notificar proprietários** ativado, cada avaliação que abre problemas em um repositório envia aos proprietários dele um único e-mail - as pessoas que são proprietárias e os membros das equipes que são, até 50 - com um título que diz quantos problemas novos o repositório tem, como "Data Security: 2 new issues on orders-db". Ele lista a gravidade e o título de cada problema novo e a sensibilidade do repositório, e leva ao repositório. Ele nunca contém uma amostra.
 
+Enquanto o OneUptime AI trabalha sozinho nos problemas novos, o e-mail espera a análise dele, por até 10 minutos, e dá a cada problema analisado mais duas linhas: o veredito e o porquê, e o caminho mais curto para a correção. Cada proprietário recebe as linhas que pode ler: um proprietário que não pode ler o problema não recebe nenhuma, e uma linha que se baseia em algo que ele não pode ler fica de fora.
+
 ### Regras de proprietário e regras de rótulos
 
 As regras definem proprietários e rótulos por você, à medida que os repositórios são encontrados:
@@ -77,6 +96,10 @@ As regras definem proprietários e rótulos por você, à medida que os reposit�
 
 Uma regra corresponde a um repositório pelos rótulos dele, por um padrão do nome ou da descrição dele, ou por **Padrão de tag de nuvem**: um padrão comparado com cada uma das tags de nuvem do repositório, escritas `key=value`. `^team=payments$` corresponde a todo repositório com a tag `team=payments`, e `^env=` a todo repositório com uma tag `env`. Um repositório novo recebe as regras do projeto no momento em que é encontrado, e o **Notificar proprietários** de uma regra de proprietário diz se os proprietários que ela adiciona são avisados. [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) diz como cada regra corresponde e quando as regras rodam.
 
+### Proprietários que o OneUptime AI propõe
+
+Um repositório sem proprietários pode recebê-los do OneUptime AI. Ele lê o que já aponta para um proprietário - as tags de nuvem do repositório, os serviços que o usam, os proprietários do código do arquivo que o declara, e quem o alterou ou adicionou - e propõe a partir disso equipes e pessoas do seu próprio projeto. Nada muda até que uma pessoa aprove em **Proprietários para revisar**, em **Repositórios de dados** ou em **Segurança de dados → IA**, e os proprietários adicionados são avisados como qualquer proprietário. Quando os proprietários de três ou mais repositórios se apoiam em uma tag ou em um começo de nome, ele também propõe a regra de proprietário que mantém com proprietário o próximo repositório como esses, que entra nas **Regras de proprietário** depois de aprovada. [OneUptime AI na Segurança de dados](/docs/data-security/ai) diz o que ele envia e quando roda.
+
 ## Fluxos de trabalho
 
 **Repositório de dados** e **Problema de segurança de dados** são gatilhos de fluxo de trabalho, cada um com **Ao criar**, **Ao atualizar**, **Ao criar ou atualizar** e **Ao excluir**. Escolha-os no painel **Adicionar gatilho**, em **Recursos do OneUptime**.
@@ -87,12 +110,22 @@ Uma regra corresponde a um repositório pelos rótulos dele, por um padrão do n
 
 Veja [Gatilhos de fluxo de trabalho](/docs/workflows/triggers) para os campos que cada gatilho repassa.
 
+## Pull requests
+
+Um vazamento sai mais barato de corrigir antes do merge. Em um repositório conectado em **Código** com as revisões de produção ativadas, a revisão de cada pull request tem uma seção **Dados sensíveis**, lida do diff dele: código que grava dados pessoais ou um segredo na telemetria, código de infraestrutura que torna público um repositório de dados ou desativa a criptografia, os backups ou o log dele, e migrações que adicionam colunas para dados pessoais, senhas ou dados de cartão. Cada ponto nomeia a verificação da Segurança de dados em que a alteração falharia depois de implantada, e os seus próprios tipos de dados são lidos pelas dicas de nome deles, como as varreduras os leem. Veja [Revisão de produção de pull requests](/docs/ai/ai-agent#revisão-de-produção-de-pull-requests).
+
+O que a Segurança de dados sabe deixa esses pontos mais precisos, no comentário de um repositório privado e, no Código, para quem pode ler as descobertas da Segurança de dados: onde a telemetria do serviço conteve o mesmo tipo de dado nos últimos 7 dias, a regra de limpeza que o mascara na ingestão, e o repositório de dados que um recurso é, com a sensibilidade dele. Um repositório marcado como **Público por design** não gera ponto por ser público. O comentário de um repositório público só diz o que o diff mostra.
+
+**Vazamentos detectados antes do merge**, em **Configurações do projeto → IA → Resultados de IA**, conta os vazamentos que as revisões detectaram em pull requests, corrigidos ali ou ainda não, ao lado dos problemas que as varreduras abriram nas mesmas verificações depois que o código foi implantado.
+
 ## OneUptime AI
 
 Duas ações em um problema pedem ajuda ao OneUptime AI. As duas enviam ao OneUptime AI o título e a gravidade do problema, o nome, o tipo, a região e o ID de nuvem do repositório, a sensibilidade e os tipos de dados dele, cada um pelo seu nome (os seus próprios pelo nome que você deu a eles), a evidência, por que a verificação importa e a correção para a nuvem do repositório - nunca as amostras de uma descoberta. As duas rodam sob os interruptores e limites de OneUptime AI do projeto. O que cada uma envia, o que nunca envia e o modelo em que roda estão em [OneUptime AI na Segurança de dados](/docs/data-security/ai).
 
-- **Explicar com IA** escreve, para o proprietário do repositório, o que está errado, o que pode acontecer e os passos exatos para corrigir isso na nuvem dele. A explicação fica guardada na **Linha do tempo** do problema. Nem o problema enviado nem a resposta ficam guardados em **Configurações do projeto → IA → Registros de IA**, que qualquer Membro do projeto e Visualizador pode ler: essa linha diz só que a chamada foi feita e quanto custou. Qualquer pessoa que pode ler o problema pode pedir.
-- **Corrigir com IA** pede ao OneUptime AI que corrija o problema no seu código de infraestrutura - Terraform, CloudFormation, Bicep ou similares - com a menor mudança que faz a verificação passar, e que abra um pull request. Ele precisa que o repositório de código com o código de infraestrutura do repositório de dados esteja conectado em **Código**: escolha-o em **Repositório** quando você puder pedir em vários. O pull request aparece em **Código** (veja [Código](/docs/ai/ai-agent)). Membros de segurança e funções acima podem pedir, em um repositório que possam alterar em **Código**, como exige pedir à IA ali: uma função de segurança sozinha não lê nem altera nenhum repositório, então dê também à equipe deles **Read Code Repository** e **Edit Code Repository**. Quando a IA não pode trabalhar agora (está desligada, o projeto ficou sem créditos de IA, atingiu seus limites diários ou nenhum Runner está online), Corrigir com IA diz o que corrigir e não inicia nada.
+- **Analisar problema**, no topo da página do problema, faz o OneUptime AI escrever sua análise: se o problema é real, o que põe em risco, o que a correção quebraria e o caminho mais curto para a correção (veja [Verificações e problemas da Segurança de dados](/docs/data-security/checks-and-issues)). Ela também envia quem consegue alcançar o repositório - cada concessão e aproximadamente quando foi usada pela última vez, e os serviços vistos usando-o -, as cópias dos seus dados em outros repositórios, seus casos de segurança, a ação de resposta que corrige o problema, o repositório de código e os arquivos que declaram o repositório de dados, e quantos proprietários ele tem, nunca quem são. A análise fica guardada no problema, e o veredito na **Linha do tempo** do problema. Nem o que foi enviado nem a resposta ficam em **Configurações do projeto → IA → Registros de IA**, que qualquer Membro do projeto e Visualizador pode ler: essa linha diz apenas que a chamada foi feita e quanto custou. Qualquer pessoa que possa ler o problema pode pedir, e **Explicar com IA** pela API e pelo servidor MCP responde com a mesma análise.
+- **Corrigir com IA** pede ao OneUptime AI que corrija o problema no seu código de infraestrutura - Terraform, CloudFormation, Bicep ou similares - com a menor mudança que faz a verificação passar, e que abra um pull request. Ele precisa que o repositório de código com o código de infraestrutura do repositório de dados esteja conectado em **Código**: escolha-o em **Repositório** quando você puder pedir em vários. O pull request aparece em **Código** (veja [Código](/docs/ai/ai-agent)). Membros de segurança e funções acima podem pedir, em um repositório que possam alterar em **Código**, como exige pedir à IA ali: uma função de segurança sozinha não lê nem altera nenhum repositório, então dê também à equipe deles **Read Code Repository** e **Edit Code Repository**. Quando a IA não pode trabalhar agora (está desligada, o projeto ficou sem créditos de IA, atingiu seus limites diários ou nenhum Runner está online), Corrigir com IA diz o que corrigir e não inicia nada. Para um problema na telemetria de um serviço, ele primeiro mostra um só pull request para todos os vazamentos do serviço, com onde seus registros dizem que cada um é escrito - nunca um valor -, e onde os dados são escritos em mais de três lugares ele adiciona, em vez disso, uma etapa de ocultação com um teste: veja [Corrigir no código](/docs/data-security/telemetry#corrigir-no-código).
+
+O OneUptime AI também trabalha por conta própria em cada novo problema, como suas regras de IA permitem: veja [OneUptime AI na segurança de dados](/docs/data-security/ai).
 
 ### Pergunte à IA
 
@@ -116,7 +149,7 @@ Duas mudanças fecham a exposição de um repositório de nuvem, cada uma pela c
 
 Uma pessoa executa uma delas a partir de um problema aberto que ela corrige, com **Corrigir daqui** (veja [Verificações e problemas da Segurança de dados](/docs/data-security/checks-and-issues#corrigir-daqui)). Um playbook do Security Operations as executa como etapas da categoria **Conter**, **Bloquear o acesso público a repositórios de dados** e **Revogar o compartilhamento do repositório de dados**: em cada repositório de dados de que o caso trata, no máximo 10, cada uma uma etapa que começa com **Requer aprovação** ativado. Um repositório marcado como **Público por design** nunca é bloqueado. De qualquer forma, o feed do repositório diz o que foi feito, e o repositório é verificado de novo na hora, então o problema se resolve quando a mudança surte efeito.
 
-O modelo de playbook **Fechar uma exposição de dados** responde aos casos que a Segurança de dados abre: ele envia e-mail aos proprietários do repositório, bloqueia o acesso público e revoga o compartilhamento depois que uma pessoa aprova cada etapa, e adiciona ao caso a checklist da resposta como tarefas - quem leu os dados enquanto estavam expostos, se é uma violação que você precisa notificar, quais segredos trocar e o que escrever quando o caso for fechado. Adicione-o em **Criar a partir de modelo** nos playbooks do projeto.
+O modelo de playbook **Fechar uma exposição de dados** responde aos casos que a Segurança de dados abre: ele envia e-mail aos proprietários do repositório, bloqueia o acesso público e revoga o compartilhamento depois que uma pessoa aprova cada etapa, e adiciona ao caso a checklist da resposta como tarefas - quem leu os dados enquanto estavam expostos, se é uma violação que você precisa notificar, quais segredos trocar e o que escrever quando o caso for fechado. Adicione-o em **Criar a partir de modelo** nos playbooks do projeto. O cartão **Foi uma violação de dados?** do caso responde a cada uma dessas tarefas (veja [Foi uma violação de dados?](#foi-uma-violação-de-dados)).
 
 ## API, Terraform e MCP
 
@@ -130,6 +163,7 @@ Tudo o que a Segurança de dados guarda é um registro da API do OneUptime, lido
 | Tipos de dados personalizados, configurações das verificações, configurações de conformidade e regras de residência | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | As configurações do projeto | `/data-security-setting` |
 | Proprietários, regras de proprietário e regras de rótulos | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| O que o OneUptime AI propõe para um problema, e por que ele agiu ou não em um | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. Cada uma é um `POST`:
 
@@ -139,16 +173,26 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-security/compliance` | A pontuação e os requisitos de cada estrutura de conformidade |
 | `/data-security/resource-scope` | Os repositórios de dados de um recurso - um cluster do Kubernetes, um host do Docker ou do Podman, um banco de dados, um serviço ou um recurso de nuvem - e de qual recurso eles seguem os interruptores de conformidade |
 | `/data-security/resource-compliance` | As estruturas de conformidade de um recurso: as pontuações delas para os repositórios dele, e o que está desativado para ele |
-| `/data-security/record-of-processing` | O registro das atividades de tratamento do RGPD, uma linha para cada repositório que guarda dados pessoais |
+| `/data-security/record-of-processing` | O registro das atividades de tratamento do RGPD, uma linha para cada repositório que guarda dados pessoais. Um repositório que o OneUptime guarda para a sua segurança tem um objeto `declared`: a sua própria finalidade e retenção, e quem pode lê-lo |
+| `/data-store/<id>/declared` | O que o registro diz de um repositório que o OneUptime guarda para a sua segurança: o que ele guarda, por quê, por quanto tempo e quem pode lê-lo |
 | `/data-store/<id>/scan-now` | **Varrer agora**: amostra o conteúdo do repositório na hora |
 | `/data-store/<id>/check-now` | **Verificar agora**: lê a configuração do repositório de novo e executa as verificações dele |
 | `/data-store-finding/<id>/scrub` | **Limpar** em uma descoberta de telemetria |
 | `/data-store-finding/<id>/drop-metric-impact` | O que **Descartar esta métrica** descartaria para uma descoberta no nome de uma métrica: quantas métricas, e os monitores, painéis, SLOs e regras de gravação que as leem |
 | `/data-store-finding/<id>/drop-metric` | **Descartar esta métrica**: uma regra de pipeline de métricas que descarta para sempre os novos pontos de dados dessas métricas do serviço. Recebe `{"confirmDataLoss": true}` |
-| `/data-security-issue/<id>/explain` | **Explicar com IA** em um problema |
+| `/data-security-issue/<id>/explain` | **Explicar com IA**: a análise de um problema pelo OneUptime AI, como **Analisar problema** a escreve. Ela devolve a análise guardada no problema quando nada em que se baseia mudou e, caso contrário, escreve uma nova; `{"force": true}` escreve uma nova, como **Analisar novamente** |
+| `/data-security-issue/<id>/analysis` | A análise guardada no problema, como você pode lê-la. Ela nunca pergunta ao OneUptime AI |
 | `/data-security-issue/<id>/fix-with-ai` | **Corrigir com IA** em um problema |
 | `/data-store/<id>/response-actions` | Quais ações de resposta o repositório pode receber agora, e por que não |
 | `/data-store/<id>/respond` | Uma ação de resposta no repositório, como **Bloquear acesso público** ou **Ativar o versionamento**, com o problema a partir do qual foi executada |
+| `/data-security-ai-proposal/<id>/approve` | **Aprovar** em uma mudança que o OneUptime AI propõe, que a faz com as suas próprias permissões. Recebe o `expectedPlanFingerprint` da proposta que foi mostrada a você e recusa uma que mudou desde então |
+| `/data-security-ai-proposal/<id>/dismiss` | **Dispensar proposta**, com `{"reason": "..."}`, que vai para a linha do tempo do problema |
+| `/data-security-ai-proposal/<id>/undo` | **Desfazer** em uma mudança que o OneUptime AI fez: ela é revertida, e o repositório é verificado de novo |
+| `/security-case/<id>/exposure-assessment` | A avaliação da exposição de um caso de segurança, como você pode lê-la: o que o código simples calcula sobre o repositório de que o caso trata, e o texto redigido pelo OneUptime AI |
+| `/security-case/<id>/exposure-assessment/assess` | **Avaliar esta exposição**: inicia a avaliação do caso, do repositório que `{"dataStoreId": "..."}` indica quando o caso trata de mais de um |
+| `/security-case/<id>/exposure-assessment/draft` | **Redigir com o OneUptime AI**: o OneUptime AI redige cada parte que nenhuma pessoa editou. Nada é enviado |
+| `/security-case/<id>/exposure-assessment/edit` | Uma parte nas palavras de uma pessoa, como `{"part": "regulatorNotice", "markdown": "..."}`, que nunca é redigida de novo |
+| `/security-case/<id>/exposure-assessment/people` | Onde moram os titulares dos dados, como `{"places": ["EEA", "GB"]}`; uma lista vazia desfaz a resposta |
 
 O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, configurações de conformidade, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 

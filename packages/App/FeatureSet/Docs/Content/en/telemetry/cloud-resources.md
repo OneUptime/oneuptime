@@ -459,6 +459,7 @@ Every data point carries its resource's Azure resource ID (`azuremonitor.resourc
 | `Microsoft.Storage/storageAccounts` | Storage Account | IaaS |
 | `Microsoft.RecoveryServices/vaults` | Recovery Services Vault | PaaS |
 | `Microsoft.Web/sites` | App Service or Function App | PaaS |
+| `Microsoft.Web/sites/slots` | Deployment Slot | PaaS |
 | `Microsoft.Web/serverfarms` | App Service Plan | PaaS |
 | `Microsoft.Web/staticSites` | Static Web App | PaaS |
 | `Microsoft.App/containerApps` | Container App | PaaS |
@@ -638,6 +639,8 @@ A resource of a [connected account](/docs/telemetry/cloud-accounts) is offered t
 :::
 
 A Service Bus namespace reports its metrics once per queue and topic, and an Event Hubs namespace once per event hub. Where they add up, a row on the namespace's **Metrics** tab shows their total and says **total of series** under it. A monitor created from that row reads the total too, as does one created through the API or Terraform without an aggregation. The other rows say **average of series** and show the average queue or event hub: a latency, and, over a range longer than 3 hours, an amount the namespace holds, such as messages waiting.
+
+The connection reads a Container App's requests once per status code category, to tell its 5xx responses apart, and the row of its requests adds them up the same way: it shows their total, and so does a monitor created from that row.
 
 > [!IMPORTANT]
 > Cloud monitoring publishes each number minutes after the time it measures: 10 to 20 minutes for CloudWatch polled as above, a few minutes for Azure Monitor and Cloud Monitoring. It is stored under the time it measures. Give a monitor over these metrics a window longer than that (30 minutes for CloudWatch, 15 for the others), or it sees no data and never fires.

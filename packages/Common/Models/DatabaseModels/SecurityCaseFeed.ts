@@ -49,6 +49,21 @@ export enum SecurityCaseFeedEventType {
   Evidence = "Evidence",
   // A response target about to be missed, or missed (SecurityCaseTargetCheck).
   ResponseTarget = "ResponseTarget",
+  // A Response Plan step OneUptime saw done stopped holding (SecurityCaseStepCheckRunner).
+  StepCheck = "StepCheck",
+  /*
+   * OneUptime AI working the case (#10352): it took the case, marked a step
+   * done, left one for a person, asked a person, closed the case with its
+   * report, or handed the case to people.
+   */
+  AiResponse = "AiResponse",
+  /*
+   * The case's exposure assessment (#10377): started - by Data Security on
+   * its own, or a person - written up by OneUptime AI, a part edited, or
+   * where the people live said. Never what it says: the assessment is for
+   * the case's readers who may read the store's findings.
+   */
+  ExposureAssessment = "ExposureAssessment",
 }
 
 /*
@@ -320,39 +335,4 @@ export default class SecurityCaseFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

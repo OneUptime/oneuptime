@@ -13,6 +13,8 @@ import {
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import UpdateByID from "../../../Server/Types/Database/UpdateByID";
 import MasterApiKey from "../../../Server/Utils/MasterApiKey";
+import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentication";
+import { ReauthenticationPurpose } from "../../../Types/Accounts/Reauthentication";
 import UserService from "../../../Server/Services/UserService";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -207,17 +209,41 @@ describe("writes through the API", () => {
     },
   );
 
-  test("turning the key on or off is not affected: the switch is the admin's", async () => {
+  /*
+   * The switch is the admin's, not one of the key's root-only columns.
+   * Turning it back on waits for their session to confirm it's them
+   * (#10330): the check itself is pinned by AdminReauthenticationGates and
+   * AdminDeleteAndMasterApiKeyOverHttp. Turning it off asks nothing.
+   */
+  test("turning the key off is the admin's to do, and asks nothing", async () => {
+    const assertConfirmed: SpyInstance<
+      typeof Reauthentication.assertConfirmed
+    > = jest.spyOn(Reauthentication, "assertConfirmed");
+
     await expect(
       hooks.onBeforeUpdate(
         makeUpdateBy({ isMasterApiKeyEnabled: false }, MASTER_ADMIN_PROPS),
       ),
     ).resolves.toBeDefined();
+    expect(assertConfirmed).not.toHaveBeenCalled();
+  });
+
+  test("turning it back on is the admin's to do too, once their session confirms it's them (#10330)", async () => {
+    const assertConfirmed: SpyInstance<
+      typeof Reauthentication.assertConfirmed
+    > = jest
+      .spyOn(Reauthentication, "assertConfirmed")
+      .mockResolvedValue(undefined);
+
     await expect(
       hooks.onBeforeUpdate(
         makeUpdateBy({ isMasterApiKeyEnabled: true }, MASTER_ADMIN_PROPS),
       ),
     ).resolves.toBeDefined();
+    expect(assertConfirmed).toHaveBeenCalledWith(
+      MASTER_ADMIN_PROPS,
+      ReauthenticationPurpose.AdminChange,
+    );
   });
 });
 

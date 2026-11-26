@@ -1,0 +1,106 @@
+name: Republish a Terraform provider version
+
+# Publishes the provider of a published version again, as a new version.
+#
+# A published release of the provider is never changed: the Terraform and
+# OpenTofu registries read its assets once, when it is published, and
+# `terraform init` and `tofu init` check what GitHub serves against what they
+# read. A version whose assets no longer match it - 14.3.0, 16.0.0, 17.0.0 and
+# 17.1.0 had theirs built again and uploaded over the published ones
+# (OneUptime/terraform-provider-oneuptime#20) - is mended by publishing its
+# provider again as the next patch version, from the same commit, so that
+# `~> 17.1.0` installs 17.1.1. publish-terraform-provider.sh --republish-from
+# does that: it tags the published version's commit with the new version,
+# builds, signs and checks the release as a draft, and only then publishes
+# it. Run for a version that is published already, it stops, having changed
+# nothing.
+#
+#   gh workflow run terraform-provider-republish.yml -f from=17.1.0 -f version=17.1.1
+#
+# Pick a version OneUptime will not release itself: a release run whose
+# version is published already leaves the provider's as it is.
+#
+# Tests/Ops/TerraformProviderPublishedRelease.test.js holds this workflow to
+# all of it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "The published version whose provider to publish again, as 17.1.0"
+        required: true
+        type: string
+      version:
+        description: "The new version, as 17.1.1: one that is not published yet"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  republish-terraform-provider:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # With release.yml's publish-terraform-provider: one publish of the
+    # provider at a time, none cancelled.
+    concurrency:
+      group: terraform-provider-repository
+      cancel-in-progress: false
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      # Go's soft memory limit, for GoReleaser's cross-compiles of the
+      # provider, as release.yml's publish-terraform-provider sets it: a guard
+      # rail (Scripts/TerraformProvider/Core/GoCommand.ts).
+      GOMEMLIMIT: 10GiB
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # The publish script's checks and notes are plain Node.js: nothing to
+      # install, and nothing is generated.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      # No Go cache: setup-go keys it on a go.sum the repository does not have
+      # at its root (Tests/Ops/TerraformProviderPublishOnce.test.js).
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: false
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6.1.0
+        with:
+          install-only: true
+          # v2.x, as release.yml pins it.
+          version: '~> v2'
+
+      # As release.yml imports it, and why: see there.
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%b\n' "$GPG_PRIVATE_KEY" > private.key
+          gpg --batch --import private.key || true
+          rm -f private.key
+          if ! gpg --list-secret-keys --keyid-format=long | grep -q '^sec'; then
+            echo "::error::GPG import produced no secret key; release assets cannot be signed. Aborting before any publish step."
+            exit 1
+          fi
+          echo "GPG key imported and verified"
+
+      # The inputs and the secrets reach the script through env, never written
+      # into it: an input is text a person typed.
+      - name: Publish the provider again
+        env:
+          FROM: ${{ inputs.from }}
+          VERSION: ${{ inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
+        run: bash ./Scripts/TerraformProvider/publish-terraform-provider.sh --republish-from "$FROM" --version "$VERSION"

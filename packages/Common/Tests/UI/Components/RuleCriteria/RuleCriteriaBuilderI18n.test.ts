@@ -165,7 +165,7 @@ describe("the conditions builder in every dashboard language", () => {
     expect(BUILDER_STRINGS).toContain("Match all");
     expect(BUILDER_STRINGS).toContain("Is in");
     expect(BUILDER_STRINGS).toContain("Applies to");
-    expect(APPLIES_TO_STRINGS).toHaveLength(74);
+    expect(APPLIES_TO_STRINGS).toHaveLength(76);
     expect(BUILDER_STRINGS).toContain("All incidents");
     expect(BUILDER_STRINGS).toContain("Only incidents that match conditions");
     expect(BUILDER_STRINGS).toContain("Only data stores that match conditions");
@@ -176,6 +176,9 @@ describe("the conditions builder in every dashboard language", () => {
     expect(BUILDER_STRINGS).toContain(
       "Only cloud environments that match conditions",
     );
+    // Data Security → AI's AI rules are about its issues (#10364).
+    expect(BUILDER_STRINGS).toContain("All issues");
+    expect(BUILDER_STRINGS).toContain("Only issues that match conditions");
     expect(WRITTEN_CRITERIA_NAMES.length).toBeGreaterThan(80);
     expect(WRITTEN_CRITERIA_NAMES).toContain("Incident Title");
     expect(WRITTEN_CRITERIA_NAMES).toContain("Kubernetes Cluster Name");

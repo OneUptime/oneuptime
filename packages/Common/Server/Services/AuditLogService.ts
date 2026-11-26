@@ -10,14 +10,22 @@ import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import CreateManyBy from "../Types/AnalyticsDatabase/CreateManyBy";
 import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
+import FindOneBy from "../Types/AnalyticsDatabase/FindOneBy";
 import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
+import Query from "../Types/AnalyticsDatabase/Query";
+import Select from "../Types/AnalyticsDatabase/Select";
 import logger from "../Utils/Logger";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import AuditLogReadAccess from "../Utils/AuditLog/AuditLogReadAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AuditLog from "../../Models/AnalyticsModels/AuditLog";
 import { AUDIT_LOG_EXPORT_SOURCE_COLUMNS } from "../../Types/AuditLog/Export/AuditLogExportRecord";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import Includes from "../../Types/BaseDatabase/Includes";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import PositiveNumber from "../../Types/PositiveNumber";
 import { withAuditLogResourceTypeSpellings } from "../../Utils/AuditLog/AuditLogResourceTypes";
 import { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
 import { SignInFailureAuditEvent } from "../../Types/AuditLog/AuditLogSignInFailure";
@@ -39,6 +47,28 @@ export const AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS: number = 45;
 // Why a create that is not the recorder's is refused.
 export const AUDIT_LOG_CREATE_REFUSED_MESSAGE: string =
   "Audit log entries are recorded by OneUptime and cannot be created directly.";
+
+// The columns that hold what a reader may not read: an entry's name and its changes.
+const AUDIT_LOG_NAME_COLUMN: string = "resourceName";
+const AUDIT_LOG_CHANGES_COLUMN: string = "changes";
+
+// What deciding what an entry's reader may read of it needs (AuditLogReadAccess).
+const COLUMNS_AN_ENTRY_IS_HELD_BY: ReadonlyArray<string> = [
+  "resourceType",
+  "resourceId",
+];
+
+// Whether a read matches, orders, groups or aggregates by entries' names or changes.
+export interface HiddenReads {
+  names: boolean;
+  values: boolean;
+}
+
+// A query held to its reader, or one that is left nothing to match.
+interface HeldQuery {
+  query: Query<AuditLog>;
+  matchesNothing: boolean;
+}
 
 /*
  * The audit log's ClickHouse table (reads, retention, migrations) and the four
@@ -127,22 +157,309 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     };
   }
 
+  /*
+   * EVERY READ OF AN ENTRY IS HELD TO ITS READER'S READ OF THE RECORD
+   * (#10642, Server/Utils/AuditLog/AuditLogReadAccess): a list, an entry,
+   * a count, an aggregate and an existence check alike, through the API, an
+   * API key, the MCP server and the dashboard.
+   *
+   *   - What a read returns: each entry's values are those of the fields its
+   *     reader may read on the record, and its name is there only where they
+   *     may read the record - the rest is hidden. The columns that decide it
+   *     are read with it, and left out of what is returned when the read did
+   *     not ask for them.
+   *   - What a read matches, orders or groups by: a filter, an order or a
+   *     group by an entry's name or its changes - or an aggregate of them -
+   *     reads only the entries whose names (or values) its reader reads in
+   *     full, by their resource type: which entries a filter on a hidden name
+   *     matches, and where they fall in an order, would say what it is.
+   *
+   * OneUptime itself and a server admin read every entry as it was
+   * recorded: the exporter (findEntriesForExport), as root.
+   */
+  public override async findBy(
+    findBy: FindBy<AuditLog>,
+  ): Promise<Array<AuditLog>> {
+    return await this.readHeldToReader(
+      findBy,
+      async (read: FindBy<AuditLog>): Promise<Array<AuditLog>> => {
+        return await super.findBy(read);
+      },
+    );
+  }
+
+  public override async findOneBy(
+    findOneBy: FindOneBy<AuditLog>,
+  ): Promise<AuditLog | null> {
+    const entries: Array<AuditLog> = await this.readHeldToReader(
+      { ...findOneBy, skip: 0, limit: 1 },
+      async (read: FindBy<AuditLog>): Promise<Array<AuditLog>> => {
+        const entry: AuditLog | null = await super.findOneBy(read);
+
+        return entry ? [entry] : [];
+      },
+    );
+
+    return entries[0] || null;
+  }
+
+  public override async countBy(
+    countBy: CountBy<AuditLog>,
+  ): Promise<PositiveNumber> {
+    const held: HeldQuery = await this.holdQueryToReader({
+      query: countBy.query,
+      hiddenReads: AuditLogService.getHiddenReads({
+        query: countBy.query,
+        groupBy: countBy.groupBy,
+      }),
+      props: countBy.props,
+    });
+
+    if (held.matchesNothing) {
+      return new PositiveNumber(0);
+    }
+
+    return await super.countBy({ ...countBy, query: held.query });
+  }
+
   public override async aggregateBy(
     aggregateBy: AggregateBy<AuditLog>,
   ): Promise<AggregatedResult> {
+    const query: Query<AuditLog> = withAuditLogResourceTypeSpellings(
+      aggregateBy.query,
+    );
+
+    const held: HeldQuery = await this.holdQueryToReader({
+      query: query,
+      hiddenReads: AuditLogService.getHiddenReads({
+        query: query,
+        sort: aggregateBy.sort,
+        groupBy: aggregateBy.groupBy,
+        aggregateColumnName: aggregateBy.aggregateColumnName,
+      }),
+      props: aggregateBy.props,
+    });
+
+    if (held.matchesNothing) {
+      return { data: [], truncated: false };
+    }
+
     return await super.aggregateBy({
       ...aggregateBy,
-      query: withAuditLogResourceTypeSpellings(aggregateBy.query),
+      query: held.query,
     });
   }
 
   public override async existsBy(
     existsBy: ExistsBy<AuditLog>,
   ): Promise<boolean> {
+    const query: Query<AuditLog> = withAuditLogResourceTypeSpellings(
+      existsBy.query,
+    );
+
+    const held: HeldQuery = await this.holdQueryToReader({
+      query: query,
+      hiddenReads: AuditLogService.getHiddenReads({ query: query }),
+      props: existsBy.props,
+    });
+
+    if (held.matchesNothing) {
+      return false;
+    }
+
     return await super.existsBy({
       ...existsBy,
-      query: withAuditLogResourceTypeSpellings(existsBy.query),
+      query: held.query,
     });
+  }
+
+  /*
+   * An aggregate of the audit log answers what its reader may read, which
+   * the scoped query alone does not say: never handed to another reader
+   * (BaseAnalyticsAPI's short-lived cache).
+   */
+  public override sharesAggregatesAcrossReaders(): boolean {
+    return false;
+  }
+
+  /*
+   * Whether a read matches, orders, groups or aggregates entries by their
+   * names (`names`) or their changes (`values`): see findBy.
+   */
+  public static getHiddenReads(data: {
+    query?: unknown;
+    sort?: unknown;
+    groupBy?: unknown;
+    aggregateColumnName?: unknown;
+  }): HiddenReads {
+    const keys: Set<string> = new Set<string>();
+
+    for (const part of [data.query, data.sort, data.groupBy]) {
+      if (part && typeof part === "object" && !Array.isArray(part)) {
+        for (const key of Object.keys(part as Record<string, unknown>)) {
+          if ((part as Record<string, unknown>)[key] !== undefined) {
+            keys.add(key);
+          }
+        }
+      }
+    }
+
+    if (data.aggregateColumnName) {
+      keys.add(String(data.aggregateColumnName));
+    }
+
+    return {
+      names: keys.has(AUDIT_LOG_NAME_COLUMN),
+      values: keys.has(AUDIT_LOG_CHANGES_COLUMN),
+    };
+  }
+
+  /*
+   * A list's or an entry's read, held to its reader (see findBy): what it
+   * matches, and what it returns. `read` is the read itself.
+   */
+  private async readHeldToReader(
+    findBy: FindBy<AuditLog>,
+    read: (findBy: FindBy<AuditLog>) => Promise<Array<AuditLog>>,
+  ): Promise<Array<AuditLog>> {
+    const held: HeldQuery = await this.holdQueryToReader({
+      query: findBy.query,
+      hiddenReads: AuditLogService.getHiddenReads({
+        query: findBy.query,
+        sort: findBy.sort,
+        groupBy: findBy.groupBy,
+      }),
+      props: findBy.props,
+    });
+
+    if (held.matchesNothing) {
+      return [];
+    }
+
+    const select: Record<string, unknown> = {
+      ...((findBy.select as Record<string, unknown> | undefined) || {}),
+    };
+
+    // A grouped read returns the columns it groups by, which the query held.
+    const isGrouped: boolean = Boolean(
+      findBy.groupBy && Object.keys(findBy.groupBy).length > 0,
+    );
+
+    const isHeld: boolean =
+      !isGrouped &&
+      !AuditLogReadAccess.readsEverything(findBy.props) &&
+      Boolean(
+        select[AUDIT_LOG_CHANGES_COLUMN] || select[AUDIT_LOG_NAME_COLUMN],
+      );
+
+    // What deciding needs, and the read may not have asked for.
+    const addedColumns: Array<string> = [];
+
+    if (isHeld) {
+      for (const column of COLUMNS_AN_ENTRY_IS_HELD_BY) {
+        if (!select[column]) {
+          select[column] = true;
+          addedColumns.push(column);
+        }
+      }
+    }
+
+    const entries: Array<AuditLog> = await read({
+      ...findBy,
+      query: held.query,
+      select: select as Select<AuditLog>,
+    });
+
+    if (!isHeld) {
+      return entries;
+    }
+
+    await AuditLogReadAccess.holdEntriesToReader({
+      entries: entries,
+      props: findBy.props,
+    });
+
+    for (const entry of entries) {
+      for (const column of addedColumns) {
+        entry.setColumnValue(column, undefined);
+      }
+    }
+
+    return entries;
+  }
+
+  /*
+   * A query that matches, orders, groups or aggregates by entries' names or
+   * changes, held to the entries whose names (or values) its reader reads
+   * in full: the resource types it matches, of those (see findBy). Each
+   * type's entries are all read in full or all left out, so the query keeps
+   * to what it matched otherwise.
+   */
+  private async holdQueryToReader(data: {
+    query: Query<AuditLog>;
+    hiddenReads: HiddenReads;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<HeldQuery> {
+    if (
+      (!data.hiddenReads.names && !data.hiddenReads.values) ||
+      AuditLogReadAccess.readsEverything(data.props)
+    ) {
+      return { query: data.query, matchesNothing: false };
+    }
+
+    const matchedTypes: Array<string> = await this.getResourceTypesMatching({
+      query: data.query,
+      props: data.props,
+    });
+
+    const readInFull: Array<string> =
+      await AuditLogReadAccess.getTypesReadInFull({
+        resourceTypes: matchedTypes,
+        values: data.hiddenReads.values,
+        props: data.props,
+      });
+
+    if (readInFull.length === matchedTypes.length) {
+      return { query: data.query, matchesNothing: false };
+    }
+
+    if (readInFull.length === 0) {
+      return { query: data.query, matchesNothing: true };
+    }
+
+    return {
+      query: {
+        ...(data.query || {}),
+        resourceType: new Includes(readInFull),
+      } as Query<AuditLog>,
+      matchesNothing: false,
+    };
+  }
+
+  // The resource types of the entries a query matches, each once.
+  private async getResourceTypesMatching(data: {
+    query: Query<AuditLog>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    const rows: Array<AuditLog> = await super.findBy({
+      query: { ...(data.query || {}) } as Query<AuditLog>,
+      select: { resourceType: true },
+      groupBy: { resourceType: true },
+      sort: { resourceType: SortOrder.Ascending },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: data.props,
+    });
+
+    const types: Array<string> = [];
+
+    for (const row of rows) {
+      if (row.resourceType && !types.includes(row.resourceType)) {
+        types.push(row.resourceType);
+      }
+    }
+
+    return types;
   }
 
   public invalidateProjectSettings(projectId: ObjectID): void {

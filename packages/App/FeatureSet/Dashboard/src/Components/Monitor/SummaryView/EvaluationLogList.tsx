@@ -35,6 +35,14 @@ import EvaluationGroupingNote, {
 } from "./EvaluationGroupingNote";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 import { wordEvaluationText } from "../../../Utils/EvaluationText";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import MonitorEvaluationTime from "Common/Utils/Monitor/MonitorEvaluationTime";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import {
+  getSeriesJudged,
+  getSlowEvaluationWords,
+  SlowEvaluationWords,
+} from "./SlowEvaluationWords";
 
 interface FilterGroup {
   message: string;
@@ -45,6 +53,15 @@ interface FilterGroup {
 }
 
 const disabledCriteriaReasonPattern: RegExp = /\bdisabled\b/i;
+
+/*
+ * Why a criteria judged only during its active hours was skipped (#10355),
+ * as the server writes it (MonitorCriteriaEvaluator), worded in the reader's
+ * language from here.
+ */
+export const OUTSIDE_ACTIVE_HOURS_REASON: string = translationKey(
+  "This criteria is judged only during its active hours, and this check was outside them.",
+);
 const earlierCriteriaMatchedReasonPattern: RegExp =
   /\b(?:earlier|previous)\b.*\bcriteri(?:a|on)\b.*\bmatched\b/i;
 const stoppedAtFirstMatchReasonPattern: RegExp =
@@ -95,7 +112,24 @@ const groupFiltersByMessage: (
 export interface ComponentProps {
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   title?: string | undefined;
+  /*
+   * The monitor the summary is of, where the page knows it: a warning that
+   * an incident or alert may be missing or still open links to its
+   * incidents and alerts.
+   */
+  monitorId?: ObjectID | undefined;
 }
+
+/*
+ * Requests to an Incoming Request monitor skipped before this evaluation
+ * (#10582): a warning that an incident or alert may be missing or still
+ * open, drawn apart from the evaluation's own actions (#10653).
+ */
+export const isSkippedRequestsEvent: (
+  event: MonitorEvaluationEvent,
+) => boolean = (event: MonitorEvaluationEvent): boolean => {
+  return event.type === "requests-skipped";
+};
 
 const EvaluationLogList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -112,13 +146,25 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     evaluationSummary.criteriaResults &&
     evaluationSummary.criteriaResults.length > 0;
 
+  const skippedRequestsEvents: Array<MonitorEvaluationEvent> = (
+    evaluationSummary.events || []
+  ).filter(isSkippedRequestsEvent);
+
   const actionEvents: Array<MonitorEvaluationEvent> = (
     evaluationSummary.events || []
   ).filter((event: MonitorEvaluationEvent) => {
-    return event.type !== "criteria-met" && event.type !== "criteria-not-met";
+    return (
+      event.type !== "criteria-met" &&
+      event.type !== "criteria-not-met" &&
+      !isSkippedRequestsEvent(event)
+    );
   });
 
-  if (!hasCriteriaResults && actionEvents.length === 0) {
+  if (
+    !hasCriteriaResults &&
+    actionEvents.length === 0 &&
+    skippedRequestsEvents.length === 0
+  ) {
     return <></>;
   }
 
@@ -759,19 +805,206 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * What the evaluation was, set apart by " · ": when it ran, how long it
+   * took and how many series it judged (#10317). An evaluation logged
+   * before it said how long it took says when it ran only.
+   */
+  const durationInMs: number | undefined =
+    typeof evaluationSummary.durationInMs === "number" &&
+    Number.isFinite(evaluationSummary.durationInMs)
+      ? evaluationSummary.durationInMs
+      : undefined;
+  const seriesJudged: number | undefined = getSeriesJudged(evaluationSummary);
+  const evaluationFacts: Array<{ key: string; text: string }> = [];
+
+  if (evaluationSummary.evaluatedAt) {
+    evaluationFacts.push({
+      key: "evaluated-at",
+      text: translator.translateTemplate("Evaluated at {{time}}", {
+        time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          evaluationSummary.evaluatedAt,
+        ),
+      }),
+    });
+  }
+
+  if (durationInMs !== undefined) {
+    evaluationFacts.push({
+      key: "took",
+      text: translator.translateTemplate("Took {{duration}}", {
+        duration: MonitorEvaluationTime.formatDuration(
+          translator,
+          durationInMs,
+        ),
+      }),
+    });
+  }
+
+  if (seriesJudged !== undefined) {
+    evaluationFacts.push({
+      key: "series-judged",
+      text: translator.translatePlural(
+        { one: "Judged {{count}} series", other: "Judged {{count}} series" },
+        seriesJudged,
+      ),
+    });
+  }
+
+  /*
+   * Too long for its monitor: a tenth of its interval, at least 5 seconds,
+   * at most a minute (MonitorEvaluationTime). Said where the summary is
+   * read - this check's View Summary, and the latest one on the monitor's
+   * Overview - so a monitor that grows past what its interval allows is
+   * noticed before its checks fall behind. The Monitoring Logs mark the
+   * check slow in the same words (SlowEvaluationWords).
+   */
+  const isSlow: boolean =
+    durationInMs !== undefined &&
+    MonitorEvaluationTime.isSlow(evaluationSummary);
+  const slowEvaluationWords: SlowEvaluationWords | undefined = isSlow
+    ? getSlowEvaluationWords(translator, evaluationSummary)
+    : undefined;
+
+  /*
+   * Requests skipped before this evaluation, each as a warning: how many,
+   * why, and that an incident or alert one of them would have opened or
+   * resolved may be missing or still open - with where to look, when the
+   * page knows the monitor. The time is the evaluation's, already said
+   * above, not when they were skipped, so it is not said again.
+   */
+  const renderSkippedRequests: (
+    event: MonitorEvaluationEvent,
+    index: number,
+  ) => ReactElement = (
+    event: MonitorEvaluationEvent,
+    index: number,
+  ): ReactElement => {
+    const monitorId: ObjectID | undefined = props.monitorId;
+
+    return (
+      <Alert
+        key={`requests-skipped-${index}`}
+        type={AlertType.WARNING}
+        dataTestId="requests-skipped"
+        title={
+          <span className="block space-y-1">
+            <span
+              dir="auto"
+              className="block font-semibold"
+              data-testid="requests-skipped-title"
+            >
+              {wordEvaluationText(translator, event.title, event.titleSentence)}
+            </span>
+            {event.message && (
+              <span
+                dir="auto"
+                className="block"
+                data-testid="requests-skipped-message"
+              >
+                {wordEvaluationText(
+                  translator,
+                  event.message,
+                  event.messageSentence,
+                )}
+              </span>
+            )}
+            {monitorId && (
+              <span className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  title="View Incidents"
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  icon={IconProp.Alert}
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
+                        { modelId: monitorId },
+                      ),
+                    );
+                  }}
+                />
+                <Button
+                  title="View Alerts"
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  icon={IconProp.ExclaimationCircle}
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW_ALERTS] as Route,
+                        { modelId: monitorId },
+                      ),
+                    );
+                  }}
+                />
+              </span>
+            )}
+          </span>
+        }
+      />
+    );
+  };
+
   return (
     <div className="mt-6 space-y-4">
       <div className="text-base font-semibold text-gray-900">
         {getSummaryTitle}
       </div>
-      {evaluationSummary.evaluatedAt && (
-        <div className="text-xs text-gray-500">
-          {translator.translateTemplate("Evaluated at {{time}}", {
-            time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              evaluationSummary.evaluatedAt,
-            ),
-          })}
+      {evaluationFacts.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500"
+          data-testid="evaluation-facts"
+        >
+          {evaluationFacts.map(
+            (fact: { key: string; text: string }, index: number) => {
+              return (
+                <React.Fragment key={fact.key}>
+                  {index > 0 && (
+                    <span aria-hidden="true">
+                      <InlineSeparator markOnly />
+                    </span>
+                  )}
+                  <span>{fact.text}</span>
+                </React.Fragment>
+              );
+            },
+          )}
         </div>
+      )}
+      {skippedRequestsEvents.length > 0 && (
+        <div className="space-y-3">
+          {skippedRequestsEvents.map(renderSkippedRequests)}
+        </div>
+      )}
+      {isSlow && durationInMs !== undefined && slowEvaluationWords && (
+        <Alert
+          type={AlertType.WARNING}
+          icon={IconProp.Clock}
+          dataTestId="slow-evaluation"
+          title={
+            <span className="block space-y-1">
+              <span className="block font-semibold">
+                {translator.translateTemplate(
+                  "This evaluation took {{duration}}",
+                  {
+                    duration: MonitorEvaluationTime.formatDuration(
+                      translator,
+                      durationInMs,
+                    ),
+                  },
+                )}
+              </span>
+              <span className="block">{slowEvaluationWords.why}</span>
+              {slowEvaluationWords.howToSpeedUp && (
+                <span className="block">
+                  {slowEvaluationWords.howToSpeedUp}
+                </span>
+              )}
+            </span>
+          }
+        />
       )}
 
       {hasCriteriaResults && (

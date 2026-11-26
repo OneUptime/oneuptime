@@ -218,6 +218,16 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Rules", "Link Rules"],
       },
+      /*
+       * Who changed the rules above, what and when (#10462): most of them
+       * have no page of their own to hold their history.
+       */
+      {
+        title: "Audit Logs",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Rules", "Audit Logs"],
+      },
     ],
   },
   {
@@ -610,7 +620,7 @@ describe("Network side menu", () => {
 
       expect(isExpanded("Rules")).toBe(false);
       expect(sectionBody("Rules")).toHaveClass("max-h-0", "opacity-0");
-      expect(linksIn("Rules")).toHaveLength(6);
+      expect(linksIn("Rules")).toHaveLength(7);
 
       fireEvent.click(sectionToggle("Rules"));
 
@@ -664,11 +674,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all thirty-one destinations reachable exactly once", async () => {
+    test("keeps all thirty-two destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(31);
-      expect(allLinks()).toHaveLength(31);
+      expect(EXPECTED_ENTRIES).toHaveLength(32);
+      expect(allLinks()).toHaveLength(32);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );
@@ -779,6 +789,17 @@ describe("Network side menu", () => {
       expect(sectionBody("Rules")).toHaveClass("opacity-100");
       expect(isExpanded("Settings")).toBe(false);
       expectActiveLink("Link Rules");
+    });
+
+    test("the rules' Audit Logs page expands Rules and highlights its item", async () => {
+      goTo(routeFor(PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS));
+
+      await renderNetworkMenu();
+
+      expect(isExpanded("Rules")).toBe(true);
+      expect(sectionBody("Rules")).toHaveClass("opacity-100");
+      expect(isExpanded("Settings")).toBe(false);
+      expectActiveLink("Audit Logs");
     });
 
     // A Settings page from each route family: Network Sites, then Devices.

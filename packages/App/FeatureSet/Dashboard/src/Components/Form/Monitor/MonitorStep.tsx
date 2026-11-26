@@ -40,7 +40,6 @@ import MonitorDestinationUtil, {
 } from "Common/Utils/Monitor/MonitorDestinationUtil";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { ButtonSize } from "Common/UI/Components/Button/Button";
 import CheckBoxList, {
   CategoryCheckboxValue,
@@ -59,7 +58,13 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
-import { getMonitorStepMoreFieldsItems } from "./MonitorMoreFields";
+import {
+  REQUEST_BODY_FORMAT_TITLES,
+  getMonitorStepMoreFieldsItems,
+} from "./MonitorMoreFields";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import Card from "Common/UI/Components/Card/Card";
 import CardFormSections from "Common/UI/Components/Card/CardFormSections";
 import React, {
@@ -80,10 +85,7 @@ import LlmMonitorStepForm from "./LlmMonitor/LlmMonitorStepForm";
 import MonitorStepLlmMonitor, {
   MonitorStepLlmMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLlmMonitor";
-import Service from "Common/Models/DatabaseModels/Service";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
@@ -207,6 +209,7 @@ import {
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
 } from "../../../Utils/MonitorRetryHelpText";
 import SyntheticMonitorCopy from "../../../Utils/Form/Monitor/SyntheticMonitorCopy";
+import getRequestBodyFieldError from "../../../Utils/Form/Monitor/RequestBodyField";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -248,8 +251,6 @@ export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   value?: undefined | MonitorStep;
@@ -342,8 +343,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setShowSyntheticMonitorAdvancedOptions,
   ] = useState<boolean>(false);
 
-  const [telemetryServices, setServices] = useState<Array<Service>>([]);
-
   /*
    * The address field's label names its box and its help describes it, so
    * the box is read out as "Website URL" (or "Hostname", "Port"...), not as
@@ -425,9 +424,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       return key + 1;
     });
   }, [ruleCriteriaId]);
-  const [telemetryEntities, setTelemetryEntities] = useState<
-    Array<InventoryItem>
-  >([]);
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -476,83 +472,17 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const fetchServices: PromiseVoidFunction = async (): Promise<void> => {
-    const telemetryServicesResult: ListResult<Service> =
-      await ModelAPI.getList<Service>({
-        modelType: Service,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          name: true,
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
-
-    if (telemetryServicesResult instanceof HTTPErrorResponse) {
-      throw telemetryServicesResult;
-    }
-
-    setServices(telemetryServicesResult.data);
-  };
-
-  /*
-   * The inventory-item registry (host / pod / container / ...) backing
-   * the optional "scope to infrastructure entities" picker on the
-   * log/trace/metric/exception monitor step forms. The picker stores
-   * entityKey values which the criteria compile turns into
-   * hasAny(entityKeys, [...]).
-   */
-  const fetchTelemetryEntities: PromiseVoidFunction =
-    async (): Promise<void> => {
-      const telemetryEntitiesResult: ListResult<InventoryItem> =
-        await ModelAPI.getList<InventoryItem>({
-          modelType: InventoryItem,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            entityKey: true,
-            entityType: true,
-            displayName: true,
-          },
-          sort: {
-            displayName: SortOrder.Ascending,
-          },
-        });
-
-      if (telemetryEntitiesResult instanceof HTTPErrorResponse) {
-        throw telemetryEntitiesResult;
-      }
-
-      setTelemetryEntities(telemetryEntitiesResult.data);
-    };
-
   const fetchServicesAndAttributes: PromiseVoidFunction =
     async (): Promise<void> => {
       setIsLoading(true);
       setError("");
       try {
-        await fetchServices();
-
-        if (
-          props.monitorType === MonitorType.Logs ||
-          props.monitorType === MonitorType.Traces ||
-          props.monitorType === MonitorType.Metrics ||
-          props.monitorType === MonitorType.Exceptions ||
-          props.monitorType === MonitorType.Profiles
-        ) {
-          await fetchTelemetryEntities();
-        }
-
+        /*
+         * The services and inventory items a step filters on are searched
+         * on the server by their fields (TelemetryScopePickers, #10646):
+         * the project's first 10,000 of each were read here, and a pod
+         * past them could neither be picked nor kept.
+         */
         if (props.monitorType === MonitorType.Logs) {
           await fetchLogAttributes();
         }
@@ -896,6 +826,22 @@ return {
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
 
+  /*
+   * How an API monitor's body is sent (#10736): JSON, the default and
+   * first, or text sent exactly as written. The body's editor, its words
+   * and its check follow the format.
+   */
+  const requestBodyFormat: MonitorRequestBodyFormat =
+    MonitorRequestBodyFormatUtil.read(monitorStep.data?.requestBodyFormat);
+  const isTextRequestBody: boolean =
+    requestBodyFormat === MonitorRequestBodyFormat.Text;
+  const requestBodyFormatDropdownOptions: Array<DropdownOption> =
+    MonitorRequestBodyFormatUtil.ALL_FORMATS.map(
+      (format: MonitorRequestBodyFormat): DropdownOption => {
+        return { label: REQUEST_BODY_FORMAT_TITLES[format], value: format };
+      },
+    );
+
   // A Metrics monitor's rule, when its criteria are one (TelemetryAlertRule).
   const metricRule: TelemetryAlertRule | null =
     props.monitorType === MonitorType.Metrics
@@ -920,8 +866,6 @@ return {
       monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
       incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
       alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
-      onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-      labelDropdownOptions={props.labelDropdownOptions}
       userDropdownOptions={props.userDropdownOptions}
       incidentRoleOptions={props.incidentRoleOptions}
       value={monitorStep?.data?.monitorCriteria}
@@ -1335,12 +1279,64 @@ return {
 
                   <div>
                     <FieldLabelElement
-                      title={"Request Body (in JSON)"}
+                      title={"Request Body Format"}
+                      description={
+                        "Whether the body is JSON, or text sent exactly as written, such as XML or form fields."
+                      }
+                      required={false}
+                    />
+                    {/*
+                     * A body is always read in one format, JSON unless the
+                     * step says text, so there is nothing to clear.
+                     */}
+                    <Dropdown
+                      isClearable={false}
+                      ariaLabel="Request Body Format"
+                      dataTestId="request-body-format"
+                      initialValue={requestBodyFormatDropdownOptions.find(
+                        (option: DropdownOption) => {
+                          return option.value === requestBodyFormat;
+                        },
+                      )}
+                      options={requestBodyFormatDropdownOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        const format: MonitorRequestBodyFormat =
+                          MonitorRequestBodyFormatUtil.read(value?.toString());
+
+                        monitorStep.setRequestBodyFormat(format);
+
+                        // A text body is sent as written: no JSON to check.
+                        setErrors({
+                          ...errors,
+                          requestBody:
+                            getRequestBodyFieldError(
+                              monitorStep.data?.requestBody || "",
+                              translator,
+                              format,
+                            ) || "",
+                        });
+
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabelElement
+                      title={"Request Body"}
                       description={
                         <p>
-                          {translator.translateText(
-                            "Sent with every request, as JSON.",
-                          )}{" "}
+                          {isTextRequestBody
+                            ? translator.translateText(
+                                "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.",
+                              )
+                            : translator.translateText(
+                                "Sent with every request, as JSON.",
+                              )}{" "}
                           <Link
                             className="underline"
                             openInNewTab={true}
@@ -1357,7 +1353,14 @@ return {
                       required={false}
                     />
                     <CodeEditor
-                      type={CodeType.JSON}
+                      type={isTextRequestBody ? CodeType.Text : CodeType.JSON}
+                      /*
+                       * Judged as the probe reads a body: any JSON value,
+                       * or JSON5, its {{...}} placeholders standing for
+                       * their values (getRequestBodyFieldError). A text
+                       * body is never judged.
+                       */
+                      allowJSON5={!isTextRequestBody}
                       onBlur={() => {
                         setTouched({
                           ...touched,
@@ -1371,18 +1374,15 @@ return {
                       }
                       initialValue={monitorStep.data?.requestBody}
                       onChange={(value: string) => {
-                        try {
-                          JSON.parse(value);
-                          setErrors({
-                            ...errors,
-                            requestBody: "",
-                          });
-                        } catch {
-                          setErrors({
-                            ...errors,
-                            requestBody: "Invalid JSON",
-                          });
-                        }
+                        setErrors({
+                          ...errors,
+                          requestBody:
+                            getRequestBodyFieldError(
+                              value,
+                              translator,
+                              monitorStep.data?.requestBodyFormat,
+                            ) || "",
+                        });
 
                         monitorStep.setRequestBody(value);
                         if (props.onChange) {
@@ -1843,8 +1843,6 @@ return {
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
-            telemetryServices={telemetryServices}
-            telemetryEntities={telemetryEntities}
           />
         </Card>
       )}
@@ -1862,7 +1860,6 @@ return {
               monitorStep.setSecurityEventsMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
-            telemetryServices={telemetryServices}
           />
         </Card>
       )}
@@ -1881,7 +1878,6 @@ return {
               monitorStep.setLlmMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
-            telemetryServices={telemetryServices}
           />
         </Card>
       )}
@@ -2257,8 +2253,6 @@ return {
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
-            telemetryServices={telemetryServices}
-            telemetryEntities={telemetryEntities}
           />
         </Card>
       )}
@@ -2274,8 +2268,6 @@ return {
               monitorStep.data?.exceptionMonitor ||
               MonitorStepExceptionMonitorUtil.getDefault()
             }
-            telemetryServices={telemetryServices}
-            telemetryEntities={telemetryEntities}
             onMonitorStepExceptionMonitorChanged={(
               value: MonitorStepExceptionMonitor,
             ) => {
@@ -2304,8 +2296,6 @@ return {
               monitorStep.data?.profileMonitor ||
               MonitorStepProfileMonitorUtil.getDefault()
             }
-            telemetryServices={telemetryServices}
-            telemetryEntities={telemetryEntities}
             onMonitorStepProfileMonitorChanged={(
               value: MonitorStepProfileMonitor,
             ) => {
@@ -2643,8 +2633,6 @@ return {
             props.incidentSeverityDropdownOptions
           }
           alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
-          onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-          labelDropdownOptions={props.labelDropdownOptions}
           userDropdownOptions={props.userDropdownOptions}
           incidentRoleOptions={props.incidentRoleOptions}
           seriesAttributeKeys={getRuleSeriesAttributeKeys(monitorStep)}

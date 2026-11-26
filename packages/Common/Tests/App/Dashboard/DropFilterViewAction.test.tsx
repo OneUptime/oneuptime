@@ -35,6 +35,17 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import DropFilterImpactApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/DropFilterImpact/DropFilterImpactApi";
+import {
+  DropFilterImpact,
+  DropFilterImpactAction,
+  DropFilterRecordCountState,
+  getEmptyDropFilterImpact,
+} from "../../../Types/Telemetry/DropFilterImpact";
+import {
+  getEmptyTelemetryFieldReadersByKind,
+  TelemetryFieldReaderKind,
+} from "../../../Types/Telemetry/TelemetryFieldReaders";
 
 jest.mock("react-i18next", () => {
   return {
@@ -98,6 +109,30 @@ const OWNER_PERMISSIONS: Array<Permission> = [
 ];
 
 let createOrUpdateSpy: ReturnType<typeof jest.spyOn>;
+let impactSpy: ReturnType<typeof jest.spyOn>;
+
+// What a change would take (#10436): nothing reads it, unless a test says.
+function impactOf(monitorsReading: number): DropFilterImpact {
+  const impact: DropFilterImpact = getEmptyDropFilterImpact({
+    signal: "log",
+    action: DropFilterImpactAction.Drop,
+    keepPercentage: 0,
+    timeLimitInSeconds: 10,
+  });
+
+  impact.count = {
+    ...impact.count,
+    state: DropFilterRecordCountState.Counted,
+    total: 100,
+    matched: 40,
+  };
+  impact.readers = getEmptyTelemetryFieldReadersByKind(true);
+  impact.readers[TelemetryFieldReaderKind.Monitor].hiddenCount =
+    monitorsReading;
+  impact.securityEvents.isChecked = true;
+
+  return impact;
+}
 
 function storedFilter(
   modelType: { new (): BaseModel },
@@ -169,6 +204,11 @@ beforeEach(() => {
     }),
     _type: "UserTenantAccessPermission",
   } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>);
+
+  DropFilterImpactApi.forgetAnswers();
+  impactSpy = jest
+    .spyOn(DropFilterImpactApi, "getImpact")
+    .mockResolvedValue(impactOf(0));
 
   createOrUpdateSpy = jest
     .spyOn(ModelAPI, "createOrUpdate")
@@ -300,6 +340,118 @@ describe.each(VIEW_PAGES)("$name", (page: ViewPage) => {
 
     expect(model["action"]).toBe("sample");
     expect(Number(model["samplePercentage"])).toBe(25);
+    // Nothing reads what the filter takes: it saved without a question.
+    expect(screen.queryByText("Save This Filter?")).toBeNull();
+  });
+
+  test("a change to an enabled filter that takes what others read asks first, with what the filter would take", async () => {
+    impactSpy.mockResolvedValue(impactOf(2));
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockImplementation(async (): Promise<BaseModel> => {
+        return storedFilter(page.modelType, { action: "drop" });
+      });
+
+    renderPage(page);
+    const modal: HTMLElement = await openActionEdit();
+    const action: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Action/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    // Under the action, as it is edited: what the filter would take.
+    expect(
+      await within(modal).findByTestId(
+        "drop-filter-action-impact",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveTextContent("2 monitors read what this filter would drop.");
+
+    fireEvent.click(within(action).getByRole("radio", { name: "Sample" }));
+    fireEvent.change(
+      await within(modal).findByRole(
+        "spinbutton",
+        { name: /^Sample Percentage/ },
+        { timeout: WAIT_TIMEOUT },
+      ),
+      { target: { value: "25" } },
+    );
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(
+      await screen.findByText(
+        "Save This Filter?",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+    // Asked about the stored query, with the change being made.
+    expect(impactSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterQuery: "severityText = 'Debug'",
+        action: "sample",
+        samplePercentage: 25,
+      }),
+    );
+    expect(createOrUpdateSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Save Filter"));
+    });
+
+    await waitFor(
+      () => {
+        expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+
+  test("a change to a filter that is off takes nothing yet: it saves without a question", async () => {
+    impactSpy.mockResolvedValue(impactOf(2));
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockImplementation(async (): Promise<BaseModel> => {
+        return storedFilter(page.modelType, {
+          action: "drop",
+          isEnabled: false,
+        });
+      });
+
+    renderPage(page);
+    const modal: HTMLElement = await openActionEdit();
+    const action: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Action/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    fireEvent.click(within(action).getByRole("radio", { name: "Sample" }));
+    fireEvent.change(
+      await within(modal).findByRole(
+        "spinbutton",
+        { name: /^Sample Percentage/ },
+        { timeout: WAIT_TIMEOUT },
+      ),
+      { target: { value: "25" } },
+    );
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(
+      () => {
+        expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.queryByText("Save This Filter?")).toBeNull();
   });
 
   test("opens a sampling filter on Sample, with its share", async () => {

@@ -392,7 +392,13 @@ describe("CrowdStrikeFalconConnector", () => {
         return field.title;
       });
 
-      expect(titles).toEqual(["Client ID", "Falcon cloud", "Client secret"]);
+      expect(titles).toEqual([
+        "Client ID",
+        "Falcon cloud",
+        // The opt-in to block files (#10346): an option, shown on the form's last step.
+        "Block files with CrowdStrike",
+        "Client secret",
+      ]);
     });
   });
 

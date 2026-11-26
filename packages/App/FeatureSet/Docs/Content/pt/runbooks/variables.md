@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab Em uma requisição HTTP
-Escreva a referência na URL, nos headers ou no corpo de uma [etapa de requisição HTTP](/docs/runbooks/authoring#http-request):
+Escreva a referência na URL, nos headers, no corpo ou no **Certificado da CA** de uma [etapa de requisição HTTP](/docs/runbooks/authoring#http-request):
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+Em **Certificado da CA**, a referência fica sozinha, como `{{global.variables.INTERNAL_CA}}`, e a variável contém o certificado em PEM: toda etapa que a nomeia confia na mesma CA, e uma nova CA é definida em um só lugar.
 @tab Login SSH
 Uma [etapa SSH](/docs/runbooks/authoring#ssh) escolhe em **Entrar com** a variável secreta que guarda sua chave privada ou senha, e em **Mais campos → Frase secreta da chave** a frase secreta da chave. O valor diz se é uma chave ou uma senha.
 @tab Kubeconfig

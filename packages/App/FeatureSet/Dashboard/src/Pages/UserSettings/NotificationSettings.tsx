@@ -488,6 +488,13 @@ const EVENT_LIBRARY: Record<
     label: "Added as probe owner",
     description: "You are added as an owner of a probe.",
   },
+  // Told once for each major release of OneUptime the probe falls behind (#9977).
+  [NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION]:
+    {
+      label: "Probe a major release behind",
+      description:
+        "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.",
+    },
 
   [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION]: {
     label: "Status page created",
@@ -575,6 +582,18 @@ const EVENT_LIBRARY: Record<
     {
       label: "Security case task assigned to me",
       description: "A task on a security case is assigned to you.",
+    },
+  [NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION]:
+    {
+      label: "Security case step stopped holding",
+      description:
+        "A step of a security case you are on that OneUptime saw done stops holding, such as a blocked address getting through again. When nobody is on the case, you hear it for cases at your chosen priority.",
+    },
+  [NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION]:
+    {
+      label: "OneUptime AI handed a security case to people",
+      description:
+        "OneUptime AI stops working a security case you are on and says why. When nobody is on the case, you hear it for cases at your chosen priority.",
     },
   [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION]: {
     label: "Hunt found security events",
@@ -869,6 +888,7 @@ const monitoring: Array<SectionDef> = [
     translationKey("Notify me about custom probes I own."),
     [
       NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
     ],
   ),
@@ -1002,7 +1022,7 @@ const security: Array<SectionDef> = [
   buildSection(
     translationKey("Security Cases"),
     translationKey(
-      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
+      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, tasks for me, steps that stop holding, and cases OneUptime AI hands to people.",
     ),
     [
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
@@ -1010,6 +1030,8 @@ const security: Array<SectionDef> = [
       NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
     ],
   ),
   // Keys of their own, so the card says them in the reader's language.

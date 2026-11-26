@@ -37,6 +37,7 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import SslCertificateExpiry from "../../../Types/Monitor/SSLMonitor/SslCertificateExpiry";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import { translationKey } from "../../../Types/Translator";
 import {
@@ -45,6 +46,7 @@ import {
   CRITERIA_FILTER_MATCHED_VALUE,
   CRITERIA_FILTER_NOT_MATCHED_VALUE,
 } from "../../../Types/Monitor/CriteriaFilterMatchHistory";
+import { MONITOR_STEP_ID_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepSeries";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -303,6 +305,37 @@ export default class MonitorMetricUtil {
   }
 
   /**
+   * Stamp every row one check wrote with the step it came from (#10906), so a
+   * window of one step reads that step's checks alone (MonitorStepSeries).
+   * Done as one pass over the finished rows, as the resource attributes are,
+   * so no row a check writes can miss it - and last, so it wins over an
+   * attribute of the same name a monitor script wrote (which
+   * CapturedMetricAttributeUtil refuses anyway).
+   */
+  public static applyMonitorStepToMetricRows(data: {
+    metricRows: Array<JSONObject>;
+    monitorStepId: ObjectID | string | undefined;
+  }): void {
+    const monitorStepId: string = data.monitorStepId
+      ? data.monitorStepId.toString()
+      : "";
+
+    if (!monitorStepId) {
+      return;
+    }
+
+    for (const metricRow of data.metricRows) {
+      const attributes: JSONObject = {
+        ...((metricRow["attributes"] as JSONObject) || {}),
+        [MONITOR_STEP_ID_ATTRIBUTE]: monitorStepId,
+      };
+
+      metricRow["attributes"] = attributes;
+      metricRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(attributes);
+    }
+  }
+
+  /**
    * Write one check's results for the filters that keep a match history
    * (CriteriaFilterMatchHistory): 1 when a filter matched this check, 0 when
    * it did not, one row per filter.
@@ -312,12 +345,16 @@ export default class MonitorMetricUtil {
    * of costing their partition a rewrite of its own (RetentionTtl). Unlike
    * them they are not indexed as a metric type: they are the evaluator's
    * record, not a chart anyone picks.
+   *
+   * Each row names its step like every other row a check writes, though a
+   * filter's key already holds the step: one filter's history is one step's.
    */
   @CaptureSpan()
   public static async saveCriteriaFilterMatches(data: {
     projectId: ObjectID;
     monitorId: ObjectID;
     probeId?: ObjectID | undefined;
+    monitorStepId?: ObjectID | string | undefined;
     matches: Array<{ filterKey: string; matched: boolean }>;
   }): Promise<void> {
     if (data.matches.length === 0) {
@@ -353,6 +390,11 @@ export default class MonitorMetricUtil {
       );
     }
 
+    this.applyMonitorStepToMetricRows({
+      metricRows: metricRows,
+      monitorStepId: data.monitorStepId,
+    });
+
     await MetricService.insertJsonRows(metricRows);
   }
 
@@ -372,6 +414,20 @@ export default class MonitorMetricUtil {
      */
     monitorLabels?: Array<Label> | undefined;
     monitorCustomFields?: JSONObject | undefined;
+    /*
+     * The step the check was judged as (MonitorResource.findStepToJudge):
+     * every row it writes names it, so a window of one step of a monitor
+     * with several reads that step's checks alone (#10906).
+     */
+    monitorStepId?: ObjectID | string | undefined;
+    /*
+     * Wait until the rows can be read before returning: a monitor whose
+     * criteria count a window's checks of a series counts this check too,
+     * read right after (CheckWindowCounts, #10355). Rows are otherwise
+     * acknowledged once the database has them in its insert buffer, which
+     * it writes out a moment later.
+     */
+    waitUntilReadable?: boolean | undefined;
   }): Promise<void> {
     if (!data.monitorId) {
       return;
@@ -1539,6 +1595,42 @@ export default class MonitorMetricUtil {
     }
 
     /*
+     * An SSL certificate's days left, once per check that read its expiry
+     * (#10905): what Expires In Days judges, read the way it reads it
+     * (SslCertificateExpiry), so the filter can be judged over a window and
+     * compared with the previous check - "the days left dropped by more than
+     * one", a certificate replaced by one that expires sooner. A check that
+     * read no certificate writes none: a gap, never a 0 that would read as a
+     * certificate expiring today.
+     */
+    const sslDaysLeft: number | null = SslCertificateExpiry.getDaysLeft({
+      sslResponse: (data.dataToProcess as ProbeMonitorResponse).sslResponse,
+      at: OneUptimeDate.getCurrentDate(),
+    });
+
+    if (sslDaysLeft !== null) {
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        metricName: MonitorMetricType.SslCertificateExpiresInDays,
+        value: sslDaysLeft,
+        description: translationKey(
+          "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.",
+        ),
+        unit: "days",
+        extraAttributes: {
+          probeId: (
+            data.dataToProcess as ProbeMonitorResponse
+          ).probeId.toString(),
+        },
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
+    }
+
+    /*
      * A Probe Status monitor's two counts, once per evaluation (every
      * minute): the "online probes" series issue #2733 asked for, kept by
      * the monitor that watches the probes, so a project pays for the
@@ -1719,8 +1811,18 @@ export default class MonitorMetricUtil {
       customFields: data.monitorCustomFields,
     });
 
+    this.applyMonitorStepToMetricRows({
+      metricRows: metricRows,
+      monitorStepId: data.monitorStepId,
+    });
+
     if (metricRows.length > 0) {
-      await MetricService.insertJsonRows(metricRows);
+      await MetricService.insertJsonRows(
+        metricRows,
+        data.waitUntilReadable
+          ? { clickhouseSettings: { wait_for_async_insert: 1 } }
+          : undefined,
+      );
     }
 
     // index metrics

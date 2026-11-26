@@ -86,11 +86,17 @@ import {
 @Index(["projectId", "isArchived"])
 @TableMetadata({
   tableName: "DockerSwarmCluster",
-  singularName: "DockerSwarm Cluster",
-  pluralName: "DockerSwarm Clusters",
+  singularName: "Docker Swarm Cluster",
+  pluralName: "Docker Swarm Clusters",
+  /*
+   * Was "DockerSwarm Cluster" (#7474): the API, Terraform, the CLI and the
+   * audit log go on calling it so (Common/Utils/ModelApiName).
+   */
+  apiSingularName: "DockerSwarm Cluster",
+  apiPluralName: "DockerSwarm Clusters",
   icon: IconProp.ServerStack,
   tableDescription:
-    "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime DockerSwarm Agent sends metrics, or can be manually registered.",
+    "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.",
 })
 @Entity({
   name: "DockerSwarmCluster",
@@ -209,7 +215,7 @@ export default class DockerSwarmCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description:
-      "Name of this DockerSwarm cluster. This is the join key — it must match the docker.swarm.cluster.name OTel resource attribute stamped by the OneUptime DockerSwarm Agent.",
+      "Name of this Docker Swarm cluster. This is the join key — it must match the docker.swarm.cluster.name OTel resource attribute stamped by the OneUptime Docker Swarm Agent.",
     example: "pve-production",
   })
   @Column({
@@ -282,7 +288,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Description",
-    description: "Friendly description for this DockerSwarm cluster",
+    description: "Friendly description for this Docker Swarm cluster",
     example: "Production Docker Swarm cluster running in US East region",
   })
   @Column({
@@ -352,7 +358,7 @@ export default class DockerSwarmCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Agent Version",
     description:
-      "Version of the OneUptime DockerSwarm agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
+      "Version of the OneUptime Docker Swarm agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
     serverOwned: ServerOwned.Always,
   })
@@ -937,70 +943,6 @@ export default class DockerSwarmCluster extends BaseModel {
   public archivedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadDockerSwarmCluster,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadDockerSwarmCluster,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1087,7 +1029,7 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Number,
     title: "Retain Telemetry Data For Days",
     description:
-      "Number of days to retain telemetry data for this DockerSwarm cluster. Leave blank to use the project-wide default.",
+      "Number of days to retain telemetry data for this Docker Swarm cluster. Leave blank to use the project-wide default.",
   })
   @Column({
     type: ColumnType.Number,
@@ -1134,7 +1076,7 @@ export default class DockerSwarmCluster extends BaseModel {
     required: false,
     title: "Telemetry Data Retention Overrides",
     description:
-      "Per-pillar retention overrides for this DockerSwarm cluster (logs by severity, traces by status, metrics, profiles). Unset fields fall back to the DockerSwarm cluster default, then the project's retention settings.",
+      "Per-pillar retention overrides for this Docker Swarm cluster (logs by severity, traces by status, metrics, profiles). Unset fields fall back to the Docker Swarm cluster default, then the project's retention settings.",
   })
   @Column({
     type: ColumnType.JSON,

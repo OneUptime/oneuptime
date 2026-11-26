@@ -105,6 +105,7 @@ import ResultTotalUtil, {
 } from "../../Utils/Telemetry/ResultTotal";
 import { TelemetryLoadError } from "../../Utils/Telemetry/TelemetryLoadError";
 import TelemetryLoadErrorMessage from "../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import HashedAddressSearchNote from "../TelemetryViewer/components/HashedAddressSearchNote";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
   collectLogsEntityIdsToResolve,
@@ -265,6 +266,13 @@ export interface ComponentProps {
   selectedColumns?: Array<string> | undefined;
   onSelectedColumnsChange?: ((columns: Array<string>) => void) | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
+  /*
+   * How many saved views the host has, when it hands over only its first
+   * ones, and what is typed into a saved-view search, for it to search the
+   * rest on the server (#10646).
+   */
+  savedViewCount?: number | undefined;
+  onSavedViewSearch?: ((text: string) => void) | undefined;
   selectedSavedViewId?: string | null;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
   // Deselect the active saved view and reset the explorer to its default.
@@ -294,6 +302,12 @@ export interface ComponentProps {
    * tooltips. Forwarded to the chip list.
    */
   lockedFilterSignal?: TelemetrySignal | undefined;
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the results say so, once, above them
+   * (HashedAddressSearchNote). Empty or left out, nothing is said.
+   */
+  hashedAddresses?: Array<string> | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -1540,6 +1554,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     viewMode: currentViewMode,
     onViewModeChange: handleViewModeChange,
     savedViews: props.savedViews,
+    savedViewCount: props.savedViewCount,
+    onSavedViewSearch: props.onSavedViewSearch,
     selectedSavedViewId: props.selectedSavedViewId,
     onSavedViewSelect: props.onSavedViewSelect,
     onClearSavedView: props.onClearSavedView,
@@ -1643,6 +1659,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         />
       )}
 
+      {/* What the search matched by an address's hash token, once (#10418) */}
+      {!props.listError && (
+        <HashedAddressSearchNote addresses={props.hashedAddresses} />
+      )}
+
       {/* Histogram */}
       {/*
        * When the list says the search could not finish, a chart that could
@@ -1702,6 +1723,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               onRemoveFilter={props.onRemoveFilter || (() => {})}
               activeFilters={props.activeFilters}
               savedViews={props.savedViews}
+              savedViewCount={props.savedViewCount}
+              onSavedViewSearch={props.onSavedViewSearch}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
               onClearSavedView={props.onClearSavedView}

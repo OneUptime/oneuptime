@@ -83,7 +83,7 @@ export const FLOW_ATTRIBUTES: {
   indicator: "oneuptime.threat_intel.address",
 };
 
-interface FlowRowBase {
+export interface FlowRowBase {
   bytes: number;
   packets: number;
   flows: number;
@@ -154,6 +154,35 @@ export function formatBytes(bytes: number): string {
   return `${rounded} ${BYTE_UNITS[unit]}`;
 }
 
+/*
+ * What a scan's or a sweep's event says beyond the row it is about: the
+ * message, when it is not the plain one, and what is added to its
+ * attributes - the probe whose address it is, and how much of it was the
+ * probe's own work (ProbeFlowSignals, #10429).
+ */
+export interface FlowEventStamp {
+  message?: string | undefined;
+  attributes: JSONObject;
+}
+
+// The attributes every flow event carries: the row's sums and the window.
+export function getFlowWindowAttributes(
+  window: FlowWindow,
+  row: FlowRowBase,
+): JSONObject {
+  return windowAttributes(window, row);
+}
+
+// What an event about a window is keyed by.
+export function getFlowWindowKey(window: FlowWindow): string {
+  return windowKey(window);
+}
+
+// When an event about a row happened.
+export function getFlowEventTime(row: FlowRowBase, window: FlowWindow): Date {
+  return eventTime(row, window);
+}
+
 function windowAttributes(window: FlowWindow, row: FlowRowBase): JSONObject {
   const attributes: JSONObject = {
     [FLOW_ATTRIBUTES.bytes]: String(Math.round(row.bytes)),
@@ -183,6 +212,7 @@ function eventTime(row: FlowRowBase, window: FlowWindow): Date {
 export function buildPortScanEvent(
   row: PortScanRow,
   window: FlowWindow,
+  stamp?: FlowEventStamp | undefined,
 ): NormalizedSecurityEvent | null {
   if (row.ports < PORT_SCAN_MIN_PORTS || !row.srcIp || !row.dstIp) {
     return null;
@@ -206,13 +236,16 @@ export function buildPortScanEvent(
     activityName: "Traffic",
     statusName: "",
     severity: OcsfSeverity.Medium,
-    message: `Port scan: ${row.srcIp} reached ${row.ports} ports on ${row.dstIp}`,
+    message:
+      stamp?.message ||
+      `Port scan: ${row.srcIp} reached ${row.ports} ports on ${row.dstIp}`,
     principalIp: row.srcIp,
     targetIp: row.dstIp,
     attributes: {
       ...windowAttributes(window, row),
       [FLOW_ATTRIBUTES.distinctPorts]: String(row.ports),
       [FLOW_ATTRIBUTES.samplePorts]: sample.join(","),
+      ...(stamp?.attributes || {}),
     },
   });
 }
@@ -220,6 +253,7 @@ export function buildPortScanEvent(
 export function buildNetworkSweepEvent(
   row: NetworkSweepRow,
   window: FlowWindow,
+  stamp?: FlowEventStamp | undefined,
 ): NormalizedSecurityEvent | null {
   if (
     row.hosts < NETWORK_SWEEP_MIN_HOSTS ||
@@ -243,13 +277,16 @@ export function buildNetworkSweepEvent(
     activityName: "Traffic",
     statusName: "",
     severity: OcsfSeverity.Medium,
-    message: `Network sweep: ${row.srcIp} reached port ${row.dstPort} on ${row.hosts} hosts`,
+    message:
+      stamp?.message ||
+      `Network sweep: ${row.srcIp} reached port ${row.dstPort} on ${row.hosts} hosts`,
     principalIp: row.srcIp,
     targetPort: row.dstPort,
     attributes: {
       ...windowAttributes(window, row),
       [FLOW_ATTRIBUTES.distinctHosts]: String(row.hosts),
       [FLOW_ATTRIBUTES.sampleHosts]: sample.join(","),
+      ...(stamp?.attributes || {}),
     },
   });
 }

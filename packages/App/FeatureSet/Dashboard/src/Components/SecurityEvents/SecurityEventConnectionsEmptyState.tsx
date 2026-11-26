@@ -156,8 +156,8 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
          * a tile needs: 17rem for the row a tile is below lg, where the icon
          * and the plus sit beside the name, and 11.5rem for the upright card
          * it is from lg, where the name has the tile's whole width (see
-         * SecurityEventProviderTile). The ten products sit one, two, three
-         * or four to a row, as the card allows.
+         * SecurityEventProviderTile). The products sit one, two, three or
+         * four to a row, as the card allows.
          */}
         <ul
           role="list"

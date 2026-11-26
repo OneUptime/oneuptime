@@ -54,7 +54,11 @@ import {
  *     matched, how many its exceptions skipped and how many firings they
  *     prevented - for a distinct count too - and reads a correlation with
  *     the exceptions in every read;
- *   - another project's events are never read.
+ *   - another project's events are never read;
+ *   - an exception that names a project API key by its name (#10630) still
+ *     skips the key's audit-log events, which name it "api-key:<id>" now,
+ *     and the events stored before that named it by its name; one that
+ *     names "api-key:<id>" skips that key alone.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -83,11 +87,23 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import SecurityEventService, {
   DetectionMatchGroup,
 } from "Common/Server/Services/SecurityEventService";
+import ApiKeyService from "Common/Server/Services/ApiKeyService";
 import DetectionRuleExceptionService from "Common/Server/Services/DetectionRuleExceptionService";
-import {
+import SecurityEventRetention from "Common/Server/Utils/SecurityEvent/SecurityEventRetention";
+import DetectionRuleExceptions, {
+  DetectionRuleExceptionRead,
   buildDetectionRuleExceptionsFilter,
   buildDetectionRuleExceptionsMatch,
 } from "Common/Server/Utils/SecurityEvent/DetectionRuleExceptions";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import { getApiKeyPrincipal } from "Common/Types/SecurityEvent/OneUptimeActorPrincipal";
+import UserType from "Common/Types/UserType";
+import {
+  AuditActor,
+  AuditResourceType,
+  buildAuditRecordEvent,
+} from "Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
 import DetectionRuleRetrohunt from "Common/Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
 import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 
@@ -216,7 +232,13 @@ function burst(
  *   bob      2 in [0,5)                               - never reaches 3
  *   carol    3 in [30,35)                             - fires, unless skipped
  *   svc-*    3 + 3 service accounts in [40,45)        - each fires, unless skipped
- *   ''       3 with no user in [50,55)                - the '' group
+ *   ''       3 with no user in [50,55)                - no user, so no group
+ *
+ * A rule that counts per value (a group field and a threshold above one)
+ * never counts events with no value as one more of a '' group (#10415,
+ * #10511): the three with no user are left out of a per-user count, and
+ * said to be. By address, alice's two, bob's and Carol's are counted; the
+ * service accounts' six and the three with no user have no address.
  */
 const FIXTURES: Array<EventFixture> = [
   ...burst(1, 4, { user: "alice", sourceIp: "10.20.5.5", host: "web-01" }),
@@ -564,6 +586,12 @@ detection:
         jest
           .spyOn(DetectionRuleExceptionService, "findAllBy")
           .mockResolvedValue(rows as never);
+        // The project has no API keys for an exception to name (#10630).
+        jest.spyOn(ApiKeyService, "findAllBy").mockResolvedValue([] as never);
+        // How long the project keeps its events: the run reads only those.
+        jest
+          .spyOn(SecurityEventRetention, "getRetentionInDays")
+          .mockResolvedValue(15 as never);
       }
 
       async function retrohunt(
@@ -596,16 +624,23 @@ detection:
 
         const result: DetectionRetrohuntResult = await retrohunt();
 
-        // alice twice, Carol, svc-backup, svc-deploy and the '' group once each.
-        expect(result.firedCount).toBe(6);
-        expect(result.groupCount).toBe(5);
+        // alice twice, Carol, svc-backup and svc-deploy once each.
+        expect(result.firedCount).toBe(5);
+        expect(result.groupCount).toBe(4);
         // Every event behind a firing: alice 4 + 5, and 3 for each other.
-        expect(result.eventCount).toBe(21);
+        expect(result.eventCount).toBe(18);
         // Every match, firing or not: bob's 2 and alice's lone 2 too.
-        expect(result.matchedEventCount).toBe(25);
+        expect(result.matchedEventCount).toBe(22);
         expect(result.skippedEventCount).toBe(0);
         expect(result.preventedFiredCount).toBe(0);
         expect(result.hasMoreGroups).toBe(false);
+        // The three with no user are left out of the count, and said to be.
+        expect(result.uncounted).toEqual({
+          field: "principalUser",
+          eventCount: 3,
+          hiddenInLogsCount: 0,
+          hiddenInTracesCount: 0,
+        });
 
         const alice: DetectionRetrohuntResult["groups"][number] =
           result.groups[0]!;
@@ -637,7 +672,9 @@ detection:
 
         expect(result.firedCount).toBe(0);
         expect(result.groups).toEqual([]);
-        expect(result.matchedEventCount).toBe(25);
+        // Every event a user could be counted by; the three with none are not.
+        expect(result.matchedEventCount).toBe(22);
+        expect(result.uncounted?.eventCount).toBe(3);
         expect(result.threshold).toBe(50);
       });
 
@@ -664,17 +701,75 @@ detection:
         const result: DetectionRetrohuntResult = await retrohunt();
 
         expect(result.exceptionCount).toBe(2);
-        expect(result.firedCount).toBe(3);
+        // alice twice: Carol's and the service accounts' firings are prevented.
+        expect(result.firedCount).toBe(2);
         expect(result.skippedEventCount).toBe(9);
         expect(result.preventedFiredCount).toBe(3);
-        expect(result.matchedEventCount).toBe(16);
+        expect(result.matchedEventCount).toBe(13);
         expect(
           result.groups
             .map((group: { value: string }): string => {
               return group.value;
             })
             .sort(),
-        ).toEqual(["", "alice"]);
+        ).toEqual(["alice"]);
+        // The exceptions never bring back the events with no user.
+        expect(result.uncounted?.eventCount).toBe(3);
+      });
+
+      /*
+       * #10415: events with no address are no address a rule can count.
+       * Grouped by address with a threshold above one, the six service
+       * account sign-ins in [40,45) and the three with no user in [50,55)
+       * used to fire as one '' address - a brute force from nowhere, with
+       * nothing to block. They fire nothing now, and the run says how many
+       * it could not count, and by which field.
+       */
+      test("events with no address never fire as one address, and are said to be left out", async () => {
+        stubExceptions([]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          groupByField: "principalIp",
+        });
+
+        // 10.20.5.5 in [0,5), 198.51.100.7 in [20,25), 198.51.100.9 in [30,35).
+        expect(
+          result.groups
+            .map((group: { value: string }): string => {
+              return group.value;
+            })
+            .sort(),
+        ).toEqual(["10.20.5.5", "198.51.100.7", "198.51.100.9"]);
+        expect(result.firedCount).toBe(3);
+        expect(result.groupCount).toBe(3);
+        expect(result.groups[0]!.entityType).toBe(SecurityEntityType.IpAddress);
+        // 4 + 5 + 3 behind the firings; 16 events have an address at all.
+        expect(result.eventCount).toBe(12);
+        expect(result.matchedEventCount).toBe(16);
+        expect(result.uncounted).toEqual({
+          field: "principalIp",
+          eventCount: 9,
+          hiddenInLogsCount: 0,
+          hiddenInTracesCount: 0,
+        });
+      });
+
+      test("a rule that fires on each event still fires for events with no address", async () => {
+        stubExceptions([]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          groupByField: "principalIp",
+          matchCountThreshold: 1,
+        });
+
+        // Nothing is left out: each event fires on its own, address or not.
+        expect(result.uncounted).toBeNull();
+        expect(result.matchedEventCount).toBe(25);
+        expect(
+          result.groups.some((group: { value: string }): boolean => {
+            return group.value === "";
+          }),
+        ).toBe(true);
       });
 
       test("a distinct count counts different values, empty ones left out", async () => {
@@ -723,6 +818,297 @@ detection:
             })
             .sort(),
         ).toEqual(["Carol", "svc-backup", "svc-deploy"]);
+      });
+    });
+
+    /*
+     * #10630: a project API key's audit-log events named it by its name as
+     * their principal user, so exceptions were written for "terraform".
+     * They name it "api-key:<id>" now, built here by the scan's own
+     * builder: two keys of one name, another key, a person, and an event
+     * stored before #10630 that named the key by its name.
+     */
+    describe("an exception that names a project API key by its name", () => {
+      const keyProjectId: ObjectID = new ObjectID(
+        "88000000-0000-4000-8000-0000000000f0",
+      );
+      const TERRAFORM_ID: string = "88000000-0000-4000-8000-0000000000f1";
+      const TERRAFORM_TWIN_ID: string = "88000000-0000-4000-8000-0000000000f2";
+      const DEPLOY_BOT_ID: string = "88000000-0000-4000-8000-0000000000f3";
+
+      const NOBODY: AuditActor = {
+        userId: "",
+        userName: "",
+        userEmail: "",
+        userType: "",
+        apiKeyId: "",
+        apiKeyName: "",
+        mcpClientName: "",
+        workflowId: "",
+        workflowName: "",
+        workflowRunAs: "",
+        workflowRunAsCustomRoleName: "",
+        workflowRunAsGiverName: "",
+        workflowRunAsGiverApiKeyId: "",
+      };
+
+      let recordSequence: number = 0;
+
+      // A role change in OneUptime by an actor, as the audit-log scan writes it.
+      function roleChange(actor: Partial<AuditActor>, at: number): JSONObject {
+        recordSequence++;
+
+        const normalized: NormalizedSecurityEvent | null =
+          buildAuditRecordEvent({
+            ...NOBODY,
+            ...actor,
+            id: `88000000-0000-4000-8000-${String(recordSequence).padStart(12, "0")}`,
+            createdAt: new Date(BASE.getTime() + at * MINUTE),
+            resourceType: AuditResourceType.CustomRole,
+            resourceId: "88000000-0000-4000-8000-0000000000fa",
+            resourceName: "Deployers",
+            action: AuditLogAction.Update,
+          });
+
+        return buildSecurityEventDbRow({
+          normalized: normalized!,
+          projectId: keyProjectId,
+          serviceMetadata: SERVICE_METADATA,
+          retentionDays: 15,
+        });
+      }
+
+      function key(id: string, name: string): Partial<AuditActor> {
+        return { userType: UserType.API, apiKeyId: id, apiKeyName: name };
+      }
+
+      function apiKeyRow(id: string, name: string): ApiKey {
+        const row: ApiKey = new ApiKey();
+        row._id = id;
+        row.name = name;
+        return row;
+      }
+
+      const TERRAFORM: string = getApiKeyPrincipal(TERRAFORM_ID);
+      const TERRAFORM_TWIN: string = getApiKeyPrincipal(TERRAFORM_TWIN_ID);
+      const DEPLOY_BOT: string = getApiKeyPrincipal(DEPLOY_BOT_ID);
+
+      const ALL: Record<string, number> = {
+        [TERRAFORM]: 3,
+        [TERRAFORM_TWIN]: 2,
+        [DEPLOY_BOT]: 2,
+        "jane@example.com": 1,
+        // Stored before #10630: the key by its name.
+        terraform: 1,
+      };
+
+      beforeAll(async (): Promise<void> => {
+        const legacy: JSONObject = roleChange(
+          key(TERRAFORM_ID, "terraform"),
+          9,
+        );
+        legacy["principalUser"] = "terraform";
+        legacy["observables"] = ["terraform"];
+
+        await SecurityEventService.insertJsonRows(
+          [
+            roleChange(key(TERRAFORM_ID, "terraform"), 1),
+            roleChange(key(TERRAFORM_ID, "terraform"), 2),
+            roleChange(key(TERRAFORM_ID, "terraform"), 3),
+            roleChange(key(TERRAFORM_TWIN_ID, "terraform"), 4),
+            roleChange(key(TERRAFORM_TWIN_ID, "terraform"), 5),
+            roleChange(key(DEPLOY_BOT_ID, "deploy-bot"), 6),
+            roleChange(key(DEPLOY_BOT_ID, "deploy-bot"), 7),
+            roleChange(
+              {
+                userType: UserType.User,
+                userId: "88000000-0000-4000-8000-0000000000fb",
+                userEmail: "jane@example.com",
+              },
+              8,
+            ),
+            legacy,
+          ],
+          { clickhouseSettings: { wait_for_async_insert: 1 } },
+        );
+      });
+
+      // The key project's role changes an exception list leaves, by principal.
+      async function principalsLeft(
+        exceptions: Array<DetectionRuleExceptionRead>,
+      ): Promise<Record<string, number>> {
+        const filter: Statement | null =
+          buildDetectionRuleExceptionsFilter(exceptions);
+        const statement: Statement = SQL`SELECT principalUser AS user, count() AS events FROM ${database}.${new SecurityEvent().tableName} WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: keyProjectId,
+        }}`;
+
+        if (filter) {
+          statement.append(" AND ");
+          statement.append(filter);
+        }
+
+        statement.append(" GROUP BY user ORDER BY user");
+
+        const response: { data?: Array<JSONObject> } = await (
+          await SecurityEventService.executeQuery(statement)
+        ).json();
+
+        const left: Record<string, number> = {};
+
+        for (const row of response.data || []) {
+          left[String(row["user"])] = Number(row["events"]);
+        }
+
+        return left;
+      }
+
+      function omit(...principals: Array<string>): Record<string, number> {
+        const left: Record<string, number> = { ...ALL };
+
+        for (const principal of principals) {
+          delete left[principal];
+        }
+
+        return left;
+      }
+
+      // An exception as the rule's runs load it, with the project's keys.
+      async function loaded(
+        overrides: Partial<DetectionRuleExceptionShape>,
+      ): Promise<Array<DetectionRuleExceptionRead>> {
+        jest
+          .spyOn(DetectionRuleExceptionService, "findAllBy")
+          .mockResolvedValue([savedException(overrides)] as never);
+        jest
+          .spyOn(ApiKeyService, "findAllBy")
+          .mockResolvedValue([
+            apiKeyRow(TERRAFORM_ID, "terraform"),
+            apiKeyRow(TERRAFORM_TWIN_ID, "Terraform"),
+            apiKeyRow(DEPLOY_BOT_ID, "deploy-bot"),
+          ] as never);
+
+        return await DetectionRuleExceptions.loadForRule({
+          projectId: keyProjectId,
+          ruleId: RULE_ID,
+          from: BASE,
+          until: NOW,
+          now: NOW,
+        });
+      }
+
+      test("the scan names each key by its id: two keys of one name are two principals", async () => {
+        expect(await principalsLeft([])).toEqual(ALL);
+      });
+
+      test("without the keys' names, the name alone skips only what was stored before", async () => {
+        expect(
+          await principalsLeft([exception({ value: "terraform" })]),
+        ).toEqual(omit("terraform"));
+      });
+
+      test("an existing exception for the user terraform still skips both keys of that name", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: "Terraform" })),
+        ).toEqual(omit(TERRAFORM, TERRAFORM_TWIN, "terraform"));
+      });
+
+      test("an existing exception for the value principalUser terraform does too", async () => {
+        expect(
+          await principalsLeft(
+            await loaded({
+              kind: DetectionRuleExceptionKind.Value,
+              entityType: undefined,
+              fieldName: "principalUser",
+              value: "terraform",
+            }),
+          ),
+        ).toEqual(omit(TERRAFORM, TERRAFORM_TWIN, "terraform"));
+      });
+
+      test("a pattern names the keys whose name it matches", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: "deploy-*" })),
+        ).toEqual(omit(DEPLOY_BOT));
+      });
+
+      test("an exception for one key's principal skips that key alone", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: TERRAFORM })),
+        ).toEqual(omit(TERRAFORM));
+      });
+
+      test("an exception for a person, or a host of a key's name, skips no key", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: "jane@example.com" })),
+        ).toEqual(omit("jane@example.com"));
+        // Only a user's exception names keys: a host's never does.
+        expect(
+          await principalsLeft(
+            await loaded({
+              entityType: SecurityEntityType.Host,
+              value: "deploy-bot",
+            }),
+          ),
+        ).toEqual(ALL);
+      });
+
+      test("Run on Past Events skips them too, and says which firings it prevented", async () => {
+        jest
+          .spyOn(SecurityEventRetention, "getRetentionInDays")
+          .mockResolvedValue(15 as never);
+        jest
+          .spyOn(DetectionRuleExceptionService, "findAllBy")
+          .mockResolvedValue([savedException({ value: "terraform" })] as never);
+        jest
+          .spyOn(ApiKeyService, "findAllBy")
+          .mockResolvedValue([
+            apiKeyRow(TERRAFORM_ID, "terraform"),
+            apiKeyRow(TERRAFORM_TWIN_ID, "terraform"),
+            apiKeyRow(DEPLOY_BOT_ID, "deploy-bot"),
+          ] as never);
+
+        const result: DetectionRetrohuntResult =
+          await DetectionRuleRetrohunt.run({
+            projectId: keyProjectId,
+            rule: {
+              id: RULE_ID,
+              sigmaRuleYaml: `title: Custom role changed
+detection:
+  selection:
+    className: User Access Management
+  condition: selection`,
+              groupByField: "principalUser",
+              matchCountThreshold: 1,
+              evaluationIntervalInMinutes: 60,
+            },
+            periodInHours: 24,
+            serviceFilter: {},
+            now: NOW,
+          });
+
+        expect(result.exceptionCount).toBe(1);
+        expect(
+          result.groups
+            .map((group: { value: string }): string => {
+              return group.value;
+            })
+            .sort(),
+        ).toEqual([DEPLOY_BOT, "jane@example.com"]);
+        // Both terraform keys' and the stored one's: 3 + 2 + 1.
+        expect(result.skippedEventCount).toBe(6);
+        // A key is no user: its group is no kind of account, a person's is.
+        expect(
+          result.groups.find((group: { value: string }): boolean => {
+            return group.value === DEPLOY_BOT;
+          })!.entityType,
+        ).toBe("");
+        expect(
+          result.groups.find((group: { value: string }): boolean => {
+            return group.value === "jane@example.com";
+          })!.entityType,
+        ).toBe(SecurityEntityType.User);
       });
     });
   },

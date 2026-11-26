@@ -607,12 +607,62 @@ export default class AzureArm {
     return await this.write("PUT", url, body, step);
   }
 
-  private async write(
-    method: "PATCH" | "PUT",
-    url: string,
-    body: JSONObject,
-    step: string,
-  ): Promise<JSONObject> {
+  /*
+   * A PUT of a resource Azure changes only whole, written only while it is
+   * as it was read (#10348): the ETag the read answered goes in If-Match,
+   * and Azure answers 412 when someone wrote it since - for the caller to
+   * read it again and make its change on that, never to write it blind.
+   * Answers its status (202 while Front Door applies a WAF policy) and its
+   * JSON. A throttled try is asked again: its If-Match makes the second try
+   * the same as the first. Held to the management host as a PATCH is.
+   */
+  public async putIfMatch(data: {
+    url: string;
+    body: JSONObject;
+    etag: string;
+    step: string;
+  }): Promise<{ statusCode: number; body: JSONObject }> {
+    this.assertManagementUrl(data.url, data.step);
+
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<{ statusCode: number; body: JSONObject }> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          this.getManagementBaseUrl(),
+        );
+
+        const response: DataSourceHttpResponse = (
+          await this.send({
+            transport: this.options.transport,
+            method: "PUT",
+            url: data.url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              ...(data.etag ? { "If-Match": data.etag } : {}),
+            },
+            body: JSON.stringify(data.body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step: data.step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
+
+        return {
+          statusCode: response.statusCode,
+          body: readObject(response.bodyJson),
+        };
+      },
+    });
+  }
+
+  private assertManagementUrl(url: string, step: string): void {
     let host: string = "";
 
     try {
@@ -626,6 +676,15 @@ export default class AzureArm {
         `Azure ${step} must go to the connection's Resource Manager host.`,
       );
     }
+  }
+
+  private async write(
+    method: "PATCH" | "PUT",
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
+    this.assertManagementUrl(url, step);
 
     // A setting set twice is set once: a throttled try is asked again.
     return await withCloudRetries({
@@ -1074,9 +1133,14 @@ export default class AzureArm {
    * (https://metrics.monitor.azure.com), which takes Monitoring Reader on
    * the subscription itself; the token goes to that Region's host alone.
    * Each resource's answer, by its lowercased id: its series and the
-   * metrics Azure could not read of it, as getMetrics answers one. Never
-   * split by a dimension: a split read is a resource's own call. Asked
-   * once, as getMetrics is: its caller asks again (AzureMetricReads).
+   * metrics Azure could not read of it, as getMetrics answers one. Split by
+   * a dimension (`splitBy`: a Container App's Requests by
+   * statusCodeCategory, #10837), each resource's answer has a series per
+   * value of it, up to `top` per resource - the batch API's filter, top and
+   * orderby, as Microsoft's reference for metrics:getBatch documents them.
+   * It has no ValidateDimensions: every metric of a split batch must have
+   * the dimension, so its caller asks only the metrics split by it.
+   * Asked once, as getMetrics is: its caller asks again (AzureMetricReads).
    */
   public async getMetricsBatch(data: {
     subscriptionId: string;
@@ -1088,8 +1152,22 @@ export default class AzureArm {
     interval: string;
     start: Date;
     end: Date;
+    splitBy?: string | undefined;
+    top?: number | undefined;
+    orderBy?: string | undefined;
   }): Promise<Map<string, AzureMetricsAnswer>> {
     EntraTokenClient.validateGuid(data.subscriptionId, "Subscription ID");
+
+    const splitBy: string = (data.splitBy || "").trim();
+
+    if (splitBy && !DIMENSION_NAME_PATTERN.test(splitBy)) {
+      throw new BadDataException(`Cannot split metrics by "${splitBy}".`);
+    }
+
+    const top: number =
+      data.top && Number.isInteger(data.top) && data.top > 0
+        ? data.top
+        : AZURE_MAX_SPLIT_SERIES_PER_METRIC;
 
     const region: string = data.region.trim().toLowerCase();
 
@@ -1140,6 +1218,15 @@ export default class AzureArm {
           .join(","),
       ],
       ["aggregation", aggregations.join(",")],
+      ...(splitBy
+        ? ([
+            ["filter", `${splitBy} eq '*'`],
+            ["top", top],
+            ...(data.orderBy && SPLIT_ORDER_PATTERN.test(data.orderBy)
+              ? [["orderby", data.orderBy]]
+              : []),
+          ] as Array<[string, string | number]>)
+        : []),
       ["api-version", AZURE_METRICS_BATCH_API_VERSION],
     ])}`;
     const token: string = await this.tokens.getAccessToken(
@@ -1177,7 +1264,7 @@ export default class AzureArm {
         answers.set(resourceId, {
           series: AzureArm.readMetricSeries(values, aggregationOf),
           failures: AzureArm.readMetricFailures(values),
-          capped: [],
+          capped: splitBy ? AzureArm.readCappedMetrics(values, top) : [],
         });
       }
     }

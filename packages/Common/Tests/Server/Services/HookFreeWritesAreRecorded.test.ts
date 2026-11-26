@@ -159,6 +159,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
     },
+  // The open cases' first check of their Response Plan's steps, scheduled (#10340).
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillSecurityCaseNextStepCheckAt.ts":
+    {
+      "(module) SecurityCase": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts":
     {
       "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection":
@@ -221,10 +226,43 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) DataStore": Why.Bookkeeping,
     "(module) DataStoreFinding": Why.FollowOn,
   },
-  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts": {
-    "SecurityPlaybookRunAPI.decide SecurityPlaybookRun": Why.Recorded,
-    "SecurityPlaybookRunAPI.writeUndone SecurityPlaybookRun": Why.Recorded,
+  /*
+   * A proposal of OneUptime AI's made or undone (#10364): the scrub rules
+   * it makes or deletes are recorded where they are, and a finding marked
+   * scrubbed, or not, follows from them - as Scrub It's own route does.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/ScrubTelemetryAction.ts":
+    {
+      "markFindings DataStoreFinding": Why.FollowOn,
+    },
+  /*
+   * OneUptime AI's analysis of an issue (#10369), kept on the issue: its
+   * own note, never the issue's status or severity, and the issue's
+   * timeline says each one written.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts": {
+    "DataSecurityIssueAnalysis.write DataSecurityIssue": Why.Automation,
   },
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372),
+   * kept on the finding: its own note, never the finding's decision - a
+   * person decides, and the audit log records them doing it.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts": {
+    "DataSecurityFindingVerdicts.judgeStore DataStoreFinding": Why.Automation,
+  },
+  /*
+   * OneUptime AI's own confirmation, where a rule allows it (#10372): the
+   * confirmation itself goes through the finding's hooks, and its
+   * proposal is on the store's timeline and in Done by AI with Undo; what
+   * follows it - High confidence, whose it is, when - is what the finding's
+   * service sets beside a person's own (Service.onUpdateSuccess).
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/ConfirmFindingsAction.ts":
+    {
+      "apply DataStoreFinding": Why.Derived,
+      "undo DataStoreFinding": Why.Derived,
+    },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
     "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
       Why.Automation,
@@ -447,6 +485,42 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote":
       Why.Automation,
   },
+  /*
+   * OneUptime AI working a security case (#10352): when it looks at the
+   * case next and the lease on it, its log of what it did, and where it
+   * stands on the case - each change it makes to the case itself goes
+   * through the playbook engine, whose run records it.
+   */
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponse.ts": {
+    "SecurityCaseResponse.startDueLooks SecurityCase": Why.Bookkeeping,
+    "SecurityCaseResponse.startLook SecurityCase": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseDecisions.ts":
+    {
+      "SecurityCaseResponseDecisions.claim SecurityCaseAiAction":
+        Why.Bookkeeping,
+    },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseLook.ts":
+    {
+      "SecurityCaseResponseLook.setWhereItStands SecurityCase": Why.Bookkeeping,
+      "SecurityCaseResponseLook.writeClosingReport SecurityCase":
+        Why.Automation,
+    },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseNudge.ts":
+    {
+      "SecurityCaseResponseNudge.lookNow SecurityCase": Why.Bookkeeping,
+    },
+  // A closed case OneUptime AI is done with while Security Events is off (#10816).
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseProductOff.ts":
+    {
+      "SecurityCaseResponseProductOff.stopCase SecurityCase": Why.Bookkeeping,
+    },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseToolkit.ts":
+    {
+      "SecurityCaseResponseToolkit.doDirectly SecurityCase": Why.Automation,
+      "SecurityCaseResponseToolkit.updateRow SecurityCaseAiAction":
+        Why.Bookkeeping,
+    },
   "packages/Common/Server/Utils/Activation/ProjectMilestoneBackfill.ts": {
     "ProjectMilestoneBackfill.backfill ProjectMilestone": Why.Migration,
   },
@@ -524,6 +598,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": {
     "DataSecurityIssueReconciler.touch DataSecurityIssue": Why.Reported,
   },
+  /*
+   * A leak back in a version after its fix was verified (#10368): what the
+   * fix's watch read in the service's telemetry, noted on the issue for the
+   * reconciler, which reopens it with its Timeline line.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": {
+    "DataSecurityIssueResolutions.markCameBack DataSecurityIssue": Why.Reported,
+  },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityProbeClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
   },
@@ -533,6 +615,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   // The workers' content-scan claim holds the stores it hands out (#8325).
   "packages/Common/Server/Utils/DataSecurity/DataSecurityWorkerClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
+  },
+  /*
+   * The security stores OneUptime declares (#10398): archived once their
+   * data is gone and restored when it is back, as discovery archives and
+   * restores a store, each with its Timeline line; when they were last
+   * seen, and what they hold as the code says it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DeclaredDataStores.ts": {
+    "DeclaredDataStores.declareStore DataStore": Why.Bookkeeping,
+    "DeclaredDataStores.keep DataStore": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
@@ -632,21 +724,97 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
         Why.Reported,
     },
+  /*
+   * Automatic response (#10350): when a policy's block took hold, and how
+   * long after its address's first request, stamped on the case beside the
+   * block the engine made and recorded; and a policy's trial run finishing
+   * on its own once its week is over.
+   */
+  "packages/Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRecorder.ts":
+    {
+      "SecurityAutomaticResponseRecorder.recordIfHeld SecurityCase":
+        Why.FollowOn,
+    },
+  "packages/Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseTrial.ts":
+    {
+      "SecurityAutomaticResponseTrial.finishDueTrials SecurityAutomaticResponsePolicy":
+        Why.Automation,
+      // A running trial's week standing still while Security Events is off (#10816).
+      "SecurityAutomaticResponseTrial.pauseRunningTrials SecurityAutomaticResponsePolicy":
+        Why.Automation,
+    },
+  // Where a web ACL stands, as AWS WAF answers OneUptime's check of it (#10344).
+  "packages/Common/Server/Utils/SecurityBlocklist/AwsWafBlockDestination.ts": {
+    "recordCloudWafState SecurityBlockCloudWaf": Why.Reported,
+  },
   // A block past its end, Expired by the expiry worker's compare-and-set, recorded as OneUptime's (#10338).
   "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlockExpiry.ts": {
     "SecurityBlockExpiry.expireBlock SecurityBlock": Why.Recorded,
+  },
+  /*
+   * A blocklist feed's health (#10345): how often its firewall fetches it,
+   * worked out from its fetches, and when its owners were told it stopped.
+   */
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlocklistFeedHealth.ts":
+    {
+      "SecurityBlocklistFeedHealth.checkFeed SecurityBlocklistFeed":
+        Why.Bookkeeping,
+    },
+  // What a firewall's fetch of a feed reports: when, from where, and the list it now holds (#10345).
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlocklistFeedServe.ts":
+    {
+      "SecurityBlocklistFeedServe.recordFetch SecurityBlocklistFeed":
+        Why.Reported,
+      "SecurityBlocklistFeedServe.writeHeld SecurityBlocklistFeed":
+        Why.Reported,
+    },
+  // OneUptime AI handing a case it worked to people (#10352): its own state, on the timeline.
+  /*
+   * Whether a new case's alerts wait while OneUptime AI responds first, and
+   * how the hold ended (#10353): when people are told, which the case's
+   * timeline says, naming who pressed Page now or took the case.
+   */
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseAiHold.ts": {
+    "SecurityCaseAiHold.endHold SecurityCase": Why.Bookkeeping,
+    // A run whose page step waited carries on: its progress (#10353).
+    "SecurityCaseAiHold.queueAgain SecurityPlaybookRun": Why.Automation,
+    "SecurityCaseAiHold.startHold SecurityCase": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseHandOff.ts": {
+    "SecurityCaseHandOff.handToPeople SecurityCase": Why.Automation,
   },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,
   },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
+    // What a held case's end has told people, claimed once (#10353).
+    "SecurityCaseNotifications.notifyAiHoldEnded SecurityCase": Why.Bookkeeping,
     "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
       Why.Bookkeeping,
   },
+  /*
+   * What the code host says of a pull request a person linked to a case
+   * (#10604): its state, its merge commit and the deploy that shipped it.
+   * Linking it and taking it off are on the case's timeline and audited.
+   */
+  "packages/Common/Server/Utils/SecurityCase/SecurityCasePullRequestFollower.ts":
+    {
+      "SecurityCasePullRequestFollower.followOne SecurityCasePullRequest":
+        Why.Reported,
+    },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
   },
+  // When a case's Response Plan steps are next checked, and the lease on it (#10340).
+  "packages/Common/Server/Utils/SecurityCase/StepChecks/SecurityCaseStepCheckRunner.ts":
+    {
+      "SecurityCaseStepCheckRunner.checkCase SecurityCase": Why.Bookkeeping,
+    },
+  "packages/Common/Server/Utils/SecurityCase/StepChecks/SecurityCaseStepChecks.ts":
+    {
+      "SecurityCaseStepChecks.requestCheck SecurityCase": Why.Bookkeeping,
+    },
   "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler.ts": {
     "SecurityHuntScheduler.record SecurityHunt": Why.Bookkeeping,
   },
@@ -660,7 +828,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityPlaybookEngine.finishRun SecurityPlaybookRun": Why.Automation,
     "SecurityPlaybookEngine.recoverRuns SecurityPlaybookRun": Why.Automation,
     "SecurityPlaybookEngine.runSteps SecurityPlaybookRun": Why.Automation,
+    // A page step waits while OneUptime AI responds first (#10353).
+    "SecurityPlaybookEngine.waitForOneUptimeAi SecurityPlaybookRun":
+      Why.Automation,
   },
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookRunDecision.ts":
+    {
+      "SecurityPlaybookRunDecision.decide SecurityPlaybookRun": Why.Recorded,
+      "SecurityPlaybookRunDecision.writeUndone SecurityPlaybookRun":
+        Why.Recorded,
+    },
   "packages/Common/Server/Utils/Slo/SloLegacyMonitorLabelAdoption.ts": {
     "(module) ServiceLevelObjectiveMonitorRule": Why.Migration,
   },
@@ -678,6 +855,19 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
+  },
+  // An exception's former fingerprint deleted once no occurrence carries it (#10619).
+  "packages/Common/Server/Utils/Telemetry/FormerExceptionFingerprints.ts": {
+    "FormerExceptionFingerprints.retireUncarried TelemetryException":
+      Why.Bookkeeping,
+  },
+  /*
+   * An exception moved to a private fingerprint by its own next occurrence,
+   * its old one kept beside it (#10619): nobody made the change.
+   */
+  "packages/Common/Server/Utils/Telemetry/TelemetryExceptionRekey.ts": {
+    "TelemetryExceptionRekey.moveInTransaction TelemetryException":
+      Why.Automation,
   },
   "packages/Common/Server/Utils/Telemetry/ResourceHeartbeat.ts": {
     "ResourceHeartbeat.writeOnce *": Why.Reported,

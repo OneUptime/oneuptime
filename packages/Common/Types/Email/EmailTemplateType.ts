@@ -38,6 +38,12 @@ enum EmailTemplateType {
    */
   SsoSignInLinks = "SsoSignInLinks.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
+  /*
+   * A custom probe a major release or more behind the OneUptime it reports
+   * to, told once to its owners (#9977, Server/Utils/Probe/
+   * ProbeMajorReleaseNotice).
+   */
+  ProbeMajorReleaseBehind = "ProbeMajorReleaseBehind.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
   AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",
   ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",
@@ -179,6 +185,8 @@ enum EmailTemplateType {
   SecurityPlaybookApprovalRequested = "SecurityPlaybookApprovalRequested.hbs",
   SecurityCaseTargetDue = "SecurityCaseTargetDue.hbs",
   SecurityCaseTaskAssigned = "SecurityCaseTaskAssigned.hbs",
+  SecurityCaseStepRegressed = "SecurityCaseStepRegressed.hbs",
+  SecurityCaseAiHandedOff = "SecurityCaseAiHandedOff.hbs",
   // A scheduled hunt found security events (SecurityHuntNotifications).
   SecurityHuntFound = "SecurityHuntFound.hbs",
 

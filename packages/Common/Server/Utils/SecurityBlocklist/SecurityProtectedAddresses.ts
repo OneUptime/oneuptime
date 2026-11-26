@@ -2,6 +2,8 @@ import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
 import KubernetesResource from "../../../Models/DatabaseModels/KubernetesResource";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import NetworkAddressName from "../../../Models/DatabaseModels/NetworkAddressName";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
@@ -14,7 +16,6 @@ import KubernetesResourceService from "../../Services/KubernetesResourceService"
 import NetworkAddressNameService from "../../Services/NetworkAddressNameService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
-import ProbeService from "../../Services/ProbeService";
 import SecurityProtectedEntityService from "../../Services/SecurityProtectedEntityService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
@@ -22,6 +23,11 @@ import DnsResolutionCache, {
   DnsResolution,
 } from "../Monitor/DnsResolutionCache";
 import NetworkAddressNamesUtil from "../NetworkFlow/NetworkAddressNames";
+import OneUptimeProbeAddresses, {
+  OneUptimeProbe,
+  OneUptimeProbeAddress,
+  OneUptimeProbeRead,
+} from "../Probe/OneUptimeProbeAddresses";
 import CallerPermission from "../Permission/CallerPermission";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityEdgeRanges, { SecurityEdge } from "./SecurityEdgeRanges";
@@ -41,6 +47,7 @@ import {
   findLocalRangeProtection,
   findProtectionAmong,
 } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import { readSecurityAddress } from "../../../Types/SecurityBlocklist/SecurityAddressSpellings";
 import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
@@ -58,7 +65,10 @@ import NetworkAddressBlockUtil, {
  *   - ranges that are not on the internet, and OneUptime Cloud's probe
  *     addresses (IP_WHITELIST);
  *   - the address each of the project's probes, and each of OneUptime's,
- *     checks in from (Probe.egressIpAddress);
+ *     checks in from (Probe.egressIpAddress), and the addresses on the
+ *     project's probes' own network interfaces (Probe.interfaceIpAddresses):
+ *     the one list of OneUptime's own probe addresses, which Security
+ *     Events reads too (Probe/OneUptimeProbeAddresses);
  *   - the addresses and ranges its people named (Address Names);
  *   - its hosts' addresses (host.ip), its Kubernetes nodes' InternalIP and
  *     ExternalIP, its cloud resources' endpoints and properties - and its
@@ -90,13 +100,6 @@ export const LOAD_BALANCERS_RESOLVED_PER_CHECK: number = 200;
 // How many DNS names are resolved at once.
 const DNS_NAMES_RESOLVED_AT_ONCE: number = 10;
 
-// What a probe's read selects: its name and the address it checks in from.
-const PROBE_SELECT: { _id: true; name: true; egressIpAddress: true } = {
-  _id: true,
-  name: true,
-  egressIpAddress: true,
-};
-
 // How long a load balancer's name that could not be resolved waits to be asked again.
 export const DNS_FAILURE_RETRY_IN_MS: number = 30 * 1000;
 
@@ -118,6 +121,18 @@ export interface SecurityProtectionCheck {
    * not found protected may still be, and is not made.
    */
   unreadSources: Array<SecurityProtectedAddressSource>;
+}
+
+/*
+ * Everything the project protects, read whole (readAllProtections): what a
+ * blocklist feed holds its entries to.
+ */
+export interface SecurityProtectionSnapshot {
+  protections: Array<SecurityAddressProtection>;
+  // The sources that could not be read: nothing is known of what they protect.
+  unreadSources: Array<SecurityProtectedAddressSource>;
+  // The sources that hold more rows than one read takes.
+  incompleteSources: Array<SecurityProtectedAddressSource>;
 }
 
 // The addresses one source protects, as the Protected Entities page lists them.
@@ -218,8 +233,15 @@ function protectionsOf(data: {
       continue;
     }
 
-    const block: NetworkAddressBlock | null =
-      NetworkAddressBlockUtil.parse(value);
+    /*
+     * An address however the record wrote it - in brackets, with a port or
+     * a zone too, which a parse of it alone refuses (#10744) - and a range
+     * as it is: a protection missed lets a block take the project's own
+     * site down.
+     */
+    const block: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+      readSecurityAddress(value) || value,
+    );
 
     if (!block || seen.has(block.text)) {
       continue;
@@ -237,6 +259,30 @@ function protectionsOf(data: {
   }
 
   return protections;
+}
+
+/*
+ * The protections OneUptime's own probes hold: one per address of each, the
+ * address it checks in from first, named by the probe.
+ */
+function protectionsOfProbes(
+  probes: Array<OneUptimeProbe>,
+  source: SecurityProtectedAddressSource,
+): Array<SecurityAddressProtection> {
+  return probes.flatMap(
+    (probe: OneUptimeProbe): Array<SecurityAddressProtection> => {
+      return protectionsOf({
+        values: probe.addresses.map(
+          (address: OneUptimeProbeAddress): string => {
+            return address.value;
+          },
+        ),
+        source,
+        name: probe.name,
+        recordId: probe.probeId || undefined,
+      });
+    },
+  );
 }
 
 // A text column narrowed to the scan's text, or to any value at all.
@@ -278,6 +324,9 @@ const PROTECTION_RECORD_MODELS: Partial<
   [SecurityProtectedAddressSource.NetworkEndpoint]: NetworkEndpoint,
   [SecurityProtectedAddressSource.AddressName]: NetworkAddressName,
   [SecurityProtectedAddressSource.Probe]: Probe,
+  // A domain's (#10346): the monitor that checks it, the status page it serves.
+  [SecurityProtectedAddressSource.Monitor]: Monitor,
+  [SecurityProtectedAddressSource.StatusPage]: StatusPage,
 };
 
 export default class SecurityProtectedAddresses {
@@ -432,6 +481,114 @@ export default class SecurityProtectedAddresses {
   }
 
   /*
+   * Every address and range OneUptime protects in the project, read whole
+   * and as OneUptime, from the very sources findProtection reads: what a
+   * blocklist feed holds each entry to before it serves it (#10345), since
+   * an address can become a protected one after it was blocked - a new
+   * host, an entry added to Protected Entities. Each source is read once,
+   * up to `limitPerSource` rows: one that could not be read is named in
+   * unreadSources, one that holds more rows than that in incompleteSources.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async readAllProtections(data: {
+    projectId: ObjectID;
+    limitPerSource: number;
+  }): Promise<SecurityProtectionSnapshot> {
+    const scan: SourceScan = {
+      contains: null,
+      limit: data.limitPerSource,
+      props: ROOT,
+    };
+
+    const snapshot: SecurityProtectionSnapshot = {
+      protections: [
+        ...this.getLocalRangeProtections(),
+        ...this.getOneUptimeCloudProtections(),
+      ],
+      unreadSources: [],
+      incompleteSources: [],
+    };
+
+    const readers: Array<{
+      source: SecurityProtectedAddressSource;
+      read: () => Promise<SourceReading>;
+    }> = [
+      {
+        source: SecurityProtectedAddressSource.ProtectedEntity,
+        read: () => {
+          return this.readProtectedEntities(data.projectId, ROOT);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.Probe,
+        read: () => {
+          return this.readProbes(data.projectId, scan);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.AddressName,
+        read: () => {
+          return this.readAddressNames(data.projectId, scan);
+        },
+      },
+      ...this.getRecordReaders().map(
+        (reader: {
+          source: SecurityProtectedAddressSource;
+          read: SourceReader;
+        }): {
+          source: SecurityProtectedAddressSource;
+          read: () => Promise<SourceReading>;
+        } => {
+          return {
+            source: reader.source,
+            read: () => {
+              return reader.read(data.projectId, scan);
+            },
+          };
+        },
+      ),
+      {
+        source: SecurityProtectedAddressSource.CloudResource,
+        read: () => {
+          return this.readLoadBalancers(data.projectId, ROOT);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.Edge,
+        read: () => {
+          return this.readEdges(data.projectId);
+        },
+      },
+    ];
+
+    for (const reader of readers) {
+      try {
+        const reading: SourceReading = await reader.read();
+
+        snapshot.protections.push(...reading.protections);
+
+        if (
+          !reading.isComplete &&
+          !snapshot.incompleteSources.includes(reader.source)
+        ) {
+          snapshot.incompleteSources.push(reader.source);
+        }
+      } catch (error) {
+        logger.warn(
+          `SecurityProtectedAddresses: could not read the project's ${reader.source} addresses for its blocklist feeds. ${String(error)}`,
+        );
+
+        if (!snapshot.unreadSources.includes(reader.source)) {
+          snapshot.unreadSources.push(reader.source);
+        }
+      }
+    }
+
+    return snapshot;
+  }
+
+  /*
    * What OneUptime protects of the project automatically, source by source,
    * at most PROTECTED_ADDRESSES_LISTED_PER_SOURCE of each: what the
    * Protected Entities page lists, read-only, with where each came from.
@@ -535,15 +692,28 @@ export default class SecurityProtectedAddresses {
     );
   }
 
-  // OneUptime Cloud's probe addresses: the IP_WHITELIST setting, each an address or a range.
+  /*
+   * OneUptime Cloud's probe addresses: the IP_WHITELIST setting, each an
+   * address or a range, as the one list of OneUptime's own probe addresses
+   * holds it (Probe/OneUptimeProbeAddresses).
+   */
   public static getOneUptimeCloudProtections(
     setting: string = IpWhitelist,
   ): Array<SecurityAddressProtection> {
-    return protectionsOf({
-      values: listEntries(setting),
-      source: SecurityProtectedAddressSource.OneUptimeCloud,
-      name: "OneUptime Cloud",
-    });
+    const cloud: OneUptimeProbe | null =
+      OneUptimeProbeAddresses.getOneUptimeCloud(setting);
+
+    return cloud
+      ? protectionsOf({
+          values: cloud.addresses.map(
+            (address: OneUptimeProbeAddress): string => {
+              return address.value;
+            },
+          ),
+          source: SecurityProtectedAddressSource.OneUptimeCloud,
+          name: cloud.name,
+        })
+      : [];
   }
 
   // The address entries of the project's Protected Entities list, by their descriptions.
@@ -598,32 +768,28 @@ export default class SecurityProtectedAddresses {
     };
   }
 
-  // The project's own probes, by the address each checks in from.
+  /*
+   * The project's own probes, by the address each checks in from and the
+   * addresses on its own network interfaces (#10429): the one list of
+   * OneUptime's own probe addresses (Probe/OneUptimeProbeAddresses), which
+   * Security Events reads too.
+   */
   public static async readProjectProbes(
     projectId: ObjectID,
     scan: SourceScan,
   ): Promise<SourceReading> {
-    const read: { rows: Array<Probe>; isComplete: boolean } = keepRead(
-      await ProbeService.findBy({
-        query: { projectId, egressIpAddress: textFilter(scan) as never },
-        select: PROBE_SELECT,
-        skip: 0,
-        limit: readLimit(scan),
+    const read: OneUptimeProbeRead =
+      await OneUptimeProbeAddresses.readProjectProbes({
+        projectId,
+        contains: scan.contains,
+        limit: scan.limit,
         props: scan.props,
-      }),
-      scan,
-    );
+      });
 
     return {
-      protections: read.rows.flatMap(
-        (probe: Probe): Array<SecurityAddressProtection> => {
-          return protectionsOf({
-            values: [probe.egressIpAddress],
-            source: SecurityProtectedAddressSource.Probe,
-            name: probe.name || "",
-            recordId: probe.id?.toString(),
-          });
-        },
+      protections: protectionsOfProbes(
+        read.probes,
+        SecurityProtectedAddressSource.Probe,
       ),
       isComplete: read.isComplete,
     };
@@ -636,30 +802,16 @@ export default class SecurityProtectedAddresses {
   public static async readGlobalProbes(
     scan: SourceScan,
   ): Promise<SourceReading> {
-    const read: { rows: Array<Probe>; isComplete: boolean } = keepRead(
-      await ProbeService.findBy({
-        query: {
-          isGlobalProbe: true,
-          egressIpAddress: textFilter(scan) as never,
-        },
-        select: PROBE_SELECT,
-        skip: 0,
-        limit: readLimit(scan),
-        props: ROOT,
-      }),
-      scan,
-    );
+    const read: OneUptimeProbeRead =
+      await OneUptimeProbeAddresses.readGlobalProbes({
+        contains: scan.contains,
+        limit: scan.limit,
+      });
 
     return {
-      protections: read.rows.flatMap(
-        (probe: Probe): Array<SecurityAddressProtection> => {
-          return protectionsOf({
-            values: [probe.egressIpAddress],
-            source: SecurityProtectedAddressSource.GlobalProbe,
-            name: probe.name || "",
-            recordId: probe.id?.toString(),
-          });
-        },
+      protections: protectionsOfProbes(
+        read.probes,
+        SecurityProtectedAddressSource.GlobalProbe,
       ),
       isComplete: read.isComplete,
     };

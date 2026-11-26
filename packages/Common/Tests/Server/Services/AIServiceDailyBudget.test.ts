@@ -16,6 +16,17 @@ import AIService, {
   AI_IMPORT_QUERY_CONVERSION_FEATURE,
   AI_PRODUCTION_REVIEW_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
+  AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+  AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   RUNBOOK_AI_STEP_FEATURE,
   WORKFLOW_AI_FEATURE,
 } from "../../../Server/Services/AIService";
@@ -187,10 +198,72 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
         AI_SECURITY_CASE_TRIAGE_FEATURE,
         AI_PRODUCTION_REVIEW_FEATURE,
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+        /*
+         * OneUptime AI's Data Security work, each started with no person:
+         * an issue's analysis, store owners, a group's name, scrub rules,
+         * the verdicts on findings that wait for a person (#10372), a pull
+         * request's sensitive data, the daily record drafts, the data
+         * types drafted from fields scans could not place (#10371), and an
+         * exposure's write-up as its case opens (#10377). The drafts a
+         * person asks for (on request, an impact assessment, audit
+         * evidence, an exposure's write-up, Describe It's data type) are
+         * not budgeted.
+         */
+        AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
+        AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+        AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+        AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+        AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+        AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+        AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+        AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+        AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
         RUNBOOK_AI_STEP_FEATURE,
         WORKFLOW_AI_FEATURE,
         ...LEGACY_AUTONOMOUS_AI_FEATURES,
       ].sort(),
+    );
+  });
+
+  /*
+   * An exposure's write-up (#10377): on its own, as Data Security opens a
+   * case for a Critical exposure, it is autonomous - one scan can open
+   * several cases - so budgeted; when a person asks for it on the case's
+   * card, answered while they wait, it is not.
+   */
+  test("an exposure's write-up is budgeted on its own, and not when a person asks", () => {
+    expect(AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE).toBe(
+      "AI Data Security Exposure Assessment",
+    );
+    expect(AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE).toBe(
+      "AI Data Security Exposure Assessment Request",
+    );
+    expect(AUTONOMOUS_AI_FEATURES).toContain(
+      AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+    );
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
+    );
+  });
+
+  /*
+   * A data type OneUptime AI drafts (#10371): from the fields scans could
+   * not place, started by the scans with no one pressing it, it is
+   * budgeted; from a person's sentence on the data type form (Describe
+   * It), answered while they wait, it is not.
+   */
+  test("a data type drafted from unplaced fields is budgeted, and not one a person describes", () => {
+    expect(AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE).toBe(
+      "AI Data Security Data Type Draft",
+    );
+    expect(AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE).toBe(
+      "AI Data Security Data Type Describe",
+    );
+    expect(AUTONOMOUS_AI_FEATURES).toContain(
+      AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+    );
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
     );
   });
 });

@@ -194,6 +194,8 @@ Start de collector opnieuw. Elke service waarvan de traces erdoorheen gaan, vers
 | Kenmerk weglakken | Vervangt de waarde van een attribuut door een plaatshouder. |
 | Voorbeeld | Houdt een percentage van de overeenkomende datapunten. |
 
+Een regel werkt op elk datapunt, of alleen op de datapunten waarop zijn filters passen. Een filter vergelijkt de naam van de metriek of één attribuut met een waarde of een reguliere expressie, of vraagt met **Komt overeen met patroontype** of het een e-mailadres, een creditcardnummer, een socialezekerheidsnummer, een telefoonnummer of een IP-adres bevat, gevonden zoals een opschoonregel voor logs of traces met dat **Patroontype** het vindt. De regel **Kenmerk weglakken** die [Gegevensbeveiliging](/docs/data-security/telemetry) maakt voor een IP-adres, een e-mailadres of een kaartnummer in een attribuut, gebruikt het.
+
 **Metrieken → Instellingen → Opnameregels** berekent elke minuut nieuwe metrieken uit andere metrieken. Zie [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules) voor hoe opnameregels werken.
 
 ## Problemen oplossen

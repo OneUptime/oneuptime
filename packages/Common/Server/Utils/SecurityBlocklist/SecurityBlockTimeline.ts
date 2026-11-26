@@ -1,5 +1,6 @@
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
+import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import {
   Gray500,
   Green500,
@@ -10,8 +11,11 @@ import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
   SecurityBlockSource,
   describeSecurityBlockLength,
+  isSecurityBlockAddressType,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import FeedMarkdown, {
   MarkdownText,
@@ -30,13 +34,21 @@ import FeedMarkdown, {
  * found nothing new, so a timeline says each thing once.
  */
 
-// Who made a block, as a sentence starts with it when no person did.
-function madeBy(source: SecurityBlockSource): MarkdownText {
+/*
+ * Who made a block, as a sentence starts with it when no person did: an
+ * automatic response policy by its name when it is known (#10350).
+ */
+function madeBy(
+  source: SecurityBlockSource,
+  policyName?: string | undefined,
+): MarkdownText {
   switch (source) {
     case SecurityBlockSource.Playbook:
       return mdText`A playbook`;
     case SecurityBlockSource.AutomaticResponse:
-      return mdText`An automatic response`;
+      return policyName?.trim()
+        ? mdText`The ${FeedMarkdown.textInLine(policyName.trim())} policy`
+        : mdText`An automatic response`;
     case SecurityBlockSource.OneUptimeAi:
       return mdText`OneUptime AI`;
     case SecurityBlockSource.Api:
@@ -58,13 +70,19 @@ function howLong(data: {
 
 export function blockAddedMarkdown(data: {
   value: string;
+  // What it holds: an address unless said (#10346).
+  indicatorType?: SecurityBlockIndicatorType | undefined;
   action: SecurityBlockAction;
+  // Where it is enforced: at the edge unless said.
+  reach?: SecurityBlockReach | undefined;
   source: SecurityBlockSource;
   createdAt: Date;
   expiresAt: Date | null | undefined;
   reason?: string | undefined;
-  // Whether anything enforces the project's blocklist at all.
+  // Whether anything is asked to hold it: a destination of its reach.
   hasDestinations: boolean;
+  // The automatic response policy that made it, by name (#10350).
+  policyName?: string | undefined;
 }): MarkdownText {
   const value: MarkdownText = FeedMarkdown.code(data.value);
   const length: MarkdownText = howLong({
@@ -72,15 +90,29 @@ export function blockAddedMarkdown(data: {
     until: data.expiresAt,
   });
   const isChallenge: boolean = data.action === SecurityBlockAction.Challenge;
+  const isQuarantine: boolean =
+    data.action === SecurityBlockAction.BlockAndQuarantine;
+  const isAddress: boolean = isSecurityBlockAddressType(
+    data.indicatorType || SecurityBlockIndicatorType.IpAddress,
+  );
+  // An address blocked everywhere says so; a domain, a URL or a file always is.
+  const where: MarkdownText =
+    isAddress && data.reach === SecurityBlockReach.Everywhere
+      ? mdText` on every machine`
+      : FeedMarkdown.empty();
 
   const line: MarkdownText =
     data.source === SecurityBlockSource.Person
       ? isChallenge
         ? mdText`🚫 Challenged ${value} ${length}.`
-        : mdText`🚫 Blocked ${value} ${length}.`
+        : isQuarantine
+          ? mdText`🚫 Blocked and quarantined ${value} ${length}.`
+          : mdText`🚫 Blocked ${value}${where} ${length}.`
       : isChallenge
-        ? mdText`🚫 ${madeBy(data.source)} challenged ${value} ${length}.`
-        : mdText`🚫 ${madeBy(data.source)} blocked ${value} ${length}.`;
+        ? mdText`🚫 ${madeBy(data.source, data.policyName)} challenged ${value} ${length}.`
+        : isQuarantine
+          ? mdText`🚫 ${madeBy(data.source, data.policyName)} blocked and quarantined ${value} ${length}.`
+          : mdText`🚫 ${madeBy(data.source, data.policyName)} blocked ${value}${where} ${length}.`;
 
   const reason: MarkdownText = data.reason
     ? mdText` Reason: ${FeedMarkdown.textInLine(data.reason)}`
@@ -88,7 +120,9 @@ export function blockAddedMarkdown(data: {
 
   const enforcement: MarkdownText = data.hasDestinations
     ? FeedMarkdown.empty()
-    : mdText` Nothing enforces the blocklist yet, so it is not blocked anywhere: connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list.`;
+    : isAddress && data.reach !== SecurityBlockReach.Everywhere
+      ? mdText` Nothing enforces the blocklist yet, so it is not blocked anywhere: connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list.`
+      : mdText` Nothing blocks it on your machines yet: turn on blocking on your Microsoft Defender XDR or CrowdStrike Falcon connection.`;
 
   // The reason last: it is someone's words, which need not end a sentence.
   return mdText`${line}${enforcement}${reason}`;
@@ -166,7 +200,18 @@ export function blockNotAppliedMarkdown(data: {
 }
 
 export default class SecurityBlockTimeline {
-  // One line on the case's timeline. Never throws (SecurityCaseFeedService).
+  /*
+   * One line on the case's timeline. Never throws (SecurityCaseFeedService,
+   * SecurityCaseStepChecks).
+   *
+   * Whatever the line says - a block made, lifted, extended or expired, a
+   * destination holding it or turning it down - changes what the case's
+   * block step is, so the case's steps are checked at once (#10562): a
+   * block a destination holds is Checked by OneUptime within a minute of
+   * it holding, and a lifted one no longer is. The same holds for a
+   * domain's, a file's and a command-and-control address's block on every
+   * machine (#10346).
+   */
   public static async write(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID | null | undefined;
@@ -187,6 +232,11 @@ export default class SecurityBlockTimeline {
       displayColor: data.color,
       ...(data.userId ? { userId: data.userId } : {}),
       ...(data.postedAt ? { postedAt: data.postedAt } : {}),
+    });
+
+    await SecurityCaseStepChecks.requestCheck({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
     });
   }
 

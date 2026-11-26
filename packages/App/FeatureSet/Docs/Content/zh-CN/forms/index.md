@@ -1,6 +1,6 @@
 # 表单概览
 
-表单是一个页面，任何拥有其链接的人都可以填写，无需 OneUptime 账号。每次提交都会在您的项目中创建一项内容：问题报告会创建一个 **事件**，变更和维护请求会创建一个 **维护事件**。您可以在拖放式构建器中设计表单的问题，决定答案如何变成记录，并把链接分享给应该使用它的人。
+表单是一个页面，任何拥有其链接的人都可以填写，无需 OneUptime 账号。每次提交都会在您的项目中创建一项内容：问题报告会创建一个 **事件**，警告和需要检查的事项会创建一个 **警报**，变更和维护请求会创建一个 **维护事件**。您可以在拖放式构建器中设计表单的问题，决定答案如何变成记录，并把链接分享给应该使用它的人。
 
 当发现问题或需要变更的人并不是负责处理事件和维护的人时，就可以使用表单：例如支持人员、其他部门的同事、门店经理或客户的运维团队。他们打开链接、回答您的问题，然后点击 **提交**。您的团队会收到一个普通的事件或维护事件，答案填在其字段中，并附有一条记录提交者身份的私密备注。
 
@@ -13,16 +13,19 @@
 
 ## 表单的工作原理
 
-```mermaid title="从填写好的表单到事件或维护事件"
+```mermaid title="从填写好的表单到事件、警报或维护事件"
 flowchart TB
     submitter["拥有链接的人<br/>（无需账号）"] --> page["表单的页面"]
     page -->|提交| checks["保护措施和答案检查"]
     checks --> submission["与表单一起<br/>保存的提交"]
     submission --> target{"每次提交创建"}
-    target -->|事件| incident["事件<br/>（在状态页面上隐藏）"]
-    target -->|计划维护| event["维护事件<br/>（除非另行设置，否则隐藏）"]
+    target -->|事件| incident["事件<br/>（在状态页面<br/>上隐藏）"]
+    target -->|警报| alert["警报<br/>（由其所有者查看）"]
+    target -->|计划维护| event["维护事件<br/>（除非另行设置，<br/>否则隐藏）"]
     incident --> response["值班策略和<br/>规则开始运行"]
+    alert --> response
     incident --> note["私密备注：提交者<br/>和其他答案"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ flowchart TB
 | 每次提交创建 | 用途 | 会发生什么 |
 | --- | --- | --- |
 | **事件** | 问题报告 | 立即声明一个事件，因此您的值班策略和规则会运行，值班人员会收到通知。在响应者发布之前，它不会出现在状态页面上。 |
+| **警报** | 警告和需要检查的事项 | 创建一个警报，因此无需声明事件，其所有者就会收到通知，其值班策略和规则也会运行。以较后的状态（例如 **已确认**）开始的警报不会呼叫任何人。 |
 | **计划维护** | 变更和维护请求 | 在提交者请求的时间窗口内安排一个维护事件。除非表单另有设置，它不会出现在状态页面上，也不会通知任何订阅者。 |
 
-表单目前支持这两种，今后还会支持更多类型的记录。
+设置创建警报的表单还需要创建警报的权限：请参阅 [权限](#权限)。
 
 ## 开始之前
 
 - **包含表单的套餐。** 在 OneUptime Cloud 上，表单需要 **Growth** 或更高的套餐。请参阅 [套餐](#套餐)。
 - **创建表单的权限。** **Create Form** 属于项目所有者和项目管理员，以及您授予该权限的角色。请参阅 [权限](#权限)。
 - **事件表单需要严重程度。** 每个事件都需要一个严重程度：来自某个问题、表单的设置或其事件模板。没有严重程度时，每次提交都会被拒绝。请参阅 [提交会创建什么](/docs/forms/on-submit#提交如何成为事件)。
+- **警报表单需要严重程度。** 每个警报也都需要一个严重程度：来自某个问题或表单的设置。请参阅 [提交如何成为警报](/docs/forms/on-submit#提交如何成为警报)。
 
 ## 创建您的第一个表单
 
@@ -144,6 +149,8 @@ flowchart TB
 | **Delete Form Domain** | 移除表单的自定义域名。 | 项目所有者、项目管理员和 **Edit Form** |
 | **Read Form Domain** | 查看表单的自定义域名、它们的 DNS 记录，以及每个域名在通往 HTTPS 的路上走到了哪一步。 | 拥有 **Read Form** 的任何人 |
 
+**创建警报的表单需要创建警报的权限。** 任何拥有其链接的人都可以创建警报、通知其所有者并呼叫其值班人员，因此创建一个会创建警报的表单、把表单改为这种表单，以及更改警报表单的问题、模板或 **提交时** 设置，都还需要一个可以创建警报的权限：项目所有者、项目管理员、项目成员、警报管理员、警报成员或 **Create Alert**。表单的名称、链接、 **接受提交**、品牌和 **IP 允许列表** 只需要 **Form** 权限。没有该权限时，创建表单时不会提供 **警报**，它在表单的 **提交时** 页面上也会被锁定，其提示会说明所需的权限；仍然尝试的请求会被以 "Only people who may create alerts can set up a form that creates them." 拒绝。事件表单和维护表单和以前一样只需要 **Form** 权限。
+
 提交中包含陌生人输入的内容（姓名、电子邮件地址，以及可能永远不会进入记录的答案），因此除非您授予 **Read Form Submission**，否则只有项目所有者和项目管理员能看到它们。任何能读取表单的人都能看到并分享其链接。提交表单不需要任何权限。关于角色和细粒度权限如何组合，请参阅 [用户、团队与权限](/docs/permissions/index)。
 
 ## 套餐
@@ -156,7 +163,7 @@ flowchart TB
 
 ### 问题和设置
 
-表单的问题在其 `fields` 列中，这是一个按表单提问顺序排列的 JSON 列表；其提交时设置在 `targetSettings` 中：
+表单的 `targetType` 是每次提交创建的内容：`Incident`、`Alert` 或 `ScheduledMaintenance`。表单的问题在其 `fields` 列中，这是一个按表单提问顺序排列的 JSON 列表；其提交时设置在 `targetSettings` 中——对于警报表单，为 `defaultTitle`、`alertSeverityId`、`alertStateId`、`monitorId`、`labelIds`、`onCallDutyPolicyIds`、`ownerUserIds` 和 `ownerTeamIds`：
 
 ```json
 {
@@ -199,8 +206,8 @@ flowchart TB
 | `source` | 询问的内容 |
 | --- | --- |
 | `Question` | 表单自己的问题，按 `type` 作答：`Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date`、`DateTime`、`File` 或 `MultipleFiles`。下拉列表会列出其 `dropdownOptions`，每行一个。 |
-| `TargetField` | 表单所创建内容的一个字段，由 `targetField` 指定：事件为 `title`、`description`、`incidentSeverityId`、`monitors`、`labels` 和 `impactStartedAt`；维护事件为 `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages` 和 `labels`。通过选择作答的字段会在 `allowedOptionIds` 中列出其提供的记录。 |
-| `TargetCustomField` | 事件或维护事件的某个自定义字段，由 `customFieldId` 指定。 |
+| `TargetField` | 表单所创建内容的一个字段，由 `targetField` 指定：事件为 `title`、`description`、`incidentSeverityId`、`monitors`、`labels` 和 `impactStartedAt`；警报为 `title`、`description`、`alertSeverityId`、`monitor`、`labels` 和 `impactStartedAt`；维护事件为 `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages` 和 `labels`。通过选择作答的字段会在 `allowedOptionIds` 中列出其提供的记录。 |
+| `TargetCustomField` | 事件、警报或维护事件的某个自定义字段，由 `customFieldId` 指定。 |
 | `Submitter` | 提交者的 `Name` 或 `Email`，由 `submitterField` 指定。 |
 
 `isHidden` 设置为 `true` 的问题不会显示在公开页面上，永远不是必填项，只能由提交所指定的模板来回答，除非该模板会提出这个问题。`isRequired` 和 `isHidden` 是表单的默认值；每个模板都可以用自己的方式提出问题。
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 工作流
 
-表单拥有自动生成的工作流组件，例如 **创建表单时**、**更新表单时** 等。要对表单创建的内容执行操作，请使用 **创建事件时** 或 **创建维护事件时**。
+表单拥有自动生成的工作流组件，例如 **创建表单时**、**更新表单时** 等。要对表单创建的内容执行操作，请使用 **创建事件时**、**创建警报时** 或 **创建维护事件时**。
 
 ### 公开页面自己的端点
 

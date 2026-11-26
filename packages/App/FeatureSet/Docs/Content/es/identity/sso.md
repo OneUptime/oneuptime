@@ -287,6 +287,31 @@ El navegador pasa por el cierre de sesión del proveedor en cuanto OneUptime lo 
 Un proveedor que no la tiene registrada muestra su propia página de error después de cerrar sesión en OneUptime, en lugar de devolver a la persona; aun así, la sesión en OneUptime queda cerrada.
 :::
 
+## Volver a iniciar sesión para confirmar que eres tú
+
+Antes de que alguien cambie cómo inicia sesión o elimine su cuenta, OneUptime le pide [confirmar que es él](/docs/introduction/your-account#confirmar-que-eres-tú). Quien inicia sesión solo a través de tu proveedor de identidad, sin contraseña ni clave de acceso en OneUptime, confirma con **Volver a iniciar sesión**: OneUptime lo envía al proveedor y le pide que le haga iniciar sesión de nuevo. Solo cuenta cuando el proveedor dice que inició sesión en ese momento o después, con un minuto de margen para los dos relojes. Un proveedor que vuelve a iniciar su sesión al instante con una sesión que ya tenía, o que no indica cuándo inició sesión, no confirma nada, y se le dice que te pida cambiarlo.
+
+:::tabs
+@tab SAML
+OneUptime envía `ForceAuthn="true"` y lee cuándo inició sesión la persona del `AuthnInstant` de la aserción.
+
+| Proveedor de identidad | Qué configurar |
+| --- | --- |
+| Okta | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y pon **Honor Force Authentication** en **Yes**. Con **No**, Okta ignora la solicitud. OneUptime te lo recuerda junto a un proveedor de Okta. |
+| Microsoft Entra ID | Nada: Entra ID respeta la solicitud, y su `AuthnInstant` es cuándo inició sesión la persona. |
+| Keycloak | Nada: Keycloak respeta la solicitud, aunque la 26.8.2 y anteriores pueden saltársela cuando se reinicia el inicio de sesión en la página de inicio de sesión de Keycloak, algo que corrigen la 26.8.3 y la 27.0.0. Su `AuthnInstant` es cuándo responde, no cuándo inició sesión la persona, así que OneUptime no puede comprobar que Keycloak se lo volvió a pedir, y lo dice junto al proveedor. Conecta Keycloak mediante OpenID Connect para que OneUptime lo compruebe por sí mismo. |
+| Google Workspace | Nada que configurar. Google no dice si respeta la solicitud. Su `AuthnInstant` es la última vez que la persona inició sesión en Google, así que quien sigue con la sesión iniciada en Google la cierra primero. |
+@tab OpenID Connect
+OneUptime envía `prompt=login` y `max_age=0`, o solo `prompt=login` a Microsoft Entra ID, y lee cuándo inició sesión la persona del `auth_time` del token de ID.
+
+| Proveedor de identidad | Qué configurar |
+| --- | --- |
+| Okta | Nada: Okta respeta ambos y siempre envía `auth_time`. |
+| Microsoft Entra ID | En **Token configuration** del registro de la aplicación, haz clic en **Add optional claim**, elige **ID** y añade `auth_time`: Entra ID solo lo envía como notificación opcional. Respeta `prompt=login`. OneUptime no le envía `max_age`, que Microsoft no documenta y que, según se ha informado, hace que Entra ID responda con un token de ID ya caducado. |
+| Keycloak | Mantén el ámbito de cliente `basic` en el cliente: incluye `auth_time`. Keycloak 25 y posteriores dan este ámbito a todos los clientes. |
+| Google Workspace | Activa **Session age claims** para el cliente OAuth, en **Google Auth Platform** > **Settings** > **Advanced Settings**; la aplicación debe estar publicada y verificada. Google no acepta ninguna de las dos solicitudes, así que OneUptime le pide `auth_time` en su lugar, y quien sigue con la sesión iniciada en Google la cierra primero. |
+:::
+
 ## Roles y equipos de los usuarios de SSO
 
 OneUptime no asigna roles ni grupos de tu proveedor de identidad. Lo que alguien puede hacer depende de los equipos a los que pertenece: un proveedor añade a los recién llegados a sus **Equipos**, y tú gestionas los equipos y sus permisos en OneUptime, como describe [Usuarios, equipos y permisos](/docs/permissions/index). Para mantener la pertenencia a los equipos alineada con tu proveedor de identidad, usa [SCIM](/docs/identity/scim). Cada equipo al que alguien se une al iniciar sesión queda registrado en la página **Registros de auditoría** de ese equipo, como un cambio de la persona que inició sesión.
@@ -356,7 +381,9 @@ Una cuenta puede pertenecer a muchas organizaciones, así que solo puedes borrar
 - alguien solo invitado a tu proyecto, que aún no se ha unido a él;
 - los administradores maestros, y tú: cambia los tuyos en tu **Perfil de usuario**.
 
-Cada persona a la que se le borra recibe un correo que le indica lo que se eliminó y que ahora inicia sesión con SSO, y los registros de auditoría de tus proyectos registran el borrado como tuyo. Solo un **Propietario del proyecto** puede borrar, con la sesión iniciada en el panel: nunca con una clave de API.
+Para borrar a una sola persona, abra **Usuarios**: la fila de cada persona que puede borrar dice **Configuración de inicio de sesión guardada**, y **Borrar configuración de inicio de sesión** en su menú borra solo la de esa persona, con la misma regla, tras una pregunta que enumera lo que se elimina.
+
+Cada persona a la que se le borra recibe un correo que le indica lo que se eliminó y que ahora inicia sesión con SSO, y los registros de auditoría de tus proyectos registran el borrado como tuyo. Solo un **Propietario del proyecto** puede borrar, con la sesión iniciada en el panel: nunca con una clave de API. Al borrar, primero se te pide [confirmar que eres tú](/docs/introduction/your-account#confirmar-que-eres-tú).
 
 ## Desactivar o eliminar un proveedor
 

@@ -544,6 +544,8 @@ describe("the overview", () => {
       "URL",
       "Request Body",
       "Request Headers",
+      "Allow self-signed certificates",
+      "CA certificate",
     ]);
     expect(outputTitles(post)).toEqual(["Success", "Error"]);
     expect(example).toContain(
@@ -881,8 +883,8 @@ describe("the components page", () => {
       const block: ComponentMetadata = component(id);
 
       expect(api).toContain(`**${block.title}**`);
-      expect(settingNames(block)).toEqual(tableRowLabels(api).slice(0, 3));
-      expect(outputTitles(block)).toEqual(tableRowLabels(api).slice(3));
+      expect(settingNames(block)).toEqual(tableRowLabels(api).slice(0, 5));
+      expect(outputTitles(block)).toEqual(tableRowLabels(api).slice(5));
       expect([...returnValueNames(block)].sort()).toEqual(
         [
           "Error",
@@ -903,6 +905,46 @@ describe("the components page", () => {
     expect(headers?.isSensitive).toBe(true);
     expect(tableRow(api, "**Request Headers**")[1]).toBe(
       "Headers to send, such as an API key. Under **More fields**. Their values are hidden in the run's log.",
+    );
+  });
+
+  /*
+   * #10440: an API block takes a Runbook HTTP step's two certificate
+   * settings, folded under More fields and off by default, the CA
+   * certificate shown while the switch is off.
+   */
+  it("says how an API block can trust a self-signed certificate or a CA of its own", () => {
+    const api: string = section(COMPONENTS, "## API");
+    const byName: Map<string, Argument> = new Map(
+      component(ComponentID.ApiPost).arguments.map(
+        (argument: Argument): [string, Argument] => {
+          return [argument.name, argument];
+        },
+      ),
+    );
+    const allow: Argument = byName.get("Allow self-signed certificates")!;
+    const ca: Argument = byName.get("CA certificate")!;
+
+    expect(allow.isAdvanced).toBe(true);
+    expect(allow.required).toBe(false);
+    expect(ca.isAdvanced).toBe(true);
+    expect(ca.shownWhen).toEqual({
+      argumentId: allow.id,
+      values: ["false"],
+      includesEmpty: true,
+    });
+    expect(tableRow(api, "**Allow self-signed certificates**")[1]).toContain(
+      "Under **More fields**, off by default.",
+    );
+    expect(tableRow(api, "**CA certificate**")[1]).toContain(
+      "Under **More fields**, while **Allow self-signed certificates** is off.",
+    );
+    expect(api).toContain(
+      "Either applies to this block's request alone, never to another block, another request of OneUptime or the connection to an outbound proxy.",
+    );
+    // A self-signed server is usually internal: the private-network rule says when it is reached.
+    expect(api).toContain(
+      "which the block reaches only when a self-hosted administrator allows private network addresses",
     );
   });
 

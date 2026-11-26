@@ -116,7 +116,7 @@ Deze monitors evalueren altijd de **Metriekwaarde** – de waarde van de geconfi
 
 ### Voorwaarden
 
-Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde.
+Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan** en **Niet gelijk aan**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde.
 
 Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies een van deze voorwaarden, en het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster**:
 

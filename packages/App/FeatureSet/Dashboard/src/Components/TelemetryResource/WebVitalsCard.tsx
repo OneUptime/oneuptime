@@ -1,9 +1,9 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Card from "Common/UI/Components/Card/Card";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
 import { WebVital, formatDurationMsInLanguage } from "./telemetryMetrics";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
@@ -16,6 +16,12 @@ export interface WebVitalsCardProps {
   loading: boolean;
   // What the card as a whole shows, in an (i) beside its title.
   description?: string | undefined;
+  /*
+   * Why nothing is drawn, in place of the generic "No web vitals reported
+   * yet": a RUM application's Overview says why from its diagnosis (not set
+   * up, quiet in this range, refused - issue #6379).
+   */
+  emptyState?: ReactNode | undefined;
 }
 
 /* The parts of a vital that decide how it is shown and rated. */
@@ -107,14 +113,13 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
       <Card
         title={
           props.description ? (
-            <span className="inline-flex items-center gap-1.5">
-              {translator.translateText("Core Web Vitals")}
-              <InfoTooltip
-                label="Core Web Vitals"
-                text={props.description}
-                iconClassName="h-4 w-4"
-              />
-            </span>
+            <WordsWithInfoTooltip
+              text={
+                translator.translateText("Core Web Vitals") || "Core Web Vitals"
+              }
+              label="Core Web Vitals"
+              description={props.description}
+            />
           ) : (
             "Core Web Vitals"
           )
@@ -134,6 +139,13 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                 </div>
               );
             })}
+          </div>
+        ) : !anyReported && props.emptyState ? (
+          <div
+            className="-mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50"
+            data-testid="web-vitals-empty-state"
+          >
+            {props.emptyState}
           </div>
         ) : !anyReported ? (
           <div className="-mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
@@ -156,13 +168,12 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                   className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex min-w-0 items-center gap-1">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        {v.key}
-                      </span>
-                      <InfoTooltip
+                    <div className="flex min-w-0">
+                      <WordsWithInfoTooltip
+                        className="min-w-0 text-xs font-semibold uppercase tracking-wider text-gray-500"
+                        text={v.key}
                         label={`${v.key.toUpperCase()} (${v.label})`}
-                        text={describeWebVital(v)}
+                        description={describeWebVital(v)}
                       />
                     </div>
                     <span

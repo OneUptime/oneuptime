@@ -265,6 +265,21 @@ async function send(
   }
 }
 
+/*
+ * The code a request failed with, when it did: an https request whose
+ * tunnel the proxy refused fails with Node's ERR_PROXY_TUNNEL, as the
+ * pinned agents open their tunnels themselves (#10442).
+ */
+async function failureCodeOf(sending: Promise<unknown>): Promise<string> {
+  try {
+    await sending;
+  } catch (error) {
+    return String((error as { code?: unknown }).code);
+  }
+
+  return "";
+}
+
 describe("a pinned request behind an outbound proxy named by host name", () => {
   test("an http request goes to the proxy, which is asked for the target by name", async () => {
     const proxy: LocalHttpServer = await serve({ name: "proxy" });
@@ -291,10 +306,10 @@ describe("a pinned request behind an outbound proxy named by host name", () => {
       "https://secure.example.test/v1/query",
       targetAddress(),
     );
-    const response: AxiosResponse<string> = await send(pinned.url.href, pinned);
-
-    // The proxy refuses every tunnel here, and its refusal is what comes back.
-    expect(response.status).toBe(403);
+    // The proxy refuses every tunnel here: its refusal, not an answer.
+    expect(await failureCodeOf(send(pinned.url.href, pinned))).toBe(
+      "ERR_PROXY_TUNNEL",
+    );
     expect(proxy.connects).toEqual(["secure.example.test:443"]);
   });
 
@@ -432,7 +447,9 @@ describe("the target's address on the proxy's port is never dialled", () => {
       "127.0.0.2",
     );
 
-    await send(pinned.url.href, pinned);
+    expect(await failureCodeOf(send(pinned.url.href, pinned))).toBe(
+      "ERR_PROXY_TUNNEL",
+    );
 
     expect(proxy.connects).toEqual(["secure.example.test:443"]);
     expect(decoy.isUntouched).toBe(true);

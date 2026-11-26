@@ -12,11 +12,11 @@
 
 ## 작동 방식
 
-OpenTelemetry Android는 앱 안에서 실행됩니다. **서버** 수집 키로 트레이스, 로그, 메트릭을 OTLP로 OneUptime에 보내고, 앱이 보내는 요청에 W3C `traceparent` 헤더를 추가해 백엔드의 스팬이 앱의 트레이스에 합류하게 합니다.
+OpenTelemetry Android는 앱 안에서 실행됩니다. 앱에 고정된 **모바일** 수집 키로 트레이스, 로그, 메트릭을 OTLP로 OneUptime에 보내고, 앱이 보내는 요청에 W3C `traceparent` 헤더를 추가해 백엔드의 스팬이 앱의 트레이스에 합류하게 합니다.
 
 ```mermaid title="앱에서 OneUptime까지, 그리고 백엔드를 거쳐"
 flowchart TB
-    app["OpenTelemetry Android를<br/>적용한 사용자의 Android 앱"] -->|"서버 키를 쓰는<br/>OTLP"| oneuptime["OneUptime"]
+    app["OpenTelemetry Android를<br/>적용한 사용자의 Android 앱"] -->|"모바일 키를 쓰는<br/>OTLP"| oneuptime["OneUptime"]
     app -->|"traceparent 헤더가<br/>붙은 요청"| api["사용자의 API: 주문,<br/>POS, 주방 디스플레이"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["모바일 RUM 애플리케이션"]
@@ -26,7 +26,7 @@ flowchart TB
 ## 시작하기 전에
 
 - `minSdk`가 23 이상이고 `compileSdk` 34 이상으로 빌드한 Android 앱. `minSdk`가 26 미만이면 Android Gradle Plugin 8.3.0 이상을 쓰고 `gradle.properties`에 `android.useFullClasspathForDexingTransform=true`를 설정해 [코어 라이브러리 디슈가링](https://developer.android.com/studio/write/java8-support#library-desugaring)을 켜세요.
-- **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 **수집 키 생성**으로 만든 **서버** 수집 키. **브라우저** 키는 앱에서 거부됩니다. 이 키는 `Origin` 헤더로 확인되는데, 앱은 이 헤더를 보내지 않기 때문입니다.
+- **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 **수집 키 생성**으로 만들고 **고정된 서비스 이름**에 앱의 `service.name`을 넣은 **모바일** 수집 키. **브라우저** 키는 앱에서 거부됩니다. 이 키는 `Origin` 헤더로 확인되는데, 앱은 이 헤더를 보내지 않기 때문입니다.
 - 다음 OTLP 설정. OneUptime을 직접 호스팅한다면 `https://oneuptime.com`을 자신의 호스트로 바꾸세요.
 
 | 설정 | 값 |
@@ -35,7 +35,7 @@ flowchart TB
 | 헤더 | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> 키는 앱 안에 담겨 배포되고 앱은 풀어 볼 수 있으므로, 누군가 키를 복사한다고 가정하세요. 키 페이지에서 **고정된 서비스 이름**, **Requests Per Minute Limit**, **만료 시각** 날짜를 설정하고, 릴리스마다 키를 교체하세요.
+> 키는 앱 안에 담겨 배포되고 앱은 풀어 볼 수 있으므로, 누군가 키를 복사한다고 가정하세요. 키 페이지에서 **고정된 서비스 이름**, **분당 요청 한도**, **만료 시각** 날짜를 설정하고, 릴리스마다 키를 교체하세요.
 
 ## OpenTelemetry Android 추가하기
 
@@ -303,7 +303,7 @@ OpenTelemetry Android는 `device.model.identifier`를 스스로 설정하므로,
 :::
 
 :::details 아무것도 도착하지 않거나 키가 거부됨
-[OpenTelemetry Android 추가하기](#opentelemetry-android-추가하기)의 키 확인을 실행하세요. `401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻입니다. **브라우저** 키는 앱에서 거부되므로 **서버** 키를 쓰세요. `baseUrl`이 `/v1/traces` 없이 `/otlp`로 끝나는지 확인하세요. 경로는 에이전트가 직접 붙입니다.
+[OpenTelemetry Android 추가하기](#opentelemetry-android-추가하기)의 키 확인을 실행하세요. `401`은 키가 알 수 없거나, 취소되었거나, 꺼져 있거나, 만료되었다는 뜻입니다. **브라우저** 키는 앱에서 거부되므로 **모바일** 키를 쓰세요. `baseUrl`이 `/v1/traces` 없이 `/otlp`로 끝나는지 확인하세요. 경로는 에이전트가 직접 붙입니다.
 :::
 
 :::details 크래시나 ANR이 예외에 없음

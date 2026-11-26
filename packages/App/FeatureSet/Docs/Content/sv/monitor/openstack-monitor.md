@@ -753,7 +753,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, med sitt variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Alla värden** (varje värde måste stämma, över hela fönstret) eller **Minst ett värde** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Onormalt hög**, **Onormalt låg** eller **Avvikande**. **Inga data** stämmer när frågan inte skickade något i fönstret, **Har data** när den skickade något. **Väntas stiga över** och **Väntas sjunka under** stämmer när mätvärdets trend över fönstret kommer att ha passerat tröskeln vid slutet av **Tidshorisont**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med** eller **Inte lika med** — eller ett anomalivillkor: **Onormalt hög**, **Onormalt låg** eller **Avvikande**. **Inga data** stämmer när frågan inte skickade något i fönstret, **Har data** när den skickade något. **Väntas stiga över** och **Väntas sjunka under** stämmer när mätvärdets trend över fönstret kommer att ha passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet att jämföra med. En enhetslista finns bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |

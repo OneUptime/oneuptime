@@ -1,3 +1,5 @@
+import { RECORD_ACTOR_COLUMNS } from "../Database/RecordActor";
+
 /*
  * Columns OneUptime fills in itself, which a workflow builder never types.
  *
@@ -33,27 +35,22 @@ const SYSTEM_COLUMN_IDS: Array<string> = [
   "version",
   "createdByUserId",
   "createdByUser",
-  "deletedByUserId",
-  "deletedByUser",
   "archivedAt",
   "archivedByUserId",
   "archivedByUser",
+  // What created the record and who last modified it (#10290).
+  ...RECORD_ACTOR_COLUMNS,
 ];
 
 /*
  * Columns that hold nothing on any record a workflow can find. Records are
- * deleted outright (DatabaseService.deleteBy hard-deletes, and its write of
- * deletedByUserId is commented out for exactly that reason), so "Deleted At"
- * and "Deleted by User" are empty on every row there is, and the version
- * counter is internal. Offering them as a filter or a field to read back
- * offers a question with one answer.
+ * deleted outright (DatabaseService.deleteBy hard-deletes), so "Deleted At"
+ * is empty on every row there is, and the version counter is internal.
+ * Offering them as a filter or a field to read back offers a question with
+ * one answer. ("Deleted by User", empty for the same reason, is no column
+ * any more: #10469.)
  */
-const ALWAYS_EMPTY_COLUMN_IDS: Array<string> = [
-  "deletedAt",
-  "deletedByUserId",
-  "deletedByUser",
-  "version",
-];
+const ALWAYS_EMPTY_COLUMN_IDS: Array<string> = ["deletedAt", "version"];
 
 export type IsSystemColumnIdFunction = (columnId: string) => boolean;
 

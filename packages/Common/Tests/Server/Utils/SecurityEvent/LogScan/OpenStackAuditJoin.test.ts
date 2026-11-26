@@ -19,6 +19,12 @@ import NormalizedSecurityEvent from "../../../../../Types/SecurityEvent/Normaliz
 import OpenStackAuditLogParser, {
   OpenStackAuditAttribute,
 } from "../../../../../Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
+import {
+  CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
+  ScrubbedAddressKind,
+  ScrubbedAddressPlace,
+  readHiddenClientAddress,
+} from "../../../../../Utils/SecurityEvent/ScrubbedAddress";
 import { logLine } from "../../../../Utils/SecurityEvent/LogParsers/LogParserFixtures";
 
 /*
@@ -611,5 +617,109 @@ describe("one request", () => {
 
     expect(event.principalIp).toBe("");
     expect(event.principalUser).toBe("alice");
+  });
+
+  /*
+   * #10419: the audit filter's event of a request whose address a scrub rule
+   * hid says so, and the request's other events say it too - so the address
+   * vault names them all, or each says a rule hid it.
+   */
+  const TOKEN: string = "[HASHED:3f9a1c0be27d4e5a]";
+
+  function callFrom(address: string): NormalizedSecurityEvent {
+    const event: NormalizedSecurityEvent = call();
+
+    return OpenStackAuditLogParser.parse(
+      logLine(
+        JSON.stringify({
+          event_type: "audit.http.response",
+          payload: {
+            typeURI: "http://schemas.dmtf.org/cloud/audit/1.0/event",
+            action: "update/os-stop",
+            outcome: "success",
+            requestPath: `/compute/v2.1/servers/${INSTANCE}/action`,
+            initiator: {
+              id: USER,
+              name: "alice",
+              project_id: OPENSTACK_PROJECT,
+              host: { address },
+            },
+            target: { id: "unknown", name: "unknown", typeURI: "unknown" },
+          } as JSONObject,
+        }),
+        {
+          "resource.openstack.cloud.name": "production",
+          "openstack.request_id": event.attributes[
+            OpenStackAuditAttribute.RequestId
+          ] as string,
+        },
+      ),
+    )[0] as NormalizedSecurityEvent;
+  }
+
+  test("a notification of a request whose address a scrub rule hid says it was hidden, for the vault to name", async () => {
+    mockInventory([]);
+
+    const event: NormalizedSecurityEvent = ruleOpened();
+    const auditFilter: NormalizedSecurityEvent = callFrom(TOKEN);
+
+    expect(readHiddenClientAddress(auditFilter)?.value).toBe(TOKEN);
+    // A token is no address to count by.
+    expect(
+      auditFilter.attributes[OpenStackAuditAttribute.InitiatorAddress],
+    ).toBeUndefined();
+
+    await OpenStackAuditJoin.enrichEvents({
+      projectId: PROJECT_ID,
+      events: [event, auditFilter],
+    });
+
+    expect(event.principalIp).toBe("");
+    expect(readHiddenClientAddress(event)).toEqual(
+      expect.objectContaining({
+        kind: ScrubbedAddressKind.Hashed,
+        value: TOKEN,
+        place: ScrubbedAddressPlace.LogBody,
+      }),
+    );
+    expect(
+      event.attributes[OpenStackAuditAttribute.InitiatorAddress],
+    ).toBeUndefined();
+    // Who it was is shared as before.
+    expect(event.attributes[OpenStackAuditAttribute.InitiatorId]).toBe(USER);
+    expect(event.observables).not.toContain(TOKEN);
+  });
+
+  test("an event of the request that names the address wins over one that hid it, whatever the order", async () => {
+    mockInventory([]);
+
+    for (const order of ["hidden first", "named first"]) {
+      const event: NormalizedSecurityEvent = ruleOpened();
+      const hidden: NormalizedSecurityEvent = callFrom("[REDACTED]");
+      const named: NormalizedSecurityEvent = callFrom("203.0.113.7");
+
+      await OpenStackAuditJoin.enrichEvents({
+        projectId: PROJECT_ID,
+        events:
+          order === "hidden first"
+            ? [event, hidden, named]
+            : [event, named, hidden],
+      });
+
+      expect({ order, address: event.principalIp }).toEqual({
+        order,
+        address: "203.0.113.7",
+      });
+      expect(readHiddenClientAddress(event)).toBeNull();
+      // The event a rule hid the address of names it now, and says nothing hidden.
+      expect({ order, address: hidden.principalIp }).toEqual({
+        order,
+        address: "203.0.113.7",
+      });
+      expect(readHiddenClientAddress(hidden)).toBeNull();
+      for (const key of CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES) {
+        expect(hidden.attributes[key]).toBeUndefined();
+      }
+    }
   });
 });

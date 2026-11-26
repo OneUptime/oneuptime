@@ -12,11 +12,11 @@
 
 ## 仕組み
 
-OpenTelemetry Android はアプリの中で動きます。 **サーバー** の取り込みキーを使って、トレース、ログ、メトリクスを OTLP で OneUptime に送り、アプリが行うリクエストに W3C の `traceparent` ヘッダーを付けます。これにより、バックエンドのスパンがアプリのトレースに加わります。
+OpenTelemetry Android はアプリの中で動きます。アプリに固定した **モバイル** の取り込みキーを使って、トレース、ログ、メトリクスを OTLP で OneUptime に送り、アプリが行うリクエストに W3C の `traceparent` ヘッダーを付けます。これにより、バックエンドのスパンがアプリのトレースに加わります。
 
 ```mermaid title="アプリから OneUptime へ、そしてバックエンドを通して"
 flowchart TB
-    app["OpenTelemetry Android を<br/>組み込んだ Android アプリ"] -->|"OTLP と<br/>サーバーキー"| oneuptime["OneUptime"]
+    app["OpenTelemetry Android を<br/>組み込んだ Android アプリ"] -->|"OTLP と<br/>モバイルキー"| oneuptime["OneUptime"]
     app -->|"traceparent ヘッダー<br/>付きのリクエスト"| api["あなたの API：注文、<br/>POS、キッチンディスプレイ"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["モバイル RUM アプリケーション"]
@@ -26,7 +26,7 @@ flowchart TB
 ## 始める前に
 
 - `minSdk` が 23 以上で、 `compileSdk` 34 以上でビルドされた Android アプリ。 `minSdk` が 26 未満の場合は、Android Gradle Plugin 8.3.0 以降を使い、 `gradle.properties` に `android.useFullClasspathForDexingTransform=true` を設定したうえで、 [コアライブラリのデシュガリング](https://developer.android.com/studio/write/java8-support#library-desugaring) を有効にしてください。
-- **プロジェクト設定 → テレメトリと APM → 取り込みキー** で **取り込みキーを作成** を使って作成した **サーバー** の取り込みキー。 **ブラウザー** キーはアプリからは拒否されます。このキーは `Origin` ヘッダーで確認されますが、アプリはこのヘッダーを送らないためです。
+- **プロジェクト設定 → テレメトリと APM → 取り込みキー** で **取り込みキーを作成** を使って作成し、 **固定されたサービス名** にアプリの `service.name` を設定した **モバイル** の取り込みキー。 **ブラウザー** キーはアプリからは拒否されます。このキーは `Origin` ヘッダーで確認されますが、アプリはこのヘッダーを送らないためです。
 - 次の OTLP の設定。OneUptime をセルフホストしている場合は、 `https://oneuptime.com` を自分のホストに置き換えてください。
 
 | 設定 | 値 |
@@ -303,7 +303,7 @@ OpenTelemetry Android は `device.model.identifier` を自分で設定します�
 :::
 
 :::details 何も届かない、またはキーが拒否される
-[OpenTelemetry Android を追加する](#opentelemetry-android-を追加する) のキーの確認を実行します。 `401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示します。 **ブラウザー** キーはアプリからは拒否されるため、 **サーバー** キーを使ってください。 `baseUrl` が `/v1/traces` を含まずに `/otlp` で終わっていることを確認してください。パスはエージェントが自分で付けます。
+[OpenTelemetry Android を追加する](#opentelemetry-android-を追加する) のキーの確認を実行します。 `401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示します。 **ブラウザー** キーはアプリからは拒否されるため、 **モバイル** キーを使ってください。 `baseUrl` が `/v1/traces` を含まずに `/otlp` で終わっていることを確認してください。パスはエージェントが自分で付けます。
 :::
 
 :::details クラッシュや ANR が例外に表示されない

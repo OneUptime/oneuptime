@@ -45,6 +45,13 @@ import React, { ReactElement } from "react";
  * on Match walks to Action without asking for anything there; the filter
  * is created from Action, the last step (Forms/Utils/SteppedFormFooter).
  *
+ * What the filter would take, as it is written (#10436): the page hands in
+ * a footer (DropFilterImpact/DropFilterImpactPreview) drawn under the query
+ * on Match and under the action on Action - under the percentage for a
+ * sample - so the line follows every change that changes what it takes.
+ * This file draws nothing that asks the server: the words and docs tests
+ * read it outside a browser.
+ *
  * Action is a choice of two answers, each saying in one line what it does
  * ("Shouldnt this be two buttons ...", the maintainer, on a setting whose
  * one description explained both of its modes). It was a dropdown under
@@ -61,6 +68,19 @@ export const LOG_DROP_FILTER_DEFAULTS_SUMMARY: string = translationKey(
 export const TRACE_DROP_FILTER_DEFAULTS_SUMMARY: string = translationKey(
   "The filter applies to new spans within a minute of being created.",
 );
+
+/*
+ * What a page draws under the fields that decide what the filter takes:
+ * the filter as the form holds it now.
+ */
+export type DropFilterImpactFooter = (
+  values: FormValues<LogDropFilter>,
+) => ReactElement | undefined;
+
+// The same, as the trace page holds its form's values.
+export type TraceDropFilterImpactFooter = (
+  values: FormValues<TraceDropFilter>,
+) => ReactElement | undefined;
 
 export interface DropFilterFormOptions {
   filterConfig: FilterBuilderConfig;
@@ -160,9 +180,17 @@ export const getDropFilterFormSteps: <
  */
 export const getDropFilterActionFields: (
   options: DropFilterFormOptions,
+  impactFooter?: DropFilterImpactFooter,
 ) => Array<ModelField<LogDropFilter>> = (
   options: DropFilterFormOptions,
+  impactFooter?: DropFilterImpactFooter,
 ): Array<ModelField<LogDropFilter>> => {
+  const isSample: (values: FormValues<LogDropFilter>) => boolean = (
+    values: FormValues<LogDropFilter>,
+  ): boolean => {
+    return normalizeFormValue(values.action) === LogDropFilterAction.Sample;
+  };
+
   return [
     {
       field: {
@@ -175,6 +203,16 @@ export const getDropFilterActionFields: (
       // Each answer says what it does; the column's sentence would repeat it.
       hideColumnDescription: true,
       dataTestId: "drop-filter-action",
+      // What a drop takes; a sample's is drawn under its percentage.
+      ...(impactFooter
+        ? {
+            getFooterElement: (
+              values: FormValues<LogDropFilter>,
+            ): ReactElement | undefined => {
+              return isSample(values) ? undefined : impactFooter(values);
+            },
+          }
+        : {}),
       radioButtonOptions: [
         {
           title: "Drop",
@@ -202,9 +240,16 @@ export const getDropFilterActionFields: (
         maxValue: MAX_SAMPLE_PERCENTAGE,
       },
       placeholder: "e.g. 10",
-      showIf: (values: FormValues<LogDropFilter>): boolean => {
-        return normalizeFormValue(values.action) === LogDropFilterAction.Sample;
-      },
+      showIf: isSample,
+      ...(impactFooter
+        ? {
+            getFooterElement: (
+              values: FormValues<LogDropFilter>,
+            ): ReactElement | undefined => {
+              return impactFooter(values);
+            },
+          }
+        : {}),
     },
   ];
 };
@@ -235,17 +280,26 @@ const withoutStep: (
   );
 };
 
-export const getLogDropFilterActionFields: () => Array<
-  ModelField<LogDropFilter>
-> = (): Array<ModelField<LogDropFilter>> => {
-  return withoutStep(getDropFilterActionFields(LOG_DROP_FILTER_FORM_OPTIONS));
+export const getLogDropFilterActionFields: (
+  impactFooter?: DropFilterImpactFooter,
+) => Array<ModelField<LogDropFilter>> = (
+  impactFooter?: DropFilterImpactFooter,
+): Array<ModelField<LogDropFilter>> => {
+  return withoutStep(
+    getDropFilterActionFields(LOG_DROP_FILTER_FORM_OPTIONS, impactFooter),
+  );
 };
 
-export const getTraceDropFilterActionFields: () => Array<
-  ModelField<TraceDropFilter>
-> = (): Array<ModelField<TraceDropFilter>> => {
+export const getTraceDropFilterActionFields: (
+  impactFooter?: TraceDropFilterImpactFooter,
+) => Array<ModelField<TraceDropFilter>> = (
+  impactFooter?: TraceDropFilterImpactFooter,
+): Array<ModelField<TraceDropFilter>> => {
   return withoutStep(
-    getDropFilterActionFields(TRACE_DROP_FILTER_FORM_OPTIONS),
+    getDropFilterActionFields(
+      TRACE_DROP_FILTER_FORM_OPTIONS,
+      impactFooter as unknown as DropFilterImpactFooter | undefined,
+    ),
   ) as unknown as Array<ModelField<TraceDropFilter>>;
 };
 
@@ -256,8 +310,10 @@ export const getTraceDropFilterActionFields: () => Array<
  */
 const getDropFilterFormFields: (
   options: DropFilterFormOptions,
+  impactFooter?: DropFilterImpactFooter,
 ) => Array<ModelField<LogDropFilter>> = (
   options: DropFilterFormOptions,
+  impactFooter?: DropFilterImpactFooter,
 ): Array<ModelField<LogDropFilter>> => {
   const advanced: FormFieldCollapsibleSection<LogDropFilter> =
     getAdvancedFormSection<LogDropFilter>({
@@ -308,8 +364,18 @@ const getDropFilterFormFields: (
           />
         );
       },
+      // What the query matches, and what reads it, as it is written.
+      ...(impactFooter
+        ? {
+            getFooterElement: (
+              values: FormValues<LogDropFilter>,
+            ): ReactElement | undefined => {
+              return impactFooter(values);
+            },
+          }
+        : {}),
     },
-    ...getDropFilterActionFields(options),
+    ...getDropFilterActionFields(options, impactFooter),
     {
       field: {
         description: true,
@@ -334,16 +400,21 @@ const getDropFilterFormFields: (
   ];
 };
 
-export const getLogDropFilterFormFields: () => Array<
-  ModelField<LogDropFilter>
-> = (): Array<ModelField<LogDropFilter>> => {
-  return getDropFilterFormFields(LOG_DROP_FILTER_FORM_OPTIONS);
+export const getLogDropFilterFormFields: (
+  impactFooter?: DropFilterImpactFooter,
+) => Array<ModelField<LogDropFilter>> = (
+  impactFooter?: DropFilterImpactFooter,
+): Array<ModelField<LogDropFilter>> => {
+  return getDropFilterFormFields(LOG_DROP_FILTER_FORM_OPTIONS, impactFooter);
 };
 
-export const getTraceDropFilterFormFields: () => Array<
-  ModelField<TraceDropFilter>
-> = (): Array<ModelField<TraceDropFilter>> => {
+export const getTraceDropFilterFormFields: (
+  impactFooter?: TraceDropFilterImpactFooter,
+) => Array<ModelField<TraceDropFilter>> = (
+  impactFooter?: TraceDropFilterImpactFooter,
+): Array<ModelField<TraceDropFilter>> => {
   return getDropFilterFormFields(
     TRACE_DROP_FILTER_FORM_OPTIONS,
+    impactFooter as unknown as DropFilterImpactFooter | undefined,
   ) as unknown as Array<ModelField<TraceDropFilter>>;
 };

@@ -12,11 +12,11 @@
 
 ## 運作方式
 
-OpenTelemetry Android 在你的應用程式內執行。它使用 **伺服器** 擷取金鑰，透過 OTLP 將追蹤、日誌和指標傳送到 OneUptime，並在應用程式發出的請求上加入 W3C `traceparent` 標頭，讓後端的 span 加入應用程式的追蹤。
+OpenTelemetry Android 在你的應用程式內執行。它使用固定於你的應用程式的 **行動裝置** 擷取金鑰，透過 OTLP 將追蹤、日誌和指標傳送到 OneUptime，並在應用程式發出的請求上加入 W3C `traceparent` 標頭，讓後端的 span 加入應用程式的追蹤。
 
 ```mermaid title="從應用程式到 OneUptime，並貫穿你的後端"
 flowchart TB
-    app["你的 Android 應用程式<br/>整合 OpenTelemetry Android"] -->|"使用伺服器金鑰<br/>的 OTLP"| oneuptime["OneUptime"]
+    app["你的 Android 應用程式<br/>整合 OpenTelemetry Android"] -->|"使用行動裝置金鑰<br/>的 OTLP"| oneuptime["OneUptime"]
     app -->|"帶有 traceparent<br/>標頭的請求"| api["你的 API：訂單、<br/>POS、廚房顯示器"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["行動 RUM 應用程式"]
@@ -26,7 +26,7 @@ flowchart TB
 ## 開始之前
 
 - 一個 `minSdk` 為 23 或更高、以 `compileSdk` 34 或更高版本建置的 Android 應用程式。如果 `minSdk` 低於 26，請開啟 [核心程式庫脫糖](https://developer.android.com/studio/write/java8-support#library-desugaring) ，並使用 Android Gradle Plugin 8.3.0 或更新版本，在 `gradle.properties` 中設定 `android.useFullClasspathForDexingTransform=true` 。
-- 一個 **伺服器** 擷取金鑰，在 **專案設定 → 遙測與 APM → 擷取金鑰** 中以 **建立擷取金鑰** 建立。應用程式送出的 **瀏覽器** 金鑰會被拒絕：它要依 `Origin` 標頭檢查，而應用程式不會傳送這個標頭。
+- 一個 **行動裝置** 擷取金鑰，在 **專案設定 → 遙測與 APM → 擷取金鑰** 中以 **建立擷取金鑰** 建立，並將其 **固定的服務名稱** 設為你的應用程式的 `service.name`。應用程式送出的 **瀏覽器** 金鑰會被拒絕：它要依 `Origin` 標頭檢查，而應用程式不會傳送這個標頭。
 - 下列 OTLP 設定。如果你自行託管 OneUptime，請把 `https://oneuptime.com` 換成你自己的主機。
 
 | 設定 | 值 |
@@ -35,7 +35,7 @@ flowchart TB
 | 標頭 | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> 金鑰會隨應用程式一起發布，而應用程式可以被解開，所以請假設有人會複製它。在金鑰的頁面上設定 **固定的服務名稱** 、 **Requests Per Minute Limit** 和 **到期於** 日期，並隨每次發布輪替金鑰。
+> 金鑰會隨應用程式一起發布，而應用程式可以被解開，所以請假設有人會複製它。在金鑰的頁面上設定 **固定的服務名稱** 、 **每分鐘請求數上限** 和 **到期於** 日期，並隨每次發布輪替金鑰。
 
 ## 加入 OpenTelemetry Android
 
@@ -303,7 +303,7 @@ OpenTelemetry Android 會自行設定 `device.model.identifier` ，所以應用�
 :::
 
 :::details 沒有資料抵達，或金鑰被拒絕
-執行 [加入 OpenTelemetry Android](#加入-opentelemetry-android) 中的金鑰檢查。 `401` 表示金鑰不明、已撤銷、已關閉或已過期。應用程式送出的 **瀏覽器** 金鑰會被拒絕：請使用 **伺服器** 金鑰。檢查 `baseUrl` 是否以 `/otlp` 結尾、不帶 `/v1/traces` ：代理程式會自行加上路徑。
+執行 [加入 OpenTelemetry Android](#加入-opentelemetry-android) 中的金鑰檢查。 `401` 表示金鑰不明、已撤銷、已關閉或已過期。應用程式送出的 **瀏覽器** 金鑰會被拒絕：請使用 **行動裝置** 金鑰。檢查 `baseUrl` 是否以 `/otlp` 結尾、不帶 `/v1/traces` ：代理程式會自行加上路徑。
 :::
 
 :::details 當機或 ANR 沒有出現在例外中

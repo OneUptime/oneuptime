@@ -59,6 +59,19 @@ detection:
     statusName: Success
   condition: selection`;
 
+/*
+ * A user as a distinct value, read past what Redact or Mask left (#10435,
+ * buildSigmaDistinctCountExpression): a user a scrub rule hid is no value
+ * to count. Compared with the parameters' numbers left out, since each
+ * statement numbers its own.
+ */
+const DISTINCT_USER: string =
+  "if((position(principalUser, {p}) > 0 OR position(principalUser, {p}) > 0), '', principalUser)";
+
+function withoutParameterNumbers(query: string): string {
+  return query.replace(/\{p\d+:String\}/g, "{p}");
+}
+
 function correlation(
   yaml: string,
 ): Extract<DetectionRuleDefinition, { kind: "correlation" }> {
@@ -220,8 +233,8 @@ ${FAILED}`);
       limit: 10,
     }).query;
 
-    expect(query).toContain(
-      "uniqExactStateIf(toString(ifNull(principalUser, '')), toString(ifNull(principalUser, '')) != '') AS __s",
+    expect(withoutParameterNumbers(query)).toContain(
+      `uniqExactStateIf(toString(ifNull(${DISTINCT_USER}, '')), toString(ifNull(${DISTINCT_USER}, '')) != '') AS __s`,
     );
     expect(query).toContain("uniqExactMerge(__s) OVER");
     expect(query).toContain("max(__rollingDistinct) AS distinctCount");
@@ -253,8 +266,8 @@ ${FAILED}`);
       limit: 10,
     }).query;
 
-    expect(query).toContain(
-      "uniqExactStateIf(tuple(toString(ifNull(principalUser, '')), toString(ifNull(targetHost, ''))), toString(ifNull(principalUser, '')) != '' AND toString(ifNull(targetHost, '')) != '')",
+    expect(withoutParameterNumbers(query)).toContain(
+      `uniqExactStateIf(tuple(toString(ifNull(${DISTINCT_USER}, '')), toString(ifNull(targetHost, ''))), toString(ifNull(${DISTINCT_USER}, '')) != '' AND toString(ifNull(targetHost, '')) != '')`,
     );
   });
 
@@ -381,8 +394,8 @@ ${FAILED}`);
       limit: 10,
     }).query;
 
-    expect(query).toMatch(
-      /uniqExactStateIf\(toString\(ifNull\(principalUser, ''\)\), toString\(ifNull\(principalUser, ''\)\) != '' AND _id < \{p\d+:String\}\) AS __sb/,
+    expect(withoutParameterNumbers(query)).toContain(
+      `uniqExactStateIf(toString(ifNull(${DISTINCT_USER}, '')), toString(ifNull(${DISTINCT_USER}, '')) != '' AND _id < {p}) AS __sb`,
     );
     expect(query).toContain("uniqExactMerge(__sb) OVER");
     expect(query).toContain(
@@ -805,6 +818,142 @@ ${SUCCEEDED}`);
       "AND (toString(principalUser)) IN (SELECT toString(principalUser) FROM oneuptime.SecurityEvent WHERE ",
     );
     expect(boundValues(statement)).toContain(ARRIVAL.firstId);
+  });
+});
+
+/*
+ * #10432: given the moment a run reads at, every read of a correlation -
+ * the run's own, a count's rolling window, a sequence's steps, and both
+ * reads of a First seen rule's history - holds only the events still kept
+ * then (retentionDate), so an event past its retention is never history,
+ * whether or not its part is deleted yet. Without it, nothing changes.
+ */
+describe("a correlation's reads of the events the project keeps", () => {
+  const KEPT_AT: Date = new Date("2026-10-21T10:06:00.000Z");
+  const KEPT: RegExp = /retentionDate >= \{p\d+:DateTime\}/g;
+
+  const firstSeen: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+    correlation(`title: New address
+correlation:
+  type: new_value
+  rules: [successful_sign_in]
+  group-by: [principalUser]
+  timespan: 30d
+  condition:
+    field: principalIp
+---
+${SUCCEEDED}`);
+
+  const count: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+    correlation(`title: Many failures
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 10m
+  condition:
+    gte: 5
+---
+${FAILED}`);
+
+  const sequence: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+    correlation(`title: Failure then success
+correlation:
+  type: temporal_ordered
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalUser]
+  timespan: 10m
+---
+${FAILED}
+---
+${SUCCEEDED}`);
+
+  function keptReads(statement: Statement): number {
+    return (statement.query.match(KEPT) || []).length;
+  }
+
+  test("a First seen rule: the run's pairs and both reads of the history", () => {
+    const statement: Statement = CorrelationQueries.buildNewValueStatement({
+      window: { ...WINDOW, keptAt: KEPT_AT },
+      historyFrom: new Date("2026-09-21T10:00:00.000Z"),
+      correlation: firstSeen.correlation,
+      steps: firstSeen.steps,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 50,
+    });
+
+    expect(keptReads(statement)).toBe(3);
+    expect(boundValues(statement)).toContain("2026-10-21 10:06:00");
+    // Each read keeps its own project and time bounds beside it.
+    expect(occurrences(statement.query, "projectId = {p")).toBe(3);
+  });
+
+  test("a First seen rule in real time: the write's reads too", () => {
+    const statement: Statement = CorrelationQueries.buildNewValueStatement({
+      window: { ...WINDOW, arrival: ARRIVAL, keptAt: KEPT_AT },
+      historyFrom: new Date("2026-09-21T10:00:00.000Z"),
+      correlation: firstSeen.correlation,
+      steps: firstSeen.steps,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 50,
+    });
+
+    expect(keptReads(statement)).toBe(3);
+  });
+
+  test("a count's rolling window", () => {
+    const statement: Statement = CorrelationQueries.buildCountStatement({
+      window: { ...WINDOW, keptAt: KEPT_AT },
+      correlation: count.correlation,
+      steps: count.steps,
+      countDistinct: false,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 50,
+    });
+
+    expect(keptReads(statement)).toBe(1);
+    expect(boundValues(statement)).toContain("2026-10-21 10:06:00");
+  });
+
+  test("a sequence's steps", () => {
+    const statement: Statement = CorrelationQueries.buildTemporalStatement({
+      window: { ...WINDOW, keptAt: KEPT_AT },
+      correlation: sequence.correlation,
+      steps: sequence.steps,
+      stepMinimums: [1, 1],
+      minimumSteps: 2,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 50,
+    });
+
+    expect(keptReads(statement)).toBe(1);
+  });
+
+  test("without the moment it reads at, no read names retention, as before", () => {
+    expect(
+      keptReads(
+        CorrelationQueries.buildNewValueStatement({
+          window: WINDOW,
+          historyFrom: new Date("2026-09-21T10:00:00.000Z"),
+          correlation: firstSeen.correlation,
+          steps: firstSeen.steps,
+          tableName: "oneuptime.SecurityEvent",
+          limit: 50,
+        }),
+      ),
+    ).toBe(0);
+    expect(
+      keptReads(
+        CorrelationQueries.buildCountStatement({
+          window: WINDOW,
+          correlation: count.correlation,
+          steps: count.steps,
+          countDistinct: false,
+          tableName: "oneuptime.SecurityEvent",
+          limit: 50,
+        }),
+      ),
+    ).toBe(0);
   });
 });
 

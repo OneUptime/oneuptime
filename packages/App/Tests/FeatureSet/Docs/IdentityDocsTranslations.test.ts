@@ -59,8 +59,9 @@ import {
  *     draw, are in it since #7567 (ADMIN_LABELS). Its side menu and top bar
  *     use keys of their own (ADMIN_KEYS).
  *   - The sign-in pages (Accounts): "Sign in with SSO" is the Accounts
- *     locale's sso.title, and "Admin Settings" in the user menu is the
- *     Dashboard's userProfile.adminSettings.
+ *     locale's sso.title, and "Admin Dashboard" in the user menu is the
+ *     Dashboard's userProfile.adminDashboard (#7474: it said Admin
+ *     Settings).
  *   - The docs themselves: the permission tables' column names and values
  *     come from the docs locale's ui.permissions* strings (DOCS_CHROME), so
  *     the page names them as the generated tables do.
@@ -229,6 +230,25 @@ const SIGN_OUT_LABELS: Array<string> = [
 ];
 
 /*
+ * Where Okta, Microsoft Entra ID and Google keep what Sign In Again needs of
+ * them (#10332): Okta's Honor Force Authentication and its values, Entra
+ * ID's optional auth_time claim, Google's Session age claims. Okta's General
+ * tab, SAML Settings and Show Advanced Settings, and Google's Settings, are
+ * in the lists above.
+ */
+const SIGN_IN_AGAIN_LABELS: Array<string> = [
+  "Honor Force Authentication",
+  "Yes",
+  "No",
+  "Token configuration",
+  "Add optional claim",
+  "ID",
+  "Session age claims",
+  "Google Auth Platform",
+  "Advanced Settings",
+];
+
+/*
  * Labels of another product's console, by page. A translation keeps each
  * one bold and in English: OneUptime cannot know which language that
  * console is set to, and its English names are the ones its own docs and
@@ -240,6 +260,7 @@ const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
     ...ENTRA_SSO_LABELS,
     ...OKTA_SSO_LABELS,
     ...SIGN_OUT_LABELS,
+    ...SIGN_IN_AGAIN_LABELS,
   ],
   [SCIM]: [
     // Microsoft Entra ID.
@@ -538,7 +559,7 @@ const ALSO_DASHBOARD_LABELS: Record<string, Array<string>> = {
 
 // The user menu's way into the Admin Dashboard, a key of the Dashboard's.
 const USER_MENU_LABELS: Record<string, Record<string, string>> = {
-  [GLOBAL_SSO]: { "Admin Settings": "userProfile.adminSettings" },
+  [GLOBAL_SSO]: { "Admin Dashboard": "userProfile.adminDashboard" },
 };
 
 // The sign-in pages' labels, keys of the Accounts locale.
@@ -736,7 +757,12 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SSO]: ["24", "17", "700016", "404", "10", "3"],
+  /*
+   * 25: the Keycloak release that gives every client the basic scope
+   * (#10332). 26 and 27: Keycloak 26.8.2 and earlier skip ForceAuthn on a
+   * restarted sign-in, which 26.8.3 and 27.0.0 fix (#10530).
+   */
+  [SSO]: ["24", "17", "700016", "404", "10", "3", "25", "26", "27"],
   [SCIM]: ["14", "30", "40", "200", "1000", "401", "402"],
 };
 

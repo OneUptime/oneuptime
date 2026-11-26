@@ -1069,7 +1069,7 @@ En sky skriver svært mye ingen leser. Første gang et prosjekts OpenStack-logge
 | **OpenStack: health checks** | En lastbalanserer som ber hvert API om `/` eller `/healthcheck`: en linje hvert par sekunder, per API, per kontroller | Ved én sjekk hvert 2. sekund, 43 200 linjer i døgnet for hvert API på hver kontroller. Med de 220 til 490 bytene disse linjene var på testskyene våre er det 10 til 21 MB i døgnet. Dette er regnestykke ut fra størrelsen på en linje: testskyene våre har ingen lastbalanserer | Ingenting en person leser. Den samme linjen fra en person ser lik ut |
 | **OpenStack: routine notifications** | `metrics.update`, og hver `*.exists` og `*.usage`. Se [Livssyklushendelser](#livssyklushendelser) | Ikke målt: opptakene våre er for korte til å romme mange. Det vokser med antall instanser | Ingenting som sier at noe endret seg. Slå denne av for å beholde hver varsling |
 
-Disse filtrene matcher bare det OneUptime leste fra en skys logger, så ingenting annet i et prosjekt røres.
+Disse filtrene matcher bare det OneUptime leste fra en skys logger, så ingenting annet i et prosjekt røres. Slik OneUptime laget dem, beholder de hver linje [sikkerhetshendelser](/docs/telemetry/security-events) leser: en innlogging, et angrep i en forespørsel, en revisjonspost. Endrer du ett av dem, forkaster det alt det treffer, som et filter du har laget selv.
 
 ### Hemmeligheter i logger
 

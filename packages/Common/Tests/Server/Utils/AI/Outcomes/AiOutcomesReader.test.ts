@@ -2,6 +2,10 @@ import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgen
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
+import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
+import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
+import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -70,7 +74,13 @@ type TableName =
   | "incidents"
   | "alerts"
   // The project's AI Logs: who may read them is told each model's name (#7762).
-  | "llmLogs";
+  | "llmLogs"
+  // Data Security's proposals, its records of analyses, and its issues (#10364).
+  | "dataSecurityProposals"
+  | "dataSecurityDecisions"
+  | "dataSecurityIssues"
+  // The repositories whose production reviews caught leaks (#10376).
+  | "codeRepositories";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -105,6 +115,10 @@ function emptyTables(): Tables {
     incidents: [],
     alerts: [],
     llmLogs: [],
+    dataSecurityProposals: [],
+    dataSecurityDecisions: [],
+    dataSecurityIssues: [],
+    codeRepositories: [],
   };
 }
 
@@ -117,6 +131,10 @@ function readsAll(): Record<TableName, Access> {
     incidents: "read",
     alerts: "read",
     llmLogs: "read",
+    dataSecurityProposals: "read",
+    dataSecurityDecisions: "read",
+    dataSecurityIssues: "read",
+    codeRepositories: "read",
   };
 }
 
@@ -225,6 +243,18 @@ function install(
   jest
     .spyOn(LlmLogService, "findBy")
     .mockImplementation(find("llmLogs") as never);
+  jest
+    .spyOn(DataSecurityAiProposalService, "findBy")
+    .mockImplementation(find("dataSecurityProposals") as never);
+  jest
+    .spyOn(DataSecurityAiDecisionService, "findBy")
+    .mockImplementation(find("dataSecurityDecisions") as never);
+  jest
+    .spyOn(DataSecurityIssueService, "findBy")
+    .mockImplementation(find("dataSecurityIssues") as never);
+  jest
+    .spyOn(CodeRepositoryService, "findBy")
+    .mockImplementation(find("codeRepositories") as never);
 
   return store;
 }
@@ -467,7 +497,7 @@ describe("what it reads, for whom, in which window", () => {
     expect(call.limit).toBe(AI_OUTCOMES_SCAN_LIMIT);
   });
 
-  test("fix pull requests: production statuses, dates and the fix task that opened each - never a title or a summary", async () => {
+  test("fix pull requests: production statuses, the check that followed each to production, dates and the fix task that opened each - never a title or a summary", async () => {
     await read();
 
     const call: Call = onlyCallTo("pullRequests");
@@ -487,6 +517,8 @@ describe("what it reads, for whom, in which window", () => {
       _id: true,
       createdAt: true,
       productionStatus: true,
+      // Which kind of fix it was, for AI Results' verified fixes by kind (#10368).
+      productionCheck: true,
       aiRunId: true,
     });
     expect(call.sort).toEqual({ createdAt: SortOrder.Descending });
@@ -496,7 +528,17 @@ describe("what it reads, for whom, in which window", () => {
   test("investigations: read as root, completed ones of this project's window, grades, verdicts and models only", async () => {
     await read();
 
-    const call: Call = onlyCallTo("runs");
+    /*
+     * Runs are read once more, for the production reviews whose caught
+     * leaks AI Results counts (#10376): the investigations are one read.
+     */
+    const investigationReads: Array<Call> = callsTo("runs").filter(
+      (runsRead: Call): boolean => {
+        return runsRead.query["runType"] === AIRunType.Investigation;
+      },
+    );
+    expect(investigationReads).toHaveLength(1);
+    const call: Call = investigationReads[0]!;
 
     expect(call.props).toEqual({ isRoot: true });
     expect(call.query["projectId"]).toBe(PROJECT_ID);

@@ -31,24 +31,22 @@ const BUILDERS: Array<string> = [
   "packages/Common/UI/Components/ModelTable/BaseModelTable.tsx",
   // Teams, schedules and policies picked as people are.
   "packages/Common/UI/Components/PeoplePicker/PeoplePickerKinds.ts",
-  // Add Labels and Remove Labels.
-  "packages/Common/UI/Components/BulkUpdate/BulkLabelActions.tsx",
   // The facet chips: Labels, and the Owner chip's teams.
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners.tsx",
-  // A monitor's criteria: its on-call policies and labels.
-  "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps.tsx",
+  /*
+   * The values a searched picker holds, read by their ids (#10646): a
+   * monitor's criteria's and a recommended monitor's on-call policies and
+   * labels, and a workspace rule's conditions (SEARCHED_PICKERS, below).
+   */
+  "packages/Common/UI/Components/EntityDropdown/HeldValueOptions.ts",
   // Telemetry ingestion budgets by team or label.
   "packages/App/FeatureSet/Dashboard/src/Components/TelemetryIngestionBudget/TeamLabelBudgetsTable.tsx",
-  // A recommended monitor's policies and labels.
-  "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationProjectSetup.ts",
   // Setup Health's quick fix: the policy a new rule pages.
   "packages/App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthQuickFix.ts",
   // A dashboard's label filter.
   "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/EntityFilterDropdown.tsx",
   // The On-Call guided setup's policy to page (#10314).
   "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi.ts",
-  // A record's Affected Resources: the Labels tab (#10314).
-  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx",
   /*
    * A Project Labels variable's allowed labels, while the dashboard's editor
    * picks them (#10314): what is saved keeps the name and id alone.
@@ -57,6 +55,30 @@ const BUILDERS: Array<string> = [
   // The re-read of lists that come with names alone (#10314).
   "packages/Common/UI/Utils/SharedNameFactsReads.ts",
 ];
+
+/*
+ * A picker's Labels tab, searched on the server as it is typed in
+ * (useLabelSearch, #10646): the search reads what tells twins apart, and the
+ * tab hands each label's facts to the marks it draws.
+ */
+const LABEL_SEARCH: string =
+  "packages/Common/UI/Components/EntityDropdown/LabelSearch.ts";
+
+const LABELS_TABS: Array<string> = [
+  "packages/Common/UI/Components/EntityDropdown/EntityDropdown.tsx",
+  // A record's Affected Resources: the Labels tab (#10314).
+  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx",
+];
+
+/*
+ * Add Labels and Remove Labels (#10646): Add Labels' picker is a form's
+ * server-searched record field (EntityDropdown, a builder above), and Remove
+ * Labels' options - the labels the items have, read through a relation,
+ * which takes no description - read what tells twins apart again on their
+ * own (SharedNameFactsReads) and hand it to each option.
+ */
+const BULK_LABELS: string =
+  "packages/Common/UI/Components/BulkUpdate/BulkLabelActions.tsx";
 
 /*
  * Lists that come with their records' names alone - a schedule's shifts
@@ -100,7 +122,11 @@ const SERVER_NAMED_TEAMS: Array<string> = [
  * with each option's facts (#10314).
  */
 const DROPDOWN_OPTIONS_WITH_FACTS: Array<string> = [
-  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallGuidedSetup.tsx",
+  /*
+   * The On-Call guided setup's policy to add people to, and Setup Health's
+   * quick fix's policy to page: searched on the server (#10764).
+   */
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PolicyChoicePicker.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupPicker.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineToolbar.tsx",
   "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Readiness.tsx",
@@ -134,10 +160,23 @@ const CHAT_BUILDERS: Array<string> = [
   "packages/Common/Server/Utils/Workspace/Mattermost/MattermostActions.ts",
 ];
 
-// Builders whose options come from DropdownUtil, which reads the facts itself.
-const SELECTS_ONLY: Array<string> = [
-  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceNotificationRulesTable.tsx",
-  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSummaryTable.tsx",
+/*
+ * The pickers that search their records on the server as they are typed in,
+ * and read the ones they hold by their ids (#10646): each searches through
+ * EntityDropdown and names what it holds through useHeldValueOptions
+ * (HeldValueOptions), both builders above. A monitor's criteria and a
+ * recommended monitor read their on-call policies and labels this way
+ * (MonitorSteps and MonitorRecommendationProjectSetup read the project's
+ * first 10,000 of each before), and so do a workspace rule's conditions (the
+ * rules' tables read them before, with DropdownUtil).
+ */
+// A picker that hands the held read a select of its own.
+const HANDS_THE_HELD_READ_A_SELECT: RegExp =
+  /useHeldValueOptions\(\{[^}]*\bselect:/;
+
+const SEARCHED_PICKERS: Array<string> = [
+  "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaRecordPicker.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/RecordConditionPicker.tsx",
 ];
 
 // The components that draw the options: each marks the twins.
@@ -191,12 +230,73 @@ describe("the builders of the four kinds' options", () => {
     },
   );
 
-  test.each(SELECTS_ONLY)(
-    "%s reads what tells twins apart, which DropdownUtil hands to each option",
+  test("the Labels tabs' search reads what tells twins apart", () => {
+    expect(read(LABEL_SEARCH)).toContain("getSharedNameSelect(");
+  });
+
+  test.each(LABELS_TABS)(
+    "%s searches its Labels tab's labels on the server and hands each its facts",
     (file: string) => {
-      expect(read(file)).toContain("getSharedNameSelect(");
+      const source: string = read(file);
+
+      expect({ file, search: source.includes("useLabelSearch(") }).toEqual({
+        file,
+        search: true,
+      });
+      expect({ file, facts: source.includes("getSharedNameFacts(") }).toEqual({
+        file,
+        facts: true,
+      });
     },
   );
+
+  test("Add Labels picks from the server-searched record field, and Remove Labels' options carry what tells twins apart", () => {
+    const source: string = read(BULK_LABELS);
+
+    expect(source).toContain("dropdownModal: BULK_ADD_LABELS_DROPDOWN");
+    expect(source).toContain("readFactsOfLabelsSharingAName");
+    expect(source).toMatch(OPTION_FACTS_PATTERN);
+  });
+
+  test.each(SEARCHED_PICKERS)(
+    "%s searches through EntityDropdown and names what it holds through useHeldValueOptions",
+    (file: string) => {
+      const source: string = read(file);
+
+      expect({ file, search: source.includes("<EntityDropdown") }).toEqual({
+        file,
+        search: true,
+      });
+      expect({ file, held: source.includes("useHeldValueOptions(") }).toEqual({
+        file,
+        held: true,
+      });
+    },
+  );
+
+  /*
+   * A held read is made with the select it is handed, in place of its own
+   * (getHeldValueSelect, which reads what tells twins apart): a picker that
+   * hands one keeps the facts in it.
+   */
+  test.each(SEARCHED_PICKERS)(
+    "%s reads what tells twins apart in any select it hands the held read",
+    (file: string) => {
+      const source: string = read(file);
+      const handsASelect: boolean = HANDS_THE_HELD_READ_A_SELECT.test(source);
+
+      expect({
+        file,
+        facts: !handsASelect || source.includes("getSharedNameSelect("),
+      }).toEqual({ file, facts: true });
+    },
+  );
+
+  test("a held read is made with what tells twins apart unless it is handed a select", () => {
+    expect(
+      read("packages/Common/UI/Components/EntityDropdown/HeldValueOptions.ts"),
+    ).toContain("select: data.select || getHeldValueSelect(data.modelType),");
+  });
 
   test("DropdownUtil hands a record listed by its name its facts", () => {
     expect(read("packages/Common/UI/Utils/Dropdown.ts")).toMatch(

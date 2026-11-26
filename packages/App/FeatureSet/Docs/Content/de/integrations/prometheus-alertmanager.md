@@ -266,7 +266,7 @@ Ist die Watchdog-Warnung zehn Minuten lang nicht angekommen, geht der Watchdog-M
 - Der Vorfall des Kriteriums braucht **Vorfall automatisch beheben** unter **Weitere Felder**.
 - **Feld, das die Erholung signalisiert** muss `requestBody.alerts[*].status` sein und **Wert, der „wiederhergestellt“ bedeutet** genau `resolved`. Der Vergleich unterscheidet Groß- und Kleinschreibung.
 - Die Warnungen einer Benachrichtigung jenseits von **Max. Vorfälle pro Anfrage** werden gar nicht gelesen, ihre Erholungen gehen also auch verloren.
-- Eine Erholung, die in einem Schwall übersprungen wird (siehe unten), lässt ihren Vorfall für immer offen: Alertmanager wiederholt auslösende Warnungen, aber nie eine Erholung. Beheben Sie einen solchen Vorfall von Hand.
+- Eine Erholung, die übersprungen wird, weil zu viele Benachrichtigungen warteten (siehe unten), lässt ihren Vorfall für immer offen: Alertmanager wiederholt auslösende Warnungen, aber nie eine Erholung. Beheben Sie einen solchen Vorfall von Hand.
 :::
 
 :::details Es wird gar kein Vorfall eröffnet
@@ -285,8 +285,8 @@ Ein Verweis auf ein Feld, das die Benachrichtigung nicht hat, bleibt so stehen, 
 Gruppieren Sie Ihre Route nach weniger Labels oder erhöhen Sie `group_interval`, damit Alertmanager zusammengehörige Warnungen gemeinsam sendet. Ein niedrigeres **Max. Vorfälle pro Anfrage** begrenzt die Vorfälle einer Benachrichtigung, doch die Warnungen jenseits der Grenze werden nicht gelesen, ihre Erholungen gehen also auch verloren.
 :::
 
-:::details Manche Benachrichtigungen werden in einem Schwall übersprungen
-Erreicht eine neuere Anfrage einen Monitor, bevor eine frühere ausgewertet ist, wertet OneUptime nur die neuere aus, damit ein einzelner Absender einen Monitor nicht überlasten kann. Die letzte Benachrichtigung eines Schwalls wird immer ausgewertet, eine frühere zu anderen Warnungen kann aber übersprungen werden, denn Alertmanager sendet jede Gruppe an dieselbe URL. Erhöhen Sie `group_wait` und `group_interval`, um Benachrichtigungen zu verteilen. Setzen Sie bei einer selbst gehosteten Installation `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in der Umgebung der OneUptime-App, damit jede Anfrage ausgewertet wird.
+:::details Ein Schwall von Benachrichtigungen
+Ein Monitor, dessen Kriterium nach einem Feld gruppiert, wie diese Anleitung es einrichtet, wertet jede Benachrichtigung, die er erhält, einzeln und in der Reihenfolge ihres Eingangs aus, sodass ein Schwall auslösender und behobener Warnungen den Vorfall jeder Warnung eröffnet und behebt. Bis zu 1.000 Benachrichtigungen oder 16 MB davon warten auf ihre Auswertung; darüber hinaus werden die ältesten wartenden übersprungen, und die Karte **Monitor-Zusammenfassung** nennt, wie viele. Erhöhen Sie `group_wait` und `group_interval`, um weniger, größere Benachrichtigungen zu senden. Ein Monitor ohne Gruppierung wertet nur die neueste Benachrichtigung aus, die auf ihn wartet.
 :::
 
 ## Sicherheit

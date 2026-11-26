@@ -9,6 +9,8 @@ import Express, {
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import { getMultipartFormDataMiddleware } from "Common/Server/Middleware/MultipartFormData";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import { SourceMapMaxFilesPerRequest } from "Common/Server/EnvironmentConfig";
 import SourceMapIngestService from "../Services/SourceMapIngestService";
 
@@ -17,12 +19,28 @@ const router: ExpressRouter = Express.getRouter();
 /*
  * Built once at module scope, not per request — each call constructs a multer
  * instance. SOURCE_MAP_MAX_FILES_PER_REQUEST can only narrow the shared
- * default, so this never widens the pre-auth parse that every route mounting
- * the multipart middleware shares.
+ * default, so this never widens the parse every route mounting the multipart
+ * middleware shares.
  */
 const sourceMapMultipartMiddleware: RequestHandler =
   getMultipartFormDataMiddleware({
     maxFiles: SourceMapMaxFilesPerRequest,
+  });
+
+/*
+ * The upload, read once the ingest key is checked (#10673): StartServer
+ * leaves the body unread (RequestBodyLimit), so a request without the right
+ * key is refused with nothing of it read, and its connection closed under
+ * the rest once the 401 is sent (UnreadRequestBody). CI sends the key in a
+ * header - x-oneuptime-token, or Authorization: Bearer - never in the form.
+ * Then the multipart form, gzip-encoded or not, held to 50 MB; JSON is
+ * parsed as it was, for its answer to say what is missing.
+ */
+const readSourceMapUpload: RequestHandler =
+  RequestBodyAfterAuthentication.readUpload({
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    multipart: sourceMapMultipartMiddleware,
+    json: true,
   });
 
 /*
@@ -57,9 +75,9 @@ const mapBearerTokenMiddleware: RequestHandler = (
 router.post(
   "/source-maps/v1/upload",
   TelemetryIngestionDisabled.middleware,
-  sourceMapMultipartMiddleware,
   mapBearerTokenMiddleware,
   TelemetryIngest.forSurface(TelemetryIngestSurface.SourceMap),
+  readSourceMapUpload,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

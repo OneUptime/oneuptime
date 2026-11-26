@@ -370,6 +370,9 @@ describe("parseRecordsRequest", () => {
     [{ part: "pages" }],
     [{ part: "pages", outcome: "verified" }],
     [{ part: "rootCauses", outcome: "completed" }],
+    // A Data Security number's outcome is its own part's only (#10364).
+    [{ part: "dataSecurityChanges", outcome: "approved" }],
+    [{ part: "dataSecurityAnalyses", outcome: "proven" }],
     [{ part: "pages", outcome: 3 }],
     [{ part: ["pages"], outcome: "handedOff" }],
   ])("refuses %j", (body: unknown) => {

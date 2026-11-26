@@ -12,7 +12,13 @@ import {
   SecurityTelemetrySignal,
   SecurityTelemetrySourceKind,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
-import { WEB_ATTACK_MARKERS } from "../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import {
+  WEB_ATTACK_KIND_ATTRIBUTE,
+  WEB_ATTACK_MARKERS,
+  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
+  WebAttackKind,
+} from "../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { SENSITIVE_FILE_PROBE_WORDS } from "../../../../Utils/SecurityEvent/SensitiveFileProbe";
 import {
   CLOUD_METADATA_MARKERS,
   PROMPT_INJECTION_PHRASES,
@@ -25,6 +31,7 @@ import {
   buildTraceWebAttackEvent,
   findCloudMetadataMarker,
   findPromptInjectionPhrase,
+  getTraceScanSensitiveFileWords,
   getTraceScanUrlMarkers,
   markSsrfFetched,
   readMetadataCallOf,
@@ -110,6 +117,8 @@ describe("an attack in a request's URL", () => {
           "url.query": "offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
           "http.request.method": "GET",
           "http.response.status_code": "404",
+          // A direct connection: the peer is the client.
+          "network.peer.address": "203.0.113.7",
           "client.address": "203.0.113.7",
           "user_agent.original": "sqlmap/1.7",
           "http.route": "/sitemap.xml",
@@ -124,6 +133,9 @@ describe("an attack in a request's URL", () => {
       "SQL injection attempt: GET /sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356) → 404",
     );
     expect(event!.principalIp).toBe("203.0.113.7");
+    expect(event!.attributes["oneuptime.request.client_address_trust"]).toBe(
+      "peer",
+    );
     expect(event!.principalUser).toBe("user-42");
     expect(event!.targetResource).toBe(
       "/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
@@ -250,6 +262,184 @@ describe("an attack in a request's URL", () => {
         message: "Log4Shell exploit attempt",
       });
     }
+  });
+});
+
+/*
+ * #10745: a request for a well-known sensitive file or admin page, read
+ * from the server span that answered it - only when the app refused it or
+ * has no such file, so the admin pages a WordPress site serves its own
+ * people never become events, however often they are loaded.
+ */
+describe("a request for a sensitive file, from the span that answered it", () => {
+  // A server span of a request for this URL, answered with this status.
+  function asked(
+    url: string,
+    status: string,
+    overrides: Partial<TraceScanSpan> = {},
+  ): TraceScanSpan {
+    return span({
+      name: "GET",
+      attributes: {
+        "url.full": url,
+        "http.request.method": "GET",
+        "http.response.status_code": status,
+        "network.peer.address": "198.51.100.23",
+        "client.address": "198.51.100.23",
+        "user_agent.original": "Mozilla/5.0 zgrab/0.x",
+      },
+      ...overrides,
+    });
+  }
+
+  test("refused or not found, it is an HTTP Activity event that names the path it counts as", () => {
+    const event: NormalizedSecurityEvent | null = buildTraceWebAttackEvent(
+      asked("https://shop.example/.env", "404", { sessionId: "session-9" }),
+    );
+
+    expect(event).not.toBeNull();
+    expect(event!.className).toBe("HTTP Activity");
+    expect(event!.message).toBe(
+      "Request for a sensitive file: GET https://shop.example/.env → 404",
+    );
+    expect(event!.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(
+      WebAttackKind.SensitiveFile,
+    );
+    expect(event!.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]).toBe("/.env");
+    expect(event!.principalIp).toBe("198.51.100.23");
+    expect(event!.targetResource).toBe("https://shop.example/.env");
+    // Turned away: noise on its own, which the Rule Library's rule counts.
+    expect(event!.requestOutcome).toBe(SecurityEventRequestOutcome.Rejected);
+    expect(event!.severityName).toBe(OcsfSeverity.Low);
+    expect(event!.statusName).toBe("Failure");
+    expect(event!.sessionId).toBe("session-9");
+    expect(event!.attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE]).toBe(
+      SecurityTelemetrySignal.WebAttack,
+    );
+    expect(event!.eventUid).toBe(
+      "span:4bf92f3577b34da6a3ce929d0e0e4736:00f067aa0ba902b7:web-attack",
+    );
+  });
+
+  test("each spelling of a path counts as that path, wherever it is", () => {
+    for (const [url, path] of [
+      ["https://shop.example/.env.production", "/.env"],
+      ["https://shop.example/app/.env", "/.env"],
+      ["https://shop.example/.git/config", "/.git"],
+      ["https://shop.example/.git/HEAD", "/.git"],
+      ["https://shop.example/.aws/credentials", "/.aws"],
+      ["https://shop.example/wp-login.php", "/wp-admin"],
+      ["https://shop.example/blog/wp-admin/", "/wp-admin"],
+      ["https://shop.example/wp-config.php.bak", "/wp-config.php"],
+      ["https://shop.example/phpmyadmin/index.php", "/phpmyadmin"],
+      ["https://shop.example/actuator/heapdump", "/actuator/env"],
+      ["https://shop.example/server-status", "/server-status"],
+    ]) {
+      expect({
+        url,
+        path: buildTraceWebAttackEvent(asked(url!, "404"))?.attributes[
+          WEB_SENSITIVE_FILE_PATH_ATTRIBUTE
+        ],
+      }).toEqual({ url, path });
+    }
+  });
+
+  test("any refusal counts - forbidden, not found, gone, too many - and nothing else does", () => {
+    for (const status of ["400", "401", "403", "404", "405", "410", "429"]) {
+      expect({
+        status,
+        kind: buildTraceWebAttackEvent(
+          asked("https://shop.example/.git/config", status),
+        )?.attributes[WEB_ATTACK_KIND_ATTRIBUTE],
+      }).toEqual({ status, kind: WebAttackKind.SensitiveFile });
+    }
+  });
+
+  test("a page the app serves is none: a WordPress site's own admins load it all day", () => {
+    for (const url of [
+      "https://blog.example/wp-admin/",
+      "https://blog.example/wp-login.php",
+      "https://blog.example/wp-admin/install.php",
+    ]) {
+      // A page, a redirect to sign in, a page not changed, the app's own error, or no answer recorded.
+      for (const status of ["200", "301", "302", "304", "500", "503", ""]) {
+        expect({
+          url,
+          status,
+          event: buildTraceWebAttackEvent(asked(url, status)),
+        }).toEqual({ url, status, event: null });
+      }
+    }
+
+    // And the pages behind the entry points are never one, refused or not.
+    for (const url of [
+      "https://blog.example/wp-admin/admin-ajax.php",
+      "https://blog.example/wp-admin/post.php?post=12&action=edit",
+      "https://blog.example/wp-admin/edit.php",
+    ]) {
+      expect({
+        url,
+        event: buildTraceWebAttackEvent(asked(url, "403")),
+      }).toEqual({ url, event: null });
+    }
+  });
+
+  test("a sensitive path in the query, or inside another word, is none", () => {
+    for (const url of [
+      "https://shop.example/search?q=/.env",
+      "https://shop.example/docs?page=wp-admin",
+      "https://shop.example/blog/wp-admin-tips",
+      "https://shop.example/environment",
+      "https://shop.example/files/my.env.txt",
+      "https://shop.example/github/.gitignore",
+    ]) {
+      expect({
+        url,
+        event: buildTraceWebAttackEvent(asked(url, "404")),
+      }).toEqual({ url, event: null });
+    }
+  });
+
+  test("an attack string wins: an injection aimed at /.env is the injection, counted as no path", () => {
+    const event: NormalizedSecurityEvent = buildTraceWebAttackEvent(
+      asked("https://shop.example/.env?id=1 union select password", "404"),
+    )!;
+
+    expect(event.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(
+      WebAttackKind.SqlInjection,
+    );
+    expect(event.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]).toBeUndefined();
+  });
+
+  test("is read from the span's name when no attribute says the request", () => {
+    const event: NormalizedSecurityEvent | null = buildTraceWebAttackEvent(
+      span({
+        name: "GET /.git/config",
+        attributes: { "http.status_code": "404" },
+      }),
+    );
+
+    expect(event?.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]).toBe("/.git");
+  });
+
+  test("is only read from the span that answered the request", () => {
+    expect(
+      buildTraceWebAttackEvent(
+        asked("https://api.example/.env", "404", { kind: "SPAN_KIND_CLIENT" }),
+      ),
+    ).toBeNull();
+  });
+
+  test("is one of the span's security events, the only one", () => {
+    const events: Array<NormalizedSecurityEvent> = buildTraceSecurityEvents(
+      asked("https://shop.example/.vscode/sftp.json", "404"),
+    );
+
+    expect(
+      events.map((event: NormalizedSecurityEvent): unknown => {
+        return event.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE];
+      }),
+    ).toEqual(["/.vscode"]);
   });
 });
 
@@ -463,6 +653,25 @@ describe("what the scan asks the database for", () => {
 
     for (const marker of CLOUD_METADATA_MARKERS) {
       expect(markers).toContain(marker);
+    }
+  });
+
+  /*
+   * #10745: a sensitive path's words go apart from the attack markers, read
+   * with the span's status, so a URL that holds one is no candidate until
+   * the app refused it.
+   */
+  test("a sensitive path's words are asked for apart from the markers, every one", () => {
+    const words: Array<string> = getTraceScanSensitiveFileWords();
+    const markers: Array<string> = getTraceScanUrlMarkers();
+
+    expect(words).toEqual([...SENSITIVE_FILE_PROBE_WORDS]);
+
+    for (const word of words) {
+      expect({ word, marker: markers.includes(word) }).toEqual({
+        word,
+        marker: false,
+      });
     }
   });
 

@@ -11,6 +11,8 @@ import {
   buildMassDeleteStatement,
   buildNetworkSweepStatement,
   buildPortScanStatement,
+  buildProbeScanDestinationsStatement,
+  buildProbeSweepDestinationsStatement,
   buildRumUserCountriesStatement,
   buildTraceCandidatesStatement,
 } from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/TelemetryScanStatements";
@@ -24,6 +26,9 @@ import {
 } from "../../../../../Utils/SecurityEvent/TelemetryScan/FlowSignals";
 import {
   PROMPT_INJECTION_PHRASES,
+  TRACE_SCAN_ATTRIBUTE_KEYS,
+  getTraceScanSecretFileWords,
+  getTraceScanSensitiveFileWords,
   getTraceScanUrlMarkers,
 } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
 import {
@@ -121,6 +126,70 @@ describe("the trace read", () => {
     ]);
   });
 
+  /*
+   * #10745: a server span whose URL holds a sensitive path's words leaves
+   * the database only when its answer was a 4xx, by either attribute a
+   * status is written in - so the admin pages a WordPress site serves its
+   * people stay there, however many there are.
+   */
+  test("a server span asking for a sensitive file leaves the database only when it was refused or not found", () => {
+    expect(boundIncludes(statement)).toContainEqual(
+      getTraceScanSensitiveFileWords(),
+    );
+    // An attack's, a refused sensitive path's, and a served secret file's (#10912).
+    expect(
+      statement.query.split("AND multiSearchAnyCaseInsensitive(concat(")
+        .length - 1,
+    ).toBe(3);
+    expect(statement.query).toMatch(
+      /\) AND \(startsWith\(attributes\[\{p\d+:String\}\], '4'\) OR startsWith\(attributes\[\{p\d+:String\}\], '4'\)\)\) OR \(kind = /,
+    );
+
+    for (const key of TRACE_SCAN_ATTRIBUTE_KEYS.statusCode) {
+      expect(bound(statement)).toContain(key);
+    }
+
+    // Balanced, so the scan's other conditions AND it as one.
+    expect(statement.query.split("(").length).toBe(
+      statement.query.split(")").length,
+    );
+  });
+
+  /*
+   * #10912: a server span whose URL holds the words of a file that holds
+   * secrets leaves the database when it was answered with a 2xx too, to be
+   * read for what the app sent - and an admin page's words are none of
+   * those, so a WordPress site's own pages, which it serves, still stay.
+   */
+  test("a server span asking for a file that holds secrets leaves the database when it was answered with a 2xx", () => {
+    expect(boundIncludes(statement)).toContainEqual(
+      getTraceScanSecretFileWords(),
+    );
+    expect(statement.query).toMatch(
+      /\) AND \(startsWith\(attributes\[\{p\d+:String\}\], '2'\) OR startsWith\(attributes\[\{p\d+:String\}\], '2'\)\)\) OR \(isLlmSpan = 1 AND /,
+    );
+
+    for (const adminWord of [
+      "/wp-admin",
+      "/wp-login.php",
+      "/phpmyadmin",
+      "/server-status",
+      "/phpinfo.php",
+    ]) {
+      expect(getTraceScanSecretFileWords()).not.toContain(adminWord);
+    }
+
+    // Every word of a file that holds secrets is a sensitive path's too.
+    for (const word of getTraceScanSecretFileWords()) {
+      expect(getTraceScanSensitiveFileWords()).toContain(word);
+    }
+
+    // Its words are sent hex encoded, as the scan's others are (#6419).
+    for (const word of getTraceScanSecretFileWords()) {
+      expect(statement.query.toLowerCase()).not.toContain(word);
+    }
+  });
+
   test("pages in a fixed order", () => {
     expect(statement.query).toContain(
       "ORDER BY createdAt ASC, traceId ASC, spanId ASC LIMIT {",
@@ -153,6 +222,7 @@ describe("the trace read", () => {
     for (const word of [
       ...getTraceScanUrlMarkers(),
       ...PROMPT_INJECTION_PHRASES,
+      ...getTraceScanSensitiveFileWords(),
     ]) {
       expect(echo).not.toContain(word);
       expect(url).not.toContain(word);
@@ -242,6 +312,125 @@ describe("the flow reads", () => {
   });
 });
 
+/*
+ * OneUptime's own probes' scans and sweeps, read apart from everyone's and
+ * read again destination by destination (#10429).
+ */
+describe("the flow reads of OneUptime's own probes", () => {
+  const PROBES: Array<string> = ["10.0.0.250", "203.0.113.7"];
+
+  test("everyone's scans and sweeps leave the probes' addresses out, bound as one parameter", () => {
+    for (const statement of [
+      buildPortScanStatement({
+        ...WINDOW,
+        minPorts: 25,
+        limit: 50,
+        sources: { addresses: PROBES, only: false },
+      }),
+      buildNetworkSweepStatement({
+        ...WINDOW,
+        minHosts: 30,
+        limit: 50,
+        sources: { addresses: PROBES, only: false },
+      }),
+    ]) {
+      expectProjectFirst(statement);
+      expect(statement.query).toContain(" AND srcIp NOT IN ({");
+      expect(statement.query).not.toContain(" AND srcIp IN (");
+      expect(boundIncludes(statement)).toContainEqual(PROBES);
+      expect(statement.query).not.toContain("10.0.0.250");
+      // Before the rows are summed: a probe's flows never take a place in them.
+      expect(statement.query.indexOf("srcIp NOT IN")).toBeLessThan(
+        statement.query.indexOf("GROUP BY"),
+      );
+    }
+  });
+
+  test("the probes' own are read alone", () => {
+    for (const statement of [
+      buildPortScanStatement({
+        ...WINDOW,
+        minPorts: 25,
+        limit: 50,
+        sources: { addresses: PROBES, only: true },
+      }),
+      buildNetworkSweepStatement({
+        ...WINDOW,
+        minHosts: 30,
+        limit: 50,
+        sources: { addresses: PROBES, only: true },
+      }),
+    ]) {
+      expect(statement.query).toContain(" AND srcIp IN ({");
+      expect(statement.query).not.toContain("NOT IN ({");
+      expect(boundIncludes(statement)).toContainEqual(PROBES);
+    }
+  });
+
+  test("with no probe addresses, a read is held to no source at all", () => {
+    for (const sources of [undefined, { addresses: [], only: false }]) {
+      const statement: Statement = buildNetworkSweepStatement({
+        ...WINDOW,
+        minHosts: 30,
+        limit: 50,
+        sources,
+      });
+
+      expect(statement.query).not.toContain("srcIp IN");
+      expect(statement.query).not.toContain("srcIp NOT IN");
+    }
+  });
+
+  test("a probe's sweep, read again: its hosts on the port, by protocol, in address order", () => {
+    const statement: Statement = buildProbeSweepDestinationsStatement({
+      ...WINDOW,
+      srcIp: "10.0.0.250",
+      dstPort: 161,
+      limit: 20000,
+    });
+
+    expect(statement.query).toContain(
+      `FROM ${getClickhouseDatabaseName()}.NetworkFlowV1`,
+    );
+    expectProjectFirst(statement);
+    expect(statement.query).toContain("AND ingestedAt > {");
+    expect(statement.query).toContain("AND flowStartAt >= {");
+    expect(statement.query).toContain("AND srcIp = {");
+    expect(statement.query).toContain("AND dstPort = {");
+    expect(statement.query).toContain("any(dstName) AS dstName");
+    expect(statement.query).toContain(
+      "GROUP BY dstIp, protocol ORDER BY dstIp ASC, protocol ASC LIMIT {",
+    );
+    expect(bound(statement)).toContain("10.0.0.250");
+    expect(bound(statement)).toContain(161);
+    expect(bound(statement)).toContain(20000);
+    expect(statement.query).not.toContain("10.0.0.250");
+    expectTimeLimited(statement);
+  });
+
+  test("a probe's port scan, read again: the host's service ports, by protocol", () => {
+    const statement: Statement = buildProbeScanDestinationsStatement({
+      ...WINDOW,
+      srcIp: "10.0.0.250",
+      dstIp: "10.0.0.9",
+      limit: 20000,
+    });
+
+    expectProjectFirst(statement);
+    expect(statement.query).toContain("AND srcIp = {");
+    expect(statement.query).toContain("AND dstIp = {");
+    expect(statement.query).toContain(
+      `AND dstPort > 0 AND dstPort < ${EPHEMERAL_PORT_START}`,
+    );
+    expect(statement.query).toContain(
+      "GROUP BY dstPort, protocol ORDER BY dstPort ASC, protocol ASC LIMIT {",
+    );
+    expect(bound(statement)).toContain("10.0.0.250");
+    expect(bound(statement)).toContain("10.0.0.9");
+    expectTimeLimited(statement);
+  });
+});
+
 describe("the audit log reads", () => {
   test("a page of the records about what security cares for, in a fixed order", () => {
     const statement: Statement = buildAuditRecordsStatement({
@@ -276,11 +465,65 @@ describe("the audit log reads", () => {
     expectProjectFirst(statement);
     expect(statement.query).toContain("AND action = {");
     expect(bound(statement)).toContain("Delete");
-    expect(statement.query).toContain(
-      "GROUP BY userId, apiKeyId HAVING deletes >= {",
-    );
     expect(statement.query).toContain("toString(userId) AS actorUserId");
     expect(statement.query).not.toMatch(/ AS userId\b/);
+  });
+
+  test("a mass delete's actor is its kind and its id: every workflow, and OneUptime itself, apart (#10430)", () => {
+    const statement: Statement = buildMassDeleteStatement({
+      projectId: PROJECT_ID,
+      arrivedAfter: WINDOW.arrivedAfter,
+      arrivedUntil: WINDOW.arrivedUntil,
+      minDeletes: 25,
+      limit: 20,
+    });
+
+    expect(statement.query).toContain(
+      "GROUP BY userType, userId, apiKeyId, workflowId HAVING deletes >= {",
+    );
+    expect(statement.query).toContain("ifNull(userType, '') AS actorUserType");
+    expect(statement.query).toContain(
+      "toString(workflowId) AS actorWorkflowId",
+    );
+    // A workflow is named as the latest of its entries in the window name it.
+    expect(statement.query).toContain(
+      "argMax(ifNull(workflowName, ''), createdAt) AS actorWorkflowName",
+    );
+    expect(statement.query).toContain(
+      "argMax(ifNull(workflowRunAs, ''), createdAt) AS actorWorkflowRunAs",
+    );
+    expect(statement.query).toContain(
+      "argMax(ifNull(workflowRunAsGiverName, ''), createdAt) AS actorWorkflowRunAsGivenBy",
+    );
+    // No alias takes the name of a column it is read from.
+    for (const column of [
+      "userType",
+      "workflowId",
+      "workflowName",
+      "workflowRunAs",
+      "workflowRunAsCustomRoleName",
+      "workflowRunAsGiverName",
+      "workflowRunAsGiverApiKeyId",
+    ]) {
+      expect([column, statement.query.includes(` AS ${column},`)]).toEqual([
+        column,
+        false,
+      ]);
+    }
+  });
+
+  test("a page of records reads which workflow made each change, and what it ran as", () => {
+    const statement: Statement = buildAuditRecordsStatement({
+      projectId: PROJECT_ID,
+      arrivedAfter: WINDOW.arrivedAfter,
+      arrivedUntil: WINDOW.arrivedUntil,
+      limit: 1000,
+      offset: 0,
+    });
+
+    expect(statement.query).toContain(
+      "mcpClientName, workflowId, workflowName, workflowRunAs, workflowRunAsCustomRoleName, workflowRunAsGiverApiKeyId, workflowRunAsGiverName FROM",
+    );
   });
 });
 

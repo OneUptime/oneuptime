@@ -206,6 +206,9 @@ import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
 import SecurityCaseTask from "./SecurityCaseTask";
+import SecurityCaseStepCheck from "./SecurityCaseStepCheck";
+import SecurityCasePullRequest from "./SecurityCasePullRequest";
+import SecurityCaseAiAction from "./SecurityCaseAiAction";
 import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
@@ -226,6 +229,9 @@ import DataStoreLabelRule from "./DataStoreLabelRule";
 import DataSecurityFlow from "./DataSecurityFlow";
 import DataSecurityIssue from "./DataSecurityIssue";
 import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
+import DataSecurityAiProposal from "./DataSecurityAiProposal";
+import DataSecurityAiDecision from "./DataSecurityAiDecision";
 import DataSecurityScan from "./DataSecurityScan";
 import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
@@ -257,6 +263,11 @@ import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
+import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
+import SecurityBlocklistFeed from "./SecurityBlocklistFeed";
+import SecurityBlocklistFeedFetch from "./SecurityBlocklistFeedFetch";
+import SecurityAutomaticResponsePolicy from "./SecurityAutomaticResponsePolicy";
+import SecurityAutomaticResponseAction from "./SecurityAutomaticResponseAction";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -729,6 +740,9 @@ const AllModelTypes: Array<{
   SecurityCaseFeed,
   SecurityCaseNote,
   SecurityCaseTask,
+  SecurityCaseStepCheck,
+  SecurityCasePullRequest,
+  SecurityCaseAiAction,
   SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
@@ -751,6 +765,9 @@ const AllModelTypes: Array<{
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityIssueGroup,
+  DataSecurityAiProposal,
+  DataSecurityAiDecision,
   DataSecurityScan,
   DataSecurityCustomDataType,
   DataSecurityCheckSetting,
@@ -782,6 +799,11 @@ const AllModelTypes: Array<{
   SecurityProtectedEntity,
   SecurityBlock,
   SecurityBlockEnforcement,
+  SecurityBlockCloudWaf,
+  SecurityBlocklistFeed,
+  SecurityBlocklistFeedFetch,
+  SecurityAutomaticResponsePolicy,
+  SecurityAutomaticResponseAction,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,

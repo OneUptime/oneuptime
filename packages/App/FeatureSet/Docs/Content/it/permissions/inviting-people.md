@@ -71,7 +71,7 @@ Chi accede, o si registra in un altro modo, accetta in uno di due posti:
 
 | Dove si trova | Che cosa vede | Dove fa clic |
 | --- | --- | --- |
-| Ancora in nessun progetto | L'invito, sulla pagina in cui arriva dopo l'accesso | **Accept & Join**, oppure **Decline** |
+| Ancora in nessun progetto | L'invito, sulla pagina in cui arriva dopo l'accesso | **Accept & Join**, oppure **Rifiuta** |
 | Già in un altro progetto | L'invito in sospeso sulla campanella in alto a destra, che apre **Inviti al progetto** | **Accetta**, oppure **Rifiuta** |
 
 Accettando entra subito nel progetto, con le autorizzazioni del suo team e la configurazione delle notifiche con cui parte ogni membro: vedi [Con che cosa inizi](/docs/notifications/index#con-cosa-partite). Rifiutare elimina l'invito, quindi per entrare più tardi ne serve uno nuovo.
@@ -132,8 +132,8 @@ Rimuovere qualcuno lo toglie da ogni team del progetto. Perde subito l'accesso, 
 
 ## Risoluzione dei problemi
 
-:::details "This user has already been invited to this team"
-La persona è già in quel team, come membro o con un invito che non ha accettato. Aprila in **Utenti** per vedere i suoi team, oppure invitala in un altro team.
+:::details "This person has already been invited to this team, or is a member of it"
+La persona è già in quel team, come membro o con un invito che non ha accettato. Aprila in **Utenti** per vedere i suoi team, oppure invitala in un altro team. Se non si è ancora unita, **Invia di nuovo l'invito** nel menu della sua riga le manda di nuovo l'email di invito.
 :::
 
 :::details "You have reached the user limit for the free plan"

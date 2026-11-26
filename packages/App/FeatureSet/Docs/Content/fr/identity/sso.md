@@ -287,6 +287,31 @@ Le navigateur passe par la déconnexion du fournisseur dès que OneUptime l'a d�
 Un fournisseur chez qui elle n'est pas enregistrée affiche sa propre page d'erreur après une déconnexion de OneUptime, au lieu de renvoyer la personne ; elle est tout de même déconnectée de OneUptime.
 :::
 
+## Se reconnecter pour confirmer que c'est bien vous
+
+Avant que quelqu'un modifie sa façon de se connecter ou supprime son compte, OneUptime lui demande de [confirmer que c'est bien lui](/docs/introduction/your-account#confirmer-que-cest-bien-vous). Quelqu'un qui se connecte uniquement par votre fournisseur d'identité, sans mot de passe ni clé d'accès dans OneUptime, confirme avec **Se reconnecter** : OneUptime l'envoie chez le fournisseur et lui demande de le faire se reconnecter. Cela ne compte que lorsque le fournisseur indique qu'il s'est connecté à ce moment-là ou après, à une minute près pour les deux horloges. Un fournisseur qui le reconnecte aussitôt avec une session qu'il a déjà, ou qui n'indique pas quand il s'est connecté, ne confirme rien, et la personne est invitée à vous demander de le changer.
+
+:::tabs
+@tab SAML
+OneUptime envoie `ForceAuthn="true"` et lit quand la personne s'est connectée dans le `AuthnInstant` de l'assertion.
+
+| Fournisseur d'identité | Ce qu'il faut régler |
+| --- | --- |
+| Okta | Dans l'onglet **General**, modifiez **SAML Settings**, cliquez sur **Show Advanced Settings** et réglez **Honor Force Authentication** sur **Yes**. Réglé sur **No**, Okta ignore la demande. OneUptime vous le rappelle à côté d'un fournisseur Okta. |
+| Microsoft Entra ID | Rien : Entra ID respecte la demande, et son `AuthnInstant` est le moment où la personne s'est connectée. |
+| Keycloak | Rien : Keycloak respecte la demande, mais les versions 26.8.2 et antérieures peuvent l'ignorer quand la connexion est relancée sur la page de connexion de Keycloak, ce que corrigent 26.8.3 et 27.0.0. Son `AuthnInstant` est le moment où il répond, et non celui où la personne s'est connectée, donc OneUptime ne peut pas vérifier que Keycloak lui a redemandé, et le dit à côté du fournisseur. Connectez Keycloak par OpenID Connect pour une vérification que OneUptime fait lui-même. |
+| Google Workspace | Rien à régler. Google n'indique pas s'il respecte la demande. Son `AuthnInstant` est la dernière connexion de la personne à Google : quelqu'un encore connecté à Google se déconnecte donc d'abord de Google. |
+@tab OpenID Connect
+OneUptime envoie `prompt=login` et `max_age=0`, ou seulement `prompt=login` à Microsoft Entra ID, et lit quand la personne s'est connectée dans le `auth_time` du jeton d'ID.
+
+| Fournisseur d'identité | Ce qu'il faut régler |
+| --- | --- |
+| Okta | Rien : Okta respecte les deux et envoie toujours `auth_time`. |
+| Microsoft Entra ID | Dans **Token configuration** de l'inscription d'application, cliquez sur **Add optional claim**, choisissez **ID** et ajoutez `auth_time` : Entra ID ne l'envoie que comme revendication facultative. Il respecte `prompt=login`. OneUptime ne lui envoie pas `max_age`, que Microsoft ne documente pas et qui, d'après des signalements, fait répondre Entra ID avec un jeton d'ID déjà expiré. |
+| Keycloak | Gardez la portée client `basic` sur le client : elle porte `auth_time`. Keycloak 25 et les versions suivantes donnent cette portée à chaque client. |
+| Google Workspace | Activez **Session age claims** pour le client OAuth, sous **Google Auth Platform** > **Settings** > **Advanced Settings** ; l'application doit être publiée et vérifiée. Google n'accepte aucune des deux demandes, donc OneUptime lui demande plutôt `auth_time`, et quelqu'un encore connecté à Google se déconnecte d'abord de Google. |
+:::
+
 ## Rôles et équipes des utilisateurs SSO
 
 OneUptime ne reprend pas les rôles ni les groupes de votre fournisseur d'identité. Ce qu'une personne peut faire dépend des équipes dont elle fait partie : un fournisseur ajoute les nouveaux venus à ses **Équipes**, et vous gérez les équipes et leurs autorisations dans OneUptime, comme le décrit [Utilisateurs, équipes et autorisations](/docs/permissions/index). Pour garder l'appartenance aux équipes alignée sur votre fournisseur d'identité, utilisez [SCIM](/docs/identity/scim). Chaque équipe que quelqu'un rejoint en se connectant est enregistrée sur la page **Journaux d'audit** de cette équipe, comme une modification faite par la personne qui s'est connectée.
@@ -356,7 +381,9 @@ Un compte peut appartenir à de nombreuses organisations : vous ne pouvez donc e
 - une personne seulement invitée dans votre projet, qui ne l'a pas encore rejoint ;
 - les administrateurs principaux, et vous : changez vos propres réglages dans votre **Profil utilisateur**.
 
-Chaque personne dont les réglages sont effacés reçoit un e-mail indiquant ce qui a été supprimé et qu'elle se connecte désormais avec le SSO, et les journaux d'audit de vos projets enregistrent l'effacement à votre nom. Seul un **Propriétaire du projet** peut effacer, connecté au tableau de bord : jamais avec une clé d'API.
+Pour effacer les paramètres d'une seule personne, ouvrez **Utilisateurs** : la ligne de chaque personne que vous pouvez effacer indique **Paramètres de connexion enregistrés**, et **Effacer les paramètres de connexion** dans son menu n'efface que les siens, selon la même règle, après une question qui liste ce qui sera supprimé.
+
+Chaque personne dont les réglages sont effacés reçoit un e-mail indiquant ce qui a été supprimé et qu'elle se connecte désormais avec le SSO, et les journaux d'audit de vos projets enregistrent l'effacement à votre nom. Seul un **Propriétaire du projet** peut effacer, connecté au tableau de bord : jamais avec une clé d'API. Effacer vous demande d'abord de [confirmer que c'est bien vous](/docs/introduction/your-account#confirmer-que-cest-bien-vous).
 
 ## Désactiver ou supprimer un fournisseur
 

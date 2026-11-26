@@ -9,6 +9,7 @@ import OcsfSeverity, {
 } from "../../Types/SecurityEvent/OcsfSeverity";
 import { MAX_RESOURCE_ID_LENGTH } from "../SecurityCase/SecurityConnectionMatch";
 import { buildObservables, contentHashEventUid } from "./NormalizerHelpers";
+import { readEventAddress } from "./ScrubbedAddress";
 
 /*
  * What one source record says, before it is an event: who did what to
@@ -44,6 +45,11 @@ export interface SecurityRecordReading {
   ruleName?: string | undefined;
   principalUser?: string | undefined;
   principalHost?: string | undefined;
+  /*
+   * Each address as the record's field held it: the address, or what a
+   * scrub rule left in its place (readIpAddress, #10419), which the event
+   * says a rule hid.
+   */
   principalIp?: string | undefined;
   targetUser?: string | undefined;
   targetHost?: string | undefined;
@@ -109,10 +115,22 @@ export function toNormalizedSecurityEvent(data: {
     ocsfCategoryForClassUid(reading.classUid);
   const principalUser: string = clean(reading.principalUser, MAX_ENTITY_LENGTH);
   const principalHost: string = clean(reading.principalHost, MAX_ENTITY_LENGTH);
-  const principalIp: string = clean(reading.principalIp, MAX_ENTITY_LENGTH);
+  /*
+   * A reading's address is what its record's field held, which a log's
+   * scrub rule may have hidden (LogParsers/SecurityLogLine's readIpAddress,
+   * #10419). A connection reads the source's own API, which no scrub rule
+   * of the project ran over, so anything of that shape is no address.
+   */
+  const principalIp: string = clean(
+    readEventAddress(reading.principalIp).address,
+    MAX_ENTITY_LENGTH,
+  );
   const targetUser: string = clean(reading.targetUser, MAX_ENTITY_LENGTH);
   const targetHost: string = clean(reading.targetHost, MAX_ENTITY_LENGTH);
-  const targetIp: string = clean(reading.targetIp, MAX_ENTITY_LENGTH);
+  const targetIp: string = clean(
+    readEventAddress(reading.targetIp).address,
+    MAX_ENTITY_LENGTH,
+  );
 
   return {
     time: reading.time || new Date(),

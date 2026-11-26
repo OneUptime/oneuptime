@@ -3,10 +3,16 @@ import {
   FIRST_CHECK_WITHIN_A_MINUTE,
   NEEDS_ENTERPRISE_NOTE,
   NO_CLOUD_ACCOUNT_NOTE,
+  OWN_PROBE_TRAFFIC_LOOKBACK_IN_HOURS,
+  OWN_PROBE_TRAFFIC_SET_ASIDE,
+  OwnProbeTrafficWindow,
   SECURITY_TELEMETRY_SOURCE_ROWS,
   SecurityTelemetrySourceRow,
   SecurityTelemetrySourceStatus,
   SecurityTelemetrySourceStatusKind,
+  buildOwnProbeTrafficQuery,
+  countsOwnProbeTraffic,
+  getOwnProbeTrafficWindow,
   getSecurityTelemetrySourceStatus,
   getSecurityTelemetrySourceWaitingLine,
   getSecurityTelemetrySourceWaitingText,
@@ -15,8 +21,11 @@ import {
   readFoundBySignal,
   readFoundInLastCheck,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityTelemetrySourcesModel";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import ObjectID from "Common/Types/ObjectID";
 import {
   SECURITY_TELEMETRY_SOURCE_KINDS,
+  SecurityTelemetrySignal,
   SecurityTelemetrySourceKind,
 } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 
@@ -289,5 +298,84 @@ describe("cloud audit logs", () => {
         },
       }).foundInLastCheck,
     ).toBe(3);
+  });
+});
+
+/*
+ * OneUptime's own probes in the project's network flows (#10429): their
+ * device polling, discovery and monitor checks are set aside, never
+ * reported as scans - and the Network flows row says so, and how many it
+ * set aside over the last day, with the way to see them.
+ */
+describe("OneUptime's own probes on the Network flows row", () => {
+  const NOW: Date = new Date("2026-11-21T12:00:00.000Z");
+
+  test("only network flows tells OneUptime's own traffic apart, in a note of its own", () => {
+    expect(
+      SECURITY_TELEMETRY_SOURCE_ROWS.filter(
+        (row: SecurityTelemetrySourceRow): boolean => {
+          return Boolean(row.ownTrafficNote);
+        },
+      ).map((row: SecurityTelemetrySourceRow): SecurityTelemetrySourceKind => {
+        return row.kind;
+      }),
+    ).toEqual([SecurityTelemetrySourceKind.NetworkFlows]);
+
+    const note: string = rowOf(
+      SecurityTelemetrySourceKind.NetworkFlows,
+    ).ownTrafficNote!;
+
+    expect(note).toContain("OneUptime's own probes");
+    expect(note).toContain("not reported as a scan");
+    expect(note.endsWith(".")).toBe(true);
+  });
+
+  test("it counts what it set aside only while it is on", () => {
+    const flows: SecurityTelemetrySourceRow = rowOf(
+      SecurityTelemetrySourceKind.NetworkFlows,
+    );
+
+    expect(countsOwnProbeTraffic({ row: flows, isOn: true })).toBe(true);
+    expect(countsOwnProbeTraffic({ row: flows, isOn: false })).toBe(false);
+    expect(
+      countsOwnProbeTraffic({
+        row: rowOf(SecurityTelemetrySourceKind.Traces),
+        isOn: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("over the last day, ending now", () => {
+    const window: OwnProbeTrafficWindow = getOwnProbeTrafficWindow(NOW);
+
+    expect(window.end).toEqual(NOW);
+    expect(window.end.getTime() - window.start.getTime()).toBe(
+      OWN_PROBE_TRAFFIC_LOOKBACK_IN_HOURS * 60 * 60 * 1000,
+    );
+    expect(OWN_PROBE_TRAFFIC_LOOKBACK_IN_HOURS).toBe(24);
+  });
+
+  test("counts the project's events of OneUptime's own probe traffic over that day", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const window: OwnProbeTrafficWindow = getOwnProbeTrafficWindow(NOW);
+    const query: Record<string, unknown> = buildOwnProbeTrafficQuery({
+      projectId,
+      window,
+    }) as Record<string, unknown>;
+
+    expect(query["projectId"]).toBe(projectId);
+    expect(query["time"]).toBeInstanceOf(InBetween);
+    expect((query["time"] as InBetween<Date>).startValue).toEqual(window.start);
+    expect((query["time"] as InBetween<Date>).endValue).toEqual(window.end);
+    expect(query["attributes"]).toEqual({
+      "oneuptime.signal": SecurityTelemetrySignal.OneUptimeProbeTraffic,
+    });
+  });
+
+  test("says the count in a sentence that agrees with it", () => {
+    expect(OWN_PROBE_TRAFFIC_SET_ASIDE.one).toContain("{{count}}");
+    expect(OWN_PROBE_TRAFFIC_SET_ASIDE.other).toContain("{{count}}");
+    expect(OWN_PROBE_TRAFFIC_SET_ASIDE.one).toContain("was set aside");
+    expect(OWN_PROBE_TRAFFIC_SET_ASIDE.other).toContain("were set aside");
   });
 });

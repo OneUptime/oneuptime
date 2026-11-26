@@ -210,13 +210,28 @@ export default class TelemetryIngestionBudgetStatusReader {
   public static async getProjectStatus(data: {
     projectId: ObjectID;
     now?: Date | undefined;
+    /*
+     * Read the instance's budgets and the project's overrides as the ingest
+     * gate reads them (TelemetryIngestionBudgetSettings' cache, a minute at
+     * most behind a save), not fresh: for a reader that asks every minute
+     * and wants what the gate decides by - Security Events' scans (#10431)
+     * - rather than for a person who may just have saved a budget. The
+     * keys', teams' and labels' budgets are read as ever.
+     */
+    readsSettingsAsIngestDoes?: boolean | undefined;
   }): Promise<TelemetryIngestionBudgetStatus> {
     const now: Date = data.now || new Date();
 
     const instance: TelemetryIngestionBudgetInstanceSettings =
-      await this.readInstanceSettings();
+      data.readsSettingsAsIngestDoes
+        ? await TelemetryIngestionBudgetSettings.getInstanceSettings()
+        : await this.readInstanceSettings();
     const project: TelemetryIngestionBudgetStoredSettings | null =
-      await this.readProjectOverrides(data.projectId);
+      data.readsSettingsAsIngestDoes
+        ? await TelemetryIngestionBudgetSettings.getProjectOverrides(
+            data.projectId,
+          )
+        : await this.readProjectOverrides(data.projectId);
     const keys: Array<BudgetedKey> = await this.readBudgetedKeys(
       data.projectId,
     );

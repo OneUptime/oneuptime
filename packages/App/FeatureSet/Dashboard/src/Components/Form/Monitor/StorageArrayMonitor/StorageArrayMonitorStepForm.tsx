@@ -209,6 +209,9 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<StorageArray> =
     useInfrastructureResources<StorageArray>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepStorageArrayMonitor.arrayIdentifier,
       modelType: StorageArray,
       select: {
         _id: true,
@@ -547,6 +550,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: STORAGE_ARRAY_ONBOARDING.addTitle,
           renderModal: (input: {

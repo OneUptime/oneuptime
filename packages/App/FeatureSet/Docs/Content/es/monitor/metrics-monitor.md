@@ -116,7 +116,7 @@ Cuanto más larga es la ventana, más ancho es cada tramo de tiempo, así que un
 
 ## Criterios
 
-Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
+Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Distinto de**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
 
 | Condición | Coincide cuando el valor está… |
 | --- | --- |
@@ -125,6 +125,7 @@ Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado 
 | **Menor que** | por debajo del umbral |
 | **Menor o igual que** | en el umbral o por debajo |
 | **Igual a** | exactamente en el umbral |
+| **Distinto de** | por encima o por debajo del umbral |
 | **Anómalamente alto** | por encima del rango esperado para esta hora de la semana |
 | **Anómalamente bajo** | por debajo de ese rango |
 | **Anómalo** | fuera de ese rango, en cualquier sentido |
@@ -193,6 +194,10 @@ Sin Group By, el mismo monitor es un único escalar: la consulta reduce todos lo
 
 Cada alerta por grupo sigue a su propio grupo. Cuando el host A vuelve por debajo del umbral, su alerta se resuelve por su cuenta, y la alerta del host B sigue abierta hasta que el host B se recupere. La recuperación de un grupo nunca cierra la alerta de otro.
 
+### Cada serie en la vista general
+
+La **Vista general** del monitor muestra en **Series** cada serie que leyó su última comprobación: las etiquetas de la serie, tal como las nombran sus alertas, su último valor, los criterios que cumple y su incidente o alerta abiertos. Una serie que mantiene el estado del monitor muestra **Mantiene el estado**. Un monitor con muchas series muestra 50 de ellas, primero las que mantienen el estado o cumplen un criterio, e indica cuántas hay.
+
 ### Qué guarda cada alerta
 
 Cada alerta o incidente abierto para un grupo guarda la comprobación que lo abrió solo para ese grupo: su serie, sus puntos y el resumen de la evaluación. Ninguna comprobación guardada ocupa más de 256 KB, y los registros de una que tuvo que recortarse para caber lo indican.
@@ -206,6 +211,7 @@ Las alertas y los incidentes abiertos antes de esto guardaban todos los grupos d
 
 - **Los monitores agrupados evalúan todos los criterios.** Así, distintos niveles de gravedad pueden dispararse en distintos grupos a la vez: con «Critical: mayor que 95» por encima de «Warning: mayor que 80», un host al 96 % abre una alerta crítica mientras que un host al 85 % abre una de advertencia en la misma comprobación. Un host que supera ambos niveles sigue recibiendo exactamente una alerta, la del primer criterio que coincide, así que **ordena los criterios del más grave al menos grave**.
 - **Los monitores sin agrupar se detienen en el primer criterio que coincide.** Solo se dispara ese criterio, otra razón para poner el criterio de alerta por encima del de buen estado: un criterio de buen estado amplio colocado primero coincide en casi todas las comprobaciones e impide que el criterio de alerta de debajo llegue a evaluarse.
+- **El estado de un monitor agrupado vuelve con las series que lo cambiaron.** El monitor tiene un solo estado, que fija el primer criterio que coincide. Un criterio que solo lo devuelve a su **Estado de monitor predeterminado**, sin abrir ninguna alerta ni incidente, espera a las series que cumplieron un criterio que fija otro estado, y coincide cuando cada una de ellas lo cumple: un host que nunca estuvo cerca del umbral no devuelve el monitor. Hasta entonces el monitor mantiene su estado, aunque no coincida ningún criterio, así que un criterio de buen estado un poco por debajo del umbral evita que una serie que oscila en torno a él haga cambiar el estado una y otra vez. La alerta de cada serie se sigue resolviendo por separado.
 
 | Host | Disco usado | Critical (> 95) | Warning (> 80) | Alerta lanzada |
 | --- | --- | --- | --- | --- |

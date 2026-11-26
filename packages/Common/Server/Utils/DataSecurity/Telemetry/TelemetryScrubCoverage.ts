@@ -1,13 +1,16 @@
 import LogScrubRule from "../../../../Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
+import Service from "../../../../Models/DatabaseModels/Service";
 import TraceScrubRule from "../../../../Models/DatabaseModels/TraceScrubRule";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ColumnLength from "../../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import DataCategory from "../../../../Types/DataSecurity/DataCategory";
 import {
   DataTypeInfo,
   getBuiltInDataType,
 } from "../../../../Types/DataSecurity/DataTypeCatalog";
+import { readTelemetryDataStoreKeyOwnerId } from "../../../../Types/DataSecurity/DataStoreKey";
 import {
   DataStoreKind,
   isDataStoreKind,
@@ -37,8 +40,10 @@ import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRule
 import ObjectID from "../../../../Types/ObjectID";
 import {
   checkScrubRuleCustomRegex,
+  DATA_TYPE_OF_SCRUB_PATTERN_TYPE,
   doesScrubRuleScrubNothing,
   LOG_SCRUB_FIELDS,
+  SCRUB_RULE_SENSITIVE_KEY_REGEX,
   LOG_SCRUB_PATTERN_TYPES,
   LOG_SCRUB_RULE_DEFAULTS,
   SCRUB_RULE_CUSTOM_PATTERN_TYPE,
@@ -49,6 +54,22 @@ import {
   TRACE_SCRUB_PATTERN_TYPES,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "../../../../Types/Telemetry/ScrubRule";
+import {
+  readScrubRuleKeys,
+  SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+  ScrubRuleKeyMatcher,
+} from "../../../../Types/Telemetry/ScrubRuleKeys";
+import {
+  isScrubRuleProven,
+  readScrubRuleProof,
+  ScrubRuleProof,
+  ScrubRuleProofPlace,
+} from "../../../../Types/Telemetry/ScrubRuleProof";
+import { getScrubRuleServiceId } from "../../../../Types/Telemetry/ScrubRuleScope";
+import {
+  SecurityEventsFieldNeed,
+  SecurityEventsTelemetrySource,
+} from "../../../../Types/Telemetry/TelemetryFieldReaders";
 import TraceScrubAction from "../../../../Types/Trace/TraceScrubAction";
 import TraceScrubField from "../../../../Types/Trace/TraceScrubField";
 import { isCustomDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
@@ -56,9 +77,18 @@ import { DataTypeDetector } from "../../../../Utils/DataSecurity/Detector";
 import { getBuiltInDetectorsOf } from "../../../../Utils/DataSecurity/Detectors/Index";
 import { PatternProblemReason } from "../../../../Utils/LinearRegExp/PatternProblem";
 import { CORRELATION_ID_ATTRIBUTE_KEYS } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
+import {
+  compileScrubRuleReading,
+  findSecurityEventsLosses,
+} from "../../../../Utils/Telemetry/ScrubRuleFieldReads";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
+import ServiceService from "../../../Services/ServiceService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
+import {
+  findSecurityEventsSources,
+  SecurityEventsSources,
+} from "../../SecurityEvent/SecurityEventsFieldReaders";
 import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthorization";
 import ProjectDataTypeNames from "../ProjectDataTypeNames";
 
@@ -102,7 +132,16 @@ export type {
  *    person wrote is never taken for one that covers: a finding keeps
  *    only masked samples, which no pattern can be tried on, so coverage
  *    could not be proven - and a finding wrongly called scrubbed is a
- *    leak nobody looks at.
+ *    leak nobody looks at;
+ *  - or a Named Attributes rule that names the attribute the finding is
+ *    in (#10366): it hides the whole value there, whatever it holds;
+ *  - or a rule that carries a proof for the finding's place (#10366): it
+ *    was run, through the code ingest runs, on the very records the
+ *    finding was seen in, and the scanner found the data type in none of
+ *    them afterwards (Types/Telemetry/ScrubRuleProof). A proven rule
+ *    covers, custom pattern or not - while it is still the rule that was
+ *    proven. A pattern rule that names attributes reads only theirs, so it
+ *    covers a finding in one of them only.
  *
  * A sensitive-keys rule also hides what sits under such a key inside a
  * value: a list's or a map's, a log body's, a JSON text's held in a string
@@ -127,9 +166,11 @@ export type {
  * a metric attribute makes a Redact Attribute rule for its service: it
  * replaces the attribute's value with [REDACTED] - only the values of the
  * data type's shape, where a pattern can find it (a "Matches Regex"
- * filter of the pattern above, so the label keeps its other values), and
- * every value under the key otherwise, since the key's name is what says
- * it is sensitive. Such a rule covers the finding, as does a Redact or
+ * filter of the pattern above, so the label keeps its other values; for an
+ * IP address, an email address or a card number a "Matches Pattern Type"
+ * filter of the built-in pattern a log or trace rule of the type runs,
+ * METRIC_PATTERN_TYPE_OF_DATA_TYPE, #10934), and every value under the key
+ * otherwise, since the key's name is what says it is sensitive. Such a rule covers the finding, as does a Redact or
  * Remove Attribute rule of that key for the service or the whole project
  * with no filter. A rule with filters a person wrote never counts, for the
  * reason a person's pattern never does. A metric's name cannot be
@@ -157,10 +198,25 @@ export interface CoveringScrubRule {
   fieldsToScrub: string;
   // A metric pipeline rule's: the attribute it redacts or removes.
   attributeKey?: string | undefined;
-  // A metric pipeline rule's: the service it is for; none for every service.
+  /*
+   * The service it is for; none for every service. A metric pipeline
+   * rule's, and a log or trace scrub rule's since #10433: such a rule hides
+   * data in its service's records only, so it covers that service's
+   * findings only.
+   */
   serviceId?: string | undefined;
   // A metric pipeline rule's: the rows it applies to.
   filters?: Array<MetricPipelineRuleFilterCondition> | undefined;
+  /*
+   * A log or trace rule's attributes, when it names them (#10366): the ones
+   * a Named Attributes rule hides whole, or the only ones a pattern reads.
+   */
+  attributeKeys?: Array<string> | undefined;
+  /*
+   * The places its proof covers, when it carries one of itself as it is
+   * now (#10366): a proof of a rule since changed covers nothing.
+   */
+  provenPlaces?: Array<ScrubRuleProofPlace> | undefined;
 }
 
 export interface ScrubCoverage {
@@ -191,14 +247,13 @@ export interface CreatedScrubRule {
 }
 
 /*
- * The attribute-KEY denylist ingest's sensitive-keys rules read
- * (SENSITIVE_KEY_REGEX in App/FeatureSet/Telemetry/Services/
- * LogScrubRuleService.ts and TraceScrubRuleService.ts), written out again
- * here because Common cannot import from App. TelemetryScrubCoverage.test.ts
- * reads both and fails when they differ.
+ * The attribute-KEY denylist ingest's sensitive-keys rules read, written
+ * once in Common (Types/Telemetry/ScrubRule) and compiled by the one step
+ * both engines compile rules with (Server/Utils/Telemetry/ScrubEngine/
+ * CompiledScrubRule, #10366).
  */
 export const INGEST_SENSITIVE_KEY_REGEX: RegExp =
-  /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
+  SCRUB_RULE_SENSITIVE_KEY_REGEX;
 
 // The longest key read: no attribute key is longer than a location.
 const MAX_KEY_LENGTH: number = 1_024;
@@ -231,15 +286,8 @@ function sensitiveKeysRuleHides(target: ScrubTarget): boolean {
   );
 }
 
-// The data type each built-in pattern type finds. Log and trace rules share them.
-export const DATA_TYPE_OF_SCRUB_PATTERN_TYPE: Readonly<Record<string, string>> =
-  {
-    [LogScrubPatternType.Email]: "email-address",
-    [LogScrubPatternType.CreditCard]: "credit-card-number",
-    [LogScrubPatternType.SSN]: "us-ssn",
-    [LogScrubPatternType.PhoneNumber]: "phone-number",
-    [LogScrubPatternType.IPAddress]: "ip-address",
-  };
+// The data type each built-in pattern type finds (Types/Telemetry/ScrubRule).
+export { DATA_TYPE_OF_SCRUB_PATTERN_TYPE };
 
 const SCRUB_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> = new Map(
   Object.entries(DATA_TYPE_OF_SCRUB_PATTERN_TYPE).map(
@@ -249,8 +297,14 @@ const SCRUB_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> = new Map(
   ),
 );
 
-// The built-in pattern types "Scrub it" masks rather than redacts.
+/*
+ * The built-in pattern types "Scrub it" masks rather than redacts: the
+ * personal data among them, masked as a finding's samples are (#10366). An
+ * IP address is redacted, or hashed where Security Events reads it
+ * (#10396).
+ */
 const MASKED_PATTERN_TYPES: ReadonlySet<string> = new Set([
+  LogScrubPatternType.Email,
   LogScrubPatternType.CreditCard,
   LogScrubPatternType.SSN,
   LogScrubPatternType.PhoneNumber,
@@ -259,8 +313,11 @@ const MASKED_PATTERN_TYPES: ReadonlySet<string> = new Set([
 // What the name of every rule "Scrub it" makes starts with.
 export const DATA_SECURITY_SCRUB_RULE_NAME_PREFIX: string = "Data Security: ";
 
-// The rule columns' lengths (character varying(50) and (500)).
-const MAX_RULE_NAME_LENGTH: number = 50;
+/*
+ * The rule columns' lengths: character varying(100) for a name since
+ * WidenThingNameColumns (1808992530000), and (500) for a description.
+ */
+const MAX_RULE_NAME_LENGTH: number = ColumnLength.ShortText;
 const MAX_RULE_DESCRIPTION_LENGTH: number = 500;
 export const MAX_SCRUB_PATTERN_LENGTH: number = 500;
 
@@ -306,16 +363,68 @@ function ruleScrubsField(
 }
 
 /*
+ * THE TYPES WHOSE METRIC RULE MATCHES A BUILT-IN PATTERN TYPE (#10934).
+ *
+ * A metric rule's filter told the values it hides by the type's own
+ * pattern (buildScrubPatternForDataType), frozen into the rule when it was
+ * made. For three types no such pattern can say what Data Security finds,
+ * so a rule made so left data at its place while its finding said it was
+ * hidden:
+ *
+ *  - an IP address: IPv6's detector does not fit the 500 characters beside
+ *    IPv4's, so the pattern held IPv4 alone and every IPv6 address stayed;
+ *  - an IP address or an email address in a percent-encoded URL
+ *    (2001%3Adb8%3A%3A1, jane.doe%40acmecorp.io), which the detectors read
+ *    decoded (#10467, #10935) and a pattern reads as written;
+ *  - an email address in another script, and a card number in another
+ *    script's digits (#10960), which the detectors read with Unicode's
+ *    classes and every script's digits; and a card written in groups,
+ *    which the card pattern's back-reference kept out of it.
+ *
+ * Their rule matches the built-in Pattern Type of a log or trace rule of
+ * the type instead (Matches Pattern Type): the very pattern those rules
+ * run, which hides what the detectors find in every reading
+ * (Utils/Telemetry/ScrubBuiltInPatterns), and follows them as they change -
+ * the type is read when a value is, not frozen into the rule. Rules made
+ * before with the frozen pattern were moved to it (App/FeatureSet/Workers/
+ * DataMigrations/MetricScrubRulesMatchTheirPatternType). Every other type
+ * keeps its own pattern: the Phone Number and SSN patterns find less than
+ * theirs does.
+ */
+export const METRIC_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> =
+  new Map<string, string>([
+    ["ip-address", LogScrubPatternType.IPAddress],
+    ["email-address", LogScrubPatternType.Email],
+    ["credit-card-number", LogScrubPatternType.CreditCard],
+  ]);
+
+/*
  * The filters "Scrub it" gives a metric rule for a data type under a key:
- * the value has the type's shape (buildScrubPatternForDataType), so the
- * label keeps its other values - or none, where no pattern can find the
- * type: then every value under the key is redacted, since the key's name,
- * or the words around the values, are what say it holds the type.
+ * the value holds what the type's built-in Pattern Type finds
+ * (METRIC_PATTERN_TYPE_OF_DATA_TYPE), or has the type's shape
+ * (buildScrubPatternForDataType), so the label keeps its other values - or
+ * none, where no pattern can find the type: then every value under the key
+ * is redacted, since the key's name, or the words around the values, are
+ * what say it holds the type.
  */
 export function buildMetricScrubFilters(
   dataTypeId: string,
   attributeKey: string,
 ): Array<MetricPipelineRuleFilterCondition> {
+  const patternType: string | undefined =
+    METRIC_PATTERN_TYPE_OF_DATA_TYPE.get(dataTypeId);
+
+  if (patternType) {
+    return [
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey,
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: patternType,
+      },
+    ];
+  }
+
   const pattern: string | null = isCustomDataTypeId(dataTypeId)
     ? null
     : buildScrubPatternForDataType(dataTypeId);
@@ -389,6 +498,14 @@ function metricRuleCovers(
  * The filters a Drop rule for a metric's name holding a data type has: the
  * name has the type's shape (buildScrubPatternForDataType) - or null when no
  * pattern can find the type, so no rule can tell those metrics apart.
+ *
+ * A name keeps the type's own pattern where an attribute matches a Pattern
+ * Type (METRIC_PATTERN_TYPE_OF_DATA_TYPE, #10934): OpenTelemetry writes an
+ * instrument's name in ASCII letters, digits and "_", ".", "-" and "/"
+ * alone, so no IPv6 address, email address or escape can be in one, and an
+ * IPv4 address in a name is what the pattern finds. And a Drop rule loses
+ * what it drops for good: what it drops is what the person read before
+ * making it (TelemetryMetricDrop), and stays so.
  */
 export function buildMetricDropFilters(
   dataTypeId: string,
@@ -474,12 +591,43 @@ function ruleCovers(
     return metricRuleCovers(rule, target, finding);
   }
 
+  // A rule for one service hides nothing in another's records (#10433).
+  if (!isRuleOfService(rule, finding)) {
+    return false;
+  }
+
+  // Proven on the very records of this place, through ingest's own code (#10366).
+  if (
+    (rule.provenPlaces || []).some((place: ScrubRuleProofPlace): boolean => {
+      return (
+        place.dataTypeId === dataTypeId &&
+        place.location === finding.location &&
+        place.kind === finding.kind
+      );
+    })
+  ) {
+    return true;
+  }
+
   if (rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     // A key's whole value, whatever the rule's fields say - as ingest runs it.
     return sensitiveKeysRuleHides(target);
   }
 
+  if (rule.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE) {
+    // The whole value of the attribute it names, whatever it holds (#10366).
+    return namedKeysRuleHides(rule, target);
+  }
+
   if (!ruleScrubsField(rule, target.field)) {
+    return false;
+  }
+
+  // A pattern that names attributes reads only theirs (#10366).
+  if (
+    (rule.attributeKeys || []).length > 0 &&
+    !isAttributeNamedByRule(rule, target)
+  ) {
     return false;
   }
 
@@ -521,6 +669,64 @@ export function isFindingScrubbed(
   return findCoveringScrubRule(coverage, finding) !== null;
 }
 
+/*
+ * Whether a pattern rule that names attributes reads the attribute a
+ * finding is in: an attribute's, or an event attribute's, whose key it
+ * names. A finding of an event's attribute keeps only the key's last part,
+ * which the rule must name as a whole.
+ */
+function isAttributeNamedByRule(
+  rule: CoveringScrubRule,
+  target: ScrubTarget,
+): boolean {
+  if (
+    target.key === undefined ||
+    (target.field !== ScrubbedField.Attributes &&
+      target.field !== ScrubbedField.Events)
+  ) {
+    return false;
+  }
+
+  return new ScrubRuleKeyMatcher(rule.attributeKeys || []).matches(target.key);
+}
+
+/*
+ * Whether a Named Attributes rule hides the value at this place: the
+ * attribute's own key is one it names, in a part of the record it reads -
+ * a log's attributes; a span's, or its events', as its fields say - but
+ * for a record's own session or conversation id, which it keeps where the
+ * record's column keeps it (#8924).
+ */
+function namedKeysRuleHides(
+  rule: CoveringScrubRule,
+  target: ScrubTarget,
+): boolean {
+  if (
+    target.field === ScrubbedField.Attributes &&
+    target.key !== undefined &&
+    CORRELATION_ID_ATTRIBUTE_KEYS.has(target.key)
+  ) {
+    return false;
+  }
+
+  if (!isAttributeNamedByRule(rule, target)) {
+    return false;
+  }
+
+  if (rule.signal === "log") {
+    return target.field === ScrubbedField.Attributes;
+  }
+
+  switch (rule.fieldsToScrub) {
+    case TraceScrubField.Attributes:
+      return target.field === ScrubbedField.Attributes;
+    case TraceScrubField.Events:
+      return target.field === ScrubbedField.Events;
+    default:
+      return true;
+  }
+}
+
 function toCoveringRule(
   rule: LogScrubRule | TraceScrubRule,
   signal: ScrubRuleSignal,
@@ -534,6 +740,7 @@ function toCoveringRule(
       patternType: rule.patternType,
       customRegex: rule.customRegex,
       fieldsToScrub: rule.fieldsToScrub,
+      attributeKeys: rule.attributeKeys,
       knownPatternTypes:
         signal === "log" ? LOG_SCRUB_PATTERN_TYPES : TRACE_SCRUB_PATTERN_TYPES,
       knownFieldsToScrub:
@@ -543,7 +750,7 @@ function toCoveringRule(
     return null;
   }
 
-  return {
+  const covering: CoveringScrubRule = {
     id,
     name: rule.name || "",
     signal,
@@ -555,6 +762,48 @@ function toCoveringRule(
         ? LOG_SCRUB_RULE_DEFAULTS.fieldsToScrub
         : TRACE_SCRUB_RULE_DEFAULTS.fieldsToScrub),
   };
+  const serviceId: string = getScrubRuleServiceId(rule);
+
+  if (serviceId) {
+    covering.serviceId = serviceId;
+  }
+
+  const attributeKeys: Array<string> =
+    rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE
+      ? []
+      : readScrubRuleKeys(rule.attributeKeys);
+
+  if (attributeKeys.length > 0) {
+    covering.attributeKeys = attributeKeys;
+  }
+
+  /*
+   * A proof of the rule as it is now: the rule as saved - its fields as
+   * written, not as ingest defaults them - is what was proven.
+   */
+  const proof: ScrubRuleProof | null = readScrubRuleProof(rule.proof);
+
+  if (
+    proof &&
+    signal !== "metric" &&
+    isScrubRuleProven({
+      rule: {
+        signal,
+        patternType: rule.patternType,
+        customRegex: rule.customRegex,
+        attributeKeys: rule.attributeKeys,
+        scrubAction: rule.scrubAction,
+        fieldsToScrub: rule.fieldsToScrub,
+        serviceId: rule.serviceId,
+      },
+      proof,
+    }) &&
+    proof.places.length > 0
+  ) {
+    covering.provenPlaces = proof.places;
+  }
+
+  return covering;
 }
 
 /*
@@ -619,6 +868,12 @@ export async function getScrubCoverage(
         patternType: true,
         customRegex: true,
         fieldsToScrub: true,
+        // A rule for one service covers that service's findings only (#10433).
+        serviceId: true,
+        // What it names, its action and its proof decide what it covers (#10366).
+        attributeKeys: true,
+        scrubAction: true,
+        proof: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -632,6 +887,10 @@ export async function getScrubCoverage(
         patternType: true,
         customRegex: true,
         fieldsToScrub: true,
+        serviceId: true,
+        attributeKeys: true,
+        scrubAction: true,
+        proof: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -867,11 +1126,73 @@ export function buildScrubPatternForDataType(
   return pattern;
 }
 
-interface ScrubRulePlan {
+// The rule Scrub It makes for a finding: what it finds, does, and where in the record.
+export interface ScrubRulePlan {
   patternType: string;
   customRegex?: string | undefined;
   scrubAction: string;
   fieldsToScrub: string;
+  /*
+   * An IP Address rule that hashes rather than redacts, because Security
+   * Events reads the addresses where the rule hides them (#10396): its
+   * address vault still names the address behind each token.
+   */
+  hashesForSecurityEvents?: boolean | undefined;
+  /*
+   * The attributes it names (#10366): a Named Attributes rule's, or the
+   * only ones a pattern reads. None for every attribute.
+   */
+  attributeKeys?: Array<string> | undefined;
+}
+
+// Who made a rule, as its description says first.
+export enum ScrubRuleOrigin {
+  // A person pressed Scrub It.
+  ScrubIt = "ScrubIt",
+  // OneUptime AI proposed it, and a person approved it, or it ran without asking.
+  OneUptimeAi = "OneUptimeAi",
+}
+
+/*
+ * WHETHER SCRUB IT HASHES AN IP ADDRESS (#10396).
+ *
+ * A Redact rule on IP addresses leaves every attack Security Events finds
+ * in those records without an address: nothing to block, nothing for threat
+ * intel to look up. A Hash rule hides the address from people just as well -
+ * they read a token - and Security Events' address vault (#10395) still
+ * names the address behind each token. So Scrub It hashes an IP address
+ * exactly where a Redact rule would take the address from Security Events:
+ * the records one of its scans reads, in the parts it reads the address
+ * from (a log's body and attributes, a span's attributes - not a span's
+ * events or name). Everywhere else nothing needs the address, and it keeps
+ * Redact. The question is the one the readers lookup asks of any rule
+ * (Utils/Telemetry/ScrubRuleFieldReads.findSecurityEventsLosses), so the
+ * dialog's "what Security Events would lose" and this choice never differ.
+ */
+export function isAddressLostToSecurityEvents(data: {
+  signal: "log" | "trace";
+  fieldsToScrub: string;
+  serviceId?: unknown;
+  sources: ReadonlyArray<SecurityEventsTelemetrySource>;
+}): boolean {
+  if (data.sources.length === 0) {
+    return false;
+  }
+
+  return findSecurityEventsLosses(
+    compileScrubRuleReading({
+      signal: data.signal,
+      patternType: LogScrubPatternType.IPAddress,
+      scrubAction: LogScrubAction.Redact,
+      fieldsToScrub: data.fieldsToScrub,
+      serviceId: data.serviceId,
+    }),
+    data.sources,
+  ).includes(SecurityEventsFieldNeed.ClientAddresses);
+}
+
+function hashAction(signal: ScrubRuleSignal): string {
+  return signal === "log" ? LogScrubAction.Hash : TraceScrubAction.Hash;
 }
 
 function fieldsToScrubFor(target: ScrubTarget): string {
@@ -910,7 +1231,7 @@ function dataTypeNameOf(dataTypeId: string): string {
  * (#10363), read only for such a type - else the name its finding kept -
  * and a built-in one by the catalog's.
  */
-async function nameTypeForRule(data: {
+export async function nameTypeForRule(data: {
   projectId: ObjectID;
   dataTypeId: string;
   // The name the finding kept when it was found.
@@ -953,10 +1274,19 @@ function noRuleReason(dataTypeId: string, location: string): string {
   return `${info.name} is told apart from other values only by the words around it, which a scrub rule cannot read, so a rule would hide far more than ${info.name}. ${keyAdvice}`;
 }
 
-function planScrubRule(data: {
+export function planScrubRule(data: {
   dataTypeId: string;
   location: string;
   target: ScrubTarget;
+  /*
+   * The Security Events scans that read the records of the finding's
+   * signal (SecurityEventsFieldReaders.findSecurityEventsSources): an IP
+   * address they read is hashed, not redacted (#10396). None, or left out,
+   * when none does or it could not be told.
+   */
+  securityEventsSources?: ReadonlyArray<SecurityEventsTelemetrySource>;
+  // The service the rule is for, as Security Events' losses are read for it.
+  serviceId?: unknown;
 }): ScrubRulePlan {
   const target: ScrubTarget = data.target;
   const builtIn: string | undefined = SCRUB_PATTERN_TYPE_OF_DATA_TYPE.get(
@@ -964,12 +1294,32 @@ function planScrubRule(data: {
   );
 
   if (builtIn) {
+    const fieldsToScrub: string = fieldsToScrubFor(target);
+
+    if (
+      builtIn === LogScrubPatternType.IPAddress &&
+      target.signal !== "metric" &&
+      isAddressLostToSecurityEvents({
+        signal: target.signal,
+        fieldsToScrub,
+        serviceId: data.serviceId,
+        sources: data.securityEventsSources || [],
+      })
+    ) {
+      return {
+        patternType: builtIn,
+        scrubAction: hashAction(target.signal),
+        fieldsToScrub,
+        hashesForSecurityEvents: true,
+      };
+    }
+
     return {
       patternType: builtIn,
       scrubAction: MASKED_PATTERN_TYPES.has(builtIn)
         ? maskAction(target.signal)
         : redactAction(target.signal),
-      fieldsToScrub: fieldsToScrubFor(target),
+      fieldsToScrub,
     };
   }
 
@@ -1005,42 +1355,271 @@ function cut(text: string, maxLength: number): string {
   return text.length > maxLength ? text.slice(0, maxLength - 1) + "…" : text;
 }
 
-function describeFields(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
-  const records: string = signal === "log" ? "log" : "span";
+/*
+ * WHERE SCRUB IT'S RULE APPLIES (#10433).
+ *
+ * A finding is evidence about one service's telemetry, so Scrub It's log or
+ * trace rule is that service's (LogScrubRule.serviceId): it hides the data
+ * in the logs or spans the service sends, and changes no other service's -
+ * nor breaks the monitors and recording rules that read them. A metric's
+ * rule always was its service's (buildMetricScrubRule).
+ *
+ * A RUM application's session replays are the one exception: a rule names a
+ * service, never an application, so Scrub It's rule for a replay's logs or
+ * spans applies to every service and app of the project - and says so, in
+ * the dialog, the rule's name and its description.
+ */
+export interface ScrubRuleScopeOfFinding {
+  // The service the rule is for; null for every service and app of the project.
+  serviceId: ObjectID | null;
+  // The service's name; "" for every service.
+  serviceName: string;
+}
 
+export const EVERY_SERVICE_SCRUB_SCOPE: ScrubRuleScopeOfFinding = {
+  serviceId: null,
+  serviceName: "",
+};
+
+// Why Scrub It makes no rule for a service that is gone, in a sentence a person can act on.
+export const SCRUB_SERVICE_GONE: string =
+  "The service this telemetry was sent under no longer exists, so no new telemetry of it is left to scrub.";
+
+/*
+ * The service a finding's telemetry was sent under, as its store names it:
+ * the store's own serviceId, else the owner its key names (a store made
+ * before stores kept the column). None for a RUM application's session
+ * replays, whose owner is no service.
+ */
+export function readFindingServiceId(data: {
+  kind: DataStoreKind | string | null | undefined;
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): string {
+  if (data.kind === DataStoreKind.TelemetrySessionReplays) {
+    return "";
+  }
+
+  const own: string = data.serviceId ? data.serviceId.toString().trim() : "";
+
+  if (ObjectID.isValidUUID(own)) {
+    return own.toLowerCase();
+  }
+
+  const fromKey: string =
+    readTelemetryDataStoreKeyOwnerId(data.storeKey || null) || "";
+
+  return ObjectID.isValidUUID(fromKey) ? fromKey.toLowerCase() : "";
+}
+
+/*
+ * Where Scrub It's log or trace rule for a finding applies: its service,
+ * read with its name, or every service for a RUM application's replays.
+ * Refuses (BadDataException) a service-owned store whose service is gone:
+ * a rule for every service instead would change what nobody found
+ * anything in.
+ */
+export async function readScrubScopeOfFinding(data: {
+  projectId: ObjectID;
+  kind: DataStoreKind;
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): Promise<ScrubRuleScopeOfFinding> {
+  if (data.kind === DataStoreKind.TelemetrySessionReplays) {
+    return EVERY_SERVICE_SCRUB_SCOPE;
+  }
+
+  const serviceId: string = readFindingServiceId(data);
+
+  if (!serviceId) {
+    throw new BadDataException(SCRUB_SERVICE_GONE);
+  }
+
+  const service: Service | null = await ServiceService.findOneBy({
+    query: { projectId: data.projectId, _id: serviceId },
+    select: { _id: true, name: true },
+    props: { isRoot: true },
+  });
+
+  if (!service) {
+    throw new BadDataException(SCRUB_SERVICE_GONE);
+  }
+
+  return {
+    serviceId: new ObjectID(serviceId),
+    serviceName: (service.name || "").trim() || "Service",
+  };
+}
+
+// What a rule does with a match, as a verb its description uses.
+function actionVerb(scrubAction: string): string {
+  switch (scrubAction) {
+    case LogScrubAction.Mask:
+      return "masks";
+    case LogScrubAction.Hash:
+      return "hashes";
+    default:
+      return "redacts";
+  }
+}
+
+// The parts of the records a rule scrubs, as its name says them.
+function fieldsNoun(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
+  if (signal === "log") {
+    switch (plan.fieldsToScrub) {
+      case LogScrubField.Body:
+        return "log bodies";
+      case LogScrubField.Attributes:
+        return "log attributes";
+      default:
+        return "logs";
+    }
+  }
+
+  switch (plan.fieldsToScrub) {
+    case TraceScrubField.Attributes:
+      return "span attributes";
+    case TraceScrubField.Events:
+      return "span events";
+    case TraceScrubField.Name:
+      return "span names";
+    default:
+      return "spans";
+  }
+}
+
+// The same parts, as a sentence of its description says them.
+function describeFields(plan: ScrubRulePlan, signal: ScrubRuleSignal): string {
   switch (plan.fieldsToScrub) {
     case LogScrubField.Body:
       return "log bodies";
+    case LogScrubField.Both:
+      return "log bodies and attribute values";
     case TraceScrubField.Events:
       return "span events and exceptions";
     case TraceScrubField.Name:
       return "span names";
+    case TraceScrubField.All:
+      return "span names, attributes, events and exceptions";
     default:
-      return `${records} attribute values`;
+      return signal === "log"
+        ? "log attribute values"
+        : "span attribute values";
   }
 }
 
-function describeRule(data: {
+// The records a rule applies to, as its description says them.
+function describeScope(
+  scope: ScrubRuleScopeOfFinding,
+  signal: ScrubRuleSignal,
+): string {
+  const records: string = signal === "log" ? "logs" : "spans";
+
+  return scope.serviceId
+    ? `the ${records} of ${scope.serviceName} only: other services' ${records} are not changed`
+    : `the ${records} of every service and app in the project`;
+}
+
+/*
+ * The name of the rule Scrub It makes: what it hides, in which parts of the
+ * records, and whose - "Data Security: Email address in log attributes of
+ * checkout". It hides every value of the type there, not one attribute's,
+ * so the finding's own place is said in its description, not its name.
+ */
+export function nameScrubItRule(data: {
+  plan: ScrubRulePlan;
+  signal: ScrubRuleSignal;
+  dataTypeName: string;
+  scope: ScrubRuleScopeOfFinding;
+}): string {
+  const owner: string = data.scope.serviceId
+    ? ` of ${data.scope.serviceName}`
+    : "";
+  const keys: Array<string> = data.plan.attributeKeys || [];
+
+  /*
+   * A rule that names attributes is named after them: it hides that data
+   * there, not every value of the type (#10366).
+   */
+  if (keys.length > 0) {
+    return cut(
+      `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${data.dataTypeName} in ${keys.join(", ")}${owner}`,
+      MAX_RULE_NAME_LENGTH,
+    );
+  }
+
+  return cut(
+    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${data.dataTypeName} in ${fieldsNoun(data.plan, data.signal)}${owner}`,
+    MAX_RULE_NAME_LENGTH,
+  );
+}
+
+// Who made a rule, and from what: its description's first sentence.
+export function describeScrubRuleOrigin(data: {
+  origin?: ScrubRuleOrigin | undefined;
+  dataTypeName: string;
+  location: string;
+  kind: DataStoreKind | string;
+  // How many findings it was made from: one rule for several places (#10366).
+  findingCount?: number | undefined;
+}): string {
+  const from: string =
+    (data.findingCount || 1) > 1
+      ? `findings of ${data.dataTypeName} in ${data.location}`
+      : `a finding of ${data.dataTypeName} in ${data.location}`;
+
+  return data.origin === ScrubRuleOrigin.OneUptimeAi
+    ? `Made by OneUptime AI (Data Security) from ${from} (${data.kind}).`
+    : `Made by Data Security ("Scrub it") from ${from} (${data.kind}).`;
+}
+
+export function describeRule(data: {
   plan: ScrubRulePlan;
   signal: ScrubRuleSignal;
   dataTypeName: string;
   location: string;
   kind: DataStoreKind;
+  scope: ScrubRuleScopeOfFinding;
+  origin?: ScrubRuleOrigin | undefined;
+  findingCount?: number | undefined;
 }): string {
-  const origin: string = `Made by Data Security ("Scrub it") from a finding of ${data.dataTypeName} in ${data.location} (${data.kind}).`;
+  const origin: string = describeScrubRuleOrigin(data);
+  const applies: string = `It applies to ${describeScope(data.scope, data.signal)}.`;
+  const keys: Array<string> = data.plan.attributeKeys || [];
 
-  if (data.plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
+  // The whole value of the attributes it names (#10366).
+  if (data.plan.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE) {
     return cut(
-      `${origin} It hides the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - and every value under such a key inside a list, a map, a log body or a JSON text, from now on. What is stored already stays until its retention ends.`,
+      `${origin} It ${actionVerb(data.plan.scrubAction)} the whole value of ${keys.join(", ")}, whatever it holds, from now on. ${applies} What is stored already stays until its retention ends.`,
       MAX_RULE_DESCRIPTION_LENGTH,
     );
   }
 
-  const verb: string =
-    data.plan.scrubAction === LogScrubAction.Mask ? "masks" : "redacts";
+  // A pattern in the attributes it names, and no others (#10366).
+  if (keys.length > 0) {
+    return cut(
+      `${origin} It ${actionVerb(data.plan.scrubAction)} every ${data.dataTypeName.toLowerCase()} in the values of ${keys.join(", ")} from now on, and nothing in any other attribute. ${applies} What is stored already stays until its retention ends.`,
+      MAX_RULE_DESCRIPTION_LENGTH,
+    );
+  }
+
+  if (data.plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
+    return cut(
+      `${origin} It ${actionVerb(data.plan.scrubAction)} the whole value of every attribute whose key looks sensitive - password, token, secret, cookie, ... - and every value under such a key inside a list, a map, a log body or a JSON text, from now on. ${applies} What is stored already stays until its retention ends.`,
+      MAX_RULE_DESCRIPTION_LENGTH,
+    );
+  }
+
+  // Why it hashes rather than redacts, where Security Events reads the address (#10396).
+  if (data.plan.hashesForSecurityEvents) {
+    return cut(
+      `${origin} It hashes every ${data.dataTypeName.toLowerCase()} in ${describeFields(data.plan, data.signal)} from now on, rather than redacting it: people see a token instead of the address, and Security Events, which reads these ${data.signal === "log" ? "logs" : "spans"}, still sees the address behind it, so it can say which one to block. ${applies} What is stored already stays until its retention ends.`,
+      MAX_RULE_DESCRIPTION_LENGTH,
+    );
+  }
 
   return cut(
-    `${origin} It ${verb} every ${data.dataTypeName.toLowerCase()} in ${describeFields(data.plan, data.signal)} from now on. What is stored already stays until its retention ends.`,
+    `${origin} It ${actionVerb(data.plan.scrubAction)} every ${data.dataTypeName.toLowerCase()} in ${describeFields(data.plan, data.signal)} from now on. ${applies} What is stored already stays until its retention ends.`,
     MAX_RULE_DESCRIPTION_LENGTH,
   );
 }
@@ -1305,17 +1884,17 @@ export async function createDropRuleForFinding(data: {
  * store that is not telemetry, a location no rule reaches (a session's own
  * details, a metric's name), and a data type no rule can find.
  */
-export async function createScrubRuleForFinding(data: {
-  projectId: ObjectID;
-  userId?: ObjectID | undefined;
+/*
+ * Where a finding's data would be scrubbed, or why it cannot be: a store
+ * that is not telemetry, a location no rule reaches (a session's own
+ * details, a metric's name). Refuses with BadDataException, in the words
+ * Scrub It answers with.
+ */
+export function readScrubbableTarget(data: {
   kind: DataStoreKind;
   dataTypeId: string;
-  // The name the finding kept for its type: what the rule calls a type that is gone.
-  dataTypeName?: string | null | undefined;
   location: string;
-  // The service the store is the telemetry of: a metric rule is its own.
-  serviceId?: ObjectID | string | null | undefined;
-}): Promise<CreatedScrubRule> {
+}): { location: string; dataTypeId: string; target: ScrubTarget } {
   if (
     !isDataStoreKind(data.kind) ||
     !TELEMETRY_DATA_STORE_KINDS.includes(data.kind)
@@ -1349,9 +1928,201 @@ export async function createScrubRuleForFinding(data: {
     );
   }
 
+  return { location, dataTypeId, target };
+}
+
+// The rule Scrub It would make for a finding, as a person reads it before it is made.
+export interface ScrubRulePreview {
+  signal: ScrubRuleSignal;
+  name: string;
+  description: string;
+  /*
+   * A metric attribute's rule as it would be made: what its proof runs on
+   * the finding's data points (TelemetryScrubProof.proveMetricScrubRule,
+   * #10753).
+   */
+  metricRule?: MetricPipelineRule | undefined;
+}
+
+/*
+ * The rule "Scrub it" would make for a finding, without making it: what a
+ * proposal of OneUptime AI's shows a person before they approve it
+ * (Server/Utils/AI/DataSecurity/Actions/ScrubTelemetryAction, #10364).
+ * Refuses (BadDataException) what createScrubRuleForFinding refuses for a
+ * finding no rule covers yet, in the same words. It does not look for a
+ * rule that already covers the finding: its caller does.
+ */
+export async function previewScrubRuleForFinding(data: {
+  projectId: ObjectID;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  dataTypeName?: string | null | undefined;
+  location: string;
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): Promise<ScrubRulePreview> {
+  const scrubbable: {
+    location: string;
+    dataTypeId: string;
+    target: ScrubTarget;
+  } = readScrubbableTarget(data);
+
+  if (scrubbable.target.signal === "metric") {
+    const rule: MetricPipelineRule = buildMetricScrubRule({
+      projectId: data.projectId,
+      serviceId: data.serviceId,
+      kind: data.kind,
+      dataTypeId: scrubbable.dataTypeId,
+      location: scrubbable.location,
+      target: scrubbable.target,
+      dataTypeName: isCustomDataTypeId(scrubbable.dataTypeId)
+        ? await nameTypeForRule({
+            projectId: data.projectId,
+            dataTypeId: scrubbable.dataTypeId,
+            dataTypeName: data.dataTypeName,
+          })
+        : undefined,
+    });
+
+    return {
+      signal: "metric",
+      name: rule.name || "",
+      description: rule.description || "",
+      metricRule: rule,
+    };
+  }
+
+  const rule: ScrubItRule = await planScrubItRule({
+    ...data,
+    location: scrubbable.location,
+    dataTypeId: scrubbable.dataTypeId,
+    target: scrubbable.target as ScrubTarget & { signal: "log" | "trace" },
+  });
+
+  return {
+    signal: rule.signal,
+    name: rule.name,
+    description: rule.description,
+  };
+}
+
+/*
+ * The log or trace scrub rule Scrub It makes for a finding no rule covers
+ * yet, whole: what it finds and does (planScrubRule), the service it is for
+ * (readScrubScopeOfFinding), and its name and description, which say both.
+ * What the dialog shows before the rule is made, and what is made.
+ */
+export interface ScrubItRule {
+  signal: "log" | "trace";
+  plan: ScrubRulePlan;
+  dataTypeId: string;
+  // The type as the rule calls it: the catalog's name, or the project's own.
+  dataTypeName: string;
+  scope: ScrubRuleScopeOfFinding;
+  name: string;
+  description: string;
+}
+
+export async function planScrubItRule(data: {
+  projectId: ObjectID;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  dataTypeName?: string | null | undefined;
+  location: string;
+  target: ScrubTarget & { signal: "log" | "trace" };
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}): Promise<ScrubItRule> {
+  // Refused first, for a type no rule can find, before anything is read.
+  let plan: ScrubRulePlan = planScrubRule({
+    dataTypeId: data.dataTypeId,
+    location: data.location,
+    target: data.target,
+  });
+  const [dataTypeName, scope]: [string, ScrubRuleScopeOfFinding] =
+    await Promise.all([
+      nameTypeForRule({
+        projectId: data.projectId,
+        dataTypeId: data.dataTypeId,
+        dataTypeName: data.dataTypeName,
+      }),
+      readScrubScopeOfFinding(data),
+    ]);
+
+  /*
+   * An IP address Security Events reads is hashed, not redacted (#10396):
+   * its scans are asked only for an IP Address rule. Sources that could not
+   * be read leave the rule as it was planned.
+   */
+  if (plan.patternType === LogScrubPatternType.IPAddress) {
+    const read: SecurityEventsSources = await findSecurityEventsSources({
+      projectId: data.projectId,
+      signal: data.target.signal,
+    });
+
+    plan = planScrubRule({
+      dataTypeId: data.dataTypeId,
+      location: data.location,
+      target: data.target,
+      securityEventsSources: read.isChecked ? read.sources : [],
+      serviceId: scope.serviceId,
+    });
+  }
+
+  return {
+    signal: data.target.signal,
+    plan,
+    dataTypeId: data.dataTypeId,
+    dataTypeName,
+    scope,
+    name: nameScrubItRule({
+      plan,
+      signal: data.target.signal,
+      dataTypeName,
+      scope,
+    }),
+    description: describeRule({
+      plan,
+      signal: data.target.signal,
+      dataTypeName,
+      location: data.location,
+      kind: data.kind,
+      scope,
+    }),
+  };
+}
+
+export async function createScrubRuleForFinding(data: {
+  projectId: ObjectID;
+  userId?: ObjectID | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  // The name the finding kept for its type: what the rule calls a type that is gone.
+  dataTypeName?: string | null | undefined;
+  location: string;
+  /*
+   * The service the store is the telemetry of: the rule is its own - a
+   * metric rule always was, a log or trace rule since #10433.
+   */
+  serviceId?: ObjectID | string | null | undefined;
+  // The store's key, which names its service for a store kept without one.
+  storeKey?: string | null | undefined;
+}): Promise<CreatedScrubRule> {
+  const {
+    location,
+    dataTypeId,
+    target,
+  }: { location: string; dataTypeId: string; target: ScrubTarget } =
+    readScrubbableTarget(data);
+
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),
-    { kind: data.kind, dataTypeId, location, serviceId: data.serviceId },
+    {
+      kind: data.kind,
+      dataTypeId,
+      location,
+      serviceId: readFindingServiceId(data) || data.serviceId,
+    },
   );
 
   if (existing) {
@@ -1371,34 +2142,29 @@ export async function createScrubRuleForFinding(data: {
     });
   }
 
-  const plan: ScrubRulePlan = planScrubRule({ dataTypeId, location, target });
-  const dataTypeName: string = await nameTypeForRule({
-    projectId: data.projectId,
+  const planned: ScrubItRule = await planScrubItRule({
+    ...data,
     dataTypeId,
-    dataTypeName: data.dataTypeName,
-  });
-  const name: string = cut(
-    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${location}`,
-    MAX_RULE_NAME_LENGTH,
-  );
-  const description: string = describeRule({
-    plan,
-    signal: target.signal,
-    dataTypeName,
     location,
-    kind: data.kind,
+    target: target as ScrubTarget & { signal: "log" | "trace" },
   });
+  const plan: ScrubRulePlan = planned.plan;
+  const name: string = planned.name;
   const props: DatabaseCommonInteractionProps = await propsFor(data);
 
   if (target.signal === "log") {
     const rule: LogScrubRule = new LogScrubRule();
     rule.projectId = data.projectId;
     rule.name = name;
-    rule.description = description;
+    rule.description = planned.description;
     rule.patternType = plan.patternType;
     rule.scrubAction = plan.scrubAction;
     rule.fieldsToScrub = plan.fieldsToScrub;
     rule.isEnabled = true;
+
+    if (planned.scope.serviceId) {
+      rule.serviceId = planned.scope.serviceId;
+    }
 
     if (plan.customRegex) {
       rule.customRegex = plan.customRegex;
@@ -1419,11 +2185,15 @@ export async function createScrubRuleForFinding(data: {
   const rule: TraceScrubRule = new TraceScrubRule();
   rule.projectId = data.projectId;
   rule.name = name;
-  rule.description = description;
+  rule.description = planned.description;
   rule.patternType = plan.patternType;
   rule.scrubAction = plan.scrubAction;
   rule.fieldsToScrub = plan.fieldsToScrub;
   rule.isEnabled = true;
+
+  if (planned.scope.serviceId) {
+    rule.serviceId = planned.scope.serviceId;
+  }
 
   if (plan.customRegex) {
     rule.customRegex = plan.customRegex;

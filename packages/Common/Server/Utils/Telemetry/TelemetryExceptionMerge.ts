@@ -238,6 +238,11 @@ interface LockedRow {
   primaryEntityId: string;
   fingerprint: string;
   mergedIntoId: string | null;
+  /*
+   * Set on a row that only keeps an exception's former fingerprint
+   * (TelemetryExceptionRekey, #10619): that exception's id.
+   */
+  formerFingerprintOfId: string | null;
   occuranceCount: number;
   firstSeenAt: Date | null;
   lastSeenAt: Date | null;
@@ -249,6 +254,7 @@ interface LockedRow {
 const ROW_COLUMNS: string = `"_id"::text AS "id", "projectId"::text AS "projectId",
   "primaryEntityId"::text AS "primaryEntityId", "fingerprint",
   "mergedIntoTelemetryExceptionId"::text AS "mergedIntoId",
+  "formerFingerprintOfTelemetryExceptionId"::text AS "formerFingerprintOfId",
   COALESCE("occuranceCount", 0)::int AS "occuranceCount",
   "firstSeenAt", "lastSeenAt", "firstSeenInRelease", "lastSeenInRelease",
   COALESCE("unhandled", false) AS "unhandled"`;
@@ -303,11 +309,37 @@ export default class TelemetryExceptionMerge {
         primaryEntityId: true,
         fingerprint: true,
         mergedIntoTelemetryExceptionId: true,
+        formerFingerprintOfTelemetryExceptionId: true,
+        // Which exception a scrub rule split it from, and the older of the two.
+        splitFromTelemetryExceptionId: true,
+        firstSeenAt: true,
       },
       limit: data.ids.length,
       skip: 0,
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * A row that only keeps an exception's former fingerprint (#10619) is part
+   * of that exception: never merged, unmerged or merged into on its own.
+   */
+  public static refuseFormerFingerprints(
+    rows: Array<{
+      formerFingerprintOfId?: string | null | undefined;
+      formerFingerprintOfTelemetryExceptionId?: ObjectID | null | undefined;
+    }>,
+  ): void {
+    for (const row of rows) {
+      if (
+        row.formerFingerprintOfId ||
+        row.formerFingerprintOfTelemetryExceptionId
+      ) {
+        throw new BadDataException(
+          "That is the former fingerprint of another exception, not an exception of its own.",
+        );
+      }
+    }
   }
 
   public static readIds(raw: unknown): Array<ObjectID> {
@@ -407,6 +439,135 @@ export default class TelemetryExceptionMerge {
     return rows || [];
   }
 
+  /*
+   * MERGING A PAIR A SCRUB RULE SPLIT (#10618).
+   *
+   * Before #10434 a scrub rule that hid part of an exception found in logs
+   * split it: the rule's occurrences made an exception of their own. Ingest
+   * records the pair on the split one (splitFromTelemetryExceptionId), and
+   * its page offers to merge the two without OneUptime AI: this. The older
+   * of the two survives, its first seen being the real one - the one it was
+   * split from, nearly always - and the other is merged into it, by merge
+   * above, so both need permission to edit exceptions and the counts, seen
+   * times and Unmerge work as for any merge. Merged into another exception
+   * since, the one it was split from stands for that one. Only a person
+   * merges: nothing calls this but the request they make.
+   */
+  public static async mergeSplit(data: {
+    telemetryExceptionId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ExceptionMergeResult> {
+    const splitId: string = data.telemetryExceptionId.toString();
+
+    const split: TelemetryException | undefined = (
+      await TelemetryExceptionMerge.readEditable({
+        ids: [data.telemetryExceptionId],
+        props: data.props,
+      })
+    ).find((exception: TelemetryException): boolean => {
+      return sameId(exception.id?.toString(), splitId);
+    });
+
+    if (!split) {
+      throw new NotAuthorizedException(
+        "You do not have permission to edit this exception, or it does not exist.",
+      );
+    }
+
+    if (!split.splitFromTelemetryExceptionId) {
+      throw new BadDataException(
+        "No scrub rule split this exception from another one.",
+      );
+    }
+
+    const splitFromId: string = split.splitFromTelemetryExceptionId.toString();
+    let other: TelemetryException | undefined = (
+      await TelemetryExceptionMerge.readEditable({
+        ids: [split.splitFromTelemetryExceptionId],
+        props: data.props,
+      })
+    )[0];
+
+    // Merged into this one already: nothing left to do.
+    if (
+      other &&
+      sameId(other.mergedIntoTelemetryExceptionId?.toString(), splitId)
+    ) {
+      return {
+        telemetryExceptionId: splitId,
+        merged: [
+          {
+            telemetryExceptionId: splitFromId,
+            outcome: ExceptionMergeOutcome.AlreadyMerged,
+          },
+        ],
+      };
+    }
+
+    // Merged into another one since: that one stands for it now.
+    if (other?.mergedIntoTelemetryExceptionId) {
+      other = (
+        await TelemetryExceptionMerge.readEditable({
+          ids: [other.mergedIntoTelemetryExceptionId],
+          props: data.props,
+        })
+      )[0];
+    }
+
+    if (!other || !other.id) {
+      throw new NotAuthorizedException(
+        "You do not have permission to edit the exception this one was split from, or it no longer exists.",
+      );
+    }
+
+    // Merged already, one way or the other: nothing left to do.
+    if (
+      sameId(
+        split.mergedIntoTelemetryExceptionId?.toString(),
+        other.id.toString(),
+      )
+    ) {
+      return {
+        telemetryExceptionId: other.id.toString(),
+        merged: [
+          {
+            telemetryExceptionId: splitId,
+            outcome: ExceptionMergeOutcome.AlreadyMerged,
+          },
+        ],
+      };
+    }
+
+    const survivor: TelemetryException = TelemetryExceptionMerge.olderOf(
+      other,
+      split,
+    );
+    const merged: TelemetryException = survivor === other ? split : other;
+
+    return TelemetryExceptionMerge.merge({
+      telemetryExceptionId: survivor.id!,
+      mergedTelemetryExceptionIds: [merged.id!],
+      props: data.props,
+    });
+  }
+
+  /*
+   * The older of an exception and the one a rule split from it, by first
+   * seen: the one it was split from when they were first seen at once, or
+   * either has no first seen.
+   */
+  public static olderOf<T extends Pick<TelemetryException, "firstSeenAt">>(
+    splitFrom: T,
+    split: T,
+  ): T {
+    const splitFromAt: number | null = time(splitFrom.firstSeenAt || null);
+    const splitAt: number | null = time(split.firstSeenAt || null);
+
+    return splitFromAt !== null && splitAt !== null && splitAt < splitFromAt
+      ? split
+      : splitFrom;
+  }
+
   public static async merge(data: {
     telemetryExceptionId: ObjectID;
     mergedTelemetryExceptionIds: Array<ObjectID>;
@@ -462,6 +623,9 @@ export default class TelemetryExceptionMerge {
       }
     }
 
+    // A row that only keeps another exception's former fingerprint is no exception to merge.
+    TelemetryExceptionMerge.refuseFormerFingerprints(editable);
+
     const userId: string | null = data.props.userId?.toString() || null;
     // What the merge did, for each exception's activity, once it commits.
     const activity: Array<TelemetryExceptionActivityEntry> = [];
@@ -486,6 +650,18 @@ export default class TelemetryExceptionMerge {
           if (!survivor) {
             throw new BadDataException("Exception not found");
           }
+
+          // Moved to a former fingerprint since it was read: refused the same way.
+          TelemetryExceptionMerge.refuseFormerFingerprints(
+            rows.filter((row: LockedRow): boolean => {
+              return (
+                sameId(row.id, survivorId) ||
+                mergedIds.some((id: string): boolean => {
+                  return sameId(row.id, id);
+                })
+              );
+            }),
+          );
 
           if (survivor.mergedIntoId) {
             throw new BadDataException(
@@ -581,7 +757,17 @@ export default class TelemetryExceptionMerge {
               relatedTelemetryExceptionId: merged.id,
             });
 
-            for (const moved of [merged, ...members]) {
+            /*
+             * A member that only keeps an exception's former fingerprint
+             * moves with it, unseen: it is part of that exception, not one
+             * anybody merged.
+             */
+            for (const moved of [
+              merged,
+              ...members.filter((member: LockedRow): boolean => {
+                return !member.formerFingerprintOfId;
+              }),
+            ]) {
               activity.push({
                 projectId: new ObjectID(moved.projectId),
                 telemetryExceptionId: new ObjectID(moved.id),
@@ -673,6 +859,9 @@ export default class TelemetryExceptionMerge {
       );
     }
 
+    // A former fingerprint is part of its exception: it comes back with it, never alone.
+    TelemetryExceptionMerge.refuseFormerFingerprints([merged]);
+
     const survivorId: ObjectID | undefined =
       merged.mergedIntoTelemetryExceptionId || undefined;
 
@@ -720,11 +909,19 @@ export default class TelemetryExceptionMerge {
     const unmergeResult: ExceptionUnmergeResult =
       await TelemetryExceptionService.executeTransaction(
         async (manager: EntityManager): Promise<ExceptionUnmergeResult> => {
-          // The two, and the survivor's other merged ones.
+          /*
+           * The two, the survivor's other merged ones, and the rows that
+           * keep the unmerged one's former fingerprints (#10619), wherever
+           * they are merged now.
+           */
           const rows: Array<LockedRow> = await TelemetryExceptionMerge.lockRows(
             manager,
-            `("_id" = ANY($1::uuid[]) OR "mergedIntoTelemetryExceptionId" = ANY($2::uuid[]))`,
-            [[mergedId, survivorId.toString()], [survivorId.toString()]],
+            `("_id" = ANY($1::uuid[]) OR "mergedIntoTelemetryExceptionId" = ANY($2::uuid[]) OR "formerFingerprintOfTelemetryExceptionId" = ANY($3::uuid[]))`,
+            [
+              [mergedId, survivorId.toString()],
+              [survivorId.toString()],
+              [mergedId],
+            ],
           );
 
           const lockedMerged: LockedRow | undefined = rows.find(
@@ -742,6 +939,34 @@ export default class TelemetryExceptionMerge {
             };
           }
 
+          /*
+           * Its former fingerprints, merged where it is: part of it, so they
+           * leave with it - their counts and seen times too.
+           */
+          const formerFingerprints: Array<LockedRow> = rows.filter(
+            (row: LockedRow): boolean => {
+              return (
+                sameId(row.formerFingerprintOfId, lockedMerged.id) &&
+                sameId(row.mergedIntoId, lockedMerged.mergedIntoId)
+              );
+            },
+          );
+          const leaving: Array<LockedRow> = [
+            lockedMerged,
+            ...formerFingerprints,
+          ];
+          const leavingCount: number = leaving.reduce(
+            (total: number, row: LockedRow): number => {
+              return total + row.occuranceCount;
+            },
+            0,
+          );
+          let leavingTogether: ExceptionTakeIn = NOTHING_TAKEN_IN;
+
+          for (const row of leaving) {
+            leavingTogether = takeIn(leavingTogether, row);
+          }
+
           const lockedSurvivor: LockedRow | undefined = sameId(
             lockedMerged.mergedIntoId,
             survivorId.toString(),
@@ -754,11 +979,18 @@ export default class TelemetryExceptionMerge {
           if (lockedSurvivor) {
             const seen: ExceptionSeen = getSurvivorSeenAfterUnmerge({
               survivor: lockedSurvivor,
-              merged: lockedMerged,
+              merged: {
+                firstSeenAt: leavingTogether.firstSeenAt,
+                lastSeenAt: leavingTogether.lastSeenAt,
+                firstSeenInRelease: leavingTogether.firstSeenInRelease || null,
+                lastSeenInRelease: leavingTogether.lastSeenInRelease || null,
+              },
               members: rows.filter((row: LockedRow): boolean => {
                 return (
                   sameId(row.mergedIntoId, lockedSurvivor.id) &&
-                  !sameId(row.id, lockedMerged.id)
+                  !leaving.some((leavingRow: LockedRow): boolean => {
+                    return sameId(leavingRow.id, row.id);
+                  })
                 );
               }),
               own: ownSeen,
@@ -767,7 +999,7 @@ export default class TelemetryExceptionMerge {
             await manager.query(
               `UPDATE "TelemetryException" SET "occuranceCount" = GREATEST(0, COALESCE("occuranceCount", 0) - $1), "firstSeenAt" = $3::timestamptz, "lastSeenAt" = $4::timestamptz, "firstSeenInRelease" = $5::text, "lastSeenInRelease" = $6::text, "updatedAt" = now() WHERE "_id" = $2`,
               [
-                lockedMerged.occuranceCount,
+                leavingCount,
                 lockedSurvivor.id,
                 seen.firstSeenAt,
                 seen.lastSeenAt,
@@ -780,7 +1012,7 @@ export default class TelemetryExceptionMerge {
             const takeBackStatement: ExceptionTakeInStatement =
               getTakeBackStatement({
                 exceptionId: lockedMerged.mergedIntoId,
-                occuranceCount: lockedMerged.occuranceCount,
+                occuranceCount: leavingCount,
               });
 
             await manager.query(
@@ -793,6 +1025,39 @@ export default class TelemetryExceptionMerge {
             `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = NULL, "mergedAt" = NULL, "mergedByUserId" = NULL, "updatedAt" = now() WHERE "_id" = $1`,
             [lockedMerged.id],
           );
+
+          /*
+           * Its former fingerprints are merged into it again, and what they
+           * counted while they were away is its own once more.
+           */
+          if (formerFingerprints.length > 0) {
+            await manager.query(
+              `UPDATE "TelemetryException" SET "mergedIntoTelemetryExceptionId" = $1, "updatedAt" = now() WHERE "_id" = ANY($2::uuid[])`,
+              [
+                lockedMerged.id,
+                formerFingerprints.map((row: LockedRow): string => {
+                  return row.id;
+                }),
+              ],
+            );
+
+            let cameBack: ExceptionTakeIn = NOTHING_TAKEN_IN;
+
+            for (const row of formerFingerprints) {
+              cameBack = takeIn(cameBack, row);
+            }
+
+            const takeInStatement: ExceptionTakeInStatement =
+              getTakeInStatement({
+                exceptionId: lockedMerged.id,
+                takenIn: cameBack,
+              });
+
+            await manager.query(
+              takeInStatement.query,
+              takeInStatement.parameters,
+            );
+          }
 
           unmergedProjectId = lockedMerged.projectId;
           unmergedFrom = lockedMerged.mergedIntoId;

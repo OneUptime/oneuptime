@@ -109,6 +109,7 @@ import Service from "../../../Models/DatabaseModels/Service";
 import ObjectID from "../../../Types/ObjectID";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import {
+  LLM_USAGE_HIDDEN_GROUP_KEY,
   LlmUsageDimension,
   LlmUsageGroup,
   LlmUsageResponse,
@@ -554,6 +555,97 @@ describe("LlmUsageBreakdown - unattributed spend", () => {
     await renderBreakdown();
 
     expect(screen.queryByTestId("llm-usage-unattributed-note")).toBeNull();
+  });
+});
+
+/*
+ * AI spend is never a placeholder's (#10435): a project that redacts emails
+ * used to show every call as one "[REDACTED]" person's. The read files a
+ * call whose person or team a scrub rule hid under one hidden group; the
+ * table draws it as hidden, never as a person, and says what it is.
+ */
+describe("LlmUsageBreakdown - spend a scrub rule hid the person of", () => {
+  const HIDDEN: LlmUsageGroup = group({
+    key: LLM_USAGE_HIDDEN_GROUP_KEY,
+    calls: 6,
+    costUsd: 9,
+    costSource: LlmUsageSource.Calls,
+  });
+
+  test("is one row said as hidden, never a person called [REDACTED]", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 10 },
+      groups: [
+        HIDDEN,
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.getByTestId("llm-usage-hidden")).toHaveTextContent(
+      "Hidden by a scrub rule",
+    );
+    expect(screen.queryByText(LLM_USAGE_HIDDEN_GROUP_KEY)).toBeNull();
+    // A real bucket of spend: its calls and its share of the cost.
+    expect(renderedRows()[0]![2]).toBe("6");
+    expect(renderedRows()[0]![7]).toBe("90.0%");
+
+    const note: HTMLElement = screen.getByTestId("llm-usage-hidden-note");
+
+    expect(note).toHaveTextContent(
+      /^Hidden by a scrub rule is usage whose person a scrub rule hid, so it isn't counted as anyone's\.$/,
+    );
+  });
+
+  test("by team, it is the usage whose team a scrub rule hid", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 9 },
+      groups: [HIDDEN],
+    });
+
+    await renderBreakdown();
+    await pick("Team");
+
+    expect(screen.getByTestId("llm-usage-hidden-note")).toHaveTextContent(
+      "Hidden by a scrub rule is usage whose team a scrub rule hid, so it isn't counted as any team's.",
+    );
+  });
+
+  test("by model, a model named so is a model: no hidden row, no note", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 9 },
+      groups: [HIDDEN],
+    });
+
+    await renderBreakdown();
+    await pick("Model");
+
+    expect(screen.queryByTestId("llm-usage-hidden")).toBeNull();
+    expect(screen.queryByTestId("llm-usage-hidden-note")).toBeNull();
+  });
+
+  test("no hidden row: no note", async () => {
+    serve({
+      totals: { ...emptyLlmUsageFigures(), costUsd: 1 },
+      groups: [
+        group({
+          key: "ana@example.com",
+          calls: 1,
+          costUsd: 1,
+          costSource: LlmUsageSource.Calls,
+        }),
+      ],
+    });
+
+    await renderBreakdown();
+
+    expect(screen.queryByTestId("llm-usage-hidden-note")).toBeNull();
   });
 });
 

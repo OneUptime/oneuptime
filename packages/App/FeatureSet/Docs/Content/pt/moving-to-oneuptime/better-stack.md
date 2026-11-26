@@ -58,7 +58,7 @@ O relatório conta o que foi criado e não trazido, e lista cada item com um lin
 | Status pages | Páginas de status | Cada página é trazida com suas seções como grupos e os monitores e heartbeats que mostra. Um item que você acompanha à mão vira um monitor manual. Uma página com senha ou lista de IPs permitidos é trazida como privada. |
 | Email subscribers | Assinantes da página de status | Os assinantes de e-mail confirmados são trazidos quando você confirma que pode transferi-los, e seguem os mesmos recursos. Ninguém recebe e-mail, e cada atualização que eles recebem do OneUptime tem um link para cancelar a inscrição. |
 
-- **Monitores status, expected status code, keyword e keyword absence** viram monitores de site, ou monitores de API quando enviam outro método, cabeçalhos ou um corpo JSON. Um monitor status fica disponível com qualquer resposta 2xx, e um monitor expected status code com os códigos que ele lista.
+- **Monitores status, expected status code, keyword e keyword absence** viram monitores de site, ou monitores de API quando enviam outro método, cabeçalhos ou um corpo. Um monitor status fica disponível com qualquer resposta 2xx, e um monitor expected status code com os códigos que ele lista.
 - **Monitores de ping e TCP** viram monitores de ping e de porta. **Monitores SMTP, POP e IMAP** viram monitores de porta na porta deles: o OneUptime verifica se a porta responde, não a conversa de e-mail.
 - **Monitores DNS** viram monitores DNS do nome que consultam, perguntando ao mesmo servidor.
 - **Heartbeats** viram monitores de requisições recebidas, que caem quando nenhuma requisição chega durante o período e a tolerância. Cada um tem um novo endereço no OneUptime.

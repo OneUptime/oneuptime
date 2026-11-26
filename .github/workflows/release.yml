@@ -1538,6 +1538,15 @@ jobs:
     # Publishes the provider, so it runs only for `release`, as every job that
     # publishes does (Tests/Ops/ReleaseCriticalPath).
     if: github.ref == 'refs/heads/release'
+    # One publish of the provider at a time, this job's and the Republish a
+    # Terraform provider version workflow's: two at once could each find a
+    # version unpublished and each make it a draft. None is cancelled. A run
+    # repeated for a version this job published stops at once, changing
+    # nothing: a published release is never changed (publish-terraform-
+    # provider.sh, Tests/Ops/TerraformProviderPublishedRelease.test.js).
+    concurrency:
+      group: terraform-provider-repository
+      cancel-in-progress: false
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # Go's soft memory limit, for every compile of the provider here: the
@@ -1638,6 +1647,13 @@ jobs:
       # a broken generation stops it there. The job used to generate, vet and
       # test once more first, the same work twice
       # (Tests/Ops/TerraformProviderPublishOnce.test.js).
+      #
+      # It makes the release a draft, uploads every asset to it, checks them
+      # against what it built, and only then publishes it, with notes of its
+      # own (Scripts/TerraformProvider/GenerateReleaseNotes.js), which go to
+      # this job's summary too. GITHUB_SHA, the commit this run built, is the
+      # OneUptime commit the provider's commit names, and the notes read
+      # OneUptime's pull requests up to it.
       - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
@@ -3480,6 +3496,17 @@ jobs:
   publish-mcp-registry:
     name: Publish to the MCP Registry
     needs: [read-version, finalize-github-release]
+    # Once every job it needs has succeeded, read by name after !cancelled():
+    # a plain `if` is `success() && ...`, and success() is false once any job
+    # before this one failed, needed or not. The Android agent's APK, an app
+    # build and the SBOM scan may fail without holding the release back, and
+    # each kept this job from running in 17.1.0 and 17.2.0.
+    # Tests/Ops/JobsAfterToleratedFailures.test.js holds every job to this.
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.read-version.result == 'success'
+      && needs.finalize-github-release.result == 'success' }}
     runs-on: ubuntu-latest
     environment: mcp-registry-publish
     permissions:
@@ -3524,7 +3551,17 @@ jobs:
   publish-coding-agent-plugin:
     name: Publish the coding agent plugin
     needs: [read-version, finalize-github-release]
-    if: github.ref == 'refs/heads/release'
+    # Once every job it needs has succeeded, read by name after !cancelled():
+    # a plain `if` is `success() && ...`, and success() is false once any job
+    # before this one failed, needed or not. The Android agent's APK, an app
+    # build and the SBOM scan may fail without holding the release back, and
+    # each kept this job from running in 17.1.0 and 17.2.0.
+    # Tests/Ops/JobsAfterToleratedFailures.test.js holds every job to this.
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.read-version.result == 'success'
+      && needs.finalize-github-release.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: coding-agent-plugin-publish
@@ -3581,7 +3618,18 @@ jobs:
   publish-infrastructure-agent-apt-yum:
     name: Publish the infrastructure agent to apt and yum
     needs: [read-version, infrastructure-agent-build, finalize-github-release]
-    if: github.ref == 'refs/heads/release'
+    # Once every job it needs has succeeded, read by name after !cancelled():
+    # a plain `if` is `success() && ...`, and success() is false once any job
+    # before this one failed, needed or not. The Android agent's APK, an app
+    # build and the SBOM scan may fail without holding the release back, and
+    # each kept this job from running in 17.1.0 and 17.2.0.
+    # Tests/Ops/JobsAfterToleratedFailures.test.js holds every job to this.
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.read-version.result == 'success'
+      && needs.infrastructure-agent-build.result == 'success'
+      && needs.finalize-github-release.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: package-managers
@@ -3634,7 +3682,18 @@ jobs:
   publish-infrastructure-agent-homebrew:
     name: Publish the infrastructure agent to Homebrew
     needs: [read-version, infrastructure-agent-build, finalize-github-release]
-    if: github.ref == 'refs/heads/release'
+    # Once every job it needs has succeeded, read by name after !cancelled():
+    # a plain `if` is `success() && ...`, and success() is false once any job
+    # before this one failed, needed or not. The Android agent's APK, an app
+    # build and the SBOM scan may fail without holding the release back, and
+    # each kept this job from running in 17.1.0 and 17.2.0.
+    # Tests/Ops/JobsAfterToleratedFailures.test.js holds every job to this.
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.read-version.result == 'success'
+      && needs.infrastructure-agent-build.result == 'success'
+      && needs.finalize-github-release.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: package-managers
@@ -3677,7 +3736,18 @@ jobs:
   publish-infrastructure-agent-winget:
     name: Publish the infrastructure agent to winget
     needs: [read-version, infrastructure-agent-build, finalize-github-release]
-    if: github.ref == 'refs/heads/release'
+    # Once every job it needs has succeeded, read by name after !cancelled():
+    # a plain `if` is `success() && ...`, and success() is false once any job
+    # before this one failed, needed or not. The Android agent's APK, an app
+    # build and the SBOM scan may fail without holding the release back, and
+    # each kept this job from running in 17.1.0 and 17.2.0.
+    # Tests/Ops/JobsAfterToleratedFailures.test.js holds every job to this.
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.read-version.result == 'success'
+      && needs.infrastructure-agent-build.result == 'success'
+      && needs.finalize-github-release.result == 'success' }}
     runs-on: ubuntu-latest
     # The 15 minutes the job had, and the 20 PublishWingetManifests.sh may
     # wait for Microsoft's CLA bot once the pull request is open: up to 15
@@ -3741,7 +3811,17 @@ jobs:
   publish-android-agent-to-google-play:
     name: Publish the Android agent to Google Play
     needs: [read-version, finalize-github-release]
-    if: github.ref == 'refs/heads/release'
+    # Once every job it needs has succeeded, read by name after !cancelled():
+    # a plain `if` is `success() && ...`, and success() is false once any job
+    # before this one failed, needed or not. The Android agent's APK, an app
+    # build and the SBOM scan may fail without holding the release back, and
+    # each kept this job from running in 17.1.0 and 17.2.0.
+    # Tests/Ops/JobsAfterToleratedFailures.test.js holds every job to this.
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.read-version.result == 'success'
+      && needs.finalize-github-release.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Each run opens an edit of the app on Play, and committing one throws

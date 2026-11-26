@@ -417,13 +417,14 @@ export default class TelemetryIngestionBudgetMetrics {
       data.scope.teamOrLabelName?.trim() || data.scope.member.scopeId;
     const whose: string = isTeam
       ? `The team "${name}" in ${data.projectName}`
-      : `The services with the label "${name}" in ${data.projectName}`;
+      : `The services, hosts and other resources with the label "${name}" in ${data.projectName}`;
     const of: string = isTeam
       ? `for the team "${name}"`
       : `for the label "${name}"`;
+    // Every resource the team owns or the label is on (#10101).
     const services: string = isTeam
-      ? "the services the team owns"
-      : "the services with the label";
+      ? "the services, hosts and other resources the team owns"
+      : "the services, hosts and other resources with the label";
     const budget: string = formatTelemetryIngestionBudgetGB(
       data.dailyBudgetBytes,
     );

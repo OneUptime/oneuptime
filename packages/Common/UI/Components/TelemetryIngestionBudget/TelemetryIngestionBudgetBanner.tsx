@@ -12,6 +12,7 @@ import { PluralTemplate, Translator } from "../../../Types/Translator";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Alert, { AlertType } from "../Alerts/Alert";
+import ContainedErrorBoundary from "../ContainedErrorBoundary/ContainedErrorBoundary";
 import Link from "../Link/Link";
 import { getTelemetryUsageSignalTitle } from "../TelemetryUsage/TelemetryUsageWords";
 import { formatTelemetryIngestionBudgetBytes } from "./TelemetryIngestionBudgetWords";
@@ -42,11 +43,14 @@ export const KEY_BUDGETS_USED_UP: PluralTemplate = {
   other:
     "{{signal}}: {{count}} ingestion keys have used up their own budgets for today, so data sent with them is refused until {{resetsAt}}.",
 };
-// A team's or a label's budget used up (#6386): its services' data is dropped.
+/*
+ * A team's or a label's budget used up (#6386): the data of its services,
+ * hosts and other resources (#10101) is dropped.
+ */
 export const TEAM_LABEL_BUDGETS_USED_UP: PluralTemplate = {
-  one: "{{signal}}: {{count}} team or label has used up its own budget for today, so data from its services is dropped until {{resetsAt}}.",
+  one: "{{signal}}: {{count}} team or label has used up its own budget for today, so data from its services and other resources is dropped until {{resetsAt}}.",
   other:
-    "{{signal}}: {{count}} teams and labels have used up their own budgets for today, so data from their services is dropped until {{resetsAt}}.",
+    "{{signal}}: {{count}} teams and labels have used up their own budgets for today, so data from their services and other resources is dropped until {{resetsAt}}.",
 };
 export const SEE_BUDGETS: string = translationKey("See budgets");
 
@@ -187,9 +191,13 @@ export interface ComponentProps {
   budgetsRoute?: Route | undefined;
 }
 
-const TelemetryIngestionBudgetBanner: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
+/*
+ * The banner itself: what it reads and what it draws. Exported for tests;
+ * a page draws the default export, which holds it in its own boundary.
+ */
+export const UnguardedTelemetryIngestionBudgetBanner: FunctionComponent<
+  ComponentProps
+> = (props: ComponentProps): ReactElement => {
   const translator: Translator = useTranslator();
   const [status, setStatus] = useState<TelemetryIngestionBudgetStatus | null>(
     null,
@@ -260,6 +268,36 @@ const TelemetryIngestionBudgetBanner: FunctionComponent<ComponentProps> = (
         }
       />
     </div>
+  );
+};
+
+/*
+ * A notice never takes the page it sits on down. A bug in the banner's own
+ * drawing - a formatter, a translation, a date in an odd zone - unmounted
+ * the explorer under it, which went blank (#6486, #7167): each explorer's
+ * layout draws the banner above every page under it. So the banner is a
+ * part of its own (ContainedErrorBoundary): anything it throws while it
+ * draws takes only its place, which then holds nothing, as a status that
+ * cannot be read does; and so does a banner whose code will not download
+ * (isNotice). Held here, every page that draws it - the Logs, Traces,
+ * Metrics, Profiles and Security Events explorers, and any later one - is
+ * held the same way. The usage card (TelemetryIngestionBudgetStatusCard),
+ * a page's main content, says what went wrong itself instead.
+ */
+const TelemetryIngestionBudgetBanner: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  return (
+    <ContainedErrorBoundary
+      isNotice={true}
+      // Another signal's banner tries again.
+      resetKeys={[props.signal]}
+      renderFallback={(): ReactElement => {
+        return <></>;
+      }}
+    >
+      <UnguardedTelemetryIngestionBudgetBanner {...props} />
+    </ContainedErrorBoundary>
   );
 };
 

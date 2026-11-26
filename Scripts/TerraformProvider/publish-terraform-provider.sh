@@ -10,6 +10,32 @@
 # upload the pre-built assets. A build or signing failure therefore can never
 # leave a public tag with zero assets (which the Terraform Registry would
 # otherwise try to ingest as a broken version).
+#
+# A published release is never changed. The Terraform and OpenTofu registries
+# read a version's assets once, when it is published, and keep each zip's
+# SHA-256; `terraform init` and `tofu init` check what GitHub serves against
+# it. This script used to "heal" a release on a second run of the same
+# version - a release run repeated after a failure elsewhere - by building
+# the assets again and uploading them over the published ones. GoReleaser
+# does not make the same zip twice, so 14.3.0, 16.0.0, 17.0.0 and 17.1.0 (and
+# older versions) failed init with "checksum list has unexpected SHA-256
+# hash" (OneUptime/terraform-provider-oneuptime#20). So:
+#
+#   - a run first asks whether its version is published. When it is, with
+#     every asset its SHA256SUMS lists, the run stops there, successfully,
+#     having built nothing. When it is published without them, the run fails
+#     and says to publish a new version: it never uploads to it.
+#   - a release is made as a draft, which no registry sees. Every asset is
+#     uploaded to it, the draft is checked against what was built (names,
+#     sizes, SHA-256s), and only then is it published, whole. A run that
+#     stops halfway leaves a draft, which the next run deletes and makes
+#     again.
+#   - --republish-from publishes a published version's provider again, as a
+#     new version: the way to mend a version whose assets no longer match
+#     what the registries read.
+#
+# Tests/Ops/TerraformProviderPublishedRelease.test.js runs this script against
+# a stand-in GitHub, git remote and GoReleaser.
 
 set -e  # Exit on any error
 
@@ -30,14 +56,30 @@ PROVIDER_FRAMEWORK_DIR="$TERRAFORM_DIR/terraform-provider-oneuptime"
 PROVIDER_NAME="oneuptime"
 PROVIDER_REPO="terraform-provider-$PROVIDER_NAME"
 GITHUB_ORG="OneUptime"
+REPOSITORY="$GITHUB_ORG/$PROVIDER_REPO"
+# The checks on a release (ProviderRelease.js) and its notes
+# (GenerateReleaseNotes.js): plain Node.js, with nothing to install.
+RELEASE_HELPER="$SCRIPT_DIR/ProviderRelease.js"
+NOTES_GENERATOR="$SCRIPT_DIR/GenerateReleaseNotes.js"
 VERSION=""
 TEST_RELEASE=false
 SKIP_TESTS=false
 FORCE=false
 DRY_RUN=false
-RELEASE_ALREADY_EXISTS=false
 HEAL_MODE=false
 NOTHING_TO_PUBLISH=false
+ALREADY_PUBLISHED=false
+# --republish-from: the published release (vX.Y.Z) whose provider this run
+# publishes again as v$VERSION.
+REPUBLISH_FROM=""
+# The OneUptime commit the provider is generated from, named in the provider
+# commit's OneUptime-Commit trailer (the release notes read it).
+ONEUPTIME_COMMIT=""
+# This run's scratch files: gh's answers, the release notes.
+WORK_DIR=""
+NOTES_FILE=""
+# The draft this run made, by its id: every later call names it so.
+DRAFT_ID=""
 # Push URL with embedded credentials. Held in memory only for the push
 # commands — never written to git config or a credentials file on disk.
 PUSH_URL=""
@@ -91,8 +133,9 @@ Options:
     -v, --version VERSION                    Specify the version to publish (e.g., 1.0.0)
     -t, --test-release                      Run in test release mode (creates draft release)
     -s, --skip-tests                        Skip running go vet / go test (emergencies only)
-    -f, --force                            Force regeneration even if files exist
+    -f, --force                            Force regeneration even if files exist (never changes a published release)
     -d, --dry-run                          Build and sign all release assets but skip git push, tag push, release creation, and uploads
+    --republish-from TAG                    Publish the provider of the published release TAG (e.g. v17.1.0) again, as --version
     --gpg-private-key KEY                   GPG private key for signing releases
     --github-token TOKEN                    GitHub token for authentication and operations
     --github-repo-deploy-key KEY            GitHub repository deploy key
@@ -102,6 +145,11 @@ Examples:
     $0 -v 1.0.0 --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }} --gpg-private-key \${{ secrets.GPG_PRIVATE_KEY }}
     $0 -v 1.1.0 --test-release --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }}
     $0 -v 1.0.1-test --test-release --dry-run
+    $0 -v 17.1.1 --republish-from v17.1.0 --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }}
+
+A published release is never changed: a run whose version is published
+already stops, and changes nothing. To mend a published version, publish its
+provider again as a new version with --republish-from.
 
 Note: The GITHUB_TOKEN should have the following permissions:
     - repo (for creating releases in the terraform-provider-oneuptime repository)
@@ -136,6 +184,10 @@ parse_args() {
                 DRY_RUN=true
                 shift
                 ;;
+            --republish-from)
+                REPUBLISH_FROM="$2"
+                shift 2
+                ;;
             --gpg-private-key)
                 GPG_PRIVATE_KEY="$2"
                 shift 2
@@ -165,6 +217,64 @@ parse_args() {
         show_usage
         exit 1
     fi
+
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        # The release's tag, as the provider repository names it: v17.1.0.
+        if [[ ! "$REPUBLISH_FROM" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            print_error "--republish-from takes a published release's tag, as v17.1.0. Got: $REPUBLISH_FROM"
+            exit 1
+        fi
+        REPUBLISH_FROM="v${REPUBLISH_FROM#v}"
+        if [[ "$REPUBLISH_FROM" == "v$VERSION" ]]; then
+            print_error "--republish-from $REPUBLISH_FROM publishes its provider again as a new version: --version must name another one."
+            exit 1
+        fi
+        if [[ "$FORCE" == true ]]; then
+            print_error "--force regenerates the provider, and --republish-from publishes one already made: use one or the other."
+            exit 1
+        fi
+    fi
+}
+
+# Runs gh, up to four times, 5, 15 and 30 seconds apart: GitHub's API fails
+# for minutes at a time (on 2026-08-17 it answered "Error 503: No server is
+# currently available to service your request"). An answer that matches the
+# first argument, such as "HTTP 404", is an answer, and is not asked again.
+# Leaves gh's output in GH_STDOUT and GH_STDERR (apart, so a warning cannot
+# get into the JSON), and returns the last attempt's status.
+gh_retrying() {
+    local stop_on="$1"
+    shift
+    local -a delays=(5 15 30)
+    local max_attempts=$(( ${#delays[@]} + 1 ))
+    local attempt=1
+    local status
+
+    while true; do
+        status=0
+        gh "$@" > "$WORK_DIR/gh.out" 2> "$WORK_DIR/gh.err" || status=$?
+        GH_STDOUT="$(cat "$WORK_DIR/gh.out")"
+        GH_STDERR="$(cat "$WORK_DIR/gh.err")"
+
+        if (( status == 0 )); then
+            return 0
+        fi
+        if [[ -n "$stop_on" ]] && grep -qiE -- "$stop_on" <<< "$GH_STDERR$GH_STDOUT"; then
+            return "$status"
+        fi
+        if (( attempt >= max_attempts )); then
+            return "$status"
+        fi
+
+        print_warning "gh $1 $2 failed (attempt ${attempt} of ${max_attempts}); trying again in ${delays[attempt - 1]}s. GitHub said: ${GH_STDERR:-$GH_STDOUT}" >&2
+        sleep "${delays[attempt - 1]}"
+        attempt=$(( attempt + 1 ))
+    done
+}
+
+# What GitHub said last, for an error message.
+gh_said() {
+    printf '%s' "${GH_STDERR:-$GH_STDOUT}"
 }
 
 # Confirms the token can see the provider repo, retrying transient API failures.
@@ -283,8 +393,135 @@ validate_prerequisites() {
     print_success "Prerequisites validated"
 }
 
+# The published release of a tag, by GitHub's REST API, which never answers
+# with a draft for it: PUBLISHED is true or false, and PUBLISHED_FILE holds
+# the release (its id, assets and their SHA-256s). `gh release view` finds a
+# draft of the tag too, and when there are both it answers with whichever it
+# found first, so it cannot say whether a tag is published.
+read_published_release() {
+    local tag="${1:-v$VERSION}"
+    PUBLISHED_FILE="$WORK_DIR/published-$tag.json"
+    PUBLISHED=false
+
+    # GitHub answers this only for a published release: whatever else is in
+    # the answer, the tag is published.
+    if gh_retrying "HTTP 404|Not Found" api "repos/$REPOSITORY/releases/tags/$tag"; then
+        printf '%s\n' "$GH_STDOUT" > "$PUBLISHED_FILE"
+        PUBLISHED=true
+        return 0
+    fi
+
+    if grep -qiE "HTTP 404|Not Found" <<< "$GH_STDERR$GH_STDOUT"; then
+        : > "$PUBLISHED_FILE"
+        return 0
+    fi
+
+    print_error "Could not tell whether $tag of $REPOSITORY is published. GitHub said: $(gh_said)"
+    exit 1
+}
+
+# Every published release's tag, for which one this follows and whether it
+# is the latest: RELEASES_FILE holds them, or nothing when GitHub could not
+# list them (RELEASES_LISTED=false). Drafts are listed, and skipped by the
+# helper.
+list_releases() {
+    RELEASES_FILE="$WORK_DIR/releases.json"
+    RELEASES_LISTED=false
+    if gh_retrying "" release list --repo "$REPOSITORY" --limit 100 --json tagName,isDraft,isPrerelease; then
+        printf '%s\n' "$GH_STDOUT" > "$RELEASES_FILE"
+        RELEASES_LISTED=true
+    else
+        : > "$RELEASES_FILE"
+    fi
+}
+
+# Whether a published release is all a registry needs: its SHA256SUMS, the
+# signature, and every file the SHA256SUMS lists, each as it lists it. The
+# problems, one per line, are in PUBLISHED_PROBLEMS; returns 1 when there are
+# any.
+check_published_assets() {
+    local version="$1"
+    local sums_name="terraform-provider-${PROVIDER_NAME}_${version}_SHA256SUMS"
+    local sums_file="$WORK_DIR/published-${version}-SHA256SUMS"
+    local asset_id status=0
+
+    : > "$sums_file"
+    asset_id="$(node "$RELEASE_HELPER" asset-id "$PUBLISHED_FILE" "$sums_name")"
+
+    # By the asset's id, from the published release itself: by the tag, gh
+    # could read a draft's.
+    if [[ -n "$asset_id" ]]; then
+        if gh_retrying "HTTP 404|Not Found" api -H "Accept: application/octet-stream" "repos/$REPOSITORY/releases/assets/$asset_id"; then
+            cp "$WORK_DIR/gh.out" "$sums_file"
+        else
+            print_error "Could not read $sums_name of the published v$version. GitHub said: $(gh_said)"
+            exit 1
+        fi
+    fi
+
+    PUBLISHED_PROBLEMS="$(node "$RELEASE_HELPER" check-published "$version" "$PUBLISHED_FILE" "$sums_file")" || status=$?
+    if (( status > 1 )); then
+        print_error "Could not check the published v$version's assets: $PUBLISHED_PROBLEMS"
+        exit 1
+    fi
+    return "$status"
+}
+
+# Before anything is generated or built: a version that is published already
+# is left as it is. With every asset its SHA256SUMS lists, the run has nothing
+# to do and stops successfully (ALREADY_PUBLISHED). Without, it fails: the
+# registries may have read what is there, so uploading what is missing (built
+# again, and so other bytes than its SHA256SUMS lists) or anything else would
+# break the version for anyone who installs it. --republish-from also needs
+# the release it names to be published.
+check_published_release() {
+    if [[ "$DRY_RUN" == true ]]; then
+        print_status "Dry run: not asking GitHub whether v$VERSION is published"
+        return
+    fi
+
+    print_step "Checking whether v$VERSION is published already..."
+    read_published_release "v$VERSION"
+
+    if [[ "$PUBLISHED" == true ]]; then
+        if [[ "$FORCE" == true ]]; then
+            print_error "v$VERSION is published, and --force does not change a published release either: the registries have read its assets. Publish the provider as a new version instead."
+            exit 1
+        fi
+
+        if check_published_assets "$VERSION"; then
+            ALREADY_PUBLISHED=true
+            print_success "v$VERSION is published already, with every asset its SHA256SUMS lists. A published release is never changed: there is nothing to do."
+            return
+        fi
+
+        print_error "v$VERSION is published, but:"
+        while IFS= read -r problem; do
+            [[ -n "$problem" ]] && print_error "  - $problem"
+        done <<< "$PUBLISHED_PROBLEMS"
+        print_error "A published release is never changed, since the registries may have read it already. Publish the provider as a new version: bump VERSION, or run this script with --republish-from v$VERSION --version <the next patch version>."
+        exit 1
+    fi
+
+    print_status "v$VERSION is not published yet"
+
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        read_published_release "$REPUBLISH_FROM"
+        if [[ "$PUBLISHED" != true ]]; then
+            print_error "$REPUBLISH_FROM is not a published release of $REPOSITORY, so there is no provider of it to publish again."
+            exit 1
+        fi
+        print_status "$REPUBLISH_FROM is published: its provider will be published again as v$VERSION"
+    fi
+}
+
 # Function to generate terraform provider
 generate_provider() {
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        print_status "Republishing $REPUBLISH_FROM: its provider is built as it was tagged, and nothing is generated"
+        return
+    fi
+
     print_step "Generating Terraform provider..."
 
     cd "$PROJECT_ROOT"
@@ -316,12 +553,74 @@ generate_provider() {
     print_success "Terraform provider generated and validated successfully"
 }
 
+# The OneUptime commit the provider is generated from: the one the release
+# run checked out (GITHUB_SHA), else this checkout's. Nothing when neither is
+# a commit.
+find_oneuptime_commit() {
+    local commit="${GITHUB_SHA:-}"
+    if [[ -z "$commit" ]]; then
+        commit="$(git -C "$PROJECT_ROOT" rev-parse --verify --quiet HEAD 2>/dev/null || true)"
+    fi
+    if [[ "$commit" =~ ^[0-9a-f]{40}$ ]]; then
+        ONEUPTIME_COMMIT="$commit"
+    fi
+}
+
+# Checks out exactly the commit a remote tag points to, for a tag pushed by a
+# run that stopped before it published the release: the release is built
+# from what the tag holds, never from a fresh generation that may differ.
+check_out_remote_tag() {
+    local tag="$1"
+    git tag -d "$tag" 2>/dev/null || true
+    if ! git fetch --depth=1 origin "refs/tags/${tag}:refs/tags/${tag}"; then
+        print_error "Failed to fetch remote tag $tag"
+        exit 1
+    fi
+    git reset --hard "refs/tags/$tag^{commit}"
+    # Remove untracked leftovers from generation so GoReleaser's dirty
+    # check sees a pristine tree for the tagged commit.
+    git clean -fdx
+    print_success "Checked out tagged commit $(git rev-parse HEAD) for $tag"
+}
+
+# --republish-from: the commit the published release's tag points to, tagged
+# v$VERSION too. Nothing is committed: v$VERSION is built from the same tree
+# (its VERSION file still says the version it was made for), and only its
+# tag is pushed, so the provider's main branch is not moved back.
+check_out_republished_release() {
+    if [[ "$DRY_RUN" == false ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
+        # Pushed by a run that stopped before it published the release.
+        print_warning "Tag v$VERSION already exists on the remote repository: building the release from it"
+        HEAL_MODE=true
+        check_out_remote_tag "v$VERSION"
+        return
+    fi
+
+    print_status "Fetching $REPUBLISH_FROM..."
+    if ! git fetch --depth=1 origin "refs/tags/${REPUBLISH_FROM}:refs/tags/${REPUBLISH_FROM}"; then
+        print_error "Failed to fetch $REPUBLISH_FROM from $REPOSITORY"
+        exit 1
+    fi
+    git reset --hard "refs/tags/$REPUBLISH_FROM^{commit}"
+    git clean -fdx
+
+    git tag -d "v$VERSION" 2>/dev/null || true
+    git tag -a "v$VERSION" -m "Release v$VERSION: the provider of $REPUBLISH_FROM, published again"
+    print_success "Tagged $REPUBLISH_FROM's commit $(git rev-parse HEAD) as v$VERSION (nothing pushed yet)"
+}
+
 # Function to sync generated code into the terraform-provider-oneuptime
 # repository checkout: authenticate, fetch remote state, perform a
 # deletion-aware sync, and create the local commit + tag. Nothing is pushed
 # here — pushing happens only after release assets are fully built and signed.
 sync_provider_repository() {
     print_step "Syncing generated code into terraform-provider-oneuptime repository checkout..."
+
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        # Nothing is generated: a fresh checkout of the provider's repository.
+        rm -rf "$PROVIDER_FRAMEWORK_DIR"
+        mkdir -p "$PROVIDER_FRAMEWORK_DIR"
+    fi
 
     cd "$PROVIDER_FRAMEWORK_DIR"
 
@@ -374,16 +673,19 @@ sync_provider_repository() {
     # the repo root) so they never get staged when we copy the files back. If
     # they slip in here, .gitignore alone won't help because the binary was
     # previously committed and stays tracked across resets.
-    print_status "Saving generated files temporarily..."
-    local temp_dir=$(mktemp -d)
-    cp -r . "$temp_dir/"
-    rm -rf \
-        "$temp_dir/.git" \
-        "$temp_dir/dist" \
-        "$temp_dir/builds" \
-        "$temp_dir/terraform-provider-oneuptime" \
-        "$temp_dir/terraform-provider-oneuptime.exe" \
-        2>/dev/null || true
+    local temp_dir=""
+    if [[ -z "$REPUBLISH_FROM" ]]; then
+        print_status "Saving generated files temporarily..."
+        temp_dir=$(mktemp -d)
+        cp -r . "$temp_dir/"
+        rm -rf \
+            "$temp_dir/.git" \
+            "$temp_dir/dist" \
+            "$temp_dir/builds" \
+            "$temp_dir/terraform-provider-oneuptime" \
+            "$temp_dir/terraform-provider-oneuptime.exe" \
+            2>/dev/null || true
+    fi
 
     # Initialize or reset git repository
     if [[ ! -d ".git" ]]; then
@@ -405,6 +707,11 @@ sync_provider_repository() {
         git remote set-url origin "$remote_url"
     fi
 
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        check_out_republished_release
+        return
+    fi
+
     # Fetch remote to get the latest state.
     # Use --depth=1 so we don't pull down the full history (which currently
     # carries large committed binaries from older runs and made the fetch take
@@ -424,34 +731,23 @@ sync_provider_repository() {
         fi
     fi
 
-    # If the tag already exists on the remote, a previous run already published
-    # this version's code. Unless --force is given we do NOT rebuild from the
-    # freshly generated (potentially different) tree — we heal the release by
-    # rebuilding assets from the exact commit the remote tag points to.
+    # If the tag already exists on the remote, a previous run pushed this
+    # version's code and stopped before it published the release (a published
+    # one stops the run before anything is generated: check_published_release).
+    # Unless --force is given we do NOT rebuild from the freshly generated
+    # (potentially different) tree — we build the release from the exact
+    # commit the remote tag points to.
     if [[ "$DRY_RUN" == false ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
         if [[ "$FORCE" == true ]]; then
-            print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
+            print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite (its release was never published)"
         else
-            print_warning "Tag v$VERSION already exists on remote repository"
-            print_status "Healing mode: release assets will be rebuilt from the exact commit the remote tag points to."
+            print_warning "Tag v$VERSION already exists on remote repository, and its release was never published"
+            print_status "Healing mode: the release will be built from the exact commit the remote tag points to."
             print_status "Use --force flag to overwrite the code/tag if needed"
             HEAL_MODE=true
 
             rm -rf "$temp_dir"
-
-            # Fetch the remote tag object and check out exactly the commit it
-            # points to, discarding the freshly generated tree. GoReleaser
-            # derives the version from the tag at HEAD.
-            git tag -d "v$VERSION" 2>/dev/null || true
-            if ! git fetch --depth=1 origin "refs/tags/v${VERSION}:refs/tags/v${VERSION}"; then
-                print_error "Failed to fetch remote tag v$VERSION"
-                exit 1
-            fi
-            git reset --hard "refs/tags/v$VERSION^{commit}"
-            # Remove untracked leftovers from generation so GoReleaser's dirty
-            # check sees a pristine tree for the tagged commit.
-            git clean -fdx
-            print_success "Checked out tagged commit $(git rev-parse HEAD) for v$VERSION"
+            check_out_remote_tag "v$VERSION"
             return
         fi
     fi
@@ -520,7 +816,9 @@ sync_provider_repository() {
         return
     fi
 
-    # Create commit with generated files
+    # Create commit with generated files. Its last paragraph is a trailer
+    # naming the OneUptime commit it is generated from: the next release's
+    # notes list OneUptime's changes to the provider since it.
     print_status "Creating commit with generated files..."
     local commit_message="chore: generate provider for version v$VERSION
 
@@ -532,6 +830,11 @@ Changes include:
 - Updated provider resources and data sources
 - Latest API schema definitions
 - Generated documentation"
+    if [[ -n "$ONEUPTIME_COMMIT" ]]; then
+        commit_message="$commit_message
+
+OneUptime-Commit: $ONEUPTIME_COMMIT"
+    fi
     git commit -m "$commit_message"
     print_success "Created commit for v$VERSION"
 
@@ -573,6 +876,21 @@ run_provider_tests() {
     print_success "go vet and go test passed"
 }
 
+# The files a release is made of, each once, in RELEASE_ASSETS: the zips, the
+# SHA256SUMS, its signature and the Terraform Registry manifest. The globs
+# used to be *SHA256SUMS* and *.sig, which both match the signature, so it was
+# uploaded twice.
+collect_release_assets() {
+    local dist_dir="$PROVIDER_FRAMEWORK_DIR/dist"
+    local file
+    RELEASE_ASSETS=()
+    for file in "$dist_dir"/*.zip "$dist_dir"/*_SHA256SUMS "$dist_dir"/*_SHA256SUMS.sig "$dist_dir"/*_manifest.json; do
+        if [[ -f "$file" ]]; then
+            RELEASE_ASSETS+=("$file")
+        fi
+    done
+}
+
 # Function to build and sign ALL release assets locally with GoReleaser.
 # This runs BEFORE any push/tag/release, so a failed build cannot leave a
 # public tag (or a release) without assets.
@@ -597,6 +915,9 @@ build_release_assets() {
 
     export GPG_FINGERPRINT="$gpg_fingerprint"
     export GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+    # The version GoReleaser builds, named: with --republish-from, the commit
+    # carries two tags, and GoReleaser would pick one of them itself.
+    export GORELEASER_CURRENT_TAG="v$VERSION"
 
     print_status "Using GPG key: $gpg_fingerprint"
     print_status "Running GoReleaser to create archives, checksums, and signatures..."
@@ -646,19 +967,28 @@ build_release_assets() {
     fi
 
     # Verify the assets exist NOW, before anything is pushed or released.
-    local files_built=0
-    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
-        if [[ -f "$file" ]]; then
-            files_built=$((files_built + 1))
-        fi
-    done
+    collect_release_assets
 
-    if [[ "$files_built" -eq 0 ]]; then
+    if [[ "${#RELEASE_ASSETS[@]}" -eq 0 ]]; then
         print_error "GoReleaser produced no release assets (dist/ had no zip/SHA256SUMS/sig/manifest files)"
         exit 1
     fi
 
-    print_success "Built and signed $files_built release assets (not uploaded yet)"
+    # And that they are the whole release: the SHA256SUMS, its signature, and
+    # every file it lists, as it lists them. A release missing any of them
+    # cannot be installed from a registry, and once published it is never
+    # changed.
+    local problems status=0
+    problems="$(node "$RELEASE_HELPER" check-built "$VERSION" "${RELEASE_ASSETS[@]}")" || status=$?
+    if (( status != 0 )); then
+        print_error "The release assets GoReleaser built are not a whole release:"
+        while IFS= read -r problem; do
+            [[ -n "$problem" ]] && print_error "  - $problem"
+        done <<< "$problems"
+        exit 1
+    fi
+
+    print_success "Built and signed ${#RELEASE_ASSETS[@]} release assets (not uploaded yet)"
 }
 
 # Function to push the local commit and tag. Only called after all release
@@ -674,9 +1004,20 @@ push_repository_changes() {
         return
     fi
 
-    print_step "Pushing commit and tag to terraform-provider-oneuptime repository..."
-
     cd "$PROVIDER_FRAMEWORK_DIR"
+
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        # Only the tag: the provider's main branch stays where it is.
+        print_step "Pushing tag v$VERSION (on $REPUBLISH_FROM's commit) to terraform-provider-oneuptime repository..."
+        if ! git push "$PUSH_URL" "refs/tags/v$VERSION"; then
+            print_error "Failed to push tag v$VERSION"
+            exit 1
+        fi
+        print_success "Tag v$VERSION pushed to terraform-provider-oneuptime repository"
+        return
+    fi
+
+    print_step "Pushing commit and tag to terraform-provider-oneuptime repository..."
 
     print_status "Pushing changes to remote repository..."
     if ! git push "$PUSH_URL" master; then
@@ -687,7 +1028,8 @@ push_repository_changes() {
 
     print_status "Pushing tag v$VERSION..."
     if [[ "$FORCE" == true ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
-        # Force push the tag if it exists and force mode is enabled
+        # Force push the tag if it exists and force mode is enabled. Its
+        # release was never published: a published one stops the run first.
         if ! git push -f "$PUSH_URL" "v$VERSION"; then
             print_error "Failed to force push tag v$VERSION"
             exit 1
@@ -703,192 +1045,297 @@ push_repository_changes() {
     print_success "Code and tag pushed to terraform-provider-oneuptime repository"
 }
 
-# Function to look up the tag of the most recent existing release in the
-# provider repo — the release this one actually follows. Used for the
-# "Full Changelog" compare link; deriving the previous tag arithmetically
-# (patch - 1) produces v13.0.-1 on a x.y.0 release and simply points at the
-# wrong tag after any minor or major bump.
-#
-# Prints the tag on stdout, or nothing when there is no previous release.
-# Deliberately never fails: the changelog link is cosmetic, so a lookup error,
-# a gh too old for --json, or a repo with no releases yet all degrade to an
-# empty result (and the caller omits the line) instead of aborting a release
-# that has already pushed its tag.
-get_previous_release_tag() {
-    local tags=""
-
-    # Drafts are skipped: a draft from an earlier --test-release run is not
-    # something a compare link should point at. `|| true` keeps `set -e` out
-    # of it if gh errors or the repo has no releases.
-    tags=$(gh release list \
-        --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-        --limit 10 \
-        --json tagName,isDraft \
-        --jq '.[] | select(.isDraft | not) | .tagName' 2>/dev/null) || true
-
-    local tag
-    while IFS= read -r tag; do
-        # Skip blanks and the release being created right now — a re-run can
-        # see its own tag if a previous attempt got as far as the release.
-        [[ -n "$tag" && "$tag" != "v$VERSION" ]] || continue
-        printf '%s\n' "$tag"
+# The release this one follows, for its notes: the newest published release
+# older than v$VERSION (ProviderRelease.js previous), in PREVIOUS_TAG, and
+# fetched into the provider's checkout, where the notes read its pages.
+# Deriving it arithmetically (patch - 1) produced v13.0.-1 on a x.y.0 release
+# and pointed at the wrong tag after any minor or major bump; taking the
+# newest release by date would after a republished older version. Never
+# fails: without it the notes say less, and the release is not held back.
+find_previous_release() {
+    PREVIOUS_TAG=""
+    list_releases
+    if [[ "$RELEASES_LISTED" != true ]]; then
+        print_warning "Could not list the releases of $REPOSITORY, so the notes of v$VERSION compare it with none. GitHub said: $(gh_said)"
         return 0
-    done <<< "$tags"
+    fi
 
-    return 0
+    PREVIOUS_TAG="$(node "$RELEASE_HELPER" previous "$VERSION" "$RELEASES_FILE" 2>/dev/null || true)"
+    if [[ -z "$PREVIOUS_TAG" ]]; then
+        print_warning "No published release of $REPOSITORY is older than v$VERSION"
+        return 0
+    fi
+
+    print_status "v$VERSION follows $PREVIOUS_TAG"
+    if ! git -C "$PROVIDER_FRAMEWORK_DIR" fetch --depth=1 origin "refs/tags/${PREVIOUS_TAG}:refs/tags/${PREVIOUS_TAG}" 2>/dev/null; then
+        print_warning "Could not fetch $PREVIOUS_TAG, so the notes of v$VERSION cannot say what changed since it"
+    fi
 }
 
-# Function to create GitHub release (gh CLI)
-create_github_release() {
+# What a release says when its notes could not be written: never nothing.
+write_fallback_notes() {
+    {
+        echo "The provider for OneUptime $VERSION, generated from its API."
+        echo ""
+        if [[ -n "$PREVIOUS_TAG" ]]; then
+            echo "**Full changelog:** https://github.com/$REPOSITORY/compare/$PREVIOUS_TAG...v$VERSION"
+        else
+            echo "**Changes:** https://github.com/$REPOSITORY/commits/v$VERSION"
+        fi
+    } > "$NOTES_FILE"
+}
+
+# The release notes (GenerateReleaseNotes.js): what changed in the provider's
+# resources and data sources since the release before, and OneUptime's
+# changes to the provider. Every release used to get the same text
+# (OneUptime/terraform-provider-oneuptime#19). They go to the job's summary
+# too, a dry run's included.
+write_release_notes() {
+    print_step "Writing the release notes..."
+
+    NOTES_FILE="$WORK_DIR/release-notes.md"
+    PREVIOUS_TAG=""
+    local -a args=(
+        --version "$VERSION"
+        --provider-dir "$PROVIDER_FRAMEWORK_DIR"
+        --ref "v$VERSION"
+        --output "$NOTES_FILE"
+        --fallback-on-error
+    )
+
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        args+=(--republish-of "$REPUBLISH_FROM")
+    elif [[ "$DRY_RUN" == true ]]; then
+        print_status "Dry run: not asking GitHub which release v$VERSION follows"
+    else
+        find_previous_release
+        if [[ -n "$PREVIOUS_TAG" ]]; then
+            args+=(--previous "$PREVIOUS_TAG")
+        fi
+    fi
+    if [[ -n "$ONEUPTIME_COMMIT" ]]; then
+        args+=(--oneuptime-to "$ONEUPTIME_COMMIT")
+    fi
+
+    if ! node "$NOTES_GENERATOR" "${args[@]}"; then
+        print_warning "The notes of v$VERSION could not be written, so its release links to its changes instead"
+        write_fallback_notes
+    fi
+
+    if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+        {
+            echo "## Terraform provider v$VERSION"
+            echo ""
+            cat "$NOTES_FILE"
+            echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+    fi
+    print_success "Release notes written"
+}
+
+# The drafts of v$VERSION, by id, in DRAFT_IDS: none, unless a run stopped
+# between making its draft and publishing it.
+list_drafts() {
+    DRAFT_IDS=()
+    if ! gh_retrying "" api "repos/$REPOSITORY/releases?per_page=100" --paginate --jq ".[] | select(.draft and .tag_name == \"v$VERSION\") | .id"; then
+        print_error "Could not list the drafts of $REPOSITORY. GitHub said: $(gh_said)"
+        exit 1
+    fi
+    local id
+    while IFS= read -r id; do
+        if [[ "$id" =~ ^[0-9]+$ ]]; then
+            DRAFT_IDS+=("$id")
+        fi
+    done <<< "$GH_STDOUT"
+}
+
+# Makes v$VERSION's release as a draft, which no registry sees, in DRAFT_ID.
+# A draft an earlier run left is deleted first: it was never published, so
+# nothing has read it, and its assets may be from another build. They are
+# deleted by id, and only drafts are ever deleted.
+create_draft_release() {
     if [[ "$DRY_RUN" == true ]]; then
         print_warning "DRY RUN: skipping GitHub release creation"
         return
     fi
 
-    print_step "Creating GitHub release..."
+    print_step "Creating the draft of GitHub release v$VERSION..."
 
-    cd "$PROVIDER_FRAMEWORK_DIR"
+    # One more look, right before writing anything: a release published while
+    # this run built its assets is left as it is.
+    read_published_release "v$VERSION"
+    if [[ "$PUBLISHED" == true ]]; then
+        print_error "v$VERSION was published while this run built its assets. A published release is never changed: this run uploads nothing."
+        exit 1
+    fi
+
+    list_drafts
+    local id
+    for id in "${DRAFT_IDS[@]}"; do
+        print_warning "Deleting draft $id of v$VERSION, which an earlier run left unpublished"
+        if ! gh_retrying "HTTP 404|Not Found" api -X DELETE "repos/$REPOSITORY/releases/$id" && ! grep -qiE "HTTP 404|Not Found" <<< "$GH_STDERR$GH_STDOUT"; then
+            print_error "Could not delete draft $id of v$VERSION. GitHub said: $(gh_said)"
+            exit 1
+        fi
+    done
 
     if [[ "$TEST_RELEASE" == true ]]; then
         print_warning "TEST RELEASE: Creating draft release v$VERSION (will not be published)"
     fi
 
-    # Skip release creation if the release already exists. A previous run may
-    # have created it but failed before uploading assets — the upload step
-    # that follows heals it either way (uploads use --clobber).
-    if gh release view "v$VERSION" --repo "$GITHUB_ORG/$PROVIDER_REPO" >/dev/null 2>&1; then
-        print_warning "GitHub release v$VERSION already exists. Skipping release creation."
-        print_status "Will still upload the freshly built assets so the release ends up complete."
-        RELEASE_ALREADY_EXISTS=true
-        return
+    # The tag was already pushed, so the release attaches to the exact tagged
+    # commit.
+    if ! gh_retrying "" api -X POST "repos/$REPOSITORY/releases" \
+        -f tag_name="v$VERSION" \
+        -f name="v$VERSION" \
+        -F body=@"$NOTES_FILE" \
+        -F draft=true \
+        -F prerelease=false \
+        --jq .id; then
+        print_error "Failed to create the draft of GitHub release v$VERSION. GitHub said: $(gh_said)"
+        exit 1
     fi
-
-    # Create release notes
-    local release_notes_file="release-notes-v$VERSION.md"
-    cat > "$release_notes_file" << EOF
-# v$VERSION
-
-## What's Changed
-
-This release includes the latest OneUptime Terraform provider generated from the OneUptime API specification.
-
-### Features
-- Full support for OneUptime resources and data sources
-- Auto-generated from OpenAPI specification
-- Supports all OneUptime monitoring and incident management features
-
-### Resources Included
-- Monitors and Monitor Groups
-- Incidents and Alerts
-- Status Pages
-- On-Call Policies and Schedules
-- Teams and Users
-- Service Catalog
-- Workflows
-- And many more...
-
-### Installation
-
-\`\`\`hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> $VERSION"
-    }
-  }
-}
-\`\`\`
-
-For detailed documentation and examples, visit: https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs
-EOF
-
-    # Append the "Full Changelog" compare link only when there is a real
-    # previous release to compare against. No previous release (or a failed
-    # lookup) means no line, rather than a link to a tag that does not exist.
-    local previous_tag
-    previous_tag=$(get_previous_release_tag)
-    if [[ -n "$previous_tag" ]]; then
-        print_status "Full Changelog will compare $previous_tag...v$VERSION"
-        printf '\n**Full Changelog**: https://github.com/%s/%s/compare/%s...v%s\n' \
-            "$GITHUB_ORG" "$PROVIDER_REPO" "$previous_tag" "$VERSION" >> "$release_notes_file"
-    else
-        print_warning "No previous release found in $GITHUB_ORG/$PROVIDER_REPO - omitting the Full Changelog link"
-    fi
-
-    # Create the release. The tag was already pushed, so the release attaches
-    # to the exact tagged commit.
-    local gh_args=()
-    if [[ "$TEST_RELEASE" == true ]]; then
-        print_status "Creating draft release v$VERSION for test release..."
-        gh_args+=(--draft)
-    else
-        print_status "Creating GitHub release v$VERSION..."
-    fi
-
-    if gh release create "v$VERSION" \
-        --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-        --title "v$VERSION" \
-        --notes-file "$release_notes_file" \
-        "${gh_args[@]}"; then
-        if [[ "$TEST_RELEASE" == true ]]; then
-            print_success "Draft release created successfully for test release"
-            print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
-        else
-            print_success "GitHub release created successfully"
-        fi
-    else
-        print_error "Failed to create GitHub release"
+    DRAFT_ID="$GH_STDOUT"
+    if [[ ! "$DRAFT_ID" =~ ^[0-9]+$ ]]; then
+        print_error "GitHub made the draft of v$VERSION, and answered no id for it: $GH_STDOUT"
         exit 1
     fi
 
-    # Clean up
-    rm -f "$release_notes_file"
+    print_success "Created draft $DRAFT_ID of GitHub release v$VERSION"
 }
 
-# Function to upload the pre-built GoReleaser assets to the GitHub release
+# Function to upload the pre-built GoReleaser assets to this run's draft: the
+# only release of the tag, so `gh release upload` finds it by the tag.
 upload_release_assets() {
     if [[ "$DRY_RUN" == true ]]; then
         print_warning "DRY RUN: skipping release asset upload"
         return
     fi
 
-    print_step "Uploading release assets..."
+    print_step "Uploading release assets to the draft..."
 
     cd "$PROVIDER_FRAMEWORK_DIR"
 
-    local dist_dir="dist"
-
-    if [[ ! -d "$dist_dir" ]]; then
+    if [[ ! -d "dist" ]]; then
         print_error "GoReleaser dist directory not found - assets were never built"
         exit 1
     fi
 
-    local files_uploaded=0
-    # Glob *_manifest.json (not *.json) so GoReleaser's internal artifacts.json /
-    # metadata.json are not uploaded as release assets.
-    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
-        if [[ -f "$file" ]]; then
-            local filename=$(basename "$file")
-            print_status "Uploading $filename..."
-            if ! gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO" --clobber; then
-                print_error "Failed to upload $filename"
-                exit 1
-            fi
-            print_status "✓ Uploaded $filename"
-            files_uploaded=$((files_uploaded + 1))
-        fi
-    done
+    collect_release_assets
 
     # Fail loudly if nothing was uploaded. Otherwise a run that produced no
     # matching artifacts would let the job exit 0 with an empty release - the exact
     # "green but no assets" failure mode this script is meant to prevent.
-    if [[ "$files_uploaded" -eq 0 ]]; then
+    if [[ "${#RELEASE_ASSETS[@]}" -eq 0 ]]; then
         print_error "No release assets found to upload (dist/ had no zip/SHA256SUMS/sig/manifest files)"
         exit 1
     fi
 
-    print_success "Uploaded $files_uploaded release assets"
+    local file filename
+    for file in "${RELEASE_ASSETS[@]}"; do
+        filename=$(basename "$file")
+        print_status "Uploading $filename..."
+        # --clobber replaces only what this run uploaded to its own draft,
+        # when an attempt failed halfway.
+        if ! gh_retrying "" release upload "v$VERSION" "$file" --repo "$REPOSITORY" --clobber; then
+            print_error "Failed to upload $filename. GitHub said: $(gh_said)"
+            exit 1
+        fi
+        print_status "✓ Uploaded $filename"
+    done
+
+    print_success "Uploaded ${#RELEASE_ASSETS[@]} release assets"
+}
+
+# Checks the draft against what was built, before anyone can see it: every
+# asset there, whole, with the SHA-256 it was built with, and nothing else.
+verify_release_assets() {
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: skipping the check of the uploaded assets"
+        return
+    fi
+
+    print_step "Checking the draft's assets against what was built..."
+
+    local draft_file="$WORK_DIR/draft.json"
+    if ! gh_retrying "" api "repos/$REPOSITORY/releases/$DRAFT_ID"; then
+        print_error "Could not read draft $DRAFT_ID of v$VERSION. GitHub said: $(gh_said)"
+        exit 1
+    fi
+    printf '%s\n' "$GH_STDOUT" > "$draft_file"
+
+    collect_release_assets
+    local differences status=0
+    differences="$(node "$RELEASE_HELPER" check-uploaded "$draft_file" "${RELEASE_ASSETS[@]}")" || status=$?
+    if (( status != 0 )); then
+        print_error "Draft $DRAFT_ID of v$VERSION is not what was built, so it is not published:"
+        while IFS= read -r difference; do
+            [[ -n "$difference" ]] && print_error "  - $difference"
+        done <<< "$differences"
+        print_error "Run the release again: the next run deletes the draft and makes it anew."
+        exit 1
+    fi
+
+    print_success "Draft $DRAFT_ID holds exactly the ${#RELEASE_ASSETS[@]} assets built for v$VERSION"
+}
+
+# Publishes the draft, whole: from now on the registries may read it, and
+# nothing changes it again. It becomes the repository's latest release only
+# when no published release is newer (a republished older version is not).
+publish_release() {
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: skipping publishing the release"
+        return
+    fi
+
+    if [[ "$TEST_RELEASE" == true ]]; then
+        print_warning "TEST RELEASE: draft $DRAFT_ID of v$VERSION stays a draft (it is not published)"
+        print_status "Review it at: https://github.com/$REPOSITORY/releases"
+        return
+    fi
+
+    print_step "Publishing GitHub release v$VERSION..."
+
+    read_published_release "v$VERSION"
+    if [[ "$PUBLISHED" == true ]]; then
+        print_error "v$VERSION was published while this run made its draft. A published release is never changed: draft $DRAFT_ID stays unpublished."
+        exit 1
+    fi
+
+    # Whether it is the latest, from the releases GitHub lists. When they
+    # cannot be listed or read, a release run's version is the newest, and a
+    # version published again is not.
+    local latest=""
+    list_releases
+    if [[ "$RELEASES_LISTED" == true ]]; then
+        latest="$(node "$RELEASE_HELPER" latest "$VERSION" "$RELEASES_FILE" 2>/dev/null || true)"
+    fi
+    if [[ "$latest" != true && "$latest" != false ]]; then
+        if [[ -n "$REPUBLISH_FROM" ]]; then
+            latest=false
+        else
+            latest=true
+        fi
+    fi
+
+    if ! gh_retrying "" api -X PATCH "repos/$REPOSITORY/releases/$DRAFT_ID" \
+        -F draft=false \
+        -f make_latest="$latest"; then
+        print_error "Failed to publish draft $DRAFT_ID of v$VERSION. GitHub said: $(gh_said)"
+        exit 1
+    fi
+
+    read_published_release "v$VERSION"
+    if [[ "$PUBLISHED" != true ]]; then
+        print_error "GitHub accepted publishing v$VERSION, and does not have it published"
+        exit 1
+    fi
+
+    if [[ "$latest" == true ]]; then
+        print_success "Published GitHub release v$VERSION, the latest"
+    else
+        print_success "Published GitHub release v$VERSION (not the latest: a newer version is published)"
+    fi
 }
 
 # Function to publish to terraform registry
@@ -906,11 +1353,8 @@ publish_to_registry() {
         return
     fi
 
-    cd "$PROVIDER_FRAMEWORK_DIR"
-
-    # The Terraform Registry automatically pulls from GitHub releases
-    # So we just need to ensure everything is properly tagged and released
-
+    # The Terraform Registry and OpenTofu's read a release when it is
+    # published, so there is nothing to send them.
     print_status "Terraform Registry will automatically detect the new release"
     print_status "Monitor the release at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases"
     print_status "Provider will be available at: https://registry.terraform.io/providers/oneuptime/oneuptime/$VERSION"
@@ -924,6 +1368,9 @@ cleanup() {
 
     # Remove any temporary files
     rm -f release-notes-*.md
+    if [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]]; then
+        rm -rf "$WORK_DIR"
+    fi
 
     # Clean up SSH key if it was created
     if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" && -f "$HOME/.ssh/terraform_provider_deploy_key" ]]; then
@@ -949,6 +1396,13 @@ show_summary() {
         tests_line="• Tests skipped (--skip-tests)"
     fi
 
+    if [[ "$ALREADY_PUBLISHED" == true ]]; then
+        print_success "v$VERSION is published already - nothing was generated, built, pushed or uploaded."
+        echo "• A published release is never changed: its assets are what the registries read"
+        echo "• To mend a published version, publish its provider again as a new one (--republish-from)"
+        return
+    fi
+
     if [[ "$NOTHING_TO_PUBLISH" == true ]]; then
         print_success "No provider changes detected - nothing was published."
         echo "✓ Generated Terraform provider"
@@ -958,26 +1412,16 @@ show_summary() {
 
     if [[ "$DRY_RUN" == true ]]; then
         print_warning "This was a DRY RUN. Assets were built and signed, but nothing was pushed or released:"
-        echo "✓ Generated Terraform provider"
-        echo "✓ Synced provider tree and created local commit + tag"
+        if [[ -n "$REPUBLISH_FROM" ]]; then
+            echo "✓ Tagged $REPUBLISH_FROM's commit as v$VERSION locally"
+        else
+            echo "✓ Generated Terraform provider"
+            echo "✓ Synced provider tree and created local commit + tag"
+        fi
         echo "$tests_line"
         echo "✓ Built and signed all release assets with GoReleaser (dist/)"
+        echo "✓ Wrote the release notes"
         echo "✗ Skipped git push, tag push, GitHub release creation, asset upload, and registry publish"
-        return
-    fi
-
-    if [[ "$HEAL_MODE" == true ]]; then
-        print_warning "Tag v$VERSION already existed on the remote. Healed the release from the tagged commit:"
-        echo "✓ Rebuilt release assets from the exact commit tag v$VERSION points to"
-        echo "$tests_line"
-        if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
-            echo "• Release creation skipped (release already existed)"
-        else
-            echo "✓ Created GitHub release v$VERSION"
-        fi
-        echo "✓ Uploaded release assets (archives, checksums, signatures, manifest)"
-        echo ""
-        print_status "To republish from freshly generated code instead, rerun with --force."
         return
     fi
 
@@ -987,39 +1431,48 @@ show_summary() {
         echo "$tests_line"
         echo "✓ Built and signed all release assets with GoReleaser (before pushing anything)"
         echo "✓ Pushed code and tag to terraform-provider-oneuptime repository"
-        echo "✓ Created draft GitHub release v$VERSION"
-        echo "✓ Uploaded release assets (archives, checksums, signatures, manifest)"
-        echo "✗ Skipped Terraform Registry publishing"
+        echo "✓ Created draft GitHub release v$VERSION, uploaded its assets and checked them"
+        echo "✗ Left it a draft, and skipped Terraform Registry publishing"
         echo ""
         print_status "Next steps for a real release:"
-        echo "1. Review the draft release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
+        echo "1. Review the draft release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases"
         echo "2. If satisfied, publish the release (remove draft status)"
         echo "3. Or run the script again without --test-release flag"
         echo "4. Monitor Terraform Registry for automatic indexing"
+        return
+    fi
+
+    if [[ -n "$REPUBLISH_FROM" ]]; then
+        print_success "Published $REPUBLISH_FROM's provider again, as v$VERSION!"
+        echo "✓ Built the provider of $REPUBLISH_FROM's commit as v$VERSION"
+    elif [[ "$HEAL_MODE" == true ]]; then
+        print_warning "Tag v$VERSION already existed on the remote, and its release was never published:"
+        echo "✓ Built the release from the exact commit tag v$VERSION points to"
     else
         print_success "Terraform provider published successfully!"
         echo ""
         print_status "Actions completed:"
         echo "✓ Generated Terraform provider"
-        echo "$tests_line"
-        echo "✓ Built and signed all release assets with GoReleaser (before pushing anything)"
-        echo "✓ Pushed code and tag to terraform-provider-oneuptime repository"
-        if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
-            echo "• Release creation skipped (release already existed); assets re-uploaded"
-        else
-            echo "✓ Created GitHub release v$VERSION"
-        fi
-        echo "✓ Uploaded release assets (archives, checksums, signatures, manifest)"
-        echo "✓ Terraform Registry notified"
-        echo ""
-        print_status "Next steps:"
-        echo "1. Monitor the GitHub release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
-        echo "2. Wait for Terraform Registry to index the new version (usually takes a few minutes)"
-        echo "3. Test the provider installation: terraform init"
-        echo "4. Update documentation if needed"
-        echo ""
-        print_status "Note: To generate a new provider version, run 'npm run generate-terraform-provider' first"
     fi
+    echo "$tests_line"
+    echo "✓ Built and signed all release assets with GoReleaser (before pushing anything)"
+    if [[ "$HEAL_MODE" == true ]]; then
+        echo "• The tag was on the remote already: nothing pushed"
+    elif [[ -n "$REPUBLISH_FROM" ]]; then
+        echo "✓ Pushed tag v$VERSION"
+    else
+        echo "✓ Pushed code and tag to terraform-provider-oneuptime repository"
+    fi
+    echo "✓ Made the release a draft, uploaded its assets, and checked them against what was built"
+    echo "✓ Published GitHub release v$VERSION, whole"
+    echo "✓ Terraform Registry notified"
+    echo ""
+    print_status "Next steps:"
+    echo "1. Monitor the GitHub release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
+    echo "2. Wait for Terraform Registry to index the new version (usually takes a few minutes)"
+    echo "3. Test the provider installation: terraform init"
+    echo ""
+    print_status "Note: To generate a new provider version, run 'npm run generate-terraform-provider' first"
 }
 
 
@@ -1031,8 +1484,19 @@ main() {
     echo ""
 
     parse_args "$@"
+    WORK_DIR="$(mktemp -d)"
 
     validate_prerequisites
+    # A published version is left as it is, before anything is generated.
+    check_published_release
+
+    if [[ "$ALREADY_PUBLISHED" == true ]]; then
+        cleanup
+        show_summary
+        exit 0
+    fi
+
+    find_oneuptime_commit
     generate_provider
     sync_provider_repository
 
@@ -1047,8 +1511,13 @@ main() {
     # the build cannot leave a public tag (or release) without assets.
     build_release_assets
     push_repository_changes
-    create_github_release
+    write_release_notes
+    # The release is a draft until it holds every asset, checked: only then
+    # is it published, and the registries read it.
+    create_draft_release
     upload_release_assets
+    verify_release_assets
+    publish_release
     publish_to_registry
     cleanup
     show_summary

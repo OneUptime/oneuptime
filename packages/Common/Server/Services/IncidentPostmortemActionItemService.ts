@@ -2,13 +2,11 @@ import IncidentFeedService from "./IncidentFeedService";
 import IncidentService from "./IncidentService";
 import MonitorService from "./MonitorService";
 import ProjectReferencesService from "./ProjectReferencesService";
-import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Utils/Feed/FeedPersonName";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import Model from "../../Models/DatabaseModels/IncidentPostmortemActionItem";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import User from "../../Models/DatabaseModels/User";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -653,31 +651,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A person as the project names them: someone only invited to it by the
-   * name typed for them, else their address - never their account's own
-   * name, which it does not see until they join (#9823).
+   * An action item's owner, as every feed entry names a person
+   * (FeedPersonName): someone only invited to the project by the name typed
+   * for them, else "someone who hasn't joined the project yet" - never their
+   * account's own name (#9823) or any address (#10668, #10669).
    */
   private async getUserName(
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<string> {
-    const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    await PendingInviteeProfiles.nameInProject({
-      users: [user],
-      projectId: projectId,
-    });
-
-    return user?.name?.toString() || user?.email?.toString() || "a user";
+    return (
+      (await FeedPersonName.getText({
+        userId: userId,
+        projectId: projectId,
+      })) || "a user"
+    );
   }
 
   private async getMonitorName(monitorId: ObjectID): Promise<string> {

@@ -165,6 +165,7 @@ Elk item van `monitor_steps` is één ding om te controleren:
 | `request_type` | string | Website, API | De HTTP-methode: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` of `PATCH`. De server gebruikt `GET` als hij niet is ingesteld. |
 | `request_headers` | map(string) | Website, API | Headers om mee te sturen: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | De body van het verzoek, als tekst. |
+| `request_body_format` | string | API | Hoe `request_body` wordt verzonden: `json`, de standaard, voor elke JSON-waarde; `text` voor een body die precies zo wordt verzonden als hij is geschreven, zoals XML of formuliervelden. |
 | `do_not_follow_redirects` | bool | Website, API | Stoppen bij het eerste antwoord in plaats van omleidingen te volgen. |
 | `allow_self_signed_certificates` | bool | Website, API | Een zelfondertekend TLS-certificaat accepteren. |
 | `tls_client_certificate` | string | Website, API | Een clientcertificaat voor wederzijdse TLS: PEM, of een verwijzing `{{monitorSecrets.name}}`. |
@@ -237,6 +238,10 @@ Gegroepeerde metriekmonitoren zijn de ene uitzondering. Als de query van een met
 | `description` | string | De beschrijving die het dashboard toont. |
 | `filter_condition` | string (verplicht) | `All`: elke filter moet overeenkomen. `Any`: één is genoeg. |
 | `filters` | list (verplicht) | De voorwaarden, minstens één: zie [Filterreferentie](#filterreferentie). |
+| `recovery_filters` | list | Filters zoals die van `filters` die moeten voldoen voordat het criterium ophoudt te werken, in plaats van zodra zijn `filters` niet meer voldoen. |
+| `recovery_filter_condition` | string | Hoe `recovery_filters` samengaan: `All` (de standaard) of `Any`. |
+| `active_hours` | object | Beoordeel het criterium alleen op deze `days` (maandag is `0`, zondag `6`), van `from` tot `to` (`"08:00"`); daarbuiten wordt het overgeslagen zoals een uitgeschakeld criterium. |
+| `active_hours_timezone` | string | De tijdzone waarin `active_hours` worden gelezen, zoals `Europe/Oslo`. Stel die in samen met `active_hours`. |
 | `change_monitor_status` | bool | Of een overeenkomst de status van de monitor wijzigt. |
 | `monitor_status_id` | string | De ID van de `oneuptime_monitor_status` waarnaar je wisselt. Stel hem in als `change_monitor_status` `true` is. |
 | `create_incidents` | bool | Of een overeenkomst incidenten opent. |
@@ -283,15 +288,87 @@ criteria = [
 ]
 ```
 
+### Wanneer het herstelt en wanneer het wordt beoordeeld
+
+Dit criterium beoordeelt de site alleen tijdens kantooruren in Oslo, van maandag tot en met vrijdag, en houdt die offline tot ze 10 minuten lang op elke controle heeft geantwoord:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## Filterreferentie
 
 Een filter heeft `check_on` (waar hij naar kijkt), `filter_type` (hoe hij vergelijkt) en `value` (waarmee hij vergelijkt, als string; laat het weg bij controles op waar of onwaar zoals `True` en `False`).
 
-Een filter kan ook een tijdvenster beoordelen in plaats van de laatste controle: stel `evaluate_over_time = true` in, de lengte van het venster in `evaluate_over_time_minutes`, en in `evaluate_over_time_type` hoe het venster wordt gelezen: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` of `Any Value`.
+Een filter kan ook een tijdvenster beoordelen in plaats van de laatste controle: stel `evaluate_over_time = true` in, de lengte van het venster in `evaluate_over_time_minutes`, en in `evaluate_over_time_type` hoe het venster wordt gelezen: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` of `Previous Check`. `Percentile` vergelijkt het percentiel uit `evaluate_over_time_percentile` met de waarde van het filter (95 als het niet is ingesteld). `Count`, `Percentage` en `Status Changes` tellen per sonde de controles van het venster die aan de voorwaarde voldeden, hun aandeel in procenten, of hoe vaak ze wisselden tussen wel en niet voldoen, en vergelijken dat getal met `evaluate_over_time_count_value` zoals `evaluate_over_time_count_filter_type` aangeeft (`Greater Than` 0 als het niet is ingesteld).
 
 `All Values` betekent dat elke controle in het venster de regel schond, dus het komt pas overeen als het venster met gegevens is gevuld: een monitor die net is aangemaakt, wacht tot zijn venster vol is in plaats van bij zijn eerste controle overeen te komen. Geef het een venster van minstens twee keer het `monitoring_interval` van de monitor; anders bevat het venster één controle, en betekent "alle waarden" hetzelfde als "een willekeurige waarde". `Any Value` komt bewust overeen bij één controle die de regel schendt.
 
 `evaluate_over_time_no_data_policy` zegt wat de filter doet zolang het venster niet genoeg gegevens bevat: `Ignore` (de standaard) komt niet overeen, `Trigger` behandelt de ontbrekende gegevens als de storing, zoals een heartbeat doet, en `Treat As Zero` vergelijkt het venster als één enkele nul.
+
+`Previous Check` vergelijkt elke controle met de vorige controle van dezelfde sonde, gedaan hoogstens `evaluate_over_time_minutes` ervoor. Een gemeten waarde neemt geen `value`: `filter_type` vergelijkt die met de vorige waarde, verschoven met `evaluate_over_time_change_value`, omhoog bij `Greater Than` en omlaag bij `Less Than`, als `Amount` in de eenheid van de controle of als `Percentage` van de vorige waarde, zoals `evaluate_over_time_change_type` aangeeft (`Amount` 0 als het niet is ingesteld: elke stijging of daling). Een filter dat waar of onwaar is, voldoet bij de controle die aan de voorwaarde begon te voldoen. Zonder vorige controle beslist `evaluate_over_time_no_data_policy`.
+
+Dit criterium opent een waarschuwing wanneer een controle meer dan twee keer zo lang duurt als de vorige:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### Wat een filter kan controleren
 

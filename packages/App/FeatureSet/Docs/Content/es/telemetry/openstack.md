@@ -1069,7 +1069,7 @@ Una nube escribe muchísimo que nadie lee. La primera vez que llegan los registr
 | **OpenStack: health checks** | Un balanceador de carga preguntando a cada API por `/` o `/healthcheck`: una línea cada pocos segundos, por API, por controlador | Con una comprobación cada 2 segundos, 43.200 líneas al día por cada API en cada controlador. Con los 220 a 490 bytes que tenían estas líneas en nuestras nubes de prueba, son de 10 a 21 MB al día. Es aritmética a partir del tamaño de una línea: nuestras nubes de prueba no tienen balanceador de carga | Nada que lea una persona. La misma línea de una persona tiene el mismo aspecto |
 | **OpenStack: routine notifications** | `metrics.update`, y todo `*.exists` y `*.usage`. Consulta [Eventos del ciclo de vida](#eventos-del-ciclo-de-vida) | Sin medir: nuestras grabaciones son demasiado cortas para contener muchas. Crece con el número de instancias | Nada que diga que algo cambió. Desactiva esto para conservar todas las notificaciones |
 
-Estos filtros solo coinciden con lo que OneUptime leyó de los registros de una nube, así que no se toca nada más de un proyecto.
+Estos filtros solo coinciden con lo que OneUptime leyó de los registros de una nube, así que no se toca nada más de un proyecto. Tal como OneUptime los creó, conservan cada línea que lee [Eventos de seguridad](/docs/telemetry/security-events): un inicio de sesión, un ataque en una solicitud, un registro de auditoría. Cambia uno y descartará lo que coincida, como un filtro tuyo.
 
 ### Secretos en los registros
 

@@ -5,6 +5,33 @@ import {
 } from "../Utils/Express";
 import AppMetrics from "../Utils/Telemetry/AppMetrics";
 
+// The route of a request that matched none, as the metrics name it.
+export const UNMATCHED_HTTP_ROUTE: string = "unmatched";
+
+/*
+ * The Express route template a request matched (e.g. /api/users/:id), under
+ * the path its router is mounted at, or UNMATCHED_HTTP_ROUTE when it matched
+ * none - a 404, or a middleware that answered before any route - rather
+ * than the raw URL, so a count by route stays a few names. The metrics'
+ * http.route, and the route a client's refusal is counted under
+ * (ClientRefusalLog).
+ */
+export const getHttpRouteTemplate: (req: ExpressRequest) => string = (
+  req: ExpressRequest,
+): string => {
+  const routeWithMethod: { path?: unknown } | undefined = (
+    req as ExpressRequest & { route?: { path?: unknown } }
+  ).route;
+
+  const baseUrl: string = (req as ExpressRequest & { baseUrl?: string }).baseUrl
+    ? (req as ExpressRequest & { baseUrl: string }).baseUrl
+    : "";
+
+  return routeWithMethod && typeof routeWithMethod.path === "string"
+    ? `${baseUrl}${routeWithMethod.path}`
+    : UNMATCHED_HTTP_ROUTE;
+};
+
 /**
  * Express middleware that records HTTP server metrics (request count,
  * duration, and in-flight gauge) for every request.
@@ -57,19 +84,7 @@ const HttpMetricsMiddleware: (
      * handler. For 404s (no match), record the request under a stable
      * "unmatched" label rather than the raw URL to avoid cardinality blowup.
      */
-    const routeWithMethod: { path?: string } | undefined = (
-      req as ExpressRequest & { route?: { path?: string } }
-    ).route;
-
-    const baseUrl: string = (req as ExpressRequest & { baseUrl?: string })
-      .baseUrl
-      ? (req as ExpressRequest & { baseUrl: string }).baseUrl
-      : "";
-
-    const routeTemplate: string =
-      routeWithMethod && typeof routeWithMethod.path === "string"
-        ? `${baseUrl}${routeWithMethod.path}`
-        : "unmatched";
+    const routeTemplate: string = getHttpRouteTemplate(req);
 
     const attributes: Record<string, string | number> = {
       "http.request.method": method,

@@ -46,6 +46,8 @@ Todo o resto fica em **Mais campos**, recolhido até você abrir:
 
 Enquanto alguém se reveza e nada em **Mais campos** é alterado, o cabeçalho recolhido diz o que vai acontecer: cada pessoa fica de plantão por uma semana, e depois a próxima assume.
 
+Alguém convidado para o projeto que ainda não entrou nele também pode se revezar, mas nada aciona essa pessoa até ela aceitar o convite, e nada é dito a ela. O turno dela é uma lacuna de cobertura, e os canais e o feed de cada política de plantão que aciona o agendamento dizem isso, nomeando-a pelo nome digitado no convite, nunca pelo endereço de e-mail: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` no Slack e `oncall` no Microsoft Teams também dizem isso. Assim que ela entra, os acionamentos chegam até ela, ela é avisada de quais políticas de plantão a acionam agora, e os canais recebem "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Até lá, [Prontidão e relatórios](/docs/on-call/readiness) lista essa pessoa, com o que fazer.
+
 ## Camadas
 
 A rotação de um agendamento é feita de camadas, na página **Camadas** dele. As camadas são lidas de cima para baixo: a camada mais alta com alguém de plantão é a que aciona, então coloque a rotação principal no topo e a cobertura de reserva embaixo.

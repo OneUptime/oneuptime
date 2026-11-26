@@ -125,6 +125,8 @@ Klicken Sie auf **Monitor hinzufügen**. Klicken Sie unter dem Monitor-Auswahlfe
 Wählen Sie die Gruppe. **Anzeigename**, der Name, den Besucher lesen, übernimmt den Namen der Gruppe, bis Sie einen eigenen eintippen. Klicken Sie auf **Monitor hinzufügen**: Die Zeile erscheint auf der Seite mit dem Status der Gruppe.
 :::
 
+Eine Zeile, die einen Monitor zeigt, kann stattdessen eine Gruppe zeigen: Öffnen Sie ihr **Ressource bearbeiten**, den Stift an der Zeile, und klicken Sie unter der Auswahlliste auf **Zeigen Sie stattdessen eine Monitor-Gruppe an.** In der Zeile einer Gruppe öffnet sich **Ressource bearbeiten** mit der Gruppe ausgewählt, und **Zeigen Sie stattdessen einen Monitor an.** richtet die Zeile auf einen Monitor. Das Speichern leert, was die Zeile vorher zeigte: Eine Zeile zeigt einen Monitor oder eine Monitor-Gruppe, nie beides.
+
 Auf der Statusseite steht die Zeile für jeden Monitor der Gruppe:
 
 - **Ihr Status.** Es ist der Status der Gruppe: der schlimmste ihrer Monitore mit eingeschalteter Überwachung. Ist die Überwachung für alle ausgeschaltet, zeigt die Zeile **Nicht überwacht** und zählt weder für die Überschrift darüber noch für den Gesamtstatus der Seite.

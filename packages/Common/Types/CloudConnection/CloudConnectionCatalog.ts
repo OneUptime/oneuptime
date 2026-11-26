@@ -255,6 +255,157 @@ function dataSecurityResponseField(): CloudConnectionField {
 }
 
 /*
+ * AWS: the setting that records whether the project's blocklist may block
+ * addresses in the account's AWS WAF web ACLs, as the setup command granted
+ * it (#10344): nothing ("off", every connection until someone picks
+ * otherwise), OneUptime's own IP sets and the rule that blocks them in the
+ * web ACLs picked on the Blocklist page ("rule"), or the IP sets alone, for
+ * a team that adds the rule to a web ACL it keeps in code ("code").
+ *
+ * The cloud connection's way of letting OneUptime enforce the blocklist:
+ * Azure WAF (#10348) and Google Cloud Armor (#10349) add a setting of the
+ * same shape to their clouds, read the same way (isCloudConnectionWaf
+ * BlocklistOn), granted by their commands' own lines.
+ */
+export const WAF_BLOCKLIST_FIELD_KEY: string = "wafBlocklist";
+
+export type CloudConnectionWafBlocklist = "off" | "rule" | "code";
+
+export const CLOUD_CONNECTION_WAF_BLOCKLIST_CHOICES: ReadonlyArray<CloudConnectionWafBlocklist> =
+  ["off", "rule", "code"];
+
+// A connection's choice: its setting when it is one of the choices, else off.
+export function getCloudConnectionWafBlocklist(
+  value: unknown,
+): CloudConnectionWafBlocklist {
+  return (
+    CLOUD_CONNECTION_WAF_BLOCKLIST_CHOICES.find(
+      (choice: CloudConnectionWafBlocklist): boolean => {
+        return choice === value;
+      },
+    ) || "off"
+  );
+}
+
+// Whether the blocklist may write OneUptime's IP sets through the connection: either way of turning it on.
+export function isCloudConnectionWafBlocklistOn(value: unknown): boolean {
+  return getCloudConnectionWafBlocklist(value) !== "off";
+}
+
+/*
+ * Whether OneUptime adds its rule to each web ACL itself: only "rule", the
+ * one choice whose command grants wafv2:UpdateWebACL.
+ */
+export function doesCloudConnectionWafBlocklistAddRule(
+  value: unknown,
+): boolean {
+  return getCloudConnectionWafBlocklist(value) === "rule";
+}
+
+/*
+ * Folded under the command, as Data security response is: the connection
+ * writes nothing in the account until someone opts in, and the command
+ * shown grants exactly what the choice needs.
+ */
+function wafBlocklistField(): CloudConnectionField {
+  return {
+    key: WAF_BLOCKLIST_FIELD_KEY,
+    title: "Block addresses in AWS WAF",
+    description:
+      "Lets your blocklist block addresses in the web ACLs you pick, through IP sets OneUptime keeps. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "On, and OneUptime adds its rule", value: "rule" },
+      { label: "On, and I add the rule in code", value: "code" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+    changesSetupCommand: true,
+  };
+}
+
+/*
+ * Azure (#10348) and Google Cloud (#10349): the same setting, on or off.
+ * Their policies hold OneUptime's addresses in its own rules, which no
+ * rule of a team's could reference, so there is no "in code" choice: a
+ * team that keeps a policy in Terraform tells it to leave OneUptime's
+ * rules alone (the docs say how). "On" is stored as "rule", the AWS choice
+ * that also writes the WAF, so every reader of the setting reads it alike.
+ */
+function cloudWafBlocklistField(data: {
+  title: string;
+  description: string;
+}): CloudConnectionField {
+  return {
+    key: WAF_BLOCKLIST_FIELD_KEY,
+    title: data.title,
+    description: data.description,
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "On", value: "rule" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+    changesSetupCommand: true,
+  };
+}
+
+/*
+ * AWS: the setting that records whether a security case may read back what
+ * an attack changed on the account's IAM users, as the setup command
+ * granted it (#10900): nothing ("off", every connection until someone turns
+ * it on), or the reads the Fix step "Undo what changed on the account"
+ * makes of each user its case's CloudTrail events name - the user, its
+ * access keys, its attached and inline policies, its groups, whether it
+ * has a console password, and its MFA devices ("on"). Each only reads, and
+ * none reads a secret: a key's id and whether it is active, never the key;
+ * that a console password is set, never the password.
+ *
+ * Off until someone turns it on, as every access a connection gives
+ * Security is: OneUptime makes no IAM call through a connection that has
+ * not granted it, so a refused call never shows in the account's
+ * CloudTrail, and a case lists those changes for a person to confirm,
+ * saying how to grant the reads.
+ */
+export const SECURITY_CASE_CHECKS_FIELD_KEY: string = "securityCaseChecks";
+
+export type CloudConnectionSecurityCaseChecks = "off" | "on";
+
+export const CLOUD_CONNECTION_SECURITY_CASE_CHECKS_CHOICES: ReadonlyArray<CloudConnectionSecurityCaseChecks> =
+  ["off", "on"];
+
+// Whether security cases may read the account's IAM users back: "on" alone does.
+export function isCloudConnectionSecurityCaseChecksOn(value: unknown): boolean {
+  return value === "on";
+}
+
+/*
+ * Folded under the command, as the other settings that give Security
+ * access are: the command shown grants the reads once it is on.
+ */
+function securityCaseChecksField(): CloudConnectionField {
+  return {
+    key: SECURITY_CASE_CHECKS_FIELD_KEY,
+    title: "Security case checks",
+    description:
+      "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "On", value: "on" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+    changesSetupCommand: true,
+  };
+}
+
+/*
  * AWS: the setting that says whether the connection reads what each
  * resource costs, from Cost Explorer's resource-level data (opt-in in the
  * account's Cost Management preferences, for the last 14 days). Off until
@@ -408,6 +559,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       resourceCostsField(),
       dataSecurityField(),
       dataSecurityResponseField(),
+      wafBlocklistField(),
+      securityCaseChecksField(),
     ],
     secretFields: [
       {
@@ -494,6 +647,11 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readIntervalField(5),
       dataSecurityField(),
       dataSecurityResponseField(),
+      cloudWafBlocklistField({
+        title: "Block addresses in Azure WAF",
+        description:
+          "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.",
+      }),
       {
         key: AZURE_SECRET_EXPIRES_AT_KEY,
         title: "Client secret expires",
@@ -576,6 +734,11 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readIntervalField(5),
       dataSecurityField(),
       dataSecurityResponseField(),
+      cloudWafBlocklistField({
+        title: "Block addresses in Cloud Armor",
+        description:
+          "Lets your blocklist block addresses in the Cloud Armor security policies you pick, through rules of its own. The command changes with it.",
+      }),
     ],
     secretFields: [
       {

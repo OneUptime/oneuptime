@@ -5,8 +5,27 @@ import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
 } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
-import { readString } from "../NormalizerHelpers";
+import {
+  ClientAddressReading,
+  ClientAddressTrust,
+  NO_CLIENT_ADDRESS,
+  TrustedProxies,
+  isTrustedProxy,
+  markClientAddressTrust,
+  readAddressText,
+  readClientAddressEvidence,
+  resolveClientAddress,
+} from "../ClientAddressTrust";
+import { readString, readValue } from "../NormalizerHelpers";
 import { requestOutcomeFromStatusCode } from "../RequestOutcome";
+import {
+  SENSITIVE_FILE_PROBE_WORDS,
+  SensitiveFileAnswer,
+  SensitiveFileRequest,
+  readBodySize,
+  readContentType,
+  readSensitiveFileRequest,
+} from "../SensitiveFileProbe";
 import {
   MAX_SCRUBBED_ADDRESS_LENGTH,
   ScrubbedAddress,
@@ -21,8 +40,8 @@ import {
   buildLogSecurityEvent,
   cutText,
   readAttribute,
-  readIpAddress,
-  readRemoteIpAddress,
+  readIpAddressOnly,
+  readRemoteIpAddressOnly,
   readWord,
 } from "./SecurityLogLine";
 
@@ -36,12 +55,21 @@ import {
  * string becomes a security event: SQL injection, path traversal, or a
  * Log4Shell JNDI lookup (which an attacker also puts in headers, so it is
  * looked for in any log line, access log or not - as a lookup, "${jndi:"
- * and where to look, never the bare string a rule or a query names).
+ * and where to look, never the bare string a rule or a query names) - or
+ * a request for a well-known sensitive file or admin page, such as /.env
+ * or /wp-admin, that the site refused or does not have (#10745,
+ * Utils/SecurityEvent/SensitiveFileProbe): a scanner's first move - or a
+ * file that holds secrets the site answered, read for what it sent: the
+ * file itself, a leak and Critical, or its own page (#10912).
  *
  * Common and combined log format lines and JSON access logs (nginx,
  * Caddy, Envoy and the like) are read for the client address, the method,
  * the request target and the status; an application's own log line written
  * inside a request is read for the same from its OpenTelemetry attributes.
+ * Behind a trusted proxy, the client is the one it forwarded: from a JSON
+ * line's X-Forwarded-For field, or - when the project says its access logs
+ * end with one - from the X-Forwarded-For a combined line ends with
+ * (readTrailingForwardedFor, #10548).
  * The request target is the event's target resource, which the rules match
  * on. A line with no request in it - an application's "Page not found -
  * /x?id=1' or 1=1" error, JSON and stack trace and all - keeps the word that
@@ -71,7 +99,35 @@ export enum WebAttackKind {
   SqlInjection = "sql-injection",
   PathTraversal = "path-traversal",
   Log4Shell = "log4shell",
+  /*
+   * A request for a well-known sensitive file or admin page the site
+   * refused or does not have (#10745): read from its path and its status
+   * (SensitiveFileProbe), never from a marker anywhere in the line.
+   */
+  SensitiveFile = "sensitive-file",
 }
+
+/*
+ * The sensitive path a SensitiveFile request asked for, as it is counted
+ * ("/.env", "/wp-admin"): what the Rule Library's rule counts distinct
+ * values of per address.
+ */
+export const WEB_SENSITIVE_FILE_PATH_ATTRIBUTE: string =
+  "web.sensitive_file.path";
+
+/*
+ * What the site answered a SensitiveFile request with (#10912,
+ * SensitiveFileAnswer): "refused", "file" - the file itself, which the
+ * Rule Library's "Sensitive file served" rule opens a case on - "own-page"
+ * or "empty". A log line's or a span's "unconfirmed" is decided before the
+ * event is stored, or the event is not stored (SensitiveFileAnswers); only
+ * a Cloudflare firewall event, stored whatever it holds, keeps one.
+ */
+export const WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE: string =
+  "web.sensitive_file.answer";
+
+// A sensitive file the site served, said plainly: what its event's message opens with.
+export const SENSITIVE_FILE_SERVED_LABEL: string = "Sensitive file served";
 
 /*
  * Matched lowercased, as written in requests: raw, and URL-encoded the way
@@ -238,20 +294,49 @@ export interface AccessLogRequest {
    * read from elsewhere in it. Absent otherwise.
    */
   scrubbedClient?: ScrubbedAddress | undefined;
+  /*
+   * The forwarding headers a JSON access log recorded, as recorded: read
+   * only to tell whether a proxy the project trusts forwarded the client's
+   * address (ClientAddressTrust, #10416), never as the client.
+   */
+  forwardedFor?: string | undefined;
+  forwarded?: string | undefined;
+  /*
+   * The X-Forwarded-For a combined log line ends with, as written
+   * (readTrailingForwardedFor, #10548): read only when the project says its
+   * access logs end with one, and only behind a proxy it trusts
+   * (readAccessLogClient). Absent when the line ends with no such field.
+   */
+  trailingForwardedFor?: string | undefined;
+  /*
+   * For the request a line's own attributes describe: the client's address
+   * as ClientAddressTrust decided it, with what the request only claimed.
+   */
+  clientReading?: ClientAddressReading | undefined;
   method: string;
   target: string;
   status: number;
   userAgent: string;
+  /*
+   * What the answer carried, when the line records it (#10912): its body's
+   * size in bytes (null when not recorded) and its Content-Type ('' when
+   * not recorded) - what tells a sensitive file the site served from its
+   * own page for a path it does not have.
+   */
+  bodySize?: number | null | undefined;
+  contentType?: string | undefined;
 }
 
 type ClientField = Pick<AccessLogRequest, "clientIp" | "scrubbedClient">;
 
 /*
  * A client field's value: the address it holds, or what a scrub rule left
- * of one - the field's own, so the line's client is hidden.
+ * of one - the field's own, so the line's client is hidden. An address
+ * with a port, in brackets or written as IPv6 (::ffff:203.0.113.7) is read
+ * as the address alone, as an access log's first word always was.
  */
 function readClientField(value: string): ClientField {
-  const clientIp: string = readIpAddress(value);
+  const clientIp: string = readIpAddressOnly(value) || readAddressText(value);
 
   if (clientIp) {
     return { clientIp };
@@ -287,10 +372,242 @@ function readStatus(value: string): number {
 }
 
 /*
- * Common or combined log format: an address first, the request line in the
- * first quotes, the status after them and the user agent in the last.
+ * ---------------------------------------------------------------------------
+ * The X-Forwarded-For a combined log line ends with (#10548)
+ * ---------------------------------------------------------------------------
+ *
+ * Behind a load balancer, many web servers log the forwarded address after
+ * the user agent, as nginx's own main format does:
+ *
+ *   log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+ *                   '$status $body_bytes_sent "$http_referer" '
+ *                   '"$http_user_agent" "$http_x_forwarded_for"';
+ *
+ * The line's first field is then the load balancer, and the client is in
+ * its last. A line never says what its fields are, so that field is read
+ * only when it can be nothing else:
+ *
+ *   - the line is a combined log line with exactly one quoted field after
+ *     its user agent, and nothing after it: a format with more fields, or
+ *     unquoted ones after the user agent (ingress-nginx's, Traefik's), is
+ *     read as it always was;
+ *   - each field is read as the servers that quote it write it: a quote a
+ *     backslash escapes (Apache's \", nginx's \x22) is inside its field, so
+ *     nothing a request wrote ends a field early;
+ *   - the field is "-" (no header) or a list of hops whose last - the hop
+ *     the proxy in front appended - is an address with no port, or what a
+ *     scrub rule left of one: a request time, a host name, an upstream's
+ *     address and port, an id or a cookie is no X-Forwarded-For.
+ *
+ * Even so, a line's field is read as X-Forwarded-For only when the project
+ * says its access logs end with one (TrustedProxies
+ * .readsAccessLogForwardedFor): a server that does not escape quotes -
+ * Express's morgan writes the user agent as sent - lets a request's user
+ * agent, `x" "192.0.2.44`, add a field to a plain combined line, which
+ * would then read as its proxy's X-Forwarded-For. With the format said, the
+ * same request makes one field too many, and nothing is read. So is a
+ * format that ends with another address, an X-Real-IP or a Host.
+ *
+ * Read so, it is a forwarded-for header like any other
+ * (readAccessLogClient): only a proxy the project trusts in the line's
+ * first field makes it worth reading, and only the rightmost hop no trusted
+ * proxy wrote is verified. What the sender wrote left of it is a claim.
  */
-export function readCommonLogFormat(text: string): AccessLogRequest | null {
+
+// A combined log line's quoted fields after its status and size: the referrer, the user agent, one more.
+export const COMBINED_FIELDS_WITH_FORWARDED_FOR: number = 3;
+
+// The most quoted fields after the size a line is read for: past them it is no shape that is read.
+const MAX_COMBINED_TRAILING_FIELDS: number = 16;
+
+/*
+ * A field quoted from the opening quote at `start`: its text, and where its
+ * closing quote is. A backslash escapes the character after it, as Apache
+ * writes \" and \\ inside a field; nginx writes neither bare (\x22, \x5C).
+ */
+function readQuotedField(
+  text: string,
+  start: number,
+): { value: string; end: number } | null {
+  if (start < 0 || text[start] !== '"') {
+    return null;
+  }
+
+  for (let index: number = start + 1; index < text.length; index++) {
+    const character: string = text[index]!;
+
+    if (character === "\\") {
+      index++;
+      continue;
+    }
+
+    if (character === '"') {
+      return { value: text.slice(start + 1, index), end: index };
+    }
+  }
+
+  return null;
+}
+
+function isDigitsOnly(text: string): boolean {
+  if (!text) {
+    return false;
+  }
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
+ * The quoted fields that end a common or combined log line, in order: what
+ * follows its request line's closing quote, a space, the status, a space,
+ * the size (or "-"), then each field after one space - and nothing but
+ * spaces after the last. Null for any other shape: one with an unquoted
+ * field after the user agent, with two spaces between fields, or whose
+ * fields do not close.
+ */
+export function readCombinedLogTrailingFields(
+  text: string,
+): Array<string> | null {
+  const request: { value: string; end: number } | null = readQuotedField(
+    text,
+    text.indexOf('"'),
+  );
+
+  if (!request) {
+    return null;
+  }
+
+  // " 404 153": the status and the size, one space before each.
+  let position: number = request.end + 1;
+
+  if (text[position] !== " ") {
+    return null;
+  }
+
+  const statusEnd: number = text.indexOf(" ", position + 1);
+
+  if (statusEnd === -1) {
+    return null;
+  }
+
+  const status: string = text.slice(position + 1, statusEnd);
+
+  if (status.length !== 3 || !isDigitsOnly(status)) {
+    return null;
+  }
+
+  let sizeEnd: number = text.indexOf(" ", statusEnd + 1);
+
+  if (sizeEnd === -1) {
+    sizeEnd = text.length;
+  }
+
+  const size: string = text.slice(statusEnd + 1, sizeEnd);
+
+  if (size !== "-" && !isDigitsOnly(size)) {
+    return null;
+  }
+
+  position = sizeEnd;
+
+  // Where the line's text ends, spaces after it left out.
+  const end: number = text.trimEnd().length;
+  const fields: Array<string> = [];
+
+  while (position < end) {
+    if (
+      text[position] !== " " ||
+      fields.length >= MAX_COMBINED_TRAILING_FIELDS
+    ) {
+      return null;
+    }
+
+    const field: { value: string; end: number } | null = readQuotedField(
+      text,
+      position + 1,
+    );
+
+    if (!field) {
+      return null;
+    }
+
+    fields.push(field.value);
+    position = field.end + 1;
+  }
+
+  return fields;
+}
+
+/*
+ * One hop of a forwarding header that is an address and nothing more: an
+ * IPv4 or IPv6 address, bracketed or not, with no port. An upstream's
+ * "10.0.0.7:8080" is no client a proxy forwarded.
+ */
+function isAddressWithoutPort(hop: string): boolean {
+  if (hop.startsWith("[")) {
+    return hop.endsWith("]") && Boolean(readAddressText(hop));
+  }
+
+  const colon: number = hop.indexOf(":");
+
+  // One colon is an IPv4 address and its port; more is IPv6.
+  if (colon !== -1 && hop.indexOf(":", colon + 1) === -1) {
+    return false;
+  }
+
+  return Boolean(readAddressText(hop));
+}
+
+/*
+ * A combined log line's last field read as an X-Forwarded-For: "" for "-",
+ * the header for a list of hops whose last is an address with no port or
+ * what a scrub rule left of one, null for anything else. The hops before
+ * the last are the sender's and earlier proxies', kept as written: the
+ * header is walked from the right (resolveClientAddress).
+ */
+export function readTrailingForwardedFor(field: string): string | null {
+  const value: string = field.trim();
+
+  if (value === "-") {
+    return "";
+  }
+
+  if (!value) {
+    return null;
+  }
+
+  const hops: Array<string> = value.split(",");
+  const last: string = (hops[hops.length - 1] || "").trim();
+
+  if (!last) {
+    return null;
+  }
+
+  if (isAddressWithoutPort(last) || readScrubbedAddress(last)) {
+    return value;
+  }
+
+  return null;
+}
+
+/*
+ * Common or combined log format: an address first, the request line in the
+ * first quotes, the status after them and the user agent in the last - or,
+ * in a line that ends with an X-Forwarded-For (readTrailingForwardedFor), the
+ * one before it. A line cut to be read (`isCut`) is read as it always was.
+ */
+export function readCommonLogFormat(
+  text: string,
+  options?: { isCut?: boolean | undefined } | undefined,
+): AccessLogRequest | null {
   const openQuote: number = text.indexOf('"');
 
   if (openQuote === -1) {
@@ -338,7 +655,16 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
     }
   }
 
-  const status: number = readStatus(readWord(text, closeQuote + 2));
+  const statusWord: string = readWord(text, closeQuote + 2);
+  const status: number = readStatus(statusWord);
+  /*
+   * The body's size follows the status (%b, $body_bytes_sent: "-" for
+   * none) - what tells a sensitive file the site served from its own page
+   * (#10912). Unread when no status precedes it.
+   */
+  const bodySize: number | null = status
+    ? readBodySize(readWord(text, closeQuote + 2 + statusWord.length + 1))
+    : null;
 
   // The user agent is the last quoted string of a combined format line.
   let userAgent: string = "";
@@ -352,18 +678,106 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
     }
   }
 
-  return { ...client, method, target, status, userAgent };
+  /*
+   * A combined line that ends with an X-Forwarded-For: its user agent is
+   * the field before it, and the field is kept for readAccessLogClient to
+   * decide whether it may be read.
+   */
+  const trailingFields: Array<string> | null = options?.isCut
+    ? null
+    : readCombinedLogTrailingFields(text);
+  const trailingForwardedFor: string | null =
+    trailingFields &&
+    trailingFields.length === COMBINED_FIELDS_WITH_FORWARDED_FOR
+      ? readTrailingForwardedFor(trailingFields[2]!)
+      : null;
+
+  if (trailingFields && trailingForwardedFor !== null) {
+    userAgent = trailingFields[1]!;
+  }
+
+  return {
+    ...client,
+    method,
+    target,
+    status,
+    userAgent,
+    bodySize,
+    ...(trailingForwardedFor ? { trailingForwardedFor } : {}),
+  };
 }
 
-const JSON_CLIENT_FIELDS: Array<string> = [
+/*
+ * The fields a JSON log line names its client's address by, the most
+ * telling first: nginx's, Caddy's, Envoy's and Traefik's, the ECS and
+ * OpenTelemetry names, and the labels the free-text reader knows
+ * (CLIENT_ADDRESS_LABELS), so the shapes people use keep their client
+ * (#10486). Never a forwarded-for header's, which whoever sent the request
+ * wrote: those are JSON_FORWARDED_FOR_FIELDS, read only to tell whether a
+ * proxy the project trusts forwarded the address.
+ */
+export const JSON_CLIENT_FIELDS: ReadonlyArray<string> = [
   "remote_addr",
   "client_ip",
   "clientIp",
   "remoteAddr",
   "remote_ip",
+  "remoteIp",
   "client.address",
+  "client.ip",
   "request.remote_ip",
+  "client_addr",
+  "clientAddr",
+  "client_address",
+  "clientAddress",
+  "remote_address",
+  "remoteAddress",
+  "remote.address",
+  "remote.ip",
+  "source_ip",
+  "sourceIp",
+  "src_ip",
+  "srcIp",
+  "source.address",
+  "source.ip",
+  "downstream_remote_address",
+  "ClientAddr",
+  "ClientHost",
+  "httpRequest.remoteIp",
+  "client",
+  "remote",
+  "src",
   "ip",
+];
+
+/*
+ * The X-Forwarded-For and Forwarded headers, as JSON access logs record
+ * them: nginx's variables, Caddy's and Traefik's header maps, OpenTelemetry's
+ * names.
+ */
+export const JSON_FORWARDED_FOR_FIELDS: ReadonlyArray<string> = [
+  "http_x_forwarded_for",
+  "x_forwarded_for",
+  "x-forwarded-for",
+  "X-Forwarded-For",
+  "xForwardedFor",
+  "forwarded_for",
+  "http.request.header.x-forwarded-for",
+  "request.headers.X-Forwarded-For",
+  "request.headers.x-forwarded-for",
+  "headers.X-Forwarded-For",
+  "headers.x-forwarded-for",
+  "request_X-Forwarded-For",
+];
+
+export const JSON_FORWARDED_FIELDS: ReadonlyArray<string> = [
+  "http_forwarded",
+  "http.request.header.forwarded",
+  "request.headers.Forwarded",
+  "request.headers.forwarded",
+  "headers.Forwarded",
+  "headers.forwarded",
+  "request_Forwarded",
 ];
 const JSON_METHOD_FIELDS: Array<string> = [
   "method",
@@ -394,9 +808,82 @@ const JSON_AGENT_FIELDS: Array<string> = [
   "request.headers.User-Agent",
 ];
 
-function readFirstField(record: JSONObject, fields: Array<string>): string {
+/*
+ * The answer's body size, as JSON access logs record it (#10912): nginx's
+ * $body_bytes_sent, Caddy's size, ECS's and OpenTelemetry's names,
+ * Traefik's, and last nginx's $bytes_sent, which counts the headers too -
+ * still the same for the same page, which is what it is compared by.
+ */
+export const JSON_BODY_SIZE_FIELDS: ReadonlyArray<string> = [
+  "body_bytes_sent",
+  "size",
+  "response_size",
+  "resp_body_size",
+  "responseSize",
+  "response_bytes",
+  "http.response.body.bytes",
+  "http.response.body.size",
+  "response.bytes",
+  "DownstreamContentSize",
+  "bytes_sent",
+];
+
+/*
+ * The answer's Content-Type, as JSON access logs record it: nginx's
+ * $sent_http_content_type (never $content_type, which is the request's),
+ * Caddy's and Traefik's response headers, ECS's and OpenTelemetry's names.
+ */
+export const JSON_CONTENT_TYPE_FIELDS: ReadonlyArray<string> = [
+  "sent_http_content_type",
+  "resp_content_type",
+  "response_content_type",
+  "resp_headers.Content-Type",
+  "resp_headers.content-type",
+  "response.headers.Content-Type",
+  "response.headers.content-type",
+  "downstream_Content-Type",
+  "http.response.mime_type",
+  "http.response.header.content-type",
+];
+
+/*
+ * A field of a JSON log line, as its values: its own key first - JSON logs
+ * write "client.address" as one key as often as nested - else the path
+ * through nested objects. A list is its values, in order.
+ */
+function readJsonField(record: JSONObject, field: string): Array<string> {
+  const own: unknown = Object.prototype.hasOwnProperty.call(record, field)
+    ? record[field]
+    : undefined;
+  const value: unknown = own !== undefined ? own : readValue(record, field);
+
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((item: unknown): boolean => {
+        return item !== null && item !== undefined && typeof item !== "object";
+      })
+      .map((item: unknown): string => {
+        return String(item);
+      });
+  }
+
+  if (typeof value === "object") {
+    return [];
+  }
+
+  return [String(value)];
+}
+
+function readFirstField(
+  record: JSONObject,
+  fields: ReadonlyArray<string>,
+): string {
   for (const field of fields) {
-    const value: string = readString(record, field);
+    const value: string = (readJsonField(record, field)[0] || "").trim();
 
     if (value) {
       return value;
@@ -404,6 +891,47 @@ function readFirstField(record: JSONObject, fields: Array<string>): string {
   }
 
   return "";
+}
+
+// A header a JSON log line recorded, its values joined in order: '' when it has none.
+function readHeaderField(
+  record: JSONObject,
+  fields: ReadonlyArray<string>,
+): string {
+  for (const field of fields) {
+    const values: Array<string> = readJsonField(record, field)
+      .map((value: string): string => {
+        return value.trim();
+      })
+      .filter((value: string): boolean => {
+        return Boolean(value);
+      });
+
+    if (values.length > 0) {
+      return values.join(", ");
+    }
+  }
+
+  return "";
+}
+
+/*
+ * A JSON line's client: the first of its client fields that holds an
+ * address, or what a scrub rule left of one - never a field that holds a
+ * name or a word ("source": "web").
+ */
+function readJsonClient(record: JSONObject): ClientField {
+  for (const field of JSON_CLIENT_FIELDS) {
+    for (const value of readJsonField(record, field)) {
+      const client: ClientField = readClientField(value);
+
+      if (client.clientIp || client.scrubbedClient) {
+        return client;
+      }
+    }
+  }
+
+  return { clientIp: "" };
 }
 
 // A JSON access log line (nginx log_format escape=json, Caddy, Envoy).
@@ -444,13 +972,51 @@ export function readJsonAccessLog(text: string): AccessLogRequest | null {
     return null;
   }
 
+  const forwardedFor: string = readHeaderField(
+    record,
+    JSON_FORWARDED_FOR_FIELDS,
+  );
+  const forwarded: string = readHeaderField(record, JSON_FORWARDED_FIELDS);
+
   return {
-    ...readClientField(readFirstField(record, JSON_CLIENT_FIELDS)),
+    ...readJsonClient(record),
+    ...(forwardedFor ? { forwardedFor } : {}),
+    ...(forwarded ? { forwarded } : {}),
     method: HTTP_METHODS.includes(method) ? method : "",
     target,
     status: readStatus(readFirstField(record, JSON_STATUS_FIELDS)),
     userAgent: readFirstField(record, JSON_AGENT_FIELDS),
+    bodySize: readBodySize(readFirstField(record, JSON_BODY_SIZE_FIELDS)),
+    contentType: readContentType(
+      readFirstField(record, JSON_CONTENT_TYPE_FIELDS),
+    ),
   };
+}
+
+/*
+ * The client of a JSON line that is no access log - an application's own
+ * JSON log - read from its fields alone, as an access log's is: never from
+ * a label in its text, which can hold the request the sender wrote
+ * (#10486). Null for a line that is no JSON object.
+ */
+export function readJsonLineClient(text: string): ClientField | null {
+  if (!text.startsWith("{") || text.length > MAX_JSON_LINE_LENGTH) {
+    return null;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+
+  return readJsonClient(parsed as JSONObject);
 }
 
 /*
@@ -518,8 +1084,10 @@ function isLabelCharacter(character: string | undefined): boolean {
 /*
  * An address as a line writes it, without what is around it: the port of
  * "203.0.113.7:51234", the brackets and port of "[2001:db8::7]:443", the
- * full stop that ends a sentence. Read as the client's (readRemoteIpAddress:
- * never this machine's own, an IPv4 address written as IPv6 read as IPv4).
+ * full stop that ends a sentence. Read as the client's
+ * (readRemoteIpAddressOnly: never this machine's own, an IPv4 address
+ * written as IPv6 read as IPv4). What a scrub rule left is told apart where
+ * it is read (readClientAddressReading), never taken for an address here.
  */
 export function readAddressToken(token: string): string {
   let address: string = token;
@@ -539,7 +1107,7 @@ export function readAddressToken(token: string): string {
     address = address.slice(0, -1);
   }
 
-  return readRemoteIpAddress(address);
+  return readRemoteIpAddressOnly(address);
 }
 
 // The address that follows the label at `labelEnd` of a lowercased text, else "".
@@ -653,7 +1221,7 @@ function readScrubbedAfterLabel(
  * What a line in no known format says of its client: its address, else
  * what a scrub rule left where the address was (#10397), else nothing.
  */
-export interface ClientAddressReading {
+export interface ClientAddressReadingOfText {
   address: string;
   scrubbed: ScrubbedAddress | null;
 }
@@ -670,7 +1238,9 @@ export interface ClientAddressReading {
  * label (in the labels' order) followed by one - so the address a line
  * names is the one it always was.
  */
-export function readClientAddressReading(text: string): ClientAddressReading {
+export function readClientAddressReading(
+  text: string,
+): ClientAddressReadingOfText {
   const firstWord: string = readWord(text, 0);
   const firstAddress: string = readAddressToken(firstWord);
 
@@ -723,70 +1293,230 @@ export function readClientAddress(text: string): string {
 interface LineClient {
   ip: string;
   scrubbed: { scrubbed: ScrubbedAddress; place: ScrubbedAddressPlace } | null;
+  /*
+   * How the client's address was known, and what the request only claimed
+   * (ClientAddressTrust): null for an address read from the line's words,
+   * whose source does not say.
+   */
+  reading: ClientAddressReading | null;
+}
+
+/*
+ * The X-Forwarded-For a combined line ends with, when it may be read
+ * (#10548): the project says its access logs end with one, and the line's
+ * first field is an address the project trusts as a proxy. Undefined
+ * otherwise: a line whose first field is an address no proxy of the
+ * project's is that address's, whatever it ends with, and a first field a
+ * scrub rule hid cannot be told to be a proxy.
+ */
+function readTrailingForwardedForBehindTrustedProxy(
+  accessLog: AccessLogRequest,
+  trustedProxies: TrustedProxies | undefined,
+): string | undefined {
+  if (
+    !accessLog.trailingForwardedFor ||
+    !trustedProxies?.readsAccessLogForwardedFor ||
+    !accessLog.clientIp ||
+    !isTrustedProxy(accessLog.clientIp, trustedProxies)
+  ) {
+    return undefined;
+  }
+
+  return accessLog.trailingForwardedFor;
+}
+
+/*
+ * An access log's client field is the connection's address as the server
+ * saw it: its peer. A proxy the project trusts in front of it is told
+ * apart by the forwarding header the line recorded (#10416), or the one a
+ * combined line ends with (#10548): the client is then the one that proxy
+ * forwarded, and what the request wrote is a claim.
+ */
+function readAccessLogClient(
+  accessLog: AccessLogRequest,
+  trustedProxies: TrustedProxies | undefined,
+): ClientAddressReading | null {
+  const peer: string =
+    accessLog.clientIp || accessLog.scrubbedClient?.value || "";
+
+  if (!peer) {
+    return null;
+  }
+
+  return resolveClientAddress(
+    {
+      peer,
+      forwardedFor:
+        accessLog.forwardedFor ??
+        readTrailingForwardedForBehindTrustedProxy(accessLog, trustedProxies),
+      forwarded: accessLog.forwarded,
+    },
+    trustedProxies,
+  );
 }
 
 /*
  * The client of a line with an attack in it, the most telling first: the
- * access log's own client field, the address the line's attributes name
- * (OpenTelemetry's client.address), then the line's own words. An address
- * wins wherever it is read. When none is, what a scrub rule left of one
- * says the client was hidden (#10397): the access log's field first - it
- * is the line's client - then the attributes', then the line's words.
+ * access log's own client field, the address the line's attributes verify
+ * (OpenTelemetry's peer, or one a trusted proxy forwarded), then the line's
+ * own words. An address wins wherever it is read. When none is, what a
+ * scrub rule left of one says the client was hidden (#10397): the access
+ * log's field first - it is the line's client - then the attributes', then
+ * the line's words.
+ *
+ * An address the request only claimed - client.address from
+ * X-Forwarded-For, a JSON access log's X-Forwarded-For - is never the
+ * client (ClientAddressTrust, #10416).
  *
  * An access log's client is its client field. What a common log format
  * line holds after its request line opens - the target, the referrer, the
  * user agent - is what the sender wrote ("GET /?from=198.51.100.9"), so a
- * label is looked for only before it; and a line whose client field a
- * scrub rule hid is looked at for no other address at all.
+ * label is looked for only before it; a JSON line's client is its client
+ * fields alone, never a label in its text, which holds the request
+ * (#10486); and a line whose client field a scrub rule hid is looked at for
+ * no other address at all.
  */
 function readLineClient(data: {
   text: string;
   accessLog: AccessLogRequest | null;
   fromAttributes: AccessLogRequest;
+  trustedProxies: TrustedProxies | undefined;
 }): LineClient {
   const { text, accessLog, fromAttributes } = data;
-  const ip: string = accessLog?.clientIp || fromAttributes.clientIp;
+  const accessReading: ClientAddressReading | null = accessLog
+    ? readAccessLogClient(accessLog, data.trustedProxies)
+    : null;
+  const attributesReading: ClientAddressReading =
+    fromAttributes.clientReading || NO_CLIENT_ADDRESS;
 
-  if (ip) {
-    return { ip, scrubbed: null };
-  }
+  /*
+   * Whatever names the client, the request's claim is kept: the reading's
+   * own, else the access log's, else the one its attributes recorded. A
+   * client the line's words name, or hide, says nothing of how it was
+   * known; only a line that names none at all is said to be claimed.
+   */
+  const withClaim: (
+    reading: ClientAddressReading | null,
+    isNamed: boolean,
+  ) => ClientAddressReading | null = (
+    reading: ClientAddressReading | null,
+    isNamed: boolean,
+  ): ClientAddressReading | null => {
+    const claimant: ClientAddressReading | undefined = [
+      reading,
+      accessReading,
+      attributesReading,
+    ].find((candidate: ClientAddressReading | null): boolean => {
+      return Boolean(candidate?.claimed);
+    }) as ClientAddressReading | undefined;
 
-  if (accessLog?.scrubbedClient) {
+    if (!claimant || claimant === reading) {
+      return reading;
+    }
+
+    const base: ClientAddressReading = reading || {
+      ...NO_CLIENT_ADDRESS,
+      trust: isNamed ? null : ClientAddressTrust.Claimed,
+    };
+
+    return {
+      ...base,
+      claimed: claimant.claimed,
+      claimedFrom: claimant.claimedFrom,
+    };
+  };
+
+  const named: (
+    ip: string,
+    reading: ClientAddressReading | null,
+  ) => LineClient = (
+    ip: string,
+    reading: ClientAddressReading | null,
+  ): LineClient => {
+    return { ip, scrubbed: null, reading: withClaim(reading, Boolean(ip)) };
+  };
+
+  const hidden: (
+    scrubbed: ScrubbedAddress,
+    place: ScrubbedAddressPlace,
+    reading: ClientAddressReading | null,
+  ) => LineClient = (
+    scrubbed: ScrubbedAddress,
+    place: ScrubbedAddressPlace,
+    reading: ClientAddressReading | null,
+  ): LineClient => {
     return {
       ip: "",
-      scrubbed: {
-        scrubbed: accessLog.scrubbedClient,
-        place: ScrubbedAddressPlace.LogBody,
-      },
+      scrubbed: { scrubbed, place },
+      reading: withClaim(reading, true),
     };
+  };
+
+  if (accessReading?.address) {
+    return named(accessReading.address, accessReading);
+  }
+
+  if (attributesReading.address) {
+    return named(attributesReading.address, attributesReading);
+  }
+
+  if (accessReading?.scrubbed) {
+    return hidden(
+      accessReading.scrubbed,
+      ScrubbedAddressPlace.LogBody,
+      accessReading,
+    );
+  }
+
+  /*
+   * A client field that came through a trusted proxy, with nothing
+   * verified: the request's claim is all there is. No other place in the
+   * line is the client's.
+   */
+  if (accessReading) {
+    return named("", accessReading);
+  }
+
+  const isJsonText: boolean = text.startsWith("{");
+  const jsonClient: ClientField | null =
+    isJsonText && !accessLog ? readJsonLineClient(text) : null;
+  const isJsonObject: boolean =
+    (Boolean(accessLog) && isJsonText) || jsonClient !== null;
+
+  if (jsonClient?.clientIp) {
+    return named(jsonClient.clientIp, null);
   }
 
   const requestLineStart: number =
-    accessLog && !text.startsWith("{") ? text.indexOf('"') : -1;
-  const labelled: ClientAddressReading = readClientAddressReading(
-    requestLineStart === -1 ? text : text.slice(0, requestLineStart),
-  );
+    accessLog && !isJsonText ? text.indexOf('"') : -1;
+  const labelled: ClientAddressReadingOfText = isJsonObject
+    ? { address: "", scrubbed: null }
+    : readClientAddressReading(
+        requestLineStart === -1 ? text : text.slice(0, requestLineStart),
+      );
 
   if (labelled.address) {
-    return { ip: labelled.address, scrubbed: null };
+    return named(labelled.address, null);
   }
 
-  if (fromAttributes.scrubbedClient) {
-    return {
-      ip: "",
-      scrubbed: {
-        scrubbed: fromAttributes.scrubbedClient,
-        place: ScrubbedAddressPlace.LogAttributes,
-      },
-    };
+  if (attributesReading.scrubbed) {
+    return hidden(
+      attributesReading.scrubbed,
+      ScrubbedAddressPlace.LogAttributes,
+      attributesReading,
+    );
   }
 
-  return {
-    ip: "",
-    scrubbed: labelled.scrubbed
-      ? { scrubbed: labelled.scrubbed, place: ScrubbedAddressPlace.LogBody }
-      : null,
-  };
+  // The line's own words, or its JSON client field, hold what a rule left.
+  const scrubbed: ScrubbedAddress | null =
+    jsonClient?.scrubbedClient || labelled.scrubbed;
+
+  if (scrubbed) {
+    return hidden(scrubbed, ScrubbedAddressPlace.LogBody, null);
+  }
+
+  // What a request claimed in the line's attributes, when nothing named its client.
+  return named("", attributesReading.trust ? attributesReading : null);
 }
 
 /*
@@ -797,6 +1527,7 @@ export const WEB_ATTACK_LABELS: Record<WebAttackKind, string> = {
   [WebAttackKind.SqlInjection]: "SQL injection attempt",
   [WebAttackKind.PathTraversal]: "Path traversal attempt",
   [WebAttackKind.Log4Shell]: "Log4Shell exploit attempt",
+  [WebAttackKind.SensitiveFile]: "Request for a sensitive file",
 };
 
 export function isWebAttackKind(value: unknown): value is WebAttackKind {
@@ -824,28 +1555,54 @@ export function getSqlInjectionMarkers(): Array<string> {
 }
 
 /*
+ * Where OpenTelemetry writes an answer's body size and its Content-Type
+ * (#10912): the semantic conventions' names, and the older ones
+ * instrumentation still writes. Shared by a log line's attributes and a
+ * span's (TraceSignals).
+ */
+export const RESPONSE_SIZE_KEYS: ReadonlyArray<string> = [
+  "http.response.body.size",
+  "http.response_content_length",
+  "http.response_content_length_uncompressed",
+];
+
+export const RESPONSE_CONTENT_TYPE_KEYS: ReadonlyArray<string> = [
+  "http.response.header.content-type",
+  "http.response.header.content_type",
+];
+
+/*
  * The request as the line's own attributes describe it - OpenTelemetry's
  * names, and the older ones instrumentation still writes: what an
  * application's log line carries when it was written inside a request.
  */
 export function readRequestFromAttributes(
   attributes: JSONObject,
+  trustedProxies?: TrustedProxies | undefined,
 ): AccessLogRequest {
   const url: string =
     readAttribute(attributes, ["url.full", "http.url", "url.original"]) ||
     readAttribute(attributes, ["url.path", "http.target"]);
   const query: string = readAttribute(attributes, ["url.query"]);
+  /*
+   * Where the request came from, as the trace scan reads a span's
+   * (ClientAddressTrust): the connection's address - source.address too,
+   * as ECS names it - or one a trusted proxy forwarded; client.address
+   * alone is only a claim.
+   */
+  const clientReading: ClientAddressReading = resolveClientAddress(
+    readClientAddressEvidence(attributes, {
+      extraPeerKeys: ["source.address"],
+    }),
+    trustedProxies,
+  );
 
   return {
-    ...readClientField(
-      readAttribute(attributes, [
-        "client.address",
-        "http.client_ip",
-        "net.peer.ip",
-        "network.peer.address",
-        "source.address",
-      ]),
-    ),
+    clientIp: clientReading.address,
+    ...(clientReading.scrubbed
+      ? { scrubbedClient: clientReading.scrubbed }
+      : {}),
+    clientReading,
     method: readAttribute(attributes, ["http.request.method", "http.method"])
       .trim()
       .toUpperCase(),
@@ -863,6 +1620,11 @@ export function readRequestFromAttributes(
       "user_agent.original",
       "http.user_agent",
     ]),
+    // What the answer carried, by OpenTelemetry's names old and new (#10912).
+    bodySize: readBodySize(readAttribute(attributes, [...RESPONSE_SIZE_KEYS])),
+    contentType: readContentType(
+      readAttribute(attributes, [...RESPONSE_CONTENT_TYPE_KEYS]),
+    ),
   };
 }
 
@@ -1018,6 +1780,8 @@ export function buildWebAttackMessage(data: {
   target?: string | undefined;
   statusCode?: number | undefined;
   payload?: string | undefined;
+  // A sensitive file the site served (#10912): said as what it is.
+  isServed?: boolean | undefined;
 }): string {
   const target: string = cutText(
     (data.target || "").trim(),
@@ -1029,10 +1793,12 @@ export function buildWebAttackMessage(data: {
       return Boolean(part);
     })
     .join(" ");
+  const label: string =
+    data.isServed && data.kind === WebAttackKind.SensitiveFile
+      ? SENSITIVE_FILE_SERVED_LABEL
+      : WEB_ATTACK_LABELS[data.kind];
 
-  let message: string = request
-    ? `${WEB_ATTACK_LABELS[data.kind]}: ${request}`
-    : WEB_ATTACK_LABELS[data.kind];
+  let message: string = request ? `${label}: ${request}` : label;
 
   if (data.statusCode) {
     message = `${message} → ${data.statusCode}`;
@@ -1088,19 +1854,55 @@ export default class WebAttackLogParser {
       body.length > MAX_TEXT_LINE_LENGTH
         ? body.slice(0, MAX_TEXT_LINE_LENGTH)
         : body;
-    const kind: WebAttackKind | null = readWebAttackKind(text);
+    const attackKind: WebAttackKind | null = readWebAttackKind(text);
+    const lower: string = text.toLowerCase();
 
-    if (!kind) {
+    /*
+     * Neither an attack string nor a sensitive path's words: nothing to
+     * read, before any of the line is parsed.
+     */
+    if (
+      !attackKind &&
+      !SENSITIVE_FILE_PROBE_WORDS.some((word: string): boolean => {
+        return lower.indexOf(word) !== -1;
+      })
+    ) {
       return [];
     }
 
-    // The request: from an access log line, else from the line's attributes.
+    /*
+     * The request: from an access log line, else from the line's
+     * attributes. A line cut to be read never says what it ended with.
+     */
     const accessLog: AccessLogRequest | null =
-      readJsonAccessLog(text) || readCommonLogFormat(text);
+      readJsonAccessLog(text) ||
+      readCommonLogFormat(text, { isCut: text.length < body.length });
     const fromAttributes: AccessLogRequest = readRequestFromAttributes(
       line.attributes || {},
+      line.trustedProxies,
     );
-    const payload: string = readPayload(text, kind);
+
+    /*
+     * No attack string: a request for a sensitive file, read from the
+     * request the line records - its path and its status, and what the
+     * answer carried (#10912): refused or not there (#10745), or for a
+     * file that holds secrets, what the site sent - or nothing.
+     */
+    const sensitive: SensitiveFileRequest | null = attackKind
+      ? null
+      : readSensitiveFileRequest({
+          target: accessLog?.target || fromAttributes.target,
+          statusCode: accessLog?.status || fromAttributes.status,
+          ...readLineResponse(accessLog, fromAttributes),
+        });
+    const sensitivePath: string | null = sensitive?.path || null;
+
+    if (!attackKind && !sensitivePath) {
+      return [];
+    }
+
+    const kind: WebAttackKind = attackKind || WebAttackKind.SensitiveFile;
+    const payload: string = attackKind ? readPayload(text, attackKind) : "";
 
     /*
      * The target is the request an access log line records, as it always
@@ -1112,7 +1914,7 @@ export default class WebAttackLogParser {
      */
     const target: string = accessLog
       ? accessLog.target
-      : holdsAttackMarker(fromAttributes.target)
+      : sensitivePath || holdsAttackMarker(fromAttributes.target)
         ? fromAttributes.target
         : payload || text;
 
@@ -1129,6 +1931,7 @@ export default class WebAttackLogParser {
       text,
       accessLog,
       fromAttributes,
+      trustedProxies: line.trustedProxies,
     });
     const outcome: SecurityEventRequestOutcome | undefined =
       requestOutcomeFromStatusCode(statusCode);
@@ -1137,9 +1940,22 @@ export default class WebAttackLogParser {
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
     };
 
+    if (sensitive) {
+      markSensitiveFileRequest(
+        attributes,
+        sensitive,
+        readLineResponse(accessLog, fromAttributes),
+      );
+    }
+
     // A scrub rule hid the client's address: the event says so, and names none.
     if (client.scrubbed) {
       markClientAddressScrubbed(attributes, client.scrubbed);
+    }
+
+    // How the client's address was known, and what the request only claimed.
+    if (client.reading) {
+      markClientAddressTrust(attributes, client.reading);
     }
 
     // The attack, when what the message names as the request does not hold it.
@@ -1178,23 +1994,117 @@ export default class WebAttackLogParser {
       classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
       activityName: method,
       statusName,
-      severity: severityForWebAttack(kind, outcome),
+      severity: sensitive
+        ? severityForSensitiveFile(sensitive.answer)
+        : severityForWebAttack(kind, outcome),
       message: buildWebAttackMessage({
         kind,
         method,
         target: url || target,
         statusCode,
         payload,
+        isServed: sensitive?.answer === SensitiveFileAnswer.File,
       }),
       principalIp: client.ip,
       targetResource: cutText(target, 2000),
       attributes,
     });
 
-    if (outcome) {
-      event.requestOutcome = outcome;
+    const requestOutcome: SecurityEventRequestOutcome | undefined = sensitive
+      ? outcomeForSensitiveFile(sensitive.answer, outcome)
+      : outcome;
+
+    if (requestOutcome) {
+      event.requestOutcome = requestOutcome;
     }
 
     return [event];
   }
+}
+
+/*
+ * What a line's answer carried: what the access log records, else what the
+ * line's own attributes say (#10912).
+ */
+function readLineResponse(
+  accessLog: AccessLogRequest | null,
+  fromAttributes: AccessLogRequest,
+): { bodySize: number | null; contentType: string } {
+  return {
+    bodySize: accessLog?.bodySize ?? fromAttributes.bodySize ?? null,
+    contentType: accessLog?.contentType || fromAttributes.contentType || "",
+  };
+}
+
+/*
+ * A SensitiveFile event's facts (#10912): the path as it is counted, what
+ * the site answered, and what the answer carried when the source recorded
+ * it - its body's size and its type - so a person reads why it was judged
+ * so, and the store can compare it with what the same site answered other
+ * paths (SensitiveFileAnswers).
+ */
+export function markSensitiveFileRequest(
+  attributes: JSONObject,
+  sensitive: SensitiveFileRequest,
+  response: { bodySize: number | null; contentType: string },
+): void {
+  attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitive.path;
+  attributes[WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE] = sensitive.answer;
+
+  // A refusal carried nothing the judgement reads.
+  if (sensitive.answer === SensitiveFileAnswer.Refused) {
+    return;
+  }
+
+  if (response.bodySize !== null) {
+    attributes[SECURITY_REQUEST_ATTRIBUTES.responseBodySize] = String(
+      response.bodySize,
+    );
+  }
+
+  if (response.contentType) {
+    attributes[SECURITY_REQUEST_ATTRIBUTES.responseContentType] =
+      response.contentType;
+  }
+}
+
+/*
+ * How serious a request for a sensitive file is, by what the site sent
+ * (#10912): the file itself is a leak - its secrets are the asker's now -
+ * and Critical, as injected SQL that ran is; what is not yet decided reads
+ * as any request that reached the app; everything else is a probe that
+ * found nothing, as one turned away is.
+ */
+export function severityForSensitiveFile(
+  answer: SensitiveFileAnswer,
+): OcsfSeverity {
+  switch (answer) {
+    case SensitiveFileAnswer.File:
+      return OcsfSeverity.Critical;
+    case SensitiveFileAnswer.Unconfirmed:
+      return OcsfSeverity.Medium;
+    default:
+      return OcsfSeverity.Low;
+  }
+}
+
+/*
+ * How far a request for a sensitive file got (#10912): one the site
+ * answered with its own page, or with nothing, was turned away - the site
+ * does not have the file - however its status reads, so a single-page
+ * app's scanner never reads as getting through. Anything else is as its
+ * status says.
+ */
+export function outcomeForSensitiveFile(
+  answer: SensitiveFileAnswer,
+  outcome: SecurityEventRequestOutcome | undefined,
+): SecurityEventRequestOutcome | undefined {
+  if (
+    answer === SensitiveFileAnswer.OwnPage ||
+    answer === SensitiveFileAnswer.Empty
+  ) {
+    return SecurityEventRequestOutcome.Rejected;
+  }
+
+  return outcome;
 }

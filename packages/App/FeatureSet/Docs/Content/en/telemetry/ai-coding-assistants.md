@@ -91,6 +91,7 @@ How these keys are read:
 
 - **Every key is also read with a `resource.` prefix.** OTLP ingest stores resource attributes under that prefix, so `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` arrives as `resource.team.id`. The bare keys are tried first, so a value on the span beats one on the whole process.
 - **The Usage tab shows a person's email when the call has one, and the id otherwise.** Rows that show the same email are added together, so one engineer on two machines is one row.
+- **A person or team a scrub rule hid is never anyone's spend.** A call whose email a rule hid is shown under its ID when the rule left the ID whole. Otherwise the Usage tab counts it in one row of spend a scrub rule hid, whether the rule redacted, masked or hashed it.
 - **Identity is read only from AI calls.** `user.id`, `user.email` and `team.id` are generic keys that browser and backend spans carry too; only spans already recognized as AI calls get the columns.
 - **Log records are not read for identity.** That matters for Codex, which puts `user.email` on its logs only.
 - LiteLLM spells these keys two ways: its default `otel` callback uses the `metadata.` prefix, and its opt-in OpenTelemetry v2 mode (`LITELLM_OTEL_V2=true`) the `litellm.` namespace. OneUptime reads both, so a stock proxy works with no extra setup.

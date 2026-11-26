@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Poi applicala con `kubectl apply -f oneuptime-probe.yaml`.
 :::
 
 La rete dell'host (`--network host`, `network_mode: host`) permette alla sonda di usare la rete dell'host stesso, IPv6 compreso. Leggi [Monitorare destinazioni IPv6](#monitorare-destinazioni-ipv6) prima di avviarla senza la rete dell'host.
+
+Senza la rete dell'host, come nel Deployment Kubernetes qui sopra o con Docker su una rete bridge, i controlli della sonda lasciano la macchina dall'indirizzo proprio dell'host, che la sonda non vede dal suo container. `PROBE_HOST_IP_ADDRESSES` le indica quell'indirizzo, così che [Eventi di sicurezza](/docs/telemetry/security-events) riconosca le interrogazioni, le scoperte e i controlli dei monitor della sonda come lavoro suo. Il Deployment Kubernetes lo imposta da `status.hostIPs`, che contiene i due indirizzi di un nodo dual-stack; su Kubernetes precedenti alla 1.29, usa `status.hostIP`. Su una rete bridge Docker, indica tu l'indirizzo dell'host, per esempio `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Verificare che si connetta
 
@@ -146,10 +152,26 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Sostituisci `<version>` con la versione da eseguire, ad esempio `17.0.1`, e scrivi la stessa immagine in `oneuptime-probe.yaml`, così resta quando applichi di nuovo il file.
+Sostituisci `<version>` con la versione da eseguire, ad esempio `17.1.0`, e scrivi la stessa immagine in `oneuptime-probe.yaml`, così resta quando applichi di nuovo il file.
 :::
 
-La pagina della sonda mostra la versione che esegue, sotto **Stato della sonda**. Una sonda precedente alla 17.0.1 non può generare i codici di un [segreto di tipo codice monouso](/docs/monitor/monitor-secrets#accedere-con-un-codice-monouso): la sua pagina lo dice, e così il modulo di un monitor che controlla.
+La pagina della sonda mostra la versione che esegue, sotto **Stato della sonda**. Una sonda precedente alla 17.1.0 non può generare i codici di un [segreto di tipo codice monouso](/docs/monitor/monitor-secrets#accedere-con-un-codice-monouso): la sua pagina lo dice, e così il modulo di un monitor che controlla. Lo stesso vale per una sonda troppo vecchia per inviare il corpo della richiesta di un monitor API che sia un array JSON, un singolo valore o testo.
+
+Quando una sonda resta indietro di una o più versioni principali rispetto a OneUptime, i suoi proprietari ricevono un avviso una volta, con ciò che le manca e un link a questa sezione; una sonda senza proprietari avvisa i Proprietari del progetto. Ricevono un nuovo avviso solo quando resta indietro rispetto a una versione principale successiva, o quando torna indietro dopo essere stata aggiornata. Ognuno sceglie come saperlo con **Sonda indietro di una versione principale**, in **Impostazioni utente → Impostazioni notifiche**: all'inizio via email. Una sonda indietro solo di versioni secondarie lo dice nella sua pagina, e nessuno riceve avvisi.
+
+## Cosa invia una sonda quando comunica
+
+Ogni richiesta della sonda porta il suo ID e la sua chiave, la versione che esegue e ciò che sa fare, e una volta al minuto comunica con gli indirizzi con cui si conosce. Nient'altro sulla tua rete viene inviato, oltre ai risultati dei suoi controlli.
+
+| Campo | Inviato | Cosa ne fa OneUptime |
+| --- | --- | --- |
+| `probeVersion` | Con ogni richiesta | Conserva la versione che la sonda esegue. La sua pagina e **Sonde personalizzate** indicano quando è più vecchia di OneUptime, e i suoi proprietari ricevono un avviso una volta quando resta indietro di una versione principale. |
+| `probeCapabilities` | Con ogni richiesta | Affida alla sonda solo il lavoro che sa fare. Un controllo che richiede una sonda più recente fallisce, con una frase che dice di aggiornarla. |
+| `probeInterfaceAddresses` | Una volta al minuto | Conserva gli indirizzi delle interfacce di rete della sonda, e quelli che le dà `PROBE_HOST_IP_ADDRESSES`. [Eventi di sicurezza](/docs/telemetry/security-events) riconosce da questi le interrogazioni, le scoperte e i controlli dei monitor della sonda nei tuoi flussi di rete, e la blocklist non li blocca mai. Gli indirizzi di loopback, link-local e multicast vengono esclusi. |
+
+OneUptime conserva anche l'indirizzo da cui la sonda comunica, come lo vede: il NAT della tua rete, se ne ha uno. La pagina della sonda li mostra entrambi in **Stato della sonda**, come **Indirizzo di comunicazione** e **Indirizzi delle interfacce**, a chi può leggere la sonda, e nessuno dei due per una sonda che non ha ancora comunicato.
+
+Ciò che una sonda dice dei propri indirizzi è la sua parola, e chiunque abbia la sua chiave potrebbe dichiarare qualsiasi indirizzo. Per questo Eventi di sicurezza non mette mai da parte traffico solo per il suo indirizzo: ogni host e ogni porta raggiunti devono anche essere tra quelli che la sonda deve raggiungere, e tutto ciò che va oltre viene segnalato, indicando la sonda.
 
 ## Connettersi tramite un proxy
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ I limiti entro cui gira un monitor sintetico (quanti contemporaneamente, la loro
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | nessuno | Le impostazioni del proxy: vedi [Connettersi tramite un proxy](#connettersi-tramite-un-proxy). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Scadenza di ogni richiesta che la sonda invia a OneUptime. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Registrare un avviso per le richieste a OneUptime più lente di così. |
+| `PROBE_HOST_IP_ADDRESSES` | nessuno | Gli indirizzi IP dell'host, separati da virgole, per una sonda senza la rete dell'host: elencati accanto a quelli della sonda ogni volta che comunica. Vedi [Avviare la sonda](#avviare-la-sonda). |
 
 ### Rilevamento della rete
 
@@ -430,7 +457,7 @@ Una sonda interroga fino a `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivi d
 ### Altri problemi
 
 :::details La sonda si ferma subito dopo l'avvio
-Il suo log dice cosa manca: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` oppure `PROBE_ID or REGISTER_PROBE_KEY should be set`. Se tutte e tre sono impostate ma ID e chiave non corrispondono a nessuna sonda, la sonda tenta 10 volte, a 30 secondi di distanza, poi si ferma con `Unable to register probe after 10 attempts`. Copia di nuovo ID e chiave con **Mostra ID e chiave**.
+Il suo log dice cosa manca: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` oppure `PROBE_ID is not set`. Se tutte e tre sono impostate ma ID e chiave non corrispondono a nessuna sonda, la sonda tenta 10 volte, a 30 secondi di distanza, poi si ferma con `Unable to register probe after 10 attempts`. Copia di nuovo ID e chiave con **Mostra ID e chiave**.
 :::
 
 :::details La sonda funzionava finché qualcuno non ne ha reimpostato la chiave

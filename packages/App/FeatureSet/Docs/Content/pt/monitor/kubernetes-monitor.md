@@ -116,7 +116,7 @@ Esses monitores sempre avaliam o **Valor da métrica** – o valor da consulta d
 
 ### Condições
 
-Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo.
+Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a**, **Igual a** e **Diferente de**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo.
 
 A detecção de anomalias por linha de base não precisa de limite. Escolha uma destas condições, e o formulário mostra **Sensibilidade** e **Janela de linha de base** no lugar:
 

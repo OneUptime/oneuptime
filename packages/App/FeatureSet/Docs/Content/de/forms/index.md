@@ -1,6 +1,6 @@
 # Formulare – Übersicht
 
-Ein Formular ist eine Seite, die jeder mit ihrem Link ausfüllen kann, ohne OneUptime-Konto. Jede Einreichung legt etwas in Ihrem Projekt an: einen **Vorfall** für Problemmeldungen oder ein **Wartungsereignis** für Änderungs- und Wartungsanfragen. Sie bauen die Fragen des Formulars in einem Drag-and-Drop-Editor, legen fest, wie aus den Antworten der Datensatz wird, und teilen den Link mit den Personen, die es nutzen sollen.
+Ein Formular ist eine Seite, die jeder mit ihrem Link ausfüllen kann, ohne OneUptime-Konto. Jede Einreichung legt etwas in Ihrem Projekt an: einen **Vorfall** für Problemmeldungen, eine **Warnung** für Warnhinweise und Dinge, die jemand prüfen sollte, oder ein **Wartungsereignis** für Änderungs- und Wartungsanfragen. Sie bauen die Fragen des Formulars in einem Drag-and-Drop-Editor, legen fest, wie aus den Antworten der Datensatz wird, und teilen den Link mit den Personen, die es nutzen sollen.
 
 Verwenden Sie ein Formular, wenn die Menschen, die ein Problem bemerken – oder eine Änderung brauchen –, nicht die sind, die Ihre Vorfälle und Wartungen bearbeiten: Support-Mitarbeiter, Kollegen aus einer anderen Abteilung, eine Filialleitung, das Betriebsteam eines Kunden. Sie öffnen den Link, beantworten Ihre Fragen und klicken auf **Senden**. Ihr Team erhält einen gewöhnlichen Vorfall oder ein gewöhnliches Ereignis, mit den Antworten in seinen Feldern und einer privaten Notiz, die festhält, wer es geschickt hat.
 
@@ -13,16 +13,19 @@ Verwenden Sie ein Formular, wenn die Menschen, die ein Problem bemerken – oder
 
 ## So funktioniert ein Formular
 
-```mermaid title="Vom ausgefüllten Formular zum Vorfall oder Wartungsereignis"
+```mermaid title="Vom ausgefüllten Formular zum Vorfall, zur Warnung oder zum Wartungsereignis"
 flowchart TB
     submitter["Jemand mit dem Link,<br/>ohne Konto"] --> page["Die Seite des Formulars"]
     page -->|Senden| checks["Schutzmaßnahmen und<br/>Prüfung der Antworten"]
     checks --> submission["Einreichung, beim<br/>Formular aufbewahrt"]
     submission --> target{"Jede Einreichung erstellt"}
-    target -->|Vorfall| incident["Vorfall, auf Statusseiten<br/>ausgeblendet"]
-    target -->|Geplante Wartung| event["Wartungsereignis, ausgeblendet,<br/>sofern nicht anders eingestellt"]
+    target -->|Vorfall| incident["Vorfall, auf<br/>Statusseiten<br/>ausgeblendet"]
+    target -->|Warnung| alert["Warnung, zur<br/>Prüfung durch<br/>ihre Eigentümer"]
+    target -->|Geplante Wartung| event["Wartungsereignis,<br/>ausgeblendet, sofern<br/>nicht anders eingestellt"]
     incident --> response["Bereitschaftsrichtlinien<br/>und Regeln laufen"]
-    incident --> note["Private Notiz: wer es geschickt hat,<br/>weitere Antworten"]
+    alert --> response
+    incident --> note["Private Notiz: wer<br/>es geschickt hat,<br/>weitere Antworten"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Wenn Sie ein Formular anlegen, wählen Sie, was **Jede Einreichung erstellt**. S
 | Jede Einreichung erstellt | Wofür | Was passiert |
 | --- | --- | --- |
 | **Vorfall** | Problemmeldungen | Ein Vorfall wird sofort gemeldet, sodass Ihre Bereitschaftsrichtlinien und Regeln laufen und die Personen in Bereitschaft informiert werden. Er bleibt von Statusseiten fern, bis ein Bearbeiter ihn veröffentlicht. |
+| **Warnung** | Warnhinweise und Dinge, die jemand prüfen sollte | Eine Warnung wird erstellt, sodass ihre Eigentümer informiert werden und ihre Bereitschaftsrichtlinien und Regeln laufen, ohne dass ein Vorfall gemeldet wird. Eine, die in einem späteren Status beginnt, etwa **Bestätigt**, alarmiert niemanden. |
 | **Geplante Wartung** | Änderungs- und Wartungsanfragen | Ein Wartungsereignis wird für das Zeitfenster geplant, das die einreichende Person angibt. Sofern das Formular nichts anderes sagt, bleibt es von seinen Statusseiten fern und benachrichtigt keine Abonnenten. |
 
-Formulare beginnen mit diesen beiden, weitere Arten von Datensätzen folgen.
+Ein Formular einzurichten, das Warnungen erstellt, erfordert zusätzlich die Berechtigung, Warnungen zu erstellen: siehe [Berechtigungen](#berechtigungen).
 
 ## Bevor Sie beginnen
 
 - **Ein Tarif, der Formulare enthält.** In OneUptime Cloud brauchen Formulare den Tarif **Growth** oder höher. Siehe [Tarif](#tarif).
 - **Die Berechtigung, Formulare anzulegen.** **Create Form** haben Projektinhaber und Projektadministratoren sowie die Rollen, denen Sie es geben. Siehe [Berechtigungen](#berechtigungen).
 - **Für ein Vorfallsformular einen Schweregrad.** Jeder Vorfall braucht einen: aus einer Frage, aus den Einstellungen des Formulars oder aus seiner Vorfallsvorlage. Ohne ihn wird jede Einreichung abgelehnt. Siehe [Was eine Einreichung erstellt](/docs/forms/on-submit#wie-aus-einer-einreichung-ein-vorfall-wird).
+- **Für ein Warnungsformular einen Schweregrad.** Auch jede Warnung braucht einen: aus einer Frage oder aus den Einstellungen des Formulars. Siehe [Wie aus einer Einreichung eine Warnung wird](/docs/forms/on-submit#wie-aus-einer-einreichung-eine-warnung-wird).
 
 ## Ihr erstes Formular anlegen
 
@@ -144,6 +149,8 @@ Formulare erlauben Menschen außerhalb Ihres Teams, Vorfälle und Wartungsereign
 | **Delete Form Domain** | Die eigenen Domains eines Formulars entfernen. | Projektinhaber, Projektadministrator und **Edit Form** |
 | **Read Form Domain** | Die eigenen Domains eines Formulars sehen, ihre DNS-Einträge und wie weit jede auf dem Weg zu HTTPS ist. | Alle mit **Read Form** |
 
+**Ein Formular, das Warnungen erstellt, erfordert die Berechtigung, Warnungen zu erstellen.** Jeder mit seinem Link kann Warnungen erstellen, ihre Eigentümer benachrichtigen und ihre Bereitschaft alarmieren. Daher erfordern das Anlegen eines Formulars, das Warnungen erstellt, das Umstellen eines Formulars darauf und das Ändern der Fragen, Vorlagen oder Einstellungen unter **Beim Absenden** eines Warnungsformulars jeweils auch eine Berechtigung, die Warnungen erstellen darf: Projektinhaber, Projektadministrator, Projektmitglied, Warnungs-Administrator, Warnungs-Mitglied oder **Create Alert**. Sein Name, sein Link, **Nimmt Einreichungen an**, das Branding und die **IP-Zulassungsliste** erfordern allein die Berechtigungen **Form**. Ohne diese Berechtigung wird **Warnung** beim Anlegen eines Formulars nicht angeboten und ist auf seiner Seite **Beim Absenden** gesperrt, mit einem Tooltip, der die Berechtigung nennt; eine Anfrage, die es trotzdem versucht, wird mit "Only people who may create alerts can set up a form that creates them." abgelehnt. Vorfalls- und Wartungsformulare erfordern wie bisher allein die Berechtigungen **Form**.
+
 Einreichungen enthalten, was Fremde eingetippt haben – Namen, E-Mail-Adressen und Antworten, die vielleicht nie im Datensatz landen –, daher sehen sie nur Projektinhaber und Projektadministratoren, es sei denn, Sie gewähren **Read Form Submission**. Wer ein Formular lesen kann, kann seinen Link sehen und teilen. Ein Formular abzusenden braucht überhaupt keine Berechtigung. Wie Rollen und granulare Berechtigungen zusammenwirken, lesen Sie unter [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Tarif
@@ -156,7 +163,7 @@ Formulare sind eine gewöhnliche API-Ressource unter `/api/form` und ihre Einrei
 
 ### Fragen und Einstellungen
 
-Die Fragen eines Formulars sind seine Spalte `fields`, eine JSON-Liste in der Reihenfolge, in der das Formular sie stellt, und seine Einstellungen unter Beim Absenden sind `targetSettings`:
+Der `targetType` eines Formulars ist, was jede Einreichung erstellt: `Incident`, `Alert` oder `ScheduledMaintenance`. Seine Fragen sind seine Spalte `fields`, eine JSON-Liste in der Reihenfolge, in der das Formular sie stellt, und seine Einstellungen unter Beim Absenden sind `targetSettings` — für ein Warnungsformular `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` und `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Jede Frage hat eine eigene `id` – Buchstaben, Ziffern, `-` und `_` –, eine `
 | `source` | Was sie fragt |
 | --- | --- |
 | `Question` | Eine eigene Frage des Formulars, beantwortet gemäß `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` oder `MultipleFiles`. Eine Auswahlliste listet ihre `dropdownOptions`, eine pro Zeile. |
-| `TargetField` | Ein Feld dessen, was das Formular anlegt, benannt durch `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` und `impactStartedAt` für einen Vorfall; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` und `labels` für ein Wartungsereignis. Ein Feld, das durch Auswahl beantwortet wird, listet die angebotenen Datensätze in `allowedOptionIds`. |
-| `TargetCustomField` | Eines der benutzerdefinierten Felder des Vorfalls oder Ereignisses, benannt durch `customFieldId`. |
+| `TargetField` | Ein Feld dessen, was das Formular anlegt, benannt durch `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` und `impactStartedAt` für einen Vorfall; `title`, `description`, `alertSeverityId`, `monitor`, `labels` und `impactStartedAt` für eine Warnung; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` und `labels` für ein Wartungsereignis. Ein Feld, das durch Auswahl beantwortet wird, listet die angebotenen Datensätze in `allowedOptionIds`. |
+| `TargetCustomField` | Eines der benutzerdefinierten Felder des Vorfalls, der Warnung oder des Ereignisses, benannt durch `customFieldId`. |
 | `Submitter` | `Name` oder `Email` der einreichenden Person, benannt durch `submitterField`. |
 
 Eine Frage mit `isHidden` auf `true` wird auf der öffentlichen Seite nicht gezeigt, ist nie erforderlich und wird nur aus der Vorlage beantwortet, die eine Einreichung nennt – es sei denn, diese Vorlage stellt sie. `isRequired` und `isHidden` sind der Standard des Formulars; jede Vorlage kann eine Frage auf ihre eigene Weise stellen.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ Die Antwort auf eine Dateifrage sind die Dateien, wie sie gespeichert wurden, je
 
 ### Workflows
 
-Formulare haben die erzeugten Workflow-Komponenten – **Bei Erstellung: Formular**, **Bei Aktualisierung: Formular** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **Bei Erstellung: Vorfall** oder **Bei Erstellung: Wartungsereignis**.
+Formulare haben die erzeugten Workflow-Komponenten – **Bei Erstellung: Formular**, **Bei Aktualisierung: Formular** und so weiter. Um auf das zu reagieren, was ein Formular angelegt hat, verwenden Sie **Bei Erstellung: Vorfall**, **Bei Erstellung: Warnung** oder **Bei Erstellung: Wartungsereignis**.
 
 ### Die eigenen Endpunkte der öffentlichen Seite
 

@@ -59,8 +59,6 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   module: ts.ModuleKind.CommonJS,
 };
 
-const EMITTED_REQUIRE: string = 'require\\("([^"]+)"\\)';
-
 const relative: (file: string) => string = (file: string): string => {
   return path.relative(COMMON, file).split(path.sep).join("/");
 };
@@ -103,18 +101,49 @@ const requiresOf: (file: string) => Set<string> = (
     fileName: file,
   }).outputText;
   const requires: Set<string> = new Set();
-  const pattern: RegExp = new RegExp(EMITTED_REQUIRE, "g");
-  let match: RegExpExecArray | null = pattern.exec(javascript);
 
-  while (match) {
-    const required: string | undefined = sourceOf(file, match[1]!);
+  /*
+   * Only the requires that run as the file loads make a cycle: one inside a
+   * function runs when the function is called, once every model has loaded
+   * - DatabaseBaseModel reads User so for whoever last modified a record,
+   * as User extends it (#10290), through UserModelType. A require at the
+   * top of the file, in a class's decorators or in a property's initial
+   * value runs as it loads.
+   */
+  const emitted: ts.SourceFile = ts.createSourceFile(
+    file,
+    javascript,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS,
+  );
 
-    if (required) {
-      requires.add(required);
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isFunctionLike(node)) {
+      return;
     }
 
-    match = pattern.exec(javascript);
-  }
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "require" &&
+      node.arguments[0] &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      const required: string | undefined = sourceOf(
+        file,
+        node.arguments[0].text,
+      );
+
+      if (required) {
+        requires.add(required);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(emitted);
 
   emittedRequires.set(file, requires);
 
@@ -358,6 +387,45 @@ describe("the models' import cycles", () => {
         path.join(DATABASE_MODELS, "User.ts"),
       ),
     ).toBe(true);
+  });
+
+  /*
+   * The base model reads User only once a relation to whoever last
+   * modified a record is resolved (#10290), through UserModelType: User
+   * extends it, so a require as it loads would be a cycle every model is
+   * in. On a server UserModelType requires User when it is called; User says
+   * it is the User model as it loads, through the same module.
+   */
+  test("leave out a require that runs only when it is called", () => {
+    const baseModel: string = path.join(
+      DATABASE_MODELS,
+      "DatabaseBaseModel",
+      "DatabaseBaseModel.ts",
+    );
+    const userModelType: string = path.join(
+      DATABASE_MODELS,
+      "DatabaseBaseModel",
+      "UserModelType.ts",
+    );
+
+    expect(requiresOf(baseModel).has(userModelType)).toBe(true);
+    expect(fs.readFileSync(userModelType, "utf8")).toContain(
+      'require("../User")',
+    );
+    expect(
+      requiresOf(userModelType).has(path.join(DATABASE_MODELS, "User.ts")),
+    ).toBe(false);
+    expect(
+      requiresOf(baseModel).has(path.join(DATABASE_MODELS, "User.ts")),
+    ).toBe(false);
+    expect(
+      cycles.some((cycle: Array<string>): boolean => {
+        return (
+          cycle.includes(baseModel) &&
+          cycle.includes(path.join(DATABASE_MODELS, "User.ts"))
+        );
+      }),
+    ).toBe(false);
   });
 
   /*

@@ -65,6 +65,14 @@ enum NotificationSettingEventType {
   // Probe Status change Notification
   SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION = "Send probe status changed notification when I am the owner of the probe",
   SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
+  /*
+   * A custom probe the person owns runs a release a major release or more
+   * behind the OneUptime it reports to (#9977; Workers
+   * Probe:NotifyMajorReleaseBehind): told once for each major release of
+   * OneUptime, with what the probe misses until it is updated. Its own
+   * event, so switching off a probe's status changes never silences it.
+   */
+  SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION = "Send notification when a custom probe I own falls a major release behind OneUptime",
 
   // AI Agent Status change Notification
   SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION = "Send AI agent status changed notification when I am the owner of the AI agent",
@@ -140,6 +148,22 @@ enum NotificationSettingEventType {
   SEND_SECURITY_CASE_TARGET_NOTIFICATION = "Send notification when a security case is about to miss, or misses, a response target",
   // A task on a security case is handed to the person (SecurityCaseTaskService).
   SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION = "Send notification when a task on a security case is assigned to me",
+  /*
+   * A step of a security case's Response Plan that OneUptime saw done stops
+   * holding - the address got through again, the account is active again
+   * (SecurityCaseStepCheckRunner, #10340): told to the people on the case -
+   * its assignee and its team - or, when nobody is, to the people told about
+   * cases at its priority. Never held back in a rollup: the attacker is back.
+   */
+  SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION = "Send notification when a step of a security case I am on stops holding",
+  /*
+   * OneUptime AI handed a security case it was working to people, and why
+   * (SecurityCaseHandOff, #10352): told to the people on the case - its
+   * assignee and its team - or, when nobody is, to the people told about
+   * cases at its priority. Never held back in a rollup: a case nobody is
+   * working has to be picked up now.
+   */
+  SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION = "Send notification when OneUptime AI hands a security case to people",
   /*
    * A scheduled hunt found security events (SecurityHuntNotifications): told
    * to the people the hunt names and the members of the teams it names, who

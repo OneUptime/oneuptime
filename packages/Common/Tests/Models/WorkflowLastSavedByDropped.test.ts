@@ -69,14 +69,11 @@ describe("Workflow", () => {
     ).toEqual([]);
   });
 
-  test("records who created, deleted and archived it, as before", () => {
+  // Who deleted it is no column: a workflow is deleted outright (#10469).
+  test("records who created and archived it, as before", () => {
     const workflow: Workflow = new Workflow();
 
-    for (const column of [
-      "createdByUserId",
-      "deletedByUserId",
-      "archivedByUserId",
-    ]) {
+    for (const column of ["createdByUserId", "archivedByUserId"]) {
       expect(workflow.hasColumn(column)).toBe(true);
       expect(UserAttribution.isDecidedByServer(column)).toBe(true);
     }

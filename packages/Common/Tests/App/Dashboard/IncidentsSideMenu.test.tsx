@@ -364,7 +364,7 @@ describe("Incidents side menu", () => {
   });
 
   describe("Rules section", () => {
-    test("holds every incident rule page, including SLA Rules", async () => {
+    test("holds every incident rule page, including SLA Rules, then their history", async () => {
       await renderIncidentsMenu();
 
       expect(linksIn("Rules")).toEqual([
@@ -400,7 +400,31 @@ describe("Incidents side menu", () => {
           title: "Reminder Rules",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_REMINDER_RULES),
         },
+        /*
+         * Who changed the rules above, what and when (#10462): most incident
+         * rules have no page of their own to hold their history.
+         */
+        {
+          title: "Audit Logs",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS),
+        },
       ]);
+    });
+
+    test("opens itself on the rules' Audit Logs page, and marks it", async () => {
+      goTo(routeFor(PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS));
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Rules")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Audit Logs"]);
+      expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("AI")).toBe(false);
+    });
+
+    test("every entry carries an icon, the rules' history the audit log's", async () => {
+      await renderIncidentsMenu();
+
+      expect(iconCountIn("Rules")).toBe(linksIn("Rules").length);
     });
 
     test("starts collapsed", async () => {
@@ -430,7 +454,7 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(isExpanded("Rules")).toBe(false);
-      expect(linksIn("Rules")).toHaveLength(8);
+      expect(linksIn("Rules")).toHaveLength(9);
     });
 
     // Rules is collapsed by default, so it must open itself on its pages.

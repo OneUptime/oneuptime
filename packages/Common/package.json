@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "17.2.0",
+  "version": "17.3.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -8,7 +8,10 @@
   },
   "main": "index.js",
   "browser": {
-    "./Types/Monitor/MonitorStepsColumnTransformer.ts": "./Types/Monitor/MonitorStepsColumnTransformer.browser.ts"
+    "./Types/Monitor/MonitorStepsColumnTransformer.ts": "./Types/Monitor/MonitorStepsColumnTransformer.browser.ts",
+    "./Utils/OutboundRequestRouting.ts": "./Utils/OutboundRequestRouting.browser.ts",
+    "./Utils/ProxyTunnelRefusal.ts": "./Utils/ProxyTunnelRefusal.browser.ts",
+    "./Models/DatabaseModels/DatabaseBaseModel/UserModelType.ts": "./Models/DatabaseModels/DatabaseBaseModel/UserModelType.browser.ts"
   },
   "scripts": {
     "test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --max-old-space-size=4096 node_modules/.bin/jest ./Tests --forceExit --maxWorkers=2",
@@ -134,6 +137,7 @@
     "mysql2": "^3.22.6",
     "node-cron": "^4.0.0",
     "nodemailer": "^10.0.3",
+    "onnxruntime-web": "1.31.1",
     "oracledb": "6.10.0",
     "otpauth": "^9.3.1",
     "pg": "^8.16.3",
@@ -173,6 +177,7 @@
     "twilio": "^4.22.0",
     "typeorm": "^0.3.26",
     "typeorm-extension": "^3.7.2",
+    "undici": "^8.12.4",
     "unified": "^11.0.5",
     "universal-cookie": "^7.2.1",
     "use-async-effect": "^2.2.6",

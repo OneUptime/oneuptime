@@ -13,6 +13,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
+import MonitorStepSeries, {
+  MonitorStepSeriesScope,
+} from "../../../../Types/Monitor/MonitorStepSeries";
 import MetricService from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
@@ -21,6 +24,7 @@ import CronTab from "../../CronTab";
 import MonitoringIntervalUtil from "../../../../Utils/Monitor/MonitoringIntervalUtil";
 import logger from "../../Logger";
 import WindowCoverage from "./WindowCoverage";
+import CompareCriteria from "./CompareCriteria";
 
 /**
  * Outcome of trying to turn an "evaluate over time" filter into a value the
@@ -99,6 +103,13 @@ export default class EvaluateOverTime {
     miscData?: JSONObject | undefined;
     /** Monitor's monitoringInterval cron. Used to size the expected window. */
     monitoringInterval?: string | undefined;
+    /*
+     * The rows of the series the step being judged reads (MonitorStepSeries,
+     * #10906): a step of a monitor with several reads its own checks alone.
+     * Every evaluator hands on what it was given, so the key is required;
+     * undefined, from a caller judging no step, reads every row.
+     */
+    stepScope: MonitorStepSeriesScope | undefined;
   }): Promise<OverTimeCriteriaValue> {
     /*
      * Every criteria evaluator calls this for every filter, so the common
@@ -121,6 +132,7 @@ export default class EvaluateOverTime {
       criteriaFilter: data.criteriaFilter,
       miscData: data.miscData,
       monitoringInterval: data.monitoringInterval,
+      stepScope: data.stepScope,
     });
 
     if (
@@ -191,6 +203,8 @@ export default class EvaluateOverTime {
     criteriaFilter: CriteriaFilter;
     miscData?: JSONObject | undefined;
     monitoringInterval?: string | undefined;
+    // The step's rows of the series (MonitorStepSeries); every row when not given.
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<OverTimeEvaluation> {
     const evaluateOverTimeOptions: EvaluateOverTimeOptions | undefined =
       data.criteriaFilter.evaluateOverTimeOptions;
@@ -260,7 +274,23 @@ export default class EvaluateOverTime {
         metricName: metricName,
         windowStart: windowStart,
         windowEnd: now,
-        attributes: data.miscData,
+        /*
+         * The step's own rows (#10906): a monitor checking a fast page and a
+         * slow one averages, and waits on, each page's checks alone.
+         */
+        attributes: EvaluateOverTime.getWindowAttributes({
+          miscData: data.miscData,
+          stepScope: data.stepScope,
+        }),
+        /*
+         * A window of hours (#10355) can hold more rows than one read
+         * returns - a day of checks every 30 seconds from eight probes. Read
+         * newest first, a read cut at its limit leaves out the oldest rows:
+         * All Values then waits, as for a window its checks do not reach
+         * back over yet, and an aggregate reads the newest checks. Counting
+         * a window's checks reads them in the database (CheckWindowCounts).
+         */
+        newestFirst: windowInMinutes > 60,
       });
     } catch (err) {
       logger.error(
@@ -286,8 +316,21 @@ export default class EvaluateOverTime {
      * as All Values. Reducing it would hand the True / False comparators a
      * number such as 0.6, which matches neither, so the filter never fired.
      */
-    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+    const effectiveType: EvaluateOverTimeType | undefined =
       CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(data.criteriaFilter);
+
+    /*
+     * A window that counts its checks, and a comparison with the previous
+     * check, are judged by the criteria evaluator before any monitor type's
+     * evaluator asks for a value here (CheckWindowCounts,
+     * PreviousCheckComparison). A caller that asks anyway gets the strictest
+     * reading of the window, All Values, never a count read as a value.
+     */
+    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+      CriteriaFilterUtil.isCountedWindowType(effectiveType) ||
+      effectiveType === EvaluateOverTimeType.PreviousCheck
+        ? EvaluateOverTimeType.AllValues
+        : effectiveType;
 
     const sampleTimes: Array<Date> = [];
 
@@ -368,10 +411,30 @@ export default class EvaluateOverTime {
       value: this.getValueByEvaluationType({
         values: values as Array<number>,
         evaluateOverTimeType: evaluateOverTimeType!,
+        percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
       }),
       sampleCount: values.length,
       noDataReason: null,
       isReadError: false,
+    };
+  }
+
+  /*
+   * The attributes a window's rows are read by: the series' own (a disk's
+   * path), and the step's (MonitorStepSeries) - the step's id, or on a
+   * monitor with one step its id or none. Undefined when there are none.
+   */
+  public static getWindowAttributes(data: {
+    miscData?: JSONObject | undefined;
+    stepScope?: MonitorStepSeriesScope | undefined;
+  }): JSONObject | undefined {
+    if (!data.stepScope) {
+      return data.miscData;
+    }
+
+    return {
+      ...(data.miscData || {}),
+      ...MonitorStepSeries.toQueryAttributes(data.stepScope),
     };
   }
 
@@ -560,8 +623,15 @@ export default class EvaluateOverTime {
   private static getValueByEvaluationType(data: {
     values: Array<number>;
     evaluateOverTimeType: EvaluateOverTimeType;
+    percentile?: number | undefined;
   }): number {
     switch (data.evaluateOverTimeType) {
+      // One figure for the window, as Average is (#10355).
+      case EvaluateOverTimeType.Percentile:
+        return CompareCriteria.getPercentileOf({
+          values: data.values,
+          percentile: data.percentile,
+        });
       case EvaluateOverTimeType.Average:
         return this.getAverage(data.values);
       case EvaluateOverTimeType.MaximumValue:

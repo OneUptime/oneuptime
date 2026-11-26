@@ -19,9 +19,11 @@ export interface LlmProviderRequest {
   transport: LlmConnectorTransport;
   /*
    * PATCH: a cloud connection's response actions, which change one setting;
-   * PUT: the same, for a resource a cloud changes only whole.
+   * PUT: the same, for a resource a cloud changes only whole; DELETE: an
+   * address group the blocklist made in Cloud Armor (#10349), taken away
+   * once no policy uses it.
    */
-  method: "GET" | "POST" | "PATCH" | "PUT";
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   url: string;
   headers?: Dictionary<string> | undefined;
   // A JSON body (POST), sent as written when it is a string.

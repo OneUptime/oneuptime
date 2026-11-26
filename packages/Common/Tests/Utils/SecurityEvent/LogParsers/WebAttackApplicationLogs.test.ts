@@ -153,6 +153,8 @@ describe("WebAttackLogParser on an application's error log", () => {
       "url.full":
         "https://oneuptime.com/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
       "http.response.status_code": "404",
+      // A direct connection: the peer is the client.
+      "network.peer.address": "198.51.100.23",
       "client.address": "198.51.100.23",
       "user_agent.original": "Mozilla/5.0 (scanner)",
     });
@@ -306,16 +308,19 @@ describe("readRequestFromAttributes", () => {
         "http.request.method": "post",
         "url.full": "https://shop.example.com/login",
         "http.response.status_code": "401",
+        "network.peer.address": "198.51.100.7",
         "client.address": "198.51.100.7",
         "user_agent.original": "hydra",
       }),
-    ).toEqual({
-      method: "POST",
-      target: "https://shop.example.com/login",
-      status: 401,
-      clientIp: "198.51.100.7",
-      userAgent: "hydra",
-    });
+    ).toEqual(
+      expect.objectContaining({
+        method: "POST",
+        target: "https://shop.example.com/login",
+        status: 401,
+        clientIp: "198.51.100.7",
+        userAgent: "hydra",
+      }),
+    );
   });
 
   test("reads the older names, and joins a path with its query", () => {
@@ -328,13 +333,37 @@ describe("readRequestFromAttributes", () => {
         "net.peer.ip": "2001:db8::1",
         "http.user_agent": "curl/8",
       }),
-    ).toEqual({
-      method: "GET",
-      target: "/search?q=1",
-      status: 200,
-      clientIp: "2001:db8::1",
-      userAgent: "curl/8",
-    });
+    ).toEqual(
+      expect.objectContaining({
+        method: "GET",
+        target: "/search?q=1",
+        status: 200,
+        clientIp: "2001:db8::1",
+        userAgent: "curl/8",
+      }),
+    );
+  });
+
+  test("a client.address the connection's address does not vouch for is only claimed (#10416)", () => {
+    const request: ReturnType<typeof readRequestFromAttributes> =
+      readRequestFromAttributes({
+        "url.full": "https://shop.example.com/login",
+        "client.address": "192.0.2.44",
+      });
+
+    expect(request.clientIp).toBe("");
+    expect(request.clientReading?.trust).toBe("claimed");
+    expect(request.clientReading?.claimed?.address).toBe("192.0.2.44");
+
+    // Through a private load balancer that recorded X-Forwarded-For.
+    expect(
+      readRequestFromAttributes({
+        "url.full": "https://shop.example.com/login",
+        "network.peer.address": "10.0.0.5",
+        "client.address": "192.0.2.44",
+        "http.request.header.x-forwarded-for": "192.0.2.44, 203.0.113.7",
+      }).clientIp,
+    ).toBe("203.0.113.7");
   });
 
   test("ignores a client address that is not one, and a status that is not one", () => {

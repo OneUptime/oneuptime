@@ -32,7 +32,7 @@ flowchart LR
 
 ## Abrir a topologia
 
-Acesse **Produtos → Observabilidade → Topologia**. **Inventário → Mapa de topologia** abre a mesma página. Ela abre no **Mapa de serviços**, para o período **Último dia**.
+Acesse **Produtos → Observabilidade → Topologia**. **Inventário → Topologia** abre a mesma página. Ela abre no **Mapa de serviços**, para o período **Último dia**.
 
 | Visão | A pergunta que ela responde |
 | --- | --- |
@@ -69,7 +69,7 @@ Clique em um serviço para ver as requisições, os erros e a latência média d
 
 ### Abrir uma conexão
 
-Clique em uma seta para ver a taxa de requisições, a taxa de erro e a latência média dela. Entre dois serviços que você instrumenta, ela também tem um **History** de chamadas, erros e latência.
+Clique em uma seta para ver a taxa de requisições, a taxa de erro e a latência média dela. Entre dois serviços que você instrumenta, ela também tem um **Histórico** de chamadas, erros e latência.
 :::
 
 **Rótulos das conexões** escreve um número em cada seta: **Taxa de requisições**, **Taxa de erro** ou **Latência média**, ou nenhum até você passar o mouse por cima. **Tabela** lista os mesmos serviços com as suas **Requisições**, **Taxa de erro**, **Latência média** e **Conexões**, e **Mostrar no mapa** desenha um deles.

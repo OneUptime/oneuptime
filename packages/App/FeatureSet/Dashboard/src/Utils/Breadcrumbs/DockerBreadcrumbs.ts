@@ -184,6 +184,12 @@ export function getDockerBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "Docker",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Docker",

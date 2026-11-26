@@ -49,6 +49,12 @@ import {
   fetchCloudAppSignals,
 } from "../../Pages/AppPlatforms/Utils/CloudAppReads";
 import {
+  CloudAppPlatformSignalResult,
+  CloudAppPlatformSignals,
+  fetchCloudAppPlatformSignals,
+  showsCloudAppPlatformSignals,
+} from "../../Pages/AppPlatforms/Utils/CloudAppPlatformSignals";
+import {
   APP_INSTANCE_COUNT,
   APP_LAST_SEEN,
   CloudAppSignalsSummaryCell,
@@ -62,6 +68,9 @@ import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
  * look first - not reporting, then the highest error rate - each with its
  * instances, revision and error rate in the last hour, and the way to all
  * of them. And the deploys of its apps, as the Overview's charts mark them.
+ *
+ * An App Service app that sends no traces shows its site's numbers from
+ * Azure Monitor (#10406), and is ranked by its site's share of 5xx answers.
  */
 
 export const ENVIRONMENT_APPS_TITLE: string = translationKey("Apps");
@@ -90,26 +99,49 @@ const TONE_RANK: Readonly<Record<CloudAppErrorRateTone, number>> = {
 };
 
 /*
+ * The error rate an app is ranked by: its traced requests', else - for an
+ * App Service app that sends no traces - its site's share of 5xx answers,
+ * as Azure Monitor counted them (#10406).
+ */
+function getRankedErrorRate(data: {
+  signals: CloudAppSignals | undefined;
+  platformSignals: CloudAppPlatformSignals | undefined;
+}): number | null {
+  if (data.signals && data.signals.requests > 0) {
+    return data.signals.errorRatePercent;
+  }
+
+  if (data.platformSignals) {
+    return data.platformSignals.serverErrorRatePercent;
+  }
+
+  return data.signals?.errorRatePercent ?? null;
+}
+
+/*
  * The order the card lists apps in: the ones not reporting, then by error
  * rate (red, amber, the rest), then by name. Exported for tests.
  */
 export function sortAppsForAttention(data: {
   apps: ReadonlyArray<CloudApp>;
   signals: ReadonlyMap<string, CloudAppSignals>;
+  platformSignals?: ReadonlyMap<string, CloudAppPlatformSignals> | undefined;
   now: Date;
 }): Array<CloudApp> {
   const rank: (app: CloudApp) => [number, number, number, string] = (
     app: CloudApp,
   ): [number, number, number, string] => {
-    const signals: CloudAppSignals | undefined = data.signals.get(
-      app._id?.toString() || "",
-    );
+    const appId: string = app._id?.toString() || "";
+    const errorRate: number | null = getRankedErrorRate({
+      signals: data.signals.get(appId),
+      platformSignals: data.platformSignals?.get(appId),
+    });
     const state: CloudAppState = getCloudAppState(app.lastSeenAt, data.now);
 
     return [
       state === CloudAppState.NotReporting ? 0 : 1,
-      TONE_RANK[getCloudAppErrorRateTone(signals?.errorRatePercent)],
-      -(signals?.errorRatePercent || 0),
+      TONE_RANK[getCloudAppErrorRateTone(errorRate)],
+      -(errorRate || 0),
       (app.name || "").toLowerCase(),
     ];
   };
@@ -150,6 +182,12 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
   );
   const [signalsFailed, setSignalsFailed] = useState<boolean>(false);
   const [signalsLoading, setSignalsLoading] = useState<boolean>(true);
+  // App Service apps that send no traces: their sites' numbers (#10406).
+  const [platformSignals, setPlatformSignals] = useState<
+    Map<string, CloudAppPlatformSignals>
+  >(new Map<string, CloudAppPlatformSignals>());
+  const [platformSignalsLoading, setPlatformSignalsLoading] =
+    useState<boolean>(true);
   const [liveInstances, setLiveInstances] = useState<Map<
     string,
     number
@@ -175,6 +213,9 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
         lastSeenAt: true,
         // An app that sends no traces reads "No traces", not "No requests".
         tracesLastReceivedAt: true,
+        // ...or, on App Service, its site's numbers (#10406).
+        providerResourceId: true,
+        platformCloudResourceId: true,
       },
       sort: { name: SortOrder.Ascending },
       skip: 0,
@@ -187,6 +228,20 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
 
         setApps(result.data);
         setSignalsLoading(true);
+        setPlatformSignalsLoading(true);
+
+        fetchCloudAppPlatformSignals({ apps: result.data })
+          .then((read: CloudAppPlatformSignalResult): void => {
+            if (!ignore) {
+              setPlatformSignals(read.signals);
+              setPlatformSignalsLoading(false);
+            }
+          })
+          .catch((): void => {
+            if (!ignore) {
+              setPlatformSignalsLoading(false);
+            }
+          });
 
         const environments: Map<string, CloudResource> = new Map<
           string,
@@ -265,6 +320,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
     const shown: Array<CloudApp> = sortAppsForAttention({
       apps,
       signals,
+      platformSignals,
       now: new Date(),
     }).slice(0, ENVIRONMENT_APPS_SHOWN);
 
@@ -363,6 +419,10 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
                   }
                   isLoading={signalsLoading}
                   hasTraces={hasCloudAppSentTraces(app)}
+                  platformSignals={platformSignals.get(appId)}
+                  isLoadingPlatformSignals={
+                    platformSignalsLoading && showsCloudAppPlatformSignals(app)
+                  }
                 />
               </div>
             </li>

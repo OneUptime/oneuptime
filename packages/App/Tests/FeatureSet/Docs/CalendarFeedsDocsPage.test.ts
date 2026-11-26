@@ -204,7 +204,7 @@ const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "onCallCalendarFeed.rateLimit.perTokenPerWindow",
   "onCallCalendarFeed.rateLimit.perIpPerWindow",
   "worker.enabled: true",
-  "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/",
+  "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/",
   "access_log off;",
   "error_log /dev/null crit;",
   "proxy_max_temp_file_size 0;",
@@ -592,9 +592,12 @@ describe("Calendar Feeds docs page", () => {
 
     it("quotes the Nginx logging exemption that the shipped template contains", () => {
       const template: string = readRepoFile("Nginx/default.conf.template");
-      // One location keeps the on-call links and the maintenance calendar link out.
+      /*
+       * One location keeps the on-call links, the maintenance calendar link
+       * and the blocklist feeds' secret links (#10596) out.
+       */
       const location: string =
-        "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/";
+        "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/";
 
       expect(template).toContain(location);
       expect(english).toContain(location);
@@ -1011,7 +1014,8 @@ describe("Calendar Feeds docs page", () => {
       expect(english).not.toContain("**User Settings** > **Calendar Feed**");
     });
 
-    it("says where both time zones are set: your Profile, and the schedule's Layers page", () => {
+    // Your User Profile, as the user menu's entry and the page's title name it (#7474).
+    it("says where both time zones are set: your User Profile, and the schedule's Layers page", () => {
       const profile: string = readRepoFile(
         "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index.tsx",
       );
@@ -1021,7 +1025,7 @@ describe("Calendar Feeds docs page", () => {
 
       expect(profile).toContain('title: "Timezone"');
       expect(layers).toContain('title="Schedule timezone"');
-      expect(english).toContain("**Timezone** on your **Profile**");
+      expect(english).toContain("**Timezone** on your **User Profile**");
       expect(english).toContain(
         "**Schedule timezone** card on its **Layers** page",
       );

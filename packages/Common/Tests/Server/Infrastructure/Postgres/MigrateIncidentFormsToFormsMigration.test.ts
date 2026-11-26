@@ -1,7 +1,9 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
 import { AddFormBranding1797700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797700000000-AddFormBranding";
 import { AddFormTemplates1799500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799500000000-AddFormTemplates";
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187140120-AddFormPrivateUsersAndSingleSignOn";
+import { AddFormSubmissionAlert1809187540760 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187540760-AddFormSubmissionAlert";
 import {
   LEGACY_PERMISSION_RENAMES,
   MigrateIncidentFormsToForms1797400000000,
@@ -199,7 +201,12 @@ function persistedColumns(modelType: unknown): Array<string> {
     for (const column of getMetadataArgsStorage().columns) {
       if (column.target === current) {
         const args: ColumnMetadataArgs = column;
-        names.push(args.options.name || args.propertyName);
+        const name: string = args.options.name || args.propertyName;
+
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        if (!RecordActorUtil.isColumn(name)) {
+          names.push(name);
+        }
       }
     }
 
@@ -235,6 +242,12 @@ const ADDED_LATER: Array<{
     migration: new AddFormPrivateUsersAndSingleSignOn1809187140120(),
     table: "Form",
     columns: ["requireSignIn", "requireSsoForLogin"],
+  },
+  {
+    // The alert an alert form's submission created (#10760).
+    migration: new AddFormSubmissionAlert1809187540760(),
+    table: "FormSubmission",
+    columns: ["alertId"],
   },
 ];
 

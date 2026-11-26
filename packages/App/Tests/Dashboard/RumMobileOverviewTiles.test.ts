@@ -38,6 +38,10 @@ import {
   withQueryParams,
 } from "../../FeatureSet/Dashboard/src/Pages/Rum/View/MobileOverviewHelpers";
 import { RUM_ANDROID_SETUP_DOCS_URL } from "../../FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
+import {
+  TIME_RANGE_LABEL_SEPARATOR,
+  getTimeRangeButtonLabel,
+} from "Common/UI/Components/Date/TimeRangeLabel";
 
 /*
  * What a mobile RUM application's Overview tiles say (#9588), in every
@@ -105,7 +109,7 @@ describe("Sessions tile", () => {
   test("counts the range's sessions, and names the range it counted", () => {
     expect(
       describeSessionsTile({ sessions: sessions(1234), timeRange: PAST_HOUR }),
-    ).toEqual({ value: "1.2k", sublabel: "past 1 hour" });
+    ).toEqual({ value: "1.2k", sublabel: "Past 1 Hour" });
   });
 
   test("spans that name no session say the SDK sets no session.id, never 0", () => {
@@ -123,7 +127,7 @@ describe("Sessions tile", () => {
   test("no spans at all in the range is a real zero", () => {
     expect(
       describeSessionsTile({ sessions: sessions(0, 0), timeRange: PAST_HOUR }),
-    ).toEqual({ value: "0", sublabel: "past 1 hour" });
+    ).toEqual({ value: "0", sublabel: "Past 1 Hour" });
   });
 
   test("a failed read could not load", () => {
@@ -397,13 +401,13 @@ describe("Crashes and ANRs tiles", () => {
   test("none is a real zero over the range", () => {
     expect(
       describeFaultTile({ fault: fault(0, 0), timeRange: PAST_HOUR }),
-    ).toEqual({ value: "0", sublabel: "past 1 hour" });
+    ).toEqual({ value: "0", sublabel: "Past 1 Hour" });
   });
 
   test("a count whose sessions could not be read still shows the count", () => {
     expect(
       describeFaultTile({ fault: fault(4, null), timeRange: PAST_HOUR }),
-    ).toEqual({ value: "4", sublabel: "past 1 hour" });
+    ).toEqual({ value: "4", sublabel: "Past 1 Hour" });
   });
 
   test("a failed read could not load", () => {
@@ -412,19 +416,23 @@ describe("Crashes and ANRs tiles", () => {
     ).toEqual({ value: undefined, sublabel: "could not load" });
   });
 
-  test("a custom range says so", () => {
-    expect(
-      describeFaultTile({
-        fault: fault(0, 0),
-        timeRange: {
-          range: TimeRange.CUSTOM,
-          startAndEndDate: new InBetween<Date>(
-            new Date("2026-11-18T00:00:00.000Z"),
-            NOW,
-          ),
-        },
-      }).sublabel,
-    ).toBe("custom range");
+  test("a custom range names its window, as the range picker does (#10552)", () => {
+    const custom: RangeStartAndEndDateTime = {
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(
+        new Date("2026-11-18T00:00:00.000Z"),
+        NOW,
+      ),
+    };
+    const sublabel: string | undefined = describeFaultTile({
+      fault: fault(0, 0),
+      timeRange: custom,
+    }).sublabel;
+
+    expect(sublabel).toBe(getTimeRangeButtonLabel(custom));
+    // Its two ends, never English words for a window.
+    expect(sublabel).toContain(TIME_RANGE_LABEL_SEPARATOR);
+    expect(sublabel).not.toMatch(/custom|range/i);
   });
 });
 

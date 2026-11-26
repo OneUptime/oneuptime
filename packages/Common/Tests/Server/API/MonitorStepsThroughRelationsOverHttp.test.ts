@@ -21,18 +21,31 @@ jest.mock("isolated-vm", () => {
 });
 
 import AlertAPI from "../../../Server/API/AlertAPI";
+import BaseAPI from "../../../Server/API/BaseAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import IncidentAPI from "../../../Server/API/IncidentAPI";
 import MonitorAPI from "../../../Server/API/MonitorAPI";
+import ServiceLevelObjectiveAPI from "../../../Server/API/ServiceLevelObjectiveAPI";
+import AlertGroupingRuleService from "../../../Server/Services/AlertGroupingRuleService";
+import AlertIncidentRuleService from "../../../Server/Services/AlertIncidentRuleService";
 import AlertService from "../../../Server/Services/AlertService";
+import CallLogService from "../../../Server/Services/CallLogService";
+import DataCheckService from "../../../Server/Services/DataCheckService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import QueryPermission from "../../../Server/Types/Database/Permissions/QueryPermission";
 import Select from "../../../Server/Types/Database/Select";
+import AlertGroupingRule from "../../../Models/DatabaseModels/AlertGroupingRule";
+import AlertIncidentRule from "../../../Models/DatabaseModels/AlertIncidentRule";
+import CallLog from "../../../Models/DatabaseModels/CallLog";
+import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   getTableColumns,
@@ -40,6 +53,11 @@ import {
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
+import {
+  ANY_MEMBER,
+  findWiderRelationReads,
+  WiderRelationRead,
+} from "../../Models/DatabaseModels/RelationReadWidening";
 import { ALWAYS_SELECTABLE_COLUMNS } from "../../../Types/HeldPermissions";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
@@ -100,6 +118,15 @@ import {
  *   - the monitor's own read, which the Root Cause card and an Affected
  *     Resource's commands now send, answers its steps to who may read the
  *     monitor, and refuses everyone else.
+ *
+ * The same holds for the readers #10309 came before: a product's levels
+ * (#10289) read a data check, a network device and an SLO as the role
+ * they follow does, and may not read monitors. Through DataCheck.monitor,
+ * NetworkDevice.monitor and ServiceLevelObjective.monitors - and through
+ * an alert grouping rule, an alert's incident rule and a call log, among
+ * the 44 relations #10309 closed - each reader is answered which monitor
+ * it is, and refused its steps. Every reader the guard would name if the
+ * steps were a label again is refused them through every one of the 44.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -216,6 +243,87 @@ const ALERT_READERS: Array<Reader> = [
   },
 ];
 
+// A reader who may not read monitors: a role, a product's level or a custom role.
+function narrowReader(name: string, permission: Permission): Reader {
+  return { name: name, permissions: [permission], readsMonitors: false };
+}
+
+// A product's levels (#10289): none of them reads monitors.
+function levelsOf(product: string, levels: Array<Permission>): Array<Reader> {
+  return levels.map((level: Permission, index: number): Reader => {
+    return narrowReader(
+      `${product} ${["Admin", "Member", "Viewer"][index]}`,
+      level,
+    );
+  });
+}
+
+const DATA_OBSERVABILITY_LEVELS: Array<Reader> = levelsOf(
+  "Data Observability",
+  [
+    Permission.DataObservabilityAdmin,
+    Permission.DataObservabilityMember,
+    Permission.DataObservabilityViewer,
+  ],
+);
+const NETWORK_LEVELS: Array<Reader> = levelsOf("Network", [
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
+  Permission.NetworkViewer,
+]);
+const SLO_LEVELS: Array<Reader> = levelsOf("SLO", [
+  Permission.SloAdmin,
+  Permission.SloMember,
+  Permission.SloViewer,
+]);
+
+const DATA_CHECK_READERS: Array<Reader> = [
+  ...MONITOR_READERS,
+  narrowReader("Telemetry Viewer", Permission.TelemetryViewer),
+  narrowReader(
+    "a custom role that reads data assets",
+    Permission.ReadDataAsset,
+  ),
+  ...DATA_OBSERVABILITY_LEVELS,
+];
+const NETWORK_DEVICE_READERS: Array<Reader> = [
+  ...MONITOR_READERS,
+  narrowReader("Settings Viewer", Permission.SettingsViewer),
+  narrowReader(
+    "a custom role that reads network devices",
+    Permission.ReadNetworkDevice,
+  ),
+  ...NETWORK_LEVELS,
+];
+const SLO_READERS: Array<Reader> = [
+  ...MONITOR_READERS,
+  narrowReader(
+    "a custom role that reads SLOs",
+    Permission.ReadServiceLevelObjective,
+  ),
+  ...SLO_LEVELS,
+];
+const ALERT_GROUPING_RULE_READERS: Array<Reader> = [
+  ...MONITOR_READERS,
+  narrowReader("Alert Viewer", Permission.AlertViewer),
+  narrowReader(
+    "a custom role that reads alert grouping rules",
+    Permission.ReadAlertGroupingRule,
+  ),
+];
+const ALERT_INCIDENT_RULE_READERS: Array<Reader> = [
+  ...MONITOR_READERS,
+  narrowReader("Alert Member", Permission.AlertMember),
+  narrowReader(
+    "a custom role that reads alert incident rules",
+    Permission.ReadAlertIncidentRule,
+  ),
+];
+const CALL_LOG_READERS: Array<Reader> = [
+  ...MONITOR_READERS,
+  narrowReader("a custom role that reads call logs", Permission.ReadCallLog),
+];
+
 interface Joiner {
   // "Incident.monitors"
   name: string;
@@ -255,6 +363,94 @@ const JOINERS: Array<Joiner> = [
       title: "Billing API is down",
       isPrivate: false,
       labels: [],
+      monitorId: MONITOR_ID,
+      monitor: { ...JOINED_MONITOR },
+    },
+  },
+  // Read by Data Observability's levels (#10289).
+  {
+    name: "DataCheck.monitor",
+    path: "/api/data-check/get-list",
+    service: DataCheckService as unknown as DatabaseService<BaseModel>,
+    relation: "monitor",
+    readers: DATA_CHECK_READERS,
+    row: {
+      _id: "10309000-0000-4000-8000-0000000000d1",
+      projectId: PROJECT_ID.toString(),
+      name: "Orders arrive within an hour",
+      monitorId: MONITOR_ID,
+      monitor: { ...JOINED_MONITOR },
+    },
+  },
+  // Read by Network's levels (#10289).
+  {
+    name: "NetworkDevice.monitor",
+    path: "/api/network-device/get-list",
+    service: NetworkDeviceService as unknown as DatabaseService<BaseModel>,
+    relation: "monitor",
+    readers: NETWORK_DEVICE_READERS,
+    row: {
+      _id: "10309000-0000-4000-8000-0000000000d2",
+      projectId: PROJECT_ID.toString(),
+      name: "core-switch-1",
+      labels: [],
+      monitorId: MONITOR_ID,
+      monitor: { ...JOINED_MONITOR },
+    },
+  },
+  // Read by SLO's levels (#10289).
+  {
+    name: "ServiceLevelObjective.monitors",
+    path: "/api/service-level-objective/get-list",
+    service:
+      ServiceLevelObjectiveService as unknown as DatabaseService<BaseModel>,
+    relation: "monitors",
+    readers: SLO_READERS,
+    row: {
+      _id: "10309000-0000-4000-8000-0000000000d3",
+      projectId: PROJECT_ID.toString(),
+      name: "Billing API availability",
+      labels: [],
+      monitors: [{ ...JOINED_MONITOR }],
+    },
+  },
+  // Three of the 44 #10309 closed, read by the custom roles of their records.
+  {
+    name: "AlertGroupingRule.monitors",
+    path: "/api/alert-grouping-rule/get-list",
+    service: AlertGroupingRuleService as unknown as DatabaseService<BaseModel>,
+    relation: "monitors",
+    readers: ALERT_GROUPING_RULE_READERS,
+    row: {
+      _id: "10309000-0000-4000-8000-0000000000d4",
+      projectId: PROJECT_ID.toString(),
+      name: "Group billing alerts",
+      monitors: [{ ...JOINED_MONITOR }],
+    },
+  },
+  {
+    name: "AlertIncidentRule.monitors",
+    path: "/api/alert-incident-rule/get-list",
+    service: AlertIncidentRuleService as unknown as DatabaseService<BaseModel>,
+    relation: "monitors",
+    readers: ALERT_INCIDENT_RULE_READERS,
+    row: {
+      _id: "10309000-0000-4000-8000-0000000000d5",
+      projectId: PROJECT_ID.toString(),
+      name: "Billing alerts open an incident",
+      monitors: [{ ...JOINED_MONITOR }],
+    },
+  },
+  {
+    name: "CallLog.monitor",
+    path: "/api/call-log/get-list",
+    service: CallLogService as unknown as DatabaseService<BaseModel>,
+    relation: "monitor",
+    readers: CALL_LOG_READERS,
+    row: {
+      _id: "10309000-0000-4000-8000-0000000000d6",
+      projectId: PROJECT_ID.toString(),
+      toNumber: "+15550109309",
       monitorId: MONITOR_ID,
       monitor: { ...JOINED_MONITOR },
     },
@@ -384,12 +580,29 @@ async function readTheMonitor(): Promise<SentRequest> {
   });
 }
 
+function routerOf(
+  modelType: { new (): BaseModel },
+  service: unknown,
+): ReturnType<BaseAPI<BaseModel, DatabaseService<BaseModel>>["getRouter"]> {
+  return new BaseAPI<BaseModel, DatabaseService<BaseModel>>(
+    modelType,
+    service as DatabaseService<BaseModel>,
+  ).getRouter();
+}
+
 beforeAll(async () => {
   server = new DashboardRequestsOverHttp();
   await server.start([
     new IncidentAPI().getRouter(),
     new AlertAPI().getRouter(),
     new MonitorAPI().getRouter(),
+    // The routes the App serves the other records on.
+    new ServiceLevelObjectiveAPI().getRouter(),
+    routerOf(DataCheck, DataCheckService),
+    routerOf(NetworkDevice, NetworkDeviceService),
+    routerOf(AlertGroupingRule, AlertGroupingRuleService),
+    routerOf(AlertIncidentRule, AlertIncidentRuleService),
+    routerOf(CallLog, CallLogService),
   ]);
 });
 
@@ -430,7 +643,7 @@ describe("a monitor's columns a relation reads", () => {
   });
 });
 
-describe("before #10309: every reader of an incident or an alert read the monitor's steps through it", () => {
+describe("before #10309: every reader of a record that names a monitor read the monitor's steps through it", () => {
   test.each(NARROW_CASES)(
     "%s: %s",
     async (_through: string, _who: string, joiner: Joiner, reader: Reader) => {
@@ -543,6 +756,10 @@ describe("the monitor's own read answers its steps to who may read the monitor, 
       permissions: [Permission.ReadProjectMonitor],
       readsMonitors: true,
     },
+    // A product's levels read the records that name monitors, never a monitor (#10289).
+    ...DATA_OBSERVABILITY_LEVELS,
+    ...NETWORK_LEVELS,
+    ...SLO_LEVELS,
   ];
 
   test.each(
@@ -643,6 +860,135 @@ describe("no relation to a monitor reads its steps, for anyone", () => {
             [column]: { name: true, monitorType: true },
           } as Select<BaseModel>,
           callerWith([Permission.ProjectOwner]),
+        );
+      }).not.toThrow();
+    },
+  );
+});
+
+/*
+ * Every reader the guard would name if the steps were a label again
+ * (RelationReadsNoWiderThanTheColumn's plant, as 17.1.0 shipped them),
+ * through every relation it would name them through: the permission
+ * layer's own check of a select through that relation, for that reader,
+ * refuses the steps and answers which monitor it is. The plant is weighed
+ * against today's roles, so a product's levels (#10289) are among them.
+ */
+describe("every reader the 17.1.0 plant would reach is refused the steps through every relation", () => {
+  type ModelType = { new (): BaseModel };
+
+  const MODEL_BY_TABLE: Map<string, ModelType> = new Map<string, ModelType>(
+    (AllModelTypes as Array<ModelType>).map(
+      (modelType: ModelType): [string, ModelType] => {
+        return [new modelType().tableName!, modelType];
+      },
+    ),
+  );
+
+  const plantedReads: () => Array<WiderRelationRead> =
+    (): Array<WiderRelationRead> => {
+      const takeOff: () => void = asShippedIn1710();
+
+      try {
+        return findWiderRelationReads(AllModelTypes as Array<ModelType>).filter(
+          (read: WiderRelationRead): boolean => {
+            return (
+              read.relatedModel === "Monitor" && read.column === "monitorSteps"
+            );
+          },
+        );
+      } finally {
+        takeOff();
+      }
+    };
+
+  const PLANTED: Array<WiderRelationRead> = plantedReads();
+
+  type PlantCase = [string, string, ModelType, string, string];
+
+  const CASES_OF_THE_PLANT: Array<PlantCase> = PLANTED.flatMap(
+    (read: WiderRelationRead): Array<PlantCase> => {
+      return read.readers.map((reader: string): PlantCase => {
+        return [
+          `${read.model}.${read.relation}`,
+          reader,
+          MODEL_BY_TABLE.get(read.model)!,
+          read.relation,
+          reader,
+        ];
+      });
+    },
+  );
+
+  test("the plant names the 44 relations #10309 closed, and among their readers a product's levels", () => {
+    expect(PLANTED).toHaveLength(44);
+    expect(
+      PLANTED.every((read: WiderRelationRead): boolean => {
+        return Boolean(MODEL_BY_TABLE.get(read.model));
+      }),
+    ).toBe(true);
+
+    const readers: Set<string> = new Set<string>(
+      CASES_OF_THE_PLANT.map((entry: PlantCase): string => {
+        return entry[1];
+      }),
+    );
+
+    expect(Array.from(readers)).toEqual(
+      expect.arrayContaining([
+        Permission.DataObservabilityAdmin,
+        Permission.DataObservabilityMember,
+        Permission.DataObservabilityViewer,
+        Permission.NetworkAdmin,
+        Permission.NetworkMember,
+        Permission.NetworkViewer,
+        Permission.SloAdmin,
+        Permission.SloMember,
+        Permission.SloViewer,
+        Permission.IncidentViewer,
+        Permission.AlertViewer,
+        Permission.ReadCallLog,
+      ]),
+    );
+    // The plant is undone: the live model reads the steps through no relation.
+    expect(Boolean(MONITOR_STEPS_METADATA.canReadOnRelationQuery)).toBe(false);
+  });
+
+  test.each(CASES_OF_THE_PLANT)(
+    "%s: %s",
+    (
+      _relation: string,
+      _who: string,
+      modelType: ModelType,
+      relation: string,
+      reader: string,
+    ) => {
+      const props: DatabaseCommonInteractionProps = callerWith(
+        reader === ANY_MEMBER ? [] : [reader as Permission],
+      );
+
+      expect(() => {
+        QueryPermission.checkRelationQueryPermission(
+          modelType,
+          {},
+          {
+            _id: true,
+            [relation]: { name: true, monitorSteps: true },
+          } as Select<BaseModel>,
+          props,
+        );
+      }).toThrow(COLUMN_NOT_READ);
+
+      // Which monitor it is, the reader reads through it.
+      expect(() => {
+        QueryPermission.checkRelationQueryPermission(
+          modelType,
+          {},
+          {
+            _id: true,
+            [relation]: { name: true, monitorType: true },
+          } as Select<BaseModel>,
+          props,
         );
       }).not.toThrow();
     },

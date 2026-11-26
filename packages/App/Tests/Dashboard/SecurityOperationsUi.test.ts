@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { SecurityCaseFeedEventType } from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -172,6 +173,22 @@ describe("the case timeline's entries", () => {
 
   test("an event type it does not know falls to the shared rules", () => {
     expect(getSecurityCaseFeedKind("SomethingNew")).toBeUndefined();
+  });
+
+  test("a step that stopped holding reads as undone, in the color the server wrote it in", () => {
+    const stepCheck: ReturnType<typeof getSecurityCaseFeedKind> =
+      getSecurityCaseFeedKind(SecurityCaseFeedEventType.StepCheck);
+
+    // SecurityCaseStepCheckRunner writes the entry in red: Record draws it so.
+    expect(stepCheck).toEqual({
+      icon: IconProp.ArrowUturnLeft,
+      tone: FeedTone.Record,
+    });
+
+    // Its own look, not a task's: the step's task may still be ticked off.
+    expect(stepCheck?.icon).not.toBe(
+      getSecurityCaseFeedKind(SecurityCaseFeedEventType.Task)?.icon,
+    );
   });
 });
 

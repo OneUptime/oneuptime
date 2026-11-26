@@ -82,7 +82,13 @@ import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import WriteProgress from "../Utils/Database/WriteProgress";
+import RetiredColumns, {
+  RetiredColumnsQuery,
+} from "../Utils/Database/RetiredColumns";
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import RequiredUniqueNames, {
+  UniqueNameHold,
+} from "../Utils/Database/RequiredUniqueNames";
 import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
@@ -114,12 +120,24 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
 import UserAttribution, {
   ATTRIBUTED_SWITCHES,
+  CREATED_BY_USER_COLUMN,
   CREATED_BY_USER_ID_COLUMN,
 } from "../../Types/Database/UserAttribution";
+import RecordActorType, {
+  CREATED_BY_ACTOR_ID_COLUMN,
+  CREATED_BY_ACTOR_TYPE_COLUMN,
+  LAST_MODIFIED_AT_COLUMN,
+  LAST_MODIFIED_BY_ACTOR_ID_COLUMN,
+  LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN,
+  LAST_MODIFIED_BY_USER_ID_COLUMN,
+  RecordActor,
+  RecordActorUtil,
+} from "../../Types/Database/RecordActor";
 import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { getUniqueValueTakenMessage } from "../../Types/Database/UniqueValueTaken";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
@@ -511,6 +529,13 @@ interface ListWriteOfUpdate<TBaseModel extends BaseModel> {
   writes: ListEntryWrites;
 }
 
+/*
+ * Who an update is a change by, and when, as each row it changes is
+ * stamped (getLastModifiedStamp, #10290): the base model's last-modified
+ * columns, by name.
+ */
+type LastModifiedStamp = Record<string, unknown>;
+
 // One row's share of an update (see getRowWrite).
 interface RowWrite<TBaseModel extends BaseModel> {
   // The row as the read before the write found it.
@@ -532,6 +557,12 @@ interface CreateHandedBack<TBaseModel extends BaseModel> {
   onCreate: OnCreate<TBaseModel> | undefined;
   // Whether a failure came from the INSERT itself (see WriteProgress).
   progress: WriteProgress;
+  /*
+   * The lock that holds the record's name while its project requires
+   * unique names (RequiredUniqueNames), from its check until its INSERT has
+   * committed - or until the create fails, wherever it does.
+   */
+  uniqueNameHold?: UniqueNameHold | undefined;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -581,6 +612,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     DatabaseService<BaseModel>
   > = new Map();
 
+  /*
+   * Each model's own service - IncidentService for Incident - by the model,
+   * kept as it is built: the first service of a class of its own made for
+   * the model. A plain DatabaseService, as a lookup makes one, is none. See
+   * getServiceOf.
+   */
+  private static readonly servicesOfModels: Map<
+    { new (): BaseModel },
+    DatabaseService<BaseModel>
+  > = new Map();
+
   private _hardDeleteItemByColumnName: string = "";
   public get hardDeleteItemByColumnName(): string {
     return this._hardDeleteItemByColumnName;
@@ -615,6 +657,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     this.modelType = modelType;
     this.model = new modelType();
     this.modelName = modelType.name;
+
+    if (
+      new.target !== DatabaseService &&
+      !DatabaseService.servicesOfModels.has(modelType)
+    ) {
+      DatabaseService.servicesOfModels.set(
+        modelType,
+        this as unknown as DatabaseService<BaseModel>,
+      );
+    }
+  }
+
+  /*
+   * The model's own service, which reads its records as its pages and its
+   * API do - its read hooks (a private incident kept to its owners) and the
+   * permission check after them - or null while none has been built: its
+   * module is not loaded yet. The app loads every service it serves as it
+   * starts. Read by what must answer as the record's own read does without
+   * knowing its service (AuditLogReadAccess).
+   */
+  public static getServiceOf<TModel extends BaseModel>(modelType: {
+    new (): TModel;
+  }): DatabaseService<TModel> | null {
+    return (
+      (DatabaseService.servicesOfModels.get(modelType) as
+        | DatabaseService<TModel>
+        | undefined) || null
+    );
   }
 
   public setDoNotAllowDelete(doNotAllowDelete: boolean): void {
@@ -826,7 +896,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   protected isValid(data: TBaseModel): boolean {
     if (!data) {
-      throw new BadDataException("Data cannot be null");
+      throw new BadDataException(
+        "There was nothing to save. Fill in the form, then try again.",
+      );
     }
 
     return true;
@@ -876,11 +948,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         if (count.toNumber() > 0) {
           throw new BadDataException(
-            `${metadata.title} ${data
-              .getColumnValue(columnName)
-              ?.toString()} already exists. Please choose a different ${
-              metadata.title
-            }`,
+            getUniqueValueTakenMessage({
+              field: metadata.title || columnName,
+              value: data.getColumnValue(columnName)?.toString() || "",
+            }),
           );
         }
       }
@@ -901,6 +972,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     value: unknown,
   ): boolean {
     return Boolean(value);
+  }
+
+  /*
+   * A required column with no value (#7276): its name, which an API client
+   * sends, and its title, which a form shows, and what to do. It said only
+   * "projectId is required".
+   */
+  protected getRequiredFieldMessage(
+    data: TBaseModel,
+    requiredField: string,
+  ): string {
+    const title: string =
+      data.getTableColumnMetadata(requiredField)?.title || requiredField;
+
+    return `${requiredField} is required. Fill in ${title}, then try again.`;
   }
 
   protected checkRequiredFields(data: TBaseModel): TBaseModel {
@@ -924,7 +1010,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           (data as any)[requiredField] !== false &&
           !data.isDefaultValueColumn(requiredField)
         ) {
-          throw new BadDataException(`${requiredField} is required`);
+          throw new BadDataException(
+            this.getRequiredFieldMessage(data, requiredField),
+          );
         }
       } else if (
         !this.isRequiredColumnValueGiven(
@@ -952,7 +1040,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
-        throw new BadDataException(`${requiredField} is required`);
+        throw new BadDataException(
+          this.getRequiredFieldMessage(data, requiredField),
+        );
       } else if (
         (data as any)[requiredField] === null &&
         data.isDefaultValueColumn(requiredField)
@@ -6082,7 +6172,86 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       (data as any)[CREATED_BY_USER_ID_COLUMN] = props.userId;
     }
 
+    // And what created it, by kind. See the helper.
+    if (!isUpdate) {
+      this.stampCreatedByActor(data, props);
+    }
+
     return data;
+  }
+
+  /*
+   * What created a record (RecordActor, #10290): a person, an API key, a
+   * workflow, an MCP client for its member, a server admin or OneUptime
+   * itself, and which key, workflow or client it was. Stamped beside the
+   * creator's id, after the permission check, so nobody is asked for access
+   * to a column they did not send; a value a request sent was taken out
+   * before any check read it (decideUserAttributionOnCreate). So a record
+   * Terraform's API key creates says so, where its creator's id is empty.
+   *
+   * OneUptime's own write keeps what it names, and one that names the person
+   * it acts for - a Slack action posting a note as the person who clicked -
+   * is that person's: it was created by a person, not by OneUptime.
+   */
+  private stampCreatedByActor(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      this.isWriteOneUptimeMakesItself(props) &&
+      record[CREATED_BY_ACTOR_TYPE_COLUMN] !== undefined
+    ) {
+      return;
+    }
+
+    let actor: RecordActor | null = RecordActorUtil.fromProps(props);
+
+    if (
+      actor?.type === RecordActorType.System &&
+      (record[CREATED_BY_USER_ID_COLUMN] || record[CREATED_BY_USER_COLUMN])
+    ) {
+      actor = { type: RecordActorType.User, actorId: null, userId: null };
+    }
+
+    if (!actor) {
+      return;
+    }
+
+    record[CREATED_BY_ACTOR_TYPE_COLUMN] = actor.type;
+
+    if (actor.actorId) {
+      record[CREATED_BY_ACTOR_ID_COLUMN] = actor.actorId;
+    }
+  }
+
+  /*
+   * What each row an update changes is stamped with (#10290): when, and
+   * what changed it - the kind, the key's, workflow's or MCP client's id,
+   * and the person - every one of them set, so a person's change after a
+   * key's leaves no trace of the key. Null for a write OneUptime makes on
+   * its own (RecordActorUtil.changerFromProps): its rewrites of a status or
+   * a last report are no one's change, and leave the last change as it was.
+   */
+  private getLastModifiedStamp(
+    props: DatabaseCommonInteractionProps,
+  ): LastModifiedStamp | null {
+    const changer: RecordActor | null = RecordActorUtil.changerFromProps(props);
+
+    if (!changer) {
+      return null;
+    }
+
+    return {
+      [LAST_MODIFIED_AT_COLUMN]: OneUptimeDate.getCurrentDate(),
+      [LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN]: changer.type,
+      [LAST_MODIFIED_BY_ACTOR_ID_COLUMN]: changer.actorId,
+      [LAST_MODIFIED_BY_USER_ID_COLUMN]: changer.userId,
+    };
   }
 
   /*
@@ -7266,6 +7435,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
+      // The name a refused or failed create held is free again.
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
+
       await this.onCreateError(
         error as Exception,
         handedBack.onCreate,
@@ -7586,7 +7758,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.checkForUniqueValues(data);
 
     if (!this.isValid(data)) {
-      throw new BadDataException("Data is not valid");
+      throw new BadDataException(
+        "What was sent could not be saved. Check its values, then try again.",
+      );
     }
 
     // check total items by.
@@ -7644,6 +7818,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.checkUniqueColumnBy(createBy);
 
     await this.checkUniqueColumnsTogether(createBy.data);
+
+    /*
+     * A name its project requires to be one of its kind (Require Unique
+     * Names, #10761): refused when another record has it, and held from
+     * here until the INSERT has committed, so two creates of one name at
+     * the same moment cannot both pass. See RequiredUniqueNames.
+     */
+    handedBack.uniqueNameHold = await RequiredUniqueNames.holdNameOnCreate({
+      service: this,
+      createBy: createBy,
+    });
 
     // What OneUptime records about a create it has let through. See the hook.
     if (!createBy.props.ignoreHooks) {
@@ -7714,6 +7899,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       isRowWritten = true;
+
+      // Its name is the record's now: the next write of it sees the row.
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
 
       // The presented keys as written, not as stored. See the helper.
       this.restorePresentedKeys(createBy.data, presentedKeysAsGiven);
@@ -7910,6 +8098,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       createdItem: createBy.data,
       props: createBy.props,
     });
+  }
+
+  /*
+   * Gives back the name a create held (RequiredUniqueNames), once: after
+   * its INSERT committed, or when it failed before.
+   */
+  private async giveBackUniqueNameOfCreate(
+    handedBack: CreateHandedBack<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    const hold: UniqueNameHold | undefined = handedBack.uniqueNameHold;
+
+    handedBack.uniqueNameHold = null;
+
+    await RequiredUniqueNames.giveBack(hold, {
+      projectId: props?.tenantId?.toString(),
+    } as LogAttributes);
   }
 
   // The project of a record created: the create's own, or the record's.
@@ -9344,6 +9549,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     upTo,
   }: CountBy<TBaseModel>): Promise<PositiveNumber> {
     try {
+      // A column the model no longer has, read as empty (RetiredColumns).
+      const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+        RetiredColumns.readQuery(this.model, query);
+
+      if (retired.matchesNothing) {
+        return new PositiveNumber(0);
+      }
+
+      query = retired.query;
+
       if (groupBy && Object.keys(groupBy).length > 0) {
         throw new BadDataException("Group By is not supported for countBy");
       }
@@ -9761,6 +9976,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     hardDeletes.add(deleteBy);
 
     try {
+      // A query on a column the model no longer has (RetiredColumns).
+      if (this.takeOutRetiredColumnsOfDelete(deleteBy).matchesNothing) {
+        return 0;
+      }
+
       deleteBy.props = await this.checkCallerBeforeHooks(
         deleteBy.props,
         DatabaseRequestType.Delete,
@@ -10135,13 +10355,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
+      // A query on a column the model no longer has (RetiredColumns).
+      if (this.takeOutRetiredColumnsOfDelete(deleteBy).matchesNothing) {
+        return 0;
+      }
+
       deleteBy.props = await this.checkCallerBeforeHooks(
         deleteBy.props,
         DatabaseRequestType.Delete,
       );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
-        throw new BadDataException("Delete not allowed");
+        throw new BadDataException(
+          `${this.getModel().singularName || "These"} records cannot be deleted: OneUptime keeps them.`,
+        );
       }
 
       // The rows the table keeps from a delete by query stay. See the helper.
@@ -10233,23 +10460,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       rowsOfDelete = items;
 
       /*
-       * We are hard deleting anyway. So, this does not make sense. Please uncomment if
-       * we change the code to soft-delete.
-       */
-
-      /*
-       * await this._updateBy({
-       *     query: deleteBy.query,
-       *     data: {
-       *         deletedByUserId: deleteBy.props.userId,
-       *     } as any,
-       *     limit: deleteBy.limit,
-       *     skip: deleteBy.skip,
-       *     props: {
-       *         isRoot: true,
-       *         ignoreHooks: true,
-       *     },
-       * });
+       * Rows are deleted outright, so no row keeps who deleted it: the audit
+       * log's Delete entries do (who, when, and the record as it was). The
+       * deletedByUserId column no write ever filled went in #10469
+       * (Types/Database/RetiredColumns).
        */
 
       let numberOfDocsAffected: number = 0;
@@ -11480,12 +11694,99 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     };
   }
 
+  /*
+   * A read that still names a column every record had and no model has now
+   * - who deleted it (RetiredColumns, #10469) - reads as it always did: the
+   * select and the sort leave it out (the API answers it as null), and a
+   * query reads it as empty on every record, so a condition that holds for
+   * an empty column is dropped, and any other means nothing matches.
+   * Replaced on the read, never changed in place: the caller's own objects
+   * stay as they are, and a read that names none is left alone.
+   */
+  private takeOutRetiredColumnsOfRead(
+    findBy: FindBy<TBaseModel>,
+  ): RetiredColumnsQuery<Query<TBaseModel>> {
+    const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+      RetiredColumns.readQuery(this.model, findBy.query);
+
+    if (retired.query !== findBy.query) {
+      findBy.query = retired.query;
+    }
+
+    const select: FindBy<TBaseModel>["select"] = RetiredColumns.takeOut(
+      this.model,
+      findBy.select,
+    );
+
+    if (select !== findBy.select) {
+      findBy.select = select;
+    }
+
+    const sort: FindBy<TBaseModel>["sort"] = RetiredColumns.takeOutOfSort(
+      this.model,
+      findBy.sort,
+    );
+
+    if (sort !== findBy.sort) {
+      findBy.sort = sort;
+    }
+
+    const groupBy: FindBy<TBaseModel>["groupBy"] = RetiredColumns.takeOut(
+      this.model,
+      findBy.groupBy,
+    );
+
+    if (groupBy !== findBy.groupBy) {
+      findBy.groupBy = groupBy;
+    }
+
+    return retired;
+  }
+
+  /*
+   * An update's data without a value for a column every record had and no
+   * model has now (RetiredColumns, #10469): dropped, as a value for a column
+   * only OneUptime writes is (UserAttribution), so a client that still sends
+   * one keeps working. A copy when it names one; a model instance has no
+   * such field.
+   */
+  private takeOutRetiredColumnsOfWrite<TData>(data: TData): TData {
+    if (data instanceof BaseModel) {
+      return data;
+    }
+
+    return RetiredColumns.takeOut(this.model, data);
+  }
+
+  /*
+   * A delete's query read as takeOutRetiredColumnsOfRead reads a read's:
+   * one that cannot match deletes nothing, and one that holds for every
+   * record deletes what the rest of it names - never more than it did.
+   */
+  private takeOutRetiredColumnsOfDelete(
+    deleteBy: DeleteBy<TBaseModel>,
+  ): RetiredColumnsQuery<Query<TBaseModel>> {
+    const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+      RetiredColumns.readQuery(this.model, deleteBy.query);
+
+    if (retired.query !== deleteBy.query) {
+      deleteBy.query = retired.query;
+    }
+
+    return retired;
+  }
+
   private async _findBy(
     findBy: FindBy<TBaseModel>,
     withDeleted?: boolean | undefined,
   ): Promise<Array<TBaseModel>> {
     try {
       this.setTelemetryContextFromProps(findBy.props);
+
+      // What it names that the model no longer has. See the helper.
+      if (this.takeOutRetiredColumnsOfRead(findBy).matchesNothing) {
+        return [];
+      }
 
       const narrowed: {
         findBy: FindBy<TBaseModel>;
@@ -11962,8 +12263,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     let rowsOfWrite: Array<TBaseModel> = [];
     let writtenData: unknown = undefined;
 
+    /*
+     * The lock that holds a rename's name while its project requires unique
+     * names (RequiredUniqueNames), until its row is written or the update
+     * fails.
+     */
+    let uniqueNameHold: UniqueNameHold = null;
+
     try {
       this.setTelemetryContextFromProps(updateBy.props);
+
+      /*
+       * A column the model no longer has (RetiredColumns): a value for it is
+       * dropped, and a query on it is read as it is empty on every record.
+       */
+      updateBy.data = this.takeOutRetiredColumnsOfWrite(updateBy.data);
+
+      const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+        RetiredColumns.readQuery(this.model, updateBy.query);
+
+      if (retired.matchesNothing) {
+        return 0;
+      }
+
+      updateBy.query = retired.query;
 
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
@@ -12190,6 +12513,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         // Then what a create is held to: @UniqueColumnBy. See the helper.
         await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);
 
+        /*
+         * And a name its project requires to be one of its kind (#10761),
+         * held until the row is written. See RequiredUniqueNames.
+         */
+        uniqueNameHold = await RequiredUniqueNames.holdNameOnRename({
+          service: this,
+          updateBy: beforeUpdateBy,
+        });
+
         await this.onUpdatePermitted(beforeUpdateBy);
       }
 
@@ -12228,6 +12560,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // Who archived or resolved it, and when, from the switch it turns.
       const switchStamps: Array<SwitchStamp> = this.stampSwitchAttribution(
         data,
+        updateBy.props,
+      );
+
+      /*
+       * Who the update is a change by, and when: each row it changes is
+       * stamped with it (getRowWrite).
+       */
+      const lastModified: LastModifiedStamp | null = this.getLastModifiedStamp(
         updateBy.props,
       );
 
@@ -12505,6 +12845,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           data: data,
           switchStamps: switchStamps,
           encryptedColumnsAsGiven: encryptedColumnsAsGiven,
+          lastModified: lastModified,
         });
 
         const updatedItem: any = rowWrite.updatedItem;
@@ -12826,6 +13167,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      // The renamed row is written: its name is the row's now.
+      await RequiredUniqueNames.giveBack(uniqueNameHold, {
+        projectId: updateBy.props.tenantId?.toString(),
+      } as LogAttributes);
+      uniqueNameHold = null;
+
       /*
        * Cant Update relations.
        * https://github.com/typeorm/typeorm/issues/2821
@@ -12966,6 +13313,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
       throw this.getException(error as Exception);
     } finally {
+      // A rename that failed before its row was written holds its name no more.
+      await RequiredUniqueNames.giveBack(uniqueNameHold, {
+        projectId: updateBy.props.tenantId?.toString(),
+      } as LogAttributes);
+
       /*
        * Every process reads the rules the update changed again
        * (RuleSetCache): last, once its hooks wrote what they write too, so
@@ -13069,12 +13421,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *   (encryptedColumnsAsGiven), before it was encrypted: the row is read
    *   decrypted, and a ciphertext - salted afresh on every write - never
    *   matches it.
+   *
+   * A row the write changes is also written with who changed it and when
+   * (lastModified, #10290) - in updatedItem only: the stamp is no change of
+   * the row's for the workflow, the audit log or the decision itself, and a
+   * row written back as it was keeps its last change as it was.
    */
   private getRowWrite(data: {
     item: TBaseModel;
     data: PartialEntity<TBaseModel>;
     switchStamps: Array<SwitchStamp>;
     encryptedColumnsAsGiven?: Record<string, unknown> | undefined;
+    lastModified?: LastModifiedStamp | null | undefined;
   }): RowWrite<TBaseModel> {
     const { item } = data;
     const update: Record<string, unknown> = data.data as Record<
@@ -13151,12 +13509,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
     }
 
-    return {
+    const rowWrite: RowWrite<TBaseModel> = {
       item: item,
       updatedItem: updatedItem,
       written: written as PartialEntity<TBaseModel>,
       comparedAs: comparedAs,
     };
+
+    // Who changed it, and when, on a row it changes. See above.
+    if (data.lastModified && !this.hasSameValues(rowWrite)) {
+      for (const [column, value] of Object.entries(data.lastModified)) {
+        updatedItem[column] = value;
+      }
+    }
+
+    return rowWrite;
   }
 
   /*
@@ -13303,6 +13670,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (!updateById.id) {
       throw new BadDataException("updateById.id is required");
     }
+
+    // A value for a column the model no longer has is dropped (RetiredColumns).
+    updateById.data = this.takeOutRetiredColumnsOfWrite(updateById.data);
 
     // Entries to add to its lists and take off them, as whole lists. See the helper.
     const listWrite: ListWriteOfUpdate<TBaseModel> | null =
@@ -13711,10 +14081,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (await this.getPrivateRecordWriteRefusal(data)) ||
         (await this.getTeamOwnedRuleWriteRefusal(data));
 
+      const refused: string = `You do not have permission to ${data.type} this ${name.toLowerCase()}.`;
+
+      // The reason, a sentence of its own, after it.
       return new NotAuthorizedException(
-        `You do not have permission to ${data.type} this ${name.toLowerCase()}.${
-          reason ? ` ${reason}` : ""
-        }`,
+        reason ? `${refused} ${reason}` : refused,
       );
     }
 
@@ -14796,7 +15167,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * error and not a zero, which would read as a fresh allowance.
        */
       throw new BadDataException(
-        `Item with ID ${data.id.toString()} not found`,
+        "This record was not found: it may have been deleted. Reload the page, then try again.",
       );
     }
 

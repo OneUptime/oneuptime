@@ -10,6 +10,15 @@ import DataStoreService from "../../Services/DataStoreService";
 import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import MailService from "../../Services/MailService";
+import ProjectService from "../../Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
+import {
+  queueDataSecurityAiEvaluation,
+  queueDataSecurityExposureAssessment,
+  queueDataSecurityOwnerNotice,
+} from "./DataSecurityJobs";
+import { isAssessedOnItsOwn } from "../../../Types/DataSecurity/ExposureAssessment";
+import OneUptimeDate from "../../../Types/Date";
 import TeamMemberService from "../../Services/TeamMemberService";
 import UserService from "../../Services/UserService";
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
@@ -30,6 +39,7 @@ import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection"
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import URL from "../../../Types/API/URL";
+import DatabaseConfig from "../../DatabaseConfig";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -45,6 +55,8 @@ import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetecti
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { dataStoreEntityValue } from "../../../Types/DataSecurity/DataStoreKey";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
+import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { isTelemetryFindingCheck } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -61,7 +73,10 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *  - A Critical issue opens a security case (on by default), grouped by
  *    store: the store is the case's Data Store entity, so a second Critical
  *    issue on the same store joins the same case, and Entity Risk and
- *    playbooks see it like any other entity.
+ *    playbooks see it like any other entity. A Critical exposure of a store
+ *    with Restricted or Confidential data has the case assessed on its own
+ *    (#10377): the window, who could read it, whose data it was and which
+ *    breach laws may apply (ExposureAssessmentRun).
  *  - A Critical issue raises an alert (off by default), which pages
  *    whoever is on call through the alert's own rules. The alert ends with
  *    the issue: it is resolved once the issue is no longer open
@@ -69,7 +84,14 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *  - A Critical issue declares an incident (off by default), for a breach
  *    the project's incident process should run. Whoever runs it closes it.
  *  - Every new issue is emailed to its store's owners (on by default),
- *    with the issue and the data types - never a sample.
+ *    with the issue and the data types - never a sample. While OneUptime AI
+ *    works on new issues, the email waits for its analysis - at most ten
+ *    minutes - and carries each analyzed issue's verdict and shortest path,
+ *    each owner reading only what they may read (DataSecurityOwnerNotice,
+ *    #10369).
+ *  - OneUptime AI works on every new and reopened issue, as the project's
+ *    Data Security AI rules say, while its AI switches are on
+ *    (DataSecurityAiEngine, #10364): one queued job per issue.
  *
  * The issue keeps a link to the case, the alert and the incident it
  * started (securityCaseId, alertId, incidentId), which its page shows.
@@ -148,6 +170,9 @@ const OCSF_SEVERITY: Readonly<Record<SecuritySeverity, OcsfSeverity>> = {
 // The most owners one store's notice is sent to.
 const MAX_NOTIFIED_OWNERS: number = 50;
 
+// The most open issues of one store worked on again when new findings come.
+const MAX_REWORKED_ISSUES: number = 20;
+
 /*
  * The most of an alert's or an incident's title: their title holds 500
  * characters, and a store's name alone may hold that many.
@@ -172,12 +197,22 @@ export function getOwnerNoticeSubject(data: {
  * issue's severity and title, and the way to the store. The store's name
  * comes from a cloud or from a person, so it is placed as text (mdText),
  * never as Markdown or HTML. Never a sample.
+ *
+ * Under an issue OneUptime AI analyzed, its analysis in two lines - the
+ * verdict and the shortest path (#10369) - when the reader may read them:
+ * `analysisLines`, by the issue's place in `issues`.
  */
 export function buildOwnerNoticeMarkdown(data: {
   dataStoreName: string;
   sensitivity: DataSensitivity;
   issues: ReadonlyArray<Pick<OpenedIssueForIntegrations, "severity" | "title">>;
   storeLink: URL;
+  analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>> | undefined;
+  /*
+   * Data Security → AI, when OneUptime AI works on the project's new issues
+   * on its own (#10364): the owners hear where what it proposes waits.
+   */
+  aiLink?: URL | undefined;
 }): MarkdownText {
   return FeedMarkdown.join(
     [
@@ -188,14 +223,48 @@ export function buildOwnerNoticeMarkdown(data: {
         data.issues.map(
           (
             issue: Pick<OpenedIssueForIntegrations, "severity" | "title">,
+            index: number,
           ): MarkdownText => {
-            return mdText`**${issue.severity}**: ${issue.title}`;
+            const lines: ReadonlyArray<MarkdownText> =
+              data.analysisLines?.[index] || [];
+
+            // Each line under its issue: a hard break, then the bullet's indent.
+            return FeedMarkdown.join(
+              [mdText`**${issue.severity}**: ${issue.title}`, ...lines],
+              "  \n  ",
+            );
           },
         ),
       ),
       mdText`[Open the store](${data.storeLink.toString()}) to see each issue and how to fix it.`,
+      ...(data.aiLink
+        ? [
+            mdText`OneUptime AI looks at new issues as your AI rules allow. Anything it proposes waits for you on [Data Security → AI](${data.aiLink.toString()}), and anything it does is on the issue's timeline.`,
+          ]
+        : []),
     ],
     "\n\n",
+  );
+}
+
+/*
+ * What OneUptime AI's analysis of an issue adds to one owner's email
+ * (#10369): its lines, or none - no analysis, or nothing of it the owner
+ * may read.
+ */
+export type OwnerNoticeAnalysisLines = (
+  owner: User,
+  issue: OpenedIssueForIntegrations,
+) => Promise<Array<MarkdownText>>;
+
+// Data Security → AI in the Dashboard, for a project.
+export async function getDataSecurityAiLinkInDashboard(
+  projectId: ObjectID,
+): Promise<URL> {
+  const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+  return URL.fromString(dashboardUrl.toString()).addRoute(
+    `/${projectId.toString()}/data-security/ai`,
   );
 }
 
@@ -234,8 +303,171 @@ export default class DataSecurityIntegrations {
       );
     }
 
+    // Nothing opened, nothing to read: the project's switches are left alone.
+    const isAiWorking: boolean =
+      data.issues.length > 0
+        ? await this.isAutomaticAiOn(data.projectId)
+        : false;
+
     if (data.setting.notifyOwners !== false) {
-      await this.notifyOwners(data.projectId, data.issues);
+      /*
+       * While OneUptime AI works on new issues, the owners' email waits for
+       * its analysis, so it carries it (#10369); with it off, the email
+       * goes now, as it always did.
+       */
+      if (isAiWorking) {
+        await this.holdOwnerNotices(data.projectId, data.issues);
+      } else {
+        await this.notifyOwners(data.projectId, data.issues, false);
+      }
+    }
+
+    if (isAiWorking) {
+      await this.queueAiWork(data.projectId, data.issues);
+    }
+  }
+
+  /*
+   * Whether OneUptime AI works on the project's new issues on its own:
+   * Enable AI on, and "Work on new Data Security issues" on. Read once per
+   * batch of opened issues; a read that fails is off, and the issues open
+   * and their owners hear of them either way.
+   */
+  public static async isAutomaticAiOn(projectId: ObjectID): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          _id: true,
+          enableAi: true,
+          enableAutomaticDataSecurityAi: true,
+        },
+        props: { isRoot: true },
+      });
+
+      return Boolean(
+        project &&
+          project.enableAi !== false &&
+          project.enableAutomaticDataSecurityAi === true,
+      );
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not read whether OneUptime AI works on the new issues of project ${projectId.toString()}:`,
+      );
+      logger.error(error);
+      return false;
+    }
+  }
+
+  /*
+   * Each store's owners' email, held while OneUptime AI works on its new
+   * issues (#10369): one queued job per store, which waits for the work and
+   * then sends (DataSecurityOwnerNotice). One that cannot be queued is
+   * sent now, without the analysis.
+   */
+  private static async holdOwnerNotices(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    const openedAt: Date = OneUptimeDate.getCurrentDate();
+    const byStore: Map<string, Array<OpenedIssueForIntegrations>> = new Map();
+
+    for (const issue of issues) {
+      const key: string = issue.dataStoreId.toString();
+      byStore.set(key, [...(byStore.get(key) || []), issue]);
+    }
+
+    for (const storeIssues of byStore.values()) {
+      const isHeld: boolean = await queueDataSecurityOwnerNotice({
+        projectId,
+        dataStoreId: storeIssues[0]!.dataStoreId,
+        issueIds: storeIssues.map(
+          (issue: OpenedIssueForIntegrations): ObjectID => {
+            return issue.issueId;
+          },
+        ),
+        openedAt,
+        attempt: 1,
+      });
+
+      if (!isHeld) {
+        await this.notifyOwners(projectId, storeIssues, true);
+      }
+    }
+  }
+
+  /*
+   * New findings on a store: each of its telemetry issues that is open
+   * already is worked on again by OneUptime AI (#10366), so a secret that
+   * starts showing up in another attribute of a service is contained as
+   * one in an issue that just opened would be. Only while OneUptime AI
+   * works on issues on its own; one job per issue, however many scans.
+   */
+  public static async onNewTelemetryFindings(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+  }): Promise<void> {
+    try {
+      if (!(await this.isAutomaticAiOn(data.projectId))) {
+        return;
+      }
+
+      const issues: Array<DataSecurityIssue> =
+        await DataSecurityIssueService.findBy({
+          query: {
+            projectId: data.projectId,
+            dataStoreId: data.dataStoreId,
+            status: DataSecurityIssueStatus.Open,
+          },
+          select: { _id: true, checkId: true },
+          skip: 0,
+          limit: MAX_REWORKED_ISSUES,
+          props: { isRoot: true },
+        });
+
+      for (const issue of issues) {
+        if (issue.id && isTelemetryFindingCheck(issue.checkId)) {
+          await queueDataSecurityAiEvaluation({
+            projectId: data.projectId,
+            dataSecurityIssueId: issue.id,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not have OneUptime AI work again on the telemetry issues of store ${data.dataStoreId.toString()}:`,
+      );
+      logger.error(error);
+    }
+  }
+
+  /*
+   * OneUptime AI works on every issue that opened, or opened again, as the
+   * project's Data Security AI rules say (DataSecurityAiEngine, #10364) -
+   * while Enable AI and "Work on new Data Security issues" are on
+   * (isAutomaticAiOn). Each issue is its own job; with either switch off
+   * nothing is queued, and Data Security runs as it always did.
+   */
+  private static async queueAiWork(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    if (issues.length === 0) {
+      return;
+    }
+
+    try {
+      for (const issue of issues) {
+        await queueDataSecurityAiEvaluation({
+          projectId,
+          dataSecurityIssueId: issue.issueId,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not queue OneUptime AI's work on the new issues of project ${projectId.toString()}:`,
+      );
+      logger.error(error);
     }
   }
 
@@ -282,7 +514,13 @@ export default class DataSecurityIntegrations {
       }
 
       await SecurityCaseIngest.recordDetections(signals);
-      await this.linkIssuesToCases(projectId, issues);
+
+      const caseOf: Map<string, ObjectID> = await this.linkIssuesToCases(
+        projectId,
+        issues,
+      );
+
+      await this.queueExposureAssessments(projectId, issues, caseOf);
 
       for (const issue of issues) {
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
@@ -496,7 +734,9 @@ export default class DataSecurityIntegrations {
   private static async linkIssuesToCases(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
-  ): Promise<void> {
+  ): Promise<Map<string, ObjectID>> {
+    const caseOfIssue: Map<string, ObjectID> = new Map();
+
     try {
       const detections: Array<SecurityDetection> =
         await SecurityDetectionService.findBy({
@@ -532,6 +772,7 @@ export default class DataSecurityIntegrations {
         );
 
         if (securityCaseId) {
+          caseOfIssue.set(issue.issueId.toString(), securityCaseId);
           await this.linkIssue(issue.issueId, { securityCaseId });
         }
       }
@@ -540,6 +781,49 @@ export default class DataSecurityIntegrations {
         `DataSecurity: could not link issues to their security cases in project ${projectId.toString()}:`,
       );
       logger.error(error);
+    }
+
+    return caseOfIssue;
+  }
+
+  /*
+   * Every Critical exposure of a store with Restricted or Confidential data
+   * is assessed on its own (#10377): one queued job per case it is in,
+   * which works out the window, who could read the data, whose it was and
+   * which breach laws may apply, and has OneUptime AI write it up as the
+   * project's AI rules allow (ExposureAssessmentRun). Any other case about
+   * a store is assessed when a person asks. Best effort, like the rest.
+   */
+  private static async queueExposureAssessments(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+    caseOfIssue: Map<string, ObjectID>,
+  ): Promise<void> {
+    const queuedCases: Set<string> = new Set();
+
+    for (const issue of issues) {
+      const securityCaseId: ObjectID | undefined = caseOfIssue.get(
+        issue.issueId.toString(),
+      );
+
+      if (
+        !securityCaseId ||
+        queuedCases.has(securityCaseId.toString()) ||
+        !isAssessedOnItsOwn({
+          severity: issue.severity,
+          checkId: issue.checkId,
+          sensitivity: issue.sensitivity,
+        })
+      ) {
+        continue;
+      }
+
+      queuedCases.add(securityCaseId.toString());
+      await queueDataSecurityExposureAssessment({
+        projectId,
+        securityCaseId,
+        dataSecurityIssueId: issue.issueId,
+      });
     }
   }
 
@@ -639,10 +923,49 @@ export default class DataSecurityIntegrations {
     });
   }
 
-  private static async notifyOwners(
+  /*
+   * A store's owners who may be told about it: the people getOwnerUsers
+   * names who have joined the project. A direct owner row can name someone
+   * only invited (ProjectScopedReferenceValidator takes a pending
+   * membership, and the people pickers offer invitees), and nobody is
+   * emailed about a project's data before they join it - as a record's
+   * owner-added notices tell accepted members only
+   * (TeamMemberService.filterUsersToProjectMembers, #10697). An owner
+   * through a team is one already: getOwnerUsers reads accepted members.
+   */
+  public static async getOwnersToNotify(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+  }): Promise<Array<User>> {
+    const owners: Array<User> = await this.getOwnerUsers(data.dataStoreId);
+
+    if (owners.length === 0) {
+      return [];
+    }
+
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: data.projectId,
+      users: owners,
+    });
+  }
+
+  /*
+   * Emails each store's owners about its new issues: one email per owner,
+   * the same for all of them - or, with `getAnalysisLines` (a notice held
+   * for OneUptime AI's analysis, #10369), each owner's own, with the
+   * analysis lines they may read under each issue. While OneUptime AI works
+   * on new issues (`isAiWorking`), it says where what AI proposes waits.
+   */
+  public static async notifyOwners(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
+    isAiWorking: boolean,
+    getAnalysisLines?: OwnerNoticeAnalysisLines | undefined,
   ): Promise<void> {
+    const aiLink: URL | undefined = isAiWorking
+      ? await getDataSecurityAiLinkInDashboard(projectId)
+      : undefined;
+
     const byStore: Map<string, Array<OpenedIssueForIntegrations>> = new Map();
 
     for (const issue of issues) {
@@ -654,7 +977,11 @@ export default class DataSecurityIntegrations {
       const first: OpenedIssueForIntegrations = storeIssues[0]!;
 
       try {
-        const owners: Array<User> = await this.getOwnerUsers(first.dataStoreId);
+        // Its owners who have joined the project: never someone only invited.
+        const owners: Array<User> = await this.getOwnersToNotify({
+          projectId,
+          dataStoreId: first.dataStoreId,
+        });
 
         if (owners.length === 0) {
           continue;
@@ -669,20 +996,48 @@ export default class DataSecurityIntegrations {
           issueCount: storeIssues.length,
         });
         // The template places the message as HTML: written from Markdown, never as it is.
-        const message: string = await Markdown.convertToHTML(
-          buildOwnerNoticeMarkdown({
-            dataStoreName: first.dataStoreName,
-            sensitivity: first.sensitivity,
-            issues: storeIssues,
-            storeLink: link,
-          }).toString(),
-          MarkdownContentType.Email,
-        );
+        const messageWith: (
+          analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>>,
+        ) => Promise<string> = async (
+          analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>>,
+        ): Promise<string> => {
+          return await Markdown.convertToHTML(
+            buildOwnerNoticeMarkdown({
+              dataStoreName: first.dataStoreName,
+              sensitivity: first.sensitivity,
+              issues: storeIssues,
+              storeLink: link,
+              analysisLines,
+              aiLink,
+            }).toString(),
+            MarkdownContentType.Email,
+          );
+        };
+        const sharedMessage: string = await messageWith();
 
         for (const owner of owners) {
           if (!owner.email || !owner.id) {
             continue;
           }
+
+          const message: string = getAnalysisLines
+            ? await messageWith(
+                await Promise.all(
+                  storeIssues.map(
+                    (
+                      issue: OpenedIssueForIntegrations,
+                    ): Promise<Array<MarkdownText>> => {
+                      return getAnalysisLines(owner, issue).catch(
+                        (error: Error): Array<MarkdownText> => {
+                          logger.error(error);
+                          return [];
+                        },
+                      );
+                    },
+                  ),
+                ),
+              )
+            : sharedMessage;
 
           MailService.sendMail(
             {

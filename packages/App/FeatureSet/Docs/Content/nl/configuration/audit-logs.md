@@ -32,7 +32,7 @@ flowchart TB
 
 - **In OneUptime Cloud: het Enterprise-abonnement.** Bij andere abonnementen tonen de pagina's van het auditlogboek wat de functie doet en hoe u die krijgt.
 - **Als u zelf host: de Enterprise Edition**, met een licentie die auditlogboeken omvat. Zie [Enterprise Edition](/docs/self-hosted/enterprise).
-- **Een rol die het auditlogboek mag lezen.** Projecteigenaar, Projectbeheerder, Instellingenbeheerder of de machtiging **Read Audit Log**. Auditlogging aanzetten en de instellingen ervan wijzigen vraagt een Projecteigenaar, een Projectbeheerder of de machtiging om het project te bewerken.
+- **Een rol die het auditlogboek mag lezen.** Projecteigenaar, Projectbeheerder, Instellingenbeheerder of de machtiging **Read Audit Log**. Een vermelding toont de waarden van een veld alleen als u dat veld op de resource zelf mag lezen, en de naam van een resource alleen als u de resource mag lezen. Auditlogging aanzetten en de instellingen ervan wijzigen vraagt een Projecteigenaar, een Projectbeheerder of de machtiging om het project te bewerken.
 
 ## Auditlogging aanzetten
 
@@ -72,9 +72,13 @@ Een wijziging van deze instellingen geldt binnen een minuut.
 
 Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker**, **Workflow uitgevoerd als**, **Machtigingen van de workflow gegeven door** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
 
+Een veld dat naar een andere resource verwijst, zoals de status van een monitor, toont de huidige naam van die resource, met de ID eronder. Een resource die u niet mag lezen, toont **Naam verborgen**, en een die sindsdien is verwijderd, toont **Verwijderd**.
+
 Een resource zonder eigen naam krijgt de naam van wat hem in OneUptime benoemt: een uitzondering haar type en het begin van haar bericht, met id's, adressen en alles wat op een geheim lijkt gemaskeerd, een uitvoering van een runbook zijn runbook, het telefoonnummer van een beleid voor inkomende oproepen het nummer zelf, en een sjabloon of een domein zijn eigen naam.
 
 Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resources hebben ook een eigen pagina **Auditlogboeken**, in een ingeklapte sectie van hun zijmenu, zoals **Geavanceerd**. Die toont alleen de vermeldingen van die resource, samen met die van wat erbij hoort: de pagina van een SLO toont ook de regels en eigenaren.
+
+Ook de regels van een product hebben een eigen pagina, aan het eind van de menusectie die ze toont: **Auditlogboeken** in een sectie **Regels**, zoals **Incidenten → Regels → Auditlogboeken**, en **Auditlogboeken van regels** in een sectie **Instellingen** met eigenaars- en labelregels, zoals **Hosts → Instellingen → Auditlogboeken van regels**. Die toont elke regel van dat product, ook verwijderde. Runbook-regels zijn één soort regel voor waarschuwingen, incidenten en onderhoudsgebeurtenissen, dus hun geschiedenis staat onder **Runbooks → Instellingen → Auditlogboeken van regels**.
 
 ## Wat wordt vastgelegd
 

@@ -200,7 +200,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
 | **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. **Forecast To Rise Above** and **Forecast To Fall Below** match when the metric's trend over the window will be past the threshold by the end of **Within**. |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** or **Not Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. **Forecast To Rise Above** and **Forecast To Fall Below** match when the metric's trend over the window will be past the threshold by the end of **Within**. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
 | **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
@@ -229,6 +229,7 @@ One Host monitor covers every disk the host reports. The High Filesystem Usage a
 | Where | What it shows for each disk |
 | --- | --- |
 | The monitor's **Metrics** | One line per disk, named after its `mountpoint` and `device`. |
+| The monitor's **Overview** | **Series** lists each disk the last check read: its latest value, the criteria it meets and its open incident or alert. |
 | **Monitoring Logs** | **Observed** counts the series each check read: one per disk. |
 | **Incidents** and **Alerts** | One per disk, naming the disk's mount and device. |
 | The host's **Filesystems** | Every disk the collector reports, whatever your monitors watch. |
@@ -238,7 +239,7 @@ Each criteria is checked for each disk:
 - While a disk's incident is open, the criteria that opened it opens no other for that disk. Another disk that meets it opens its own.
 - A disk that meets two criteria, such as one above 98% and one above 90%, gets one incident, from the first of them in the list. Put the stricter one first.
 - A disk's incident resolves when that disk stops meeting the criteria that opened it, whatever the other disks do.
-- The monitor has one status, set by the first criteria in the list that any disk meets. When no disk meets a criteria that fires, one disk at or below the recovery threshold is enough for the recovery criteria, so the 10% recovery margin does not hold on a host with a disk that is never near full.
+- The monitor has one status. A criteria that changes it to another status, such as **Offline**, sets it as soon as one disk meets it. The criteria that brings the monitor back to its **Default Monitor Status** waits for the disks that met such a criteria, and matches once each of them meets it, whatever the other disks do. So a disk that drops from 96% to 89% keeps the monitor **Offline** until it is at or below 81%, the 10% recovery margin, even though its incident resolves once it is no longer above 90%. **Series** shows that disk as **Keeps the status**. A disk that is no longer reported stops keeping the status.
 
 To watch only some disks, open **Advanced** and add a **Filter by attributes** on `mountpoint` to the query under **Select Metrics**: **is any of** the disks to watch, or **is none of** the disks to leave out. Keep the **Group by**, and write each disk as **Filesystems** shows it, such as `C:` or `/var`. To stop collecting a disk at all, so it also leaves the host's pages, set `include_mount_points` or `exclude_mount_points` on the collector's `filesystem` scraper ([Host metrics](/docs/telemetry/host-otel-collector#host-metrics)).
 

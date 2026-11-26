@@ -58,13 +58,13 @@ Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Indgående anmodni
 
 ### Åbn én hændelse pr. advarsel
 
-Åbn **Indstillinger** i samme kriterium, og slå **Group incidents and alerts by a payload field** til. Udfyld den som nedenfor, så hver advarsel får sin egen hændelse, og dens genopretning løser den:
+Åbn **Indstillinger** i samme kriterium, og slå **Gruppér hændelser og advarsler efter et felt i payloaden** til. Udfyld den som nedenfor, så hver advarsel får sin egen hændelse, og dens genopretning løser den:
 
 | Felt | Værdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Åbn en separat hændelse for hver…** | `requestBody.alerts[*].fingerprint` |
+| **Felt, der signalerer genopretning** | `requestBody.alerts[*].status` |
+| **Værdi, der betyder genoprettet** | `resolved` |
 
 ### Bring monitoren online igen
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 En selvhostet installation har sin egen vært i stedet for `oneuptime.com`.
 :::
 
-`[*]` læser hver advarsel i en notifikation, så en notifikation med tre advarsler kan åbne tre hændelser, op til **Max incidents per request** (`100`, medmindre du ændrer det). Hver advarsels egen `status` afgør, hvad der sker med dens hændelse: når én advarsel i en notifikation er løst, og to stadig er udløst, lukkes kun den løste advarsels hændelse. Se [Modtagelse af advarsler fra et andet system](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system) for, hvad hver indstilling gør.
+`[*]` læser hver advarsel i en notifikation, så en notifikation med tre advarsler kan åbne tre hændelser, op til **Maks. hændelser pr. anmodning** (`100`, medmindre du ændrer det). Hver advarsels egen `status` afgør, hvad der sker med dens hændelse: når én advarsel i en notifikation er løst, og to stadig er udløst, lukkes kun den løste advarsels hændelse. Se [Modtagelse af advarsler fra et andet system](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system) for, hvad hver indstilling gør.
 
 > [!WARNING]
 > Gruppér efter en værdi, der er forskellig fra advarsel til advarsel inden for én notifikation. Alertmanagers `fingerprint` er en hash af en advarsels samlede etiketsæt, så den er altid forskellig. En etiket i din rutes `group_by` er aldrig forskellig: det er netop den, der samler advarslerne i én notifikation. Gruppering efter `requestBody.alerts[*].labels.alertname` med ruten nedenfor folder hver advarsel i en notifikation sammen til én hændelse, som får den første advarsels status.
@@ -264,9 +264,9 @@ Når watchdog-advarslen ikke er kommet i ti minutter, går watchdog-monitoren of
 :::details Hændelser oprettes, men løses aldrig
 - Kontrollér, at ingen modtager sætter `send_resolved: false`: så sender Alertmanager aldrig en genopretning.
 - Kriteriets hændelse skal have **Løs hændelse automatisk**, under **Flere felter**.
-- **Field that signals recovery** skal være `requestBody.alerts[*].status`, og **Value that means recovered** præcis `resolved`. Sammenligningen skelner mellem store og små bogstaver.
-- Advarsler i en notifikation ud over **Max incidents per request** læses slet ikke, så deres genopretninger går også tabt.
-- En genopretning, der springes over i et udbrud (se nedenfor), lader sin hændelse stå åben for altid: Alertmanager gentager udløste advarsler, men aldrig en genopretning. Løs sådan en hændelse manuelt.
+- **Felt, der signalerer genopretning** skal være `requestBody.alerts[*].status`, og **Værdi, der betyder genoprettet** præcis `resolved`. Sammenligningen skelner mellem store og små bogstaver.
+- Advarsler i en notifikation ud over **Maks. hændelser pr. anmodning** læses slet ikke, så deres genopretninger går også tabt.
+- En genopretning, der springes over, fordi for mange notifikationer ventede (se nedenfor), lader sin hændelse stå åben for altid: Alertmanager gentager udløste advarsler, men aldrig en genopretning. Løs sådan en hændelse manuelt.
 :::
 
 :::details Ingen hændelse åbnes
@@ -282,11 +282,11 @@ En henvisning til et felt, som notifikationen ikke har, bliver stående, som den
 :::
 
 :::details For mange hændelser
-Gruppér din rute efter færre etiketter, eller hæv `group_interval`, så Alertmanager sender relaterede advarsler sammen. En lavere **Max incidents per request** begrænser hændelserne fra én notifikation, men advarsler ud over grænsen læses ikke, så deres genopretninger går også tabt.
+Gruppér din rute efter færre etiketter, eller hæv `group_interval`, så Alertmanager sender relaterede advarsler sammen. En lavere **Maks. hændelser pr. anmodning** begrænser hændelserne fra én notifikation, men advarsler ud over grænsen læses ikke, så deres genopretninger går også tabt.
 :::
 
-:::details Notifikationer springes over under et udbrud
-Når en nyere anmodning når en monitor, før en tidligere er evalueret, evaluerer OneUptime kun den nyeste, så én afsender ikke kan oversvømme en monitor. Den sidste notifikation i et udbrud evalueres altid, men en tidligere om andre advarsler kan blive sprunget over, fordi Alertmanager sender hver gruppe til den samme URL. Hæv `group_wait` og `group_interval` for at sprede notifikationerne. På en selvhostet installation sætter du `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljø for at evaluere hver anmodning.
+:::details Et udbrud af notifikationer
+En monitor, hvis kriterium grupperer efter et felt, som denne vejledning sætter det op, evaluerer hver notifikation, den modtager, én ad gangen og i den rækkefølge, de kom, så et udbrud af udløste og løste advarsler åbner og løser hver advarsels hændelse. Op til 1.000 notifikationer, eller 16 MB af dem, venter på at blive evalueret; derudover springes de ældste ventende over, og kortet **Monitor-resumé** siger hvor mange. Hæv `group_wait` og `group_interval` for at sende færre, større notifikationer. En monitor uden gruppering evaluerer kun den nyeste notifikation, der venter på den.
 :::
 
 ## Sikkerhed

@@ -836,7 +836,6 @@ const OpenStackCloudSpend: FunctionComponent<
       <div className="mb-6">
         <OpenStackBudgetsCard
           openStackCloudId={modelId}
-          month={snapshot.month}
           currency={snapshot.currency}
           isPriced={isPriced}
         />

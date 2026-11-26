@@ -1,6 +1,7 @@
 import File from "./File";
 import Project from "./Project";
 import UserModel from "../../Models/DatabaseModels/DatabaseBaseModel/UserModel";
+import { setUserModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/UserModelType";
 import Route from "../../Types/API/Route";
 import CompanySize from "../../Types/Company/CompanySize";
 import JobRole from "../../Types/Company/JobRole";
@@ -1034,53 +1035,6 @@ class User extends UserModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
@@ -1241,5 +1195,12 @@ class User extends UserModel {
   })
   public sampleProjectId?: ObjectID = undefined;
 }
+
+/*
+ * Every record's relation to whoever last changed it reads User from here
+ * (DatabaseBaseModel.lastModifiedByUser): this class extends that one, so
+ * it cannot import User (UserModelType).
+ */
+setUserModelType(User);
 
 export default User;

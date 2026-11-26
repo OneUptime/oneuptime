@@ -5,10 +5,7 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { formatCompactDuration } from "Common/Utils/Milliseconds";
-import {
-  DiscoveryScanStatus,
-  DISCOVERY_SCAN_STARTED_MESSAGE,
-} from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
+import { isDiscoveryScanWaitingForFirstReport } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 
 /*
  * What a discovery scan's progress says, apart from the component that draws
@@ -19,16 +16,15 @@ import {
  */
 
 /**
- * A recurring scan retains the preceding result until its first report.
- * The claim marker separates that snapshot from this run's real progress.
+ * A scan run again - on its schedule, or with Run Again - retains the
+ * preceding result until its first report. The claim marker separates that
+ * snapshot from this run's real progress; the server reads it the same way
+ * (isDiscoveryScanWaitingForFirstReport).
  */
 export function isWaitingForDiscoveryProgress(
   scan: NetworkDeviceDiscoveryScan | null,
 ): boolean {
-  return (
-    scan?.status === DiscoveryScanStatus.InProgress &&
-    scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
-  );
+  return isDiscoveryScanWaitingForFirstReport(scan);
 }
 
 // English, as a test and the server read it without a translator of their own.

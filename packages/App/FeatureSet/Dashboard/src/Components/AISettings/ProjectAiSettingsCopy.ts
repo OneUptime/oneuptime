@@ -780,13 +780,17 @@ export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
  * Security Events → AI → Settings: what OneUptime AI does on its own for
- * security cases. One switch, saved the moment it is flipped: triaging each
- * case a detection opens. On for new projects (ProjectService
- * NEW_PROJECT_AI_DEFAULT_COLUMNS); a project that existed keeps it off until
- * someone turns it on here. A person can ask for a triage on any case's AI
- * card whatever it says.
+ * security cases. Two switches, each saved the moment it is flipped:
+ * triaging each case a detection opens, and working a case its triage reads
+ * as Likely Malicious end to end (#10352) - within what the card under them
+ * allows (SecurityCaseAiLimitsCopy). Both on for new projects (ProjectService
+ * NEW_PROJECT_AI_DEFAULT_COLUMNS); a project that existed keeps them off
+ * until someone turns them on here. A person can ask for a triage, or for
+ * OneUptime AI to work the case, on any case's AI card whatever they say.
  */
-export type SecurityAiSwitchColumn = "enableAutomaticSecurityCaseTriage";
+export type SecurityAiSwitchColumn =
+  | "enableAutomaticSecurityCaseTriage"
+  | "enableAutomaticSecurityCaseResponse";
 
 export const SECURITY_AI_SWITCHES: Array<
   ProjectAiSwitchDefinition<SecurityAiSwitchColumn>
@@ -796,6 +800,13 @@ export const SECURITY_AI_SWITCHES: Array<
     title: translationKey("Triage new cases"),
     description: translationKey(
       "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
+    ),
+  },
+  {
+    column: "enableAutomaticSecurityCaseResponse",
+    title: translationKey("Work cases end to end"),
+    description: translationKey(
+      "OneUptime AI takes each case its triage reads as Likely Malicious and works it, within what you allow below.",
     ),
   },
 ];
@@ -815,6 +826,40 @@ export const SecurityAiSettingsCopy: {
 };
 
 export const SECURITY_AI_SWITCHES_TEST_ID: string = "security-ai-switches";
+
+/*
+ * Data Security → AI (#10364): whether OneUptime AI works on new Data
+ * Security issues on its own - one switch, saved the moment it is flipped.
+ * On for new projects (ProjectService NEW_PROJECT_AI_DEFAULT_COLUMNS); a
+ * project that existed keeps it off until someone turns it on here. Off,
+ * nothing runs on its own, and the buttons a person presses still work.
+ */
+export type DataSecurityAiSwitchColumn = "enableAutomaticDataSecurityAi";
+
+export const DATA_SECURITY_AI_SWITCHES: Array<
+  ProjectAiSwitchDefinition<DataSecurityAiSwitchColumn>
+> = [
+  {
+    column: "enableAutomaticDataSecurityAi",
+    title: translationKey("Work on new issues"),
+    description: translationKey(
+      "OneUptime AI analyzes new Critical and High issues. By default it asks before each change, except undoable, proven-safe ones that only hide data.",
+    ),
+  },
+];
+
+export const DataSecurityAiSettingsCopy: {
+  cardTitle: string;
+  cardDescription: string;
+} = {
+  cardTitle: SWITCHES_CARD_TITLE,
+  cardDescription: translationKey(
+    "It works on Data Security issues on its own. Turn off anything you do not want it to do.",
+  ),
+};
+
+export const DATA_SECURITY_AI_SWITCHES_TEST_ID: string =
+  "data-security-ai-switches";
 
 /*
  * Project Settings → AI → AI Features: Enable AI, the project's one AI switch.
@@ -916,6 +961,11 @@ export enum ProjectAiNoticeContext {
    * metrics busy services do not send, still found with AI off.
    */
   Metrics = "Metrics",
+  /*
+   * Data Security → AI: OneUptime AI's work on Data Security issues
+   * (#10364). Data Security itself works the same with AI off.
+   */
+  DataSecurity = "DataSecurity",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1104,6 +1154,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     aiOffDescription: AI_OFF_EVENT_PAGE,
     providerConsequence: translationKey(
       "Until it has one, security cases are not triaged.",
+    ),
+  },
+  [ProjectAiNoticeContext.DataSecurity]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Data Security works as it always does, but OneUptime AI works on no issue.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, OneUptime AI works on no Data Security issue.",
     ),
   },
   [ProjectAiNoticeContext.Profiles]: {

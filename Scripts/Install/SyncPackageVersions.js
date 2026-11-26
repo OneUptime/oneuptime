@@ -42,6 +42,17 @@ function readTargetVersion() {
   return raw;
 }
 
+/*
+ * An install, however it is named: `node_modules`, or one moved aside to run
+ * the tests as CI does, with a package's own packages missing
+ * (`node_modules.aside`, `node_modules.off`). Its packages' package.json
+ * files are theirs, never ours: a sync once rewrote the version of every
+ * package of a Dashboard install moved aside so, react's included.
+ */
+function isInstalledPackages(name) {
+  return name.startsWith("node_modules");
+}
+
 function walk(dir, out) {
   let entries;
   try {
@@ -52,7 +63,9 @@ function walk(dir, out) {
   for (const entry of entries) {
     if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) {
-      if (IGNORED_DIRS.has(entry.name)) continue;
+      if (IGNORED_DIRS.has(entry.name) || isInstalledPackages(entry.name)) {
+        continue;
+      }
       walk(path.join(dir, entry.name), out);
     } else if (entry.isFile() && entry.name === "package.json") {
       out.push(path.join(dir, entry.name));

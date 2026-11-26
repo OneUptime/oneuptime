@@ -21,6 +21,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const EVERYTHING: LocalSignInSettings = {
   hasPassword: true,
+  hasPasswordResetLink: true,
   isTwoFactorAuthEnabled: true,
   authenticatorAppCount: 2,
   passkeyAndSecurityKeyCount: 3,
@@ -40,6 +41,11 @@ describe("getSignInSettingsClearedChanges", () => {
     expect(getSignInSettingsClearedChanges(EVERYTHING)).toEqual([
       {
         field: SignInSettingsClearedField.Password,
+        oldValue: AUDIT_LOG_REDACTED_VALUE,
+        newValue: null,
+      },
+      {
+        field: SignInSettingsClearedField.PasswordResetLink,
         oldValue: AUDIT_LOG_REDACTED_VALUE,
         newValue: null,
       },
@@ -77,6 +83,15 @@ describe("getSignInSettingsClearedChanges", () => {
       "a password",
       { hasPassword: true },
       [SignInSettingsClearedField.Password],
+    ],
+    /*
+     * #9992: the Require SSO card counted somebody whose only saved
+     * setting was a working reset link, and their clear made no entry.
+     */
+    [
+      "a password reset link that still worked",
+      { hasPasswordResetLink: true },
+      [SignInSettingsClearedField.PasswordResetLink],
     ],
     [
       "two-factor authentication",
@@ -124,6 +139,32 @@ describe("getSignInSettingsClearedChanges", () => {
 
     expect(change["oldValue"]).toBe(AUDIT_LOG_REDACTED_VALUE);
     expect(change["newValue"]).toBeNull();
+  });
+
+  test("a reset link is recorded as removed, never with its token", () => {
+    const change: JSONObject = getSignInSettingsClearedChanges({
+      ...NO_LOCAL_SIGN_IN_SETTINGS,
+      hasPasswordResetLink: true,
+    })[0] as JSONObject;
+
+    expect(change["field"]).toBe("passwordResetLink");
+    expect(change["oldValue"]).toBe(AUDIT_LOG_REDACTED_VALUE);
+    expect(change["newValue"]).toBeNull();
+  });
+
+  test("a password and a reset link are each a field of their own", () => {
+    expect(
+      getSignInSettingsClearedChanges({
+        ...NO_LOCAL_SIGN_IN_SETTINGS,
+        hasPassword: true,
+        hasPasswordResetLink: true,
+      }).map((change: unknown): unknown => {
+        return (change as JSONObject)["field"];
+      }),
+    ).toEqual([
+      SignInSettingsClearedField.Password,
+      SignInSettingsClearedField.PasswordResetLink,
+    ]);
   });
 
   test("nothing in an entry is a secret: only counts, switches and the redaction marker", () => {

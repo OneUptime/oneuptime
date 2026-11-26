@@ -342,11 +342,12 @@ describe("The comparisons the rule editor offers", () => {
         monitorType: MonitorType.Traces,
       }),
     ).toEqual([...threshold, ...anomaly]);
+    // A metric's value is also asked "anything but", after Exactly (#10449).
     expect(
       TelemetryAlertRuleUtil.getComparisons({
         monitorType: MonitorType.Metrics,
       }),
-    ).toEqual([...threshold, ...anomaly, ...forecast]);
+    ).toEqual([...threshold, FilterType.NotEqualTo, ...anomaly, ...forecast]);
     // The count against its own earlier weeks (ExceptionLearnedBaseline).
     expect(
       TelemetryAlertRuleUtil.getComparisons({

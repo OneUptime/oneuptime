@@ -29,6 +29,11 @@ import {
   SecurityEntityRiskLevel,
 } from "../../Types/SecurityCase/SecurityEntityRisk";
 import { matchesProtectedEntityPattern } from "../../Types/SecurityPlaybook/SecurityProtectedEntity";
+import {
+  hasTakenFiring,
+  readFiringKeys,
+  takeFiring,
+} from "../../Types/SecurityCase/SecurityFiringKeys";
 import Timezone from "../../Types/Timezone";
 import TimezoneAlias from "../../Types/TimezoneAlias";
 import { CalendarDay, getLastCalendarDays } from "./SecurityOverviewMetrics";
@@ -259,6 +264,9 @@ export function readRiskContributions(
       securityEventConnectionId: readOptionalId(
         record["securityEventConnectionId"],
       ),
+      ...(Array.isArray(record["firingKeys"])
+        ? { firingKeys: readFiringKeys(record["firingKeys"]) }
+        : {}),
     });
   }
 
@@ -291,6 +299,8 @@ export interface SecurityEntityRiskObservation {
   detectionRuleId?: string | undefined;
   threatIntelFeedId?: string | undefined;
   securityEventConnectionId?: string | undefined;
+  // The name of the firing it is, from a rule's scheduled run (#10489): counted once.
+  firingKey?: string | undefined;
 }
 
 function union(a: Array<string>, b: Array<string>): Array<string> {
@@ -354,6 +364,19 @@ export function addRiskObservation(
       return contribution.sourceKey === observation.sourceKey;
     });
 
+  /*
+   * A firing the source counted already (#10489): a rule's run judged the
+   * same events again after its worker stopped. The entity's risk is as it
+   * was, the very list handed in.
+   */
+  if (
+    existing &&
+    isRiskContributionInWindow(existing, now) &&
+    hasTakenFiring(existing.firingKeys, observation.firingKey)
+  ) {
+    return contributions;
+  }
+
   const others: Array<SecurityEntityRiskContribution> = contributions.filter(
     (contribution: SecurityEntityRiskContribution): boolean => {
       return contribution.sourceKey !== observation.sourceKey;
@@ -407,6 +430,16 @@ export function addRiskObservation(
 
   if (observation.securityEventConnectionId) {
     next.securityEventConnectionId = observation.securityEventConnectionId;
+  }
+
+  // The firing counted, among the latest the source keeps; a new count starts its own.
+  if (observation.firingKey) {
+    next.firingKeys = takeFiring(
+      existing && isRiskContributionInWindow(existing, now)
+        ? existing.firingKeys
+        : [],
+      observation.firingKey,
+    );
   }
 
   return pruneRiskContributions([...others, next], now);

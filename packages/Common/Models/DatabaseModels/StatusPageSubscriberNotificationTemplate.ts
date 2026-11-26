@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -81,6 +83,18 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Manage custom notification templates for status page subscribers. These templates can be used to customize the notifications sent to subscribers via Email, SMS, Slack, Microsoft Teams, and Webhooks.",
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_STATUSPAGESUBSCRIBERNOTIFICATIONTEMPLATE_PROJECT_NAME_KEY",
+  ["projectId", "templateName"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "StatusPageSubscriberNotificationTemplate",
 })
@@ -191,6 +205,7 @@ export default class StatusPageSubscriberNotificationTemplate extends BaseModel 
       Permission.EditStatusPageSubscriberNotificationTemplate,
     ],
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -482,59 +497,4 @@ export default class StatusPageSubscriberNotificationTemplate extends BaseModel 
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageSubscriberNotificationTemplate,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

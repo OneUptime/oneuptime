@@ -2,6 +2,7 @@ import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { getTimeRangeButtonLabel } from "Common/UI/Components/Date/TimeRangeLabel";
 import {
   RecordingHealthDiagnosis,
   RecordingHealthState,
@@ -31,19 +32,27 @@ import {
  */
 
 /*
- * The range a tile counted, in the tile's own words - "past 1 hour", not
- * "selected range" - so a viewer who clicks through to a list showing a
- * different default window is never told two counts for one thing without
- * being shown why (correlation-11).
+ * The range a tile counted, named as the range picker above the tiles names
+ * it - "Past 1 Hour", not "selected range" - so a viewer who clicks through
+ * to a list showing a different default window is never told two counts for
+ * one thing without being shown why (correlation-11).
+ *
+ * In the reader's language (issue #10552). A quick range is the picker's own
+ * label, an English key every Dashboard language words, which the tile draws
+ * in the reader's language (ResourceOverviewTile.sublabel). A custom range,
+ * a zoom among them, is the window's two ends, which the shared helper
+ * writes in the reader's language, on their clock and in their time zone,
+ * naming a day once when the window is within it
+ * (OneUptimeDate.getLocalDateTimeRangeEnds): "Nov 5, 2025, 5:14 AM – 6:14
+ * AM", what the picker's button says. The range used to be lowercased out of
+ * the TimeRange value ("past 1 hour", "custom range"), which no locale words
+ * and which read English on every page; lowercasing a translated label would
+ * be wrong too, as German keeps a noun's capital.
  */
 export function describeTimeRangeForTile(
   timeRange: RangeStartAndEndDateTime,
 ): string {
-  if (timeRange.range === TimeRange.CUSTOM) {
-    return "custom range";
-  }
-
-  return String(timeRange.range).toLowerCase();
+  return getTimeRangeButtonLabel(timeRange);
 }
 
 /*

@@ -748,6 +748,12 @@ export default class GitHubConversation {
     body: string;
     comments: Array<GitHubReviewComment>;
     commitSha?: string | undefined;
+    /*
+     * A review whose comments are all it is for - a production review's
+     * suggested changes on their lines (#10376) - is never posted without
+     * them: a 422 is thrown, not retried with the body alone.
+     */
+    isOnlyItsComments?: boolean | undefined;
   }): Promise<string> {
     const token: string = await GitHubConversation.getConversationToken(
       data.installationId,
@@ -787,7 +793,8 @@ export default class GitHubConversation {
     if (
       result instanceof HTTPErrorResponse &&
       data.comments.length > 0 &&
-      result.statusCode === 422
+      result.statusCode === 422 &&
+      !data.isOnlyItsComments
     ) {
       logger.debug(
         `GitHub rejected the inline comments on the review for ${data.organizationName}/${data.repositoryName}#${data.pullRequestNumber}; posting the review body on its own.`,

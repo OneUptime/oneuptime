@@ -437,6 +437,16 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
+            {
+              /*
+               * When it was created, which takes the card's line: with the ID
+               * kept as a field above, the line says who created it and who
+               * last modified it (#10461).
+               */
+              field: { createdAt: true },
+              title: "Created",
+              fieldType: FieldType.DateTime,
+            },
           ],
           modelId: modelId,
         }}

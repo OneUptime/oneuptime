@@ -29,17 +29,23 @@ import {
   useDataTypeNamer,
 } from "../../../Components/DataSecurity/IssueDataTypes";
 import { getStoreViewRoute } from "../../../Components/DataSecurity/IssueListRoute";
+import IssueAiAnalysisCard from "../../../Components/DataSecurity/IssueAiAnalysisCard";
+import IssueCodeFix from "../../../Components/DataSecurity/IssueCodeFix";
 import {
   AcceptIssueRiskModal,
   AssignIssueModal,
   IssueRepositoryModal,
+  NotAnIssueModal,
 } from "../../../Components/DataSecurity/IssueModals";
 import IssueRemediation from "../../../Components/DataSecurity/IssueRemediation";
+import IssueResolution from "../../../Components/DataSecurity/IssueResolution";
 import IssueResponseAction from "../../../Components/DataSecurity/IssueResponseAction";
 import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
+import { isServiceTelemetryFix } from "../../../Components/DataSecurity/TelemetryFixCopy";
+import TelemetryFixModal from "../../../Components/DataSecurity/TelemetryFixModal";
 import {
   STORE_DATA_TYPES_NOT_LOADED,
   StoreDataTypesRead,
@@ -56,7 +62,6 @@ import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
-  DataSecurityExplainResult,
   DataSecurityFixRepository,
   DataSecurityFixResult,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
@@ -85,11 +90,13 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import IssueAiCard from "../../../Components/DataSecurity/IssueAiCard";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import API from "Common/UI/Utils/API/API";
+import Toast from "Common/UI/Utils/Toast";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -133,21 +140,27 @@ const NO_DATA_TYPES: string = translationKey("No sensitive data found yet.");
 const UNKNOWN_CHECK: string = translationKey(
   "This check is no longer in the catalog. Its evidence is below.",
 );
-const OPEN_TASK: string = translationKey("Open the task");
 const HOW_TO_FIX: string = translationKey(
   "Fix it in the console, from the CLI or with Terraform, then mark it resolved: the store is checked again at once.",
 );
 // A telemetry issue is fixed at ingest and in the code that writes the data.
 const HOW_TO_FIX_TELEMETRY: string = translationKey(
-  "Scrub it at ingest from the list above, then fix the code that writes it. The issue resolves once the store is checked again.",
+  "Scrub it at ingest from the list above to contain it, then fix the code that writes it. It counts as fixed once the service's new version no longer writes the data.",
 );
 const MORE_ACTIONS: string = translationKey("More actions");
 
-type IssueDialog = "accept" | "assign" | "repository" | null;
+type IssueDialog =
+  | "accept"
+  | "assign"
+  | "repository"
+  | "notAnIssue"
+  // Fix with AI's plan for a service's telemetry leaks (#10367).
+  | "telemetryFix"
+  | null;
 
+// Why Fix with AI started nothing, in the server's words.
 interface FixNotice {
   message: string;
-  taskId?: string | undefined;
 }
 
 // The requirements an issue is evidence for: its own, else its check's.
@@ -226,12 +239,15 @@ const RequirementChip: FunctionComponent<{
  *
  * The moves are in the header: Mark Resolved once it is fixed (the store
  * is checked again at once), Accept Risk with a reason and an end date,
- * and in its ⋯ Not an Issue and Assign; a closed issue offers Reopen.
- * Explain with AI and Fix with AI sit with the fix, while the project's
- * AI is on; Fix with AI asks which repository when the person may ask
- * OneUptime AI to work in several, and offers only those. An open issue
- * that a response action fixes - a public bucket,
- * a shared snapshot - offers it first, as one click (IssueResponseAction).
+ * and in its ⋯ Not an Issue, with the reason (#10369), and Assign; a
+ * closed issue offers Reopen. While the project's AI is on, OneUptime AI's
+ * analysis comes right after the issue (IssueAiAnalysisCard, #10369): is
+ * it real, what it puts at risk, what the fix would break, the shortest
+ * path to fixed, with the buttons they name - it replaces Explain with AI.
+ * Fix with AI sits with the fix too; it asks which repository when the
+ * person may ask OneUptime AI to work in several, and offers only those.
+ * An open issue that a response action fixes - a public bucket, a shared
+ * snapshot - offers it first, as one click (IssueResponseAction).
  */
 const DataSecurityIssueOverviewPage: FunctionComponent<
   PageComponentProps
@@ -247,8 +263,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [confirmError, setConfirmError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
-  const [explanation, setExplanation] = useState<string>("");
-  const [isExplaining, setIsExplaining] = useState<boolean>(false);
+  // OneUptime AI's draft of the reason a dialog starts from (#10369).
+  const [draftReason, setDraftReason] = useState<string>("");
   const [isFixing, setIsFixing] = useState<boolean>(false);
   const [fixNotice, setFixNotice] = useState<FixNotice | null>(null);
   // The repositories Fix with AI may be asked in, when there is a choice.
@@ -263,6 +279,15 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const storeId: string =
     issue.dataStoreId?.toString() || store?._id?.toString() || "";
   const storeName: string = store?.name || "";
+  /*
+   * An issue in a service's telemetry: Fix with AI shows the one pull
+   * request that stops the service writing all of its leaks first (#10367).
+   */
+  const isServiceTelemetry: boolean = isServiceTelemetryFix({
+    isTelemetryCheck: isTelemetryFindingCheck(issue.checkId),
+    storeKind: store?.kind,
+    serviceId: store?.serviceId,
+  });
   const title: string =
     translator.translateText(check?.title || issue.title) || issue.title || "";
 
@@ -310,30 +335,13 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     }
   };
 
-  const explain: () => Promise<void> = async (): Promise<void> => {
-    setIsExplaining(true);
-    setActionError("");
-
-    try {
-      const result: DataSecurityExplainResult =
-        await DataSecurityApi.explainIssue(view.issueId);
-
-      setExplanation(result.markdown || "");
-      // Its timeline has the explanation now.
-      view.refresh();
-    } catch (err) {
-      setActionError(API.getFriendlyMessage(err));
-    }
-
-    setIsExplaining(false);
-  };
-
   /*
    * Asks OneUptime AI for a pull request. The server answers without a run
    * when something stands in the way - AI is off, no Runner is online, no
    * repository the person may change is connected - and says what to fix;
    * or, when the person may ask in several repositories, lists them to
-   * choose from (#10362).
+   * choose from (#10362). A run that started says so in a toast, and the
+   * How to Fix card says where it stands from then on (IssueCodeFix).
    */
   const askForFix: (
     codeRepositoryId?: ObjectID | undefined,
@@ -346,7 +354,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     );
 
     if (result.aiRunId) {
-      setFixNotice({ message: result.message, taskId: result.aiRunId });
+      Toast.success(translator.translateText(result.message) || result.message);
       view.refresh();
       return true;
     }
@@ -362,9 +370,16 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   };
 
   const fixWithAi: () => Promise<void> = async (): Promise<void> => {
-    setIsFixing(true);
     setActionError("");
     setFixNotice(null);
+
+    // A service's telemetry fix is shown before it is asked for.
+    if (isServiceTelemetry) {
+      setDialog("telemetryFix");
+      return;
+    }
+
+    setIsFixing(true);
 
     try {
       await askForFix();
@@ -402,6 +417,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
       buttonStyle: ButtonStyleType.OUTLINE,
       disabled: view.isWorking,
       onClick: () => {
+        setDraftReason("");
         setDialog("accept");
       },
     });
@@ -442,8 +458,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           tooltip={isLocked ? updateGate.disabledReason : undefined}
           isTooltipTranslated={true}
           onClick={() => {
-            setConfirmError("");
-            setConfirmMove(IssueMove.NotAnIssue);
+            setDraftReason("");
+            setDialog("notAnIssue");
           }}
         />,
       );
@@ -470,21 +486,10 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     );
   }
 
-  // Explain and Fix with AI, beside the fix, while the project's AI is on.
+  // Fix with AI, beside the fix, while the project's AI is on.
   const fixButtons: Array<CardButtonSchema> = [];
 
   if (isAiOffered) {
-    fixButtons.push({
-      title: "Explain with AI",
-      icon: IconProp.Bolt,
-      buttonStyle: ButtonStyleType.OUTLINE,
-      isLoading: isExplaining,
-      disabled: isExplaining,
-      onClick: () => {
-        void explain();
-      },
-    });
-
     const fixButton: CardButtonSchema | null = gate({
       title: "Fix with AI",
       icon: IconProp.Bolt,
@@ -714,6 +719,28 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
             <></>
           )}
 
+          {/*
+           * How it was resolved (#10368): fixed in code with its pull
+           * request and version, contained at ingest - not fixed - with
+           * Fix the Code, or the leak back after its fix.
+           */}
+          <IssueResolution
+            issue={issue}
+            issueId={view.issueId}
+            onFixTheCode={
+              isAiOffered
+                ? () => {
+                    void fixWithAi();
+                  }
+                : undefined
+            }
+            isFixing={isFixing}
+            fixDisabledReason={
+              updateGate.isAllowed ? undefined : updateGate.disabledReason
+            }
+            refreshToggle={view.refreshToggle}
+          />
+
           {issue.reopenCount && issue.reopenCount > 0 ? (
             <p className="text-xs text-gray-500">
               {translator.translatePlural(REOPENED_TIMES, issue.reopenCount)}
@@ -721,8 +748,41 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           ) : (
             <></>
           )}
+
+          {/* The issue's line: its ID, who created it and who last changed it. */}
+          <RecordActivityLine
+            modelType={DataSecurityIssue}
+            recordId={view.issueId}
+            className="border-t border-gray-100 pt-3"
+          />
         </div>
       </Card>
+
+      {isAiOffered ? (
+        <IssueAiAnalysisCard
+          issue={issue}
+          issueId={view.issueId}
+          namer={namer}
+          refreshToggle={view.refreshToggle}
+          isFixing={isFixing}
+          onAcceptRisk={(draft: string) => {
+            setDraftReason(draft);
+            setDialog("accept");
+          }}
+          onNotAnIssue={(draft: string) => {
+            setDraftReason(draft);
+            setDialog("notAnIssue");
+          }}
+          onFixWithAi={() => {
+            void fixWithAi();
+          }}
+          onChanged={() => {
+            view.refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {/*
        * What is wrong and why it matters are what the cards say, not a
@@ -871,6 +931,20 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         <></>
       )}
 
+      {/*
+       * What OneUptime AI proposed for the issue, and why it left it alone
+       * (#10364). Its analysis is the card at the top (#10369), so this one
+       * leaves it out: the two are never side by side.
+       */}
+      {issue._id ? (
+        <IssueAiCard
+          issueId={new ObjectID(issue._id.toString())}
+          hideAnalysis={true}
+        />
+      ) : (
+        <></>
+      )}
+
       <Card
         title="How to Fix"
         description={
@@ -881,6 +955,11 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         buttons={fixButtons}
       >
         <div className="space-y-4">
+          {/* The issue keeps its fix: its pull request and where it stands (#10367). */}
+          <IssueCodeFix
+            issueId={view.issueId}
+            refreshToggle={view.refreshToggle}
+          />
           {issue.status === DataSecurityIssueStatus.Open && storeId ? (
             <IssueResponseAction
               issueId={view.issueId}
@@ -897,27 +976,13 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           )}
           {fixNotice ? (
             <Alert
-              type={fixNotice.taskId ? AlertType.SUCCESS : AlertType.WARNING}
+              type={AlertType.WARNING}
               title={fixNotice.message}
               dataTestId="data-security-issue-fix-notice"
               onClose={() => {
                 setFixNotice(null);
               }}
             />
-          ) : (
-            <></>
-          )}
-          {fixNotice?.taskId ? (
-            <AppLink
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CODE_TASK_VIEW] as Route,
-                { modelId: new ObjectID(fixNotice.taskId) },
-              )}
-            >
-              <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
-              <span>{translator.translateText(OPEN_TASK)}</span>
-            </AppLink>
           ) : (
             <></>
           )}
@@ -936,19 +1001,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         </div>
       </Card>
 
-      {explanation ? (
-        <Card
-          title="Explained by OneUptime AI"
-          description="Written by OneUptime AI from this issue and its evidence. Check it before you act on it."
-        >
-          <div data-testid="data-security-issue-ai-explanation">
-            <MarkdownViewer text={explanation} safeMode={true} />
-          </div>
-        </Card>
-      ) : (
-        <></>
-      )}
-
       <Card
         title="Risk Score"
         description="Why this issue ranks where it does: its severity first, then what makes it worse on this store."
@@ -962,12 +1014,31 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
       {dialog === "accept" ? (
         <AcceptIssueRiskModal
           issues={[issue]}
+          draftReason={draftReason}
           onClose={() => {
             setDialog(null);
           }}
           onSubmit={async (acceptance: IssueAcceptance): Promise<void> => {
             await view.updateIssue(
               getIssueMoveWrite(IssueMove.Accept, acceptance),
+            );
+            setDialog(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dialog === "notAnIssue" ? (
+        <NotAnIssueModal
+          issues={[issue]}
+          draftReason={draftReason}
+          onClose={() => {
+            setDialog(null);
+          }}
+          onSubmit={async (reason: string): Promise<void> => {
+            await view.updateIssue(
+              getIssueMoveWrite(IssueMove.NotAnIssue, undefined, reason),
             );
             setDialog(null);
           }}
@@ -985,6 +1056,24 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           onSubmit={async (pick: IssueAssigneePick): Promise<void> => {
             await view.updateIssue(getIssueAssignWrite(pick));
             setDialog(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dialog === "telemetryFix" ? (
+        <TelemetryFixModal
+          issueId={view.issueId}
+          onClose={() => {
+            setDialog(null);
+          }}
+          onStarted={(result: DataSecurityFixResult) => {
+            setDialog(null);
+            Toast.success(
+              translator.translateText(result.message) || result.message,
+            );
+            view.refresh();
           }}
         />
       ) : (

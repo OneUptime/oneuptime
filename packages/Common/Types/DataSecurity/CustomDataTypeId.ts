@@ -18,3 +18,12 @@ export function customDataTypeId(rowId: string): string {
 export function isCustomDataTypeId(dataTypeId: string): boolean {
   return dataTypeId.startsWith(CUSTOM_DATA_TYPE_ID_PREFIX);
 }
+
+// The id of the row a project's own data type was defined in, or null for a built-in type.
+export function readCustomDataTypeRowId(dataTypeId: string): string | null {
+  if (!isCustomDataTypeId(dataTypeId)) {
+    return null;
+  }
+
+  return dataTypeId.slice(CUSTOM_DATA_TYPE_ID_PREFIX.length) || null;
+}

@@ -268,6 +268,14 @@ describe("AIAgentTaskPullRequestService.getOutcomeStats", () => {
           [FixProductionStatus.Verified]: 2,
           [FixProductionStatus.Regressed]: 1,
         },
+        // A Data Security fix earns its own too (#10368).
+        [FixProductionCheck.TelemetryLeak]: {
+          [FixProductionStatus.Verified]: 2,
+          [FixProductionStatus.Unverifiable]: 1,
+        },
+        [FixProductionCheck.StoreConfiguration]: {
+          [FixProductionStatus.Verified]: 1,
+        },
       },
     });
 
@@ -279,9 +287,9 @@ describe("AIAgentTaskPullRequestService.getOutcomeStats", () => {
 
     expect(stats.productionByCheck).toEqual({
       [FixProductionCheck.Exception]: {
-        verified: 6,
+        verified: 3,
         regressed: 2,
-        unverifiable: 4,
+        unverifiable: 3,
       },
       [FixProductionCheck.Performance]: {
         verified: 3,
@@ -296,6 +304,16 @@ describe("AIAgentTaskPullRequestService.getOutcomeStats", () => {
       [FixProductionCheck.Telemetry]: {
         verified: 2,
         regressed: 1,
+        unverifiable: 0,
+      },
+      [FixProductionCheck.TelemetryLeak]: {
+        verified: 2,
+        regressed: 0,
+        unverifiable: 1,
+      },
+      [FixProductionCheck.StoreConfiguration]: {
+        verified: 1,
+        regressed: 0,
         unverifiable: 0,
       },
     });

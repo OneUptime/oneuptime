@@ -83,6 +83,17 @@ Secrets are filled in before a Synthetic or Custom JavaScript Code monitor's scr
 
 If a monitor references a secret it cannot use, the reference is left as it is and is not replaced with the value.
 
+When an API, Website or External Status Page check fails, its error names the URL by its scheme, host and port alone, such as `https://api.example.com`, so a secret in the URL is never shown.
+
+A check can also say a secret's value back: a browser quotes the URL a page failed to load, a script logs what it holds, and a server can echo the query, headers or body it was sent. OneUptime hides the value wherever it appears in what the check reports: a script's error, log messages and result, a response's body and headers, and the failure cause of the check and of each attempt. So the value is in none of the monitor's logs, its summary, a Test Monitor run's result, or the root cause of an incident or an alert. OneUptime writes `[REDACTED]` in its place and keeps the rest, so a page at `https://app.example.com/login?token={{monitorSecrets.Token}}` that fails to load is reported as `https://app.example.com/login?token=[REDACTED]`. The value is found in any case and however the check wrote it: percent-encoded, escaped in JSON or HTML, or in base64.
+
+OneUptime does not hide:
+
+- A value shorter than 4 characters, not counting spaces around it. A value that short is part of ordinary text, such as numbers and words.
+- What a screenshot shows. A screenshot is an image, so a secret the page shows on screen is in it.
+
+Criteria read a check as it is reported. Write a criteria against the text around a secret, such as `ERR_NAME_NOT_RESOLVED` or `token=`, rather than against the secret's value: a criteria is shown to everyone who can read the monitor.
+
 When you test a monitor before saving it, only secrets available to **All monitors** are filled in, because a new monitor is not on any list and has no labels yet. After you save the monitor, tests use every secret the monitor can use.
 
 ## Signing in with a one-time code
@@ -128,7 +139,7 @@ return {
 The probe never hands out a code with less than five seconds left, or a third of the period when the period is shorter: it waits for the next code instead, at most five seconds, and leaves that wait out of the check's execution time. Every code a check makes is shown as asterisks, such as `******`, in its log messages, its result, its error and the names of its screenshots. A screenshot is a picture of the page, so take it before the code is typed or after the page moves on.
 
 > [!NOTE]
-> The probe makes the codes, so a custom probe needs OneUptime 17.0.1 or later. On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe; the monitor's form and the probe's page name a probe that is too old, and [Update a probe](/docs/probe/custom-probe#update-a-probe) says how. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
+> The probe makes the codes, so a custom probe needs OneUptime 17.1.0 or later. On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe; the monitor's form and the probe's page name a probe that is too old, and [Update a probe](/docs/probe/custom-probe#update-a-probe) says how. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
 
 ## Troubleshooting
 
@@ -144,12 +155,16 @@ Before a monitor is saved, only secrets available to **All monitors** are filled
 Only the fields in the table above take secrets. In any other field, `{{monitorSecrets.NAME}}` is sent as written.
 :::
 
+:::details A check shows `[REDACTED]` where a value was
+A secret's value was in what the check reported, and OneUptime hid it. The text around it, such as `token=[REDACTED]`, says where the script or the request used the secret.
+:::
+
 :::details The site refuses the one-time code
 Check that the **Current code** matched your authenticator app when you saved the secret, that the probe's clock is right, and that a reference in a JSON request body is in quotes. If the sign-in takes a while to reach its code prompt, ask for the code there with `oneuptime.getTotpCode`.
 :::
 
 :::details The check says the probe is too old to make one-time codes
-The probe runs a release older than OneUptime 17.0.1, which cannot make one-time codes, so the check did not run on it. Update the probe (see [Update a probe](/docs/probe/custom-probe#update-a-probe)), or check the monitor from probes that run 17.0.1 or later.
+The probe runs a release older than OneUptime 17.1.0, which cannot make one-time codes, so the check did not run on it. Update the probe (see [Update a probe](/docs/probe/custom-probe#update-a-probe)), or check the monitor from probes that run 17.1.0 or later.
 :::
 
 ## Next steps

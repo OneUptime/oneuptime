@@ -116,7 +116,7 @@ Je länger das Fenster, desto breiter jedes Zeitintervall, sodass ein Datenpunkt
 
 ## Kriterien
 
-Diese Monitore werten immer den **Metrikwert** aus – den aggregierten Wert der konfigurierten Metrikabfrage oder Formel. **Wann alarmieren** richtet ein Kriterium aus **Gemessen als**, **Zeitfenster**, **Bedingung** und **Wert** ein. Hat die Metrik eine Einheit, wählen Sie die Einheit des Werts daneben. Seine **Bedingung** lautet **Über**, **Mindestens**, **Unter**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig**, **Ungewöhnlich hoch oder niedrig**, **Steigt voraussichtlich über** oder **Fällt voraussichtlich unter**. Für mehrere Kriterien, etwa Schweregradstufen, klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Metrik**, eine **Aggregation**, eine **Bedingung** und einen **Schwellenwert**.
+Diese Monitore werten immer den **Metrikwert** aus – den aggregierten Wert der konfigurierten Metrikabfrage oder Formel. **Wann alarmieren** richtet ein Kriterium aus **Gemessen als**, **Zeitfenster**, **Bedingung** und **Wert** ein. Hat die Metrik eine Einheit, wählen Sie die Einheit des Werts daneben. Seine **Bedingung** lautet **Über**, **Mindestens**, **Unter**, **Höchstens**, **Genau**, **Alles außer**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig**, **Ungewöhnlich hoch oder niedrig**, **Steigt voraussichtlich über** oder **Fällt voraussichtlich unter**. Für mehrere Kriterien, etwa Schweregradstufen, klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Metrik**, eine **Aggregation**, eine **Bedingung** und einen **Schwellenwert**.
 
 | Bedingung | Passt, wenn der Wert … |
 | --- | --- |
@@ -125,6 +125,7 @@ Diese Monitore werten immer den **Metrikwert** aus – den aggregierten Wert der
 | **Kleiner als** | unter dem Schwellenwert liegt |
 | **Kleiner als oder gleich** | den Schwellenwert erreicht oder darunter liegt |
 | **Gleich** | genau dem Schwellenwert entspricht |
+| **Ungleich** | nicht dem Schwellenwert entspricht |
 | **Anomal hoch** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomal niedrig** | unter diesem Bereich liegt |
 | **Anomal** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
@@ -193,6 +194,10 @@ Ohne Group By ist derselbe Monitor ein einzelner Skalar: Die Abfrage fasst alle 
 
 Jede Warnung pro Gruppe verfolgt ihre eigene Gruppe. Fällt Host A wieder unter den Schwellenwert, wird seine Warnung für sich behoben, und die Warnung von Host B bleibt offen, bis sich Host B erholt. Die Erholung einer Gruppe schließt nie die Warnung einer anderen.
 
+### Jede Reihe in der Übersicht
+
+Die **Übersicht** des Monitors listet in **Serie** jede Reihe, die seine letzte Prüfung gelesen hat: die Labels der Reihe, so wie ihre Warnungen sie nennen, ihren letzten Wert, die Kriterien, die sie erfüllt, und ihren offenen Vorfall oder ihre offene Warnung. Eine Reihe, die den Status des Monitors hält, zeigt **Hält den Status**. Ein Monitor mit vielen Reihen listet 50 davon, zuerst die, die den Status halten oder ein Kriterium erfüllen, und sagt, wie viele es sind.
+
 ### Was jede Warnung speichert
 
 Jede Warnung und jeder Vorfall, die für eine Gruppe geöffnet werden, speichern die Prüfung, die sie geöffnet hat, nur für diese Gruppe: ihre Serie, ihre Datenpunkte und die Auswertungsübersicht. Keine gespeicherte Prüfung ist größer als 256 KB, und die Protokolle einer Prüfung, die gekürzt werden musste, sagen das.
@@ -206,6 +211,7 @@ Warnungen und Vorfälle, die vorher geöffnet wurden, speicherten jede Gruppe de
 
 - **Gruppierte Monitore werten jedes Kriterium aus.** Schweregradstufen können daher zugleich bei verschiedenen Gruppen auslösen: Mit „Critical – größer als 95“ über „Warning – größer als 80“ eröffnet ein Host bei 96 % bei derselben Prüfung eine kritische Warnung und ein Host bei 85 % eine Warnungsstufe. Ein Host, der beide Stufen überschreitet, erhält trotzdem genau eine Warnung – vom ersten passenden Kriterium; **ordnen Sie die Kriterien also mit dem schwerwiegendsten zuerst**.
 - **Ungruppierte Monitore halten beim ersten passenden Kriterium an.** Nur dieses eine Kriterium löst aus – ein weiterer Grund, das warnende Kriterium über das gesunde zu stellen: Ein breites gesundes Kriterium an erster Stelle passt bei fast jeder Prüfung und verhindert, dass das warnende darunter je ausgewertet wird.
+- **Der Status eines gruppierten Monitors kehrt mit den Reihen zurück, die ihn geändert haben.** Der Monitor hat einen einzigen Status, den das erste passende Kriterium festlegt. Ein Kriterium, das ihn nur auf seinen **Standard-Überwachungsstatus** zurückbringt und keine Warnung und keinen Vorfall eröffnet, wartet auf die Reihen, die ein Kriterium erfüllt haben, das einen anderen Status setzt, und greift, sobald jede von ihnen es erfüllt: Ein Host, der nie in der Nähe des Schwellenwerts war, bringt den Monitor nicht zurück. Bis dahin behält der Monitor seinen Status, auch wenn kein Kriterium passt, sodass ein gesundes Kriterium knapp unter dem Schwellenwert verhindert, dass eine Reihe, die um ihn schwankt, den Status ständig umschlagen lässt. Die Warnung jeder Reihe wird weiterhin für sich aufgelöst.
 
 | Host | Belegte Festplatte | Critical (> 95) | Warning (> 80) | Ausgelöste Warnung |
 | --- | --- | --- | --- | --- |

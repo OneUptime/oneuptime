@@ -13,6 +13,7 @@ import BaseModel, {
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import { EXCEPTION_SPAN_SCOPE_QUERY_KEY } from "../../../Types/Telemetry/ExceptionSpanScope";
 import { SECURITY_EVENT_SCOPE_QUERY_KEY } from "../../../Types/SecurityEvent/SecurityEventScope";
+import { SECURITY_EVENT_ARRIVAL_QUERY_KEY } from "../../../Types/SecurityEvent/SecurityEventArrival";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -29,6 +30,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { getPlanRequiredMessage } from "../../../Types/Billing/PlanRequiredRefusal";
 import { isAnalyticsPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -649,9 +651,7 @@ export default class ModelPermission {
           )
         ) {
           throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              requiredPlan +
-              " to access this feature",
+            getPlanRequiredMessage(requiredPlan),
           );
         }
       }
@@ -851,6 +851,16 @@ export default class ModelPermission {
        * and authorization still runs on the query's project and sources.
        */
       SECURITY_EVENT_SCOPE_QUERY_KEY,
+      /*
+       * Synthetic query key compiled by StatementGenerator to the security
+       * events that arrived in a range, within a day of when they happened
+       * (createdAt > ... AND createdAt <= ... AND time >= createdAt - ...),
+       * or AND 0 for a range it cannot read: a scheduled hunt's count and
+       * the events its notification opens on. Not a real column; it only
+       * narrows, and authorization still runs on the query's project and
+       * sources.
+       */
+      SECURITY_EVENT_ARRIVAL_QUERY_KEY,
     ];
 
     return returnArr;
@@ -2145,7 +2155,10 @@ export default class ModelPermission {
 
       if (permissions.length === 0) {
         throw new NotAuthorizedException(
-          `${type} on ${new modelType().singularName} is not allowed.`,
+          HeldPermissionsUtil.getNobodyMayRefusal({
+            recordName: new modelType().singularName,
+            operation: type,
+          }),
         );
       }
 
@@ -2230,11 +2243,7 @@ export default class ModelPermission {
         getAllEnvVars(),
       )
     ) {
-      throw new PaymentRequiredException(
-        "Please upgrade your plan to " +
-          requiredPlan +
-          " to access this feature",
-      );
+      throw new PaymentRequiredException(getPlanRequiredMessage(requiredPlan));
     }
   }
 }

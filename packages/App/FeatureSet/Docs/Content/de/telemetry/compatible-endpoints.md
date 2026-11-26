@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-Die `1` am Ende des DSN verlangen die SDKs von Sentry; gelesen wird sie nicht. Der DSN einer Browser-App ist öffentlich, verwenden Sie dort also einen **Browser**-Ingestion-Schlüssel, der auf die Ursprünge Ihrer Website beschränkt ist.
+Die `1` am Ende des DSN verlangen die SDKs von Sentry; gelesen wird sie nicht. Der DSN einer Browser-App ist öffentlich, verwenden Sie dort also einen **Browser**-Ingestion-Schlüssel, der auf die Ursprünge Ihrer Website beschränkt ist. Alles, was er sendet, wird dann als RUM-Telemetrie dieser Browser-App abgelegt, nie als Backend-Dienst.
 
 ### Was aus einem Umschlag wird
 

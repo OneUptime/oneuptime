@@ -44,6 +44,10 @@ export function getKubernetesBreadcrumbs(
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Kubernetes", "Settings", "Rule Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "Kubernetes", "Settings", "Label Rules", "View Rule"],
     ),

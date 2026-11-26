@@ -29,7 +29,7 @@ flowchart TB
     seen -->|"Yes"| count["Counted again;<br/>reopened if Resolved"]
 ```
 
-- **One exception per service and error.** The fingerprint is made from the service, the exception type, the message and the stack trace. Values that change from call to call are taken out first: UUIDs and other IDs, timestamps, IP and email addresses, and numbers of seven digits or more. So `Order id=1042 not found` and `Order id=2077 not found` are one exception. A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above. Exceptions recorded before this grouping keep theirs.
+- **One exception per service and error.** The fingerprint is made from the service, the exception type, the message and the stack trace. Values that change from call to call are taken out first: UUIDs and other IDs, timestamps, IP and email addresses, and numbers of seven digits or more. So `Order id=1042 not found` and `Order id=2077 not found` are one exception. A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above, with card numbers written in groups, Social Security numbers and phone numbers, international ones included, taken out too, so `Invalid SSN 123-45-6789 on file` and `Invalid SSN 987-65-4321 on file` are one exception, and so are `call +44 20 7946 0958 failed` and `call +49 30 123456 failed`. Exceptions recorded before this grouping keep theirs.
 - **A new occurrence reopens a resolved exception.** If it happens again after you resolved it, the fix did not hold, and the exception is marked **Regressed**. An occurrence from before you resolved it that reaches OneUptime late does not reopen it.
 - **An archived exception stays archived.** Its new occurrences are still counted, but they stop notifying.
 
@@ -52,7 +52,7 @@ Go to **Products → Observability → Exceptions**. The badge on the **Exceptio
 
 Switch between **Unresolved**, **Resolved**, **Archived** and **All**. The chart above the list shows how many occurrences were **Unhandled** and how many **Handled** over time. A row marked **Regressed** came back after it was resolved, and one marked **New** was first seen in the last 24 hours.
 
-Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range. An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted.
+Each row also shows how many users the exception affected in the time range you picked, and a small chart of its occurrences over that range. An occurrence names its user with the `user.id`, `enduser.id` or `enduser.pseudo.id` attribute, on the exception event, its span or log record, or its resource; occurrences that name no user are not counted. A user ID a scrub rule hid is never counted as a user. A hashed ID still counts once, as a hidden user; occurrences whose ID was redacted or masked count as events with a hidden user, since they can't be told apart.
 
 ### Choose what counts as an issue
 
@@ -218,7 +218,11 @@ Check the lens first: **Issues** hides user errors and expected denials, so pick
 :::
 
 :::details One error shows up as several exceptions
-The fingerprint includes the message and the stack trace. When they differ, for example when a message embeds a short number or a name that changes on every call, each variant is its own exception. New exceptions are grouped by the functions of your own code instead, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**.
+The fingerprint includes the message and the stack trace. When they differ, for example when a message embeds a short number or a name that changes on every call, each variant is its own exception. New exceptions are grouped by the functions of your own code instead, or by a message without its card, Social Security and phone numbers, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**. A scrub rule doesn't split an exception: it is grouped by what it said before the rules ran. An exception found in logs that a rule split into two in an earlier version of OneUptime stays two. Once a new occurrence arrives, both are marked **Split** in the exceptions list, and each one's page names the other: **Merge Exceptions** there makes them one again, without OneUptime AI. The older of the two is kept, and **Unmerge** undoes it.
+:::
+
+:::details An exception's fingerprint changed
+When a scrub rule hides part of what an exception's fingerprint was made from, such as a card number in its message, anyone who reads the exception could hash guesses at the hidden value and compare them with the fingerprint. So on its next occurrence the rule changes, OneUptime moves the exception to a fingerprint keyed to your project. It stays the same exception, with its status, assignee, history and counts. The occurrences recorded before keep the old fingerprint until their retention ends, and the exception's page still shows them; then the old fingerprint is deleted. A value OneUptime takes out before it makes the fingerprint, such as an email address, changes nothing.
 :::
 
 :::details A resolved exception keeps coming back

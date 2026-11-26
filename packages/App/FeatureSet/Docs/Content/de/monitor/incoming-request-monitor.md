@@ -348,7 +348,7 @@ flowchart TB
 :::steps
 1. Öffnen Sie das Kriterium und klappen Sie **Einstellungen** auf.
 2. Schalten Sie **Vorfälle und Warnungen nach einem Payload-Feld gruppieren** ein.
-3. Füllen Sie **Einen eigenen Vorfall eröffnen pro…** aus. Damit sich jeder Vorfall selbst behebt, füllen Sie auch Feld und Wert unter **Auto-resolve each incident when…** aus (siehe unten). Speichern Sie dann den Monitor.
+3. Füllen Sie **Einen eigenen Vorfall eröffnen pro…** aus. Damit sich jeder Vorfall selbst behebt, füllen Sie auch Feld und Wert unter **Jeden Vorfall automatisch beheben, wenn…** aus (siehe unten). Speichern Sie dann den Monitor.
 :::
 
 | Feld | Beispiel | Was es bewirkt |
@@ -386,10 +386,14 @@ Ein Webhook beschreibt nur, was in dieser Nutzlast steht, deshalb behebt OneUpti
 1. **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** sind gesetzt und passen zur Nutzlast. Der Vergleich ist exakt und beachtet Groß- und Kleinschreibung — `Resolved` passt nicht auf `resolved`.
 2. Beim Vorfall des Kriteriums ist **Vorfall automatisch beheben** eingeschaltet, unter **Weitere Felder** im Vorfallformular. Ohne das werden passende Erholungsereignisse ignoriert und die Vorfälle bleiben offen. (Dasselbe gilt für Warnungen und **Warnung automatisch beheben**.) Beim Offline-Standardkriterium ist es von Anfang an eingeschaltet; bei einem Vorfall, den Sie einem Kriterium selbst hinzufügen, ist es zunächst ausgeschaltet.
 
+Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Jeden Vorfall automatisch beheben, wenn…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
+
+Eine Erholung behebt nur die Vorfälle und Warnungen des Kriteriums, das sie liest: des Kriteriums, dessen **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** zur Nutzlast passen. Die Vorfälle und Warnungen eines anderen Kriteriums für denselben Wert bleiben offen, und die eines Kriteriums, das diese Felder leer lässt, werden von Hand behoben.
+
 **Max. Vorfälle pro Anfrage** begrenzt das Auslesen, nicht nur das Erstellen. Schlüssel jenseits der Grenze sind auch für die Erholung unsichtbar, in einer Nutzlast mit mehr unterschiedlichen Schlüsseln als die Grenze schließt eine Warnung, die jenseits davon `resolved` meldet, ihren Vorfall also nicht.
 
 > [!NOTE]
-> Erhält ein Monitor Anfragen schneller, als OneUptime sie prüft, prüft es die neueste und überspringt die dazwischen, sodass ein Schwall von Webhooks eine auslösende oder eine behobene Warnung ungeprüft lassen kann. Auf einem selbst gehosteten Server prüft `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in der Umgebung der OneUptime-App jede Anfrage einzeln.
+> Ein Monitor, bei dem ein Kriterium nach einem Feld der Anfrage gruppiert, prüft jede Anfrage, die er erhält, einzeln und in der Reihenfolge ihres Eingangs, sodass ein Schwall von Warnungen und Erholungen den Vorfall und die Warnung jedes Werts eröffnet und behebt. Bis zu 1.000 Anfragen oder 16 MB davon warten auf ihre Prüfung; darüber hinaus werden die ältesten wartenden übersprungen, und die Karte **Monitor-Zusammenfassung** nennt, wie viele. Sie nennt auch die Grenze, die erreicht wurde, und eine selbst gehostete Installation kann beide ändern: siehe [Hinweise zum Selbsthosting](#hinweise-zum-selbsthosting). Ein Monitor ohne Gruppierung prüft nur die neueste der Anfragen, die auf ihn warten.
 
 > [!NOTE]
 > Enthält **Feld, das die Erholung signalisiert** ein `[*]`, **Einen eigenen Vorfall eröffnen pro…** aber nicht, hat sich eine Anfrage erst erholt, wenn jedes Element dieses Arrays das sagt. Mit `requestBody.alerts[*].status` und `resolved` wird ein nach `requestBody.groupLabels.alertname` gruppierter Vorfall behoben, sobald jede Warnung einer Anfrage behoben ist, und er bleibt offen, solange eine noch auslöst.
@@ -517,6 +521,18 @@ Klicken Sie in der Karte **Monitor-Zusammenfassung** in der **Übersicht** des M
 :::details Der Absender bekommt 500
 Die Anfrage sagt `Content-Type: application/json`, ihr Body ist aber kein JSON-Objekt oder -Array. Senden Sie gültiges JSON oder einen anderen Content-Type.
 :::
+
+## Hinweise zum Selbsthosting
+
+Ein Monitor, der nach einem Feld der Anfrage gruppiert, hält jede Anfrage in Valkey, bis sie an der Reihe ist. Auf einer selbst gehosteten Installation begrenzen das drei Einstellungen. Mit Docker Compose setzen Sie sie in `config.env`, mit Helm unter `incomingRequests` in den Werten des Charts, die den App- und den Worker-Pods dieselben geben:
+
+| Einstellung | Helm-Wert | Standard | Bereich | Was sie begrenzt |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` bis `100000` | Die Anfragen, die ein Monitor warten lässt. Darüber hinaus werden die ältesten wartenden übersprungen. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` bis `512` | Die Megabyte an Anfragen, die ein Monitor warten lässt. Darüber hinaus werden die ältesten wartenden übersprungen. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` bis `1000` | Die Anfragen, die ein Job prüft, bevor der Job des Monitors erneut eingereiht wird, hinter jedem Job, der schon wartet. |
+
+Erhöhen Sie die ersten beiden für Absender, die in stärkeren Schüben senden, etwa ein Core-Switch, der ausfällt und auf einmal Tausende Warnungen auslöst, und senken Sie die zweite für ein kleines Valkey. Werden Anfragen übersprungen, nennt die Karte **Monitor-Zusammenfassung**, welche Grenze erreicht wurde. Ein Wert, der keine ganze Zahl in seinem Bereich ist, wird nicht verwendet: Der Standard gilt, und die App schreibt einen Hinweis ins Protokoll, der die Einstellung nennt.
 
 ## Nächste Schritte
 

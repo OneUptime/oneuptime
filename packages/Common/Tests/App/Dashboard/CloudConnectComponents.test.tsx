@@ -724,7 +724,8 @@ describe("the setup step, with Data Security's settings", () => {
       "OneUptime",
     ];
 
-    expect(words).toHaveLength(10);
+    // Four ways in, three organizations, the read-only line, and five more a command may grant.
+    expect(words).toHaveLength(13);
 
     for (const language of DASHBOARD_LANGUAGES) {
       const locale: Record<string, string> = readDashboardLocale(language);

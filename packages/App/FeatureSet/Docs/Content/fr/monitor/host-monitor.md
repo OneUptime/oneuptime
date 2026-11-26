@@ -200,7 +200,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale**, **Toutes les valeurs** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Au moins une valeur** (une seule suffit). |
-| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anormalement élevé**, **Anormalement bas** ou **Anormal**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de **Horizon**. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à** ou **Différent de** – ou une condition d'anomalie : **Anormalement élevé**, **Anormalement bas** ou **Anormal**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose. **Devrait dépasser** et **Devrait passer sous** correspondent quand la tendance de la métrique sur la fenêtre aura franchi le seuil à la fin de **Horizon**. |
 | **Seuil** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
@@ -229,6 +229,7 @@ Un seul moniteur d'hôte couvre chaque disque que l'hôte remonte. Les modèles 
 | Où | Ce qui s'affiche pour chaque disque |
 | --- | --- |
 | La page **Métriques** du moniteur | Une ligne par disque, nommée d'après son `mountpoint` et son `device`. |
+| La page **Vue d'ensemble** du moniteur | **Séries** liste chaque disque que la dernière vérification a lu : sa dernière valeur, les critères qu'il satisfait et son incident ou son alerte ouverts. |
 | **Journaux de surveillance** | La colonne **Observé** compte les séries que chaque vérification a lues : une par disque. |
 | **Incidents** et **Alertes** | Un incident ou une alerte par disque, qui nomme le montage et le périphérique du disque. |
 | La carte **Systèmes de fichiers** de l'hôte | Chaque disque que le collecteur remonte, quoi que surveillent vos moniteurs. |
@@ -238,7 +239,7 @@ Chaque critère est vérifié pour chaque disque :
 - Tant que l'incident d'un disque est ouvert, le critère qui l'a ouvert n'en ouvre aucun autre pour ce disque. Un autre disque qui satisfait ce critère ouvre le sien.
 - Un disque qui satisfait deux critères, comme l'un au-dessus de 98 % et l'autre au-dessus de 90 %, reçoit un seul incident, celui du premier des deux dans la liste. Placez le plus strict en premier.
 - L'incident d'un disque se résout quand ce disque cesse de satisfaire le critère qui l'a ouvert, quoi que fassent les autres disques.
-- Le moniteur a un seul statut, fixé par le premier critère de la liste que satisfait un disque quelconque. Quand aucun disque ne satisfait un critère qui se déclenche, un seul disque au seuil de rétablissement ou en dessous suffit au critère qui rétablit ; la marge de rétablissement de 10 % ne tient donc pas sur un hôte dont un disque n'est jamais près d'être plein.
+- Le moniteur a un seul statut. Un critère qui le fait passer à un autre statut, comme **Hors ligne**, le fixe dès qu'un disque le satisfait. Le critère qui ramène le moniteur à son **État du moniteur par défaut** attend les disques qui ont satisfait un tel critère, et correspond une fois que chacun d'eux le satisfait, quoi que fassent les autres disques. Un disque qui passe de 96 % à 89 % garde donc le moniteur **Hors ligne** jusqu'à ce qu'il soit à 81 % ou en dessous, la marge de rétablissement de 10 %, même si son incident se résout dès qu'il n'est plus au-dessus de 90 %. **Séries** affiche ce disque comme **Conserve le statut**. Un disque qui n'est plus remonté cesse de conserver le statut.
 
 Pour ne surveiller que certains disques, ouvrez **Avancé** et, dans la requête sous **Sélectionner les métriques**, ajoutez avec **Filtrer par attributs** un filtre sur `mountpoint` : **est l'un de** pour les disques à surveiller, ou **n'est aucun de** pour ceux à laisser de côté. Gardez le **Regrouper par**, et écrivez chaque disque comme le montre la carte **Systèmes de fichiers**, par exemple `C:` ou `/var`. Pour ne plus collecter un disque du tout, afin qu'il quitte aussi les pages de l'hôte, définissez `include_mount_points` ou `exclude_mount_points` sur le scraper `filesystem` du collecteur ([Métriques de l'hôte](/docs/telemetry/host-otel-collector#métriques-de-lhôte)).
 

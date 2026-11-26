@@ -17,8 +17,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * it (HeaderFixture.js), with production's CSS, fonts and themes:
  *
  *   - a phone's menu has Search at the top, which opens Search, and Help
- *     folded at the bottom, which opens How OneUptime works; a laptop's
- *     header has Help, and Cmd/Ctrl+K opens Search;
+ *     folded right under it, in view as the menu opens (#7473), which
+ *     opens How OneUptime works; a laptop's header has Help, and
+ *     Cmd/Ctrl+K opens Search;
  *   - Search finds a Glossary term by its name in the reader's language and
  *     opens it on the Glossary page in a new tab, and offers Ask AI a
  *     question nothing answers;
@@ -309,12 +310,14 @@ test.describe("Search and Help, on a phone and a laptop", () => {
       await open(page, combination);
 
       if (combination.width < 768) {
-        // The phone's menu: Search at the top, Help folded at the bottom.
+        // The phone's menu: Search at the top, Help folded right under it.
         await page.getByTestId("mobile-nav-toggle").click();
         const searchRow: Locator = page.getByTestId("navbar-mobile-search");
         const help: Locator = page.getByTestId("navbar-mobile-help");
         await expect(searchRow).toBeVisible();
         await expect(help).toBeVisible();
+        // Reached without scrolling the menu, under every product (#7473).
+        await expect(help).toBeInViewport();
 
         const [searchBox, helpBox]: Array<FrameBox> = await boxesInOneFrame([
           searchRow,
@@ -337,6 +340,14 @@ test.describe("Search and Help, on a phone and a laptop", () => {
         );
 
         await learn.getByText(words.howItWorks).click();
+        /*
+         * A finger lifts off the glass; a mouse rests where it clicked. With
+         * Help at the top of the menu (#7473) the dialog opens under that
+         * spot, and in Persian a defined word of its first step lands there:
+         * its definition opens on hover, and the first Escape is spent on it
+         * (TooltipEscape). The pointer leaves, as the phone's finger does.
+         */
+        await page.mouse.move(0, 0);
       } else {
         // A laptop's header has Help, and its menu the same entries.
         await page
@@ -353,6 +364,8 @@ test.describe("Search and Help, on a phone and a laptop", () => {
       await expectNoSidewaysScroll(page, {
         message: `How OneUptime works at ${combination.width}px`,
       });
+      // Nothing over the dialog for an Escape to close first.
+      await expect(page.getByTestId("defined-term-popover")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(dialog).toHaveCount(0);
     });

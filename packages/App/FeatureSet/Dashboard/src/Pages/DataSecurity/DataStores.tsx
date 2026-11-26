@@ -42,7 +42,14 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ObjectID from "Common/Types/ObjectID";
+import OwnersToReview from "../../Components/DataSecurity/OwnersToReview";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
@@ -100,6 +107,7 @@ const DataSecurityDataStores: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const [storesRefreshToggle, setStoresRefreshToggle] = useState<string>("");
 
   // Labels and owners in Bulk Actions, as on every other resource list.
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
@@ -136,11 +144,22 @@ const DataSecurityDataStores: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * While OneUptime AI's owners wait for someone (#10374): approving
+       * them fills the Owners column, so the list reads its rows again.
+       */}
+      <OwnersToReview
+        onChanged={() => {
+          setStoresRefreshToggle(ObjectID.generate().toString());
+        }}
+      />
+
       <ModelTable<DataStore>
         modelType={DataStore}
         id={DATA_STORES_TABLE_ID}
         userPreferencesKey={DATA_STORES_TABLE_ID}
         name="Data Stores"
+        refreshToggle={storesRefreshToggle}
         topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}

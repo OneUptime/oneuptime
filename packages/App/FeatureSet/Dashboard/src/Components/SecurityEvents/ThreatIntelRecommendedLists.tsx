@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -171,6 +172,8 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
       await ModelAPI.create<ThreatIntelFeed>({
         model: buildFeedFromRecommendedList(list),
         modelType: ThreatIntelFeed,
+        // The list's title: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
       });
 
       setListUrls((current: Array<string>): Array<string> => {

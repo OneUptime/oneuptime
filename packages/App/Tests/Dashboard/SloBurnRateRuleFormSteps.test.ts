@@ -16,6 +16,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
+import { RECORD_ACTOR_COLUMNS } from "Common/Types/Database/RecordActor";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -289,6 +290,8 @@ describe("the burn rate rule form steps", () => {
       "deletedAt",
       "version",
       "slug",
+      // What created each record and who last modified it (#10290).
+      ...RECORD_ACTOR_COLUMNS,
     ]);
 
     const model: ServiceLevelObjectiveBurnRateRule =

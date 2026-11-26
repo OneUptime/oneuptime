@@ -1,210 +1,131 @@
-import { ResponsePhase } from "./SecurityCaseResponseTypes";
-import {
-  PluralTemplate,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+export * from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanWords";
+export * from "Common/Utils/SecurityCase/ResponsePlan/StepCheckWords";
+
+// ---------- Blocking an address from the plan (#10342) ----------
+
+// The menu beside Block for 24 Hours, and its choices.
+export const BLOCK_MORE_LABEL: string = translationKey(
+  "More ways to block {{value}}",
+);
+export const BLOCK_CHALLENGE_INSTEAD: string =
+  translationKey("Challenge Instead");
+export const BLOCK_CHALLENGE_TOOLTIP: string = translationKey(
+  "People pass a challenge, scripts and API clients do not.",
+);
+export const BLOCK_FOR_SEVEN_DAYS: string = translationKey("Block for 7 Days");
+export const BLOCK_UNTIL_LIFTED: string = translationKey("Block Until Lifted");
+
+// Block... on one of the case's addresses: the menu's entry and its dialog.
+export const BLOCK_FROM_CASE_MENU_ITEM: string = translationKey("Block…");
+export const BLOCK_FROM_CASE_TITLE: string = translationKey("Block {{value}}");
+export const BLOCK_FROM_CASE_DESCRIPTION: string = translationKey(
+  "Blocks the address at every destination that enforces your blocklist, through the case: as your playbooks' blocks are, approval included.",
+);
+export const ENTITY_ACTIONS_LABEL: string = translationKey(
+  "Actions for {{value}}",
+);
+
+// What a block from the plan says once it is asked for.
+export const BLOCK_STARTED_TOAST: string = translationKey(
+  "Blocking {{value}}.",
+);
+export const BLOCK_ASKED_TOAST: string = translationKey(
+  "{{value}} is blocked once someone else approves it on the case's Playbooks page.",
+);
+
+/*
+ * The block that holds the step's address: where it is enforced, since
+ * when, by whom, and until when - "Blocked at Cloudflare since 10:42 by
+ * Jane Doe, until 22 Nov at 10:42." Each moment brings its own words,
+ * "since 10:42" today and "since 21 Nov at 10:42" on another day (#10622,
+ * Utils/MomentPhrases), so the sentence writes no preposition before one.
+ */
+export const BLOCK_LINE_BLOCKED_BY: string = translationKey(
+  "Blocked at {{destinations}} {{since}} by {{name}}, {{until}}.",
+);
+export const BLOCK_LINE_BLOCKED: string = translationKey(
+  "Blocked at {{destinations}} {{since}}, {{until}}.",
+);
+export const BLOCK_LINE_BLOCKED_BY_UNTIL_LIFTED: string = translationKey(
+  "Blocked at {{destinations}} {{since}} by {{name}}, until someone lifts it.",
+);
+export const BLOCK_LINE_BLOCKED_UNTIL_LIFTED: string = translationKey(
+  "Blocked at {{destinations}} {{since}}, until someone lifts it.",
+);
+export const BLOCK_LINE_CHALLENGED_BY: string = translationKey(
+  "Challenged at {{destinations}} {{since}} by {{name}}, {{until}}.",
+);
+export const BLOCK_LINE_CHALLENGED: string = translationKey(
+  "Challenged at {{destinations}} {{since}}, {{until}}.",
+);
+export const BLOCK_LINE_CHALLENGED_BY_UNTIL_LIFTED: string = translationKey(
+  "Challenged at {{destinations}} {{since}} by {{name}}, until someone lifts it.",
+);
+export const BLOCK_LINE_CHALLENGED_UNTIL_LIFTED: string = translationKey(
+  "Challenged at {{destinations}} {{since}}, until someone lifts it.",
+);
+/*
+ * A block an automatic response policy made (#10350): "Challenged at
+ * Cloudflare since 10:42 by the Scanners policy, 41s after its first
+ * request, until 11:42."
+ */
+export const BLOCK_LINE_CHALLENGED_BY_POLICY_AFTER: string = translationKey(
+  "Challenged at {{destinations}} {{since}} by the {{policy}} policy, {{after}} after its first request, {{until}}.",
+);
+export const BLOCK_LINE_BLOCKED_BY_POLICY_AFTER: string = translationKey(
+  "Blocked at {{destinations}} {{since}} by the {{policy}} policy, {{after}} after its first request, {{until}}.",
+);
+export const BLOCK_LINE_CHALLENGED_BY_POLICY: string = translationKey(
+  "Challenged at {{destinations}} {{since}} by the {{policy}} policy, {{until}}.",
+);
+export const BLOCK_LINE_BLOCKED_BY_POLICY: string = translationKey(
+  "Blocked at {{destinations}} {{since}} by the {{policy}} policy, {{until}}.",
+);
+// A block a destination is still applying: not done yet.
+export const BLOCK_LINE_PENDING: string = translationKey(
+  "Asked {{askedAt}}: waiting for {{destinations}} to apply the block.",
+);
+// A block nothing holds: never read as the address blocked.
+export const BLOCK_LINE_NOT_ENFORCED: string = translationKey(
+  "On your Blocklist {{since}}, but no destination enforces it, so the address is not blocked anywhere.",
+);
+export const LIFT_BLOCK_LABEL: string = translationKey(
+  "Lift the block on {{value}}",
+);
+export const LIFTED_FROM_PLAN_REASON: string = translationKey(
+  "Lifted from the case's Response Plan.",
+);
+
+// Nothing enforces the blocklist: how to let OneUptime block it, and how to block it by hand.
+export const BLOCK_HELP_CONNECT: string = translationKey(
+  "Block it from here: connect {{cloudflare}}, {{awsWaf}} or {{firewall}}.",
+);
+export const BLOCK_HELP_FIREWALL: string = translationKey("your firewall");
+export const BLOCK_HELP_SHOW: string = translationKey("How to Block It");
+export const BLOCK_HELP_HIDE: string = translationKey("Hide How to Block It");
+export const BLOCK_HELP_CLOUDFLARE: string = translationKey(
+  "In the Cloudflare dashboard, add an IP Access Rule that blocks {{address}}, under Security > WAF > Tools.",
+);
+export const BLOCK_HELP_AWS_WAF: string = translationKey(
+  "With the AWS CLI, add it to an IP set your web ACL blocks. update-ip-set replaces the set's addresses, so list the ones it holds (get-ip-set) beside it:",
+);
+export const BLOCK_HELP_NGINX: string = translationKey(
+  "In nginx, in the server block that serves your app:",
+);
+export const BLOCK_HELP_NFTABLES: string = translationKey(
+  "With nftables, into a set your rules drop:",
+);
 
 /*
  * The words of a case's Response Plan: what to do about the case now -
- * confirm it, contain it, fix what let it happen, close it (#9557). Each is
- * an en.json key, looked up where it is drawn; a step's values (an address,
- * a user, a playbook's name) go into it as written.
- *
- * React-free, so the words and the test ids are pinned in a plain test,
- * beside the plan that decides which of them is said
- * (SecurityCaseResponsePlan.ts).
+ * confirm it, contain it, fix what let it happen, close it (#9557). The
+ * words are shared with every reader of the plan - the server, OneUptime AI,
+ * the mobile app - and kept beside it (Common/Utils/SecurityCase/
+ * ResponsePlan/ResponsePlanWords, #10340), each an en.json key looked up
+ * where it is drawn. The card's test ids are its own.
  */
-
-export const RESPONSE_TITLE: string = translationKey("Response Plan");
-
-export const RESPONSE_DESCRIPTION: string = translationKey(
-  "What to do about this case now, most urgent first. Tick a step off when it is done, and it is kept on the case's tasks.",
-);
-
-export const RESPONSE_PROGRESS: string = translationKey(
-  "{{done}} of {{total}} done",
-);
-
-export const RESPONSE_PHASE_TITLES: Record<ResponsePhase, string> = {
-  [ResponsePhase.Confirm]: translationKey("Confirm it is real"),
-  [ResponsePhase.Contain]: translationKey("Contain it"),
-  [ResponsePhase.Fix]: translationKey("Fix what let it happen"),
-  [ResponsePhase.Close]: translationKey("Close the case"),
-};
-
-// Beside a step OneUptime cannot do for you.
-export const RESPONSE_BY_HAND: string = translationKey("Outside OneUptime");
-export const RESPONSE_BY_HAND_TOOLTIP: string = translationKey(
-  "OneUptime cannot do this for you: do it where you run it, then tick it off here.",
-);
-
-export const RESPONSE_MARK_DONE: string = translationKey("Mark {{step}} done");
-export const RESPONSE_MARK_NOT_DONE: string = translationKey(
-  "Mark {{step}} not done",
-);
-export const RESPONSE_DONE_BY: string = translationKey(
-  "Done by {{name}} {{time}}",
-);
-export const RESPONSE_DONE_AT: string = translationKey("Done {{time}}");
-// A step the case itself says is done: nobody ticked it off.
-export const RESPONSE_DONE_BY_CASE: string = translationKey(
-  "The case says when this step is done, so it is not ticked by hand.",
-);
-
-// Under a playbook's step, while no run of it has succeeded on the case.
-export const STEP_RUN_WAITING: string = translationKey(
-  "Its run is waiting for approval on the case's Playbooks page.",
-);
-export const STEP_RUN_RUNNING: string = translationKey(
-  "Its run has not finished yet.",
-);
-export const STEP_RUN_FAILED: string = translationKey(
-  "Its last run failed. See why on the case's Playbooks page.",
-);
-
-export const RESPONSE_READY_TO_CONTAIN: string = translationKey(
-  "Every containment step is done. Mark the case Contained, so its time to contain is recorded.",
-);
-
-export const RESPONSE_AI_VERDICT: string = translationKey(
-  "OneUptime AI reads this case as {{verdict}}.",
-);
-export const RESPONSE_AI_HEADING: string = translationKey(
-  "From OneUptime AI's triage",
-);
-export const RESPONSE_AI_SHOW: PluralTemplate = {
-  one: "Show the step OneUptime AI suggests",
-  other: "Show the {{count}} steps OneUptime AI suggests",
-};
-export const RESPONSE_AI_HIDE: string = translationKey(
-  "Hide the steps OneUptime AI suggests",
-);
-
-export const RESPONSE_RULE_FALSE_POSITIVES: string = translationKey(
-  "The rule says it can also fire on:",
-);
-
-// ---------- The steps ----------
-
-export const STEP_TAKE: string = translationKey(
-  "Take the case, so the team knows who is on it.",
-);
-export const STEP_REQUESTS_THROUGH: string = translationKey(
-  "Find out what the requests that got through reached: open their traces.",
-);
-export const STEP_REQUESTS_TURNED_AWAY: string = translationKey(
-  "Check that nothing else from {{value}} got through.",
-);
-export const STEP_REQUESTS_UNKNOWN: string = translationKey(
-  "Check whether any of the requests got through: open their traces.",
-);
-export const STEP_FALSE_POSITIVE_VALUE: string = translationKey(
-  "Rule out a false positive: is {{value}} a scanner, a test or a job your team runs?",
-);
-export const STEP_FALSE_POSITIVE: string = translationKey(
-  "Rule out a false positive: is this something your team does on purpose?",
-);
-export const STEP_AI_PLAYBOOK: string = translationKey(
-  "Run {{playbook}}, the playbook OneUptime AI suggests.",
-);
-
-export const STEP_BLOCK_PUBLIC_IP: string = translationKey(
-  "Block {{value}} at your firewall, WAF or load balancer.",
-);
-export const STEP_ISOLATE_PRIVATE_IP: string = translationKey(
-  "Find the machine at {{value}}, and take it off the network if it is compromised.",
-);
-export const STEP_CONTAIN_USER_PLAYBOOK: string = translationKey(
-  "If {{value}}'s account is compromised, suspend it and end its sessions with {{playbook}}.",
-);
-export const STEP_CONTAIN_USER: string = translationKey(
-  "If {{value}}'s account is compromised, suspend it and end its sessions in your identity provider.",
-);
-export const STEP_CONTAIN_HOST_PLAYBOOK: string = translationKey(
-  "If {{value}} is compromised, cut it off the network with {{playbook}}.",
-);
-export const STEP_CONTAIN_HOST: string = translationKey(
-  "If {{value}} is compromised, take it off the network until it has been checked.",
-);
-export const STEP_BLOCK_DOMAIN: string = translationKey(
-  "Block {{value}} at your DNS filter or web proxy.",
-);
-export const STEP_QUARANTINE_FILE: string = translationKey(
-  "Find the file {{value}} on your machines and quarantine it.",
-);
-export const STEP_DECLARE_INCIDENT: string = translationKey(
-  "Declare an incident if customers or production are affected.",
-);
-export const STEP_MARK_CONTAINED: string = translationKey(
-  "Mark the case Contained once the threat can no longer do harm.",
-);
-
-export const STEP_FIX_PUBLIC_APP_ROUTE: string = translationKey(
-  "Fix how {{route}} handles what it is sent, and patch the software behind it.",
-);
-export const STEP_FIX_PUBLIC_APP: string = translationKey(
-  "Patch the public-facing software the requests went to, and check how it handles what it is sent.",
-);
-export const STEP_FIX_BRUTE_FORCE: string = translationKey(
-  "Make sure the accounts it went after use MFA, and lock out repeated failed sign-ins.",
-);
-export const STEP_FIX_CREDENTIALS_VALUE: string = translationKey(
-  "Reset {{value}}'s password, and revoke their keys and tokens.",
-);
-export const STEP_FIX_CREDENTIALS: string = translationKey(
-  "Rotate the passwords, keys and tokens that may have been exposed.",
-);
-export const STEP_FIX_ACCOUNT_CHANGES: string = translationKey(
-  "Undo what changed on the account that you did not expect: roles, keys and MFA devices.",
-);
-export const STEP_FIX_EXECUTION: string = translationKey(
-  "Find out what ran the command, remove it, and check it has not come back.",
-);
-export const STEP_FIX_PERSISTENCE: string = translationKey(
-  "Remove anything set to run again: new accounts, keys, scheduled tasks or services.",
-);
-export const STEP_FIX_PRIVILEGE: string = translationKey(
-  "Take back any access that was raised, and find out how it was raised.",
-);
-export const STEP_FIX_DEFENSES: string = translationKey(
-  "Turn back on what was switched off: logging, an agent or a security setting.",
-);
-export const STEP_FIX_DISCOVERY: string = translationKey(
-  "Find out what the scan could reach, and close what should not be reachable.",
-);
-export const STEP_FIX_LATERAL: string = translationKey(
-  "Check the other machines the attacker could reach from here.",
-);
-export const STEP_FIX_DATA: string = translationKey(
-  "Find out what data left and where it went, and rotate any secrets it held.",
-);
-export const STEP_FIX_C2: string = translationKey(
-  "Find every machine that talked to the same address, and clean each one.",
-);
-export const STEP_FIX_IMPACT: string = translationKey(
-  "Restore what was deleted or encrypted from backups you trust.",
-);
-export const STEP_FIX_GENERAL: string = translationKey(
-  "Fix what let this happen, so the next attempt fails.",
-);
-
-export const STEP_CLOSE: string = translationKey(
-  "Close the case with a verdict once it is fixed.",
-);
-
-// ---------- What a step's button says ----------
-
-export const ACTION_ASSIGN_TO_ME: string = translationKey("Assign to Me");
-export const ACTION_OPEN_TRACES: string = translationKey("Open Their Traces");
-export const ACTION_OPEN_EVENTS: string = translationKey("Open Events");
-export const ACTION_ADD_EXCEPTION: string = translationKey("Add Exception");
-export const ACTION_RUN_PLAYBOOK: string = translationKey("Run Playbook");
-export const ACTION_DECLARE_INCIDENT: string =
-  translationKey("Declare Incident");
-export const ACTION_MARK_CONTAINED: string =
-  translationKey("Mark as Contained");
-export const ACTION_CLOSE_CASE: string = translationKey("Close Case");
-export const ACTION_COPY: string = translationKey("Copy");
 
 export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   card: string;
@@ -221,6 +142,28 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   aiToggle: string;
   falsePositives: string;
   error: string;
+  checkChip: string;
+  checkLine: string;
+  howWeKnow: string;
+  howWeKnowPanel: string;
+  checkFacts: string;
+  checkFact: string;
+  checkLink: string;
+  docsLink: string;
+  confirm: string;
+  regressed: string;
+  checksNotRead: string;
+  block: string;
+  blockMore: string;
+  blockLine: string;
+  lift: string;
+  blockHelp: string;
+  blockHelpToggle: string;
+  blockHelpPanel: string;
+  linkPullRequest: string;
+  pullRequests: string;
+  pullRequest: string;
+  unlinkPullRequest: string;
 } = {
   card: "security-case-response-plan",
   progress: "security-case-response-progress",
@@ -236,4 +179,66 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   aiToggle: "security-case-response-ai-toggle",
   falsePositives: "security-case-response-false-positives",
   error: "security-case-response-error",
+  checkChip: "security-case-response-step-check",
+  checkLine: "security-case-response-step-check-line",
+  howWeKnow: "security-case-response-step-how-we-know",
+  howWeKnowPanel: "security-case-response-step-how-we-know-panel",
+  checkFacts: "security-case-response-step-check-facts",
+  checkFact: "security-case-response-step-check-fact",
+  checkLink: "security-case-response-step-check-link",
+  docsLink: "security-case-response-step-check-docs",
+  confirm: "security-case-response-step-confirm",
+  regressed: "security-case-response-regressed",
+  checksNotRead: "security-case-response-checks-not-read",
+  block: "security-case-response-step-block",
+  blockMore: "security-case-response-step-block-more",
+  blockLine: "security-case-response-step-block-line",
+  lift: "security-case-response-step-lift",
+  blockHelp: "security-case-response-step-block-help",
+  blockHelpToggle: "security-case-response-step-block-help-toggle",
+  blockHelpPanel: "security-case-response-step-block-help-panel",
+  linkPullRequest: "security-case-response-step-link-pull-request",
+  pullRequests: "security-case-response-step-pull-requests",
+  pullRequest: "security-case-response-step-pull-request",
+  unlinkPullRequest: "security-case-response-step-unlink-pull-request",
 };
+
+/*
+ * A person's own pull request, linked to the case's Fix step (#10604):
+ * OneUptime follows it to its deploy as it follows Fix With AI's, and the
+ * step's check proves it by the attack being turned away after it.
+ * {{pullRequest}} is the pull request as its host names it,
+ * "acme/search#482".
+ */
+export const LINK_PULL_REQUEST: string = translationKey("Link Pull Request");
+export const LINK_PULL_REQUEST_DESCRIPTION: string = translationKey(
+  "Your own fix for this case. OneUptime follows it to its deploy, then checks the attack is turned away after it.",
+);
+export const LINK_PULL_REQUEST_FIELD_TITLE: string =
+  translationKey("Pull Request URL");
+export const LINK_PULL_REQUEST_FIELD_DESCRIPTION: string = translationKey(
+  "Its page on a repository connected under Code: GitHub, GitLab, Forgejo or Gitea.",
+);
+export const LINKED_PULL_REQUEST_TOAST: string = translationKey(
+  "Linked {{pullRequest}}. OneUptime follows it to its deploy.",
+);
+export const UNLINKED_PULL_REQUEST_TOAST: string = translationKey(
+  "Took {{pullRequest}} off this case.",
+);
+export const UNLINK_PULL_REQUEST_LABEL: string = translationKey(
+  "Take {{pullRequest}} off this case",
+);
+// Where a linked pull request stands, beside its name.
+export const PULL_REQUEST_OPEN: string = translationKey("Not Merged Yet");
+export const PULL_REQUEST_MERGED: string = translationKey("Merged");
+export const PULL_REQUEST_SHIPPED: string = translationKey("Shipped");
+export const PULL_REQUEST_CLOSED: string = translationKey("Closed");
+export const PULL_REQUEST_MERGED_TOOLTIP: string = translationKey(
+  "Merged. OneUptime is looking for the deploy that ships it.",
+);
+export const PULL_REQUEST_SHIPPED_IN_TOOLTIP: string = translationKey(
+  "Shipped in {{version}}.",
+);
+export const PULL_REQUEST_LINKED_BY_TOOLTIP: string = translationKey(
+  "Linked by {{name}}.",
+);

@@ -35,7 +35,7 @@ Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es
 
 **Vorfallsstatus** und **Vorfallsschweregrad** werden ausführlich unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt – der Rest dieser Seite setzt bei **Vorfall-Vorlagen** an. Formulare, mit denen Leute außerhalb Ihres Teams Vorfälle melden, sind ein eigenes Produkt: siehe [Formulare](/docs/forms/index). Werkzeuge, die von selbst Vorfälle öffnen, etwa [Huntress](/docs/integrations/huntress), werden als Workflows eingerichtet.
 
-Klappen Sie **Regeln** auf, kommen acht weitere Seiten dazu: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln** und **Erinnerungsregeln**. Sie werden weiter unten behandelt.
+Klappen Sie **Regeln** auf, kommen neun weitere Seiten dazu: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Erinnerungsregeln** und **Audit-Protokolle**: wer eine dieser Regeln erstellt, geändert oder gelöscht hat, was geändert wurde und wann, gelöschte Regeln eingeschlossen. Die Regeln werden weiter unten behandelt.
 
 ## Vorfall-Vorlagen
 

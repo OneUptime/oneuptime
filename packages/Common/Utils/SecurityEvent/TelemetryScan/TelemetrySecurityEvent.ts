@@ -22,6 +22,7 @@ import {
   getSecurityTelemetrySourceDefinition,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { buildObservables } from "../NormalizerHelpers";
+import { readEventUsers } from "../ScrubbedUser";
 import { writeOwnValue } from "../../LookupTable";
 
 /*
@@ -43,6 +44,13 @@ export const MAX_TELEMETRY_EVENT_MESSAGE_LENGTH: number = 1000;
 // The longest value of any one attribute a telemetry event keeps.
 export const MAX_TELEMETRY_ATTRIBUTE_LENGTH: number = 2000;
 
+/*
+ * Text cut to `limit` characters, the last of them an ellipsis. Never in
+ * the middle of a character: a cut between the two halves of a surrogate
+ * pair (an emoji, a character beyond the Basic Multilingual Plane) left half
+ * a character, which ClickHouse refuses as JSON - and with it every event
+ * of the insert.
+ */
 export function cutTelemetryText(text: string, limit: number): string {
   const value: string = text || "";
 
@@ -50,7 +58,15 @@ export function cutTelemetryText(text: string, limit: number): string {
     return value;
   }
 
-  return `${value.slice(0, limit - 1)}…`;
+  let end: number = limit - 1;
+  const lastKept: number = value.charCodeAt(end - 1);
+
+  // The first half of a pair whose second half the cut would drop.
+  if (lastKept >= 0xd800 && lastKept <= 0xdbff) {
+    end -= 1;
+  }
+
+  return `${value.slice(0, end)}…`;
 }
 
 /*
@@ -92,6 +108,11 @@ export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
     tactics: ["TA0010"],
     techniques: ["T1048"],
   },
+  // OneUptime's own probe doing what it is set to do: no attack at all.
+  [SecurityTelemetrySignal.OneUptimeProbeTraffic]: {
+    tactics: [],
+    techniques: [],
+  },
   [SecurityTelemetrySignal.ApiKeyCreated]: {
     tactics: ["TA0003"],
     techniques: ["T1098"],
@@ -120,6 +141,11 @@ export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
   [SecurityTelemetrySignal.MassDelete]: {
     tactics: ["TA0040"],
     techniques: ["T1485"],
+  },
+  // OneUptime's own bookkeeping stands for no attack, as an API key's delete.
+  [SecurityTelemetrySignal.OneUptimeMassDelete]: {
+    tactics: [],
+    techniques: [],
   },
   [SecurityTelemetrySignal.UserInTwoCountries]: {
     tactics: ["TA0001"],
@@ -175,10 +201,8 @@ export function buildTelemetrySecurityEvent(
   const attack: { tactics: Array<string>; techniques: Array<string> } =
     SECURITY_TELEMETRY_SIGNAL_ATTACK[input.signal];
 
-  const principalUser: string = (input.principalUser || "").trim();
   const principalHost: string = (input.principalHost || "").trim();
   const principalIp: string = (input.principalIp || "").trim();
-  const targetUser: string = (input.targetUser || "").trim();
   const targetHost: string = (input.targetHost || "").trim();
   const targetIp: string = (input.targetIp || "").trim();
 
@@ -203,6 +227,22 @@ export function buildTelemetrySecurityEvent(
 
   attributes[SECURITY_LOG_SOURCE_ATTRIBUTE] = input.kind;
   attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE] = input.signal;
+
+  /*
+   * A user a scrub rule hid is no user: Redact's and a mask's are none at
+   * all, a Hash token stays one, and the event says which (ScrubbedUser,
+   * #10435). Only traces are read after scrub rules ran.
+   */
+  const {
+    principalUser,
+    targetUser,
+  }: { principalUser: string; targetUser: string } = readEventUsers({
+    principalUser: input.principalUser,
+    targetUser: input.targetUser,
+    attributes,
+    signal:
+      input.kind === SecurityTelemetrySourceKind.Traces ? "trace" : undefined,
+  });
 
   const resourceId: string = (input.resourceId || "").trim();
   const resourceType: string = (input.resourceType || "").trim();

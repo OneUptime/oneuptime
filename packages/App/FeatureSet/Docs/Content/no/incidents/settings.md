@@ -35,7 +35,7 @@ Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon,
 
 **Hendelsesstatus** og **Hendelsesalvor** gjennomgås grundig i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden fortsetter fra **Hendelsesmaler**. Skjemaer som lar folk utenfor teamet ditt melde hendelser, er et eget produkt: se [Skjemaer](/docs/forms/index). Verktøy som selv åpner hendelser, som [Huntress](/docs/integrations/huntress), settes opp som arbeidsflyter.
 
-Brett ut **Regler**, så får du åtte sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Påminnelsesregler**. De gjennomgås lenger ned.
+Brett ut **Regler**, så får du ni sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Påminnelsesregler** og **Revisjonslogger**: hvem som opprettet, endret eller slettet en av disse reglene, hva som ble endret og når, også slettede regler. Reglene gjennomgås lenger ned.
 
 ## Hendelsesmaler
 

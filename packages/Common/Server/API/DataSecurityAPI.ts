@@ -3,12 +3,9 @@ import DataStore from "../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../Models/DatabaseModels/DataStoreFinding";
 import DataSecuritySetting from "../../Models/DatabaseModels/DataSecuritySetting";
 import DataSecurityIssue from "../../Models/DatabaseModels/DataSecurityIssue";
-import { DataSecurityIssueFeedEventType } from "../../Models/DatabaseModels/DataSecurityIssueFeed";
-import User from "../../Models/DatabaseModels/User";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { Purple500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
 import {
@@ -20,32 +17,60 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import SecuritySeverity from "../../Types/SecuritySeverity";
-import ComplianceFramework from "../../Types/DataSecurity/ComplianceFramework";
+import ComplianceFramework, {
+  ALL_COMPLIANCE_FRAMEWORKS,
+} from "../../Types/DataSecurity/ComplianceFramework";
+import { readAuditEvidencePeriod } from "../../Types/DataSecurity/AuditEvidence";
+import { DataSecurityAiFeature } from "../../Types/DataSecurity/DataSecurityAiFeatures";
+import { isImpactAssessmentPart } from "../../Types/DataSecurity/ImpactAssessment";
+import { isExposureDraftPart } from "../../Types/DataSecurity/ExposureAssessment";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
+import {
+  isRecordField,
+  isRecordFieldAction,
+} from "../../Types/DataSecurity/RecordOfProcessing";
+import AuditEvidenceDrafter from "../Utils/AI/DataSecurity/AuditEvidenceDrafter";
+import ImpactAssessmentDrafter from "../Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import ExposureAssessmentDrafter from "../Utils/AI/DataSecurity/ExposureAssessmentDrafter";
+import RecordOfProcessingDrafter, {
+  RecordDraftOutcome,
+} from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
+import RecordOfProcessingReader from "../Utils/DataSecurity/RecordOfProcessingReader";
+import RecordOfProcessingWriter from "../Utils/DataSecurity/RecordOfProcessingWriter";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
-  isPersonalDataCategory,
 } from "../../Types/DataSecurity/DataCategory";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
 } from "../../Types/DataSecurity/DataSensitivity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution, {
+  isFixedAtSource,
+  isVerifiedFixResolution,
+} from "../../Types/DataSecurity/DataSecurityIssueResolution";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
+  DataSecurityDeclaredStore,
+  DataSecurityDeclaredStoreResponse,
+  DataSecurityExplainResult,
   DataSecurityFindingOccurrences,
+  DataSecurityIssueAnalysisResult,
+  DataSecurityIssueContainment,
+  DataSecurityIssueContainmentResult,
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityOverviewIssue,
+  DataSecurityOverviewResolutions,
+  DataSecurityRecordDraftResult,
   DataSecurityRecordOfProcessingResponse,
-  DataSecurityRecordOfProcessingRow,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
 } from "../../Types/DataSecurity/DataSecurityApiTypes";
-import { getBuiltInDataType } from "../../Types/DataSecurity/DataTypeCatalog";
-import DataTypeNamer from "../../Types/DataSecurity/DataTypeNamer";
 import {
   DataStoreKind,
   TELEMETRY_DATA_STORE_KINDS,
+  isDeclaredDataStoreKind,
 } from "../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../Types/DataSecurity/DataStorePosture";
 import { readFindingSampleRecords } from "../../Types/DataSecurity/FindingSampleRecord";
@@ -55,13 +80,9 @@ import DataStoreFindingService from "../Services/DataStoreFindingService";
 import DataStoreService, {
   Service as DataStoreServiceType,
 } from "../Services/DataStoreService";
-import DataSecurityIssueFeedService from "../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
 import DataSecuritySettingService from "../Services/DataSecuritySettingService";
 import { getDataStoreScanNowRefusalSentence } from "../../Utils/DataSecurity/DataStoreContentScanSchedule";
-import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
-import { AiContextActivity } from "../../Types/AI/AiContext";
-import DataSecurityAiCall from "../Utils/AI/DataSecurity/DataSecurityAiCall";
 import { DataSecurityAiCodeRequest } from "../Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityAiReads from "../Utils/AI/DataSecurity/DataSecurityAiReads";
 import DataSecurityAiSettings from "../Utils/AI/DataSecurity/DataSecurityAiSettings";
@@ -69,16 +90,29 @@ import DataSecurityCodeTask, {
   DataSecurityFixCode,
 } from "../Utils/AI/DataSecurity/DataSecurityCodeTask";
 import ProjectDataTypeNames from "../Utils/DataSecurity/ProjectDataTypeNames";
-import {
-  buildDataSecurityFixRequest,
-  buildExplainIssuePrompt,
-  DATA_SECURITY_EXPLAIN_MAX_TOKENS,
-  DATA_SECURITY_EXPLAIN_TEMPERATURE,
-} from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import DataSecurityAiProposal from "../../Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityAiProposals from "../Utils/AI/DataSecurity/DataSecurityAiProposals";
+import { buildDataSecurityFixRequest } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import DataSecurityIssueAnalysis, {
+  StoredDataSecurityIssueAnalysis,
+} from "../Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
+import DataSecurityIssueAnalysisReader from "../Utils/AI/DataSecurity/DataSecurityIssueAnalysisReader";
+import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
-import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
-import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
+import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
+import DataSecurityIssueGroups, {
+  ISSUE_GROUPS_NOT_READABLE_MESSAGE,
+} from "../Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueCodeFix from "../Utils/DataSecurity/DataSecurityIssueCodeFix";
+import TelemetryLeakFix from "../Utils/DataSecurity/TelemetryLeakFix";
+import FindingApplyToSimilar from "../Utils/DataSecurity/FindingApplyToSimilar";
+import DataSecurityIssueContainmentReader from "../Utils/DataSecurity/DataSecurityIssueContainment";
+import DataSecurityIssueGroupFix, {
+  CLOUD_FIX_PERMISSIONS,
+  GROUP_FIX_HELD_READER_MESSAGE,
+  GROUP_PULL_REQUEST_PERMISSIONS,
+} from "../Utils/DataSecurity/DataSecurityIssueGroupFix";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   isDataSecurityResponseAction,
@@ -101,10 +135,11 @@ import {
 } from "../Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import {
   createDropRuleForFinding,
-  createScrubRuleForFinding,
   CreatedScrubRule,
 } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
+import { getScrubItImpact } from "../Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
+import { scrubFindingWithProvenRule } from "../Utils/DataSecurity/Telemetry/TelemetryScrubIt";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -146,35 +181,72 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - Scan Now and Check Now on a store, for anyone who may edit it;
  *  - Scrub It on a telemetry finding, for anyone who may create scrub
  *    rules, or metric pipeline rules for a metric's attribute - the rule is
- *    theirs, made under their own permissions;
+ *    theirs, made under their own permissions, and its service's - and what
+ *    it would do first: its action, where it applies, and what reads the
+ *    data it would hide (#10433);
  *  - a telemetry finding's newest records, read now
  *    (TelemetryFindingOccurrences), for anyone who may read its masked
  *    samples and the store's telemetry itself - its logs, traces, metrics,
  *    exceptions or sessions, as the explorers would let them;
- *  - Explain and Fix With AI on an issue, under the project's OneUptime AI
- *    switches and limits, sending the issue, its evidence and how to fix
- *    it - and, for a telemetry issue, where in the telemetry each kind of
- *    data sits, so the fix goes in the service's code - never a finding's
- *    samples, nor a record. Explain is for anyone who may read the issue,
- *    and keeps neither what it sent nor what OneUptime AI answered in the
- *    AI Logs, which every Project Member and Viewer reads (#10361). Fix With
- *    AI is for anyone who may change the issue, in a repository they may
- *    change in Code, under every check a task in Code is asked
- *    (DataSecurityCodeTask, #10362). Each names a data type as the project
- *    does (ProjectDataTypeNames, #10363), and builds what it sends through
- *    DataSecurityAiInput, the one way a Data Security prompt is made
- *    (#10365);
+ *  - OneUptime AI's analysis of an issue (#10369) - is it real, what it
+ *    puts at risk, what the fix would break, the shortest path to fixed -
+ *    for anyone who may read the issue, each fact and line of it only to
+ *    who may read what it rests on (DataSecurityIssueAnalysisReader): read
+ *    as the issue keeps it, with no model call; and Explain with AI, which
+ *    writes one now when there is none or what it rests on changed, under
+ *    the project's OneUptime AI switches and limits, keeping neither what
+ *    it sent nor what OneUptime AI answered in the AI Logs, which every
+ *    Project Member and Viewer reads (#10361);
+ *  - Fix With AI on an issue, sending the issue, its evidence and how to
+ *    fix it - and, for a telemetry issue, where in the telemetry each kind
+ *    of data sits, so the fix goes in the service's code - never a
+ *    finding's samples, nor a record: for anyone who may change the issue,
+ *    in a repository they may change in Code, under every check a task in
+ *    Code is asked (DataSecurityCodeTask, #10362). The analysis and the fix
+ *    each name a data type as the project does (ProjectDataTypeNames,
+ *    #10363), and build what they send through DataSecurityAiInput, the
+ *    one way a Data Security prompt is made (#10365);
+ *  - for a service's telemetry issue, Fix with AI opens one pull request
+ *    for every open telemetry leak of the service (#10367): what it would
+ *    do first - where each leak is written, found from the records it was
+ *    seen in, the files OneUptime AI starts from, the issues it fixes and
+ *    the repository (TelemetryLeakFix) - then the plan the person was
+ *    shown, never one that changed since; and where an issue's fix in code
+ *    stands, its pull request and its state (DataSecurityIssueCodeFix), for
+ *    anyone who may read the issue;
  *  - What OneUptime AI sees, for Settings > OneUptime AI: the model each
  *    feature runs on and the exact input one issue would send, each to who
  *    may read it (DataSecurityAiSettings);
  *  - Block public access and Revoke sharing on a cloud store, for anyone
  *    who may edit it, through the store's cloud connection and only when
  *    its "Data security response" setting is on (DataSecurityResponse) -
- *    and which of them a store can take now, for anyone who may read it.
+ *    and which of them a store can take now, for anyone who may read it;
+ *  - Approve, Dismiss and Undo on what OneUptime AI proposed for an issue
+ *    (#10364), for anyone who may read the proposal, each held to the
+ *    permission the change itself takes (DataSecurityAiProposals).
+ *  - Issues one mistake made (#10370): the project's groups, each as the
+ *    reader may read it - whole for a reader of its issues across the
+ *    project, cut down to the stores they may read for one held to labels
+ *    (#10739, DataSecurityIssueGroups); what a group's fix would do; and
+ *    the fix itself, for a reader of the whole project - one pull request
+ *    for the stores declared as code, one approval for the stores made in
+ *    the console - each part held to its own permission
+ *    (DataSecurityIssueGroupFix).
+ *  - Apply to similar (#10372): the findings like one a person confirmed
+ *    or marked not sensitive, and the same decision, with their reason, on
+ *    the ones they keep ticked - for anyone who may change findings, each
+ *    read and changed with their own permissions (FindingApplyToSimilar).
  *
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
  */
+
+// One day of the overview's trend: issues opened, resolved, and only contained.
+interface TrendCounts {
+  opened: number;
+  resolved: number;
+  contained: number;
+}
 
 const READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -254,6 +326,57 @@ export const EXPLAIN_ISSUE_PERMISSIONS: Array<Permission> = [
   Permission.SecurityMember,
   Permission.SecurityViewer,
   Permission.ReadDataSecurityIssue,
+];
+
+/*
+ * Who may press on a proposal of OneUptime AI's (#10364): who may read it,
+ * the issue's readers. Each press then takes the change's own permission
+ * (DataSecurityAiProposals), so a reader who may make no change is refused
+ * with what it takes. Its own list, not READ_PERMISSIONS: a press acts, so
+ * it is refused while the server has Data Security switched off.
+ */
+export const AI_PROPOSAL_PERMISSIONS: Array<Permission> = [
+  ...new DataSecurityAiProposal().readRecordPermissions,
+];
+
+/*
+ * Who may press a group's fix (#10370): who may make one of its parts - the
+ * pull request (who may change the issues) or the one approval (who may
+ * run a response action). Each part then takes its own.
+ */
+export const ISSUE_GROUP_FIX_PERMISSIONS: Array<Permission> = Array.from(
+  new Set<Permission>([
+    ...GROUP_PULL_REQUEST_PERMISSIONS,
+    ...CLOUD_FIX_PERMISSIONS,
+  ]),
+);
+
+/*
+ * Who may apply a decision to the findings like one (#10372): who may
+ * change findings. Each finding is then read and changed with the
+ * person's own permissions, store by store.
+ */
+export const APPLY_TO_SIMILAR_PERMISSIONS: Array<Permission> = [
+  ...new DataStoreFinding().updateRecordPermissions,
+];
+
+/*
+ * Who may read a security case's exposure assessment (#10377): the readers
+ * of the store's findings - and then, checked as it is read, of the case
+ * and the store too (ExposureAssessmentReader.mayRead): it names what the
+ * store holds.
+ */
+export const EXPOSURE_ASSESSMENT_READ_PERMISSIONS: Array<Permission> = [
+  ...new DataStoreFinding().readRecordPermissions,
+];
+
+/*
+ * Who may start one, ask OneUptime AI to write it up, edit a draft or say
+ * where the people live: who may edit the case - and read the store and
+ * its findings too (ExposureAssessmentReader.mayChange).
+ */
+export const EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS: Array<Permission> = [
+  ...new SecurityCase().updateRecordPermissions,
 ];
 
 const TREND_DAYS: number = 30;
@@ -356,12 +479,401 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
+    /*
+     * The record of processing (#10398, #10375), of the stores the caller
+     * may read - or one of them, { dataStoreId }, with the facts its drafts
+     * rest on.
+     */
     this.post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataStoreId: unknown = body["dataStoreId"];
+
         return (await DataSecurityAPI.getRecordOfProcessing(
           projectId,
+          props,
+          typeof dataStoreId === "string" && ObjectID.isValidUUID(dataStoreId)
+            ? new ObjectID(dataStoreId)
+            : undefined,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A field of a store's record, as a person answers it (#10375): confirm
+     * OneUptime AI's draft, write their own words, or take or keep a change
+     * proposed for a confirmed value. The column is written with the
+     * caller's own props (RecordOfProcessingWriter).
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.recordField(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const field: unknown = body["field"];
+        const action: unknown = body["action"];
+
+        if (!isRecordField(field) || !isRecordFieldAction(action)) {
+          throw new BadDataException(
+            "Say which field of the record to change, and how: confirm its draft, write it, or take or keep a proposed change.",
+          );
+        }
+
+        return (await RecordOfProcessingWriter.applyFieldAction({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+          field,
+          action,
+          written: body["value"],
+          shownDraftedAt:
+            typeof body["shownDraftedAt"] === "string"
+              ? body["shownDraftedAt"]
+              : undefined,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * OneUptime AI's drafts of one store's record, when a person asks on
+     * Review Drafts (#10375): the fields no person answered, and a change
+     * beside a confirmed one whose facts changed - { force: true } drafts
+     * again what no person confirmed. Under the project's OneUptime AI
+     * switch and limits, as every AI request is.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataStoreId: ObjectID = DataSecurityAPI.readId(req);
+
+        // The caller's own read first: a store they may not read is not found.
+        await RecordOfProcessingReader.readRow({
+          projectId,
+          props,
+          dataStoreId,
+        });
+
+        const outcome: RecordDraftOutcome =
+          await RecordOfProcessingDrafter.draftStore({
+            projectId,
+            dataStoreId,
+            feature: DataSecurityAiFeature.DraftRecordOnRequest,
+            userId: props.userId || undefined,
+            force: body["force"] === true,
+          });
+        const result: DataSecurityRecordDraftResult = {
+          row: await RecordOfProcessingReader.readRow({
+            projectId,
+            props,
+            dataStoreId,
+          }),
+          draftedFields: outcome.drafted ? outcome.draftedFields : [],
+          proposedFields: outcome.drafted ? outcome.proposedFields : [],
+          ...(outcome.drafted ? {} : { nothingDraftedBecause: outcome.reason }),
+        };
+
+        return result as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A store's data protection impact assessment (#10375), for who may read
+     * the store and its issues - its risks are its open issues.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.impactAssessment(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ImpactAssessmentDrafter.read({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...drafted by OneUptime AI when a person asks: every part a person edited kept as written.
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftImpactAssessment(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ImpactAssessmentDrafter.draftForPerson({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...one part, in a person's own words: { part, markdown }.
+    this.post(
+      DATA_SECURITY_API_ROUTES.editImpactAssessment(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const part: unknown = body["part"];
+        const markdown: unknown = body["markdown"];
+
+        if (!isImpactAssessmentPart(part) || typeof markdown !== "string") {
+          throw new BadDataException(
+            "Say which part of the assessment to save, and its words.",
+          );
+        }
+
+        return (await ImpactAssessmentDrafter.editPart({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+          part,
+          markdown,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A framework's audit evidence over a period (#10375), for who may read
+     * the project's stores and issues: { framework, periodInDays }.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.auditEvidence,
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await AuditEvidenceDrafter.read({
+          projectId,
+          framework: DataSecurityAPI.readFramework(body["framework"]),
+          periodInDays: readAuditEvidencePeriod(body["periodInDays"]),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...its paragraphs drafted by OneUptime AI, each one a person edited kept as written.
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftAuditEvidence,
+      ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await AuditEvidenceDrafter.draftForPerson({
+          projectId,
+          framework: DataSecurityAPI.readFramework(body["framework"]),
+          periodInDays: readAuditEvidencePeriod(body["periodInDays"]),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...one requirement's paragraph, in a person's own words: { requirement, text }.
+    this.post(
+      DATA_SECURITY_API_ROUTES.editAuditEvidence,
+      ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const requirement: unknown = body["requirement"];
+        const text: unknown = body["text"];
+
+        if (typeof requirement !== "string" || typeof text !== "string") {
+          throw new BadDataException(
+            "Say which requirement's paragraph to save, and its words.",
+          );
+        }
+
+        return (await AuditEvidenceDrafter.editParagraph({
+          projectId,
+          framework: DataSecurityAPI.readFramework(body["framework"]),
+          periodInDays: readAuditEvidencePeriod(body["periodInDays"]),
+          requirement,
+          text,
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A security case's exposure assessment (#10377): what plain code works
+     * out - the window, who could read the data, whose data it was, the
+     * secrets to rotate and the breach laws that may apply - and OneUptime
+     * AI's write-up, for the case's readers who may read the store and its
+     * findings too. Nothing here sends anything anywhere.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.exposureAssessment(":id"),
+      EXPOSURE_ASSESSMENT_READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ExposureAssessmentDrafter.read({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...started by a person: { dataStoreId? }, for a case about more than one store.
+    this.post(
+      DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataStoreId: unknown = body["dataStoreId"];
+
+        if (
+          dataStoreId !== undefined &&
+          dataStoreId !== null &&
+          (typeof dataStoreId !== "string" ||
+            !ObjectID.isValidUUID(dataStoreId))
+        ) {
+          throw new BadDataException(
+            "Say which data store to assess by its ID.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.assess({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          dataStoreId:
+            typeof dataStoreId === "string"
+              ? new ObjectID(dataStoreId)
+              : undefined,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...written up by OneUptime AI when a person asks: every part a person edited kept as written.
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ExposureAssessmentDrafter.draftForPerson({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...one part, in a person's own words: { part, markdown }.
+    this.post(
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const part: unknown = body["part"];
+        const markdown: unknown = body["markdown"];
+
+        if (!isExposureDraftPart(part) || typeof markdown !== "string") {
+          throw new BadDataException(
+            "Say which part of the assessment to save, and its words.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.editPart({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          part,
+          markdown,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...where the people the data is about live: { places }, none to take the answer back.
+    this.post(
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const places: unknown = body["places"];
+
+        if (!Array.isArray(places)) {
+          throw new BadDataException(
+            "Say where the people the data is about live, as a list of places.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.setPeoplePlaces({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          places,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.declaredStore(":id"),
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataSecurityAPI.getDeclaredStore(
+          projectId,
+          DataSecurityAPI.readId(req),
+          props,
         )) as unknown as JSONObject;
       },
     );
@@ -507,15 +1019,21 @@ export default class DataSecurityAPI extends BaseAPI<
         const finding: DataStoreFinding =
           await DataSecurityAPI.readTelemetryFinding(projectId, req);
 
-        const created: CreatedScrubRule = await createScrubRuleForFinding({
+        /*
+         * The proven, narrow rule for the finding (#10366): the one the
+         * dialog showed, proven on the records it was seen in.
+         */
+        const created: CreatedScrubRule = await scrubFindingWithProvenRule({
           projectId,
           userId: props.userId || undefined,
+          findingId: finding.id!.toString(),
           kind: finding.dataStore!.kind as DataStoreKind,
           dataTypeId: finding.dataTypeId!,
           dataTypeName: finding.dataTypeName,
           location: finding.location!,
-          // A metric's rule is its service's.
+          // The rule is its service's: a metric's always was, a log's or a span's since #10433.
           serviceId: finding.dataStore!.serviceId || null,
+          storeKey: finding.dataStore!.storeKey || null,
         });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({
@@ -525,6 +1043,37 @@ export default class DataSecurityAPI extends BaseAPI<
         await queueDataSecurityEvaluation(projectId);
 
         return created as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * What Scrub It would do (#10433): the rule it would make - its action,
+     * the parts of the records it scrubs and whose - and what that rule
+     * would take away from what reads the data, before it is made. Asked
+     * by whoever may press Scrub It, and named as they may read it.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+      SCRUB_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+
+        return (await getScrubItImpact({
+          projectId,
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          dataTypeName: finding.dataTypeName,
+          location: finding.location!,
+          serviceId: finding.dataStore!.serviceId || null,
+          storeKey: finding.dataStore!.storeKey || null,
+          findingId: finding.id!.toString(),
+          props,
+        })) as unknown as JSONObject;
       },
     );
 
@@ -613,6 +1162,17 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
+    /*
+     * Explain with AI (#10369): OneUptime AI's analysis of the issue - is it
+     * real, what it puts at risk, what the fix would break, the shortest
+     * path to fixed - as the caller may read it. The one the issue keeps
+     * when nothing it rests on changed, with no model call; else one written
+     * now, through the one Data Security call, which keeps neither what it
+     * sent nor what OneUptime AI answered in the AI Logs (#10361); and with
+     * { force: true } (Analyze Again), one written now whatever changed.
+     * Kept on the issue, in the language of the person who asked when they
+     * asked for a new one.
+     */
     this.post(
       DATA_SECURITY_API_ROUTES.explainIssue(":id"),
       EXPLAIN_ISSUE_PERMISSIONS,
@@ -621,55 +1181,104 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const issue: DataSecurityIssue = await DataSecurityAiReads.readIssue({
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        // The caller's own read first: an issue they may not read is not found.
+        const issue: DataSecurityIssue =
+          await DataSecurityIssueAnalysisReader.readIssue({
+            projectId,
+            issueId: DataSecurityAPI.readId(req),
+            props,
+          });
+        const written: {
+          analysis: StoredDataSecurityIssueAnalysis;
+          isNew: boolean;
+        } = await DataSecurityIssueAnalysis.analyzeForPerson({
           projectId,
-          issueId: DataSecurityAPI.readId(req),
-        });
-        /*
-         * The project's AI context first: the team's notes on its systems -
-         * how its stores are managed, in which repository - so the steps to
-         * fix it are the team's own.
-         */
-        const aiContext: AiContextActivity | null = await AiContextReader.read({
-          projectId,
-        });
-        /*
-         * The issue as DataSecurityAiInput builds it (#10365), asked through
-         * the one Data Security call: neither the issue nor the explanation
-         * in the AI Logs, which every Project Member and Viewer reads - which
-         * store holds card numbers, and how it is exposed, is the issue's
-         * to tell (#10361) - nor a provider's error, which can quote it.
-         */
-        const response: { content: string } = await DataSecurityAiCall.ask({
-          projectId,
+          issueId: issue.id!,
           userId: props.userId || undefined,
-          prompt: buildExplainIssuePrompt({
-            issue,
-            findings: await DataSecurityAiReads.readPlaces({
-              projectId,
-              issue,
-            }),
-            dataTypeNamer: await ProjectDataTypeNames.read({ projectId }),
-            aiContext,
+          force: body["force"] === true,
+        });
+        const analysis: DataSecurityIssueAnalysisView =
+          await DataSecurityIssueAnalysisReader.viewFor({
+            projectId,
+            dataStoreId: issue.dataStoreId,
+            stored: written.analysis,
+            props,
+          });
+        const result: DataSecurityExplainResult = {
+          markdown: DataSecurityIssueAnalysisReader.toMarkdown(analysis),
+          analysis,
+          isNew: written.isNew,
+          // The group whose cause is fixed once, for all its issues (#10370).
+          group: await DataSecurityIssueGroups.forIssue({
+            projectId,
+            issueId: issue.id!,
+            props,
           }),
-          maxTokens: DATA_SECURITY_EXPLAIN_MAX_TOKENS,
-          temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
-        });
+        };
 
-        await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
-          projectId,
-          dataSecurityIssueId: issue.id!,
-          eventType: DataSecurityIssueFeedEventType.AiExplanation,
-          displayColor: Purple500,
-          feedInfoInMarkdown: "OneUptime AI explained this issue.",
-          // OneUptime AI's Markdown, with nothing in it that acts on its own.
-          moreInformationInMarkdown: FeedMarkdown.aiWritten(
-            response.content.slice(0, 20000),
-          ).toString(),
-          userId: props.userId || undefined,
-        });
+        return result as unknown as JSONObject;
+      },
+    );
 
-        return { markdown: response.content };
+    /*
+     * The analysis the issue keeps, as the caller may read it (#10369): what
+     * the issue's page shows. A read - no model call, ever - so opening the
+     * page costs nothing; with the project's AI off it answers none.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueAnalysis(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const analysis: DataSecurityIssueAnalysisResult["analysis"] =
+          await DataSecurityIssueAnalysisReader.read({
+            projectId,
+            issueId: DataSecurityAPI.readId(req),
+            props,
+          });
+        const result: DataSecurityIssueAnalysisResult = {
+          analysis,
+          // The group whose cause is fixed once, for all its issues (#10370).
+          group: analysis
+            ? await DataSecurityIssueGroups.forIssue({
+                projectId,
+                issueId: DataSecurityAPI.readId(req),
+                props,
+              })
+            : null,
+        };
+
+        return result as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * What hides a telemetry issue's data at ingest, and whether the code
+     * still writes it (#10368): each rule, and what it changed of the
+     * issue's service lately and since a verified code fix. For the
+     * issue's readers; an issue the caller may not read is not found.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueContainment(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const containment: DataSecurityIssueContainment | null =
+          await DataSecurityIssueContainmentReader.read({
+            projectId,
+            issueId: DataSecurityAPI.readId(req),
+            props,
+          });
+        const result: DataSecurityIssueContainmentResult = { containment };
+
+        return result as unknown as JSONObject;
       },
     );
 
@@ -723,6 +1332,26 @@ export default class DataSecurityAPI extends BaseAPI<
         });
         const body: JSONObject = (req.body || {}) as JSONObject;
 
+        /*
+         * A service's telemetry issue (#10367): one pull request for every
+         * open telemetry leak of the service, from the places its records
+         * name - the plan the person was shown, held to it.
+         */
+        if (
+          await TelemetryLeakFix.serviceOfIssue({
+            projectId,
+            issue,
+          })
+        ) {
+          return (await TelemetryLeakFix.runForIssue({
+            projectId,
+            issueId: issue.id!,
+            props,
+            codeRepositoryId: body["codeRepositoryId"],
+            expectedPlanFingerprint: body["expectedPlanFingerprint"],
+          })) as unknown as JSONObject;
+        }
+
         return (await DataSecurityCodeTask.requestFix({
           props,
           projectId,
@@ -743,6 +1372,235 @@ export default class DataSecurityAPI extends BaseAPI<
         })) as unknown as JSONObject;
       },
       { startsCodeWork: true },
+    );
+
+    /*
+     * What Fix with AI on a telemetry issue would do now (#10367): the plan
+     * of its service's one pull request - where each leak is written, the
+     * files OneUptime AI starts from, the issues it fixes, the repository -
+     * for who may ask for it: who may change the issue. Nothing starts.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(":id"),
+      ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (
+          await TelemetryLeakFix.planForIssue({
+            projectId,
+            issueId: DataSecurityAPI.readId(req),
+            props,
+          })
+        ).result as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * Where the issue's fix in code stands (#10367), for anyone who may read
+     * the issue: its task and its pull request's state, each read with
+     * Code's own rules (DataSecurityIssueCodeFix) - and, for a secret,
+     * where it was seen, to rotate it.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueCodeFix(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataSecurityIssueCodeFix.read({
+          projectId,
+          issueId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * The issues one mistake made (#10370): the project's groups, for the
+     * Issues list's Group by cause - for a reader whose read of issues is
+     * held to labels, each cut down to the stores they may read (#10739).
+     * A read, so it answers while Data Security is off.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueGroups,
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await DataSecurityIssueGroups.list({
+          projectId,
+          props,
+          groupIds: body["groupIds"],
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * What a group's fix would do now, for the reader: its parts, and what
+     * each leaves out - for a reader held to labels, the group cut down to
+     * the stores they may read (#10739).
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        if (!DataSecurityIssueGroups.canReadAny(props)) {
+          throw new NotAuthorizedException(ISSUE_GROUPS_NOT_READABLE_MESSAGE);
+        }
+
+        return (await DataSecurityIssueGroupFix.plan({
+          projectId,
+          groupId: req.params["id"],
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A group's fix (#10370), made with one press: its pull request, asked
+     * as Fix with AI asks one (DataSecurityCodeTask), and its response
+     * action on every store made in the console - each part held to its own
+     * permission, a press on a plan that changed since refused.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+      ISSUE_GROUP_FIX_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        DataSecurityAPI.assertReadsIssueGroups(props);
+
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await DataSecurityIssueGroupFix.run({
+          projectId,
+          groupId: req.params["id"],
+          props,
+          codeRepositoryId: body["codeRepositoryId"],
+          includeDataStoreIds: body["includeDataStoreIds"],
+          parts: body["parts"],
+          expectedPlanFingerprint: body["expectedPlanFingerprint"],
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A proposal of OneUptime AI's (#10364): approved, dismissed or undone
+     * by a person who may read it, each held to the change's own
+     * permission - approving a scrub rule takes what creating one takes,
+     * undoing it what deleting one takes, dismissing what changing the
+     * issue takes - and made with their own props
+     * (DataSecurityAiProposals). An owner proposal may be changed first
+     * (#10374): `changes` names the owners the person approves instead.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return await DataSecurityAiProposals.approve({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+          expectedPlanFingerprint: body["expectedPlanFingerprint"],
+          expectedApprovalStep: body["expectedApprovalStep"],
+          changes: body["changes"],
+        });
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return await DataSecurityAiProposals.dismiss({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+          reason: body["reason"],
+        });
+      },
+    );
+
+    /*
+     * One decision settles every finding like it (#10372): the findings
+     * like the one decided, and the same decision on the ticked ones.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.similarFindings(":id"),
+      APPLY_TO_SIMILAR_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await FindingApplyToSimilar.listSimilar({
+          props,
+          projectId,
+          findingId: req.params["id"],
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.applyToSimilarFindings(":id"),
+      APPLY_TO_SIMILAR_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await FindingApplyToSimilar.applyToSimilar({
+          props,
+          projectId,
+          findingId: req.params["id"],
+          findingIds: body["findingIds"],
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
+      AI_PROPOSAL_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return await DataSecurityAiProposals.undo({
+          props,
+          projectId,
+          proposalId: req.params["id"],
+        });
+      },
     );
   }
 
@@ -801,6 +1659,20 @@ export default class DataSecurityAPI extends BaseAPI<
     );
   }
 
+  /*
+   * A group's fix changes every store its cause made (#10370): only a
+   * reader of issues across the whole project makes one. A reader held to
+   * labels reads groups cut down to their stores (#10739), and asks for no
+   * fix.
+   */
+  private static assertReadsIssueGroups(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!DataSecurityIssueGroups.canRead(props)) {
+      throw new NotAuthorizedException(GROUP_FIX_HELD_READER_MESSAGE);
+    }
+  }
+
   // The resource a resource route is asked about: { kind, id } in its body.
   private static readResourceRequest(req: ExpressRequest): {
     kind: DataStoreResourceKind;
@@ -821,6 +1693,20 @@ export default class DataSecurityAPI extends BaseAPI<
     }
 
     return { kind, id: new ObjectID(id) };
+  }
+
+  // A framework a request names, or a refusal in words.
+  private static readFramework(value: unknown): ComplianceFramework {
+    if (
+      typeof value !== "string" ||
+      !(ALL_COMPLIANCE_FRAMEWORKS as ReadonlyArray<string>).includes(value)
+    ) {
+      throw new BadDataException(
+        `Say which framework: one of ${ALL_COMPLIANCE_FRAMEWORKS.join(", ")}.`,
+      );
+    }
+
+    return value as ComplianceFramework;
   }
 
   private static readId(req: ExpressRequest): ObjectID {
@@ -852,7 +1738,8 @@ export default class DataSecurityAPI extends BaseAPI<
           dataTypeName: true,
           location: true,
           dataStoreId: true,
-          dataStore: { kind: true, serviceId: true },
+          // Its key names its service, for a store kept without one (#10433).
+          dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
       });
@@ -867,7 +1754,7 @@ export default class DataSecurityAPI extends BaseAPI<
       )
     ) {
       throw new BadDataException(
-        "Scrub It masks telemetry at ingest; this finding is in a data store.",
+        "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
       );
     }
 
@@ -1109,21 +1996,31 @@ export default class DataSecurityAPI extends BaseAPI<
     // The zone the reader's days are in; UTC's days when undefined.
     timezone?: Timezone | undefined,
   ): Promise<DataSecurityOverview> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        kind: true,
-        sensitivity: true,
-        sensitivityOverride: true,
-        dataCategories: true,
-        exposure: true,
-        configurationReadAt: true,
-        contentScannedAt: true,
-      },
-      skip: 0,
-      limit: 10000,
-      props: { isRoot: true },
+    /*
+     * What Data Security found and checks: not the stores OneUptime
+     * declares (#10398), which nothing scans or checks, so they would only
+     * count as never checked. Data Stores and the record of processing
+     * list them.
+     */
+    const stores: Array<DataStore> = (
+      await DataStoreService.findBy({
+        query: { projectId, isArchived: false },
+        select: {
+          _id: true,
+          kind: true,
+          sensitivity: true,
+          sensitivityOverride: true,
+          dataCategories: true,
+          exposure: true,
+          configurationReadAt: true,
+          contentScannedAt: true,
+        },
+        skip: 0,
+        limit: 10000,
+        props: { isRoot: true },
+      })
+    ).filter((store: DataStore): boolean => {
+      return !isDeclaredDataStoreKind(store.kind);
     });
     const storesBySensitivity: Record<DataSensitivity, number> = {
       [DataSensitivity.Restricted]: 0,
@@ -1195,6 +2092,8 @@ export default class DataSecurityAPI extends BaseAPI<
           checkId: true,
           firstDetectedAt: true,
           resolvedAt: true,
+          // How each resolved, so a leak only contained counts apart (#10368).
+          resolution: true,
           dataStoreId: true,
           dataStore: { name: true },
         },
@@ -1208,18 +2107,22 @@ export default class DataSecurityAPI extends BaseAPI<
       [SecuritySeverity.Medium]: 0,
       [SecuritySeverity.Low]: 0,
     };
-    const trend: Map<string, { opened: number; resolved: number }> = new Map();
+    const trend: Map<string, TrendCounts> = new Map();
+    const resolutions: DataSecurityOverviewResolutions = {
+      fixedAtSource: 0,
+      verifiedFixes: 0,
+      contained: 0,
+      other: 0,
+    };
 
     for (const { day } of trendDays) {
-      trend.set(day, { opened: 0, resolved: 0 });
+      trend.set(day, { opened: 0, resolved: 0, contained: 0 });
     }
 
     // The trend's entry for the day `date` falls on, if it is one of them.
-    const entryOn: (
+    const entryOn: (date: Date) => TrendCounts | undefined = (
       date: Date,
-    ) => { opened: number; resolved: number } | undefined = (
-      date: Date,
-    ): { opened: number; resolved: number } | undefined => {
+    ): TrendCounts | undefined => {
       const day: CalendarDay | undefined = findCalendarDay(trendDays, date);
 
       return day ? trend.get(day.day) : undefined;
@@ -1244,12 +2147,34 @@ export default class DataSecurityAPI extends BaseAPI<
       }
 
       if (issue.resolvedAt && issue.resolvedAt >= since) {
-        const entry: { opened: number; resolved: number } | undefined = entryOn(
-          issue.resolvedAt,
-        );
+        const entry: TrendCounts | undefined = entryOn(issue.resolvedAt);
+        const isStillResolved: boolean =
+          issue.status === DataSecurityIssueStatus.Resolved;
+        const isContained: boolean =
+          isStillResolved &&
+          issue.resolution === DataSecurityIssueResolution.ContainedAtIngest;
 
         if (entry) {
           entry.resolved++;
+
+          if (isContained) {
+            entry.contained++;
+          }
+        }
+
+        // How the ones still resolved were: fixed where they start, or only contained.
+        if (isStillResolved && entry) {
+          if (isContained) {
+            resolutions.contained++;
+          } else if (isFixedAtSource(issue.resolution)) {
+            resolutions.fixedAtSource++;
+
+            if (isVerifiedFixResolution(issue.resolution)) {
+              resolutions.verifiedFixes++;
+            }
+          } else {
+            resolutions.other++;
+          }
         }
       }
     }
@@ -1332,10 +2257,16 @@ export default class DataSecurityAPI extends BaseAPI<
       openIssuesBySeverity,
       topIssues,
       issueTrend: [...trend.entries()].map(
-        ([day, counts]: [string, { opened: number; resolved: number }]) => {
-          return { day, opened: counts.opened, resolved: counts.resolved };
+        ([day, counts]: [string, TrendCounts]) => {
+          return {
+            day,
+            opened: counts.opened,
+            resolved: counts.resolved,
+            contained: counts.contained,
+          };
         },
       ),
+      resolutions,
       telemetryFindingCount: telemetryFindings,
       unscrubbedTelemetryFindingCount: unscrubbed,
       connectionsWithoutContentAccess: connections.filter(
@@ -1368,82 +2299,59 @@ export default class DataSecurityAPI extends BaseAPI<
     };
   }
 
+  /*
+   * The GDPR record of processing (Article 30): one row per store that
+   * holds personal data, of the stores the caller may read - the stores
+   * OneUptime keeps for the project's security among them (#10398) - with
+   * the rest of what Article 30 asks: the legal basis and people, each
+   * field's drafts, its recipients and transfers (#10375). Built by
+   * RecordOfProcessingReader; read as OneUptime when no caller is given.
+   */
   public static async getRecordOfProcessing(
     projectId: ObjectID,
+    props?: DatabaseCommonInteractionProps | undefined,
+    dataStoreId?: ObjectID | undefined,
   ): Promise<DataSecurityRecordOfProcessingResponse> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        name: true,
-        kind: true,
-        provider: true,
-        region: true,
-        environment: true,
-        sensitivity: true,
-        sensitivityOverride: true,
-        dataCategories: true,
-        dataTypeIds: true,
-        purpose: true,
-        retention: true,
-      },
-      skip: 0,
-      limit: 10000,
-      props: { isRoot: true },
-    });
-    const rows: Array<DataSecurityRecordOfProcessingRow> = [];
-    /*
-     * What an auditor reads each data type as: the project's own by the name
-     * it gave it, one it deleted as deleted - never an id (#10363). Read as
-     * OneUptime, as the stores are, once for the whole record.
-     */
-    const dataTypeNamer: DataTypeNamer = await ProjectDataTypeNames.read({
+    return await RecordOfProcessingReader.read({
       projectId,
+      props: props || { isRoot: true },
+      dataStoreId,
+    });
+  }
+
+  /*
+   * What the record says of one store OneUptime declares (#10398), for its
+   * page: what it holds, why, for how long and who can read it. A store of
+   * any other kind is no declared store.
+   */
+  public static async getDeclaredStore(
+    projectId: ObjectID,
+    dataStoreId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<DataSecurityDeclaredStoreResponse> {
+    // Read as the caller: a store they may not read is one they are not told of.
+    const store: DataStore | null = await DataStoreService.findOneBy({
+      query: { _id: dataStoreId, projectId },
+      select: { _id: true, kind: true, purpose: true, retention: true },
+      props,
     });
 
-    for (const store of stores) {
-      const categories: Array<DataCategory> = store.dataCategories || [];
-
-      if (!categories.some(isPersonalDataCategory)) {
-        continue;
-      }
-
-      const owners: Array<User> = await DataSecurityIntegrations.getOwnerUsers(
-        store.id!,
-      );
-      const frameworks: Set<ComplianceFramework> = new Set();
-
-      for (const dataTypeId of store.dataTypeIds || []) {
-        for (const framework of getBuiltInDataType(dataTypeId)?.frameworks ||
-          []) {
-          frameworks.add(framework);
-        }
-      }
-
-      const typeNames: Array<string> = dataTypeNamer.namesOf(store.dataTypeIds);
-
-      rows.push({
-        dataStoreId: store.id!.toString(),
-        name: store.name || "",
-        kind: store.kind || "",
-        provider: store.provider || "",
-        region: store.region || "",
-        environment: store.environment || "",
-        sensitivity:
-          (store.sensitivityOverride as DataSensitivity | undefined) ||
-          (store.sensitivity as DataSensitivity | undefined) ||
-          DataSensitivity.Public,
-        dataCategories: categories,
-        dataTypeNames: typeNames,
-        owners: owners.map((owner: User) => {
-          return owner.name?.toString() || owner.email?.toString() || "";
-        }),
-        purpose: store.purpose || "",
-        retention: store.retention || "",
-        frameworks: [...frameworks],
-      });
+    if (!store) {
+      throw new NotFoundException("This data store could not be found.");
     }
 
-    return { rows };
+    const declared: DataSecurityDeclaredStore | null =
+      await DeclaredDataStores.describe({ projectId, store });
+
+    if (!declared) {
+      throw new BadDataException(
+        "OneUptime declares only its own security stores: this store is found by Data Security's scans.",
+      );
+    }
+
+    return {
+      declared,
+      ...DeclaredDataStores.getRecordedPurposeAndRetention({ store, declared }),
+    };
   }
 }

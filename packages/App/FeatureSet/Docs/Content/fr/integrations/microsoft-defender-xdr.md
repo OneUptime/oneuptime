@@ -6,6 +6,7 @@ Importez les alertes de chaque charge de travail [Microsoft Defender XDR](https:
 - [Configurer la connexion](#configurer-la-connexion): Une inscription d'application, une autorisation et le formulaire de la connexion.
 - [Ce qui est importé](#ce-qui-est-importé): Comment chaque alerte Defender devient un événement de sécurité.
 - [Fonctionnement des interrogations](#fonctionnement-des-interrogations): La fenêtre que lit chaque interrogation, et ce qu'en fait un locataire chargé.
+- [Bloquer avec Microsoft Defender](#bloquer-avec-microsoft-defender): Appliquez votre liste de blocage sur chaque appareil, avec une autorisation de plus.
 - [Dépannage](#dépannage): Ce que signifie chaque erreur, et ce qu'il faut changer.
 :::
 
@@ -64,6 +65,7 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 | **ID de l'annuaire (tenant)** | La page **Overview** de l'application. Le GUID du locataire, ou un domaine vérifié comme `contoso.onmicrosoft.com`. |
 | **ID d'application (client)** | La page **Overview** de l'application. Le GUID de l'application qui a `SecurityAlert.Read.All`. |
 | **Cloud** | **Cloud public Azure**, qui sert aussi Microsoft 365 GCC, ou **Azure Government (États-Unis)** pour GCC High (`login.microsoftonline.us` et `graph.microsoft.us`). Microsoft 365 DoD et le cloud 21Vianet en Chine ne sont pas pris en charge. |
+| **Bloquer des domaines, des adresses et des fichiers avec Defender** | Désactivé sur une nouvelle connexion. Activé, il bloque ce que contient la liste de blocage de votre projet sur chaque appareil, et nécessite `Ti.ReadWrite.All` (voir [Bloquer avec Microsoft Defender](#bloquer-avec-microsoft-defender)). |
 | **Secret client** | La **Value** du secret. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
 
 L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
@@ -130,6 +132,26 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les alertes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
+## Bloquer avec Microsoft Defender
+
+Activez **Bloquer des domaines, des adresses et des fichiers avec Defender** sur une connexion, et la [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) de votre projet est appliquée sur chaque appareil que protège Microsoft Defender for Endpoint. Chaque blocage devient un [indicateur](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview) Defender, classé sous l'application `OneUptime`, qui expire quand le blocage expire :
+
+| Dans la liste de blocage | Indicateur Defender | Ce que fait Defender |
+| --- | --- | --- |
+| Un domaine | `DomainName`, `Block` | Bloque le domaine et chaque nom qu'il contient |
+| Une URL | `Url`, `Block` | Bloque l'URL dans Microsoft Edge, et son domaine dans les autres navigateurs |
+| Une adresse bloquée sur chaque machine | `IpAddress`, `Block` | Bloque les connexions vers l'adresse. Une plage n'est jamais envoyée : Defender prend une adresse à la fois |
+| Un fichier | `FileSha256`, `FileSha1` ou `FileMd5`, `Block` | Empêche le fichier de s'exécuter |
+| Un fichier bloqué et mis en quarantaine | Le même, `BlockAndRemediate` | Empêche le fichier de s'exécuter, et met en quarantaine les copies qu'il trouve |
+
+L'interrupteur est désactivé sur une nouvelle connexion : une connexion créée pour importer des alertes ne fait que lire. Pour l'activer :
+
+1. Dans l'inscription d'application, allez dans **API permissions → Add a permission → APIs my organization uses**, cherchez `WindowsDefenderATP`, choisissez **Application permissions**, prenez `Ti.ReadWrite.All` et accordez le consentement de l'administrateur. C'est la seule autorisation dont le blocage a besoin.
+2. Dans le portail Microsoft Defender, activez **Custom network indicators** et **Allow or block file** sous **Settings → Endpoints → Advanced features**. Sans eux, Defender garde les indicateurs mais ne bloque rien ; en dehors de Microsoft Edge, un domaine, une URL ou une adresse n'est bloqué que là où la protection réseau est en mode blocage.
+3. Sur la connexion, activez **Bloquer des domaines, des adresses et des fichiers avec Defender**, puis cliquez sur **Tester la connexion** : **Block with Microsoft Defender** vérifie l'autorisation.
+
+Un locataire contient 15 000 indicateurs, les siens compris. Un blocage que Defender ne peut pas contenir, ou qu'il refuse, apparaît comme non appliqué dans la liste de blocage, avec la raison. OneUptime ne lit et ne supprime que les indicateurs qu'il a ajoutés pour cette connexion, jamais un indicateur créé par une personne. Quand Defender le limite, il réessaie au passage suivant.
+
 ## Tester la connexion
 
 **Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
@@ -140,6 +162,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID délivre un jeton pour Microsoft Graph, dans le cloud que vous avez choisi. Cela échoue sur un secret erroné ou expiré, un ID de locataire ou de client erroné, ou le mauvais cloud. |
 | **Read alerts from Microsoft Graph** | Une alerte créée dans les 24 dernières heures peut être lue (`$top=1`). Un `403` ici signifie que l'autorisation `SecurityAlert.Read.All` ou le consentement administrateur manque, ou que le locataire n'a pas Defender XDR. |
 | **Alerts available to import** | Combien d'alertes ont été créées dans les 24 dernières heures et les 7 derniers jours, une page de 100 pour chacun, `100+` signifie donc davantage. Aucune en 7 jours est un avertissement, pas un échec. |
+| **Block with Microsoft Defender** | Seulement avec **Bloquer des domaines, des adresses et des fichiers avec Defender** activé : l'inscription d'application détient `Ti.ReadWrite.All`, et les indicateurs peuvent être lus. La vérification indique combien des 15 000 indicateurs du locataire OneUptime détient, et n'en modifie aucun. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
 | **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 

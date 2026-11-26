@@ -119,8 +119,6 @@ const LogHarness: React.FunctionComponent<{ recorder: Recorder }> = (props: {
                   }}
                   attributeKeys={ATTRIBUTE_KEYS}
                   attributeValueSuggestions={ATTRIBUTE_VALUE_SUGGESTIONS}
-                  telemetryServices={[]}
-                  telemetryEntities={[]}
                 />
               );
             },

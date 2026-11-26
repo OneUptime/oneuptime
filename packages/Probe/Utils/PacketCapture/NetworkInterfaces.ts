@@ -172,3 +172,24 @@ export function listCaptureInterfaces(
 
   return interfaces.slice(0, MAX_REPORTED_INTERFACES);
 }
+
+/*
+ * The addresses on this probe's own interfaces, from the same listing,
+ * loopback interfaces left out: what the probe says of itself when it
+ * checks in (Jobs/Alive, #10429), whatever its capture setting. The flows
+ * the project's routers export show the probe's polls and checks coming
+ * from these, so Security Events can tell them from someone else's scan.
+ * As listed, with prefix lengths: Types/Probe/ProbeInterfaceAddresses says
+ * what is kept.
+ */
+export function listInterfaceAddresses(
+  source: InterfaceSource = SYSTEM_INTERFACE_SOURCE,
+): Array<string> {
+  return listCaptureInterfaces(source)
+    .filter((networkInterface: PacketCaptureInterface): boolean => {
+      return networkInterface.isLoopback !== true;
+    })
+    .flatMap((networkInterface: PacketCaptureInterface): Array<string> => {
+      return networkInterface.addresses;
+    });
+}

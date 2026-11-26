@@ -1,11 +1,13 @@
+import {
+  getOpenStackProjectPicker,
+  OpenStackProjectNames,
+  useOpenStackProjectNames,
+} from "./OpenStackProjectPicker";
 import OpenStackProjectNotice from "Common/Models/DatabaseModels/OpenStackProjectNotice";
-import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -13,7 +15,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Green, Gray500 } from "Common/Types/BrandColors";
@@ -23,7 +24,6 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import useOpenStackRead, { OpenStackRead } from "./Part/UseOpenStackRead";
 import {
   OpenStackNoticePreview,
   fetchOpenStackNoticePreview,
@@ -38,8 +38,6 @@ import {
  * preview: who it tells, what it would say and what the project holds. Nothing here can turn one on without
  * that having been shown, because the server won't, and a recipient changed afterwards is off again.
  */
-
-const PROJECT_OPTIONS: number = 1000;
 
 export interface ComponentProps {
   openStackCloudId: ObjectID;
@@ -59,45 +57,20 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
   const [isTurningOn, setIsTurningOn] = useState<boolean>(false);
   const [previewError, setPreviewError] = useState<string>("");
 
-  const projects: OpenStackRead<Array<DropdownOption>> = useOpenStackRead<
-    Array<DropdownOption>
-  >(async () => {
-    if (props.openStackProjectId) {
-      return [];
-    }
-
-    const rows: ListResult<OpenStackResource> =
-      await ModelAPI.getList<OpenStackResource>({
-        modelType: OpenStackResource,
-        query: {
-          openStackCloudId: props.openStackCloudId,
-          kind: OpenStackResourceKind.Project,
-        },
-        select: { externalId: true, name: true },
-        sort: { name: SortOrder.Ascending },
-        skip: 0,
-        limit: PROJECT_OPTIONS,
-      });
-
-    return rows.data.map((row: OpenStackResource): DropdownOption => {
-      return {
-        value: row.externalId || "",
-        label: row.name || row.externalId || "",
-        isUserContent: true,
-      };
-    });
-  }, [props.openStackCloudId.toString(), props.openStackProjectId || ""]);
+  /*
+   * The projects the notices are for, named by the cloud's ids for them as
+   * the notices are read (#10646); the form searches the cloud's projects
+   * itself (getOpenStackProjectPicker). The card read the first 1,000 by
+   * name, and a notice for any other showed as its id.
+   */
+  const projectNames: OpenStackProjectNames = useOpenStackProjectNames(
+    props.openStackCloudId,
+  );
 
   const nameOfProject: (id: string | undefined) => string = (
     id: string | undefined,
   ): string => {
-    const option: DropdownOption | undefined = projects.data?.find(
-      (entry: DropdownOption): boolean => {
-        return entry.value === id;
-      },
-    );
-
-    return option?.label || id || "";
+    return projectNames.nameOf(id) || id || "";
   };
 
   return (
@@ -119,6 +92,15 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
           ...(props.openStackProjectId
             ? { openStackProjectId: props.openStackProjectId }
             : {}),
+        }}
+        onFetchSuccess={(notices: Array<OpenStackProjectNotice>) => {
+          void projectNames.readNamesOf(
+            notices.map(
+              (notice: OpenStackProjectNotice): string | undefined => {
+                return notice.openStackProjectId;
+              },
+            ),
+          );
         }}
         onBeforeCreate={(
           item: OpenStackProjectNotice,
@@ -256,7 +238,9 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
                   field: { openStackProjectId: true },
                   title: "Project",
                   fieldType: FormFieldSchemaType.Dropdown,
-                  dropdownOptions: projects.data || [],
+                  dropdownModal: getOpenStackProjectPicker(
+                    props.openStackCloudId,
+                  ),
                   required: true,
                   placeholder: "Which project",
                   description: "Only ever told about this project.",

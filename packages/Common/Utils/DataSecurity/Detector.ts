@@ -1,4 +1,5 @@
 import DataConfidence from "../../Types/DataSecurity/DataConfidence";
+import { digitValueOf } from "./DigitReadings";
 
 /*
  * HOW ONE DATA TYPE IS FOUND IN TEXT.
@@ -106,6 +107,35 @@ export interface DataTypeDetector {
    * holding "123".
    */
   fieldValuePattern?: RegExp | undefined;
+
+  /*
+   * Whether the text is also read with its percent-escapes read
+   * (PercentDecodedText.ts): an IP address in a URL's query string has its
+   * colons written %3A (#10467), an email address its "@" %40 (#10935). A
+   * candidate found so is validated as it reads and placed on the
+   * characters it is written with, so the finding - and what a scrub rule
+   * hides - is the encoded value whole (TextReadings.ts).
+   */
+  readsPercentEncoded?: boolean | undefined;
+
+  /*
+   * Whether the text is also read with every script's decimal digits read
+   * as the ASCII digits of their values (DigitReadings.ts): a card number
+   * written in fullwidth, Arabic-Indic or Persian digits (#10960). Each
+   * script's digits are read alone first, so another script's digit beside
+   * a value is no part of it, then all of them together, so a number typed
+   * in two scripts is read whole. A digit is one character either way, so a
+   * candidate found so is on the very characters it is written with.
+   */
+  readsDigitsOfEveryScript?: boolean | undefined;
+
+  /*
+   * What a database search narrows by for this detector, as an RE2
+   * expression that matches at least every text its pattern matches - for
+   * a pattern DetectorPrefilter cannot write itself, one with the u flag.
+   * More is fine, never less.
+   */
+  prefilter?: string | undefined;
 }
 
 // How far around a candidate its context words are looked for.
@@ -140,7 +170,11 @@ export function containsAny(
   };
 }
 
-// Only the digits of a value: "4111 1111-1111 1111" becomes "4111111111111111".
+/*
+ * Only the digits of a value, in ASCII: "4111 1111-1111 1111" becomes
+ * "4111111111111111", and so does "４１１１ １１１１ １１１１ １１１１" - a digit of
+ * any script of DigitReadings is read by its value (#10960).
+ */
 export function digitsOnly(value: string): string {
   let digits: string = "";
 
@@ -149,6 +183,12 @@ export function digitsOnly(value: string): string {
 
     if (code >= 48 && code <= 57) {
       digits += value[index];
+    } else if (code > 0x7f) {
+      const digit: number = digitValueOf(code);
+
+      if (digit >= 0) {
+        digits += String(digit);
+      }
     }
   }
 

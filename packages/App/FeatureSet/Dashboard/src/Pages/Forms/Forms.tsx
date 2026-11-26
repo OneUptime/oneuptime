@@ -14,7 +14,10 @@ import FormTargetType, {
   FORM_TARGET_TYPES,
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
-import IconProp from "Common/Types/Icon/IconProp";
+import {
+  FORM_TARGET_ICONS,
+  getFormTargetsToOffer,
+} from "../../Components/FormBuilder/OnSubmit/FormTargetChoices";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { JSONArray } from "Common/Types/JSON";
@@ -44,11 +47,6 @@ import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding
  * submitting (getDefaultFormFields), so it works the moment it exists and the
  * next step is obvious: adjust the questions, then share the link.
  */
-
-const TARGET_ICONS: Record<FormTargetType, IconProp> = {
-  [FormTargetType.Incident]: IconProp.Alert,
-  [FormTargetType.ScheduledMaintenance]: IconProp.Clock,
-};
 
 const Forms: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -119,13 +117,17 @@ const Forms: FunctionComponent<PageComponentProps> = (
             description: FormsCopy.createsDescription,
             fieldType: FormFieldSchemaType.CardSelect,
             cardSelectSingleColumn: true,
-            cardSelectOptions: FORM_TARGET_TYPES.map(
+            /*
+             * Every target the reader may set a form up for: an alert form
+             * takes permission to create alerts (getFormTargetsToOffer).
+             */
+            cardSelectOptions: getFormTargetsToOffer().map(
               (target: FormTargetType): CardSelectOption => {
                 return {
                   value: target,
                   title: FORM_TARGET_TYPE_TEXT[target].title,
                   description: FORM_TARGET_TYPE_TEXT[target].description,
-                  icon: TARGET_ICONS[target],
+                  icon: FORM_TARGET_ICONS[target],
                 };
               },
             ),

@@ -1,6 +1,7 @@
 import ProjectService from "../../../../Server/Services/ProjectService";
 import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
 import UserService from "../../../../Server/Services/UserService";
+import { FEED_INVITEE_UNNAMED } from "../../../../Server/Utils/Feed/FeedPersonName";
 import SecurityCaseNotifications from "../../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import PendingInviteeProfiles, {
   WithheldProfile,
@@ -24,14 +25,18 @@ import {
 import type { SpyInstance } from "jest-mock";
 
 /*
- * WHOM A SECURITY CASE IS ASSIGNED TO, AS THE PROJECT KNOWS THEM (#9823).
+ * WHOM A SECURITY CASE IS ASSIGNED TO, AS THE PROJECT KNOWS THEM (#9823,
+ * #10681).
  *
  * "Security case assigned to Alice" goes to the case's people and its
  * chat channels, and the case's facts name its assignee in every message
  * about it. A case can be assigned to someone invited to the project who
- * has not accepted: the project sees only what it invited of them - the
- * name typed for them, else their address - never their account's own
- * name, which would tell whoever assigned the case whose the address is.
+ * has not accepted: they are named by the name typed with their invitation,
+ * else as someone who hasn't joined the project yet - never by their
+ * account's own name, which would tell whoever assigned the case whose the
+ * address is, nor by any address, which a channel's readers outside the
+ * project would see. SecurityCaseNotificationsNamePeople holds every kind
+ * of person to it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -100,7 +105,7 @@ describe("the assignee a case's messages name", () => {
     expect(withheldIn.mock.calls[0]![0].projectId).toBe(PROJECT_ID);
   });
 
-  test("someone only invited with no name typed is named by their address", async () => {
+  test("someone only invited with no name typed is someone who hasn't joined the project yet, never their address", async () => {
     withheldIn.mockResolvedValue(
       new Map<string, WithheldProfile>([
         [ASSIGNEE_ID.toString(), { inviteeName: null }],
@@ -111,7 +116,8 @@ describe("the assignee a case's messages name", () => {
       ReturnType<typeof SecurityCaseNotifications.getFacts>
     > = await SecurityCaseNotifications.getFacts(assignedCase());
 
-    expect(facts.assignee).toBe("alice@example.com");
+    expect(facts.assignee).toBe(FEED_INVITEE_UNNAMED);
+    expect(JSON.stringify(facts)).not.toContain("alice@example.com");
   });
 
   test("a member is named by their own name", async () => {

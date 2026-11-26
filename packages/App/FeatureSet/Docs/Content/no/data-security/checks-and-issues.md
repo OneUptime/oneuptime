@@ -1,13 +1,15 @@
 # Kontroller og problemer i Datasikkerhet
 
-Datasikkerhet kjører 34 kontroller på hvert datalager, i ni grupper. En kontroll leser det som er kjent om ett datalager – hvordan det er konfigurert, hva som er funnet i det, hvem som kan nå det, hvor det befinner seg – og består, feiler eller kan ikke avgjøre. En kontroll som feiler, åpner ett problem på datalageret, og problemet lukkes av seg selv når kontrollen består. Denne siden viser hver kontroll, hvordan alvorlighetsgraden og risikoscoren til et problem beregnes, og hva som skjer med et problem gjennom livsløpet.
+Datasikkerhet kjører 34 kontroller på hvert datalager, i ni grupper. En kontroll leser det som er kjent om ett datalager – hvordan det er konfigurert, hva som er funnet i det, hvem som kan nå det, hvor det befinner seg – og består, feiler eller kan ikke avgjøre. En kontroll som feiler, åpner ett problem på datalageret, og problemet lukkes av seg selv når kontrollen består. Denne siden viser hver kontroll, hvordan alvorlighetsgraden og risikoscoren til et problem beregnes, og hva som skjer med et problem gjennom livsløpet. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
 
 :::cards
 - [Hvordan en kontroll avgjør](#hvordan-en-kontroll-avgjør): Bestått, feilet eller kan ikke avgjøre, og hvor alvorlig en feil er.
 - [Hver kontroll](#hver-kontroll): Alle 34, med hva hver av dem kontrollerer og hvordan det fikses.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes innenfor en alvorlighetsgrad.
-- [Hva som skjer med et problem](#hva-som-skjer-med-et-problem): Åpent, løst, godtatt, ikke et problem.
+- [Hva som skjer med et problem](#hva-som-skjer-med-et-problem): Åpent, løst, godtatt, ikke et problem, hvordan hvert ble løst, og rettelser som følges helt til produksjon.
+- [Analysen fra OneUptime AI](#analysen-fra-oneuptime-ai): Om et problem er reelt, hva det setter i fare, hva fiksen ville ødelegge og den korteste veien til fikset.
 - [Fiks det herfra](#fiks-det-herfra): Lukk en eksponering, eller slå på en manglende beskyttelse, med ett klikk.
+- [Problemer med én årsak](#problemer-med-én-årsak): Problemene som én feil laget, gruppert, og årsaken deres rettet én gang.
 :::
 
 ## Hvordan en kontroll avgjør
@@ -152,13 +154,56 @@ OneUptime åpner, oppdaterer og løser problemer etter hvert som kontrollene kj�
 | Status | Hvordan det havner der | Hva som følger |
 | --- | --- | --- |
 | **Åpen** | Kontrollen feiler på datalageret nå. | Det teller på Oversikt, i datalagerets sammendrag og i samsvar, til kontrollen består. |
-| **Løst** | Kontrollen besto ved en senere kjøring, gjelder ikke lenger eller ble slått av, eller datalageret ble arkivert. En person kan også velge **Merk som løst**: datalageret kontrolleres da på nytt med en gang. | Det åpnes igjen hvis kontrollen feiler igjen, og problemet teller hvor ofte det er gjenåpnet. |
+| **Løst** | Kontrollen besto ved en senere kjøring, gjelder ikke lenger eller ble slått av, eller datalageret ble arkivert. En person kan også velge **Merk som løst**: datalageret kontrolleres da på nytt med en gang. | Det viser hvordan det ble løst (se nedenfor). Det åpnes igjen hvis kontrollen feiler igjen, og problemet teller hvor ofte det er gjenåpnet. |
 | **Godtatt** | En person valgte **Godta risiko**, med en **Årsak** og en dato i **Godtatt til**, høyst ett år frem i tid. | Det forblir lukket til den datoen, og åpnes deretter igjen hvis kontrollen fortsatt feiler. Godta det igjen da hvis årsaken fortsatt gjelder. |
-| **Ikke et problem** | En person valgte **Ikke et problem**: funnet var feil. | Det forblir lukket, selv mens kontrollen feiler. **Gjenåpne** setter det tilbake til Åpen. |
+| **Ikke et problem** | En person valgte **Ikke et problem** og sa hvorfor under **Årsak**: funnet var feil. | Det forblir lukket, også mens kontrollen feiler, og beholder årsaken. **Gjenåpne** setter det tilbake til Åpen. |
 
 Sikkerhetsmedlem, Sikkerhetsadministrator, Prosjektadministrator og Prosjekteier kan endre statusen til et problem, og bruke **Tildel** for å gi det til en person eller et team. Hver endring skrives til problemets **Tidslinje**: når det ble åpnet, hver endring i alvorlighetsgrad, hver statusendring og hvem som gjorde den, nye kontroller som ble bedt om, og hva integrasjonene gjorde.
 
 Et problem som åpnes igjen, beholder historikken sin. Godtatte risikoer vurderes på nytt hver dag, så en godkjenning utløper i tide selv når ingenting er skannet.
+
+### Hvordan det ble løst
+
+Et løst problem viser hvordan, øverst på siden sin og i problemlisten, som kan filtreres på det under **Løsning**:
+
+| Løsning | Hva det betyr |
+| --- | --- |
+| **Rettet i koden** | Pull-forespørselen til en koderettelse ble levert, og tjenestens nye versjon skriver ikke lenger dataene. Problemet viser hvilken og når: «Rettet i pull-forespørsel #482, rullet ut i versjon 2.4.1, verifisert». |
+| **Rettet i infrastrukturkoden** | En pull-forespørsel til Terraform-, CloudFormation- eller Bicep-koden som deklarerer datalageret, ble slått sammen, og datalageret besto kontrollen sin da endringen var tatt i bruk. |
+| **Rettet herfra** | En responshandling ([Fiks det herfra](#fiks-det-herfra)) endret datalageret, og kontrollen besto etterpå. |
+| **Begrenset ved inntak** | Hvert funn i et telemetriproblem skjules av en rensingsregel før det lagres. Dette er ikke en rettelse: koden skriver fortsatt dataene, til stdout og til alle andre steder tjenesten sender telemetrien sin. Problemet sier det i gult, med det regelen har endret den siste uken, og tilbyr **Rett koden**. |
+| **Kontroll bestått** | Kontrollen består, uten at OneUptime har endret noe. |
+| **Løst av en person** | Noen valgte **Merk som løst**. Datalageret kontrolleres på nytt med en gang, og problemet åpnes igjen hvis kontrollen fortsatt feiler. |
+| **Kontrolleres ikke lenger** | Kontrollen ble slått av, eller gjelder ikke lenger for datalageret. |
+| **Datalager arkivert** | Datalageret er borte fra kilden sin. |
+
+Oversikten teller problemene som er rettet der de oppstår, atskilt fra lekkasjene som bare er begrenset ved inntak, og **I telemetrien din** holder et begrenset funn synlig, merket **Renset**, til koden slutter å skrive det.
+
+### Rettelser som følges helt til produksjon
+
+En pull-forespørsel OneUptime AI åpnet for et problem (**Fiks med AI**, eller én pull-forespørsel for en [gruppe problemer](#problemer-med-én-årsak)), har ennå ikke rettet noe når den slås sammen. OneUptime følger den til produksjonen beviser det:
+
+- **En lekkasje i koden.** OneUptime venter på en registrert utrulling av tjenesten som inneholder sammenslåingen, og følger deretter med på den nye versjonen. Der en rensingsregel skjuler dataene, må regelen ikke endre noen verdi i den versjonen; der ingen regel gjør det, kan ingen poster fra den versjonen inneholde dataene på stedene der de ble funnet. Den nye versjonen må også kjøre i et døgn og sende minst like mange logger eller spans som den gamle gjorde i timen da lekkasjen sist ble sett. Da er problemet **Rettet i koden**. Én endret verdi, eller én post som fortsatt inneholder dataene, betyr at rettelsen ikke stoppet lekkasjen, og om en versjon som sender for lite i løpet av en uke, kan ingenting avgjøres. Utrullinger kobles via commiten sin: registrer dem med `oneuptime deploy`, eller send `vcs.ref.head.revision` (se [Utrullinger og endringer](/docs/telemetry/change-events)).
+- **Konfigurasjonen til et datalager.** Når pull-forespørselen slås sammen, leses datalagrene dens på nytt med en gang. Hvert problem der kontrollen består etter det, er **Rettet i infrastrukturkoden**. Hvis et datalager fortsatt feiler kontrollen sin når det leses på nytt et døgn etter sammenslåingen, ble rettelsen **slått sammen, ikke tatt i bruk**: eierne av datalageret og personen som ba om pull-forespørselen, får en e-post, én gang, og tidslinjene til problemet og datalageret viser det. Det som mangler, er som regel en apply.
+- **Rensingsregelen beholdes.** Etter en verifisert koderettelse blir rensingsregelen som begrenset lekkasjen, værende, så en regresjon skjules så snart den dukker opp. Problemet sier at regelen ikke har endret noe siden rettelsen, og tilbyr **Fjern regel**.
+- **En regresjon.** En verifisert rettelse følges også etterpå: når en beholdt regel endrer verdier igjen, eller skanningen finner dataene igjen, åpnes problemet igjen og viser hvilken versjon som brakte dem tilbake. Det forblir åpent til det er rettet igjen, også mens en regel skjuler dataene.
+
+Hvert trinn står på problemets **Tidslinje** og på datalagerets, og AI-resultater teller de verifiserte rettelsene etter type (se [Hvor godt OneUptime AI gjør det](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-gjør-det)).
+
+## Analysen fra OneUptime AI
+
+Mens **Jobb med nye problemer** er slått på under **Datasikkerhet → KI**, analyserer OneUptime AI selv hvert nytt eller gjenåpnet problem med alvorlighetsgrad Kritisk eller Høy, før noen åpner det; KI-reglene dine for datasikkerhet kan velge andre problemer. Ethvert problem kan analyseres fra siden sin med **Analyser problemet**. Analysen åpner problemets **Oversikt**, under **OneUptime AI-analyse**, og svarer ut fra det Datasikkerhet vet:
+
+- om det er reelt: **Reelt**, **Sannsynligvis med vilje**, **Sannsynligvis et feilaktig funn** eller **Kan ikke avgjøres**, og hvorfor;
+- hva det setter i fare: dataene og omtrent hvor mange poster, hvem som kan nå dem, kopier av dem i andre lagre og sikkerhetssakene om dem;
+- hva fiksen ville ødelegge: tjenestene som er sett bruke lageret, identitetene som brukte tilgangen sin de siste 90 dagene, og tildelingene som fiksen fjerner og som noe fortsatt bruker;
+- den korteste veien til fikset: hva som demmer det inn nå, koden som erklærer lageret, og hvem som bør gjøre det.
+
+Hver linje nevner faktaene den bygger på, listet under den av en knapp som **Vis de 3 faktaene den bygger på**. En linje som ikke bygger på noe faktum, utelates, en vurdering der årsaken ikke bygger på noe, er **Kan ikke avgjøres**, og et lager med begrensede data er aldri **Sannsynligvis med vilje** på OneUptime AIs ord. En linje som bygger på noe du ikke har lov til å lese, som hvem som kan nå lageret, skjules for deg og sier det.
+
+OneUptime AI endrer aldri problemet: status og alvorlighetsgrad blir hos kontrollen og hos deg. For **Sannsynligvis med vilje** tilbyr den **Godta risiko** med årsaken skrevet, og **Offentlig med vilje** for et offentlig lager; for **Sannsynligvis et feilaktig funn** **Ikke et problem** med årsaken skrevet. Ingenting endres før du velger.
+
+Analysen lagres på problemet, med en oppføring på **Tidslinje** hver gang den skrives, på språket de fleste medlemmene i prosjektet valgte (**Analyser på nytt** skriver den på ditt). Den skrives bare på nytt når det den bygger på er endret, så å åpne problemet spør ikke OneUptime AI om noe; **Analyser på nytt** spør likevel. **Problemer** filtrerer og viser problemer etter **OneUptime AI-vurdering**. Hva den sender og aldri sender, står i [OneUptime AI i Datasikkerhet](/docs/data-security/ai). Med KI slått av finnes det ingen analyse.
 
 ## Fiks det herfra
 
@@ -178,6 +223,38 @@ Et åpent problem som én endring i innstillingene til et datalager fikser – e
 Den spør først, og sier hva som endres, hva som slutter å virke og hva det koster. Den endrer innstillingene til datalageret, aldri dataene, og endrer ingenting som allerede er slik det skal være. Et datalager merket **Offentlig med vilje** blir aldri blokkert.
 
 Den handler gjennom skytilkoblingen til datalageret, så tilkoblingen må ha **Datasikkerhetsrespons** slått på og oppsettkommandoen kjørt på nytt (se [Sett opp Datasikkerhet](/docs/data-security/setup#la-datasikkerhet-lukke-en-eksponering)). Inntil da sier panelet hva du må slå på. Datalageret kontrolleres på nytt rett etterpå, og problemet løses av seg selv når kontrollen består. Problemets **Tidslinje** og datalagerets **Tidslinje** viser hva som ble gjort, og hvem som gjorde det.
+
+## Problemer med én årsak
+
+Én Terraform-modul som slår av tilgangslogger, lager førti buckets med førti problemer. Datasikkerhet samler problemene som én feil laget, så årsaken deres rettes én gang.
+
+**Grupper etter årsak** under **Problemer** viser hver gruppe over listen: «40 problemer, én årsak: modulen static-site», hva kontrollen dens finner, hvor mange som er rettet og hvor mange som er igjen. Datalagrene dens folder seg ut under den, hvert med en lenke til problemet sitt, og listens filtre snevrer dem inn slik de snevrer inn radene. Problemene uten gruppe står under gruppene. Grupperingen er på så snart en gruppe har fem problemer, og nettleseren din husker valget ditt.
+
+Fakta danner en gruppe, aldri OneUptime AI. Problemer fra én kontroll på datalagre i én sky er en gruppe når datalagrene deres har ett av disse faktaene til felles, det sterkeste først:
+
+| Faktum | Hvor det leses |
+| --- | --- |
+| Koden som deklarerer dem | En fil i et tilkoblet kodelager oppkalt etter modulen eller stacken taggene deres nevner |
+| Stacken deres | CloudFormation-stackens egen tagg, eller en tagg som nevner en stack |
+| En tagg | En tagg som nevner modulen, stacken eller komponenten som laget dem, som `module` eller `component` |
+| Hvem som opprettet dem | Identiteten som opprettet dem ifølge skyens endringslogg, for datalagre der taggene ikke nevner noe som laget dem |
+| Et navnemønster | En del av navnene deres som få andre datalagre har, som `static-site-*` |
+
+En gruppe har minst to problemer, et problem er i høyst én gruppe, og et problem blir i gruppen sin så lenge datalageret deler gruppens faktum. Mens **Jobb med nye problemer** er slått på under **Datasikkerhet → KI**, gir OneUptime AI hver gruppe et navn ut fra faktaene, som «modulen static-site slår av tilgangslogger», og et navn som sier noe faktaene ikke sier, beholdes ikke. Ellers får gruppen navn etter faktumet sitt.
+
+**Rett årsaken** på en gruppe sier hva den endrer, hva den utelater og hvorfor, før noe endres:
+
+- **Én pull-forespørsel**, for datalagrene som er deklarert som kode: OneUptime AI endrer modulen eller filen som deklarerer dem, i kodelageret du bekrefter, i stedet for hvert datalager. Pull-forespørselen lister hvert datalager og hvert problem den retter, og vises under **Kode** og på hvert problems **Tidslinje**. Den krever det samme som **Fiks med AI**: tillatelse til å endre datasikkerhetsproblemer og et kodelager OneUptime AI kan jobbe i.
+- **Én godkjenning**, for datalagrene som ble laget i konsollen: på hvert av dem endringen [Fiks det herfra](#fiks-det-herfra) gjør for den typen datalager, via skytilkoblingen. Endringene står type for type, hver med hva den endrer, hva som slutter å virke og hva den koster, slik Fiks det herfra sier det (et delt øyeblikksbilde slutter å være delt, mens en database slutter å dele hvert av sine manuelle øyeblikksbilder), og én godkjenning gjør dem alle. Den krever tillatelse til å redigere datalagre.
+- **Utelatt**: Et datalager merket **Offentlig med vilje** blir aldri blokkert. Et datalager der analysen sier at rettelsen ville fjerne tilgang noe fortsatt bruker, venter på at du huker av **Rett det likevel**. Et datalager som ingen skytilkobling lar Datasikkerhet endre, overlates til konsollen sin, med årsaken.
+
+Når en gruppe har begge typer datalagre, gjør ett klikk begge delene, og hver del kan utelates. Hvert problem løses av seg selv når kontrollen består, og gruppen viser hvor mange som er igjen til ingen er det. En gruppe der alle problemene er rettet, blir værende i listen i sju dager.
+
+En rettelse OneUptime AI har gjort for en gruppe, er bevist så snart hvert problem den rettet, er lukket av nettopp den rettelsen: for en pull-forespørsel hvert problem den lister opp, løst som **Rettet i infrastrukturkoden** av den; for den ene godkjenningen hvert problem hvis datalager den endret, løst som **Rettet herfra** av endringen den gjorde. Et problem som er godtatt, merket som ikke et problem, løst av en person eller slettet, beviser ingenting, og det ventes ikke på et datalager godkjenningen utelot eller allerede fant slik det skulle være. [AI-resultater](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-gjør-det) teller en bevist rettelse blant endringene som virket.
+
+OneUptime AI foreslår rettelsen for hver gruppe slik KI-reglene dine for datasikkerhet sier: uten regler venter pull-forespørselen på deg under **Datasikkerhet → KI**, og en regel der **Rettelse** er **Uten å spørre**, åpner den av seg selv. En endring via skytilkoblingene venter alltid på deg. Hvert åpne problem et forslag gjelder, sier det på sin **Tidslinje** når OneUptime AI foreslår gruppens rettelse, og igjen når noen avviser forslaget eller det utløper. Et nyere forslag som erstatter et som fortsatt venter, sier det bare til problemene det tidligere ikke sa det til, og en gruppe med mer enn 200 åpne problemer forblir stille. På en datasikkerhetssak ber trinnet **Fix the code with AI** i en playbook om pull-forespørselen for sakens gruppe, og om en egen pull-forespørsel for hvert av sakens problemer som ikke er i noen gruppe. Et problem i en gruppe sier det under **OneUptime AI-analyse**, med **Rett årsaken**.
+
+Den som bare kan lese datasikkerhetsproblemer innenfor bestemte etiketter, ser hver gruppe skåret ned til datalagrene vedkommende kan lese: tallene teller bare problemene i disse datalagrene, og gruppen heter etter faktumet sitt slik disse datalagrene gir det, aldri etter navnet fra OneUptime AI, som kan snakke om datalagre vedkommende ikke kan lese. En gruppe der vedkommende bare kan lese ett problem, vises ikke, og det problemet blir stående i vedkommendes liste. **Rett årsaken** endrer hvert datalager årsaken laget, og krever derfor lesetilgang til datasikkerhetsproblemer i hele prosjektet: vedkommende ser hva den ville gjøre, og hvorfor vedkommende ikke kan gjøre den.
 
 ## Hvor dataene i et telemetriproblem ble funnet
 

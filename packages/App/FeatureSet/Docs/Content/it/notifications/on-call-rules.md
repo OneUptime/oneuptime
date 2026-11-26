@@ -27,6 +27,25 @@ flowchart TB
 
 La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messaggi WhatsApp, Telegram, Slack, Microsoft Teams e Mattermost contengono un link per riconoscerla, e una telefonata vi chiede di premere 1. Se non potete gestire una chiamata, gli stessi messaggi vi permettono di escalarla, e una telefonata vi chiede di premere 2: la policy avvisa subito il livello successivo, e non venite più avvisati al riguardo. Vedi [Escalare un avviso](/docs/on-call/escalation-rules#escalare-un-avviso). Ogni chiamata ricevuta compare in **Impostazioni utente → Log di reperibilità**, dove **Visualizza cronologia** mostra ogni messaggio inviato e se è stato consegnato.
 
+### Cosa dice una telefonata
+
+Una telefonata dice da chi arriva, cosa è successo, quanto è grave e il suo numero, poi cosa fa ogni tasto e infine il titolo. Potete premere un tasto in qualsiasi momento, anche mentre la telefonata sta ancora parlando. Se non premete nulla, la telefonata ripete un'altra volta i dettagli e i tasti, aspetta 10 secondi e riaggancia, e la chiamata resta non riconosciuta:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+La telefonata nomina il vostro progetto. Una telefonata che non riguarda un progetto, come un codice di verifica, nomina OneUptime, o il nome con cui è nota la vostra installazione self-hosted. Un titolo più lungo di circa 100 caratteri viene tagliato dopo una parola intera, e OneUptime conserva il titolo completo. Le lettere di un numero come `INC-42` vengono pronunciate una alla volta, così la voce non le legge mai come una parola. Le telefonate sono sempre in inglese.
+
 ## Una sola sequenza per tutto
 
 **Impostazioni utente → Come contattarmi** si apre sulla tua sequenza: passaggi numerati che ogni chiamata prova a turno, per incidenti, avvisi ed episodi di qualsiasi gravità. Ogni passaggio è un momento, ad esempio subito o dopo 5 minuti, con i metodi verificati che partono insieme in quel momento. Un passaggio successivo parte solo se nessuno ha ancora confermato la chiamata.

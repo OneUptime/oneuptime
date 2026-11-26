@@ -71,7 +71,7 @@ A monitor created before **Probes Behind** existed keeps the criteria it has, so
 
 ### Waiting longer before an incident
 
-A probe is disconnected only after three minutes of silence, so a quick restart opens nothing. To wait longer, tick **Evaluate this criteria over a period of time** under the filter, pick **All Values** under **Evaluate** and a window under **For the last (in minutes)**. With five minutes, a probe has to stay disconnected for five more minutes before the incident is declared.
+A probe is disconnected only after three minutes of silence, so a quick restart opens nothing. To wait longer, tick **Evaluate this criteria over a period of time** under the filter, pick **All Values** under **Evaluate** and a window under **For the last**. With five minutes, a probe has to stay disconnected for five more minutes before the incident is declared.
 
 ## Metrics
 

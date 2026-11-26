@@ -21,7 +21,10 @@ export default (props: {
    * the API named it by keeps working where the name is part of a contract:
    * the OpenAPI tag carries it (x-former-names), and the Terraform provider
    * keeps a resource and a data source of the old name as deprecated
-   * aliases of the new ones (Scripts/TerraformProvider OpenAPIParser).
+   * aliases of the new ones (Scripts/TerraformProvider OpenAPIParser) - or,
+   * where another model has that name now, moves a resource's state from
+   * it. The audit log stored the model's entries under it until the
+   * rename, and still finds them by it (getAuditLogResourceTypesOfModel).
    */
   formerSingularName?: string | undefined;
   /*

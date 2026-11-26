@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. Åbn kriteriet, og fold **Indstillinger** ud.
-2. Slå **Group incidents and alerts by a payload field** til.
-3. Udfyld **Open a separate incident for each…**. Skal hver hændelse løse sig selv, så udfyld også feltet og værdien under **Auto-resolve each incident when…** (se nedenfor). Gem derefter monitoren.
+2. Slå **Gruppér hændelser og advarsler efter et felt i payloaden** til.
+3. Udfyld **Åbn en separat hændelse for hver…**. Skal hver hændelse løse sig selv, så udfyld også feltet og værdien under **Løs hver hændelse automatisk, når…** (se nedenfor). Gem derefter monitoren.
 :::
 
 | Felt | Eksempel | Hvad det gør |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Den sti, hvis særskilte værdier deler hændelserne op |
-| Field that signals recovery | `requestBody.alerts[*].status` | Den sti, der tjekkes for at afgøre, at en advarsel er ovre |
-| Value that means recovered | `resolved` | Den nøjagtige værdi, der markerer, at problemet er ovre |
-| Max incidents per request | `100` (standard) | Sikkerhedsloft, så et felt med mange værdier ikke kan åbne et ubegrænset antal hændelser |
+| Åbn en separat hændelse for hver… | `requestBody.alerts[*].labels.alertname` | Den sti, hvis særskilte værdier deler hændelserne op |
+| Felt, der signalerer genopretning | `requestBody.alerts[*].status` | Den sti, der tjekkes for at afgøre, at en advarsel er ovre |
+| Værdi, der betyder genoprettet | `resolved` | Den nøjagtige værdi, der markerer, at problemet er ovre |
+| Maks. hændelser pr. anmodning | `100` (standard) | Sikkerhedsloft, så et felt med mange værdier ikke kan åbne et ubegrænset antal hændelser |
 
 Grupperingen hører til det kriterium, den er slået til i. Monitorens andre kriterier grupperer ikke: når et af dem matcher en anmodning, åbner det sin hændelse og advarsel, som det ville på en monitor, hvor intet kriterium grupperer.
 
@@ -383,16 +383,20 @@ Kortet **Monitor-resumé** på monitorens **Oversigt** viser, hvad hver anmodnin
 
 En webhook beskriver kun det, der står i den payload, så OneUptime løser aldrig en hændelse, fordi dens nøgle holdt op med at dukke op. En hændelse løses kun, når en payload udtrykkeligt siger, at den nøgle er ovre. To ting skal begge være sande:
 
-1. **Field that signals recovery** og **Value that means recovered** er udfyldt og matcher payloaden. Sammenligningen er nøjagtig og skelner mellem store og små bogstaver — `Resolved` matcher ikke `resolved`.
+1. **Felt, der signalerer genopretning** og **Værdi, der betyder genoprettet** er udfyldt og matcher payloaden. Sammenligningen er nøjagtig og skelner mellem store og små bogstaver — `Resolved` matcher ikke `resolved`.
 2. Kriteriets hændelse har **Løs hændelse automatisk** slået til under **Flere felter** i hændelsesformularen. Uden det ignoreres matchende meldinger om, at problemet er ovre, og hændelserne forbliver åbne. (Det samme gælder for advarsler og **Løs advarsel automatisk**.) Standardkriteriet for offline starter med det slået til; en hændelse, du selv føjer til et kriterium, starter med det slået fra.
 
-**Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
+En advarsel, du selv føjer til et kriterium, starter også med **Løs advarsel automatisk** slået fra, så en genoprettelse lader advarslen stå åben, indtil den er slået til. **Løs hver hændelse automatisk, når…** viser, hvilke af kriteriets hændelser og advarsler en genoprettelse løser, og nævner hver, den ville lade stå åben, med en knap, der slår den tilhørende indstilling til. Kortet **Monitor-resumé** på monitorens **Oversigt** nævner hver hændelse og advarsel, som en genoprettelse lod stå åben, og hvorfor.
+
+En genopretning løser kun hændelserne og advarslerne fra det kriterium, der læser den: det, hvis **Felt, der signalerer genopretning** og **Værdi, der betyder genoprettet** matcher payloaden. Et andet kriteriums hændelser og advarsler for samme værdi forbliver åbne, og dem fra et kriterium, der lader felterne stå tomme, løses manuelt.
+
+**Maks. hændelser pr. anmodning** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
 
 > [!NOTE]
-> Når én monitor modtager anmodninger hurtigere, end OneUptime evaluerer dem, evaluerer OneUptime den nyeste og springer dem imellem over, så en byge af webhooks kan efterlade en aktiv eller en løst advarsel uevalueret. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljø hver anmodning til at blive evalueret for sig.
+> En monitor med et kriterium, der grupperer efter et felt i indholdet, evaluerer hver anmodning, den modtager, én ad gangen og i den rækkefølge, de kom, så en byge af advarsler og genopretninger åbner og løser hver værdis hændelse og advarsel. Op til 1.000 anmodninger, eller 16 MB af dem, venter på at blive evalueret; derudover springes de ældste ventende over, og kortet **Monitor-resumé** siger hvor mange. Det nævner også den grænse, der blev nået, og en selvhostet installation kan ændre begge: se [Noter om selvhosting](#noter-om-selvhosting). En monitor uden gruppering evaluerer kun den nyeste af de anmodninger, der venter på den.
 
 > [!NOTE]
-> Hvis **Field that signals recovery** indeholder `[*]`, men **Open a separate incident for each…** ikke gør, er en anmodning først ovre, når hvert element i det array siger det. Med `requestBody.alerts[*].status` og `resolved` løses en hændelse grupperet efter `requestBody.groupLabels.alertname`, når alle en anmodnings advarsler er løst, og den forbliver åben, så længe én stadig er aktiv.
+> Hvis **Felt, der signalerer genopretning** indeholder `[*]`, men **Åbn en separat hændelse for hver…** ikke gør, er en anmodning først ovre, når hvert element i det array siger det. Med `requestBody.alerts[*].status` og `resolved` løses en hændelse grupperet efter `requestBody.groupLabels.alertname`, når alle en anmodnings advarsler er løst, og den forbliver åben, så længe én stadig er aktiv.
 
 > [!WARNING]
 > En sti for løsning uden `[*]` evalueres mod hele payloaden, så en `status: resolved` på payloadens niveau løser hver nøgle i den payload — også advarsler, hvis egen status stadig er aktiv.
@@ -517,6 +521,18 @@ Klik på **Bekræft abonnement** i kortet **Monitor-resumé** på monitorens **O
 :::details Afsenderen får en 500
 Anmodningen siger `Content-Type: application/json`, men dens brødtekst er ikke et JSON-objekt eller et JSON-array. Send gyldig JSON eller en anden indholdstype.
 :::
+
+## Noter om selvhosting
+
+En monitor, der grupperer efter et felt i indholdet, holder hver anmodning i Valkey, indtil det er dens tur. På en selvhostet installation begrænser tre indstillinger det. Med Docker Compose sætter du dem i `config.env`; med Helm under `incomingRequests` i chartets værdier, som giver app- og worker-pods de samme:
+
+| Indstilling | Helm-værdi | Standard | Interval | Hvad den begrænser |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` til `100000` | De anmodninger, én monitor lader vente. Derudover springes de ældste ventende over. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` til `512` | De megabyte anmodninger, én monitor lader vente. Derudover springes de ældste ventende over. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` til `1000` | De anmodninger, ét job evaluerer, før monitorens job sættes i kø igen, bag hvert job, der allerede venter. |
+
+Hæv de to første for afsendere, der sender i kraftigere byger, som en core-switch, der går ned og udløser tusindvis af advarsler på én gang, og sænk den anden for en lille Valkey. Når anmodninger springes over, siger kortet **Monitor-resumé**, hvilken grænse der blev nået. En værdi, der ikke er et helt tal i sit interval, bruges ikke: standarden gør, og appen logger en meddelelse, der nævner indstillingen.
 
 ## Næste trin
 

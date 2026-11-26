@@ -274,9 +274,17 @@ export const RUN_SINGULAR: string = translationKey("Hunt Run");
 export const RUN_PLURAL: string = translationKey("Hunt Runs");
 export const RUN_COLUMN_TITLE: string = translationKey("Ran at");
 export const RUN_FOUND_COLUMN_TITLE: string = translationKey("Result");
-// Under when a run ran: the events it read.
+/*
+ * The chip a run's events open under on Events (SecurityEventsArrivalFilter):
+ * when they reached OneUptime, the events the run counted (#10488).
+ */
+export const ARRIVED_CHIP_KEY: string = translationKey("Arrived");
+/*
+ * Under when a run ran: the events it read, those that arrived in its
+ * window, whenever they happened (#10488).
+ */
 export const RUN_SEARCHED: string = translationKey(
-  "Searched {{start}} to {{end}}",
+  "Searched what arrived {{start}} to {{end}}",
 );
 export const RUN_NOTHING_FOUND: string = translationKey("Nothing found");
 // Its first sentence is the empty list's title, the rest its description.

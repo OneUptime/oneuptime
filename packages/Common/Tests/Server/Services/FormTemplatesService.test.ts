@@ -567,6 +567,124 @@ describe("changing a form's templates", () => {
 });
 
 /*
+ * #10692: a template's Affected Monitors answer that held a monitor deleted
+ * since. The monitor is gone from what the question offers, so judging the
+ * changed answer whole refused it - an admin could not add a monitor to the
+ * template without first taking out the one nobody could see. What the
+ * template held is not judged again; what the write adds still is.
+ */
+describe("a template's monitors, one of them deleted since (#10692)", () => {
+  const WEBSITE_MONITOR_ID: string = "c1000000-0000-4000-8000-0000000000f2";
+  const DELETED_MONITOR_ID: string = "c1000000-0000-4000-8000-0000000000fd";
+
+  const MONITORS_FIELDS: Array<FormField> = FIELDS.map(
+    (field: FormField): FormField => {
+      return field.id === "monitors"
+        ? {
+            ...field,
+            allowedOptionIds: [
+              MONITOR_ID,
+              WEBSITE_MONITOR_ID,
+              DELETED_MONITOR_ID,
+            ],
+          }
+        : field;
+    },
+  );
+
+  const KIOSKS: JSONObject = {
+    id: "kiosks",
+    name: "Kiosks down",
+    answers: { monitors: [MONITOR_ID, DELETED_MONITOR_ID] },
+  };
+
+  beforeEach(() => {
+    // The project as it is now: the deleted monitor is no longer there.
+    monitorFindBy.mockImplementation((async (findBy: {
+      query: { _id?: unknown; projectId?: unknown };
+    }): Promise<Array<Monitor>> => {
+      const asked: string = JSON.stringify(findBy.query._id);
+
+      if (String(findBy.query.projectId) !== PROJECT_ID.toString()) {
+        return [];
+      }
+
+      return [
+        { id: MONITOR_ID, name: "API" },
+        { id: WEBSITE_MONITOR_ID, name: "Website" },
+      ]
+        .filter((monitor: { id: string }): boolean => {
+          return asked.includes(monitor.id);
+        })
+        .map((monitor: { id: string; name: string }): Monitor => {
+          return Object.assign(new Monitor(), {
+            _id: monitor.id,
+            name: monitor.name,
+          });
+        });
+    }) as never);
+
+    storedForms = [
+      storedForm({
+        fields: MONITORS_FIELDS as unknown as JSONArray,
+        templates: [KIOSKS] as unknown as JSONArray,
+      }),
+    ];
+  });
+
+  test("adding a monitor beside the one held and deleted since is taken", async () => {
+    await expect(
+      update({
+        templates: [
+          {
+            ...KIOSKS,
+            answers: {
+              monitors: [MONITOR_ID, DELETED_MONITOR_ID, WEBSITE_MONITOR_ID],
+            },
+          },
+        ] as unknown as JSONArray,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("the monitor deleted since is still refused where the template did not hold it", async () => {
+    const error: Error | undefined = await refusal(
+      update({
+        templates: [
+          KIOSKS,
+          {
+            id: "copy",
+            name: "Copy",
+            answers: { monitors: [WEBSITE_MONITOR_ID, DELETED_MONITOR_ID] },
+          },
+        ] as unknown as JSONArray,
+      }),
+    );
+
+    expect(error?.message).toBe(
+      'Template 2 ("Copy"): Affected Monitors must be chosen from the options the form lists.',
+    );
+  });
+
+  test("a monitor of another project added beside the held one is refused", async () => {
+    const error: Error | undefined = await refusal(
+      update({
+        templates: [
+          {
+            ...KIOSKS,
+            answers: { monitors: [DELETED_MONITOR_ID, FOREIGN_MONITOR_ID] },
+          },
+        ] as unknown as JSONArray,
+      }),
+    );
+
+    expect(error?.message).toBe(
+      'Template 1 ("Kiosks down"): Affected Monitors must be chosen from the options the form lists.',
+    );
+  });
+});
+
+/*
  * How a template asks each question (fieldSettings, issue #4563), as
  * FormService lets it be written: a setting is Required, Optional or Hidden,
  * for a question the form asks - hidden ones too - and never one that makes

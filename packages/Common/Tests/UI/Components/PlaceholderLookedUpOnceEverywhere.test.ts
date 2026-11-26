@@ -1428,14 +1428,17 @@ describe("every page heading, side menu title, tooltip and metric card title wri
     ).toBeGreaterThanOrEqual(10);
     expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
 
-    // Settings' menu: its 14 entries (Push Notifications too, #9134). The Subscribe menu: its five.
+    /*
+     * Settings' menu: its 15 entries (Push Notifications too, #9134, and Help
+     * and Support, #10864). The Subscribe menu: its five.
+     */
     expect(
       sitesIn(
         "App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu.tsx",
       ).filter((site: PlaceholderSite): boolean => {
         return site.handedTo === MENU_LINK_TITLE && site.isSaidTranslated;
       }).length,
-    ).toBe(14);
+    ).toBe(15);
     expect(
       sitesIn("App/FeatureSet/StatusPage/src/Pages/Subscribe/SideMenu.tsx").map(
         (site: PlaceholderSite) => {

@@ -27,7 +27,12 @@ import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueS
 import { Blue500, Gray500, Yellow500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
+import {
+  RecordField,
+  RecordFieldValue,
+  readWrittenRecordValue,
+} from "../../Types/DataSecurity/RecordOfProcessing";
 import ObjectID from "../../Types/ObjectID";
 import { isDataSensitivity } from "../../Types/DataSecurity/DataSensitivity";
 import DataStoreEnvironment, {
@@ -112,6 +117,37 @@ export class Service extends ProjectReferencesService<Model> {
     return value;
   }
 
+  /*
+   * The legal basis and the people a person writes into the store's record
+   * (#10375), as the record reads them: one of the six bases, the listed
+   * categories of people each once - or nothing, to empty the field.
+   */
+  public static readRecordColumns(data: JSONObject): void {
+    const columns: Array<[string, RecordField]> = [
+      ["legalBasis", RecordField.LegalBasis],
+      ["dataSubjects", RecordField.People],
+    ];
+
+    for (const [column, field] of columns) {
+      if (data[column] === undefined) {
+        continue;
+      }
+
+      const read:
+        | { isRead: true; value: RecordFieldValue | null }
+        | { isRead: false; refusal: string } = readWrittenRecordValue(
+        field,
+        data[column],
+      );
+
+      if (!read.isRead) {
+        throw new BadDataException(read.refusal);
+      }
+
+      data[column] = read.value as JSONValue;
+    }
+  }
+
   public static readSensitivityOverride(value: unknown): string | null {
     if (value === null || value === undefined || value === "") {
       return null;
@@ -170,9 +206,22 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Choose what kind of store it is.");
     }
 
+    /*
+     * Security Events, Network Flows and the address vault are OneUptime's
+     * own, declared for every project that has one (DeclaredDataStores,
+     * #10398): one added by hand would be a second, with nothing in it.
+     */
+    if (info.isDeclared) {
+      throw new BadDataException(
+        `OneUptime adds the ${info.kind} store itself, once your project has such data.`,
+      );
+    }
+
     if (!createBy.data.name?.trim()) {
       throw new BadDataException("Give the store a name.");
     }
+
+    Service.readRecordColumns(createBy.data as unknown as JSONObject);
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -388,6 +437,8 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = updateBy.data as unknown as JSONObject;
+
+    Service.readRecordColumns(data);
 
     if (data["environment"] !== undefined) {
       data["environment"] = Service.readEnvironment(data["environment"]);
@@ -712,6 +763,10 @@ export class Service extends ProjectReferencesService<Model> {
         break;
       case "Service map":
         gone = mdText`🗄️ ${link} is no longer seen in any service's traces, so it was archived.`;
+        break;
+      // A store OneUptime declares (DeclaredDataStores): its data is gone.
+      case "OneUptime":
+        gone = mdText`🗄️ ${link} no longer holds any of this project's data, so it was archived.`;
         break;
       default:
         gone = mdText`🗄️ ${link} is no longer listed by its source, so it was archived.`;

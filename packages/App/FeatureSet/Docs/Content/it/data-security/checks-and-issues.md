@@ -1,13 +1,15 @@
 # Controlli e problemi di Sicurezza dei dati
 
-Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita.
+Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
 
 :::cards
 - [Come decide un controllo](#come-decide-un-controllo): Superato, non superato o non può stabilirlo, e quanto è grave un fallimento.
 - [Tutti i controlli](#tutti-i-controlli): Tutti i 34, con cosa verifica ciascuno e come correggerlo.
 - [Punteggio di rischio](#punteggio-di-rischio): Come vengono ordinati i problemi all'interno di una gravità.
-- [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema.
+- [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema, come è stato risolto ciascuno e le correzioni seguite fino in produzione.
+- [L'analisi di OneUptime AI](#lanalisi-di-oneuptime-ai): Se un problema è reale, cosa mette a rischio, cosa romperebbe la correzione e la via più breve verso la correzione.
 - [Correggi da qui](#correggi-da-qui): Chiudi un'esposizione, o attiva una protezione mancante, con un clic.
+- [Problemi con una sola causa](#problemi-con-una-sola-causa): I problemi causati da uno stesso errore, raggruppati, e la loro causa corretta una volta sola.
 :::
 
 ## Come decide un controllo
@@ -152,13 +154,56 @@ OneUptime apre, aggiorna e risolve i problemi man mano che i controlli vengono e
 | Stato | Come ci arriva | Cosa segue |
 | --- | --- | --- |
 | **Aperto** | Il suo controllo ora non viene superato sull'archivio. | Conta nella Panoramica, nel riepilogo dell'archivio e nella conformità, finché il controllo non viene superato. |
-| **Risolto** | Il suo controllo è stato superato in un'esecuzione successiva, non si applica più o è stato disattivato, oppure il suo archivio è stato archiviato. Una persona può anche scegliere **Segna come risolto**: l'archivio viene subito controllato di nuovo. | Si riapre se il controllo non viene di nuovo superato, e il problema conta quante volte si è riaperto. |
+| **Risolto** | Il suo controllo è stato superato in un'esecuzione successiva, non si applica più o è stato disattivato, oppure il suo archivio è stato archiviato. Una persona può anche scegliere **Segna come risolto**: l'archivio viene subito controllato di nuovo. | Indica come è stato risolto (vedi sotto). Si riapre se il controllo non viene di nuovo superato, e il problema conta quante volte si è riaperto. |
 | **Accettato** | Una persona ha scelto **Accetta il rischio**, con un **Motivo** e una data in **Accettato fino al**, al massimo a un anno di distanza. | Resta chiuso fino a quella data, poi si riapre se il controllo continua a non essere superato. Accettalo di nuovo allora, se il motivo vale ancora. |
-| **Non è un problema** | Una persona ha scelto **Non è un problema**: il risultato era sbagliato. | Resta chiuso, anche mentre il controllo non viene superato. **Riapri** lo riporta ad Aperto. |
+| **Non è un problema** | Una persona ha scelto **Non è un problema** e ha detto perché in **Motivo**: il risultato era sbagliato. | Resta chiuso, anche mentre il controllo non viene superato, e conserva il motivo. **Riapri** lo riporta ad Aperto. |
 
 I Membri della sicurezza, gli Amministratori della sicurezza, gli Amministratori del progetto e i Proprietari del progetto possono cambiare lo stato di un problema, e assegnarlo a una persona o a un team con **Assegna**. Ogni modifica viene scritta nella **Cronologia** del problema: quando si è aperto, ogni cambio di gravità, ogni cambio di stato e chi lo ha fatto, le nuove verifiche richieste, e cosa hanno fatto le integrazioni.
 
 Un problema che si riapre mantiene la sua cronologia. I rischi accettati vengono riesaminati ogni giorno, così un'accettazione scade puntuale anche quando non è stato scansionato nulla.
+
+### Come è stato risolto
+
+Un problema risolto indica come, in cima alla sua pagina e nell'elenco dei problemi, che si può filtrare in base a questo sotto **Risoluzione**:
+
+| Risoluzione | Cosa significa |
+| --- | --- |
+| **Corretto nel codice** | La pull request di una correzione del codice è stata rilasciata, e la nuova versione del servizio non scrive più i dati. Il problema indica quale e quando: «Corretto nella pull request #482, distribuito nella versione 2.4.1, verificato». |
+| **Corretto nel codice dell'infrastruttura** | Una pull request al Terraform, CloudFormation o Bicep che dichiara l'archivio è stata unita, e l'archivio ha superato il suo controllo una volta applicata la modifica. |
+| **Corretto da qui** | Un'azione di risposta ([Correggi da qui](#correggi-da-qui)) ha modificato l'archivio, e il suo controllo è stato superato dopo. |
+| **Contenuto in fase di acquisizione** | Ogni risultato di un problema di telemetria viene nascosto da una regola di pulizia prima di essere conservato. Questa non è una correzione: il codice scrive ancora i dati, su stdout e in ogni altro luogo a cui il servizio invia la sua telemetria. Il problema lo segnala in ambra, con ciò che la regola ha cambiato nell'ultima settimana, e offre **Correggi il codice**. |
+| **Controllo superato** | Il suo controllo viene superato senza alcuna modifica da parte di OneUptime. |
+| **Risolto da una persona** | Qualcuno ha scelto **Segna come risolto**. L'archivio viene subito controllato di nuovo, e il problema si riapre se il suo controllo non viene ancora superato. |
+| **Non più controllato** | Il suo controllo è stato disattivato, o non si applica più all'archivio. |
+| **Archivio dati archiviato** | Il suo archivio non c'è più nella sua origine. |
+
+La Panoramica conta i problemi corretti alla fonte separatamente dalle fughe solo contenute all'ingestione, e **Nella tua telemetria** mantiene visibile un risultato contenuto, contrassegnato come **Ripulito**, finché il codice non smette di scriverlo.
+
+### Correzioni seguite fino in produzione
+
+Una pull request che OneUptime AI ha aperto per un problema (**Correggi con l'IA**, o una sola pull request per un [gruppo di problemi](#problemi-con-una-sola-causa)) non ha ancora corretto nulla quando viene unita. OneUptime la segue finché la produzione non lo dimostra:
+
+- **Una fuga nel codice.** OneUptime attende un deploy registrato del servizio che contenga l'unione, poi osserva la sua nuova versione. Dove una regola di pulizia nasconde i dati, la regola non deve modificare alcun valore in quella versione; dove nessuna regola lo fa, nessun record di quella versione può contenere i dati nei punti in cui sono stati trovati. La nuova versione deve anche restare in esecuzione per un giorno e inviare almeno tanti log o span quanti ne ha inviati la vecchia nell'ora in cui la fuga è stata vista l'ultima volta. A quel punto il problema è **Corretto nel codice**. Un solo valore modificato, o un solo record che contiene ancora i dati, significa che la correzione non ha fermato la fuga, e su una versione che invia troppo poco in una settimana non si può dire nulla. I deploy vengono abbinati in base al loro commit: registrali con `oneuptime deploy`, oppure invia `vcs.ref.head.revision` (vedi [Deploy e modifiche](/docs/telemetry/change-events)).
+- **La configurazione di un archivio.** Quando la pull request viene unita, i suoi archivi vengono riletti subito. Ogni problema il cui controllo viene superato dopo è **Corretto nel codice dell'infrastruttura**. Se un archivio non supera ancora il suo controllo quando viene riletto un giorno dopo l'unione, la correzione è stata **unita, non applicata**: i proprietari dell'archivio e la persona che ha chiesto la pull request ricevono un'email, una sola volta, e le cronologie del problema e dell'archivio lo riportano. Di solito manca un apply.
+- **La regola di pulizia resta.** Dopo una correzione del codice verificata, la regola di pulizia che ha contenuto la fuga rimane, così una regressione viene nascosta appena arriva. Il problema indica che la regola non ha cambiato nulla dalla correzione, e offre **Rimuovi regola**.
+- **Una regressione.** Una correzione verificata continua a essere osservata: quando una regola mantenuta torna a modificare valori, o la scansione ritrova i dati, il problema si riapre e indica quale versione li ha riportati. Resta aperto finché non viene corretto di nuovo, anche mentre una regola nasconde i dati.
+
+Ogni passaggio compare nella **Cronologia** del problema e in quella dell'archivio, e Risultati IA conta le correzioni verificate per tipo (vedi [Come se la cava OneUptime AI](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai)).
+
+## L'analisi di OneUptime AI
+
+Finché **Lavora sui nuovi problemi** è attivo in **Sicurezza dei dati → IA**, OneUptime AI analizza da sola ogni problema nuovo o riaperto di gravità Critica o Alta, prima che qualcuno lo apra; le tue regole IA di Sicurezza dei dati possono sceglierne altri. Qualsiasi problema può essere analizzato dalla sua pagina con **Analizza il problema**. L'analisi apre la **Panoramica** del problema, sotto **Analisi di OneUptime AI**, e risponde in base a ciò che Sicurezza dei dati sa:
+
+- se è reale: **Reale**, **Probabilmente voluto**, **Probabilmente un rilevamento errato** o **Impossibile stabilirlo**, e perché;
+- cosa mette a rischio: i dati e circa quanti record, chi può raggiungerli, le loro copie in altri archivi e i casi di sicurezza che li riguardano;
+- cosa romperebbe la correzione: i servizi visti usare l'archivio, le identità che hanno usato il loro accesso negli ultimi 90 giorni e le concessioni che la correzione rimuove e che qualcosa usa ancora;
+- la via più breve verso la correzione: cosa lo contiene ora, il codice che dichiara l'archivio e chi dovrebbe occuparsene.
+
+Ogni riga nomina i fatti su cui si basa, elencati sotto da un pulsante come **Mostra i 3 fatti su cui si basa**. Una riga che non si basa su alcun fatto viene scartata, un verdetto il cui motivo non si basa su nessuno è **Impossibile stabilirlo**, e un archivio di dati ristretti non è mai **Probabilmente voluto** sulla sola parola di OneUptime AI. Una riga che si basa su qualcosa che non puoi leggere, come chi può raggiungere l'archivio, ti viene nascosta, e lo dice.
+
+OneUptime AI non modifica mai il problema: stato e gravità restano al suo controllo e a te. Per **Probabilmente voluto** offre **Accetta il rischio** con il motivo già scritto, e **Pubblico per scelta** per un archivio pubblico; per **Probabilmente un rilevamento errato**, **Non è un problema** con il motivo già scritto. Nulla cambia finché non scegli.
+
+L'analisi viene conservata sul problema, con una voce nella sua **Cronologia** ogni volta che viene scritta, nella lingua scelta dalla maggior parte dei membri del tuo progetto (**Analizza di nuovo** la scrive nella tua). Viene riscritta solo quando cambia ciò su cui si basa, quindi aprire il problema non chiede nulla a OneUptime AI; **Analizza di nuovo** chiede comunque. **Problemi** filtra e mostra i problemi per **Verdetto di OneUptime AI**. Cosa invia, e cosa non invia mai, è in [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai). Con l'IA disattivata, non c'è analisi.
 
 ## Correggi da qui
 
@@ -178,6 +223,38 @@ Un problema aperto che una sola modifica alle impostazioni di un archivio correg
 Prima chiede conferma, dicendo cosa cambia, cosa smette di funzionare e quanto costa. Cambia le impostazioni dell'archivio, mai i suoi dati, e non cambia nulla che sia già come dovrebbe. Un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato.
 
 Agisce tramite la connessione cloud dell'archivio, quindi la connessione deve avere **Risposta di sicurezza dei dati** attivata e il suo comando di configurazione eseguito di nuovo (vedi [Configurare Sicurezza dei dati](/docs/data-security/setup#lasciare-che-sicurezza-dei-dati-chiuda-unesposizione)). Fino ad allora il pannello dice cosa attivare. L'archivio viene controllato di nuovo subito dopo, e il problema si risolve da solo quando il suo controllo viene superato. La **Cronologia** del problema e la **Cronologia** dell'archivio dicono cosa è stato fatto, e chi l'ha fatto.
+
+## Problemi con una sola causa
+
+Un modulo Terraform che disattiva i log di accesso crea quaranta bucket con quaranta problemi. La sicurezza dei dati riunisce i problemi causati da uno stesso errore, così la loro causa si corregge una volta sola.
+
+**Raggruppa per causa** in **Problemi** mostra ogni gruppo sopra l'elenco: «40 problemi, una sola causa: il modulo static-site», cosa trova il suo controllo, quanti sono corretti e quanti restano. I suoi archivi dati si aprono sotto di esso, ognuno con un link al suo problema, e i filtri dell'elenco li restringono come restringono le righe. I problemi senza gruppo sono elencati sotto i gruppi. Il raggruppamento si attiva appena un gruppo contiene cinque problemi, e il tuo browser ricorda la tua scelta.
+
+Sono i fatti a formare un gruppo, mai OneUptime AI. I problemi di uno stesso controllo, su archivi dati di uno stesso cloud, formano un gruppo quando i loro archivi condividono uno di questi fatti, dal più forte:
+
+| Fatto | Dove viene letto |
+| --- | --- |
+| Il codice che li dichiara | Un file di un repository collegato che porta il nome del modulo o dello stack nominato dai loro tag |
+| Il loro stack | Il tag proprio dello stack CloudFormation, o un tag che nomina uno stack |
+| Un tag | Un tag che nomina il modulo, lo stack o il componente che li ha creati, come `module` o `component` |
+| Chi li ha creati | L'identità che li ha creati secondo il log delle modifiche del cloud, per gli archivi i cui tag non nominano nulla di ciò che li ha creati |
+| Uno schema di nomi | Una parte dei loro nomi che pochi altri archivi hanno, come `static-site-*` |
+
+Un gruppo contiene almeno due problemi, un problema sta al massimo in un gruppo, e un problema resta nel suo gruppo finché il suo archivio dati condivide il fatto del gruppo. Finché **Lavora sui nuovi problemi** è attivo in **Sicurezza dei dati → IA**, OneUptime AI dà un nome a ogni gruppo a partire dai suoi fatti, come «il modulo static-site disattiva i log di accesso», e un nome che dice qualcosa che i fatti non dicono non viene tenuto. Altrimenti un gruppo prende il nome dal suo fatto.
+
+**Correggi la causa** su un gruppo dice cosa cambia, cosa esclude e perché, prima che cambi qualcosa:
+
+- **Una sola pull request**, per gli archivi dati dichiarati come codice: OneUptime AI modifica il modulo o il file che li dichiara, nel repository che confermi, invece di ogni archivio. La pull request elenca ogni archivio e ogni problema che corregge, e compare in **Codice** e nella **Cronologia** di ogni problema. Richiede ciò che richiede **Correggi con l'IA**: l'autorizzazione a modificare i problemi di sicurezza dei dati e un repository in cui OneUptime AI può lavorare.
+- **Una sola approvazione**, per gli archivi dati creati nella console: su ciascuno, la modifica che fa [Correggi da qui](#correggi-da-qui) per il suo tipo di archivio, tramite la sua connessione cloud. Le modifiche sono elencate tipo per tipo, ognuna con ciò che cambia, ciò che smette di funzionare e quanto costa, come lo dice Correggi da qui (uno snapshot condiviso smette di essere condiviso, mentre un database smette di condividere ogni suo snapshot manuale), e una sola approvazione le fa tutte. Richiede l'autorizzazione a modificare gli archivi dati.
+- **Esclusi**: un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato. Un archivio la cui analisi dice che la correzione toglierebbe un accesso che qualcosa usa ancora aspetta che tu selezioni **Correggilo comunque**. Un archivio che nessuna connessione cloud lascia modificare alla sicurezza dei dati resta alla sua console, con il motivo.
+
+Quando un gruppo ha entrambi i tipi di archivio, un solo clic esegue entrambe le parti, e ciascuna si può escludere. Ogni problema si risolve da sé appena il suo controllo viene superato, e il gruppo dice quanti ne restano finché non ne resta nessuno. Un gruppo con tutti i problemi corretti resta nell'elenco per sette giorni.
+
+Una correzione che OneUptime AI ha fatto per un gruppo è provata appena ogni problema che ha corretto è stato chiuso da quella correzione: per una pull request, ogni problema che elenca risolto come **Corretto nel codice dell'infrastruttura** da essa; per l'approvazione unica, ogni problema di cui ha modificato l'archivio risolto come **Corretto da qui**, dalla modifica che ha fatto. Un problema accettato, segnato come non un problema, risolto da una persona o eliminato non prova nulla, e un archivio che l'approvazione ha lasciato fuori, o che ha trovato già come deve essere, non viene atteso. [Risultati IA](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai) conta una correzione provata tra le modifiche che hanno funzionato.
+
+OneUptime AI propone la correzione di ogni gruppo come dicono le tue regole IA di sicurezza dei dati: senza regole, la pull request ti aspetta in **Sicurezza dei dati → IA**, e una regola la cui **Correzione** è **Senza chiedere** la apre da sola. Una modifica tramite le connessioni cloud ti aspetta sempre. Ogni problema aperto a cui si riferisce una proposta lo dice nella sua **Cronologia** quando OneUptime AI propone la correzione del gruppo, e di nuovo quando qualcuno la rifiuta o scade. Una proposta più recente che ne sostituisce una ancora in attesa lo dice solo ai problemi che la precedente non aveva avvisato, e un gruppo di più di 200 problemi aperti resta in silenzio. In un caso di sicurezza dei dati, il passaggio **Fix the code with AI** di un playbook chiede la pull request del gruppo del caso, e una pull request a sé per ogni problema del caso che non è in nessun gruppo. Un problema di un gruppo lo dice sotto **Analisi di OneUptime AI**, con **Correggi la causa**.
+
+Chi ha la lettura dei problemi di sicurezza dei dati limitata alle etichette vede ogni gruppo ridotto agli archivi dati che può leggere: i suoi numeri contano solo i problemi di quegli archivi, e prende il nome dal suo fatto come lo danno quegli archivi, mai dal nome dato da OneUptime AI, che può parlare di archivi che non può leggere. Un gruppo di cui può leggere un solo problema non viene mostrato, e quel problema resta nel suo elenco. **Correggi la causa** modifica ogni archivio creato dalla causa, quindi richiede di leggere i problemi di sicurezza dei dati di tutto il progetto: vede cosa farebbe, e perché non può farlo.
 
 ## Dove sono stati trovati i dati di un problema di telemetria
 

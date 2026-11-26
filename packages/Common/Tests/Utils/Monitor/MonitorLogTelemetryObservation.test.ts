@@ -513,3 +513,168 @@ describe("MonitorLogSummaryUtil.toSummaryInfoProps - a telemetry row's View Summ
     expect(props.probeMonitorResponses).toHaveLength(1);
   });
 });
+
+/*
+ * #10063: an ungrouped check's Observed counts the data points of what its
+ * criteria compare. A formula's points are computed from its queries', so
+ * counting both read "20 data points" for a 10 minute window of a Host
+ * monitor whose template scales a ratio with a formula.
+ */
+describe("MonitorLogSummaryUtil.getTelemetryObservation - a formula is not counted on top of its query", () => {
+  function query(alias: string): JSONObject {
+    return {
+      metricAliasData: { metricVariable: alias, title: alias },
+      metricQueryData: { filterData: { metricName: `metric.${alias}` } },
+    } as unknown as JSONObject;
+  }
+
+  function formula(alias: string, expression: string): JSONObject {
+    return {
+      metricAliasData: { metricVariable: alias, title: alias },
+      metricFormulaData: { metricFormula: expression },
+    } as unknown as JSONObject;
+  }
+
+  function checkWith(data: {
+    queries: Array<JSONObject>;
+    formulas: Array<JSONObject>;
+    results: Array<{ data: Array<JSONObject> }>;
+  }): JSONObject {
+    return {
+      ...metricCheck({ results: data.results }),
+      metricViewConfig: {
+        queryConfigs: data.queries,
+        formulaConfigs: data.formulas,
+      },
+    } as unknown as JSONObject;
+  }
+
+  it("High Filesystem Usage over 10 minutes: 10 data points, the formula's, not 20", () => {
+    expect(
+      observe(
+        MonitorType.Host,
+        checkWith({
+          queries: [query("host_filesystem_ratio")],
+          formulas: [formula("host_filesystem", "host_filesystem_ratio * 100")],
+          results: [aggregated(10), aggregated(10)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 10 });
+  });
+
+  it("a formula over two queries counts its own points, which the criteria compare", () => {
+    expect(
+      observe(
+        MonitorType.Metrics,
+        checkWith({
+          queries: [query("a"), query("b")],
+          formulas: [formula("c", "a / b * 100")],
+          results: [aggregated(10), aggregated(10), aggregated(9)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 9 });
+  });
+
+  it("a query no formula is computed from is counted beside the formula", () => {
+    expect(
+      observe(
+        MonitorType.Metrics,
+        checkWith({
+          queries: [query("a"), query("b")],
+          formulas: [formula("c", "a * 100")],
+          results: [aggregated(5), aggregated(3), aggregated(5)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 8 });
+  });
+
+  it("reads a formula's variables as the evaluator does: with a $, in any case", () => {
+    expect(
+      observe(
+        MonitorType.Metrics,
+        checkWith({
+          queries: [query("Errors"), query("requests")],
+          formulas: [formula("rate", "$errors / REQUESTS")],
+          results: [aggregated(4), aggregated(4), aggregated(4)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 4 });
+  });
+
+  it("queries alone are all counted, as before", () => {
+    expect(
+      observe(
+        MonitorType.Metrics,
+        checkWith({
+          queries: [query("a"), query("b")],
+          formulas: [],
+          results: [aggregated(5), aggregated(3)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 8 });
+  });
+
+  it("a body whose results do not line up with its queries and formulas is counted whole", () => {
+    expect(
+      observe(
+        MonitorType.Metrics,
+        checkWith({
+          queries: [query("a")],
+          formulas: [formula("b", "a * 2")],
+          // A result short: trimmed, or written before formulas were stored.
+          results: [aggregated(6)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 6 });
+  });
+
+  it("a formula that cannot be read leaves its queries counted", () => {
+    expect(
+      observe(
+        MonitorType.Metrics,
+        checkWith({
+          queries: [query("a")],
+          formulas: [formula("b", "a * (")],
+          results: [aggregated(6), aggregated(0)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 6 });
+  });
+
+  it("a formula over a query that read nothing still says no data", () => {
+    expect(
+      observe(
+        MonitorType.Host,
+        checkWith({
+          queries: [query("host_filesystem_ratio")],
+          formulas: [formula("host_filesystem", "host_filesystem_ratio * 100")],
+          results: [aggregated(0), aggregated(0)],
+        }),
+      ),
+    ).toEqual({ kind: TelemetryObservationKind.NoMetricData, count: 0 });
+  });
+
+  it("a grouped check still counts its series", () => {
+    expect(
+      observe(MonitorType.Host, {
+        ...checkWith({
+          queries: [query("host_filesystem_ratio")],
+          formulas: [formula("host_filesystem", "host_filesystem_ratio * 100")],
+          results: [aggregated(10), aggregated(10)],
+        }),
+        seriesBreakdown: [
+          {
+            fingerprint: "mount=/",
+            labels: { mountpoint: "/" },
+            aggregatedResults: [aggregated(5), aggregated(5)],
+          },
+          {
+            fingerprint: "mount=/data",
+            labels: { mountpoint: "/data" },
+            aggregatedResults: [aggregated(5), aggregated(5)],
+          },
+        ],
+      }),
+    ).toEqual({ kind: TelemetryObservationKind.MetricSeries, count: 2 });
+  });
+});

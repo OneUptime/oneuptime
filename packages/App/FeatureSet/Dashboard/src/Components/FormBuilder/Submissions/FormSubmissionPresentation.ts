@@ -27,6 +27,32 @@ export const getFormSubmissionSubmitter: GetFormSubmissionSubmitterFunction = (
 };
 
 /*
+ * What a submission created: its stored target, or the record it links -
+ * a maintenance event, then an alert - and an incident otherwise.
+ */
+export const getFormSubmissionTargetType: (
+  submission: FormSubmission,
+) => FormTargetType = (submission: FormSubmission): FormTargetType => {
+  if (
+    submission.targetType === FormTargetType.ScheduledMaintenance ||
+    Boolean(
+      submission.scheduledMaintenanceId || submission.scheduledMaintenance,
+    )
+  ) {
+    return FormTargetType.ScheduledMaintenance;
+  }
+
+  if (
+    submission.targetType === FormTargetType.Alert ||
+    Boolean(submission.alertId || submission.alert)
+  ) {
+    return FormTargetType.Alert;
+  }
+
+  return FormTargetType.Incident;
+};
+
+/*
  * Whether the incident a submission created is one the reader may not see,
  * for a submission read with its incident selected (as the submissions
  * table reads it): the submission still names it, but the server read it
@@ -37,14 +63,25 @@ export const getFormSubmissionSubmitter: GetFormSubmissionSubmitterFunction = (
 export const isFormSubmissionIncidentHidden: (
   submission: FormSubmission,
 ) => boolean = (submission: FormSubmission): boolean => {
-  const isMaintenance: boolean =
-    submission.targetType === FormTargetType.ScheduledMaintenance ||
-    Boolean(
-      submission.scheduledMaintenanceId || submission.scheduledMaintenance,
-    );
-
   return (
-    !isMaintenance && Boolean(submission.incidentId) && !submission.incident
+    getFormSubmissionTargetType(submission) === FormTargetType.Incident &&
+    Boolean(submission.incidentId) &&
+    !submission.incident
+  );
+};
+
+/*
+ * The same for an alert: one a privacy rule made private after a form
+ * created it is read back without the alert by a reader who may not see
+ * it. Shown as a private alert, with no link.
+ */
+export const isFormSubmissionAlertHidden: (
+  submission: FormSubmission,
+) => boolean = (submission: FormSubmission): boolean => {
+  return (
+    getFormSubmissionTargetType(submission) === FormTargetType.Alert &&
+    Boolean(submission.alertId) &&
+    !submission.alert
   );
 };
 
@@ -52,8 +89,11 @@ export interface FormSubmissionCreatedLink {
   id: ObjectID;
   // "INC-42", "#7".
   reference: string;
-  pageMap: PageMap.INCIDENT_VIEW | PageMap.SCHEDULED_MAINTENANCE_VIEW;
-  // "Incident", "Scheduled Maintenance", to put before the reference.
+  pageMap:
+    | PageMap.INCIDENT_VIEW
+    | PageMap.ALERT_VIEW
+    | PageMap.SCHEDULED_MAINTENANCE_VIEW;
+  // "Incident", "Alert", "Scheduled Maintenance", to put before the reference.
   kindTitle: string;
 }
 
@@ -78,19 +118,15 @@ export type GetFormSubmissionCreatedLinkFunction = (
 ) => FormSubmissionCreatedLink | null;
 
 /**
- * What the submission created, to link to: the incident or the scheduled
- * maintenance event, by its number - or null once it is deleted (the link
- * on the submission is cleared with it).
+ * What the submission created, to link to: the incident, the alert or the
+ * scheduled maintenance event, by its number - or null once it is deleted
+ * (the link on the submission is cleared with it).
  */
 export const getFormSubmissionCreatedLink: GetFormSubmissionCreatedLinkFunction =
   (submission: FormSubmission): FormSubmissionCreatedLink | null => {
-    const isMaintenance: boolean =
-      submission.targetType === FormTargetType.ScheduledMaintenance ||
-      Boolean(
-        submission.scheduledMaintenanceId || submission.scheduledMaintenance,
-      );
+    const targetType: FormTargetType = getFormSubmissionTargetType(submission);
 
-    if (isMaintenance) {
+    if (targetType === FormTargetType.ScheduledMaintenance) {
       const id: string | undefined =
         submission.scheduledMaintenance?._id?.toString() ||
         submission.scheduledMaintenanceId?.toString();
@@ -108,6 +144,25 @@ export const getFormSubmissionCreatedLink: GetFormSubmissionCreatedLinkFunction 
         pageMap: PageMap.SCHEDULED_MAINTENANCE_VIEW,
         kindTitle:
           FORM_TARGET_TYPE_TEXT[FormTargetType.ScheduledMaintenance].title,
+      };
+    }
+
+    if (targetType === FormTargetType.Alert) {
+      const id: string | undefined =
+        submission.alert?._id?.toString() || submission.alertId?.toString();
+
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id: new ObjectID(id),
+        reference: getReference(
+          submission.alert?.alertNumberWithPrefix,
+          submission.alert?.alertNumber,
+        ),
+        pageMap: PageMap.ALERT_VIEW,
+        kindTitle: FORM_TARGET_TYPE_TEXT[FormTargetType.Alert].title,
       };
     }
 

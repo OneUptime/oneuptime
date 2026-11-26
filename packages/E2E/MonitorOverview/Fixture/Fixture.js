@@ -206,6 +206,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import TelemetryRulePreviewUtil from "Common/Types/Monitor/TelemetryRulePreview";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
@@ -942,12 +943,14 @@ for (const [interfaceIndex, name, alias] of [
 /*
  * The cluster a Kubernetes monitor's criteria step offers (its cluster
  * picker reads the KubernetesCluster table): the one the Kubernetes monitor
- * below watches.
+ * below watches. Live, as a cluster is stored: the picker offers only
+ * clusters that are not archived (isArchived: false, #10646).
  */
 insert(KubernetesCluster, {
   _id: ID.kubernetesCluster(1),
   name: "Production cluster (eu-west-1)",
   clusterIdentifier: "prod-eu-west-1",
+  isArchived: false,
 });
 
 /*
@@ -4181,6 +4184,17 @@ async function handleApi(method, options) {
     parsed.pathname.endsWith("/security-case/resource-security")
   ) {
     return monitorSecurity(body);
+  }
+
+  /*
+   * A new monitor's name, asked about as it is typed (#10761): no other
+   * monitor of the project has it.
+   */
+  if (method === "GET") {
+    const names = answerUniqueNames({ url });
+    if (names) {
+      return ok(names);
+    }
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

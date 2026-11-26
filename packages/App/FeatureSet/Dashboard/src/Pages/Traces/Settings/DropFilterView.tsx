@@ -29,12 +29,60 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import DropFilterImpactPreview from "../../../Components/Telemetry/DropFilterImpact/DropFilterImpactPreview";
+import { DropFilterImpactRule } from "../../../Components/Telemetry/DropFilterImpact/DropFilterImpactApi";
+import useDropFilterImpactConfirmation, {
+  DropFilterImpactConfirmation,
+  DropFilterSavePurpose,
+} from "../../../Components/Telemetry/DropFilterImpact/useDropFilterImpactConfirmation";
+import useStoredDropFilter, {
+  StoredDropFilterResult,
+} from "../../../Components/Telemetry/DropFilterImpact/useStoredDropFilter";
 
 const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  /*
+   * What a change would take (#10436): each card edits a part of the
+   * filter, so the impact reads the filter as it is saved with the part
+   * being edited over it, and a change to an enabled filter - or turning
+   * one on - asks first when something reads what it would take.
+   */
+  const stored: StoredDropFilterResult = useStoredDropFilter({
+    modelType: TraceDropFilter,
+    modelId,
+  });
+  const confirmation: DropFilterImpactConfirmation =
+    useDropFilterImpactConfirmation();
+
+  const withStored: (change: DropFilterImpactRule) => DropFilterImpactRule = (
+    change: DropFilterImpactRule,
+  ): DropFilterImpactRule => {
+    return { ...(stored.filter || {}), ...change };
+  };
+
+  const confirmChange: (data: {
+    change: DropFilterImpactRule;
+    isTurningOn?: boolean | undefined;
+  }) => Promise<void> = async (data: {
+    change: DropFilterImpactRule;
+    isTurningOn?: boolean | undefined;
+  }): Promise<void> => {
+    // A filter left off takes nothing; turning it on asks then.
+    if (!data.isTurningOn && !stored.filter?.isEnabled) {
+      return;
+    }
+
+    await confirmation.confirmOrCancel({
+      signal: "trace",
+      rule: withStored(data.change),
+      purpose: DropFilterSavePurpose.Save,
+    });
+  };
 
   return (
     <Fragment>
@@ -66,8 +114,34 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
             title: "Enabled",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            // Turned on here, what the filter would take.
+            getFooterElement: (
+              values: FormValues<TraceDropFilter>,
+            ): ReactElement | undefined => {
+              return values.isEnabled === true &&
+                stored.filter &&
+                !stored.filter.isEnabled ? (
+                <DropFilterImpactPreview
+                  signal="trace"
+                  rule={withStored({})}
+                  dataTestId="drop-filter-enable-impact"
+                />
+              ) : undefined;
+            },
           },
         ]}
+        onBeforeUpdate={async (
+          item: TraceDropFilter,
+        ): Promise<TraceDropFilter> => {
+          if (item.isEnabled === true && stored.filter?.isEnabled === false) {
+            await confirmChange({ change: {}, isTurningOn: true });
+          }
+
+          return item;
+        }}
+        onSaveSuccess={() => {
+          stored.reload();
+        }}
         modelDetailProps={{
           modelType: TraceDropFilter,
           id: "model-detail-trace-drop-filter",
@@ -107,7 +181,35 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
          * The create form's Action fields (DropFilterForm): Drop or Sample,
          * each with its line, and the percentage only for Sample.
          */
-        formFields={getTraceDropFilterActionFields()}
+        formFields={getTraceDropFilterActionFields(
+          (values: FormValues<TraceDropFilter>): ReactElement => {
+            return (
+              <DropFilterImpactPreview
+                signal="trace"
+                rule={withStored({
+                  action: values.action,
+                  samplePercentage: values.samplePercentage,
+                })}
+                dataTestId="drop-filter-action-impact"
+              />
+            );
+          },
+        )}
+        onBeforeUpdate={async (
+          item: TraceDropFilter,
+        ): Promise<TraceDropFilter> => {
+          await confirmChange({
+            change: {
+              action: item.action,
+              samplePercentage: item.samplePercentage,
+            },
+          });
+
+          return item;
+        }}
+        onSaveSuccess={() => {
+          stored.reload();
+        }}
         modelDetailProps={{
           modelType: TraceDropFilter,
           id: "model-detail-trace-drop-filter-action",
@@ -260,6 +362,29 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
         modelType={TraceDropFilter}
         modelId={modelId}
         config={TraceFilterConfig}
+        renderPreview={(query: string): ReactElement => {
+          return (
+            <DropFilterImpactPreview
+              signal="trace"
+              rule={withStored({ filterQuery: query })}
+              dataTestId="drop-filter-query-impact"
+            />
+          );
+        }}
+        onBeforeSave={async (query: string): Promise<boolean> => {
+          if (!stored.filter?.isEnabled) {
+            return true;
+          }
+
+          return await confirmation.confirm({
+            signal: "trace",
+            rule: withStored({ filterQuery: query }),
+            purpose: DropFilterSavePurpose.Save,
+          });
+        }}
+        onSaved={() => {
+          stored.reload();
+        }}
         title="Filter Conditions"
         description="Define which spans this drop filter applies to. Matching spans will be dropped or sampled based on the action above."
       />
@@ -277,6 +402,9 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
           );
         }}
       />
+
+      {/* What a change would take, asked before it is saved (#10436). */}
+      {confirmation.confirmation}
     </Fragment>
   );
 };

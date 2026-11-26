@@ -27,6 +27,10 @@ import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProbeVersionElement from "../../../Components/Probe/ProbeVersion";
+import ProbeAddresses, {
+  readProbeAddresses,
+} from "../../../Components/Probe/ProbeAddresses";
+import { PROBE_ADDRESSES_COPY } from "../../../Components/Probe/ProbeAddressesCopy";
 import ProbeChecksElement, {
   PROBE_CHECKS_COPY,
   PROBE_DEVICE_POLLS_COPY,
@@ -216,6 +220,16 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
+            {
+              /*
+               * When it was created, which takes the card's line: with the ID
+               * kept as a field above, the line says who created it and who
+               * last modified it (#10461).
+               */
+              field: { createdAt: true },
+              title: "Created",
+              fieldType: FieldType.DateTime,
+            },
           ],
           modelId: modelId,
         }}
@@ -256,7 +270,11 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Element,
               getElement: (item: Probe): ReactElement => {
                 return (
-                  <ProbeStatusElement probe={item} isConnectionOnly={true} />
+                  <ProbeStatusElement
+                    probe={item}
+                    isConnectionOnly={true}
+                    isProjectProbe={true}
+                  />
                 );
               },
             },
@@ -274,6 +292,50 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Element,
               getElement: (item: Probe): ReactElement => {
                 return <ProbeVersionElement probe={item} />;
+              },
+            },
+            {
+              /*
+               * The addresses OneUptime knows it by (#10634): where it
+               * checks in from, and what it lists when it does. Read by the
+               * probe's readers only - the card leaves out a column its
+               * reader may not read - and shown only once it has checked
+               * in.
+               */
+              field: {
+                egressIpAddress: true,
+              },
+              title: PROBE_ADDRESSES_COPY.checkInTitle,
+              description: PROBE_ADDRESSES_COPY.checkInDescription,
+              fieldType: FieldType.Element,
+              showIf: (item: Probe): boolean => {
+                return (
+                  readProbeAddresses(item.egressIpAddress, false).length > 0
+                );
+              },
+              getElement: (item: Probe): ReactElement => {
+                return <ProbeAddresses value={item.egressIpAddress} />;
+              },
+            },
+            {
+              field: {
+                interfaceIpAddresses: true,
+              },
+              title: PROBE_ADDRESSES_COPY.interfacesTitle,
+              description: PROBE_ADDRESSES_COPY.interfacesDescription,
+              fieldType: FieldType.Element,
+              showIf: (item: Probe): boolean => {
+                return (
+                  readProbeAddresses(item.interfaceIpAddresses, true).length > 0
+                );
+              },
+              getElement: (item: Probe): ReactElement => {
+                return (
+                  <ProbeAddresses
+                    value={item.interfaceIpAddresses}
+                    isList={true}
+                  />
+                );
               },
             },
             {
@@ -349,8 +411,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         resourceDisplayName="probe"
         ownerUserModelType={ProbeOwnerUser}
         ownerTeamModelType={ProbeOwnerTeam}
-        description="People and teams who own this probe. They are alerted when its status changes."
-        emptyDescription="Add a teammate or a team so they are alerted when this probe's status changes."
+        description="People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime."
+        emptyDescription="Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted."
       />
 
       <ResetObjectID<Probe>

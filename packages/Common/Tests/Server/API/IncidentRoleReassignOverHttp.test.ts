@@ -36,6 +36,7 @@ import IncidentMemberService, {
   ALREADY_HOLDS_TARGET_ROLE_MESSAGE,
   MOVE_ONE_ROLE_AT_A_TIME_MESSAGE,
   REASSIGN_ONE_ROLE_AT_A_TIME_MESSAGE,
+  NOT_A_PROJECT_MEMBER_ROLE_MESSAGE,
   ROLE_HOLDER_REQUIRED_MESSAGE,
   ROLE_REQUIRED_MESSAGE,
 } from "../../../Server/Services/IncidentMemberService";
@@ -710,6 +711,31 @@ describe("what the server refuses of a hand-over", () => {
 
     expect(sent.status).toBe(400);
     expectCommanderUntouched();
+  });
+
+  /*
+   * REGRESSION: someone invited who has not joined passes the check every
+   * update makes of a person - an invitation still waiting is a membership
+   * - so a role could be handed to them, though giving them one is refused
+   * (#10668). Nothing of the project reaches them until they join.
+   */
+  test("someone only invited, who has not joined the project, cannot be handed the role either, in the words giving one says", async () => {
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockImplementation(
+        async (data: { userId: ObjectID }): Promise<boolean> => {
+          return idOf(data.userId) !== idOf(ANA_ID);
+        },
+      );
+
+    const sent: SentRequest = await handOn(COMMANDER_ROW_ID, {
+      userId: ANA_ID,
+    });
+
+    expect(sent.status).toBe(400);
+    expect(refusalOf(sent)).toBe(NOT_A_PROJECT_MEMBER_ROLE_MESSAGE);
+    expectCommanderUntouched();
+    expect(feedItems).toEqual([]);
   });
 
   test("handing it back to the person who holds it changes nobody, and says nothing", async () => {

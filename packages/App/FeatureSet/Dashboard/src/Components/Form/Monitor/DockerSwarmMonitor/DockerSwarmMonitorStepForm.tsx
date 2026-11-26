@@ -139,6 +139,9 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<DockerSwarmCluster> =
     useInfrastructureResources<DockerSwarmCluster>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepDockerSwarmMonitor.clusterIdentifier,
       modelType: DockerSwarmCluster,
       select: {
         _id: true,
@@ -338,6 +341,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: DOCKER_SWARM_CLUSTER_ONBOARDING.addTitle,
           renderModal: (input: {

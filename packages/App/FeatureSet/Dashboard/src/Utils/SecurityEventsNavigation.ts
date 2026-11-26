@@ -283,6 +283,17 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
       },
       {
         /*
+         * The policies that challenge or block an attacking address as
+         * the detection is made, under guardrails, each with its trial
+         * run (Types/SecurityAutomaticResponse) - beside the blocklist
+         * their blocks go on.
+         */
+        page: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+        title: "Automatic Response",
+        icon: IconProp.HandRaised,
+      },
+      {
+        /*
          * What the project blocks now - each address or range, why, until
          * when and where it is enforced (Types/SecurityBlocklist) - beside
          * the entities no block or playbook may touch.
@@ -290,6 +301,19 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_BLOCKLIST,
         title: "Blocklist",
         icon: IconProp.NoSymbol,
+      },
+      {
+        /*
+         * The secret URLs firewalls and proxies read the blocklist
+         * from (Types/SecurityBlocklist/SecurityBlocklistFeed): Palo
+         * Alto, FortiGate, Check Point, Cisco, OPNsense, nftables,
+         * nginx. A feed's own page - its setup steps and fetches -
+         * lights this entry.
+         */
+        page: PageMap.SECURITY_BLOCKLIST_FEEDS,
+        title: "Blocklist Feeds",
+        icon: IconProp.CloudArrowDown,
+        detailPages: [PageMap.SECURITY_BLOCKLIST_FEED_VIEW],
       },
       {
         page: PageMap.SECURITY_PROTECTED_ENTITIES,

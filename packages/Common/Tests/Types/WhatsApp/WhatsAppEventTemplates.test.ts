@@ -44,6 +44,10 @@ const NO_APPROVED_TEMPLATE: ReadonlyArray<NotificationSettingEventType> = [
   E.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
   E.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
   E.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+  // A step of a security case that stopped holding (#10340): security cases send no WhatsApp.
+  E.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+  // OneUptime AI handing a security case to people (#10352): nor does this one.
+  E.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
   E.SEND_SECURITY_HUNT_FOUND_NOTIFICATION,
   E.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
   E.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,
@@ -58,6 +62,12 @@ const NO_APPROVED_TEMPLATE: ReadonlyArray<NotificationSettingEventType> = [
   // And the monitor group's and the Runner's new owners (#9758).
   E.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
   E.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+  /*
+   * A probe a major release behind (#9977): the probe status template's
+   * "Probe X status is Y" is not true of it - a probe's status is
+   * Connected, Disconnected or Behind on its checks - so none is reused.
+   */
+  E.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
 ];
 
 const EVERY_EVENT: Array<NotificationSettingEventType> = Object.values(

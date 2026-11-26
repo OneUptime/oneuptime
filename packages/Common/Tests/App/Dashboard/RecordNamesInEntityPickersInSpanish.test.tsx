@@ -38,6 +38,7 @@ import { toDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Comp
 import { toSeverityDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCreateSideOver";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Label from "../../../Models/DatabaseModels/Label";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { FormTargetSettingReferenceModel } from "../../../Types/Form/FormTargetSettings";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import ObjectID from "../../../Types/ObjectID";
@@ -50,6 +51,7 @@ import Field from "../../../UI/Components/Forms/Types/Field";
 import { JSONObject } from "../../../Types/JSON";
 import { createTranslator } from "../../../Types/Translator";
 import { StateListType } from "../../../Utils/StateOrder";
+import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 /*
@@ -362,8 +364,28 @@ describe("options built by hand", () => {
     // Only the severity is a list a new project starts with names in.
     expect(marks["incidentSeverityId"]).toBe(false);
     expect(marks["incidentTemplateId"]).toBe(true);
-    expect(marks["monitorIds"]).toBe(true);
-    expect(marks["labelIds"]).toBe(true);
+
+    /*
+     * What is always attached is searched on the server (#10646): the
+     * picker reads each name by its own table (EntityDropdown), so a monitor
+     * or a label called "Critical Incident" is drawn as written.
+     */
+    const tableOf: (key: string) => string | undefined = (
+      key: string,
+    ): string | undefined => {
+      const modelType: DatabaseBaseModelType | undefined = fields.find(
+        (field: Field<JSONObject>): boolean => {
+          return Object.keys(field.field || {})[0] === key;
+        },
+      )?.dropdownModal?.type;
+
+      return modelType ? new modelType().tableName || undefined : undefined;
+    };
+
+    expect(tableOf("monitorIds")).toBe("Monitor");
+    expect(tableOf("labelIds")).toBe("Label");
+    expect(isRecordNameAsWritten("Monitor", "Critical Incident")).toBe(true);
+    expect(isRecordNameAsWritten("Label", "Critical Incident")).toBe(true);
   });
 
   test("a recommendation's severity rows read by their own list: High is an alert's default, an incident's own", () => {

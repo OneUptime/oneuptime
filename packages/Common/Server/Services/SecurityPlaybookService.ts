@@ -33,20 +33,83 @@ import ObjectID from "../../Types/ObjectID";
 import { isSecurityDetectionSource } from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
   SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
   getSecurityPlaybookAction,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
+  SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES,
   SecurityPlaybookApprovalTurnedOff,
   SecurityPlaybookStep,
+  SendWebhookConfig,
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
   assertSecurityPlaybookStepConditions,
   parseSecurityPlaybookSteps,
+  readBlockAddressConfig,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { CaCertificatePemProblem } from "../../Types/Runbook/HttpStepCertificates";
+import { getCaCertificatePemProblem } from "../Utils/Runbook/HttpStepCaCertificate";
+import { SecurityBlockDuration } from "../../Types/SecurityBlocklist/SecurityBlock";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { validateSecurityPlaybookStepValues } from "../../Utils/SecurityCase/SecurityPlaybookStepValues";
 import SecurityCaseValues, {
   ProjectSecurityCaseValues,
 } from "../Utils/SecurityCase/SecurityCaseValues";
+
+/*
+ * A playbook's block always ends by itself (#10342): a playbook runs on its
+ * own, on every case it matches, and blocks that never end pile up while
+ * an address is soon someone else's. Only a person keeps a block until
+ * someone lifts it - a Security Admin, from a case or the Blocklist.
+ */
+export function assertPlaybookBlocksExpire(
+  steps: ReadonlyArray<SecurityPlaybookStep>,
+): void {
+  steps.forEach((step: SecurityPlaybookStep, index: number): void => {
+    if (
+      step.action === SecurityPlaybookActionType.BlockAddress &&
+      readBlockAddressConfig(step.config).duration ===
+        SecurityBlockDuration.UntilLifted
+    ) {
+      throw new BadDataException(
+        `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): a playbook's block expires. Choose 1 hour, 24 hours, 7 days or 30 days.`,
+      );
+    }
+  });
+}
+
+/*
+ * A Send Webhook step's CA certificate, parsed certificate by certificate as
+ * the server parses one (#10440): Node takes text that is not a certificate
+ * as a CA without a word, and the step would then fail on the certificate it
+ * was meant to trust. The step's settings already hold only the shape of
+ * one (parseSecurityPlaybookSteps); the run checks again.
+ */
+export function assertSendWebhookCertificatesParse(
+  steps: ReadonlyArray<SecurityPlaybookStep>,
+): void {
+  steps.forEach((step: SecurityPlaybookStep, index: number): void => {
+    if (step.action !== SecurityPlaybookActionType.SendWebhook) {
+      return;
+    }
+
+    const config: SendWebhookConfig =
+      step.config as unknown as SendWebhookConfig;
+
+    if (!config.caCertificate || config.allowSelfSignedCertificates === true) {
+      return;
+    }
+
+    const problem: CaCertificatePemProblem | null = getCaCertificatePemProblem(
+      config.caCertificate,
+    );
+
+    if (problem) {
+      throw new BadDataException(
+        `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}.`,
+      );
+    }
+  });
+}
 
 /*
  * Every record a step's settings name, by the setting it is under. A step's
@@ -286,6 +349,8 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
       assertSecurityPlaybookStepConditions(steps);
+      assertPlaybookBlocksExpire(steps);
+      assertSendWebhookCertificatesParse(steps);
       data["steps"] = steps as unknown as JSONArray;
     }
 

@@ -221,6 +221,7 @@ const RumApplicationLogs: FunctionComponent<
       {isSetUpOpen ? (
         <RumSignalSetupModal
           signal="logs"
+          rumApplicationId={modelId}
           appName={
             (rumApplication.appIdentifier as string) ||
             (rumApplication.name as string) ||
@@ -237,6 +238,7 @@ const RumApplicationLogs: FunctionComponent<
       {isPickingKey ? (
         <RumKeySetupModal
           clientType={client}
+          appName={(rumApplication.appIdentifier as string) || undefined}
           onClose={(): void => {
             setIsPickingKey(false);
           }}

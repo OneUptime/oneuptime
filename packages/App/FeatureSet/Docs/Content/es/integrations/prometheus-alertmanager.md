@@ -266,7 +266,7 @@ Cuando la alerta de vigilancia lleva diez minutos sin llegar, el monitor de vigi
 - El incidente del criterio necesita **Resolver incidente automáticamente**, en **Más campos**.
 - **Campo que indica la recuperación** debe ser `requestBody.alerts[*].status`, y **Valor que significa recuperado** exactamente `resolved`. La comparación distingue mayúsculas y minúsculas.
 - Las alertas de una notificación por encima del **Máximo de incidentes por solicitud** no se leen en absoluto, así que sus recuperaciones también se pierden.
-- Una recuperación omitida en una ráfaga (ver abajo) deja su incidente abierto para siempre: Alertmanager repite las alertas disparadas, pero nunca una recuperación. Resuelve ese incidente a mano.
+- Una recuperación omitida porque esperaban demasiadas notificaciones (ver abajo) deja su incidente abierto para siempre: Alertmanager repite las alertas disparadas, pero nunca una recuperación. Resuelve ese incidente a mano.
 :::
 
 :::details No se abre ningún incidente
@@ -285,8 +285,8 @@ Una referencia a un campo que la notificación no tiene se deja tal como está e
 Agrupa tu ruta por menos etiquetas, o sube `group_interval`, para que Alertmanager envíe juntas las alertas relacionadas. Bajar el **Máximo de incidentes por solicitud** limita los incidentes de una notificación, pero las alertas por encima del límite no se leen, así que sus recuperaciones también se pierden.
 :::
 
-:::details Se omiten notificaciones durante una ráfaga
-Cuando una solicitud más nueva llega a un monitor antes de que se evalúe una anterior, OneUptime evalúa solo la más nueva, para que un único emisor no pueda saturar un monitor. La última notificación de una ráfaga siempre se evalúa, pero una anterior sobre otras alertas puede omitirse, porque Alertmanager envía cada grupo a la misma URL. Sube `group_wait` y `group_interval` para espaciar las notificaciones. En una instalación autoalojada, configura `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` en el entorno de la aplicación OneUptime para evaluar cada solicitud.
+:::details Una ráfaga de notificaciones
+Un monitor cuyo criterio agrupa por un campo, como lo configura esta guía, evalúa cada notificación que recibe, una a la vez y en el orden en que llegaron, así que una ráfaga de alertas disparadas y resueltas abre y resuelve el incidente de cada alerta. Hasta 1.000 notificaciones, o 16 MB de ellas, esperan a ser evaluadas; pasado eso, se omiten las más antiguas en espera, y la tarjeta **Resumen del monitor** dice cuántas. Aumenta `group_wait` y `group_interval` para enviar menos notificaciones, más grandes. Un monitor sin agrupación evalúa solo la notificación más reciente que lo espera.
 :::
 
 ## Seguridad

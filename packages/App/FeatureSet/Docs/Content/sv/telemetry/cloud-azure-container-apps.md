@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## Vad du får
 
-- **Översikt**: begäranden, felfrekvens och p95-latens från dina spår. Container Apps visar inte en repliks resursanvändning för en sidecar, så rutorna **CPU** och **Minne** fylls bara om du skickar mätvärdena `container.cpu.utilization` och `container.memory.usage` med replikens identitet. De flesta team lämnar dem åt Azure Monitor.
+- **Översikt**: begäranden, felfrekvens och p95-latens från dina spår. Container Apps visar inte en repliks resursanvändning för en sidecar, så rutorna **CPU** och **Minne** fylls bara om du skickar mätvärdena `container.cpu.utilization` och `container.memory.usage` med replikens identitet. De flesta team lämnar dem åt Azure Monitor. Anslut prenumerationen under **Moln → Anslut**, så får den här fliken ett avsnitt **Azure Monitor**: Container Appens begäranden, andelen som besvarades med en 5xx-status, svarstid, CPU, minne och omstarter, så som Azure mäter dem, oavsett vad appen skickar. Raden **Azure Monitor-anslutning** i **Konfigurationskontroll** nämner den Container App som söks så länge ingen läses. I **Appplattformar → Alla appar** och en miljös flik **Appar** visar en app som inte skickar spår i stället Container Appens siffror från Azure Monitor.
 - **Instanser**: en rad per replik, namngiven efter detektorernas `azure.container_app.instance.id`, efter `service.instance.id` när du sätter det själv, eller efter `host.name` när bara värddetektorn kördes.
 - **Loggar**, **Spår** och **Mätvärden**, filtrerade på miljön, och vyn per tjänst under **Tjänster**.
 

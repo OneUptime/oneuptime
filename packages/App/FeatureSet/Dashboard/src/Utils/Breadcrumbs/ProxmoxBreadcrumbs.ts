@@ -170,6 +170,12 @@ export function getProxmoxBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "Proxmox",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Proxmox",

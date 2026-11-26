@@ -8,6 +8,8 @@ import { describe, expect, test } from "@jest/globals";
  * Which merged AI fixes production is watched for, and with which check.
  * A recipe whose effect production cannot show is never watched: a merged
  * regression test, a review or a request in Code is not "fixed" by running.
+ * A request in Code that names a Data Security issue is told apart by its
+ * task, not its recipe (FixProductionCheckPicker, #10368).
  */
 
 describe("FixProductionCheckHelper.forTaskType", () => {
@@ -33,6 +35,22 @@ describe("FixProductionCheckHelper.forTaskType", () => {
     }
   });
 
+  test("a group's one pull request to the code that declares its stores is watched as a store's configuration (#10368)", () => {
+    expect(
+      FixProductionCheckHelper.forTaskType(
+        CodeFixTaskType.FixInfrastructureCode,
+      ),
+    ).toBe(FixProductionCheck.StoreConfiguration);
+  });
+
+  test("a service's one pull request for its telemetry leaks is watched as a telemetry leak (#10367)", () => {
+    expect(
+      FixProductionCheckHelper.forTaskType(
+        CodeFixTaskType.FixSensitiveDataInTelemetry,
+      ),
+    ).toBe(FixProductionCheck.TelemetryLeak);
+  });
+
   test("the rest are not watched", () => {
     const watched: Array<CodeFixTaskType> = [
       CodeFixTaskType.FixException,
@@ -41,6 +59,8 @@ describe("FixProductionCheckHelper.forTaskType", () => {
       CodeFixTaskType.ImproveInstrumentation,
       CodeFixTaskType.ImproveLogging,
       CodeFixTaskType.ImproveTracing,
+      CodeFixTaskType.FixInfrastructureCode,
+      CodeFixTaskType.FixSensitiveDataInTelemetry,
     ];
 
     for (const taskType of Object.values(CodeFixTaskType)) {
@@ -92,6 +112,24 @@ describe("FixProductionCheckHelper.fromDatabaseValue", () => {
       "Performance",
       "Recurrence",
       "Telemetry",
+      "TelemetryLeak",
+      "StoreConfiguration",
     ]);
+  });
+});
+
+describe("FixProductionCheckHelper.isDataSecurityCheck", () => {
+  test("only the two checks of a Data Security fix are Data Security's", () => {
+    expect(
+      Object.values(FixProductionCheck).filter(
+        (check: FixProductionCheck): boolean => {
+          return FixProductionCheckHelper.isDataSecurityCheck(check);
+        },
+      ),
+    ).toEqual([
+      FixProductionCheck.TelemetryLeak,
+      FixProductionCheck.StoreConfiguration,
+    ]);
+    expect(FixProductionCheckHelper.isDataSecurityCheck(undefined)).toBe(false);
   });
 });

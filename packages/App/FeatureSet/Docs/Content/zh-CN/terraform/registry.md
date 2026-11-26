@@ -55,6 +55,8 @@ terraform {
 
 源地址没有指定注册表：Terraform 从 Terraform Registry 读取它，OpenTofu 从 OpenTofu Registry 读取它，两者发布相同的版本。
 
+已发布的版本永远不会改变：注册表会保留它们最初下载的内容的校验和，`init` 会用这些校验和核对每一次下载。需要修复的版本会作为下一个补丁版本重新发布，范围会包含它，该发布的说明会写明它替换的是哪个版本。
+
 ## 锁文件
 
 `terraform init` 会把它选定的版本及其下载内容的校验和记录在 `.terraform.lock.hcl` 中。请提交这个文件：这样每台机器和每次 CI 运行都会安装完全相同的版本，直到你选择另一个版本。校验和覆盖注册表发布的每个平台，所以一个锁文件可以同时用于 Linux、macOS 和 Windows 机器。
@@ -77,7 +79,7 @@ provider "registry.terraform.io/oneuptime/oneuptime" {
 :::steps
 ### 阅读变更内容
 
-[OneUptime 的发布](https://github.com/OneUptime/oneuptime/releases)说明了每个发布更改了什么，包括提供程序。[提供程序的发布](https://github.com/OneUptime/terraform-provider-oneuptime/releases)链接到自上一个发布以来的变更。
+[OneUptime 的发布](https://github.com/OneUptime/oneuptime/releases)说明了每个发布更改了什么，包括提供程序。[提供程序的发布](https://github.com/OneUptime/terraform-provider-oneuptime/releases)说明了每个发布在提供程序中更改了什么：先是会破坏配置的变更，然后是新的资源和数据源，以及发生变化的属性。
 
 ### 下载新版本
 

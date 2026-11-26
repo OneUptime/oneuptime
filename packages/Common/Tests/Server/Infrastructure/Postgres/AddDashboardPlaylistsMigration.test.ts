@@ -1,3 +1,5 @@
+import { DELETED_BY_USER_ID_COLUMN } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddScheduledMaintenancePublishOnStatusPageAt1807960000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807960000000-AddScheduledMaintenancePublishOnStatusPageAt";
 import { AddDashboardPlaylists1808070000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808070000000-AddDashboardPlaylists";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -150,6 +152,12 @@ describe("the Dashboard Playlists migration", () => {
       .filter((column: string, index: number, all: Array<string>) => {
         return all.indexOf(column) === index;
       })
+      .filter((column: string): boolean => {
+        // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+        return !RecordActorUtil.isColumn(column);
+      })
+      // Dropped from every table later (DropDeletedByUserColumns, #10469).
+      .concat([DELETED_BY_USER_ID_COLUMN])
       .sort();
 
     expect(columnsCreated(createStatement(await record("up")))).toEqual(stored);

@@ -38,6 +38,7 @@ In full, OneUptime reads these settings in this order, and the first one set dec
 - **Settings 1 to 5 are retention overrides.** They are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan on OneUptime Cloud. Without them, every record is kept for the project's default.
 - **A change applies to new telemetry.** A record keeps the date it was stamped with: a shorter retention does not delete it sooner, and a longer one does not keep it longer. New records follow a change within about five minutes.
 - **Exceptions follow what they were found in.** An exception is kept as long as the span or log it came from. Session replays have a retention of their own: see [Other data with its own retention](#other-data-with-its-own-retention).
+- **Security events are kept the same way.** Detection rules, Run on Past Events and hunts read back only as far as security events are kept, and say so where they would need more: see [Security Events](/docs/telemetry/security-events).
 
 ## Before you begin
 

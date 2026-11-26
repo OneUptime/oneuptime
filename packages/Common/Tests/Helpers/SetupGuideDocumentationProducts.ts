@@ -28,6 +28,8 @@ import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Page
 import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import { MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
 import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationTranslations";
+import { RUM_CLIENTS } from "../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
+import { RUM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
   getMessageQueueSetupGuideWays,
@@ -43,6 +45,7 @@ import {
   getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
   getPodmanSetupGuideWays,
+  getRumSetupGuideWays,
 } from "./SetupGuideWays";
 
 /*
@@ -71,6 +74,14 @@ export interface SetupGuideDocumentationProduct {
   loadersFile: string;
   // The card that draws the guide, and hands it the translations.
   cardFile: string;
+  /*
+   * The page that draws the card: the product's Help > Documentation page,
+   * Pages/<name>/Documentation.tsx, unless the guide is drawn elsewhere -
+   * RUM's on each application's Documentation tab.
+   */
+  documentationPage: string;
+  // Whether that page is the product's own Help > Documentation page.
+  isHelpDocumentationPage: boolean;
   // The constant the card hands SetupGuideCard.
   translationsConstant: string;
   // Every way through the guide (SetupGuideWays).
@@ -95,11 +106,18 @@ function product(data: {
   cardDirectory?: string;
   // A card kept elsewhere, as a path from the Dashboard's src.
   cardPath?: string;
+  // A page other than Pages/<name>/Documentation.tsx that draws the card.
+  documentationPagePath?: string;
 }): SetupGuideDocumentationProduct {
-  const { cardDirectory, cardPath, ...rest } = data;
+  const { cardDirectory, cardPath, documentationPagePath, ...rest } = data;
 
   return {
     ...rest,
+    documentationPage: path.join(
+      DASHBOARD_SOURCE,
+      documentationPagePath || `Pages/${data.name}/Documentation.tsx`,
+    ),
+    isHelpDocumentationPage: !documentationPagePath,
     translationsDirectory: path.join(
       DASHBOARD_SOURCE,
       `Pages/${data.name}/DocumentationTranslations`,
@@ -395,6 +413,48 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Producers",
         "Consumers",
         "Seen recently",
+      ],
+    }),
+    product({
+      /*
+       * A RUM application's Documentation tab and Add dialog (#6434): the
+       * product has no Help > Documentation page of its own.
+       */
+      name: "Rum",
+      cardPath: "Components/Rum/RumDocumentationCard.tsx",
+      documentationPagePath: "Pages/Rum/View/Documentation.tsx",
+      translations: RUM_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "RUM_DOCUMENTATION_TRANSLATIONS",
+      ways: getRumSetupGuideWays,
+      // The card asks what the reader instruments: a browser or a mobile app.
+      options: RUM_CLIENTS,
+      dashboardWords: [
+        "Real User Monitoring",
+        "Settings",
+        "Label Rules",
+        "Owner Rules",
+        // An application's tabs and the states its header shows.
+        "Overview",
+        "Exceptions",
+        "Logs",
+        "Traces",
+        "Metrics",
+        "Clients",
+        "Core Web Vitals",
+        "Session Replay",
+        "Receiving data",
+        "No recent traffic",
+        // The key's own page, and the kinds of key it names.
+        "Allowed Origins",
+        "Pinned Service Name",
+        "Requests Per Minute Limit",
+        "Expires At",
+        "Enabled",
+        "Browser",
+        "Server",
+        "Mobile",
+        // The guide's own topic, named from other topics.
+        "How OneUptime recognises a browser app",
       ],
     }),
   ];

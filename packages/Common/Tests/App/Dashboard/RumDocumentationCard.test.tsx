@@ -80,9 +80,16 @@ const BROWSER_KEY: TelemetryIngestionKey = makeKey({
 
 const SERVER_KEY: TelemetryIngestionKey = makeKey({
   id: "key-server",
-  name: "Mobile Key",
+  name: "Backend Server Key",
   secret: "secret-server",
   keyType: TelemetryIngestionKeyType.Server,
+});
+
+const MOBILE_KEY: TelemetryIngestionKey = makeKey({
+  id: "key-mobile",
+  name: "Storefront Mobile Key",
+  secret: "secret-mobile",
+  keyType: TelemetryIngestionKeyType.Mobile,
 });
 
 type GetList = typeof ModelAPI.getList;
@@ -194,8 +201,17 @@ describe("RumDocumentationCard", () => {
     expect(container.textContent).toContain("src/telemetry.ts");
   });
 
-  test("the Mobile option does not ask for Browser keys: it asks for Server keys", async () => {
-    const getList: jest.Mock<GetList> = mockKeys([BROWSER_KEY, SERVER_KEY]);
+  /*
+   * Whatever ships in an app is public, so a mobile app is never handed the
+   * project's Server key: it asks for Mobile keys, which can write only
+   * that app's telemetry (#6457).
+   */
+  test("the Mobile option does not ask for Browser or Server keys: it asks for Mobile keys", async () => {
+    const getList: jest.Mock<GetList> = mockKeys([
+      BROWSER_KEY,
+      SERVER_KEY,
+      MOBILE_KEY,
+    ]);
     const container: HTMLElement = renderCard();
 
     await waitFor(() => {
@@ -207,7 +223,7 @@ describe("RumDocumentationCard", () => {
     await waitFor(() => {
       expect(requestedKeyTypes(getList)).toEqual([
         TelemetryIngestionKeyType.Browser,
-        TelemetryIngestionKeyType.Server,
+        TelemetryIngestionKeyType.Mobile,
       ]);
     });
 
@@ -222,13 +238,20 @@ describe("RumDocumentationCard", () => {
     await waitFor(() => {
       expect(container.textContent).not.toContain("secret-browser");
     });
-    expect(container.textContent).toContain(
-      `OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=`,
-    );
+    await waitFor(() => {
+      expect(container.textContent).toContain(
+        'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-mobile"',
+      );
+    });
+    expect(container.textContent).not.toContain("secret-server");
   });
 
-  test("opens on the application's own client type, asking only for Server keys", async () => {
-    const getList: jest.Mock<GetList> = mockKeys([BROWSER_KEY, SERVER_KEY]);
+  test("opens on the application's own client type, asking only for Mobile keys", async () => {
+    const getList: jest.Mock<GetList> = mockKeys([
+      BROWSER_KEY,
+      SERVER_KEY,
+      MOBILE_KEY,
+    ]);
     const container: HTMLElement = renderCard({ clientType: "mobile" });
 
     expect(radio("Mobile (iOS / Android)")).toHaveAttribute(
@@ -238,15 +261,35 @@ describe("RumDocumentationCard", () => {
 
     await waitFor(() => {
       expect(container.textContent).toContain(
-        'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-server"',
+        'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-mobile"',
       );
     });
 
     expect(requestedKeyTypes(getList)).toEqual([
-      TelemetryIngestionKeyType.Server,
+      TelemetryIngestionKeyType.Mobile,
     ]);
+    expect(container.textContent).not.toContain("secret-server");
     expect(container.textContent).not.toContain("secret-browser");
     expect(container.textContent).not.toContain("src/telemetry.ts");
+  });
+
+  // A project with only a Server key still never puts it in the app.
+  test("with no Mobile key yet, a mobile app is offered one to create, never the Server key", async () => {
+    mockKeys([SERVER_KEY]);
+    const container: HTMLElement = renderCard({
+      clientType: "mobile",
+      appName: "checkout-ios",
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("No mobile ingestion keys yet"),
+      ).toBeInTheDocument();
+    });
+    expect(container.textContent).not.toContain("secret-server");
+    expect(container.textContent).toContain(
+      `OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=${SETUP_GUIDE_API_KEY_PLACEHOLDER}"`,
+    );
   });
 
   test("an unknown client type falls back to Browser", async () => {

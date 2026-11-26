@@ -63,6 +63,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "session replay refusals per project and reason, for its health page",
   "packages/App/FeatureSet/Telemetry/Utils/SessionReplayRateLimiter.ts":
     "session replay chunks and bytes per project and application",
+  "packages/App/FeatureSet/Telemetry/Utils/IncomingRequestPendingStore.ts":
+    "an Incoming Request monitor's waiting requests: their bytes, the requests skipped over its limits and each one's failed evaluations, per monitor, keyed by the hash of its secret key (#10582); never who sent them",
   "packages/App/FeatureSet/Telemetry/Services/ProductAnalyticsEventIngestService.ts":
     "product analytics events and metric points per project and minute",
   "packages/App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts":
@@ -110,6 +112,14 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "tells the person checking a block whether it covers the address they are using now, so they do not block themselves out of their own app (#10338); it counts nothing",
   "packages/App/FeatureSet/Telemetry/Middleware/ProbeAuthorization.ts":
     "records on an authenticated probe the address its requests come from, the address its checks leave from, so the blocklist never blocks it (#10338); it counts nothing",
+  "packages/Common/Types/SecurityBlocklist/SecurityBlockCloudWaf.ts":
+    "names the header a cloud WAF reads a client's address from, for the rule OneUptime writes there (#10344); it reads no request and counts nothing",
+  "packages/Common/Utils/SecurityEvent/ClientAddressTrust.ts":
+    "decides which client address a recorded request's telemetry names is its sender's (client.address, http.client_ip, X-Forwarded-For, Forwarded), for a security event (#10416); it reads no live request and counts nothing",
+  "packages/Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser.ts":
+    "parses the client address an access log line records (its client, remoteAddress, X-Forwarded-For and Forwarded fields) into a security event (#10416); it reads no live request and counts nothing",
+  "packages/Common/Server/API/SecurityBlocklistFeedAPI.ts":
+    "holds a firewall's fetch of a blocklist feed to the feed's allowlist and records the address of each fetch (#10345); its fetches are counted by SecurityBlocklistFeedRateLimit, per feed and address and per address",
   "packages/App/FeatureSet/Identity/API/Authentication.ts":
     "records the address of a sign-in and hands it to the captcha check; its attempts are counted by IdentityRateLimit",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
@@ -191,6 +201,7 @@ const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/PublicDashboardRateLimit.ts",
   "packages/Common/Server/Middleware/FormRateLimit.ts",
   "packages/Common/Server/Middleware/OnCallCalendarFeedRateLimit.ts",
+  "packages/Common/Server/Middleware/SecurityBlocklistFeedRateLimit.ts",
   "packages/Common/Server/Middleware/McpOAuthRateLimit.ts",
   "packages/Common/Server/Utils/Runbook/RunbookWebhookRateLimit.ts",
   "packages/Common/Server/Utils/RateLimit/PublicMessageRateLimit.ts",

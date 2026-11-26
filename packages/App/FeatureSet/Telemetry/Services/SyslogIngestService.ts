@@ -37,6 +37,9 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import SecurityAddressVaultWriter, {
   SecurityAddressVaultBatch,
 } from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
+import SecurityUserVaultWriter, {
+  SecurityUserVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import {
   ParsedSyslogMessage,
@@ -68,6 +71,9 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { measureTelemetryIngestRequest } from "Common/Server/Utils/Telemetry/TelemetryIngestionBudgetHttp";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 class SyslogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -112,10 +118,32 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         );
       }
 
+      /*
+       * The size the worker shares the batch out at over its teams' and
+       * labels' budgets and the usage metrics (#10102): what the request
+       * path counted, read before the body is reshaped below. Only for a
+       * project that needs it; two set lookups for any other.
+       */
+      const ingestBytes: number | undefined =
+        await TelemetryIngestAttribution.getRequestBytesToShare({
+          projectId: (req as TelemetryRequest).projectId,
+          charge: (req as TelemetryRequest).telemetryIngestionBudgetCharge,
+          measure: () => {
+            return measureTelemetryIngestRequest({
+              req: req,
+              surface: TelemetryIngestSurface.Syslog,
+            });
+          },
+        });
+
       const messages: Array<string> = this.normalizeMessages(req.body);
 
       if (messages.length === 0) {
         throw new BadRequestException("No syslog messages found in request.");
+      }
+
+      if (ingestBytes !== undefined) {
+        (req as TelemetryRequest).telemetryIngestBytes = ingestBytes;
       }
 
       req.body = {
@@ -188,6 +216,10 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       const serviceCache: Map<string, TelemetryServiceMetadata> = new Map();
       let processed: number = 0;
 
+      // Whose lines these are: null for most projects (#10102).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       /*
        * Load pipelines, drop filters, and scrub rules once per batch so
        * syslog-ingested logs go through the same processing stage as the
@@ -227,6 +259,19 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         });
 
       /*
+       * The users this batch's Hash rules hide where Security Events reads a
+       * user, kept for its user vault when Security Events reads the
+       * project's logs (#10632): null - and nothing kept - otherwise. Written
+       * after the batch's logs, never awaited, as the address vault is.
+       */
+      const userVault: SecurityUserVaultBatch | null =
+        await SecurityUserVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
+
+      /*
        * Handed back by the time the work took, not every so many messages:
        * a message's work grows with its scrub rules and what they read
        * (Common/Server/Utils/EventLoop.ts).
@@ -260,6 +305,24 @@ export default class SyslogIngestService extends OtelIngestBaseService {
               projectId,
             });
             serviceCache.set(serviceName, serviceMetadata);
+          }
+
+          /*
+           * Whose line this is (TelemetryIngestAttribution, #10102): offered
+           * with its service, line by line - a service already offered adds
+           * the line to its count. A used-up budget of its team or a label
+           * drops its lines, and the rest of the batch is stored.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: 1,
+            }))
+          ) {
+            continue;
           }
 
           /*
@@ -378,6 +441,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
                   row,
                   loadedScrubRules,
                   addressVault,
+                  { hashedUsers: userVault },
                 );
               },
             });
@@ -420,6 +484,9 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         }
       }
 
+      // The batch's attribution, counted in one round trip (#10102).
+      await attribution?.settle();
+
       await this.submitLogsBuffer(dbLogs, pendingAcks, true);
 
       /*
@@ -431,10 +498,17 @@ export default class SyslogIngestService extends OtelIngestBaseService {
        */
       await Promise.all(pendingAcks);
 
-      // The logs are stored: their hashed addresses go to the vault, on their own.
+      // The logs are stored: their hashed addresses and users go to the vaults, on their own.
       addressVault?.write();
+      userVault?.write();
 
-      if (processed === 0) {
+      if (attribution && attribution.getDroppedResourceCount() > 0) {
+        logger.debug(
+          `Syslog ingest: dropped the lines of ${attribution.getDroppedResourceCount()} service(s) for project ${projectId.toString()}: a team or label budget is used up.`,
+        );
+      }
+
+      if (processed === 0 && !attribution?.getDroppedResourceCount()) {
         logger.warn("Syslog ingest: no valid messages processed");
       } else {
         logger.debug(

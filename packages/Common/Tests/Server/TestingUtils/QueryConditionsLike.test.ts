@@ -92,13 +92,16 @@ describe("the two text searches", () => {
     );
   });
 
-  test("contains: one run of characters, with % and _ left as the wildcards they are", () => {
+  test("contains: one run of characters, a typed % or _ read as itself", () => {
     const contains: unknown = QueryHelper.search("Data");
 
     expect(meetsCondition(contains, "the database")).toBe(true);
     expect(meetsCondition(contains, "the cache")).toBe(false);
-    // QueryHelper.search does not escape: a % typed there is still "anything".
-    expect(meetsCondition(QueryHelper.search("100%"), "at 1000")).toBe(true);
+    // QueryHelper.search escapes what was typed (#10545): a % is a percent sign.
+    expect(meetsCondition(QueryHelper.search("100%"), "at 1000")).toBe(false);
+    expect(meetsCondition(QueryHelper.search("100%"), "at 100% full")).toBe(
+      true,
+    );
   });
 
   test("a plain value is no condition", () => {

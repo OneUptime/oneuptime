@@ -496,7 +496,7 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
     },
   },
   /*
-   * A case has no first message: its four notices are all a rule posts, so
+   * A case has no first message: its five notices are all a rule posts, so
    * a rule may leave every one out (issue #7936).
    */
   [NotificationRuleEventType.SecurityCase]: {
@@ -504,10 +504,10 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       "Pick the notices the rule posts about the cases it is for.",
     ),
     everyUpdateDescription: translationKey(
-      "New and raised cases, assignments, approvals needed and response targets.",
+      "New and raised cases, assignments, approvals needed, response targets and cases OneUptime AI hands to people.",
     ),
     keyUpdatesDescription: translationKey(
-      "New and raised cases, approvals needed and response targets.",
+      "New and raised cases, approvals needed, response targets and cases OneUptime AI hands to people.",
     ),
     nothingChosenNote: translationKey(
       "With none ticked, the rule posts nothing.",
@@ -536,6 +536,13 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
         title: translationKey("Response targets"),
         description: translationKey(
           "When a case is about to miss a response target, or misses it.",
+        ),
+      },
+      // OneUptime AI working a case (#10352) stops and hands it to people.
+      [NotificationRuleUpdateKind.AI]: {
+        title: translationKey("Handed to people by OneUptime AI"),
+        description: translationKey(
+          "When OneUptime AI stops working a case and says why.",
         ),
       },
     },

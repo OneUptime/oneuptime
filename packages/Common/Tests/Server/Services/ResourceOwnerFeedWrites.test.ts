@@ -205,10 +205,13 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
 
   /*
    * An owner can be someone invited to the project who has not accepted:
-   * the project sees only what it invited of them - the name typed for
-   * them, else their address - never their account's own name (#9823).
+   * named by the name typed for them, as text - never by their account's
+   * own name (#9823), and with no address after it (#10668). Through the
+   * real naming, not the stand-in above.
    */
-  test("a removed owner only invited to the project is named by the name typed for them", async () => {
+  test("a removed owner only invited to the project is named by the name typed for them, with no address", async () => {
+    jest.spyOn(UserService, "getUserMarkdownString").mockRestore();
+
     const doomed: KubernetesClusterOwnerUser = new KubernetesClusterOwnerUser(
       ObjectID.generate(),
     );
@@ -248,9 +251,12 @@ describe("KubernetesClusterOwnerUserService feed writes", () => {
 
       expect(feedCalls.length).toBe(1);
       expect(feedCalls[0]!.feedInfoInMarkdown).toContain(
-        "Removed **Jane from Platform** (jane@example.com)",
+        "Removed **Jane from Platform** as an owner of",
       );
       expect(feedCalls[0]!.feedInfoInMarkdown).not.toContain("Jane Doe");
+      expect(feedCalls[0]!.feedInfoInMarkdown).not.toContain(
+        "jane@example.com",
+      );
       expect(withheldIn.mock.calls[0]![0].projectId).toBe(PROJECT_ID);
     } finally {
       findUser.mockRestore();

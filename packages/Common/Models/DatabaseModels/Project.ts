@@ -42,6 +42,13 @@ import {
 } from "../../Types/Retention/ResolvedRecordRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
+/*
+ * The modes alone (SecurityCaseAiMode), not SecurityCaseAi: every page that
+ * draws a project would load its blocks and verdicts with them. The same
+ * for how long OneUptime AI holds a case's alerts (SecurityCaseAiHoldMinutes).
+ */
+import { SecurityCaseAiMode } from "../../Types/SecurityCase/SecurityCaseAiMode";
+import { SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT } from "../../Types/SecurityCase/SecurityCaseAiHoldMinutes";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -90,6 +97,14 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingAdmin,
     Permission.BillingMember,
     Permission.BillingViewer,
+    /*
+     * Security Admin is on the update list below for three columns - the
+     * hourly limit of automatic blocks and the two switches of Trusted
+     * Proxies - and a role that may change a table's records reads them by
+     * its own name too (WriteNeedsReadRoleCoverage), as the billing roles
+     * do. Each column's own read list still decides what it reads.
+     */
+    Permission.SecurityAdmin,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   /*
@@ -101,7 +116,13 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * enableTelegramNotifications), and nothing else: every other column's own
    * update list leaves them out, and the server checks both lists on every
    * update. Edit Incoming Request Secret is here for one column alone,
-   * requireIncomingRequestSecret (issue #8502), the same way.
+   * requireIncomingRequestSecret (issue #8502), the same way, and so is
+   * Security Admin, for the hourly limit of automatic blocks
+   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and the two
+   * switches of Security Events' Trusted Proxies: whether the project's own
+   * load balancers are trusted (securityTrustOwnLoadBalancers, #10546) and
+   * whether its access logs end with X-Forwarded-For
+   * (securityReadAccessLogForwardedFor, #10548).
    */
   update: [
     Permission.ProjectOwner,
@@ -111,6 +132,7 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.ManageProjectBilling,
     Permission.EditProject,
     Permission.EditIncomingRequestSecret,
+    Permission.SecurityAdmin,
   ],
 })
 @TableMetadata({
@@ -603,64 +625,6 @@ export default class Project extends TenantModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
@@ -759,6 +723,8 @@ export default class Project extends TenantModel {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
+      // Read by exactly who reads the project (PermissionCatalogueCoverage).
+      Permission.SecurityAdmin,
     ],
     update: [],
   })
@@ -2679,6 +2645,438 @@ export default class Project extends TenantModel {
   public enableAutomaticSecurityCaseTriage?: boolean = undefined;
 
   /*
+   * OneUptime AI working a security case end to end (#10352): after a
+   * triage reads a case as Likely Malicious, or when a person presses
+   * Respond with AI on it, OneUptime AI takes the case and works its
+   * Response Plan within the limits below (securityCaseAi*Mode) - blocks,
+   * containment, the code fix, the check that each holds, and the close
+   * with a report - through the playbook engine, as a person would
+   * (Types/SecurityCase/SecurityCaseAi). On for new projects, like triaging
+   * new cases above; a project that existed before keeps it off until an
+   * owner turns it on, so an upgrade never lets OneUptime AI change
+   * anything unasked.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Security Case Response",
+    description:
+      "When enabled, OneUptime AI works each case its triage reads as Likely Malicious, and any case a person asks it to: it takes the case, contains it, checks that each step holds, asks for the fix and closes the case with a report, within what the project's Security Case AI settings allow. Everything it does is on the case's timeline as OneUptime AI's, and can be undone. On for new projects created in OneUptime; projects that existed before keep it off until someone turns it on. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticSecurityCaseResponse?: boolean = undefined;
+
+  /*
+   * What OneUptime AI may do on a case, one kind of action a column, each
+   * Off, Ask or On its own (Types/SecurityCase/SecurityCaseAi's
+   * SecurityCaseAiMode). Their database defaults are the recommended ones:
+   * they take effect only once enableAutomaticSecurityCaseResponse is on.
+   * Setting Edge, Accounts or Hosts to On its own takes a Security Admin's
+   * authority (ProjectService stamps who did, securityCaseAiOnItsOwnStamps),
+   * and Edge counts as On its own only once stamped.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiMode),
+    title: "Security Case AI: Case",
+    description:
+      "What OneUptime AI may do to the case itself - take it, set its priority, mark steps done with their evidence, and move it to Contained once every containment step is verified: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.OnItsOwn,
+    example: SecurityCaseAiMode.OnItsOwn,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.OnItsOwn,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiCaseMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiMode),
+    title: "Security Case AI: Edge",
+    description:
+      "Whether OneUptime AI may block a case's address at the edge, for at most 24 hours: Off, Ask or OnItsOwn. OnItsOwn takes effect only once a Security Admin confirms it; until then OneUptime AI asks.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiEdgeMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiMode),
+    title: "Security Case AI: Accounts",
+    description:
+      "Whether OneUptime AI may suspend a case's user or end their sessions, through the project's identity provider connection: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiAccountsMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiMode),
+    title: "Security Case AI: Hosts",
+    description:
+      "Whether OneUptime AI may contain or isolate a case's host, through the project's EDR connection: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiHostsMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiMode),
+    title: "Security Case AI: Code",
+    description:
+      "Whether OneUptime AI may ask Fix With AI for a pull request that fixes the route a case's attack reached: Off, Ask or OnItsOwn. A person always merges the pull request.",
+    defaultValue: SecurityCaseAiMode.OnItsOwn,
+    example: SecurityCaseAiMode.OnItsOwn,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.OnItsOwn,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiCodeMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityCaseAiMode),
+    title: "Security Case AI: Close",
+    description:
+      "Whether OneUptime AI may close a case with a verdict and a closing report once every step is done and its detection has been quiet for 24 hours: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiCloseMode?: SecurityCaseAiMode = undefined;
+
+  /*
+   * Who let each containment kind of OneUptime AI's actions run on its own,
+   * and when (Types/SecurityCase/SecurityCaseAi's
+   * SecurityCaseAiOnItsOwnStamps): stamped by ProjectService when an owner
+   * sets Edge, Accounts or Hosts to On its own, taken away when they set it
+   * back. Each containment step OneUptime AI runs without asking carries
+   * its kind's stamp, as a playbook step saved with Needs Approval off
+   * does. Only OneUptime writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Security Case AI On Its Own Confirmations",
+    description:
+      "Who set each kind of containment OneUptime AI does on security cases (Edge, Accounts, Hosts) to On its own, and when. Written by OneUptime.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public securityCaseAiOnItsOwnStamps?: JSONObject = undefined;
+
+  /*
+   * Letting OneUptime AI respond first to a security case (#10353,
+   * Types/SecurityCase/SecurityCaseAiHold): a case a detection opens below
+   * securityCaseAiHoldBelowPriorityId waits, for at most
+   * securityCaseAiHoldMinutes, before anyone is alerted, while OneUptime AI
+   * works it (enableAutomaticSecurityCaseResponse). If it contains the case,
+   * nobody is alerted and the case's channels get one summary; if it needs a
+   * person, everyone is alerted at once, with why and what it did. Off for
+   * every project, new ones too: it changes who hears about a case, so a
+   * project turns it on.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Let Security Case AI Respond First",
+    description:
+      "When enabled, a security case a detection opens below the priority in securityCaseAiHoldBelowPriorityId waits, for at most securityCaseAiHoldMinutes, before anyone is alerted, while OneUptime AI works it. If it contains the case, nobody is alerted and the case's Slack and Microsoft Teams rules get one summary; if it needs a person, everyone is alerted at once with why. Takes effect only while OneUptime AI triages new cases and works them end to end.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableSecurityCaseAiRespondsFirst?: boolean = undefined;
+
+  /*
+   * The priority OneUptime AI responds first below: a case at it or above
+   * alerts people at once. Empty for the project's built-in High priority
+   * (SecurityCaseAiHoldPriorities), which a priority that is archived or
+   * gone falls back to as well. One of the project's own priorities, which
+   * ProjectService checks.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    title: "Security Case AI Hold Below Priority ID",
+    description:
+      "The security case priority OneUptime AI responds first below: cases at it or above alert people at once. Empty for the project's built-in High priority.",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public securityCaseAiHoldBelowPriorityId?: ObjectID = undefined;
+
+  /*
+   * How long a case OneUptime AI responds first to waits before people are
+   * alerted anyway: 10 minutes unless changed, from 1 to 30
+   * (getSecurityCaseAiHoldMinutes), which ProjectService checks.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Security Case AI Hold Minutes",
+    description:
+      "How many minutes a security case OneUptime AI responds first to waits at most before people are alerted: a whole number from 1 to 30, 10 unless changed.",
+    defaultValue: SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT,
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT,
+  })
+  public securityCaseAiHoldMinutes?: number = undefined;
+
+  /*
+   * Working on new Data Security issues (#10364): when a check opens an
+   * issue, or opens one again, OneUptime AI works on it the way the
+   * project's Data Security AI rules say - or, with none, analyzes it when
+   * it is Critical or High and proposes the rest for one-click approval
+   * (Types/DataSecurity/DataSecurityAi). Off, nothing runs on its own; the
+   * buttons a person presses (Explain with AI, Fix with AI, Scrub It) still
+   * work. On for new projects, like triaging new security cases above; a
+   * project that existed before keeps it off, so an upgrade spends no AI
+   * credits unasked.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Data Security AI",
+    description:
+      "When enabled, OneUptime AI works on every new and reopened Data Security issue the way the project's Data Security AI rules say: with no rule, it analyzes Critical and High issues and proposes the rest for one-click approval. Everything it does is on the issue's timeline and can be undone. Off, nothing runs on its own, and Explain with AI, Fix with AI and Scrub It still work. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticDataSecurityAi?: boolean = undefined;
+
+  /*
    * Opening security cases from entity risk: when what the project's
    * detection rules, threat intel and connected products found about one
    * user, host or address in the last week adds up to
@@ -2755,6 +3153,219 @@ export default class Project extends TenantModel {
     default: 100,
   })
   public securityRiskCaseThreshold?: number = undefined;
+
+  /*
+   * Moving a security case to Contained once OneUptime has verified every
+   * step that contains it (#10340): the account read back as suspended in
+   * the identity provider, the host as isolated in the EDR - a step that
+   * only looks done, or a person's tick, never moves the case on its own.
+   * The time to contain is recorded and the case's timeline says why. On
+   * for every project, those from before it too: nothing moves on less than
+   * evidence OneUptime can show.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Mark Security Cases Contained When Verified",
+    description:
+      "When on, a security case moves to Contained once OneUptime has verified every step that contains it, and its time to contain is recorded. On unless changed.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public markSecurityCaseContainedWhenVerified?: boolean = undefined;
+
+  /*
+   * The proxies the project's apps sit behind (#10416): a CDN's edge, a
+   * load balancer's public addresses (Security Events > Connections, under
+   * More settings). Security Events reads the client address one of them
+   * forwards in X-Forwarded-For as verified, and blames an attack on it; an
+   * address the request only claims is never blamed
+   * (Utils/SecurityEvent/ClientAddressTrust). Private, loopback and
+   * link-local addresses are trusted without being listed. One address or
+   * range a line, at most MAX_TRUSTED_PROXIES; the server refuses anything
+   * else, and keeps each written one way (NetworkAddressBlock).
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Security Trusted Proxies",
+    description:
+      "The proxies your apps sit behind, such as a CDN or a load balancer: Security Events trusts the client address they forward in X-Forwarded-For. One IP address or range a line. Private addresses are trusted without being listed.",
+    example: "203.0.113.0/24",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public securityTrustedProxies?: string = undefined;
+
+  /*
+   * Whether Security Events trusts the public addresses of the project's
+   * own application load balancers as proxies (#10546), as it does its
+   * Trusted Proxies: an AWS Application or Classic (HTTP) Load Balancer, a
+   * Google Cloud Application Load Balancer and an Azure Application Gateway
+   * its connected cloud accounts list, each of which adds the client it
+   * forwards to X-Forwarded-For. On unless turned off
+   * (Server/Utils/SecurityEvent/SecurityOwnLoadBalancers). Never its hosts,
+   * nodes or probes, which forward nobody: trusted, whatever ran on them
+   * could name any client. A Security Admin may turn it off and on, as a
+   * Project Owner or Admin may - which is why the table's update list
+   * names them too.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Trust Your Load Balancers",
+    description:
+      "Whether Security Events trusts the client address your own application load balancers forward. On unless turned off.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public securityTrustOwnLoadBalancers?: boolean = undefined;
+
+  /*
+   * Whether the project's web servers' access logs end with the
+   * X-Forwarded-For header, as nginx's main format does (#10548): Security
+   * Events then reads a combined log line's last quoted field as the one
+   * its trusted proxy forwarded (Utils/SecurityEvent/LogParsers/
+   * WebAttackLogParser). Off unless turned on: a line cannot say what its
+   * fields are, and a server that does not escape quotes lets a request's
+   * user agent add a field to a plain combined line. Set as the switch
+   * beside it is.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Access Logs End With X-Forwarded-For",
+    description:
+      "Whether your access logs end with X-Forwarded-For, as nginx's main format does, so the client a trusted proxy forwarded is read. Off unless turned on.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public securityReadAccessLogForwardedFor?: boolean = undefined;
+
+  /*
+   * The most automatic blocks the project's automatic response policies
+   * make in an hour (#10746, Security Events > Playbooks > Automatic
+   * Response, under More settings): past it they stop blocking and page the
+   * project's security owners. 50 unless changed, a whole number from 1 to
+   * 500 (Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy);
+   * the server refuses anything else. A Security Admin sets it, as they turn
+   * the policies on - the one Project column they may change, which is why
+   * the table's update list names them too.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Automatic Response Hourly Limit",
+    description:
+      "The most automatic blocks the project's automatic response policies make in an hour: a whole number from 1 to 500, 50 unless changed. Past it, they stop blocking and page the project's security owners.",
+    defaultValue: 50,
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 50,
+  })
+  public securityAutomaticResponseMaxBlocksPerHour?: number = undefined;
 
   /*
    * Fixing new incidents and alerts automatically (auto-remediation): the
@@ -5106,6 +5717,55 @@ export default class Project extends TenantModel {
     default: false,
   })
   public requireIncomingRequestSecret?: boolean = undefined;
+
+  /*
+   * Require unique names (#10761): while it is on, a monitor, a template, a
+   * connection or any other kind a model marks @UniqueNameWhenRequired
+   * cannot take a name another record of its kind in the project has - case
+   * and spacing aside - on a create or a rename, over the Dashboard, the API
+   * and Terraform alike (Server/Utils/Database/RequiredUniqueNames). Names
+   * the project already holds twice stay as they are until someone renames
+   * them, so turning it on never fails: Project Settings > Project lists
+   * them. Off, names may repeat, and the Dashboard still warns when a form
+   * takes a name another record has.
+   *
+   * On for new projects (ProjectService.applyNewProjectNameDefaults), never
+   * by this column's default, which stays off: an upgrade must not start
+   * refusing the writes of API clients and Terraform configurations that
+   * rely on names repeating, and a default reaches the generated Terraform
+   * provider as a static default that would switch Terraform-managed
+   * projects on at their next apply. Everyone in the project reads it, so a
+   * form can say a name will be refused; owners and admins change it.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Unique Names",
+    description:
+      "When on, two monitors, templates or other records of one kind cannot share a name in this project, case and spacing aside. On for new projects.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireUniqueNames?: boolean = undefined;
 
   /*
    * Use global Runners (Runbooks -> Runners): one switch for the whole

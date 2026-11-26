@@ -5,6 +5,7 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import ObjectID from "../../Types/ObjectID";
+import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "../../Types/SecurityEvent/SecurityAddressVaultRetention";
 
 /*
  * SECURITY EVENTS' ADDRESS VAULT (#10395).
@@ -45,8 +46,12 @@ import ObjectID from "../../Types/ObjectID";
  * projectId = ... AND address = ...).
  */
 
-// How long an address stays after it was last seen, and so how far back it can be named.
-export const SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS: number = 30;
+/*
+ * How long an address stays after it was last seen, and so how far back it
+ * can be named: a number of its own file, which the record of processing
+ * reads too (#10398).
+ */
+export { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS };
 
 // Nobody reads, writes or changes a row through the API: only ingest and the scans, as the server.
 const NO_ONE: ColumnAccessControl = {

@@ -7,8 +7,11 @@ import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DeclaredCodeChanges from "../../AutoRemediation/DeclaredCodeChanges";
+import DataSecurityIssueGroupFix from "../../DataSecurity/DataSecurityIssueGroupFix";
+import TelemetryLeakFix from "../../DataSecurity/TelemetryLeakFix";
 import { CodeFixAgentIdentity, CodeFixAgentSource } from "./CodeFixAgentAuth";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import URL from "../../../../Types/API/URL";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
@@ -228,6 +231,17 @@ export default class CodeFixPullRequestRecord {
         fields.runnerVerificationSummary.substring(0, 500);
     }
 
+    /*
+     * The security case the run fixes, when Fix With AI asked for it from a
+     * case (#10347): kept on the pull request, so the case finds its fix.
+     */
+    const securityCaseId: ObjectID | null =
+      await CodeFixPullRequestRecord.readRunSecurityCase(data);
+
+    if (securityCaseId) {
+      pullRequest.securityCaseId = securityCaseId;
+    }
+
     let createdPullRequest: AIAgentTaskPullRequest;
 
     const mutex: SemaphoreMutex | null =
@@ -314,10 +328,73 @@ export default class CodeFixPullRequestRecord {
       title: fields.title,
     });
 
+    /*
+     * A task that fixes the cause of a group of Data Security issues once
+     * (#10370): each of the group's issues gets the pull request on its
+     * timeline (never throws).
+     */
+    await DataSecurityIssueGroupFix.onPullRequestOpened({
+      projectId: data.projectId,
+      aiRunId: data.aiRunId,
+      pullRequestUrl: fields.pullRequestUrl,
+      title: fields.title,
+    });
+
+    /*
+     * A task that stops a service writing its telemetry leaks (#10367):
+     * each issue it fixes gets the pull request on its timeline (never
+     * throws).
+     */
+    await TelemetryLeakFix.onPullRequestOpened({
+      projectId: data.projectId,
+      aiRunId: data.aiRunId,
+      pullRequestUrl: fields.pullRequestUrl,
+      title: fields.title,
+    });
+
     return {
       pullRequest: createdPullRequest,
       created: true,
     };
+  }
+
+  /*
+   * The security case a run fixes (AIRun.triggeredBySecurityCaseId), held
+   * to the run's project; null for a run of no case. A run that cannot be
+   * read is no reason to lose its pull request: it is recorded without the
+   * case.
+   */
+  public static async readRunSecurityCase(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<ObjectID | null> {
+    try {
+      const run: AIRun | null = await AIRunService.findOneById({
+        id: data.aiRunId,
+        select: {
+          _id: true,
+          projectId: true,
+          triggeredBySecurityCaseId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        !run?.triggeredBySecurityCaseId ||
+        run.projectId?.toString() !== data.projectId.toString()
+      ) {
+        return null;
+      }
+
+      return run.triggeredBySecurityCaseId;
+    } catch (error) {
+      logger.error(
+        `Could not read the security case of run ${data.aiRunId.toString()}; its pull request is recorded without it: ${error}`,
+      );
+      return null;
+    }
   }
 
   /*

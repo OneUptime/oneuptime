@@ -10,6 +10,7 @@ import SecurityEventRequestOutcome from "../../../Types/SecurityEvent/SecurityEv
 import SigmaRule from "../../../Types/SecurityEvent/SigmaRule";
 import WebAttackLogParser from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFollowUp";
+import { resolveClientAddress } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
 import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import { logLine } from "./LogParsers/LogParserFixtures";
@@ -63,6 +64,7 @@ function followed(
     url: "",
     route: "",
     clientAddress: "198.51.100.23",
+    client: resolveClientAddress({ peer: "198.51.100.23" }),
     userAgent: "",
     userId: "",
     durationMs: 3,

@@ -4,6 +4,7 @@ Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het 
 
 :::cards
 - [Security Operations](#security-operations): Een beveiligingszaak voor elke opslag met een kritiek probleem.
+- [Was het een datalek?](#was-het-een-datalek): Elke kritieke blootstelling beoordeeld: hoe lang, wie de gegevens kon lezen, van wie ze waren, en de datalekwetten die van toepassing kunnen zijn.
 - [Waarschuwingen en on-call](#waarschuwingen-en-on-call): De dienstdoende oproepen wanneer er een kritiek probleem opent.
 - [Incidenten](#incidenten): Een incident melden voor een inbreuk die je incidentproces moet afhandelen.
 - [Eigenaren](#eigenaren): Wie eigenaar is van elke opslag, met de hand of door regels ingesteld, en de e-mail die ze krijgen.
@@ -46,6 +47,22 @@ Vanaf daar wordt de zaak afgehandeld zoals elke andere: toegewezen, van notities
 
 Elke beveiligingszaak, wat haar ook opende, toont de gegevens in gevaar onder **Impact**: de opslagen met gevoelige gegevens waar de zaak over gaat, en elke opslag waar haar gebruikers en rollen bij kunnen, de gevoeligste eerst, met wat elke opslag bevat, ongeveer hoeveel records, hoe blootgesteld hij is en hoeveel identiteiten erbij kunnen. Een sessie van een aangenomen rol die de zaak noemt, telt als die rol, en een e-mailadres als de cloudgebruikers waar het bij hoort. Er wordt gelezen met de eigen machtigingen van de lezer, dus een rol die Gegevensbeveiliging niet mag lezen, ziet dat dit deel ontbreekt.
 
+## Was het een datalek?
+
+Bij een kritieke blootstelling van een opslag met gegevens die **Beperkt** of **Vertrouwelijk** zijn - open voor iedereen op internet, gedeeld met accounts buiten de jouwe, of een snapshot die anderen kunnen herstellen - wordt de zaak vanzelf beoordeeld, zodra die opent. Elke andere zaak over een gegevensopslag wordt beoordeeld wanneer iemand op **Deze blootstelling beoordelen** drukt op het **Overzicht** ervan. Gewone code leidt de beoordeling af uit wat OneUptime heeft vastgelegd, en doet dat opnieuw elke keer dat die wordt gelezen:
+
+- **Hoe lang het openstond**: vanaf de wijziging in het log van je cloud die de opslag blootstelde, als die werd vastgelegd in de 30 dagen voordat de blootstelling werd gevonden, en anders minstens sinds Gegevensbeveiliging die vond; tot de eigen respons van Gegevensbeveiliging de blootstelling sloot, een wijziging haar sloot, of een controle vaststelde dat ze gesloten was.
+- **Wie het kon lezen**: of de opslag leesacties logde. Waar dat niet zo was, zegt de beoordeling "Leesacties zijn niet gelogd. Ga ervan uit dat de gegevens zijn gelezen." Ze telt de accounts buiten je bedrijf die de opslag konden lezen, en hoeveel daarvan hun toegang gebruikten terwijl die openstond, zonder ze ooit te noemen.
+- **Van wie de gegevens waren**: wat de opslag bevat, ongeveer hoeveel records, over wie ze gaan, en waar de betrokkenen wonen, volgens de gegevens en volgens wat iemand aangeeft.
+- **De te roteren geheimen**: elk geheim dat in de opslag is gevonden terwijl die openstond, naar type en vindplaats, nooit de waarde ervan.
+- **De datalekwetten die van toepassing kunnen zijn**: elke rij van de tabel met datalekwetten van OneUptime, met wat die vraagt, van wie, de termijn gerekend vanaf het moment dat Gegevensbeveiliging de blootstelling vond, en wat iemand nog controleert voordat die van toepassing is.
+
+De tabel dekt artikel 33 en 34 van de GDPR, artikel 33 en 34 van de UK GDPR, de Breach Notification Rule van HIPAA, eis 12.10.1 van PCI DSS, de Braziliaanse LGPD, de Indiase DPDP Rules en richtlijnen van CERT-In, en de datalekwetten van Californië, Colorado, Florida, New York, Texas en Washington. Elke rij linkt naar de eigen tekst van de wet, de bron, en vermeldt de dag waarop de rij er voor het laatst mee is vergeleken. Wat de tabel niet dekt - een ander land, een andere Amerikaanse staat, waar je organisatie gevestigd is, je contracten - zegt de beoordeling in gewone woorden.
+
+OneUptime AI werkt de beoordeling uit zoals je AI-regels voor Gegevensbeveiliging toestaan, of wanneer iemand erom vraagt: wat het betekent, een melding aan de toezichthouder, een melding aan de getroffen betrokkenen en een interne samenvatting (zie [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai)). Elk concept wordt getoetst aan de feiten van de beoordeling: een getal of een wet die in geen ervan staat, laat het vervallen. Er wordt nergens iets naartoe verzonden: een melding is tekst die iemand bewerkt en kopieert, en de beoordeling en elk concept vermelden dat ze geen juridisch advies zijn.
+
+De lezers van de zaak die ook de opslag en de bevindingen ervan mogen lezen, zien de beoordeling, omdat die noemt wat de opslag bevat. Beoordelen, concepten opstellen, een melding bewerken en aangeven waar de betrokkenen wonen vereisen daarnaast toestemming om de zaak te bewerken. Zie [Was het een datalek?](/docs/telemetry/security-cases#was-het-een-datalek) voor de kaarten van de zaak.
+
 ## Waarschuwingen en on-call
 
 Met **Waarschuwingen aanmaken** aan maakt een kritiek probleem een waarschuwing aan, genoemd naar "Data Security:" en de titel en de opslag van het probleem. De waarschuwing roept de dienstdoende op via haar eigen regels, net als elke andere waarschuwing (zie [Waarschuwingen](/docs/alerts/index) en [Bereikbaarheid](/docs/on-call/index)). Een probleem heeft hoogstens één open waarschuwing tegelijk, hoe vaak het ook wordt geëvalueerd. **Ernst van waarschuwing** bepaalt de ernst van de waarschuwing; leeg gelaten is het de zwaarste ernst van het project.
@@ -66,6 +83,8 @@ De eigenaren van een opslag zijn personen en teams, op de pagina **Eigenaren** v
 
 Met **Eigenaren op de hoogte stellen** aan stuurt elke evaluatie die problemen op een opslag opent, zijn eigenaren één e-mail - de personen die eigenaar zijn, en de leden van de teams die eigenaar zijn, tot 50 - met als titel hoeveel nieuwe problemen de opslag heeft, zoals "Data Security: 2 new issues on orders-db". De e-mail somt de ernst en de titel van elk nieuw probleem en de gevoeligheid van de opslag op, en linkt naar de opslag. Hij bevat nooit een voorbeeld.
 
+Zolang OneUptime AI zelf aan nieuwe problemen werkt, wacht de e-mail op de analyse, tot 10 minuten, en geeft elk geanalyseerd probleem twee extra regels: het oordeel en waarom, en de kortste weg naar opgelost. Elke eigenaar krijgt de regels die hij mag lezen: een eigenaar die het probleem niet mag lezen, krijgt er geen, en een regel die berust op iets wat hij niet mag lezen, wordt weggelaten.
+
 ### Eigenaarsregels en labelregels
 
 Regels stellen eigenaren en labels voor je in, terwijl opslagen worden gevonden:
@@ -77,6 +96,10 @@ Regels stellen eigenaren en labels voor je in, terwijl opslagen worden gevonden:
 
 Een regel komt overeen met een opslag op zijn labels, op een patroon van zijn naam of zijn beschrijving, of op **Cloudtagpatroon**: een patroon dat wordt vergeleken met elke cloudtag van de opslag, geschreven als `key=value`. `^team=payments$` komt overeen met elke opslag met de tag `team=payments`, en `^env=` met elke opslag met een tag `env`. Een nieuwe opslag krijgt de regels van het project zodra hij wordt gevonden, en **Eigenaren op de hoogte stellen** van een eigenaarsregel bepaalt of de eigenaren die hij toevoegt een melding krijgen. [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) zegt hoe elke regel overeenkomt en wanneer regels worden uitgevoerd.
 
+### Eigenaren die OneUptime AI voorstelt
+
+Een opslag zonder eigenaren kan ze van OneUptime AI krijgen. Het leest wat er al naar een eigenaar wijst - de cloudtags van de opslag, de services die de opslag gebruiken, de code-eigenaren van het bestand dat de opslag declareert, en wie de opslag heeft gewijzigd of toegevoegd - en stelt daaruit teams en personen van je eigen project voor. Er verandert niets totdat een persoon het goedkeurt onder **Eigenaren om te beoordelen**, op **Gegevensopslagen** of **Gegevensbeveiliging → AI**, en de toegevoegde eigenaren krijgen bericht zoals elke eigenaar. Rusten de eigenaren van drie of meer opslagen op één tag of één begin van hun naam, dan stelt het ook de eigenaarsregel voor die de volgende zulke opslag van een eigenaar voorziet, en die na goedkeuring bij de **Eigenaarsregels** komt. [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai) zegt wat het verstuurt en wanneer het draait.
+
 ## Workflows
 
 **Gegevensopslag** en **Gegevensbeveiligingsprobleem** zijn workflowtriggers, elk met **Bij aanmaken**, **Bij bijwerken**, **Bij aanmaken of bijwerken** en **Bij verwijderen**. Kies ze in het paneel **Trigger toevoegen**, onder **OneUptime-resources**.
@@ -87,12 +110,22 @@ Een regel komt overeen met een opslag op zijn labels, op een patroon van zijn na
 
 Zie [Workflowtriggers](/docs/workflows/triggers) voor de velden die elke trigger doorgeeft.
 
+## Pull requests
+
+Een lek is het goedkoopst op te lossen voordat het wordt gemerged. In een repository die onder **Code** is gekoppeld en waarvoor productiebeoordelingen aan staan, heeft de beoordeling van elke pull request een gedeelte **Gevoelige gegevens**, gelezen uit de diff: code die persoonsgegevens of een geheim naar telemetrie schrijft, infrastructuurcode die een opslag openbaar maakt of de versleuteling, back-ups of logging ervan uitzet, en migraties die kolommen toevoegen voor persoonsgegevens, wachtwoorden of kaartgegevens. Elk punt noemt de controle van Gegevensbeveiliging waarvoor de wijziging zou zakken zodra ze is uitgerold, en je eigen gegevenstypen worden aan hun naamhints herkend, zoals de scans ze lezen. Zie [Productiebeoordeling van pull requests](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests).
+
+Wat Gegevensbeveiliging weet, maakt die punten scherper, in de opmerking van een privérepository en, in Code, voor wie de bevindingen van Gegevensbeveiliging mag lezen: waar de telemetrie van de service in de afgelopen 7 dagen hetzelfde soort gegevens bevatte, de opschoonregel die ze bij de opname maskeert, en de opslag die een resource is, met de gevoeligheid ervan. Een opslag gemarkeerd als **Bewust openbaar** geeft geen punt omdat hij openbaar is. De opmerking van een openbare repository zegt alleen wat de diff laat zien.
+
+**Lekken ontdekt vóór de merge**, op **Projectinstellingen → AI → AI-resultaten**, telt de lekken die beoordelingen in pull requests ontdekten, daar opgelost of nog niet, naast de problemen die de scans na het uitrollen van de code op dezelfde controles openden.
+
 ## OneUptime AI
 
 Twee acties op een probleem vragen OneUptime AI om hulp. Beide sturen OneUptime AI de titel en de ernst van het probleem, de naam, soort, regio en cloud-ID van de opslag, de gevoeligheid en gegevenstypen ervan, elk bij zijn naam (je eigen gegevenstypen bij de naam die je ze gaf), het bewijs, waarom de controle ertoe doet en de oplossing voor de cloud van de opslag - nooit de voorbeelden van een bevinding. Beide vallen onder de schakelaars en limieten van OneUptime AI van het project. Wat elk ervan verstuurt, wat het nooit verstuurt en op welk model het draait, staat op [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai).
 
-- **Uitleggen met AI** schrijft voor de eigenaar van de opslag op wat er mis is, wat er kan gebeuren en de precieze stappen om het in de eigen cloud op te lossen. De uitleg wordt bewaard in de **Tijdlijn** van het probleem. Noch het verzonden probleem noch het antwoord wordt bewaard in **Projectinstellingen → AI → AI-logboeken**, die elk Projectlid en elke Kijker kan lezen: die regel zegt alleen dat de aanroep is gedaan en wat die kostte. Iedereen die het probleem kan lezen, kan erom vragen.
-- **Oplossen met AI** vraagt OneUptime AI het probleem op te lossen in je infrastructuurcode - Terraform, CloudFormation, Bicep en dergelijke - met de kleinste wijziging waardoor de controle slaagt, en een pull request te openen. Daarvoor moet de repository met de infrastructuurcode van de opslag gekoppeld zijn onder **Code**: kies die onder **Repository** als je in meerdere kunt vragen. De pull request verschijnt onder **Code** (zie [Code](/docs/ai/ai-agent)). Beveiligingsleden en hoger kunnen erom vragen, in een repository die ze onder **Code** mogen wijzigen, zoals vragen aan AI daar vereist: een beveiligingsrol leest en wijzigt op zichzelf geen enkele repository, geef hun team dus ook **Read Code Repository** en **Edit Code Repository**. Als AI nu niet kan werken - het staat uit, het project heeft geen AI-tegoed meer, de daglimieten zijn bereikt of er is geen Runner online - zegt Oplossen met AI wat er opgelost moet worden, en start niets.
+- **Probleem analyseren**, bovenaan de pagina van het probleem, laat OneUptime AI zijn analyse schrijven: of het probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost (zie [Controles en problemen van gegevensbeveiliging](/docs/data-security/checks-and-issues)). Ze verstuurt ook wie de opslag kan bereiken - elke toekenning en ongeveer wanneer die het laatst is gebruikt, en de diensten die haar gebruiken -, kopieën van de gegevens in andere opslag, de beveiligingszaken, de reactieactie die het probleem oplost, de repository en de bestanden die de opslag declareren, en hoeveel eigenaren ze heeft, nooit wie dat zijn. De analyse wordt bij het probleem bewaard, het oordeel in de **Tijdlijn** van het probleem. Wat werd verstuurd en het antwoord worden niet bewaard in **Projectinstellingen → AI → AI-logboeken**, die elk Projectlid en elke Kijker kan lezen: die regel zegt alleen dat de aanroep is gedaan en wat die kostte. Iedereen die het probleem kan lezen, kan het vragen, en **Uitleggen met AI** via de API en de MCP-server antwoordt met dezelfde analyse.
+- **Oplossen met AI** vraagt OneUptime AI het probleem op te lossen in je infrastructuurcode - Terraform, CloudFormation, Bicep en dergelijke - met de kleinste wijziging waardoor de controle slaagt, en een pull request te openen. Daarvoor moet de repository met de infrastructuurcode van de opslag gekoppeld zijn onder **Code**: kies die onder **Repository** als je in meerdere kunt vragen. De pull request verschijnt onder **Code** (zie [Code](/docs/ai/ai-agent)). Beveiligingsleden en hoger kunnen erom vragen, in een repository die ze onder **Code** mogen wijzigen, zoals vragen aan AI daar vereist: een beveiligingsrol leest en wijzigt op zichzelf geen enkele repository, geef hun team dus ook **Read Code Repository** en **Edit Code Repository**. Als AI nu niet kan werken - het staat uit, het project heeft geen AI-tegoed meer, de daglimieten zijn bereikt of er is geen Runner online - zegt Oplossen met AI wat er opgelost moet worden, en start niets. Bij een probleem in de telemetrie van een service toont het eerst één pull request voor elk lek van de service, met waar de records zeggen dat elk wordt geschreven - nooit een waarde -, en waar de gegevens op meer dan drie plaatsen worden geschreven, voegt het in plaats daarvan één redactiestap met een test toe: zie [In de code oplossen](/docs/data-security/telemetry#in-de-code-oplossen).
+
+OneUptime AI werkt ook uit zichzelf aan elk nieuw probleem, zoals je AI-regels toestaan: zie [OneUptime AI in gegevensbeveiliging](/docs/data-security/ai).
 
 ### AI vragen
 
@@ -116,7 +149,7 @@ Twee wijzigingen sluiten de blootstelling van een cloudopslag, elk via de cloudk
 
 Een persoon voert er een uit vanuit een openstaand probleem dat ermee wordt opgelost, met **Hier oplossen** (zie [Controles en problemen van Gegevensbeveiliging](/docs/data-security/checks-and-issues#hier-oplossen)). Een playbook van Security Operations voert ze uit als stappen van de categorie **Indammen**, **Openbare toegang tot gegevensopslagen blokkeren** en **Delen van gegevensopslag intrekken**: op elke gegevensopslag waar de zaak over gaat, hoogstens 10, elk een stap die begint met **Goedkeuring nodig** aan. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd. Hoe dan ook zegt de feed van de opslag wat er is gedaan, en wordt de opslag meteen opnieuw gecontroleerd, zodat het probleem oplost zodra de wijziging is doorgevoerd.
 
-Het playbooksjabloon **Een gegevenslek dichten** beantwoordt de zaken die Gegevensbeveiliging opent: het mailt de eigenaren van de opslag, blokkeert openbare toegang en trekt het delen in zodra een mens elke stap goedkeurt, en voegt de checklist van de respons als taken aan de zaak toe - wie de gegevens las terwijl ze blootgesteld waren, of het een datalek is dat je moet melden, welke geheimen je moet vervangen en wat je opschrijft als de zaak sluit. Voeg het toe met **Maken op basis van sjabloon** bij de playbooks van het project.
+Het playbooksjabloon **Een gegevenslek dichten** beantwoordt de zaken die Gegevensbeveiliging opent: het mailt de eigenaren van de opslag, blokkeert openbare toegang en trekt het delen in zodra een mens elke stap goedkeurt, en voegt de checklist van de respons als taken aan de zaak toe - wie de gegevens las terwijl ze blootgesteld waren, of het een datalek is dat je moet melden, welke geheimen je moet vervangen en wat je opschrijft als de zaak sluit. Voeg het toe met **Maken op basis van sjabloon** bij de playbooks van het project. De kaart **Was het een datalek?** van de zaak beantwoordt elk van die taken (zie [Was het een datalek?](#was-het-een-datalek)).
 
 ## API, Terraform en MCP
 
@@ -130,6 +163,7 @@ Alles wat Gegevensbeveiliging bewaart, is een record van de OneUptime-API, gelez
 | Aangepaste gegevenstypen, controle-instellingen, compliance-instellingen en residentieregels | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | De instellingen van het project | `/data-security-setting` |
 | Eigenaren, eigenaarsregels en labelregels | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Wat OneUptime AI voorstelt voor een probleem, en waarom het wel of niet heeft gehandeld | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk ervan is een `POST`:
 
@@ -139,16 +173,26 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | `/data-security/compliance` | De score en de eisen van elk kader |
 | `/data-security/resource-scope` | De gegevensopslagen van één resource - een Kubernetes-cluster, een Docker- of Podman-host, een database, een service of een cloud-resource - en van welke resource ze de compliance-schakelaars volgen |
 | `/data-security/resource-compliance` | De kaders van één resource: hun scores voor de opslagen ervan, en wat ervoor is uitgeschakeld |
-| `/data-security/record-of-processing` | Het verwerkingsregister van de AVG, een rij voor elke opslag die persoonsgegevens bevat |
+| `/data-security/record-of-processing` | Het verwerkingsregister van de AVG, een rij voor elke opslag die persoonsgegevens bevat. Een opslag die OneUptime voor je beveiliging bewaart, heeft een object `declared`: het eigen doel en de eigen bewaartermijn, en wie hem kan lezen |
+| `/data-store/<id>/declared` | Wat het register zegt over een opslag die OneUptime voor je beveiliging bewaart: wat erin staat, waarom, hoe lang en wie hem kan lezen |
 | `/data-store/<id>/scan-now` | **Nu scannen**: bemonstert nu de inhoud van de opslag |
 | `/data-store/<id>/check-now` | **Nu controleren**: leest de configuratie van de opslag opnieuw en voert de controles ervan uit |
 | `/data-store-finding/<id>/scrub` | **Opschonen** op een telemetriebevinding |
 | `/data-store-finding/<id>/drop-metric-impact` | Wat **Deze metriek verwerpen** zou verwerpen voor een bevinding in de naam van een metriek: hoeveel metrieken, en de monitoren, dashboards, SLO's en opnameregels die ze lezen |
 | `/data-store-finding/<id>/drop-metric` | **Deze metriek verwerpen**: een pipelineregel voor metrieken die de nieuwe datapunten van die metrieken van de service voorgoed verwerpt. Hij neemt `{"confirmDataLoss": true}` aan |
-| `/data-security-issue/<id>/explain` | **Uitleggen met AI** op een probleem |
+| `/data-security-issue/<id>/explain` | **Uitleggen met AI**: de analyse van een probleem door OneUptime AI, zoals **Probleem analyseren** die schrijft. Het geeft de analyse die bij het probleem is bewaard als niets is veranderd waarop ze berust, en schrijft anders een nieuwe; `{"force": true}` schrijft een nieuwe, zoals **Opnieuw analyseren** |
+| `/data-security-issue/<id>/analysis` | De analyse die bij het probleem is bewaard, zoals u die mag lezen. Het vraagt OneUptime AI nooit iets |
 | `/data-security-issue/<id>/fix-with-ai` | **Oplossen met AI** op een probleem |
 | `/data-store/<id>/response-actions` | Welke responsacties de opslag nu kan uitvoeren, en waarom niet |
 | `/data-store/<id>/respond` | Eén responsactie op de opslag, zoals **Openbare toegang blokkeren** of **Versiebeheer inschakelen**, met het probleem van waaruit ze werd uitgevoerd |
+| `/data-security-ai-proposal/<id>/approve` | **Goedkeuren** op een wijziging die OneUptime AI voorstelt, die daarmee wordt uitgevoerd met je eigen machtigingen. Neemt de `expectedPlanFingerprint` van het voorstel dat je te zien kreeg, en weigert een voorstel dat sindsdien is veranderd |
+| `/data-security-ai-proposal/<id>/dismiss` | **Voorstel negeren**, met `{"reason": "..."}`, dat op de tijdlijn van het probleem komt |
+| `/data-security-ai-proposal/<id>/undo` | **Ongedaan maken** op een wijziging die OneUptime AI heeft gedaan: die wordt teruggedraaid, en de opslag wordt opnieuw gecontroleerd |
+| `/security-case/<id>/exposure-assessment` | De beoordeling van de blootstelling van een beveiligingszaak, zoals je die mag lezen: wat gewone code afleidt over de opslag waar de zaak over gaat, en de uitwerking van OneUptime AI |
+| `/security-case/<id>/exposure-assessment/assess` | **Deze blootstelling beoordelen**: start de beoordeling van de zaak, van de opslag die `{"dataStoreId": "..."}` noemt als de zaak over meer dan één opslag gaat |
+| `/security-case/<id>/exposure-assessment/draft` | **Opstellen met OneUptime AI**: OneUptime AI werkt elk deel uit dat niemand heeft bewerkt. Er wordt niets verzonden |
+| `/security-case/<id>/exposure-assessment/edit` | Een deel in de eigen woorden van een persoon, zoals `{"part": "regulatorNotice", "markdown": "..."}`, waarvoor nooit opnieuw een concept wordt opgesteld |
+| `/security-case/<id>/exposure-assessment/people` | Waar de betrokkenen over wie de gegevens gaan wonen, zoals `{"places": ["EEA", "GB"]}`; een lege lijst trekt het antwoord in |
 
 De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, compliance-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
 

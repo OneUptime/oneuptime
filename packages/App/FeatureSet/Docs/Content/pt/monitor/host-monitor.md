@@ -200,7 +200,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Todos os valores** (todos os valores precisam corresponder, na janela inteira) ou **Qualquer valor** (basta um). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalamente alto**, **Anomalamente baixo** ou **Anômalo**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a**, **Igual a** ou **Diferente de** – ou uma condição de anomalia: **Anomalamente alto**, **Anomalamente baixo** ou **Anômalo**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
@@ -229,6 +229,7 @@ Um monitor de host cobre todos os discos que o host informa. Os modelos High Fil
 | Onde | O que mostra para cada disco |
 | --- | --- |
 | A página **Métricas** do monitor | Uma linha por disco, com o nome do seu `mountpoint` e `device`. |
+| A página **Visão geral** do monitor | **Séries** lista cada disco que a última verificação leu: seu valor mais recente, os critérios que atende e seu incidente ou alerta aberto. |
 | **Registros de monitoramento** | A coluna **Observado** conta as séries que cada verificação leu: uma por disco. |
 | **Incidentes** e **Alertas** | Um por disco, indicando a montagem e o dispositivo do disco. |
 | A tabela **Sistemas de arquivos** do host | Todos os discos que o coletor informa, independentemente do que seus monitores vigiem. |
@@ -238,7 +239,7 @@ Cada critério é verificado para cada disco:
 - Enquanto o incidente de um disco está aberto, o critério que o abriu não abre outro para esse disco. Outro disco que o atenda abre o seu próprio.
 - Um disco que atende a dois critérios, como um acima de 98% e outro acima de 90%, recebe um só incidente, do primeiro deles na lista. Coloque o mais rigoroso primeiro.
 - O incidente de um disco se resolve quando esse disco deixa de atender ao critério que o abriu, faça o que fizerem os outros discos.
-- O monitor tem um único status, definido pelo primeiro critério da lista que algum disco atende. Quando nenhum disco atende a um critério que dispara, basta um disco no limite de recuperação ou abaixo dele para o critério de recuperação, então a margem de recuperação de 10% não vale em um host com um disco que nunca chega perto de ficar cheio.
+- O monitor tem um único status. Um critério que o muda para outro status, como **Offline**, o define assim que um disco o atende. O critério que traz o monitor de volta ao seu **Status Padrão do Monitor** espera pelos discos que atenderam a um critério assim, e corresponde quando cada um deles o atende, faça o que fizerem os outros discos. Assim, um disco que cai de 96% para 89% mantém o monitor **Offline** até estar em 81% ou abaixo, a margem de recuperação de 10%, embora seu incidente se resolva assim que ele deixa de estar acima de 90%. **Séries** mostra esse disco como **Mantém o status**. Um disco que deixa de ser informado deixa de manter o status.
 
 Para vigiar só alguns discos, abra **Avançado** e, na consulta em **Selecionar Métricas**, adicione em **Filtrar por atributos** um filtro em `mountpoint`: **é um de** para os discos a vigiar, ou **não é nenhum de** para os discos a deixar de fora. Mantenha o campo **Agrupar por** e escreva cada disco como a tabela **Sistemas de arquivos** o mostra, como `C:` ou `/var`. Para deixar de coletar um disco de vez, de modo que ele também saia das páginas do host, defina `include_mount_points` ou `exclude_mount_points` no scraper `filesystem` do coletor ([Métricas do host](/docs/telemetry/host-otel-collector#métricas-do-host)).
 

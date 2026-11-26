@@ -13,8 +13,14 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   HiddenClientAddress,
   readHiddenClientAddress,
+  readHiddenTargetAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
-import HiddenClientAddressText from "./HiddenClientAddressText";
+import { ScrubbedUserRole } from "Common/Utils/SecurityEvent/ScrubbedUser";
+import HiddenClientAddressText, {
+  HIDDEN_TARGET_ADDRESS_TEST_ID,
+} from "./HiddenClientAddressText";
+import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenUserCopy";
+import { buildHiddenUserField } from "./SecurityEventDetailFields";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -75,6 +81,8 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
 
   const hiddenAddress: HiddenClientAddress | null =
     readHiddenClientAddress(event);
+  const hiddenTargetAddress: HiddenClientAddress | null =
+    readHiddenTargetAddress(event);
 
   /*
    * Observables are the pivot points of the whole product — every one of
@@ -128,7 +136,13 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "Rule Name", value: event.ruleName },
     { label: "MITRE Tactics", value: formatArray(event.mitreTactics) },
     { label: "MITRE Techniques", value: formatArray(event.mitreTechniques) },
-    { label: "Principal User", value: event.principalUser },
+    {
+      label: "Principal User",
+      // A user a scrub rule hid says so, as the events list's drawer does.
+      value: buildHiddenUserField(event, ScrubbedUserRole.Principal)
+        ? translator.translateText(HIDDEN_BY_A_SCRUB_RULE)
+        : event.principalUser,
+    },
     { label: "Principal Host", value: event.principalHost },
     {
       label: "Principal IP",
@@ -146,9 +160,25 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "Parent Process", value: event.parentProcessName },
     { label: "Parent Process Path", value: event.parentProcessPath },
     { label: "Parent Command Line", value: event.parentProcessCommandLine },
-    { label: "Target User", value: event.targetUser },
+    {
+      label: "Target User",
+      value: buildHiddenUserField(event, ScrubbedUserRole.Target)
+        ? translator.translateText(HIDDEN_BY_A_SCRUB_RULE)
+        : event.targetUser,
+    },
     { label: "Target Host", value: event.targetHost },
-    { label: "Target IP", value: event.targetIp },
+    {
+      label: "Target IP",
+      // A destination a scrub rule hid says so, as the events list's drawer does (#10419).
+      value: hiddenTargetAddress ? (
+        <HiddenClientAddressText
+          hidden={hiddenTargetAddress}
+          dataTestId={HIDDEN_TARGET_ADDRESS_TEST_ID}
+        />
+      ) : (
+        event.targetIp
+      ),
+    },
     {
       label: "Target Port",
       value: event.targetPort ? event.targetPort.toString() : undefined,

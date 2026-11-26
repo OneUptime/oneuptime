@@ -109,6 +109,13 @@ const MAX_MESSAGE_LENGTH: number = 1024;
  * of times (LogExceptionText).
  */
 
+// The attributes Path A reads an exception from.
+const EXCEPTION_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
+  "exception.stacktrace",
+  "exception.type",
+  "exception.message",
+];
+
 // Header parsers for deriving exceptionType + message from a raw body.
 const PYTHON_TRACEBACK_HEADER: RegExp = /^Traceback \(most recent call last\):/;
 /*
@@ -173,6 +180,34 @@ export default class LogExceptionExtractor {
       return LogExceptionExtractor.extractFromBody(input.body);
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Whether a log record with these attributes and this severity could hold
+   * an exception, whatever its body says: it carries one of the exception.*
+   * attributes (whatever their values), it is a mobile app's crash, ANR or
+   * hang, or it is at Error or Fatal severity, where its body is scanned for
+   * a stack trace. extractFromLogRecord finds an exception in no record this
+   * says no to. Cheap - no body is read - so ingest asks it of every record
+   * before it keeps a copy of one (#10434). Never throws: unsure, it says yes.
+   */
+  public static mayHoldException(input: {
+    attributes: JSONObject;
+    severityNumber: number;
+  }): boolean {
+    try {
+      const attributes: JSONObject = input.attributes || {};
+
+      return (
+        isErrorOrFatalSeverity(input.severityNumber) ||
+        EXCEPTION_ATTRIBUTE_KEYS.some((key: string): boolean => {
+          return Object.prototype.hasOwnProperty.call(attributes, key);
+        }) ||
+        getMobileAppFaultKind(attributes) !== null
+      );
+    } catch {
+      return true;
     }
   }
 

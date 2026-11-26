@@ -11,6 +11,7 @@ import {
   SecurityTelemetrySourceKind,
   getSecurityTelemetrySourceDefinition,
   isSecurityTelemetryScannedKind,
+  isSetAsideSecurityTelemetrySignal,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import OTelIngestService, {
@@ -36,6 +37,13 @@ import RumSecurityScan from "./RumSecurityScan";
 import { TelemetryScanWindow } from "./TelemetryScanStatements";
 import { TelemetryWindowRead } from "./TelemetryScanTypes";
 import TraceSecurityScan from "./TraceSecurityScan";
+import RefusedTelemetryReader from "../RefusedTelemetryReader";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryObservation,
+  RefusedTelemetryRecord,
+} from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * "Your OneUptime data" (SecurityTelemetrySource): every minute, for each
@@ -72,6 +80,12 @@ import TraceSecurityScan from "./TraceSecurityScan";
  * read brings them in (CloudAudit/CloudAuditSecurityEvents.ts), so a project
  * that turned on only them is never queued, and their source is never
  * scanned here.
+ *
+ * Traces an ingestion budget or rate refused never reach the Span table,
+ * so no scan can read them (#10431). Each turn of the traces reads the
+ * project's budget counters for traces and keeps, on its result, the
+ * stretches in which one refused them (RefusedTelemetryReader), as "Your
+ * logs" does for the logs.
  */
 
 export const SECURITY_TELEMETRY_SCAN_PROJECT_WORK: SecurityProjectWorkDefinition =
@@ -147,6 +161,12 @@ export interface SecurityTelemetryScanResult {
   eventsFound: number;
   // Events found, by signal (SecurityTelemetrySignal).
   bySignal: Record<string, number>;
+  /*
+   * Events stored but set aside as OneUptime's own work - its probes'
+   * polling, discovery and checks (#10429; SECURITY_TELEMETRY_SET_ASIDE_
+   * SIGNALS) - by signal: kept so they stay visible, never counted as found.
+   */
+  setAsideBySignal: Record<string, number>;
   windows: number;
   /*
    * The scan had fallen too far behind and skipped ahead: what arrived
@@ -164,6 +184,15 @@ export interface SecurityTelemetryScanResult {
   partialWindowProcessed: number;
   scannedFrom: string;
   scannedTo: string;
+  /*
+   * Traces only: the stretches in which an ingestion budget or rate refused
+   * this project's traces (#10431), kept from scan to scan for as long as a
+   * retrohunt can ask about them, and the budget counters they were last
+   * read with (Utils/SecurityEvent/RefusedTelemetry). The other kinds read
+   * nothing a telemetry budget refuses, and keep neither.
+   */
+  refusedTelemetry?: Array<RefusedTelemetry> | undefined;
+  refusedTelemetryObservation?: RefusedTelemetryObservation | null | undefined;
 }
 
 function readCursor(value: string | undefined): Date | null {
@@ -362,6 +391,7 @@ export default class SecurityTelemetryScanner {
       recordsRead: 0,
       eventsFound: 0,
       bySignal: {},
+      setAsideBySignal: {},
       windows: 0,
       skippedBacklog: Boolean(skippedFrom),
       skippedFrom,
@@ -371,6 +401,20 @@ export default class SecurityTelemetryScanner {
       scannedFrom: cursor.toISOString(),
       scannedTo: cursor.toISOString(),
     };
+
+    // What a budget or a rate refused of the traces since the last turn (#10431).
+    if (kind === SecurityTelemetrySourceKind.Traces) {
+      const refused: RefusedTelemetryRecord =
+        await RefusedTelemetryReader.observe({
+          projectId,
+          signal: ProductType.Traces,
+          lastScanResult: previous,
+          now,
+        });
+
+      result.refusedTelemetry = refused.refusals;
+      result.refusedTelemetryObservation = refused.observation;
+    }
 
     let serviceMetadata: TelemetryServiceMetadata | null = null;
     let lastEventFoundAt: Date | null = null;
@@ -440,16 +484,27 @@ export default class SecurityTelemetryScanner {
             },
           );
 
+          let found: number = 0;
+
           for (const event of stored) {
             const signal: string = String(
               event.attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE] || "",
             );
+
+            // OneUptime's own work: kept and counted, but never found.
+            if (isSetAsideSecurityTelemetrySignal(signal)) {
+              result.setAsideBySignal[signal] =
+                (result.setAsideBySignal[signal] || 0) + 1;
+              continue;
+            }
+
             result.bySignal[signal] = (result.bySignal[signal] || 0) + 1;
+            found++;
           }
 
-          result.eventsFound += stored.length;
+          result.eventsFound += found;
 
-          if (stored.length > 0) {
+          if (found > 0) {
             lastEventFoundAt = now;
           }
         }

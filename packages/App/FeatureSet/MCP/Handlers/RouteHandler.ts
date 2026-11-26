@@ -41,7 +41,10 @@ import {
   ExpressResponse,
   NextFunction,
   ExpressJson,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
+import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
+import { getRequestBodyLimit } from "Common/Server/Utils/RequestBodyLimit";
 import { createMCPServerInstance, McpServer } from "../Server/MCPServer";
 import { registerToolHandlers } from "./ToolHandler";
 import { BearerChallenge } from "../OAuth/BearerChallenge";
@@ -178,9 +181,22 @@ function setupRoutesForPrefix(
   const mcpEndpoint: string = prefix;
   const mcpHandler: McpHandlerFunction = createMCPHandler(tools);
 
+  /*
+   * The JSON-RPC body. StartServer parses one sent uncompressed before this
+   * runs, held to the route's limit (RequestBodyLimit); a gzip one it only
+   * inflates, under the same limit, and this parses it from those bytes
+   * (RequestBodyParser) - where body-parser alone read the spent stream
+   * again and answered a valid body 500 (#10643). Held to the route's limit
+   * too, so a body gzipped is taken as the same body sent as it is.
+   */
+  const readJsonRpcBody: RequestHandler = RequestBodyParser.create(
+    ExpressJson,
+    { limit: getRequestBodyLimit(mcpEndpoint).bytes },
+  );
+
   // MCP endpoint for all methods (GET for SSE, POST for requests, DELETE for cleanup)
   app.get(mcpEndpoint, mcpCorsMiddleware, mcpHandler);
-  app.post(mcpEndpoint, mcpCorsMiddleware, ExpressJson(), mcpHandler);
+  app.post(mcpEndpoint, mcpCorsMiddleware, readJsonRpcBody, mcpHandler);
   app.delete(mcpEndpoint, mcpCorsMiddleware, mcpHandler);
 
   // OPTIONS handler for CORS preflight requests

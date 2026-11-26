@@ -12,6 +12,7 @@ import {
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import CriteriaFilterUiUtil from "../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -434,7 +435,7 @@ describe("the criteria", () => {
     expect(running.data!.isEnabled).toBe(true);
   });
 
-  test("not running: every other state, below Running or above it, and the monitor goes offline with an incident", () => {
+  test("not running: Not Equal To Running, in one filter, and the monitor goes offline with an incident", () => {
     const notRunning: MonitorCriteriaInstance = criteriaOf(
       prefillOf(WINDOWS, "Spooler"),
     )[1]!;
@@ -451,13 +452,7 @@ describe("the criteria", () => {
       }),
     ).toEqual([
       {
-        filterType: FilterType.LessThan,
-        value: 4,
-        aggregation: EvaluateOverTimeType.AnyValue,
-        alias: "service_status",
-      },
-      {
-        filterType: FilterType.GreaterThan,
+        filterType: FilterType.NotEqualTo,
         value: 4,
         aggregation: EvaluateOverTimeType.AnyValue,
         alias: "service_status",
@@ -469,24 +464,43 @@ describe("the criteria", () => {
     expect(notRunning.data!.changeMonitorStatus).toBe(true);
   });
 
-  test("the two conditions say exactly 'not Running': every state code but 4, the documented 0 and any other", () => {
-    const filterTypes: Array<FilterType | undefined> = criteriaOf(
+  /*
+   * Judged by the comparator the evaluator judges every metric filter with
+   * (CompareCriteria.compareCriteriaNumbers), over a window of one minute's
+   * reading: the one filter matches exactly what the two it replaces (#10449)
+   * matched - below Running, or above it - which is every state code but 4.
+   */
+  test("Not Equal To 4 says exactly 'not Running': the same codes as Less Than 4 or Greater Than 4, from 0 to 255", () => {
+    const notRunning: CriteriaFilter = criteriaOf(
       prefillOf(WINDOWS, "Spooler"),
-    )[1]!.data!.filters.map((filter: CriteriaFilter) => {
-      return filter.filterType;
-    });
+    )[1]!.data!.filters[0]!;
 
-    const matches: (code: number) => boolean = (code: number): boolean => {
-      return filterTypes.some((filterType: FilterType | undefined) => {
-        return filterType === FilterType.LessThan ? code < 4 : code > 4;
-      });
+    const isMet: (filter: CriteriaFilter, code: number) => boolean = (
+      filter: CriteriaFilter,
+      code: number,
+    ): boolean => {
+      return (
+        CompareCriteria.compareCriteriaNumbers({
+          value: [code],
+          threshold: 4,
+          criteriaFilter: filter,
+        }) !== null
+      );
     };
 
-    for (const code of [0, 1, 2, 3, 4, 5, 6, 7, 8, 255]) {
-      expect({ code: code, notRunning: matches(code) }).toEqual({
+    const before: Array<CriteriaFilter> = [
+      { ...notRunning, filterType: FilterType.LessThan },
+      { ...notRunning, filterType: FilterType.GreaterThan },
+    ];
+
+    for (let code: number = 0; code <= 255; code++) {
+      expect({ code: code, notRunning: isMet(notRunning, code) }).toEqual({
         code: code,
-        notRunning: code !== 4,
+        notRunning: before.some((filter: CriteriaFilter): boolean => {
+          return isMet(filter, code);
+        }),
       });
+      expect(isMet(notRunning, code)).toBe(code !== 4);
     }
   });
 
@@ -548,7 +562,7 @@ describe("the criteria", () => {
     }
   });
 
-  test("a systemd unit: active is 1 on its active point, and not active is anything below it", () => {
+  test("a systemd unit: active is 1 on its active point, and not active is anything else", () => {
     const criteria: Array<MonitorCriteriaInstance> = criteriaOf(
       prefillOf(SYSTEMD, "nginx.service"),
     );
@@ -568,7 +582,18 @@ describe("the criteria", () => {
       notRunning.data!.filters.map((filter: CriteriaFilter) => {
         return [filter.filterType, filter.value];
       }),
-    ).toEqual([[FilterType.LessThan, 1]]);
+    ).toEqual([[FilterType.NotEqualTo, 1]]);
+
+    // A state set's point is 1 or 0: the same minutes Less Than 1 matched.
+    for (const value of [0, 1]) {
+      expect(
+        CompareCriteria.compareCriteriaNumbers({
+          value: [value],
+          threshold: 1,
+          criteriaFilter: notRunning.data!.filters[0]!,
+        }) !== null,
+      ).toBe(value < 1);
+    }
 
     expect(notReporting.data!.name).toBe(
       "nginx.service stopped reporting on Web 01",
@@ -581,9 +606,9 @@ describe("the criteria", () => {
 
   test("every condition is one the criteria form offers for a metric value, so the form draws it and keeps it", () => {
     /*
-     * The form offers no Not Equal To for a metric value, and a condition it
-     * does not offer draws as an empty dropdown - which is why "not Running"
-     * is "below or above Running", checked after Running.
+     * A condition the form does not offer draws as an empty dropdown. It
+     * offers Not Equal To for a metric value, right after Equal To (#10449),
+     * so "not Running" is one filter.
      */
     const offered: Array<unknown> =
       CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
@@ -592,7 +617,9 @@ describe("the criteria", () => {
         return option.value;
       });
 
-    expect(offered).not.toContain(FilterType.NotEqualTo);
+    expect(offered.indexOf(FilterType.NotEqualTo)).toBe(
+      offered.indexOf(FilterType.EqualTo) + 1,
+    );
 
     for (const kind of [WINDOWS, SYSTEMD]) {
       for (const instance of criteriaOf(prefillOf(kind, "svc"))) {

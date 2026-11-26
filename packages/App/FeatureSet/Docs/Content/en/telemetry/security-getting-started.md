@@ -70,9 +70,11 @@ At the top of **Overview**, under what needs someone, each part shows its figure
 | Fortinet FortiGate | IPS and antivirus findings, denied traffic, VPN and administrator sign-ins, and configuration changes from FortiGate's own syslog |
 | Cisco ASA | Denied connections, threat detection and IPS findings, VPN and administrator sign-ins, and commands from Cisco ASA and Firepower Threat Defense |
 | Kubernetes audit logs | Changes to the cluster, shells opened in pods, secrets read and refused requests |
-| Web attacks | Requests in a web server's access log that try SQL injection, path traversal or Log4Shell |
+| Web attacks | Requests in a web server's access log that try SQL injection, path traversal or Log4Shell, requests for sensitive files such as `/.env` or `/.git/config` that your site refused or does not have, and a file that holds secrets your site served |
 
 Your logs stay as they are. Only the lines that matter for security become events: never every page a web server served, or every read of an API.
+
+A file that holds secrets your site served, such as `/.env`, is a leak, and the Rule Library's **Sensitive file served** opens a Critical case on it. A single-page app's own page for a path it does not have never is. See [A sensitive file your site served](/docs/telemetry/security-events#a-sensitive-file-your-site-served).
 
 A threat a security product writes in your logs, such as a CEF or LEEF finding or a FortiGate IPS finding, opens a case as a connected product's alert does. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**.
 

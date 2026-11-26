@@ -330,16 +330,29 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   [ProductKey.SecurityEvents]: [
     "DetectionRule",
     "DetectionRuleException",
+    // An automatic response policy, and what each did (#10350).
+    "SecurityAutomaticResponseAction",
+    "SecurityAutomaticResponsePolicy",
     "SecurityBlock",
+    // A cloud WAF that enforces the blocklist (#10344).
+    "SecurityBlockCloudWaf",
     "SecurityBlockEnforcement",
+    // A feed firewalls read the blocklist from, and its fetch log (#10345).
+    "SecurityBlocklistFeed",
+    "SecurityBlocklistFeedFetch",
     "SecurityCase",
+    // OneUptime AI's log of a case it works (#10352).
+    "SecurityCaseAiAction",
     "SecurityCaseCustomField",
     "SecurityCaseEvidence",
     "SecurityCaseFeed",
     "SecurityCaseNote",
     "SecurityCaseNoteTemplate",
     "SecurityCasePriority",
+    // A pull request a person linked to a case as its fix (#10604).
+    "SecurityCasePullRequest",
     "SecurityCaseStatus",
+    "SecurityCaseStepCheck",
     "SecurityCaseTask",
     "SecurityDetection",
     "SecurityEntityCriticality",
@@ -358,6 +371,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityWatchlistItem",
     "ThreatIntelFeed",
     AnalyticsTableName.SecurityEvent,
+    AnalyticsTableName.SecurityEventLateArrival,
     AnalyticsTableName.ThreatIntelIndicator,
   ],
   [ProductKey.DataSecurity]: [
@@ -368,6 +382,10 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataSecurityIdentity",
     "DataSecurityIssue",
     "DataSecurityIssueFeed",
+    // The issues one mistake made, fixed once (#10370).
+    "DataSecurityIssueGroup",
+    "DataSecurityAiProposal",
+    "DataSecurityAiDecision",
     "DataSecurityResidencyRule",
     "DataSecurityScan",
     "DataSecuritySetting",

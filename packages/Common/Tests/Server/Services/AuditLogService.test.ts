@@ -177,6 +177,7 @@ const signInSettingsCleared: () => Array<SignInSettingsClearedAuditEvent> =
         clearedByUserId: new ObjectID("17171717-1717-4717-8717-171717171717"),
         cleared: {
           hasPassword: true,
+          hasPasswordResetLink: false,
           isTwoFactorAuthEnabled: true,
           authenticatorAppCount: 1,
           passkeyAndSecurityKeyCount: 2,

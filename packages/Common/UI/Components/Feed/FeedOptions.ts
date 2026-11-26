@@ -94,6 +94,21 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
   ["AiFixRequested", "AI Fix Requested"],
   // A cloud's fix OneUptime AI carried out, and what its services said happened.
   ["AiFix", "AI Fix"],
+  /*
+   * OneUptime AI's work on a Data Security issue or store - its analysis, its
+   * proposals and what became of them, its changes - and on a security case
+   * it works (#10494, #10609, #10352).
+   */
+  ["AiAnalysis", "AI Analysis"],
+  ["AiProposed", "AI Proposed"],
+  ["AiProposalApproved", "AI Proposal Approved"],
+  ["AiChangeMade", "AI Change Made"],
+  ["AiProposalDismissed", "AI Proposal Dismissed"],
+  ["AiChangeUndone", "AI Change Undone"],
+  ["AiChangeFailed", "AI Change Failed"],
+  // A group's proposal that was no longer needed (#10741).
+  ["AiProposalExpired", "AI Proposal Expired"],
+  ["AiResponse", "AI Response"],
   ["LifecycleEvent", "Lifecycle Event"],
 ]);
 

@@ -339,7 +339,7 @@ describe("Alerts side menu", () => {
   });
 
   describe("Rules section", () => {
-    test("holds every alert rule page", async () => {
+    test("holds every alert rule page, then their history", async () => {
       await renderAlertsMenu();
 
       expect(linksIn("Rules")).toEqual([
@@ -375,7 +375,30 @@ describe("Alerts side menu", () => {
           title: "Reminder Rules",
           href: routeFor(PageMap.ALERTS_SETTINGS_REMINDER_RULES),
         },
+        /*
+         * Who changed the rules above, what and when (#10290): most alert
+         * rules have no page of their own to hold their history.
+         */
+        {
+          title: "Audit Logs",
+          href: routeFor(PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS),
+        },
       ]);
+    });
+
+    test("opens itself on the rules' Audit Logs page, and marks it", async () => {
+      goTo(routeFor(PageMap.ALERTS_SETTINGS_RULES_AUDIT_LOGS));
+      await renderAlertsMenu();
+
+      expect(isExpanded("Rules")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Audit Logs"]);
+      expect(isExpanded("Settings")).toBe(false);
+    });
+
+    test("every entry carries an icon", async () => {
+      await renderAlertsMenu();
+
+      expect(iconCountIn("Rules")).toBe(linksIn("Rules").length);
     });
 
     test("starts collapsed", async () => {
@@ -411,7 +434,7 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       expect(isExpanded("Rules")).toBe(false);
-      expect(linksIn("Rules")).toHaveLength(8);
+      expect(linksIn("Rules")).toHaveLength(9);
     });
 
     // Rules is collapsed by default, so it must open itself on its pages.

@@ -478,6 +478,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "Reminder Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Incidents", "Rules", "Audit Logs"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

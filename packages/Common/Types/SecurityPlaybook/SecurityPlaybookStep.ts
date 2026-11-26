@@ -1,4 +1,9 @@
 import ColumnLength from "../Database/ColumnLength";
+import {
+  CaCertificatePemProblem,
+  CaCertificateProblem,
+  getCaCertificatePemShapeProblem,
+} from "../Runbook/HttpStepCertificates";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, JSONValue } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -6,6 +11,12 @@ import Permission from "../Permission";
 import SecurityCaseVerdict, {
   isSecurityCaseVerdict,
 } from "../SecurityCase/SecurityCaseVerdict";
+import {
+  SECURITY_BLOCK_DEFAULT_DURATION,
+  SecurityBlockAction,
+  SecurityBlockDuration,
+  isSecurityBlockDuration,
+} from "../SecurityBlocklist/SecurityBlock";
 import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
@@ -167,8 +178,46 @@ export interface IsolateDefenderDeviceConfig extends ConnectionActionConfig {
   isolationType: DefenderIsolationType;
 }
 
+/*
+ * Block the address (#10342): block it or challenge it, for how long - 24
+ * hours unless the step says. A playbook's block always ends by itself
+ * (SecurityPlaybookService); only a person's one-step block from a case
+ * keeps one until someone lifts it, and only a Security Admin's.
+ */
+export interface BlockAddressConfig {
+  blockAction: SecurityBlockAction;
+  duration: SecurityBlockDuration;
+}
+
+// What a Block the address step does, its settings read as stored: 24 hours of Block unless they say.
+export function readBlockAddressConfig(config: JSONObject): BlockAddressConfig {
+  const blockAction: JSONValue | undefined = config["blockAction"];
+  const duration: JSONValue | undefined = config["duration"];
+
+  return {
+    blockAction:
+      blockAction === SecurityBlockAction.Challenge
+        ? SecurityBlockAction.Challenge
+        : SecurityBlockAction.Block,
+    duration: isSecurityBlockDuration(duration)
+      ? duration
+      : SECURITY_BLOCK_DEFAULT_DURATION,
+  };
+}
+
+/*
+ * Where the case is posted, and how the receiver's certificate is checked:
+ * as every request does, by a CA certificate of the step's own, or not at
+ * all - the two settings of a Runbook HTTP step and a workflow's API steps
+ * (#10440, Types/Runbook/HttpStepCertificates), under the step's More
+ * fields, read as there. Each is kept only while it is set.
+ */
 export interface SendWebhookConfig {
   url: string;
+  // On only when exactly true.
+  allowSelfSignedCertificates?: boolean | undefined;
+  // PEM; not used while allowSelfSignedCertificates is on.
+  caCertificate?: string | undefined;
 }
 
 export interface RunWorkflowConfig {
@@ -233,6 +282,87 @@ function readObject(value: JSONValue | undefined): JSONObject {
   }
 
   return {};
+}
+
+/*
+ * What a save is told when a Send Webhook step's certificate settings are
+ * not ones it can run with, after the step's label.
+ */
+/*
+ * Each follows the step's name, and its last full stop is written where it
+ * is thrown - `${label}: ${message}.` - so the whole refusal reads as the
+ * sentence it is (ErrorMessagesGuard).
+ */
+export const SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES: Record<
+  CaCertificatePemProblem,
+  string
+> = {
+  [CaCertificateProblem.NotACertificate]:
+    "the CA certificate is not a certificate in PEM. Paste the CA's certificate, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----",
+  [CaCertificateProblem.PrivateKey]:
+    "the CA certificate holds a private key, where everyone who may read this playbook could read it. Paste only the certificate, and keep the key on the server",
+  [CaCertificateProblem.TooLong]:
+    "the CA certificate is longer than 64 KB. Paste only the certificate of the CA that signed the server's certificate",
+};
+
+/*
+ * A Send Webhook step's certificate settings, as a save keeps them: the
+ * switch only when exactly true, and anything else but false refused (a
+ * "true" written through the API would read as on and is not); the CA
+ * certificate trimmed, kept while it is a certificate in PEM - a playbook
+ * has no variables, so a reference is text, not a certificate. While the
+ * switch is on the certificate is not used, so only what must never be kept
+ * in a step is refused then: a private key. The server also parses each
+ * certificate (SecurityPlaybookService).
+ */
+function readWebhookCertificateConfig(
+  config: JSONObject,
+  label: string,
+): Pick<SendWebhookConfig, "allowSelfSignedCertificates" | "caCertificate"> {
+  const allowSelfSigned: JSONValue | undefined =
+    config["allowSelfSignedCertificates"];
+
+  if (
+    allowSelfSigned !== undefined &&
+    allowSelfSigned !== null &&
+    typeof allowSelfSigned !== "boolean"
+  ) {
+    throw new BadDataException(
+      `${label}: set allowSelfSignedCertificates to true to skip the server's certificate checks, or to false to keep them.`,
+    );
+  }
+
+  const rawCaCertificate: JSONValue | undefined = config["caCertificate"];
+
+  if (
+    rawCaCertificate !== undefined &&
+    rawCaCertificate !== null &&
+    typeof rawCaCertificate !== "string"
+  ) {
+    throw new BadDataException(
+      `${label}: set caCertificate to the CA's certificate in PEM, or leave it out.`,
+    );
+  }
+
+  const caCertificate: string =
+    typeof rawCaCertificate === "string" ? rawCaCertificate.trim() : "";
+  const problem: CaCertificatePemProblem | null = caCertificate
+    ? getCaCertificatePemShapeProblem(caCertificate)
+    : null;
+
+  if (
+    problem === CaCertificateProblem.PrivateKey ||
+    (problem && allowSelfSigned !== true)
+  ) {
+    throw new BadDataException(
+      `${label}: ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}.`,
+    );
+  }
+
+  return {
+    ...(allowSelfSigned === true ? { allowSelfSignedCertificates: true } : {}),
+    ...(caCertificate && !problem ? { caCertificate } : {}),
+  };
 }
 
 function readText(config: JSONObject, key: string): string {
@@ -564,7 +694,7 @@ export function normalizeSecurityPlaybookStepConfig(
         );
       }
 
-      return { url };
+      return { url, ...readWebhookCertificateConfig(rawConfig, label) };
     }
 
     case SecurityPlaybookActionType.RunWorkflow:
@@ -649,11 +779,41 @@ export function normalizeSecurityPlaybookStepConfig(
       return reason ? { reason } : {};
     }
 
+    case SecurityPlaybookActionType.BlockAddress: {
+      const blockAction: string = readText(rawConfig, "blockAction");
+      const duration: string = readText(rawConfig, "duration");
+
+      if (
+        blockAction &&
+        blockAction !== SecurityBlockAction.Block &&
+        blockAction !== SecurityBlockAction.Challenge
+      ) {
+        throw new BadDataException(`${label}: choose Block or Challenge.`);
+      }
+
+      if (duration && !isSecurityBlockDuration(duration)) {
+        throw new BadDataException(
+          `${label}: choose how long the block lasts: 1 hour, 24 hours, 7 days or 30 days.`,
+        );
+      }
+
+      const config: BlockAddressConfig = readBlockAddressConfig({
+        blockAction,
+        duration,
+      });
+
+      return {
+        blockAction: config.blockAction,
+        duration: config.duration,
+      };
+    }
+
     // Nothing to set: each reads what it acts on from the case.
     case SecurityPlaybookActionType.PreserveEvidence:
     case SecurityPlaybookActionType.FixWithAi:
     case SecurityPlaybookActionType.BlockDataStorePublicAccess:
     case SecurityPlaybookActionType.RevokeDataStoreSharing:
+    case SecurityPlaybookActionType.LiftAddressBlock:
       return {};
   }
 }

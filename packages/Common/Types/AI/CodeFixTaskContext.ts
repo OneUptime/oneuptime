@@ -4,11 +4,28 @@ import GitHubCommandType, {
 import { DeclaredCodeChangeTaskContext } from "../../Utils/AiRemediation/DeclaredCodeChange";
 import { CodeHost, CodeHostCapability } from "../CodeRepository/CodeHost";
 import CodeRepositoryType from "../CodeRepository/CodeRepositoryType";
+import { ProductionReviewCaughtLeak } from "../CodeRepository/ProductionReviewSensitiveData";
 import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
 import {
   ProductionReviewPosting,
   ProductionReviewTrigger,
 } from "../CodeRepository/ProductionReview";
+import {
+  MAX_TELEMETRY_LEAK_ISSUES,
+  MAX_TELEMETRY_LEAK_NAME_LENGTH,
+  MAX_TELEMETRY_LEAK_PATH_LENGTH,
+  MAX_TELEMETRY_LEAK_REDACTION_KEYS,
+  MAX_TELEMETRY_LEAK_START_FILES,
+  MAX_TELEMETRY_LEAKS_PER_FIX,
+  TelemetryLeakFixIssue,
+  TelemetryLeakFixLeak,
+  TelemetryLeakFixStrategy,
+  isTelemetryLeakFixStrategy,
+  readTelemetryLeakFixIssue,
+  readTelemetryLeakFixLeak,
+  readTelemetryLeakList,
+  readTelemetryLeakTexts,
+} from "../DataSecurity/TelemetryLeakFix";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -262,8 +279,351 @@ export interface ProductionReviewTaskContext {
   aiReadDay?: string | undefined;
   aiReadsToday?: number | undefined;
   aiInputHash?: string | undefined;
+  // The input of OneUptime AI's last read of the Sensitive data section (#10376).
+  sensitiveDataAiInputHash?: string | undefined;
+  /*
+   * Every leak a review of this pull request posted, once each, and when a
+   * later review no longer found it (#10376): what AI Results counts as
+   * caught before it merged.
+   */
+  caughtLeaks?: Array<ProductionReviewCaughtLeak> | undefined;
+  /*
+   * GitHub only: the leaks whose suggested change was posted on its line,
+   * by key - each is posted once, however many pushes show it.
+   */
+  suggestedLeakKeys?: Array<string> | undefined;
   // Attempts at the latest request that failed (a GitHub or database blip).
   failedAttempts?: number | undefined;
+}
+
+/*
+ * The fix of a group of Data Security issues' cause, once
+ * (CodeFixTaskType.FixInfrastructureCode, #10370): what its Runner is
+ * handed and its pull request says. Names, ids and the request as Data
+ * Security's input builder wrote it - never a value, a sample or a record.
+ */
+export interface InfrastructureFixTaskContext {
+  // The group of issues whose cause it fixes.
+  groupId: string;
+  checkId: string;
+  // What the pull request is called: "Turn on access logging in the static-site module".
+  title: string;
+  // The group's cause, in English: "the static-site module".
+  cause: string;
+  // The request the coding agent reads (DataSecurityAiInput.buildFixIssueGroupRequest).
+  request: string;
+  // The code that declares the stores: its kind and the files named after them.
+  codeKind?: string | undefined;
+  paths?: Array<string> | undefined;
+  // The stores and issues it fixes, for the pull request's description.
+  stores: Array<InfrastructureFixStore>;
+  // How many stores the group's fix is for; more than `stores` lists when it was long.
+  storeCount: number;
+  // Where the group's issues are in OneUptime.
+  issuesUrl?: string | undefined;
+}
+
+export interface InfrastructureFixStore {
+  name: string;
+  kind?: string | undefined;
+  region?: string | undefined;
+  issueId: string;
+  // Its issue's page in OneUptime.
+  issueUrl?: string | undefined;
+}
+
+// The most stores a fix's context lists, and the longest text it keeps.
+export const MAX_INFRASTRUCTURE_FIX_STORES: number = 200;
+const MAX_INFRASTRUCTURE_FIX_TEXT: number = 20_000;
+const MAX_INFRASTRUCTURE_FIX_NAME: number = 300;
+
+function readFixText(value: unknown, max: number): string {
+  return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+/*
+ * A fix's context as a run carries it, read defensively, or null when it
+ * is not one: no group, no request, or no store.
+ */
+export function getInfrastructureFixTaskContext(
+  value: unknown,
+): InfrastructureFixTaskContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const groupId: string = readFixText(raw["groupId"], 100);
+  const request: string = readFixText(
+    raw["request"],
+    MAX_INFRASTRUCTURE_FIX_TEXT,
+  );
+  const stores: Array<InfrastructureFixStore> = (
+    Array.isArray(raw["stores"]) ? (raw["stores"] as Array<unknown>) : []
+  )
+    .slice(0, MAX_INFRASTRUCTURE_FIX_STORES)
+    .map((item: unknown): InfrastructureFixStore | null => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+
+      const store: Record<string, unknown> = item as Record<string, unknown>;
+      const name: string = readFixText(
+        store["name"],
+        MAX_INFRASTRUCTURE_FIX_NAME,
+      );
+      const issueId: string = readFixText(store["issueId"], 100);
+
+      if (!name || !issueId) {
+        return null;
+      }
+
+      const kind: string = readFixText(
+        store["kind"],
+        MAX_INFRASTRUCTURE_FIX_NAME,
+      );
+      const region: string = readFixText(
+        store["region"],
+        MAX_INFRASTRUCTURE_FIX_NAME,
+      );
+      const issueUrl: string = readFixText(store["issueUrl"], 2000);
+
+      return {
+        name,
+        issueId,
+        ...(kind ? { kind } : {}),
+        ...(region ? { region } : {}),
+        ...(issueUrl ? { issueUrl } : {}),
+      };
+    })
+    .filter(
+      (
+        store: InfrastructureFixStore | null,
+      ): store is InfrastructureFixStore => {
+        return store !== null;
+      },
+    );
+
+  if (!groupId || !request.trim() || stores.length === 0) {
+    return null;
+  }
+
+  const codeKind: string = readFixText(raw["codeKind"], 100);
+  const paths: Array<string> = (
+    Array.isArray(raw["paths"]) ? (raw["paths"] as Array<unknown>) : []
+  )
+    .map((path: unknown): string => {
+      return readFixText(path, 500);
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+  const issuesUrl: string = readFixText(raw["issuesUrl"], 2000);
+  const storeCount: unknown = raw["storeCount"];
+
+  return {
+    groupId,
+    checkId: readFixText(raw["checkId"], 100),
+    title:
+      readFixText(raw["title"], MAX_INFRASTRUCTURE_FIX_NAME) ||
+      "Fix the cause of Data Security issues",
+    cause: readFixText(raw["cause"], MAX_INFRASTRUCTURE_FIX_NAME),
+    request,
+    stores,
+    storeCount:
+      typeof storeCount === "number" &&
+      Number.isSafeInteger(storeCount) &&
+      storeCount >= stores.length
+        ? storeCount
+        : stores.length,
+    ...(codeKind ? { codeKind } : {}),
+    ...(paths.length > 0 ? { paths } : {}),
+    ...(issuesUrl ? { issuesUrl } : {}),
+  };
+}
+
+/*
+ * The folder an infrastructure fix starts in: the deepest one every file
+ * that declares its stores is in ("modules/static-site"), or null for the
+ * repository's root.
+ */
+export function getInfrastructureFixFolder(
+  paths: ReadonlyArray<string> | undefined,
+): string | null {
+  const folders: Array<Array<string>> = (paths || [])
+    .map((path: string): Array<string> => {
+      return path.split("/").filter(Boolean).slice(0, -1);
+    })
+    .filter((parts: Array<string>): boolean => {
+      return parts.length > 0;
+    });
+
+  if (folders.length === 0 || folders.length !== (paths || []).length) {
+    return null;
+  }
+
+  const shared: Array<string> = [];
+
+  for (let index: number = 0; index < folders[0]!.length; index++) {
+    const part: string = folders[0]![index]!;
+
+    if (
+      !folders.every((parts: Array<string>): boolean => {
+        return parts[index] === part;
+      })
+    ) {
+      break;
+    }
+
+    shared.push(part);
+  }
+
+  return shared.length > 0 ? shared.join("/") : null;
+}
+
+/*
+ * The fix of a service's telemetry leaks in its code, in one pull request
+ * (CodeFixTaskType.FixSensitiveDataInTelemetry, #10367): what its Runner
+ * is handed and its pull request says, and what #10368 follows to
+ * production - every leak it fixes, by its issue, store, location and data
+ * type (Types/DataSecurity/TelemetryLeakFix). Places, keys, data types and
+ * masked templates only - never a value, a sample, a record or an excerpt.
+ */
+export interface TelemetryLeakFixTaskContext {
+  serviceId: string;
+  serviceName: string;
+  // What the pull request is called: "Stop checkout writing sensitive data to its telemetry".
+  title: string;
+  // The request the coding agent reads (DataSecurityAiInput.buildFixTelemetryLeaksRequest).
+  request: string;
+  strategy: TelemetryLeakFixStrategy;
+  // The distinct places the leaks are written in, as the strategy counted them.
+  placeCount: number;
+  leaks: Array<TelemetryLeakFixLeak>;
+  // The issues it fixes, for its description.
+  issues: Array<TelemetryLeakFixIssue>;
+  // The attribute keys, and the data types in text, the redaction step covers.
+  redactionKeys: Array<string>;
+  redactionDataTypes: Array<string>;
+  // The files the agent starts from, as the repository holds them.
+  startFiles: Array<string>;
+  // The service's folder in the repository: a monorepo's, or none for its root.
+  folder?: string | undefined;
+  // A secret is among the leaks: its pull request says to rotate it.
+  hasSecrets: boolean;
+  // Where the service's issues are in OneUptime.
+  issuesUrl?: string | undefined;
+}
+
+/*
+ * A telemetry fix's context as a run carries it, read defensively, or null
+ * when it is not one: no service, no request, or no leak.
+ */
+export function getTelemetryLeakFixTaskContext(
+  value: unknown,
+): TelemetryLeakFixTaskContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const serviceId: string = readFixText(raw["serviceId"], 100);
+  const request: string = readFixText(
+    raw["request"],
+    MAX_INFRASTRUCTURE_FIX_TEXT,
+  );
+  const leaks: Array<TelemetryLeakFixLeak> = readTelemetryLeakList(
+    raw["leaks"],
+    readTelemetryLeakFixLeak,
+    MAX_TELEMETRY_LEAKS_PER_FIX,
+  );
+
+  if (!serviceId || !request.trim() || leaks.length === 0) {
+    return null;
+  }
+
+  const strategy: unknown = raw["strategy"];
+  const placeCount: unknown = raw["placeCount"];
+  const folder: string = readFixText(
+    raw["folder"],
+    MAX_TELEMETRY_LEAK_PATH_LENGTH,
+  ).trim();
+  const issuesUrl: string = readFixText(raw["issuesUrl"], 2000);
+  const serviceName: string = readFixText(
+    raw["serviceName"],
+    MAX_TELEMETRY_LEAK_NAME_LENGTH,
+  );
+
+  return {
+    serviceId,
+    serviceName,
+    title:
+      readFixText(raw["title"], MAX_INFRASTRUCTURE_FIX_NAME) ||
+      "Stop writing sensitive data to telemetry",
+    request,
+    strategy: isTelemetryLeakFixStrategy(strategy)
+      ? strategy
+      : TelemetryLeakFixStrategy.CallSites,
+    placeCount:
+      typeof placeCount === "number" &&
+      Number.isSafeInteger(placeCount) &&
+      placeCount >= 0
+        ? placeCount
+        : 0,
+    leaks,
+    issues: readTelemetryLeakList(
+      raw["issues"],
+      readTelemetryLeakFixIssue,
+      MAX_TELEMETRY_LEAK_ISSUES,
+    ),
+    redactionKeys: readTelemetryLeakTexts(
+      raw["redactionKeys"],
+      MAX_TELEMETRY_LEAK_REDACTION_KEYS,
+      MAX_TELEMETRY_LEAK_PATH_LENGTH,
+    ),
+    redactionDataTypes: readTelemetryLeakTexts(
+      raw["redactionDataTypes"],
+      MAX_TELEMETRY_LEAK_REDACTION_KEYS,
+      MAX_TELEMETRY_LEAK_NAME_LENGTH,
+    ),
+    startFiles: readTelemetryLeakTexts(
+      raw["startFiles"],
+      MAX_TELEMETRY_LEAK_START_FILES,
+      MAX_TELEMETRY_LEAK_PATH_LENGTH,
+    ),
+    ...(folder ? { folder } : {}),
+    hasSecrets:
+      raw["hasSecrets"] === true ||
+      leaks.some((leak: TelemetryLeakFixLeak): boolean => {
+        return leak.isSecret;
+      }),
+    ...(issuesUrl.startsWith("https://") || issuesUrl.startsWith("http://")
+      ? { issuesUrl }
+      : {}),
+  };
+}
+
+// The issues a telemetry fix's context fixes, each once: what #10368 marks fixed.
+export function getTelemetryLeakFixIssueIds(
+  fix: TelemetryLeakFixTaskContext | null | undefined,
+): Array<string> {
+  const ids: Array<string> = [];
+
+  for (const id of [
+    ...(fix?.leaks || []).map((leak: TelemetryLeakFixLeak): string => {
+      return leak.issueId;
+    }),
+    ...(fix?.issues || []).map((issue: TelemetryLeakFixIssue): string => {
+      return issue.issueId;
+    }),
+  ]) {
+    const lower: string = id.toLowerCase();
+
+    if (lower && !ids.includes(lower)) {
+      ids.push(lower);
+    }
+  }
+
+  return ids;
 }
 
 export interface CodeFixTaskContext {
@@ -312,6 +672,16 @@ export interface CodeFixTaskContext {
    * task's first turn only.
    */
   declaredCodeChange?: DeclaredCodeChangeTaskContext | undefined;
+  /*
+   * The fix of a group of Data Security issues' cause, once
+   * (CodeFixTaskType.FixInfrastructureCode, #10370).
+   */
+  infrastructureFix?: InfrastructureFixTaskContext | undefined;
+  /*
+   * The fix of a service's telemetry leaks in its code, in one pull request
+   * (CodeFixTaskType.FixSensitiveDataInTelemetry, #10367).
+   */
+  telemetryLeakFix?: TelemetryLeakFixTaskContext | undefined;
   /*
    * GitHubPullRequestProductionReview: what the pull request's review was
    * asked to do, and what it keeps between reviews. `github` names a

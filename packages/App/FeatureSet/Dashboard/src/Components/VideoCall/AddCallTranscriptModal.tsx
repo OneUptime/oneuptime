@@ -261,6 +261,18 @@ const AddCallTranscriptModal: FunctionComponent<ComponentProps> = (
               }}
               onDrop={(event: React.DragEvent<HTMLButtonElement>) => {
                 event.preventDefault();
+
+                /*
+                 * One transcript, as every picker of one file takes it: of
+                 * several dropped, the first was chosen and the rest left
+                 * out without a word (#8041). None is chosen, and the
+                 * person picks the one they meant.
+                 */
+                if ((event.dataTransfer.files?.length || 0) > 1) {
+                  setError(translator.translateText("Add one file at a time."));
+                  return;
+                }
+
                 void chooseFile(event.dataTransfer.files?.[0]);
               }}
               className="flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center transition-colors hover:border-indigo-400 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

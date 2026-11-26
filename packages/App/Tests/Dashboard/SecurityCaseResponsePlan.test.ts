@@ -19,6 +19,9 @@ import {
 import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { SecurityPlaybookActionType } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import { SecurityCaseStepCheckEvidence } from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import SecurityCaseStepCheckState from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
+import { buildResponsePlan as buildSharedResponsePlan } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanBuilder";
 
 /*
  * A case's Response Plan (#9557): what to do about the case now - confirm
@@ -51,6 +54,14 @@ const RULE_ID: string = "44444444-4444-4444-8444-444444444444";
 const OKTA_PLAYBOOK_ID: string = "77777777-7777-4777-8777-777777777777";
 const ENRICH_PLAYBOOK_ID: string = "88888888-8888-4888-8888-888888888888";
 const CROWDSTRIKE_PLAYBOOK_ID: string = "99999999-9999-4999-8999-999999999999";
+
+// What OneUptime found of a step: its words do not change the plan's shape.
+const CHECK_EVIDENCE: SecurityCaseStepCheckEvidence = {
+  sentence: { template: "What OneUptime found.", values: {} },
+  facts: [],
+  links: [],
+  data: {},
+};
 
 beforeAll(async () => {
   (globalThis as Record<string, unknown>)["window"] = {
@@ -761,6 +772,76 @@ describe("containing what the case is about", () => {
         }),
     ).toEqual(["35.196.249.14", "203.0.113.1", "A.example", "b.example"]);
   });
+
+  /*
+   * A case stored before #10435 and #10430 may hold, as a user, what a scrub
+   * rule left of one or one of OneUptime's own actors: none is an account to
+   * suspend, and no step offers to.
+   */
+  test("never a user a scrub rule hid, nor a workflow or OneUptime itself", () => {
+    const entities: Array<SecurityEntity> = [
+      { type: SecurityEntityType.User, value: "[REDACTED]" },
+      { type: SecurityEntityType.User, value: "j***@***.com" },
+      { type: SecurityEntityType.User, value: "[HASHED:3f9a1c0e7b2d4a68]" },
+      {
+        type: SecurityEntityType.User,
+        value: "workflow:0192f1a0-0000-7000-8000-00000000f001",
+      },
+      // A project API key, as its events name it since #10630.
+      {
+        type: SecurityEntityType.User,
+        value: "api-key:0192f1a0-0000-7000-8000-00000000f002",
+      },
+      { type: SecurityEntityType.User, value: "oneuptime" },
+      { type: SecurityEntityType.IpAddress, value: "***.***.***.***" },
+      { type: SecurityEntityType.User, value: "ana" },
+    ];
+
+    expect(
+      plan
+        .getContainEntities({ opening: null, entities })
+        .map((entity: SecurityEntity): string => {
+          return entity.value;
+        }),
+    ).toEqual(["ana"]);
+
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({ entities, matches: null }),
+    );
+
+    expect(
+      keys(built).filter((key: string): boolean => {
+        return (
+          key.startsWith("contain:user:") ||
+          key.startsWith("contain:block-ip:") ||
+          key.startsWith("contain:find-ip:")
+        );
+      }),
+    ).toEqual(["contain:user:ana"]);
+  });
+
+  /*
+   * #10632: the scans name the user behind a Hash rule's token from
+   * Security Events' user vault before the event is stored, so a case
+   * about a hashed account holds the account, contained as any other. A
+   * token the vault did not know stays on the case as what the rule left,
+   * and no step offers to suspend it.
+   */
+  test("a hashed user the scans named is contained as any account; a token they could not name never is", () => {
+    const entities: Array<SecurityEntity> = [
+      { type: SecurityEntityType.User, value: "mallory@acme.example" },
+      { type: SecurityEntityType.User, value: "[HASHED:0e1f2a3b4c5d6e7f]" },
+    ];
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({ entities, matches: null }),
+    );
+
+    expect(
+      keys(built).filter((key: string): boolean => {
+        return key.startsWith("contain:user:");
+      }),
+    ).toEqual(["contain:user:mallory@acme.example"]);
+  });
 });
 
 describe("the requests", () => {
@@ -1449,5 +1530,127 @@ describe("a rule's own response steps", () => {
     expect(rotate.doneByName).toBe("Maya");
     expect(step(after, "rule:page-payments").isDone).toBe(true);
     expect(step(after, "rule:lock-account").isDone).toBe(false);
+  });
+});
+
+/*
+ * ONE PLAN FOR THE SERVER AND THE BROWSER (#10340). The plan is built in
+ * Common (Utils/SecurityCase/ResponsePlan): the server builds it to check
+ * its steps, the card builds it to draw them. The card's plan is the same
+ * plan, step for step, with the page each link opens added to its button.
+ */
+describe("one plan for the server and the browser", () => {
+  // The card's plan with the routes it adds taken out: what the server built.
+  function withoutRoutes(
+    built: ReturnType<Plan["buildResponsePlan"]>,
+  ): ReturnType<typeof buildSharedResponsePlan> {
+    return {
+      ...built,
+      steps: built.steps.map(
+        (
+          drawnStep: ReturnType<Plan["buildResponsePlan"]>["steps"][number],
+        ): ReturnType<typeof buildSharedResponsePlan>["steps"][number] => {
+          if (!drawnStep.action) {
+            return drawnStep;
+          }
+
+          const { route, ...action } =
+            drawnStep.action as typeof drawnStep.action & {
+              route?: Route;
+            };
+
+          expect(route === undefined || route instanceof Route).toBe(true);
+
+          return { ...drawnStep, action };
+        },
+      ),
+    };
+  }
+
+  const OKTA_PLAYBOOKS: PlanInput["playbooks"] = [
+    {
+      id: OKTA_PLAYBOOK_ID,
+      name: "Suspend in Okta",
+      actions: [SecurityPlaybookActionType.SuspendOktaUser],
+    },
+  ];
+
+  test.each([
+    ["CASE-52, as it opened", {}],
+    [
+      "taken on, a step ticked by hand",
+      {
+        isAssigned: true,
+        tasks: [
+          {
+            id: "task-1",
+            responseStepKey: "contain:block-ip:35.196.249.14",
+            isDone: true,
+            doneByName: "Maya",
+          },
+        ],
+      },
+    ],
+    [
+      "an account, its playbook run",
+      {
+        entities: [
+          { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+        ],
+        playbooks: OKTA_PLAYBOOKS,
+        ranPlaybookIds: [OKTA_PLAYBOOK_ID],
+      },
+    ],
+    [
+      "checked by OneUptime: verified, not needed, stopped holding",
+      {
+        checks: [
+          {
+            stepKey: "confirm:requests",
+            state: SecurityCaseStepCheckState.Verified,
+            evidence: CHECK_EVIDENCE,
+          },
+          {
+            stepKey: "contain:incident",
+            state: SecurityCaseStepCheckState.NotNeeded,
+            evidence: CHECK_EVIDENCE,
+          },
+          {
+            stepKey: "contain:block-ip:35.196.249.14",
+            state: SecurityCaseStepCheckState.Regressed,
+            evidence: CHECK_EVIDENCE,
+          },
+        ],
+      },
+    ],
+    ["contained", { stage: SecurityCaseStage.Contained }],
+    ["closed", { stage: SecurityCaseStage.Closed }],
+  ])(
+    "%s: the same plan, step for step",
+    (_name: string, overrides: Partial<PlanInput>) => {
+      expect(withoutRoutes(plan.buildResponsePlan(input(overrides)))).toEqual(
+        buildSharedResponsePlan(input(overrides)),
+      );
+    },
+  );
+
+  test("the page a link opens is the browser's: the server's plan keeps only what the link is", () => {
+    const shared: ReturnType<typeof buildSharedResponsePlan> =
+      buildSharedResponsePlan(input());
+    const requests: ReturnType<
+      typeof buildSharedResponsePlan
+    >["steps"][number] = shared.steps.find(
+      (candidate: { key: string }): boolean => {
+        return candidate.key === "confirm:requests";
+      },
+    )!;
+
+    expect(requests.action?.link).toBeDefined();
+    expect(
+      (requests.action as unknown as Record<string, unknown>)["route"],
+    ).toBeUndefined();
+    expect(
+      step(plan.buildResponsePlan(input()), "confirm:requests").action?.route,
+    ).toBeInstanceOf(Route);
   });
 });

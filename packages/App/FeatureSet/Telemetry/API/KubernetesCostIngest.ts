@@ -8,6 +8,7 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -15,6 +16,8 @@ import { JSONObject } from "Common/Types/JSON";
 import { MAX_KUBERNETES_COST_ALLOCATIONS_PER_REQUEST } from "Common/Types/Kubernetes/KubernetesCostIngest";
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import logger from "Common/Server/Utils/Logger";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -28,11 +31,24 @@ const router: ExpressRouter = Express.getRouter();
  * x-oneuptime-token. Validation here is shape-only and synchronous; the
  * row-level work (cluster resolution, retention, ClickHouse insert) runs
  * in the telemetry worker via the queue, so the 200 answers fast.
+ *
+ * The body is read once the key is right (#10702): StartServer leaves it
+ * unread (RequestBodyLimit), and nothing of it is read or parsed for a
+ * request without the right key. The cost poller sends its key in a header.
+ * JSON, held to 50 MB and 1,000,000 values, gzip-compressed or not.
  */
+const readCostBody: RequestHandler = RequestBodyAfterAuthentication.readBody(
+  LARGE_REQUEST_BODY_LIMIT,
+  { parseGzipJson: true },
+);
+
 router.post(
   "/kubernetes-cost/ingest",
   TelemetryIngestionDisabled.middleware,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.KubernetesCost),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.KubernetesCost,
+    readCostBody,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

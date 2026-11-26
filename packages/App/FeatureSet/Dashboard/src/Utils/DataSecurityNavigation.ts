@@ -9,8 +9,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  * fix first. The menu reads the same way:
  *
  *   Data Security   the everyday pages: the Overview, every Data Store,
- *                   the Issues to fix (with how many are open), the
- *                   Sensitive Data found, what turned up In Your Telemetry,
+ *                   the Issues to fix (with how many are open), what
+ *                   OneUptime AI proposes for them and did (AI, with how
+ *                   many wait for a person), the Sensitive Data found, what turned up In Your Telemetry,
  *                   where data flows, who has Access, and Compliance
  *   Settings        how the project's data is judged, set up once: Data
  *                   Types, Checks, Residency Rules, Scan Settings (what is
@@ -35,16 +36,22 @@ import IconProp from "Common/Types/Icon/IconProp";
  * and pinned in plain tests.
  */
 
-// A live count beside an entry: the issues still open.
-export type DataSecurityMenuBadge = "openIssues";
+/*
+ * A live count beside an entry: the issues still open, and what OneUptime
+ * AI proposes that waits for a person (#10364).
+ */
+export type DataSecurityMenuBadge = "openIssues" | "aiProposalsWaiting";
 
 export interface DataSecurityMenuItem {
   page: PageMap;
   title: string;
   icon: IconProp;
   badge?: DataSecurityMenuBadge | undefined;
-  // A page under it that keeps it lit: one identity's, under Access.
-  activePage?: PageMap | undefined;
+  /*
+   * The pages under it that keep it lit: one identity's, under Access;
+   * Review Drafts and Audit Evidence, under Compliance.
+   */
+  activePages?: Array<PageMap> | undefined;
 }
 
 export interface DataSecurityMenuSection {
@@ -78,6 +85,17 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
         badge: "openIssues",
       },
       {
+        /*
+         * What OneUptime AI proposes for the issues, waiting for a person,
+         * and what it did without asking (#10364): beside the issues it
+         * works on, with the amber count of what waits.
+         */
+        page: PageMap.DATA_SECURITY_AI,
+        title: "AI",
+        icon: IconProp.Sparkles,
+        badge: "aiProposalsWaiting",
+      },
+      {
         page: PageMap.DATA_SECURITY_SENSITIVE_DATA,
         title: "Sensitive Data",
         icon: IconProp.Fingerprint,
@@ -96,12 +114,16 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
         page: PageMap.DATA_SECURITY_ACCESS,
         title: "Access",
         icon: IconProp.Key,
-        activePage: PageMap.DATA_SECURITY_IDENTITY_VIEW,
+        activePages: [PageMap.DATA_SECURITY_IDENTITY_VIEW],
       },
       {
         page: PageMap.DATA_SECURITY_COMPLIANCE,
         title: "Compliance",
         icon: IconProp.ClipboardDocumentCheck,
+        activePages: [
+          PageMap.DATA_SECURITY_REVIEW_DRAFTS,
+          PageMap.DATA_SECURITY_AUDIT_EVIDENCE,
+        ],
       },
     ],
   },
@@ -202,6 +224,7 @@ export const DATA_SECURITY_STORE_VIEW_PAGES: Array<PageMap> = [
   PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE,
   PageMap.DATA_SECURITY_STORE_VIEW_OWNERS,
   PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS,
+  PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT,
   PageMap.DATA_SECURITY_STORE_VIEW_DELETE,
 ];
 

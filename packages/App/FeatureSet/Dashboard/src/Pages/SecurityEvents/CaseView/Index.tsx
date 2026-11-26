@@ -7,7 +7,9 @@ import useSecurityCaseMatches, {
   SecurityCaseMatchesState,
 } from "../../../Components/SecurityCase/Matches/useSecurityCaseMatches";
 import SecurityCaseResponsePlanCard from "../../../Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
+import SecurityCaseExposureAssessment from "../../../Components/SecurityCase/Exposure/SecurityCaseExposureAssessment";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
+import SecurityCaseAiHoldNotice from "../../../Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice";
 import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import {
@@ -23,6 +25,8 @@ import {
   readCaseTargets,
 } from "../../../Components/SecurityCase/ResponseTargets/SecurityCaseTargetDisplay";
 import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
+import { CASE_TIME_TO_BLOCK } from "../../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
+import { formatTimeToBlock } from "../../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseModel";
 import { keepSecurityCaseTimeWhole } from "../../../Components/SecurityCase/SecurityCaseQueueViews";
 import SecurityCaseViewContext, {
   useSecurityCaseView,
@@ -40,7 +44,13 @@ import {
   SecurityCaseTarget,
   SecurityCaseTargetReading,
 } from "Common/Utils/SecurityCase/SecurityCaseTargets";
+import RefusedTelemetryLines from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryLines";
+import { CASE_REFUSED } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
+import useProjectRefusedTelemetry from "../../../Components/SecurityEvents/RefusedTelemetry/useProjectRefusedTelemetry";
+import { getRefusedTelemetryWhileCaseOpen } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryModel";
+import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
@@ -56,6 +66,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  *                             counts, the events it matched - each with the
  *                             log line, request and trace it came from -
  *                             and where to look next;
+ *   Was It a Breach?          for a case about a data store (#10377): the
+ *                             breach law due first and its deadline, whether
+ *                             reads were logged, how long the store was
+ *                             open, whose data it was, the secrets to rotate
+ *                             and every law that may apply - and, under it,
+ *                             the Breach Notices OneUptime AI drafted, each
+ *                             folded until opened. Not drawn for any other
+ *                             case, or for a reader who may not read the
+ *                             store's findings;
  *   Response Plan             what to do about it now: confirm it, contain
  *                             it, fix what let it happen, close it - each
  *                             step concrete to the case, one click where
@@ -82,6 +101,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the Story, the Detections, the Entities, the Evidence, the Tasks, the
  * Playbooks and the Private Notes.
  */
+export const SECURITY_CASE_REFUSED_TELEMETRY_TEST_ID: string =
+  "security-case-refused-telemetry";
+
 const SecurityCaseOverviewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -100,6 +122,8 @@ const SecurityCaseOverviewPage: FunctionComponent<
   );
   // Read again every half minute, so a due time counts down on the page.
   const now: Date = useTargetClock();
+  // What a budget or a rate refused of what Security Events reads (#10431).
+  const projectRefusals: Array<RefusedTelemetry> = useProjectRefusedTelemetry();
   const figures: SecurityCaseFigures = getSecurityCaseFigures(
     securityCase,
     now,
@@ -155,8 +179,30 @@ const SecurityCaseOverviewPage: FunctionComponent<
     return formatCompactDurationInMinutes(minutes, translator.language);
   };
 
+  /*
+   * What an ingestion budget or rate refused of the telemetry Security
+   * Events reads while the case was open (#10431): from its first detection
+   * to its close, or to now - the case's detections from then may be
+   * missing.
+   */
+  const refusedWhileOpen: Array<RefusedTelemetry> =
+    getRefusedTelemetryWhileCaseOpen({
+      refusals: projectRefusals,
+      firstDetectedAt: securityCase.firstDetectedAt,
+      createdAt: securityCase.createdAt,
+      closedAt: securityCase.closedAt,
+      now,
+    });
+
   return (
     <>
+      {/*
+       * While OneUptime AI responds first (#10353): that it is on it, when
+       * people are alerted unless it contains the case, and Page now - the
+       * first thing on the page, one click away.
+       */}
+      <SecurityCaseAiHoldNotice caseId={view.caseId} onChanged={view.refresh} />
+
       {/*
        * By its own width: beside the case's side menu a laptop's window
        * leaves it too little for four tiles in a row, and their labels
@@ -166,6 +212,10 @@ const SecurityCaseOverviewPage: FunctionComponent<
         columns={4}
         isLaidOutByOwnWidth={true}
         ariaLabel="Case figures"
+        footer={
+          // Who opened the case and who last changed it (#10461).
+          <RecordActivityLine modelType={SecurityCase} recordId={view.caseId} />
+        }
       >
         <EventStatTile
           variant="segment"
@@ -199,10 +249,35 @@ const SecurityCaseOverviewPage: FunctionComponent<
           label="Time to Contain"
           value={duration(figures.timeToContainInMinutes)}
           note={targetNote(SecurityCaseTarget.Contain)}
+          // An automatic response policy blocked its address: how fast (#10350).
+          description={
+            typeof securityCase.timeToBlockInSeconds === "number"
+              ? translator.translateTemplate(CASE_TIME_TO_BLOCK, {
+                  time: formatTimeToBlock(
+                    securityCase.timeToBlockInSeconds,
+                    translator,
+                  ),
+                })
+              : undefined
+          }
         />
       </EventStatBar>
 
+      <RefusedTelemetryLines
+        refusals={refusedWhileOpen}
+        showsSource={true}
+        intro={CASE_REFUSED}
+        showsOpenBudgets={true}
+        dataTestId={SECURITY_CASE_REFUSED_TELEMETRY_TEST_ID}
+      />
+
       <SecurityCaseWhyOpenedCard caseId={view.caseId} state={matches} />
+
+      <SecurityCaseExposureAssessment
+        caseId={view.caseId}
+        entities={securityCase.entities}
+        refreshToggle={view.refreshToggle}
+      />
 
       <SecurityCaseResponsePlanCard
         caseId={view.caseId}

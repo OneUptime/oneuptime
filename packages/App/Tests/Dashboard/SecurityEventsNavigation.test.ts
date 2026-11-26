@@ -209,7 +209,9 @@ describe("the Security Events menu", () => {
           "Playbooks",
           "Approvals",
           "Playbook Runs",
+          "Automatic Response",
           "Blocklist",
+          "Blocklist Feeds",
           "Protected Entities",
         ],
       ],
@@ -267,7 +269,9 @@ describe("the Security Events menu", () => {
       ["Playbooks", "SECURITY_PLAYBOOKS"],
       ["Approvals", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
+      ["Automatic Response", "SECURITY_AUTOMATIC_RESPONSE"],
       ["Blocklist", "SECURITY_BLOCKLIST"],
+      ["Blocklist Feeds", "SECURITY_BLOCKLIST_FEEDS"],
       ["Protected Entities", "SECURITY_PROTECTED_ENTITIES"],
       ["Settings", "SECURITY_EVENTS_SETTINGS_AI"],
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
@@ -282,11 +286,12 @@ describe("the Security Events menu", () => {
     ]);
   });
 
-  test("lights Hunts on a hunt's page, Entity Risk on an entity's, Watchlists on a list's and Note Templates on a template's, the pages in its layout no entry names", () => {
+  test("lights Hunts on a hunt's page, Entity Risk on an entity's, Watchlists on a list's, Blocklist Feeds on a feed's and Note Templates on a template's, the pages in its layout no entry names", () => {
     expect(getSecurityEventsMenuDetailPages()).toEqual([
       "SECURITY_EVENTS_HUNT_VIEW",
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
       "SECURITY_EVENTS_WATCHLIST_VIEW",
+      "SECURITY_BLOCKLIST_FEED_VIEW",
       "SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW",
     ]);
     expect(
@@ -301,6 +306,7 @@ describe("the Security Events menu", () => {
       ["Hunts", ["SECURITY_EVENTS_HUNT_VIEW"]],
       ["Entity Risk", ["SECURITY_EVENTS_ENTITY_RISK_VIEW"]],
       ["Watchlists", ["SECURITY_EVENTS_WATCHLIST_VIEW"]],
+      ["Blocklist Feeds", ["SECURITY_BLOCKLIST_FEED_VIEW"]],
       ["Note Templates", ["SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW"]],
     ]);
     // Not pages that open on their own, outside the menu.
@@ -312,6 +318,9 @@ describe("the Security Events menu", () => {
     );
     expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
       "SECURITY_EVENTS_WATCHLIST_VIEW",
+    );
+    expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
+      "SECURITY_BLOCKLIST_FEED_VIEW",
     );
   });
 
@@ -519,7 +528,7 @@ describe("the case queue's pages are the queue's views", () => {
     );
   });
 
-  test("Playbooks lists the two runs pages after the playbooks, with their names and icons, then the protected entities", () => {
+  test("Playbooks lists the two runs pages after the playbooks, with their names and icons, then automatic response, the blocklist and the protected entities", () => {
     const items: Array<SecurityEventsMenuItem> =
       sectionTitled("Playbooks").items;
 
@@ -542,7 +551,12 @@ describe("the case queue's pages are the queue's views", () => {
         .map((item: SecurityEventsMenuItem): string => {
           return item.title;
         }),
-    ).toEqual(["Blocklist", "Protected Entities"]);
+    ).toEqual([
+      "Automatic Response",
+      "Blocklist",
+      "Blocklist Feeds",
+      "Protected Entities",
+    ]);
   });
 });
 
@@ -722,7 +736,9 @@ describe("where each page says it is", () => {
       ["Security Events", "Playbooks"],
       ["Security Events", "Playbooks", "Approvals"],
       ["Security Events", "Playbooks", "Playbook Runs"],
+      ["Security Events", "Playbooks", "Automatic Response"],
       ["Security Events", "Playbooks", "Blocklist"],
+      ["Security Events", "Playbooks", "Blocklist Feeds"],
       ["Security Events", "Playbooks", "Protected Entities"],
       ["Security Events", "AI", "Settings"],
       ["Security Events", "Connections"],

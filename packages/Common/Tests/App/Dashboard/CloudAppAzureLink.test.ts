@@ -530,17 +530,50 @@ describe("the chain's other links, each said for itself", () => {
     );
   });
 
-  test("an app of another deployment slot reads nothing: Azure Monitor reports its slot apart", async () => {
+  test("an app of another deployment slot is tied to its own slot, which Azure Monitor reports apart - never the site (#6793)", async () => {
+    const slot: Record<string, unknown> = siteRow(APP_NAME, {
+      name: `${APP_NAME}/staging`,
+      cloudResourceType: "Microsoft.Web/sites/slots",
+      providerResourceId: `${siteId(APP_NAME)}/slots/staging`,
+    });
+    mockServer.sites = [siteRow(APP_NAME), slot];
+
+    const link: CloudAppAzureLink = await linkOf(
+      issueApp({
+        groupName: "staging",
+        // The detectors name the site for every slot.
+        providerResourceId: siteId(APP_NAME),
+      }),
+    );
+
+    expect(link.slot).toBe("staging");
+    expect(link.site?.providerResourceId).toBe(
+      `${siteId(APP_NAME)}/slots/staging`,
+    );
+    expect(link.matchedBy).toBe(CloudAppSiteMatch.ResourceId);
+    expect(getCloudAppAzureMonitorState(link)).toBe(
+      CloudAppAzureMonitorState.Connected,
+    );
+
+    // The slots of its site's name are read, never the site.
+    const query: Record<string, unknown> = siteRequests()[0]!.query;
+    expect(query["cloudResourceType"]).toBe("Microsoft.Web/sites/slots");
+    expect(operatorValue(query["providerResourceId"])).toBe(
+      `/providers/microsoft.web/sites/${APP_NAME}/slots/staging`,
+    );
+  });
+
+  test("an app of a slot no connection reads has none, and is told the slot is what is missing", async () => {
     mockServer.sites = [siteRow(APP_NAME)];
 
     const link: CloudAppAzureLink = await linkOf(
       issueApp({ groupName: "staging" }),
     );
 
+    expect(link.site).toBeNull();
     expect(link.slot).toBe("staging");
-    expect(mockServer.requests).toEqual([]);
     expect(getCloudAppAzureMonitorState(link)).toBe(
-      CloudAppAzureMonitorState.Slot,
+      CloudAppAzureMonitorState.SiteNotFound,
     );
   });
 
@@ -669,5 +702,122 @@ describe("what the link reads off its rows", () => {
     ).toBe("2026-11-20T11:57:00.000Z");
     expect(getAzureMonitorLatestReadingAt({})).toBeNull();
     expect(getAzureMonitorLatestReadingAt(null)).toBeNull();
+  });
+});
+
+/*
+ * #10407: the server keeps the site an App Service app is tied to
+ * (CloudApp.platformCloudResourceId), with the rules above. The page reads
+ * that site first - by its id, as the reader may read it - and looks the
+ * site up only while none is kept, or the reader may not read it: then the
+ * page and the lists read one answer, and a site the reader may not read is
+ * never shown.
+ */
+describe("the site the server keeps on the app", () => {
+  test("is read first, by its id, and no site is looked up by name", async () => {
+    const kept: Record<string, unknown> = siteRow(APP_NAME, {
+      name: "Collector (renamed)",
+    });
+    mockServer.sites = [kept, siteRow("collector-scus")];
+
+    const link: CloudAppAzureLink = await linkOf(
+      issueApp({ platformCloudResourceId: kept["_id"] }),
+    );
+
+    expect(link.site?._id?.toString()).toBe(kept["_id"]);
+    expect(link.matchedBy).toBe(CloudAppSiteMatch.Name);
+    expect(getCloudAppAzureMonitorState(link)).toBe(
+      CloudAppAzureMonitorState.Connected,
+    );
+    expect(siteRequests()).toHaveLength(1);
+
+    const query: Record<string, unknown> = siteRequests()[0]!.query;
+
+    expect(String(query["_id"])).toBe(kept["_id"]);
+    expect(query["providerResourceId"]).toBeUndefined();
+    expect(query["cloudResourceType"]).toBe(APP_SERVICE_SITE_TYPE);
+  });
+
+  test("tied by the app's own cloud.resource_id, it says so", async () => {
+    const kept: Record<string, unknown> = siteRow(APP_NAME);
+    mockServer.sites = [kept];
+
+    const link: CloudAppAzureLink = await linkOf(
+      issueApp({
+        platformCloudResourceId: kept["_id"],
+        providerResourceId: siteId(APP_NAME).toUpperCase(),
+      }),
+    );
+
+    expect(link.matchedBy).toBe(CloudAppSiteMatch.ResourceId);
+  });
+
+  test("one the reader may not read, or that is gone, leaves the page to look the site up and say what it finds", async () => {
+    mockServer.sites = [siteRow("collector-ncus")];
+
+    const link: CloudAppAzureLink = await linkOf(
+      issueApp({
+        platformCloudResourceId: "78000000-0000-4000-8000-0000000fffff",
+      }),
+    );
+
+    expect(link.site).toBeNull();
+    expect(getCloudAppAzureMonitorState(link)).toBe(
+      CloudAppAzureMonitorState.SiteNotFound,
+    );
+    // The kept site's read, then the look-up by name.
+    expect(siteRequests()).toHaveLength(2);
+    expect(operatorType(siteRequests()[1]!.query["providerResourceId"])).toBe(
+      "EndsWith",
+    );
+  });
+
+  test("an app of another slot never shows a kept site: only a kept slot (#6793)", async () => {
+    const keptSite: Record<string, unknown> = siteRow(APP_NAME);
+    mockServer.sites = [keptSite];
+
+    const stale: CloudAppAzureLink = await linkOf(
+      issueApp({
+        platformCloudResourceId: keptSite["_id"],
+        groupName: "staging",
+      }),
+    );
+
+    // The kept read asks for a slot, and the site is not one.
+    expect(stale.site).toBeNull();
+    expect(siteRequests()[0]!.query["cloudResourceType"]).toBe(
+      "Microsoft.Web/sites/slots",
+    );
+
+    const keptSlot: Record<string, unknown> = siteRow(APP_NAME, {
+      cloudResourceType: "Microsoft.Web/sites/slots",
+      providerResourceId: `${siteId(APP_NAME)}/slots/staging`,
+    });
+    mockServer.sites = [keptSite, keptSlot];
+    mockServer.requests = [];
+
+    const kept: CloudAppAzureLink = await linkOf(
+      issueApp({
+        platformCloudResourceId: keptSlot["_id"],
+        groupName: "staging",
+      }),
+    );
+
+    expect(kept.site?._id?.toString()).toBe(keptSlot["_id"]);
+    expect(siteRequests()).toHaveLength(1);
+  });
+});
+
+describe("a site gone from its subscription", () => {
+  test("is no candidate: the look-up reads live sites only, as the server's link does", async () => {
+    mockServer.sites = [siteRow(APP_NAME, { isArchived: true })];
+
+    const link: CloudAppAzureLink = await linkOf();
+
+    expect(link.site).toBeNull();
+    expect(siteRequests()[0]!.query["isArchived"]).toBe(false);
+    expect(getCloudAppAzureMonitorState(link)).toBe(
+      CloudAppAzureMonitorState.SiteNotFound,
+    );
   });
 });

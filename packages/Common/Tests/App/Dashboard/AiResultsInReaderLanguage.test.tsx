@@ -44,6 +44,7 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 import {
   AI_RESULTS_WEEK_STARTS,
+  makeDataSecurity,
   makeEmptyOutcomes,
   makeOutcomes,
   toBody,
@@ -365,6 +366,47 @@ describe("a Persian page writes every count in Persian digits", () => {
         latin: false,
       });
     }
+  });
+
+  test("the Data Security card's counts, and how long an issue took to pass its check (#10364)", async () => {
+    await inLanguage("fa");
+    renderView(makeOutcomes({ dataSecurity: makeDataSecurity() }));
+
+    const card: HTMLElement = screen.getByTestId(
+      "ai-results-card-data-security",
+    );
+    const texts: Array<string> = [
+      ...textsOf(within(card).getAllByTestId("ai-results-value")),
+      ...textsOf(within(card).getAllByTestId("ai-results-headline")),
+      ...textsOf(within(card).getAllByTestId("stacked-progress-bar-count")),
+      ...textsOf(
+        within(card)
+          .getAllByTestId("ai-results-fact")
+          .map((fact: HTMLElement) => {
+            return fact.querySelector("dd")!;
+          }),
+      ),
+      ...textsOf(within(card).getAllByTestId("ai-results-recent-weeks")),
+      ...within(card)
+        .getAllByTestId("ai-results-week")
+        .map((bar: HTMLElement): string => {
+          return withoutIsolateMarks(bar.getAttribute("title") || "");
+        }),
+    ];
+
+    // The value, the headline, 6 legends, 2 facts, the line and 12 bars.
+    expect(texts.length).toBe(23);
+    expect(texts[0]).toBe("۹");
+    expect(texts[1]).toContain("۱۳");
+    for (const text of texts) {
+      expect({ text, latin: hasLatinCount(text) }).toEqual({
+        text,
+        latin: false,
+      });
+    }
+    // 205 minutes: 3 hours 25 minutes, in Persian digits.
+    expect(texts[9]).toMatch(/۳/);
+    expect(texts[9]).toMatch(/۲۵/);
   });
 
   test("the data the page is drawn from is written the same way", async () => {

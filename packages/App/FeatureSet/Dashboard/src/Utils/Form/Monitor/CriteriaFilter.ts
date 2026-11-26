@@ -3,10 +3,13 @@ import {
   CheckOn,
   CriteriaFilter,
   CriteriaFilterUtil as CommonCriteriaFilterUtil,
+  DEFAULT_FORM_PREVIOUS_CHECK_CHANGE,
+  EVALUATE_OVER_TIME_PERCENTILE_OPTIONS,
   EvaluateOverTimeMinutes,
   EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   FilterType,
+  PreviousCheckChangeType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import {
   DatabaseMetricDefinition,
@@ -133,7 +136,7 @@ export const CRITERIA_IN_TABLE_ROW_SENTENCE: string = translationKey(
 
 // How a window's values are read, around what is checked.
 export const CRITERIA_EVALUATE_OVER_TIME_SENTENCES: Readonly<
-  Record<EvaluateOverTimeType, string>
+  Partial<Record<EvaluateOverTimeType, string>>
 > = {
   [EvaluateOverTimeType.AllValues]: translationKey("all values of {{measure}}"),
   [EvaluateOverTimeType.AnyValue]: translationKey("any value of {{measure}}"),
@@ -149,7 +152,280 @@ export const CRITERIA_EVALUATE_OVER_TIME_SENTENCES: Readonly<
   [EvaluateOverTimeType.Sum]: translationKey(
     "sum of all values of {{measure}}",
   ),
+  // "p95 of "Response Time (in ms)"", as monitoring tools write it.
+  [EvaluateOverTimeType.Percentile]: translationKey(
+    "p{{percentile}} of {{measure}}",
+  ),
 };
+
+/*
+ * A window that counts its checks (#10355), around the condition each check
+ * is judged by: "Is Online" is false on more than 30 checks in the past 8
+ * hours; on more than 10% of the checks; changed more than 5 times.
+ */
+export const CRITERIA_ON_CHECKS_SENTENCE: string = translationKey(
+  "{{condition}} on {{checks}} in the past {{window}}",
+);
+export const CRITERIA_ON_SHARE_OF_CHECKS_SENTENCE: string = translationKey(
+  "{{condition}} on {{share}} of the checks in the past {{window}}",
+);
+// A yes or no check changes on its own: "Is Online" changed 6 times.
+export const CRITERIA_CHECK_CHANGED_SENTENCE: string = translationKey(
+  "{{check}} changed {{times}} in the past {{window}}",
+);
+/*
+ * Any other condition: how often the checks went between matching it and
+ * not, the condition last, so it reads whole after "Check if".
+ */
+export const CRITERIA_CONDITION_CHANGED_SENTENCE: string = translationKey(
+  "the checks changed {{times}} between matching and not in the past {{window}}: {{condition}}",
+);
+
+// How many checks a count takes, by how it is compared.
+export const CRITERIA_CHECKS_COMPARISONS: Readonly<
+  Partial<Record<FilterType, PluralTemplate>>
+> = {
+  [FilterType.GreaterThan]: {
+    one: "more than {{count}} check",
+    other: "more than {{count}} checks",
+  },
+  [FilterType.GreaterThanOrEqualTo]: {
+    one: "at least {{count}} check",
+    other: "at least {{count}} checks",
+  },
+  [FilterType.LessThan]: {
+    one: "fewer than {{count}} check",
+    other: "fewer than {{count}} checks",
+  },
+  [FilterType.LessThanOrEqualTo]: {
+    one: "at most {{count}} check",
+    other: "at most {{count}} checks",
+  },
+  [FilterType.EqualTo]: {
+    one: "exactly {{count}} check",
+    other: "exactly {{count}} checks",
+  },
+  [FilterType.NotEqualTo]: {
+    one: "other than {{count}} check",
+    other: "other than {{count}} checks",
+  },
+};
+
+// How many times a number of changes takes.
+export const CRITERIA_TIMES_COMPARISONS: Readonly<
+  Partial<Record<FilterType, PluralTemplate>>
+> = {
+  [FilterType.GreaterThan]: {
+    one: "more than {{count}} time",
+    other: "more than {{count}} times",
+  },
+  [FilterType.GreaterThanOrEqualTo]: {
+    one: "at least {{count}} time",
+    other: "at least {{count}} times",
+  },
+  [FilterType.LessThan]: {
+    one: "fewer than {{count}} time",
+    other: "fewer than {{count}} times",
+  },
+  [FilterType.LessThanOrEqualTo]: {
+    one: "at most {{count}} time",
+    other: "at most {{count}} times",
+  },
+  [FilterType.EqualTo]: {
+    one: "exactly {{count}} time",
+    other: "exactly {{count}} times",
+  },
+  [FilterType.NotEqualTo]: {
+    one: "other than {{count}} time",
+    other: "other than {{count}} times",
+  },
+};
+
+// What share of the checks a percentage takes: "more than 10%".
+export const CRITERIA_SHARE_COMPARISONS: Readonly<
+  Partial<Record<FilterType, string>>
+> = {
+  [FilterType.GreaterThan]: translationKey("more than {{share}}"),
+  [FilterType.GreaterThanOrEqualTo]: translationKey("at least {{share}}"),
+  [FilterType.LessThan]: translationKey("less than {{share}}"),
+  [FilterType.LessThanOrEqualTo]: translationKey("at most {{share}}"),
+  [FilterType.EqualTo]: translationKey("exactly {{share}}"),
+  [FilterType.NotEqualTo]: translationKey("other than {{share}}"),
+};
+
+// The window a count is read over, in hours when it is whole hours.
+export const CRITERIA_WINDOW_MINUTES: PluralTemplate = {
+  one: "{{count}} minute",
+  other: "{{count}} minutes",
+};
+export const CRITERIA_WINDOW_HOURS: PluralTemplate = {
+  one: "{{count}} hour",
+  other: "{{count}} hours",
+};
+
+/*
+ * What the window types that came with #10355 do, under their names in the
+ * Evaluate dropdown. The older six are said by the description above it.
+ */
+export const EVALUATE_OVER_TIME_TYPE_DESCRIPTIONS: Readonly<
+  Partial<Record<EvaluateOverTimeType, string>>
+> = {
+  [EvaluateOverTimeType.Percentile]: translationKey(
+    "A percentile of the window's values, such as p95.",
+  ),
+  [EvaluateOverTimeType.Count]: translationKey(
+    "How many checks in the window match.",
+  ),
+  [EvaluateOverTimeType.Percentage]: translationKey(
+    "What share of the window's checks match, in %.",
+  ),
+  [EvaluateOverTimeType.StatusChanges]: translationKey(
+    "How often the checks changed between matching and not: a device going up and down.",
+  ),
+  [EvaluateOverTimeType.PreviousCheck]: translationKey(
+    "This check compared with the one before it.",
+  ),
+};
+
+/*
+ * A comparison with the previous check (#10821): how far from it a
+ * measured value must be, under the Evaluate dropdown, and what the window
+ * and If No Data mean for it.
+ */
+export const PREVIOUS_CHECK_CHANGE_FIELD: {
+  title: string;
+  description: string;
+} = {
+  title: translationKey("Change From the Previous Check"),
+  description: translationKey(
+    "How far above the previous check (Greater Than) or below it (Less Than) this check must be.",
+  ),
+};
+export const PREVIOUS_CHECK_CHANGE_TYPE_LABELS: Readonly<
+  Record<PreviousCheckChangeType, string>
+> = {
+  [PreviousCheckChangeType.Amount]: translationKey(
+    "Amount in the check's own unit",
+  ),
+  [PreviousCheckChangeType.Percentage]: translationKey(
+    "Percent of the previous check",
+  ),
+};
+export const PREVIOUS_CHECK_WINDOW_DESCRIPTION: string = translationKey(
+  "How long ago the previous check may be. Make it longer than the monitoring interval.",
+);
+export const PREVIOUS_CHECK_NO_DATA_DESCRIPTION: string = translationKey(
+  "What happens when there is no previous check in the window, such as on the first check.",
+);
+
+// What "For the last" and "If No Data" mean for every other window.
+export const WINDOW_DESCRIPTION: string = translationKey(
+  "Make it longer than the monitoring interval, so the window holds several checks.",
+);
+export const NO_DATA_DESCRIPTION: string = translationKey(
+  "What happens while the window does not have enough data yet, such as just after the monitor starts.",
+);
+
+/*
+ * A measured value against the previous check, by its condition: "...
+ * is more than 50% above the previous check". With no change, the bare
+ * direction: "... is above the previous check".
+ */
+export const CRITERIA_PREVIOUS_CHECK_SENTENCES: Readonly<
+  Partial<Record<FilterType, string>>
+> = {
+  [FilterType.GreaterThan]: translationKey(
+    "{{subject}} is more than {{change}} above the previous check",
+  ),
+  [FilterType.GreaterThanOrEqualTo]: translationKey(
+    "{{subject}} is at least {{change}} above the previous check",
+  ),
+  [FilterType.LessThan]: translationKey(
+    "{{subject}} is more than {{change}} below the previous check",
+  ),
+  [FilterType.LessThanOrEqualTo]: translationKey(
+    "{{subject}} is at least {{change}} below the previous check",
+  ),
+  [FilterType.EqualTo]: translationKey(
+    "{{subject}} is the same as on the previous check",
+  ),
+  [FilterType.NotEqualTo]: translationKey(
+    "{{subject}} is different from the previous check",
+  ),
+};
+export const CRITERIA_PREVIOUS_CHECK_NO_CHANGE_SENTENCES: Readonly<
+  Partial<Record<FilterType, string>>
+> = {
+  [FilterType.GreaterThan]: translationKey(
+    "{{subject}} is above the previous check",
+  ),
+  [FilterType.GreaterThanOrEqualTo]: translationKey(
+    "{{subject}} is at or above the previous check",
+  ),
+  [FilterType.LessThan]: translationKey(
+    "{{subject}} is below the previous check",
+  ),
+  [FilterType.LessThanOrEqualTo]: translationKey(
+    "{{subject}} is at or below the previous check",
+  ),
+};
+/*
+ * A yes or no check matches on the check that started to meet its
+ * condition: "Check if "Is Online" is false now, but not on the previous
+ * check".
+ */
+export const CRITERIA_STARTED_MATCHING_SENTENCE: string = translationKey(
+  "{{condition}} now, but not on the previous check",
+);
+/*
+ * A change in a check that is itself a percentage (CPU, disk) is in
+ * percentage points: "10 percentage points above", never "10% above",
+ * which reads as a share of the previous value.
+ */
+export const CRITERIA_PERCENTAGE_POINTS: PluralTemplate = {
+  one: "{{count}} percentage point",
+  other: "{{count}} percentage points",
+};
+
+/*
+ * The number a counted window is compared with, under the Evaluate dropdown:
+ * its label, what it means, and the word after it.
+ */
+export const COUNTED_WINDOW_FIELDS: Readonly<
+  Partial<
+    Record<
+      EvaluateOverTimeType,
+      { title: string; description: string; unit: string }
+    >
+  >
+> = {
+  [EvaluateOverTimeType.Count]: {
+    title: translationKey("Checks That Match"),
+    description: translationKey(
+      "How many checks in the window must match the condition above.",
+    ),
+    unit: translationKey("checks"),
+  },
+  [EvaluateOverTimeType.Percentage]: {
+    title: translationKey("Share of Checks That Match"),
+    description: translationKey(
+      "What share of the window's checks must match the condition above.",
+    ),
+    unit: "%",
+  },
+  [EvaluateOverTimeType.StatusChanges]: {
+    title: translationKey("Times It Changed"),
+    description: translationKey(
+      "How often the checks must change between matching the condition above and not.",
+    ),
+    unit: translationKey("times"),
+  },
+};
+
+export const PERCENTILE_FIELD_TITLE: string = translationKey("Percentile");
+export const PERCENTILE_FIELD_DESCRIPTION: string = translationKey(
+  "The threshold above is compared with it: p95 is the value 95% of the window's values are at or below.",
+);
 
 // A metric's aggregation ("Average of ..."), read before the window.
 export const CRITERIA_AGGREGATION_SENTENCE: string = translationKey(
@@ -302,6 +578,16 @@ const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
 const NUMERIC_THRESHOLD: RegExp = /^-?\d+(\.\d+)?$/;
 
 /*
+ * A percentile as "p95" writes it: its number, at most one decimal (99.9).
+ * Notation, in Latin digits in every language, as monitoring tools write it.
+ */
+export function describePercentile(percentile: number): string {
+  return Number.isInteger(percentile)
+    ? String(percentile)
+    : String(Math.round(percentile * 10) / 10);
+}
+
+/*
  * A part of the summary: a sentence of `translator`'s language wrapped
  * around the part inside it, which is written in the same language.
  */
@@ -401,17 +687,179 @@ export default class CriteriaFilterUtil {
       evaluateOverTimeType: EvaluateOverTimeType.AllValues,
     };
 
+  /*
+   * The windows the form offers: minutes up to an hour, then whole hours up
+   * to a day (#10355), each named in its own unit - "8 Hours", not "480
+   * Minutes".
+   */
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
-    const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
-    return keys.map((key: string) => {
+    return Object.values(EvaluateOverTimeMinutes).map(
+      (value: string): DropdownOption => {
+        const minutes: number = Number(value);
+        const isInHours: boolean = minutes >= 120 && minutes % 60 === 0;
+
+        return {
+          label: isInHours
+            ? translatePlural(
+                { one: "{{count}} Hour", other: "{{count}} Hours" },
+                minutes / 60,
+              )
+            : translatePlural(
+                { one: "{{count}} Minute", other: "{{count}} Minutes" },
+                minutes,
+              ),
+          value: value,
+        };
+      },
+    );
+  }
+
+  /*
+   * The Evaluate dropdown's choices for a filter: each window type it is
+   * offered, under its name, with what it does for the ones that came with
+   * #10355.
+   */
+  public static getEvaluateOverTimeTypeOptions(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): Array<DropdownOption> {
+    return CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+      criteriaFilter,
+      monitorType,
+    ).map((type: EvaluateOverTimeType): DropdownOption => {
+      const description: string | undefined =
+        EVALUATE_OVER_TIME_TYPE_DESCRIPTIONS[type];
+
       return {
-        label: translatePlural(
-          { one: "{{count}} Minute", other: "{{count}} Minutes" },
-          Number((EvaluateOverTimeMinutes as any)[key]),
-        ),
-        value: (EvaluateOverTimeMinutes as any)[key]!.toString(),
+        value: type,
+        label: type,
+        ...(description ? { description: description } : {}),
       };
     });
+  }
+
+  /*
+   * How a counted window's number is compared: the comparisons a filter's
+   * own condition offers for a number, by the same names.
+   */
+  public static getCountComparisonOptions(): Array<DropdownOption> {
+    return CommonCriteriaFilterUtil.COUNT_COMPARISONS.map(
+      (filterType: FilterType): DropdownOption => {
+        return { value: filterType, label: filterType };
+      },
+    );
+  }
+
+  // The percentiles offered, the default first: p95, p50, p90, p99.
+  public static getPercentileOptions(): Array<DropdownOption> {
+    return EVALUATE_OVER_TIME_PERCENTILE_OPTIONS.map(
+      (percentile: number): DropdownOption => {
+        /*
+         * Notation, drawn the same in every language: the Dropdown looks
+         * each label up, and every locale words "p95" as "p95" (p50, p90
+         * and p99 have no key, so they are drawn as written).
+         */
+        return {
+          value: percentile,
+          label: `p${percentile}`,
+        };
+      },
+    );
+  }
+
+  /*
+   * The filter once its window type is picked. A count starts as "more
+   * than" 0 checks or changes, unless it already holds a number; a share
+   * keeps a number of at most 100; a percentile starts at p95; a measured
+   * value compared with the previous check starts at more than 50% above it
+   * (or below it), unless it already holds a change.
+   */
+  public static setEvaluateOverTimeType(data: {
+    criteriaFilter: CriteriaFilter;
+    evaluateOverTimeType: EvaluateOverTimeType;
+    // Whether the check is a yes or no one, which takes no change, depends on it.
+    monitorType?: MonitorType | undefined;
+  }): CriteriaFilter {
+    const options: EvaluateOverTimeOptions = {
+      ...(data.criteriaFilter.evaluateOverTimeOptions ||
+        CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
+      evaluateOverTimeType: data.evaluateOverTimeType,
+    };
+
+    if (
+      CommonCriteriaFilterUtil.isCountedWindowType(data.evaluateOverTimeType)
+    ) {
+      options.countFilterType = CommonCriteriaFilterUtil.isCountComparison(
+        options.countFilterType,
+      )
+        ? options.countFilterType
+        : FilterType.GreaterThan;
+
+      const countValue: number = Number(options.countValue);
+
+      options.countValue =
+        Number.isFinite(countValue) && countValue >= 0
+          ? data.evaluateOverTimeType === EvaluateOverTimeType.Percentage
+            ? Math.min(countValue, 100)
+            : countValue
+          : 0;
+    } else {
+      delete options.countFilterType;
+      delete options.countValue;
+    }
+
+    if (data.evaluateOverTimeType === EvaluateOverTimeType.Percentile) {
+      options.percentile = CommonCriteriaFilterUtil.getPercentile(
+        data.criteriaFilter,
+      );
+    } else {
+      delete options.percentile;
+    }
+
+    const withType: CriteriaFilter = {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: options,
+    };
+
+    if (
+      data.evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck &&
+      CommonCriteriaFilterUtil.comparesValueWithPreviousCheck(
+        withType,
+        data.monitorType,
+      )
+    ) {
+      const hasChange: boolean = Number.isFinite(Number(options.changeValue));
+
+      options.changeType = hasChange
+        ? CommonCriteriaFilterUtil.getPreviousCheckChange(withType).type
+        : DEFAULT_FORM_PREVIOUS_CHECK_CHANGE.changeType;
+      options.changeValue = hasChange
+        ? CommonCriteriaFilterUtil.getPreviousCheckChange(withType).value
+        : DEFAULT_FORM_PREVIOUS_CHECK_CHANGE.changeValue;
+    } else {
+      delete options.changeType;
+      delete options.changeValue;
+    }
+
+    return withType;
+  }
+
+  /*
+   * The two ways a change from the previous check is said: an amount, in the
+   * check's own unit, or a percentage of the previous value. Named for what
+   * they are beside the number, not by their API names: "Amount" alone is a
+   * sum of money in most locales.
+   */
+  public static getPreviousCheckChangeTypeOptions(): Array<DropdownOption> {
+    return Object.values(PreviousCheckChangeType).map(
+      (changeType: PreviousCheckChangeType): DropdownOption => {
+        return {
+          value: changeType,
+          label: PREVIOUS_CHECK_CHANGE_TYPE_LABELS[changeType],
+        };
+      },
+    );
   }
 
   /*
@@ -600,18 +1048,52 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.filterType,
     );
 
+    /*
+     * A window that counts its checks (#10355) is said around the condition
+     * each check is judged by, below: its measure reads as on one check.
+     */
+    const isCounted: boolean =
+      isEvaluatedOverTime &&
+      CommonCriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType);
+
+    /*
+     * A comparison with the previous check (#10821) is said of one check:
+     * no window's values, no minutes. A measured value says how far from the
+     * previous check it must be; a yes or no check, that it meets its
+     * condition now but did not then.
+     */
+    const isPreviousCheck: boolean =
+      isEvaluatedOverTime &&
+      evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck;
+    const comparesValueWithPreviousCheck: boolean =
+      isPreviousCheck &&
+      CommonCriteriaFilterUtil.comparesValueWithPreviousCheck(
+        criteriaFilter,
+        monitorType,
+      );
+
     // How a window's values are read, and a metric's aggregation, around it.
     const readOverTime: (measure: CriteriaPart) => CriteriaPart = (
       measure: CriteriaPart,
     ): CriteriaPart => {
       let part: CriteriaPart = measure;
 
-      if (isEvaluatedOverTime && evaluateOverTimeType && !checkByCheckWindow) {
-        part = wrapPart(
-          CRITERIA_EVALUATE_OVER_TIME_SENTENCES[evaluateOverTimeType],
-          "measure",
-          part,
-        );
+      const overTimeSentence: string | undefined = evaluateOverTimeType
+        ? CRITERIA_EVALUATE_OVER_TIME_SENTENCES[evaluateOverTimeType]
+        : undefined;
+
+      if (
+        isEvaluatedOverTime &&
+        overTimeSentence &&
+        !checkByCheckWindow &&
+        !isCounted &&
+        !isPreviousCheck
+      ) {
+        part = wrapPart(overTimeSentence, "measure", part, {
+          percentile: describePercentile(
+            CommonCriteriaFilterUtil.getPercentile(criteriaFilter),
+          ),
+        });
       }
 
       // Not for a forecast, which reads every value of the window into its trend.
@@ -816,7 +1298,13 @@ export default class CriteriaFilterUtil {
 
       let subject: CriteriaPart = readOverTime(measure);
 
-      if (isEvaluatedOverTime && minutes > 0 && !checkByCheckWindow) {
+      if (
+        isEvaluatedOverTime &&
+        minutes > 0 &&
+        !checkByCheckWindow &&
+        !isCounted &&
+        !isPreviousCheck
+      ) {
         subject = wrapPluralPart(
           CRITERIA_IN_THE_PAST_SENTENCE,
           minutes,
@@ -875,6 +1363,60 @@ export default class CriteriaFilterUtil {
           ? Number(criteriaFilter.value)
           : NaN;
 
+      /*
+       * A measured value against the previous check, by how far from it:
+       * "... is more than 50% above the previous check", in the check's own
+       * unit for an amount ("200 ms"), and in percentage points for a check
+       * that is itself a percentage.
+       */
+      if (comparesValueWithPreviousCheck && filterType) {
+        const change: { type: PreviousCheckChangeType; value: number } =
+          CommonCriteriaFilterUtil.getPreviousCheckChange(criteriaFilter);
+        const previousCheckSentence: string | undefined =
+          change.value > 0 ||
+          !CommonCriteriaFilterUtil.isPreviousCheckChangeComparison(filterType)
+            ? CRITERIA_PREVIOUS_CHECK_SENTENCES[filterType]
+            : CRITERIA_PREVIOUS_CHECK_NO_CHANGE_SENTENCES[filterType];
+
+        if (previousCheckSentence) {
+          const changeText: TemplateValues["change"] = composedValue(
+            (sentence: Translator): string => {
+              if (change.type === PreviousCheckChangeType.Percentage) {
+                return writeThreshold({
+                  value: String(change.value),
+                  translator: sentence,
+                  isPercentage: true,
+                  isMilliseconds: false,
+                  units: [],
+                });
+              }
+
+              if (isPercentage) {
+                return sentence.translatePlural(
+                  CRITERIA_PERCENTAGE_POINTS,
+                  change.value,
+                );
+              }
+
+              return writeThreshold({
+                value: String(change.value),
+                translator: sentence,
+                isPercentage: false,
+                isMilliseconds: isMilliseconds,
+                units: [databaseMetric?.unit || "", transceiverUnit || ""],
+              });
+            },
+          );
+
+          return (sentence: Translator): string => {
+            return sentence.translateTemplate(previousCheckSentence, {
+              subject: composedValue(subject),
+              change: changeText,
+            });
+          };
+        }
+      }
+
       return (sentence: Translator): string => {
         if (minutesComparison && Number.isFinite(thresholdMinutes)) {
           return sentence.translatePlural(minutesComparison, thresholdMinutes, {
@@ -902,17 +1444,39 @@ export default class CriteriaFilterUtil {
       };
     })();
 
-    // On every check of the window, or on any one.
-    const judged: CriteriaPart = checkByCheckWindow
-      ? wrapPluralPart(
-          checkByCheckWindow.isAnyCheck
-            ? CRITERIA_ON_ANY_CHECK_SENTENCE
-            : CRITERIA_ON_EVERY_CHECK_SENTENCE,
-          checkByCheckWindow.minutes,
-          "condition",
-          condition,
-        )
-      : condition;
+    /*
+     * On every check of the window, or on any one; or, for a yes or no
+     * check compared with the previous one, on this check but not on that.
+     */
+    const isStartedMatching: boolean =
+      isPreviousCheck && !comparesValueWithPreviousCheck;
+
+    const judged: CriteriaPart = isStartedMatching
+      ? wrapPart(CRITERIA_STARTED_MATCHING_SENTENCE, "condition", condition)
+      : isCounted
+        ? CriteriaFilterUtil.wrapCountedWindow({
+            criteriaFilter: criteriaFilter,
+            type: evaluateOverTimeType!,
+            condition: condition,
+            check: (sentence: Translator): string => {
+              return sentence.translateTemplate(CRITERIA_CHECK_SENTENCE, {
+                check: translatableTerm(
+                  databaseMetric?.friendlyName ||
+                    `${criteriaFilter?.checkOn ?? ""}`,
+                ),
+              });
+            },
+          })
+        : checkByCheckWindow
+          ? wrapPluralPart(
+              checkByCheckWindow.isAnyCheck
+                ? CRITERIA_ON_ANY_CHECK_SENTENCE
+                : CRITERIA_ON_EVERY_CHECK_SENTENCE,
+              checkByCheckWindow.minutes,
+              "condition",
+              condition,
+            )
+          : condition;
 
     const isExpression: boolean =
       criteriaFilter?.checkOn === CheckOn.JavaScriptExpression &&
@@ -928,6 +1492,105 @@ export default class CriteriaFilterUtil {
     return translator.translateTemplate(whole, {
       condition: composedValue(judged),
     });
+  }
+
+  /*
+   * A counted window around the condition each check is judged by (#10355):
+   * ... on more than 30 checks in the past 8 hours; on more than 10% of the
+   * checks; and for Status Changes, "Is Online" changed more than 5 times -
+   * the check itself, for a yes or no check, or whether the condition held.
+   */
+  public static wrapCountedWindow(data: {
+    criteriaFilter: CriteriaFilter;
+    type: EvaluateOverTimeType;
+    condition: CriteriaPart;
+    check: CriteriaPart;
+  }): CriteriaPart {
+    const minutes: number = CommonCriteriaFilterUtil.getEvaluateOverTimeMinutes(
+      data.criteriaFilter,
+    );
+    const comparison: { filterType: FilterType; value: number } =
+      CommonCriteriaFilterUtil.getCountComparison(data.criteriaFilter);
+
+    const isInHours: boolean = minutes >= 60 && minutes % 60 === 0;
+
+    const window: TemplateValues["window"] = composedValue(
+      (sentence: Translator): string => {
+        return sentence.translatePlural(
+          isInHours ? CRITERIA_WINDOW_HOURS : CRITERIA_WINDOW_MINUTES,
+          isInHours ? minutes / 60 : minutes,
+        );
+      },
+    );
+
+    if (data.type === EvaluateOverTimeType.Percentage) {
+      return (sentence: Translator): string => {
+        return sentence.translateTemplate(
+          CRITERIA_ON_SHARE_OF_CHECKS_SENTENCE,
+          {
+            condition: composedValue(data.condition),
+            share: composedValue((inner: Translator): string => {
+              return inner.translateTemplate(
+                CRITERIA_SHARE_COMPARISONS[comparison.filterType] ||
+                  CRITERIA_SHARE_COMPARISONS[FilterType.GreaterThan]!,
+                {
+                  share: formatReaderFigure(comparison.value, {
+                    decimals: Number.isInteger(comparison.value) ? 0 : 1,
+                    isPercent: true,
+                    language: inner.language,
+                  }),
+                },
+              );
+            }),
+            window: window,
+          },
+        );
+      };
+    }
+
+    const isChanges: boolean = data.type === EvaluateOverTimeType.StatusChanges;
+
+    const howMany: TemplateValues["checks"] = composedValue(
+      (inner: Translator): string => {
+        const template: PluralTemplate =
+          (isChanges
+            ? CRITERIA_TIMES_COMPARISONS[comparison.filterType]
+            : CRITERIA_CHECKS_COMPARISONS[comparison.filterType]) ||
+          (isChanges
+            ? CRITERIA_TIMES_COMPARISONS[FilterType.GreaterThan]!
+            : CRITERIA_CHECKS_COMPARISONS[FilterType.GreaterThan]!);
+
+        return inner.translatePlural(template, comparison.value);
+      },
+    );
+
+    if (!isChanges) {
+      return (sentence: Translator): string => {
+        return sentence.translateTemplate(CRITERIA_ON_CHECKS_SENTENCE, {
+          condition: composedValue(data.condition),
+          checks: howMany,
+          window: window,
+        });
+      };
+    }
+
+    if (CommonCriteriaFilterUtil.isBooleanSeries(data.criteriaFilter.checkOn)) {
+      return (sentence: Translator): string => {
+        return sentence.translateTemplate(CRITERIA_CHECK_CHANGED_SENTENCE, {
+          check: composedValue(data.check),
+          times: howMany,
+          window: window,
+        });
+      };
+    }
+
+    return (sentence: Translator): string => {
+      return sentence.translateTemplate(CRITERIA_CONDITION_CHANGED_SENTENCE, {
+        condition: composedValue(data.condition),
+        times: howMany,
+        window: window,
+      });
+    };
   }
 
   /*
@@ -972,7 +1635,19 @@ export default class CriteriaFilterUtil {
         criteriaFilter?.checkOn,
         monitorType,
       ) ||
-      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
+      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn) ||
+      // A count of its checks says how many, not every or any (#10355).
+      CommonCriteriaFilterUtil.isCountedWindowType(
+        CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+          criteriaFilter,
+          monitorType,
+        ),
+      ) ||
+      // A comparison with the previous check is of one check (#10821).
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ) === EvaluateOverTimeType.PreviousCheck
     ) {
       return null;
     }
@@ -1421,7 +2096,17 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo ||
-          i.value === FilterType.EqualTo;
+          i.value === FilterType.EqualTo ||
+          /*
+           * Right after Equal To, in FilterType's order. Many metrics are a
+           * state written as a number - a Windows service's status (4 is
+           * Running), a unit's state, an enum gauge - and what is asked of
+           * one is "anything but the healthy state" (#10449). Without it,
+           * "not Running" took two comparisons (Less Than 4, or Greater
+           * Than 4), and Less Than 4 alone missed Paused (7).
+           */
+          (checkOn === CheckOn.MetricValue &&
+            i.value === FilterType.NotEqualTo);
         const baseAnomaly: boolean =
           allowAnomaly &&
           (i.value === FilterType.AnomalouslyHigh ||

@@ -1,13 +1,15 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
+Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
 - [Elke controle](#elke-controle): Alle 34, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
-- [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem.
+- [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem, hoe elk is opgelost, en oplossingen die tot in productie worden gevolgd.
+- [De analyse van OneUptime AI](#de-analyse-van-oneuptime-ai): Of een probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost.
 - [Hier oplossen](#hier-oplossen): Sluit een blootstelling, of zet een ontbrekende bescherming aan, met één klik.
+- [Problemen met één oorzaak](#problemen-met-één-oorzaak): De problemen die één fout veroorzaakte, gegroepeerd, en hun oorzaak één keer opgelost.
 :::
 
 ## Hoe een controle beslist
@@ -152,13 +154,56 @@ OneUptime opent, werkt bij en lost problemen op terwijl de controles draaien. Wa
 | Status | Hoe het daar komt | Wat er volgt |
 | --- | --- | --- |
 | **Openstaand** | De controle faalt nu op de opslag. | Het telt mee in het Overzicht, in de samenvatting van de opslag en in compliance, tot de controle slaagt. |
-| **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing of is uitgezet, of de opslag is gearchiveerd. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
+| **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing of is uitgezet, of de opslag is gearchiveerd. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het zegt hoe het is opgelost (zie hieronder). Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
 | **Geaccepteerd** | Een mens koos **Risico accepteren**, met een **Reden** en een datum in **Geaccepteerd tot**, hoogstens een jaar vooruit. | Het blijft gesloten tot die datum, en opent daarna opnieuw als de controle nog steeds faalt. Accepteer het dan opnieuw als de reden nog geldt. |
-| **Geen probleem** | Een mens koos **Geen probleem**: de bevinding was onjuist. | Het blijft gesloten, ook terwijl de controle faalt. **Heropenen** zet het terug op Openstaand. |
+| **Geen probleem** | Een mens koos **Geen probleem** en zei waarom bij **Reden**: de bevinding was onjuist. | Het blijft gesloten, ook zolang de controle faalt, en houdt de reden. **Heropenen** zet het terug op Open. |
 
 Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren kunnen de status van een probleem wijzigen, en het met **Toewijzen** bij een persoon of een team neerleggen. Elke wijziging wordt in de **Tijdlijn** van het probleem geschreven: wanneer het opende, elke wijziging van de ernst, elke statuswijziging en wie die deed, de gevraagde hercontroles, en wat de integraties deden.
 
 Een probleem dat opnieuw opent, behoudt zijn geschiedenis. Geaccepteerde risico's worden elke dag opnieuw bekeken, zodat een acceptatie op tijd verloopt, ook als er niets is gescand.
+
+### Hoe het is opgelost
+
+Een opgelost probleem zegt hoe, boven aan zijn pagina en in de lijst met problemen, waarin u daarop kunt filteren onder **Oplossing**:
+
+| Oplossing | Wat het betekent |
+| --- | --- |
+| **Hersteld in de code** | De pull request van een codefix is uitgeleverd, en de nieuwe versie van de service schrijft de gegevens niet meer. Het probleem zegt welke en wanneer: 'Opgelost in pull request #482, gedeployed in versie 2.4.1, geverifieerd'. |
+| **Hersteld in de infrastructuurcode** | Een pull request op de Terraform, CloudFormation of Bicep die de opslag declareert, is gemerged, en de opslag slaagde voor zijn controle zodra de wijziging was toegepast. |
+| **Hersteld vanaf hier** | Een responsactie ([Hier oplossen](#hier-oplossen)) heeft de opslag gewijzigd, en de controle slaagde daarna. |
+| **Ingedamd bij inname** | Elke bevinding van een telemetrieprobleem wordt door een opschoonregel verborgen voordat ze wordt opgeslagen. Dit is geen oplossing: de code schrijft de gegevens nog steeds, naar stdout en naar elke andere plek waar de service zijn telemetrie naartoe stuurt. Het probleem zegt dat in oranje, met wat de regel de afgelopen week heeft gewijzigd, en biedt **Code herstellen** aan. |
+| **Controle geslaagd** | De controle slaagt, zonder dat OneUptime iets heeft gewijzigd. |
+| **Opgelost door een persoon** | Iemand koos **Als opgelost markeren**. De opslag wordt meteen opnieuw gecontroleerd, en het probleem opent opnieuw als de controle nog steeds faalt. |
+| **Niet meer gecontroleerd** | De controle is uitgezet, of is niet meer van toepassing op de opslag. |
+| **Opslag gearchiveerd** | De opslag is uit zijn bron verdwenen. |
+
+Het Overzicht telt de problemen die bij de bron zijn opgelost apart van de lekken die alleen bij inname zijn ingedamd, en **In uw telemetrie** houdt een ingedamde bevinding in beeld, gemarkeerd als **Opgeschoond**, totdat de code stopt met het schrijven ervan.
+
+### Oplossingen gevolgd tot in productie
+
+Een pull request die OneUptime AI voor een probleem opende (**Oplossen met AI**, of één pull request voor een [groep problemen](#problemen-met-één-oorzaak)), heeft nog niets opgelost op het moment dat hij wordt gemerged. OneUptime volgt hem totdat productie het bewijst:
+
+- **Een lek in code.** OneUptime wacht op een vastgelegde deploy van de service die de merge bevat, en houdt daarna de nieuwe versie in de gaten. Waar een opschoonregel de gegevens verbergt, mag de regel in die versie geen enkele waarde wijzigen; waar geen regel dat doet, mag geen record van die versie de gegevens bevatten op de plekken waar ze zijn gevonden. De nieuwe versie moet ook een dag draaien en minstens evenveel logs of spans sturen als de oude deed in het uur waarin het lek het laatst werd gezien. Dan is het probleem **Hersteld in de code**. Eén gewijzigde waarde, of één record dat de gegevens nog bevat, betekent dat de fix het lek niet heeft gestopt, en over een versie die in een week te weinig stuurt, valt niets te zeggen. Deploys worden gekoppeld via hun commit: leg ze vast met `oneuptime deploy`, of stuur `vcs.ref.head.revision` mee (zie [Deploys en wijzigingen](/docs/telemetry/change-events)).
+- **De configuratie van een opslag.** Als de pull request wordt gemerged, worden zijn opslagen meteen opnieuw gelezen. Elk probleem waarvan de controle daarna slaagt, is **Hersteld in de infrastructuurcode**. Slaagt een opslag een dag na de merge bij het opnieuw lezen nog steeds niet voor zijn controle, dan is de fix **gemerged, niet toegepast**: de eigenaren van de opslag en de persoon die om de pull request vroeg, krijgen één keer een e-mail, en de tijdlijnen van het probleem en de opslag vermelden het. Meestal ontbreekt er een apply.
+- **De opschoonregel blijft.** Na een geverifieerde codefix blijft de opschoonregel die het lek indamde staan, zodat een regressie wordt verborgen zodra die binnenkomt. Het probleem zegt dat de regel sinds de fix niets heeft gewijzigd, en biedt **Regel verwijderen** aan.
+- **Een regressie.** Een geverifieerde fix wordt daarna gevolgd: als een behouden regel weer waarden wijzigt, of de scan de gegevens weer vindt, opent het probleem opnieuw en zegt het welke versie ze terugbracht. Het blijft open totdat het opnieuw is opgelost, ook zolang een regel de gegevens verbergt.
+
+Elke stap staat op de **Tijdlijn** van het probleem en op die van de opslag, en AI-resultaten telt de geverifieerde oplossingen per soort (zie [Hoe goed OneUptime AI het doet](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet)).
+
+## De analyse van OneUptime AI
+
+Zolang **Aan nieuwe problemen werken** aan staat onder **Gegevensbeveiliging → AI**, analyseert OneUptime AI elk nieuw of heropend probleem met ernst Kritiek of Hoog zelf, voordat iemand het opent; uw AI-regels voor gegevensbeveiliging kunnen andere problemen kiezen. Elk probleem kan vanaf zijn pagina worden geanalyseerd met **Probleem analyseren**. De analyse opent het **Overzicht** van het probleem, onder **OneUptime AI-analyse**, en antwoordt op basis van wat gegevensbeveiliging weet:
+
+- of het echt is: **Echt**, **Waarschijnlijk bewust**, **Waarschijnlijk een onjuiste vondst** of **Niet te zeggen**, en waarom;
+- wat het in gevaar brengt: de gegevens en ongeveer hoeveel records, wie ze kan bereiken, kopieën ervan in andere opslag en de beveiligingszaken erover;
+- wat de oplossing zou breken: de diensten die de opslag gebruiken, de identiteiten die hun toegang in de afgelopen 90 dagen gebruikten en de toekenningen die de oplossing verwijdert en die iets nog gebruikt;
+- de kortste weg naar opgelost: wat het nu indamt, de code die de opslag declareert en wie het moet doen.
+
+Elke regel noemt de feiten waarop hij berust, eronder opgesomd door een knop zoals **De 3 feiten tonen waarop het berust**. Een regel die op geen enkel feit berust, valt weg, een oordeel waarvan de reden op geen enkel feit berust, is **Niet te zeggen**, en opslag met beperkte gegevens is nooit **Waarschijnlijk bewust** op het woord van OneUptime AI. Een regel die berust op iets wat u niet mag lezen, zoals wie de opslag kan bereiken, wordt voor u verborgen, en zegt dat.
+
+OneUptime AI verandert het probleem nooit: de status en de ernst blijven bij de controle en bij u. Bij **Waarschijnlijk bewust** biedt het **Risico accepteren** met de reden al geschreven, en **Bewust openbaar** voor openbare opslag; bij **Waarschijnlijk een onjuiste vondst** **Geen probleem** met de reden al geschreven. Er verandert niets tot u kiest.
+
+De analyse wordt bij het probleem bewaard, met een vermelding in de **Tijdlijn** telkens als ze wordt geschreven, in de taal die de meeste leden van uw project kozen (**Opnieuw analyseren** schrijft haar in de uwe). Ze wordt alleen opnieuw geschreven als veranderd is waarop ze berust, dus het probleem openen vraagt OneUptime AI niets; **Opnieuw analyseren** vraagt het toch. **Problemen** filtert en toont problemen op **Oordeel van OneUptime AI**. Wat ze verstuurt, en nooit verstuurt, staat in [OneUptime AI in gegevensbeveiliging](/docs/data-security/ai). Met AI uit is er geen analyse.
 
 ## Hier oplossen
 
@@ -178,6 +223,38 @@ Een openstaand probleem dat één wijziging aan de instellingen van een opslag o
 Het vraagt eerst om bevestiging, en zegt wat er verandert, wat ophoudt te werken en wat het kost. Het wijzigt de instellingen van de opslag, nooit de gegevens, en wijzigt niets wat al is zoals het hoort. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd.
 
 Het handelt via de cloudkoppeling van de opslag, dus de koppeling moet **Gegevensbeveiligingsrespons** aan hebben staan en de installatieopdracht moet opnieuw zijn uitgevoerd (zie [Gegevensbeveiliging instellen](/docs/data-security/setup#gegevensbeveiliging-een-blootstelling-laten-sluiten)). Tot dan zegt het paneel wat je moet aanzetten. De opslag wordt direct daarna opnieuw gecontroleerd, en het probleem lost zichzelf op zodra de controle slaagt. De **Tijdlijn** van het probleem en de **Tijdlijn** van de opslag zeggen wat er is gedaan, en wie het deed.
+
+## Problemen met één oorzaak
+
+Eén Terraform-module die toegangslogboeken uitzet, maakt veertig buckets met veertig problemen. Gegevensbeveiliging brengt de problemen die één fout veroorzaakte samen, zodat hun oorzaak één keer wordt opgelost.
+
+**Groeperen op oorzaak** onder **Problemen** toont elke groep boven de lijst: '40 problemen, één oorzaak: de module static-site', wat de controle ervan vindt, hoeveel er zijn opgelost en hoeveel er over zijn. De gegevensopslag ervan klapt eronder uit, elk met een link naar het probleem, en de filters van de lijst beperken ze zoals ze de rijen beperken. De problemen zonder groep staan onder de groepen. De groepering staat aan zodra een groep vijf problemen bevat, en uw browser onthoudt uw keuze.
+
+Feiten vormen een groep, nooit OneUptime AI. Problemen van één controle, op gegevensopslag van één cloud, vormen een groep wanneer hun opslag een van deze feiten deelt, de sterkste eerst:
+
+| Feit | Waar het wordt gelezen |
+| --- | --- |
+| De code die ze declareert | Een bestand in een gekoppelde repository dat is genoemd naar de module of stack die hun tags noemen |
+| Hun stack | De eigen tag van de CloudFormation-stack, of een tag die een stack noemt |
+| Een tag | Een tag die de module, de stack of het onderdeel noemt dat ze maakte, zoals `module` of `component` |
+| Wie ze aanmaakte | De identiteit die ze volgens het wijzigingslogboek van de cloud aanmaakte, voor opslag waarvan de tags niets noemen dat ze maakte |
+| Een naampatroon | Een deel van hun namen dat weinig andere opslag heeft, zoals `static-site-*` |
+
+Een groep bevat minstens twee problemen, een probleem zit in hoogstens één groep, en een probleem blijft in zijn groep zolang zijn opslag het feit van de groep deelt. Zolang **Aan nieuwe problemen werken** aan staat onder **Gegevensbeveiliging → AI**, geeft OneUptime AI elke groep een naam uit haar feiten, zoals 'de module static-site zet toegangslogboeken uit', en een naam die iets zegt wat de feiten niet zeggen, wordt niet bewaard. Anders krijgt een groep de naam van haar feit.
+
+**Oorzaak oplossen** bij een groep zegt wat het wijzigt, wat het weglaat en waarom, voordat er iets verandert:
+
+- **Eén pull request**, voor de gegevensopslag die als code is gedeclareerd: OneUptime AI wijzigt de module of het bestand dat ze declareert, in de repository die u bevestigt, in plaats van elke opslag apart. De pull request noemt elke opslag en elk probleem dat hij oplost, en verschijnt onder **Code** en op de **Tijdlijn** van elk probleem. Hij vraagt wat **Oplossen met AI** vraagt: toestemming om gegevensbeveiligingsproblemen te wijzigen, en een repository waarin OneUptime AI mag werken.
+- **Eén goedkeuring**, voor de gegevensopslag die in de console is gemaakt: op elk ervan de wijziging die [Hier oplossen](#hier-oplossen) voor dat soort opslag maakt, via de cloudkoppeling. De wijzigingen staan soort voor soort, elk met wat ze wijzigt, wat daarna niet meer werkt en wat ze kost, zoals Hier oplossen het zegt (een gedeelde snapshot wordt niet meer gedeeld, terwijl een database geen van haar handmatige snapshots meer deelt), en één goedkeuring maakt ze allemaal. Ze vraagt toestemming om gegevensopslag te bewerken.
+- **Weggelaten**: opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd. Opslag waarvan de analyse zegt dat het herstel toegang wegneemt die iets nog gebruikt, wacht tot u **Toch oplossen** aanvinkt. Opslag die geen cloudkoppeling door gegevensbeveiliging laat wijzigen, blijft aan de console ervan over, met de reden.
+
+Heeft een groep beide soorten opslag, dan doet één klik beide delen, en elk deel kan worden weggelaten. Elk probleem lost zichzelf op zodra de controle ervan slaagt, en de groep zegt hoeveel er over zijn tot er geen meer is. Een groep waarvan alle problemen zijn opgelost, blijft zeven dagen in de lijst.
+
+Een oplossing die OneUptime AI voor een groep heeft gemaakt, is bewezen zodra elk probleem dat ze oploste door die oplossing is gesloten: bij een pull request elk probleem dat hij noemt, door hem opgelost als **Hersteld in de infrastructuurcode**; bij de ene goedkeuring elk probleem waarvan ze de opslag wijzigde, opgelost als **Hersteld vanaf hier**, door de wijziging die ze maakte. Een probleem dat is geaccepteerd, als geen probleem is gemarkeerd, door een persoon is opgelost of is verwijderd, bewijst niets, en op opslag die de goedkeuring heeft weggelaten, of al in orde aantrof, wordt niet gewacht. [AI-resultaten](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet) telt een bewezen oplossing bij de wijzigingen die werkten.
+
+OneUptime AI stelt het herstel van elke groep voor zoals uw AI-regels voor gegevensbeveiliging zeggen: zonder regels wacht de pull request op u onder **Gegevensbeveiliging → AI**, en een regel waarvan **Herstel** **Zonder te vragen** is, opent hem zelf. Een wijziging via de cloudkoppelingen wacht altijd op u. Elk open probleem waarvoor een voorstel geldt, zegt dat op zijn **Tijdlijn** wanneer OneUptime AI de oplossing van de groep voorstelt, en opnieuw wanneer iemand het voorstel negeert of het verloopt. Een nieuwer voorstel dat een nog wachtend voorstel vervangt, meldt het alleen aan de problemen die het eerdere niet meldde, en een groep van meer dan 200 open problemen blijft stil. Bij een gegevensbeveiligingszaak vraagt de stap **Fix the code with AI** van een playbook om de pull request van de groep van de zaak, en om een eigen pull request voor elk probleem van de zaak dat in geen groep zit. Een probleem in een groep zegt dat onder **OneUptime AI-analyse**, met **Oorzaak oplossen**.
+
+Wie gegevensbeveiligingsproblemen alleen binnen bepaalde labels mag lezen, ziet elke groep teruggebracht tot de opslag die die persoon mag lezen: de aantallen tellen alleen de problemen van die opslag, en de groep heet naar haar feit zoals die opslag het geeft, nooit naar de naam die OneUptime AI gaf, die over opslag kan gaan die die persoon niet mag lezen. Een groep waarvan die persoon maar één probleem mag lezen, wordt niet getoond, en dat probleem blijft in de lijst staan. **Oorzaak oplossen** wijzigt alle opslag die de oorzaak heeft gemaakt, en vraagt daarom leestoegang tot gegevensbeveiligingsproblemen in het hele project: die persoon ziet wat het zou doen, en waarom hij of zij het niet kan uitvoeren.
 
 ## Waar de gegevens van een telemetrieprobleem zijn gevonden
 

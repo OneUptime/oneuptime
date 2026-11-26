@@ -51,6 +51,10 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "../../../FeatureSet/Telemetry/Services/LogDropFilterService";
 import LogScrubRuleService from "../../../FeatureSet/Telemetry/Services/LogScrubRuleService";
+import ExceptionUtil, {
+  ExceptionGroupingContent,
+  OccurrenceFingerprints,
+} from "../../../FeatureSet/Telemetry/Utils/Exception";
 import TraceScrubRuleService from "../../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
@@ -105,14 +109,17 @@ import {
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
 import { isScrubHashToken } from "Common/Types/Telemetry/ScrubHashTokenFormat";
+import { getScrubRuleFingerprint } from "Common/Types/Telemetry/ScrubRuleProof";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
+  DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
 } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryUsage";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
 } from "Common/Types/Telemetry/TelemetryIngestSurface";
 import TelemetryRetentionConfig, {
   HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS,
@@ -479,6 +486,17 @@ function browserPolicy(
   });
 }
 
+// A Mobile key (#6457): pinned, as a Mobile key always is.
+function mobilePolicy(
+  overrides: Partial<TelemetryIngestionKeyPolicy>,
+): TelemetryIngestionKeyPolicy {
+  return policy({
+    keyType: TelemetryIngestionKeyType.Mobile,
+    pinnedServiceName: "storefront-ios",
+    ...overrides,
+  });
+}
+
 interface GuardAnswer {
   // The status the refusal is sent with, or 200 when the request went on.
   status: number;
@@ -782,7 +800,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     }
 
     const rows: Array<Array<string>> = tableRows(
-      section(page, "## Server or Browser"),
+      section(page, "## Server, Browser or Mobile"),
       "",
     );
 
@@ -795,13 +813,82 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "Sends",
       "Every kind of telemetry, to every endpoint",
       `Traces, logs, metrics, session replays and [Sentry events](${SENTRY_SDKS_LINK})`,
+      "That app's traces, logs and metrics, over OTLP/HTTP, and its session replays",
+    ]);
+
+    /*
+     * A Mobile key sends what the Sends row says, and nothing else (#6457):
+     * its app's OTLP signals, and that app's session replays (#10540).
+     */
+    expect([...MOBILE_ALLOWED_INGEST_SURFACES].sort()).toEqual(
+      [
+        TelemetryIngestSurface.OtelTraces,
+        TelemetryIngestSurface.OtelLogs,
+        TelemetryIngestSurface.OtelMetrics,
+        TelemetryIngestSurface.SessionReplay,
+      ].sort(),
+    );
+    expect(rows[3]).toEqual([
+      "Origins",
+      "Not checked",
+      "Only the listed origins are accepted",
+      "A request from a web page is refused",
     ]);
     // The link opens the section that gives a browser app's DSN a Browser key.
     expect(section(english(COMPATIBLE_ENDPOINTS), "## Sentry SDKs")).toContain(
       "A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.",
     );
     expect(page).toContain(
-      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads.",
+      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP and its app's session replays.",
+    );
+  });
+
+  /*
+   * What a copy of a Mobile key can and cannot do (#6457), as the guard
+   * and the worker hold it: one app, its OTLP signals over HTTP, the
+   * Browser key's limit, the kill switch - and, said plainly, made-up data
+   * for that app.
+   */
+  it("says what a Mobile key limits, and what it cannot stop", () => {
+    const limits: string = section(page, "## What a Mobile key limits");
+
+    expect(limits).toContain(
+      "- **It writes only as one app.** Everything it sends is filed under its **Pinned Service Name** as a mobile RUM application, whatever service or host the sender names.",
+    );
+    expect(limits).toContain(
+      "- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP, and the app's session replays from its React Native recorder, with the key's **Pinned Service Name** as their `appIdentifier`. It is refused over gRPC and MQTT, for another app's session replays, profiles and source maps, on every other endpoint, and from any web page.",
+    );
+    // Its own app's session replays, and no other app's (#10540).
+    expect(
+      MOBILE_ALLOWED_INGEST_SURFACES.has(TelemetryIngestSurface.SessionReplay),
+    ).toBe(true);
+    for (const surface of [
+      TelemetryIngestSurface.Grpc,
+      TelemetryIngestSurface.Mqtt,
+      TelemetryIngestSurface.OtelProfiles,
+      TelemetryIngestSurface.SourceMap,
+      TelemetryIngestSurface.Sentry,
+    ]) {
+      expect({
+        surface,
+        mobile: MOBILE_ALLOWED_INGEST_SURFACES.has(surface),
+      }).toEqual({ surface, mobile: false });
+    }
+
+    expect(DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE).toBe(6000);
+    expect(
+      getEffectiveRequestsPerMinuteLimit(
+        mobilePolicy({}),
+        TelemetryIngestSurface.OtelTraces,
+      ),
+    ).toBe(DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE);
+    expect(limits).toContain(
+      `- **It is rate limited.** ${DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE.toLocaleString(
+        "en-US",
+      )} requests per minute for all copies together, unless you set its **Requests Per Minute Limit**.`,
+    );
+    expect(limits).toContain(
+      "What it cannot stop: someone who has your app can still send made-up traces, logs, metrics and session replays for that one app, up to the key's limit, until you turn the key off or it expires.",
     );
   });
 
@@ -831,7 +918,9 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toLocaleString("en-US");
 
     expect(page).toContain(
-      `| Requests per minute | No limit, unless you set one | ${limit}, unless you set another limit |`,
+      `| Requests per minute | No limit, unless you set one | ${limit}, unless you set another limit | ${DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE.toLocaleString(
+        "en-US",
+      )}, unless you set another limit |`,
     );
     expect(page).toContain(
       `A Browser key gets ${limit} when you leave it empty.`,
@@ -925,7 +1014,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       ].sort(),
     );
     expect(page).toContain(
-      "| **Pinned Service Name** | Files everything the key sends over OTLP/HTTP under this one service, whatever `service.name` the sender set.",
+      "| **Pinned Service Name** | Files everything the key sends over OTLP/HTTP under this one application, whatever `service.name` the sender set.",
     );
     expect(page).toContain(
       "The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.",
@@ -1052,6 +1141,9 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
         [422, "This telemetry ingestion key has been disabled."],
         [422, "A browser ingestion key cannot be used for"],
         [422, "did not send an Origin header"],
+        [422, "A mobile ingestion key cannot be used for"],
+        [422, "A mobile ingestion key can send session replays only"],
+        [422, "A mobile ingestion key cannot be used from a web page"],
         [422, "is not allowed for this browser ingestion key"],
         [422, "is pinned to a single service"],
         [429, "Too many telemetry requests for this ingestion key"],
@@ -1105,6 +1197,31 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
           surface: TelemetryIngestSurface.OtelLogs,
           headers: WITH_KEY,
           resolvesTo: browserPolicy({}),
+        },
+      },
+      {
+        fragment: "A mobile ingestion key cannot be used for",
+        request: {
+          surface: TelemetryIngestSurface.OtelProfiles,
+          headers: WITH_KEY,
+          resolvesTo: mobilePolicy({}),
+        },
+      },
+      // A page's recording, sent with a Mobile key (#10540).
+      {
+        fragment: "A mobile ingestion key can send session replays only",
+        request: {
+          surface: TelemetryIngestSurface.SessionReplay,
+          headers: WITH_KEY,
+          resolvesTo: mobilePolicy({}),
+        },
+      },
+      {
+        fragment: "A mobile ingestion key cannot be used from a web page",
+        request: {
+          surface: TelemetryIngestSurface.OtelTraces,
+          headers: { ...WITH_KEY, origin: ALLOWED_ORIGIN },
+          resolvesTo: mobilePolicy({}),
         },
       },
       {
@@ -1371,6 +1488,25 @@ describe("Data Retention (telemetry/data-retention)", () => {
     expect(logs).toContain("retentionDate: data.retentionDateDb,");
     expect(page).toContain(
       "**Exceptions follow what they were found in.** An exception is kept as long as the span or log it came from.",
+    );
+  });
+
+  /*
+   * #10432: security events are kept by the same settings, and what reads
+   * them back - detection rules, Run on Past Events, hunts - reads only as
+   * far as they go, as the card that sets the default says.
+   */
+  it("keeps security events the same way, and says what reads them back is held to it", () => {
+    const ingest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/SecurityEventsIngestService.ts",
+    );
+
+    expect(ingest).toContain('pillar: "securityEvents",');
+    expect(settings).toContain(
+      "How long telemetry is kept when no override applies, security events included: Security Events' rules, Run on Past Events and hunts read back only this far.",
+    );
+    expect(page).toContain(
+      "**Security events are kept the same way.** Detection rules, Run on Past Events and hunts read back only as far as security events are kept, and say so where they would need more: see [Security Events](/docs/telemetry/security-events).",
     );
   });
 
@@ -1865,6 +2001,123 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
   });
 
+  /*
+   * #10434: an exception is grouped by what it said before the rules ran,
+   * so a rule added later never makes an exception a new one; and a new one
+   * whose grouped text a rule hid is grouped under a fingerprint keyed to
+   * the project, as a Hash token is.
+   */
+  it("groups an exception by what it said before scrubbing, keyed to the project where a rule hid what groups it", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const primaryEntityId: ObjectID = ObjectID.generate();
+    const arrived: ExceptionGroupingContent = {
+      exceptionType: "CartNotFoundError",
+      message: "No cart for ada@example.com",
+      stackTrace: "",
+    };
+    const stored: ExceptionGroupingContent = {
+      ...arrived,
+      message: scrubbedBody(arrived.message, [
+        scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+      ]),
+    };
+    const asItArrived: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+    } & ExceptionGroupingContent = { projectId, primaryEntityId, ...arrived };
+
+    expect(stored.message).toBe("No cart for [REDACTED]");
+
+    const fingerprints: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId,
+        primaryEntityId,
+        arrived,
+        stored,
+        findsGroupsOfStoredText: true,
+      });
+
+    // The exception from before the rule is found by what it said as it arrived.
+    expect(fingerprints.fingerprintCandidates).toContain(
+      ExceptionUtil.getFingerprint(asItArrived),
+    );
+    expect(fingerprints.fingerprintCandidates).toContain(
+      ExceptionUtil.getFingerprintV2(asItArrived),
+    );
+    /*
+     * An address is folded before it is hashed (<EMAIL>), so it reaches no
+     * fingerprint: a new exception is made under grouping v4's (#10898) as
+     * it would be without the rule, and nothing is moved.
+     */
+    expect(fingerprints.fingerprintV2).toBe(
+      ExceptionUtil.getFingerprintV4(asItArrived),
+    );
+    expect(fingerprints.fingerprintRekeys).toBeUndefined();
+
+    // A value nothing folds reaches it: a name, which the keyed one hides.
+    const named: ExceptionGroupingContent = {
+      exceptionType: "AccountError",
+      message: "No account for Ada Lovelace",
+      stackTrace: "",
+    };
+    const namedFingerprints: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId,
+        primaryEntityId,
+        arrived: named,
+        stored: { ...named, message: "No account for [REDACTED]" },
+      });
+    const namedAsItArrived: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+    } & ExceptionGroupingContent = { projectId, primaryEntityId, ...named };
+
+    expect(namedFingerprints.fingerprintV2).not.toBe(
+      ExceptionUtil.getFingerprintV4(namedAsItArrived),
+    );
+    // An exception made before the rule under an unkeyed one moves (#10619).
+    expect(
+      namedFingerprints.fingerprintRekeys?.[
+        ExceptionUtil.getFingerprintV4(namedAsItArrived)
+      ],
+    ).toBe(namedFingerprints.fingerprintV2);
+    // And one made under v3's moves to v3's keyed one, as before.
+    expect(
+      namedFingerprints.fingerprintRekeys?.[
+        ExceptionUtil.getFingerprintV3(namedAsItArrived)
+      ],
+    ).toBeDefined();
+    expect(
+      namedFingerprints.fingerprintRekeys?.[
+        ExceptionUtil.getFingerprintV3(namedAsItArrived)
+      ],
+    ).not.toBe(namedFingerprints.fingerprintV2);
+
+    // The keyed one is keyed per project from the installation's secret.
+    const keyed: string = readCommonSource(
+      "Server/Utils/Telemetry/KeyedExceptionFingerprint.ts",
+    );
+    expect(keyed).toContain(
+      '.createHmac("sha256", EncryptionSecret.toString())',
+    );
+    expect(keyed).toContain("`${PROJECT_KEY_DERIVATION_LABEL}:${id}`");
+
+    // Both ingests group an exception so, the logs ingest off the record as it arrived.
+    for (const ingest of [logsIngest, tracesIngest]) {
+      expect(ingest).toContain("ExceptionUtil.getOccurrenceFingerprints({");
+    }
+    expect(logsIngest).toContain(
+      "LogPipelineService.processLog(data.arrivedRow, data.pipelines)",
+    );
+
+    expect(page).toContain(
+      "Each exception is still grouped by what it said before scrubbing, so adding a rule never turns an exception you already have into a new one, or sets off **New Exception** for it again.",
+    );
+    expect(page).toContain(
+      "When a rule hides part of what a new exception is grouped by, its fingerprint is keyed to your project, as a Hash token is, so no one can work it back to what was hidden. An exception made before the rule moves to such a fingerprint on its next occurrence the rule changes; its occurrences recorded before keep the old one until their retention ends.",
+    );
+  });
+
   it("creates a filter on Match then Action, Drop picked, with the description and Enabled under Advanced", () => {
     expect(dropForm).toContain('{ title: "Match", id: "match" },');
     expect(dropForm).toContain('{ title: "Action", id: "action" },');
@@ -2134,12 +2387,24 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
 
     const examples: Record<string, Array<string>> = {
-      [LogScrubPatternType.Email]: ["jane@example.com"],
-      [LogScrubPatternType.CreditCard]: ["4111 1111 1111 1111"],
+      // In another script too (#10960).
+      [LogScrubPatternType.Email]: ["jane@example.com", "张伟@example.com"],
+      // In another script's digits too (#10960).
+      [LogScrubPatternType.CreditCard]: [
+        "4111 1111 1111 1111",
+        "４１１１ １１１１ １１１１ １１１１",
+      ],
       [LogScrubPatternType.SSN]: ["123-45-6789"],
       [LogScrubPatternType.PhoneNumber]: ["555-123-4567"],
-      // Public ones: a private address is no one's, and is kept (#10393).
-      [LogScrubPatternType.IPAddress]: ["203.0.113.7", "2001:db8::1"],
+      /*
+       * Public ones: a private address is no one's, and is kept (#10393). One
+       * group each side of "::" is an address too (#10466).
+       */
+      [LogScrubPatternType.IPAddress]: [
+        "203.0.113.7",
+        "2001:db8::1",
+        "2001::1",
+      ],
     };
     const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
 
@@ -2258,9 +2523,18 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(codes).toEqual([
       "2001:db8::1",
+      "::",
+      "2001::1",
       "[2001:db8::1]:443",
       "2001:db8::2%eth0",
       "::ffff:203.0.113.7",
+      "peer ip:2001:db8::1",
+      "remote:2001:db8::1",
+      "::",
+      "10::30",
+      "ab::cd",
+      "2001%3Adb8%3A%3A1",
+      "/geo?ip=2001%3Adb8%3A%3A1",
       "10.0.0.12",
       "127.0.0.1",
       "fe80::1",
@@ -2270,6 +2544,25 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     // Hidden: shortened, whole when IPv4 written as IPv6; a port and a zone kept.
     expect(scrubbedBody("2001:db8::1", redact)).toBe("[REDACTED]");
+    // Right after a key's colon, the key whole (#10936).
+    expect(scrubbedBody("peer ip:2001:db8::1", redact)).toBe(
+      "peer ip:[REDACTED]",
+    );
+    expect(scrubbedBody("remote:2001:db8::1", redact)).toBe(
+      "remote:[REDACTED]",
+    );
+    // One group each side of "::", in the range public addresses are in (#10466).
+    expect(scrubbedBody("2001::1", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("2a00::1", redact)).toBe("[REDACTED]");
+
+    for (const kept of ["10::30", "ab::cd"]) {
+      expect(scrubbedBody(kept, redact)).toBe(kept);
+    }
+
+    // Percent-encoded in a URL: read decoded, hidden as written, the rest kept (#10467).
+    expect(scrubbedBody("/geo?ip=2001%3Adb8%3A%3A1", redact)).toBe(
+      "/geo?ip=[REDACTED]",
+    );
     expect(scrubbedBody("[2001:db8::1]:443", redact)).toBe("[[REDACTED]]:443");
     expect(scrubbedBody("2001:db8::2%eth0", redact)).toBe("[REDACTED]%eth0");
     expect(scrubbedBody("::ffff:203.0.113.7", redact)).toBe("[REDACTED]");
@@ -2331,11 +2624,39 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "ENCRYPTION_SECRET",
       "::ffff:203.0.113.7",
       "203.0.113.7",
+      "2001%3Adb8%3A%3A1",
+      "2001:db8::1",
+      "jane%40example.com",
+      "jane@example.com",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
+
+    // An email address percent-encoded, and a card in another script's digits, have the plain value's token (#10935, #10960).
+    const emailHash: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+      LogScrubPatternType.Email,
+      LogScrubAction.Hash,
+    );
+    const cardHash: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+      LogScrubPatternType.CreditCard,
+      LogScrubAction.Hash,
+    );
+
+    emailHash.rule.projectId = projectId;
+    cardHash.rule.projectId = projectId;
+
+    expect(scrubbedBody("jane%40example.com", [emailHash])).toBe(
+      scrubbedBody("jane@example.com", [emailHash]),
+    );
+    expect(
+      scrubbedBody("４１１１ １１１１ １１１１ １１１１", [cardHash]),
+    ).toBe(scrubbedBody("4111 1111 1111 1111", [cardHash]));
     expect(scrubbedBody("::ffff:203.0.113.7", [hashRule()])).toBe(
       scrubbedBody("203.0.113.7", [hashRule()]),
+    );
+    // Percent-encoded, one token with the address as it reads (#10467).
+    expect(scrubbedBody("2001%3Adb8%3A%3A1", [hashRule()])).toBe(
+      scrubbedBody("2001:db8::1", [hashRule()]),
     );
     expect(scrubbedBody("203.0.113.7", [hashRule()])).toMatch(
       /^\[HASHED:[0-9a-f]{16}\]$/,
@@ -2343,6 +2664,143 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(isScrubHashToken("[HASHED:8c87b489]")).toBe(true);
     expect(item).toContain("8-character");
     expect(item).toContain("16-character");
+  });
+
+  it("hides the addresses the Email Address list item names, encoded or in any script, and masks an encoded one as the address it is (#10935, #10960)", () => {
+    const item: string = listItemOf(
+      page,
+      "An Email Address rule hides what Data Security calls an email address.",
+    );
+    const redact: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+    ];
+
+    expect(inlineCodes(item)).toEqual([
+      "张伟@example.com",
+      "josé@example.com",
+      "user@例え.jp",
+      "jane%40example.com",
+      "/signup?email=jane%40example.com",
+    ]);
+    expect(item).toContain(
+      "**Mask** reads such an address decoded, so it keeps its first letter and the end of its domain",
+    );
+
+    for (const address of [
+      "张伟@example.com",
+      "josé@example.com",
+      "user@例え.jp",
+      "jane%40example.com",
+    ]) {
+      expect({ address, stored: scrubbedBody(address, redact) }).toEqual({
+        address,
+        stored: "[REDACTED]",
+      });
+    }
+
+    expect(scrubbedBody("/signup?email=jane%40example.com", redact)).toBe(
+      "/signup?email=[REDACTED]",
+    );
+    expect(
+      scrubbedBody("jane%40example.com", [
+        scrubRule(LogScrubPatternType.Email, LogScrubAction.Mask),
+      ]),
+    ).toBe("j***@***.com");
+  });
+
+  it("hides the cards the Credit Card Number list item names, in any script's digits, and masks one's last four as ASCII digits (#10960)", () => {
+    const item: string = listItemOf(
+      page,
+      "A Credit Card Number rule hides what Data Security calls a card number.",
+    );
+    const redact: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
+    ];
+
+    expect(inlineCodes(item)).toEqual(["４１１１ １１１１ １１１１ １１１１"]);
+    expect(scrubbedBody("４１１１ １１１１ １１１１ １１１１", redact)).toBe(
+      "[REDACTED]",
+    );
+    // An American Express number, in groups of four, six and five.
+    expect(scrubbedBody("card 3782 822463 10005", redact)).toBe(
+      "card [REDACTED]",
+    );
+    // Arabic-Indic and Persian digits, and a card typed in two scripts.
+    expect(scrubbedBody("٤١١١١١١١١١١١١١١١", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("۴۱۱۱-۱۱۱۱-۱۱۱۱-۱۱۱۱", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("４１１１ 1111 1111 1111", redact)).toBe("[REDACTED]");
+    expect(
+      scrubbedBody("４１１１ １１１１ １１１１ １１１１", [
+        scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Mask),
+      ]),
+    ).toBe("****-****-****-1111");
+  });
+
+  it("says every pattern rule but the two that read keys reads only the attributes it lists under More fields, as the form draws it (#10751)", () => {
+    const item: string = listItemOf(
+      page,
+      "A rule can name the attributes it reads.",
+    );
+    const field: string = between(
+      scrubForm,
+      'title: "Only in These Attributes",',
+      "customValidation",
+    );
+
+    expect(item).toContain("**Only in These Attributes**, one a line");
+    expect(item).toContain("**More fields**");
+    expect(field).toContain("showIf: isPatternReadingValues");
+    // Folded under More fields, as the help says: one a line, empty for every attribute.
+    expect(field).toContain("getFoldedValue: getOnlyInAttributesFoldedValue");
+    // Not Named Attributes, whose Attributes to Hide holds them, nor Sensitive Attribute Keys.
+    expect(between(scrubForm, "const isPatternReadingValues", "};")).toContain(
+      "!isNamedKeysPattern(values) &&\n    !isSensitiveKeysPattern(values)",
+    );
+    expect(
+      between(scrubForm, "LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP", ");"),
+    ).toContain(
+      "Reads only these attributes, one key a line, or every attribute when empty.",
+    );
+    expect(inlineCodes(item)).toEqual(["db.password_old"]);
+  });
+
+  it("says Proven goes away when the rule changes what was proven, and stays for the same attributes in another order or case (#10751)", () => {
+    const item: string = listItemOf(
+      page,
+      "A rule Data Security proved says so.",
+    );
+    const rule: Parameters<typeof getScrubRuleFingerprint>[0] = {
+      signal: "log",
+      patternType: LogScrubPatternType.Custom,
+      customRegex: "ghp_[A-Za-z0-9]{36}",
+      attributeKeys: ["db.password", "db.password_old"],
+      scrubAction: LogScrubAction.Redact,
+      fieldsToScrub: LogScrubField.Attributes,
+      serviceId: ObjectID.generate().toString(),
+    };
+    const proven: string = getScrubRuleFingerprint(rule);
+
+    expect(item).toContain(
+      "Change what it finds, the attributes it reads, how it scrubs, what it scrubs or its service, and **Proven** goes away. The same attributes in another order or case keep it.",
+    );
+
+    // What it finds, the attributes it reads, how and what it scrubs, its service.
+    for (const changed of [
+      { customRegex: "ghp_[A-Za-z0-9]{40}" },
+      { attributeKeys: ["db.password"] },
+      { scrubAction: LogScrubAction.Hash },
+      { fieldsToScrub: LogScrubField.Both },
+      { serviceId: ObjectID.generate().toString() },
+    ]) {
+      expect(getScrubRuleFingerprint({ ...rule, ...changed })).not.toBe(proven);
+    }
+
+    expect(
+      getScrubRuleFingerprint({
+        ...rule,
+        attributeKeys: ["DB.Password_Old", "db.password"],
+      }),
+    ).toBe(proven);
   });
 
   it("masks each kind of value the way the Mask row says", () => {
@@ -2913,10 +3371,38 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       readPackageFile(
         "App/FeatureSet/Telemetry/Services/SessionReplayScrubService.ts",
       ),
-    ).toContain("return await LogScrubRuleService.loadScrubRules(projectId);");
-    expect(page).toContain(
-      "**Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.",
+    ).toContain(
+      "return getScrubRulesOfRecord(\n      await LogScrubRuleService.loadScrubRules(projectId),\n      rumApplicationId,\n    );",
     );
+    // A replay belongs to a RUM application, never a service (#10433).
+    expect(page).toContain(
+      "**Session replays are scrubbed too.** Log scrub rules for every service also run over session replay recordings, behind the masking the recorder does in the browser.",
+    );
+  });
+
+  // Issue #10433: a rule for one service, and what a rule would break.
+  it("says a rule can be for one service, and that the form says what it would break", () => {
+    expect(scrubForm).toContain('title: "Only for one service"');
+    expect(scrubForm).toContain("service: true,");
+    // The service is in the form's folded section, which is titled More fields.
+    expect(scrubForm).toContain("getAdvancedFormSection<LogScrubRule>({");
+    expect(page).toContain(
+      "- **A rule can be for one service.** Under **More fields**, pick the service in **Only for one service**: the rule scrubs that service's records, and other services' records stay as they are.",
+    );
+    expect(page).toContain(
+      "- **The form says what a rule would change for others.** Before you create a rule, and when you turn one on,",
+    );
+
+    for (const rulesPage of [
+      "Pages/Logs/Settings/ScrubRules.tsx",
+      "Pages/Traces/Settings/ScrubRules.tsx",
+    ]) {
+      const code: string = readDashboardSource(rulesPage);
+
+      expect(code).toContain('title: "Scope"');
+      expect(code).toContain("<ScrubRuleReadersPreview");
+      expect(code).toContain("getRowConfirmation:");
+    }
   });
 
   // Issue #9039: a syslog line's raw copies.
@@ -3091,18 +3577,18 @@ describe("Topology (telemetry/topology)", () => {
     };
   }
 
-  it("opens from Products → Observability → Topology, and from Inventory → Topology Map", () => {
+  it("opens from Products → Observability → Topology, and from Inventory → Topology", () => {
     expect(navbarValue("items", "topologyTitle")).toBe("Topology");
     expect(productsMenuCategory("topologyTitle")).toBe("observability");
     expect(
       between(
         readDashboardSource("Pages/Inventory/SideMenu.tsx"),
-        'title: "Topology Map",',
+        'title: "Topology",',
         "},",
       ),
     ).toContain("RouteMap[PageMap.TOPOLOGY]");
     expect(page).toContain(
-      "Go to **Products → Observability → Topology**. **Inventory → Topology Map** opens the same page.",
+      "Go to **Products → Observability → Topology**. **Inventory → Topology** opens the same page.",
     );
   });
 
@@ -3584,7 +4070,7 @@ describe("the four pages together", () => {
       ],
       [TOPOLOGY]: [
         "Products → Observability → Topology",
-        "Inventory → Topology Map",
+        "Inventory → Topology",
       ],
     };
 

@@ -180,6 +180,12 @@ const PlaylistView: FunctionComponent<
                 );
               },
             },
+            {
+              // The playlist's line: its ID, who created it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
         }}
       />

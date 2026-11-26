@@ -7,6 +7,10 @@ import SecurityProtectedEntity from "../../../Models/DatabaseModels/SecurityProt
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
+import {
+  PROTECTED_DOMAIN_PROBLEM,
+  PROTECTED_FILE_HASH_PROBLEM,
+} from "../../../Types/SecurityPlaybook/SecurityProtectedEntity";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -18,7 +22,7 @@ import {
 } from "@jest/globals";
 
 /*
- * The project's protected users, hosts and addresses: what a row may hold,
+ * The project's protected users, hosts, addresses, domains and files: what a row may hold,
  * that a value is listed once, and the list as the target rule reads it.
  * Who may change it is the model's: the Admin tier and whoever may set up
  * playbooks.
@@ -102,12 +106,20 @@ describe("SecurityProtectedEntityService", () => {
   });
 
   test("refuses another kind of entity, and an empty or over-long value", async () => {
-    await expect(
-      service.onBeforeCreate({
-        data: entry(SecurityEntityType.Domain, "evil.example.com"),
-        props: { isRoot: true },
-      }),
-    ).rejects.toThrow(/a User, a Host or an IP Address/);
+    for (const kind of [
+      SecurityEntityType.Url,
+      SecurityEntityType.Process,
+      SecurityEntityType.Other,
+    ]) {
+      await expect(
+        service.onBeforeCreate({
+          data: entry(kind, "evil.example.com"),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        /a User, a Host, an IP Address, a Domain or a File Hash/,
+      );
+    }
     await expect(
       service.onBeforeCreate({
         data: entry(SecurityEntityType.Host, "   "),
@@ -162,9 +174,71 @@ describe("SecurityProtectedEntityService", () => {
     await expect(
       service.onBeforeUpdate({
         ...rename,
+        data: { entityType: SecurityEntityType.Process } as never,
+      }),
+    ).rejects.toThrow(/a User, a Host, an IP Address, a Domain or a File Hash/);
+
+    // Made a domain, the host's pattern is read as a domain would be (#10346), and is none.
+    await expect(
+      service.onBeforeUpdate({
+        ...rename,
         data: { entityType: SecurityEntityType.Domain } as never,
       }),
-    ).rejects.toThrow(/a User, a Host or an IP Address/);
+    ).rejects.toThrow(PROTECTED_DOMAIN_PROBLEM);
+  });
+
+  /*
+   * A domain entry (#10346) is a domain written the one way blocks are -
+   * lower case, no trailing dot - or `*.` and one for every name under it;
+   * a file entry is its MD5, SHA-1 or SHA-256 hash in lower-case hex.
+   */
+  test("keeps a domain, every name under one, and a file's hash, written the one way blocks are", async () => {
+    const domain: SecurityProtectedEntity = entry(
+      SecurityEntityType.Domain,
+      " Shop.Example.COM. ",
+    );
+    const zone: SecurityProtectedEntity = entry(
+      SecurityEntityType.Domain,
+      "*.Example.com",
+    );
+    const file: SecurityProtectedEntity = entry(
+      SecurityEntityType.FileHash,
+      " " + "AB".repeat(32) + " ",
+    );
+
+    await service.onBeforeCreate({ data: domain, props: { isRoot: true } });
+    await service.onBeforeCreate({ data: zone, props: { isRoot: true } });
+    await service.onBeforeCreate({ data: file, props: { isRoot: true } });
+
+    expect(domain.value).toBe("shop.example.com");
+    expect(zone.value).toBe("*.example.com");
+    expect(file.value).toBe("ab".repeat(32));
+  });
+
+  test("refuses a domain entry that is no domain, and a file entry that is no hash", async () => {
+    for (const value of [
+      "https://shop.example.com/cart",
+      "203.0.113.7",
+      "shop example.com",
+      "*.",
+      "   ",
+    ]) {
+      await expect(
+        service.onBeforeCreate({
+          data: entry(SecurityEntityType.Domain, value),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(PROTECTED_DOMAIN_PROBLEM);
+    }
+
+    for (const value of ["ab".repeat(31), "zz".repeat(32), "evil.exe", ""]) {
+      await expect(
+        service.onBeforeCreate({
+          data: entry(SecurityEntityType.FileHash, value),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(PROTECTED_FILE_HASH_PROBLEM);
+    }
   });
 
   /*

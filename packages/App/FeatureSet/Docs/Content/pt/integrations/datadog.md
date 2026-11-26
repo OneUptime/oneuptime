@@ -105,13 +105,13 @@ Na etapa **Critérios**, abra o primeiro critério, o que marca o monitor como o
 
 ### Abrir um incidente por alerta
 
-No mesmo critério, abra **Configurações** e ative **Group incidents and alerts by a payload field**. Preencha como abaixo, para que cada alerta tenha o próprio incidente e a recuperação dele o resolva:
+No mesmo critério, abra **Configurações** e ative **Agrupar incidentes e alertas por um campo da carga útil**. Preencha como abaixo, para que cada alerta tenha o próprio incidente e a recuperação dele o resolva:
 
 | Campo | Valor |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Abrir um incidente separado para cada…** | `requestBody.alert_key` |
+| **Campo que sinaliza a recuperação** | `requestBody.transition` |
+| **Valor que significa recuperado** | `Recovered` |
 
 ### Colocar o monitor online de novo
 
@@ -227,7 +227,7 @@ Abra a execução em **Execuções**. A entrada `read-event-1` em **Etapas** diz
 - O monitor do Datadog também precisa notificar o webhook das recuperações dele. Uma mensagem que menciona o webhook só para os alertas, dentro de uma condição, não envia nenhuma recuperação.
 - Com o modelo, abra a execução da recuperação em **Execuções**: a última etapa dela diz por quê. O `alert_cycle_key` da recuperação deve ser o do alerta, então mantenha `$ALERT_CYCLE_KEY` como está no payload.
 - Com o monitor, o incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**.
-- **Value that means recovered** deve ser exatamente `Recovered`. A comparação diferencia maiúsculas de minúsculas.
+- **Valor que significa recuperado** deve ser exatamente `Recovered`. A comparação diferencia maiúsculas de minúsculas.
 - O `alert_key` da recuperação deve ser o do alerta: mantenha `$ALERT_ID $ALERT_SCOPE` como está no payload.
 :::
 

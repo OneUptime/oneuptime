@@ -270,7 +270,7 @@ Seul le conteneur qui reçoit les requêtes (`app`) déclare des `ports` ; un si
 
 ## Ce que vous obtenez
 
-- **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 issus de vos traces.
+- **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 issus de vos traces. Connectez le projet sous **Cloud → Connecter**, et cet onglet ajoute une section **Google Cloud Monitoring** : les requêtes du service, la part de réponses avec un statut 5xx, la latence p95, ainsi que le CPU et la mémoire de ses conteneurs, tels que Cloud Run les mesure, quoi que l'application envoie. La ligne **Connexion Google Cloud Monitoring** de la **Vérification de la configuration** nomme le service recherché tant qu'aucun n'est lu.
 - **Instances** : une ligne par instance Cloud Run, nommée par `faas.instance`. Cloud Run ne montre pas l'utilisation des ressources d'un conteneur à un sidecar, les tuiles **CPU** et **Mémoire** restent donc vides sauf si vous envoyez vous-même des métriques `container.cpu.utilization` et `container.memory.usage` avec le même `faas.instance`. Lisez ici les tuiles de requêtes, et laissez le CPU et la mémoire des instances à Cloud Monitoring.
 - **Journaux**, **Traces** et **Métriques**, filtrés sur l'environnement.
 - Le même service sous **Fonctions serverless** (par `faas.name`) et sous **Services** (par `service.name`).

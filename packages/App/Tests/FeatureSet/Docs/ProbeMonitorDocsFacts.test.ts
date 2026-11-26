@@ -1,4 +1,6 @@
-import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import CriteriaFilterUtil, {
+  WINDOW_DESCRIPTION,
+} from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import CriteriaNameUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName";
 import {
   MonitorDestinationFieldCopy,
@@ -576,7 +578,11 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
       }).toEqual({ label, named: true });
     }
 
-    // ...and offered exactly the two evaluation types the form offers them.
+    /*
+     * ...and offered exactly the evaluation types the form offers them: every
+     * check or any, the counts of their checks (#10355), and whether this
+     * check started to match after the previous one did not (#10821).
+     */
     const offeredTypes: Array<EvaluateOverTimeType> =
       CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
         checkOn: CheckOn.IsRequestTimeout,
@@ -587,6 +593,10 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
     expect(offeredTypes).toEqual([
       EvaluateOverTimeType.AllValues,
       EvaluateOverTimeType.AnyValue,
+      EvaluateOverTimeType.Count,
+      EvaluateOverTimeType.Percentage,
+      EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
     expect(
       Array.from(
@@ -604,9 +614,14 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
   it("says a window should hold several checks, as the form does", () => {
     const form: string = readRepoFile(CRITERIA_FILTER_FORM_FILE);
 
-    expect(form).toContain(
+    /*
+     * Under For the last, for every window but a comparison with the
+     * previous check, which says how old that check may be (#10821).
+     */
+    expect(WINDOW_DESCRIPTION).toBe(
       "Make it longer than the monitoring interval, so the window holds several checks.",
     );
+    expect(form).toContain(": WINDOW_DESCRIPTION");
     expect(section(page, "### Evaluating over a period of time")).toContain(
       "Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.",
     );
@@ -651,7 +666,7 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
     );
 
     expect(section(page, "### Evaluating over a period of time")).toContain(
-      `from ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, under **For the last (in minutes)**`,
+      `from ${Math.min(...minutes)} minutes to ${Math.max(...minutes) / 60} hours, under **For the last**`,
     );
   });
 
@@ -1367,7 +1382,7 @@ describe("the labels the probe check pages name exist where the pages say", () =
 
     for (const label of [
       "Evaluate this criteria over a period of time",
-      "For the last (in minutes)",
+      "For the last",
       "If No Data",
     ]) {
       expect({ label, inForm: filterForm.includes(`"${label}"`) }).toEqual({
@@ -1390,7 +1405,8 @@ describe("the labels the probe check pages name exist where the pages say", () =
     for (const label of [
       "API Request Type",
       "Request Headers",
-      "Request Body (in JSON)",
+      "Request Body Format",
+      "Request Body",
       "Do not follow redirects",
       "Allow self-signed certificates",
       "Use client certificate (mTLS)",

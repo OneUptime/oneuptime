@@ -637,6 +637,60 @@ export default class DetectionRule extends BaseModel {
   })
   public lastEvaluatedAt?: Date = undefined;
 
+  /*
+   * Where a scheduled run that found matches had judged up to, written
+   * before it does what they ask and cleared once it records where it got
+   * to (#10489). A worker that stops in between leaves it set: the next run
+   * judges exactly that stretch again - from lastEvaluatedAt to here - and
+   * whatever the first run had done for each firing (its Detection Finding,
+   * its case detection, its risk) is done once.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    title: "Evaluating Until",
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    description:
+      "While the detection engine records what a run found: the end of the events that run judged. Null when no run is recording.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public evaluatingUntil?: Date = undefined;
+
+  /*
+   * When the rule's last scheduled run failed; cleared by the next run that
+   * records where it got to (#10490). A failing rule is tried again at its
+   * next interval, or within the hour when its interval is longer, not every
+   * minute - and its place stays where its last good run left it, so the run
+   * that works judges everything that arrived since, however long it failed.
+   * lastError says why; this says that it failed, and when.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    title: "Last Failed At",
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    description:
+      "When the rule's last scheduled run failed. Null when its last run worked.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastFailedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,
@@ -724,47 +778,4 @@ export default class DetectionRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Relation to the user who deleted this detection rule.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the user who deleted this detection rule.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

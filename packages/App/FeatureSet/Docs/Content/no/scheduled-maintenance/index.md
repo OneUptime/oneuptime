@@ -56,7 +56,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Oversikt**  | **Alle vedlikeholdshendelser**, **Pågående vedlikeholdshendelser**, der merket teller hendelsene som pågår akkurat nå, og **Vedlikeholdskalender**: hver hendelse på en måned, en uke eller en dag, ved siden av kalenderne utenfor prosjektet som du legger til. |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen av dem. |
-| **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**.                                                  |
+| **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**, **Revisjonslogger**: hvem som opprettet, endret eller slettet en av dem, og når. |
 | **Innstillinger** | **Vedlikeholdsstatus**, **Vedlikeholdsmaler**, **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
 
 **Oversikt** er åpen; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.

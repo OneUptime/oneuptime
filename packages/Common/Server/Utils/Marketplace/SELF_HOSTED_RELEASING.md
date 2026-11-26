@@ -26,7 +26,7 @@ Where buyers find each listing, as its marketplace links it:
 | ------------ | --------------------------------------------------------------------------------------------------------------- | ----------- |
 | AWS          | Not public yet: product `prod-5ijwaqpun3coo` is Limited (the seller account and its allowlist only)             |             |
 | Microsoft    | `https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise` (offer `oneuptime-enterprise`) | 2026-10-21  |
-| Google Cloud | Not public yet                                                                                                  |             |
+| Google Cloud | Not public yet: `oneuptime-enterprise` is published but not visible until Google makes it public                |             |
 
 The website names the public ones (the Resellers page's "Buy through your
 cloud marketplace" section, and a line under the self-hosted page's
@@ -359,22 +359,26 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (19 November 2026): the product exists (step 5); its
-listing (step 7) was approved on 18 November, and its pricing (step 6) has
-been reviewed and becomes active on 20 November if Google's automatic
-validation finds it valid (both submitted on 17 November with the
-maintainer's go-ahead); the payments profile is done;
-and `editions.json` marks the edition ready, so the Marketplace Release
-workflow pushed 15.0.0's images and deployer that evening, and release
-`15.0` is saved on the Container images page (step 8). Google's validation
-of it failed: the deployer refused the edition, and the scan flagged the
-PostgreSQL image (step 8 says why). The edition was fixed the same day and
-15.0.0 pushed again; the second validation flagged no image, but its test
-failed on the tester itself. With the tester fixed, 15.0.0 went a third time
-on 18 November: that validation passed, and the Container images review was
-submitted the same morning, with the maintainer's go-ahead. **Left**: the
-Container images review (two weeks or more), then **Publish** once all three
-are approved (the maintainer's go-ahead).
+1). **Where it stands** (24 November 2026): all three reviews are approved:
+the listing (step 7) on 18 November, the pricing (step 6) and release `15.0`
+on the Container images page (step 8) on 20 November, the last after three
+validations (step 8 says what the first two found). The usage
+verification's evidence (step 9) went to Google's Partner Support Desk (case
+77498377) on 24 November, and the product was published the same day with
+the maintainer's go-ahead (step 10): Producer Portal shows it **Published
+but not visible**, and only Google makes it public. That evening Google
+asked on the case for screenshots of the test deployment (every component
+green, the cluster's consumption tracking label and the listing's icon) and
+for the listing's icon in `application.yaml`. The screenshots went back on
+the case the same evening. Release `15.0` was pushed again with the icon
+(step 8) and saved at its new digest, which cancelled the Container images
+approval. Its validation then failed Google's vulnerability scan on three
+CVEs published after the approval (step 8). Two of them have no fixed build
+yet, and Google was asked on the case how to proceed. **Left**: Google's
+answer, then a release that passes the scan, submitted for review, then
+**Publish** again (step 10); Google's answer on the evidence and the listing
+made public; then the test cluster deleted and the test order cancelled
+(step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
@@ -392,7 +396,7 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
      | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
      | `group:cloud-commerce-marketplace-onboarding@twosync-src.google.com` (a group) | Editor, Service Management Administrator                                                                                                                                                                                                                                   |
      | `serviceAccount:cloud-commerce-producer@system.gserviceaccount.com`            | Service Config Editor (`roles/servicemanagement.configEditor`)                                                                                                                                                                                                             |
-     | `serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com`         | Service Controller. The email names Service Consumer too, which IAM grants on a service, not a project ("not supported for this resource"): grant it on the product's service (`gcloud endpoints services add-iam-policy-binding`) if Producer Portal asks, once it exists |
+     | `serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com`         | Service Controller, and on each product's service both Service Consumer and Service Controller (`gcloud endpoints services add-iam-policy-binding`; IAM refuses Service Consumer on a project). Without those, Google cancels every order within seconds (step 9)          |
      | `serviceAccount:managed-services@cloud-marketplace.iam.gserviceaccount.com`    | Service Management Administrator                                                                                                                                                                                                                                           |
 
      Google's setup page
@@ -448,9 +452,12 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    repository in the path. Customer-tenant consumption tracking applies to it
    too: Producer Portal's **Overview** lists the product's label,
    `goog-partner-solution=isol_plb32_001kf00001id1wxiar_kitw4d6nq4zmkxjfloixzbcne5jodjnp`.
-   **Still to ask**: how a deployer-based app applies it - Google's
-   requirements ask it of every product deployed into customers' projects,
-   but describe it for Kubernetes only on the Terraform type's pages.
+   How a deployer-based app applies it, Google's requirements do not say:
+   they ask it of every product deployed into customers' projects, but
+   describe it for Kubernetes only on the Terraform type's pages. Google's
+   Partner Support Desk asked for it on the usage verification's test
+   cluster, as a label on the cluster (case 77498377, 20 November 2026;
+   step 9), and said nothing of buyers' clusters.
 3. **Access for Google**: the roles of step 1 (Editor includes the
    `roles/viewer` an older version of this guide asked for), and whatever
    else Producer Portal's technical integration page asks for.
@@ -520,7 +527,8 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    (`--headless=new --default-background-color=00000000 --window-size=512,512 --screenshot`).
    The maintainer uploaded it on 17 November. The field shows no file after a
    reload, but **Full preview** shows the logo; a black background would
-   break the rule. **Submit** is at the bottom of the **Product metadata**
+   break the rule. The same image, rendered the same way, is
+   `HelmChart/Marketplace/google-cloud/logo.png`, the app's icon (step 8). **Submit** is at the bottom of the **Product metadata**
    tab, and changing a field while the review runs cancels it.
 8. **Container images** (the first release saved on 17 November 2026): the
    deployer's path,
@@ -567,6 +575,141 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    minutes, and the Container images review was submitted that morning.
    Changing a release while the review runs cancels it, as the page says:
    a newer version waits for the approval.
+
+   The listing's icon goes on the app too (Google's Partner Support Desk,
+   case 77498377, 24 November 2026, after the product was published): the
+   console shows it with the app under **Kubernetes Engine > Applications**.
+   The `Application` carries it as Google's own apps do, in the
+   `kubernetes-engine.cloud.google.com/icon` annotation, a data URI of the
+   chart's `logo.png`, which `build.py` copies from `google-cloud/logo.png`.
+   Release 15.0 shipped without it. On 24 November its deployer was pushed
+   again with the icon, by hand (a OneUptime release was in flight, and
+   `PrioritizeReleaseRuns.sh` cancels every other workflow run until it is
+   out), at `sha256:46c27f860ab1`. It differs from the published one only by
+   the icon and its base: that day Google moved `deployer_helm` from 13.0.17,
+   which the earlier pushes used, to 13.0.18, and tagged 13.0.17
+   `deprecated-public-image-13.0.17`. The screenshots Google asked for came
+   from the test deployment (step 9), whose `Application` got the same
+   annotation with `kubectl annotate`.
+
+   That release's new validation failed the vulnerability scan on three
+   CVEs, all published after its approval of 20 November. Google's scan
+   checks every image again, not just the changed one.
+
+   - **CVE-2026-97040** (Go standard library 1.26.10, fixed in 1.26.11) in
+     the deployer. It comes from Google's own `deployer_helm`: 13.0.18, the
+     newest, is built with Go 1.26.10.
+   - **The same CVE** in the runner image's kubectl v1.36.6. Kubernetes'
+     newest releases (1.36.6 and 1.37.2) are both built with Go 1.26.10, so
+     there is no fixed kubectl yet
+     ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)).
+   - **CVE-2026-97205** in nginx 1.30.5, fixed in the releases from 17.1.0
+     on, which run nginx 1.30.7.
+
+   Google's report (**View details** under the failed step) names each
+   image, package and fixed version. Asked on case 77498377 that evening
+   whether a Go 1.26.11 `deployer_helm` is coming, and how to proceed.
+
+9. **Usage verification** (before **Publish**; Google's Partner Support
+   Desk, case 77498377): Google checks that the hours the app reports reach
+   its billing. Its answers (20 November 2026): reporting straight to
+   Service Control with the reporting secret is accepted (the UBB agent is
+   recommended, not required); each hour's `DELTA` report needs its own
+   `operationId` (ours is the hour's idempotency key, the same on every
+   retry); and every image carries the service annotation. Its guide,
+   "Manual Billing Verification for K8s Apps" (a PDF on the case), and its
+   emails ask for the following, all in place since 20 November 2026:
+
+   - **A test billing account**: Producer Portal's **Test Billing Accounts**
+     page lists the billing account the test buys with. Google discounts its
+     charges for our products in full; the cluster's own costs stay.
+   - **Cloud Billing's export to BigQuery** for that account (Billing >
+     **Billing export** > **Standard usage cost**), into the dataset
+     `oneuptime-marketplace:billing_export` (US). It covers every project on
+     the account, and usage reaches it about 6 hours later.
+   - **Producer Portal's reports in BigQuery** (**Reports** > **BigQuery
+     export** > **Enable Export**): the dataset `marketplace_report`, with
+     the Incremental Insights and Detailed Disbursement reports, filled
+     within 24 hours. Google stores it free; queries are charged.
+   - **A test cluster** in `oneuptime-marketplace`, with the product's label
+     on the cluster (about USD 10 a day: delete it once Google is done):
+
+     ```bash
+     gcloud container clusters create oneuptime-marketplace-test --project=oneuptime-marketplace \
+       --zone=us-central1-a --num-nodes=3 --machine-type=e2-standard-4 --release-channel=regular \
+       --labels=goog-partner-solution=isol_plb32_001kf00001id1wxiar_kitw4d6nq4zmkxjfloixzbcne5jodjnp
+     ```
+
+   - **The order and the deployment**, from Producer Portal's **Full
+     preview**: buy the `enterprise` plan with the test billing account, then
+     deploy onto the test cluster. Google cancelled the first three orders
+     within seconds ("has rejected your subscription"), until its
+     procurement account had both roles on the product's service (step 1's
+     table):
+
+     ```bash
+     SVC=oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog
+     for ROLE in roles/servicemanagement.serviceConsumer roles/servicemanagement.serviceController; do
+       gcloud endpoints services add-iam-policy-binding "$SVC" \
+         --member=serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com --role="$ROLE"
+     done
+     ```
+
+     The preview's deployer then could not start: the preview has it pull
+     from `gcr.io/oneuptime-marketplace/oneuptime/oneuptime-enterprise`,
+     where we have no images. The test was pointed at ours:
+     `__image_repo_prefix__` in the Secret `oneuptime-deployer-config` set
+     to step 4's path, and the deployer Job created again with
+     `.../deployer:15.0.0`. That path is the preview's alone (Google, 23
+     November 2026): published deployments pull from the repository
+     Producer Portal names, which **Publish** copies into Marketplace's own
+     registry (step 10), so nothing goes under `gcr.io`.
+   - **Hours to bill**: a new installation has no users, so it reports 0
+     user-hours until the first one signs up. The test's admin signed up
+     with `POST /identity/signup`, through `kubectl port-forward` to the
+     nginx Service. Its first report was accepted at 23:00 UTC on 20
+     November: 0 user-hours, for the hour before the sign-up.
+   - **The evidence**, sent on the case once the reports hold a day of
+     usage: the app's `OneUptime Enterprise marketplace billing` lines (what
+     was pushed); the billing export's rows for the order's consumer project
+     (the reporting secret's `consumer-id`, without `project:`), from the
+     guide's query on the `gcp_billing_export_v1_*` table; and the
+     Incremental Insights rows. The pushed lines come from Cloud Logging,
+     which keeps them after the pod's own log has rotated:
+
+     ```bash
+     gcloud logging read 'resource.type="k8s_container" AND resource.labels.cluster_name="oneuptime-marketplace-test" AND "OneUptime Enterprise marketplace billing"' \
+       --project=oneuptime-marketplace --order=asc --limit=1000 --format=json
+     ```
+
+     Sent on 24 November 2026 as CSV files, with a table of the three side
+     by side per day: 85 hourly reports from 22:00 UTC on 20 November, all
+     accepted, with no gap or repeat, 84 user-hours in all. The reports lag
+     the hours: the billing export by about 6 hours, Incremental Insights by
+     about 2 days. Incremental Insights' `date` is a Pacific day (its first,
+     20 November, held 9 hours, from 23:00 UTC), so compare per Pacific day:
+     on each day both reports held, the hours pushed, billed and reported
+     matched. The billing export counts a user-hour as 3600 seconds
+     (`usage.amount`; 1 hour in `usage.amount_in_pricing_units`) at USD 0.10,
+     with a credit of the same amount; Incremental Insights puts the same
+     charges under `trial_use`, with nothing in `due_vendor`.
+
+10. **Publish** (the maintainer's go-ahead; done on 24 November 2026): the
+    **Publish** button at the foot of the product's **Overview**. Google's
+    dialog says the product is published, that its visibility is its service
+    configuration's, which Google sets, and to ask Google to make it public:
+    asked on case 77498377 the same day. Until then the product page reads
+    **Published (11/21/26) but not visible** (a date before the click), and
+    the products list still says **Ready to publish**. The click copied
+    release `15.0` into `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`
+    (the app, tagged `15.0` and `15.0.0`, with `deployer`, `nginx`, `probe`,
+    `runner`, `postgres`, `clickhouse-server` and `valkey` under it) within
+    a minute, at the digests in Artifact Registry.
+
+    A published product stays editable. Changing a section cancels its
+    approval, and the new review must be approved before **Publish** again
+    (Google's "Updating an existing version" says the same). The release
+    pushed again with the icon (step 8) went this way on 24 November 2026.
 
 ### The release workflow: one-time setup
 
@@ -820,9 +963,10 @@ docker buildx build --platform linux/amd64 --provenance=false \
 ```
 
 **Testing is Google's**: its review installs and tests each version we
-submit. We keep no GKE test cluster: it would cost money. Only to reproduce a
-failure Google reports, on a cluster the maintainer approves, Google's `mpdev`
-runs the same checks:
+submit. We keep no GKE test cluster: it would cost money (the usage
+verification's, step 9 of the setup, goes once Google is done). Only to
+reproduce a failure Google reports, on a cluster the maintainer approves,
+Google's `mpdev` runs the same checks:
 
 ```bash
 kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
@@ -858,11 +1002,27 @@ sync**; pick the track again at its new digest (the other fields stay), then
 **Save and Validate**. 15.0.0 went to Google a second and a third time this
 way, on 17 and 18 November 2026.
 
+The workflow cannot run while a OneUptime release is in flight:
+`PrioritizeReleaseRuns.sh` cancels every other run. Then build and push the
+deployer by hand instead (above), over both of its tags. This changes the
+deployer alone, where the workflow would also build PostgreSQL again.
+15.0.0 went to Google a fourth time this way, on 24 November 2026, with the
+listing's icon.
+
+On that published product, **Save and Validate** hung twice, with the panel
+spinning and nothing saved: first after the console timed out ("This page
+isn't available at the moment"), then for 50 minutes. It saved at once from
+a freshly loaded page: the page then reads "Validation is running and might
+take up to 2 hours to complete", and the releases table shows the new
+digest. If the panel spins for more than a few minutes, reload the
+**Container images** page and check the digest there before saving again.
+
 ## Checking an installation
 
 We run no test installations: each marketplace's review tests every version.
-Use this when an installation needs looking at, such as a buyer's (with them)
-or one the maintainer approved to reproduce a problem:
+Use this when an installation needs looking at, such as a buyer's (with them),
+one the maintainer approved to reproduce a problem, or Google's usage
+verification (step 9 of the Google setup):
 
 1. **It runs**: every pod is ready (the first start migrates the database:
    allow up to 30 minutes), and `https://<domain>/status/ready` answers.
@@ -1271,8 +1431,9 @@ cost a review round.
 - **AWS: running as root.** Images "should be configured to run with non-root
   privileges by default"; the OneUptime `nginx` and `probe` images run as
   root. A recommendation, not a rule: expect the question.
-- **Google: the product type, the registry and consumption tracking** (step
-  2 of the Google setup).
+- **Google: the product type, the registry and consumption tracking**:
+  answered by Producer Portal and Google's Partner Support Desk, except how
+  buyers' clusters get the label (step 2 of the Google setup).
 - **Vulnerability scans on every release**, on all three (see
   [Before every release](#before-every-release)).
 
@@ -1286,13 +1447,9 @@ cost a review round.
   written on 17 November 2026, with every section it asks for and its
   commands checked against the edition built from 15.0.0, but not run on a
   GKE cluster. Its image path,
-  `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, follows the
-  listing's address as Google's docs describe; confirm it once Google
-  publishes the first version (`TODO(identifiers)`). Google's validation
-  copied the images to
-  `gcr.io/cloud-launcher-images-prd/oneuptime-marketplace/oneuptime/oneuptime-enterprise/...`,
-  with our repository's name, so the published path may have `/oneuptime`
-  in it too.
+  `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, is where
+  **Publish** put release `15.0` on 24 November 2026 (step 10 of the Google
+  setup).
 - **The Google Cloud app's deploy-info IDs are inferred.** The `Application`
   names partner `oneuptime-marketplace` and product `oneuptime-enterprise`
   (`google-cloud/application.yaml`): the project and product of the
@@ -1308,6 +1465,18 @@ cost a review round.
   same secrets file; a console deployment, it and the buyer guide say, waits
   for support. Settle it with the Partner Engineer before the Google listing
   goes live.
+- **ClickHouse is missing from the Google Cloud app's components in release
+  15.0** ([#10989](https://github.com/OneUptime/oneuptime/issues/10989)).
+  The console's **Applications** page lists the resources labelled
+  `app.kubernetes.io/name: <app name>`. Google's deployer adds that label only
+  where a resource has none, and the chart labelled ClickHouse's StatefulSet,
+  Services, ConfigMap and Secret `clickhouse`, so they were missing from the
+  list and from the app's status. Deleting the app still removed them, since
+  they carry its owner reference. Fixed in the chart
+  ([#11018](https://github.com/OneUptime/oneuptime/pull/11018)): in the Google
+  Cloud edition they carry the app's name (`oneuptime.appNameLabel`), from
+  the first release after 17.2.0 on. The chart suite's marketplace checks
+  render the edition under another app's name and hold every resource to it.
 - **No GKE Autopilot.** Google Cloud Marketplace's Kubernetes apps cannot be
   installed on Autopilot clusters: buyers need a Standard cluster. The buyer
   guide does not say so yet.
@@ -1427,6 +1596,27 @@ rejection, go-live and price change.
 | 2026-11-18 | Google      | Container images review submitted, with the maintainer's go-ahead                                   | Agent      |
 | 2026-11-18 | Google      | Product details review of `oneuptime-enterprise` approved                                           | Google     |
 | 2026-11-19 | Google      | Pricing reviewed: in Google's automatic validation, active on 20 November if valid                  | Google     |
+| 2026-11-20 | Google      | Pricing of `enterprise` approved                                                                    | Google     |
+| 2026-11-20 | Google      | Container images review approved: the product is Ready to publish                                   | Google     |
+| 2026-11-20 | Google      | Case 77498377: Google asks to verify the usage reporting with a test deployment first               | Google     |
+| 2026-11-20 | Google      | Asked on case 77498377: direct reporting or the UBB agent, the guide, which report, the label       | Agent      |
+| 2026-11-20 | Google      | Google: direct reporting accepted, UBB agent recommended; label on the test cluster                 | Google     |
+| 2026-11-20 | Google      | Test cluster `oneuptime-marketplace-test` created with the label, with the maintainer's go-ahead    | Agent      |
+| 2026-11-20 | Google      | Test orders cancelled in seconds: procurement had no role on the service; granted, then active      | Agent      |
+| 2026-11-20 | Google      | The preview's deployer pulled from gcr.io, which has no images: pointed at Artifact Registry        | Agent      |
+| 2026-11-20 | Google      | Test install up; first hourly report accepted (0 user-hours, before its admin signed up)            | Agent      |
+| 2026-11-20 | Google      | Billing export to BigQuery and Producer Portal's reports export turned on                           | Agent      |
+| 2026-11-20 | Google      | Answered case 77498377: the test reports; logs, billing rows and Insights follow in a day           | Agent      |
+| 2026-11-23 | Google      | Google: published deployments pull from Producer Portal's repository, copied on Publish             | Google     |
+| 2026-11-24 | Google      | Evidence sent on case 77498377 as CSV: pushed, billed and Insights hours match per day              | Agent      |
+| 2026-11-24 | Google      | Published, with the maintainer's go-ahead: Published but not visible; images copied                 | Agent      |
+| 2026-11-24 | Google      | Asked on case 77498377 to make the listing public                                                   | Agent      |
+| 2026-11-24 | Google      | Google asked on case 77498377 for screenshots and the listing's icon in `application.yaml`          | Google     |
+| 2026-11-24 | Google      | Icon added to the Application (#10988); 15.0.0's deployer pushed again by hand with it              | Agent      |
+| 2026-11-24 | Google      | Screenshots sent on case 77498377: every component green, the cluster's label, the icon             | Agent      |
+| 2026-11-24 | Google      | Release 15.0 saved at the new digest, cancelling its approval; validation failed on 3 new CVEs      | Agent      |
+| 2026-11-24 | Google      | Asked on case 77498377 how to proceed: two Go CVEs have no fixed build (deployer_helm, kubectl)     | Agent      |
+| 2026-11-24 | Google      | ClickHouse labelled with the app's name in the Google edition (#11018), from after 17.2.0           | Agent      |
 
 ## Notes for agents driving the browser
 

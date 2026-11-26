@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Wenden Sie sie dann mit `kubectl apply -f oneuptime-probe.yaml` an.
 :::
 
 Mit Host-Networking (`--network host`, `network_mode: host`) nutzt die Sonde das Netzwerk des Hosts selbst, IPv6 eingeschlossen. Lesen Sie [IPv6-Ziele überwachen](#ipv6-ziele-überwachen), bevor Sie sie ohne Host-Networking starten.
+
+Ohne Host-Netzwerk, wie im Kubernetes-Deployment oben oder mit Docker in einem Bridge-Netzwerk, verlassen die Prüfungen der Sonde den Rechner über die eigene Adresse des Hosts, die die Sonde aus ihrem Container heraus nicht sehen kann. `PROBE_HOST_IP_ADDRESSES` teilt ihr diese Adresse mit, damit [Sicherheitsereignisse](/docs/telemetry/security-events) die Abfragen, Erkennungsscans und Monitorprüfungen der Sonde als ihre eigene Arbeit erkennt. Das Kubernetes-Deployment setzt sie aus `status.hostIPs`, das beide Adressen eines Dual-Stack-Knotens enthält; unter Kubernetes vor 1.29 verwenden Sie `status.hostIP`. In einem Docker-Bridge-Netzwerk geben Sie die Adresse des Hosts selbst an, etwa `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Prüfen, ob sie sich verbindet
 
@@ -146,10 +152,26 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Ersetzen Sie `<version>` durch die Version, die laufen soll, etwa `17.0.1`, und tragen Sie dasselbe Image in `oneuptime-probe.yaml` ein, damit es bleibt, wenn Sie die Datei erneut anwenden.
+Ersetzen Sie `<version>` durch die Version, die laufen soll, etwa `17.1.0`, und tragen Sie dasselbe Image in `oneuptime-probe.yaml` ein, damit es bleibt, wenn Sie die Datei erneut anwenden.
 :::
 
-Die Seite der Sonde zeigt unter **Sondenstatus** die Version, mit der sie läuft. Eine Sonde, die älter als 17.0.1 ist, kann die Codes eines [Einmalcode-Geheimnisses](/docs/monitor/monitor-secrets#mit-einem-einmalcode-anmelden) nicht erzeugen: Ihre Seite sagt das, und ebenso das Formular eines Monitors, den sie prüft.
+Die Seite der Sonde zeigt unter **Sondenstatus** die Version, mit der sie läuft. Eine Sonde, die älter als 17.1.0 ist, kann die Codes eines [Einmalcode-Geheimnisses](/docs/monitor/monitor-secrets#mit-einem-einmalcode-anmelden) nicht erzeugen: Ihre Seite sagt das, und ebenso das Formular eines Monitors, den sie prüft. Dasselbe gilt für eine Sonde, die zu alt ist, um den Request-Body eines API-Monitors zu senden, der ein JSON-Array, ein einzelner Wert oder Text ist.
+
+Fällt eine Sonde eine Hauptversion oder mehr hinter OneUptime zurück, werden ihre Eigentümer einmal benachrichtigt, mit dem, was ihr fehlt, und einem Link zu diesem Abschnitt; eine Sonde ohne Eigentümer benachrichtigt die Projektinhaber. Sie werden erst wieder benachrichtigt, wenn sie hinter eine spätere Hauptversion zurückfällt oder nach einer Aktualisierung erneut zurückfällt. Jede Person wählt mit **Sonde eine Hauptversion zurück** unter **Benutzereinstellungen → Benachrichtigungseinstellungen**, wie sie davon erfährt: anfangs per E-Mail. Eine Sonde, die nur um Nebenversionen zurückliegt, zeigt das auf ihrer Seite an, und niemand wird benachrichtigt.
+
+## Was eine Sonde bei ihrer Meldung sendet
+
+Jede Anfrage der Sonde enthält ihre ID und ihren Schlüssel, die Version, die sie ausführt, und was sie kann, und einmal pro Minute meldet sie sich mit den Adressen, unter denen sie sich selbst kennt. Sonst wird über Ihr Netzwerk nichts gesendet, außer den Ergebnissen ihrer Prüfungen.
+
+| Feld | Gesendet | Was OneUptime damit macht |
+| --- | --- | --- |
+| `probeVersion` | Mit jeder Anfrage | Speichert die Version, die die Sonde ausführt. Ihre Seite und **Benutzerdefinierte Sonden** zeigen an, wenn sie älter als OneUptime ist, und ihre Eigentümer werden einmal benachrichtigt, wenn sie eine Hauptversion zurückfällt. |
+| `probeCapabilities` | Mit jeder Anfrage | Gibt der Sonde nur die Arbeit, die sie erledigen kann. Eine Prüfung, die eine neuere Sonde braucht, schlägt fehl, mit einem Satz, der sagt, dass die Sonde zu aktualisieren ist. |
+| `probeInterfaceAddresses` | Einmal pro Minute | Speichert die Adressen der Netzwerkschnittstellen der Sonde und die, die ihr `PROBE_HOST_IP_ADDRESSES` mitteilt. [Sicherheitsereignisse](/docs/telemetry/security-events) erkennt daran die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde in Ihren Netzwerkflüssen, und die Sperrliste sperrt sie nie. Loopback-, Link-Local- und Multicast-Adressen werden weggelassen. |
+
+OneUptime speichert außerdem die Adresse, von der aus sich die Sonde meldet, so wie OneUptime sie sieht: die NAT Ihres Netzwerks, wenn es eine hat. Die Seite der Sonde zeigt beide unter **Sondenstatus** als **Meldeadresse** und **Schnittstellenadressen**, für alle, die die Sonde lesen dürfen, und keine von beiden für eine Sonde, die sich noch nicht gemeldet hat.
+
+Was eine Sonde über ihre eigenen Adressen sagt, ist ihr Wort, und wer ihren Schlüssel hat, könnte jede Adresse angeben. Deshalb stellt Sicherheitsereignisse Datenverkehr nie allein wegen seiner Adresse zurück: Jeder erreichte Host und Port muss auch einer sein, den die Sonde erreichen soll, und alles darüber hinaus wird gemeldet, unter Nennung der Sonde.
 
 ## Über einen Proxy verbinden
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Die Grenzen, in denen ein synthetischer Monitor läuft (wie viele gleichzeitig l
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | keiner | Die Proxy-Einstellungen: siehe [Über einen Proxy verbinden](#über-einen-proxy-verbinden). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Frist für jede Anfrage, die die Sonde an OneUptime sendet. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Für Anfragen an OneUptime, die länger dauern, eine Warnung protokollieren. |
+| `PROBE_HOST_IP_ADDRESSES` | keiner | Die IP-Adressen des Hosts, durch Kommas getrennt, für eine Sonde ohne Host-Netzwerk: bei jeder Meldung neben den eigenen Adressen der Sonde aufgelistet. Siehe [Die Sonde starten](#die-sonde-starten). |
 
 ### Netzwerk-Discovery
 
@@ -430,7 +457,7 @@ Eine Sonde fragt bis zu `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` Netzwerkgeräte 
 ### Andere Probleme
 
 :::details Die Sonde hält gleich nach dem Start an
-Ihr Log nennt, was fehlt: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` oder `PROBE_ID or REGISTER_PROBE_KEY should be set`. Sind alle drei gesetzt, passen ID und Schlüssel aber zu keiner Sonde, versucht es die Sonde 10-mal im Abstand von 30 Sekunden und hält dann mit `Unable to register probe after 10 attempts` an. Kopieren Sie ID und Schlüssel erneut mit **ID und Schlüssel anzeigen**.
+Ihr Log nennt, was fehlt: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` oder `PROBE_ID is not set`. Sind alle drei gesetzt, passen ID und Schlüssel aber zu keiner Sonde, versucht es die Sonde 10-mal im Abstand von 30 Sekunden und hält dann mit `Unable to register probe after 10 attempts` an. Kopieren Sie ID und Schlüssel erneut mit **ID und Schlüssel anzeigen**.
 :::
 
 :::details Die Sonde lief, bis jemand ihren Schlüssel zurückgesetzt hat

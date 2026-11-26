@@ -375,7 +375,7 @@ OneUptime leverer OTLP/gRPC på samme vært som webappen, på port 443 over TLS.
 
 På en selvhostet installation når gRPC kun OneUptime over HTTPS: En ukrypteret HTTP-forbindelse (h2c) afvises. Hvis din instans leveres over almindelig HTTP, så brug OTLP/HTTP.
 
-To af en nøgles indstillinger gælder kun for OTLP/HTTP: dens **Requests Per Minute Limit** og dens **Fastgjort tjenestenavn**. Data sendt over gRPC beholder den `service.name`, de blev sendt med, og tælles ikke med i grænsen.
+To af en nøgles indstillinger gælder kun for OTLP/HTTP: dens **Grænse for anmodninger pr. minut** og dens **Fastgjort tjenestenavn**. Data sendt over gRPC beholder den `service.name`, de blev sendt med, og tælles ikke med i grænsen.
 
 ### Svar
 
@@ -389,7 +389,7 @@ OneUptime svarer på en eksport, så snart dataene står i kø, og dataene vises
 | `413` | — | Forespørgslen er større end størrelsesgrænsen. | Send mindre batches. |
 | `415` | — | `Content-Encoding` understøttes ikke. | Brug `gzip`, `deflate` eller `zstd`, eller ingen komprimering. |
 | `422` | `PERMISSION_DENIED` | Nøglen er deaktiveret, eller det er en browsernøgle, der bruges uden for dens tilladte origins. | Aktivér nøglen igen, eller send med en servernøgle. |
-| `429` | — | Nøglens **Requests Per Minute Limit** er nået. | Først intet: Exportere prøver igen efter `Retry-After`-tiden. Hæv grænsen, hvis det bliver ved med at ske. |
+| `429` | — | Nøglens **Grænse for anmodninger pr. minut** er nået. | Først intet: Exportere prøver igen efter `Retry-After`-tiden. Hæv grænsen, hvis det bliver ved med at ske. |
 | `503` | `UNAVAILABLE` | OneUptime starter op, eller indtagelseskøen er utilgængelig. | Intet: OTLP-exportere prøver selv igen ved `503`. |
 
 `401`, `402`, `413`, `415` og `422` er permanente fejl for OTLP-exportere: Exporteren kasserer batchen og logger fejlen i stedet for at prøve igen.
@@ -409,7 +409,7 @@ Hver nøgles side under **Projektindstillinger → Telemetri og APM → Indtagel
 | **Fastgjort tjenestenavn** | Når den er sat, erstatter den `service.name` på alt, der sendes med denne nøgle over OTLP/HTTP. |
 | **Aktiveret** | Slå den fra for straks at holde op med at acceptere data, der sendes med nøglen, uden at slette den. |
 | **Udløber den** | Efter denne dato afvises nøglen. Tom betyder, at den aldrig udløber. |
-| **Requests Per Minute Limit** | Det højeste antal OTLP/HTTP-forespørgsler pr. minut, nøglen accepteres for, på tværs af alle klienter, der bruger den. Tom betyder ingen grænse på en servernøgle og 6.000 på en browsernøgle. |
+| **Grænse for anmodninger pr. minut** | Det højeste antal OTLP/HTTP-forespørgsler pr. minut, nøglen accepteres for, på tværs af alle klienter, der bruger den. Tom betyder ingen grænse på en servernøgle og 6.000 på en browsernøgle. |
 | **Senest brugt den** | Hvornår der sidst blev accepteret data med nøglen. Brug den til at finde nøgler, der trygt kan roteres eller slettes. |
 
 **Nulstil hemmelig nøgle** på nøglens side erstatter hemmeligheden. Alle applikationer og collectors, der sender med den gamle, afvises, indtil du opdaterer dem. Om browsernøgler, sikker udskiftning af en nøgle og hvad hver afvisning betyder, se [Indtagelsesnøgler](/docs/telemetry/ingestion-keys).

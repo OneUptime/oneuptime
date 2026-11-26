@@ -1,6 +1,9 @@
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
+import EntityDropdown, {
+  EntityDropdownValue,
+} from "../EntityDropdown/EntityDropdown";
 import FieldType from "../Types/FieldType";
-import Filter from "./Types/Filter";
+import Filter, { EntityFilterSearch } from "./Types/Filter";
 import FilterData from "./Types/FilterData";
 import FilterOperator from "./Types/FilterOperator";
 import OperatorSelector from "./OperatorSelector";
@@ -11,6 +14,7 @@ import { getFilterPlaceholder } from "./FilterPlaceholder";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import React, { ReactElement, useEffect, useState } from "react";
@@ -102,11 +106,15 @@ const detectSingleState: DetectStateFunction = (
   }
   /*
    * The mirror image of `buildSingleValue`'s "is not" case, which encodes the
-   * operator as a single-item IncludesNone. Without this the dropdown lost the
-   * operator (and its value) on every remount — which is every Back
+   * operator as a single-item IncludesNoneOrNull (a single-item IncludesNone
+   * in a link or a saved view made before #10581). Without this the dropdown
+   * lost the operator (and its value) on every remount — which is every Back
    * navigation and every shared link.
    */
-  if (rawValue instanceof IncludesNone) {
+  if (
+    rawValue instanceof IncludesNoneOrNull ||
+    rawValue instanceof IncludesNone
+  ) {
     const values: Array<string> = (rawValue.values || []).map((v: unknown) => {
       return v!.toString();
     });
@@ -150,8 +158,16 @@ const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
     case FilterOperator.Is:
       return state.values[0] || undefined;
     case FilterOperator.IsNot:
-      // Use IncludesNone with single-item array to represent "is not".
-      return state.values[0] ? new IncludesNone([state.values[0]]) : undefined;
+      /*
+       * A single-item IncludesNoneOrNull represents "is not": every record
+       * not pointing at the value, the ones pointing at none included
+       * (#10581) - "Template is not X" is the monitors linked to another
+       * template and the ones linked to none. A plain IncludesNone (`NOT
+       * IN`) dropped those. "Is not empty" leaves them out.
+       */
+      return state.values[0]
+        ? new IncludesNoneOrNull([state.values[0]])
+        : undefined;
     case FilterOperator.IsEmpty:
       return new IsNull();
     case FilterOperator.IsNotEmpty:
@@ -159,6 +175,27 @@ const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
     default:
       return undefined;
   }
+};
+
+type ToFilterValuesFunction = (
+  value: DropdownValue | Array<DropdownValue> | null,
+) => Array<string>;
+
+// What a picker handed back, as the filter's values.
+const toFilterValues: ToFilterValuesFunction = (
+  value: DropdownValue | Array<DropdownValue> | null,
+): Array<string> => {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  return (Array.isArray(value) ? value : [value])
+    .map((entry: DropdownValue): string => {
+      return entry.toString();
+    })
+    .filter((entry: string): boolean => {
+      return entry !== "";
+    });
 };
 
 interface ControlsProps<T extends GenericObject> extends ComponentProps<T> {
@@ -179,7 +216,17 @@ const EntityFilterControls: EntityFilterControlsFunction = <
   const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
 
-  const isArray: boolean = filter.type === FieldType.EntityArray;
+  /*
+   * An entity filter picks how its values match (any of, none of, empty);
+   * a dropdown filter whose choices are searched on the server holds its
+   * values as a dropdown does - one, or any of several - with no such
+   * choice (#10764).
+   */
+  const hasOperators: boolean =
+    filter.type === FieldType.Entity || filter.type === FieldType.EntityArray;
+  const isArray: boolean =
+    filter.type === FieldType.EntityArray ||
+    filter.type === FieldType.MultiSelectDropdown;
   const detectedState: EntityState = isArray
     ? detectArrayState(props.filterData[filter.key])
     : detectSingleState(props.filterData[filter.key]);
@@ -222,6 +269,23 @@ const EntityFilterControls: EntityFilterControlsFunction = <
     },
   );
 
+  const search: EntityFilterSearch | undefined = filter.entitySearch;
+
+  /*
+   * A filter that searches the server holds every value it was given, each
+   * named where the list read its name (the options) - one it has not read
+   * is read by its id by the picker itself, never dropped or shown blank.
+   */
+  const heldValues: Array<DropdownOption | string> = state.values.map(
+    (value: string): DropdownOption | string => {
+      return (
+        props.options.find((option: DropdownOption): boolean => {
+          return option.value.toString() === value;
+        }) || value
+      );
+    },
+  );
+
   type ApplyFunction = (nextState: EntityState) => void;
 
   const apply: ApplyFunction = (nextState: EntityState): void => {
@@ -243,28 +307,50 @@ const EntityFilterControls: EntityFilterControlsFunction = <
 
   return (
     <div className="flex gap-2 items-start">
-      <OperatorSelector
-        value={operator}
-        options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
-        onChange={(nextOperator: FilterOperator) => {
-          apply({ ...state, operator: nextOperator });
-        }}
-      />
-      {!valuelessOperator && (
+      {hasOperators && (
+        <OperatorSelector
+          value={operator}
+          options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
+          onChange={(nextOperator: FilterOperator) => {
+            apply({ ...state, operator: nextOperator });
+          }}
+        />
+      )}
+      {!valuelessOperator && search && (
+        <div className="flex-1 min-w-0" data-testid="entity-filter-search">
+          <EntityDropdown
+            modelType={search.modelType}
+            modelAPI={search.modelAPI}
+            labelField={search.labelField}
+            valueField={search.valueField}
+            query={search.query}
+            notFoundLabel={search.notFoundLabel}
+            /*
+             * A filter lists archived values too: the records that have
+             * one stay findable by it (ArchivedValuePicker).
+             */
+            listsArchivedValues={true}
+            marksArchivedRecords={search.marksArchivedRecords}
+            options={props.options}
+            value={heldValues as EntityDropdownValue}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              apply({ ...state, values: toFilterValues(value) });
+            }}
+            isMultiSelect={isArray}
+            ariaLabel={getFilterPlaceholder(translator, filter.title)}
+            placeholder={getFilterPlaceholder(translator, filter.title)}
+            // "Filter by {{field}}", in the reader's words here.
+            isPlaceholderTranslated={true}
+            className="relative w-full"
+          />
+        </div>
+      )}
+      {!valuelessOperator && !search && (
         <div className="flex-1 min-w-0">
           <Dropdown
             options={props.options}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (!value || (Array.isArray(value) && value.length === 0)) {
-                apply({ ...state, values: [] });
-                return;
-              }
-              const nextValues: Array<string> = Array.isArray(value)
-                ? (value as Array<DropdownValue>).map((v: DropdownValue) => {
-                    return v.toString();
-                  })
-                : [value.toString()];
-              apply({ ...state, values: nextValues });
+              apply({ ...state, values: toFilterValues(value) });
             }}
             value={dropdownValues}
             isMultiSelect={isArray}
@@ -291,21 +377,36 @@ const EntityFilterControls: EntityFilterControlsFunction = <
 const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  /*
+   * A dropdown filter whose choices are records searched on the server (a
+   * telemetry list's Service filter, #10764) is drawn here too, and never
+   * by DropdownFilter, which offers only the options it is handed.
+   */
+  const isSearchedDropdown: boolean =
+    (props.filter.type === FieldType.Dropdown ||
+      props.filter.type === FieldType.MultiSelectDropdown) &&
+    Boolean(props.filter.entitySearch);
+
   if (
     props.filter.type !== FieldType.Entity &&
-    props.filter.type !== FieldType.EntityArray
+    props.filter.type !== FieldType.EntityArray &&
+    !isSearchedDropdown
   ) {
     return <></>;
   }
 
-  if (!props.filter.filterDropdownOptions) {
+  /*
+   * A filter that searches the server needs no options to be drawn: it
+   * searches as it is typed in, and reads what it holds by its ids.
+   */
+  if (!props.filter.filterDropdownOptions && !props.filter.entitySearch) {
     return <></>;
   }
 
   return (
     <EntityFilterControls<T>
       {...props}
-      options={props.filter.filterDropdownOptions}
+      options={props.filter.filterDropdownOptions || []}
     />
   );
 };

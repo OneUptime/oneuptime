@@ -7,6 +7,7 @@ import {
 import ExternalStatusPageMonitorResponse from "../../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class ExternalStatusPageMonitorCriteria {
@@ -21,6 +22,11 @@ export default class ExternalStatusPageMonitorCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -38,6 +44,7 @@ export default class ExternalStatusPageMonitorCriteria {
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*

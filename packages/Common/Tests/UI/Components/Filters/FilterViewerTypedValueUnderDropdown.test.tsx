@@ -17,6 +17,7 @@ import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import NotContains from "../../../../Types/BaseDatabase/NotContains";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../../Types/BaseDatabase/NotEqualOrNull";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
 import GenericObject from "../../../../Types/GenericObject";
@@ -253,6 +254,13 @@ describe("a value typed while the filter was text, under a dropdown", () => {
     [
       "does not equal",
       new NotEqual("Monitor"),
+      "{{field}} does not equal {{value}}",
+      "Monitor",
+    ],
+    // What "Not equal to" writes since #10581: the empty rows kept.
+    [
+      "does not equal, the empty kept",
+      new NotEqualOrNull("Monitor"),
       "{{field}} does not equal {{value}}",
       "Monitor",
     ],

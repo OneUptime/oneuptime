@@ -237,7 +237,7 @@ Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-
 - **Alle kriterier evalueres**, som på en gruppert målingsmonitor, så ulike grupper kan oppfylle ulike kriterier samtidig. En gruppe som oppfyller to kriterier, får fortsatt bare ett varsel, fra det første; sorter derfor kriteriene fra mest til minst alvorlige.
 - **En gruppe finnes bare hvis den har logget noe i tidsvinduet.** Kriterier som **Lik 0** og **Mindre enn** utløses derfor bare for grupper som har logget minst én gang; for å bli varslet når logger slutter å komme helt, bruker du en monitor uten Group By.
 - **Avviksdeteksjon** (**Unormalt høy**, **Unormalt lav**, **Avvikende**) evalueres ikke per gruppe (grunnlinjen dekker hele monitoren), så de filtrene samsvarer aldri på en gruppert monitor.
-- Monitorens status følger det første kriteriet en gruppe oppfyller. Når ingen gruppe oppfyller noe kriterium, går monitoren tilbake til standardstatusen sin.
+- Monitorens status følger det første kriteriet en gruppe oppfyller. Et kriterium som bare bringer monitoren tilbake til standardstatusen og ikke åpner noe varsel eller noen hendelse, venter på gruppene som oppfylte et kriterium som setter en annen status, til hver av dem oppfyller det eller ikke logger noe i tidsvinduet. Når ingen gruppe oppfyller noe kriterium og det ikke ventes på noen, går monitoren tilbake til standardstatusen sin.
 
 ## Feilsøking
 

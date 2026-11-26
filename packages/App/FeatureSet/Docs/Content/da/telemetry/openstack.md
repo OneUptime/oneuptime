@@ -1069,7 +1069,7 @@ En cloud skriver en hel masse, ingen læser. Første gang et projekts OpenStack-
 | **OpenStack: health checks** | En load balancer, der spørger hvert API om `/` eller `/healthcheck`: en linje hvert par sekunder, pr. API, pr. controller | Ved ét tjek hvert 2. sekund 43.200 linjer om dagen for hvert API på hver controller. Ved de 220 til 490 bytes, de linjer var på vores testclouds, er det 10 til 21 MB om dagen. Dette er regnestykke ud fra en linjes størrelse: vores testclouds har ingen load balancer | Intet, et menneske læser. Den samme linje fra et menneske ser ens ud |
 | **OpenStack: routine notifications** | `metrics.update` og hver `*.exists` og `*.usage`. Se [Livscyklushændelser](#livscyklushændelser) | Ikke målt: vores optagelser er for korte til at rumme mange. Det vokser med antallet af instanser | Intet, der siger, at noget ændrede sig. Slå dette fra for at beholde hver notifikation |
 
-Disse filtre matcher kun det, OneUptime læste fra en clouds logs, så intet andet i et projekt berøres.
+Disse filtre matcher kun det, OneUptime læste fra en clouds logs, så intet andet i et projekt berøres. Sådan som OneUptime lavede dem, beholder de hver linje, [sikkerhedshændelser](/docs/telemetry/security-events) læser: et login, et angreb i en forespørgsel, en auditpost. Ændrer du et af dem, kasserer det alt, hvad det matcher, ligesom dine egne filtre.
 
 ### Hemmeligheder i logs
 

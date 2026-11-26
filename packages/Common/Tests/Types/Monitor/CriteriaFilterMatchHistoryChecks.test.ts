@@ -346,6 +346,10 @@ describe("CriteriaFilterUtil.isJudgedCheckByCheck", () => {
       ).toEqual([
         EvaluateOverTimeType.AllValues,
         EvaluateOverTimeType.AnyValue,
+        EvaluateOverTimeType.Count,
+        EvaluateOverTimeType.Percentage,
+        EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
       expect(
         CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
@@ -508,7 +512,7 @@ describe("the evaluation types a check judged check by check is offered", () => 
     CheckOn.ResponseHeaderValue,
     CheckOn.JavaScriptExpression,
   ])(
-    "%s is offered All Values and Any Value only - an average of 'contained the text' means nothing",
+    "%s is offered All Values, Any Value and the counts of its checks - an average of 'contained the text' means nothing",
     (checkOn: CheckOn) => {
       expect(
         CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
@@ -517,6 +521,10 @@ describe("the evaluation types a check judged check by check is offered", () => 
       ).toEqual([
         EvaluateOverTimeType.AllValues,
         EvaluateOverTimeType.AnyValue,
+        EvaluateOverTimeType.Count,
+        EvaluateOverTimeType.Percentage,
+        EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
     },
   );
@@ -534,8 +542,13 @@ describe("the evaluation types a check judged check by check is offered", () => 
       EvaluateOverTimeType.Sum,
       EvaluateOverTimeType.MaximumValue,
       EvaluateOverTimeType.MunimumValue,
+      EvaluateOverTimeType.Percentile,
       EvaluateOverTimeType.AllValues,
       EvaluateOverTimeType.AnyValue,
+      EvaluateOverTimeType.Count,
+      EvaluateOverTimeType.Percentage,
+      EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
   });
 

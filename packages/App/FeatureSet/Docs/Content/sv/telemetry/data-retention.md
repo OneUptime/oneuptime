@@ -38,6 +38,7 @@ I sin helhet läser OneUptime de här inställningarna i den här ordningen, och
 - **Inställning 1 till 5 är åsidosättningar av lagringen.** De ingår i [Enterprise Edition](/docs/self-hosted/enterprise), och i Scale-planen på OneUptime Cloud. Utan dem sparas varje post enligt projektets standard.
 - **En ändring gäller för ny telemetri.** En post behåller datumet den stämplades med: en kortare lagring tar inte bort den tidigare, och en längre sparar den inte längre. Nya poster följer en ändring inom ungefär fem minuter.
 - **Undantag följer det de hittades i.** Ett undantag sparas lika länge som det span eller den loggpost det kom från. Session Replays har en egen lagring: se [Andra data med egen lagring](#andra-data-med-egen-lagring).
+- **Säkerhetshändelser lagras på samma sätt.** Detektionsregler, Kör på tidigare händelser och hunts läser bara så långt tillbaka som säkerhetshändelser lagras, och säger det där de skulle behöva mer: se [Säkerhetshändelser](/docs/telemetry/security-events).
 
 ## Innan du börjar
 

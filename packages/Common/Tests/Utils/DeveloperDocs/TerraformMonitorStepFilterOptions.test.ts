@@ -80,6 +80,13 @@ const TYPED_FILTER_KEYS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "evaluate_over_time_minutes",
     "evaluate_over_time_type",
     "evaluate_over_time_no_data_policy",
+    // A percentile, and how a count of the window's checks is compared (#10355).
+    "evaluate_over_time_percentile",
+    "evaluate_over_time_count_filter_type",
+    "evaluate_over_time_count_value",
+    // How far from the previous check a value has to move (#10821).
+    "evaluate_over_time_change_type",
+    "evaluate_over_time_change_value",
   ],
   serverMonitorOptions: ["disk_path"],
 };
@@ -94,6 +101,11 @@ const TYPED_FILTER_SAMPLES: Readonly<Record<string, unknown>> = {
     timeValueInMinutes: 5,
     evaluateOverTimeType: "Average",
     onNoDataPolicy: "Ignore",
+    percentile: 95,
+    countFilterType: "Greater Than",
+    countValue: 30,
+    changeType: "Percentage",
+    changeValue: 12.5,
   },
   serverMonitorOptions: { diskPath: "/" },
 };
@@ -280,6 +292,85 @@ describe("the dashboard's export", () => {
 
     expect(Object.keys(exportedFilter(filter)).sort()).toEqual(
       captures(goFunction("monitorStepsFilterAttrTypes"), GO_ATTR_TYPE),
+    );
+  });
+
+  /*
+   * A criteria's recovery condition and active hours were set in the
+   * dashboard with no attribute in the provider: an import dropped them and
+   * an apply removed them (#10822). Every attribute of the provider's
+   * criteria is written by the export, so a setting one of them gains fails
+   * here until the other has it.
+   */
+  test("writes every attribute of the provider's criteria from a criteria carrying every setting", () => {
+    const converted: HclTestValue = toTestValue(
+      monitorStepsToHcl(
+        {
+          monitorStepsInstanceArray: [
+            {
+              monitorDestination: "https://example.com",
+              monitorCriteria: {
+                monitorCriteriaInstanceArray: [
+                  {
+                    name: "Offline",
+                    description: "The site is down.",
+                    filterCondition: "Any",
+                    monitorStatusId: "status-offline",
+                    changeMonitorStatus: true,
+                    createIncidents: true,
+                    createAlerts: true,
+                    isEnabled: true,
+                    openForEveryEmail: false,
+                    incidentGrouping: { groupBy: ["probe"] },
+                    filters: [{ checkOn: "Is Online", filterType: "False" }],
+                    recoveryFilters: [
+                      { checkOn: "Is Online", filterType: "True" },
+                    ],
+                    recoveryFilterCondition: "All",
+                    activeHours: {
+                      _type: "RestrictionTimes",
+                      value: {
+                        restictionType: "Weekly",
+                        dayRestrictionTimes: null,
+                        weeklyRestrictionTimes: [
+                          {
+                            startDay: "Monday",
+                            endDay: "Monday",
+                            startTime: {
+                              _type: "DateTime",
+                              value: "2026-01-12T08:00:00.000Z",
+                            },
+                            endTime: {
+                              _type: "DateTime",
+                              value: "2026-01-12T16:00:00.000Z",
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    activeHoursTimezone: "UTC",
+                    incidents: [{ title: "Down", incidentSeverityId: "sev" }],
+                    alerts: [{ title: "Down", alertSeverityId: "sev" }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          variables: new TerraformVariableCollector(),
+          variablePrefix: "site",
+          monitorLabel: 'monitor "Site"',
+        },
+      ),
+    );
+
+    const criteria: { [key: string]: HclTestValue } = (
+      converted as Array<{ criteria: Array<{ [key: string]: HclTestValue }> }>
+    )[0]!.criteria[0]!;
+
+    expect(Object.keys(criteria).sort()).toEqual(
+      captures(goFunction("monitorStepsCriteriaAttrTypes"), GO_ATTR_TYPE),
     );
   });
 

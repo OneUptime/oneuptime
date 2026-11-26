@@ -200,7 +200,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Alla värden** (varje värde måste matcha, i hela fönstret) eller **Minst ett värde** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Onormalt hög**, **Onormalt låg** eller **Avvikande**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med** eller **Inte lika med** – eller ett avvikelsevillkor: **Onormalt hög**, **Onormalt låg** eller **Avvikande**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -229,6 +229,7 @@ En värdmonitor täcker alla diskar som värden rapporterar. Mallarna High Files
 | Var | Vad det visar för varje disk |
 | --- | --- |
 | Monitorns sida **Mätvärden** | En linje per disk, namngiven efter dess `mountpoint` och `device`. |
+| Monitorns sida **Översikt** | **Serier** listar varje disk som den senaste kontrollen läste: dess senaste värde, de kriterier den uppfyller och dess öppna incident eller larm. |
 | **Övervakningsloggar** | Kolumnen **Observerad** räknar de serier som varje kontroll läste: en per disk. |
 | **Incidenter** och **Larm** | En per disk, som nämner diskens montering och enhet. |
 | Värdens sida **Filsystem** | Alla diskar som collectorn rapporterar, oavsett vad dina monitorer övervakar. |
@@ -238,7 +239,7 @@ Varje kriterium kontrolleras för varje disk:
 - Medan en disks incident är öppen öppnar kriteriet som öppnade den ingen annan för den disken. En annan disk som uppfyller kriteriet öppnar en egen.
 - En disk som uppfyller två kriterier, till exempel ett över 98 % och ett över 90 %, får en incident, från det första av dem i listan. Lägg det strängare först.
 - En disks incident löses när just den disken slutar uppfylla kriteriet som öppnade den, oavsett vad de andra diskarna gör.
-- Monitorn har en enda status, som sätts av det första kriteriet i listan som någon disk uppfyller. När ingen disk uppfyller ett kriterium som utlöses räcker det med en disk vid eller under återställningströskeln för återställningskriteriet, så återställningsmarginalen på 10 % gäller inte på en värd med en disk som aldrig är nära full.
+- Monitorn har en enda status. Ett kriterium som ändrar den till en annan status, till exempel **Offline**, sätter den så snart en disk uppfyller det. Kriteriet som tar tillbaka monitorn till dess **Standardstatus för övervakning** väntar på diskarna som uppfyllde ett sådant kriterium, och matchar när var och en av dem uppfyller det, oavsett vad de andra diskarna gör. En disk som sjunker från 96 % till 89 % håller därför monitorn **Offline** tills den är på eller under 81 %, återställningsmarginalen på 10 %, även om dess incident löses så snart den inte längre är över 90 %. **Serier** visar den disken som **Håller statusen**. En disk som inte längre rapporteras håller inte längre statusen.
 
 För att bara övervaka vissa diskar öppnar du **Avancerad** och lägger till ett filter på `mountpoint` med **Filtrera på attribut** i frågan under **Välj mätvärden**: välj **är en av** och de diskar som ska övervakas, eller **är ingen av** och de diskar som ska utelämnas. Behåll **Gruppera efter**, och skriv varje disk så som sidan **Filsystem** visar den, till exempel `C:` eller `/var`. För att inte samla in en disk alls, så att den också försvinner från värdens sidor, anger du `include_mount_points` eller `exclude_mount_points` på collectorns skrapa `filesystem` ([Värdmätvärden](/docs/telemetry/host-otel-collector#värdmätvärden)).
 

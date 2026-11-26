@@ -2,8 +2,22 @@ import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecuri
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, {
+  AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+  AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+  AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogResponse,
 } from "../../../Services/AIService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -48,20 +62,75 @@ import {
  * The AI Logs label each feature that calls a model here files its calls
  * under. Fix with AI's calls are the coding agent's (AI Code Fix), and Ask
  * AI's the chat's: they reach a model through their own runs.
+ *
+ * Each is read when asked, never when this file loads: AIService, which
+ * holds the labels, reaches Data Security's actions through the services
+ * it imports, and an action that asks OneUptime AI (#10374's owners)
+ * reaches this file - so while AIService loads, its labels are not defined
+ * yet, and a table built then would file every call under no label.
  */
 export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   Partial<Record<DataSecurityAiFeature, string>>
 > = {
-  [DataSecurityAiFeature.ExplainIssue]:
-    AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
-  [DataSecurityAiFeature.SuggestFieldTypes]:
-    AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  get [DataSecurityAiFeature.ExplainIssue](): string {
+    return AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE;
+  },
+  get [DataSecurityAiFeature.AnalyzeIssue](): string {
+    return AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE;
+  },
+  get [DataSecurityAiFeature.SuggestFieldTypes](): string {
+    return AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE;
+  },
+  get [DataSecurityAiFeature.JudgeFindings](): string {
+    return AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE;
+  },
+  get [DataSecurityAiFeature.ProposeStoreOwners](): string {
+    return AI_DATA_SECURITY_STORE_OWNERS_FEATURE;
+  },
+  get [DataSecurityAiFeature.NameIssueGroup](): string {
+    return AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE;
+  },
+  get [DataSecurityAiFeature.WriteScrubRules](): string {
+    return AI_DATA_SECURITY_SCRUB_RULES_FEATURE;
+  },
+  get [DataSecurityAiFeature.ReviewPullRequests](): string {
+    return AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftRecord](): string {
+    return AI_DATA_SECURITY_RECORD_DRAFT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftRecordOnRequest](): string {
+    return AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftImpactAssessment](): string {
+    return AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftAuditEvidence](): string {
+    return AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftDataTypes](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DescribeDataType](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftExposureAssessment](): string {
+    return AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftExposureAssessmentOnRequest](): string {
+    return AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE;
+  },
 };
 
 export interface DataSecurityAiCallRequest {
   projectId: ObjectID;
   // The person who asked, when a person did.
   userId?: ObjectID | undefined;
+  /*
+   * The AI run the call is part of, when it is one's: a pull request's
+   * production review (#10376). Its AI Logs row then names the run.
+   */
+  aiRunId?: ObjectID | undefined;
   prompt: DataSecurityAiPrompt;
   maxTokens: number;
   temperature?: number | undefined;
@@ -108,6 +177,7 @@ export default class DataSecurityAiCall {
     return await AIService.executeWithLogging({
       projectId: request.projectId,
       userId: request.userId,
+      aiRunId: request.aiRunId,
       feature: label,
       llmProviderId: choice.llmProviderId,
       storeContentPreviews: false,

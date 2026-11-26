@@ -55,6 +55,12 @@ export enum RuleCriteriaSubject {
    * and about the environments apps run in on App Platforms' pages.
    */
   CloudEnvironments = "CloudEnvironments",
+  /*
+   * No model's own either: the AI rules of Data Security (an AI rule whose
+   * trigger is a Data Security issue) are about its issues, on Data
+   * Security → AI's table, which passes this subject (#10364).
+   */
+  DataSecurityIssues = "DataSecurityIssues",
 }
 
 /*
@@ -63,15 +69,20 @@ export enum RuleCriteriaSubject {
  * resources - their model's records - on Cloud's rules pages, and about the
  * environments the apps on managed platforms run in on App Platforms', which
  * pass this subject to their tables (ruleCriteriaSubject), so their choice
- * reads "All cloud environments".
+ * reads "All cloud environments". And Data Security → AI's AI rules are
+ * about Data Security issues, which no rule model is: "All issues".
  */
 export const RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE: ReadonlyArray<RuleCriteriaSubject> =
-  [RuleCriteriaSubject.CloudEnvironments];
+  [
+    RuleCriteriaSubject.CloudEnvironments,
+    RuleCriteriaSubject.DataSecurityIssues,
+  ];
 
 /*
  * One table holds the rules for several kinds of record, so its records
  * are named by the page that lists them, not by the model: an AI rule
- * (AutoRemediationRule) is about incidents or alerts, a runbook rule about
+ * (AutoRemediationRule) is about incidents, alerts, a telemetry product's
+ * services or Data Security issues, a runbook rule about
  * incidents, alerts or scheduled maintenance events - whichever the
  * table's triggerEntityType says (the page passes ruleCriteriaSubject to
  * its ModelTable).

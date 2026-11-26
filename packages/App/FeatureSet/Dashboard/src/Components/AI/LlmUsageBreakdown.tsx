@@ -32,6 +32,7 @@ import {
   LlmUsageResponse,
   LlmUsageService,
   LlmUsageSource,
+  isLlmUsageHiddenGroup,
 } from "Common/Types/Telemetry/LlmUsageApi";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import { fetchLlmUsage } from "./LlmObservabilityReads";
@@ -46,6 +47,9 @@ import {
   formatLlmCost,
   formatLlmCount,
 } from "../LlmConversations/LlmConversationFormat";
+import LlmHiddenByScrubRule, {
+  LLM_HIDDEN_BY_A_SCRUB_RULE,
+} from "../LlmConversations/LlmHiddenByScrubRule";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   composedValue,
@@ -97,6 +101,24 @@ const UNATTRIBUTED_NOTES: Partial<Record<LlmUsageDimension, string>> = {
   ),
   [LlmUsageDimension.Provider]: translationKey(
     "{{unattributed}} is usage that doesn't say which provider, such as a coding assistant's usage metrics.",
+  ),
+};
+
+/*
+ * The usage whose person or team a scrub rule hid (#10435): one row, in
+ * place of a "[REDACTED]" person who was everybody, and what it is, in the
+ * words of the dimension on screen. Said only when the table has that row.
+ * Named as Conversations and Calls name a person or a team a rule hid
+ * (LlmHiddenByScrubRule, #10631).
+ */
+const HIDDEN_LABEL: string = LLM_HIDDEN_BY_A_SCRUB_RULE;
+
+const HIDDEN_NOTES: Partial<Record<LlmUsageDimension, string>> = {
+  [LlmUsageDimension.Employee]: translationKey(
+    "{{hidden}} is usage whose person a scrub rule hid, so it isn't counted as anyone's.",
+  ),
+  [LlmUsageDimension.Team]: translationKey(
+    "{{hidden}} is usage whose team a scrub rule hid, so it isn't counted as any team's.",
   ),
 };
 
@@ -402,6 +424,14 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       );
     }
 
+    /*
+     * Spend a scrub rule hid the person or team of: one row, never a
+     * person called "[REDACTED]" (#10435).
+     */
+    if (HIDDEN_NOTES[dimension.key] && isLlmUsageHiddenGroup(row.key)) {
+      return <LlmHiddenByScrubRule dataTestId="llm-usage-hidden" />;
+    }
+
     if (dimension.key === LlmUsageDimension.Service) {
       // Telemetry that named no service: the project's "Unknown Service".
       if (
@@ -581,6 +611,16 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       return !row.key;
     })
       ? UNATTRIBUTED_NOTES[dimension.key]
+      : undefined;
+
+  // The footnote on the hidden row, when the table on screen has one (#10435).
+  const hiddenNote: string | undefined =
+    !usage.isLoading &&
+    !usage.hasError &&
+    usage.rows.some((row: LlmUsageGroup): boolean => {
+      return isLlmUsageHiddenGroup(row.key);
+    })
+      ? HIDDEN_NOTES[dimension.key]
       : undefined;
 
   /*
@@ -768,6 +808,29 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                 </a>
               </>
             ) : null}
+          </div>
+        ) : null}
+
+        {/*
+         * What the hidden row is, when the table has one: spend nobody's
+         * name can be put to, because a scrub rule hid it - said, so the
+         * row is never read as one person's or as a bug.
+         */}
+        {hiddenNote ? (
+          <div
+            className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600"
+            data-testid="llm-usage-hidden-note"
+          >
+            <TranslatedSentence
+              template={hiddenNote}
+              slots={{
+                hidden: (
+                  <span className="font-medium text-gray-700">
+                    {translator.translateText(HIDDEN_LABEL)}
+                  </span>
+                ),
+              }}
+            />
           </div>
         ) : null}
 

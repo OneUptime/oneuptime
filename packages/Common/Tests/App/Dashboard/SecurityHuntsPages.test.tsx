@@ -263,6 +263,7 @@ import SecurityHuntRun from "../../../Models/DatabaseModels/SecurityHuntRun";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
+import RecordActorType from "../../../Types/Database/RecordActor";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Email from "../../../Types/Email";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -273,8 +274,12 @@ import SecurityCaseEvidenceKind from "../../../Types/SecurityCase/SecurityCaseEv
 import { buildSecurityCaseEventSnapshot } from "../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import {
   SECURITY_HUNT_RUN_ERRORS,
+  SecurityHuntRunWindow,
   SecurityHuntSchedule,
+  getSecurityHuntRunArrival,
+  getSecurityHuntRunEventTimeRange,
 } from "../../../Types/SecurityEvent/SecurityHunt";
+import { getSecurityEventsArrivalParams } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsArrivalFilter";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { BulkActionOnClickProps } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
@@ -763,22 +768,38 @@ describe("a hunt's page", () => {
     expect(screen.getByTestId(HUNTS_TEST_IDS.edit)).toBeInTheDocument();
   });
 
-  test("Show them opens the explorer on the window the last find read", async () => {
+  test("Show them opens the explorer on exactly the events the last find counted", async () => {
     await renderHunt();
 
     const mounts: number = viewerMounts;
+    const lastFind: SecurityHuntRunWindow = {
+      startTime: stored!.lastFoundSinceAt!,
+      endTime: stored!.lastFoundAt!,
+    };
+    const shown: SecurityHuntRunWindow =
+      getSecurityHuntRunEventTimeRange(lastFind);
 
     fireEvent.click(screen.getByTestId(HUNTS_TEST_IDS.showThem));
 
     expect(queryStrings).toHaveLength(1);
+    /*
+     * What arrived in its window (#10488), over the day before it, in which
+     * those events can have happened.
+     */
     expect(queryStrings[0]).toMatchObject({
       search: null,
       filters: null,
       page: null,
       range: TimeRange.CUSTOM,
-      start: stored!.lastFoundSinceAt!.toISOString(),
-      end: stored!.lastFoundAt!.toISOString(),
+      start: shown.startTime.toISOString(),
+      end: shown.endTime.toISOString(),
+      ...getSecurityEventsArrivalParams(getSecurityHuntRunArrival(lastFind)),
     });
+    expect(queryStrings[0]!["arrivedAfter"]).toBe(
+      new Date(
+        Math.floor(stored!.lastFoundSinceAt!.getTime() / 1000) * 1000,
+      ).toISOString(),
+    );
     // The explorer starts afresh on it.
     await waitFor(() => {
       expect(viewerMounts).toBe(mounts + 1);
@@ -835,10 +856,19 @@ describe("a hunt's page", () => {
     });
 
     expect(screen.queryByTestId(HUNTS_TEST_IDS.runHistory)).toBeNull();
+    const pastWindow: SecurityHuntRunWindow = {
+      startTime: pastRun.windowStartAt,
+      endTime: pastRun.windowEndAt,
+    };
+    const pastShown: SecurityHuntRunWindow =
+      getSecurityHuntRunEventTimeRange(pastWindow);
+
+    // That run's arrivals, over the day before them, as its notification opens it.
     expect(queryStrings[queryStrings.length - 1]).toMatchObject({
       range: TimeRange.CUSTOM,
-      start: pastRun.windowStartAt.toISOString(),
-      end: pastRun.windowEndAt.toISOString(),
+      start: pastShown.startTime.toISOString(),
+      end: pastShown.endTime.toISOString(),
+      ...getSecurityEventsArrivalParams(getSecurityHuntRunArrival(pastWindow)),
     });
     await waitFor(() => {
       expect(viewerMounts).toBe(mounts + 1);
@@ -1416,6 +1446,65 @@ describe("a hunt's page", () => {
     expect(
       await screen.findByText("The server is unavailable."),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Who saved the hunt and who last changed it (#10461): its line, under
+   * what its header says, and above the notice of a changed search, which
+   * stays right over the search bar it was made in.
+   */
+  test("its header says who saved the hunt and who last changed it", async () => {
+    jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
+    stored = hunt({
+      createdAt: new Date(Date.now() - 48 * HOUR),
+      createdByActorType: RecordActorType.User,
+      createdByUser: person(MAYA, "Maya Chen"),
+      lastModifiedAt: new Date(Date.now() - 2 * HOUR),
+      lastModifiedByActorType: RecordActorType.User,
+      lastModifiedByUser: person(MAYA, "Maya Chen"),
+    });
+
+    await renderHunt();
+
+    const header: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.header);
+
+    expect(
+      await within(header).findByTestId("detail-created-by"),
+    ).toHaveTextContent("Created by Maya Chen");
+    expect(
+      within(header).getByTestId("detail-last-modified-by"),
+    ).toHaveTextContent("Last modified by Maya Chen");
+    expect(within(header).getAllByTestId("detail-record-line")).toHaveLength(1);
+    // Read by the hunt's own ID, for those columns alone.
+    expect(ModelAPI.getItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: SecurityHunt,
+        id: new ObjectID(HUNT_ID),
+        select: expect.objectContaining({
+          createdAt: true,
+          createdByActorType: true,
+          lastModifiedAt: true,
+          lastModifiedByActorType: true,
+        }),
+      }),
+    );
+  });
+
+  test("the hunt's line stays above the notice of a changed search", async () => {
+    await renderHunt();
+
+    fireEvent.click(screen.getByTestId("viewer-change-search"));
+
+    const notice: HTMLElement = await screen.findByTestId(
+      HUNTS_TEST_IDS.changed,
+    );
+    const line: HTMLElement = within(
+      screen.getByTestId(HUNTS_TEST_IDS.header),
+    ).getByTestId("detail-record-line");
+
+    expect(
+      line.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

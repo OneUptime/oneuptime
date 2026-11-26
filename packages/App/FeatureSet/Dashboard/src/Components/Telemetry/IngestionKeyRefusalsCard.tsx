@@ -40,6 +40,7 @@ import {
   getIngestRefusalCountText,
   getIngestRefusalReasonLabel,
   getIngestSurfaceLabel,
+  getKeyPageRefusalFixText,
   isIngestRefusalRecent,
 } from "./IngestRefusalWords";
 
@@ -52,8 +53,9 @@ import {
  * One line per reason and endpoint, the latest first, headed by the reason
  * in a few words (the page is the key's: its name would only repeat). A
  * line refused in the past day is drawn as a problem, an older one as
- * history. A reason the project's settings put right (its budgets, a
- * payment method) links there; the key's own settings are on this page.
+ * history. Every line says what puts it right, in words (#6458); a reason
+ * the project's settings put right (its budgets, a payment method) links
+ * there too, while the key's own settings are on this page already.
  */
 
 export interface ComponentProps {
@@ -233,6 +235,12 @@ const IngestionKeyRefusalsCard: FunctionComponent<ComponentProps> = (
                   <span>
                     {getIngestRefusalCountText(refusal, translator, checkedAt)}
                   </span>
+                </div>
+                <div
+                  className="mt-1 break-words text-sm text-gray-700"
+                  data-testid="ingestion-key-refusal-fix"
+                >
+                  {getKeyPageRefusalFixText(refusal.reason, translator)}
                 </div>
                 {route && linkedFix ? (
                   <AppLink

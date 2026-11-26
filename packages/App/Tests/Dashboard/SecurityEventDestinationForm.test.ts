@@ -28,7 +28,6 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   ConnectorField,
   SecurityEventConnectorCatalog,
-  SecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   SecurityEventDestinationCatalog,
@@ -407,39 +406,31 @@ describe("the words the Connections page marks for translation", () => {
   /*
    * A connection's own options (Close alerts when their case closes) sit on
    * the connection form's last step in the catalog's words: these keys put
-   * the same words in the locale files.
+   * the same words in the locale files. They are listed by connector, as
+   * two connectors may ask one option in words of their own (Defender and
+   * CrowdStrike both block through blockIndicators, #10346).
    */
   test("every connection option, as the connector catalog defines it", () => {
-    const options: Array<ConnectorField> =
-      SecurityEventConnectorCatalog.flatMap(
-        (definition: SecurityEventConnectorDefinition) => {
-          return definition.configFields.filter(
-            (field: ConnectorField): boolean => {
-              return Boolean(field.isOption);
-            },
-          );
-        },
-      );
+    const expected: Record<
+      string,
+      Record<string, { title: string; description: string | undefined }>
+    > = {};
 
-    expect(options.length).toBeGreaterThan(0);
+    for (const definition of SecurityEventConnectorCatalog) {
+      for (const field of definition.configFields) {
+        if (!field.isOption) {
+          continue;
+        }
 
-    for (const field of options) {
-      expect([
-        field.key,
-        SECURITY_EVENT_CONNECTION_OPTION_TEXTS[field.key],
-      ]).toEqual([
-        field.key,
-        { title: field.title, description: field.description },
-      ]);
+        expected[definition.provider] = {
+          ...(expected[definition.provider] || {}),
+          [field.key]: { title: field.title, description: field.description },
+        };
+      }
     }
 
-    expect(Object.keys(SECURITY_EVENT_CONNECTION_OPTION_TEXTS).sort()).toEqual(
-      options
-        .map((field: ConnectorField): string => {
-          return field.key;
-        })
-        .sort(),
-    );
+    expect(Object.keys(expected).length).toBeGreaterThan(0);
+    expect(SECURITY_EVENT_CONNECTION_OPTION_TEXTS).toEqual(expected);
   });
 
   test("every field of every SIEM's form, as the catalog defines it", () => {

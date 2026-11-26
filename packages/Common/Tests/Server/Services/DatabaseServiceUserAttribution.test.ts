@@ -554,15 +554,12 @@ describe("OneUptime's own server code, acting for a person", () => {
       incident,
       {
         createdByUser: { _id: OTHER_USER_ID },
-        deletedByUserId: new ObjectID(OTHER_USER_ID),
       },
       SERVER_WITH_PERSON_PROPS,
     );
 
     expect(reached.outcome).toBeInstanceOf(PastTheRule);
     expect(reached.data?.["createdByUser"]).toBeUndefined();
-    // The other columns it names are its own to name.
-    expect(String(reached.data?.["deletedByUserId"])).toBe(OTHER_USER_ID);
   });
 
   test("an update keeps what it names", async () => {
@@ -690,7 +687,6 @@ describe("the creator of a record, end to end", () => {
   const NAMING_SOMEBODY_ELSE: Record<string, unknown> = {
     createdByUserId: new ObjectID(OTHER_USER_ID),
     createdByUser: { _id: OTHER_USER_ID },
-    deletedByUserId: new ObjectID(OTHER_USER_ID),
   };
 
   test("a person's note is by that person, after the permission check", async () => {
@@ -721,7 +717,6 @@ describe("the creator of a record, end to end", () => {
 
     expect(String(row["createdByUserId"])).toBe(USER_ID.toString());
     expect(row["createdByUser"]).toBeUndefined();
-    expect(row["deletedByUserId"]).toBeUndefined();
     expect(row["note"]).toBe("Rolled back the deploy.");
 
     // The check ran, and did not ask the person for access to the creator.
@@ -759,7 +754,6 @@ describe("the creator of a record, end to end", () => {
 
     expect(row["createdByUserId"]).toBeUndefined();
     expect(row["createdByUser"]).toBeUndefined();
-    expect(row["deletedByUserId"]).toBeUndefined();
   });
 
   test("a workflow's note is by nobody", async () => {
@@ -1171,6 +1165,18 @@ describe("a switch re-sent as it stands keeps who turned it, and when", () => {
     audited: Array<Record<string, unknown>>;
   }
 
+  /*
+   * A row the person changes also says they last modified it, and when
+   * (DatabaseServiceRecordActors.test.ts holds that to every kind of
+   * caller); a row the update leaves as it was says nothing new.
+   */
+  const MODIFIED_BY_THE_PERSON: Record<string, unknown> = {
+    lastModifiedAt: expect.any(Date),
+    lastModifiedByActorType: "User",
+    lastModifiedByActorId: null,
+    lastModifiedByUserId: USER_ID,
+  };
+
   const ROW_IDS: Array<string> = [
     "0193c0de-aaaa-4aaa-8bbb-000000000101",
     "0193c0de-aaaa-4aaa-8bbb-000000000102",
@@ -1288,6 +1294,7 @@ describe("a switch re-sent as it stands keeps who turned it, and when", () => {
       isResolved: false,
       markedAsResolvedByUserId: null,
       markedAsResolvedAt: null,
+      ...MODIFIED_BY_THE_PERSON,
     });
   });
 
@@ -1299,8 +1306,14 @@ describe("a switch re-sent as it stands keeps who turned it, and when", () => {
       personProps(),
     );
 
-    expect(writes[0]).toEqual({ isArchived: true, name: "Checkout API v2" });
+    expect(writes[0]).toEqual({
+      isArchived: true,
+      name: "Checkout API v2",
+      ...MODIFIED_BY_THE_PERSON,
+    });
     expect(audited).toHaveLength(1);
+    // Nor who last modified it: that is no change for the audit log either.
+    expect(audited[0]).not.toHaveProperty("lastModifiedByUserId");
     expect(audited[0]).not.toHaveProperty("archivedAt");
     expect(audited[0]).not.toHaveProperty("archivedByUserId");
   });

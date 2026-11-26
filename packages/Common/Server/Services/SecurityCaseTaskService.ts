@@ -1,10 +1,8 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
-import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Utils/Feed/FeedPersonName";
 import Model from "../../Models/DatabaseModels/SecurityCaseTask";
 import { SecurityCaseFeedEventType } from "../../Models/DatabaseModels/SecurityCaseFeed";
-import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -12,6 +10,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import SecurityCaseNotifications from "../Utils/SecurityCase/SecurityCaseNotifications";
+import SecurityCaseStepChecks from "../Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -41,6 +40,10 @@ import {
  * happened to each task - added, done, opened again, handed to somebody,
  * deleted - and the person a task is handed to is told
  * (SecurityCaseNotifications), unless they handed it to themselves.
+ *
+ * A task made from a step of the case's Response Plan is a person saying the
+ * step is done: ticked off, or opened again, the case's steps are checked at
+ * once (SecurityCaseStepChecks), so OneUptime's evidence follows the tick.
  */
 
 const ASSIGNEE_KEYS: Array<string> = ["assignedToUserId", "assignedToUser"];
@@ -56,6 +59,8 @@ interface TaskBeforeChange {
   title: string;
   isDone: boolean;
   assignedToUserId: string | undefined;
+  // The Response Plan step it was made from, when it was.
+  responseStepKey: string | undefined;
 }
 
 // A task's title as it is kept: trimmed, never empty, at most 500 characters.
@@ -239,6 +244,14 @@ export class Service extends ProjectReferencesService<Model> {
           actorUserId,
         });
       }
+
+      // A step ticked off where it is suggested: OneUptime looks at it now.
+      if (createdItem.responseStepKey) {
+        await SecurityCaseStepChecks.requestCheck({
+          projectId: createdItem.projectId,
+          securityCaseId: createdItem.securityCaseId,
+        });
+      }
     } catch (error) {
       // The task is added; what is said about it must not undo that.
       logger.error(
@@ -281,6 +294,7 @@ export class Service extends ProjectReferencesService<Model> {
         title: true,
         isDone: true,
         assignedToUserId: true,
+        responseStepKey: true,
       },
     );
 
@@ -298,6 +312,7 @@ export class Service extends ProjectReferencesService<Model> {
         title: row.title || "",
         isDone: row.isDone === true,
         assignedToUserId: idText(row.assignedToUserId),
+        responseStepKey: row.responseStepKey || undefined,
       });
     }
 
@@ -389,6 +404,14 @@ export class Service extends ProjectReferencesService<Model> {
           displayColor: isDone ? Green500 : Gray500,
           userId: actorUserId,
         });
+
+        // A step ticked off, or opened again: OneUptime looks at it now.
+        if (old.responseStepKey) {
+          await SecurityCaseStepChecks.requestCheck({
+            projectId,
+            securityCaseId,
+          });
+        }
       }
     }
 
@@ -483,31 +506,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A person as the project names them: someone only invited to it by the
-   * name typed for them, else their address - never their account's own
-   * name, which it does not see until they join (#9823).
+   * Whom a task is handed to, as the case's timeline says it: named through
+   * FeedPersonName (#10681), as every feed entry names people. Someone only
+   * invited by the name typed with their invitation, else "someone who
+   * hasn't joined the project yet", never by their account's own name
+   * (#9823); a member by their name, else the part of their address before
+   * the "@". Never an address. "a user" for somebody who is gone.
    */
   private async getUserName(
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<string> {
-    const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    await PendingInviteeProfiles.nameInProject({
-      users: [user],
-      projectId: projectId,
-    });
-
-    return user?.name?.toString() || user?.email?.toString() || "a user";
+    return (
+      (await FeedPersonName.getText({
+        userId: userId,
+        projectId: projectId,
+      })) || "a user"
+    );
   }
 }
 

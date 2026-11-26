@@ -27,6 +27,10 @@ import {
   TurnOnRecommendedResult,
 } from "Common/Types/SecurityEvent/TurnOnRecommended";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  RefusedTelemetry,
+  readRefusedTelemetryList,
+} from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * How Security is set up in a project, as the Overview draws it: the
@@ -58,6 +62,12 @@ export interface SecuritySetupStatus {
    * when there are none.
    */
   addressScrubRules?: Array<SecurityAddressScrubRule> | undefined;
+  /*
+   * What an ingestion budget or rate refused of the logs and traces it
+   * reads (#10431), each stretch that goes on or ended lately. Absent when
+   * nothing was.
+   */
+  refusedTelemetry?: Array<RefusedTelemetry> | undefined;
 }
 
 export type { TurnOnRecommendedProblem, TurnOnRecommendedResult };
@@ -94,9 +104,13 @@ export function parseSecuritySetupStatus(
 ): SecuritySetupStatus {
   const addressScrubRules: Array<SecurityAddressScrubRule> =
     readSecurityAddressScrubRules(body["addressScrubRules"]);
+  const refusedTelemetry: Array<RefusedTelemetry> = readRefusedTelemetryList(
+    body["refusedTelemetry"],
+  );
 
   return {
     ...(addressScrubRules.length > 0 ? { addressScrubRules } : {}),
+    ...(refusedTelemetry.length > 0 ? { refusedTelemetry } : {}),
     connections: readNumber(body["connections"]),
     logsSourceEnabled: body["logsSourceEnabled"] === true,
     telemetrySourcesEnabled: readNumber(body["telemetrySourcesEnabled"]),
@@ -600,6 +614,8 @@ export function getSecurityPipelineStages(
 // One line of the Overview's card: which kind of telemetry, which rule, and where it is changed.
 export interface SecurityAddressScrubItem {
   signal: ScrubbedAddressSignal;
+  // The rule Hash Instead switches (#10396).
+  ruleId: string;
   // What it means for Security Events, a translation key.
   sentence: string;
   // Which rule does it, a template with {{rule}}, and the rule's name as it was saved.
@@ -613,8 +629,8 @@ export interface SecurityAddressScrubItem {
  * What Security Events' setup says of the scrub rules that keep it from
  * naming the address an attack came from: one line for the logs it reads,
  * one for the traces, each with the rule that redacts or masks the
- * addresses there and a way to it. Hash Instead takes the button's place
- * once #10396 ships.
+ * addresses there, and Hash Instead (#10396) - the switch every such rule
+ * gets where it is.
  */
 export function getSecurityAddressScrubItems(
   status: SecuritySetupStatus,
@@ -624,6 +640,7 @@ export function getSecurityAddressScrubItems(
   for (const rule of status.addressScrubRules || []) {
     items.push({
       signal: rule.signal,
+      ruleId: rule.ruleId,
       sentence:
         rule.signal === "trace"
           ? TRACE_ADDRESSES_SCRUBBED

@@ -2,7 +2,9 @@ import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import {
   DATA_SECURITY_AI_FEATURES,
+  DataSecurityAiFeature,
   DataSecurityAiFeatureInfo,
+  DataSecurityAiModelSource,
   NEVER_SENT_TO_ONEUPTIME_AI,
 } from "Common/Types/DataSecurity/DataSecurityAiFeatures";
 import { describe, expect, it } from "@jest/globals";
@@ -136,10 +138,13 @@ describe("what OneUptime AI sees", () => {
     );
   });
 
-  it("names the features that read the team's AI context: Explain with AI and Ask AI, not the field suggestions", () => {
-    expect(source("packages/Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await AiContextReader.read({",
-    );
+  it("names the features that read the team's AI context: the analysis, on request and of new issues, and Ask AI, not the field suggestions", () => {
+    // Both analyses are written in one place, the team's notes first (#10369).
+    expect(
+      source(
+        "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+      ),
+    ).toContain("await AiContextReader.read({");
     expect(
       source("packages/Common/Server/Utils/AI/Chat/ChatAgentRunner.ts"),
     ).toContain("AiContextReader");
@@ -147,7 +152,7 @@ describe("what OneUptime AI sees", () => {
       source("packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts"),
     ).not.toContain("AiContext");
     expect(flat(sees)).toContain(
-      "**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one",
+      "**Analysis on request**, **Analysis of new issues** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one",
     );
     // The AI context's own page lists Explain with AI among what reads it.
     expect(
@@ -171,12 +176,18 @@ describe("what OneUptime AI sees", () => {
       return info.title;
     });
 
-    expect(keeping).toEqual(["Fix with AI", "Ask AI"]);
+    expect(keeping).toEqual([
+      "Fix with AI",
+      "Ask AI",
+      "Fix the cause",
+      // A service's telemetry leaks, fixed by the coding agent too (#10367).
+      "Fix leaks in the code",
+    ]);
     expect(kept).toContain(
-      "The coding agent behind Fix with AI and Ask AI's chat still keep a failed call's provider error in its row.",
+      "The coding agent behind Fix with AI and Fix the cause, and Ask AI's chat, still keep a failed call's provider error in its row. So does the coding agent behind Fix leaks in the code.",
     );
     expect(kept).toContain(
-      "Explain with AI and the field suggestions keep no word of the provider's error",
+      "the analysis and the field suggestions keep no word of the provider's error",
     );
   });
 });
@@ -227,6 +238,56 @@ describe("your own model, and how it is measured", () => {
     expect(model).toContain("Ollama, vLLM, or any OpenAI-compatible endpoint");
     expect(model).toContain("the Helm chart's bundled vLLM");
     expect(source("HelmChart/Public/oneuptime/values.yaml")).toMatch(/^vllm:/m);
+  });
+
+  /*
+   * A pull request's sensitive data read (#10376): on the provider the
+   * repository picks for its production reviews, scored on the eval's
+   * pull request cases, and never told what production holds.
+   */
+  it("says what a pull request's sensitive data read runs on and is scored on, as the catalog and the eval have it", () => {
+    const model: string = flat(section(englishPage(), "Your own model"));
+    const measured: string = flat(section(englishPage(), "How it is measured"));
+    const sees: string = flat(section(englishPage(), "What OneUptime AI sees"));
+    const info: DataSecurityAiFeatureInfo | undefined =
+      DATA_SECURITY_AI_FEATURES.find(
+        (entry: DataSecurityAiFeatureInfo): boolean => {
+          return entry.feature === DataSecurityAiFeature.ReviewPullRequests;
+        },
+      );
+
+    expect(info?.modelSource).toBe(DataSecurityAiModelSource.ProductionReview);
+    expect(model).toContain(
+      "A pull request's sensitive data read runs on the provider the repository picks for its production reviews, else your project's default LLM provider, else the server's own.",
+    );
+    expect(
+      source(
+        "packages/Common/Server/Utils/AI/Eval/DataSecurity/DataSecurityEval.ts",
+      ),
+    ).toContain("[DataSecurityAiFeature.ReviewPullRequests]:");
+    expect(measured).toContain(
+      "The pull request reads are scored on keeping each point that is a leak, leaving out what is not, and a fix that says what to change.",
+    );
+    // What it never sends, as the catalog says it, in its row.
+    const row: string = (
+      tables(section(englishPage(), "What OneUptime AI sees"))[0]!.find(
+        (cells: Array<string>): boolean => {
+          return cells[0] === `**${info?.title}**`;
+        },
+      ) || []
+    )
+      .join(" | ")
+      .toLowerCase();
+
+    expect(sees).toContain(`**${info?.title}**`);
+    expect(info?.neverSends.length).toBe(2);
+
+    for (const item of info?.neverSends || []) {
+      expect({ item, said: row.includes(item.toLowerCase()) }).toEqual({
+        item,
+        said: true,
+      });
+    }
   });
 
   it("gives operators the repository's own eval command, with the key where the eval reads it", () => {

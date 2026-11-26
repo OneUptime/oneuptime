@@ -83,6 +83,10 @@ import {
   FLUENT_BIT_TAIL_DB,
   FLUENTD_RETRYABLE_RESPONSE_CODES,
 } from "../../../FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets";
+import RequestBodyJson, {
+  isNdjsonContentType,
+} from "Common/Server/Utils/RequestBodyJson";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import FluentAPI from "../../../FeatureSet/Telemetry/API/Fluent";
 import OTelIngestAPI from "../../../FeatureSet/Telemetry/API/OTelIngest";
 import SyslogAPI from "../../../FeatureSet/Telemetry/API/Syslog";
@@ -1038,7 +1042,7 @@ describe("the Serilog page", () => {
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/OTelIngest.ts")),
     ).toContain(
-      'router.post( "/otlp/v1/logs", TelemetryIngestionDisabled.middleware, OpenTelemetryRequestMiddleware.parseBody, ingestMetricsMiddleware("logs"), OpenTelemetryRequestMiddleware.getProductType, TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs),',
+      'router.post( "/otlp/v1/logs", TelemetryIngestionDisabled.middleware, ingestMetricsMiddleware("logs"), OpenTelemetryRequestMiddleware.getProductType, TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs, readOtlpBody),',
     );
     expect(englishPage(SERILOG)).toContain(
       "the final URL it posts to is `https://oneuptime.com/otlp/v1/logs`",
@@ -1070,6 +1074,7 @@ describe("the Serilog page", () => {
   });
 
   it("says log and trace exceptions share one fingerprint, so one issue", () => {
+    // Both fingerprint an exception one way: as it arrived (#10434).
     for (const service of [
       "OtelLogsIngestService",
       "OtelTracesIngestService",
@@ -1078,7 +1083,7 @@ describe("the Serilog page", () => {
         service,
         fingerprints: readSource(
           `App/FeatureSet/Telemetry/Services/${service}.ts`,
-        ).includes("ExceptionUtil.getFingerprint({"),
+        ).includes("ExceptionUtil.getOccurrenceFingerprints({"),
       }).toEqual({ service, fingerprints: true });
     }
 
@@ -1132,6 +1137,9 @@ describe("the Fluent Bit page", () => {
   // An output named opentelemetry, not the opentelemetry_envelope processor.
   const OPENTELEMETRY_OUTPUT: RegExp = /^\s*- name: opentelemetry$/m;
 
+  // Fluent Bit's http output, not its http input.
+  const HTTP_OUTPUT: RegExp = /^\s*- name: http$/m;
+
   it("points every opentelemetry output at the OTLP routes OneUptime serves", () => {
     const outputs: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
       (fence: DocsFence): boolean => {
@@ -1182,7 +1190,8 @@ describe("the Fluent Bit page", () => {
       },
     );
 
-    expect(cloud.length).toBe(2);
+    // The step's output and the complete example, and the HTTP output's.
+    expect(cloud.length).toBe(3);
     expect(selfHosted.length).toBe(1);
 
     for (const fence of cloud) {
@@ -1192,6 +1201,84 @@ describe("the Fluent Bit page", () => {
 
     expect((selfHosted[0] as DocsFence).code).toContain("port: 80");
     expect((selfHosted[0] as DocsFence).code).not.toContain("tls:");
+  });
+
+  /*
+   * #10769: Fluent Bit's http output to the Fluentd endpoint. With format
+   * json_lines it sends application/x-ndjson (FLB_HTTP_MIME_NDJSON), a
+   * record a line, which the Fluent route now reads as records once the key
+   * is right, gzip-compressed or not; its default format, msgpack, is
+   * refused (IngestKeyBeforeBodyOverHttp sends each).
+   */
+  it("sends the HTTP output's records as json_lines to the Fluentd route, with the key and the service in the headers OneUptime reads", () => {
+    const outputs: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        // Among the outputs: the complete example's http input is not one.
+        return HTTP_OUTPUT.test(fence.code.split("  outputs:\n")[1] || "");
+      },
+    );
+
+    expect(outputs.length).toBe(1);
+
+    const output: string = (outputs[0] as DocsFence).code;
+
+    // The ingress hands /fluentd/logs to the Fluent route.
+    expect(output).toContain('      uri: "/fluentd/logs"\n');
+    expect(nginxLocations("/fluentd/logs")[0]).toContain(
+      "rewrite ^/fluentd/logs(.*)$ /fluentd/v1/logs$1 break;",
+    );
+    expect(routesOf(FluentAPI)["/fluentd/v1/logs"]).toEqual(["POST"]);
+
+    // json_lines is newline-delimited JSON, which the route reads a line at a time.
+    expect(output).toContain("      format: json_lines\n");
+    expect(isNdjsonContentType("application/x-ndjson")).toBe(true);
+    expect(
+      oneLine(readSource("App/FeatureSet/Telemetry/API/Fluent.ts")),
+    ).toContain(
+      "RequestBodyAfterAuthentication.readBody( LARGE_REQUEST_BODY_LIMIT, { parseGzipJson: true, readLines: true, readJsonStream: true }, );",
+    );
+
+    /*
+     * json_stream is records one after another, sent as application/json
+     * (#10796): no one JSON document, so the route reads it as JSON objects
+     * one after another (readJsonStream). json is one array, as before.
+     */
+    expect(
+      RequestBodyJson.parseStream(
+        Buffer.from(
+          '{"date":1795255200.5,"log":"a"}{"date":1795255201,"log":"b"}',
+        ),
+        LARGE_REQUEST_BODY_LIMIT,
+      ),
+    ).toEqual([
+      { date: 1795255200.5, log: "a" },
+      { date: 1795255201, log: "b" },
+    ]);
+
+    // Each record's time, where the route reads one.
+    expect(output).toContain("      json_date_key: timestamp\n");
+    expect(FLUENT_RECORD_TIME_FIELDS).toContain("timestamp");
+
+    // The key and the service, in the headers.
+    expect(output).toContain(
+      "        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN\n        - x-oneuptime-service-name YOUR_SERVICE_NAME\n",
+    );
+    expect(
+      FLUENT.getServiceNameFromHeaders(
+        ingestRequest({ "x-oneuptime-service-name": "checkout" }),
+        FLUENT.DEFAULT_SERVICE_NAME,
+      ),
+    ).toBe("checkout");
+
+    // The guide's retries and disk limit, as on every output.
+    expect(output).toContain(`      retry_limit: ${FLUENT_BIT_RETRY_LIMIT}\n`);
+    expect(output).toContain(
+      `      storage.total_limit_size: ${FLUENT_BIT_STORAGE_TOTAL_LIMIT}`,
+    );
+
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "Set `format` to `json_lines`, as below, or to `json` or `json_stream`: OneUptime reads all three, compressed with `compress: gzip` or not. Fluent Bit's default format, `msgpack`, is refused.",
+    );
   });
 
   it("names the service with service.name on every input it configures", () => {
@@ -1471,9 +1558,12 @@ describe("the Fluentd page", () => {
       "rewrite ^/fluentd/logs(.*)$ /fluentd/v1/logs$1 break;",
     );
     expect(routesOf(FluentAPI)["/fluentd/v1/logs"]).toEqual(["POST"]);
+    // With its body reader, once the key is right (#10702).
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/Fluent.ts")),
-    ).toContain("TelemetryIngest.forSurface(TelemetryIngestSurface.Fluent)");
+    ).toContain(
+      "TelemetryIngest.forSurface(TelemetryIngestSurface.Fluent, readFluentBody)",
+    );
 
     const outputs: Array<DocsFence> = codeBlockTitled(FLUENTD, "fluentd.conf");
 
@@ -1487,6 +1577,31 @@ describe("the Fluentd page", () => {
 
     expect(englishPage(FLUENTD)).toContain(
       "`http(s)://YOUR_ONEUPTIME_HOST/fluentd/logs`",
+    );
+  });
+
+  /*
+   * #10769: without json_array, Fluentd's HTTP output sends its json
+   * formatter's records as application/x-ndjson, one a line. The route read
+   * none of it sent as it is, and gzip-compressed stored each record as its
+   * JSON text; it reads each line as its record now. The page keeps its
+   * json_array setup, which every OneUptime release reads, and says the
+   * default works too.
+   */
+  it("says Fluentd's own default works too, as the route reads newline-delimited JSON", () => {
+    for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
+      expect(output.code).toContain("  content_type application/json\n");
+      expect(output.code).toContain("  json_array true\n");
+    }
+
+    expect(englishPage(FLUENTD)).toContain(
+      "Fluentd's own default works as well: without `content_type` and `json_array true`, it sends newline-delimited JSON, one record a line, and OneUptime reads each line as the record it is, with `compress gzip` or without.",
+    );
+    expect(isNdjsonContentType("application/x-ndjson")).toBe(true);
+    expect(
+      oneLine(readSource("App/FeatureSet/Telemetry/API/Fluent.ts")),
+    ).toContain(
+      "{ parseGzipJson: true, readLines: true, readJsonStream: true }",
     );
   });
 
@@ -1964,12 +2079,13 @@ describe("the Fluentd page", () => {
       "LogDropFilterService.shouldDropLog(logRow, loadedDropFilters)",
     );
     /*
-     * Scrubbed as an OTLP log is, with the batch's address vault (#10496):
-     * an address an IP Address Hash rule hides from a Fluentd log is kept
-     * for Security Events as one hidden from any other log is.
+     * Scrubbed as an OTLP log is, with the batch's address vault (#10496)
+     * and user vault (#10632): an address or a user a Hash rule hides from
+     * a Fluentd log is kept for Security Events as one hidden from any
+     * other log is.
      */
     const scrubbed: string =
-      "logRow = LogScrubRuleService.scrubLog( logRow, loadedScrubRules, addressVault, );";
+      "logRow = LogScrubRuleService.scrubLog( logRow, loadedScrubRules, addressVault, { hashedUsers: userVault }, );";
 
     expect(FLUENT_SERVICE_SOURCE).toContain(scrubbed);
     expect(
@@ -1981,6 +2097,9 @@ describe("the Fluentd page", () => {
     ).toContain(scrubbed);
     expect(FLUENT_SERVICE_SOURCE).toContain(
       'await SecurityAddressVaultWriter.startBatch({ projectId: projectId, signal: "log", scrubRules: loadedScrubRules, });',
+    );
+    expect(FLUENT_SERVICE_SOURCE).toContain(
+      'await SecurityUserVaultWriter.startBatch({ projectId: projectId, signal: "log", scrubRules: loadedScrubRules, });',
     );
     expect(FLUENT_SERVICE_SOURCE).toContain(
       "logRow = LogPipelineService.processLog(logRow, loadedPipelines);",
@@ -2147,9 +2266,12 @@ describe("the Syslog page", () => {
     expect(blocks[0]).toContain("proxy_pass");
     expect(blocks[0]).not.toContain("rewrite");
     expect(routesOf(SyslogAPI)["/syslog/v1/logs"]).toEqual(["POST"]);
+    // With its body reader, once the key is right (#10702).
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/Syslog.ts")),
-    ).toContain("TelemetryIngest.forSurface(TelemetryIngestSurface.Syslog)");
+    ).toContain(
+      "TelemetryIngest.forSurface(TelemetryIngestSurface.Syslog, readSyslogBody)",
+    );
     expect(englishPage(SYSLOG)).toContain(
       "POST https://oneuptime.com/syslog/v1/logs",
     );

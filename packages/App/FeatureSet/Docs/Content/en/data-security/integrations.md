@@ -4,10 +4,11 @@ Data Security does not run a pager or a security queue of its own. It hands what
 
 :::cards
 - [Security Operations](#security-operations): A security case for every store with a Critical issue.
+- [Was it a breach?](#was-it-a-breach): Each Critical exposure assessed: how long, who could read it, whose data, and the breach laws that may apply.
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
 - [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
-- [OneUptime AI](#oneuptime-ai): Explain an issue, open a pull request that fixes it, or ask Ask AI about your data.
+- [OneUptime AI](#oneuptime-ai): Analyze an issue, open a pull request that fixes it, or ask Ask AI about your data.
 - [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook, and turn on a missing protection from an issue.
 :::
 
@@ -46,6 +47,22 @@ From there the case is worked like any other: assigned, noted, closed, and answe
 
 Any security case, whatever opened it, shows the data at risk on its **Impact**: the stores with sensitive data the case is about, and every store its users and roles can reach, the most sensitive first, with what each holds, about how many records, how exposed it is and how many identities can reach it. An assumed-role session the case names counts as its role, and an email address as the cloud users it belongs to. It is read with the reader's own permissions, so a role that cannot read Data Security sees that it is left out.
 
+## Was it a breach?
+
+A Critical exposure of a store with **Restricted** or **Confidential** data - open to anyone on the internet, shared with accounts outside yours, or a snapshot others can restore - has its case assessed on its own, as the case opens. Any other case about a data store is assessed when a person presses **Assess This Exposure** on its **Overview**. Plain code works the assessment out from what OneUptime recorded, and works it out again each time it is read:
+
+- **How long it was open**: from the change in your cloud's log that exposed the store, when one was logged in the 30 days before it was found, else at least since Data Security found it; until Data Security's own response closed it, a change closed it, or a check found it closed.
+- **Who could read it**: whether the store logged reads. Where it did not, the assessment says "Reads were not logged. Treat the data as read." It counts the accounts outside your company that could read the store, and how many of them used their access while it was open, never naming them.
+- **Whose data it was**: what the store holds, about how many records, who they are about, and where the people live, as the data shows and as a person says.
+- **The secrets to rotate**: each secret found in the store while it was open, by its type and where it was found, never its value.
+- **The breach laws that may apply**: each row of OneUptime's table of breach laws, with what it asks, of whom, its deadline counted from when Data Security found the exposure, and what a person still checks before it applies.
+
+The table covers GDPR Articles 33 and 34, UK GDPR Articles 33 and 34, HIPAA's Breach Notification Rule, PCI DSS requirement 12.10.1, Brazil's LGPD, India's DPDP Rules and CERT-In directions, and the breach laws of California, Colorado, Florida, New York, Texas and Washington. Each row links to the law's own text, its source, and says the day it was last checked against it. What the table does not cover - another country, another US state, where your organization is established, your contracts - the assessment says in plain words.
+
+OneUptime AI writes the assessment up as your Data Security AI rules allow, or when a person asks: what it means, a notice to the regulator, a notice to the people affected and an internal summary (see [OneUptime AI in Data Security](/docs/data-security/ai)). Each draft is held to the assessment's facts: a number or a law none of them holds drops it. Nothing is sent anywhere: a notice is text a person edits and copies, and the assessment and every draft say they are not legal advice.
+
+The case's readers who may read the store and its findings too see the assessment, since it names what the store holds. Assessing, drafting, editing a notice and saying where the people live take permission to edit the case as well. See [Was it a breach?](/docs/telemetry/security-cases#was-it-a-breach) for the case's cards.
+
 ## Alerts and on-call
 
 With **Raise Alerts** on, a Critical issue raises an alert, named "Data Security:" and the issue's title and store. The alert pages whoever is on call through its own rules, like any other alert (see [Alerts](/docs/alerts/index) and [On-Call](/docs/on-call/index)). An issue has at most one open alert at a time, however often it is evaluated. **Alert Severity** sets the alert's severity; left empty, it is the project's most severe.
@@ -66,6 +83,8 @@ A store's owners are people and teams, on the store's **Owners** page. They are 
 
 With **Notify Owners** on, each evaluation that opens issues on a store sends its owners one email - the people who own it, and the members of the teams that do, up to 50 - titled with how many new issues the store has, such as "Data Security: 2 new issues on orders-db". It lists each new issue's severity and title and the store's sensitivity, and links to the store. It never carries a sample.
 
+While OneUptime AI works on new issues on its own, the email waits for its analysis of them, up to 10 minutes, and gives each issue OneUptime AI analyzed two more lines: its verdict and why, and the shortest path to fixed. Each owner gets the lines they may read: an owner who may not read the issue gets none, and a line that rests on something they may not read is left out.
+
 ### Owner rules and label rules
 
 Rules set owners and labels for you, as stores are found:
@@ -77,6 +96,10 @@ Rules set owners and labels for you, as stores are found:
 
 A rule matches a store by its labels, by a pattern of its name or its description, or by **Cloud Tag Pattern**: a pattern matched against each of the store's cloud tags, written `key=value`. `^team=payments$` matches every store tagged `team=payments`, and `^env=` every store with an `env` tag. A new store gets the project's rules the moment it is found, and an owner rule's **Notify Owners** says whether the owners it adds are told. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) says how every rule matches and when rules run.
 
+### Owners OneUptime AI proposes
+
+A store with no owners can get them from OneUptime AI. It reads what already points to an owner - the store's cloud tags, the services that use it, the code owners of the file that declares it, and who changed or added it - and proposes your project's own teams and people from it. Nothing changes until a person approves it under **Owners to review**, on **Data Stores** or **Data Security → AI**, and the owners added are told as any owner is. Where three or more stores' owners rest on one tag or one start of their names, it also proposes the owner rule that keeps the next such store owned, which joins **Owner Rules** once approved. [OneUptime AI in Data Security](/docs/data-security/ai) says what it sends, and when it runs.
+
 ## Workflows
 
 **Data Store** and **Data Security Issue** are workflow triggers, each with **On Create**, **On Update**, **On Create or Update** and **On Delete**. Pick them in the **Add Trigger** panel, under **OneUptime resources**.
@@ -87,12 +110,22 @@ A rule matches a store by its labels, by a pattern of its name or its descriptio
 
 See [Workflow Triggers](/docs/workflows/triggers) for the fields each trigger passes on.
 
+## Pull requests
+
+A leak is cheapest to fix before it merges. In a repository connected under **Code** with production reviews on, each pull request's review has a **Sensitive data** section, read from its diff: code that writes personal data or a secret to telemetry, infrastructure code that makes a store public or turns off its encryption, backups or logging, and migrations that add columns for personal data, passwords or card data. Each point names the Data Security check it would fail once the change ships, and your own data types are read by their name hints, as the scans read them. See [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
+
+What Data Security knows makes those points sharper, in a private repository's comment and, in Code, for whoever may read Data Security's findings: where the service's telemetry held the same kind of data in the last 7 days, the scrub rule that masks it at ingest, and the store a resource is, with its sensitivity. A store marked **Public By Design** makes no point for being public. A public repository's comment says only what the diff shows.
+
+**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**, counts the leaks reviews caught in pull requests, fixed there or not yet, beside the issues the scans opened on the same checks after the code shipped.
+
 ## OneUptime AI
 
-Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the issue's title and severity, the store's name, kind, region and cloud id, its sensitivity and data types, each by its name - one of your own data types by the name you gave it - the evidence, why the check matters and the fix for the store's cloud - never a finding's samples. For a telemetry issue they send where each kind of data was found too: the data type and the attribute, log body or prompt it sits in, never a sample or a record. Both run under the project's OneUptime AI switches and limits. What each sends, what it never sends and the model it runs on are on [OneUptime AI in Data Security](/docs/data-security/ai).
+Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the issue's title and severity, the store's name, kind and region, its sensitivity and data types, each by its name - one of your own data types by the name you gave it - the evidence, why the check matters and the steps that fix it - never a finding's samples. For a telemetry issue they send where each kind of data was found too: the data type and the attribute, log body or prompt it sits in, never a sample or a record. Both run under the project's OneUptime AI switches and limits. What each sends, what it never sends and the model it runs on are on [OneUptime AI in Data Security](/docs/data-security/ai).
 
-- **Explain with AI** writes, for the store's owner, what is wrong, what could happen and the exact steps to fix it on their cloud. For a telemetry issue it writes, for the service's owner, what reaches their telemetry and where, and how to stop it: scrub it at ingest, then change the code that writes it. The explanation is kept on the issue's **Timeline**. Neither the issue it sent nor the answer is kept in **Project Settings → AI → AI Logs**, which every Project Member and Viewer can read: that row says only that the call was made, and what it cost. Anyone who can read the issue can ask.
-- **Fix with AI** asks OneUptime AI to fix the issue in your infrastructure code - Terraform, CloudFormation, Bicep or the like - with the smallest change that makes the check pass, and to open a pull request. For a telemetry issue it asks for a change to the code of the service that writes the data instead, at each place it was found: leave the value out, or mask or hash it before it is logged or put on a span. It needs the repository that holds the store's infrastructure code - or the service's code, for a telemetry issue - connected under **Code**: choose it under **Repository** when you can ask in several. The pull request appears under **Code** (see [Code](/docs/ai/ai-agent)). Security Members and above can ask, in a repository they may change under **Code**, as asking AI there takes: a Security role reads and changes no repository on its own, so give their team **Read Code Repository** and **Edit Code Repository** too. When AI cannot work now - it is switched off, the project is out of AI credits, its daily limits are reached, or no Runner is online - Fix with AI says what to fix, and starts nothing.
+- **Analyze Issue**, at the top of the issue's page, has OneUptime AI write its analysis: whether the issue is real, what it puts at risk, what the fix would break and the shortest path to fixed (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues)). It also sends who can reach the store - each grant and roughly when it was last used, and the services seen using it - copies of its data in other stores, its security cases, the response action that fixes it, the repository and files that declare the store, and how many owners it has, never who they are. The analysis is kept on the issue, its verdict on the issue's **Timeline**. Neither what it sent nor the answer is kept in **Project Settings → AI → AI Logs**, which every Project Member and Viewer can read: that row says only that the call was made, and what it cost. Anyone who can read the issue can ask, and **Explain with AI** on the API and the MCP server answers with the same analysis.
+- **Fix with AI** asks OneUptime AI to fix the issue in your infrastructure code - Terraform, CloudFormation, Bicep or the like - with the smallest change that makes the check pass, and to open a pull request. For a telemetry issue it asks for a change to the code of the service that writes the data instead, at each place it was found: leave the value out, or mask or hash it before it is logged or put on a span. It needs the repository that holds the store's infrastructure code - or the service's code, for a telemetry issue - connected under **Code**: choose it under **Repository** when you can ask in several. The pull request appears under **Code** (see [Code](/docs/ai/ai-agent)). Security Members and above can ask, in a repository they may change under **Code**, as asking AI there takes: a Security role reads and changes no repository on its own, so give their team **Read Code Repository** and **Edit Code Repository** too. When AI cannot work now - it is switched off, the project is out of AI credits, its daily limits are reached, or no Runner is online - Fix with AI says what to fix, and starts nothing. For an issue in a service's telemetry, it first shows one pull request for every leak of the service, with where its records say each is written - never a value - and where the data is written in more than three places it adds one redaction step with a test instead: see [Fix it in the code](/docs/data-security/telemetry#fix-it-in-the-code).
+
+OneUptime AI also works on each new issue on its own, as your AI rules allow: see [OneUptime AI in Data Security](/docs/data-security/ai).
 
 ### Ask AI
 
@@ -116,7 +149,7 @@ Two changes close a cloud store's exposure, each through the store's cloud conne
 
 A person runs one from an open issue it fixes, with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)). A Security Operations playbook runs them as steps of the **Contain** category, **Block public access to data stores** and **Revoke data store sharing**: on every data store the case is about, at most 10, each a step that starts with **Needs Approval** on. A store marked **Public By Design** is never blocked. Either way the store's feed says what was done, and the store is checked again at once, so the issue resolves when the change took.
 
-The **Close a Data Exposure** playbook template answers the cases Data Security opens: it emails the store's owners, blocks public access and revokes sharing once a person approves each, and adds the response's checklist to the case as tasks - who read the data while it was exposed, whether it is a breach you must report, which secrets to rotate, and what to write when the case closes. Add it from **Create from Template** on the project's playbooks.
+The **Close a Data Exposure** playbook template answers the cases Data Security opens: it emails the store's owners, blocks public access and revokes sharing once a person approves each, and adds the response's checklist to the case as tasks - who read the data while it was exposed, whether it is a breach you must report, which secrets to rotate, and what to write when the case closes. Add it from **Create from Template** on the project's playbooks. The case's **Was It a Breach?** card answers each of those tasks (see [Was it a breach?](#was-it-a-breach)).
 
 ## API, Terraform and MCP
 
@@ -130,6 +163,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 | Custom data types, check settings, compliance settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | The project's settings | `/data-security-setting` |
 | Owners, owner rules and label rules | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| What OneUptime AI proposes for an issue, and why it did or did not act on one | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 A few answers are worked out on request rather than stored. Each is a `POST`:
 
@@ -139,16 +173,26 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-security/compliance` | Every framework's score and requirements |
 | `/data-security/resource-scope` | The data stores of one resource - a Kubernetes cluster, a Docker or Podman host, a database, a service or a cloud resource - and whose compliance switches they follow |
 | `/data-security/resource-compliance` | One resource's frameworks: their scores for its stores, and what is turned off for it |
-| `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data |
+| `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data. A store OneUptime keeps for your security has a `declared` object: its own purpose and retention, and who can read it |
+| `/data-store/<id>/declared` | What the record says of a store OneUptime keeps for your security: what it holds, why, for how long and who can read it |
 | `/data-store/<id>/scan-now` | **Scan Now**: samples the store's content now |
 | `/data-store/<id>/check-now` | **Check Now**: reads the store's configuration again and runs its checks |
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |
 | `/data-store-finding/<id>/drop-metric-impact` | What **Drop This Metric** would drop for a finding in a metric's name: how many metrics, and the monitors, dashboards, SLOs and recording rules that read them |
 | `/data-store-finding/<id>/drop-metric` | **Drop This Metric**: a metric pipeline rule that drops the service's new data points of those metrics for good. It takes `{"confirmDataLoss": true}` |
-| `/data-security-issue/<id>/explain` | **Explain with AI** on an issue |
+| `/data-security-issue/<id>/explain` | **Explain with AI**: OneUptime AI's analysis of an issue, as **Analyze Issue** writes it. It answers the analysis the issue keeps when nothing it rests on changed, else writes a new one; `{"force": true}` writes a new one, as **Analyze Again** does |
+| `/data-security-issue/<id>/analysis` | The analysis the issue keeps, as you may read it. It never asks OneUptime AI |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
 | `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
 | `/data-store/<id>/respond` | One response action on the store, such as **Block Public Access** or **Turn On Versioning**, with the issue it was run from |
+| `/data-security-ai-proposal/<id>/approve` | **Approve** on a change OneUptime AI proposes, which makes it with your own permissions. It takes the `expectedPlanFingerprint` of the proposal you were shown, and refuses one that changed since |
+| `/data-security-ai-proposal/<id>/dismiss` | **Dismiss proposal**, with `{"reason": "..."}`, which goes on the issue's timeline |
+| `/data-security-ai-proposal/<id>/undo` | **Undo** on a change OneUptime AI made: it is taken back, and the store is checked again |
+| `/security-case/<id>/exposure-assessment` | A security case's exposure assessment, as you may read it: what plain code works out of the store it is about, and OneUptime AI's write-up |
+| `/security-case/<id>/exposure-assessment/assess` | **Assess This Exposure**: starts the case's assessment, of the store `{"dataStoreId": "..."}` names when the case is about more than one |
+| `/security-case/<id>/exposure-assessment/draft` | **Draft With OneUptime AI**: OneUptime AI writes up every part no person edited. Nothing is sent |
+| `/security-case/<id>/exposure-assessment/edit` | One part in a person's own words, such as `{"part": "regulatorNotice", "markdown": "..."}`, which is never drafted again |
+| `/security-case/<id>/exposure-assessment/people` | Where the people the data is about live, such as `{"places": ["EEA", "GB"]}`; an empty list takes the answer back |
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, compliance settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 

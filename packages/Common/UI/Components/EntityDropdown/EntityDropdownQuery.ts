@@ -59,6 +59,45 @@ export const withSearch: (
 };
 
 /*
+ * The caller's query, narrowed to the rows where any of `fields` contains
+ * the search text (EntityDropdown's searchFields): withSearch for one
+ * field; for several - an inventory item's name and its key - one
+ * MultiSearch over them under a key of its own, which the server ANDs with
+ * the rest of the query, so a condition of the caller's on any of them
+ * stays.
+ */
+export const withSearchIn: (
+  query: Record<string, unknown>,
+  fields: Array<string>,
+  searchText: string,
+) => Record<string, unknown> = (
+  query: Record<string, unknown>,
+  fields: Array<string>,
+  searchText: string,
+): Record<string, unknown> => {
+  if (fields.length <= 1) {
+    return withSearch(query, fields[0] || "name", searchText);
+  }
+
+  const trimmed: string = searchText.trim();
+
+  if (trimmed.length === 0) {
+    return { ...query };
+  }
+
+  let key: string = ENTITY_DROPDOWN_SEARCH_KEY;
+
+  while (query[key] !== undefined) {
+    key = `_${key}`;
+  }
+
+  return {
+    ...query,
+    [key]: new MultiSearch({ fields: fields, value: trimmed }),
+  };
+};
+
+/*
  * Whether rows can be picked by label within the caller's query: always,
  * unless the caller's query has a condition on labels that a label pick
  * cannot be added to.

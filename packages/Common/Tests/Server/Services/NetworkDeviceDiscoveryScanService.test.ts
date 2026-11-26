@@ -937,6 +937,12 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
        * list renders this in the cell where those results used to be.
        */
       statusMessage: expect.stringContaining("queued to run again"),
+      /*
+       * The run now queued is the settings change's, not a Run Again's
+       * (issue #10334): the row stops naming who asked for the last one.
+       */
+      runRequestedAt: null,
+      runRequestedByUserId: null,
     });
   });
 
@@ -2867,6 +2873,8 @@ describe("NetworkDeviceDiscoveryScanService: the credential list retires a run l
       scannedHostCount: null,
       respondedHostCount: null,
       autoImportProcessedAt: null,
+      runRequestedAt: null,
+      runRequestedByUserId: null,
     });
   });
 
@@ -3128,6 +3136,8 @@ describe("NetworkDeviceDiscoveryScanService: turning SNMP off on a scan that has
       scannedHostCount: null,
       respondedHostCount: null,
       autoImportProcessedAt: null,
+      runRequestedAt: null,
+      runRequestedByUserId: null,
     });
   });
 

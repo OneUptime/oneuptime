@@ -8,7 +8,10 @@ import AIService from "../../Services/AIService";
 import {
   queueDataSecurityEvaluation,
   queueDataSecurityFieldSuggestions,
+  queueDataSecurityFindingVerdicts,
+  queueDataTypeDiscovery,
 } from "./DataSecurityJobs";
+import DataTypeProving from "./DataTypeProving";
 import { withPendingFields } from "./FieldSuggestionState";
 import {
   ContentScanResult,
@@ -16,6 +19,7 @@ import {
   MAX_READ_LOG_ENTRIES,
 } from "./DataSecurityScanTypes";
 import logger from "../Logger";
+import DataSecurityIntegrations from "./DataSecurityIntegrations";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -48,7 +52,8 @@ import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier
  * The fields a scan could not place are kept on the store for OneUptime AI
  * (DataStore.fieldSuggestionState) when the project's Enable AI is on, and
  * the suggestion job is queued; its suggestions come back through
- * recordFieldSuggestions. A suggestion never takes the place of a
+ * recordFieldSuggestions. With Enable AI on, OneUptime AI's verdicts on
+ * the findings that wait for a person are queued too (#10372). A suggestion never takes the place of a
  * detector's finding, and a finding a person confirmed keeps its High
  * confidence whatever a later scan is sure of.
  */
@@ -117,6 +122,7 @@ export default class DataSecurityFindingWriter {
       ? DataSecurityScanStatus.Succeeded
       : DataSecurityScanStatus.PartlySucceeded;
 
+    const created: { count: number } = { count: 0 };
     const findingsWritten: number = await this.writeFindings({
       projectId: input.projectId,
       dataStoreId: input.dataStoreId,
@@ -124,6 +130,7 @@ export default class DataSecurityFindingWriter {
       keepMaskedSamples: input.keepMaskedSamples,
       customDataTypes: input.customDataTypes,
       now,
+      created,
     });
 
     const scanId: ObjectID | null = await this.writeScan({
@@ -138,9 +145,12 @@ export default class DataSecurityFindingWriter {
       findingsFound: findingsWritten,
     });
 
+    const isAiEnabled: boolean =
+      findingsWritten > 0 || (result.unplacedFields || []).length > 0
+        ? await AIService.isProjectAIEnabled(input.projectId)
+        : false;
     const hasUnplacedFields: boolean =
-      (result.unplacedFields || []).length > 0 &&
-      (await AIService.isProjectAIEnabled(input.projectId));
+      (result.unplacedFields || []).length > 0 && isAiEnabled;
 
     await this.updateStore({
       dataStoreId: input.dataStoreId,
@@ -152,10 +162,49 @@ export default class DataSecurityFindingWriter {
     });
 
     await this.pruneOldFindings(input.dataStoreId, now);
+
+    /*
+     * What the data types being proven here would have found (#10371):
+     * counts, kept on their proposals - never a finding.
+     */
+    if (result.shadowCounts) {
+      await DataTypeProving.recordStoreScan({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+        result,
+        scannedAt: now,
+      });
+    }
+
     await queueDataSecurityEvaluation(input.projectId);
+
+    /*
+     * Data found in a new place of a store whose telemetry issue is open
+     * already: OneUptime AI works on that issue again, so the new place is
+     * contained as an issue that just opened would be (#10366).
+     */
+    if (created.count > 0) {
+      await DataSecurityIntegrations.onNewTelemetryFindings({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+      });
+    }
 
     if (hasUnplacedFields) {
       await queueDataSecurityFieldSuggestions({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+      });
+      // The same unknown shape in many stores is a data type of its own (#10371).
+      await queueDataTypeDiscovery(input.projectId);
+    }
+
+    /*
+     * OneUptime AI's verdicts on what this scan found that waits for a
+     * person (#10372): a little after it, once with its field suggestions.
+     */
+    if (findingsWritten > 0 && isAiEnabled) {
+      await queueDataSecurityFindingVerdicts({
         projectId: input.projectId,
         dataStoreId: input.dataStoreId,
       });
@@ -279,6 +328,8 @@ export default class DataSecurityFindingWriter {
     now: Date;
     // OneUptime AI's suggestions: never written over a detector's finding.
     isSuggestion?: boolean | undefined;
+    // How many findings were new: counted here for the caller.
+    created?: { count: number } | undefined;
   }): Promise<number> {
     const wanted: Map<
       string,
@@ -353,6 +404,7 @@ export default class DataSecurityFindingWriter {
         isFreeText: classification.isFreeText,
         isNameHinted: classification.nameHinted,
         isFoundByName: classification.foundByName,
+        isFoundByModel: classification.foundByModel === true,
         locationKind: location.locationKind,
         lastSeenAt: data.now,
         isAiSuggested: classification.isAiSuggested === true,
@@ -418,6 +470,10 @@ export default class DataSecurityFindingWriter {
             data: finding,
             props: { isRoot: true },
           });
+
+          if (data.created) {
+            data.created.count++;
+          }
         }
 
         written++;

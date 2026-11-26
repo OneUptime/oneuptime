@@ -704,8 +704,9 @@ describe("OneUptime's own downtime is not silence", () => {
       "await ReceivingCoverage.planTelemetryEvaluation({ windowInMs: TelemetryMonitorWindow.getWindowInMs({",
     );
     const skip: number = TELEMETRY_JOB.indexOf("if (!plan.evaluate) {");
+    // With when the evaluation began, which its log entry times (#10809).
     const check: number = TELEMETRY_JOB.indexOf(
-      "await MonitorResourceUtil.monitorResource(response);",
+      "await MonitorResourceUtil.monitorResource(response, {",
     );
 
     expect(plan).toBeGreaterThan(-1);
@@ -2054,12 +2055,29 @@ describe("the Metrics monitor", () => {
           },
         )?.value;
       }),
-    ).toEqual(Object.values(EvaluateOverTimeType));
+    ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
     expect(
       rows.map((cells: Array<string>): string => {
         return cells[1] as string;
       }),
-    ).toEqual(Object.values(EvaluateOverTimeType));
+    ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
+    /*
+     * The six a metric rule reduces its points with. Percentile and the
+     * counts came with #10355, and a comparison with the previous check
+     * with #10821, for a check's own window; a Metrics monitor's query reads
+     * its percentiles itself, and counting is #10824.
+     */
+    expect(CommonCriteriaFilterUtil.getMetricAggregationTypes()).toEqual(
+      Object.values(EvaluateOverTimeType).filter(
+        (type: EvaluateOverTimeType): boolean => {
+          return (
+            type !== EvaluateOverTimeType.Percentile &&
+            type !== EvaluateOverTimeType.PreviousCheck &&
+            !CommonCriteriaFilterUtil.isCountedWindowType(type)
+          );
+        },
+      ),
+    );
   });
 
   it("works the growing-queue example out the way the evaluator does", () => {
@@ -2851,6 +2869,73 @@ describe("status page resources", () => {
     );
     expect(RESOURCES).toContain(
       ':::details "This monitor is already added to this status page"',
+    );
+  });
+
+  /*
+   * A resource shows one monitor or one monitor group (#6540, #6558): the
+   * page quotes the server's two refusals word for word, and says what
+   * pointing a resource at the other kind does.
+   */
+  it("a resource shows one monitor or one monitor group: the page quotes both refusals", () => {
+    const service: string = oneLine(
+      readSource("Common/Server/Services/StatusPageResourceService.ts"),
+    );
+
+    const both: string =
+      "A status page resource shows a monitor or a monitor group, not both. Send one of them.";
+    const neither: string =
+      "A status page resource needs a monitor or a monitor group to show";
+
+    expect(service).toContain(`"${both}"`);
+    expect(service).toContain(
+      `"${neither}, and this one has neither. Send the monitor or the monitor group it shows."`,
+    );
+    expect(service).toContain(
+      `"${neither}, and this change leaves it with neither. Send the monitor or the monitor group it shows in the same change."`,
+    );
+    expect(RESOURCES).toContain(
+      `A resource shows one monitor or one monitor group, never both and never neither. Pointing a resource at one clears the other, so moving a row from a monitor to a monitor group is one change. Through the API, a resource that names both is refused with *"${both}"*, and one that names neither, or a change that would leave it with neither, with *"${neither}"*.`,
+    );
+    expect(RESOURCES).toContain(`:::details "${neither}"`);
+    expect(RESOURCES).toContain(
+      "Send `monitorId` or `monitorGroupId`, one of the two.",
+    );
+  });
+
+  // Edit resource opens on what the row shows, its link swapping the picker (#6559).
+  it("Edit resource opens on what a row shows, and its link swaps the picker in that dialog alone", () => {
+    const panel: string = oneLine(
+      dashboardSource("Components/StatusPage/StatusPageResourcePanel.tsx"),
+    );
+    const targetSwitch: string = dashboardSource(
+      "Components/StatusPage/StatusPageResourceTargetSwitch.tsx",
+    );
+    const list: string = readSource(
+      "Common/UI/Components/StatusPage/ResourceList.tsx",
+    );
+
+    expect(panel).toContain('title="Edit resource"');
+    expect(panel).toContain(
+      "targetType: getStatusPageResourceTargetType(statusPageResource),",
+    );
+    expect(targetSwitch).toContain(
+      'translator.translateText("Show a Monitor instead.")',
+    );
+    expect(targetSwitch).toContain(
+      'translator.translateText("Show a Monitor Group instead.")',
+    );
+    expect(list).toContain(
+      'translator.translateText("Same as the monitor group name")',
+    );
+    expect(RESOURCES).toContain(
+      "**Edit resource**, the pencil on a row, opens on what the row shows: a monitor group's row on **Monitor Group**, with the group picked, and a monitor's row on **Monitor**.",
+    );
+    expect(RESOURCES).toContain(
+      "the link under the dropdown reads **Show a Monitor instead.** on a group's row and **Show a Monitor Group instead.** on a monitor's. It swaps the dropdown in that dialog only, and saving points the row at what you picked instead.",
+    );
+    expect(RESOURCES).toContain(
+      "In the list, a group's row whose display name is the group's own says **Same as the monitor group name**.",
     );
   });
 

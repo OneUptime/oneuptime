@@ -106,6 +106,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
     SERVER_LOG,
+  // That the emails of a sign-in settings clear were not all queued in time (#10750).
+  "packages/Common/Server/Utils/SignInSettingsClearedEmail.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Aws/AwsDefaultCredentialChain.ts":
     "a credential chain's failure, logged and stored on the connection",
   "packages/Common/Server/Utils/CloudConnection/Kafka/KafkaClient.ts":
@@ -1392,6 +1394,8 @@ const WORD_SCAN_SCOPES: ReadonlyArray<string> = [
  */
 const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
   ...AS_WRITTEN,
+  "packages/Common/Types/DataSecurity/ComplianceFacts.ts":
+    "a compliance fact in English, as OneUptime AI's prompt and the paperwork's Markdown export quote it; a page draws each fact through the Dashboard's own sentences",
   "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts":
     "an OpenStack alert template's names and descriptions, stored with the monitor made from it",
   "packages/Common/Types/Monitor/CloudAlertTemplates.ts":
@@ -1873,6 +1877,8 @@ describe("negative controls: the word scan catches what it is for", () => {
  * PLURAL_CALLS_AS_WRITTEN with why. The list only shrinks.
  */
 const PLURAL_CALLS_AS_WRITTEN: Readonly<Record<string, string>> = {
+  "packages/Common/Types/DataSecurity/ExposureAssessment.ts":
+    "a breach law's deadline in English, for OneUptime AI's prompt and the assessment's facts; the Dashboard words a deadline in the reader's language itself",
   "packages/Common/Types/AI/AIAgentRunLimits.ts":
     "a run's limit, written for OneUptime AI to read and into the API's refusal of a call past it",
   "packages/Common/Utils/SecurityCase/SecurityCaseTargets.ts":

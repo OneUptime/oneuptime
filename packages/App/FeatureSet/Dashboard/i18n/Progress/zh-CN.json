@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 59636,
-    "untranslated": 7956
+    "keys": 63890,
+    "untranslated": 8033
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -154,6 +154,7 @@
     "Stripe Payments API",
     "Swarm ID",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",
@@ -177,7 +178,10 @@
     "VMware vCenter",
     "Valkey",
     "Vital",
+    "WAF",
+    "WAF ID",
     "Web",
+    "Web ACL",
     "Webhook",
     "Webhook URL",
     "Zabbix URL",
@@ -227,6 +231,7 @@
     "s",
     "security-alerts",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",

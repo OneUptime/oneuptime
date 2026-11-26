@@ -73,7 +73,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * ISSUES #6364 AND #6388, THROUGH THE REAL TOOLS.
  *
  * read_code_file shows what looks like a secret or personal data as a
- * placeholder - "10.0.0.12" reads "[redacted-ip]", "ops@acme.com" reads
+ * placeholder - "203.0.113.12" reads "[redacted-ip]", "ops@acme.com" reads
  * "[redacted-email]" - and a commit writes the file whole, from what the
  * model was shown: a model that changes one line of config/servers.ts
  * writes "[redacted-ip]" where every address was. So:
@@ -117,8 +117,8 @@ const SERVERS: string = "config/servers.ts";
 
 // The issue's file: two addresses and an email, and a line to change.
 const SERVERS_ON_BRANCH: string = [
-  'export const PRIMARY_HOST = "10.0.0.12";',
-  'export const BACKUP_HOST = "10.0.0.13";',
+  'export const PRIMARY_HOST = "203.0.113.12";',
+  'export const BACKUP_HOST = "203.0.113.13";',
   'export const ON_CALL = "ops@acme.com";',
   "export const RETRIES = 3;",
   "",
@@ -351,8 +351,8 @@ const HIDDEN_IN_SERVERS: string = `Values that look like secrets or personal dat
 
 // The values config/servers.ts holds: never anywhere but its commit.
 const HIDDEN_IN_SERVERS_VALUES: Array<string> = [
-  "10.0.0.12",
-  "10.0.0.13",
+  "203.0.113.12",
+  "203.0.113.13",
   "ops@acme.com",
 ];
 
@@ -413,7 +413,7 @@ describe("read_code_file: the model reads exactly the redaction it always read, 
       })
     ).dataForLlm;
 
-    for (const value of ["10.0.0.12", "10.0.0.13", "ops@acme.com"]) {
+    for (const value of ["203.0.113.12", "203.0.113.13", "ops@acme.com"]) {
       expect(answer).not.toContain(value);
     }
     expect(answer).toContain('PRIMARY_HOST = "[redacted-ip]"');
@@ -438,7 +438,7 @@ describe("read_code_file: the model reads exactly the redaction it always read, 
 
     for (let line: number = 1; line <= 500; line++) {
       lines.push(
-        line === 450 ? 'const HOST = "10.1.2.3";' : `v${line} = ${line};`,
+        line === 450 ? 'const HOST = "198.51.100.3";' : `v${line} = ${line};`,
       );
     }
 
@@ -725,7 +725,7 @@ describe("the issue's case: a file with IP addresses and an email, read whole an
       // The lines that held them taken out.
       "export const RETRIES = 5;\n",
       // Values the person gave in the conversation, written as they gave them.
-      'export const PRIMARY_HOST = "10.9.9.9";\nexport const RETRIES = 3;\n',
+      'export const PRIMARY_HOST = "198.51.100.9";\nexport const RETRIES = 3;\n',
     ]) {
       const args: JSONObject = commit("fix/login", [
         { filePath: SERVERS, content },
@@ -809,7 +809,7 @@ const VALUES_OF_EVERY_RULE: Array<
   ],
   [
     "an IPv4 address",
-    ['const HOST = "10.0.0.12";'],
+    ['const HOST = "203.0.113.12";'],
     "[redacted-ip]",
     range(2, 2),
   ],
@@ -962,8 +962,8 @@ describe("issue #6388: what is written back, and what is not", () => {
   test("the same mask on two lines with two values: neither written back, and the card says so; approved anyway, every other value is", async () => {
     const filePath: string = "config/hosts.ts";
     const content: string = [
-      'host = "10.0.0.1"',
-      'host = "10.0.0.2"',
+      'host = "203.0.113.1"',
+      'host = "203.0.113.2"',
       'owner = "ops@acme.com"',
       "export const RETRIES = 3;",
       "",
@@ -1020,9 +1020,9 @@ describe("issue #6388: what is written back, and what is not", () => {
   test("the same mask on two lines with one value: both written back", async () => {
     const filePath: string = "config/hosts.ts";
     const content: string = [
-      'primary = "10.0.0.1"',
+      'primary = "203.0.113.1"',
       "",
-      'primary = "10.0.0.1"',
+      'primary = "203.0.113.1"',
       "export const RETRIES = 3;",
       "",
     ].join("\n");
@@ -1150,7 +1150,7 @@ describe("issue #6388: what is written back, and what is not", () => {
       "qwertyuiopasdfgh",
       "-----END RSA PRIVATE KEY-----",
       "`;",
-      'export const HOST = "10.0.0.7";',
+      'export const HOST = "203.0.113.7";',
       "export const RETRIES = 3;",
       "",
     ].join("\n");
@@ -1234,7 +1234,7 @@ describe("issue #6388: what is written back, and what is not", () => {
   test("a Windows file: each line written back, ending as the model ended it", async () => {
     const filePath: string = "config/servers.ps1";
     const content: string =
-      '$Primary = "10.0.0.12"\r\n$Retries = 3\r\n$OnCall = "ops@acme.com"\r\n';
+      '$Primary = "203.0.113.12"\r\n$Retries = 3\r\n$OnCall = "ops@acme.com"\r\n';
     const { repository, conversation, shown } = await readWhole({
       filePath,
       content,
@@ -1250,7 +1250,7 @@ describe("issue #6388: what is written back, and what is not", () => {
     expect(Object.keys(prepared)).toEqual(["arguments"]);
     await conversation.run(CommitCodeToBranchTool, prepared);
     expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
-      '$Primary = "10.0.0.12"\n$Retries = 5\n$OnCall = "ops@acme.com"\n',
+      '$Primary = "203.0.113.12"\n$Retries = 5\n$OnCall = "ops@acme.com"\n',
     );
 
     // Its own line endings kept, as it wrote them.
@@ -1318,7 +1318,7 @@ describe("issue #6388: what is written back, and what is not", () => {
       repository,
       "fix/login",
       SERVERS,
-      SERVERS_ON_BRANCH.replace("10.0.0.13", "10.0.0.99"),
+      SERVERS_ON_BRANCH.replace("203.0.113.13", "203.0.113.99"),
     );
 
     const failure: Error = await conversation
@@ -1336,7 +1336,7 @@ describe("issue #6388: what is written back, and what is not", () => {
       "Nothing was committed: config/servers.ts changed on fix/login after this commit was shown for approval",
     );
     expect(repository.commits).toEqual([]);
-    for (const value of [...HIDDEN_IN_SERVERS_VALUES, "10.0.0.99"]) {
+    for (const value of [...HIDDEN_IN_SERVERS_VALUES, "203.0.113.99"]) {
       expect(failure.message).not.toContain(value);
     }
   });
@@ -1360,7 +1360,7 @@ describe("issue #6388: what is written back, and what is not", () => {
           repository,
           "fix/login",
           SERVERS,
-          SERVERS_ON_BRANCH.replace("10.0.0.13", "10.0.0.99"),
+          SERVERS_ON_BRANCH.replace("203.0.113.13", "203.0.113.99"),
         );
       }
     };
@@ -1668,7 +1668,7 @@ describe("placeholder text the file on the branch holds itself", () => {
 
   const MIXED: string = [
     'test("an address", () => {',
-    '  expect(redact("host 10.0.0.1")).toBe("host [redacted-ip]");',
+    '  expect(redact("host 203.0.113.1")).toBe("host [redacted-ip]");',
     "});",
     "",
   ].join("\n");
@@ -1979,7 +1979,10 @@ describe("beside what Ask AI never saw of a file", () => {
       branchName: "fix/login",
     });
     // A teammate moves the backup host: the model never saw either address.
-    const moved: string = SERVERS_ON_BRANCH.replace("10.0.0.13", "10.0.0.99");
+    const moved: string = SERVERS_ON_BRANCH.replace(
+      "203.0.113.13",
+      "203.0.113.99",
+    );
     push(repository, "fix/login", SERVERS, moved);
 
     const prepared: PreparedMutation = await conversation.propose(
@@ -2080,7 +2083,7 @@ describe("beside what Ask AI never saw of a file", () => {
 
     for (let line: number = 1; line <= 900; line++) {
       lines.push(
-        line === 10 ? 'const HOST = "10.1.2.3";' : `v${line} = ${line};`,
+        line === 10 ? 'const HOST = "198.51.100.3";' : `v${line} = ${line};`,
       );
     }
 
@@ -2136,7 +2139,7 @@ describe("beside what Ask AI never saw of a file", () => {
     const files: Record<string, string> = {};
 
     for (const name of names) {
-      files[`config/${name}`] = 'export const HOST = "10.0.0.1";\n';
+      files[`config/${name}`] = 'export const HOST = "203.0.113.1";\n';
     }
 
     serveOnGitHub(makeRepository({ files: { "fix/login": files } }));
@@ -2285,7 +2288,7 @@ describe("open_code_pull_request, written with placeholders on the default branc
       primaryEdited(
         retriesFive(
           SERVERS_ON_BRANCH.replace(
-            'PRIMARY_HOST = "10.0.0.12";',
+            'PRIMARY_HOST = "203.0.113.12";',
             'PRIMARY_HOST = "[redacted-ip]";',
           ),
         ),
@@ -2434,6 +2437,11 @@ const draw: (
   return text;
 };
 
+// First parts of IPv4 networks on the internet: none of them private or reserved.
+const PUBLIC_IPV4_FIRST_PARTS: Array<number> = [
+  1, 8, 23, 34, 52, 64, 81, 99, 104, 151, 185, 203, 212,
+];
+
 const LOWER: string = "abcdefghijklmnopqrstuvwxyz";
 const UPPER: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const DIGITS: string = "0123456789";
@@ -2531,7 +2539,16 @@ const VALUES: Array<(random: SeededRandom) => DrawnValue> = [
     };
   },
   (random: SeededRandom): DrawnValue => {
-    const address: string = `${1 + random(254)}.${random(256)}.${random(256)}.${random(256)}`;
+    /*
+     * An address the IP Address rule hides (#10417): a public IPv4 one -
+     * its first part from networks on the internet, never a private,
+     * loopback, link-local, carrier-grade NAT or multicast one, which the
+     * rule keeps - or a public IPv6 one, written compressed.
+     */
+    const address: string =
+      random(2) === 0
+        ? `${PUBLIC_IPV4_FIRST_PARTS[random(PUBLIC_IPV4_FIRST_PARTS.length)]}.${random(256)}.${random(256)}.${random(256)}`
+        : `2a00:${random(65536).toString(16)}:${random(65536).toString(16)}::${(1 + random(65535)).toString(16)}`;
 
     return {
       lines: [`const i = "${address}";`],

@@ -1311,10 +1311,16 @@ export default class DashboardAPI extends BaseAPI<
             });
           }
 
+          /*
+           * Read by their names (#10691): the project's first 10,000 by name
+           * never had a drawn metric that sorts past them, and the public
+           * page charted it with no unit and no kind of counter.
+           */
           const metricTypes: Array<MetricType> = await MetricTypeService.findBy(
             {
               query: {
                 projectId: dashboard.projectId,
+                name: new Includes(Array.from(allowedMetricNames)),
               },
               select: {
                 name: true,

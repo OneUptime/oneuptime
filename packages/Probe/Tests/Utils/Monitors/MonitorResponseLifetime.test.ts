@@ -285,6 +285,46 @@ describe("periodic monitor response lifetime", () => {
     expect(stepSpy).toHaveBeenCalledTimes(monitorCount * stepsPerMonitor);
   });
 
+  /*
+   * A test whose check threw posted nothing: the form waited until it said
+   * the probe may be offline (#9737, an API monitor whose body was an
+   * array). It answers with a failed check, as a monitor's check does.
+   */
+  test("a monitor test whose check threw answers with it as a failed check", async () => {
+    const monitor: Monitor = makeMonitor();
+    stepSpy.mockRejectedValueOnce(
+      new Error("Expected JSONObject, but got JSONArray"),
+    );
+
+    const results: Array<ProbeMonitorResponse | null> =
+      await MonitorUtil.probeMonitorTest(monitor as unknown as MonitorTest);
+
+    const firstStepId: ObjectID | undefined =
+      monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.id;
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        monitorId: monitor.id,
+        monitorStepId: firstStepId,
+        isOnline: false,
+        failureCause: "Expected JSONObject, but got JSONArray",
+      }),
+      expect.objectContaining({ isOnline: true }),
+    ]);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls[0]![0].url.toString()).toContain(
+      "/probe/response/monitor-test-ingest/" + monitor.id!.toString(),
+    );
+    expect(fetchSpy.mock.calls[0]![0].data).toMatchObject({
+      probeMonitorResponse: {
+        monitorId: monitor.id,
+        isOnline: false,
+        failureCause: "Expected JSONObject, but got JSONArray",
+      },
+    });
+    expect(logger.error).toHaveBeenCalledWith(expect.any(Error));
+  });
+
   test("interactive monitor tests still return their original results", async () => {
     const monitor: Monitor = makeMonitor();
     stepSpy.mockResolvedValueOnce(null);

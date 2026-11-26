@@ -46,6 +46,8 @@ Al het andere staat onder **Meer velden**, ingeklapt tot u het opent:
 
 Zolang iemand elkaar afwisselt en niets onder **Meer velden** is gewijzigd, zegt de ingeklapte kop wat er gebeurt: elke persoon heeft een week dienst, daarna neemt de volgende het over.
 
+Ook iemand die voor het project is uitgenodigd maar er nog geen lid van is, kan meedraaien, maar niets roept diegene op tot de uitnodiging is geaccepteerd, en diegene krijgt niets te horen. Die beurt is een dekkingsgat, en de kanalen en de feed van elk bereikbaarheidsbeleid dat het schema oproept zeggen dat, met de naam die met de uitnodiging is ingevuld, nooit met het e-mailadres: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` in Slack en `oncall` in Microsoft Teams zeggen het ook. Zodra diegene lid wordt, komen oproepen aan, krijgt diegene te horen welk bereikbaarheidsbeleid hem nu oproept, en horen de kanalen "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Tot dan toont [Gereedheid en rapporten](/docs/on-call/readiness) diegene, met wat er moet gebeuren.
+
 ## Lagen
 
 De rotatie van een schema bestaat uit lagen, op de pagina **Lagen** ervan. Lagen worden van boven naar beneden gelezen: de hoogste laag met iemand van dienst is degene die oproept, dus zet de hoofdrotatie bovenaan en het vangnet eronder.

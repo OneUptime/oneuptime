@@ -38,6 +38,7 @@ Nel dettaglio, OneUptime legge queste impostazioni in quest'ordine, e decide la 
 - **Le impostazioni da 1 a 5 sono sostituzioni della conservazione.** Fanno parte dell'[Edizione Enterprise](/docs/self-hosted/enterprise), e del piano Scale su OneUptime Cloud. Senza di esse, ogni record viene conservato secondo il predefinito del progetto.
 - **Una modifica si applica alla nuova telemetria.** Un record mantiene la data che gli è stata assegnata: una conservazione più breve non lo elimina prima, e una più lunga non lo conserva più a lungo. I nuovi record seguono una modifica entro circa cinque minuti.
 - **Le eccezioni seguono ciò in cui sono state trovate.** Un'eccezione viene conservata quanto lo span o il log da cui proviene. Le Session Replay hanno una conservazione propria: vedete [Altri dati con una conservazione propria](#altri-dati-con-una-conservazione-propria).
+- **Gli eventi di sicurezza vengono conservati allo stesso modo.** Le regole di rilevamento, Esegui su eventi passati e le cacce leggono solo fin dove gli eventi di sicurezza vengono conservati, e lo dicono dove servirebbe di più: vedi [Eventi di sicurezza](/docs/telemetry/security-events).
 
 ## Prima di iniziare
 

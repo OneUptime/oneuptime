@@ -76,6 +76,16 @@ import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
  *      environment's own lastSeenAt, as the instance prune is: an
  *      environment whose telemetry stopped altogether keeps its apps and
  *      their history until it reports again.
+ *   6. Every app of a platform its provider's monitoring measures (an App
+ *      Service site or slot, a Container App, a Cloud Run, App Engine, App
+ *      Runner or ECS service) is tied again to the Cloud Resource it runs
+ *      as (#10407, #6793, #6794, CloudAppService.linkPlatformResources):
+ *      the sweep in step 4 archives a resource that went silent and
+ *      restores one that reports again, a collector discovers resources no
+ *      connection reads, and a person deletes one - each changes which
+ *      resource an app keeps. A connection's read links its project's apps
+ *      as it ends; this catches the rest, and ties the apps that were there
+ *      before the link was kept.
  * ------------------------------------------------------------------
  */
 
@@ -138,6 +148,29 @@ async function pruneUnseenAppsAndRevisions(): Promise<void> {
   }
 }
 
+/*
+ * Step 6: every project's apps, tied again to the cloud resources they run
+ * as. One project failing is logged by the link itself, and the others go
+ * on.
+ */
+async function linkAppsToTheirCloudResources(): Promise<void> {
+  const projectIds: Array<ObjectID> =
+    await CloudAppService.findProjectIdsWithPlatformResourceApps();
+  let changed: number = 0;
+
+  for (const projectId of projectIds) {
+    changed += await CloudAppService.linkPlatformResourcesSafely({
+      projectId,
+    });
+  }
+
+  if (changed > 0) {
+    logger.debug(
+      `${JOB_NAME}: tied ${changed} app(s) to another cloud resource, or to none`,
+    );
+  }
+}
+
 RunCron(
   JOB_NAME,
   { schedule: EVERY_FIVE_MINUTE, runOnStartup: false },
@@ -185,13 +218,21 @@ RunCron(
         );
       }
 
-      // Step 5, once an hour, in its own try block like the others.
+      // Steps 5 and 6, once an hour, each in its own try block like the others.
       if (isAppPruneTick(OneUptimeDate.getCurrentDate())) {
         try {
           await pruneUnseenAppsAndRevisions();
         } catch (err) {
           logger.error(
             `${JOB_NAME}: app prune failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+
+        try {
+          await linkAppsToTheirCloudResources();
+        } catch (err) {
+          logger.error(
+            `${JOB_NAME}: tying apps to the cloud resources they run as failed: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }

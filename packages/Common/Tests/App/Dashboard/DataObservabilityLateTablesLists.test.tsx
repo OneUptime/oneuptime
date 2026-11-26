@@ -36,6 +36,20 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
+/*
+ * The store's record line (who created it and who last modified it,
+ * #10461) reads the store's activity columns itself: pinned in
+ * OverviewRecordLines, nothing here.
+ */
+jest.mock("../../../UI/Components/Detail/RecordActivityLine", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
+      return null;
+    },
+  };
+});
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners",
   () => {

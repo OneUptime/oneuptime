@@ -26,7 +26,13 @@ import {
   SECURITY_HUNT_RUN_ERRORS,
   SecurityHuntRunWindow,
   SecurityHuntSchedule,
+  getSecurityHuntRunArrival,
 } from "../../../../../Types/SecurityEvent/SecurityHunt";
+import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  getArrivalEventTimeBounds,
+} from "../../../../../Types/SecurityEvent/SecurityEventArrival";
+import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import { buildSecurityHuntQuery } from "../../../../../Utils/SecurityEvent/SecurityHuntSearch";
 import { getJestSpyOn } from "../../../../Spy";
 import {
@@ -294,9 +300,9 @@ describe("who a run reads as", () => {
 });
 
 describe("what a run counts", () => {
-  test("the hunt's search and chips over its window, as the Events page reads them, exactly", async () => {
+  test("the hunt's search and chips over what arrived in its window, as the Events page reads them, exactly", async () => {
     const window: SecurityHuntRunWindow = {
-      startTime: new Date(SEARCHED_UP_TO.getTime() + 1),
+      startTime: SEARCHED_UP_TO,
       endTime: new Date(NOW.getTime() - DELAY),
     };
 
@@ -312,12 +318,49 @@ describe("what a run counts", () => {
         projectId: PROJECT_ID,
         searchQuery: hunt().searchQuery,
         filters: { "!statusName": ["Failure"] },
-        startTime: window.startTime,
-        endTime: window.endTime,
+        arrival: getSecurityHuntRunArrival(window),
       }),
       props: READER,
       exact: true,
     });
+  });
+
+  test("reads by when the events arrived, and holds the read to the day before them (#10488)", async () => {
+    const window: SecurityHuntRunWindow = {
+      startTime: SEARCHED_UP_TO,
+      endTime: new Date(NOW.getTime() - DELAY),
+    };
+
+    await SecurityHuntScheduler.countEvents({
+      hunt: hunt(),
+      window,
+      props: READER,
+    });
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    const bounds: { happenedAfter: Date; happenedBefore: Date } =
+      getArrivalEventTimeBounds(getSecurityHuntRunArrival(window));
+
+    // What arrived after where the run before stopped, up to two minutes ago.
+    expect(query[SECURITY_EVENT_ARRIVAL_QUERY_KEY]).toEqual({
+      arrivedAfter: SEARCHED_UP_TO.toISOString(),
+      arrivedUntil: new Date(NOW.getTime() - DELAY).toISOString(),
+    });
+
+    // Whenever it happened in the day before: the read is held to that, not to its window.
+    const time: InBetween<Date> = query["time"] as InBetween<Date>;
+    expect(time).toBeInstanceOf(InBetween);
+    expect(new Date(time.startValue).getTime()).toBe(
+      bounds.happenedAfter.getTime(),
+    );
+    expect(new Date(time.endValue).getTime()).toBe(
+      bounds.happenedBefore.getTime(),
+    );
+    expect(new Date(time.startValue).getTime()).toBeLessThan(
+      window.startTime.getTime(),
+    );
   });
 
   test("why it could not: in the words the hunt shows", () => {
@@ -368,8 +411,9 @@ describe("one run of a hunt", () => {
       hunt(),
       { now: NOW },
     );
+    // What arrived after where the run before stopped, up to two minutes ago.
     const window: SecurityHuntRunWindow = {
-      startTime: new Date(SEARCHED_UP_TO.getTime() + 1),
+      startTime: SEARCHED_UP_TO,
       endTime: new Date(NOW.getTime() - DELAY),
     };
 

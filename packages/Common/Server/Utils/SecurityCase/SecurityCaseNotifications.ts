@@ -27,9 +27,7 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../Feed/FeedPersonName";
 import { securityCaseGroupingKey } from "./SecurityCaseIngest";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
@@ -98,6 +96,71 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import { securityCaseSummaryMarkdown } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
+import SecurityCaseStepCheck from "../../../Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCaseStepCheckService from "../../Services/SecurityCaseStepCheckService";
+import {
+  SecurityCaseStepCheckEvidence,
+  readStepCheckEvidence,
+} from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
+import { createTranslator } from "../../../Types/Translator";
+import { wordStepCheckSentence } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
+import {
+  WrittenMoment,
+  writeMomentInTimezone,
+} from "../../../Utils/MomentPhrases";
+import {
+  SecurityPlaybookApprovalAsk as SecurityPlaybookApprovalAskWords,
+  SecurityPlaybookApprovalText,
+  getSecurityPlaybookApprovalText,
+} from "../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
+import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
+import { WorkspaceMessageBlock } from "../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { WorkspaceSentDirectMessage } from "../../Services/WorkspaceUserNotificationService";
+import UserLanguage from "../Notification/UserLanguage";
+import SecurityPlaybookApprovalReader, {
+  SecurityPlaybookApprovalRead,
+} from "../SecurityPlaybook/SecurityPlaybookApprovalReader";
+import WorkspaceSecurityPlaybookApproval, {
+  SecurityPlaybookApprovalMessage,
+} from "../Workspace/WorkspaceSecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
+import ProductBrandingText from "../ProductBrandingText";
+import {
+  SecurityCaseHandOffReason,
+  isSecurityCaseHandOffReason,
+} from "../../../Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_HAND_OFF_SENTENCES } from "../../../Types/SecurityCase/SecurityCaseAiWords";
+import {
+  SecurityCaseAiHoldOutcome,
+  isSecurityCaseAiHoldAlerting,
+  isSecurityCaseAiHoldHandedOff,
+} from "../../../Types/SecurityCase/SecurityCaseAiHold";
+import { readSecurityCaseAiActionEvidence } from "../../../Types/SecurityCase/SecurityCaseAiActionEvidence";
+import SecurityCaseAiAction from "../../../Models/DatabaseModels/SecurityCaseAiAction";
+import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import {
+  RESPONSE_STEP_KINDS,
+  isResponseStepOfKind,
+} from "../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
+import SecurityBlockService from "../../Services/SecurityBlockService";
+import SecurityCaseAiActionService from "../../Services/SecurityCaseAiActionService";
+import SecurityBlockDestination from "../SecurityBlocklist/SecurityBlockDestination";
+import SecurityBlockDestinations from "../SecurityBlocklist/SecurityBlockDestinations";
+import {
+  SecurityCaseAiHoldAction,
+  SecurityCaseAiHoldBlock,
+  buildAiHoldAlertMarkdown,
+  buildAiHoldResolvedLines,
+  buildAiHoldResolvedMarkdown,
+  describeAiHoldAsked,
+  describeAiHoldDone,
+  describeAiHoldDoneLine,
+  describeAiHoldEnd,
+  getHeldMinutes,
+} from "./SecurityCaseAiHoldWords";
 
 /*
  * TELLING PEOPLE ABOUT SECURITY CASES.
@@ -127,6 +190,12 @@ import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
  *    held back: it is about a deadline.
  *  - A task on a case is handed to a person (SecurityCaseTaskService):
  *    SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION, to that person.
+ *  - A step of the case's Response Plan that OneUptime saw done stops
+ *    holding - the address got through again, the account is active again
+ *    (SecurityCaseStepCheckRunner, #10340):
+ *    SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION, to the people on the
+ *    case or, when nobody is, to the people told about cases at its
+ *    priority. Never held back: the attacker is back.
  *
  * Each is also posted to the Slack and Microsoft Teams channels and chats the
  * project's Security Case rules name (WorkspaceNotificationRuleService), and
@@ -169,18 +238,42 @@ const NEW_CASE_WINDOW_MS: number = 60 * 60 * 1000;
 // At most this many entities are named in a message; the rest are counted.
 const ENTITY_NAME_LIMIT: number = 10;
 
+// What a held case's summary or notice reads of what was done on it (#10353).
+const AI_HOLD_ACTIONS_READ_LIMIT: number = 200;
+const AI_HOLD_BLOCKS_READ_LIMIT: number = 20;
+const AI_HOLD_CHECKS_READ_LIMIT: number = 100;
+
+export interface SecurityCaseAiHoldWork {
+  // OneUptime AI's log of the case, oldest first.
+  actions: Array<SecurityCaseAiHoldAction>;
+  // The blocks the case made, and where the project's blocklist is enforced.
+  blocks: Array<SecurityCaseAiHoldBlock>;
+  destinations: Array<string>;
+  // OneUptime saw every request from the case's addresses turned away.
+  isNothingThrough: boolean;
+}
+
 export enum SecurityCaseNotificationKind {
   PriorityReached = "PriorityReached",
   Assigned = "Assigned",
   ApprovalRequested = "ApprovalRequested",
   TargetAlert = "TargetAlert",
   TaskAssigned = "TaskAssigned",
+  StepRegressed = "StepRegressed",
+  // OneUptime AI handed the case to people (#10352).
+  AiHandedOff = "AiHandedOff",
 }
 
 export interface SecurityCaseRecipient {
   userId: ObjectID;
-  name: string;
-  email: string;
+  /*
+   * Their account as OneUptime read it - its name and address - under their
+   * id: what a line names them by, through FeedPersonName (#10681). Never
+   * placed in a line or message itself: it holds their address, and a
+   * case's feed, its channels and its emails to the people on it are read
+   * by others.
+   */
+  account: User;
   // Their own time zone, for a due time written in an email.
   timezone?: Timezone | undefined;
 }
@@ -223,6 +316,20 @@ export interface SecurityCaseMessage {
   pushType: string;
   requireInteraction: boolean;
   forceImmediate: boolean;
+}
+
+/*
+ * A notice's own Slack and Microsoft Teams message to one person
+ * (UserNotificationSettingService.sendUserNotification's workspaceMessage):
+ * an approval, with its buttons, as each chat draws it.
+ */
+export interface SecurityCaseWorkspaceMessage {
+  messageBlocks: Array<WorkspaceMessageBlock>;
+  messageBlocksByWorkspaceType?:
+    | Partial<Record<WorkspaceType, Array<WorkspaceMessageBlock>>>
+    | undefined;
+  notificationText: string;
+  onSent?: ((sent: WorkspaceSentDirectMessage) => Promise<void>) | undefined;
 }
 
 // A job's own words, read back from the queue.
@@ -307,6 +414,10 @@ export function describeRunTrigger(
       return "Automatically, for a new detection";
     case SecurityPlaybookTrigger.TriagedAsLikelyMalicious:
       return "Automatically, when AI triage read the case as Likely Malicious";
+    case SecurityPlaybookTrigger.OneUptimeAi:
+      return "By OneUptime AI, which is working the case";
+    case SecurityPlaybookTrigger.AutomaticResponse:
+      return "Automatically, by an automatic response policy";
     default:
       return "By hand";
   }
@@ -328,17 +439,30 @@ export function isSetupTestCase(
 /*
  * What people are told when a case opens at their priority, or rises to it:
  * new when nobody was told about it before and it opened within the hour,
- * risen otherwise.
+ * risen otherwise. A case OneUptime AI responded first to (#10353) says why
+ * people are told now and what OneUptime AI already did (aiHold), and is
+ * never held back in a rollup: it waited already.
  */
 export function buildPriorityReachedMessage(data: {
   facts: SecurityCaseMessageFacts;
   isNew: boolean;
   minimum: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">;
+  aiHold?:
+    | {
+        // Why people are told now (SecurityCaseAiHoldWords.describeAiHoldEnd).
+        reason: string;
+        // What OneUptime AI already did, a line each.
+        done: Array<string>;
+      }
+    | undefined;
 }): SecurityCaseMessage {
   const { facts, isNew } = data;
   const headline: string = isNew
     ? `New ${facts.priority} security case ${facts.number}`
     : `Security case ${facts.number} is now ${facts.priority}`;
+  const doneLine: string = data.aiHold
+    ? describeAiHoldDoneLine(data.aiHold.done)
+    : "";
 
   return {
     eventType:
@@ -350,23 +474,33 @@ export function buildPriorityReachedMessage(data: {
     emailVars: {
       ...getCaseEmailVars(facts),
       emailTitle: `Security Case ${facts.number}: ${facts.title}`,
-      leadSentence: isNew
-        ? `A new ${facts.priority} security case opened in ${facts.projectName}. Nobody may be on it yet.`
-        : `This security case in ${facts.projectName} is now ${facts.priority}.`,
+      leadSentence: data.aiHold
+        ? `A new ${facts.priority} security case opened in ${facts.projectName}. ${data.aiHold.reason}`
+        : isNew
+          ? `A new ${facts.priority} security case opened in ${facts.projectName}. Nobody may be on it yet.`
+          : `This security case in ${facts.projectName} is now ${facts.priority}.`,
       reasonSentence: `You can see this project's security cases, and you are told about cases at your chosen priority: ${describePriorityChoice(data.minimum)}. Change it in User Settings > Notification Settings.`,
+      ...(data.aiHold ? { aiHoldReason: data.aiHold.reason } : {}),
+      ...(doneLine ? { aiHoldDone: doneLine } : {}),
     },
     smsText: buildNotificationSms(
-      isNew
-        ? `New ${facts.priority} security case ${facts.number}: ${facts.title}.`
-        : `Security case ${facts.number} is now ${facts.priority}: ${facts.title}.`,
+      data.aiHold
+        ? `New ${facts.priority} security case ${facts.number}: ${facts.title}. ${data.aiHold.reason}`
+        : isNew
+          ? `New ${facts.priority} security case ${facts.number}: ${facts.title}.`
+          : `Security case ${facts.number} is now ${facts.priority}: ${facts.title}.`,
     ),
-    callText: `This is a message from OneUptime. ${headline}: ${facts.title}. Open OneUptime to look into it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    callText: data.aiHold
+      ? `This is a message from OneUptime. ${headline}: ${facts.title}. ${data.aiHold.reason} Open OneUptime to look into it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`
+      : `This is a message from OneUptime. ${headline}: ${facts.title}. Open OneUptime to look into it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: headline,
-    pushBody: `${facts.title} (${facts.projectName})`,
+    pushBody: data.aiHold
+      ? `${facts.title}: ${data.aiHold.reason}`
+      : `${facts.title} (${facts.projectName})`,
     pushType: "security-case-opened",
     requireInteraction: facts.isCritical,
-    // A Critical case is never held back in an email rollup.
-    forceImmediate: facts.isCritical,
+    // A Critical case is never held back in an email rollup, nor one that waited for OneUptime AI.
+    forceImmediate: facts.isCritical || Boolean(data.aiHold),
   };
 }
 
@@ -413,9 +547,46 @@ export function buildAssignedMessage(data: {
 }
 
 /*
+ * What the approval email says of the step, so nobody approves blind: what
+ * it does, to what and why each target is one, what it leaves alone, the
+ * evidence, and whether it can be undone - in English, as the email is
+ * written (SecurityPlaybookApprovalWords).
+ */
+export interface SecurityPlaybookApprovalEmailEvidence {
+  action: string;
+  // The proposed targets, each with why it is one.
+  targets: Array<string>;
+  // The protected ones, which the step never acts on.
+  leftAlone: Array<string>;
+  evidence: Array<string>;
+  undo: string;
+}
+
+// An approval's evidence, as its email says it.
+export function getApprovalEmailEvidence(
+  ask: SecurityPlaybookApprovalAskWords,
+): SecurityPlaybookApprovalEmailEvidence {
+  const text: SecurityPlaybookApprovalText = getSecurityPlaybookApprovalText({
+    ask,
+    context: WorkspaceSecurityPlaybookApproval.getContext(
+      DEFAULT_READER_LANGUAGE,
+    ),
+  });
+
+  return {
+    action: text.action,
+    targets: text.targets,
+    leftAlone: text.leftAlone,
+    evidence: text.evidence,
+    undo: text.undo,
+  };
+}
+
+/*
  * What a person is told when a playbook step on a case waits for approval:
  * the run does nothing until somebody approves or rejects it, so it is never
- * held back in an email rollup.
+ * held back in an email rollup. The email's button opens the approval on the
+ * case, never approves it: a mail scanner follows links.
  */
 export function buildApprovalRequestedMessage(data: {
   facts: SecurityCaseMessageFacts;
@@ -425,9 +596,15 @@ export function buildApprovalRequestedMessage(data: {
   isOnCase: boolean;
   // What a Contain step proposes to act on, for the approver to check.
   targets?: Array<string> | undefined;
+  // What the step does, to what, why, and what can be undone.
+  evidence?: SecurityPlaybookApprovalEmailEvidence | undefined;
+  // The approval on the case: where the email's button and the push open.
+  approvalUrl?: string | undefined;
 }): SecurityCaseMessage {
   const { facts } = data;
   const targets: string = (data.targets || []).join(", ");
+  const evidence: SecurityPlaybookApprovalEmailEvidence | undefined =
+    data.evidence;
 
   return {
     eventType:
@@ -443,8 +620,16 @@ export function buildApprovalRequestedMessage(data: {
         : "You can approve playbook steps, and nobody the case is assigned to can. Change these emails in User Settings > Notification Settings.",
       playbookName: data.playbookName,
       stepDescription: data.stepDescription,
-      stepTargets: targets,
+      stepTargets:
+        evidence && evidence.targets.length > 0
+          ? evidence.targets.join("; ")
+          : targets,
       startedBy: data.startedBy,
+      approvalAction: evidence?.action || "",
+      approvalLeftAlone: (evidence?.leftAlone || []).join("; "),
+      approvalEvidence: (evidence?.evidence || []).join(" "),
+      approvalUndo: evidence?.undo || "",
+      caseViewLink: data.approvalUrl || facts.url,
     },
     smsText: buildNotificationSms(
       `Approval needed on security case ${facts.number}: playbook ${data.playbookName}, ${data.stepDescription}${targets ? ` on ${targets}` : ""}.`,
@@ -620,6 +805,87 @@ export function buildTaskAssignedMessage(data: {
     pushType: "security-case-task-assigned",
     requireInteraction: false,
     forceImmediate: facts.isCritical,
+  };
+}
+
+/*
+ * What a person is told when a step of a case's Response Plan that
+ * OneUptime saw done stops holding: what it saw, in a sentence
+ * ("35.205.11.131 got through again at 11:05: the block is not holding."),
+ * and the step. Both are escaped wherever they are drawn: an address, a
+ * user or a host can be an attacker's own input.
+ */
+export function buildStepRegressedMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  line: string;
+  stepTitle: string;
+  isOnCase: boolean;
+}): SecurityCaseMessage {
+  const { facts } = data;
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+    subject: `[${facts.number}] A step stopped holding: ${data.line}`,
+    templateType: EmailTemplateType.SecurityCaseStepRegressed,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      emailTitle: `A step stopped holding on ${facts.number}`,
+      leadSentence: `A step of this ${facts.priority} security case's Response Plan that OneUptime saw done is not holding any more.`,
+      reasonSentence: data.isOnCase
+        ? "You are on this case. Change these emails in User Settings > Notification Settings."
+        : "Nobody is on this case, and you are told about cases at its priority. Change these emails in User Settings > Notification Settings.",
+      evidenceLine: data.line,
+      stepTitle: data.stepTitle,
+    },
+    smsText: buildNotificationSms(
+      `Security case ${facts.number}: a step stopped holding. ${data.line}`,
+    ),
+    callText: `This is a message from OneUptime. A step of security case ${facts.number}, priority ${facts.priority}, stopped holding. ${data.line} To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `A step stopped holding on ${facts.number}`,
+    pushBody: data.line,
+    pushType: "security-case-step-regressed",
+    requireInteraction: facts.isCritical,
+    forceImmediate: true,
+  };
+}
+
+/*
+ * What the people on a case - or, with nobody on it, those told about cases
+ * at its priority - are told when OneUptime AI hands it to them (#10352):
+ * that it did, and why, in OneUptime's own words.
+ */
+export function buildAiHandedOffMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  reason: string;
+  isOnCase: boolean;
+}): SecurityCaseMessage {
+  const { facts } = data;
+  const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
+    subject: `[${facts.number}] ${aiName} handed this case to people`,
+    templateType: EmailTemplateType.SecurityCaseAiHandedOff,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      emailTitle: `${aiName} handed ${facts.number} to people`,
+      leadSentence: `${aiName} was working this ${facts.priority} security case, and now a person has to.`,
+      reasonSentence: data.isOnCase
+        ? "You are on this case. Change these emails in User Settings > Notification Settings."
+        : "Nobody is on this case, and you are told about cases at its priority. Change these emails in User Settings > Notification Settings.",
+      handOffReason: data.reason,
+    },
+    smsText: buildNotificationSms(
+      `Security case ${facts.number}: ${aiName} handed it to people. ${data.reason}`,
+    ),
+    callText: `This is a message from OneUptime. ${aiName} handed security case ${facts.number}, priority ${facts.priority}, to people. ${data.reason} To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `${aiName} handed ${facts.number} to people`,
+    pushBody: data.reason,
+    pushType: "security-case-ai-handed-off",
+    requireInteraction: facts.isCritical,
+    forceImmediate: true,
   };
 }
 
@@ -810,6 +1076,78 @@ export default class SecurityCaseNotifications {
     );
   }
 
+  /*
+   * A step of the case's Response Plan that OneUptime saw done stopped
+   * holding (SecurityCaseStepCheckRunner, which wrote it so it is said
+   * once).
+   */
+  @CaptureSpan()
+  public static async stepRegressed(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    stepKey: string;
+    // The step as the plan says it, in English.
+    stepTitle: string;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.StepRegressed,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        stepKey: data.stepKey,
+        stepTitle: data.stepTitle,
+      },
+      0,
+    );
+  }
+
+  /*
+   * OneUptime AI handed the case to people, and why (SecurityCaseHandOff,
+   * #10352). Never held back.
+   */
+  @CaptureSpan()
+  public static async aiHandedOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    reason: SecurityCaseHandOffReason;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.AiHandedOff,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        reason: data.reason,
+      },
+      0,
+    );
+  }
+
+  /*
+   * OneUptime AI's hold of a new case's alerts ended (SecurityCaseAiHold,
+   * #10353): what it held is sent now, as the hold's end calls for
+   * (notifyPriorityReached reads how it ended) - at once, since it waited
+   * already. `actorUserId` ended it - pressed Page now, took the case - and
+   * is not told.
+   */
+  @CaptureSpan()
+  public static async aiHoldEnded(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    actorUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.PriorityReached,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        ...(data.actorUserId
+          ? { actorUserId: data.actorUserId.toString() }
+          : {}),
+      },
+      0,
+    );
+  }
+
   // Never throws: a case's change must not fail because nobody could be told.
   private static async enqueue(
     data: JSONObject,
@@ -914,6 +1252,31 @@ export default class SecurityCaseNotifications {
         }
         return;
       }
+      case SecurityCaseNotificationKind.StepRegressed: {
+        const stepKey: string | undefined = readText(data, "stepKey");
+
+        if (stepKey) {
+          await this.notifyStepRegressed({
+            projectId,
+            securityCaseId,
+            stepKey,
+            stepTitle: readText(data, "stepTitle") || "",
+          });
+        }
+        return;
+      }
+      case SecurityCaseNotificationKind.AiHandedOff: {
+        const reason: string | undefined = readText(data, "reason");
+
+        if (isSecurityCaseHandOffReason(reason)) {
+          await this.notifyAiHandedOff({
+            projectId,
+            securityCaseId,
+            reason,
+          });
+        }
+        return;
+      }
       default:
         logger.warn(
           `SecurityCaseNotifications: a notification job of an unknown kind (${String(data["kind"])}) was dropped.`,
@@ -935,8 +1298,25 @@ export default class SecurityCaseNotifications {
       return [];
     }
 
+    // Held while OneUptime AI responds first (#10353): its end tells people, or does not.
+    if (securityCase.aiHoldOutcome === SecurityCaseAiHoldOutcome.Holding) {
+      return [];
+    }
+
     const values: ProjectSecurityCaseValues =
       await SecurityCaseValues.getForProject(data.projectId);
+
+    // Its hold ended, and nobody was told about the case yet: as the end calls for.
+    if (
+      securityCase.aiHoldOutcome &&
+      !securityCase.notifiedSecurityCasePriorityId
+    ) {
+      return await this.notifyAiHoldEnded({
+        securityCase,
+        values,
+        actorUserId: data.actorUserId,
+      });
+    }
 
     const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
       values.priorities,
@@ -1123,6 +1503,415 @@ export default class SecurityCaseNotifications {
     return notified;
   }
 
+  // ---------- A case OneUptime AI responded first to ----------
+
+  /*
+   * ONEUPTIME AI'S HOLD OF A NEW CASE ENDED (#10353): the notice people were
+   * held from, as the end calls for. Claimed as a rise is - one
+   * compare-and-set from nobody told - so the notice queued when the case
+   * opened and the one the hold's end queued send it once between them.
+   *
+   *   - Resolved, nobody alerted: the case's channels get one summary of
+   *     what was done, and no person is told.
+   *   - A person took the case: they have it, and nobody else is told. The
+   *     channels hear of the new case, and that a person took it.
+   *   - People alerted: those told about cases at its priority get the new
+   *     case's notice, saying why now and what OneUptime AI already did.
+   *     When OneUptime AI handed the case over, the people on the case who
+   *     are not among them get its hand-off notice, as SecurityCaseHandOff
+   *     tells them of a case it did not hold. The channels get the new case
+   *     with the same why - those that post OneUptime AI's hand-offs too,
+   *     for a hand-off.
+   *
+   * Nobody is told about what they did themselves: whoever pressed Page now
+   * or took the case.
+   */
+  private static async notifyAiHoldEnded(data: {
+    securityCase: SecurityCase;
+    values: ProjectSecurityCaseValues;
+    actorUserId?: ObjectID | undefined;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const { securityCase, values } = data;
+    const projectId: ObjectID = securityCase.projectId!;
+    const securityCaseId: ObjectID = securityCase.id!;
+    const outcome: SecurityCaseAiHoldOutcome =
+      securityCase.aiHoldOutcome as SecurityCaseAiHoldOutcome;
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      securityCase.securityCasePriorityId,
+    );
+
+    if (!priority?.id) {
+      return [];
+    }
+
+    const isClaimed: boolean =
+      await SecurityCaseService.compareAndSetColumnsByIdWithoutHooks({
+        id: securityCaseId,
+        data: {
+          notifiedSecurityCasePriorityId: priority.id,
+        },
+        expectedData: {
+          notifiedSecurityCasePriorityId: null as unknown as ObjectID,
+        },
+        skipUpdateDateColumn: true,
+      });
+
+    if (!isClaimed) {
+      return [];
+    }
+
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const work: SecurityCaseAiHoldWork = await this.readAiHoldWork({
+      projectId,
+      securityCaseId,
+      isResolved: outcome === SecurityCaseAiHoldOutcome.Resolved,
+    });
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+    const priorityName: string = priority.name || "";
+    const isClosed: boolean = SecurityCaseStatuses.isClosed(
+      values.statuses,
+      securityCase.securityCaseStatusId,
+    );
+
+    if (outcome === SecurityCaseAiHoldOutcome.Resolved) {
+      const until: Date | undefined = isClosed
+        ? securityCase.closedAt
+        : securityCase.containedAt;
+      const lines: { headline: string; facts: Array<string> } =
+        buildAiHoldResolvedLines({
+          aiName,
+          caseNumber: facts.number,
+          isWorkedByAi: Boolean(securityCase.aiTookCaseAt),
+          isClosed,
+          tookMs:
+            until && securityCase.createdAt
+              ? new Date(until).getTime() -
+                new Date(securityCase.createdAt).getTime()
+              : null,
+          blocks: work.blocks,
+          destinations: work.destinations,
+          actions: work.actions,
+          isNothingThrough: work.isNothingThrough,
+        });
+
+      await this.postToChannels({
+        facts,
+        updateKind: NotificationRuleUpdateKind.PriorityReached,
+        markdown: buildChannelMarkdown({
+          headline: buildAiHoldResolvedMarkdown(lines),
+          facts,
+        }),
+        notificationText: lines.headline,
+      });
+
+      return [];
+    }
+
+    const personName: string | undefined = securityCase.aiHoldEndedByUserId
+      ? await this.getActorName(securityCase.aiHoldEndedByUserId)
+      : undefined;
+    const reason: string = describeAiHoldEnd({
+      outcome,
+      aiName,
+      handOffReason: securityCase.aiHandOffReason || null,
+      asked: describeAiHoldAsked(work.actions),
+      aiVerdict: securityCase.aiVerdict || null,
+      heldMinutes: getHeldMinutes({
+        openedAt: securityCase.createdAt,
+        endedAt: securityCase.aiHoldEndedAt,
+      }),
+      priorityName,
+      personName,
+    });
+    const done: Array<string> = describeAiHoldDone(work.actions);
+    const notificationText: string = `New ${priorityName} security case ${facts.number}: ${facts.title}`;
+
+    if (outcome === SecurityCaseAiHoldOutcome.TakenByPerson) {
+      await this.postToChannels({
+        facts,
+        updateKind: NotificationRuleUpdateKind.PriorityReached,
+        markdown: buildChannelMarkdown({
+          headline: mdText`🛡️ **New ${priorityName} security case.** ${reason}`,
+          facts,
+        }),
+        notificationText,
+      });
+
+      return [];
+    }
+
+    if (!isSecurityCaseAiHoldAlerting(outcome) || isClosed) {
+      return [];
+    }
+
+    const isHandedOff: boolean = isSecurityCaseAiHoldHandedOff(outcome);
+    const notToTell: Array<string> = [
+      data.actorUserId,
+      securityCase.aiHoldEndedByUserId,
+    ]
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      })
+      .map((id: ObjectID): string => {
+        return id.toString();
+      });
+    const isToBeTold: (person: SecurityCaseRecipient) => boolean = (
+      person: SecurityCaseRecipient,
+    ): boolean => {
+      return !notToTell.includes(person.userId.toString());
+    };
+
+    const watchers: {
+      people: Array<SecurityCaseRecipient>;
+      minimums: Map<string, SecurityCasePriority>;
+    } = await this.getPriorityWatchers({
+      projectId,
+      priorityId: securityCase.securityCasePriorityId,
+      priorities: values.priorities,
+    });
+    const defaultMinimum: SecurityCasePriority | null =
+      readSecurityCaseNotificationMinimum(values.priorities, null);
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients: await this.whoCanRead({
+        projectId,
+        securityCaseId,
+        people: watchers.people.filter(isToBeTold),
+      }),
+      message: (recipient: SecurityCaseRecipient): SecurityCaseMessage => {
+        const minimum: SecurityCasePriority | null =
+          watchers.minimums.get(recipient.userId.toString()) || defaultMinimum;
+
+        return buildPriorityReachedMessage({
+          facts,
+          isNew: true,
+          minimum: minimum
+            ? getChosenPriorityChoice({
+                priorities: values.priorities,
+                minimum,
+              })
+            : {
+                name: priorityName,
+                kind: SecurityCaseNotificationChoiceKind.AndAbove,
+              },
+          aiHold: { reason, done },
+        });
+      },
+    });
+
+    let toldOnCase: Array<SecurityCaseRecipient> = [];
+
+    if (isHandedOff) {
+      const watcherIds: Set<string> = new Set<string>(
+        watchers.people.map((person: SecurityCaseRecipient): string => {
+          return person.userId.toString();
+        }),
+      );
+
+      toldOnCase = await this.sendToPeople({
+        facts,
+        recipients: await this.whoCanRead({
+          projectId,
+          securityCaseId,
+          people: (await this.getPeopleOnCase(securityCase)).filter(
+            (person: SecurityCaseRecipient): boolean => {
+              return (
+                isToBeTold(person) && !watcherIds.has(person.userId.toString())
+              );
+            },
+          ),
+        }),
+        message: (): SecurityCaseMessage => {
+          return buildAiHandedOffMessage({ facts, reason, isOnCase: true });
+        },
+      });
+    }
+
+    await this.recordInFeed({
+      facts,
+      notified: [...notified, ...toldOnCase],
+      feedInfo: mdText`🔔 Notified ${people(notified.length + toldOnCase.length)} of this new **${priorityName}** case, which ${aiName} held while it responded first.`,
+      displayColor: Yellow500,
+    });
+
+    await this.postToChannels({
+      facts,
+      updateKind: isHandedOff
+        ? [
+            NotificationRuleUpdateKind.PriorityReached,
+            NotificationRuleUpdateKind.AI,
+          ]
+        : NotificationRuleUpdateKind.PriorityReached,
+      markdown: buildChannelMarkdown({
+        headline: buildAiHoldAlertMarkdown({ priorityName, reason, done }),
+        facts,
+      }),
+      notificationText,
+    });
+
+    return [...notified, ...toldOnCase];
+  }
+
+  /*
+   * What was done on a held case, for its summary or its notice: OneUptime
+   * AI's log of the case, and - for a summary - the blocks the case made,
+   * where the project's blocklist is enforced, and whether OneUptime saw
+   * every request from the case's addresses turned away. OneUptime's own
+   * records only: never the triage's report (SubjectReadersOnlyGuard).
+   * Never throws: what cannot be read is left out, and people are still
+   * told.
+   */
+  private static async readAiHoldWork(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    isResolved: boolean;
+  }): Promise<SecurityCaseAiHoldWork> {
+    const work: SecurityCaseAiHoldWork = {
+      actions: [],
+      blocks: [],
+      destinations: [],
+      isNothingThrough: false,
+    };
+
+    try {
+      const rows: Array<SecurityCaseAiAction> =
+        await SecurityCaseAiActionService.findBy({
+          query: {
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+          },
+          select: {
+            _id: true,
+            kind: true,
+            status: true,
+            target: true,
+            evidence: true,
+          },
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: AI_HOLD_ACTIONS_READ_LIMIT,
+          props: { isRoot: true },
+        });
+
+      work.actions = rows
+        .filter((row: SecurityCaseAiAction): boolean => {
+          return Boolean(row.kind && row.status);
+        })
+        .map((row: SecurityCaseAiAction): SecurityCaseAiHoldAction => {
+          return {
+            kind: row.kind!,
+            status: row.status!,
+            target: row.target || undefined,
+            verdict:
+              readSecurityCaseAiActionEvidence(row.evidence).verdict ||
+              undefined,
+          };
+        });
+
+      if (!data.isResolved) {
+        return work;
+      }
+
+      const blocks: Array<SecurityBlock> = await SecurityBlockService.findBy({
+        query: {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+        },
+        select: { _id: true, value: true, createdAt: true, expiresAt: true },
+        sort: { createdAt: SortOrder.Ascending },
+        skip: 0,
+        limit: AI_HOLD_BLOCKS_READ_LIMIT,
+        props: { isRoot: true },
+      });
+
+      work.blocks = blocks
+        .filter((block: SecurityBlock): boolean => {
+          return Boolean(block.value);
+        })
+        .map((block: SecurityBlock): SecurityCaseAiHoldBlock => {
+          return {
+            value: block.value!,
+            createdAt: block.createdAt ? new Date(block.createdAt) : undefined,
+            expiresAt: block.expiresAt ? new Date(block.expiresAt) : null,
+          };
+        });
+
+      if (work.blocks.length > 0) {
+        work.destinations = (
+          await SecurityBlockDestinations.findForProject(data.projectId)
+        ).destinations.map((destination: SecurityBlockDestination): string => {
+          return destination.name;
+        });
+      }
+
+      const checks: Array<SecurityCaseStepCheck> =
+        await SecurityCaseStepCheckService.findBy({
+          query: {
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+          },
+          select: { _id: true, stepKey: true, state: true },
+          skip: 0,
+          limit: AI_HOLD_CHECKS_READ_LIMIT,
+          props: { isRoot: true },
+        });
+      const requests: Array<SecurityCaseStepCheck> = checks.filter(
+        (check: SecurityCaseStepCheck): boolean => {
+          return isResponseStepOfKind(
+            check.stepKey || "",
+            RESPONSE_STEP_KINDS.requests,
+          );
+        },
+      );
+
+      work.isNothingThrough =
+        requests.length > 0 &&
+        requests.every((check: SecurityCaseStepCheck): boolean => {
+          return check.state === SecurityCaseStepCheckState.Verified;
+        });
+    } catch (error) {
+      logger.error(
+        `SecurityCaseNotifications: could not read what was done on held case ${data.securityCaseId.toString()}:`,
+      );
+      logger.error(error);
+    }
+
+    return work;
+  }
+
+  // The people on the case: its team's members, and its assignee.
+  private static async getPeopleOnCase(
+    securityCase: SecurityCase,
+  ): Promise<Array<SecurityCaseRecipient>> {
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId && securityCase.projectId) {
+      onCase.push(
+        ...(await this.getTeamMembers(
+          securityCase.projectId,
+          securityCase.assignedToTeamId,
+        )),
+      );
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        onCase.push(assignee);
+      }
+    }
+
+    return onCase;
+  }
+
   // ---------- A case assigned ----------
 
   @CaptureSpan()
@@ -1168,7 +1957,7 @@ export default class SecurityCaseNotifications {
     const assignedBy: string | undefined = data.playbookName
       ? `Playbook ${data.playbookName}`
       : data.actorUserId
-        ? (await this.getUser(data.actorUserId))?.name
+        ? await this.getActorName(data.actorUserId)
         : undefined;
 
     const byUserId: Map<
@@ -1263,16 +2052,7 @@ export default class SecurityCaseNotifications {
           _id: data.runId,
           projectId: data.projectId,
         },
-        select: {
-          _id: true,
-          status: true,
-          playbookName: true,
-          steps: true,
-          currentStepIndex: true,
-          stepResults: true,
-          triggeredByUserId: true,
-          trigger: true,
-        },
+        select: SecurityPlaybookApprovalReader.RUN_SELECT,
         props: {
           isRoot: true,
         },
@@ -1298,7 +2078,7 @@ export default class SecurityCaseNotifications {
     );
     const playbookName: string = run.playbookName || "Playbook";
     const startedBy: string = run.triggeredByUserId
-      ? (await this.getUser(run.triggeredByUserId))?.name || "By hand"
+      ? (await this.getActorName(run.triggeredByUserId)) || "By hand"
       : describeRunTrigger(run.trigger);
     // For a step that acts on users or hosts: the ones it would act on.
     const targets: Array<string> = (
@@ -1367,9 +2147,35 @@ export default class SecurityCaseNotifications {
       });
     }
 
+    /*
+     * The approval as its messages say it: what the step does, to what,
+     * why, who asked, the evidence and what can be undone. When it cannot
+     * be read, the notices go out as they always did, without buttons.
+     */
+    const approval: SecurityPlaybookApprovalRead | null =
+      await this.readApproval({ projectId: data.projectId, run });
+    const approvalUrl: string = approval?.ask.caseUrl || facts.url;
+    const evidence: SecurityPlaybookApprovalEmailEvidence | undefined = approval
+      ? getApprovalEmailEvidence(approval.ask)
+      : undefined;
+
+    // Each approver's own chat message is in the language on their account.
+    const languages: Map<string, string> = new Map<string, string>();
+
+    if (approval) {
+      for (const recipient of recipients) {
+        languages.set(
+          recipient.userId.toString(),
+          await UserLanguage.getLanguage(recipient.userId),
+        );
+      }
+    }
+
     const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
       facts,
       recipients,
+      url: approvalUrl,
+      runId: data.runId,
       message: (): SecurityCaseMessage => {
         return buildApprovalRequestedMessage({
           facts,
@@ -1378,8 +2184,21 @@ export default class SecurityCaseNotifications {
           startedBy,
           isOnCase,
           targets,
+          evidence,
+          approvalUrl,
         });
       },
+      workspaceMessage: approval
+        ? (recipient: SecurityCaseRecipient): SecurityCaseWorkspaceMessage => {
+            return SecurityCaseNotifications.getApprovalDirectMessage({
+              approval,
+              recipient,
+              language:
+                languages.get(recipient.userId.toString()) ||
+                DEFAULT_READER_LANGUAGE,
+            });
+          }
+        : undefined,
     });
 
     await this.recordInFeed({
@@ -1388,6 +2207,26 @@ export default class SecurityCaseNotifications {
       feedInfo: mdText`🔔 Asked ${people(notified.length)} to approve ${stepDescription} of playbook **${playbookName}**.`,
       displayColor: Yellow500,
     });
+
+    /*
+     * The channels and chats the case's Security Case rules name for
+     * approvals get the approval with its buttons, kept so every copy says
+     * who decided (WorkspaceSecurityPlaybookApprovalMessages).
+     */
+    if (approval) {
+      try {
+        await WorkspaceSecurityPlaybookApprovalMessages.postToChannels({
+          read: approval,
+        });
+      } catch (error) {
+        logger.error(
+          `SecurityCaseNotifications: could not post the approval of run ${data.runId.toString()} to Slack or Microsoft Teams:`,
+        );
+        logger.error(error);
+      }
+
+      return notified;
+    }
 
     await this.postToChannels({
       facts,
@@ -1400,6 +2239,77 @@ export default class SecurityCaseNotifications {
     });
 
     return notified;
+  }
+
+  /*
+   * The step's approval, read as its messages say it - null when it cannot
+   * be read, logged: the people are still told.
+   */
+  private static async readApproval(data: {
+    projectId: ObjectID;
+    run: SecurityPlaybookRun;
+  }): Promise<SecurityPlaybookApprovalRead | null> {
+    try {
+      return await SecurityPlaybookApprovalReader.read({
+        projectId: data.projectId,
+        runId: data.run.id!,
+        run: data.run,
+      });
+    } catch (error) {
+      logger.error(
+        `SecurityCaseNotifications: could not read the approval of run ${data.run.id?.toString()}:`,
+      );
+      logger.error(error);
+      return null;
+    }
+  }
+
+  /*
+   * The approval in one approver's Slack and Microsoft Teams direct
+   * messages, in their language, with its buttons, each copy kept as it
+   * lands to say later who decided (WorkspaceSecurityPlaybookApprovalMessages).
+   * Mattermost, which has no buttons for it, gets the notice as text.
+   */
+  public static getApprovalDirectMessage(data: {
+    approval: SecurityPlaybookApprovalRead;
+    recipient: SecurityCaseRecipient;
+    language: string;
+  }): SecurityCaseWorkspaceMessage {
+    const slack: SecurityPlaybookApprovalMessage =
+      WorkspaceSecurityPlaybookApproval.getMessage({
+        ask: data.approval.ask,
+        round: data.approval.round,
+        workspaceType: WorkspaceType.Slack,
+        language: data.language,
+      });
+    const teams: SecurityPlaybookApprovalMessage =
+      WorkspaceSecurityPlaybookApproval.getMessage({
+        ask: data.approval.ask,
+        round: data.approval.round,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        language: data.language,
+      });
+
+    return {
+      messageBlocks: [],
+      messageBlocksByWorkspaceType: {
+        [WorkspaceType.Slack]: slack.messageBlocks,
+        [WorkspaceType.MicrosoftTeams]: teams.messageBlocks,
+      },
+      notificationText: slack.notificationText,
+      onSent: async (sent: WorkspaceSentDirectMessage): Promise<void> => {
+        await WorkspaceSecurityPlaybookApprovalMessages.keepDirectMessage({
+          read: data.approval,
+          userId: data.recipient.userId,
+          language: data.language,
+          messageBlocks:
+            sent.workspaceType === WorkspaceType.MicrosoftTeams
+              ? teams.messageBlocks
+              : slack.messageBlocks,
+          sent,
+        });
+      },
+    };
   }
 
   // ---------- A response target about to be missed, or missed ----------
@@ -1706,7 +2616,7 @@ export default class SecurityCaseNotifications {
 
     const facts: SecurityCaseMessageFacts = await this.getFacts(securityCase);
     const assignedBy: string | undefined = data.actorUserId
-      ? (await this.getUser(data.actorUserId))?.name
+      ? await this.getActorName(data.actorUserId)
       : undefined;
     const taskTitle: string = task.title || "A task";
 
@@ -1734,6 +2644,195 @@ export default class SecurityCaseNotifications {
       notified,
       feedInfo: mdText`🔔 Notified ${people(notified.length)} of the task **${taskTitle}**.`,
       displayColor: Gray500,
+    });
+
+    return notified;
+  }
+
+  // ---------- A step that stopped holding ----------
+
+  @CaptureSpan()
+  public static async notifyStepRegressed(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    stepKey: string;
+    stepTitle: string;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const check: SecurityCaseStepCheck | null =
+      await SecurityCaseStepCheckService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          stepKey: data.stepKey,
+        },
+        select: { _id: true, state: true, evidence: true },
+        props: { isRoot: true },
+      });
+    const evidence: SecurityCaseStepCheckEvidence | null =
+      readStepCheckEvidence(check?.evidence);
+
+    // Read again as it is now: a step that holds again since is not news.
+    if (
+      !check ||
+      check.state !== SecurityCaseStepCheckState.Regressed ||
+      !evidence
+    ) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const onCase: Array<SecurityCaseRecipient> =
+      await this.getPeopleOnCase(securityCase);
+
+    const isOnCase: boolean = onCase.length > 0;
+    const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: isOnCase
+        ? onCase
+        : (
+            await this.getPriorityWatchers({
+              projectId: data.projectId,
+              priorityId: securityCase.securityCasePriorityId,
+              priorities: values.priorities,
+            })
+          ).people,
+    });
+    const english: ReturnType<typeof createTranslator> =
+      createTranslator(undefined);
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      message: (recipient: SecurityCaseRecipient): SecurityCaseMessage => {
+        return buildStepRegressedMessage({
+          facts,
+          line: wordStepCheckSentence({
+            sentence: evidence.sentence,
+            translator: english,
+            // In the recipient's own time zone, as a due time is.
+            writeMoment: (time: Date): WrittenMoment => {
+              return writeMomentInTimezone({
+                time,
+                timezone: recipient.timezone || "UTC",
+              });
+            },
+          }),
+          stepTitle: data.stepTitle,
+          isOnCase,
+        });
+      },
+    });
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: mdText`🔔 Notified ${people(notified.length)} that a step of this case stopped holding.`,
+      displayColor: Red500,
+    });
+
+    return notified;
+  }
+
+  /*
+   * OneUptime AI handed the case to people (#10352): the people on the case
+   * - its assignee and its team - or, when nobody is, those told about
+   * cases at its priority, as they chose to be told; and the channels the
+   * project's Security Case rules post OneUptime AI's updates to. Only while
+   * the case is still handed over: a case somebody has picked up since is
+   * not news.
+   */
+  @CaptureSpan()
+  public static async notifyAiHandedOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    reason: SecurityCaseHandOffReason;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId) {
+      onCase.push(
+        ...(await this.getTeamMembers(
+          data.projectId,
+          securityCase.assignedToTeamId,
+        )),
+      );
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        onCase.push(assignee);
+      }
+    }
+
+    const isOnCase: boolean = onCase.length > 0;
+    const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: isOnCase
+        ? onCase
+        : (
+            await this.getPriorityWatchers({
+              projectId: data.projectId,
+              priorityId: securityCase.securityCasePriorityId,
+              priorities: values.priorities,
+            })
+          ).people,
+    });
+    const reason: string = SECURITY_CASE_HAND_OFF_SENTENCES[data.reason];
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      message: (): SecurityCaseMessage => {
+        return buildAiHandedOffMessage({ facts, reason, isOnCase });
+      },
+    });
+
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+    await this.postToChannels({
+      facts,
+      updateKind: NotificationRuleUpdateKind.AI,
+      markdown: buildChannelMarkdown({
+        facts,
+        headline: mdText`🙋 **${aiName} handed this case to people.** ${reason}`,
+      }),
+      notificationText: `${aiName} handed ${facts.number} to people`,
+    });
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: mdText`🔔 Notified ${people(notified.length)} that ${aiName} handed this case to people.`,
+      displayColor: Yellow500,
     });
 
     return notified;
@@ -1860,10 +2959,20 @@ export default class SecurityCaseNotifications {
       return null;
     }
 
+    // Under the id it was read by: a membership's user carries none of its own.
+    const account: User = new User(userId);
+
+    if (user?.name) {
+      account.name = user.name;
+    }
+
+    if (user?.email) {
+      account.email = user.email;
+    }
+
     return {
       userId,
-      name: user?.name?.toString() || user?.email?.toString() || "",
-      email: user?.email?.toString() || "",
+      account,
       ...(user?.timezone ? { timezone: user.timezone } : {}),
     };
   }
@@ -1958,38 +3067,47 @@ export default class SecurityCaseNotifications {
   }
 
   /*
-   * Whom a case is assigned to, as the project names them: someone only
-   * invited to it by the name typed for them, else their address - never
-   * their account's own name, which it does not see until they join
-   * (#9823). Empty for a person who is gone.
+   * Who did something to a case - assigned it, handed somebody a task,
+   * started a playbook by hand - as a message about it names them: a person
+   * who acted is a member, named by their name, else the part of their
+   * address before the "@" (FeedPersonName.getMemberName, #10681). Never
+   * their address: an approval's email goes to every approver. Undefined
+   * for somebody who is gone.
+   */
+  private static async getActorName(
+    userId: ObjectID,
+  ): Promise<string | undefined> {
+    const actor: SecurityCaseRecipient | null = await this.getUser(userId);
+
+    if (!actor) {
+      return undefined;
+    }
+
+    return (
+      FeedPersonName.getMemberName({
+        name: actor.account.name,
+        email: actor.account.email,
+      }) || undefined
+    );
+  }
+
+  /*
+   * Whom a case is assigned to, as every message about it names them - its
+   * channels' posts, and the emails to everybody told about it
+   * (FeedPersonName, #10681): someone only invited by the name typed with
+   * their invitation, else "someone who hasn't joined the project yet",
+   * never by their account's own name (#9823); a member by their name, else
+   * the part of their address before the "@". Never an address. Empty for a
+   * person who is gone.
    */
   private static async getAssigneeName(data: {
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<string> {
-    const user: SecurityCaseRecipient | null = await this.getUser(data.userId);
-
-    if (!user) {
-      return "";
-    }
-
-    const withheld: Map<string, WithheldProfile> =
-      await PendingInviteeProfiles.readWithheldProfilesInProject({
-        userIds: [data.userId.toString()],
-        projectId: data.projectId,
-      });
-
-    return PendingInviteeProfiles.getWithheldProfile({
+    return await FeedPersonName.getText({
       userId: data.userId,
-      withheld: withheld,
-    })
-      ? PendingInviteeProfiles.getNameInProject({
-          userId: data.userId,
-          name: null,
-          email: user.email,
-          withheld: withheld,
-        })
-      : user.name;
+      projectId: data.projectId,
+    });
   }
 
   private static async getTeamName(teamId: ObjectID): Promise<string> {
@@ -2118,6 +3236,13 @@ export default class SecurityCaseNotifications {
         containDueAt: true,
         acknowledgeMissedAt: true,
         containMissedAt: true,
+        // OneUptime AI responding first to it (#10353), and its work.
+        aiHoldOutcome: true,
+        aiHoldEndedAt: true,
+        aiHoldEndedByUserId: true,
+        aiHandOffReason: true,
+        aiVerdict: true,
+        aiTookCaseAt: true,
       },
       props: {
         isRoot: true,
@@ -2223,6 +3348,15 @@ export default class SecurityCaseNotifications {
     message: (recipient: SecurityCaseRecipient) => SecurityCaseMessage;
     // Where the push opens, when not the case's Overview: its Tasks page.
     url?: string | undefined;
+    // The run a push is about, for the app to open its approval.
+    runId?: ObjectID | undefined;
+    /*
+     * The person's own Slack and Microsoft Teams message, when the notice
+     * has one of its own: an approval, with its buttons.
+     */
+    workspaceMessage?:
+      | ((recipient: SecurityCaseRecipient) => SecurityCaseWorkspaceMessage)
+      | undefined;
   }): Promise<Array<SecurityCaseRecipient>> {
     const notified: Array<SecurityCaseRecipient> = [];
 
@@ -2264,6 +3398,7 @@ export default class SecurityCaseNotifications {
             securityCaseId: data.facts.caseId.toString(),
             projectId: data.facts.projectId.toString(),
             requireInteraction: message.requireInteraction,
+            ...(data.runId ? { runId: data.runId.toString() } : {}),
           });
 
         await UserNotificationSettingService.sendUserNotification({
@@ -2274,6 +3409,9 @@ export default class SecurityCaseNotifications {
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          ...(data.workspaceMessage
+            ? { workspaceMessage: data.workspaceMessage(recipient) }
+            : {}),
           securityCaseId: data.facts.caseId,
           forceImmediate: message.forceImmediate,
         });
@@ -2290,7 +3428,14 @@ export default class SecurityCaseNotifications {
     return notified;
   }
 
-  // The case's feed says who was told; nothing when nobody was.
+  /*
+   * The case's feed says who was told, one name each, as every feed entry
+   * names people (FeedPersonName.readNames, #10681): a member by their name,
+   * else the part of their address before the "@" - never their address,
+   * which the list put after every name ("Ana Lee (ana@acme.com)"), and
+   * the feed is read through the API and workflows. Who of them is only
+   * invited is read once for them all. Nothing when nobody was told.
+   */
   private static async recordInFeed(data: {
     facts: SecurityCaseMessageFacts;
     notified: Array<SecurityCaseRecipient>;
@@ -2301,15 +3446,20 @@ export default class SecurityCaseNotifications {
       return;
     }
 
+    const names: Map<string, string> = await FeedPersonName.readNames({
+      users: data.notified.map((recipient: SecurityCaseRecipient): User => {
+        return recipient.account;
+      }),
+      projectId: data.facts.projectId,
+    });
+
     await SecurityCaseFeedService.createSecurityCaseFeedItem({
       projectId: data.facts.projectId,
       securityCaseId: data.facts.caseId,
       feedInfoInMarkdown: data.feedInfo.toString(),
       moreInformationInMarkdown: FeedMarkdown.bulletList(
         data.notified.map((recipient: SecurityCaseRecipient): MarkdownText => {
-          return recipient.email && recipient.name !== recipient.email
-            ? mdText`${recipient.name} (${recipient.email})`
-            : mdText`${recipient.name || recipient.email}`;
+          return mdText`${names.get(recipient.userId.toString().toLowerCase()) || FEED_NOBODY_NAMED}`;
         }),
       ).toString(),
       eventType: SecurityCaseFeedEventType.Notification,
@@ -2325,8 +3475,12 @@ export default class SecurityCaseNotifications {
    */
   private static async postToChannels(data: {
     facts: SecurityCaseMessageFacts;
-    // Which notice it is, for the rules that choose theirs.
-    updateKind: NotificationRuleUpdateKind;
+    /*
+     * Which notice it is, for the rules that choose theirs: a held case's
+     * hand-off is a new case and OneUptime AI's hand-off at once, posted
+     * where either is wanted.
+     */
+    updateKind: NotificationRuleUpdateKind | Array<NotificationRuleUpdateKind>;
     markdown: MarkdownText;
     notificationText: string;
   }): Promise<void> {
@@ -2340,7 +3494,9 @@ export default class SecurityCaseNotifications {
         notificationText: data.notificationText,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          updateKinds: [data.updateKind],
+          updateKinds: Array.isArray(data.updateKind)
+            ? data.updateKind
+            : [data.updateKind],
         },
       });
     } catch (error) {

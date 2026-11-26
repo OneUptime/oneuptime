@@ -12,11 +12,11 @@ Instrumente um aplicativo Android nativo com o OpenTelemetry Android para que el
 
 ## Como funciona
 
-O OpenTelemetry Android roda dentro do seu aplicativo. Ele envia traços, registros e métricas ao OneUptime por OTLP com uma chave de ingestão **Servidor** e adiciona um cabeçalho W3C `traceparent` às requisições que o seu aplicativo faz, para que os spans do seu backend se juntem aos traços do aplicativo.
+O OpenTelemetry Android roda dentro do seu aplicativo. Ele envia traços, registros e métricas ao OneUptime por OTLP com uma chave de ingestão **Celular**, fixada ao seu aplicativo, e adiciona um cabeçalho W3C `traceparent` às requisições que o seu aplicativo faz, para que os spans do seu backend se juntem aos traços do aplicativo.
 
 ```mermaid title="Do aplicativo ao OneUptime, passando pelo seu backend"
 flowchart TB
-    app["Seu aplicativo Android<br/>com o OpenTelemetry Android"] -->|"OTLP com uma<br/>chave Servidor"| oneuptime["OneUptime"]
+    app["Seu aplicativo Android<br/>com o OpenTelemetry Android"] -->|"OTLP com uma<br/>chave Celular"| oneuptime["OneUptime"]
     app -->|"requisições com um<br/>cabeçalho traceparent"| api["Suas APIs: pedidos,<br/>PDV, tela da cozinha"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Aplicação RUM móvel"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Antes de começar
 
 - Um aplicativo Android cujo `minSdk` seja 23 ou superior, compilado com `compileSdk` 34 ou superior. Com um `minSdk` abaixo de 26, ative o [desugaring da biblioteca principal](https://developer.android.com/studio/write/java8-support#library-desugaring), com o Android Gradle Plugin 8.3.0 ou posterior e `android.useFullClasspathForDexingTransform=true` em `gradle.properties`.
-- Uma chave de ingestão **Servidor**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** com **Criar chave de ingestão**. Uma chave **Navegador** é recusada a partir de um aplicativo: ela é verificada contra o cabeçalho `Origin`, que um aplicativo não envia.
+- Uma chave de ingestão **Celular**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** com **Criar chave de ingestão**, com o `service.name` do seu aplicativo em **Nome do serviço fixado**. Uma chave **Navegador** é recusada a partir de um aplicativo: ela é verificada contra o cabeçalho `Origin`, que um aplicativo não envia.
 - Estas configurações de OTLP. Se você hospeda o OneUptime por conta própria, troque `https://oneuptime.com` pelo seu próprio host.
 
 | Configuração | Valor |
@@ -35,7 +35,7 @@ flowchart TB
 | Cabeçalho | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Na página da chave, defina um **Nome do serviço fixado**, um **Requests Per Minute Limit** e uma data em **Expira em**, e troque a chave a cada versão.
+> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Na página da chave, defina um **Nome do serviço fixado**, um **Limite de solicitações por minuto** e uma data em **Expira em**, e troque a chave a cada versão.
 
 ## Adicionar o OpenTelemetry Android
 
@@ -303,7 +303,7 @@ O OpenTelemetry Android define `device.model.identifier` sozinho, então o aplic
 :::
 
 :::details Nada chega, ou a chave é recusada
-Execute a verificação da chave em [Adicionar o OpenTelemetry Android](#adicionar-o-opentelemetry-android). Um `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou. Uma chave **Navegador** é recusada a partir de um aplicativo: use uma chave **Servidor**. Confira se `baseUrl` termina em `/otlp`, sem `/v1/traces`: o agente acrescenta o caminho sozinho.
+Execute a verificação da chave em [Adicionar o OpenTelemetry Android](#adicionar-o-opentelemetry-android). Um `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou. Uma chave **Navegador** é recusada a partir de um aplicativo: use uma chave **Celular**. Confira se `baseUrl` termina em `/otlp`, sem `/v1/traces`: o agente acrescenta o caminho sozinho.
 :::
 
 :::details Um crash ou um ANR não está em Exceções

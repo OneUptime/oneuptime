@@ -104,6 +104,8 @@ Fluentd の構成ファイルは通常 `/etc/fluent/fluentd.conf` です。古�
 
 `json_array true` はバッファーのチャンクごとに 1 つの JSON 配列として送り、`flush_interval 10s` は 10 秒ごとにバッファーを送ります。`chunk_limit_size 900k` は各リクエストを、このエンドポイントで OneUptime が受け付ける上限の 1 MB 未満に保ちます。
 
+Fluentd の既定の設定でも動作します。`content_type` と `json_array true` がない場合、Fluentd は改行区切りの JSON を 1 行に 1 レコードずつ送り、OneUptime は各行をそのレコードとして読み取ります。`compress gzip` の有無は問いません。
+
 `@type file` は、まだ送っていないバッチを `path` が示すフォルダーに保持するので、Fluentd を再起動してもどれも失われません。Fluentd の既定であるメモリー上のバッファーは、保持していたものを失います。Fluentd のユーザーはそのフォルダーに書き込める必要があります。`/var/log/fluent` は fluent-package の、`/var/log/td-agent` は td-agent の、`/fluentd/log` は `fluent/fluentd` イメージのフォルダーです。`total_limit_size 512m` はそこに最大 512 MB まで保持し、いっぱいになると、バッチが送られるまで Fluentd はそれ以上レコードを受け取りません。
 
 `retryable_response_codes 429,502,503,504` は、OneUptime が混み合っているとき (`429`) や再起動中のとき (`502`、`503`、`504`) にバッチを送り直します。これがないと、Fluentd は `503` 以外の応答でバッチを破棄します。`retry_max_interval 30s` は再試行の間隔を最大 30 秒に保ち、`retry_timeout 72h` は 72 時間たっても送れないバッチを破棄します。`record_transformer` フィルターは、Fluentd が各レコードに付けた時刻を `fluentd_time` として加えます。HTTP 出力はレコードしか送らず、OneUptime はログの時刻をレコードから読み取るためです。

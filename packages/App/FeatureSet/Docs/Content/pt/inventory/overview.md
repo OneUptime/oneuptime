@@ -22,7 +22,7 @@ flowchart TB
     T["A sua<br/>telemetria"] -->|"Discovered"| I["Inventário: um item<br/>por coisa, com uma<br/>chave de identidade<br/>estável"]
     R["Os coletores<br/>do OneUptime"] -->|"Espelhado a cada<br/>15 minutos"| I
     Y["Coisas sem<br/>telemetria"] -->|"Adicionado por você"| I
-    I --> L["All Items, o mapa de<br/>topologia e as páginas<br/>dos itens"]
+    I --> L["All Items, Topologia<br/>e as páginas<br/>dos itens"]
     I --> X["Campos personalizados,<br/>exportação CSV e API"]
 ```
 
@@ -63,7 +63,7 @@ Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas página
 | **Visão geral** | Quantos itens você tem, o que são, quantos ficaram em silêncio e o que foi adicionado mais recentemente. |
 | **Todos os itens** | Todos os itens. Pesquise por nome, descrição ou chave de identidade, filtre a lista por tipo, origem, status ou campo personalizado e adicione um item manualmente. |
 | **Dispositivos gerenciados** | As suas conexões de gerenciadores de dispositivos — Esper, Microsoft Intune, Workspace ONE UEM e SOTI MobiControl — e todos os dispositivos que elas importam, com o status, o grupo, o modelo e o sistema operacional de cada um. |
-| **Mapa de topologia** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
+| **Topologia** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
 | **Em silêncio** | Os itens sem notícias há mais de um dia: itens descobertos que não enviaram telemetria e dispositivos que pararam de fazer check-in no gerenciador de dispositivos deles. |
 | **Por origem** | Os itens de uma origem: **Descoberto**, **Replicado** ou **Adicionado por você**. |
 | **Configurações → Campos personalizados** | Os campos que o seu projeto mantém em cada item. |
@@ -271,7 +271,7 @@ Para arquivar itens, selecione-os em **Todos os itens** e arquive-os de uma vez,
 
 ## Relações e topologia
 
-O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Mapa de topologia** as desenha, e a página **Conexões** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
+O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Topologia** as desenha, e a página **Conexões** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
 
 | Relação | Por exemplo |
 | --- | --- |

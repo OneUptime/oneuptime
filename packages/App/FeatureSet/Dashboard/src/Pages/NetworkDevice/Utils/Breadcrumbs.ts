@@ -178,6 +178,10 @@ export function getNetworkDeviceBreadcrumbs(
       ["Project", "Network", "Rules", "Link Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Network", "Rules", "Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES,
       ["Project", "Network", "Rules", "Auto Import Rules"],
     ),

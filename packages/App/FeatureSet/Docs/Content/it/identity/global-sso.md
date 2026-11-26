@@ -27,7 +27,7 @@ Per il provider proprio di un singolo progetto, vedi [SSO](/docs/identity/sso).
 :::steps
 ### Aprire l'elenco dei provider
 
-Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazioni admin** nel menu utente. Poi vai a **Impostazioni** > **Single sign-on**. La pagina elenca i provider SAML dell'istanza, poi i suoi provider OpenID Connect, e termina con la scheda **Richiedi l'SSO**.
+Accedi come amministratore principale e scegli **Pannello amministratore** nel menu utente. Poi vai a **Impostazioni** > **Single sign-on**. La pagina elenca i provider SAML dell'istanza, poi i suoi provider OpenID Connect, e termina con la scheda **Richiedi l'SSO**.
 
 ### Creare il provider
 
@@ -103,6 +103,12 @@ Registra presso il tuo provider l'URI di reindirizzamento dopo l'uscita mostrato
 :::
 
 Dove Okta, Microsoft Entra ID, Auth0 e Keycloak tengono queste impostazioni è spiegato nella pagina [SSO](/docs/identity/sso).
+
+## Accedere di nuovo per confermare che sei tu
+
+Chi accede solo tramite un provider globale conferma che è lui con **Accedi di nuovo** prima di cambiare il modo in cui accede o di eliminare il proprio account: OneUptime lo rimanda al provider con `ForceAuthn="true"` per SAML, oppure `prompt=login` e `max_age=0` per OpenID Connect (solo `prompt=login` per Microsoft Entra ID), e lo conta solo quando il provider dice, in `AuthnInstant` o `auth_time`, che ha effettuato l'accesso in quel momento o dopo. Aggiungere, cambiare o eliminare un provider globale ti chiede prima di [confermare che sei tu](/docs/introduction/your-account#confermare-che-sei-tu).
+
+Cosa impostare in Okta, Microsoft Entra ID, Keycloak e Google Workspace è spiegato nella pagina [SSO](/docs/identity/sso#accedere-di-nuovo-per-confermare-che-sei-tu).
 
 ## Imporre l'SSO
 
@@ -187,4 +193,5 @@ L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, 
 - [SSO](/docs/identity/sso): Configurare il provider SAML o OIDC proprio di un progetto.
 - [SCIM](/docs/identity/scim): Lascia che il tuo provider di identità aggiunga e rimuova persone automaticamente.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Che cosa permettono di fare i team in cui entrano i nuovi arrivati.
+- [Aiuto e supporto](/docs/self-hosted/help-and-support): Indicare alle persone che hanno bisogno di un invito a chi chiederlo.
 :::

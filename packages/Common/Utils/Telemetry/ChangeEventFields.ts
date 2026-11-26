@@ -108,6 +108,7 @@ export const ChangeEventAttribute: {
   readonly CloudOperation: string;
   readonly CloudActor: string;
   readonly CloudEventId: string;
+  readonly CloudGrantsAccess: string;
   readonly CloudAccountRecordId: string;
   readonly MadeBy: string;
   readonly ApprovedBy: string;
@@ -160,15 +161,26 @@ export const ChangeEventAttribute: {
   CloudOperation: "oneuptime.cloud.operation",
   CloudActor: "oneuptime.cloud.actor",
   CloudEventId: "oneuptime.cloud.event_id",
+  /*
+   * For a change of who may restore a snapshot (an RDS snapshot's or an
+   * Aurora cluster snapshot's restore attribute): "true" when it named
+   * accounts to add, "false" when it only named accounts to remove. A yes
+   * or no, never which accounts; absent when the record does not say
+   * (#10428).
+   */
+  CloudGrantsAccess: "oneuptime.cloud.grants_access",
   // The CloudAccount row the change belongs to.
   CloudAccountRecordId: "oneuptime.cloud_account.id",
   /*
    * Who made a change a cloud's activity log recorded, when it was
    * OneUptime itself: oneuptime-ai (ChangeEventSource.OneUptimeAi) for a
    * change the account's Cloud AI agent made, under its own role
-   * (CloudAiChangeAttribution). The fix it belongs to: the agent's job,
-   * the fix (an auto-remediation suggestion) and whether the job made the
-   * fix or rolled it back (CloudAiChangeStep).
+   * (CloudAiChangeAttribution); oneuptime-cloud-connection
+   * (CHANGE_MADE_BY_CLOUD_CONNECTION) for one made in the session
+   * OneUptime signs in to a connection's role with - Data Security's
+   * responses (OneUptimeAwsSessions). The fix it belongs to: the agent's
+   * job, the fix (an auto-remediation suggestion) and whether the job made
+   * the fix or rolled it back (CloudAiChangeStep).
    */
   MadeBy: "oneuptime.change.made_by",
   /*
@@ -197,6 +209,16 @@ export const ChangeEventAttribute: {
  * do with: investigations match changes to incidents by these keys.
  */
 export const RESERVED_CHANGE_ATTRIBUTE_PREFIX: string = "oneuptime.";
+
+/*
+ * What oneuptime.change.made_by says of a change OneUptime made in the
+ * session it signs in to a project's cloud connection with - only a call
+ * signed with a key AWS handed OneUptime counts (OneUptimeAwsSessions,
+ * #10428). Not a source: the change's source stays the cloud's activity
+ * log.
+ */
+export const CHANGE_MADE_BY_CLOUD_CONNECTION: string =
+  "oneuptime-cloud-connection";
 
 /*
  * What the job behind a change OneUptime AI made did (oneuptime.ai.step):

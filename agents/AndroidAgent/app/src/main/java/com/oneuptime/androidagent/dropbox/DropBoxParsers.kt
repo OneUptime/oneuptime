@@ -24,8 +24,17 @@ data class DropBoxHeaders(val values: Map<String, String>, val body: String) {
 }
 
 object DropBoxHeaderParser {
-    // "Name: value", where a name is a word with dashes ("Process", "Dropped-Count", "isPrevious").
-    private val HEADER: Regex = Regex("""^([A-Za-z][A-Za-z0-9_-]{0,40}): ?(.*)$""")
+    /*
+     * "Name: value", where a name is a word with dashes ("Process",
+     * "Dropped-Count", "isPrevious"). Every pattern here reads one line of
+     * what Android writes, in ASCII but for the text an app put in it, and
+     * says so: a digit is [0-9], a space a space or a tab, and (?s) lets a
+     * "." take any character of the line. Android's \d, \s and \w read every
+     * script's digits, spaces and letters where the JVM's, in the tests,
+     * read ASCII's, and its "." took no vertical tab or form feed where the
+     * JVM's took both (#10876).
+     */
+    private val HEADER: Regex = Regex("""(?s)^([A-Za-z][A-Za-z0-9_-]{0,40}): ?(.*)$""")
 
     fun parse(text: String): DropBoxHeaders {
         val values: LinkedHashMap<String, String> = linkedMapOf()
@@ -60,7 +69,7 @@ data class DropBoxProcess(
 )
 
 object DropBoxProcessParser {
-    private val PACKAGE: Regex = Regex("""^(\S+)(?:\s+v(\d+))?(?:\s+\((.*)\))?\s*$""")
+    private val PACKAGE: Regex = Regex("""(?s)^([^ \t]+)(?:[ \t]+v([0-9]+))?(?:[ \t]+\((.*)\))?[ \t]*$""")
 
     fun parse(headers: DropBoxHeaders): DropBoxProcess? {
         val process: String = headers["Process"] ?: return null
@@ -86,8 +95,19 @@ object DropBoxProcessParser {
 data class JavaThrowable(val type: String, val message: String, val stackTrace: String)
 
 object JavaStackParser {
-    // A class name, optionally with a message after ": ".
-    private val FIRST_LINE: Regex = Regex("""^([A-Za-z_$][\w$]*(?:\.[\w$]+)+)(?::\s?(.*))?$""")
+    /*
+     * A class name, optionally with a message after ": ". A Java name may
+     * hold the letters, digits and marks of any script, "_" and "$", as
+     * Character.isJavaIdentifierStart and isJavaIdentifierPart say, written
+     * here with Unicode's own classes, which a device and the JVM read alike.
+     * It said [\w$] once, which Android read with every script's letters and
+     * the JVM with ASCII's: a crash named in Cyrillic (com.example.Ошибка) was
+     * parsed on a device and dropped in the tests (#10876).
+     */
+    private val FIRST_LINE: Regex =
+        Regex(
+            """(?s)^([\p{L}\p{Nl}\p{Pc}\p{Sc}][\p{L}\p{Nl}\p{Nd}\p{Mn}\p{Mc}\p{Pc}\p{Sc}\p{Cf}]*(?:\.[\p{L}\p{Nl}\p{Nd}\p{Mn}\p{Mc}\p{Pc}\p{Sc}\p{Cf}]+)+)(?::[ \t]?(.*))?$""",
+        )
 
     /**
      * The exception at the top of [body], and its stack: every line up to the
@@ -121,7 +141,8 @@ object JavaStackParser {
 
 /** One thread of an ANR's or a watchdog's traces: its header line and its frames. */
 object ThreadTraceParser {
-    private val THREAD_HEADER: Regex = Regex("""^"([^"]*)".*\btid=\d+.*$""")
+    // "tid=" where no ASCII word runs into it, as the JVM's \b read it: Android's counts every script's letters (#10835).
+    private val THREAD_HEADER: Regex = Regex("""(?s)^"([^"]*)".*(?<![A-Za-z0-9_])tid=[0-9]+.*$""")
 
     /**
      * The stack of the thread named [threadName] (the main thread's, `main`,
@@ -262,7 +283,7 @@ data class NativeFrame(val index: Int, val library: String, val function: String
 
 object NativeFrameParser {
     // "#00 pc 0000000000049b70  /system/lib64/libc.so (abort+164) (BuildId: 1a2b...)"
-    private val FRAME: Regex = Regex("""^#(\d+)\s+pc\s+[0-9a-fA-F]+\s+(\S+)(.*)$""")
+    private val FRAME: Regex = Regex("""(?s)^#([0-9]+)[ \t]+pc[ \t]+[0-9a-fA-F]+[ \t]+([^ \t]+)(.*)$""")
 
     /**
      * A frame's index, library and function. After the library come groups
@@ -307,10 +328,14 @@ object NativeFrameParser {
 }
 
 object TombstoneParser {
-    private val PROCESS_LINE: Regex = Regex("""^pid:\s*(\d+),\s*tid:\s*(\d+),\s*name:\s*(.*?)\s+>>>\s*(.*?)\s*<<<.*$""")
-    private val SIGNAL_LINE: Regex = Regex("""^signal\s+(\d+)\s+\((\w+)\),\s*code\s+(-?\d+)(?:\s+\(([^)]*)\))?(?:,\s*fault addr\s+(\S+))?.*$""")
-    private val ABORT_LINE: Regex = Regex("""^Abort message:\s*'(.*)'\s*$""")
-    private val CAUSE_LINE: Regex = Regex("""^Cause:\s*(.*)$""")
+    private val PROCESS_LINE: Regex =
+        Regex("""(?s)^pid:[ \t]*([0-9]+),[ \t]*tid:[ \t]*([0-9]+),[ \t]*name:[ \t]*(.*?)[ \t]+>>>[ \t]*(.*?)[ \t]*<<<.*$""")
+    private val SIGNAL_LINE: Regex =
+        Regex(
+            """(?s)^signal[ \t]+([0-9]+)[ \t]+\(([A-Za-z0-9_]+)\),[ \t]*code[ \t]+(-?[0-9]+)(?:[ \t]+\(([^)]*)\))?(?:,[ \t]*fault addr[ \t]+([^ \t]+))?.*$""",
+        )
+    private val ABORT_LINE: Regex = Regex("""(?s)^Abort message:[ \t]*'(.*)'[ \t]*$""")
+    private val CAUSE_LINE: Regex = Regex("""(?s)^Cause:[ \t]*(.*)$""")
     private const val MAX_FRAMES: Int = 64
 
     /**
@@ -390,8 +415,8 @@ data class LastKernelLog(
 )
 
 object LastKernelLogParser {
-    private val BOOT_REASON: Regex = Regex("""^Last boot reason:\s*(.*)$""")
-    private val PANIC: Regex = Regex("""Kernel panic - not syncing:.*""")
+    private val BOOT_REASON: Regex = Regex("""(?s)^Last boot reason:[ \t]*(.*)$""")
+    private val PANIC: Regex = Regex("""(?s)Kernel panic - not syncing:.*""")
     private const val TRUNCATED_MARKER: String = "[[TRUNCATED]]"
 
     fun parse(text: String, maxLines: Int): LastKernelLog {

@@ -9,7 +9,7 @@ import {
   AuditLogExportRecord,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import { getColumnAccessControlForAllColumns } from "Common/Types/Database/AccessControl/ColumnAccessControl";
-import { getAuditLogResourceTypeSpellings } from "Common/Utils/AuditLog/AuditLogResourceTypes";
+import { getAuditLogResourceTypesOfModel } from "Common/Utils/AuditLog/AuditLogResourceTypes";
 
 /*
  * NOTHING SECRET LEAVES IN AN EXPORTED ENTRY, whenever it was recorded.
@@ -27,60 +27,86 @@ import { getAuditLogResourceTypeSpellings } from "Common/Utils/AuditLog/AuditLog
  * changed - never a value, and the recorder writes none for a secret.
  */
 
-type ModelType = { new (): BaseModel };
+export type AuditLogExportModelType = { new (): BaseModel };
 
-let redactedFieldsByResourceType: Map<string, Set<string>> | null = null;
+/*
+ * The fields of a model an exported entry never carries the values of: its
+ * redacted columns (listed, encrypted and hashed) and the columns nobody
+ * may read.
+ */
+function getRedactedFieldsOf(model: BaseModel): Set<string> {
+  const fields: Set<string> = getAuditLogRedactedColumns(model);
+  const access: Record<string, { read?: Array<unknown> }> =
+    getColumnAccessControlForAllColumns(model) as Record<
+      string,
+      { read?: Array<unknown> }
+    >;
 
-function getRedactedFieldsByResourceType(): Map<string, Set<string>> {
-  if (redactedFieldsByResourceType) {
-    return redactedFieldsByResourceType;
+  for (const column of Object.keys(access)) {
+    const read: Array<unknown> | undefined = access[column]?.read;
+
+    if (Array.isArray(read) && read.length === 0) {
+      fields.add(column);
+    }
   }
 
+  return fields;
+}
+
+/*
+ * Each resource type an entry can name, with the fields an exported entry
+ * of it never carries the values of, for `modelTypes`.
+ *
+ * A model's entries are keyed by every type they can be stored under
+ * (getAuditLogResourceTypesOfModel): the singular name the model keeps for
+ * the API and this log (AuditLogRecorder), which a renamed model's name on
+ * screen is not - an Ingestion Key's entries are stored as "Telemetry
+ * Ingestion Key", and keyed by "Ingestion Key" they were sent out
+ * unredacted (#7580) - its name on screen, as the audit log reads a type by
+ * either, and the name it had before it was renamed, which its older
+ * entries carry.
+ *
+ * A type two models' entries carry redacts what either model redacts: an
+ * entry of it can be about either. "Subscriber Notification Template" is
+ * the template's, and a status page's link to one had it too until #10664.
+ * Keyed one model at a time, the link's fields overwrote the template's,
+ * and a template's entry was redacted by the link's fields alone.
+ */
+export function buildExportRedactedFieldsByResourceType(
+  modelTypes: ReadonlyArray<AuditLogExportModelType>,
+): Map<string, Set<string>> {
   const map: Map<string, Set<string>> = new Map<string, Set<string>>();
 
-  for (const modelType of AllModelTypes as Array<ModelType>) {
+  for (const modelType of modelTypes) {
     const model: BaseModel = new modelType();
 
     if (!model.enableAuditLogOn) {
       continue;
     }
 
-    const fields: Set<string> = getAuditLogRedactedColumns(model);
-    const access: Record<string, { read?: Array<unknown> }> =
-      getColumnAccessControlForAllColumns(model) as Record<
-        string,
-        { read?: Array<unknown> }
-      >;
+    const fields: Set<string> = getRedactedFieldsOf(model);
 
-    for (const column of Object.keys(access)) {
-      const read: Array<unknown> | undefined = access[column]?.read;
-
-      if (Array.isArray(read) && read.length === 0) {
-        fields.add(column);
-      }
-    }
-
-    /*
-     * The resource type an entry names: the singular name the model keeps
-     * for the API and this log (AuditLogRecorder), which a renamed model's
-     * name on screen is not - an Ingestion Key's entries are stored as
-     * "Telemetry Ingestion Key", and keyed by "Ingestion Key" they were
-     * sent out unredacted (#7580). Its name on screen too, as the audit log
-     * reads a type by either.
-     */
-    const resourceType: string =
-      model.apiSingularName ||
-      model.singularName ||
-      (model as unknown as { constructor: { name: string } }).constructor.name;
-
-    for (const spelling of getAuditLogResourceTypeSpellings(resourceType)) {
-      map.set(spelling, fields);
+    for (const resourceType of getAuditLogResourceTypesOfModel(model)) {
+      map.set(
+        resourceType,
+        new Set<string>([...(map.get(resourceType) || []), ...fields]),
+      );
     }
   }
 
-  redactedFieldsByResourceType = map;
-
   return map;
+}
+
+let redactedFieldsByResourceType: Map<string, Set<string>> | null = null;
+
+function getRedactedFieldsByResourceType(): Map<string, Set<string>> {
+  if (!redactedFieldsByResourceType) {
+    redactedFieldsByResourceType = buildExportRedactedFieldsByResourceType(
+      AllModelTypes as Array<AuditLogExportModelType>,
+    );
+  }
+
+  return redactedFieldsByResourceType;
 }
 
 // The fields of a resource type an exported entry never carries the values of.

@@ -71,7 +71,7 @@ Quem entra, ou se cadastra de outro jeito, aceita em um de dois lugares:
 
 | Onde ela está | O que ela vê | Onde ela clica |
 | --- | --- | --- |
-| Ainda em nenhum projeto | O convite, na página em que ela chega depois de entrar | **Accept & Join**, ou **Decline** |
+| Ainda em nenhum projeto | O convite, na página em que ela chega depois de entrar | **Accept & Join**, ou **Recusar** |
 | Já em outro projeto | O convite pendente no sino no canto superior direito, que abre **Convites do projeto** | **Aceitar**, ou **Rejeitar** |
 
 Ao aceitar, a pessoa entra no projeto na hora, com as permissões da equipe dela e a configuração de notificações com que todo membro começa: veja [Com o que você começa](/docs/notifications/index#com-o-que-você-começa). Recusar exclui o convite, então entrar depois exige um novo.
@@ -132,8 +132,8 @@ Remover alguém tira a pessoa de todas as equipes do projeto. Ela perde o acesso
 
 ## Solução de problemas
 
-:::details "This user has already been invited to this team"
-A pessoa já está nessa equipe, como membro ou com um convite que não aceitou. Abra-a em **Usuários** para ver as equipes dela, ou convide-a para outra equipe.
+:::details "This person has already been invited to this team, or is a member of it"
+A pessoa já está nessa equipe, como membro ou com um convite que não aceitou. Abra-a em **Usuários** para ver as equipes dela, ou convide-a para outra equipe. Se ela ainda não entrou, **Reenviar convite** no menu da linha dela envia o e-mail de convite de novo.
 :::
 
 :::details "You have reached the user limit for the free plan"

@@ -1,4 +1,7 @@
-import { FIRST_PROBE_VERSION_WITH_TOTP_CODES } from "../../../Types/Probe/ProbeCapability";
+import {
+  FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
+  FIRST_PROBE_VERSION_WITH_TOTP_CODES,
+} from "../../../Types/Probe/ProbeCapability";
 import ProbeReportedVersionUtil, {
   FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
   MAX_REPORTED_PROBE_VERSION_LENGTH,
@@ -26,8 +29,8 @@ const CAPABILITIES: Array<string> = ["networkDevicePing", "retryWhenBusy"];
 const CONNECTED_AT: Date = new Date("2026-11-19T10:00:00.000Z");
 
 describe("the first release that makes one-time codes", () => {
-  test("is the release after 17.0.0, which was cut before the codes merged", () => {
-    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+  test("is 17.1.0, the release after 17.0.0, which was cut before the codes merged: no 17.0.1 was released", () => {
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.1.0");
   });
 });
 
@@ -134,12 +137,12 @@ describe("ProbeReportedVersionUtil.getRelease", () => {
 
 describe("ProbeReportedVersionUtil.getOneTimeCodes", () => {
   test.each([
-    ["the first release that makes them", "17.0.1"],
-    ["a later patch", "17.0.12"],
-    ["a later minor release", "17.1.0"],
+    ["the first release that makes them", "17.1.0"],
+    ["a later patch", "17.1.12"],
+    ["a later minor release", "17.2.0"],
     ["a later major release", "18.0.0"],
     ["a far later release", "120.4.7"],
-    ["a pre-release of the first one", "17.0.1-rc.1"],
+    ["a pre-release of the first one", "17.1.0-rc.1"],
     ["a pre-release of a later one", "17.2.0-beta"],
   ])(
     "a custom probe on %s makes one-time codes",
@@ -205,13 +208,18 @@ describe("ProbeReportedVersionUtil.getOneTimeCodes", () => {
   );
 
   test("compares releases as numbers, never as text", () => {
-    // As text, "17.0.10" sorts before "17.0.2", and "9.0.0" after "17.0.0".
-    expect(
-      ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
-        reportedVersion: "17.0.10",
-        lastAlive: CONNECTED_AT,
-      }),
-    ).toBe(false);
+    /*
+     * As text, "100.0.0" sorts before "17.1.0", the first release that
+     * makes codes, and "9.0.0" after it; "17.1.10" is the tenth patch.
+     */
+    for (const reportedVersion of ["100.0.0", "17.1.10"]) {
+      expect(
+        ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+        }),
+      ).toBe(false);
+    }
     expect(
       ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
         reportedVersion: "9.0.0",
@@ -300,23 +308,31 @@ describe("the features a probe has from some release on", () => {
     expect(PROBE_FEATURE_FIRST_RELEASES[ProbeFeature.OneTimeCodes]).toBe(
       FIRST_PROBE_VERSION_WITH_TOTP_CODES,
     );
-    // Both came in one change: a probe says its release from 17.0.1 on.
+    /*
+     * An array, a single value or text as an API monitor's body (#10737):
+     * the release after 17.2.0, which was cut before it merged (#10754).
+     */
+    expect(PROBE_FEATURE_FIRST_RELEASES[ProbeFeature.AnyRequestBody]).toBe(
+      FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
+    );
+    expect(FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY).toBe("17.2.1");
+    // Both came in one change: a probe says its release from 17.1.0 on.
     expect(FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE).toBe(
       FIRST_PROBE_VERSION_WITH_TOTP_CODES,
     );
   });
 
   test.each([
-    ["its first release", "17.0.1", ProbeFeatureSupport.Supported],
-    ["a later release", "17.1.0", ProbeFeatureSupport.Supported],
+    ["its first release", "17.1.0", ProbeFeatureSupport.Supported],
+    ["a later release", "17.2.0", ProbeFeatureSupport.Supported],
     [
       "a pre-release of its first release",
-      "17.0.1-rc.2",
+      "17.1.0-rc.2",
       ProbeFeatureSupport.Supported,
     ],
     [
       "a test build of a later release",
-      "17.1.0-test",
+      "17.2.0-test",
       ProbeFeatureSupport.Supported,
     ],
     ["an older release", "16.0.0", ProbeFeatureSupport.TooOld],
@@ -333,6 +349,45 @@ describe("the features a probe has from some release on", () => {
         ProbeReportedVersionUtil.getFeatureSupport(
           { reportedVersion, lastAlive: CONNECTED_AT },
           ProbeFeature.OneTimeCodes,
+        ),
+      ).toBe(support);
+    },
+  );
+
+  test.each([
+    [
+      "its first release",
+      FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
+      ProbeFeatureSupport.Supported,
+    ],
+    ["a later minor release", "17.3.0", ProbeFeatureSupport.Supported],
+    ["a later major release", "18.0.0", ProbeFeatureSupport.Supported],
+    [
+      "a pre-release of its first release",
+      `${FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY}-rc.1`,
+      ProbeFeatureSupport.Supported,
+    ],
+    // Cut from main before #10754 merged: it never declares the capability.
+    ["17.2.0", "17.2.0", ProbeFeatureSupport.TooOld],
+    ["17.1.0", "17.1.0", ProbeFeatureSupport.TooOld],
+    ["an older major release", "16.0.0", ProbeFeatureSupport.TooOld],
+    /*
+     * Main's test builds say 17.2.0-test, and send any body: a test build of
+     * an older release cannot be told.
+     */
+    [
+      "main's test build while main is numbered 17.2.0",
+      "17.2.0-test",
+      ProbeFeatureSupport.Unknown,
+    ],
+    ["a build that is no release", "unknown", ProbeFeatureSupport.Unknown],
+  ])(
+    "a request body that is an array, a single value or text, on %s",
+    (_label: string, reportedVersion: string, support: ProbeFeatureSupport) => {
+      expect(
+        ProbeReportedVersionUtil.getFeatureSupport(
+          { reportedVersion, lastAlive: CONNECTED_AT },
+          ProbeFeature.AnyRequestBody,
         ),
       ).toBe(support);
     },
@@ -365,16 +420,34 @@ describe("the features a probe has from some release on", () => {
         reportedVersion: null,
         lastAlive: CONNECTED_AT,
       }),
-    ).toEqual([ProbeFeature.OneTimeCodes]);
+    ).toEqual([ProbeFeature.OneTimeCodes, ProbeFeature.AnyRequestBody]);
     expect(
       ProbeReportedVersionUtil.getMissedFeatures({
         reportedVersion: "16.0.0",
         lastAlive: CONNECTED_AT,
       }),
-    ).toEqual([ProbeFeature.OneTimeCodes]);
+    ).toEqual([ProbeFeature.OneTimeCodes, ProbeFeature.AnyRequestBody]);
+
+    // It makes one-time codes, and sends only an object as a body (#10737).
+    for (const reportedVersion of ["17.1.0", "17.1.4", "17.2.0"]) {
+      expect([
+        reportedVersion,
+        ProbeReportedVersionUtil.getMissedFeatures({
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+        }),
+      ]).toEqual([reportedVersion, [ProbeFeature.AnyRequestBody]]);
+    }
 
     for (const probe of [
-      { reportedVersion: "17.0.1", lastAlive: CONNECTED_AT },
+      {
+        reportedVersion: FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
+        lastAlive: CONNECTED_AT,
+      },
+      { reportedVersion: "17.2.0-test", lastAlive: CONNECTED_AT },
+      { reportedVersion: "18.0.0", lastAlive: CONNECTED_AT },
+      // A test build of an older release cannot be told.
+      { reportedVersion: "17.1.0-test", lastAlive: CONNECTED_AT },
       { reportedVersion: "17.0.0-test", lastAlive: CONNECTED_AT },
       { reportedVersion: "unknown", lastAlive: CONNECTED_AT },
       { reportedVersion: null, lastAlive: null },
@@ -469,7 +542,7 @@ describe("ProbeReportedVersionUtil.getReleaseStatus", () => {
       status: ProbeReleaseStatus.Outdated,
       serverRelease: FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
     });
-    // Older than 17.0.1 against a 17.0.0 server: either may be newer.
+    // Older than 17.1.0 against a 17.0.0 server: either may be newer.
     expect(statusOf(null, "17.0.0").status).toBe(ProbeReleaseStatus.Unknown);
     // A page reads the stamp as the API sends it: a string.
     expect(

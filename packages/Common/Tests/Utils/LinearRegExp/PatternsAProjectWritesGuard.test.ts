@@ -101,6 +101,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the mustMatch and mustNotMatch patterns of the Data Security AI eval's own cases (DataSecurityEvalCases, written in code), held to the fix a model proposed: no project writes them",
   },
   {
+    file: "packages/Common/Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet.ts",
+    count: 1,
+    builtFrom:
+      "the literal words of a log line's template in the telemetry leak eval set's own recorded cases (written in code), each escaped with escapeRegExp to match itself and joined by .*, to find the line of the case's own files a leak leads to: no project writes them",
+  },
+  {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
     count: 1,
     builtFrom: "a count of spaces",
@@ -130,6 +136,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     file: "packages/Common/Server/Utils/Monitor/MonitorPayloadRedaction.ts",
     count: 1,
     builtFrom: "the address prefixes its callers name: monitor, workflow",
+  },
+  {
+    file: "packages/Common/Server/Utils/Telemetry/ExceptionGrouping.ts",
+    count: 1,
+    builtFrom:
+      "the placeholders the normalizer folds a value into, which the file lists (FOLDED_VALUE_PLACEHOLDERS), each escaped with escapeRegExp to match itself",
   },
   {
     file: "packages/Common/Server/Utils/VM/VMAPI.ts",
@@ -196,6 +208,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 7,
     builtFrom:
       "the file's JSON string forms, quote marks, tool names and flag letters",
+  },
+  {
+    file: "packages/Common/Utils/Call/CallSpeech.ts",
+    count: 1,
+    builtFrom:
+      "a project's record number prefixes (NumberPrefix: at most 20 letters, digits and - _ . : # /), each escaped with escapeRegExp to match itself, then a run of digits - literals, nothing repeated inside a repetition - run on a call's sentences",
   },
   {
     file: "packages/Common/Utils/DataSecurity/DetectorPrefilter.ts",
@@ -290,10 +308,34 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "the migration patterns of Rails, Alembic, Django, Sequelize, TypeORM and Knex the file lists (RAILS, PYTHON, JAVASCRIPT), each a pattern literal",
   },
   {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules.ts",
+    count: 2,
+    builtFrom:
+      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
+  },
+  {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+    count: 2,
+    builtFrom:
+      "nothing: SensitiveNameMatcher's own match method, handed an attribute's key or a value's name",
+  },
+  {
     file: "packages/Common/Server/Utils/DataSecurity/DataSecurityChangeSignals.ts",
     count: 1,
     builtFrom:
       "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
+  },
+  {
+    file: "packages/Common/Server/Utils/DataSecurity/ExposureAssessmentReader.ts",
+    count: 1,
+    builtFrom:
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change in an exposure's window",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    count: 1,
+    builtFrom:
+      "the breach laws' names and sections LAW_NAMES_IN_TEXT lists, each a global pattern literal of alternatives with nothing repeated, to find a law a draft names that its facts do not",
   },
   {
     file: "packages/Common/Types/NoBreakSpaces.ts",
@@ -326,16 +368,22 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
   },
   {
+    file: "packages/Common/Utils/DataSecurity/TextReadings.ts",
+    count: 1,
+    builtFrom:
+      "the built-in detectors' patterns its callers hand findDetectorRanges (IP_ADDRESS_DETECTORS, EMAIL_ADDRESS_DETECTORS and CARD_NUMBER_DETECTORS: the IP Address, Email Address and Credit Card scrub rules, and the AI toolbox's email redaction), pattern literals of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
+  },
+  {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",
     count: 1,
     builtFrom:
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
   },
   {
-    file: "packages/Common/Utils/Telemetry/ScrubIpAddress.ts",
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
     count: 1,
     builtFrom:
-      "the IP address type's two built-in detectors' patterns (IP_ADDRESS_DETECTORS), pattern literals of Utils/DataSecurity/Detectors/ContactDetectors that DetectorCatalog holds to bounded quantifiers",
+      "the two email address patterns the file writes (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), global pattern literals as the Android agent's redactor writes them, run on a text cut to REDACTOR_MAX_LENGTH first",
   },
   {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",
@@ -390,8 +438,10 @@ const RUNS_PATTERNS_A_PROJECT_WRITES: ReadonlyArray<string> = [
   "packages/Common/Types/Telemetry/ScrubRule.ts",
   "packages/Common/Utils/Grok/Grok.ts",
   "packages/Common/Utils/PromQL/PromQLRegex.ts",
-  "packages/App/FeatureSet/Telemetry/Services/MetricPipelineRuleService.ts",
+  "packages/Common/Server/Utils/Telemetry/MetricPipelineEngine.ts",
   "packages/App/FeatureSet/Telemetry/Utils/LogFilterEvaluator.ts",
+  // A detection rule exception's value, with * for any run (#10630).
+  "packages/Common/Server/Utils/SecurityEvent/DetectionRuleExceptions.ts",
 ];
 
 // The string methods that read their argument as a pattern.

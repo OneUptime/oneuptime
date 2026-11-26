@@ -86,6 +86,25 @@ jest.mock(
   },
 );
 
+/*
+ * OneUptime AI's hold notice (#10353), which reads for itself whether
+ * OneUptime AI holds the case (SecurityCaseAiHoldNotice.test holds what it
+ * does with the answer): a card beside the ones under test, drawn with what
+ * the page hands it, as they are.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        record("SecurityCaseAiHoldNotice", props);
+        return React.createElement("div", { "data-testid": "ai-hold-notice" });
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseWhyOpenedCard",
   () => {
@@ -236,6 +255,19 @@ jest.mock("../../../UI/Components/CustomFields/CustomFieldsDetail", () => {
     default: (props: Record<string, unknown>): React.ReactElement => {
       record("CustomFieldsDetail", props);
       return React.createElement("div", { "data-testid": "custom-fields" });
+    },
+  };
+});
+
+// The case's line, which reads who opened it and who last changed it itself.
+jest.mock("../../../UI/Components/Detail/RecordActivityLine", () => {
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>): React.ReactElement => {
+      record("RecordActivityLine", props);
+      return React.createElement("div", {
+        "data-testid": "record-activity-line",
+      });
     },
   };
 });
@@ -443,6 +475,30 @@ describe("the Overview", () => {
     ).toBeTruthy();
   });
 
+  test("says whether OneUptime AI holds the case, above its figures, and reads the case again once the hold ends", () => {
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const notice: Record<string, unknown> = lastProps(
+      "SecurityCaseAiHoldNotice",
+    );
+
+    expect(String(notice["caseId"])).toBe(CASE_ID);
+    expect(handlers.refresh).not.toHaveBeenCalled();
+    (notice["onChanged"] as () => void)();
+    expect(handlers.refresh).toHaveBeenCalledTimes(1);
+
+    // Above the case's figures and every card below them.
+    expect(
+      screen
+        .getByTestId("ai-hold-notice")
+        .compareDocumentPosition(screen.getByTestId("why-opened")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("reads what the case's detections matched once, again with the case, for the Why card and the Response Plan", () => {
     const context: SecurityCaseViewContext = contextFor(buildCase(), {
       refreshToggle: "after-a-detection",
@@ -549,6 +605,35 @@ describe("the Overview", () => {
     expect(within(figures).queryByText("Open For")).toBeNull();
     expect(within(figures).getByText("2 h")).toBeInTheDocument();
     expect(within(figures).getByText("42 min")).toBeInTheDocument();
+  });
+
+  /*
+   * Who opened the case and who last changed it (#10461): the case's line,
+   * at the foot of the page's first card - its figures - under them all.
+   */
+  test("ends its first card, the case's figures, with the case's line", () => {
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const figures: HTMLElement = screen.getByRole("group", {
+      name: "Case figures",
+    });
+    const foot: HTMLElement = within(figures).getByTestId(
+      "event-stat-bar-footer",
+    );
+
+    expect(
+      within(foot).getByTestId("record-activity-line"),
+    ).toBeInTheDocument();
+    expect(figures.lastElementChild).toBe(foot);
+    expect(screen.getAllByTestId("record-activity-line")).toHaveLength(1);
+
+    const line: Record<string, unknown> = lastProps("RecordActivityLine");
+
+    expect(line["modelType"]).toBe(SecurityCase);
+    expect(String(line["recordId"])).toBe(CASE_ID);
   });
 
   test("hands OneUptime AI's card the case and the project's priorities, and its moves to the layout", async () => {

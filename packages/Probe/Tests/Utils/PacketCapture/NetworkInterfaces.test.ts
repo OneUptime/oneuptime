@@ -3,7 +3,9 @@ import { PacketCaptureInterface } from "Common/Types/PacketCapture/PacketCapture
 import {
   InterfaceSource,
   listCaptureInterfaces,
+  listInterfaceAddresses,
 } from "../../../Utils/PacketCapture/NetworkInterfaces";
+import ProbeInterfaceAddressesUtil from "Common/Types/Probe/ProbeInterfaceAddresses";
 import os from "os";
 
 /*
@@ -201,6 +203,75 @@ describe("elsewhere", () => {
     expect(listCaptureInterfaces(source)).toEqual([
       { name: "en0", addresses: ["192.168.1.10/24"], isLoopback: false },
       { name: "lo0", addresses: ["127.0.0.1/8"], isLoopback: true },
+    ]);
+  });
+});
+
+/*
+ * What a probe says of its own addresses when it checks in (#10429): the
+ * same listing, loopback interfaces left out, so Security Events can tell
+ * the probe's polls and checks in the project's flows from a scan.
+ */
+describe("the addresses a probe reports when it checks in", () => {
+  const source: InterfaceSource = linux({
+    flags: {
+      lo: 0x9,
+      eth0: 0x1003,
+      eth1: 0x1003,
+      "eth0.20": 0x1003,
+      docker0: 0x1002,
+    },
+  });
+
+  test("every address of every interface but loopback, as listed", () => {
+    expect(listInterfaceAddresses(source)).toEqual([
+      "10.0.0.2/24",
+      "fe80::1/64",
+      "10.20.0.2/24",
+    ]);
+  });
+
+  test("an interface with no address adds none, whatever its state", () => {
+    expect(
+      listInterfaceAddresses(
+        linux({
+          sys: ["eth1", "docker0"],
+          node: {},
+          flags: { eth1: 0x1003, docker0: 0x1002 },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("as OneUptime keeps them: no prefix length, no link-local address", () => {
+    expect(
+      ProbeInterfaceAddressesUtil.read(listInterfaceAddresses(source)),
+    ).toEqual(["10.0.0.2", "10.20.0.2"]);
+  });
+
+  test("off Linux, Node's list: loopback still left out", () => {
+    const darwin: InterfaceSource = {
+      platform: "darwin",
+      listSysClassNet: (): Array<string> | null => {
+        throw new Error("never read off Linux");
+      },
+      readOperState: (): string | null => {
+        return null;
+      },
+      readFlags: (): number | null => {
+        return null;
+      },
+      networkInterfaces: (): NodeInterfaces => {
+        return {
+          lo0: [address("127.0.0.1/8", true), address("::1/128", true)],
+          en0: [address("192.168.1.10/24"), address("2001:db8::10/64")],
+        };
+      },
+    };
+
+    expect(listInterfaceAddresses(darwin)).toEqual([
+      "192.168.1.10/24",
+      "2001:db8::10/64",
     ]);
   });
 });

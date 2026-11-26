@@ -27,6 +27,10 @@ import DataSecurityResidencyRuleService from "../../Services/DataSecurityResiden
 import DataSecuritySettingService from "../../Services/DataSecuritySettingService";
 import SecurityEntityRiskService from "../../Services/SecurityEntityRiskService";
 import DataSecurityFlows from "./DataSecurityFlows";
+import {
+  queueDataSecurityIssueGrouping,
+  queueTelemetryLeakFixProposals,
+} from "./DataSecurityJobs";
 import DataSecurityIntegrations, {
   OpenedIssueForIntegrations,
 } from "./DataSecurityIntegrations";
@@ -60,6 +64,7 @@ import {
   DataStoreKind,
   DataStoreKindInfo,
   getDataStoreKindInfo,
+  isDeclaredDataStoreKind,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   DataStoreExposure,
@@ -71,6 +76,8 @@ import {
   EvaluatedCheck,
   FINDING_FRESHNESS_IN_DAYS,
   evaluateDataStoreChecks,
+  getTelemetryCheckIdOfDataType,
+  isContainedTelemetryFinding,
   isFindingCounted,
   isUnscrubbedTelemetryFinding,
 } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
@@ -133,6 +140,8 @@ interface CustomDataTypeFacts {
 interface StoreFacts {
   findings: Array<SensitivityFinding>;
   unscrubbedDataTypeIds: Set<string>;
+  // A telemetry store's data types a scrub rule hides at ingest (#10368).
+  containedDataTypeIds: Set<string>;
   hasOwner: boolean;
   readers: Set<string>;
   // The readers not used in 90 days: principal -> the name people know it by.
@@ -147,6 +156,7 @@ function newFacts(): StoreFacts {
   return {
     findings: [],
     unscrubbedDataTypeIds: new Set(),
+    containedDataTypeIds: new Set(),
     hasOwner: false,
     readers: new Set(),
     unusedReaders: new Map(),
@@ -298,6 +308,20 @@ export default class DataSecurityEvaluator {
       );
       logger.error(error);
     }
+
+    /*
+     * The issues one mistake made, grouped by what made them (#10370): a
+     * little after, so the evaluations a read and its scans queue are
+     * grouped once.
+     */
+    await queueDataSecurityIssueGrouping(projectId);
+
+    /*
+     * Each service's telemetry leaks, fixed in its code in one pull request
+     * (#10367): proposed a little after, once for all it opened - only
+     * while OneUptime AI works on the project's issues, which the job asks.
+     */
+    await queueTelemetryLeakFixProposals(projectId);
   }
 
   private static forIntegrations(
@@ -428,6 +452,15 @@ export default class DataSecurityEvaluator {
         dataTypeIds: computed.dataTypeIds,
         checks,
         existingIssues: facts.issues,
+        // A telemetry check whose data only a scrub rule hides is contained, not fixed.
+        containedCheckIds:
+          kindInfo?.family === DataStoreFamily.Telemetry
+            ? new Set<string>(
+                [...facts.containedDataTypeIds].map(
+                  getTelemetryCheckIdOfDataType,
+                ),
+              )
+            : undefined,
         now,
       });
 
@@ -499,7 +532,7 @@ export default class DataSecurityEvaluator {
       dataTypeIds: true,
     };
 
-    return this.readPages(
+    const stores: Array<DataStore> = await this.readPages(
       (skip: number, limit: number): Promise<Array<DataStore>> => {
         return DataStoreService.findBy({
           query: { projectId, isArchived: false },
@@ -511,6 +544,17 @@ export default class DataSecurityEvaluator {
       },
       MAX_STORES_PER_EVALUATION,
     );
+
+    /*
+     * Not the stores OneUptime declares (#10398): what they hold is known
+     * by design and holding it is their purpose, so no check applies and
+     * none opens an issue - and their data types, categories and
+     * sensitivity are OneUptime's, never worked out again from findings
+     * they never have.
+     */
+    return stores.filter((store: DataStore): boolean => {
+      return !isDeclaredDataStoreKind(store.kind);
+    });
   }
 
   private static async readCustomTypes(
@@ -569,6 +613,8 @@ export default class DataSecurityEvaluator {
             matchCount: true,
             isConfirmed: true,
             isAiSuggested: true,
+            // A finding a verified code fix stopped keeps no issue open (#10368).
+            fixedAt: true,
           },
           skip,
           limit,
@@ -606,6 +652,8 @@ export default class DataSecurityEvaluator {
       // Only a telemetry store's findings are scrubbed (evaluateStore).
       if (isUnscrubbedTelemetryFinding(finding)) {
         storeFacts.unscrubbedDataTypeIds.add(finding.dataTypeId);
+      } else if (isContainedTelemetryFinding(finding)) {
+        storeFacts.containedDataTypeIds.add(finding.dataTypeId);
       }
     }
   }
@@ -794,6 +842,7 @@ export default class DataSecurityEvaluator {
             _id: true,
             dataStoreId: true,
             checkId: true,
+            title: true,
             status: true,
             severity: true,
             riskScore: true,
@@ -801,6 +850,10 @@ export default class DataSecurityEvaluator {
             acceptedUntil: true,
             lastDetectedAt: true,
             reopenCount: true,
+            // How it resolved, and a fix's change waiting for its check (#10368).
+            resolution: true,
+            resolutionDetails: true,
+            pendingResolution: true,
           },
           skip,
           limit,

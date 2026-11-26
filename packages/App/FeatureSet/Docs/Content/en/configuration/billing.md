@@ -119,6 +119,8 @@ When your bank is still processing a payment, OneUptime says so: some banks take
 
 A day's usage shows up once the day is over, by about 08:00 UTC the next day. Filter by **Product**, **Day** or **Service** to find what grew.
 
+To send less, a [drop filter](/docs/telemetry/drop-filters-and-scrub-rules) throws away the logs and spans you never read before they are stored, and what it drops is not billed. Before you save one, its form says how much of the last day's telemetry it matches, and what it would take from the monitors, dashboards, SLOs and Security Events that read the same records: see [What a filter would take](/docs/telemetry/drop-filters-and-scrub-rules#what-a-filter-would-take).
+
 ## Prepaid balances
 
 SMS, phone calls, WhatsApp and Telegram messages are paid from the project's balance, and OneUptime AI from its AI credits. You add to each one in advance:
@@ -129,9 +131,9 @@ SMS, phone calls, WhatsApp and Telegram messages are paid from the project's bal
 | OneUptime AI | **Project Settings → AI → AI Credits** |
 
 :::steps
-### Recharge it now
+### Add to it now
 
-On the page's **Current Balance** card, click **Recharge Balance**. Enter an amount from $20 to $1,000 and click **Recharge**. The amount is charged to the project's card.
+On the page's **Current Balance** card, click **Add to Balance**. Enter an amount from $20 to $1,000 and click **Add to Balance**. The amount is charged to the project's card.
 
 ### Or let it recharge itself
 
@@ -150,7 +152,7 @@ When a balance cannot pay, the message is not sent, or OneUptime AI stops, and t
 | Turn SMS, calls, WhatsApp or Telegram on or off | Project Owner, **Manage Billing** or **Billing Admin** |
 | Add a payment method | Project Owner, **Manage Billing** or **Create Payment Method** |
 | Pay an invoice | Project Owner, **Manage Billing** or **Edit Invoices** |
-| Change the plan, recharge a balance or change Auto Recharge | Project Owner or **Manage Billing** |
+| Change the plan, add to a balance or change Auto Recharge | Project Owner or **Manage Billing** |
 
 A button you may not use is shown locked, and says who may. See [Users, Teams & Permissions](/docs/permissions/index#teams) for the billing roles.
 

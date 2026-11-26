@@ -1,3 +1,4 @@
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -277,7 +278,7 @@ describe("POST /probe/response/ingest", () => {
       makeRequest({ body: { probeId: "some-probe" } }),
     );
 
-    expectBadDataError("ProbeMonitorResponse not found");
+    expectBadDataError(ProbeConnectionRefusals.missingMonitorResponse);
     expect(queueService.addProbeIngestJob).not.toHaveBeenCalled();
     expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -384,7 +385,7 @@ describe("POST /probe/response/monitor-test-ingest/:testId", () => {
       }),
     );
 
-    expectBadDataError("ProbeMonitorResponse not found");
+    expectBadDataError(ProbeConnectionRefusals.missingMonitorResponse);
     expect(queueService.addProbeIngestJob).not.toHaveBeenCalled();
     expect(responseUtil.sendEmptySuccessResponse).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -403,7 +404,7 @@ describe("POST /probe/response/monitor-test-ingest/:testId", () => {
       }),
     );
 
-    expectBadDataError("TestId not found");
+    expectBadDataError(ProbeConnectionRefusals.missingTestId);
     expect(queueService.addProbeIngestJob).not.toHaveBeenCalled();
     expect(responseUtil.sendEmptySuccessResponse).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();

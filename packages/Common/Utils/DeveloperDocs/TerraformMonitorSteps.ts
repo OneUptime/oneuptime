@@ -1,4 +1,7 @@
 import { JSONObject } from "../../Types/JSON";
+import WorkingHours, {
+  SimpleWorkingHours,
+} from "../../Types/OnCallDutyPolicy/WorkingHours";
 import { Hcl, HclExpression, HclObjectAttribute } from "./Hcl";
 import {
   isJSONObject,
@@ -134,6 +137,26 @@ function apiInteger(value: unknown): number | null {
   const number: number | null = unwrapApiNumber(value);
 
   return number === null ? null : Math.trunc(number);
+}
+
+const DECIMAL: RegExp = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+
+/*
+ * A number that may have a fraction (a change of 12.5 %): a JSON number, or
+ * its digits as text, as the provider's monitorStepsAPIFloat64 reads one.
+ */
+function apiFloat(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string" && DECIMAL.test(value.trim())) {
+    const number: number = Number(value.trim());
+
+    return Number.isFinite(number) ? number : null;
+  }
+
+  return null;
 }
 
 // A filter value: strings as they are, numbers as JSON writes them.
@@ -325,6 +348,28 @@ function filterToHcl(
       "evaluate_over_time_no_data_policy",
       unwrapApiString(overTime["onNoDataPolicy"]),
     );
+    // A percentile, and how a count of the window's checks is compared (#10355).
+    attributes.addNumber(
+      "evaluate_over_time_percentile",
+      apiInteger(overTime["percentile"]),
+    );
+    attributes.addString(
+      "evaluate_over_time_count_filter_type",
+      unwrapApiString(overTime["countFilterType"]),
+    );
+    attributes.addNumber(
+      "evaluate_over_time_count_value",
+      apiInteger(overTime["countValue"]),
+    );
+    // How far from the previous check a value has to move (#10821).
+    attributes.addString(
+      "evaluate_over_time_change_type",
+      unwrapApiString(overTime["changeType"]),
+    );
+    attributes.addNumber(
+      "evaluate_over_time_change_value",
+      apiFloat(overTime["changeValue"]),
+    );
   }
 
   const serverOptions: unknown = filter["serverMonitorOptions"];
@@ -422,6 +467,85 @@ function objectList(
   return items.length > 0 ? Hcl.tuple(items) : null;
 }
 
+const DAY_NAMES: ReadonlyArray<string> = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+// "Monday to Friday", "Monday, Wednesday, Sunday": the days, for a comment.
+function describeDays(days: Array<number>): string {
+  const runs: Array<Array<number>> = [];
+
+  for (const day of days) {
+    const run: Array<number> | undefined = runs[runs.length - 1];
+
+    if (run && run[run.length - 1] === day - 1) {
+      run.push(day);
+    } else {
+      runs.push([day]);
+    }
+  }
+
+  return runs
+    .map((run: Array<number>): string => {
+      const first: string = DAY_NAMES[run[0]!] || String(run[0]);
+      const last: string =
+        DAY_NAMES[run[run.length - 1]!] || String(run[run.length - 1]);
+
+      if (run.length === 1) {
+        return first;
+      }
+
+      return run.length === 2 ? `${first}, ${last}` : `${first} to ${last}`;
+    })
+    .join(", ");
+}
+
+/*
+ * A criteria's active hours as the provider reads them (#10822): the same
+ * hours on the days picked, read with the server's own WorkingHours. Hours
+ * that are not alike on each day - or in a zone nobody knows - are left out,
+ * as the provider leaves them (with a warning that an apply removes them).
+ */
+function activeHoursToHcl(
+  value: unknown,
+  timezone: string | null,
+): HclExpression | null {
+  if (!isJSONObject(value)) {
+    return null;
+  }
+
+  const hours: SimpleWorkingHours | null = WorkingHours.toSimpleHours({
+    hours: value,
+    timezone: timezone,
+  });
+
+  if (!hours) {
+    return null;
+  }
+
+  const attributes: AttributeList = new AttributeList();
+
+  attributes.add(
+    "days",
+    Hcl.tuple(
+      hours.days.map((day: number): HclExpression => {
+        return Hcl.number(day);
+      }),
+    ),
+    describeDays(hours.days),
+  );
+  attributes.addString("from", hours.from);
+  attributes.addString("to", hours.to);
+
+  return attributes.toObject();
+}
+
 function criteriaToHcl(
   value: unknown,
   context: MonitorStepsHclContext,
@@ -464,6 +588,29 @@ function criteriaToHcl(
       return filterToHcl(item, context);
     }),
   );
+  // What has to hold before what the criteria opened resolves (#10822).
+  attributes.add(
+    "recovery_filters",
+    objectList(
+      criteria["recoveryFilters"],
+      (item: unknown): HclExpression | null => {
+        return filterToHcl(item, context);
+      },
+    ),
+  );
+  attributes.addString(
+    "recovery_filter_condition",
+    unwrapApiString(criteria["recoveryFilterCondition"]),
+  );
+  // When the criteria is judged, on its time zone's clock (#10822).
+  const timezone: string | null = unwrapApiString(
+    criteria["activeHoursTimezone"],
+  );
+  attributes.add(
+    "active_hours",
+    activeHoursToHcl(criteria["activeHours"], timezone),
+  );
+  attributes.addString("active_hours_timezone", timezone);
   attributes.add(
     "incidents",
     objectList(criteria["incidents"], (item: unknown): HclExpression | null => {
@@ -555,6 +702,10 @@ function stepToHcl(
     requestHeadersToHcl(step["requestHeaders"], context),
   );
   attributes.addString("request_body", unwrapApiString(step["requestBody"]));
+  attributes.addString(
+    "request_body_format",
+    unwrapApiString(step["requestBodyFormat"]),
+  );
   attributes.addBool(
     "do_not_follow_redirects",
     apiBool(step["doNotFollowRedirects"]),

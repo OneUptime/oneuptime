@@ -134,7 +134,13 @@ Le zoom ne fonctionne qu'en lecture ; en modification, faire glisser déplace et
 
 ## Plein écran
 
-**⋯ → Plein écran** affiche les widgets du tableau de bord sur tout l'écran, pour un affichage mural ou une réunion. Appuyez sur Échap pour en sortir.
+Le plein écran affiche le tableau de bord seul, sur tout l'écran : sa barre d'outils et ses widgets, sans la barre supérieure, le menu latéral ni le fil d'Ariane autour. Tout fonctionne comme sur la page du tableau de bord, et pour les mêmes personnes : la modification, l'ajout et la suppression de widgets, la plage temporelle, l'actualisation automatique et les variables.
+
+- **Plein écran**, le bouton carré au bout de la barre d'outils du tableau de bord, ou **⋯ → Plein écran** affiche le tableau de bord en plein écran. Votre navigateur passe aussi en plein écran, là où il le permet.
+- **Ouvrir dans un nouvel onglet**, dans le menu **⋯** du tableau de bord ou dans le menu **⋯** d'une ligne de la liste **Tableaux de bord**, ouvre le tableau de bord en plein écran dans un onglet à part. Dans cet onglet, **Remplir l'écran** met aussi votre navigateur en plein écran.
+- **Quitter le plein écran**, ou Échap, revient à la page du tableau de bord et fait aussi quitter le plein écran à votre navigateur. Après **Remplir l'écran**, le premier Échap fait seulement quitter le plein écran à votre navigateur.
+
+Un tableau de bord en plein écran a sa propre adresse, qui se termine par `?view=full-screen` : ajoutez-la à vos favoris ou ouvrez-la sur un écran mural, et le tableau de bord s'ouvre en plein écran. Pour afficher plusieurs tableaux de bord l'un après l'autre sur un écran, utilisez une [playlist](/docs/dashboards/playlists).
 
 ## Conseils pour des tableaux de bord qui vieillissent bien
 

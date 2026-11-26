@@ -91,8 +91,6 @@ const Harness: React.FunctionComponent<{
         props.recorder.latest = value;
         setExceptionMonitor(value);
       }}
-      telemetryServices={[]}
-      telemetryEntities={[]}
     />
   );
 };

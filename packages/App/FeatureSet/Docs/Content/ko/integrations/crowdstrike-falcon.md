@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-엔드포인트, ID, 클라우드 탐지에서 나온 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 경고를 OneUptime의 보안 이벤트로 가져옵니다. 그곳에서 로그, 트레이스, 메트릭과 나란히 검색하고, 다른 모든 소스와 상관 분석하고, 중요한 경고에 대해 온콜을 호출할 수 있습니다. OneUptime은 직접 만든 API 클라이언트로 Falcon Alerts API를 통해 경고를 읽으며, Falcon에는 아무것도 쓰지 않습니다.
+엔드포인트, ID, 클라우드 탐지에서 나온 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 경고를 OneUptime의 보안 이벤트로 가져옵니다. 그곳에서 로그, 트레이스, 메트릭과 나란히 검색하고, 다른 모든 소스와 상관 분석하고, 중요한 경고에 대해 온콜을 호출할 수 있습니다. OneUptime은 직접 만든 API 클라이언트로 Falcon Alerts API를 통해 경고를 읽으며, Falcon에는 이 기능을 켰을 때 차단하는 파일을 차단하기 위해서만 씁니다.
 
 :::cards
 - [연결 설정](#연결-설정): 범위 하나를 가진 API 클라이언트와 연결 양식.
 - [가져오는 내용](#가져오는-내용): 각 Falcon 경고가 보안 이벤트가 되는 방식.
 - [폴링 작동 방식](#폴링-작동-방식): 각 폴링이 읽는 구간과, 바쁜 CID에서 일어나는 일.
+- [CrowdStrike로 파일 차단](#crowdstrike로-파일-차단): 차단 목록의 파일이 모든 호스트에서 실행되지 않게 합니다.
 - [문제 해결](#문제-해결): 각 오류의 의미와 바꿔야 할 점.
 :::
 
@@ -33,7 +34,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 ### API 클라이언트 만들기
 
 1. Falcon 콘솔에서 **Support and resources → API clients and keys**를 열고 **Create API client**를 선택합니다.
-2. 이름을 정합니다. 예: `OneUptime security events`. **API scopes**에서 **Alerts → Read**를 켜고 다른 범위는 모두 끈 채로 둡니다. 연결은 Falcon에 아무것도 쓰지 않습니다.
+2. 이름을 정합니다. 예: `OneUptime security events`. **API scopes**에서 **Alerts → Read**를 켜고 다른 범위는 모두 끈 채로 둡니다. 경고를 읽는 것은 Falcon에 아무것도 쓰지 않습니다. 파일을 차단하려면 범위가 두 개 더 필요합니다([CrowdStrike로 파일 차단](#crowdstrike로-파일-차단) 참고).
 3. 클라이언트를 만듭니다. Falcon은 클라이언트 ID, 시크릿, 기본 URL을 한 번만 보여 줍니다. 지금 세 가지를 모두 복사하세요. 시크릿은 나중에 재설정할 수 있지만 다시 표시되지는 않습니다.
 
 ### Falcon 클라우드 찾기
@@ -60,6 +61,7 @@ Falcon이 보여 준 기본 URL로 CID가 속한 클라우드를 알 수 있습�
 | --- | --- |
 | **클라이언트 ID** | 클라이언트를 만들 때 Falcon이 보여 준 API 클라이언트의 ID. |
 | **Falcon 클라우드** | CID가 속한 클라우드: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** 또는 **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. 모든 요청은 그 클라우드의 API 호스트로 갑니다. |
+| **CrowdStrike로 파일 차단** | 새 연결에서는 꺼져 있습니다. 켜면 프로젝트의 차단 목록에 있는 파일을 모든 호스트에서 멈추며, **IOC Management → Read** 와 **Write** 가 필요합니다([CrowdStrike로 파일 차단](#crowdstrike로-파일-차단) 참고). |
 | **클라이언트 시크릿** | API 클라이언트의 시크릿. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **자격 증명 업데이트**로 교체합니다. |
 
 **폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다. 활성화되지 않은 연결도 테스트할 수 있고, 직접 폴링할 수 있습니다.
@@ -123,6 +125,17 @@ Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 - **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 경고는 건너뜁니다.
 - 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
+## CrowdStrike로 파일 차단
+
+연결에서 **CrowdStrike로 파일 차단** 을 켜면 프로젝트의 [차단 목록](/docs/telemetry/security-cases#차단-목록) 에 있는 파일이 Falcon이 보호하는 모든 호스트에서 멈춥니다. 각 파일은 SHA-256 또는 MD5 해시의 사용자 지정 IOC가 되며, 소스는 `OneUptime`, 작업은 `prevent` 로 Windows, Mac, Linux 호스트에 적용되고, 차단이 만료될 때 함께 만료됩니다. 격리도 할 파일은 차단되며, Falcon이 호스트의 방지 정책에 따라 격리합니다. Falcon은 SHA-1 해시를 일치시키지 못하고 도메인이나 주소는 탐지만 하므로 이들은 보내지 않습니다. [Microsoft Defender](/docs/integrations/microsoft-defender-xdr) 로 차단하세요.
+
+새 연결에서는 이 스위치가 꺼져 있습니다. 켜려면 다음과 같이 합니다.
+
+1. Falcon 콘솔에서 **Support and resources → API clients and keys** 를 열고, API 클라이언트를 편집해 **IOC Management → Read** 와 **Write** 를 켭니다.
+2. 연결에서 **CrowdStrike로 파일 차단** 을 켜고 **연결 테스트** 를 클릭합니다. **Block with CrowdStrike Falcon** 이 IOC를 바꾸지 않고 두 범위를 확인합니다.
+
+Falcon이 거부한 IOC는 차단 목록에 적용되지 않은 것으로 표시되며, 그 이유가 함께 나옵니다. OneUptime은 이 연결을 위해 자신이 추가한 IOC만 읽고 바꾸며, 사람이 만든 IOC는 건드리지 않습니다.
+
 ## 연결 테스트
 
 연결 행의 **연결 테스트**와 양식의 **이 설정 테스트**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
@@ -133,6 +146,7 @@ Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 | **Authenticate with CrowdStrike Falcon** | 클라우드의 호스트에서 API 클라이언트의 ID와 시크릿으로 보낸 `POST /oauth2/token`이 토큰을 반환하는지. |
 | **Read alerts from the Falcon Alerts API** | 지난 24시간에 대해 경고 하나(`limit=1`)를 요청하는 경고 쿼리가 받아들여지는지. 이로써 **Alerts → Read** 범위가 확인됩니다. |
 | **Alerts available to import** | 지난 24시간과 지난 7일 동안 생성된 경고 수. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. 폴링은 Falcon이 새 경고를 만드는 대로 가져옵니다. |
+| **Block with CrowdStrike Falcon** | **CrowdStrike로 파일 차단** 이 켜져 있을 때만: API 클라이언트에 **IOC Management → Read** 와 **Write** 가 있는지 확인합니다. OneUptime이 Falcon에 보관하는 사용자 지정 IOC 수를 알려 주며, 아무것도 바꾸지 않습니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
 | **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 

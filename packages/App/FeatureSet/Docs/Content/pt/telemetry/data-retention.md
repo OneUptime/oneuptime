@@ -38,6 +38,7 @@ Em detalhe, o OneUptime lê estas configurações nesta ordem, e a primeira defi
 - **As configurações 1 a 5 são substituições de retenção.** Elas fazem parte da [Edição Enterprise](/docs/self-hosted/enterprise), e do plano Scale no OneUptime Cloud. Sem elas, cada entrada é mantida pelo padrão do projeto.
 - **Uma mudança vale para a telemetria nova.** Uma entrada mantém a data que recebeu: uma retenção mais curta não a exclui antes, e uma mais longa não a mantém por mais tempo. As entradas novas seguem uma mudança em cerca de cinco minutos.
 - **As exceções seguem aquilo em que foram encontradas.** Uma exceção é mantida pelo mesmo tempo que o span ou o registro de onde veio. As Session Replays têm uma retenção própria: veja [Outros dados com retenção própria](#outros-dados-com-retenção-própria).
+- **Os eventos de segurança são mantidos da mesma forma.** As regras de detecção, Executar em eventos passados e as caçadas só leem até onde os eventos de segurança são mantidos, e dizem isso onde precisariam de mais: veja [Eventos de segurança](/docs/telemetry/security-events).
 
 ## Antes de começar
 

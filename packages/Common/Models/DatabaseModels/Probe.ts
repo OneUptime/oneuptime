@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import File from "./File";
 import Project from "./Project";
 import User from "./User";
@@ -25,6 +27,7 @@ import Version from "../../Types/Version";
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   JoinTable,
   ManyToMany,
@@ -107,6 +110,18 @@ export enum ProbeConnectionStatus {
 @CrudApiEndpoint(new Route("/probe"))
 @AccessControlColumn("labels")
 @SlugifyColumn("name", "slug")
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_PROBE_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "Probe",
 })
@@ -206,6 +221,7 @@ export default class Probe extends BaseModel {
       Permission.EditProjectProbe,
     ],
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -326,8 +342,8 @@ export default class Probe extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Reported Version",
     description:
-      "The OneUptime release this probe last said it runs. Set by OneUptime from the probe's own requests. Empty until the probe connects, and for a probe older than 17.0.1, which does not say.",
-    example: "17.0.1",
+      "The OneUptime release this probe last said it runs. Set by OneUptime from the probe's own requests. Empty until the probe connects, and for a probe older than 17.1.0, which does not say.",
+    example: "17.1.0",
   })
   @Column({
     nullable: true,
@@ -335,6 +351,38 @@ export default class Probe extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public reportedVersion?: string = undefined;
+
+  /*
+   * The major release of OneUptime this probe's owners were last told it is
+   * behind (OneUptime issue #9977; Types/Probe/ProbeMajorReleaseNotice): 18
+   * when they were told a probe on 17.x is behind OneUptime 18. Once a day
+   * Workers' Probe:NotifyMajorReleaseBehind tells them of a major release
+   * they were not told of yet, and keeps it here, so a probe that stays
+   * behind is not told of again; it forgets it once the probe runs
+   * OneUptime's major release again, so one that falls behind later is told
+   * again. Written by OneUptime alone, and read by the probe's readers.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: false,
+    title: "Major Version Behind Notified For",
+    description:
+      "The major release of OneUptime this probe's owners were last told the probe is behind. Set by OneUptime once a day; empty while the probe runs OneUptime's major release.",
+    example: 18,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public majorVersionBehindNotifiedFor?: number = undefined;
 
   /*
    * The address the probe's requests reach OneUptime from (#10338): what
@@ -367,6 +415,40 @@ export default class Probe extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public egressIpAddress?: string = undefined;
+
+  /*
+   * The addresses on the probe's own network interfaces, as it last listed
+   * them when it checked in (#10429; Types/Probe/ProbeInterfaceAddresses):
+   * comma-separated, each written the one way blocks are. The flows the
+   * project's routers export show the probe's polls, discovery sweeps and
+   * port checks coming from these - a LAN address, not the NAT's the probe
+   * checks in from - so Security Events knows that traffic for the probe's
+   * own work (TelemetryScan/ProbeOwnTraffic), and the blocklist never blocks
+   * them. What the probe says of itself: kept for the project's own probes
+   * only, written by OneUptime alone, and read by the probe's readers only,
+   * as the address it checks in from is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: false,
+    title: "Interface IP Addresses",
+    description:
+      "The IP addresses on this probe's own network interfaces, as the probe last listed them when it checked in, separated by commas. Set by OneUptime from the probe's own requests; Security Events knows the probe's own polls and checks by them, and the blocklist never blocks them.",
+    example: "10.0.0.5, 2001:db8::5",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public interfaceIpAddresses?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -529,46 +611,6 @@ export default class Probe extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public projectId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.Entity, modelType: User })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

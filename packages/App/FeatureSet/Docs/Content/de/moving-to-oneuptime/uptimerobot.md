@@ -57,7 +57,7 @@ Der Bericht zählt, was erstellt und nicht übernommen wurde, und listet jedes E
 | Monitors | Monitore | Jeder Monitor wird zu einem Monitor derselben Art, mit derselben Adresse, demselben Intervall und Timeout und denselben Statuscodes, die als verfügbar gelten. |
 | Public status pages | Statusseiten | Jede Seite zeigt dieselben Monitore: die, die sie nennt, die mit ihren Tags oder alle, mit Verfügbarkeit und Verlaufsbalken wie zuvor. Eine Seite mit Passwort wird privat übernommen. |
 
-- **HTTP(S)- und Keyword-Monitore** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie eine andere Methode, Header oder einen JSON-Body senden. Ein Keyword-Monitor fällt aus, wenn sein Schlüsselwort erscheint oder fehlt, wie in UptimeRobot, und gleicht es exakt ab, einschließlich Groß- und Kleinschreibung.
+- **HTTP(S)- und Keyword-Monitore** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie eine andere Methode, Header oder einen Body senden. Ein Keyword-Monitor fällt aus, wenn sein Schlüsselwort erscheint oder fehlt, wie in UptimeRobot, und gleicht es exakt ab, einschließlich Groß- und Kleinschreibung.
 - **Ping- und Port-Monitore** werden zu Ping- und Port-Monitoren.
 - **Heartbeat-Monitore** werden zu Monitoren für eingehende Anfragen, die ausfallen, wenn für das Intervall und die Karenzzeit keine Anfrage gekommen ist. Jeder hat in OneUptime eine neue Adresse.
 - **DNS- und API-Monitore** werden zu DNS- und API-Monitoren.

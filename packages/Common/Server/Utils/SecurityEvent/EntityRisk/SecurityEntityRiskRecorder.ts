@@ -231,6 +231,7 @@ export default class SecurityEntityRiskRecorder {
             threatIntelFeedId: finding.threatIntelFeedId?.toString(),
             securityEventConnectionId:
               finding.securityEventConnectionId?.toString(),
+            ...(finding.firingKey ? { firingKey: finding.firingKey } : {}),
           });
         }
       }
@@ -265,8 +266,9 @@ export default class SecurityEntityRiskRecorder {
         try {
           const row: SecurityEntityRisk | undefined = rowsByKey.get(key);
 
-          let contributions: Array<SecurityEntityRiskContribution> =
+          const counted: Array<SecurityEntityRiskContribution> =
             readRiskContributions(row?.contributions);
+          let contributions: Array<SecurityEntityRiskContribution> = counted;
 
           for (const observation of [...entry.observations].sort(
             (
@@ -277,6 +279,15 @@ export default class SecurityEntityRiskRecorder {
             },
           )) {
             contributions = addRiskObservation(contributions, observation, now);
+          }
+
+          /*
+           * Every finding about it a firing its sources counted already: a
+           * rule's run judged again after its worker stopped (#10489). Its
+           * risk is as that firing left it, so nothing is written.
+           */
+          if (row && contributions === counted) {
+            continue;
           }
 
           const signal: SecurityDetectionSignal | null = await this.writeRow({

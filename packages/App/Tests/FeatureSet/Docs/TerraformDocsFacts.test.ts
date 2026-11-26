@@ -528,12 +528,34 @@ function filterProblems(
     report(path, "value is not a string");
   }
 
+  const overTimeType: string | null = fixedValue(
+    filter,
+    "evaluate_over_time_type",
+    "monitorStepsEvaluateOverTimeTypeValues",
+    path,
+    report,
+  );
+  /*
+   * A measured value compared with the previous check is compared with a
+   * threshold made from that check's value: it takes no value of its own
+   * (#10821).
+   */
+  const comparesWithPreviousCheck: boolean =
+    overTimeType === EvaluateOverTimeType.PreviousCheck &&
+    boolLiteral(attributeNamed(filter, "evaluate_over_time")?.value) === true;
+
   if (filterType) {
     const takesNoValue: boolean =
-      FILTER_TYPES_WITHOUT_VALUE.includes(filterType);
+      FILTER_TYPES_WITHOUT_VALUE.includes(filterType) ||
+      comparesWithPreviousCheck;
 
     if (takesNoValue && value) {
-      report(path, `"${filterType}" takes no value`);
+      report(
+        path,
+        comparesWithPreviousCheck
+          ? `"${filterType}" compared with the previous check takes no value`
+          : `"${filterType}" takes no value`,
+      );
     }
 
     if (!takesNoValue && !value) {
@@ -543,8 +565,8 @@ function filterProblems(
 
   fixedValue(
     filter,
-    "evaluate_over_time_type",
-    "monitorStepsEvaluateOverTimeTypeValues",
+    "evaluate_over_time_change_type",
+    "monitorStepsPreviousCheckChangeTypeValues",
     path,
     report,
   );
@@ -623,13 +645,107 @@ function criteriaProblems(
     );
   }
 
-  objectItems(
-    attributeNamed(criteria, "filters")?.value,
-    `${path}.filters`,
+  // A recovery condition's filters are filters like any other (#10822).
+  for (const list of ["filters", "recovery_filters"]) {
+    const filters: HclAttribute | undefined = attributeNamed(criteria, list);
+
+    // filters is required (nestedProblems says so); recovery_filters is not.
+    if (!filters && list === "recovery_filters") {
+      continue;
+    }
+
+    objectItems(filters?.value, `${path}.${list}`, report).forEach(
+      (filter: Array<HclAttribute>, index: number): void => {
+        filterProblems(
+          filter,
+          monitorType,
+          `${path}.${list}[${index}]`,
+          report,
+        );
+      },
+    );
+  }
+
+  fixedValue(
+    criteria,
+    "recovery_filter_condition",
+    "monitorStepsFilterConditionValues",
+    path,
     report,
-  ).forEach((filter: Array<HclAttribute>, index: number): void => {
-    filterProblems(filter, monitorType, `${path}.filters[${index}]`, report);
-  });
+  );
+
+  if (
+    attributeNamed(criteria, "recovery_filter_condition") &&
+    !attributeNamed(criteria, "recovery_filters")
+  ) {
+    report(path, "has recovery_filter_condition without recovery_filters");
+  }
+
+  activeHoursProblems(criteria, path, report);
+}
+
+// "08:00": a clock time active_hours takes.
+const ACTIVE_HOURS_CLOCK: RegExp = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+// active_hours: the days and hours, and the zone they are read in (#10822).
+function activeHoursProblems(
+  criteria: Array<HclAttribute>,
+  path: string,
+  report: (path: string, problem: string) => void,
+): void {
+  const activeHours: HclAttribute | undefined = attributeNamed(
+    criteria,
+    "active_hours",
+  );
+
+  if (!activeHours) {
+    return;
+  }
+
+  if (!attributeNamed(criteria, "active_hours_timezone")) {
+    report(path, "has active_hours without active_hours_timezone");
+  }
+
+  if (activeHours.value.kind !== "object") {
+    report(path, "active_hours is not an object");
+    return;
+  }
+
+  const hours: Array<HclAttribute> = activeHours.value.attributes;
+
+  for (const attribute of hours) {
+    if (!["days", "from", "to"].includes(attribute.name)) {
+      report(path, `active_hours has no attribute ${attribute.name}`);
+    }
+  }
+
+  const days: HclValue | undefined = attributeNamed(hours, "days")?.value;
+
+  if (
+    !days ||
+    days.kind !== "tuple" ||
+    days.items.length === 0 ||
+    days.items.some((day: HclValue): boolean => {
+      return (
+        day.kind !== "number" ||
+        !Number.isInteger(day.value) ||
+        day.value < 0 ||
+        day.value > 6
+      );
+    })
+  ) {
+    report(path, "active_hours.days is not a list of days from 0 to 6");
+  }
+
+  for (const clock of ["from", "to"]) {
+    const time: string | null = stringLiteral(
+      attributeNamed(hours, clock)?.value,
+    );
+
+    if (time === null || !ACTIVE_HOURS_CLOCK.test(time)) {
+      report(path, `active_hours.${clock} is not a time such as "08:00"`);
+    }
+  }
 }
 
 function stepProblems(
@@ -1631,6 +1747,47 @@ describe("the checks themselves", () => {
     );
   });
 
+  it("catch a recovery filter the monitor type does not offer, hours without their zone or out of the week, and a value a previous check does not read", () => {
+    const steps: HclValue = (
+      parseHcl(
+        [
+          "monitor_steps = [{",
+          '  monitor_destination      = "https://example.com"',
+          '  monitor_destination_type = "URL"',
+          "  criteria = [{",
+          '    name             = "x"',
+          '    filter_condition = "All"',
+          "    filters = [{",
+          '      check_on                        = "Response Time (in ms)"',
+          '      filter_type                     = "Greater Than"',
+          '      value                           = "300"',
+          "      evaluate_over_time              = true",
+          '      evaluate_over_time_type         = "Previous Check"',
+          '      evaluate_over_time_change_type  = "Share"',
+          "      evaluate_over_time_change_value = 50",
+          "    }]",
+          '    recovery_filters          = [{ check_on = "Expires In Days", filter_type = "Greater Than", value = "14" }]',
+          '    recovery_filter_condition = "Every"',
+          '    active_hours              = { days = [1, 7], from = "8 am", to = "18:00" }',
+          "  }]",
+          "}]",
+        ].join("\n"),
+      ).attributes[0] as HclAttribute
+    ).value;
+
+    expect(monitorStepsProblems(steps, MonitorType.Website, "x")).toEqual(
+      expect.arrayContaining([
+        'x monitor_steps[0].criteria[0].filters[0]: "Greater Than" compared with the previous check takes no value',
+        'x monitor_steps[0].criteria[0].filters[0]: evaluate_over_time_change_type = "Share" is not one of monitorStepsPreviousCheckChangeTypeValues',
+        'x monitor_steps[0].criteria[0].recovery_filters[0]: a Website monitor\'s criteria editor offers no "Expires In Days"',
+        'x monitor_steps[0].criteria[0]: recovery_filter_condition = "Every" is not one of monitorStepsFilterConditionValues',
+        "x monitor_steps[0].criteria[0]: has active_hours without active_hours_timezone",
+        "x monitor_steps[0].criteria[0]: active_hours.days is not a list of days from 0 to 6",
+        'x monitor_steps[0].criteria[0]: active_hours.from is not a time such as "08:00"',
+      ]),
+    );
+  });
+
   it("catch an empty placeholder, a status change with no status and a destination without its type", () => {
     const steps: HclValue = (
       parseHcl(
@@ -2612,8 +2769,57 @@ describe("the complete guide", () => {
     expect(jsonSubset).toContain(
       "func jsonIsSubset(plan, actual interface{}) bool",
     );
+
+    /*
+     * A monitor's steps: what the server writes of its own is no change
+     * (monitorStepsUnsetValues), checked against what its own code answers
+     * (Scripts/TerraformProvider/Tests/MonitorStepsServerDefaultsCases).
+     */
+    const drift: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/monitorstepsdrift.go",
+    );
+
     expect(readRepoFile(MONITOR_STEPS_GO)).toContain(
-      "return jsonIsSubset(theirsPlain, minePlain), diags",
+      "return monitorStepsHoldsOnlyWhatIsWritten(theirsPlain, minePlain), diags",
+    );
+    expect(drift).toContain(
+      "var monitorStepsUnsetValues = map[monitorStepsLevel]map[string]interface{}{",
+    );
+    for (const serverDefault of [
+      '"requestType": "GET"',
+      '"isEnabled":           true',
+      '"recoveryFilterCondition": "All"',
+    ]) {
+      expect(drift).toContain(serverDefault);
+    }
+    expect(
+      section(COMPLETE_GUIDE, "## Drift, and what does not cause it"),
+    ).toContain(
+      "- **Defaults the server adds** to a monitor's steps, or to a JSON value, are not a difference from what you wrote.",
+    );
+  });
+
+  it("is right that a setting added in OneUptime to a monitor's steps shows in the plan, and the apply removes it (#10907)", () => {
+    const drift: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/monitorstepsdrift.go",
+    );
+
+    expect(
+      section(COMPLETE_GUIDE, "## Drift, and what does not cause it"),
+    ).toContain(
+      "A setting someone adds in OneUptime to a monitor's steps, which your configuration does not write, is a difference, though: the next plan shows `monitor_steps` changing, and the apply that follows removes the setting, as the plan says.",
+    );
+
+    // A key the server holds and the configuration does not write passes only as its unset value.
+    expect(drift).toContain(
+      "func monitorStepsIsUnset(level monitorStepsLevel, key string, value interface{}, held map[string]interface{}) bool {",
+    );
+    // The state a read and an apply keep: the configuration's steps, and the setting.
+    expect(drift).toContain(
+      "func MonitorStepsKeepWritten(ctx context.Context, prior types.List, held types.List) types.List {",
+    );
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
+      "MonitorStepsKeepWritten(ctx, ${fieldName}.ListValue, mappedSteps)",
     );
   });
 });
@@ -3581,8 +3787,10 @@ describe("the people and teams page", () => {
       "Scripts/TerraformProvider/StaticFiles/people.go",
     );
 
+    // The provider knows the refusal by these words (#7271 kept them).
+    expect(errors).toContain("ALREADY_INVITED: translationKey(");
     expect(errors).toContain(
-      'ALREADY_INVITED: "This user has already been invited to this team"',
+      '"This person has already been invited to this team, or is a member of it.',
     );
     expect(goFunction(people, "func AlreadyInvitedHint(")).toContain(
       '"already been invited"',

@@ -97,6 +97,7 @@ const SOMEBODY_ELSE: string = "00000000-0000-4000-8000-0000000000bb";
 const ANSWER: ClearLocalSignInAnswer = {
   cleared: {
     hasPassword: true,
+    hasPasswordResetLink: false,
     isTwoFactorAuthEnabled: true,
     authenticatorAppCount: 1,
     passkeyAndSecurityKeyCount: 2,

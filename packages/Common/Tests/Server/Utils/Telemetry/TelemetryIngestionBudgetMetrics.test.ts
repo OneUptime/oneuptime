@@ -424,7 +424,7 @@ describe("a team's or a label's rows and emails", () => {
       'Logs ingestion budget used up for the team "Payments" in Acme',
     );
     expect(notice!.html).toContain(
-      "OneUptime is dropping logs from the services the team owns until the budget resets at 2026-11-10 00:00 UTC.",
+      "OneUptime is dropping logs from the services, hosts and other resources the team owns until the budget resets at 2026-11-10 00:00 UTC.",
     );
     expect(notice!.html).toContain(
       "Their senders are not told, and the rest of the project keeps sending.",
@@ -451,7 +451,12 @@ describe("a team's or a label's rows and emails", () => {
     expect(notice!.subject).toBe(
       'Logs ingestion budget 85% used for the label "<production>" in Acme',
     );
-    expect(notice!.html).toContain("services with the label");
+    expect(notice!.html).toContain(
+      "The services, hosts and other resources with the label",
+    );
+    expect(notice!.html).toContain(
+      "logs from the services, hosts and other resources with the label are dropped",
+    );
     expect(notice!.html).not.toContain("<production>");
   });
 

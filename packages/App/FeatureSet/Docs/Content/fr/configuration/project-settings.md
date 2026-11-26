@@ -5,6 +5,7 @@ Les paramètres du projet contiennent ce qui s'applique au projet entier : son n
 :::cards
 - [Trouver un paramètre](#trouver-un-paramètre): Ce que contient chaque section du menu latéral.
 - [Les détails du projet](#les-détails-du-projet): Son nom, son ID et l'accès du support.
+- [Noms uniques](#noms-uniques): Si deux enregistrements d'un même type peuvent partager un nom.
 - [Produits](#produits): Les produits que ce projet affiche, et ceux qu'il masque.
 - [Étiquettes](#étiquettes): Des marqueurs pour les ressources, les autorisations et les règles.
 - [Supprimer le projet](#supprimer-le-projet): Ce qu'il faut, et ce qui part avec.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Section | Pages | Où en lire plus |
 | --- | --- | --- |
-| **Basique** | **Projet**, **Produits**, **Étiquettes** | [Les détails du projet](#les-détails-du-projet), [Produits](#produits), [Étiquettes](#étiquettes) |
+| **Basique** | **Projet**, **Produits**, **Étiquettes** | [Les détails du projet](#les-détails-du-projet), [Noms uniques](#noms-uniques), [Produits](#produits), [Étiquettes](#étiquettes) |
 | **Espace de travail** | **Slack**, **Microsoft Teams**, **Mattermost**, **Appels vidéo** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Appels vidéo](/docs/workspace-connections/video-calls) |
 | **Télémétrie & APM** | **Clés d'ingestion**, **Rétention des données**, **Utilisation** | [Clés d'ingestion](/docs/telemetry/ingestion-keys), [Rétention des données](/docs/telemetry/data-retention), [Utilisation de la télémétrie](/docs/telemetry/usage) |
 | **Notifications** | **Canaux de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## Les détails du projet
 
-**Paramètres du projet → Basique → Projet** contient deux cartes.
+**Paramètres du projet → Basique → Projet** contient les cartes du projet : **Détails du projet**, **Noms uniques** et, sur OneUptime Cloud, **Accès du support client**.
 
 **Détails du projet** montre le nom du projet et son ID :
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Résidence des données** : sur OneUptime Cloud, l'endroit où les données de votre projet doivent être conservées, quand OneUptime l'a enregistré. Seul OneUptime le définit.
 
 **Accès du support client**, sur OneUptime Cloud, décide si l'équipe de support de OneUptime peut ouvrir le projet. Activez **Autoriser le support OneUptime à accéder à ce projet** quand vous voulez son aide : OneUptime demande d'abord, car le support peut alors voir et modifier tout le projet, et vous cliquez sur **Autoriser le support**. Désactivez-le une fois qu'il a terminé : c'est enregistré aussitôt. Les Propriétaires du projet et les Administrateurs du projet le modifient.
+
+## Noms uniques
+
+**Noms uniques**, dans **Paramètres du projet → Basique → Projet**, décide si deux enregistrements d'un même type peuvent partager un nom dans le projet. Tant que **Exiger des noms uniques** est activé, OneUptime refuse un nom qu'un autre enregistrement du même type porte déjà, qu'il soit saisi ici, envoyé via l'API ou défini dans Terraform, et quelles que soient sa casse et ses espaces : `API Health Check` et `api health check` sont un seul nom. L'interrupteur enregistre dès que vous le basculez. Les Propriétaires du projet et les Administrateurs du projet le modifient.
+
+Il est activé dans un nouveau projet. Un projet qui existait avant son arrivée le garde désactivé, car les clients de l'API et les configurations Terraform du projet peuvent compter sur des noms qui se répètent : activez-le quand vous êtes prêt.
+
+Sous l'interrupteur, la carte liste chaque nom que le projet porte déjà plusieurs fois, type par type, avec un lien vers chaque enregistrement et le jour de sa création. Activer l'interrupteur ne refuse rien de ce qui existe : ces enregistrements continuent de fonctionner jusqu'à ce que quelqu'un les renomme, et seuls un nouvel enregistrement ou un renommage ont besoin d'un nom qui leur est propre. Enregistrer de nouveau un enregistrement avec son propre nom, quelle que soit la casse, n'est pas un renommage.
+
+Quel que soit l'état de l'interrupteur, un formulaire prévient pendant que vous saisissez un nom qu'un autre enregistrement de son type porte déjà, et propose un lien vers cet enregistrement. Tant que l'interrupteur est activé, l'avertissement dit aussi que l'enregistrement serait refusé.
+
+L'interrupteur s'applique aux types que vous nommez et choisissez par leur nom : moniteurs, groupes de moniteurs, sondes, SLO, modèles d'incident, d'alerte, de maintenance et de page de statut, clés d'API, clés d'ingestion, rôles personnalisés, fournisseurs de LLM, pipelines, budgets et connexions. Les événements et les traces de ce qui s'est passé répètent leurs noms par nature et sont laissés de côté : incidents, alertes, épisodes, événements de maintenance et annonces de page de statut, de même que ce que OneUptime découvre, comme les hôtes et les pods. Les équipes, les étiquettes, les politiques d'astreinte, les plannings d'astreinte, les pages de statut, les flux de travail et quelques autres types ont un nom qui leur est propre dans chaque projet, quel que soit l'état de l'interrupteur.
+
+Quand OneUptime nomme un enregistrement pour vous, comme un moniteur créé à partir d'une recommandation ou un moniteur importé, et que le nom est pris, il ajoute un numéro au lieu de le refuser : `API Health Check 2`.
 
 ## Produits
 
@@ -145,6 +160,10 @@ Renommer le projet demande un Propriétaire du projet, ou l'autorisation de modi
 
 :::details Supprimer le projet reste verrouillé dans la boîte de dialogue
 Saisissez le nom du projet exactement comme la boîte de dialogue l'affiche : la casse compte.
+:::
+
+:::details Un nom est refusé parce que le projet exige des noms uniques
+Un autre enregistrement du même type porte ce nom, quelles que soient sa casse et ses espaces. Choisissez un autre nom, ou renommez d'abord l'autre enregistrement : **Noms uniques**, dans **Paramètres du projet → Basique → Projet**, liste les noms que le projet porte plusieurs fois, avec un lien vers chaque enregistrement. Si seul un enregistrement archivé porte ce nom, désarchivez-le ou choisissez un autre nom.
 :::
 
 ## Étapes suivantes

@@ -1,85 +1,111 @@
-import { useEffect, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import Service from "Common/Models/DatabaseModels/Service";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
+import Select from "Common/Types/BaseDatabase/Select";
+import RecordsById from "Common/UI/Utils/RecordsById";
 
 /*
- * The project's apps (telemetry services) by id, for naming the app a
- * conversation ran in and for the app filter. A failed read leaves the map
- * empty: rows then simply leave the app out.
+ * THE APPS (TELEMETRY SERVICES) A PAGE NAMES, READ BY THEIR IDS (#10764).
+ *
+ * The conversations list, a conversation and the setup check name the app a
+ * conversation ran in. They read the project's first 10,000 services by
+ * name for it: an app past them had no name, and the app filter could not
+ * offer it. The filter searches the server now (LlmAppPicker), and an app
+ * is named here by its id: each id a page asks for as it draws (nameOf) is
+ * read once, after that draw, in pages (RecordsById). A failed read leaves
+ * the names out: rows then simply leave the app out, as they always did.
  */
 
-export interface LlmServiceOption {
-  id: string;
-  name: string;
-}
+// What an app is named by.
+export const LLM_APP_NAME_SELECT: Select<Service> = { name: true };
 
 export interface LlmServiceNames {
-  names: Map<string, string>;
-  options: Array<LlmServiceOption>;
+  /*
+   * An app's name by its id, once read; "" until then, and for an id no app
+   * answers to. Asking reads it.
+   */
+  nameOf: (serviceId: string) => string;
 }
 
 export function useLlmServiceNames(): LlmServiceNames {
-  const [state, setState] = useState<LlmServiceNames>({
-    names: new Map<string, string>(),
-    options: [],
-  });
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+
+  // The ids asked for: read, or being read - each once.
+  const askedRef: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set(),
+  );
+  // The ids asked for in a draw, read after it.
+  const pendingRef: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set(),
+  );
+  const isMountedRef: MutableRefObject<boolean> = useRef<boolean>(true);
 
   useEffect(() => {
-    let cancelled: boolean = false;
-
-    const load: () => Promise<void> = async (): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-      if (!projectId) {
-        return;
-      }
-
-      try {
-        const result: ListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: { projectId: projectId },
-          select: { name: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: { name: SortOrder.Ascending },
-        });
-
-        if (cancelled) {
-          return;
-        }
-
-        const options: Array<LlmServiceOption> = (result.data || [])
-          .filter((service: Service): boolean => {
-            return Boolean(service.id && service.name);
-          })
-          .map((service: Service): LlmServiceOption => {
-            return { id: service.id!.toString(), name: service.name! };
-          });
-
-        setState({
-          names: new Map<string, string>(
-            options.map((option: LlmServiceOption): [string, string] => {
-              return [option.id, option.name];
-            }),
-          ),
-          options: options,
-        });
-      } catch {
-        // Names are a nicety: the page works without them.
-      }
-    };
-
-    void load();
+    isMountedRef.current = true;
 
     return () => {
-      cancelled = true;
+      isMountedRef.current = false;
     };
   }, []);
 
-  return state;
+  // After every draw: read what it asked for and had no name for.
+  useEffect(() => {
+    if (pendingRef.current.size === 0) {
+      return;
+    }
+
+    const ids: Array<string> = Array.from(pendingRef.current);
+    pendingRef.current.clear();
+
+    RecordsById.read<Service>({
+      modelType: Service,
+      ids: ids,
+      select: LLM_APP_NAME_SELECT,
+    })
+      .then((services: Array<Service>): void => {
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setNames((current: Map<string, string>): Map<string, string> => {
+          const next: Map<string, string> = new Map(current);
+
+          for (const service of services) {
+            const id: string =
+              (service.id || service._id)?.toString().toLowerCase() || "";
+
+            if (id && service.name) {
+              next.set(id, service.name);
+            }
+          }
+
+          return next;
+        });
+      })
+      .catch((): void => {
+        // Names are a nicety: the page works without them.
+      });
+  });
+
+  return {
+    nameOf: (serviceId: string): string => {
+      const id: string = serviceId ? serviceId.trim().toLowerCase() : "";
+
+      if (!id) {
+        return "";
+      }
+
+      const name: string | undefined = names.get(id);
+
+      if (name !== undefined) {
+        return name;
+      }
+
+      if (!askedRef.current.has(id)) {
+        askedRef.current.add(id);
+        pendingRef.current.add(id);
+      }
+
+      return "";
+    },
+  };
 }

@@ -236,6 +236,7 @@ import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import UiAnalytics from "../../../UI/Utils/Analytics";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getJestSpyOn } from "../../Spy";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
@@ -427,6 +428,18 @@ beforeEach(() => {
   getJestSpyOn(UiAnalytics, "captureRevenueEvent").mockImplementation(
     (): void => {},
   );
+
+  /*
+   * A monitor's name is one of its kind in a project that requires unique
+   * names, so the form asks the server, a moment after the monitor is named,
+   * whether another monitor has the name (DuplicateNameNotice, #10761): none
+   * has it here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 
   getListMock.mockImplementation(async (params: any): Promise<any> => {
     if (params.modelType === Label) {

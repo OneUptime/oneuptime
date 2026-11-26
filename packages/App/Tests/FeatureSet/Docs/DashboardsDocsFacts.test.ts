@@ -183,6 +183,14 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import ModelImportExport from "Common/Utils/ModelImportExport";
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "Common/Utils/Slo/SloMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  DASHBOARD_FULL_SCREEN_VIEW,
+  DASHBOARD_VIEW_LINK_PARAMETER,
+} from "Common/Utils/Dashboard/DashboardFullScreenLink";
+import {
+  DashboardFullScreenKeyAction,
+  getDashboardFullScreenKeyAction,
+} from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardFullScreenKeys";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -247,6 +255,7 @@ const PLAYLIST_COMPONENTS_DIR: string = `${DASHBOARD_COMPONENTS_DIR}/Playlist`;
 const PLAYLIST_PLAYER: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistPlayer.tsx`;
 const PLAYLIST_PLAYER_BAR: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistPlayerBar.tsx`;
 const PLAYLIST_DASHBOARDS_FIELD: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistDashboardsField.tsx`;
+const PLAYLIST_DASHBOARDS: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistDashboards.ts`;
 const USE_PLAYLIST_PLAYER: string = `${PLAYLIST_COMPONENTS_DIR}/UsePlaylistPlayer.ts`;
 const ATTRIBUTE_SERVICE: string =
   "Common/Server/Services/TelemetryAttributeService.ts";
@@ -1143,6 +1152,63 @@ describe("Authoring a Dashboard, against the product", () => {
       `${bold("Discard Changes")} goes back to the dashboard as it was saved, and ${bold(
         "Keep Editing",
       )} returns to your work`,
+    );
+  });
+
+  /*
+   * A dashboard shown full screen (#10409): the toolbar's controls, the
+   * Dashboards list's row action, the key that leaves it and its address,
+   * as the page names them.
+   */
+  it("says how full screen opens, in this tab and in a new one, how it closes, and its address, as the product does it", () => {
+    const toolbar: string = readSource(TOOLBAR);
+    const list: string = readSource(DASHBOARDS_LIST);
+    const fullScreen: string = sectionOf(page, "## Full screen");
+
+    // The toolbar: its ⋯ menu's items, and the row's end.
+    for (const item of ["Full Screen", "Exit Full Screen", "Open in New Tab"]) {
+      expect(toolbar).toContain(`text={"${item}"}`);
+    }
+    expect(toolbar).toContain('translator.translateText("Full Screen")');
+    expect(toolbar).toContain('translator.translateText("Fill the Screen")');
+    expect(
+      new RegExp('<Button\\s+title="Exit Full Screen"').test(toolbar),
+    ).toBe(true);
+    expect(toolbar).toContain('shortcutHint="Esc"');
+
+    // Each row's ⋯ menu on the Dashboards list.
+    expect(list).toContain('title: "Open in New Tab"');
+    expect(list).toContain("placement: ActionButtonPlacement.MoreMenu");
+
+    for (const label of [
+      "Full Screen",
+      "⋯ → Full Screen",
+      "Open in New Tab",
+      "Dashboards",
+      "Fill the Screen",
+      "Exit Full Screen",
+    ]) {
+      expect({ label, named: fullScreen.includes(bold(label)) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    // Escape leaves it, as the page says.
+    expect(
+      getDashboardFullScreenKeyAction({
+        event: { key: "Escape" },
+        hasOpenLayer: false,
+        isBrowserFullScreen: false,
+      }),
+    ).toBe(DashboardFullScreenKeyAction.Exit);
+    expect(fullScreen).toContain(
+      `${bold("Exit Full Screen")}, or Esc, goes back to the dashboard's page`,
+    );
+
+    // Its address, as a link to it names it.
+    expect(fullScreen).toContain(
+      `\`?${DASHBOARD_VIEW_LINK_PARAMETER}=${DASHBOARD_FULL_SCREEN_VIEW}\``,
     );
   });
 
@@ -3289,7 +3355,7 @@ describe("External Data Sources, against the connectors and their limits", () =>
     );
   });
 
-  it("puts a variable into a query, several values joined with |, and leaves an unpicked one as written", () => {
+  it("puts a variable into PromQL as Grafana's Prometheus does, and into any other query several values joined with |, an unpicked one left as written", () => {
     const job: DashboardVariable = {
       id: "job",
       name: "job",
@@ -3300,16 +3366,46 @@ describe("External Data Sources, against the connectors and their limits", () =>
     };
     const nothing: DashboardVariable = { ...job, selectedValues: [] };
     const promql: string = fenceCode(DATA_SOURCES, "PromQL");
+    const fill: (
+      dataSourceId: string,
+      dataSourceType: DataSourceType | undefined,
+      query: string,
+      variable: DashboardVariable,
+    ) => string = (
+      dataSourceId: string,
+      dataSourceType: DataSourceType | undefined,
+      query: string,
+      variable: DashboardVariable,
+    ): string => {
+      return DataSourceQueryText.applyVariablesForSource({
+        dataSourceId,
+        dataSourceType,
+        queryText: query,
+        variables: [variable],
+      });
+    };
+    const outside: string = "6c7a8b9c-0000-4000-8000-000000000001";
 
     expect(promql).toContain('job=~"{{job}}"');
-    expect(DataSourceQueryText.applyVariables(promql, [job])).toContain(
-      'job=~"api|web"',
+
+    // This project's metrics and a Prometheus: any of the values, each as written; nothing picked, every value.
+    for (const [id, type] of [
+      [PROJECT_METRICS_DATA_SOURCE_ID, undefined],
+      [outside, DataSourceType.Prometheus],
+    ] as Array<[string, DataSourceType | undefined]>) {
+      expect(fill(id, type, promql, job)).toContain('job=~"(api|web)"');
+      expect(fill(id, type, promql, nothing)).toContain('job=~".*"');
+    }
+
+    // Any other query: joined with |, which a LogQL regex matcher reads; nothing picked, as written.
+    const logql: string = 'sum(count_over_time({job=~"{{job}}"}[5m]))';
+
+    expect(fill(outside, DataSourceType.Loki, logql, job)).toBe(
+      'sum(count_over_time({job=~"api|web"}[5m]))',
     );
-    expect(DataSourceQueryText.applyVariables(promql, [nothing])).toContain(
-      'job=~"{{job}}"',
-    );
+    expect(fill(outside, DataSourceType.Loki, logql, nothing)).toBe(logql);
     expect(page).toContain(
-      'Several values of a multi-select variable are joined with `|`, which is what a PromQL or LogQL regular expression matcher needs: `job=~"{{job}}"`. A variable with nothing picked leaves the placeholder as written',
+      "A query on this project's metrics or on a Prometheus is filled as Grafana's Prometheus data source fills it: in `job=~\"{{job}}\"`, several values of a multi-select variable match any one of them, each as written, and a variable with nothing picked matches every value. In any other query, several values are joined with `|`, which is what a LogQL regular expression matcher needs, and a variable with nothing picked is left as written",
     );
   });
 
@@ -3900,17 +3996,29 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
     const field: string = readSource(PLAYLIST_DASHBOARDS_FIELD);
 
     /*
-     * The picker's name, handed to Dropdown in English: Dropdown looks it
-     * up in the reader's language, once (#7790), so the page neither looks
-     * it up first nor says it is translated already.
+     * The picker's name. The picker is an EntityDropdown since #10580, which
+     * finds every dashboard by name, and EntityDropdown draws its aria-label
+     * as it is given, so the field looks the name up in the reader's
+     * language itself, once.
      */
-    expect(field).toContain('ariaLabel="Add a dashboard"');
+    expect(field).toContain("<EntityDropdown");
+    expect(field).toContain(
+      'ariaLabel={translator.translateText("Add a dashboard") || ""}',
+    );
     expect(field).not.toContain("isAriaLabelTranslated");
     expect(createSection).toContain(
       `pick each one from ${bold("Add a dashboard")}`,
     );
-    // The picker's options: not archived, and not in the list yet.
-    expect(field).toContain("!dashboard.isArchived &&");
+    /*
+     * The picker's options, as it asks the API for them: not archived, and
+     * not in the list yet.
+     */
+    const addable: string = readSource(PLAYLIST_DASHBOARDS);
+    expect(field).toContain(
+      "query={getAddablePlaylistDashboardsQuery(dashboards)}",
+    );
+    expect(addable).toContain("isArchived: false,");
+    expect(addable).toContain("_id: new IncludesNone(ids)");
     expect(createSection).toContain("Archived dashboards are not offered.");
   });
 

@@ -1,6 +1,6 @@
 # Skjemaer – oversikt
 
-Et skjema er en side som alle med lenken kan fylle ut, uten en OneUptime-konto. Hver innsending oppretter noe i prosjektet ditt: en **hendelse**, for feilrapporter, eller en **vedlikeholdshendelse**, for endrings- og vedlikeholdsforespørsler. Du bygger skjemaets spørsmål i et dra-og-slipp-verktøy, bestemmer hvordan svarene blir til posten, og deler lenken med dem som skal bruke det.
+Et skjema er en side som alle med lenken kan fylle ut, uten en OneUptime-konto. Hver innsending oppretter noe i prosjektet ditt: en **hendelse**, for feilrapporter, et **varsel**, for advarsler og ting som bør sjekkes, eller en **vedlikeholdshendelse**, for endrings- og vedlikeholdsforespørsler. Du bygger skjemaets spørsmål i et dra-og-slipp-verktøy, bestemmer hvordan svarene blir til posten, og deler lenken med dem som skal bruke det.
 
 Bruk et skjema når de som oppdager et problem, eller trenger en endring, ikke er de som håndterer hendelsene og vedlikeholdet ditt: brukerstøtte, kolleger i en annen avdeling, en butikksjef, driftsteamet til en kunde. De åpner lenken, svarer på spørsmålene dine og trykker på **Send inn**. Teamet ditt får en vanlig hendelse eller vedlikeholdshendelse, med svarene i feltene og et privat notat som viser hvem som sendte den.
 
@@ -13,16 +13,19 @@ Bruk et skjema når de som oppdager et problem, eller trenger en endring, ikke e
 
 ## Slik fungerer et skjema
 
-```mermaid title="Fra et utfylt skjema til en hendelse eller en vedlikeholdshendelse"
+```mermaid title="Fra et utfylt skjema til en hendelse, et varsel eller en vedlikeholdshendelse"
 flowchart TB
     submitter["Noen med lenken,<br/>uten konto"] --> page["Skjemaets side"]
     page -->|Send inn| checks["Beskyttelse og<br/>kontroll av svar"]
     checks --> submission["Innsending, lagret<br/>med skjemaet"]
     submission --> target{"Hver innsending oppretter"}
     target -->|Hendelse| incident["Hendelse, skjult<br/>på statussider"]
+    target -->|Varsel| alert["Varsel, som eierne<br/>skal sjekke"]
     target -->|Planlagt vedlikehold| event["Vedlikeholdshendelse,<br/>skjult med mindre angitt"]
     incident --> response["Vaktpolicyer og<br/>regler kjører"]
+    alert --> response
     incident --> note["Privat notat: hvem som sendte,<br/>øvrige svar"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Når du oppretter et skjema, velger du hva **Hver innsending oppretter**. Du kan
 | Hver innsending oppretter | Brukes til | Hva som skjer |
 | --- | --- | --- |
 | **Hendelse** | Feilrapporter | En hendelse opprettes med en gang, så vaktpolicyene og reglene dine kjører og de som har vakt, får beskjed. Den holdes borte fra statussider til en som håndterer den, publiserer den. |
+| **Varsel** | Advarsler og ting som bør sjekkes | Et varsel opprettes, så eierne får beskjed og vaktpolicyene og reglene for det kjører, uten at det erklæres en hendelse. Et som starter i en senere tilstand, som **Bekreftet**, tilkaller ingen. |
 | **Planlagt vedlikehold** | Endrings- og vedlikeholdsforespørsler | En vedlikeholdshendelse planlegges for tidsrommet innsenderen ber om. Med mindre skjemaet sier noe annet, holdes den borte fra statussidene og varsler ingen abonnenter. |
 
-Skjemaer starter med disse to, og flere typer poster kommer.
+Å sette opp et skjema som oppretter varsler, krever også tillatelse til å opprette varsler: se [Tillatelser](#tillatelser).
 
 ## Før du begynner
 
 - **En plan som omfatter skjemaer.** På OneUptime Cloud krever skjemaer planen **Growth** eller høyere. Se [Plan](#plan).
 - **Tillatelse til å opprette skjemaer.** **Create Form** har Prosjekteiere og Prosjektadministratorer, og rollene du gir den til. Se [Tillatelser](#tillatelser).
 - **For et hendelsesskjema, en alvorlighetsgrad.** Hver hendelse trenger en: fra et spørsmål, fra skjemaets innstillinger eller fra hendelsesmalen. Uten den avvises hver innsending. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-hendelse).
+- **For et varselskjema, en alvorlighetsgrad.** Hvert varsel trenger også en: fra et spørsmål eller fra skjemaets innstillinger. Se [Slik blir en innsending til et varsel](/docs/forms/on-submit#slik-blir-en-innsending-til-et-varsel).
 
 ## Opprett ditt første skjema
 
@@ -144,6 +149,8 @@ Skjemaer lar folk utenfor teamet ditt opprette hendelser og vedlikeholdshendelse
 | **Delete Form Domain** | Fjerne et skjemas egendefinerte domener. | Prosjekteier, Prosjektadministrator og **Edit Form** |
 | **Read Form Domain** | Se et skjemas egendefinerte domener, DNS-postene deres og hvor langt hvert har kommet på veien mot HTTPS. | Alle med **Read Form** |
 
+**Et skjema som oppretter varsler, krever tillatelse til å opprette varsler.** Alle med lenken kan opprette varsler, gi eierne deres beskjed og tilkalle vakten deres, så for å opprette et skjema som oppretter varsler, gjøre et skjema om til et slikt eller endre spørsmålene, malene eller innstillingene under **Ved innsending** for et varselskjema kreves det i hvert tilfelle også en tillatelse som gir lov til å opprette varsler: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Varseladministrator, Varselmedlem eller **Create Alert**. Navnet, lenken, **Tar imot innsendinger**, merkevaren og **IP-tillatelsesliste** krever bare tillatelsene **Form**. Uten den tillatelsen tilbys ikke **Varsel** når du oppretter et skjema, og det er låst på skjemaets side **Ved innsending**, med et verktøytips som nevner tillatelsen; en forespørsel som sendes likevel, avvises med "Only people who may create alerts can set up a form that creates them." Hendelses- og vedlikeholdsskjemaer krever bare tillatelsene **Form**, slik de alltid har gjort.
+
 Innsendinger inneholder det fremmede har skrevet (navn, e-postadresser og svar som kanskje aldri havner i posten), så bare Prosjekteiere og Prosjektadministratorer ser dem, med mindre du gir **Read Form Submission**. Alle som kan lese et skjema, kan se og dele lenken. Det krever ingen tillatelse å sende inn et skjema. Hvordan roller og detaljerte tillatelser spiller sammen, finner du i [Brukere, team og tillatelser](/docs/permissions/index).
 
 ## Plan
@@ -156,7 +163,7 @@ Skjemaer er en vanlig API-ressurs på `/api/form`, og innsendingene på `/api/fo
 
 ### Spørsmål og innstillinger
 
-Et skjemas spørsmål er kolonnen `fields`, en JSON-liste i den rekkefølgen skjemaet stiller dem, og innstillingene under Ved innsending er `targetSettings`:
+Et skjemas `targetType` er det hver innsending oppretter: `Incident`, `Alert` eller `ScheduledMaintenance`. Spørsmålene er kolonnen `fields`, en JSON-liste i den rekkefølgen skjemaet stiller dem, og innstillingene under Ved innsending er `targetSettings` — for et varselskjema `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` og `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Hvert spørsmål har sin egen `id` (bokstaver, sifre, `-` og `_`), en `source`, 
 | `source` | Hva det spør om |
 | --- | --- |
 | `Question` | Et av skjemaets egne spørsmål, besvart etter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En nedtrekksliste viser `dropdownOptions`, ett per linje. |
-| `TargetField` | Et felt i det skjemaet oppretter, angitt med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hendelse; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedlikeholdshendelse. Et felt som besvares ved å velge, viser postene det tilbyr i `allowedOptionIds`. |
-| `TargetCustomField` | Et av hendelsens egendefinerte felt, angitt med `customFieldId`. |
+| `TargetField` | Et felt i det skjemaet oppretter, angitt med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hendelse; `title`, `description`, `alertSeverityId`, `monitor`, `labels` og `impactStartedAt` for et varsel; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedlikeholdshendelse. Et felt som besvares ved å velge, viser postene det tilbyr i `allowedOptionIds`. |
+| `TargetCustomField` | Et av hendelsens, varselets eller begivenhetens egendefinerte felt, angitt med `customFieldId`. |
 | `Submitter` | Innsenderens `Name` eller `Email`, angitt med `submitterField`. |
 
 Et spørsmål med `isHidden` satt til `true` vises ikke på den offentlige siden, er aldri obligatorisk og besvares bare fra malen en innsending oppgir, med mindre den malen stiller det. `isRequired` og `isHidden` er skjemaets standard; hver mal kan stille et spørsmål på sin egen måte.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ Svaret på et filspørsmål er filene slik de ble lagret, hver med sin `fileId`,
 
 ### Arbeidsflyter
 
-Skjemaer har de genererte arbeidsflytkomponentene: **Ved oppretting: Skjema**, **Ved oppdatering: Skjema** og så videre. Bruk **Ved oppretting: Hendelse** eller **Ved oppretting: Vedlikeholdshendelse** for å handle på det et skjema har opprettet.
+Skjemaer har de genererte arbeidsflytkomponentene: **Ved oppretting: Skjema**, **Ved oppdatering: Skjema** og så videre. Bruk **Ved oppretting: Hendelse**, **Ved oppretting: Varsel** eller **Ved oppretting: Vedlikeholdshendelse** for å handle på det et skjema har opprettet.
 
 ### Den offentlige sidens egne endepunkter
 

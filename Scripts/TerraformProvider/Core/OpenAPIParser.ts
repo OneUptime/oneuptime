@@ -1508,15 +1508,17 @@ export class OpenAPIParser {
 
   /*
    * Fields every model carries for the server's own bookkeeping, which say
-   * nothing about a live resource: the soft-delete pair (always empty on
+   * nothing about a live resource: the soft-delete time (always empty on
    * anything Terraform can read) and the optimistic-locking counter. Shown,
-   * they only add a "(known after apply)" line to every plan.
+   * they only add a "(known after apply)" line to every plan. (Who deleted
+   * a record was one too, until OneUptime dropped the column no write ever
+   * filled in: #10469.)
    */
   public static isBookkeepingField(
     name: string,
     attribute: TerraformAttribute | undefined,
   ): boolean {
-    if (name === "deleted_at" || name === "deleted_by_user_id") {
+    if (name === "deleted_at") {
       return true;
     }
 

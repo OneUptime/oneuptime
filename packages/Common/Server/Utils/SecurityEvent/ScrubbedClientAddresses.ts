@@ -8,12 +8,16 @@ import ObjectID from "../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   AddressScrubRule,
-  HiddenClientAddress,
+  HiddenAddress,
+  SCRUBBED_ADDRESS_ROLES,
+  ScrubbedAddressRole,
   ScrubbedAddressSignal,
   findScrubRuleThatHid,
-  nameClientAddressScrubRule,
-  readHiddenClientAddress,
+  nameAddressScrubRule,
+  readHiddenAddress,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import { SECURITY_LOG_RESOURCE_ID_ATTRIBUTE } from "../../../Types/SecurityCase/SecurityConnection";
+import { getScrubRuleServiceId } from "../../../Types/Telemetry/ScrubRuleScope";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import LogScrubRuleService from "../../Services/LogScrubRuleService";
 import TraceScrubRuleService from "../../Services/TraceScrubRuleService";
@@ -40,6 +44,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * Where the address vault (#10395) looks a Hash rule's token up, before
  * this: an event whose token it resolves names its address, and is no
  * event for this to read.
+ *
+ * An event's destination a rule hid (#10419) - a firewall's, read from the
+ * same log line - names its rule the same way, in its own marker.
  */
 
 // As long as ingest keeps the rules it runs (LogScrubRuleService's cache).
@@ -61,13 +68,38 @@ function toAddressScrubRule(
     return null;
   }
 
-  return {
+  const addressRule: AddressScrubRule = {
     id,
     name: rule.name || "",
     patternType: rule.patternType || "",
     scrubAction: rule.scrubAction || "",
     fieldsToScrub: rule.fieldsToScrub || "",
   };
+  const serviceId: string = getScrubRuleServiceId(rule);
+
+  // A rule for one service explains what it hid in that service's records alone (#10433).
+  if (serviceId) {
+    addressRule.serviceId = serviceId;
+  }
+
+  return addressRule;
+}
+
+/*
+ * The service the event's record was sent under, as the scans write it
+ * (SECURITY_LOG_RESOURCE_ID_ATTRIBUTE): the line's or the span's
+ * primaryEntityId. None when the event does not say.
+ */
+function readRecordServiceId(
+  event: NormalizedSecurityEvent,
+): string | undefined {
+  const value: unknown = event.attributes
+    ? event.attributes[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]
+    : undefined;
+
+  return typeof value === "string" && value.trim()
+    ? value.trim().toLowerCase()
+    : undefined;
 }
 
 export default class ScrubbedClientAddresses {
@@ -87,12 +119,14 @@ export default class ScrubbedClientAddresses {
       patternType: true;
       scrubAction: true;
       fieldsToScrub: true;
+      serviceId: true;
     } = {
       _id: true,
       name: true,
       patternType: true,
       scrubAction: true,
       fieldsToScrub: true,
+      serviceId: true,
     };
 
     const rules: Array<LogScrubRule | TraceScrubRule> =
@@ -157,8 +191,9 @@ export default class ScrubbedClientAddresses {
   }
 
   /*
-   * Each event of a page whose client address a scrub rule hid names the
-   * project's rule that explains it, when one does. In place.
+   * Each address of a page's events a scrub rule hid - the client's, and
+   * the destination's (#10419) - names the project's rule that explains it,
+   * when one does. In place.
    */
   @CaptureSpan()
   public static async nameScrubRules(data: {
@@ -167,15 +202,17 @@ export default class ScrubbedClientAddresses {
   }): Promise<void> {
     const hidden: Array<{
       event: NormalizedSecurityEvent;
-      address: HiddenClientAddress;
+      role: ScrubbedAddressRole;
+      address: HiddenAddress;
     }> = [];
 
     for (const event of data.events) {
-      const address: HiddenClientAddress | null =
-        readHiddenClientAddress(event);
+      for (const role of SCRUBBED_ADDRESS_ROLES) {
+        const address: HiddenAddress | null = readHiddenAddress(event, role);
 
-      if (address && address.place && address.signal) {
-        hidden.push({ event, address });
+        if (address && address.place && address.signal) {
+          hidden.push({ event, role, address });
+        }
       }
     }
 
@@ -190,7 +227,7 @@ export default class ScrubbedClientAddresses {
 
     for (const signal of ["log", "trace"] as Array<ScrubbedAddressSignal>) {
       const isNeeded: boolean = hidden.some(
-        (item: { address: HiddenClientAddress }): boolean => {
+        (item: { address: HiddenAddress }): boolean => {
           return item.address.signal === signal;
         },
       );
@@ -223,11 +260,13 @@ export default class ScrubbedClientAddresses {
         ? findScrubRuleThatHid(rules, {
             kind: item.address.kind,
             place: item.address.place!,
+            // The service the record was sent under: a rule for another one did not hide it.
+            serviceId: readRecordServiceId(item.event),
           })
         : null;
 
       if (rule) {
-        nameClientAddressScrubRule(item.event.attributes, rule);
+        nameAddressScrubRule(item.event.attributes, item.role, rule);
       }
     }
   }

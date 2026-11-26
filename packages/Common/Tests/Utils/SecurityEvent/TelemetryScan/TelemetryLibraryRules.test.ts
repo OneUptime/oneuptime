@@ -14,18 +14,33 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import {
   SECURITY_TELEMETRY_SOURCES,
+  SecurityTelemetrySignal,
   SecurityTelemetrySourceDefinition,
   SecurityTelemetrySourceKind,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
+import OneUptimeProbeKind from "../../../../Types/Probe/OneUptimeProbeKind";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  sigmaRulesOf,
+} from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  buildProbeNetworkSweepEvent,
+  splitProbeSweep,
+} from "../../../../Utils/SecurityEvent/TelemetryScan/ProbeFlowSignals";
+import {
+  ProbeJob,
+  getDevicePollTarget,
+} from "../../../../Utils/SecurityEvent/TelemetryScan/ProbeJob";
 import {
   AuditResourceType,
   AuditScanRecord,
+  MassDeleteRow,
   buildAuditRecordEvent,
   buildMassDeleteEvent,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
 import {
   FlowWindow,
+  NetworkSweepRow,
   buildLargeTransferEvent,
   buildNetworkSweepEvent,
   buildPortScanEvent,
@@ -104,7 +119,36 @@ function audit(overrides: Partial<AuditScanRecord>): AuditScanRecord {
     apiKeyId: "",
     apiKeyName: "",
     mcpClientName: "",
+    workflowId: "",
     workflowName: "",
+    workflowRunAs: "",
+    workflowRunAsCustomRoleName: "",
+    workflowRunAsGiverName: "",
+    workflowRunAsGiverApiKeyId: "",
+    ...overrides,
+  };
+}
+
+// One actor's deletes in a window: a member's, unless it says otherwise.
+function massDelete(overrides: Partial<MassDeleteRow>): MassDeleteRow {
+  return {
+    userId: "u1",
+    userName: "",
+    userEmail: "mallory@example.com",
+    userType: "User",
+    apiKeyId: "",
+    apiKeyName: "",
+    mcpClientName: "",
+    workflowId: "",
+    workflowName: "",
+    workflowRunAs: "",
+    workflowRunAsCustomRoleName: "",
+    workflowRunAsGiverName: "",
+    workflowRunAsGiverApiKeyId: "",
+    deletes: 50,
+    sampleResourceTypes: ["Monitor"],
+    firstAt: WINDOW.from,
+    lastAt: WINDOW.to,
     ...overrides,
   };
 }
@@ -187,21 +231,7 @@ const RULE_EVENTS: Array<[string, NormalizedSecurityEvent]> = [
   ],
   [
     "Many records deleted at once in OneUptime",
-    buildMassDeleteEvent(
-      {
-        userId: "u1",
-        userName: "",
-        userEmail: "mallory@example.com",
-        userType: "User",
-        apiKeyId: "",
-        apiKeyName: "",
-        deletes: 50,
-        sampleResourceTypes: ["Monitor"],
-        firstAt: WINDOW.from,
-        lastAt: WINDOW.to,
-      },
-      WINDOW.from,
-    )!,
+    buildMassDeleteEvent(massDelete({}), WINDOW.from)!,
   ],
   [
     "Security controls changed in OneUptime",
@@ -295,6 +325,59 @@ describe("the rule library's rules for your OneUptime data", () => {
         );
       }
     }
+  });
+
+  test("a workflow's deletes fire the mass delete rule, and OneUptime's own fire no rule of the library (#10430)", () => {
+    const rule: SigmaRule = SigmaRuleParser.parse(
+      entryTitled("Many records deleted at once in OneUptime").sigmaRuleYaml,
+    );
+    const workflow: NormalizedSecurityEvent = buildMassDeleteEvent(
+      massDelete({
+        userId: "",
+        userEmail: "",
+        userType: "Workflow",
+        workflowId: "0192f1a0-0000-7000-8000-00000000f001",
+        workflowName: "Nightly Cleanup",
+      }),
+      WINDOW.from,
+    )!;
+
+    expect(workflow.principalUser).toBe(
+      "workflow:0192f1a0-0000-7000-8000-00000000f001",
+    );
+    expect(sigmaRuleMatchesEvent(rule, workflow)).toBe(true);
+
+    // A scheduled cleanup or a SCIM sync: OneUptime's own, which no rule reads.
+    const ownWork: NormalizedSecurityEvent = buildMassDeleteEvent(
+      massDelete({ userId: "", userEmail: "", userType: "System" }),
+      WINDOW.from,
+    )!;
+
+    expect(ownWork.principalUser).toBe("oneuptime");
+
+    // Every rule of the library, and every step of its correlations.
+    expect(DETECTION_RULE_LIBRARY.length).toBeGreaterThan(20);
+    expect(
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return sigmaRulesOf(
+            SigmaRuleSetParser.parse(entry.sigmaRuleYaml),
+          ).some((libraryRule: SigmaRule): boolean => {
+            return sigmaRuleMatchesEvent(libraryRule, ownWork);
+          });
+        },
+      ).map((entry: DetectionRuleLibraryEntry): string => {
+        return entry.title;
+      }),
+    ).toEqual([]);
+
+    // A System entry that names a person stays that person's, and fires.
+    expect(
+      sigmaRuleMatchesEvent(
+        rule,
+        buildMassDeleteEvent(massDelete({ userType: "System" }), WINDOW.from)!,
+      ),
+    ).toBe(true);
   });
 
   test("a role taken away is not a role given", () => {
@@ -400,5 +483,88 @@ describe("the rule library's rules for your OneUptime data", () => {
       "Security controls changed in OneUptime",
       "Signed-in user in two countries within an hour",
     ]);
+  });
+
+  /*
+   * What OneUptime's own probes are set to do - device polling, discovery
+   * sweeps, monitors - is set aside under a signal of its own (#10429),
+   * which no rule of the library counts: the flow sweep and scan rules do
+   * not read its signal, and the Port scan and Network sweep rules for any
+   * source's Network Activity events count distinct ports and hosts, which
+   * a set-aside event leaves empty - so it adds nothing to their counts.
+   */
+  test("OneUptime's own probe traffic, set aside, is counted by no rule of the library", () => {
+    const devices: Array<string> = Array.from(
+      { length: 40 },
+      (_: unknown, index: number): string => {
+        return `10.0.0.${index + 1}`;
+      },
+    );
+    const job: ProbeJob = new ProbeJob();
+
+    for (const hostname of devices) {
+      job.addTarget(getDevicePollTarget({ hostname, snmpPort: 161 })!);
+    }
+
+    const row: NetworkSweepRow = {
+      ...FLOW,
+      srcIp: "10.0.0.250",
+      dstPort: 161,
+      hosts: devices.length,
+      sampleHosts: devices.slice(0, 10),
+    };
+    const event: NormalizedSecurityEvent = buildProbeNetworkSweepEvent({
+      row,
+      window: WINDOW,
+      probe: {
+        kind: OneUptimeProbeKind.Project,
+        probeId: "0192f1a0-0000-7000-8000-00000000c401",
+        name: "Office probe",
+      },
+      split: splitProbeSweep({
+        row,
+        destinations: devices.map((dstIp: string) => {
+          return { dstIp, dstName: "", protocol: 17 };
+        }),
+        isCut: false,
+        job,
+      }),
+    })!;
+
+    expect(event.attributes["oneuptime.signal"]).toBe(
+      SecurityTelemetrySignal.OneUptimeProbeTraffic,
+    );
+
+    // Whether the event adds to a rule's count of distinct values of a field.
+    const addsTo: (field: string | undefined) => boolean = (
+      field: string | undefined,
+    ): boolean => {
+      if (!field) {
+        return true;
+      }
+
+      const value: unknown = (event as unknown as Record<string, unknown>)[
+        field
+      ];
+
+      return (
+        value !== undefined && value !== null && value !== "" && value !== 0
+      );
+    };
+
+    expect(event.targetPort).toBe(0);
+    expect(event.targetIp).toBe("");
+
+    for (const entry of DETECTION_RULE_LIBRARY) {
+      for (const rule of sigmaRulesOf(
+        SigmaRuleSetParser.parse(entry.sigmaRuleYaml),
+      )) {
+        expect([
+          entry.title,
+          sigmaRuleMatchesEvent(rule, event) &&
+            addsTo(entry.distinctCountField),
+        ]).toEqual([entry.title, false]);
+      }
+    }
   });
 });

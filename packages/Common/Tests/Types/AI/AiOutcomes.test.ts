@@ -1,13 +1,18 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  AI_OUTCOMES_DATA_SECURITY_PARTS,
+  AI_OUTCOMES_PART_OUTCOMES,
   AI_OUTCOMES_PATH,
   AI_OUTCOMES_SCAN_LIMIT,
   AI_OUTCOMES_WEEK_COUNT,
   AiOutcomes,
   AiOutcomesPages,
+  AiOutcomesPart,
   AiOutcomesPullRequestFixes,
   AiOutcomesRemediationFixes,
   getCheckedFixCount,
+  getDataSecurityChangesMadeCount,
+  getDataSecurityProposalsDecidedCount,
   getFixesBeingCheckedCount,
   getHeldPageCount,
   getJudgedRootCauseCount,
@@ -55,6 +60,8 @@ function outcomes(overrides: Partial<AiOutcomes> = {}): AiOutcomes {
     remediationFixes: null,
     pullRequestFixes: null,
     rootCauses: null,
+    // Counted since #10364: none unless a test gives some.
+    dataSecurity: null,
     // Counted by model since #7762: none unless a test gives some.
     models: null,
     weeks: [],
@@ -188,6 +195,44 @@ describe("fix counts", () => {
       ]).toEqual(expected);
     },
   );
+});
+
+describe("Data Security's counts (#10364)", () => {
+  test("changes made: proven, waiting for the check and undone - not the ones that could not be made", () => {
+    expect(
+      getDataSecurityChangesMadeCount({
+        proven: 1,
+        waiting: 2,
+        undone: 4,
+        failed: 8,
+      }),
+    ).toBe(7);
+  });
+
+  test("proposals decided: approved and dismissed", () => {
+    expect(
+      getDataSecurityProposalsDecidedCount({ approved: 3, dismissed: 5 }),
+    ).toBe(8);
+  });
+
+  test("its parts open Data Security issues, each part's own outcomes", () => {
+    expect(AI_OUTCOMES_DATA_SECURITY_PARTS).toEqual([
+      AiOutcomesPart.DataSecurityAnalyses,
+      AiOutcomesPart.DataSecurityChanges,
+      AiOutcomesPart.DataSecurityProposals,
+    ]);
+    expect(
+      AI_OUTCOMES_DATA_SECURITY_PARTS.map(
+        (part: AiOutcomesPart): ReadonlyArray<string> => {
+          return AI_OUTCOMES_PART_OUTCOMES[part];
+        },
+      ),
+    ).toEqual([
+      ["analyzed"],
+      ["proven", "waiting", "undone", "failed"],
+      ["approved", "dismissed"],
+    ]);
+  });
 });
 
 describe("getJudgedRootCauseCount", () => {

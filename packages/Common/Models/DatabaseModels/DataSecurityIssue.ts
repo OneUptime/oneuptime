@@ -1,5 +1,6 @@
 import ServerOwned from "../../Types/Database/ServerOwned";
 import Alert from "./Alert";
+import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
 import DataStore from "./DataStore";
 import Incident from "./Incident";
 import Project from "./Project";
@@ -27,8 +28,10 @@ import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution from "../../Types/DataSecurity/DataSecurityIssueResolution";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import { JSONArray } from "../../Types/JSON";
+import { DataSecurityAiVerdict } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -87,6 +90,21 @@ const createOnlyColumnAccess: {
 } = {
   create: createPermissions,
   read: readPermissions,
+  update: [],
+};
+
+/*
+ * Columns OneUptime keeps for its own work, read through no CRUD route:
+ * OneUptime AI's analysis, which its own route serves to each reader with
+ * only what they may read.
+ */
+const hiddenColumnAccess: {
+  create: Array<Permission>;
+  read: Array<Permission>;
+  update: Array<Permission>;
+} = {
+  create: [],
+  read: [],
   update: [],
 };
 
@@ -664,6 +682,52 @@ export default class DataSecurityIssue extends BaseModel {
   })
   public incidentId?: ObjectID = undefined;
 
+  /*
+   * The group of issues of the same check whose stores share what made
+   * them (#10370), so the cause is fixed once. Written by the grouping;
+   * kept once the issue resolves, so the group says how many are fixed.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "dataSecurityIssueGroupId",
+    type: TableColumnType.Entity,
+    modelType: DataSecurityIssueGroup,
+    title: "Data Security Issue Group",
+    description:
+      "Relation to the group of issues one mistake made that this issue is in, if any.",
+  })
+  @ManyToOne(
+    () => {
+      return DataSecurityIssueGroup;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "dataSecurityIssueGroupId" })
+  public dataSecurityIssueGroup?: DataSecurityIssueGroup = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Data Security Issue Group ID",
+    description:
+      "The group of issues of the same check whose stores share what made them, so the cause is fixed once: one pull request, or one approval. Empty for an issue in no group.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dataSecurityIssueGroupId?: ObjectID = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.Date,
@@ -709,6 +773,69 @@ export default class DataSecurityIssue extends BaseModel {
     nullable: true,
   })
   public resolvedAt?: Date = undefined;
+
+  /*
+   * How a resolved issue was resolved (#10368): fixed in code, in
+   * infrastructure code or from here, contained at ingest, its check
+   * passing, a person, its check no longer run, or its store archived -
+   * and the facts behind it: the pull request, the version that shipped it
+   * and when production proved it, the rules that contain a leak, the
+   * response action. Written by OneUptime as the issue resolves, and
+   * cleared when it opens again.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    allowedValues: Object.values(DataSecurityIssueResolution),
+    title: "Resolution",
+    description:
+      "How a resolved issue was resolved: FixedInCode, FixedInInfrastructureCode, FixedFromHere, ContainedAtIngest (a scrub rule hides the data at ingest, but the code still writes it), CheckPassed, ResolvedByPerson, NoLongerChecked or StoreArchived. Empty while the issue is not resolved.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public resolution?: DataSecurityIssueResolution = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Resolution Details",
+    description:
+      "The facts behind the resolution: the pull request that fixed it, the version that shipped it and when production verified it; the scrub rules that contain it; the response action that fixed it; or who resolved it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public resolutionDetails?: JSONObject = undefined;
+
+  /*
+   * A change made to fix the open issue, waiting for its check to pass: a
+   * response action that changed the store, so its check passing then
+   * resolves it as fixed from here. OneUptime's own bookkeeping, read
+   * through no CRUD route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Pending Resolution",
+    description:
+      "A change made to fix the open issue that waits for its check to pass: the response action that changed the store.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public pendingResolution?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
@@ -760,4 +887,143 @@ export default class DataSecurityIssue extends BaseModel {
     default: false,
   })
   public isOwnerNotified?: boolean = undefined;
+
+  /*
+   * Why a person said it is not an issue (#10369): asked for when they say
+   * so, as Accept Risk asks why, and cleared when it opens again. OneUptime
+   * AI learns from these reasons which findings are noise (#10372).
+   */
+  @ColumnAccessControl(peopleEditableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Why Not an Issue",
+    description: "Why a person said the finding was wrong.",
+    serverOwned: ServerOwned.Shared,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public notAnIssueReason?: string = undefined;
+
+  /*
+   * OneUptime AI's analysis of the issue (#10369): its verdict, which lists
+   * filter by, and the analysis itself - the four lines and the facts each
+   * rests on - which only its own route serves, leaving out each fact the
+   * reader may not read (Server/Utils/AI/DataSecurity/
+   * DataSecurityIssueAnalysisReader). Written by OneUptime alone; nothing
+   * here changes the issue's status or severity.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    allowedValues: Object.values(DataSecurityAiVerdict),
+    title: "OneUptime AI Verdict",
+    description:
+      "OneUptime AI's verdict on the issue: Real, Likely by design, Likely a wrong finding, or Cannot tell. A person decides what to do with it.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiVerdict?: DataSecurityAiVerdict = undefined;
+
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "OneUptime AI Analysis",
+    description:
+      "OneUptime AI's analysis and the facts it rests on. Read through the issue's analysis route, which leaves out what the reader may not read.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiAnalysis?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "OneUptime AI Analyzed At",
+    description: "When OneUptime AI last wrote its analysis of the issue.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAnalyzedAt?: Date = undefined;
+
+  // What the analysis was written from, hashed: the same input is not analyzed again.
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "OneUptime AI Analysis Input Hash",
+    description:
+      "The hash of what the analysis was written from. An evaluation with the same input makes no new model call.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiAnalysisInputHash?: string = undefined;
+
+  // The AI Logs row of the model call that wrote it: its model, tokens and cost.
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "OneUptime AI Analysis Log ID",
+    description:
+      "The AI Logs row of the model call that wrote the analysis: which model, its tokens and its cost.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAnalysisLlmLogId?: ObjectID = undefined;
+
+  /*
+   * The Code task whose pull request fixes the issue in code (#10367): Fix
+   * with AI's, or the one pull request that stops a service writing all of
+   * its telemetry leaks - which every issue it fixes keeps. Its first run's
+   * id, no relation: a run is read by every Project Member and Viewer, and
+   * its pull request is read with Code's own rules (DataSecurityIssueCodeFix).
+   * #10368 follows it to production once it merges. The newest asked for
+   * wins; kept once the issue resolves.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Code Fix Task ID",
+    description:
+      "The Code task whose pull request fixes this issue in code: Fix with AI's, or the one that stops its service writing its telemetry leaks. Empty until a fix is asked for.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public codeFixTaskId?: ObjectID = undefined;
 }

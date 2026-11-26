@@ -26,7 +26,14 @@ import ThreatIntelIndicatorService, {
 import { Statement } from "../../AnalyticsDatabase/Statement";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { OneUptimeProbe } from "../../Probe/OneUptimeProbeAddresses";
+import ProbeOwnTraffic, {
+  ProbeFlowExamination,
+  ProbeFlowSources,
+  ProbeJobCache,
+} from "./ProbeOwnTraffic";
 import {
+  FlowSourceFilter,
   TelemetryScanWindow,
   buildFlowAddressesStatement,
   buildFlowsOfAddressesStatement,
@@ -49,6 +56,11 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  * network sweeps and large transfers out, and - when the project has threat
  * intel - for traffic with an address a feed knows
  * (Utils/SecurityEvent/TelemetryScan/FlowSignals.ts).
+ *
+ * The scans and sweeps of OneUptime's own probes - their device polling,
+ * discovery sweeps and monitors - are read apart and held to what each
+ * probe is set to do (ProbeOwnTraffic, #10429): what is exactly its work is
+ * set aside as OneUptime's own, and what is beyond it is reported.
  *
  * A window is read whole, in a few summing queries that each return at most
  * MAX_FLOW_ROWS_PER_SIGNAL rows. The threat-intel check asks about the
@@ -136,39 +148,120 @@ export default class FlowSecurityScan {
     };
     const events: Array<NormalizedSecurityEvent> = [];
 
-    const [portScans, sweeps, transfers] = await Promise.all([
-      readRows(
-        buildPortScanStatement({
-          ...window,
-          minPorts: PORT_SCAN_MIN_PORTS,
-          limit: MAX_FLOW_ROWS_PER_SIGNAL,
-        }),
-      ),
-      readRows(
-        buildNetworkSweepStatement({
-          ...window,
-          minHosts: NETWORK_SWEEP_MIN_HOSTS,
-          limit: MAX_FLOW_ROWS_PER_SIGNAL,
-        }),
-      ),
-      readRows(
-        buildLargeTransferStatement({
-          ...window,
-          minBytes: LARGE_TRANSFER_MIN_BYTES,
-          limit: MAX_FLOW_ROWS_PER_SIGNAL,
-        }),
-      ),
-    ]);
+    /*
+     * OneUptime's own probes' scans and sweeps are read apart from
+     * everyone's, and held to what each probe is set to do (#10429;
+     * ProbeOwnTraffic): set aside as its own work, or reported for what is
+     * beyond it.
+     */
+    const probes: ProbeFlowSources = await ProbeOwnTraffic.readSources({
+      projectId: window.projectId,
+      window: flowWindow,
+    });
+    const everyoneElse: FlowSourceFilter | undefined = probes.getFilter(false);
+    const probesOnly: FlowSourceFilter | undefined = probes.getFilter(true);
 
-    for (const row of portScans) {
-      pushEvent(events, buildPortScanEvent(toPortScanRow(row), flowWindow));
+    const [portScans, sweeps, transfers, probePortScans, probeSweeps] =
+      await Promise.all([
+        readRows(
+          buildPortScanStatement({
+            ...window,
+            minPorts: PORT_SCAN_MIN_PORTS,
+            limit: MAX_FLOW_ROWS_PER_SIGNAL,
+            sources: everyoneElse,
+          }),
+        ),
+        readRows(
+          buildNetworkSweepStatement({
+            ...window,
+            minHosts: NETWORK_SWEEP_MIN_HOSTS,
+            limit: MAX_FLOW_ROWS_PER_SIGNAL,
+            sources: everyoneElse,
+          }),
+        ),
+        readRows(
+          buildLargeTransferStatement({
+            ...window,
+            minBytes: LARGE_TRANSFER_MIN_BYTES,
+            limit: MAX_FLOW_ROWS_PER_SIGNAL,
+          }),
+        ),
+        probesOnly
+          ? readRows(
+              buildPortScanStatement({
+                ...window,
+                minPorts: PORT_SCAN_MIN_PORTS,
+                limit: MAX_FLOW_ROWS_PER_SIGNAL,
+                sources: probesOnly,
+              }),
+            )
+          : Promise.resolve([]),
+        probesOnly
+          ? readRows(
+              buildNetworkSweepStatement({
+                ...window,
+                minHosts: NETWORK_SWEEP_MIN_HOSTS,
+                limit: MAX_FLOW_ROWS_PER_SIGNAL,
+                sources: probesOnly,
+              }),
+            )
+          : Promise.resolve([]),
+      ]);
+
+    const jobs: ProbeJobCache = new ProbeJobCache({
+      projectId: window.projectId,
+      sources: probes,
+      window: flowWindow,
+    });
+    let probeRowsRead: number = 0;
+
+    /*
+     * A row of everyone's may still be from one of OneUptime Cloud's
+     * ranges, which the reads cannot hold apart: it is matched here.
+     */
+    for (const row of [...portScans, ...probePortScans]) {
+      const scan: PortScanRow = toPortScanRow(row);
+      const sentBy: Array<OneUptimeProbe> = probes.findProbes(scan.srcIp);
+
+      if (sentBy.length === 0) {
+        pushEvent(events, buildPortScanEvent(scan, flowWindow));
+        continue;
+      }
+
+      const examined: ProbeFlowExamination =
+        await ProbeOwnTraffic.examinePortScan({
+          window,
+          flowWindow,
+          row: scan,
+          probes: sentBy,
+          jobs,
+        });
+
+      probeRowsRead += examined.rows;
+      pushEvent(events, examined.event);
     }
 
-    for (const row of sweeps) {
-      pushEvent(
-        events,
-        buildNetworkSweepEvent(toNetworkSweepRow(row), flowWindow),
+    for (const row of [...sweeps, ...probeSweeps]) {
+      const sweep: NetworkSweepRow = toNetworkSweepRow(row);
+      const sentBy: Array<OneUptimeProbe> = probes.findProbes(sweep.srcIp);
+
+      if (sentBy.length === 0) {
+        pushEvent(events, buildNetworkSweepEvent(sweep, flowWindow));
+        continue;
+      }
+
+      const examined: ProbeFlowExamination = await ProbeOwnTraffic.examineSweep(
+        {
+          window,
+          flowWindow,
+          row: sweep,
+          probes: sentBy,
+          jobs,
+        },
       );
+
+      probeRowsRead += examined.rows;
+      pushEvent(events, examined.event);
     }
 
     for (const row of transfers) {
@@ -192,7 +285,13 @@ export default class FlowSecurityScan {
     return {
       events,
       recordsRead:
-        portScans.length + sweeps.length + transfers.length + threatIntel.rows,
+        portScans.length +
+        sweeps.length +
+        transfers.length +
+        probePortScans.length +
+        probeSweeps.length +
+        probeRowsRead +
+        threatIntel.rows,
       pageRows: 0,
       hasMore: false,
     };

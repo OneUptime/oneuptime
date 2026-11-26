@@ -9,7 +9,10 @@ import ObjectID from "../../../Types/ObjectID";
  * stores, scanning one project's telemetry, evaluating a project's stores
  * again after something that decides their checks changed, scanning one
  * store's content, asking OneUptime AI about the fields a store's scan
- * could not place, and reading one cloud connection's configuration. The
+ * could not place, having OneUptime AI work on an issue that opened, and
+ * reading one cloud connection's configuration, having OneUptime AI give
+ * its verdict on a store's findings that wait for a person, and having it
+ * propose what the project's decisions say of its scans. The
  * schedules only queue them, one per project, store or connection, so a
  * large installation is spread over every worker instead of one loop.
  * Each is deduplicated by what it is about, keeping the latest asked for,
@@ -29,13 +32,85 @@ export const DATA_SECURITY_READ_CONNECTION_JOB: string =
   "DataSecurity:ReadConnection";
 export const DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB: string =
   "DataSecurity:SuggestFieldTypes";
+export const DATA_SECURITY_AI_EVALUATE_ISSUE_JOB: string =
+  "DataSecurity:AiEvaluateIssue";
+export const DATA_SECURITY_NOTIFY_OWNERS_JOB: string =
+  "DataSecurity:NotifyOwners";
+/*
+ * Not the daily cron's "DataSecurity:ProposeStoreOwners": a job's function
+ * is found by its name, and under one name the job's function replaced the
+ * cron's, so the daily run read no project and proposed nothing.
+ */
+export const DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB: string =
+  "DataSecurity:ProposeProjectStoreOwners";
+export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
+  "DataSecurity:ProposeOwnerRules";
+export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
+  "DataSecurity:GroupIssues";
+export const DATA_SECURITY_JUDGE_FINDINGS_JOB: string =
+  "DataSecurity:JudgeFindings";
+export const DATA_SECURITY_TUNE_SCANS_JOB: string = "DataSecurity:TuneScans";
+export const DATA_SECURITY_DRAFT_RECORDS_JOB: string =
+  "DataSecurity:DraftRecords";
+export const DATA_SECURITY_DISCOVER_DATA_TYPES_JOB: string =
+  "DataSecurity:DiscoverDataTypes";
+export const DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB: string =
+  "DataSecurity:ProposeTelemetryFixes";
+export const DATA_SECURITY_ASSESS_EXPOSURE_JOB: string =
+  "DataSecurity:AssessExposure";
 
+/*
+ * How long the grouping waits after an evaluation: a connection's read
+ * evaluates the project, then its scans do again, and one look after them
+ * groups what all of them opened.
+ */
+export const GROUP_ISSUES_DELAY_IN_MS: number = 30 * 1000;
+
+/*
+ * How long OneUptime AI's proposals of each service's telemetry fix wait
+ * after an evaluation (#10367): the issues it opened are analyzed and
+ * contained first, in their own jobs, and one look after them proposes
+ * one pull request per service for all of them.
+ */
+export const TELEMETRY_FIXES_DELAY_IN_MS: number = 2 * 60 * 1000;
+
+/*
+ * How long the owner rules wait after a store's owners are proposed: a
+ * connection's first read proposes many at once, and one look over all of
+ * them finds the rules they share.
+ */
+export const OWNER_RULES_DELAY_IN_MS: number = 3 * 60 * 1000;
+
+/*
+ * How long OneUptime AI's verdicts on a store's findings wait after its
+ * scan (#10372): the scan's field suggestions are written in a job of
+ * their own, and one look after both judges what each of them left.
+ */
+export const JUDGE_FINDINGS_DELAY_IN_MS: number = 2 * 60 * 1000;
+
+/*
+ * How long the scans' tuning waits after a finding is marked not
+ * sensitive (#10372): a person marks several in a row, and one look over
+ * all of them proposes what they say of the scans.
+ */
+export const TUNE_SCANS_DELAY_IN_MS: number = 3 * 60 * 1000;
+
+/*
+ * How long the data type discovery waits after a scan that kept fields no
+ * detector placed (#10371): a project's stores are scanned one after
+ * another, and one look after them groups what all of them kept.
+ */
+export const DATA_TYPE_DISCOVERY_DELAY_IN_MS: number = 10 * 60 * 1000;
+
+// Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
   jobName: string;
   key: string;
   payload: Record<string, string>;
   description: string;
-}): Promise<void> {
+  // How long it waits before it runs.
+  delayInMs?: number | undefined;
+}): Promise<boolean> {
   try {
     await Queue.addJob(
       QueueName.Worker,
@@ -48,11 +123,15 @@ async function queue(data: {
           keepLastIfActive: true,
         },
         removeWhenDone: true,
+        ...(data.delayInMs ? { delayInMs: data.delayInMs } : {}),
       },
     );
+
+    return true;
   } catch (error) {
     logger.error(`DataSecurity: could not queue ${data.description}:`);
     logger.error(error);
+    return false;
   }
 }
 
@@ -124,6 +203,293 @@ export async function queueDataSecurityFieldSuggestions(data: {
       dataStoreId: data.dataStoreId.toString(),
     },
     description: `the field suggestions of store ${data.dataStoreId.toString()}`,
+  });
+}
+
+/*
+ * Has OneUptime AI work on a Data Security issue that opened, or opened
+ * again (Server/Utils/AI/DataSecurity/DataSecurityAiEngine, #10364): one
+ * job per issue, so an issue that flaps while its job waits is worked on
+ * once.
+ */
+export async function queueDataSecurityAiEvaluation(data: {
+  projectId: ObjectID;
+  dataSecurityIssueId: ObjectID;
+}): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
+    key: `data-security-ai-${data.dataSecurityIssueId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      dataSecurityIssueId: data.dataSecurityIssueId.toString(),
+    },
+    description: `OneUptime AI's work on issue ${data.dataSecurityIssueId.toString()}`,
+  });
+}
+
+/*
+ * How long a store's owners' email waits, at a time, for OneUptime AI's
+ * work on the issues it is about (#10369), and how long at most since the
+ * issues opened: then it goes, with whatever analysis there is.
+ */
+export const OWNER_NOTICE_WAIT_IN_MS: number = 60 * 1000;
+export const OWNER_NOTICE_MAX_WAIT_IN_MS: number = 10 * 60 * 1000;
+
+export interface HeldOwnerNotice {
+  projectId: ObjectID;
+  dataStoreId: ObjectID;
+  issueIds: Array<ObjectID>;
+  // When the issues opened: what the longest wait is counted from.
+  openedAt: Date;
+  // How many times it waited already.
+  attempt: number;
+}
+
+/*
+ * The email a store's owners get about issues that opened on it, held while
+ * OneUptime AI works on them (#10369), so it carries each one's analysis:
+ * one job per store and batch of issues, and one per wait. False when it
+ * could not be queued - the caller sends the email now instead.
+ */
+export async function queueDataSecurityOwnerNotice(
+  notice: HeldOwnerNotice,
+): Promise<boolean> {
+  const batch: string = `${notice.dataStoreId.toString()}-${notice.openedAt.getTime()}`;
+
+  return await queue({
+    jobName: DATA_SECURITY_NOTIFY_OWNERS_JOB,
+    key: `data-security-owner-notice-${batch}-${notice.attempt}`,
+    payload: {
+      projectId: notice.projectId.toString(),
+      dataStoreId: notice.dataStoreId.toString(),
+      issueIds: notice.issueIds
+        .map((issueId: ObjectID): string => {
+          return issueId.toString();
+        })
+        .join(","),
+      openedAt: notice.openedAt.toISOString(),
+      attempt: String(notice.attempt),
+    },
+    description: `the owners' email of store ${notice.dataStoreId.toString()}`,
+    delayInMs: OWNER_NOTICE_WAIT_IN_MS,
+  });
+}
+
+// A held notice, as its job's payload carries it, or null for one that does not read.
+export function readHeldOwnerNotice(
+  payload: Record<string, unknown> | undefined,
+): HeldOwnerNotice | null {
+  const read: (key: string) => string = (key: string): string => {
+    const value: unknown = payload?.[key];
+
+    return typeof value === "string" ? value.trim() : "";
+  };
+
+  const projectId: string = read("projectId");
+  const dataStoreId: string = read("dataStoreId");
+  const issueIds: Array<string> = read("issueIds")
+    .split(",")
+    .map((id: string): string => {
+      return id.trim();
+    })
+    .filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
+  const openedAt: Date = new Date(read("openedAt"));
+  const attempt: number = Number(read("attempt"));
+
+  if (
+    !ObjectID.isValidUUID(projectId) ||
+    !ObjectID.isValidUUID(dataStoreId) ||
+    issueIds.length === 0 ||
+    Number.isNaN(openedAt.getTime())
+  ) {
+    return null;
+  }
+
+  return {
+    projectId: new ObjectID(projectId),
+    dataStoreId: new ObjectID(dataStoreId),
+    issueIds: issueIds.map((id: string): ObjectID => {
+      return new ObjectID(id);
+    }),
+    openedAt,
+    attempt: Number.isInteger(attempt) && attempt > 0 ? attempt : 1,
+  };
+}
+
+/*
+ * Has OneUptime AI propose owners for a project's stores that have none
+ * (Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun, #10374): the
+ * stores new today, or those of a cloud connection read for the first
+ * time. One job per project a day, and one per connection's first read.
+ */
+export async function queueDataStoreOwnerProposals(data: {
+  projectId: ObjectID;
+  cloudConnectionId?: ObjectID | undefined;
+}): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+    key: data.cloudConnectionId
+      ? `data-security-owners-${data.cloudConnectionId.toString()}`
+      : `data-security-owners-${data.projectId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      ...(data.cloudConnectionId
+        ? { cloudConnectionId: data.cloudConnectionId.toString() }
+        : {}),
+    },
+    description: `OneUptime AI's owners for the stores of project ${data.projectId.toString()}`,
+  });
+}
+
+/*
+ * Has OneUptime AI draft the record of processing of a project's stores
+ * with personal data (Server/Utils/AI/DataSecurity/
+ * RecordOfProcessingDraftRun, #10375): one job per project a day.
+ */
+export async function queueDataSecurityRecordDrafts(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DRAFT_RECORDS_JOB,
+    key: `data-security-record-drafts-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's record of processing drafts for project ${projectId.toString()}`,
+  });
+}
+
+/*
+ * Assesses the exposure a Critical issue opened a security case for
+ * (Server/Utils/AI/DataSecurity/ExposureAssessmentRun, #10377): plain
+ * code works the assessment out, and OneUptime AI writes it up as the
+ * project's Data Security AI rules allow. One job per case: a second
+ * exposure issue joining the case while it waits is assessed with it.
+ */
+export async function queueDataSecurityExposureAssessment(data: {
+  projectId: ObjectID;
+  securityCaseId: ObjectID;
+  dataSecurityIssueId: ObjectID;
+}): Promise<boolean> {
+  return await queue({
+    jobName: DATA_SECURITY_ASSESS_EXPOSURE_JOB,
+    key: `data-security-exposure-${data.securityCaseId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      securityCaseId: data.securityCaseId.toString(),
+      dataSecurityIssueId: data.dataSecurityIssueId.toString(),
+    },
+    description: `the exposure assessment of security case ${data.securityCaseId.toString()}`,
+  });
+}
+
+/*
+ * Has OneUptime AI propose the owner rules the project's proposed owners
+ * share (Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals): a few
+ * minutes after a store's owners are proposed, once for all of them.
+ */
+export async function queueDataStoreOwnerRuleProposals(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
+    key: `data-security-owner-rules-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's owner rules for project ${projectId.toString()}`,
+    delayInMs: OWNER_RULES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Groups a project's issues by what made them (#10370): queued by each
+ * evaluation, a little after it, so the issues one mistake made are one
+ * group, and the group counts them as they resolve
+ * (Utils/DataSecurity/DataSecurityIssueGrouper).
+ */
+export async function queueDataSecurityIssueGrouping(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_GROUP_ISSUES_JOB,
+    key: `data-security-group-issues-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `the grouping of the issues of project ${projectId.toString()}`,
+    delayInMs: GROUP_ISSUES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI propose each service's telemetry fix in its code
+ * (Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals, #10367):
+ * queued by each evaluation, a little after it, once for all it opened.
+ */
+export async function queueTelemetryLeakFixProposals(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+    key: `data-security-telemetry-fixes-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's telemetry fixes for project ${projectId.toString()}`,
+    delayInMs: TELEMETRY_FIXES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI give its verdict on the findings of one store that wait
+ * for a person (Server/Utils/AI/DataSecurity/FindingVerdicts, #10372): a
+ * little after the store's scan, once for the scan and its field
+ * suggestions.
+ */
+export async function queueDataSecurityFindingVerdicts(data: {
+  projectId: ObjectID;
+  dataStoreId: ObjectID;
+}): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_JUDGE_FINDINGS_JOB,
+    key: `data-security-judge-${data.dataStoreId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      dataStoreId: data.dataStoreId.toString(),
+    },
+    description: `OneUptime AI's verdicts on the findings of store ${data.dataStoreId.toString()}`,
+    delayInMs: JUDGE_FINDINGS_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI propose what the project's decisions say of its scans
+ * (Server/Utils/AI/DataSecurity/DataSecurityScanTuning, #10372): a data
+ * type to turn off, a location to leave out - a few minutes after a
+ * finding is marked not sensitive, once for several.
+ */
+export async function queueDataSecurityScanTuning(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_TUNE_SCANS_JOB,
+    key: `data-security-tune-scans-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's tuning of the scans of project ${projectId.toString()}`,
+    delayInMs: TUNE_SCANS_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI find the project's own data types in the fields its
+ * scans could not place, and decides the drafts being proven
+ * (Server/Utils/AI/DataSecurity/DataTypeDiscovery, #10371): a little after
+ * a scan that kept such fields, once for all of the project's stores.
+ */
+export async function queueDataTypeDiscovery(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+    key: `data-security-data-types-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's data types for project ${projectId.toString()}`,
+    delayInMs: DATA_TYPE_DISCOVERY_DELAY_IN_MS,
   });
 }
 

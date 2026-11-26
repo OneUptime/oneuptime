@@ -119,6 +119,8 @@ Quando la tua banca sta ancora elaborando un pagamento, OneUptime lo segnala: al
 
 L'utilizzo di un giorno compare quando il giorno è finito, entro le 08:00 UTC circa del giorno dopo. Filtra per **Prodotto**, **Giorno** o **Servizio** per trovare che cosa è cresciuto.
 
+Per inviare meno, un [filtro di scarto](/docs/telemetry/drop-filters-and-scrub-rules) butta via i log e gli span che non leggi mai prima che vengano salvati, e ciò che scarta non viene fatturato. Prima che tu ne salvi uno, il suo modulo dice quanta della telemetria dell'ultimo giorno seleziona, e che cosa toglierebbe ai monitor, alle dashboard, agli SLO e agli Eventi di sicurezza che leggono gli stessi record: vedi [Che cosa toglierebbe un filtro](/docs/telemetry/drop-filters-and-scrub-rules#che-cosa-toglierebbe-un-filtro).
+
 ## Saldi prepagati
 
 I messaggi SMS, le chiamate, WhatsApp e Telegram si pagano con il saldo del progetto, e OneUptime AI con i suoi crediti IA. Li ricarichi entrambi in anticipo:
@@ -129,9 +131,9 @@ I messaggi SMS, le chiamate, WhatsApp e Telegram si pagano con il saldo del prog
 | OneUptime AI | **Impostazioni del progetto → IA → Crediti IA** |
 
 :::steps
-### Ricaricarlo subito
+### Aggiungere al saldo subito
 
-Nella scheda **Saldo attuale** della pagina, fai clic su **Ricarica saldo**. Inserisci un importo da $20 a $1,000 e fai clic su **Ricarica**. L'importo viene addebitato sulla carta del progetto.
+Nella scheda **Saldo attuale** della pagina, fai clic su **Aggiungi al saldo**. Inserisci un importo da $20 a $1,000 e fai clic su **Aggiungi al saldo**. L'importo viene addebitato sulla carta del progetto.
 
 ### Oppure lasciarlo ricaricare da solo
 
@@ -150,7 +152,7 @@ Quando un saldo non basta, il messaggio non viene inviato oppure OneUptime AI si
 | Attivare o disattivare SMS, chiamate, WhatsApp o Telegram | Proprietario del progetto, **Manage Billing** o **Amministratore della fatturazione** |
 | Aggiungere un metodo di pagamento | Proprietario del progetto, **Manage Billing** o **Create Payment Method** |
 | Pagare una fattura | Proprietario del progetto, **Manage Billing** o **Edit Invoices** |
-| Cambiare il piano, ricaricare un saldo o cambiare la ricarica automatica | Proprietario del progetto o **Manage Billing** |
+| Cambiare il piano, aggiungere a un saldo o cambiare la ricarica automatica | Proprietario del progetto o **Manage Billing** |
 
 Un pulsante che non puoi usare appare bloccato e dice chi può. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index#team) per i ruoli di fatturazione.
 

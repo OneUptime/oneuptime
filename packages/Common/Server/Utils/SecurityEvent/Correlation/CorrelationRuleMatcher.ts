@@ -1,5 +1,6 @@
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import { getKeptLookbackInSeconds } from "../../../../Types/SecurityEvent/SecurityEventRetention";
 import {
   SigmaCorrelation,
   SigmaCorrelationStep,
@@ -50,6 +51,12 @@ import CorrelationQueries, {
  *   - new_value: this run's window, against the timespan of history before
  *     it.
  *
+ * Given what the project keeps (`kept`, #10432), every read is of the
+ * events still kept, and a new value is new against the history that is:
+ * a First seen rule whose timespan is longer than the retention says the
+ * span it could see ("First awsRegion in 15 days"), never one whose older
+ * events were deleted.
+ *
  * In real time (`arrival`) a run is the window of the rule's interval one
  * write's events fall in, read as it stood when the write came in, and a
  * group is reported only when the write is what made it match
@@ -76,6 +83,17 @@ export interface CorrelationRuleMatchInput {
   restrictTo?: Statement | undefined;
   // In real time: the window as one write found it.
   arrival?: DetectionArrivalRead | undefined;
+  /*
+   * How long the project keeps security events, and the moment the run
+   * reads at: only events kept then are read, and a new value's history
+   * reaches back no further than they do.
+   */
+  kept?: CorrelationKeptEvents | undefined;
+}
+
+export interface CorrelationKeptEvents {
+  retentionInDays: number;
+  at: Date;
 }
 
 // "3 minutes", "45 seconds", "less than a second": how far apart two times are.
@@ -229,6 +247,7 @@ export default class CorrelationRuleMatcher {
       endTime: input.endTime,
       restrictTo: input.restrictTo,
       arrival: input.arrival,
+      keptAt: input.kept?.at,
     };
 
     const rows: Array<CorrelationCountRow> =
@@ -304,6 +323,7 @@ export default class CorrelationRuleMatcher {
           endTime: input.endTime,
           restrictTo: input.restrictTo,
           arrival: input.arrival,
+          keptAt: input.kept?.at,
         },
         correlation: input.correlation,
         steps: input.steps,
@@ -417,6 +437,7 @@ export default class CorrelationRuleMatcher {
           endTime: input.endTime,
           restrictTo: input.restrictTo,
           arrival: input.arrival,
+          keptAt: input.kept?.at,
         },
         historyFrom,
         correlation: input.correlation,
@@ -425,8 +446,17 @@ export default class CorrelationRuleMatcher {
       });
 
     const fields: string = input.correlation.condition.fields.join(" / ");
+    /*
+     * The history a value was new against: the timespan, or what the
+     * project keeps when that is shorter - never more than was read.
+     */
     const span: string = describeSigmaTimespan(
-      input.correlation.timespanInSeconds,
+      input.kept
+        ? getKeptLookbackInSeconds({
+            lookbackInSeconds: input.correlation.timespanInSeconds,
+            retentionInDays: input.kept.retentionInDays,
+          })
+        : input.correlation.timespanInSeconds,
     );
 
     return {

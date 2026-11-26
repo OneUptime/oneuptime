@@ -50,11 +50,11 @@ When you join a project, these events start on, by email. Everything else starts
 | --- | --- | --- |
 | **Incidents** | **Incident created**, **Incident state changed**, **Incident reminder**, **Incident SLA breached**, **Incident episode created**, **Incident episode state changed**, **Incident added to incident episode** | **Incident note posted**, **Added as incident owner**, **Assigned to an incident**, **Incident episode note posted**, **Added as incident episode owner** |
 | **Alerts** | **Alert created**, **Alert state changed**, **Alert reminder**, **Alert episode created**, **Alert episode state changed**, **Alert added to alert episode** | **Alert note posted**, **Added as alert owner**, **Alert episode note posted**, **Added as alert episode owner** |
-| **Monitoring** | **Probe status changed for your monitor**, **Monitor has no active probes**, **SLO status changed**, **Added as SLO owner**, **Exception assigned to me**, **Probe status changed**, **Added as probe owner**, **Added as table owner**, **Added as pipeline owner**, **Added as service or infrastructure owner**, **Added as dashboard owner**, **Added as workflow owner**, **Added as runbook owner**, **Added as monitor group owner**, **Added as Runner owner** | **Monitor created**, **Monitor status changed**, **Added as monitor owner**, **AI agent status changed**, **Added as AI agent owner** |
+| **Monitoring** | **Probe status changed for your monitor**, **Monitor has no active probes**, **SLO status changed**, **Added as SLO owner**, **Exception assigned to me**, **Probe status changed**, **Probe a major release behind**, **Added as probe owner**, **Added as table owner**, **Added as pipeline owner**, **Added as service or infrastructure owner**, **Added as dashboard owner**, **Added as workflow owner**, **Added as runbook owner**, **Added as monitor group owner**, **Added as Runner owner** | **Monitor created**, **Monitor status changed**, **Added as monitor owner**, **AI agent status changed**, **Added as AI agent owner** |
 | **Status Pages** | **My public note approved or rejected**, and by push too: **Public note waiting for my approval** | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
 | **Scheduled Maintenance** | **Maintenance reminder** | **Maintenance event created**, **Maintenance state changed**, **Maintenance note posted**, **Added as maintenance owner** |
 | **On-Call** | **You go on-call**, **You are up next on-call**, **You go off-call**, **Added to on-call policy**, **Removed from on-call policy**, **Missed call**, **Added as on-call policy owner**, **Added as on-call schedule owner**, **Added as incoming call policy owner**, and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned** | None |
-| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |
+| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Security case step stopped holding**, **OneUptime AI handed a security case to people**, **Hunt found security events** | None |
 
 > [!IMPORTANT]
 > **Monitor status changed** starts off. To hear when a monitor you own goes down or comes back, switch it on, on the **Monitoring** tab.
@@ -63,12 +63,14 @@ When you join a project, these events start on, by email. Everything else starts
 
 **Added as monitor group owner**, on the **Monitors** card, and **Added as Runner owner**, on the **Dashboards & Automation** card, tell you when someone adds you as an owner of a monitor group or a Runner.
 
+**Probe a major release behind**, on the **Probes** card, tells you once when a custom probe you own falls a major release or more behind OneUptime, with what it misses until it is updated. A probe with no owners tells the Project Owners.
+
 ## Your shifts
 
 The **On-Call** tab is about you, and about the on-call records you own:
 
 - **You go on-call**, **You are up next on-call** and **You go off-call** follow your turns on the on-call schedules you are in.
-- **Added to on-call policy** and **Removed from on-call policy** tell you when an on-call policy starts or stops naming you.
+- **Added to on-call policy** and **Removed from on-call policy** tell you when an on-call policy starts or stops paging you: when one of its escalation rules names you or stops naming you, when you join the project, and when you join or leave a team that one of its rules names. Joining or leaving tells you once per policy, naming every rule of it that changed, and leaving tells you only once nothing else on that policy pages you. Nothing is sent before you join a project, or when you are removed from one.
 - **Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Profile & Calendar → Calendar Feed**, and **My upcoming on-call shift is reassigned** tells you when someone else covers a shift you were reminded about. See [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices).
 - **Missed call**, on the **Incoming Call Policies** card, tells the owners of an incoming call policy that a caller reached nobody. See [Incoming Call Policy](/docs/on-call/incoming-call-policy#missed-calls).
 - **Added as on-call policy owner**, **Added as on-call schedule owner** and **Added as incoming call policy owner** tell you when you are made an owner of one, by an owner rule or by a person on its Owners page.

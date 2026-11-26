@@ -2,7 +2,11 @@ import StackTraceParser, {
   ParsedStackTrace,
   StackFrame,
 } from "./StackTraceParser";
-import { normalizeExceptionText } from "./ExceptionSanitizer";
+import {
+  foldSeparatedNumbers,
+  foldSeparatedNumbersV4,
+  normalizeExceptionText,
+} from "./ExceptionSanitizer";
 import {
   AppleCrashFrame,
   AppleCrashReport,
@@ -12,6 +16,7 @@ import {
   parseAppleCrashReport,
 } from "../../../Utils/Telemetry/AppleCrashReport";
 import { toAppleSymbolDisplayName } from "../../../Utils/Telemetry/SwiftDemangle";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * WHAT MAKES TWO OCCURRENCES THE SAME EXCEPTION: GROUPING V2.
@@ -43,9 +48,37 @@ import { toAppleSymbolDisplayName } from "../../../Utils/Telemetry/SwiftDemangle
  *
  * Bounded: the stack trace is cut before it is parsed, and so is the message
  * before it is normalized; no regular expression runs over a frame's text.
+ *
+ * GROUPING V3 (#10620) is v2, but for an exception grouped by its message:
+ * the card numbers written in groups, Social Security numbers and phone
+ * numbers with separators the normalizer leaves in are taken out too
+ * (foldSeparatedNumbers), so "Invalid SSN 123-45-6789 on file" and "Invalid
+ * SSN 987-65-4321 on file" are one exception. For an exception grouped by
+ * its frames its key is v2's, and so are its text and fingerprint: the
+ * message is not read. New exceptions are grouped by v3; one that already
+ * exists keeps the
+ * fingerprint it was made under, found first (ExceptionUtil.
+ * getOccurrenceFingerprints), so nothing splits or merges: the values seen
+ * before keep landing where they always did, and the values seen since go
+ * to one exception.
+ *
+ * GROUPING V4 (#10898) is v3, with the message folded further
+ * (foldSeparatedNumbersV4): international phone numbers ("call +44 20 7946
+ * 0958 failed"), 15-digit American Express cards written 4-6-5 and 19-digit
+ * cards are taken out too. It reads v3's folded message, so whatever v3
+ * groups as one, v4 groups as one. For an exception grouped by its frames
+ * its key, text and fingerprint are v2's, as v3's are. New exceptions are
+ * grouped by v4, and v4's fingerprints are tried after v3's: an exception
+ * made before keeps the fingerprint it was made under, and the values it was
+ * made for keep landing on it.
  */
 
+// The version of grouping v2's text.
 export const EXCEPTION_GROUPING_VERSION: number = 2;
+// And of grouping v3's, where it differs from v2's.
+export const EXCEPTION_GROUPING_V3_VERSION: number = 3;
+// And of grouping v4's, where it differs from v2's.
+export const EXCEPTION_GROUPING_V4_VERSION: number = 4;
 
 // How much of a stack trace and of a message is read.
 export const MAX_GROUPING_STACK_TRACE_LENGTH: number = 64 * 1024;
@@ -69,6 +102,11 @@ export interface ExceptionGroupingKey {
   exceptionType: string;
   // One per frame ("module|function"), or the normalized message.
   parts: Array<string>;
+  /*
+   * The grouping version its text names: EXCEPTION_GROUPING_VERSION when
+   * left out, as every grouping v2 key is.
+   */
+  version?: number | undefined;
 }
 
 function isDigit(character: string): boolean {
@@ -379,10 +417,169 @@ export function getExceptionGroupingKey(input: {
 }
 
 /*
- * The text a v2 fingerprint hashes: the version, the exception's service and
- * project (a fingerprint is unique per service, as v1's), the type, the basis
- * and the parts, one per line. The version keeps a v2 fingerprint from ever
- * equalling a v1 one.
+ * The placeholders the normalizers write in place of a value
+ * (normalizeExceptionText; collapseLongDigitRuns' "<n>"): whatever the value
+ * was, the text a fingerprint hashes holds the placeholder alone.
+ */
+export const FOLDED_VALUE_PLACEHOLDERS: ReadonlyArray<string> = [
+  "<UUID>",
+  "<OBJECT_ID>",
+  "<STRIPE_ID>",
+  "<SERVICE_ID>",
+  "<JWT>",
+  "<BASE64>",
+  "<IP>",
+  "<IPV6>",
+  "<EMAIL>",
+  "<ID>",
+  "<TIMESTAMP>",
+  "<DATE>",
+  "<TIME>",
+  "<MEMORY_ADDR>",
+  "<SESSION>",
+  "<REQUEST>",
+  "<CORRELATION>",
+  "<TRANSACTION>",
+  "<HEX_ID>",
+  "<PORT>",
+  "<LINE>",
+  "<COL>",
+  "<PID>",
+  "<TID>",
+  "<NUMBER>",
+  "<n>",
+  // Grouping v3's (foldSeparatedNumbers).
+  "<CARD>",
+  "<SSN>",
+  "<PHONE>",
+];
+
+const FOLDED_VALUE_PLACEHOLDER_REGEX: RegExp = new RegExp(
+  `(${FOLDED_VALUE_PLACEHOLDERS.map(escapeRegExp).join("|")})`,
+);
+
+// Past this many placeholders a text is not read for them (see below).
+const MAX_PLACEHOLDERS_READ: number = 256;
+
+/*
+ * WHETHER A SCRUB RULE HID ANYTHING A FINGERPRINT HASHES (#10619).
+ *
+ * `arrived` and `stored` are the texts a fingerprint hashes, made from an
+ * exception as it arrived and from what the scrub rules left of it. They
+ * differ wherever a rule hid something - but a value the normalizer folds
+ * (an email address, a UUID, a long number) never reaches the fingerprint:
+ * the arrived text holds a placeholder there, whatever the value was. So the
+ * fingerprint gives nothing a rule hid away exactly when the stored text is
+ * the arrived one with only its placeholders replaced: every literal piece
+ * of the arrived text found, in order, in the stored one - the first at its
+ * start, the last at its end - and anything at all where a placeholder is.
+ * A hidden value that was not folded sits in a literal piece, which the
+ * stored text no longer holds.
+ *
+ * Errs one way only: a text with too many placeholders to read is taken to
+ * give something away. Bounded by the texts' length.
+ */
+export function isChangedOnlyWhereFolded(
+  arrived: string,
+  stored: string,
+): boolean {
+  if (arrived === stored) {
+    return true;
+  }
+
+  // Literal pieces at even indexes, placeholders at odd ones.
+  const pieces: Array<string> = arrived.split(FOLDED_VALUE_PLACEHOLDER_REGEX);
+  const placeholders: number = (pieces.length - 1) / 2;
+
+  if (placeholders < 1 || placeholders > MAX_PLACEHOLDERS_READ) {
+    return false;
+  }
+
+  const first: string = pieces[0] || "";
+  const last: string = pieces[pieces.length - 1] || "";
+
+  if (
+    !stored.startsWith(first) ||
+    !stored.endsWith(last) ||
+    first.length + last.length > stored.length
+  ) {
+    return false;
+  }
+
+  let at: number = first.length;
+  const end: number = stored.length - last.length;
+
+  for (let index: number = 2; index < pieces.length - 1; index += 2) {
+    const piece: string = pieces[index] || "";
+
+    if (!piece) {
+      continue;
+    }
+
+    const found: number = stored.indexOf(piece, at);
+
+    if (found < 0 || found + piece.length > end) {
+      return false;
+    }
+
+    at = found + piece.length;
+  }
+
+  return true;
+}
+
+/*
+ * The grouping v3 key of an exception, from its grouping v2 key: the same,
+ * but for a message that holds a card number in groups, a Social Security
+ * number or a phone number, which are taken out of it (see the header).
+ */
+export function getExceptionGroupingKeyV3(
+  keyV2: ExceptionGroupingKey,
+): ExceptionGroupingKey {
+  if (keyV2.basis !== ExceptionGroupingBasis.Message) {
+    return keyV2;
+  }
+
+  /*
+   * Every message names v3, whatever it holds: what a scrub rule left of a
+   * message has nothing left to fold, and is compared with the message as
+   * it arrived (isChangedOnlyWhereFolded), which must be read the same way.
+   */
+  return {
+    ...keyV2,
+    parts: [foldSeparatedNumbers(keyV2.parts[0] || "")],
+    version: EXCEPTION_GROUPING_V3_VERSION,
+  };
+}
+
+/*
+ * The grouping v4 key of an exception, from its grouping v3 key: the same,
+ * but for a message that holds an international phone number, a 15-digit
+ * American Express card or a 19-digit card, which are taken out of what v3
+ * left of it (see the header). An exception grouped by its frames keeps v3's
+ * key, which is v2's.
+ */
+export function getExceptionGroupingKeyV4(
+  keyV3: ExceptionGroupingKey,
+): ExceptionGroupingKey {
+  if (keyV3.basis !== ExceptionGroupingBasis.Message) {
+    return keyV3;
+  }
+
+  // Every message names v4, as every message names v3 (see above).
+  return {
+    ...keyV3,
+    parts: [foldSeparatedNumbersV4(keyV3.parts[0] || "")],
+    version: EXCEPTION_GROUPING_V4_VERSION,
+  };
+}
+
+/*
+ * The text a v2 (v3, v4) fingerprint hashes: the version, the exception's
+ * service and project (a fingerprint is unique per service, as v1's), the
+ * type, the basis and the parts, one per line. The version keeps a v2
+ * fingerprint from ever equalling a v1 one, a v3 one from ever equalling a
+ * v2 one, and a v4 one from ever equalling a v3 one.
  */
 export function getExceptionGroupingText(data: {
   projectId: string;
@@ -390,7 +587,7 @@ export function getExceptionGroupingText(data: {
   key: ExceptionGroupingKey;
 }): string {
   return [
-    `grouping-v${EXCEPTION_GROUPING_VERSION}`,
+    `grouping-v${data.key.version ?? EXCEPTION_GROUPING_VERSION}`,
     data.projectId,
     data.primaryEntityId,
     data.key.exceptionType,

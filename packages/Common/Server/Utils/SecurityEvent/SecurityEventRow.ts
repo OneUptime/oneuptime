@@ -3,6 +3,7 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
+import { SECURITY_EVENT_MAX_FUTURE_SKEW_IN_MINUTES } from "../../../Types/SecurityEvent/SecurityEventArrival";
 import { SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE } from "../../../Types/SecurityCase/SecurityConnection";
 import { TelemetryServiceMetadata } from "../../Services/OpenTelemetryIngestService";
 import TelemetryUtil, { AttributeType } from "../Telemetry/Telemetry";
@@ -19,7 +20,9 @@ import {
  * must not be allowed to create arbitrary partitions.
  */
 export const MAX_SECURITY_EVENT_AGE_IN_DAYS: number = 366;
-export const MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES: number = 60;
+// Shared with what reads by arrival, which allows for the same skew (SecurityEventArrival).
+export const MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES: number =
+  SECURITY_EVENT_MAX_FUTURE_SKEW_IN_MINUTES;
 
 /*
  * A W3C trace id is 32 characters and a span id 16; other sources use

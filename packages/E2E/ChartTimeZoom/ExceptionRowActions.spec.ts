@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { isSplitPairRead } from "./ExceptionSplitPairReads";
 
 /*
  * Each exception's ⋯ menu on the exceptions list: Resolve or Reopen,
@@ -39,6 +40,7 @@ interface RecordedRequest {
   modelName?: string | undefined;
   id?: string | undefined;
   body?: Record<string, unknown> | undefined;
+  select?: Record<string, unknown> | undefined;
 }
 
 interface SpecWindow {
@@ -619,20 +621,30 @@ test.describe("every exception that matches, not only the page's", () => {
     return page.getByTestId("bulk-update-select-all-matching");
   }
 
+  /*
+   * The list's own reads of the exceptions, in order: not the small reads it
+   * makes of each page's split pairs once the page's rows are in (#10897).
+   */
   async function exceptionReads(page: Page): Promise<Array<RecordedRequest>> {
-    return await page.evaluate((): Array<RecordedRequest> => {
-      return (
-        JSON.parse(
-          JSON.stringify(
-            (window as unknown as SpecWindow).__chartTimeZoomFixture.requests,
-          ),
-        ) as Array<RecordedRequest & { modelName?: string }>
-      ).filter((request: RecordedRequest): boolean => {
+    const reads: Array<RecordedRequest> = await page.evaluate(
+      (): Array<RecordedRequest> => {
         return (
-          request.kind === "getList" &&
-          request.modelName === "TelemetryException"
-        );
-      });
+          JSON.parse(
+            JSON.stringify(
+              (window as unknown as SpecWindow).__chartTimeZoomFixture.requests,
+            ),
+          ) as Array<RecordedRequest & { modelName?: string }>
+        ).filter((request: RecordedRequest): boolean => {
+          return (
+            request.kind === "getList" &&
+            request.modelName === "TelemetryException"
+          );
+        });
+      },
+    );
+
+    return reads.filter((read: RecordedRequest): boolean => {
+      return !isSplitPairRead(read);
     });
   }
 

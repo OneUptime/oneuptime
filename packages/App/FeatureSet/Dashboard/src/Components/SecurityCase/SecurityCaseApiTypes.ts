@@ -7,6 +7,7 @@ import {
 } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import { readRiskCaseThreshold } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { SecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
+import { SecurityAiOverviewMeasures } from "Common/Utils/SecurityCase/SecurityAiOverviewMeasures";
 
 /*
  * What the Security product's own routes answer, read defensively: a field
@@ -49,6 +50,11 @@ export interface SecurityOverview {
   // The project's case priorities and statuses, which the counts are by.
   priorities: Array<SecurityOverviewValue>;
   statuses: Array<SecurityOverviewValue>;
+  /*
+   * How OneUptime AI worked the window's cases (#10352): null when the
+   * server sent none (a server from before it), so nothing is drawn.
+   */
+  aiMeasures: SecurityAiOverviewMeasures | null;
 }
 
 // A priority or status as the overview sent it, read defensively.
@@ -185,5 +191,48 @@ export function parseOverview(body: JSONObject): SecurityOverview {
     riskiestEntities: parseRiskiestEntities(body["riskiestEntities"]),
     priorities: parseSecurityOverviewValues(body["priorities"]),
     statuses: parseSecurityOverviewValues(body["statuses"]),
+    aiMeasures: parseSecurityAiOverviewMeasures(body["aiMeasures"]),
+  };
+}
+
+// A mean or median as the overview sent it: null when there was nothing to take it over.
+function readMinutes(value: JSONValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+// OneUptime AI's figures as the overview sent them, read defensively.
+export function parseSecurityAiOverviewMeasures(
+  value: JSONValue | undefined,
+): SecurityAiOverviewMeasures | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const item: JSONObject = value as JSONObject;
+
+  return {
+    casesWorkedByAi: readNumber(item["casesWorkedByAi"]),
+    casesResolvedByAi: readNumber(item["casesResolvedByAi"]),
+    meanTimeToContainWithAiInMinutes: readMinutes(
+      item["meanTimeToContainWithAiInMinutes"],
+    ),
+    meanTimeToContainWithoutAiInMinutes: readMinutes(
+      item["meanTimeToContainWithoutAiInMinutes"],
+    ),
+    meanTimeToCloseWithAiInMinutes: readMinutes(
+      item["meanTimeToCloseWithAiInMinutes"],
+    ),
+    meanTimeToCloseWithoutAiInMinutes: readMinutes(
+      item["meanTimeToCloseWithoutAiInMinutes"],
+    ),
+    approvalsAsked: readNumber(item["approvalsAsked"]),
+    approvalsAnswered: readNumber(item["approvalsAnswered"]),
+    medianTimeToAnswerInMinutes: readMinutes(
+      item["medianTimeToAnswerInMinutes"],
+    ),
+    stepsUndone: readNumber(item["stepsUndone"]),
+    hasActivity: item["hasActivity"] === true,
   };
 }

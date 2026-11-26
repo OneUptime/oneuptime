@@ -11,8 +11,10 @@ import logger, { LogAttributes } from "../Logger";
 import { isPostgresLockContentionError } from "../Database/PostgresLockContention";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchHistory";
+import CheckWindowCounts from "./Criteria/CheckWindowCounts";
 import CriteriaInEffect from "./CriteriaInEffect";
 import MonitorLogUtil from "./MonitorLogUtil";
+import MonitorEvaluationClock from "./MonitorEvaluationClock";
 import MonitorMetricUtil from "./MonitorMetricUtil";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -34,6 +36,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ProbeApiIngestResponse, {
   MatchedCriteriaResult,
   PerSeriesCriteriaMatch,
+  SeriesKeepingStatus,
 } from "../../../Types/Probe/ProbeApiIngestResponse";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -48,9 +51,13 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
 import {
+  EvaluationSentence,
   EvaluationSentenceValue,
+  translatablePluralSentence,
   translatableSentence,
 } from "../../../Types/Monitor/EvaluationSentence";
+import { translationKey } from "../../../Types/Translator";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
@@ -73,6 +80,7 @@ import MonitorResourceContextUtil, {
 } from "./MonitorResourceContext";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import MonitorStoredCheck from "./MonitorStoredCheck";
+import MonitorCheckSecretValues from "./MonitorCheckSecretValues";
 import LatestIncomingRequest, {
   LatestIncomingRequestColumns,
 } from "./LatestIncomingRequest";
@@ -103,7 +111,9 @@ import OpenStackDependencySuppression from "../OpenStack/OpenStackDependencySupp
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
-import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationEvent,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import Probe, {
@@ -114,6 +124,8 @@ import MonitorProbeLastResults, {
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
 import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
+import SeriesBehindStatus from "./SeriesBehindStatus";
+import { SeriesBehindStatusReader } from "./GroupedMonitorRecovery";
 import MonitorFirstMeasured from "./MonitorFirstMeasured";
 import MonitorHeartbeatState, {
   HeartbeatKind,
@@ -146,6 +158,12 @@ interface ProbeAgreementResult {
  */
 const LOCK_WAIT_WORTH_ORDERING_MS: number = 100;
 
+/*
+ * How many of the series that keep a grouped monitor's status its evaluation
+ * log names, before "and N more" (keepStatusForSeriesBehindIt).
+ */
+const SERIES_NAMED_WHEN_STATUS_KEPT: number = 3;
+
 export interface MonitorResourceOptions {
   /*
    * The probe that reported this check result, as it authenticated to probe
@@ -171,7 +189,45 @@ export interface MonitorResourceOptions {
         value: string;
       }
     | undefined;
+  /*
+   * Requests to this Incoming Request monitor skipped before this one, which
+   * its log has not said yet: this evaluation's log says so first
+   * (describeSkippedIncomingRequests). Only from a monitor that evaluates
+   * every request it receives (#10582).
+   */
+  skippedIncomingRequests?: SkippedIncomingRequestsNote | undefined;
+  /*
+   * When the evaluation began, on MonitorEvaluationClock's clock, when it
+   * began before this call: a telemetry check's reads come first, and its
+   * time counts them (#10317). Left out, it begins here.
+   */
+  evaluationStartedAtMs?: number | undefined;
 }
+
+/*
+ * Requests an Incoming Request monitor that evaluates every request skipped
+ * (IncomingRequestPendingStore, in the Telemetry worker).
+ */
+export interface SkippedIncomingRequestsNote {
+  // More were waiting than a monitor keeps, so the oldest were skipped.
+  overLimit: number;
+  /*
+   * Of those, the ones skipped because more than `requestLimit` requests
+   * were waiting, and the ones skipped because the waiting requests took
+   * more than `byteLimit` bytes - each limit as it was when it skipped them
+   * (#10652). The rest of overLimit was skipped by a release that did not
+   * say which.
+   */
+  overRequestLimit?: number | undefined;
+  requestLimit?: number | undefined;
+  overByteLimit?: number | undefined;
+  byteLimit?: number | undefined;
+  // Evaluating each failed `attempts` times, so it was skipped.
+  afterFailures: number;
+  attempts: number;
+}
+
+const BYTES_PER_MEGABYTE: number = 1024 * 1024;
 
 export default class MonitorResourceUtil {
   /*
@@ -276,6 +332,111 @@ export default class MonitorResourceUtil {
     );
   }
 
+  /*
+   * What an Incoming Request monitor's log says of requests skipped before
+   * the one it evaluates: never nothing. An incident or alert one of them
+   * would have opened or resolved was not, so the reader knows to look.
+   *
+   * Those skipped over a limit say which limit, and what it was (#10652):
+   * the requests a monitor keeps waiting, or the megabytes of them. A
+   * self-hosted install sets its own, so the reader - or the operator they
+   * ask - knows which to raise. Those an earlier release skipped, which did
+   * not say which, say only that more were waiting than the monitor keeps.
+   */
+  public static describeSkippedIncomingRequests(
+    skipped: SkippedIncomingRequestsNote,
+  ): Array<MonitorEvaluationEvent> {
+    const events: Array<MonitorEvaluationEvent> = [];
+    const at: Date = OneUptimeDate.getCurrentDate();
+
+    const skippedRequestsEvent: (
+      count: number,
+      message: EvaluationSentence,
+    ) => MonitorEvaluationEvent = (
+      count: number,
+      message: EvaluationSentence,
+    ): MonitorEvaluationEvent => {
+      return {
+        type: "requests-skipped",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Requests not evaluated: {{skipped}}", {
+            skipped: count,
+          }),
+          message: message,
+        }),
+        at: at,
+      };
+    };
+
+    const overLimit: number = Math.max(0, skipped.overLimit);
+    const overRequestLimit: number =
+      skipped.requestLimit && skipped.requestLimit > 0
+        ? Math.min(overLimit, Math.max(0, skipped.overRequestLimit || 0))
+        : 0;
+    const overByteLimit: number =
+      skipped.byteLimit && skipped.byteLimit > 0
+        ? Math.min(
+            overLimit - overRequestLimit,
+            Math.max(0, skipped.overByteLimit || 0),
+          )
+        : 0;
+    const overAnUnnamedLimit: number =
+      overLimit - overRequestLimit - overByteLimit;
+
+    if (overRequestLimit > 0) {
+      events.push(
+        skippedRequestsEvent(
+          overRequestLimit,
+          translatableSentence(
+            "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+            { limit: skipped.requestLimit! },
+          ),
+        ),
+      );
+    }
+
+    if (overByteLimit > 0) {
+      events.push(
+        skippedRequestsEvent(
+          overByteLimit,
+          translatableSentence(
+            "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+            {
+              // A whole number of megabytes as set, else to a tenth.
+              size:
+                Math.round((skipped.byteLimit! / BYTES_PER_MEGABYTE) * 10) / 10,
+            },
+          ),
+        ),
+      );
+    }
+
+    if (overAnUnnamedLimit > 0) {
+      events.push(
+        skippedRequestsEvent(
+          overAnUnnamedLimit,
+          translatableSentence(
+            "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+          ),
+        ),
+      );
+    }
+
+    if (skipped.afterFailures > 0) {
+      events.push(
+        skippedRequestsEvent(
+          skipped.afterFailures,
+          translatableSentence(
+            "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+            { attempts: skipped.attempts },
+          ),
+        ),
+      );
+    }
+
+    return events;
+  }
+
   @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
@@ -328,6 +489,20 @@ export default class MonitorResourceUtil {
 
     response.evaluationSummary = evaluationSummary;
     dataToProcess.evaluationSummary = evaluationSummary;
+
+    // Its log entry says how long it took (MonitorEvaluationClock, #10317).
+    MonitorEvaluationClock.begin(
+      evaluationSummary,
+      options?.evaluationStartedAtMs,
+    );
+
+    if (options?.skippedIncomingRequests) {
+      evaluationSummary.events.push(
+        ...MonitorResourceUtil.describeSkippedIncomingRequests(
+          options.skippedIncomingRequests,
+        ),
+      );
+    }
 
     const monitorStatusNameCache: Dictionary<string | null> = {};
 
@@ -598,6 +773,9 @@ export default class MonitorResourceUtil {
 
       dataToProcess.projectId = monitor.projectId;
 
+      // What its time is weighed against: how often it is evaluated.
+      MonitorEvaluationClock.schedule(evaluationSummary, monitor);
+
       /*
        * Probes check only the monitor types probes run (isProbableMonitor),
        * and only the monitors they are assigned to - the assignment is held
@@ -696,6 +874,26 @@ export default class MonitorResourceUtil {
         );
 
         return response;
+      }
+
+      /*
+       * The values of the monitor secrets the server filled into the
+       * monitor's steps, hidden wherever a probe's check says them back - a
+       * script's error and log lines, a response that echoes the request -
+       * before anything below reads the check: its criteria, the probe's
+       * latest check, the monitor's logs and summary, an incident's root
+       * cause (MonitorCheckSecretValues, #10825). Here rather than as the
+       * queue takes the check in, so it costs no read of the monitor of its
+       * own: a monitor whose steps name no secret costs nothing more.
+       */
+      if (
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+      ) {
+        dataToProcess = await MonitorCheckSecretValues.hideInMonitorCheck({
+          check: dataToProcess as ProbeMonitorResponse,
+          monitor: monitor,
+        });
       }
 
       // What a heartbeat sweep compares with (MonitorHeartbeatState).
@@ -1137,6 +1335,32 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
       );
 
+      /*
+       * When this check's rows begin to be written: a criteria that compares
+       * the check with the previous one reads the newest row before it, so
+       * the check's own rows are never read as its previous check (#10821).
+       */
+      const checkWrittenAt: Date = OneUptimeDate.getCurrentDate();
+
+      /*
+       * The step this result was actually produced for. A probe result carries
+       * the monitorStepId it ran, and a monitor can have several steps whose
+       * criteria differ - so the step must be looked up, not assumed to be the
+       * first one. The lookup used to be performed and its result thrown away,
+       * which silently evaluated every result against step 0's criteria and fed
+       * step 0's id into checkProbeAgreement (so agreement compared this
+       * result against other probes' logs for the wrong step).
+       *
+       * Decided before the check's rows are written: each row names the step
+       * it is judged as, so a window of one step reads that step's checks
+       * alone (#10906).
+       */
+      const monitorStep: MonitorStep | undefined =
+        MonitorResourceUtil.findStepToJudge({
+          monitorSteps: monitor.monitorSteps,
+          dataToProcess: dataToProcess,
+        });
+
       try {
         await MonitorMetricUtil.saveMonitorMetrics({
           monitorId: monitor.id!,
@@ -1146,6 +1370,15 @@ export default class MonitorResourceUtil {
           monitorName: monitorName || undefined,
           monitorLabels: monitor.labels || undefined,
           monitorCustomFields: monitor.customFields || undefined,
+          monitorStepId: monitorStep?.id,
+          /*
+           * A monitor that counts a window's checks of a series counts this
+           * one too, read from the series right after (#10355).
+           */
+          waitUntilReadable: CheckWindowCounts.countsSeriesChecks({
+            monitorSteps: monitor.monitorSteps,
+            monitorType: monitor.monitorType,
+          }),
         });
       } catch (err) {
         logger.error("Unable to save metrics");
@@ -1233,21 +1466,6 @@ export default class MonitorResourceUtil {
           criteriaInstance;
       }
 
-      /*
-       * The step this result was actually produced for. A probe result carries
-       * the monitorStepId it ran, and a monitor can have several steps whose
-       * criteria differ - so the step must be looked up, not assumed to be the
-       * first one. The lookup used to be performed and its result thrown away,
-       * which silently evaluated every result against step 0's criteria and fed
-       * step 0's id into checkProbeAgreement (so agreement compared this
-       * result against other probes' logs for the wrong step).
-       */
-      const monitorStep: MonitorStep | undefined =
-        MonitorResourceUtil.findStepToJudge({
-          monitorSteps: monitorSteps,
-          dataToProcess: dataToProcess,
-        });
-
       logger.debug(
         `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"} (reported: ${(dataToProcess as ProbeMonitorResponse).monitorStepId})`,
       );
@@ -1297,6 +1515,29 @@ export default class MonitorResourceUtil {
       const matchHistoryReads: CriteriaFilterMatchHistoryReads =
         new CriteriaFilterMatchHistoryReads();
 
+      /*
+       * The series behind a grouped monitor's status, which its recovery
+       * criteria wait for (GroupedMonitorRecovery): read once, for this
+       * result and the probe agreement pass alike, and kept again below once
+       * the result is judged.
+       */
+      const seriesBehindStatus: SeriesBehindStatus =
+        SeriesBehindStatus.forMonitorStep({
+          monitorId: monitor.id,
+          monitorStepId: monitorStep.id,
+        });
+
+      /*
+       * What this monitor's criteria have already opened, read only if an
+       * "All Values" metric series is waiting for a full window - a series
+       * whose alert is open keeps being judged on its data points - or a
+       * criteria with a recovery condition of its own may be holding
+       * (#10355). Read once, for this result and the probe agreement pass,
+       * so every probe's check is judged on the same records.
+       */
+      const criteriaInEffect: CriteriaInEffect =
+        CriteriaInEffect.forMonitor(monitor);
+
       response = await MonitorCriteriaEvaluator.processMonitorStep({
         dataToProcess: dataToProcess,
         monitorStep: monitorStep,
@@ -1309,14 +1550,14 @@ export default class MonitorResourceUtil {
          * below re-reads other probes' stored checks and records nothing.
          */
         recordMatchHistory: true,
+        checkWrittenAt: checkWrittenAt,
         matchHistoryReads: matchHistoryReads,
-        /*
-         * What this monitor's criteria have already opened, read only if an
-         * "All Values" metric series is waiting for a full window: a series
-         * whose alert is open keeps being judged on its data points.
-         */
-        criteriaInEffect: CriteriaInEffect.forMonitor(monitor),
+        criteriaInEffect: criteriaInEffect,
+        seriesBehindStatus: seriesBehindStatus,
       });
+
+      // What this result's own evaluation decided, before probes agree.
+      const evaluatedCriteriaMetId: string | undefined = response.criteriaMetId;
 
       // Judged; everything from here writes what was decided.
       await keepEvaluationLock();
@@ -1340,6 +1581,8 @@ export default class MonitorResourceUtil {
             currentProbeId: (dataToProcess as ProbeMonitorResponse).probeId,
             monitorProbes: monitorProbesForMonitor || undefined,
             matchHistoryReads: matchHistoryReads,
+            seriesBehindStatus: seriesBehindStatus,
+            criteriaInEffect: criteriaInEffect,
           });
 
         // Add probe agreement event to evaluation summary
@@ -1412,12 +1655,26 @@ export default class MonitorResourceUtil {
       }
 
       /*
+       * What is behind a grouped monitor's status after this result, kept
+       * once it is acted on (GroupedMonitorRecovery). Only when the probes
+       * agreed with this result's own evaluation: what that saw is not what
+       * the monitor's status follows otherwise, and the next result reads
+       * what was kept before.
+       */
+      let seriesBehindStatusAfter: Array<string> | undefined =
+        response.criteriaMetId === evaluatedCriteriaMetId
+          ? response.seriesBehindStatus
+          : undefined;
+
+      /*
        * Incoming Request / webhook grouped resolution (event-driven). A
        * payload can explicitly mark keys as resolved (e.g. Grafana
        * status=resolved). Resolve exactly those keys' incidents — never by
-       * absence. Runs regardless of whether a firing criteria matched, so a
-       * pure "resolved" webhook still closes the right incident. No-op
-       * unless a criteria has incidentGrouping configured.
+       * absence — and each criteria's only for the keys its own recovery
+       * fields read resolved (#10585). Runs regardless of whether a firing
+       * criteria matched, so a pure "resolved" webhook still closes the
+       * right incident. No-op unless a criteria has incidentGrouping
+       * configured.
        *
        * A request the matched grouped criteria reads with every item
        * without a value recovered also resolves that criteria's incident
@@ -1455,24 +1712,38 @@ export default class MonitorResourceUtil {
         if (recoveries.fingerprints.length > 0 || wholeMonitor) {
           await keepEvaluationLock();
 
+          /*
+           * A recovery resolves only what its criteria's incident or alert
+           * lets resolve on its own (Auto Resolve). One it leaves open is
+           * named in the monitor log, with why (#10550).
+           */
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
             fingerprints: recoveries.fingerprints,
+            /*
+             * Each criteria's records resolve on its own recoveries only:
+             * another criteria may read the same value as still firing,
+             * and resolving its record there reopened it at once (#10585).
+             */
+            fingerprintsByCriteriaId: recoveries.fingerprintsByCriteriaId,
             rootCause: "Incoming request reported this key as resolved.",
             wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             evaluationSummary: evaluationSummary,
+            noteLeftOpen: true,
           });
 
           await MonitorAlert.resolveSeriesAlertsByFingerprint({
             monitor: monitor,
             fingerprints: recoveries.fingerprints,
+            fingerprintsByCriteriaId: recoveries.fingerprintsByCriteriaId,
             rootCause: "Incoming request reported this key as resolved.",
             wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             evaluationSummary: evaluationSummary,
+            noteLeftOpen: true,
           });
         }
       }
@@ -1594,10 +1865,13 @@ export default class MonitorResourceUtil {
           /*
            * Each query as the check read it: with the cluster, host or
            * fleet an infrastructure monitor narrows it to, so the event's
-           * card charts what the monitor evaluated (issue #6265).
+           * card charts what the monitor evaluated (issue #6265). And a
+           * resource monitor's logs and traces, which the event's tabs read
+           * (#10451).
            */
           telemetryQuery = MetricTelemetrySnapshot.fromResponse(
             dataToProcess as MetricMonitorResponse,
+            { monitorType: monitor.monitorType, monitorStep: monitorStep },
           );
           logger.debug(
             `${dataToProcess.monitorId.toString()} - Metric query found.`,
@@ -2108,6 +2382,68 @@ export default class MonitorResourceUtil {
         }
       } else if (
         !response.criteriaMetId &&
+        !isSnmpTrapEvent &&
+        (response.seriesKeepingStatus || []).length > 0 &&
+        monitorSteps.data.defaultMonitorStatusId &&
+        monitor.currentMonitorStatusId?.toString() !==
+          monitorSteps.data.defaultMonitorStatusId.toString()
+      ) {
+        /*
+         * No criteria matched, and a grouped monitor's recovery criteria wait
+         * for series behind its status that have not met them yet
+         * (GroupedMonitorRecovery): the monitor keeps its status. Going to
+         * its default status would bring it back all the same, and the
+         * margin its recovery criteria keeps would not hold.
+         */
+        await MonitorResourceUtil.keepStatusForSeriesBehindIt({
+          monitor: monitor,
+          monitorStep: monitorStep,
+          dataToProcess: dataToProcess,
+          response: response,
+          evaluationSummary: evaluationSummary,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          criteriaInstancesById: criteriaInstanceMap,
+          alertCriteriaInstancesById: criteriaInstanceAlertMap,
+          keepEvaluationLock: keepEvaluationLock,
+        });
+      } else if (
+        !response.criteriaMetId &&
+        !isSnmpTrapEvent &&
+        (response.statusKeptForRecoveryCriteriaIds || []).length > 0 &&
+        // Silence keeps everything as it is, below.
+        !MonitorResourceUtil.isSilentInfrastructureWindow({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+        }) &&
+        monitorSteps.data.defaultMonitorStatusId &&
+        monitor.currentMonitorStatusId?.toString() !==
+          monitorSteps.data.defaultMonitorStatusId.toString()
+      ) {
+        /*
+         * No criteria matched a monitor that judges no series on its own,
+         * whose status a problem criteria set: it keeps it until a recovery
+         * criteria brings it back (#10743), so the margin between the two
+         * holds. Going to its default status would bring it back all the
+         * same.
+         */
+        await MonitorResourceUtil.keepStatusUntilRecovered({
+          monitor: monitor,
+          monitorStep: monitorStep,
+          dataToProcess: dataToProcess,
+          response: response,
+          evaluationSummary: evaluationSummary,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          criteriaInstancesById: criteriaInstanceMap,
+          keepEvaluationLock: keepEvaluationLock,
+        });
+      } else if (
+        !response.criteriaMetId &&
         /*
          * A trap that matches no criteria is simply ignored — it must not
          * reset the monitor to its default status (the polled checks own
@@ -2130,6 +2466,11 @@ export default class MonitorResourceUtil {
         logger.debug(
           `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
         );
+
+        // Back on its default status: nothing is behind it any more.
+        if (seriesBehindStatusAfter !== undefined) {
+          seriesBehindStatusAfter = [];
+        }
 
         /*
          * No criteria met opens anything: each kind is read only to
@@ -2373,6 +2714,16 @@ export default class MonitorResourceUtil {
         }
       }
 
+      /*
+       * What is behind a grouped monitor's status after this check, for the
+       * next one to wait for (GroupedMonitorRecovery), written while the
+       * monitor's lock is still held.
+       */
+      if (seriesBehindStatusAfter !== undefined) {
+        await keepEvaluationLock();
+        await seriesBehindStatus.keep(seriesBehindStatusAfter);
+      }
+
       await releaseMutex();
 
       await persistLatestMonitorPayload();
@@ -2405,6 +2756,288 @@ export default class MonitorResourceUtil {
   }
 
   /*
+   * A grouped monitor whose recovery criteria wait for series behind its
+   * status that have not met them yet (GroupedMonitorRecovery), on a check no
+   * criteria matched: the monitor keeps its status, rather than going to its
+   * default status. What is open still resolves series by series, exactly as
+   * when a recovery criteria matches: each incident and alert whose series no
+   * longer meets the criteria that opened it, and whose criteria resolves it
+   * on its own. The evaluation log says the status was kept, and for which
+   * series.
+   */
+  public static async keepStatusForSeriesBehindIt(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    dataToProcess: DataToProcess;
+    response: ProbeApiIngestResponse;
+    evaluationSummary: MonitorEvaluationSummary;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    criteriaInstancesById: Dictionary<MonitorCriteriaInstance>;
+    alertCriteriaInstancesById: Dictionary<MonitorCriteriaInstance>;
+    keepEvaluationLock: () => Promise<void>;
+  }): Promise<void> {
+    const seriesKeepingStatus: Array<SeriesKeepingStatus> =
+      input.response.seriesKeepingStatus || [];
+
+    logger.debug(
+      `${input.dataToProcess.monitorId.toString()} - No criteria met, and ${seriesKeepingStatus.length} series behind the monitor's status have not met a recovery criteria yet. Keeping the status.`,
+    );
+
+    /*
+     * Nothing breaches on this check: every criteria that ran matched no
+     * series, which is what lets each open record resolve on its own series.
+     */
+    const breachingSeriesFingerprintsByCriteriaId: Dictionary<Set<string>> = {};
+
+    for (const criteriaId of input.response.evaluatedCriteriaIds || []) {
+      breachingSeriesFingerprintsByCriteriaId[criteriaId] = new Set<string>();
+    }
+
+    const disableSeriesAbsenceResolution: boolean =
+      MonitorResourceUtil.isSeriesResolvedExplicitly({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+      });
+
+    const breachingSeriesFingerprints: Set<string> | undefined =
+      disableSeriesAbsenceResolution ? undefined : new Set<string>();
+
+    const rootCause: string =
+      "No monitoring criteria met. The monitor keeps its status until the series behind it meet a criteria that brings it back.";
+
+    const openRecords: MonitorOpenRecordsReading =
+      await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+        monitor: input.monitor,
+        opensIncidents: false,
+        opensAlerts: false,
+      });
+
+    await input.keepEvaluationLock();
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Incident,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Incident>> => {
+        return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          breachingSeriesFingerprints: breachingSeriesFingerprints,
+          breachingSeriesFingerprintsByCriteriaId:
+            breachingSeriesFingerprintsByCriteriaId,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+          criteriaInstancesById: input.criteriaInstancesById,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+        });
+      },
+    });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Alert,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Alert>> => {
+        return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          breachingSeriesFingerprints: breachingSeriesFingerprints,
+          breachingSeriesFingerprintsByCriteriaId:
+            breachingSeriesFingerprintsByCriteriaId,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+          criteriaInstancesById: input.alertCriteriaInstancesById,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+        });
+      },
+    });
+
+    const named: Array<string> = seriesKeepingStatus
+      .slice(0, SERIES_NAMED_WHEN_STATUS_KEPT)
+      .map((series: SeriesKeepingStatus): string => {
+        return (
+          SeriesLabelDisplay.buildInlineSummary(series.labels, {
+            context: series.context,
+          }) || series.fingerprint
+        );
+      });
+
+    const unnamedCount: number = seriesKeepingStatus.length - named.length;
+
+    // "Mount: /a; Mount: /b; Mount: /c and 4 more", in the reader's words.
+    const series: EvaluationSentenceValue =
+      unnamedCount > 0
+        ? translatablePluralSentence(
+            {
+              one: translationKey("{{names}} and {{count}} more"),
+              other: translationKey("{{names}} and {{count}} more"),
+            },
+            unnamedCount,
+            { names: named.join("; ") },
+          )
+        : named.join("; ");
+
+    input.evaluationSummary.events.push({
+      type: "monitor-status-kept",
+      ...EvaluationEventText.from({
+        title: translatableSentence("Monitor status kept"),
+        message: translatableSentence(
+          "The monitor keeps its status: it waits for {{series}} to meet a criteria that brings it back.",
+          { series: series },
+        ),
+      }),
+      at: OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  /*
+   * A monitor that judges no series on its own, on a check no criteria
+   * matched, whose status a problem criteria set while its step has a
+   * recovery criteria (GroupedMonitorRecovery.judgeWholeMonitor, #10743):
+   * it keeps its status until a recovery criteria matches, so the margin
+   * between a criteria that fires above 90% and one that recovers at or
+   * below 81% holds. What is open resolves as on any check no criteria
+   * matched: each incident and alert whose criteria resolves it on its own.
+   * The evaluation log says the status was kept, and for which criteria.
+   */
+  public static async keepStatusUntilRecovered(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    dataToProcess: DataToProcess;
+    response: ProbeApiIngestResponse;
+    evaluationSummary: MonitorEvaluationSummary;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    criteriaInstancesById: Dictionary<MonitorCriteriaInstance>;
+    keepEvaluationLock: () => Promise<void>;
+  }): Promise<void> {
+    logger.debug(
+      `${input.dataToProcess.monitorId.toString()} - No criteria met, and the monitor's status waits for a recovery criteria. Keeping the status.`,
+    );
+
+    const rootCause: string =
+      "No monitoring criteria met. The monitor keeps its status until a criteria that brings it back is met.";
+
+    const openRecords: MonitorOpenRecordsReading =
+      await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+        monitor: input.monitor,
+        opensIncidents: false,
+        opensAlerts: false,
+      });
+
+    await input.keepEvaluationLock();
+
+    const disableSeriesAbsenceResolution: boolean =
+      MonitorResourceUtil.isSeriesResolvedExplicitly({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+      });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Incident,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Incident>> => {
+        return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+        });
+      },
+    });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Alert,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Alert>> => {
+        return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+        });
+      },
+    });
+
+    // "Online" or "Online or Back up", by name, in the reader's words.
+    const names: Array<string> = (
+      input.response.statusKeptForRecoveryCriteriaIds || []
+    )
+      .map((criteriaId: string): string => {
+        return input.criteriaInstancesById[criteriaId]?.data?.name || "";
+      })
+      .filter((name: string): boolean => {
+        return Boolean(name);
+      });
+
+    input.evaluationSummary.events.push({
+      type: "monitor-status-kept",
+      ...EvaluationEventText.from({
+        title: translatableSentence("Monitor status kept"),
+        message:
+          names.length > 0
+            ? translatableSentence(
+                'The monitor keeps its status: no criteria matched, and it comes back only when "{{criteria}}" is met.',
+                { criteria: names.join('", "') },
+              )
+            : translatableSentence(
+                "The monitor keeps its status: no criteria matched, and it comes back only when a criteria that brings it back is met.",
+              ),
+      }),
+      at: OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  /*
    * The series a grouped evaluation matched, under any criteria: what its
    * monitor log keeps first when it cannot keep every series
    * (MonitorStoredCheck.boundSeries). Empty for any other evaluation.
@@ -2413,6 +3046,13 @@ export default class MonitorResourceUtil {
     response: ProbeApiIngestResponse,
   ): Set<string> {
     const fingerprints: Set<string> = new Set<string>();
+
+    // The series that keep the monitor's status, which its log names.
+    for (const series of response.seriesKeepingStatus || []) {
+      if (series.fingerprint) {
+        fingerprints.add(series.fingerprint);
+      }
+    }
 
     for (const matched of response.matchedCriteria || []) {
       for (const series of matched.perSeriesMatches || []) {
@@ -2823,6 +3463,18 @@ export default class MonitorResourceUtil {
      * all of them (CriteriaFilterMatchHistoryReads).
      */
     matchHistoryReads?: CriteriaFilterMatchHistoryReads | undefined;
+    /*
+     * The series behind a grouped monitor's status, read once for every
+     * probe's check: each is judged by the same recovery rule as the result
+     * being handled (GroupedMonitorRecovery). Only read here, never kept.
+     */
+    seriesBehindStatus?: SeriesBehindStatusReader | undefined;
+    /*
+     * What the monitor's criteria have opened, read once for every probe's
+     * check: a criteria with a recovery condition of its own holds on each
+     * probe's check as on the result being handled (#10355).
+     */
+    criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<ProbeAgreementResult> {
     const { monitor, monitorStep, currentCriteriaMetId, currentRootCause } =
       input;
@@ -2951,6 +3603,8 @@ export default class MonitorResourceUtil {
             probeApiIngestResponse: tempResponse,
             evaluationSummary: tempEvaluationSummary,
             matchHistoryReads: input.matchHistoryReads,
+            seriesBehindStatus: input.seriesBehindStatus,
+            criteriaInEffect: input.criteriaInEffect,
           });
 
         evaluatedCriteriaMetId = evaluatedResponse.criteriaMetId;

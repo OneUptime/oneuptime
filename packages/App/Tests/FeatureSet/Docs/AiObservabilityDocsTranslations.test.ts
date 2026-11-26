@@ -194,6 +194,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "JetBrains AI Assistant and Junie",
     "Every key is also read with a `resource.` prefix.",
     "The Usage tab shows a person's email when the call has one, and the id otherwise.",
+    "A person or team a scrub rule hid is never anyone's spend.",
     "Identity is read only from AI calls.",
     "Log records are not read for identity.",
     "`gemini_cli.token.usage` is left out on purpose.",

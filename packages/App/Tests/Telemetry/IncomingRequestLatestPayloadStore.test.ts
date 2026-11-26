@@ -4,8 +4,10 @@
  * rather than whichever request happened to create the job.
  *
  * These cover what the store sends to Redis and how it reads the answers.
- * The Lua it relies on (replace-with-expiry, clear-only-if-unchanged) is run
- * against a real Redis in IncomingRequestCoalescingRedis.test.ts.
+ *
+ * An earlier release's store: this release keeps every request in
+ * IncomingRequestPendingStore (#10582), and reads this one only for the jobs
+ * an earlier release queued during an upgrade.
  */
 
 jest.mock("Common/Server/Infrastructure/Redis", () => {

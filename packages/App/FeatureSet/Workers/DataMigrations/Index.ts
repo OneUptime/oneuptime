@@ -144,6 +144,9 @@ import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
+import BackfillSecurityCaseNextStepCheckAt from "./BackfillSecurityCaseNextStepCheckAt";
+import AddSecurityCaseStepRegressedNotificationSettingsForUsers from "./AddSecurityCaseStepRegressedNotificationSettingsForUsers";
+import AddSecurityCaseAiHandOffNotificationSettingsForUsers from "./AddSecurityCaseAiHandOffNotificationSettingsForUsers";
 import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
 import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
@@ -156,6 +159,10 @@ import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
 import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGiverColumns";
 import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExplanationLogs";
 import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
+import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
+import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
+import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
+import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -210,6 +217,9 @@ import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledg
 import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
 import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
+import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
+import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
+import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -733,6 +743,22 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the last slot.
    */
   new AddAuditLogWorkflowColumns(),
+  /*
+   * OneUptime checks the steps of a security case's Response Plan itself
+   * (#10340): schedules the first check of every case open before then,
+   * spread over half an hour (SecurityCase.nextStepCheckAt). Postgres-only,
+   * idempotent, never touches a closed case. No ordering requirement beyond
+   * the schema migration that adds the column, so it sits before the last
+   * slot.
+   */
+  new BackfillSecurityCaseNextStepCheckAt(),
+  /*
+   * Seeds the notification setting for a step of a security case that
+   * stops holding (email and push on) for existing members, so Notification
+   * Settings shows it the way it behaves. Postgres-only, idempotent. No
+   * ordering requirement, so it sits before the last slot.
+   */
+  new AddSecurityCaseStepRegressedNotificationSettingsForUsers(),
   /*
    * A person's own notification settings for a project (rules, methods,
    * settings, email rollup preference and pending rollup mail, routed call
@@ -1572,6 +1598,77 @@ const DataMigrations: Array<DataMigrationBase> = [
    * keeps.
    */
   new MaterializeSecurityEventCreatedAtIndex(),
+  /*
+   * Gives each project's copy of a fixed Rule Library rule the library's
+   * fix, while the copy is still word for word the rule as it was added
+   * (DETECTION_RULE_LIBRARY_UPGRADES): Burst of access-denied API calls
+   * leaves OneUptime's own reads of a connected AWS account out (#10427),
+   * and A sensitive bucket was made public reads CloudTrail's name for a
+   * public access block taken off. A rule anyone edited is left as it is.
+   * Postgres only, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new UpgradeLibraryRuleCopies(),
+  /*
+   * Takes out of the security events the audit log's scan stored before
+   * #10663, and of the detections, cases, alerts, incidents, feed items and
+   * evidence made of them, the names of records their readers may not read
+   * (an API key's, a custom role's, a team's): Postgres first, then one
+   * asynchronous ClickHouse mutation, bounded to the partitions since the
+   * scan shipped. Idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new WithholdAuditRecordNamesInSecurityEvents(),
+  /*
+   * OneUptime AI working security cases end to end (#10352): every existing
+   * member gets the setting for OneUptime AI handing a case to people, with
+   * email and push on, as the other security case notices have. Postgres
+   * only, idempotent; before the two slots kept last.
+   */
+  new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
+  /*
+   * Metrics monitors on a Container App's requests that read them with the
+   * average a minute at a time read the average status code category since
+   * the Azure connection reads Requests split by statusCodeCategory
+   * (#10837): each moves to the Sum the app's Metrics tab reads
+   * (CloudResourceMetricAggregation), so it reads the app's requests again,
+   * and says so in its feed. Postgres only, idempotent; no ordering
+   * requirement of its own; before the two slots kept last.
+   */
+  new RestoreContainerAppRequestMonitorTotals(),
+  /*
+   * The Rule Library's OpenStack rules that count per address count per
+   * principalIp, which names an address a Hash scrub rule hid (#10773):
+   * each project's copy still the library's is given that fix. Postgres
+   * only, idempotent; before the two slots kept last.
+   */
+  new UpgradeLibraryRuleCopiesForHashedAddresses(),
+  /*
+   * Scanning for sensitive files, the Scanners policy's new rule (#10745),
+   * for each project whose Scanners policy is in its trial run or on
+   * already, as turning it on would have added it - and nothing else of
+   * the policy's. Postgres only, idempotent; before the two slots kept
+   * last.
+   */
+  new AddSensitiveFileRuleToScannersPolicies(),
+  /*
+   * A status page resource shows a monitor or a monitor group, never
+   * neither (#6558): the rows the API took that named neither - shown to
+   * nobody, reached by no incident or subscriber - are deleted, and the
+   * worker's log says how many and on which status pages. Postgres only,
+   * one statement, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new DeleteStatusPageResourcesThatShowNothing(),
+  /*
+   * The metric rules Scrub It made for an IP address, an email address or
+   * a card number match the data type's pattern type instead of its
+   * frozen pattern (#10934): an IP address rule hides IPv6 addresses too,
+   * and each what it read encoded or in another script. Postgres only,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MetricScrubRulesMatchTheirPatternType(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

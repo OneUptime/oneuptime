@@ -1069,7 +1069,7 @@ Een cloud schrijft heel veel wat niemand leest. De eerste keer dat de OpenStack-
 | **OpenStack: health checks** | Een loadbalancer die elke API om `/` of `/healthcheck` vraagt: een regel om de paar seconden, per API, per controller | Bij één controle per 2 seconden 43.200 regels per dag voor elke API op elke controller. Bij de 220 tot 490 bytes die deze regels waren op onze testclouds is dat 10 tot 21 MB per dag. Dit is rekenwerk vanuit de grootte van een regel: onze testclouds hebben geen loadbalancer | Niets wat een mens leest. Dezelfde regel van een mens ziet er hetzelfde uit |
 | **OpenStack: routine notifications** | `metrics.update`, en elke `*.exists` en `*.usage`. Zie [Levenscyclusgebeurtenissen](#levenscyclusgebeurtenissen) | Niet gemeten: onze opnamen zijn te kort om er veel te bevatten. Het groeit met het aantal instanties | Niets wat zegt dat iets veranderde. Zet dit uit om elke notificatie te bewaren |
 
-Deze filters matchen alleen wat OneUptime uit de logboeken van een cloud las, dus niets anders in een project wordt aangeraakt.
+Deze filters matchen alleen wat OneUptime uit de logboeken van een cloud las, dus niets anders in een project wordt aangeraakt. Zoals OneUptime ze maakte, houden ze elke logregel die [Security Events](/docs/telemetry/security-events) leest: een aanmelding, een aanval in een verzoek, een auditrecord. Wijzig er een, en het gooit weg wat het selecteert, zoals een filter van uzelf.
 
 ### Geheimen in logboeken
 

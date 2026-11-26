@@ -82,8 +82,8 @@ jest.mock("../../../../Server/Utils/DataSecurity/DataSecurityRunner", () => {
       "s3:PutBucketPolicy",
       "s3:DeleteBucketPolicy",
       "s3:PutBucketAcl",
-      "s3:PutPublicAccessBlock",
-      "s3:DeletePublicAccessBlock",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:DeleteBucketPublicAccessBlock",
       "s3:PutBucketEncryption",
       "s3:DeleteBucketEncryption",
       "s3:PutBucketVersioning",
@@ -163,6 +163,7 @@ function change(overrides: Partial<PostureChange> = {}): PostureChange {
     cloudResourceId: "",
     eventId: "8b7e0f52-1111-4a5b-9c3d-0e6f1a2b3c4d",
     failed: false,
+    madeByOneUptime: false,
     ...overrides,
   };
 }
@@ -581,6 +582,7 @@ describe("recordPostureChangeSignals", () => {
     expect(result).toEqual({
       changesRead: 5,
       changesMatched: 4,
+      onlyRemovedAccess: 0,
       eventsRecorded: 3,
       isTruncated: false,
     });

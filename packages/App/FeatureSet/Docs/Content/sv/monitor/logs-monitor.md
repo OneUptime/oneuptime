@@ -237,7 +237,7 @@ Värdet för varje Group By-attribut är en [mallvariabel](/docs/monitor/inciden
 - **Alla kriterier utvärderas**, som på en grupperad metrikmonitor, så olika grupper kan uppfylla olika kriterier samtidigt. En grupp som uppfyller två kriterier får ändå bara ett larm, från det första; sortera därför kriterierna från allvarligast till minst allvarligt.
 - **En grupp finns bara om den har loggat något i tidsfönstret.** Kriterier som **Lika med 0** och **Mindre än** utlöses därför bara för grupper som har loggat minst en gång; för att varnas när loggar slutar komma helt använder du en monitor utan Group By.
 - **Avvikelsedetektering** (**Onormalt hög**, **Onormalt låg**, **Avvikande**) utvärderas inte per grupp (dess baslinje omfattar hela monitorn), så de filtren matchar aldrig på en grupperad monitor.
-- Monitorns status följer det första kriterium som någon grupp uppfyller. När ingen grupp uppfyller något kriterium går monitorn tillbaka till sin standardstatus.
+- Monitorns status följer det första kriterium som någon grupp uppfyller. Ett kriterium som bara tar tillbaka monitorn till dess standardstatus och inte öppnar något larm eller någon incident väntar på grupperna som uppfyllde ett kriterium som sätter en annan status, tills var och en av dem uppfyller det eller inte loggar något i tidsfönstret. När ingen grupp uppfyller något kriterium och ingen väntas på går monitorn tillbaka till sin standardstatus.
 
 ## Felsökning
 

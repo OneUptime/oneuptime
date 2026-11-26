@@ -854,9 +854,10 @@ jobs:
   # The resource AI agent, tagged like the Kubernetes AI agent above. Nothing
   # here runs it, so no job needs this one. It is here for two things: both
   # architectures are built on every push to main, so an Alpine package
-  # missing for arm64 (docker-cli, govc, ceph19-common, util-linux-misc) fails
-  # now rather than in the release (the Build workflow's PR job is amd64
-  # only); and a test host can run main's agent from the `test` tag
+  # missing for arm64 (ceph19-common, util-linux-misc), or a docker or govc
+  # release whose arm64 digest no longer matches, fails now rather than in
+  # the release (the Build workflow's PR job is amd64 only); and a test host
+  # can run main's agent from the `test` tag
   # (oneuptime/resource-ai-agent:test in the resource's docker-compose.yml).
   resource-ai-agent-docker-image-build:
     needs: [read-version]

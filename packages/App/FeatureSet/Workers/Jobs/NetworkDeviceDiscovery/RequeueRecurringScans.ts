@@ -33,6 +33,8 @@ import logger from "Common/Server/Utils/Logger";
  * DiscoveryScan.ts) stamps nextScanAt when a recurring scan completes or
  * fails. Once that moment passes, this job flips the scan back to Pending so
  * the probe's FetchScans poller picks it up again like a brand-new scan.
+ * Run Again (NetworkDeviceDiscoveryScanService.runAgain, issue #10334)
+ * re-queues a scan the same way, on demand, recurring or not.
  *
  * Only Completed/Failed scans are eligible — a scan that is still Pending or
  * In Progress must never be re-queued underneath the probe that is running
@@ -207,6 +209,12 @@ RunCron(
           startedAt: null,
           completedAt: null,
           nextScanAt: null,
+          /*
+           * The run queued now is the schedule's, not anybody's Run Again
+           * (issue #10334): the row stops naming who asked for the last one.
+           */
+          runRequestedAt: null,
+          runRequestedByUserId: null,
         } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
         props: {
           isRoot: true,

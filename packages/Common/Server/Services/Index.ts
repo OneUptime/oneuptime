@@ -37,6 +37,7 @@ import FormService from "./FormService";
 import FormSubmissionService from "./FormSubmissionService";
 import FormDomainService from "./FormDomainService";
 import FormPrivateUserService from "./FormPrivateUserService";
+import FormPrivateUserSessionService from "./FormPrivateUserSessionService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -161,6 +162,7 @@ import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import SecurityEventService from "./SecurityEventService";
+import SecurityEventLateArrivalService from "./SecurityEventLateArrivalService";
 import ChangeEventService from "./ChangeEventService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
@@ -327,6 +329,7 @@ import DashboardLabelRuleService from "./DashboardLabelRuleService";
 import DashboardService from "./DashboardService";
 import DashboardPlaylistService from "./DashboardPlaylistService";
 import DashboardPrivateUserService from "./DashboardPrivateUserService";
+import DashboardPrivateUserSessionService from "./DashboardPrivateUserSessionService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -431,10 +434,15 @@ import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityAddressVaultService from "./SecurityAddressVaultService";
+import SecurityUserVaultService from "./SecurityUserVaultService";
+import ScrubRuleValueCountService from "./ScrubRuleValueCountService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
+import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
+import SecurityCasePullRequestService from "./SecurityCasePullRequestService";
+import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
 import SecurityCaseStatusService from "./SecurityCaseStatusService";
@@ -442,6 +450,10 @@ import SecurityCaseNoteTemplateService from "./SecurityCaseNoteTemplateService";
 import SecurityCaseCustomFieldService from "./SecurityCaseCustomFieldService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
+import SecurityAutomaticResponsePolicyService from "./SecurityAutomaticResponsePolicyService";
+import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
+import LogPipelineService from "./LogPipelineService";
+import TracePipelineService from "./TracePipelineService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import DataBiConnectionService from "./DataBiConnectionService";
 import DataDashboardService from "./DataDashboardService";
@@ -458,6 +470,9 @@ import DataStoreLabelRuleService from "./DataStoreLabelRuleService";
 import DataSecurityFlowService from "./DataSecurityFlowService";
 import DataSecurityIssueService from "./DataSecurityIssueService";
 import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
+import DataSecurityIssueGroupService from "./DataSecurityIssueGroupService";
+import DataSecurityAiProposalService from "./DataSecurityAiProposalService";
+import DataSecurityAiDecisionService from "./DataSecurityAiDecisionService";
 import DataSecurityScanService from "./DataSecurityScanService";
 import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeService";
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
@@ -486,6 +501,8 @@ import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityBlockService from "./SecurityBlockService";
 import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
+import SecurityBlocklistFeedService from "./SecurityBlocklistFeedService";
+import SecurityBlocklistFeedFetchService from "./SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -697,6 +714,11 @@ const services: Array<BaseService> = [
   FormSubmissionService,
   FormDomainService,
   FormPrivateUserService,
+  /*
+   * Its sessions are purged 30 days after they lapse (#10792): the
+   * hard-delete jobs read only this list.
+   */
+  FormPrivateUserSessionService,
   IncidentInternalNoteService,
   IncidentPostmortemActionItemService,
   IncidentOwnerTeamService,
@@ -912,6 +934,8 @@ const services: Array<BaseService> = [
   DashboardService,
   DashboardPlaylistService,
   DashboardPrivateUserService,
+  // Purged 30 days after they lapse, as FormPrivateUserSessionService (#10792).
+  DashboardPrivateUserSessionService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,
@@ -1050,6 +1074,9 @@ const services: Array<BaseService> = [
   SecurityCaseFeedService,
   SecurityCaseNoteService,
   SecurityCaseTaskService,
+  SecurityCaseStepCheckService,
+  SecurityCasePullRequestService,
+  SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
   SecurityCaseStatusService,
@@ -1075,6 +1102,9 @@ const services: Array<BaseService> = [
   DataSecurityFlowService,
   DataSecurityIssueService,
   DataSecurityIssueFeedService,
+  DataSecurityIssueGroupService,
+  DataSecurityAiProposalService,
+  DataSecurityAiDecisionService,
   DataSecurityScanService,
   DataSecurityCustomDataTypeService,
   DataSecurityCheckSettingService,
@@ -1103,6 +1133,8 @@ const services: Array<BaseService> = [
   SecurityProtectedEntityService,
   SecurityBlockService,
   SecurityBlockEnforcementService,
+  SecurityBlocklistFeedService,
+  SecurityBlocklistFeedFetchService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
   AlertNoteTemplateService,
@@ -1253,6 +1285,15 @@ const services: Array<BaseService> = [
   McpOAuthClientService,
   McpOAuthGrantService,
   McpOAuthTokenService,
+  /*
+   * Kinds a project's Require Unique Names holds (#10761), which its list of
+   * the names a project holds twice walks this registry for: they were never
+   * registered, so neither was their soft-deleted rows' purge.
+   */
+  SecurityAutomaticResponsePolicyService,
+  TelemetryIngestionKeyService,
+  LogPipelineService,
+  TracePipelineService,
 ];
 
 export const AnalyticsServices: Array<
@@ -1304,6 +1345,11 @@ export const AnalyticsServices: Array<
   RumProductAnalyticsEventService,
   AuditLogService,
   SecurityEventService,
+  /*
+   * Events that arrived more than a day late (#10491): its view reads
+   * SecurityEventItemV1, and every table is created before any view is.
+   */
+  SecurityEventLateArrivalService,
   ThreatIntelIndicatorService,
   /*
    * Security Events' address vault (#10395). Here only so boot creates its
@@ -1312,6 +1358,19 @@ export const AnalyticsServices: Array<
    * live update is ever built for it.
    */
   SecurityAddressVaultService,
+  /*
+   * Security Events' user vault (#10632), the address vault's twin. Here
+   * only so boot creates its table, on the same terms: every generic read
+   * refused, and the model kept out of the AnalyticsModels registry.
+   */
+  SecurityUserVaultService,
+  /*
+   * How many values each scrub rule changed, by service and version, an
+   * hour a row (#10366). Here so boot creates its table: the model is kept
+   * out of the AnalyticsModels registry, and its rows are read through the
+   * scrub rule lists' own route.
+   */
+  ScrubRuleValueCountService,
   ChangeEventService,
 ];
 

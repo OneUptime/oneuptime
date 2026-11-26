@@ -469,6 +469,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         detailRows={detailRows}
         detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
+        recordModelType={ServerlessFunction}
         settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
         labels={fn.labels}
       />

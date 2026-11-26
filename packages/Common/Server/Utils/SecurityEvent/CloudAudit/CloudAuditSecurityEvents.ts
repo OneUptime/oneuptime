@@ -22,6 +22,7 @@ import OTelIngestService, {
 } from "../../../Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../Services/SecurityEventService";
 import SecurityTelemetrySourceService from "../../../Services/SecurityTelemetrySourceService";
+import OneUptimeAwsSessions from "../../CloudConnection/Aws/OneUptimeAwsSessions";
 import { CloudAuditRecord } from "../../CloudConnection/CloudConnectorTypes";
 import logger from "../../Logger";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
@@ -268,6 +269,16 @@ export default class CloudAuditSecurityEvents {
         serviceName: definition.serviceName,
         projectId: data.projectId,
       });
+
+    /*
+     * A call OneUptime's own session made is marked as OneUptime's own, as
+     * "Your logs" marks it (#10427): a record read both ways is stored
+     * once, by whichever way reads it first, and reads the same either way.
+     */
+    await OneUptimeAwsSessions.markSecurityEvents({
+      projectId: data.projectId.toString(),
+      events: data.events,
+    });
 
     // Threat intel stamps its matches before the rows are built, as ingest does.
     await ThreatIntelEnricher.enrichNormalizedEvents({

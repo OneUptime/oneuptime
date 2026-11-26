@@ -30,6 +30,9 @@ import logger from "../Logger";
  * filter someone took away coming back would silently drop what they chose to keep.
  *
  * Each one reads what OpenStackLogs stamped, so it can only ever match a record of a cloud.
+ * As made here, each keeps the lines Security Events reads, in a project where it reads them
+ * (isOpenStackDefaultDropFilter): OneUptime saves the project money with them, and must not
+ * blind its own Security Events doing so. Changed by a person, a filter is theirs.
  *
  * The scrub rules cover what the ingest's own scrub (OpenStackLogScrub) cannot reach: a line
  * from a pod with no openstack.cloud.name on it. Scrub rules run over a project's every log,
@@ -49,22 +52,45 @@ export const OPENSTACK_DEFAULT_DROP_FILTERS: ReadonlyArray<OpenStackDefaultDropF
     {
       name: `${OPENSTACK_DEFAULTS_NAME_PREFIX}DEBUG lines`,
       description:
-        "OpenStack services' DEBUG lines. On a cloud with debug = True these are most of what it writes, and they are where its secrets have leaked. Turn this off while you debug a service.",
+        "OpenStack services' DEBUG lines. On a cloud with debug = True these are most of what it writes, and they are where its secrets have leaked. It keeps the lines Security Events reads. Turn this off while you debug a service.",
       filterQuery: `${OpenStackLogAttribute.Level} = 'DEBUG'`,
     },
     {
       name: `${OPENSTACK_DEFAULTS_NAME_PREFIX}health checks`,
       description:
-        "A load balancer asking each API for / or /healthcheck, which is one line every few seconds per API per controller.",
+        "A load balancer asking each API for / or /healthcheck, which is one line every few seconds per API per controller. It keeps the lines Security Events reads.",
       filterQuery: `${OpenStackLogAttribute.Noise} = '${OPENSTACK_LOG_NOISE_HEALTH_CHECK}'`,
     },
     {
       name: `${OPENSTACK_DEFAULTS_NAME_PREFIX}routine notifications`,
       description:
-        "Notifications that only say nothing changed: Nova's metrics.update, and every *.exists and *.usage. Turn this off to keep every notification.",
+        "Notifications that only say nothing changed: Nova's metrics.update, and every *.exists and *.usage. It keeps the lines Security Events reads. Turn this off to keep every notification.",
       filterQuery: `${OpenStackEventAttribute.Importance} = '${OpenStackEventImportance.Routine}'`,
     },
   ];
+
+/*
+ * One of these filters, as OneUptime made it: its name and its query.
+ * Changed by a person, it is theirs. Ingest keeps the lines Security Events
+ * reads from a filter like this (Telemetry LogDropFilterService), since
+ * nobody chose to take them: OneUptime made it to save the project money,
+ * not to blind its own Security Events (#10436).
+ */
+export function isOpenStackDefaultDropFilter(filter: {
+  name?: string | null | undefined;
+  filterQuery?: string | null | undefined;
+}): boolean {
+  const query: string = (filter.filterQuery || "").trim();
+
+  return (
+    (filter.name || "").startsWith(OPENSTACK_DEFAULTS_NAME_PREFIX) &&
+    OPENSTACK_DEFAULT_DROP_FILTERS.some(
+      (defaultFilter: OpenStackDefaultDropFilter): boolean => {
+        return defaultFilter.filterQuery === query;
+      },
+    )
+  );
+}
 
 export interface OpenStackDefaultScrubRule {
   name: string;

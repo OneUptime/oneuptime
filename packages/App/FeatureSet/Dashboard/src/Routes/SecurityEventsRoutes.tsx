@@ -53,7 +53,10 @@ import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
+import SecurityAutomaticResponsePage from "../Pages/SecurityEvents/AutomaticResponse";
 import SecurityBlocklistPage from "../Pages/SecurityEvents/Blocklist";
+import SecurityBlocklistFeedsPage from "../Pages/SecurityEvents/BlocklistFeeds";
+import SecurityBlocklistFeedViewPage from "../Pages/SecurityEvents/BlocklistFeedView";
 import SecurityEventsWorkspaceConnectionSlackPage from "../Pages/SecurityEvents/WorkspaceConnectionSlack";
 import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
 import SecurityEventsWorkspaceConnectionMattermostPage from "../Pages/SecurityEvents/WorkspaceConnectionMattermost";
@@ -360,12 +363,47 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        {/* The policies that challenge or block as a detection is made (#10350). */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_AUTOMATIC_RESPONSE] || ""
+          }
+          element={
+            <SecurityAutomaticResponsePage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_AUTOMATIC_RESPONSE] as Route}
+            />
+          }
+        />
         <PageRoute
           path={SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST] || ""}
           element={
             <SecurityBlocklistPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_BLOCKLIST] as Route}
+            />
+          }
+        />
+        {/* The blocklist's feeds, and one feed's page under them (#10345). */}
+        <PageRoute
+          path={SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST_FEEDS] || ""}
+          element={
+            <SecurityBlocklistFeedsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_BLOCKLIST_FEEDS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST_FEED_VIEW] || ""
+          }
+          element={
+            <SecurityBlocklistFeedViewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_BLOCKLIST_FEED_VIEW] as Route
+              }
             />
           }
         />

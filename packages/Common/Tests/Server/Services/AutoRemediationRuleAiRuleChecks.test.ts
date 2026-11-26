@@ -394,7 +394,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         );
 
         expect((error as Error).message).toBe(
-          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric.",
+          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue.",
         );
       }
     });
@@ -509,7 +509,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           })) as Error
         ).message,
       ).toBe(
-        "Services can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+        "Services can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
       );
       expect(
         (
@@ -519,7 +519,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           })) as Error
         ).message,
       ).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
       );
     });
 
@@ -538,7 +538,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       );
 
       expect((refused.error as Error).message).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
       );
     });
 
@@ -721,7 +721,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       );
 
       expect((refused.error as Error).message).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
       );
     });
   });

@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -8,14 +9,15 @@ import React, {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IconProp from "Common/Types/Icon/IconProp";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
 import {
   AlertImportItem,
   AlertImportPlan,
   ImportItemStatus,
   ImportSourceKind,
   ImportedAlertRule,
+  ImportedAlertRuleKind,
   ImportedAlertSeverity,
 } from "Common/Types/ObservabilityImport/ObservabilityImport";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -45,8 +47,9 @@ import {
   AlertImportAction,
   AlertImportSeeds,
   buildImportedMonitorSteps,
+  describeImportedMetricQuery,
+  getImportedMonitorType,
 } from "Common/Utils/ObservabilityImport/AlertImportMonitorBuilder";
-import { DatadogMetricKind } from "Common/Utils/ObservabilityImport/Datadog/DatadogPromQL";
 import {
   ALERT_SOURCE_KINDS,
   ImportReadError,
@@ -54,9 +57,16 @@ import {
   readImportSource,
 } from "Common/Utils/ObservabilityImport/ImportSource";
 import {
+  listDatadogAsCountMetricNames,
   listDatadogMetricNames,
   planAlertImport,
 } from "Common/Utils/ObservabilityImport/ObservabilityImport";
+import {
+  ANOMALY_SENSITIVITY_CHOICES,
+  TelemetryRuleCopy,
+  TelemetryRuleChoice,
+  getRuleSentence,
+} from "../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
 import {
   ImportFileField,
   ImportItemRow,
@@ -66,10 +76,12 @@ import {
   ImportSummary,
 } from "./ImportParts";
 import {
+  DatadogMetricFacts,
   ImportAiTarget,
+  NO_DATADOG_METRIC_FACTS,
   fetchMonitorNames,
   loadAlertImportSeeds,
-  lookUpDatadogMetricKinds,
+  lookUpDatadogMetrics,
 } from "./ObservabilityImportApi";
 
 /*
@@ -82,10 +94,13 @@ import {
  * converted or the source has it paused; whether a firing rule opens an
  * alert (the default, as Alertmanager pages) or an incident; and Create.
  *
- * Each ticked rule becomes a Metrics monitor with one PromQL step, created
- * one after the other through the same create the monitor form uses, with
- * the person's own permissions: a project's limit on active monitors, a
- * name taken meanwhile, refuse one and say so, and the rest are created.
+ * Each ticked rule becomes a monitor of what it reads - most often a
+ * Metrics monitor with one PromQL step; a Datadog anomaly a Metrics
+ * monitor of one metric, a Datadog log monitor a Logs monitor
+ * (ImportedAlertRuleKind) - created one after the other through the same
+ * create the monitor form uses, with the person's own permissions: a
+ * project's limit on active monitors, a name taken meanwhile, refuse one
+ * and say so, and the rest are created.
  */
 
 export interface ComponentProps {
@@ -148,9 +163,9 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
   const [overrides, setOverrides] = useState<Map<string, string>>(
     new Map<string, string>(),
   );
-  const [metricKinds, setMetricKinds] = useState<
-    Map<string, DatadogMetricKind>
-  >(new Map<string, DatadogMetricKind>());
+  const [metricFacts, setMetricFacts] = useState<DatadogMetricFacts>(
+    NO_DATADOG_METRIC_FACTS,
+  );
   const [takenNames, setTakenNames] = useState<Array<string>>([]);
   const [unticked, setUnticked] = useState<Set<string>>(new Set<string>());
   const [action, setAction] = useState<AlertImportAction>(
@@ -167,10 +182,11 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
     return source
       ? planAlertImport(source, {
           queryOverrides: overrides,
-          knownMetricKinds: metricKinds,
+          knownMetricKinds: metricFacts.kinds,
+          rateIntervalsInSeconds: metricFacts.rateIntervalsInSeconds,
         })
       : null;
-  }, [source, overrides, metricKinds]);
+  }, [source, overrides, metricFacts]);
 
   /*
    * Each rule's monitor name, unique in the project and in the import:
@@ -223,18 +239,22 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
     setIsReading(true);
 
     try {
-      const [existing, kinds]: [Array<string>, Map<string, DatadogMetricKind>] =
+      const [existing, facts]: [Array<string>, DatadogMetricFacts] =
         await Promise.all([
           fetchMonitorNames(),
-          lookUpDatadogMetricKinds(listDatadogMetricNames(read)),
+          lookUpDatadogMetrics({
+            names: listDatadogMetricNames(read),
+            asCountNames: listDatadogAsCountMetricNames(read),
+          }),
         ]);
       const firstPlan: AlertImportPlan = planAlertImport(read, {
-        knownMetricKinds: kinds,
+        knownMetricKinds: facts.kinds,
+        rateIntervalsInSeconds: facts.rateIntervalsInSeconds,
       });
 
       setSource(read);
       setOverrides(new Map<string, string>());
-      setMetricKinds(kinds);
+      setMetricFacts(facts);
       setTakenNames(existing);
       // A rule the source has paused starts unticked.
       setUnticked(
@@ -291,7 +311,7 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
       try {
         const monitor: Monitor = new Monitor();
         monitor.name = name;
-        monitor.monitorType = MonitorType.Metrics;
+        monitor.monitorType = getImportedMonitorType(rule);
 
         if (rule.monitorDescription) {
           monitor.description = rule.monitorDescription;
@@ -308,7 +328,16 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
           action,
         });
 
-        await ModelAPI.create<Monitor>({ model: monitor, modelType: Monitor });
+        /*
+         * Numbered already against the monitors the person can see; one
+         * they cannot see, or a list that did not load, is numbered by the
+         * server rather than refused.
+         */
+        await ModelAPI.create<Monitor>({
+          model: monitor,
+          modelType: Monitor,
+          miscDataProps: getNumbersTakenNameData(),
+        });
         created.add(item.key);
       } catch (err) {
         failed.push({ name, error: API.getFriendlyMessage(err) });
@@ -349,13 +378,24 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
     setFailures(failed);
   };
 
-  const renderRuleSummary: (rule: ImportedAlertRule) => ReactElement = (
+  /*
+   * A rule's condition: a threshold over a PromQL expression as its own
+   * words, window and reading; an anomaly, a forecast and a count of logs
+   * as the monitor form says its rule, in one sentence.
+   */
+  const renderCondition: (rule: ImportedAlertRule) => ReactElement = (
     rule: ImportedAlertRule,
   ): ReactElement => {
-    return (
-      <div className="mt-1 space-y-1" data-testid="import-rule-summary">
-        <ImportQueryCode query={rule.promQL} />
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
+    const kind: ImportedAlertRuleKind =
+      rule.kind || ImportedAlertRuleKind.PromQL;
+    const isThreshold: boolean =
+      kind !== ImportedAlertRuleKind.LogCount &&
+      !TelemetryAlertRuleUtil.isAnomaly(rule.filterType) &&
+      !TelemetryAlertRuleUtil.isForecast(rule.filterType);
+
+    if (isThreshold) {
+      return (
+        <>
           <span>
             {translator.translateTemplate(
               CONDITION_SENTENCES[rule.filterType] ||
@@ -371,6 +411,78 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
             <InlineSeparator markOnly />
           </span>
           <span>{translator.translateText(rule.aggregation)}</span>
+        </>
+      );
+    }
+
+    const sensitivity: TelemetryRuleChoice<string> | undefined =
+      ANOMALY_SENSITIVITY_CHOICES.find(
+        (choice: TelemetryRuleChoice<string>): boolean => {
+          return choice.value === rule.anomalySensitivity;
+        },
+      );
+
+    return (
+      <>
+        <span data-testid="import-rule-sentence">
+          {getRuleSentence({
+            monitorType: getImportedMonitorType(rule),
+            rule: {
+              filterType: rule.filterType,
+              threshold: TelemetryAlertRuleUtil.isAnomaly(rule.filterType)
+                ? undefined
+                : rule.threshold,
+              windowInSeconds: rule.windowInSeconds,
+              rollingTime: rule.rollingTime,
+              metricAggregationType: rule.aggregation,
+              measure: undefined,
+              forecast: rule.forecastHorizonInHours
+                ? { horizonInHours: rule.forecastHorizonInHours }
+                : undefined,
+            },
+            translator,
+            metricName: rule.metricQuery?.metricName,
+          })}
+        </span>
+        {sensitivity ? (
+          <span data-testid="import-rule-sensitivity">
+            <span className="text-gray-500">
+              {translator.translateText(TelemetryRuleCopy.sensitivityTitle)}
+            </span>{" "}
+            {translator.translateText(sensitivity.label)}
+          </span>
+        ) : (
+          <></>
+        )}
+      </>
+    );
+  };
+
+  // What a rule reads: its PromQL, its metric query, or its log search.
+  const getRuleQuery: (rule: ImportedAlertRule) => string = (
+    rule: ImportedAlertRule,
+  ): string => {
+    if (rule.kind === ImportedAlertRuleKind.LogCount) {
+      return rule.logQuery?.searchText || "";
+    }
+
+    if (rule.kind === ImportedAlertRuleKind.MetricQuery && rule.metricQuery) {
+      return describeImportedMetricQuery(rule.metricQuery);
+    }
+
+    return rule.promQL;
+  };
+
+  const renderRuleSummary: (rule: ImportedAlertRule) => ReactElement = (
+    rule: ImportedAlertRule,
+  ): ReactElement => {
+    const query: string = getRuleQuery(rule);
+
+    return (
+      <div className="mt-1 space-y-1" data-testid="import-rule-summary">
+        {query ? <ImportQueryCode query={query} /> : <></>}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
+          {renderCondition(rule)}
           <Pill
             text={
               rule.severity === ImportedAlertSeverity.Warning
@@ -584,7 +696,7 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
       description={
         step === ImportStep.File
           ? "Paste a Prometheus rule file, Grafana's export of its alert rules, or Datadog monitors exported as JSON, or upload the file."
-          : "Each rule you keep ticked becomes a Metrics monitor that checks every minute."
+          : "Each rule you keep ticked becomes a monitor that checks every minute."
       }
       isTitleTranslated={false}
       modalWidth={ModalWidth.Large}
@@ -617,7 +729,7 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
           <ImportFileField
             id="alerts-import-text"
             label="Alert rules"
-            hint="Each alerting rule becomes a Metrics monitor, which opens an alert for each series that breaches."
+            hint="Each alerting rule becomes a monitor, which opens an alert for each series that breaches."
             value={text}
             error={fileError}
             onChange={(value: string) => {

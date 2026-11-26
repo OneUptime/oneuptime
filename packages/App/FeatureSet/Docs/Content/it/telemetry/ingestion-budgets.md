@@ -6,7 +6,7 @@ Un budget di acquisizione limita quanta telemetria un progetto invia in un giorn
 - [Come funzionano i budget](#come-funzionano-i-budget): Tre livelli, conteggiati man mano che la telemetria arriva.
 - [Impostare i budget predefiniti di tutti i progetti](#impostare-i-budget-predefiniti-di-tutti-i-progetti): Nelle impostazioni dell'Admin Dashboard.
 - [Dare a una chiave di acquisizione un budget proprio](#dare-a-una-chiave-di-acquisizione-un-budget-proprio): Una quota del budget del progetto.
-- [Dare a un team o a un'etichetta un budget proprio](#dare-a-un-team-o-a-unetichetta-un-budget-proprio): Per i servizi del team o con l'etichetta.
+- [Dare a un team o a un'etichetta un budget proprio](#dare-a-un-team-o-a-unetichetta-un-budget-proprio): Per i servizi, gli host e le altre risorse del team o con l'etichetta.
 - [Ricevere avvisi su un budget](#ricevere-avvisi-su-un-budget): Prima che sia esaurito, e quando lo è.
 :::
 
@@ -98,7 +98,7 @@ Fate clic su **Salva modifiche**. Il budget di una chiave non può superare quel
 
 ## Dare a un team o a un'etichetta un budget proprio
 
-Anche il budget di un team o di un'etichetta è una quota di quello del suo progetto, per i servizi di proprietà del team o con l'etichetta: il servizio fuori controllo di un team si ferma al budget del suo team, mentre il resto del progetto continua a inviare, anche attraverso lo stesso collector e la stessa chiave di acquisizione.
+Anche il budget di un team o di un'etichetta è una quota di quello del suo progetto, per i servizi, gli host, i cluster e le altre risorse di proprietà del team o con l'etichetta: il servizio o l'host fuori controllo di un team si ferma al budget del suo team, mentre il resto del progetto continua a inviare, anche attraverso lo stesso collector e la stessa chiave di acquisizione.
 
 :::steps
 ### Aprire la pagina Utilizzo
@@ -114,8 +114,9 @@ Nella scheda **Budget di team ed etichette**, fate clic su **Crea: Budget**. Sce
 Fate clic su **Crea: Budget**. Il budget di un team o di un'etichetta non può superare quello del suo progetto: OneUptime lo rifiuta e indica il massimo possibile.
 :::
 
-- **Cosa conteggia.** I log, le tracce, le metriche e i profili che i servizi del team, o i servizi con l'etichetta, inviano tramite OpenTelemetry (OTLP). La telemetria di host e altre risorse, gli eventi di sicurezza e i log di Fluent Bit, Fluentd o syslog contano solo sui budget del progetto e della chiave.
-- **Una volta esaurito, la telemetria viene scartata.** La telemetria di quel segnale dei servizi viene scartata fino all'azzeramento, e il mittente non lo sa: ha ricevuto la risposta quando la telemetria è arrivata. Ciò che viene scartato non conta più sul budget del progetto o della chiave.
+- **Cosa conteggia.** I log, le tracce, le metriche e i profili di ogni servizio, host, cluster e altra risorsa di proprietà del team o con l'etichetta, che siano inviati tramite OpenTelemetry (OTLP) o, per i log, da Fluent Bit, Fluentd o syslog, compreso il syslog che i dispositivi di rete inviano a una sonda. Gli eventi di sicurezza contano solo sui budget del progetto e della chiave.
+- **Di chi è una risorsa.** Un servizio, un host o un'altra risorsa è di un team quando il team è tra i suoi proprietari, e di un'etichetta quando ha l'etichetta: gli stessi proprietari ed etichette che decidono chi può leggere la sua telemetria. Una modifica conta entro un minuto.
+- **Una volta esaurito, la telemetria viene scartata.** La loro telemetria di quel segnale viene scartata fino all'azzeramento, e il mittente non lo sa: ha ricevuto la risposta quando la telemetria è arrivata. Ciò che viene scartato non conta più sul budget del progetto o della chiave.
 - **Chi viene avvisato.** I Proprietari del progetto ricevono un'e-mail quando il budget supera la soglia di avviso, e quando è esaurito.
 - **Solo un budget giornaliero.** Un team o un'etichetta non ha un limite di frequenza.
 - **Ogni budget conta.** La telemetria di un servizio conta sui budget dei suoi team e delle sue etichette, e su quelli della chiave e del progetto, e il primo che si esaurisce la ferma. Quando il budget del progetto viene abbassato sotto quello di un team o di un'etichetta, questo è limitato a quello del progetto.
@@ -134,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Gli altri mittenti HTTP ricevono JSON.** Fluent Bit, Fluentd, Syslog e gli altri endpoint HTTP ricevono `error`, `message` e `resetsAt`, più `retryAfterSeconds` in caso di limite di frequenza.
-- **MQTT e gli stream cloud non possono essere avvisati.** La telemetria che arriva su MQTT o dallo stream di un provider cloud viene scartata non appena il suo budget è esaurito. Non le si applica alcun limite di frequenza: non potrebbe essere inviata di nuovo.
+- **MQTT, gli stream cloud e le sonde non possono essere avvisati.** La telemetria che arriva su MQTT o dallo stream di un provider cloud viene scartata non appena il suo budget è esaurito, e così il syslog che i dispositivi di rete inviano a una sonda: i log di ogni dispositivo contano sul budget del suo progetto. Non le si applica alcun limite di frequenza: non potrebbe essere inviata di nuovo.
 - **Nemmeno i servizi di un team o di un'etichetta.** Una volta esaurito il budget di un team o di un'etichetta, la loro telemetria viene accettata e poi scartata: vedete [Dare a un team o a un'etichetta un budget proprio](#dare-a-un-team-o-a-unetichetta-un-budget-proprio).
 - **I rifiuti vengono conteggiati.** Ciò che un budget esaurito rifiuta o scarta viene conteggiato come scartato, e ogni richiesta rifiutata da un limite di frequenza come limitata: vedete [Vedere l'utilizzo e gli scarti di oggi](#vedere-lutilizzo-e-gli-scarti-di-oggi).
 

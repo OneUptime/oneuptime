@@ -162,13 +162,35 @@
       "project name",
       "rename project",
       "project id",
-      "data residency"
+      "data residency",
+      "duplicate names",
+      "same name"
     ],
     "path": "/dashboard/:projectId/settings/",
     "kind": "page"
   },
   {
     "title": "Project Details",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Unique Names",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Require Unique Names",
     "where": [
       "Project Settings",
       "Basic",
@@ -1582,6 +1604,20 @@
     "kind": "page"
   },
   {
+    "title": "Audit Logs",
+    "where": [
+      "Monitors",
+      "Rules"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Monitor Status",
     "where": [
       "Monitors",
@@ -1987,6 +2023,20 @@
       "reminders"
     ],
     "path": "/dashboard/:projectId/incidents/settings/reminder-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Logs",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -2509,6 +2559,20 @@
       "reminders"
     ],
     "path": "/dashboard/:projectId/alerts/settings/reminder-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Logs",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -3123,6 +3187,20 @@
     "kind": "page"
   },
   {
+    "title": "Audit Logs",
+    "where": [
+      "Status Pages",
+      "Rules"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Announcement Templates",
     "where": [
       "Status Pages",
@@ -3360,6 +3438,20 @@
       "reminders"
     ],
     "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/reminder-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Logs",
+    "where": [
+      "Scheduled Maintenance",
+      "Rules"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -4665,6 +4757,32 @@
     "kind": "page"
   },
   {
+    "title": "Automatic Response",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "auto block",
+      "block scanners",
+      "block brute force",
+      "fail2ban",
+      "challenge bots"
+    ],
+    "path": "/dashboard/:projectId/security-events/automatic-response",
+    "kind": "page"
+  },
+  {
+    "title": "Hourly Limit",
+    "where": [
+      "Security Events",
+      "Playbooks",
+      "Automatic Response"
+    ],
+    "path": "/dashboard/:projectId/security-events/automatic-response#hourly-limit",
+    "kind": "setting"
+  },
+  {
     "title": "Blocklist",
     "where": [
       "Security Events",
@@ -4678,6 +4796,25 @@
       "lift a block"
     ],
     "path": "/dashboard/:projectId/security-events/blocklist",
+    "kind": "page"
+  },
+  {
+    "title": "Blocklist Feeds",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "blocklist feed",
+      "external dynamic list",
+      "threat feed",
+      "firewall feed url",
+      "palo alto edl",
+      "fortigate threat feed",
+      "nftables blocklist",
+      "nginx deny list"
+    ],
+    "path": "/dashboard/:projectId/security-events/blocklist/feeds",
     "kind": "page"
   },
   {
@@ -4706,10 +4843,38 @@
       "ai triage",
       "triage new cases",
       "oneuptime ai security",
-      "automatic triage"
+      "automatic triage",
+      "automatic response",
+      "ai response",
+      "block on its own",
+      "what oneuptime ai may do",
+      "respond first",
+      "hold new cases",
+      "wait before paging",
+      "page now"
     ],
     "path": "/dashboard/:projectId/security-events/ai/settings",
     "kind": "page"
+  },
+  {
+    "title": "Work cases end to end",
+    "where": [
+      "Security Events",
+      "AI",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/security-events/ai/settings",
+    "kind": "setting"
+  },
+  {
+    "title": "Let OneUptime AI respond first",
+    "where": [
+      "Security Events",
+      "AI",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/security-events/ai/settings",
+    "kind": "setting"
   },
   {
     "title": "Slack",
@@ -4821,10 +4986,22 @@
       "security case status",
       "case states",
       "custom case status",
-      "case workflow"
+      "case workflow",
+      "auto contain",
+      "verified containment"
     ],
     "path": "/dashboard/:projectId/security-events/settings/case-statuses",
     "kind": "page"
+  },
+  {
+    "title": "Mark Cases Contained When Verified",
+    "where": [
+      "Security Events",
+      "Settings",
+      "Case Statuses"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/case-statuses",
+    "kind": "setting"
   },
   {
     "title": "Custom Fields",
@@ -4930,6 +5107,33 @@
     "kind": "page"
   },
   {
+    "title": "AI",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "data security ai",
+      "ai proposals",
+      "waiting for you",
+      "done by ai",
+      "approve ai changes",
+      "oneuptime ai data security",
+      "data security ai rules",
+      "what ai may do without asking"
+    ],
+    "path": "/dashboard/:projectId/data-security/ai",
+    "kind": "page"
+  },
+  {
+    "title": "Work on new issues",
+    "where": [
+      "Data Security",
+      "AI"
+    ],
+    "path": "/dashboard/:projectId/data-security/ai",
+    "kind": "setting"
+  },
+  {
     "title": "Sensitive Data",
     "where": [
       "Data Security"
@@ -5000,6 +5204,33 @@
     "kind": "page"
   },
   {
+    "title": "Review Drafts",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "record of processing",
+      "legal basis",
+      "retention",
+      "ropa"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance/review-drafts",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Evidence",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "auditor",
+      "soc 2 evidence",
+      "gdpr evidence"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance/audit-evidence",
+    "kind": "page"
+  },
+  {
     "title": "Data Types",
     "where": [
       "Data Security",
@@ -5050,7 +5281,8 @@
     "keywords": [
       "scan schedule",
       "scanning",
-      "sampling"
+      "sampling",
+      "names and street addresses"
     ],
     "path": "/dashboard/:projectId/data-security/settings/scanning",
     "kind": "page"
@@ -5559,11 +5791,12 @@
     "kind": "page"
   },
   {
-    "title": "Topology Map",
+    "title": "Topology",
     "where": [
       "Inventory"
     ],
     "keywords": [
+      "topology map",
       "dependency map",
       "service map"
     ],
@@ -5770,6 +6003,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/service/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Services",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/service/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -6314,6 +6561,20 @@
     "kind": "page"
   },
   {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Hosts",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/host/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Archived",
     "where": [
       "Hosts",
@@ -6467,6 +6728,20 @@
     "kind": "page"
   },
   {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Kubernetes",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Archived",
     "where": [
       "Kubernetes",
@@ -6591,6 +6866,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/docker/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Docker",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/docker/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -6721,6 +7010,20 @@
     "kind": "page"
   },
   {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Docker Swarm",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Archived",
     "where": [
       "Docker Swarm",
@@ -6845,6 +7148,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/podman/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Podman",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/podman/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -7477,6 +7794,20 @@
     "kind": "page"
   },
   {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Proxmox",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/proxmox/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Archived",
     "where": [
       "Proxmox",
@@ -7601,6 +7932,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/openstack/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "OpenStack",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/openstack/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -7731,6 +8076,20 @@
     "kind": "page"
   },
   {
+    "title": "Rule Audit Logs",
+    "where": [
+      "VMware",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Archived",
     "where": [
       "VMware",
@@ -7858,6 +8217,20 @@
     "kind": "page"
   },
   {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Ceph",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/ceph/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Archived",
     "where": [
       "Ceph",
@@ -7982,6 +8355,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/storage-arrays/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Storage Arrays",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -8315,6 +8702,20 @@
     "kind": "page"
   },
   {
+    "title": "Audit Logs",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
     "title": "Alert Policies",
     "where": [
       "Network",
@@ -8526,6 +8927,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/iot/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "IoT",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/iot/settings/rules-audit-logs",
     "kind": "page"
   },
   {
@@ -8964,6 +9379,20 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/runbooks/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "Runbooks",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/runbooks/settings/rules-audit-logs",
     "kind": "page"
   },
   {

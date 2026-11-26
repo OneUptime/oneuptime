@@ -31,6 +31,7 @@ import {
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
+import { RECORD_ACTOR_COLUMNS } from "Common/Types/Database/RecordActor";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import ObjectID from "Common/Types/ObjectID";
@@ -418,6 +419,8 @@ describe("the error budget policy tier form", () => {
       "deletedAt",
       "version",
       "slug",
+      // What created each record and who last modified it (#10290).
+      ...RECORD_ACTOR_COLUMNS,
     ]);
 
     for (const column of new ServiceLevelObjectiveErrorBudgetPolicyTier().getTableColumns()

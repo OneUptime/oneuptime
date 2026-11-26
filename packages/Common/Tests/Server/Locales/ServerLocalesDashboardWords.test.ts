@@ -34,6 +34,8 @@ import {
   getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
 } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { SECURITY_PLAYBOOK_ACTIONS } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import { getSecurityPlaybookApprovalActionTitle } from "../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
 import {
   getSharedNameMarksFor,
   SharedNameOption,
@@ -148,6 +150,25 @@ const sentencesTheFirstPolicyLooksUp: () => Set<string> = (): Set<string> => {
 };
 
 /*
+ * Every sentence a playbook step's approval names its action by (#10341):
+ * each action's title, as the step editor words it.
+ */
+const sentencesThePlaybookActionTitlesLookUp: () => Set<string> =
+  (): Set<string> => {
+    const asked: Set<string> = new Set<string>();
+    const recording: Translator = recordingTranslator(asked);
+
+    for (const action of SECURITY_PLAYBOOK_ACTIONS) {
+      getSecurityPlaybookApprovalActionTitle({
+        translator: recording,
+        action: action.type,
+      });
+    }
+
+    return asked;
+  };
+
+/*
  * Every sentence a picker marks records that share a name with (#10314):
  * the pill of each kind, and the day it was made, which tells twins apart
  * when their descriptions do not. A chat's picker words them in the
@@ -205,6 +226,10 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
     );
+    // Each playbook action's title, which a step's approval names (#10341).
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Types/SecurityPlaybook/SecurityPlaybookActionWords.ts",
+    );
     // What a chat's picker says of records that share a name (#10314).
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Types/Database/SharedNameMarks.ts",
@@ -221,11 +246,12 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(fs.existsSync(DASHBOARD_LOCALES_DIRECTORY)).toBe(true);
   });
 
-  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name, the first on-call policy with its rules and a picker's marks on records that share a name are written with, and nothing else", () => {
+  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name, the first on-call policy with its rules, a playbook action's title and a picker's marks on records that share a name are written with, and nothing else", () => {
     const asked: Set<string> = new Set<string>([
       ...sentencesTheCriteriaLookUp(),
       ...sentencesTheStatusPageNameLooksUp(),
       ...sentencesTheFirstPolicyLooksUp(),
+      ...sentencesThePlaybookActionTitlesLookUp(),
       ...sentencesTheSharedNameMarksLookUp(),
     ]);
 
@@ -238,6 +264,17 @@ describe("the sentences the server and the Dashboard both write", () => {
         "Same name as another schedule",
         "Created {{date}}",
       ]),
+    );
+
+    // Every playbook action's title, as the step editor words it (#10341).
+    expect(sentencesThePlaybookActionTitlesLookUp()).toEqual(
+      new Set<string>(
+        SECURITY_PLAYBOOK_ACTIONS.map(
+          (action: (typeof SECURITY_PLAYBOOK_ACTIONS)[number]): string => {
+            return action.title;
+          },
+        ),
+      ),
     );
 
     // The name Ask AI and the status page guided setup start a page with.
