@@ -31,7 +31,9 @@ import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
 } from "Common/Utils/Monitor/MonitorPauseState";
+import { MONITOR_NOT_EVALUATED_SELECT } from "Common/Server/Utils/Monitor/MonitorNotEvaluated";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceHydrationUtil, {
@@ -673,6 +675,8 @@ export async function processNetworkDeviceWalkFromQueue(
 }
 
 const INCOMING_EMAIL_MONITOR_SELECT: Select<Monitor> = {
+  // What an email it is not checked for is listed with (MonitorNotEvaluated).
+  ...MONITOR_NOT_EVALUATED_SELECT,
   _id: true,
   projectId: true,
   incomingEmailSecretKey: true,
@@ -869,11 +873,25 @@ export async function processIncomingEmailFromQueue(
    * so heartbeat tracking stays accurate across maintenance/incident windows:
    * the CheckOnlineStatus cron skips disabled monitors and resumes afterwards,
    * relying on that timestamp.
+   *
+   * The email is listed in the monitor's Logs as not evaluated, and why
+   * (MonitorNotEvaluated, #11141): it used to be dropped without a trace
+   * but for the latest one kept above.
    */
-  if (MonitorPauseState.isPaused(monitor)) {
+  const pauseReason: MonitorPauseReason | null =
+    MonitorPauseState.getPauseReason(monitor);
+
+  if (pauseReason) {
     logger.debug(
-      `Incoming email received for archived or disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
+      `Incoming email received for monitor ${monitor._id.toString()}, which is not being checked (${pauseReason}): listed as not evaluated.`,
     );
+
+    await MonitorResourceUtil.listNotEvaluated({
+      monitor: monitor,
+      dataToProcess: incomingEmailRequest,
+      reason: pauseReason,
+    });
+
     return;
   }
 

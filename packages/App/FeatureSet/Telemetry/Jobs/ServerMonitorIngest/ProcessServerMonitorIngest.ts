@@ -43,13 +43,19 @@ export async function processServerMonitorFromQueue(
   let monitorId: ObjectID | null = keptMonitor?.monitorId || null;
 
   if (!monitorId) {
-    // Found by the key's lookup hash: the key is kept encrypted (#9012).
+    /*
+     * Found by the key's lookup hash: the key is kept encrypted (#9012).
+     * Found whether or not the monitor is being checked: one paused by an
+     * incident or a maintenance event, turned off or archived has its report
+     * listed in its Logs as not evaluated, and the report's arrival kept,
+     * by monitorResource before it refuses it (MonitorNotEvaluated, #11141) -
+     * it used to be refused here as a monitor that does not exist.
+     */
     const monitor: Monitor | null = await MonitorService.findOneByPresentedKey({
       column: "serverMonitorSecretKey",
       presentedKey: monitorSecretKeyAsString,
       query: {
         monitorType: MonitorType.Server,
-        ...MonitorService.getEnabledMonitorQuery(),
         project: {
           ...ProjectService.getActiveProjectStatusQuery(),
         },

@@ -42,7 +42,11 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
+import {
+  MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
+} from "../../../Utils/Monitor/MonitorPauseState";
+import MonitorNotEvaluated from "./MonitorNotEvaluated";
 import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -828,6 +832,12 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
         );
 
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.Archived,
+        });
+
         throw new BadDataException(ExceptionMessages.MonitorArchived);
       }
 
@@ -836,12 +846,24 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
         );
 
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.Disabled,
+        });
+
         throw new BadDataException(ExceptionMessages.MonitorDisabled);
       }
       if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
         logger.debug(
           `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
         );
+
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.ManualIncident,
+        });
 
         throw new BadDataException(
           ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
@@ -852,6 +874,12 @@ export default class MonitorResourceUtil {
         logger.debug(
           `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
         );
+
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.ScheduledMaintenance,
+        });
 
         throw new BadDataException(
           ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
@@ -3078,6 +3106,37 @@ export default class MonitorResourceUtil {
    * written at most every so often (MonitorAPI.onBeforeSendRecords, issue
    * #8123). Never throws.
    */
+  /*
+   * A request, an email or an agent's report that reached a monitor that is
+   * not being checked, listed in its Logs as not evaluated and why, with its
+   * arrival kept (MonitorNotEvaluated, #11141), before it is refused: it
+   * used to be dropped without a trace. Not for a blocked project, which
+   * records nothing of what reaches it. Never throws.
+   */
+  public static async listNotEvaluated(data: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    reason: MonitorPauseReason;
+  }): Promise<void> {
+    if (
+      !data.monitor.projectId ||
+      !MonitorNotEvaluated.isSentFromOutside(data.monitor.monitorType)
+    ) {
+      return;
+    }
+
+    try {
+      if (await ProjectService.isProjectBlocked(data.monitor.projectId)) {
+        return;
+      }
+    } catch (error) {
+      logger.error(error);
+      return;
+    }
+
+    await MonitorNotEvaluated.record(data);
+  }
+
   public static async keepIncomingRequestArrival(input: {
     monitorId: ObjectID;
     dataToProcess: IncomingMonitorRequest;
