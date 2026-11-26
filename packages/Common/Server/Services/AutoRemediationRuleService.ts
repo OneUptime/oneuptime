@@ -568,6 +568,8 @@ export class Service extends ProjectReferencesService<Model> {
         cloudSavingActionGroups: true,
         cloudSavingEnvironments: true,
         cloudSavingProviders: true,
+        // A savings rule's conditions are checked with its columns.
+        criteria: true,
       },
     );
 
@@ -578,10 +580,11 @@ export class Service extends ProjectReferencesService<Model> {
       const isCloudSavingRule: boolean =
         rule.triggerEntityType === AutoRemediationTriggerEntity.CloudSaving;
 
-      if (changesCloudSavingRule) {
+      if (changesCloudSavingRule || (changesCriteria && isCloudSavingRule)) {
         if (isCloudSavingRule) {
-          // What the update says, over what the rule holds.
+          // What the update says, over what the rule holds - its conditions too.
           Service.assertCloudSavingRuleFits({
+            criteria: rule.criteria,
             cloudSavingAutonomy: rule.cloudSavingAutonomy,
             cloudSavingMonthlyLimit: rule.cloudSavingMonthlyLimit,
             cloudSavingActionGroups: rule.cloudSavingActionGroups,

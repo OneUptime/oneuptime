@@ -14,6 +14,11 @@ import {
   CloudSavingsAiAutonomy,
 } from "../../../Types/Cloud/CloudSavingsAi";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import ObjectID from "../../../Types/ObjectID";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
@@ -66,6 +71,23 @@ const hooks: RuleHookAccess =
 
 const CLOUD_SAVING: AutoRemediationTriggerEntity =
   AutoRemediationTriggerEntity.CloudSaving;
+
+// Conditions as the form's builder writes them: on the environment alone.
+function environmentsAre(
+  environments: Array<CloudResourceEnvironment>,
+): RuleCriteria {
+  return {
+    schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+    filterCondition: FilterCondition.All,
+    filters: [
+      {
+        field: "cloudSavingEnvironments",
+        operator: RuleCriteriaOperator.HasAnyOf,
+        value: environments,
+      },
+    ],
+  };
+}
 
 async function create(
   values: Partial<AutoRemediationRule>,
@@ -184,6 +206,44 @@ describe("a new AI rule for savings", () => {
     }
   });
 
+  it("its conditions are held as its columns are: known values, and non-production left in to act without asking", async () => {
+    const unknown: { error: unknown } = await create({
+      triggerEntityType: CLOUD_SAVING,
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "cloudSavingActionGroups",
+            operator: RuleCriteriaOperator.HasAnyOf,
+            value: ["Teleport"],
+          },
+        ],
+      },
+    });
+
+    expect(unknown.error).toBeInstanceOf(BadDataException);
+    expect((unknown.error as Error).message).toContain("Cloud Saving: Changes");
+
+    const productionOnly: { error: unknown } = await create({
+      triggerEntityType: CLOUD_SAVING,
+      cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking,
+      criteria: environmentsAre([CloudResourceEnvironment.Production]),
+    });
+
+    expect((productionOnly.error as Error).message).toBe(
+      CLOUD_SAVINGS_AI_RULE_NEVER_ACTS_MESSAGE,
+    );
+
+    const nonProduction: { error: unknown } = await create({
+      triggerEntityType: CLOUD_SAVING,
+      cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking,
+      criteria: environmentsAre([CloudResourceEnvironment.NonProduction]),
+    });
+
+    expect(nonProduction.error).toBeNull();
+  });
+
   it("an incident's rule may not hold the savings columns", async () => {
     const { error } = await create({
       triggerEntityType: AutoRemediationTriggerEntity.Incident,
@@ -227,6 +287,35 @@ describe("changing an AI rule for savings", () => {
         stored,
       ),
     ).toBeNull();
+  });
+
+  it("conditions it writes are judged over what it holds", async () => {
+    const error: unknown = await updateError(
+      { criteria: environmentsAre([CloudResourceEnvironment.Production]) },
+      {
+        triggerEntityType: CLOUD_SAVING,
+        cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking,
+      },
+    );
+
+    expect((error as Error).message).toBe(
+      CLOUD_SAVINGS_AI_RULE_NEVER_ACTS_MESSAGE,
+    );
+  });
+
+  it("and the conditions it holds are judged when its answer changes", async () => {
+    const error: unknown = await updateError(
+      { cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking },
+      {
+        triggerEntityType: CLOUD_SAVING,
+        cloudSavingAutonomy: CloudSavingsAiAutonomy.Suggest,
+        criteria: environmentsAre([CloudResourceEnvironment.Production]),
+      },
+    );
+
+    expect((error as Error).message).toBe(
+      CLOUD_SAVINGS_AI_RULE_NEVER_ACTS_MESSAGE,
+    );
   });
 
   it("a limit past the most is refused", async () => {
