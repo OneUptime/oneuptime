@@ -235,7 +235,11 @@ export async function readAwsSavingsPlansDetails(
   const plans: Map<string, AwsSavingsPlanDetail> = new Map();
   let token: string = "";
 
-  for (let page: number = 0; page < AWS_COMMITMENT_INVENTORY_MAX_PAGES; page++) {
+  for (
+    let page: number = 0;
+    page < AWS_COMMITMENT_INVENTORY_MAX_PAGES;
+    page++
+  ) {
     const body: JSONObject = { TimePeriod: timePeriod(call.window) };
 
     if (token) {
@@ -306,7 +310,11 @@ export async function readAwsReservationDetails(
   const reservations: Map<string, AwsReservationDetail> = new Map();
   let token: string = "";
 
-  for (let page: number = 0; page < AWS_COMMITMENT_INVENTORY_MAX_PAGES; page++) {
+  for (
+    let page: number = 0;
+    page < AWS_COMMITMENT_INVENTORY_MAX_PAGES;
+    page++
+  ) {
     const body: JSONObject = {
       TimePeriod: timePeriod(call.window),
       GroupBy: [{ Type: "DIMENSION", Key: "SUBSCRIPTION_ID" }],
@@ -414,11 +422,16 @@ export async function describeAwsSavingsPlans(
   call: InventoryCall,
 ): Promise<Array<AwsDescribedSavingsPlan>> {
   const plans: Array<AwsDescribedSavingsPlan> = [];
-  const endpoint: { host: string; region: string } =
-    getAwsSavingsPlansEndpoint(call.region);
+  const endpoint: { host: string; region: string } = getAwsSavingsPlansEndpoint(
+    call.region,
+  );
   let token: string = "";
 
-  for (let page: number = 0; page < AWS_COMMITMENT_INVENTORY_MAX_PAGES; page++) {
+  for (
+    let page: number = 0;
+    page < AWS_COMMITMENT_INVENTORY_MAX_PAGES;
+    page++
+  ) {
     const body: JSONObject = {
       states: [...AWS_DESCRIBED_SAVINGS_PLAN_STATES],
       maxResults: 1000,
@@ -632,8 +645,7 @@ export function buildAwsCommitmentRecords(data: {
           readAwsAttribute(attributes, "SavingsPlansType", "SavingsPlanType"),
       ),
       covers: instanceFamily,
-      region:
-        described?.region || readAwsAttribute(attributes, "Region") || "",
+      region: described?.region || readAwsAttribute(attributes, "Region") || "",
       scope,
       appliesTo: "",
       termMonths: readCloudCommitmentTermMonths(
@@ -742,7 +754,9 @@ export function buildAwsCommitmentRecords(data: {
     );
     const platform: string = readAwsAttribute(attributes, "Platform");
     const zone: string = readAwsAttribute(attributes, "AvailabilityZone");
-    const totalFee: number | null = readAmount(utilization["TotalAmortizedFee"]);
+    const totalFee: number | null = readAmount(
+      utilization["TotalAmortizedFee"],
+    );
     const unused: number | null = readAmount(
       utilization["RICostForUnusedHours"],
     );
@@ -978,7 +992,8 @@ export async function readAwsCommitmentInventory(
         error instanceof LlmProviderError &&
         error.kind === CloudConnectionFailureKind.Permission
           ? "The role may not read the Savings Plans API (savingsplans:DescribeSavingsPlans), so plans queued to start are not listed. Run the setup command again to allow it."
-          : `The Savings Plans API could not be read, so plans queued to start are not listed: ${(error instanceof Error
+          : `The Savings Plans API could not be read, so plans queued to start are not listed: ${(error instanceof
+            Error
               ? error.message
               : String(error)
             ).slice(0, 400)}`;

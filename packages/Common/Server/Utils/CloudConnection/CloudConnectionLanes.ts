@@ -1377,8 +1377,8 @@ export default class CloudConnectionLanes {
         (read.commitmentInventory.state === CloudCostState.Reading ||
           read.commitmentInventory.records.length > 0)
       ) {
-        const kept: CloudCommitmentWriteResult = await CloudCommitmentWriter.write(
-          {
+        const kept: CloudCommitmentWriteResult =
+          await CloudCommitmentWriter.write({
             projectId: data.projectId,
             provider: data.provider,
             inventory: read.commitmentInventory,
@@ -1387,8 +1387,7 @@ export default class CloudConnectionLanes {
             fallbackAccountId:
               read.commitments?.[0]?.accountId || read.accounts[0]?.accountId,
             now: data.now,
-          },
-        );
+          });
 
         await CloudCommitmentAlertEvaluator.resolveGone({
           projectId: data.projectId,

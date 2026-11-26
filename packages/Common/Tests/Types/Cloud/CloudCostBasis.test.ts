@@ -66,9 +66,7 @@ describe("the three bases", () => {
     }
 
     expect(CLOUD_COST_BASIS_LABELS[CloudCostBasis.Billed]).toBe("Billed");
-    expect(CLOUD_COST_BASIS_LABELS[CloudCostBasis.Amortized]).toBe(
-      "Amortized",
-    );
+    expect(CLOUD_COST_BASIS_LABELS[CloudCostBasis.Amortized]).toBe("Amortized");
     expect(CLOUD_COST_BASIS_LABELS[CloudCostBasis.Net]).toBe("Net");
     expect(CLOUD_COST_BASIS_DESCRIPTIONS[CloudCostBasis.Net]).toContain(
       "credits",

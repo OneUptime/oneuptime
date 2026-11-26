@@ -69,9 +69,7 @@ export function isCloudCostBasis(value: unknown): value is CloudCostBasis {
  * The cost column of a basis: the billed one for anything that is not a
  * basis, as every read was before the bases.
  */
-export function getCloudCostBasisColumn(
-  basis: unknown,
-): CloudCostBasisColumn {
+export function getCloudCostBasisColumn(basis: unknown): CloudCostBasisColumn {
   return isCloudCostBasis(basis)
     ? CLOUD_COST_BASIS_COLUMNS[basis]
     : CLOUD_COST_BASIS_COLUMNS[CloudCostBasis.Billed];

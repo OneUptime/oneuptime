@@ -37,7 +37,8 @@ const COMMITMENT: JSONObject = {
   selfLink:
     "https://www.googleapis.com/compute/v1/projects/web-prod/regions/us-central1/commitments/e2-commitment-web",
   status: "ACTIVE",
-  statusMessage: "The commitment is active, and so will apply to current resource usage.",
+  statusMessage:
+    "The commitment is active, and so will apply to current resource usage.",
   plan: "THIRTY_SIX_MONTH",
   startTimestamp: "2024-01-15T00:00:00.000-08:00",
   endTimestamp: "2027-01-15T00:00:00.000-08:00",

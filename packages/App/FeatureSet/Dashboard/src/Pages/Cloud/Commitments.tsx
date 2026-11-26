@@ -59,10 +59,7 @@ import {
   getCloudCommitmentUtilizationPercent,
   totalCloudCommitments,
 } from "Common/Types/Cloud/CloudCommitments";
-import {
-  CloudCostState,
-  CloudSavingKind,
-} from "Common/Types/Cloud/CloudCost";
+import { CloudCostState, CloudSavingKind } from "Common/Types/Cloud/CloudCost";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -153,9 +150,7 @@ export const COVERAGE_TILE_DESCRIPTION: string = translationKey(
   "Of the spend a commitment could pay for over the last 30 days, the share one did.",
 );
 export const LAST_30_DAYS: string = translationKey("Last 30 days");
-export const UTILIZATION_NOT_REPORTED: string = translationKey(
-  "Not reported",
-);
+export const UTILIZATION_NOT_REPORTED: string = translationKey("Not reported");
 export const COVERED_ON_DEMAND: string = translationKey(
   "{{amount}} at on-demand rates",
 );
@@ -167,9 +162,7 @@ export const ALERTS_LINE: string = translationKey(
 export const ALERTS_LINE_NO_COVERAGE: string = translationKey(
   "Commitments alert {{days}} days before they end, and when used less than {{utilization}} over a week.",
 );
-export const ALERTS_OFF: string = translationKey(
-  "Commitment alerts are off.",
-);
+export const ALERTS_OFF: string = translationKey("Commitment alerts are off.");
 export const CHANGE_ALERTS: string = translationKey("Change Alerts");
 export const INVENTORY_NOT_READ: string = translationKey(
   "Some commitments could not be listed:",
@@ -234,7 +227,10 @@ export function getAccountCoverage(data: {
     );
 
   return figures
-    ? { coveredSpend: figures.coveredSpend, onDemandSpend: figures.onDemandSpend }
+    ? {
+        coveredSpend: figures.coveredSpend,
+        onDemandSpend: figures.onDemandSpend,
+      }
     : null;
 }
 
@@ -280,7 +276,10 @@ const PlanLines: FunctionComponent<{
   testId: string;
 }> = (props: { lines: Array<string>; testId: string }): ReactElement => {
   return (
-    <ul className="mt-1 space-y-0.5 text-sm text-gray-600" data-testid={props.testId}>
+    <ul
+      className="mt-1 space-y-0.5 text-sm text-gray-600"
+      data-testid={props.testId}
+    >
       {props.lines.map((line: string, index: number): ReactElement => {
         return <li key={index}>{line}</li>;
       })}
@@ -399,10 +398,7 @@ const CloudCommitments: FunctionComponent<
     };
   }, [projectId?.toString()]);
 
-  const accountNames: Map<string, string> = useMemo((): Map<
-    string,
-    string
-  > => {
+  const accountNames: Map<string, string> = useMemo((): Map<string, string> => {
     const names: Map<string, string> = new Map();
 
     for (const account of read.accounts) {
@@ -555,18 +551,17 @@ const CloudCommitments: FunctionComponent<
   const inventoryProblems: Array<{ key: string; message: string }> =
     read.accounts
       .map((account: CloudAccountRow) => {
-        const inventory: { state: string; message?: string | undefined } | undefined =
-          account.savingsSummary?.commitments?.inventory;
+        const inventory:
+          | { state: string; message?: string | undefined }
+          | undefined = account.savingsSummary?.commitments?.inventory;
 
         return inventory && inventory.message
           ? { key: account.id.toString(), message: inventory.message }
           : null;
       })
-      .filter(
-        (entry: { key: string; message: string } | null): boolean => {
-          return entry !== null;
-        },
-      )
+      .filter((entry: { key: string; message: string } | null): boolean => {
+        return entry !== null;
+      })
       .filter(
         (
           entry: { key: string; message: string } | null,
@@ -608,7 +603,10 @@ const CloudCommitments: FunctionComponent<
                 const lines: Array<string> = plan
                   ? getCloudCommitmentPlanLines({
                       plan,
-                      quantityOf: commitment.covers?.split(",")[0]?.split("×")[1]?.trim(),
+                      quantityOf: commitment.covers
+                        ?.split(",")[0]
+                        ?.split("×")[1]
+                        ?.trim(),
                       translator,
                     })
                   : [];
@@ -896,7 +894,10 @@ const CloudCommitments: FunctionComponent<
               );
 
               return (
-                <div className="min-w-[6rem]" data-testid="cloud-commitment-utilization">
+                <div
+                  className="min-w-[6rem]"
+                  data-testid="cloud-commitment-utilization"
+                >
                   <div className="text-sm text-gray-900">{percent(value)}</div>
                   <div
                     className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
@@ -969,8 +970,8 @@ const CloudCommitments: FunctionComponent<
                   provider,
                   words,
                 });
-                const plan: CloudCommitmentPlan = getCloudCommitmentPurchasePlan(
-                  {
+                const plan: CloudCommitmentPlan =
+                  getCloudCommitmentPurchasePlan({
                     monthlySavings: Number(recommendation.monthlySavings) || 0,
                     monthlyCost:
                       recommendation.monthlyCost === undefined ||
@@ -987,8 +988,7 @@ const CloudCommitments: FunctionComponent<
                         recommendation.cloudAccountId?.toString() || "",
                       kind,
                     }),
-                  },
-                );
+                  });
 
                 return (
                   <li
@@ -1070,7 +1070,10 @@ const CloudCommitments: FunctionComponent<
         <div data-testid="cloud-commitment-alerts">
           <p className="text-sm text-gray-600">{alertsLine}</p>
           {inventoryProblems.length > 0 ? (
-            <div className="mt-3" data-testid="cloud-commitment-inventory-problems">
+            <div
+              className="mt-3"
+              data-testid="cloud-commitment-inventory-problems"
+            >
               <p className="text-sm font-medium text-gray-900">
                 {translator.translateText(INVENTORY_NOT_READ)}
               </p>

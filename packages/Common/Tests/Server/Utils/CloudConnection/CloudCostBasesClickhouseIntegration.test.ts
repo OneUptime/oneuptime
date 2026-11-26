@@ -421,9 +421,7 @@ integration("each cost on every basis, against ClickHouse", () => {
       ]);
 
       latest = [round(billed), round(amortized), round(net)];
-      expect((await storedSums()).get("2026-11-20|Amazon EC2")).toEqual(
-        latest,
-      );
+      expect((await storedSums()).get("2026-11-20|Amazon EC2")).toEqual(latest);
     }
 
     // The same figures again: nothing written.
@@ -542,9 +540,7 @@ integration("each cost on every basis, against ClickHouse", () => {
       }),
     ]);
 
-    expect((await storedSums()).get("2026-11-19|Amazon S3")).toEqual([
-      0, 0, 0,
-    ]);
+    expect((await storedSums()).get("2026-11-19|Amazon S3")).toEqual([0, 0, 0]);
   });
 
   test("an account's summary on each basis, from what is stored", async () => {

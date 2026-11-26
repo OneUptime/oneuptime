@@ -30,11 +30,11 @@ function summary(
     lastMonthToDate: 2500,
     projectedMonth: 11000,
     last30Days: 9500,
-    topServices: [{ service: "Savings Plans for AWS Compute usage", amount: 8760 }],
-    latestDay: "2026-11-19",
-    anomalies: [
-      { day: "2026-11-03", service: "", amount: 8790, usual: 30 },
+    topServices: [
+      { service: "Savings Plans for AWS Compute usage", amount: 8760 },
     ],
+    latestDay: "2026-11-19",
+    anomalies: [{ day: "2026-11-03", service: "", amount: 8790, usual: 30 }],
     readAt: "2026-11-20T12:00:00.000Z",
     ...overrides,
   };
@@ -125,7 +125,10 @@ describe("a summary on a basis", () => {
   test("a basis's latest day stands in for the summary's only when it has one", () => {
     const figures: CloudAccountCostSummary = summary({
       bases: {
-        amortized: { ...toCloudCostBasisFigures(AMORTIZED), latestDay: undefined },
+        amortized: {
+          ...toCloudCostBasisFigures(AMORTIZED),
+          latestDay: undefined,
+        },
       },
     });
 

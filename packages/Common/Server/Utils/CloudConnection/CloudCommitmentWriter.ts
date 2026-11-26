@@ -136,8 +136,8 @@ export default class CloudCommitmentWriter {
       .filter((row: ObjectID | undefined): row is ObjectID => {
         return Boolean(row);
       });
-    const existing: Array<CloudCommitment> = await CloudCommitmentService.findBy(
-      {
+    const existing: Array<CloudCommitment> =
+      await CloudCommitmentService.findBy({
         query: { projectId: data.projectId, provider: data.provider },
         select: {
           _id: true,
@@ -148,8 +148,7 @@ export default class CloudCommitmentWriter {
         skip: 0,
         limit: LIMIT_MAX,
         props: { isRoot: true },
-      },
-    );
+      });
     const existingById: Map<string, CloudCommitment> = new Map();
 
     for (const row of existing) {
@@ -187,8 +186,7 @@ export default class CloudCommitmentWriter {
       });
 
       try {
-        const row: CloudCommitment | undefined =
-          existingById.get(commitmentId);
+        const row: CloudCommitment | undefined = existingById.get(commitmentId);
 
         if (row?.id) {
           await CloudCommitmentService.updateOneById({

@@ -184,7 +184,9 @@ describe("a renewal plan", () => {
       currency: "USD",
     };
 
-    expect(getCloudCommitmentRenewalPlan({ ...base, figures: null })).toBeNull();
+    expect(
+      getCloudCommitmentRenewalPlan({ ...base, figures: null }),
+    ).toBeNull();
     expect(
       getCloudCommitmentRenewalPlan({
         ...base,
@@ -278,7 +280,10 @@ describe("a purchase plan", () => {
       currency: "USD",
     });
 
-    expect(fromHourly.monthlyCost).toBeCloseTo(2 * CLOUD_PLAN_HOURS_PER_MONTH, 1);
+    expect(fromHourly.monthlyCost).toBeCloseTo(
+      2 * CLOUD_PLAN_HOURS_PER_MONTH,
+      1,
+    );
     expect(fromHourly.upfrontCost).toBe(0);
     expect(fromHourly.breakEvenMonths).toBe(0);
   });

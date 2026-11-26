@@ -164,7 +164,9 @@ describe("the differences on each basis", () => {
   test("a series no basis changed writes no row", () => {
     expect(
       CloudCostWriter.computeDeltas({
-        desired: [point({ amount: 0.1 + 0.2, amortizedAmount: 5, netAmount: 4 })],
+        desired: [
+          point({ amount: 0.1 + 0.2, amortizedAmount: 5, netAmount: 4 }),
+        ],
         stored: [point({ amount: 0.3, amortizedAmount: 5, netAmount: 4 })],
         window: WINDOW,
       }),
@@ -345,7 +347,14 @@ describe("a day read ten times", () => {
           : []),
         // A series reported for three reads only.
         ...(read >= 3 && read <= 5
-          ? [point({ service: "Amazon S3", amount: 1, amortizedAmount: 1, netAmount: 1 })]
+          ? [
+              point({
+                service: "Amazon S3",
+                amount: 1,
+                amortizedAmount: 1,
+                netAmount: 1,
+              }),
+            ]
           : []),
       ]);
     }
@@ -535,14 +544,15 @@ describe("an account's summary on each basis", () => {
       16 * 30 + 3 * 22 + 2,
       4,
     );
-    expect(summary.bases!.net!.monthToDate).toBeCloseTo(16 * 28 + 3 * 22 + 2, 4);
+    expect(summary.bases!.net!.monthToDate).toBeCloseTo(
+      16 * 28 + 3 * 22 + 2,
+      4,
+    );
     // The billed fee is an unusual day; amortized, there is none.
     expect(
-      (summary.anomalies || []).some(
-        (anomaly: { day: string }): boolean => {
-          return anomaly.day === "2026-11-17";
-        },
-      ),
+      (summary.anomalies || []).some((anomaly: { day: string }): boolean => {
+        return anomaly.day === "2026-11-17";
+      }),
     ).toBe(true);
     expect(summary.bases!.amortized!.anomalies).toBeUndefined();
     // What cost the most this month, on each basis.

@@ -322,7 +322,10 @@ describe("each cost's tags", () => {
             };
           },
         }),
-        { costsReadAt: "2026-11-19T00:00:00.000Z", costsVersion: CLOUD_COSTS_READ_VERSION },
+        {
+          costsReadAt: "2026-11-19T00:00:00.000Z",
+          costsVersion: CLOUD_COSTS_READ_VERSION,
+        },
       ),
     );
 
@@ -523,7 +526,10 @@ describe("AWS's costs per resource", () => {
             end: new Date("2026-11-30T00:00:00.000Z"),
           },
         }),
-        { costsReadAt: "2026-11-19T00:00:00.000Z", costsVersion: CLOUD_COSTS_READ_VERSION },
+        {
+          costsReadAt: "2026-11-19T00:00:00.000Z",
+          costsVersion: CLOUD_COSTS_READ_VERSION,
+        },
       ),
     );
 
@@ -546,7 +552,10 @@ describe("AWS's costs per resource", () => {
     await CloudConnectionLanes.runCosts(
       lane(
         reading({}),
-        { costsReadAt: "2026-11-19T00:00:00.000Z", costsVersion: CLOUD_COSTS_READ_VERSION },
+        {
+          costsReadAt: "2026-11-19T00:00:00.000Z",
+          costsVersion: CLOUD_COSTS_READ_VERSION,
+        },
         {
           [RESOURCE_COSTS_FIELD_KEY]: "on",
         },

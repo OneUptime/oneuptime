@@ -89,7 +89,10 @@ export function getCloudCommitmentTermLine(data: {
     parts.push(term);
   }
 
-  if (data.paymentOption && CLOUD_COMMITMENT_PAYMENT_LABELS[data.paymentOption]) {
+  if (
+    data.paymentOption &&
+    CLOUD_COMMITMENT_PAYMENT_LABELS[data.paymentOption]
+  ) {
     parts.push(
       data.translator.translateText(
         CLOUD_COMMITMENT_PAYMENT_LABELS[data.paymentOption],

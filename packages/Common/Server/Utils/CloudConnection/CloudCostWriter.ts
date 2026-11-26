@@ -163,12 +163,11 @@ const ZERO_AMOUNTS: Readonly<CloudCostAmounts> = {
 };
 
 // Each basis's field on a point.
-const BASIS_FIELDS: Readonly<Record<CloudCostBasis, keyof CloudCostAmounts>> =
-  {
-    [CloudCostBasis.Billed]: "amount",
-    [CloudCostBasis.Amortized]: "amortizedAmount",
-    [CloudCostBasis.Net]: "netAmount",
-  };
+const BASIS_FIELDS: Readonly<Record<CloudCostBasis, keyof CloudCostAmounts>> = {
+  [CloudCostBasis.Billed]: "amount",
+  [CloudCostBasis.Amortized]: "amortizedAmount",
+  [CloudCostBasis.Net]: "netAmount",
+};
 
 export interface CloudCostWriteTarget {
   projectId: ObjectID;
@@ -749,13 +748,12 @@ export default class CloudCostWriter {
         },
       );
 
-      const summary: CloudAccountCostSummary =
-        CloudCostWriter.summarizeBasis({
-          points: inCurrency,
-          basis: CloudCostBasis.Billed,
-          currency,
-          now: data.now,
-        });
+      const summary: CloudAccountCostSummary = CloudCostWriter.summarizeBasis({
+        points: inCurrency,
+        basis: CloudCostBasis.Billed,
+        currency,
+        now: data.now,
+      });
 
       // The tags its last 30 days' costs carry: what Costs breaks them down by.
       const tagKeys: Array<CloudCostTagKey> = summarizeCloudCostTagKeys(

@@ -186,8 +186,10 @@ export class FakeAzureCostManagement {
     string,
     Array<{ from: string; type: string }>
   > {
-    const answered: Map<string, Array<{ from: string; type: string }>> =
-      new Map();
+    const answered: Map<
+      string,
+      Array<{ from: string; type: string }>
+    > = new Map();
 
     for (const query of this.queries) {
       if (query.status !== 200) {

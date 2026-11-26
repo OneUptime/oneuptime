@@ -212,7 +212,10 @@ const CloudCostBasisSwitch: FunctionComponent<CloudCostBasisSwitchProps> = (
   );
   const notes: Array<{ key: string; text: string }> = [];
 
-  if (props.basis !== CloudCostBasis.Billed && isCloudCostBasisPending(props.accounts)) {
+  if (
+    props.basis !== CloudCostBasis.Billed &&
+    isCloudCostBasisPending(props.accounts)
+  ) {
     notes.push({ key: "pending", text: COST_BASIS_PENDING_NOTE });
   }
 

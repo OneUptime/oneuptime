@@ -587,15 +587,14 @@ function readAzureCommand(command: string): CommandGrant {
      * Administrator with elevated access may grant them, so a line that
      * cannot says so and the command goes on.
      */
-    const commitmentReader:
-      | { role: string; scope: string }
-      | undefined = AZURE_COMMITMENT_READER_ROLES.find(
-      (entry: { role: string; scope: string }): boolean => {
-        return line.startsWith(
-          `${AZURE_ASSIGNMENT}${entry.role}" --scope "${entry.scope}" > /dev/null 2>&1 || echo "`,
-        );
-      },
-    );
+    const commitmentReader: { role: string; scope: string } | undefined =
+      AZURE_COMMITMENT_READER_ROLES.find(
+        (entry: { role: string; scope: string }): boolean => {
+          return line.startsWith(
+            `${AZURE_ASSIGNMENT}${entry.role}" --scope "${entry.scope}" > /dev/null 2>&1 || echo "`,
+          );
+        },
+      );
 
     if (commitmentReader) {
       expect(line.endsWith('" >&2')).toBe(true);

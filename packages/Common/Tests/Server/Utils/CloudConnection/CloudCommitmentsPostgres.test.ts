@@ -169,7 +169,9 @@ async function insert(table: string, row: Dictionary<unknown>): Promise<void> {
         return value.toString();
       }
 
-      return value !== null && typeof value === "object" && !(value instanceof Date)
+      return value !== null &&
+        typeof value === "object" &&
+        !(value instanceof Date)
         ? JSON.stringify(value)
         : value;
     }),
@@ -255,7 +257,7 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
 
   let created: Array<Alert> = [];
   let timelines: Array<AlertStateTimeline> = [];
-  let openFingerprints: Map<string, ObjectID> = new Map();
+  const openFingerprints: Map<string, ObjectID> = new Map();
 
   beforeAll(async () => {
     database = new DataSource({
@@ -335,9 +337,10 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
 
     getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
     // Alerts, stood in: an open one per fingerprint until it is resolved.
-    getJestSpyOn(AlertStateService, "getUnresolvedAlertStateIds").mockResolvedValue(
-      [ObjectID.generate()] as never,
-    );
+    getJestSpyOn(
+      AlertStateService,
+      "getUnresolvedAlertStateIds",
+    ).mockResolvedValue([ObjectID.generate()] as never);
     getJestSpyOn(AlertService, "findBy").mockImplementation((async (input: {
       query: { seriesFingerprint: string };
     }): Promise<Array<Alert>> => {
@@ -353,11 +356,13 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
       alert.id = id;
       return [alert];
     }) as never);
-    getJestSpyOn(AlertSeverityService, "findOneBy").mockImplementation((async (): Promise<AlertSeverity> => {
-      const severity: AlertSeverity = new AlertSeverity();
-      severity.id = new ObjectID("10000000-0000-4000-8000-0000000000e1");
-      return severity;
-    }) as never);
+    getJestSpyOn(AlertSeverityService, "findOneBy").mockImplementation(
+      (async (): Promise<AlertSeverity> => {
+        const severity: AlertSeverity = new AlertSeverity();
+        severity.id = new ObjectID("10000000-0000-4000-8000-0000000000e1");
+        return severity;
+      }) as never,
+    );
     getJestSpyOn(AlertService, "create").mockImplementation((async (input: {
       data: Alert;
     }): Promise<Alert> => {
@@ -373,19 +378,21 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
     ).mockResolvedValue(
       new ObjectID("10000000-0000-4000-8000-0000000000aa") as never,
     );
-    getJestSpyOn(AlertStateTimelineService, "create").mockImplementation((async (input: {
-      data: AlertStateTimeline;
-    }): Promise<AlertStateTimeline> => {
-      timelines.push(input.data);
+    getJestSpyOn(AlertStateTimelineService, "create").mockImplementation(
+      (async (input: {
+        data: AlertStateTimeline;
+      }): Promise<AlertStateTimeline> => {
+        timelines.push(input.data);
 
-      for (const [fingerprint, id] of openFingerprints) {
-        if (id.toString() === input.data.alertId?.toString()) {
-          openFingerprints.delete(fingerprint);
+        for (const [fingerprint, id] of openFingerprints) {
+          if (id.toString() === input.data.alertId?.toString()) {
+            openFingerprints.delete(fingerprint);
+          }
         }
-      }
 
-      return input.data;
-    }) as never);
+        return input.data;
+      }) as never,
+    );
   });
 
   describe("the project's cost settings", () => {
@@ -445,9 +452,9 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
         commitmentExpiryAlertDays: "90, 30, 7",
         commitmentCoverageThreshold: null,
       });
-      expect(await CloudCostSettingService.getCostBasisOfProject(projectId)).toBe(
-        CloudCostBasis.Net,
-      );
+      expect(
+        await CloudCostSettingService.getCostBasisOfProject(projectId),
+      ).toBe(CloudCostBasis.Net);
     });
 
     test("what is not a setting's value is refused, in words to act on, and nothing is written", async () => {
@@ -455,11 +462,26 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
         await CloudCostSettingService.getOrCreateForProject(projectId);
       const refusals: Array<[JSONObject, string]> = [
         [{ costBasis: "blended" }, CLOUD_COST_BASIS_ERROR],
-        [{ commitmentExpiryAlertDays: "soon" }, CLOUD_COMMITMENT_EXPIRY_DAYS_ERROR],
-        [{ commitmentExpiryAlertDays: "0, 30" }, CLOUD_COMMITMENT_EXPIRY_DAYS_ERROR],
-        [{ commitmentUtilizationThreshold: 0 }, CLOUD_COMMITMENT_THRESHOLD_ERROR],
-        [{ commitmentUtilizationThreshold: null }, CLOUD_COMMITMENT_THRESHOLD_ERROR],
-        [{ commitmentCoverageThreshold: 101 }, CLOUD_COMMITMENT_THRESHOLD_ERROR],
+        [
+          { commitmentExpiryAlertDays: "soon" },
+          CLOUD_COMMITMENT_EXPIRY_DAYS_ERROR,
+        ],
+        [
+          { commitmentExpiryAlertDays: "0, 30" },
+          CLOUD_COMMITMENT_EXPIRY_DAYS_ERROR,
+        ],
+        [
+          { commitmentUtilizationThreshold: 0 },
+          CLOUD_COMMITMENT_THRESHOLD_ERROR,
+        ],
+        [
+          { commitmentUtilizationThreshold: null },
+          CLOUD_COMMITMENT_THRESHOLD_ERROR,
+        ],
+        [
+          { commitmentCoverageThreshold: 101 },
+          CLOUD_COMMITMENT_THRESHOLD_ERROR,
+        ],
       ];
 
       for (const [data, message] of refusals) {
@@ -508,7 +530,8 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
               commitmentId: "Amazon Elastic Compute Cloud - Compute/359809062",
               kind: CloudCommitmentKind.Reservations,
               name: "359809062",
-              commitmentType: "Amazon Elastic Compute Cloud - Compute (Standard)",
+              commitmentType:
+                "Amazon Elastic Compute Cloud - Compute (Standard)",
               covers: "3 × t3.large, Linux/UNIX, us-east-1",
               region: "us-east-1",
               hourlyCommitment: null,
@@ -552,33 +575,31 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
         orphanedAlertIds: [],
       });
 
-      const rows: Array<CloudCommitment> = await CloudCommitmentService.findBy(
-        {
-          query: { projectId },
-          select: {
-            _id: true,
-            cloudAccountId: true,
-            commitmentId: true,
-            kind: true,
-            name: true,
-            covers: true,
-            state: true,
-            termMonths: true,
-            paymentOption: true,
-            endsAt: true,
-            hourlyCommitment: true,
-            quantity: true,
-            utilizationPercent: true,
-            weekUtilizationPercent: true,
-            figures: true,
-            lastSeenAt: true,
-          },
-          sort: { name: SortOrder.Ascending },
-          skip: 0,
-          limit: 10,
-          props: { isRoot: true },
+      const rows: Array<CloudCommitment> = await CloudCommitmentService.findBy({
+        query: { projectId },
+        select: {
+          _id: true,
+          cloudAccountId: true,
+          commitmentId: true,
+          kind: true,
+          name: true,
+          covers: true,
+          state: true,
+          termMonths: true,
+          paymentOption: true,
+          endsAt: true,
+          hourlyCommitment: true,
+          quantity: true,
+          utilizationPercent: true,
+          weekUtilizationPercent: true,
+          figures: true,
+          lastSeenAt: true,
         },
-      );
+        sort: { name: SortOrder.Ascending },
+        skip: 0,
+        limit: 10,
+        props: { isRoot: true },
+      });
 
       expect(rows).toHaveLength(3);
 
@@ -599,11 +620,9 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
       });
       expect(new Date(plan.lastSeenAt!).toISOString()).toBe(NOW.toISOString());
 
-      const reservation: CloudCommitment = rows.find(
-        (row: CloudCommitment) => {
-          return row.name === "359809062";
-        },
-      )!;
+      const reservation: CloudCommitment = rows.find((row: CloudCommitment) => {
+        return row.name === "359809062";
+      })!;
       expect(reservation.cloudAccountId?.toString()).toBe(
         otherAccountRow.toString(),
       );
@@ -695,45 +714,47 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
     });
 
     test("a second read: one recovered, one no longer listed - removed, its open alert handed back to resolve", async () => {
-      const second: CloudCommitmentWriteResult = await CloudCommitmentWriter.write({
-        projectId,
-        provider: CloudProvider.AWS,
-        inventory: {
-          records: [
-            commitment({
-              accountId: "222222222222",
-              commitmentId: "Amazon Elastic Compute Cloud - Compute/359809062",
-              kind: CloudCommitmentKind.Reservations,
-              name: "359809062",
-              quantity: 3,
-              hourlyCommitment: null,
-              endsAt: new Date(NOW.getTime() + 400 * DAY_MS),
-              weekUtilizationPercent: 91,
-              utilizationPercent: 70,
-              figures: null,
-            }),
-            commitment({
-              accountId: "333333333333",
-              commitmentId:
-                "arn:aws:savingsplans::333333333333:savingsplan/plan-9",
-              name: "plan-9",
-              state: CloudCommitmentState.Queued,
-              startsAt: new Date(NOW.getTime() + 25 * DAY_MS),
-              endsAt: new Date(NOW.getTime() + 390 * DAY_MS),
-              figures: null,
-            }),
-          ],
-          complete: true,
-          state: CloudCostState.Reading,
-        },
-        accountRows: new Map([
-          ["111111111111", accountRow],
-          ["222222222222", otherAccountRow],
-        ]),
-        accountsRead: new Set(["111111111111", "222222222222"]),
-        fallbackAccountId: "111111111111",
-        now: new Date(NOW.getTime() + DAY_MS),
-      });
+      const second: CloudCommitmentWriteResult =
+        await CloudCommitmentWriter.write({
+          projectId,
+          provider: CloudProvider.AWS,
+          inventory: {
+            records: [
+              commitment({
+                accountId: "222222222222",
+                commitmentId:
+                  "Amazon Elastic Compute Cloud - Compute/359809062",
+                kind: CloudCommitmentKind.Reservations,
+                name: "359809062",
+                quantity: 3,
+                hourlyCommitment: null,
+                endsAt: new Date(NOW.getTime() + 400 * DAY_MS),
+                weekUtilizationPercent: 91,
+                utilizationPercent: 70,
+                figures: null,
+              }),
+              commitment({
+                accountId: "333333333333",
+                commitmentId:
+                  "arn:aws:savingsplans::333333333333:savingsplan/plan-9",
+                name: "plan-9",
+                state: CloudCommitmentState.Queued,
+                startsAt: new Date(NOW.getTime() + 25 * DAY_MS),
+                endsAt: new Date(NOW.getTime() + 390 * DAY_MS),
+                figures: null,
+              }),
+            ],
+            complete: true,
+            state: CloudCostState.Reading,
+          },
+          accountRows: new Map([
+            ["111111111111", accountRow],
+            ["222222222222", otherAccountRow],
+          ]),
+          accountsRead: new Set(["111111111111", "222222222222"]),
+          fallbackAccountId: "111111111111",
+          now: new Date(NOW.getTime() + DAY_MS),
+        });
 
       expect(second.created).toBe(0);
       expect(second.updated).toBe(2);
@@ -822,8 +843,8 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
       expect((await rowsOf("CloudCommitment", projectId)).length).toBe(before);
 
       // Another cloud's read never removes AWS's.
-      const azure: CloudCommitmentWriteResult = await CloudCommitmentWriter.write(
-        {
+      const azure: CloudCommitmentWriteResult =
+        await CloudCommitmentWriter.write({
           projectId,
           provider: CloudProvider.Azure,
           inventory: {
@@ -834,8 +855,7 @@ describePostgres("cloud commitments and cost settings, on Postgres", () => {
           accountRows: new Map([["111111111111", accountRow]]),
           accountsRead: new Set(["111111111111"]),
           now: NOW,
-        },
-      );
+        });
 
       expect(azure.removed).toBe(0);
       expect((await rowsOf("CloudCommitment", projectId)).length).toBe(before);

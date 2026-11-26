@@ -99,7 +99,10 @@ function declaredColumns(
 
 describe("AddCloudCostBasesAndCommitments1809187660117", () => {
   test("creates the commitments' table with every column the model declares", async () => {
-    const create: string = createOf(await statementsOf("up"), "CloudCommitment");
+    const create: string = createOf(
+      await statementsOf("up"),
+      "CloudCommitment",
+    );
     const columns: Array<string> = createdColumns(create);
 
     for (const column of declaredColumns(
@@ -139,7 +142,10 @@ describe("AddCloudCostBasesAndCommitments1809187660117", () => {
   });
 
   test("creates the settings' table with the defaults a project starts from", async () => {
-    const create: string = createOf(await statementsOf("up"), "CloudCostSetting");
+    const create: string = createOf(
+      await statementsOf("up"),
+      "CloudCostSetting",
+    );
     const columns: Array<string> = createdColumns(create);
 
     for (const column of declaredColumns(
@@ -247,7 +253,11 @@ describe("AddCloudCostBasesAndCommitments1809187660117", () => {
 
     // The join tables go with either side.
     for (const [table, column, target] of [
-      ["CloudCostSettingOnCallDutyPolicy", "onCallDutyPolicyId", "OnCallDutyPolicy"],
+      [
+        "CloudCostSettingOnCallDutyPolicy",
+        "onCallDutyPolicyId",
+        "OnCallDutyPolicy",
+      ],
       ["CloudCostSettingOwnerUser", "userId", "User"],
       ["CloudCostSettingOwnerTeam", "teamId", "Team"],
     ] as Array<[string, string, string]>) {

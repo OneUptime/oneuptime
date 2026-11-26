@@ -175,9 +175,7 @@ describe("an Azure tenant's commitments", () => {
       weekUtilizationPercent: 55,
       figures: null,
     });
-    expect(reservation.endsAt!.toISOString()).toBe(
-      "2026-12-21T22:46:32.763Z",
-    );
+    expect(reservation.endsAt!.toISOString()).toBe("2026-12-21T22:46:32.763Z");
     expect(reservation.commitmentId).toBe(
       String(RESERVATION["id"]).toLowerCase(),
     );
@@ -359,7 +357,8 @@ describe("an Azure commitment's words", () => {
       readAzureCommitmentScope({
         appliedScopeType: "ManagementGroup",
         appliedScopeProperties: {
-          managementGroupId: "/providers/Microsoft.Management/managementGroups/mg1",
+          managementGroupId:
+            "/providers/Microsoft.Management/managementGroups/mg1",
           displayName: "Engineering",
         },
       }),
@@ -397,7 +396,11 @@ describe("an Azure commitment's words", () => {
     ).toBe(CloudCommitmentState.Expired);
     for (const state of ["Cancelled", "Split", "Merged", "BillingFailed"]) {
       expect(
-        readAzureCommitmentState({ provisioningState: state, startsAt: null, now: NOW }),
+        readAzureCommitmentState({
+          provisioningState: state,
+          startsAt: null,
+          now: NOW,
+        }),
       ).toBe(CloudCommitmentState.Retired);
     }
     expect(
@@ -413,9 +416,9 @@ describe("an Azure commitment's words", () => {
     expect(
       readAzureUtilization(RESERVATION["properties"] as JSONObject, 30),
     ).toBe(72.5);
-    expect(readAzureUtilization(RESERVATION["properties"] as JSONObject, 7)).toBe(
-      55,
-    );
+    expect(
+      readAzureUtilization(RESERVATION["properties"] as JSONObject, 7),
+    ).toBe(55);
     expect(readAzureUtilization({}, 7)).toBeNull();
     expect(
       readAzureUtilization(

@@ -242,8 +242,7 @@ async function readAwsCostMetrics(data: {
         const accountId: string = data.groupByAccount
           ? keys[0] || ""
           : data.accountId;
-        const service: string =
-          (data.groupByAccount ? keys[1] : keys[0]) || "";
+        const service: string = (data.groupByAccount ? keys[1] : keys[0]) || "";
         const region: string = data.groupByAccount
           ? ""
           : readCostRegion(keys[1] || "");
@@ -593,7 +592,9 @@ export function readAwsCommitmentRecommendationDetails(
       number(pricing["estimatedMonthlyAmortizedReservationCost"]);
 
     return {
-      termMonths: readCloudCommitmentTermMonths(readText(configuration["term"])),
+      termMonths: readCloudCommitmentTermMonths(
+        readText(configuration["term"]),
+      ),
       paymentOption: readCloudCommitmentPaymentOption(
         readText(configuration["paymentOption"]),
       ),

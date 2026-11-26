@@ -64,10 +64,12 @@ function splitExpiryDays(text: string): Array<string> {
     });
 }
 
+const WHOLE_DAYS: RegExp = /^\d+$/;
+
 function readExpiryDay(entry: unknown): number | null {
   const text: string = String(entry ?? "").trim();
 
-  if (!/^\d+$/.test(text)) {
+  if (!WHOLE_DAYS.test(text)) {
     return null;
   }
 
@@ -88,11 +90,9 @@ export function readCloudCommitmentExpiryDays(value: unknown): Array<number> {
       : [];
   const days: Array<number> = Array.from(
     new Set(
-      raw
-        .map(readExpiryDay)
-        .filter((day: number | null): day is number => {
-          return day !== null;
-        }),
+      raw.map(readExpiryDay).filter((day: number | null): day is number => {
+        return day !== null;
+      }),
     ),
   ).sort((a: number, b: number): number => {
     return b - a;

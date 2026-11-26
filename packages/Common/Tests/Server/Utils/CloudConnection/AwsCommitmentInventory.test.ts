@@ -438,9 +438,11 @@ describe("an AWS organization's commitments", () => {
       })
       .map(bodyOf);
 
-    expect(details.map((body: JSONObject) => {
-      return body["TimePeriod"];
-    })).toEqual([
+    expect(
+      details.map((body: JSONObject) => {
+        return body["TimePeriod"];
+      }),
+    ).toEqual([
       { Start: "2026-10-20", End: "2026-11-19" },
       { Start: "2026-11-12", End: "2026-11-19" },
     ]);
@@ -466,8 +468,9 @@ describe("an AWS organization's commitments", () => {
       expect(body["Granularity"]).toBeUndefined();
     }
 
-    const describe: Array<DataSourceHttpRequest> =
-      api.requestsTo("/DescribeSavingsPlans");
+    const describe: Array<DataSourceHttpRequest> = api.requestsTo(
+      "/DescribeSavingsPlans",
+    );
     expect(describe).toHaveLength(1);
     expect(bodyOf(describe[0]!)["states"]).toEqual([
       "active",
@@ -590,9 +593,7 @@ describe("an AWS organization's commitments", () => {
     expect(inventory.records).toEqual([]);
     expect(inventory.complete).toBe(false);
     expect(inventory.state).toBe(CloudCostState.NotAllowed);
-    expect(inventory.message).toContain(
-      "ce:GetSavingsPlansUtilizationDetails",
-    );
+    expect(inventory.message).toContain("ce:GetSavingsPlansUtilizationDetails");
   });
 
   test("a refused credential is thrown, as every read throws it", async () => {
@@ -651,9 +652,7 @@ describe("Cost Explorer's attributes", () => {
     expect(readAwsSavingsPlanState("retired")).toBe(
       CloudCommitmentState.Retired,
     );
-    expect(readAwsReservationState("Active")).toBe(
-      CloudCommitmentState.Active,
-    );
+    expect(readAwsReservationState("Active")).toBe(CloudCommitmentState.Active);
     expect(readAwsReservationState("Expired")).toBe(
       CloudCommitmentState.Expired,
     );

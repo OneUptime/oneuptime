@@ -185,12 +185,13 @@ export interface CloudBudgetSpend {
 export const CLOUD_BUDGET_ALERT_SERVICES: number = 3;
 
 // Each basis as an alert says it: "This month's amortized cloud spend".
-export const CLOUD_BUDGET_BASIS_WORDS: Readonly<Record<CloudCostBasis, string>> =
-  {
-    [CloudCostBasis.Billed]: "billed",
-    [CloudCostBasis.Amortized]: "amortized",
-    [CloudCostBasis.Net]: "net",
-  };
+export const CLOUD_BUDGET_BASIS_WORDS: Readonly<
+  Record<CloudCostBasis, string>
+> = {
+  [CloudCostBasis.Billed]: "billed",
+  [CloudCostBasis.Amortized]: "amortized",
+  [CloudCostBasis.Net]: "net",
+};
 
 export interface CloudBudgetDecision {
   raise: Array<CloudBudgetAlertKind>;
@@ -723,8 +724,7 @@ export default class CloudBudgetEvaluator {
     }
 
     const projectKey: string = budget.projectId!.toString();
-    let projectBasis: CloudCostBasis | undefined =
-      projectBases.get(projectKey);
+    let projectBasis: CloudCostBasis | undefined = projectBases.get(projectKey);
 
     if (!projectBasis) {
       projectBasis = await CloudCostSettingService.getCostBasisOfProject(

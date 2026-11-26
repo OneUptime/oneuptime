@@ -67,7 +67,10 @@ function bodyOf(request: DataSourceHttpRequest): JSONObject {
 type Metrics = Record<string, string>;
 
 // One day's groups, each with the metrics asked.
-function period(day: string, groups: Array<[Array<string>, Metrics]>): JSONObject {
+function period(
+  day: string,
+  groups: Array<[Array<string>, Metrics]>,
+): JSONObject {
   return {
     TimePeriod: { Start: day, End: day },
     Groups: groups.map(([keys, metrics]: [Array<string>, Metrics]) => {
@@ -307,7 +310,10 @@ describe("an account's costs on every basis", () => {
         json({
           ResultsByTime: [
             period("2026-11-18", [
-              [["Amazon EC2", "us-east-1"], { UnblendedCost: "1", AmortizedCost: "1" }],
+              [
+                ["Amazon EC2", "us-east-1"],
+                { UnblendedCost: "1", AmortizedCost: "1" },
+              ],
             ]),
           ],
           NextPageToken: "filtered-2",
@@ -315,7 +321,10 @@ describe("an account's costs on every basis", () => {
         json({
           ResultsByTime: [
             period("2026-11-18", [
-              [["Amazon S3", "us-east-1"], { UnblendedCost: "2", AmortizedCost: "2" }],
+              [
+                ["Amazon S3", "us-east-1"],
+                { UnblendedCost: "2", AmortizedCost: "2" },
+              ],
             ]),
           ],
         }),
@@ -404,7 +413,9 @@ describe("an account's costs on every basis", () => {
       unfiltered: [
         json({
           ResultsByTime: [
-            period("2026-11-18", [[["Tax", "NoRegion"], { NetAmortizedCost: "0" }]]),
+            period("2026-11-18", [
+              [["Tax", "NoRegion"], { NetAmortizedCost: "0" }],
+            ]),
           ],
         }),
       ],
@@ -540,7 +551,11 @@ describe("costs per resource on every basis", () => {
       netAmount: 75,
     });
     // The rest carries the figure's credits and discounts no resource did: net may go below nothing.
-    expect(rest).toMatchObject({ amount: 40, amortizedAmount: 40, netAmount: 15 });
+    expect(rest).toMatchObject({
+      amount: 40,
+      amortizedAmount: 40,
+      netAmount: 15,
+    });
     expect(resource.amount + rest.amount).toBe(100);
     expect(resource.amortizedAmount! + rest.amortizedAmount!).toBe(120);
     expect(resource.netAmount! + rest.netAmount!).toBe(90);
@@ -549,7 +564,9 @@ describe("costs per resource on every basis", () => {
   test("a month of credits takes the net rest below nothing", () => {
     const records: Array<CloudCostRecord> = splitAwsCostsByResource({
       records: [figure({ amount: 100, amortizedAmount: 100, netAmount: -400 })],
-      resourceCosts: [cost({ amount: 100, amortizedAmount: 100, netAmount: 100 })],
+      resourceCosts: [
+        cost({ amount: 100, amortizedAmount: 100, netAmount: 100 }),
+      ],
       coveredDays: new Set<string>(["2026-11-18"]),
       places,
     });
@@ -559,7 +576,11 @@ describe("costs per resource on every basis", () => {
       },
     );
 
-    expect(rest).toMatchObject({ amount: 0, amortizedAmount: 0, netAmount: -500 });
+    expect(rest).toMatchObject({
+      amount: 0,
+      amortizedAmount: 0,
+      netAmount: -500,
+    });
   });
 
   test("resources newer than the figure are the newer figure on every basis", () => {
@@ -576,7 +597,11 @@ describe("costs per resource on every basis", () => {
         return entry.resourceId === "";
       },
     );
-    expect(rest).toMatchObject({ amount: 0, amortizedAmount: 0, netAmount: -5 });
+    expect(rest).toMatchObject({
+      amount: 0,
+      amortizedAmount: 0,
+      netAmount: -5,
+    });
   });
 
   test("a day the resource read did not cover stays a whole-service figure, with its bases", () => {

@@ -174,7 +174,10 @@ export function getAzureCostPeriod(data: { start: Date; end: Date }): {
 }
 
 // The query units a query of those days costs: one for each month it touches.
-export function getAzureCostWindowQpu(data: { start: Date; end: Date }): number {
+export function getAzureCostWindowQpu(data: {
+  start: Date;
+  end: Date;
+}): number {
   return getAzureCostQueryQpu({ timePeriod: getAzureCostPeriod(data) });
 }
 
@@ -207,8 +210,7 @@ export async function readAzureCosts(data: {
     scope: `/subscriptions/${encodeURIComponent(data.subscriptionId)}`,
     apiVersion: AZURE_COST_MANAGEMENT_API_VERSION,
     body,
-    step:
-      data.type === "AmortizedCost" ? "amortized cost query" : "cost query",
+    step: data.type === "AmortizedCost" ? "amortized cost query" : "cost query",
     maxPages: AZURE_COST_MAX_PAGES,
     onPage: (properties: JSONObject): void => {
       const columns: Array<string> = readArray(properties["columns"]).map(

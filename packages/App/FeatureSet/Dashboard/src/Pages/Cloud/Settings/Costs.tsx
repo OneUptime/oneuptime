@@ -184,7 +184,10 @@ const CloudCostSettingsPage: FunctionComponent<
                 );
 
                 return (
-                  <div data-testid="cloud-cost-basis-setting" data-basis={basis}>
+                  <div
+                    data-testid="cloud-cost-basis-setting"
+                    data-basis={basis}
+                  >
                     <div className="text-sm font-medium text-gray-900">
                       {translator.translateText(CLOUD_COST_BASIS_LABELS[basis])}
                     </div>

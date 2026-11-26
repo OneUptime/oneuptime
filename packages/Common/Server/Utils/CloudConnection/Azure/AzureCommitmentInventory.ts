@@ -159,7 +159,9 @@ export function readAzureCommitmentScope(properties: JSONObject): {
   );
   const subscriptionId: string =
     readAzureSubscriptionId(readText(scopeProperties["subscriptionId"])) ||
-    readAzureSubscriptionId(readText(readArray(properties["appliedScopes"])[0]));
+    readAzureSubscriptionId(
+      readText(readArray(properties["appliedScopes"])[0]),
+    );
 
   if (type === "managementgroup") {
     return {
@@ -183,8 +185,7 @@ export function readAzureCommitmentScope(properties: JSONObject): {
         }
       : {
           scope: CloudCommitmentScope.Account,
-          appliesTo:
-            readText(scopeProperties["displayName"]) || subscriptionId,
+          appliesTo: readText(scopeProperties["displayName"]) || subscriptionId,
           subscriptionId,
         };
   }
@@ -326,18 +327,18 @@ export function readAzureSavingsPlan(data: {
           commitmentCost: roundCost(hourly * 24 * 30),
           usedCost:
             utilization !== null
-              ? roundCost(((hourly * 24 * 30) * utilization) / 100)
+              ? roundCost((hourly * 24 * 30 * utilization) / 100)
               : null,
           unusedCost:
             utilization !== null
-              ? roundCost(((hourly * 24 * 30) * (100 - utilization)) / 100)
+              ? roundCost((hourly * 24 * 30 * (100 - utilization)) / 100)
               : null,
           coveredOnDemandCost: null,
           netSavings: null,
           weekCommitmentCost: roundCost(hourly * 24 * 7),
           weekUnusedCost:
             weekUtilization !== null
-              ? roundCost(((hourly * 24 * 7) * (100 - weekUtilization)) / 100)
+              ? roundCost((hourly * 24 * 7 * (100 - weekUtilization)) / 100)
               : null,
         }
       : null;

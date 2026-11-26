@@ -134,7 +134,9 @@ export interface CloudCommitmentAlertConfiguration
 export function readCloudCommitmentAlertConfiguration(
   setting: CloudCostSetting,
 ): CloudCommitmentAlertConfiguration {
-  const ids: (rows: Array<{ id?: ObjectID | null }> | undefined) => Array<ObjectID> = (
+  const ids: (
+    rows: Array<{ id?: ObjectID | null }> | undefined,
+  ) => Array<ObjectID> = (
     rows: Array<{ id?: ObjectID | null }> | undefined,
   ): Array<ObjectID> => {
     return (rows || [])
@@ -148,7 +150,9 @@ export function readCloudCommitmentAlertConfiguration(
 
   return {
     isEnabled: setting.isCommitmentAlertsEnabled !== false,
-    expiryDays: readCloudCommitmentExpiryDays(setting.commitmentExpiryAlertDays),
+    expiryDays: readCloudCommitmentExpiryDays(
+      setting.commitmentExpiryAlertDays,
+    ),
     utilizationThreshold: readCloudCommitmentPercentThreshold(
       setting.commitmentUtilizationThreshold,
       CLOUD_COMMITMENT_DEFAULT_UTILIZATION_THRESHOLD,
@@ -307,7 +311,10 @@ export default class CloudCommitmentAlertEvaluator {
       `${noun} ${name} in ${data.accountScope} was ${percent}% used over the last 7 days, under the ${data.threshold}% commitments alert at.`,
     ];
 
-    if (figures?.weekUnusedCost !== null && figures?.weekUnusedCost !== undefined) {
+    if (
+      figures?.weekUnusedCost !== null &&
+      figures?.weekUnusedCost !== undefined
+    ) {
       sentences.push(
         `Its unused part cost ${formatCloudBudgetAmount(
           figures.weekUnusedCost,
@@ -464,7 +471,9 @@ export default class CloudCommitmentAlertEvaluator {
           commitment,
           all: commitments,
           configuration,
-          account: accountsById.get(commitment.cloudAccountId?.toString() || ""),
+          account: accountsById.get(
+            commitment.cloudAccountId?.toString() || "",
+          ),
           now,
         });
       }
@@ -502,33 +511,31 @@ export default class CloudCommitmentAlertEvaluator {
     const previous: CloudCommitmentAlertState = readCloudCommitmentAlertState(
       commitment.alertState,
     );
-    const decision: CloudCommitmentAlertDecision = decideCloudCommitmentAlerts(
-      {
-        facts: {
-          state: isCloudCommitmentState(commitment.state)
-            ? commitment.state
-            : CloudCommitmentState.Active,
-          startsAt: commitment.startsAt
-            ? new Date(commitment.startsAt)
-            : undefined,
-          endsAt: commitment.endsAt ? new Date(commitment.endsAt) : undefined,
-          isAutoRenew: commitment.isAutoRenew === true,
-          hasQueuedRenewal: hasQueuedCloudCommitmentRenewal({
-            commitment,
-            all: data.all,
-          }),
-          weekUtilizationPercent:
-            commitment.weekUtilizationPercent === undefined ||
-            commitment.weekUtilizationPercent === null
-              ? null
-              : Number(commitment.weekUtilizationPercent),
-          isListed: true,
-        },
-        state: previous,
-        settings: data.configuration,
-        now: data.now,
+    const decision: CloudCommitmentAlertDecision = decideCloudCommitmentAlerts({
+      facts: {
+        state: isCloudCommitmentState(commitment.state)
+          ? commitment.state
+          : CloudCommitmentState.Active,
+        startsAt: commitment.startsAt
+          ? new Date(commitment.startsAt)
+          : undefined,
+        endsAt: commitment.endsAt ? new Date(commitment.endsAt) : undefined,
+        isAutoRenew: commitment.isAutoRenew === true,
+        hasQueuedRenewal: hasQueuedCloudCommitmentRenewal({
+          commitment,
+          all: data.all,
+        }),
+        weekUtilizationPercent:
+          commitment.weekUtilizationPercent === undefined ||
+          commitment.weekUtilizationPercent === null
+            ? null
+            : Number(commitment.weekUtilizationPercent),
+        isListed: true,
       },
-    );
+      state: previous,
+      settings: data.configuration,
+      now: data.now,
+    });
 
     for (const entry of decision.resolve) {
       await CloudCommitmentAlertEvaluator.resolveAlert({
@@ -549,21 +556,23 @@ export default class CloudCommitmentAlertEvaluator {
           accountScope,
           daysLeft: decision.raiseExpiry.daysLeft,
         });
-      const alertId: ObjectID | null = await CloudCommitmentAlertEvaluator.raise(
-        {
+      const alertId: ObjectID | null =
+        await CloudCommitmentAlertEvaluator.raise({
           projectId: data.projectId,
           fingerprint: `cloud-commitment:${commitment.id.toString()}:expiry-${decision.raiseExpiry.threshold}`,
           words,
           configuration: data.configuration,
-        },
-      );
+        });
 
       if (alertId) {
         decision.state.expiryAlertId = alertId.toString();
       }
     }
 
-    if (decision.raiseUnderUse && data.configuration.utilizationThreshold !== null) {
+    if (
+      decision.raiseUnderUse &&
+      data.configuration.utilizationThreshold !== null
+    ) {
       const words: { title: string; description: string } =
         CloudCommitmentAlertEvaluator.describeUnderUse({
           commitment,
@@ -571,14 +580,13 @@ export default class CloudCommitmentAlertEvaluator {
           utilizationPercent: decision.raiseUnderUse.utilizationPercent,
           threshold: data.configuration.utilizationThreshold,
         });
-      const alertId: ObjectID | null = await CloudCommitmentAlertEvaluator.raise(
-        {
+      const alertId: ObjectID | null =
+        await CloudCommitmentAlertEvaluator.raise({
           projectId: data.projectId,
           fingerprint: `cloud-commitment:${commitment.id.toString()}:under-use`,
           words,
           configuration: data.configuration,
-        },
-      );
+        });
 
       if (alertId) {
         decision.state.underUseAlertId = alertId.toString();
@@ -671,8 +679,8 @@ export default class CloudCommitmentAlertEvaluator {
         continue;
       }
 
-      const alertId: ObjectID | null = await CloudCommitmentAlertEvaluator.raise(
-        {
+      const alertId: ObjectID | null =
+        await CloudCommitmentAlertEvaluator.raise({
           projectId: data.projectId,
           fingerprint: `cloud-commitment-coverage:${entry.key}`,
           words: CloudCommitmentAlertEvaluator.describeCoverage({
@@ -686,8 +694,7 @@ export default class CloudCommitmentAlertEvaluator {
             currency: fact.currency,
           }),
           configuration: data.configuration,
-        },
-      );
+        });
 
       if (alertId && decision.state[entry.key]) {
         decision.state[entry.key]!.alertId = alertId.toString();

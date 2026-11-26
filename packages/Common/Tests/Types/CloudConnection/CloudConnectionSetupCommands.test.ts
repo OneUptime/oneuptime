@@ -293,7 +293,9 @@ describe("AWS", () => {
 
     // The Savings Plans API's one read, and Cost Optimization Hub's two.
     expect(readers).toContain('path: "/DescribeSavingsPlans"');
-    expect(readers).toContain('"CostOptimizationHubService.ListRecommendations"');
+    expect(readers).toContain(
+      '"CostOptimizationHubService.ListRecommendations"',
+    );
     expect(readers).toContain('"CostOptimizationHubService.GetRecommendation"');
     expect(
       AWS_READ_ONLY_ACTION_GROUPS.map((group: { purpose: string }): string => {
@@ -749,7 +751,7 @@ describe("Azure", () => {
     expect(AZURE_COST_ROLE).toBe("Cost Management Reader");
     // Of billing, the readers of costs and commitments only: never a contributor.
     expect(getAzureSetupCommand()).not.toContain("Contributor");
-    expect(getAzureSetupCommand()).not.toContain("Administrator\" --scope");
+    expect(getAzureSetupCommand()).not.toContain('Administrator" --scope');
     expect(
       AZURE_COMMITMENT_READER_ROLES.every(
         (entry: { role: string }): boolean => {
@@ -759,7 +761,10 @@ describe("Azure", () => {
     ).toBe(true);
     // No billing account's role: the savings plans' provider scope is the only billing word.
     expect(
-      getAzureSetupCommand().replace(/\/providers\/Microsoft\.BillingBenefits/g, ""),
+      getAzureSetupCommand().replace(
+        /\/providers\/Microsoft\.BillingBenefits/g,
+        "",
+      ),
     ).not.toContain("Billing");
   });
 

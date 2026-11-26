@@ -320,7 +320,7 @@ describe("a tenant of 50 subscriptions", () => {
      * never half read.
      */
     let reads: number = 1;
-    let askedBefore: Set<string> = new Set(
+    const askedBefore: Set<string> = new Set(
       first.asked.map((query: FakeCostQuery): string => {
         return query.subscriptionId;
       }),
@@ -352,7 +352,9 @@ describe("a tenant of 50 subscriptions", () => {
         expect(putOff).toContain(subscriptionId);
       }
 
-      askedBefore = new Set([...askedBefore, ...asked]);
+      for (const subscriptionId of asked) {
+        askedBefore.add(subscriptionId);
+      }
       // A read that carried on keeps the twelve-hour beat where it was.
       expect(state.costsReadAt).toBe(START.toISOString());
     }

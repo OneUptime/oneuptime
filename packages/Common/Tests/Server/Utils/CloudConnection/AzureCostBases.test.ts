@@ -101,9 +101,7 @@ function costManagement(): FakeProviderApi & {
       host: "management.azure.com",
       path: /^\/subscriptions\/[^/]+\/providers\/Microsoft\.CostManagement\/query$/,
       respond: (request: DataSourceHttpRequest): FakeResponse => {
-        const body: JSONObject = JSON.parse(
-          String(request.body),
-        ) as JSONObject;
+        const body: JSONObject = JSON.parse(String(request.body)) as JSONObject;
 
         if (body["type"] === "AmortizedCost") {
           return json({
@@ -243,7 +241,11 @@ describe("a subscription's records on each basis", () => {
 
     expect(
       mergeAzureCostRecords({
-        amortized: [record("vm-1", 7.5), record("vm-1", 0.5), record("vm-2", 3)],
+        amortized: [
+          record("vm-1", 7.5),
+          record("vm-1", 0.5),
+          record("vm-2", 3),
+        ],
         actual: [record("vm-1", 12), record("reservation", 2920)],
       }),
     ).toEqual([

@@ -52,9 +52,7 @@ export const GCP_COMMITMENT_ASSET_TYPE: string =
   "compute.googleapis.com/Commitment";
 
 // What a resource of a commitment is, as people read it: "96 vCPU", "384 GB memory".
-export function describeGcpCommitmentResources(
-  commitment: JSONObject,
-): string {
+export function describeGcpCommitmentResources(commitment: JSONObject): string {
   const parts: Array<string> = [];
 
   for (const raw of readArray(commitment["resources"])) {
@@ -131,8 +129,7 @@ export function readGcpCommitment(data: {
 }): CloudCommitmentRecord | null {
   const commitment: JSONObject = data.commitment;
   const name: string = readText(commitment["name"]);
-  const region: string =
-    readText(commitment["region"]).split("/").pop() || "";
+  const region: string = readText(commitment["region"]).split("/").pop() || "";
   const commitmentId: string =
     readText(commitment["selfLink"]) ||
     (name

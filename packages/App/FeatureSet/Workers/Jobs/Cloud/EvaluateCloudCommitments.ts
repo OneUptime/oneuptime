@@ -25,7 +25,8 @@ RunCron(
   { schedule: EVERY_HOUR, runOnStartup: false },
   async (): Promise<void> => {
     try {
-      const evaluated: number = await CloudCommitmentAlertEvaluator.evaluateAll();
+      const evaluated: number =
+        await CloudCommitmentAlertEvaluator.evaluateAll();
 
       if (evaluated > 0) {
         logger.debug(

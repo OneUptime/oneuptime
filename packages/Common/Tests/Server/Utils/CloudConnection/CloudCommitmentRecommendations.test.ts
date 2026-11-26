@@ -122,18 +122,18 @@ const RESERVED_INSTANCES_DETAILS: JSONObject = {
 
 describe("what a recommended commitment would buy", () => {
   test("a Savings Plans purchase: its term, payment, hourly commitment and monthly cost", () => {
-    expect(readAwsCommitmentRecommendationDetails(SAVINGS_PLANS_DETAILS)).toEqual(
-      {
-        termMonths: 12,
-        paymentOption: CloudCommitmentPaymentOption.AllUpfront,
-        hourlyCommitment: 1.25,
-        quantity: null,
-        configuration: "Compute Savings Plans",
-        upfrontCost: null,
-        monthlyRecurringCost: null,
-        monthlyCost: 912.5,
-      },
-    );
+    expect(
+      readAwsCommitmentRecommendationDetails(SAVINGS_PLANS_DETAILS),
+    ).toEqual({
+      termMonths: 12,
+      paymentOption: CloudCommitmentPaymentOption.AllUpfront,
+      hourlyCommitment: 1.25,
+      quantity: null,
+      configuration: "Compute Savings Plans",
+      upfrontCost: null,
+      monthlyRecurringCost: null,
+      monthlyCost: 912.5,
+    });
   });
 
   test("a Reserved Instances purchase: how many of which type, and its fees", () => {
@@ -325,7 +325,11 @@ describe("Cost Optimization Hub's commitments, with their details", () => {
   test(`no more than ${AWS_COMMITMENT_DETAILS_MAX} commitments' details a read`, async () => {
     const many: Array<JSONObject> = [];
 
-    for (let index: number = 0; index < AWS_COMMITMENT_DETAILS_MAX + 5; index++) {
+    for (
+      let index: number = 0;
+      index < AWS_COMMITMENT_DETAILS_MAX + 5;
+      index++
+    ) {
       many.push({
         recommendationId: `sp-${index}`,
         accountId: "123456789012",

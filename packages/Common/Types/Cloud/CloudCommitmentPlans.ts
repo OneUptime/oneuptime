@@ -28,7 +28,8 @@ import {
 export const CLOUD_PLAN_DAYS_PER_MONTH: number = 365.25 / 12;
 
 // Hours in a month: an hourly commitment's month.
-export const CLOUD_PLAN_HOURS_PER_MONTH: number = 24 * CLOUD_PLAN_DAYS_PER_MONTH;
+export const CLOUD_PLAN_HOURS_PER_MONTH: number =
+  24 * CLOUD_PLAN_DAYS_PER_MONTH;
 
 // The share of a commitment's whole cost a payment option pays up front.
 export const CLOUD_PLAN_UPFRONT_SHARE: Readonly<
@@ -355,7 +356,8 @@ export function getCloudCommitmentPurchasePlan(data: {
     const eligible: number =
       data.coverage.coveredSpend + data.coverage.onDemandSpend;
     // What it would cover over the same 30 days the coverage is over.
-    const covers: number = (monthlyOnDemandCost * 30) / CLOUD_PLAN_DAYS_PER_MONTH;
+    const covers: number =
+      (monthlyOnDemandCost * 30) / CLOUD_PLAN_DAYS_PER_MONTH;
     coverageNowPercent = percentOf(data.coverage.coveredSpend, eligible);
     coverageAfterPercent = percentOf(
       Math.min(eligible, data.coverage.coveredSpend + covers),
