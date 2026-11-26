@@ -532,7 +532,7 @@ describe("a PowerScale cluster's inventory lists", () => {
     expect(document.body).not.toHaveTextContent(/Purity|FlashArray|FlashBlade/);
   });
 
-  test("lists its quotas fullest first", async () => {
+  test("lists its quotas largest first", async () => {
     mockLastParam = POWERSCALE_QUOTA_KIND;
     mockParts = [
       quota("/ifs/data/home", 2 * TIB),
