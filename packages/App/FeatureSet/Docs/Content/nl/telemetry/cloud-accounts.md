@@ -26,7 +26,7 @@ flowchart TB
     ou --> chg["Wijzigingen en<br/>statusgebeurtenissen"]
 ```
 
-- **De toegang kan alleen lezen.** De opdracht maakt toegang die je resources en hun instellingen, hun metrieken, wat er is gewijzigd, de statusgebeurtenissen van je provider en wat het account kost leest, en verder niets: de acties hieronder op AWS, de rollen **Monitoring Reader** en **Cost Management Reader** op Azure en zes leesrollen op Google Cloud. OneUptime leest er nooit gegevens of geheimen mee, behalve logregels als je AI de logs van een account laat lezen, en inhoudsvoorbeelden als je ze aanzet voor [Gegevensbeveiliging](#gegevensbeveiliging). Verwijder haar om OneUptime de toegang te ontnemen.
+- **De toegang kan alleen lezen.** De opdracht maakt toegang die je resources en hun instellingen, hun metrieken, wat er is gewijzigd, de statusgebeurtenissen van je provider en wat het account kost leest, en verder niets: de acties hieronder op AWS, de rollen **Monitoring Reader** en **Cost Management Reader** op Azure, met **Reservations Reader** en **Savings plan Reader** als een globale beheerder ze toekent, en zes leesrollen op Google Cloud. OneUptime leest er nooit gegevens of geheimen mee, behalve logregels als je AI de logs van een account laat lezen, en inhoudsvoorbeelden als je ze aanzet voor [Gegevensbeveiliging](#gegevensbeveiliging). Verwijder haar om OneUptime de toegang te ontnemen.
 - **OneUptime leest volgens een schema.** Elke 5 minuten voor Azure en Google Cloud, en elke 10 minuten voor AWS, tenzij je bij het koppelen een ander interval kiest. Elke keer lezen legt ook vast wat er sinds de vorige keer is gewijzigd, en elke 30 minuten toont een leesbeurt alle resources opnieuw.
 - **Elke resource krijgt een eigen pagina.** Resources verschijnen onder **Cloud → Alle resources** met hun status, belangrijkste metrieken, eigenaren en labels. De pagina van een vermelde resource toont ook de **Verbonden resources** (waarin die draait, wat er verkeer naartoe stuurt), de endpoints, tags en instellingen, en de **Incidenten**, **Waarschuwingen** en **Wijzigingen**.
 - **Elk account krijgt een eigen pagina.** Accounts verschijnen onder **Cloud → Accounts** met hun resources per type en regio, hun **Kosten**, hun **Wijzigingen** en een **Topologie** van hoe hun resources samenhangen.
@@ -84,7 +84,7 @@ De rol en de gebruiker kunnen dit, en verder niets:
 | Logregels lezen, alleen als je AI de logs van een account laat lezen | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | De accounts van de organisatie tonen, vanuit het beheeraccount | `organizations:ListAccounts` |
 
-`apigateway:GET` is alleen toegestaan op de definities van de API's zelf, nooit op hun sleutels, en alleen de rol van het beheeraccount mag de accounts van de organisatie tonen. AWS Health antwoordt alleen accounts met een Business-, Enterprise On-Ramp- of Enterprise-supportplan: zonder een plan vraagt OneUptime het een dag later opnieuw.
+`apigateway:GET` is alleen toegestaan op de definities van de API's zelf, nooit op hun sleutels, en alleen de rol van het beheeraccount mag de accounts van de organisatie tonen. De leesacties van Cost Explorer zijn toegestaan als drie families van `Get`-acties, voor kosten, Savings Plans en reserveringen, die niets wijzigen: noch de rol noch de gebruiker mag een toezegging kopen, verlengen of retourneren. AWS Health antwoordt alleen accounts met een Business-, Enterprise On-Ramp- of Enterprise-supportplan: zonder een plan vraagt OneUptime het een dag later opnieuw.
 
 In elke regio toont OneUptime EC2-instanties en -volumes, VPC's, subnetten en beveiligingsgroepen, NAT-gateways, Auto Scaling-groepen, load balancers (Application, Network, Gateway en Classic), EKS-clusters, ECS-clusters en -services, Lambda-functies, RDS-databases, ElastiCache, SQS-wachtrijen, SNS-onderwerpen, DynamoDB-tabellen, Kinesis-streams, Step Functions-statusmachines, API Gateway-API's, EFS-bestandssystemen, OpenSearch-domeinen, App Runner-services, Elastic Beanstalk-omgevingen, WAF-web-ACL's, Network Firewall-firewalls, Cognito-gebruikerspools, AppSync GraphQL-API's en SageMaker-endpoints met hun tags, CloudFront-distributies en hun web-ACL's één keer, in us-east-1, en Global Accelerator-accelerators één keer, in us-west-2. Het legt ook vast hoe ze samenhangen: het subnet en de VPC waarin elke resource draait en de beveiligingsgroepen die hem beschermen, waarheen elke load balancer verkeer stuurt, en het netwerk en de node-instanties van elk EKS-cluster. Een rol die is gemaakt voordat OneUptime een type toonde, wordt nog steeds zonder dat type gelezen, zonder waarschuwing: voer de opdracht opnieuw uit om ook dat type te tonen, zoals subnetten, beveiligingsgroepen en EKS-clusters, of de web-ACL's, firewalls, accelerators, gebruikerspools, GraphQL-API's en endpoints, die dan al worden getoond voordat ze een metriek rapporteren.
 
@@ -102,7 +102,7 @@ Ga naar **Cloud → Koppelen** en kies **Microsoft Azure**.
 
 ### De opdracht uitvoeren in Azure Cloud Shell
 
-De opdracht maakt een app met de rollen **Monitoring Reader** en **Cost Management Reader** op je huidige abonnement, en toont de gegevens ervan met de datum waarop het geheim verloopt:
+De opdracht maakt een app met de rollen **Monitoring Reader** en **Cost Management Reader** op je huidige abonnement, probeert haar **Reservations Reader** en **Savings plan Reader** op de tenant te geven, om de reserveringen en besparingsplannen ervan te tonen, wat alleen een globale beheerder met verhoogde toegang mag (voor ieder ander meldt ze dat ze niet zijn toegekend en gaat ze verder), en toont de gegevens van de app met de datum waarop het geheim verloopt:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -312,9 +312,9 @@ Een zaak leest een wijziging alleen via een koppeling die het account bereikt wa
 | Metrieken | De belangrijkste metrieken van elke service, zoals de CPU, het netwerk en de statuscontroles van een instance | Maximaal 20 belangrijke metrieken per resource | De belangrijkste metrieken van elk resourcetype |
 | Wijzigingen | De beheergebeurtenissen van CloudTrail | De beheergebeurtenissen van het activiteitenlogboek | Het auditlogboek Admin Activity |
 | Statusgebeurtenissen | AWS Health | Service Health en Resource Health | Service Health |
-| Kosten | Die van elke dag, per dienst en regio, en per resource met Kosten per resource aan, uit Cost Explorer | Die van elke dag, per resource en dienst, uit Cost Management | Die van elke dag, per dienst, regio en resource, uit je factuurexport naar BigQuery |
+| Kosten | Die van elke dag, gefactureerd, geamortiseerd en netto, per dienst en regio, en per resource met Kosten per resource aan, uit Cost Explorer | Die van elke dag, werkelijk en geamortiseerd, per resource en dienst, uit Cost Management | Die van elke dag, met en zonder hun tegoeden, per dienst, regio en resource, uit je factuurexport naar BigQuery |
 | Manieren om minder uit te geven | Cost Optimization Hub | Azure Advisor | De Recommender |
-| Toezeggingen | Savings Plans en Reserved Instances: wat ze dekken en hoeveel ervan wordt gebruikt, uit Cost Explorer | Besparingsplannen en reserveringen, uit Cost Management | Kortingen voor toegezegd gebruik, uit je factuurexport naar BigQuery |
+| Toezeggingen | Savings Plans en Reserved Instances: wat ze dekken en hoeveel ervan wordt gebruikt, uit Cost Explorer, en elk afzonderlijk met het einde, uit Cost Explorer en de Savings Plans API | Besparingsplannen en reserveringen: wat ze dekken, uit Cost Management, en elk afzonderlijk met het einde, met Reservations Reader en Savings plan Reader | Kortingen voor toegezegd gebruik: wat ze dekken, uit je factuurexport naar BigQuery, en elke toezegging van Compute Engine met het einde, uit Cloud Asset Inventory |
 | Gelezen elke | 10 minuten | 5 minuten | 5 minuten |
 | Een verwijderde resource | Gearchiveerd zodra een volledige lijst hem niet meer bevat | Gearchiveerd zodra een volledige lijst hem niet meer bevat | Gearchiveerd zodra een volledige lijst hem niet meer bevat |
 
@@ -325,7 +325,7 @@ De aanroepen van OneUptime worden aan je cloudaccount gefactureerd, tegen de pri
 | Cloud | Prijs |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 per 1.000 metrieken, en elke belangrijke metriek van een resource is één metriek per leesbeurt |
-| AWS-kosten | Cost Explorer: $0.01 per verzoek. Een leesbeurt van de kosten doet er een paar, de toezeggingen vier per dag en Kosten per resource nog een paar per dag |
+| AWS-kosten | Cost Explorer: $0.01 per verzoek. Een leesbeurt van de kosten doet er twee of een paar meer, de toezeggingen tien tot zestien per dag en Kosten per resource nog een paar per dag |
 | Azure | De eerste 1.000.000 metriekleesbeurten per maand van elk abonnement zijn gratis, daarna $0.01 per 1.000 |
 | Google Cloud | De eerste 1.000.000 gelezen tijdreeksen per maand zijn gratis, daarna $0.50 per miljoen |
 | Google Cloud-kosten | BigQuery factureert de query op je factuurexport: de eerste 1 TiB per maand is gratis, daarna $6.25 per TiB |

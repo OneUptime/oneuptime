@@ -102,7 +102,7 @@ Go to **Cloud → Connect** and pick **Microsoft Azure**.
 
 ### Run the command in Azure Cloud Shell
 
-The command creates an app with the **Monitoring Reader** and **Cost Management Reader** roles on your current subscription, tries to give it **Reservations Reader** and **Savings plan Reader** on the tenant, to list its reservations and savings plans, and prints its details with the date its secret expires. Only a Global Administrator with elevated access may grant those two: for anyone else the command says they were not granted and goes on, and the connection reads everything else.
+The command creates an app with the **Monitoring Reader** and **Cost Management Reader** roles on your current subscription, tries to give it **Reservations Reader** and **Savings plan Reader** on the tenant, to list its reservations and savings plans, which only a Global Administrator with elevated access may grant (for anyone else it says they were not granted and goes on), and prints the app's details with the date its secret expires:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"

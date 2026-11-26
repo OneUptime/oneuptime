@@ -7,7 +7,7 @@ A connected cloud account also says what it costs and how it could cost less. On
 - [Microsoft Azure](#microsoft-azure): Cost Management and Azure Advisor, with one more role.
 - [Google Cloud](#google-cloud): Your billing export to BigQuery, and the Recommender.
 - [Billed, amortized and net](#billed-amortized-and-net): Each cost three ways, so commitments and credits land where the money went.
-- [Commitments](#commitments): Every commitment, alerts before one ends or while it is under-used, and what to renew or buy.
+- [Commitments and renewals](#commitments-and-renewals): Every commitment, alerts before one ends or while it is under-used, and what to renew or buy.
 - [Budgets](#budgets): An alert as a month's spend passes a share of its budget.
 :::
 
@@ -133,9 +133,9 @@ A resource is sized once it has 6 days of readings. Its page shows its **Right-s
 - Azure: savings plans and reservations, from Cost Management, in amortized cost.
 - Google Cloud: committed use discounts, from your billing export. The export does not say how much of a commitment went unused, so how much is used is not shown.
 
-An account with none says what ran at on-demand rates that a commitment would pay for at a lower rate. Each kind's figures are its cloud's own, and kinds are never added together: a reservation and a savings plan can both count the same machine's spend as theirs to cover. Each commitment on its own is listed under **Cloud → Spend → Commitments**: see [Commitments](#commitments).
+An account with none says what ran at on-demand rates that a commitment would pay for at a lower rate. Each kind's figures are its cloud's own, and kinds are never added together: a reservation and a savings plan can both count the same machine's spend as theirs to cover. Each commitment on its own is listed under **Cloud → Spend → Commitments**: see [Commitments and renewals](#commitments-and-renewals).
 
-## Commitments
+## Commitments and renewals
 
 **Cloud → Spend → Commitments** lists every Savings Plan, reservation and committed use discount your connections can read, so none ends unnoticed:
 

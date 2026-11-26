@@ -1,11 +1,13 @@
 # Cloudomkostninger og besparelser
 
-En forbundet cloudkonto siger også, hvad den koster, og hvordan den kunne koste mindre. OneUptime læser hver dags omkostninger fra din clouds egen fakturering og anbefalingerne fra din clouds egen anbefalingstjeneste, viser dem under **Cloud → Forbrug → Omkostninger** og **Cloud → Forbrug → Besparelser** og advarer, før en måned koster mere end sit budget under **Cloud → Forbrug → Budgetter**.
+En forbundet cloudkonto siger også, hvad den koster, og hvordan den kunne koste mindre. OneUptime læser hver dags omkostninger fra din clouds egen fakturering og anbefalingerne fra din clouds egen anbefalingstjeneste, viser dem under **Cloud → Forbrug → Omkostninger** og **Cloud → Forbrug → Besparelser**, viser dine Savings Plans, reservationer og rabatter for forpligtet brug under **Cloud → Forbrug → Forpligtelser** og advarer, før en måned koster mere end sit budget under **Cloud → Forbrug → Budgetter**.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer og Cost Optimization Hub, hver slået til én gang.
 - [Microsoft Azure](#microsoft-azure): Cost Management og Azure Advisor, med én rolle mere.
 - [Google Cloud](#google-cloud): Din faktureringseksport til BigQuery og Recommender.
+- [Faktureret, amortiseret og netto](#faktureret-amortiseret-og-netto): Hver omkostning på tre måder, så forpligtelser og kreditter lander, hvor pengene gik hen.
+- [Forpligtelser og fornyelser](#forpligtelser-og-fornyelser): Hver forpligtelse, advarsler før en udløber, eller mens den er underudnyttet, og hvad der skal fornyes eller købes.
 - [Budgetter](#budgetter): En advarsel, når en måneds forbrug passerer en andel af dens budget.
 :::
 
@@ -20,7 +22,7 @@ flowchart TB
     savings --> overview
 ```
 
-- **Omkostningerne kommer fra din clouds egen fakturering.** AWS Cost Explorer, Azure Cost Management og Google Clouds faktureringseksport til BigQuery, før kreditter og refusioner, i den valuta, kontoen faktureres i. Hvert beløb er en dags, i UTC-dage, som din cloud fakturerer dem.
+- **Omkostningerne kommer fra din clouds egen fakturering.** AWS Cost Explorer, Azure Cost Management og Google Clouds faktureringseksport til BigQuery, i den valuta, kontoen faktureres i, hver gemt faktureret, amortiseret og netto: se [Faktureret, amortiseret og netto](#faktureret-amortiseret-og-netto). Hvert beløb er en dags, i UTC-dage, som din cloud fakturerer dem.
 - **En cloud rapporterer den sidste dag eller to for sent.** Hver læsning tager den sidste uge igen og hele sidste måned i en måneds første dage, så en dags omkostning falder på plads, efterhånden som din cloud afslutter den. En forbindelses første læsning går tilbage til starten af måneden før sidste måned.
 - **Månedens fremskrivning følger tempoet i den sidste uge.** Den er, hvad måneden har kostet indtil nu, med hver dag, der er tilbage, til gennemsnittet af de sidste syv hele dage.
 - **Besparelserne kommer fra din clouds egen anbefalingstjeneste.** AWS Cost Optimization Hub, Azure Advisor og Google Clouds Recommender: en mindre størrelse, en ressource, der står ubrugt, en forpligtelse, der kan betale sig, hver med det, den ville spare om måneden. En anbefaling, du udfører eller afviser i din clouds konsol, forsvinder ved den næste læsning.
@@ -31,7 +33,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-Forbindelsen læser omkostninger med `ce:GetCostAndUsage`, sine forpligtelser med `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` og `ce:GetReservationUtilization` og anbefalinger med `cost-optimization-hub:ListRecommendations`. Cost Explorer og Cost Optimization Hub skal først slås til i kontoen:
+Forbindelsen læser omkostninger med `ce:GetCostAndUsage`, sine forpligtelser med `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetSavingsPlansUtilizationDetails`, `ce:GetReservationCoverage` og `ce:GetReservationUtilization`, de købte Savings Plans med `savingsplans:DescribeSavingsPlans` og anbefalinger med `cost-optimization-hub:ListRecommendations` og `cost-optimization-hub:GetRecommendation`. Opsætningskommandoen tildeler Cost Explorers læsninger som tre familier, `ce:GetCostAndUsage*`, `ce:GetSavingsPlans*` og `ce:GetReservation*`, alle sammen læsninger, så en adgangsnøgles bruger stadig holder sig inden for de 2.048 tegn, IAM tillader dens politik. Cost Explorer og Cost Optimization Hub skal først slås til i kontoen:
 
 :::steps
 ### Slå Cost Explorer til
@@ -43,7 +45,7 @@ Forbindelsen læser omkostninger med `ce:GetCostAndUsage`, sine forpligtelser me
 Åbn Cost Optimization Hub i den samme konsol og tilmeld dig, for organisationen fra dens administrationskonto eller kun for kontoen. Dens anbefalinger kommer inden for en dag.
 :::
 
-Cost Explorer tager $0.01 for hver forespørgsel: en læsning af omkostningerne laver nogle få, og forpligtelserne læses med fire om dagen. Cost Optimization Hub er gratis.
+Cost Explorer tager $0.01 for hver forespørgsel: en læsning af omkostningerne laver to eller nogle få flere, en for faktureret og amortiseret og en for netto, og forpligtelserne læses med fire om dagen for deres dækning og brug og seks til tolv flere om dagen for hver enkelts egen. Savings Plans API og Cost Optimization Hub er gratis.
 
 ### Omkostninger pr. ressource
 
@@ -61,7 +63,16 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management svarer for hvert abonnement, med den ressource, hver omkostning gælder, og det koster intet at læse. Når den ikke kan svare for et abonnement, siger kontoens **Omkostninger** hvorfor.
 
-Cost Management begrænser, hvor hurtigt en tenants omkostninger læses, ens for alle, der læser dem: hver forespørgsel koster en forespørgselsbehandlingsenhed (QPU) for hver måned data, den læser, og en tenant har 12 QPU hvert 10. sekund, 60 i minuttet og 600 i timen. OneUptime læser en tenants abonnementer et ad gangen inden for to tredjedele af hver kvote, venter så længe, Cost Management beder om, når den afviser en forespørgsel, og fortsætter ved næste læsning, hvor den slap. Et abonnement, der ikke er læst endnu, siger **I kø** og hvornår det læses; et, der har beløb, beholder dem imens.
+Cost Management begrænser, hvor hurtigt en tenants omkostninger læses, ens for alle, der læser dem: hver forespørgsel koster en forespørgselsbehandlingsenhed (QPU) for hver måned data, den læser, og en tenant har 12 QPU hvert 10. sekund, 60 i minuttet og 600 i timen. OneUptime læser en tenants abonnementer et ad gangen inden for to tredjedele af hver kvote, venter så længe, Cost Management beder om, når den afviser en forespørgsel, og fortsætter ved næste læsning, hvor den slap. Et abonnement, der ikke er læst endnu, siger **I kø** og hvornår det læses; et, der har beløb, beholder dem imens. Dets amortiserede omkostninger læses ved hver læsning og dets faktiske omkostninger én gang om dagen, så et abonnements første læsning spørger Cost Management to gange og bruger dobbelt så mange forespørgselsenheder: en stor tenants første beløb tager nogle få læsninger mere.
+
+Tenantens reservationer og besparelsesplaner læses med **Reservations Reader** og **Savings plan Reader**, som Azure giver på tenantens eget niveau, hvor kun en global administrator med forhøjet adgang må tildele dem. Opsætningskommandoen forsøger og siger det, når den ikke må. For at tildele dem senere, som global administrator med forhøjet adgang:
+
+```bash
+az role assignment create --assignee <APP_ID> --role "Reservations Reader" --scope /providers/Microsoft.Capacity
+az role assignment create --assignee <APP_ID> --role "Savings plan Reader" --scope /providers/Microsoft.BillingBenefits
+```
+
+Uden dem læses omkostninger og anbefalinger som før, og **Cloud → Forbrug → Forpligtelser** siger, hvilken rolle der skal tildeles.
 
 ## Google Cloud
 
@@ -81,7 +92,25 @@ Giv forbindelsens tjenestekonto **BigQuery Data Viewer** på eksportens datasæt
 Redigér forbindelsen under **Cloud → Forbind**, og sæt under **Flere felter** **Tabel for faktureringseksport** til tabellens fulde navn: `<PROJECT_ID>.<DATASET>.gcp_billing_export_resource_v1_<BILLING_ACCOUNT_ID>`.
 :::
 
-Den detaljerede eksport nævner den ressource, hver omkostning gælder; standardeksporten siger kun tjenesten og regionen. BigQuery fakturerer forespørgslen: den første 1 TiB om måneden er gratis, derefter $6.25 pr. TiB, og en måned af en eksport fylder fra nogle få megabyte til nogle få gigabyte. Recommenders anbefalinger om maskintyper og ubrugte ressourcer læses med **Compute Recommender Viewer**, som opsætningskommandoen tildeler, og koster intet.
+Den detaljerede eksport nævner den ressource, hver omkostning gælder; standardeksporten siger kun tjenesten og regionen. BigQuery fakturerer forespørgslen: den første 1 TiB om måneden er gratis, derefter $6.25 pr. TiB, og en måned af en eksport fylder fra nogle få megabyte til nogle få gigabyte. Recommenders anbefalinger om maskintyper og ubrugte ressourcer læses med **Compute Recommender Viewer**, som opsætningskommandoen tildeler, og koster intet. Compute Engines forpligtelser vises fra Cloud Asset Inventory med **Cloud Asset Viewer**, som opsætningskommandoen allerede tildeler: der skal ikke gives mere.
+
+## Faktureret, amortiseret og netto
+
+Hver omkostning gemmes på tre måder, og **Cloud → Forbrug → Omkostninger**, en kontos **Omkostninger**, Clouds oversigt og budgetter viser den, du vælger:
+
+- **Faktureret** er hver opkrævning den dag, din cloud fakturerede den, før kreditter og refusioner. En forudbetalt Savings Plan eller reservation er én stor opkrævning den dag, den blev købt, og det brug, den dækker, ser gratis ud resten af løbetiden.
+- **Amortiseret** fordeler hver forpligtelses gebyrer over de dage og ressourcer, den dækker, så pengene lander, hvor de blev brugt. Stadig før kreditter og refusioner. Det er det, siderne viser, medmindre du vælger andet.
+- **Netto** er amortiseret, minus kreditter, refusioner og rabatter: det, fakturaen lyder på.
+
+| | Faktureret | Amortiseret | Netto |
+|---|---|---|---|
+| AWS | Cost Explorers ublandede omkostninger (unblended) | Cost Explorers amortiserede omkostninger | Cost Explorers netto amortiserede omkostninger, med kreditter og refusioner |
+| Azure | Cost Managements faktiske omkostninger | Cost Managements amortiserede omkostninger | De amortiserede omkostninger: Azure trækker kreditter fra på faktureringskontoen, som et abonnements forbindelse ikke læser |
+| Google Cloud | Eksportens omkostninger | Omkostningerne minus kreditterne fra rabatterne for forpligtet brug og fra abonnementer | Omkostningerne minus alle kreditter |
+
+Kontakten over beløbene skifter grundlaget på siden, og OneUptime husker dit valg for dette projekt i din browser. Projektets eget grundlag, det siderne åbner med, og som budgetter overvåger, findes under **Cloud → Indstillinger → Omkostningsindstillinger**. Et budget kan overvåge sit eget grundlag: rediger det, og angiv **Omkostningsgrundlag**.
+
+Omkostninger, der blev læst, før de tre blev gemt, viser deres fakturerede beløb på hvert grundlag. Hver forbindelse læser sine omkostninger igen én gang, så langt tilbage som en første læsning, så hvert grundlag bliver udfyldt.
 
 ## Måder at bruge mindre på
 
@@ -104,21 +133,51 @@ En ressource vurderes, så snart den har 6 dages målinger. Dens side viser dens
 - Azure: besparelsesplaner og reservationer, fra Cost Management, i amortiseret omkostning.
 - Google Cloud: rabatter for forpligtet brug, fra din faktureringseksport. Eksporten oplyser ikke, hvor meget af en forpligtelse der forblev ubrugt, så hvor meget der bruges, vises ikke.
 
-En konto uden forpligtelser viser, hvad der kørte til on demand-priser, som en forpligtelse ville betale billigere. Hver slags tal er dens clouds egne, og slags lægges aldrig sammen: en reservation og en Savings Plan kan begge tælle den samme maskines forbrug som deres at dække.
+En konto uden forpligtelser viser, hvad der kørte til on demand-priser, som en forpligtelse ville betale billigere. Hver slags tal er dens clouds egne, og slags lægges aldrig sammen: en reservation og en Savings Plan kan begge tælle den samme maskines forbrug som deres at dække. Hver enkelt forpligtelse vises under **Cloud → Forbrug → Forpligtelser**: se [Forpligtelser og fornyelser](#forpligtelser-og-fornyelser).
+
+## Forpligtelser og fornyelser
+
+**Cloud → Forbrug → Forpligtelser** viser hver Savings Plan, reservation og rabat for forpligtet brug, som dine forbindelser kan læse, så ingen udløber ubemærket:
+
+- **Aktive forpligtelser** øverst tæller de aktive og dem, der udløber inden for 90 dage, **Udnyttelse** hvor meget af dem der blev brugt de seneste 30 dage, og hvad der blev efterladt ubrugt, og **Dækning** hvor meget af forbruget de dækker.
+- **Udløber snart** viser dem, der udløber inden for 90 dage og ikke fornyer sig selv, hver med sin fornyelsesplan: hvad der skal købes for at beholde rabatten (dens forpligtelse pr. time eller dens instanser, i den andel, der blev brugt), hvad det koster og sparer om måneden, hvornår det er tjent hjem, og hvor meget af forbruget der er dækket nu, og når den udløber. **Forny i konsollen** åbner siden, hvor din cloud fornyer den.
+- **Alle forpligtelser** er hele listen: hvad hver er og dækker, dens konto, hvornår den udløber, dens løbetid og betalingsmulighed, hvor meget af den der blev brugt de seneste 30 dage, og det brug, den betalte, og hvad det sparede.
+- **Købsplaner** er det, din clouds anbefalingstjeneste foreslår at købe, hver med hvad den ville koste og spare om måneden, hvornår den ville være tjent hjem, og hvordan dækningen ville ændre sig. **Køb i konsollen** åbner siden, hvor den købes.
+- Under dem hver kontos forpligtelser efter slags, som dens **Omkostninger** viser dem, og hvornår forpligtelserne advarer, med **Rediger advarsler**.
+
+OneUptime planlægger kun: den køber, fornyer eller returnerer aldrig en forpligtelse. Du køber i din clouds konsol.
+
+| | Hvor forpligtelserne kommer fra | Hvad der vides om hver |
+|---|---|---|
+| AWS | Cost Explorers Savings Plans og Reserved Instances, hver med sit eget brug, og Savings Plans API for de købte planer, også dem i kø til at starte | Dens udløb, løbetid, betalingsmulighed, forpligtelse pr. time eller instanser, gebyrer og brug de seneste 30 og 7 dage |
+| Azure | Tenantens reservationer og besparelsesplaner | Dens udløb, løbetid, faktureringsplan, om den fornyer sig selv, og brug de seneste 30 og 7 dage |
+| Google Cloud | Compute Engines forpligtelser, fra Cloud Asset Inventory | Dens udløb, plan, ressourcer og om den fornyer sig selv. Google Cloud siger ikke, hvor meget af en forpligtelse der bruges |
+
+En organisations administrationskonto viser hver kontos på AWS. Forbrugsbaserede rabatter for forpligtet brug, som Google Cloud holder på faktureringskontoen i stedet for i et projekt, vises endnu ikke.
+
+### Forpligtelsesadvarsler
+
+Forpligtelser opretter advarsler, der tilkalder via vagtpolitikker som enhver advarsel. Under **Cloud → Indstillinger → Omkostningsindstillinger** siger **Forpligtelsesadvarsler** hvornår:
+
+- **Advar før en forpligtelse udløber**: til at starte med 90, 30 og 7 dage før udløbet. Én advarsel ved den nærmeste af de dage, forpligtelsen har nået, hvor hver nærmere overtager fra den forrige. En forpligtelse, der fornyer sig selv, eller hvis fornyelse står i kø til at starte, når den udløber, opretter ingen.
+- **Advar ved udnyttelse under**: til at starte med 80 %, af en forpligtelses seneste 7 dage, når den har kørt en uge. Advarslen løses, når brugen er tilbage.
+- **Advar ved dækning under**: til at starte med 60 %, af det forbrug, en kontos forpligtelser af én slags kunne dække, efter at de har dækket mere. Den løses, når dækningen er tilbage. Tom opretter dækning ingen advarsel.
+
+**Advar om forpligtelser** slår dem alle fra, og **Advarselsalvor**, **Vagtpolitikker** og **Ejere** siger, hvor alvorlige de er, hvem der tilkaldes, og hvem der ejer dem. Hver advarsel siger, hvad forpligtelsen dækker, og hvad den betalte, og peger på dens fornyelsesplan. En advarsel løses af sig selv, når dens forpligtelse udløber, fornyes eller ikke længere vises.
 
 ## Budgetter
 
 :::steps
 ### Opret et budget
 
-Under **Cloud → Forbrug → Budgetter** opretter du et budget: dets **Månedligt beløb** og den **Konto**, det gælder, eller ingen for alle konti.
+Under **Cloud → Forbrug → Budgetter** opretter du et budget: dets **Månedligt beløb**, den **Konto**, det gælder, eller ingen for alle konti, og det **Omkostningsgrundlag**, det tæller, eller intet for projektets.
 
 ### Vælg, hvornår det advarer
 
 **Advar ved** tager de andele af budgettet, der skal advares ved, i procent: 80 og 100 til at begynde med. **Advar, når det er på vej til at blive overskredet** advarer også, én gang om måneden, når tempoet i den sidste uge ville bringe måneden over budgettet. **Advar ved usædvanlige dage** advarer også dagen efter en dag, der kostede langt mere end normalt: se [Usædvanlige dage](#usædvanlige-dage). **Advarselsalvor** og **Vagtpolitikker** angiver, hvor alvorlige advarslerne er, og hvem der tilkaldes.
 :::
 
-Et budget kontrolleres efter hver læsning af omkostningerne og hver time. Når månedens forbrug passerer en tærskel, oprettes der én advarsel for den, den højeste, når en læsning passerer flere på én gang, og en ny måned løser den forrige måneds advarsler. Et budget tæller kun de konti, der faktureres i dets valuta.
+Et budget kontrolleres efter hver læsning af omkostningerne og hver time. Når månedens forbrug passerer en tærskel, oprettes der én advarsel for den, den højeste, når en læsning passerer flere på én gang, og en ny måned løser den forrige måneds advarsler. Et budget tæller kun de konti, der faktureres i dets valuta, på dets grundlag: et amortiseret budget udløses ikke af en forpligtelse, der er købt forudbetalt, som et faktureret budget tæller den dag, den blev købt.
 
 AI-agenter kan oprette og ændre budgetter via [MCP-serveren](/docs/ai/mcp-server), og scripts med CLI'ens kommando `oneuptime cloud-budget`: se [Ressourceoperationer](/docs/cli/resource-operations).
 
@@ -141,7 +200,8 @@ Under listen fortæller kortet, hvad resten beløb sig til: det, der ikke er i n
 ## Det, du ser i OneUptime
 
 - **Clouds oversigt.** **Cloud → Oversigt** viser månedens forbrug over for sidste måneds på samme dag, de dyreste tjenester og de største måder at bruge mindre på, ved siden af det, der kræver opmærksomhed.
-- **Hver dags forbrug.** **Cloud → Forbrug → Omkostninger** tegner hver af de sidste 30 dage og markerer de dage, der kostede langt mere end normalt, viser de dage og opdeler en periode efter tjeneste, region, konto, ressource, miljø i app-platforme, app eller tag. De konti, hvis omkostninger ikke læses, vises nedenunder, hver med årsagen.
+- **Hver dags forbrug.** **Cloud → Forbrug → Omkostninger** tegner hver af de sidste 30 dage og markerer de dage, der kostede langt mere end normalt, viser de dage og opdeler en periode efter tjeneste, region, konto, ressource, miljø i app-platforme, app eller tag, faktureret, amortiseret eller netto. De konti, hvis omkostninger ikke læses, vises nedenunder, hver med årsagen.
+- **Hver forpligtelse.** **Cloud → Forbrug → Forpligtelser** viser hver med, hvornår den udløber, og hvor meget af den der bruges, dem, der snart udløber, med hvad der skal fornyes, og hvad der skal købes.
 - **En kontos omkostninger.** En kontos **Omkostninger** viser det samme for kontoen alene, med dens forpligtelser og dens måder at bruge mindre på.
 - **En ressources omkostning.** En ressources side viser, hvad den har kostet i denne måned og de sidste 30 dage, når dens cloud fakturerer den ved navn, med dens måder at bruge mindre på og dens størrelsestilpasning.
 
@@ -164,7 +224,15 @@ Data på ressourceniveau er ikke slået til for kontoen. Slå det til med daglig
 :::
 
 :::details Forpligtelserne siger Kræver tilladelse
-Forbindelsen må endnu ikke læse kontoens Savings Plans og reservationer. Kør dens opsætningskommando igen fra **Cloud → Forbind**: den tilføjer de fire handlinger, de læses med.
+Forbindelsen må endnu ikke læse kontoens Savings Plans og reservationer. Kør dens opsætningskommando igen fra **Cloud → Forbind**: den tilføjer de handlinger, de læses med. På Azure tildeler en global administrator med forhøjet adgang **Reservations Reader** og **Savings plan Reader**: se [Microsoft Azure](#microsoft-azure).
+:::
+
+:::details Amortiseret og netto viser det samme som faktureret
+Omkostninger, der blev læst, før de tre blev gemt, viser deres fakturerede beløb på hvert grundlag indtil forbindelsens næste læsning af omkostninger, som læser dem igen så langt tilbage som dens første. På Azure er netto altid de amortiserede omkostninger.
+:::
+
+:::details En forpligtelse udløber, og der kom ingen advarsel
+En forpligtelse, der fornyer sig selv, eller hvis fornyelse står i kø til at starte, når den udløber, opretter ingen, og det gør en forpligtelse i et projekt, hvis forpligtelsesadvarsler er slået fra under **Cloud → Indstillinger → Omkostningsindstillinger**, heller ikke. En advarsel kræver også, at projektet har en advarselsalvor.
 :::
 
 :::details Beløbene udelader en konto
@@ -172,7 +240,7 @@ Beløbene er i den valuta, de fleste af dine konti faktureres i. En konto, der f
 :::
 
 :::details Denne måned er lavere end i din clouds konsol
-Din cloud rapporterer den sidste dag eller to for sent, og beløbene er før kreditter og refusioner. De næste læsninger indhenter det.
+Din cloud rapporterer den sidste dag eller to for sent, og fakturerede og amortiserede beløb er før kreditter og refusioner. De næste læsninger indhenter det. Sammenlign med det grundlag, din clouds konsol viser: AWS åbner med ublandede omkostninger, som er faktureret.
 :::
 
 ## Næste trin
