@@ -3010,6 +3010,347 @@ function maskOpenStackSecrets(data: {
 }
 
 /*
+ * xo-cli (Xen Orchestra's REST API, through the XCP-ng AI agent). The
+ * generic rules already mask what Xen Orchestra names as a credential - a
+ * PBD's device_config password or CHAP secret, a pool's xscontainer secret,
+ * a task's token argument - by its key. What they would miss:
+ *
+ *   - a cloud-init payload a VM's xenStoreData (or other_config) carries,
+ *     vm-data/user-data and its kin: whatever a VM's owner put there,
+ *     passwords included, with nothing about the value that looks like one;
+ *   - an SDN controller's pre-shared key, named psk;
+ *   - a token in a URL's user part with no password after it
+ *     (https://<token>@xo.example.net/, as xo-cli takes a URL), which the
+ *     generic rule leaves alone because it masks only user:password@;
+ *   - an authentication token itself, wherever it stands: 43 characters of
+ *     base64url (32 random bytes), which the generic base64 rule only
+ *     partly masks, its "-" and "_" breaking the run.
+ *
+ * The agent prints Xen Orchestra's answers as indented JSON, one pair to a
+ * line; a pair's key is read with a loop, never a quantifier, so a VM's
+ * 64 KB of xenStoreData costs no more than its length.
+ */
+const XO_SECRET_KEY_FRAGMENTS: ReadonlyArray<string> = [
+  "user-data",
+  "user_data",
+  "userdata",
+  "vendor-data",
+  "vendor_data",
+  "vendordata",
+  "cloud-config",
+  "cloud_config",
+  "cloudconfig",
+  "network-config",
+  "network_config",
+  "pre-shared",
+  "pre_shared",
+  "preshared",
+];
+
+// psk as a whole segment of a key ("xo:sdn-controller:psk"), never inside a word.
+const XO_PSK_SEGMENT_REGEX: RegExp = /(?:^|[-_.:/])psk(?:$|[-_.:/])/;
+
+const XO_TOKEN_LENGTH: number = 43;
+
+function isXenOrchestraSecretKey(key: string): boolean {
+  const folded: string = key.toLowerCase();
+
+  return (
+    XO_SECRET_KEY_FRAGMENTS.some((fragment: string): boolean => {
+      return folded.includes(fragment);
+    }) || XO_PSK_SEGMENT_REGEX.test(folded)
+  );
+}
+
+/*
+ * The end of the JSON string starting at `start` (just after its opening
+ * quote): the index of its closing quote, or -1 when it is not closed on
+ * the line.
+ */
+function readXenOrchestraJsonStringEnd(line: string, start: number): number {
+  let index: number = start;
+
+  while (index < line.length) {
+    const ch: string = line.charAt(index);
+
+    if (ch === "\\") {
+      index += 2;
+      continue;
+    }
+
+    if (ch === '"') {
+      return index;
+    }
+
+    index++;
+  }
+
+  return -1;
+}
+
+// One `"key": "value"` line, its value masked when its key names a secret.
+function maskXenOrchestraSecretLine(line: string): {
+  text: string;
+  count: number;
+} {
+  let index: number = 0;
+
+  while (line.charAt(index) === " " || line.charAt(index) === "\t") {
+    index++;
+  }
+
+  if (line.charAt(index) !== '"') {
+    return { text: line, count: 0 };
+  }
+
+  const keyEnd: number = readXenOrchestraJsonStringEnd(line, index + 1);
+
+  if (keyEnd < 0) {
+    return { text: line, count: 0 };
+  }
+
+  const key: string = line.slice(index + 1, keyEnd);
+  let cursor: number = keyEnd + 1;
+
+  while (line.charAt(cursor) === " ") {
+    cursor++;
+  }
+
+  if (line.charAt(cursor) !== ":" || !isXenOrchestraSecretKey(key)) {
+    return { text: line, count: 0 };
+  }
+
+  cursor++;
+
+  while (line.charAt(cursor) === " ") {
+    cursor++;
+  }
+
+  // A string value is masked; an object or a list opens on this line, masked below.
+  if (line.charAt(cursor) !== '"') {
+    return { text: line, count: 0 };
+  }
+
+  const valueEnd: number = readXenOrchestraJsonStringEnd(line, cursor + 1);
+  const value: string =
+    valueEnd < 0 ? line.slice(cursor + 1) : line.slice(cursor + 1, valueEnd);
+
+  if (value === "" || isAlreadyMasked(value)) {
+    return { text: line, count: 0 };
+  }
+
+  return {
+    text: `${line.slice(0, cursor + 1)}${GENERIC_REDACTED_MARKER}${
+      valueEnd < 0 ? '"' : line.slice(valueEnd)
+    }`,
+    count: 1,
+  };
+}
+
+/*
+ * The lines under a secret key whose value is an object or a list,
+ * masked to its end: a cloud-init payload Xen Orchestra parsed into JSON.
+ */
+function maskXenOrchestraSecretBlocks(lines: Array<string>): number {
+  let count: number = 0;
+
+  for (let index: number = 0; index < lines.length; index++) {
+    const line: string = lines[index] as string;
+    const trimmed: string = line.trimEnd();
+
+    if (!(trimmed.endsWith("{") || trimmed.endsWith("["))) {
+      continue;
+    }
+
+    const opening: string = trimmed.trimStart();
+
+    if (!opening.startsWith('"')) {
+      continue;
+    }
+
+    const keyEnd: number = readXenOrchestraJsonStringEnd(opening, 1);
+
+    if (keyEnd < 0 || !isXenOrchestraSecretKey(opening.slice(1, keyEnd))) {
+      continue;
+    }
+
+    const indent: number = line.length - line.trimStart().length;
+
+    for (let inner: number = index + 1; inner < lines.length; inner++) {
+      const innerLine: string = lines[inner] as string;
+      const innerIndent: number = innerLine.length - innerLine.trimStart().length;
+
+      if (innerLine.trim() === "" || innerIndent <= indent) {
+        index = inner - 1;
+        break;
+      }
+
+      if (!innerLine.includes(GENERIC_REDACTED_MARKER)) {
+        lines[inner] = `${" ".repeat(innerIndent)}${GENERIC_REDACTED_MARKER}`;
+        count++;
+      }
+
+      index = inner;
+    }
+  }
+
+  return count;
+}
+
+function isXenOrchestraTokenCharacter(ch: string): boolean {
+  return (
+    (ch >= "a" && ch <= "z") ||
+    (ch >= "A" && ch <= "Z") ||
+    (ch >= "0" && ch <= "9") ||
+    ch === "_" ||
+    ch === "-"
+  );
+}
+
+/*
+ * Every run of exactly 43 base64url characters that mixes upper case,
+ * lower case and digits: an authentication token's shape. A UUID (36, with
+ * its dashes) or an OpaqueRef never has it.
+ */
+function maskXenOrchestraTokens(text: string): { text: string; count: number } {
+  const pieces: Array<string> = [];
+  let cursor: number = 0;
+  let count: number = 0;
+  let index: number = 0;
+
+  while (index < text.length) {
+    if (!isXenOrchestraTokenCharacter(text.charAt(index))) {
+      index++;
+      continue;
+    }
+
+    const start: number = index;
+
+    while (index < text.length && isXenOrchestraTokenCharacter(text.charAt(index))) {
+      index++;
+    }
+
+    const run: string = text.slice(start, index);
+
+    if (
+      run.length === XO_TOKEN_LENGTH &&
+      hasUpperAndLower(run) &&
+      hasDigit(run)
+    ) {
+      pieces.push(text.slice(cursor, start), GENERIC_REDACTED_MARKER);
+      cursor = index;
+      count++;
+    }
+  }
+
+  if (count === 0) {
+    return { text, count: 0 };
+  }
+
+  pieces.push(text.slice(cursor));
+
+  return { text: pieces.join(""), count };
+}
+
+/*
+ * The user part of every URL that has no password after it
+ * (scheme://<user>@host): what xo-cli takes a token in.
+ */
+function maskXenOrchestraUrlUsers(text: string): {
+  text: string;
+  count: number;
+} {
+  const pieces: Array<string> = [];
+  let cursor: number = 0;
+  let count: number = 0;
+  let searchFrom: number = 0;
+
+  for (;;) {
+    const at: number = text.indexOf("://", searchFrom);
+
+    if (at < 0) {
+      break;
+    }
+
+    const start: number = at + 3;
+    let index: number = start;
+
+    while (index < text.length) {
+      const ch: string = text.charAt(index);
+
+      if (
+        ch === "@" ||
+        ch === "/" ||
+        ch === ":" ||
+        ch === '"' ||
+        ch === "'" ||
+        ch === " " ||
+        ch === "\t" ||
+        ch === "\n" ||
+        ch === "\r"
+      ) {
+        break;
+      }
+
+      index++;
+    }
+
+    searchFrom = index;
+
+    if (text.charAt(index) !== "@" || index === start) {
+      continue;
+    }
+
+    const user: string = text.slice(start, index);
+
+    if (isAlreadyMasked(user)) {
+      continue;
+    }
+
+    pieces.push(text.slice(cursor, start), GENERIC_REDACTED_MARKER);
+    cursor = index;
+    count++;
+  }
+
+  if (count === 0) {
+    return { text, count: 0 };
+  }
+
+  pieces.push(text.slice(cursor));
+
+  return { text: pieces.join(""), count };
+}
+
+export function maskXenOrchestraSecrets(data: {
+  resourceType: AiResourceType;
+  program: string;
+  text: string;
+}): ResourceOutputRedaction {
+  let count: number = 0;
+  const lines: Array<string> = data.text.split("\n").map((line: string) => {
+    const masked: { text: string; count: number } =
+      maskXenOrchestraSecretLine(line);
+
+    count += masked.count;
+    return masked.text;
+  });
+
+  count += maskXenOrchestraSecretBlocks(lines);
+
+  const users: { text: string; count: number } = maskXenOrchestraUrlUsers(
+    lines.join("\n"),
+  );
+  const tokens: { text: string; count: number } = maskXenOrchestraTokens(
+    users.text,
+  );
+
+  return {
+    text: tokens.text,
+    redactionCount: count + users.count + tokens.count,
+  };
+}
+
+/*
  * The per-program hooks, run on the raw output before the generic rules.
  * Keyed by argv[0]; a program with no entry gets the generic rules only.
  * Each tool's kit extends its program's list (pvesh `cipassword`, govc
@@ -3029,6 +3370,7 @@ export const RESOURCE_OUTPUT_REDACTION_HOOKS: Readonly<
   govc: [maskGovcSecrets],
   db: [redactDatabaseOutput],
   openstack: [maskOpenStackSecrets],
+  "xo-cli": [maskXenOrchestraSecrets],
 };
 
 // The hooks for one program; none for a program the table does not list.
