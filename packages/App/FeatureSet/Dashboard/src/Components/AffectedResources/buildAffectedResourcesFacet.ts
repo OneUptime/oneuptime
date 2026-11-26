@@ -17,20 +17,28 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Includes from "Common/Types/BaseDatabase/Includes";
+import LinkedTo, {
+  LinkedToMatch,
+  MAX_LINKED_TO_IDS,
+} from "Common/Types/BaseDatabase/LinkedTo";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import RecordsById from "Common/UI/Utils/RecordsById";
+import { ARCHIVED_COLUMN } from "Common/Utils/ArchivableValues";
 /*
  * Both types are pulled from the react-free modules that declare them,
  * rather than from the .tsx components that re-export them, so this
  * helper stays importable from a plain unit test.
  */
-import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdownTypes";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../ResourceOwners/FilterChipDropdownTypes";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 
 /*
@@ -43,17 +51,19 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * SLO.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
- * can coexist in the same selection without ID collisions. The hook's
- * `computeMatchingResourceIds` resolver groups selections by type, queries
- * the parent model with the appropriate Includes() per field, and returns
- * the union of matching parent IDs.
+ * can coexist in the same selection without ID collisions. Its filter is
+ * one LinkedTo the list's own query carries (buildAffectedResourcesLinkedTo,
+ * #11073): each type's picks under that type's relation, OR'd, answered by
+ * the server - so a list filtered by a monitor pages and counts every
+ * incident it touches, however many. It read each type's matching records
+ * first, the first 10,000 of them, and filtered the list by their ids.
  *
  * Keep this in sync with AffectedResourcesPicker / AffectedResourcesCell:
  * adding a resource type means updating all three so picker, filter, and
  * row display stay aligned.
  */
 
-type AffectedResourceType =
+export type AffectedResourceType =
   | "monitor"
   | "service"
   | "host"
@@ -317,14 +327,51 @@ interface NamedModel extends BaseModel {
   name?: string | undefined;
 }
 
+// A resource the chip names: its id, its name, whether it is archived.
+interface NamedResource {
+  id: string;
+  name: string;
+  isArchived: boolean;
+}
+
+// What a search or a read of a type selects: its name, and archived when it can be.
+const getNamedSelect: <T extends BaseModel>(modelType: {
+  new (): T;
+}) => Select<T> = <T extends BaseModel>(modelType: {
+  new (): T;
+}): Select<T> => {
+  return {
+    _id: true,
+    name: true,
+    ...(new modelType().hasColumn(ARCHIVED_COLUMN)
+      ? { [ARCHIVED_COLUMN]: true }
+      : {}),
+  } as Select<T>;
+};
+
+const toNamedResource: (record: BaseModel) => NamedResource | null = (
+  record: BaseModel,
+): NamedResource | null => {
+  const id: string | undefined = record.id?.toString();
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id: id,
+    name: (record as NamedModel).name?.toString() || `Unnamed`,
+    isArchived:
+      (record as unknown as Record<string, unknown>)[ARCHIVED_COLUMN] === true,
+  };
+};
+
 const fetchNamedModels: <T extends BaseModel>(args: {
   modelType: { new (): T };
   projectId: ObjectID;
   searchTerm: string;
   limit: number;
-}) => Promise<Array<{ id: string; name: string }>> = async <
-  T extends BaseModel,
->({
+}) => Promise<Array<NamedResource>> = async <T extends BaseModel>({
   modelType,
   projectId,
   searchTerm,
@@ -334,7 +381,7 @@ const fetchNamedModels: <T extends BaseModel>(args: {
   projectId: ObjectID;
   searchTerm: string;
   limit: number;
-}): Promise<Array<{ id: string; name: string }>> => {
+}): Promise<Array<NamedResource>> => {
   const query: Query<T> = { projectId: projectId } as Query<T>;
   if (searchTerm.trim()) {
     (query as unknown as Record<string, unknown>)["name"] = new Search(
@@ -347,38 +394,29 @@ const fetchNamedModels: <T extends BaseModel>(args: {
       query: query,
       limit: limit,
       skip: 0,
-      select: { _id: true, name: true } as Record<string, true>,
+      select: getNamedSelect(modelType),
       sort: { name: SortOrder.Ascending } as Record<string, SortOrder>,
     });
     return result.data
-      .map((m: T) => {
-        const named: NamedModel = m as unknown as NamedModel;
-        const id: string | undefined = m.id?.toString();
-        const name: string | undefined = named.name?.toString();
-        if (!id) {
-          return null;
-        }
-        return { id: id, name: name || `Unnamed` };
-      })
-      .filter(
-        (
-          v: { id: string; name: string } | null,
-        ): v is { id: string; name: string } => {
-          return v !== null;
-        },
-      );
+      .map(toNamedResource)
+      .filter((v: NamedResource | null): v is NamedResource => {
+        return v !== null;
+      });
   } catch {
     return [];
   }
 };
 
+/*
+ * The resources a link or a saved view picked, read by their ids (each
+ * once, in pages - RecordsById), under the project: every one the reader
+ * may see, by its id in lower case.
+ */
 const resolveNamedModelsByIds: <T extends BaseModel>(args: {
   modelType: { new (): T };
   projectId: ObjectID;
   ids: Array<string>;
-}) => Promise<Array<{ id: string; name: string }>> = async <
-  T extends BaseModel,
->({
+}) => Promise<Map<string, NamedResource>> = async <T extends BaseModel>({
   modelType,
   projectId,
   ids,
@@ -386,46 +424,131 @@ const resolveNamedModelsByIds: <T extends BaseModel>(args: {
   modelType: { new (): T };
   projectId: ObjectID;
   ids: Array<string>;
-}): Promise<Array<{ id: string; name: string }>> => {
+}): Promise<Map<string, NamedResource>> => {
+  const found: Map<string, NamedResource> = new Map<string, NamedResource>();
+
   if (ids.length === 0) {
-    return [];
+    return found;
   }
-  try {
-    const result: ListResult<T> = await ModelAPI.getList<T>({
-      modelType: modelType,
-      query: {
-        projectId: projectId,
-        _id: new Includes(ids),
-      } as Query<T>,
-      limit: ids.length,
-      skip: 0,
-      select: { _id: true, name: true } as Record<string, true>,
-      sort: {},
+
+  const records: Array<T> = await RecordsById.read<T>({
+    modelType: modelType,
+    ids: ids,
+    query: { projectId: projectId } as Query<T>,
+    select: getNamedSelect(modelType),
+  });
+
+  for (const record of records) {
+    const named: NamedResource | null = toNamedResource(record);
+
+    if (named) {
+      found.set(named.id.toLowerCase(), named);
+    }
+  }
+
+  return found;
+};
+
+// The relation a type's picks filter on, for a list whose monitors are `monitorField`.
+const getRelationOf: (
+  type: AffectedResourceType,
+  monitorField: "monitors" | "monitorId",
+) => string = (
+  type: AffectedResourceType,
+  monitorField: "monitors" | "monitorId",
+): string => {
+  return type === "monitor" ? monitorField : RESOURCE_QUERY_FIELD[type];
+};
+
+// The id no record has: picks that name nothing filter by it, and match nothing.
+export const NO_RESOURCE_ID: string = "00000000-0000-0000-0000-000000000000";
+
+/*
+ * THE CHIP'S FILTER, AS THE SERVER ANSWERS IT (#11073): the picks of each
+ * type under that type's relation, in one LinkedTo the list's query
+ * carries - AnyOf for "is" (a record touching any of them), NoneOf for
+ * "is not" (a record touching none, one touching nothing included) - or
+ * null when it filters nothing.
+ *
+ * A pick of a type this list does not offer, or whose id is no id (a link
+ * edited by hand), names nothing and is left out: under "is", picks that
+ * all name nothing match nothing (NO_RESOURCE_ID), as a pick of a deleted
+ * resource does; under "is not" they keep every record. Picks past the
+ * most one filter names are left out, as the owner chip leaves them.
+ */
+export const buildAffectedResourcesLinkedTo: (data: {
+  values: Array<string>;
+  operator: FilterOperator;
+  includedTypes: Array<AffectedResourceType>;
+  monitorField: "monitors" | "monitorId";
+}) => LinkedTo | null = (data: {
+  values: Array<string>;
+  operator: FilterOperator;
+  includedTypes: Array<AffectedResourceType>;
+  monitorField: "monitors" | "monitorId";
+}): LinkedTo | null => {
+  if (data.operator !== "is" && data.operator !== "is_not") {
+    return null;
+  }
+
+  if (!data.values || data.values.length === 0) {
+    return null;
+  }
+
+  const relations: Record<string, Array<string>> = {};
+  const seen: Set<string> = new Set<string>();
+
+  for (const key of data.values) {
+    if (seen.size >= MAX_LINKED_TO_IDS) {
+      break;
+    }
+
+    const parsed: { type: AffectedResourceType; id: string } | null =
+      parseKey(key);
+
+    if (
+      !parsed ||
+      !data.includedTypes.includes(parsed.type) ||
+      !ObjectID.isValidUUID(parsed.id)
+    ) {
+      continue;
+    }
+
+    const relation: string = getRelationOf(parsed.type, data.monitorField);
+    const id: string = parsed.id.toLowerCase();
+
+    if (seen.has(`${relation}:${id}`)) {
+      continue;
+    }
+
+    seen.add(`${relation}:${id}`);
+    (relations[relation] = relations[relation] || []).push(id);
+  }
+
+  if (seen.size === 0) {
+    const firstType: AffectedResourceType | undefined = data.includedTypes[0];
+
+    if (data.operator === "is_not" || !firstType) {
+      return null;
+    }
+
+    return new LinkedTo({
+      match: LinkedToMatch.AnyOf,
+      relations: {
+        [getRelationOf(firstType, data.monitorField)]: [NO_RESOURCE_ID],
+      },
     });
-    return result.data
-      .map((m: T) => {
-        const named: NamedModel = m as unknown as NamedModel;
-        const id: string | undefined = m.id?.toString();
-        const name: string | undefined = named.name?.toString();
-        if (!id) {
-          return null;
-        }
-        return { id: id, name: name || `Unnamed` };
-      })
-      .filter(
-        (
-          v: { id: string; name: string } | null,
-        ): v is { id: string; name: string } => {
-          return v !== null;
-        },
-      );
-  } catch {
-    return [];
   }
+
+  return new LinkedTo({
+    match:
+      data.operator === "is_not" ? LinkedToMatch.NoneOf : LinkedToMatch.AnyOf,
+    relations: relations,
+  });
 };
 
 export interface AffectedResourcesFacetOptions<T extends BaseModel> {
-  /** Parent model class to query for matching IDs (Incident, Alert, …). */
+  /** The list's model (Incident, Alert, …), whose relations the chip filters. */
   parentModelType: { new (): T };
   /**
    * Field name on the parent model for the Monitor relation. Defaults to
@@ -517,23 +640,20 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
             type: AffectedResourceType,
           ): Promise<Array<FilterChipDropdownOption>> => {
             const config: ResourceTypeConfig = RESOURCE_TYPES[type];
-            const items: Array<{ id: string; name: string }> =
-              await fetchNamedModels({
-                modelType: config.modelType,
-                projectId: projectId,
-                searchTerm: searchTerm,
-                limit: SEARCH_LIMIT_PER_TYPE,
-              });
+            const items: Array<NamedResource> = await fetchNamedModels({
+              modelType: config.modelType,
+              projectId: projectId,
+              searchTerm: searchTerm,
+              limit: SEARCH_LIMIT_PER_TYPE,
+            });
             return items.map(
-              (item: {
-                id: string;
-                name: string;
-              }): FilterChipDropdownOption => {
+              (item: NamedResource): FilterChipDropdownOption => {
                 return {
                   value: encodeKey(type, item.id),
                   label: item.name,
                   icon: config.icon,
                   group: config.pluralLabel,
+                  ...(item.isArchived ? { isArchived: true } : {}),
                 };
               },
             );
@@ -543,6 +663,13 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
       return results.flat();
     },
 
+    /*
+     * What a link or a saved view picked, read by its ids: each resource
+     * found by its name (marked archived when it is), each one gone -
+     * deleted, or out of the reader's reach - as "No longer available"
+     * under its type, never as its key. A read that fails names nothing,
+     * so the chip shows what it holds as it can rather than calling it gone.
+     */
     resolveOptions: async (
       projectId: ObjectID,
       values: Array<string>,
@@ -558,103 +685,57 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
           async (
             type: AffectedResourceType,
           ): Promise<Array<FilterChipDropdownOption>> => {
-            const ids: Array<string> | undefined = grouped[type];
-            if (!ids || ids.length === 0) {
+            const ids: Array<string> = (grouped[type] || []).filter(
+              (id: string): boolean => {
+                return ObjectID.isValidUUID(id);
+              },
+            );
+            if (ids.length === 0) {
               return [];
             }
             const config: ResourceTypeConfig = RESOURCE_TYPES[type];
-            const items: Array<{ id: string; name: string }> =
-              await resolveNamedModelsByIds({
+            let found: Map<string, NamedResource>;
+
+            try {
+              found = await resolveNamedModelsByIds({
                 modelType: config.modelType,
                 projectId: projectId,
                 ids: ids,
               });
-            return items.map(
-              (item: {
-                id: string;
-                name: string;
-              }): FilterChipDropdownOption => {
-                return {
-                  value: encodeKey(type, item.id),
-                  label: item.name,
-                  icon: config.icon,
-                  group: config.pluralLabel,
-                };
-              },
-            );
+            } catch {
+              return [];
+            }
+
+            return ids.map((id: string): FilterChipDropdownOption => {
+              const item: NamedResource | undefined = found.get(
+                id.toLowerCase(),
+              );
+
+              return {
+                value: encodeKey(type, id),
+                label: item ? item.name : encodeKey(type, id),
+                icon: config.icon,
+                group: config.pluralLabel,
+                ...(item ? {} : { isNotFound: true }),
+                ...(item?.isArchived ? { isArchived: true } : {}),
+              };
+            });
           },
         ),
       );
       return results.flat();
     },
 
-    computeMatchingResourceIds: async (
-      projectId: ObjectID,
+    toLinkedTo: (
       values: Array<string>,
-    ): Promise<Array<string>> => {
-      if (values.length === 0) {
-        return [];
-      }
-      const grouped: { [type in AffectedResourceType]?: Array<string> } =
-        groupSelectionsByType(values);
-
-      /*
-       * One query per resource type, each fetching parent IDs with that
-       * type's relation Includes(...). Sequential would be 5x slower; the
-       * parallel fan-out is the main reason this lives in a helper.
-       */
-      const queries: Array<Promise<Array<string>>> = [];
-
-      for (const type of includedTypes) {
-        const ids: Array<string> | undefined = grouped[type];
-        if (!ids || ids.length === 0) {
-          continue;
-        }
-
-        const field: string =
-          type === "monitor" ? monitorField : RESOURCE_QUERY_FIELD[type];
-
-        const objectIds: Array<ObjectID> = ids.map((id: string) => {
-          return new ObjectID(id);
-        });
-
-        const q: Query<T> = {
-          projectId: projectId,
-          [field]: new Includes(objectIds),
-        } as unknown as Query<T>;
-
-        queries.push(
-          ModelAPI.getList<T>({
-            modelType: options.parentModelType,
-            query: q,
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { _id: true } as Record<string, true>,
-            sort: {},
-          })
-            .then((result: ListResult<T>): Array<string> => {
-              return result.data
-                .map((row: T): string | undefined => {
-                  return row.id?.toString();
-                })
-                .filter((id: string | undefined): id is string => {
-                  return Boolean(id);
-                });
-            })
-            .catch((): Array<string> => {
-              return [];
-            }),
-        );
-      }
-
-      const perTypeResults: Array<Array<string>> = await Promise.all(queries);
-      const union: Set<string> = new Set();
-      for (const list of perTypeResults) {
-        for (const id of list) {
-          union.add(id);
-        }
-      }
-      return Array.from(union);
+      operator: FilterOperator,
+    ): LinkedTo | null => {
+      return buildAffectedResourcesLinkedTo({
+        values: values,
+        operator: operator,
+        includedTypes: includedTypes,
+        monitorField: monitorField,
+      });
     },
   };
 };
