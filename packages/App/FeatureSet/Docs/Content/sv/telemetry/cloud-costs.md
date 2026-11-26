@@ -120,7 +120,7 @@ Under **Moln → Utgifter → Besparingar** väljer du **Tillämpa** på en besp
 
 ### En ägare godkänner den
 
-En person som är angiven som ägare av resursen, eller en medlem i ett team som äger den, och som också får redigera den, godkänner ändringen. En resurs utan ägare godkänns av en projektägare eller -administratör. När du själv får godkänna den genomför **Tillämpa** den direkt, som dig. Annars väntar den under **Väntar på godkännande** tills en ägare väljer **Godkänn**, eller **Dölj** med en orsak.
+En person som är angiven som ägare av resursen, eller en medlem i ett team som äger den, och som också får redigera den, godkänner ändringen. En resurs utan ägare godkänns av en Projektägare eller Projektadministratör. När du själv får godkänna den genomför **Tillämpa** den direkt, som dig. Annars väntar den under **Väntar på godkännande** tills en ägare väljer **Godkänn**, eller **Dölj** med en orsak.
 
 ### OneUptime genomför den
 

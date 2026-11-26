@@ -2048,10 +2048,25 @@
     "keywords": [
       "acknowledged",
       "resolved",
-      "incident status"
+      "incident status",
+      "initial state",
+      "starting state",
+      "incidents declared by hand",
+      "manually declared incidents",
+      "auto acknowledge"
     ],
     "path": "/dashboard/:projectId/incidents/settings/state",
     "kind": "page"
+  },
+  {
+    "title": "Start incidents declared by hand acknowledged",
+    "where": [
+      "Incidents",
+      "Settings",
+      "Incident State"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/state",
+    "kind": "setting"
   },
   {
     "title": "Incident Severity",

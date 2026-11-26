@@ -120,7 +120,7 @@ Under **Sky → Forbruk → Besparelser** velger du **Bruk** ved en besparelse. 
 
 ### En eier godkjenner den
 
-En person som er angitt som eier av ressursen, eller et medlem av et team som eier den, og som også kan redigere den, godkjenner endringen. En ressurs uten eier godkjennes av en prosjekteier eller -administrator. Når du selv kan godkjenne den, gjennomfører **Bruk** den med en gang, som deg. Ellers venter den under **Venter på godkjenning** til en eier velger **Godkjenn**, eller **Skjul** med en årsak.
+En person som er angitt som eier av ressursen, eller et medlem av et team som eier den, og som også kan redigere den, godkjenner endringen. En ressurs uten eier godkjennes av en Prosjekteier eller Prosjektadministrator. Når du selv kan godkjenne den, gjennomfører **Bruk** den med en gang, som deg. Ellers venter den under **Venter på godkjenning** til en eier velger **Godkjenn**, eller **Skjul** med en årsak.
 
 ### OneUptime gjennomfører den
 

@@ -120,7 +120,7 @@ Kies onder **Cloud → Uitgaven → Besparingen** bij een besparing **Toepassen*
 
 ### Een eigenaar keurt haar goed
 
-Een persoon die als eigenaar van de resource is aangewezen, of een lid van een team dat haar bezit, die haar ook mag bewerken, keurt de wijziging goed. Een resource zonder eigenaar wordt goedgekeurd door een projecteigenaar of -beheerder. Als je haar zelf mag goedkeuren, voert **Toepassen** haar meteen door, als jou. Anders wacht ze onder **Wacht op goedkeuring** tot een eigenaar **Goedkeuren** kiest, of **Verbergen** met een reden.
+Een persoon die als eigenaar van de resource is aangewezen, of een lid van een team dat haar bezit, die haar ook mag bewerken, keurt de wijziging goed. Een resource zonder eigenaar wordt goedgekeurd door een Projecteigenaar of Projectbeheerder. Als je haar zelf mag goedkeuren, voert **Toepassen** haar meteen door, als jou. Anders wacht ze onder **Wacht op goedkeuring** tot een eigenaar **Goedkeuren** kiest, of **Verbergen** met een reden.
 
 ### OneUptime voert haar door
 

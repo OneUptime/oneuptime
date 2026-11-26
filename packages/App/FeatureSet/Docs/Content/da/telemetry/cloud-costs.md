@@ -120,7 +120,7 @@ Under **Cloud → Forbrug → Besparelser** vælger du **Anvend** ved en bespare
 
 ### En ejer godkender den
 
-En person, der er angivet som ejer af ressourcen, eller et medlem af et team, der ejer den, og som også må redigere den, godkender ændringen. En ressource uden ejer godkendes af en projektejer eller -administrator. Når du selv må godkende den, gennemfører **Anvend** den med det samme, som dig. Ellers venter den under **Venter på godkendelse**, til en ejer vælger **Godkend**, eller **Skjul** med en årsag.
+En person, der er angivet som ejer af ressourcen, eller et medlem af et team, der ejer den, og som også må redigere den, godkender ændringen. En ressource uden ejer godkendes af en Projektejer eller Projektadministrator. Når du selv må godkende den, gennemfører **Anvend** den med det samme, som dig. Ellers venter den under **Venter på godkendelse**, til en ejer vælger **Godkend**, eller **Skjul** med en årsag.
 
 ### OneUptime gennemfører den
 

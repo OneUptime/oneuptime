@@ -120,7 +120,7 @@ Dans **Cloud → Dépenses → Économies**, choisissez **Appliquer** sur une é
 
 ### Un propriétaire l'approuve
 
-Une personne désignée comme propriétaire de la ressource, ou membre d'une équipe qui la possède, et qui peut aussi la modifier, approuve la modification. Une ressource sans propriétaire est approuvée par un propriétaire ou un administrateur du projet. Si vous pouvez l'approuver vous-même, **Appliquer** l'effectue aussitôt, en votre nom. Sinon, elle attend dans **En attente d'approbation** qu'un propriétaire choisisse **Approuver**, ou **Masquer** avec un motif.
+Une personne désignée comme propriétaire de la ressource, ou membre d'une équipe qui la possède, et qui peut aussi la modifier, approuve la modification. Une ressource sans propriétaire est approuvée par un Propriétaire du projet ou un Administrateur du projet. Si vous pouvez l'approuver vous-même, **Appliquer** l'effectue aussitôt, en votre nom. Sinon, elle attend dans **En attente d'approbation** qu'un propriétaire choisisse **Approuver**, ou **Masquer** avec un motif.
 
 ### OneUptime l'effectue
 

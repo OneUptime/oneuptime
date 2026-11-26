@@ -120,7 +120,7 @@ Wählen Sie unter **Cloud → Ausgaben → Einsparungen** bei einer Einsparung *
 
 ### Ein Eigentümer genehmigt sie
 
-Eine Person, die als Eigentümer der Ressource eingetragen ist, oder ein Mitglied eines Teams, dem sie gehört, und die sie auch bearbeiten darf, genehmigt die Änderung. Eine Ressource ohne Eigentümer genehmigt ein Projekteigentümer oder -administrator. Wenn Sie sie selbst genehmigen dürfen, setzt **Anwenden** sie sofort um, in Ihrem Namen. Andernfalls wartet sie unter **Wartet auf Genehmigung**, bis ein Eigentümer sie mit **Genehmigen** genehmigt oder mit **Ausblenden** und einem Grund verwirft.
+Eine Person, die als Eigentümer der Ressource eingetragen ist, oder ein Mitglied eines Teams, dem sie gehört, und die sie auch bearbeiten darf, genehmigt die Änderung. Eine Ressource ohne Eigentümer genehmigt ein Projektinhaber oder Projektadministrator. Wenn Sie sie selbst genehmigen dürfen, setzt **Anwenden** sie sofort um, in Ihrem Namen. Andernfalls wartet sie unter **Wartet auf Genehmigung**, bis ein Eigentümer sie mit **Genehmigen** genehmigt oder mit **Ausblenden** und einem Grund verwirft.
 
 ### OneUptime setzt sie um
 
