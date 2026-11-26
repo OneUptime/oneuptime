@@ -145,7 +145,7 @@ let device: {
   otherAddresses?: string | undefined;
   hasProbe: boolean;
 };
-let readError: Error | null;
+let readError: Error | HTTPErrorResponse | null;
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
@@ -182,13 +182,19 @@ beforeEach(() => {
 
     const probe: Probe = new Probe();
     probe._id = PROBE_ID.toString();
-    probe.snmpTrapReceiver = report;
+
+    if (report) {
+      probe.snmpTrapReceiver = report;
+    }
 
     if (data.modelType === NetworkDevice) {
       const item: NetworkDevice = new NetworkDevice();
       item._id = DEVICE_ID.toString();
       item.hostname = device.hostname;
-      item.otherAddresses = device.otherAddresses;
+
+      if (device.otherAddresses !== undefined) {
+        item.otherAddresses = device.otherAddresses;
+      }
 
       if (device.hasProbe) {
         item.probeId = PROBE_ID;
