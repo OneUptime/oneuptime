@@ -1468,6 +1468,8 @@ const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
     "a reminder's refusal, a translation key ShiftRemindersCard looks up whole and draws held",
   "packages/Common/Utils/Monitor/ProbeFailureCauses.ts":
     "a timeout as the probe writes it into a stored cause, read back by its English",
+  "packages/Common/Types/DataSecurity/ScanWarningDuration.ts":
+    "a duration as a scan writes it into a stored warning, read back by its English; a page draws it through formatScanDuration, held",
   "packages/Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals.ts":
     "a security signal's message, stored by the server's scan",
   "packages/Common/Utils/SecurityEvent/TelemetryScan/RumSignals.ts":

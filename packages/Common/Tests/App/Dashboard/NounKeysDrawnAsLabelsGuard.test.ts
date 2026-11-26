@@ -327,6 +327,10 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       'What an exposed store held, worded for the sentence that lists it (#10377): "It holds Social Security numbers and passport numbers."',
   },
+  "packages/Common/Types/DataSecurity/ScanWarnings.ts": {
+    inSentence:
+      "A file's format, a scan warning's value translated as a word of its sentence (#10930): \"{{pattern}}: not scanned: {{format}} is not supported yet\".",
+  },
   "packages/Common/Types/InstallScripts/InstallScripts.ts": {
     inEnglish:
       "The titles of the install scripts' index, which is served in English.",
