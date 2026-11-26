@@ -454,6 +454,7 @@
     "x86",
     "z",
     "{\"version\": \"...\", \"records\": [...]}",
+    "{{amount}} under",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",

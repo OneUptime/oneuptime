@@ -198,6 +198,17 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * (النموذج), where a device's model is 型号 / 型號 and الطراز.
    */
   "Model (hardware model)",
+  /*
+   * A cloud budget's period: what its amount is for, in the Period
+   * dropdown, the Budgets list's filter and its row's period line
+   * ("Quarterly from April", CLOUD_BUDGET_PERIOD_LABELS, #11008). The bare
+   * "Monthly" and "Yearly" are a plan's billing cycle, worded as a payment
+   * in Japanese (月払い, 年払い: paid monthly, paid yearly), which no
+   * budget's period is.
+   */
+  "Monthly (budget period)",
+  "Quarterly (budget period)",
+  "Yearly (budget period)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

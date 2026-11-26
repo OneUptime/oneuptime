@@ -807,9 +807,10 @@ export const CLOUD_BUDGET_SCOPE_LABELS: Readonly<
 export const CLOUD_BUDGET_PERIOD_LABELS: Readonly<
   Record<CloudBudgetPeriod, string>
 > = {
-  [CloudBudgetPeriod.Month]: translationKey("Monthly"),
-  [CloudBudgetPeriod.Quarter]: translationKey("Quarterly"),
-  [CloudBudgetPeriod.Year]: translationKey("Yearly"),
+  // Keys of their own: the bare "Monthly" and "Yearly" are a billing cycle's.
+  [CloudBudgetPeriod.Month]: translationKey("Monthly (budget period)"),
+  [CloudBudgetPeriod.Quarter]: translationKey("Quarterly (budget period)"),
+  [CloudBudgetPeriod.Year]: translationKey("Yearly (budget period)"),
 };
 
 export const CLOUD_BUDGET_PLAN_SPLIT_LABELS: Readonly<

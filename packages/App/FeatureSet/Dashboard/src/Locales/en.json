@@ -65993,7 +65993,6 @@
   "For the whole year": "For the whole year",
   "Last week's pace": "Last week's pace",
   "Percent above usual": "Percent above usual",
-  "Quarterly": "Quarterly",
   "Services, Regions or tags": "Services, Regions or tags",
   "Split equally by month": "Split equally by month",
   "The likely range holds about 8 months in 10: it is how far past months fell from their trend, never less than 5% either way, and it widens further ahead.": "The likely range holds about 8 months in 10: it is how far past months fell from their trend, never less than 5% either way, and it widens further ahead.",
@@ -66003,5 +66002,8 @@
   "With fewer than 3 full months of costs, the last full week's pace is carried forward, with no range. A trend is forecast from 3 full months, and a season from 12.": "With fewer than 3 full months of costs, the last full week's pace is carried forward, with no range. A trend is forecast from 3 full months, and a season from 12.",
   "Every month from {{month}} on grows by {{percent}}%": "Every month from {{month}} on grows by {{percent}}%",
   "First month that grows": "First month that grows",
-  "Made from {{count}} full months_one": "Made from {{count}} full month"
+  "Made from {{count}} full months_one": "Made from {{count}} full month",
+  "Monthly (budget period)": "Monthly (budget period)",
+  "Quarterly (budget period)": "Quarterly (budget period)",
+  "Yearly (budget period)": "Yearly (budget period)"
 }

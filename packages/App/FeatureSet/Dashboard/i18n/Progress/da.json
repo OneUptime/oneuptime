@@ -599,6 +599,7 @@
     "z",
     "zone",
     "{\"version\": \"...\", \"records\": [...]}",
+    "{{amount}} under",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
