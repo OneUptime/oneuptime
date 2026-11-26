@@ -78,7 +78,7 @@ flowchart TB
 
 - **Nenhum projeto anexado (todos os projetos / convite primeiro):** os usuários podem fazer login com o provedor e acessar **qualquer projeto do qual já sejam membros**. Usuários novos **não** são criados automaticamente — o usuário precisa ser convidado para um projeto primeiro. Use isso para um SSO de toda a empresa quando as associações são gerenciadas em outro lugar.
 
-- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Projetos vinculados** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão no primeiro login. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
+- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Projetos vinculados** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão: quem é novo, no primeiro login, e quem já tem conta, como uma que você criou à mão, no próximo. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Um projeto anexado sem equipes não adiciona ninguém. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
 
 Quem já é membro de um projeto anexado mantém as equipes que tem lá.
 
@@ -89,7 +89,7 @@ Duas perguntas do provedor mudam isso, recolhidas em **Mais campos**. Cada uma c
 | **Pessoas sem conta** | **Ganham uma no primeiro login**: elas entram nos projetos anexados; se não houver nenhum anexado, precisam ser convidadas primeiro. **Precisam ser convidadas primeiro**: as pessoas precisam ser convidadas para um projeto antes de poderem fazer login com este provedor, mesmo quando há projetos anexados. |
 | **Onde este login conta como SSO** | **Todos os projetos**: os projetos que exigem SSO aceitam um login com este provedor. **Apenas os projetos anexados**: fazer login com este provedor atende à exigência de SSO apenas nos projetos anexados a ele, então pessoas que já fizeram login podem perder o acesso a outros projetos. |
 
-Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados.
+Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados: nenhuma das duas respostas adiciona alguém a um projeto. Enquanto nenhum projeto com equipes estiver anexado, a página do provedor diz em **Pessoas sem conta** que ninguém novo pode fazer login ainda.
 
 ## Endereços de email que o seu provedor de identidade não verificou
 
@@ -166,7 +166,7 @@ Duas alterações sobre quem pode fazer login são verificadas uma depois da out
 ## Solução de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-A pessoa ainda não tem conta no OneUptime, e o provedor não cria uma: ou não há projetos anexados a ele, ou **Pessoas sem conta** está em **Precisam ser convidadas primeiro**. Convide-a para um projeto ou anexe um projeto ao provedor.
+A pessoa ainda não tem conta no OneUptime, e o provedor não cria uma: ou não há nenhum projeto com equipes anexado a ele, ou **Pessoas sem conta** está em **Precisam ser convidadas primeiro**. Convide-a para um projeto ou anexe ao provedor um projeto, com as equipes em que ela entra. O log do servidor diz qual dos dois motivos é, sem nomear a pessoa.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
