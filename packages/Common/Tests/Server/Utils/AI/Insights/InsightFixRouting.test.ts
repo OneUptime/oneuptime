@@ -17,6 +17,8 @@ import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import ObjectID from "../../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { EVERY_CODE_REPOSITORY } from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import {
@@ -508,10 +510,36 @@ describe("InsightFixRouting.routeInsightFix", () => {
 
 describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)", () => {
   const userId: ObjectID = ObjectID.generate();
+  // Who clicked: a member of the project, as their request reads.
+  const MEMBER: DatabaseCommonInteractionProps = {
+    userId,
+    tenantId: projectId,
+  };
 
   beforeEach(() => {
     // AI on: the switch's own refusals have their suites.
     jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
+    /*
+     * The member may use the project's one connected repository in Code:
+     * who may start a trace's fix has its own suite
+     * (FixPerformanceTaskTrigger.test.ts, #11075).
+     */
+    jest
+      .spyOn(FixPerformanceTaskTrigger, "getUsableRepositories")
+      .mockResolvedValue({
+        connectedCount: 1,
+        usable: [
+          {
+            id: "11075000-0000-4000-8000-000000000001",
+            name: "checkout",
+            organizationName: "acme",
+            repositoryName: "checkout",
+            mainBranchName: "main",
+            gitHubAppInstallationId: "1234",
+          },
+        ],
+        allowance: EVERY_CODE_REPOSITORY,
+      });
     /*
      * No fix for the trace did its work, and Code's gate (asked for a
      * person's click) says nothing: both have their suites
@@ -550,6 +578,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         traceId: "trace-abc",
         spans: [makeSpan()],
         userId,
+        props: MEMBER,
       }),
     ).rejects.toThrow(/Nothing in this trace is worth an AI performance fix/);
 
@@ -563,6 +592,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         traceId: "",
         spans: [makeSpan()],
         userId,
+        props: MEMBER,
       }),
     ).rejects.toThrow(/traceId is required/);
 
@@ -572,6 +602,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         traceId: "trace-abc",
         spans: [],
         userId,
+        props: MEMBER,
       }),
     ).rejects.toThrow(/no spans/);
   });
@@ -596,6 +627,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         spans: [makeSpan()],
         serviceName: "checkout",
         userId,
+        props: MEMBER,
       });
 
     expect(run.id).toEqual(fixRunId);
