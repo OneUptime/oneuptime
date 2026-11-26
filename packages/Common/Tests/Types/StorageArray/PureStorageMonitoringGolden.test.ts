@@ -214,15 +214,13 @@ function computeGolden(): JSONObject {
         }),
       templates: getStorageArrayAlertTemplatesForSystem(input)
         .filter(isPureTemplate)
-        .map(
-        (template: StorageArrayAlertTemplate): JSONObject => {
+        .map((template: StorageArrayAlertTemplate): JSONObject => {
           return {
             id: template.id,
             name: template.name,
             storageSystems: template.storageSystems,
           };
-        },
-      ),
+        }),
       defaultTemplateId: getStorageArrayDefaultAlertTemplateId(input),
       recommendations: MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.StorageArray,
@@ -230,23 +228,23 @@ function computeGolden(): JSONObject {
       )
         .filter(isPureRecommendation)
         .map((recommendation: MonitorRecommendation): JSONObject => {
-        const template: StorageArrayAlertTemplate | undefined =
-          getStorageArrayAlertTemplateById(recommendation.templateId);
-        return {
-          recommendationId: recommendation.recommendationId,
-          templateId: recommendation.templateId,
-          name: recommendation.name,
-          summary: recommendation.summary || null,
-          category: recommendation.category,
-          severity: recommendation.severity,
-          // The step itself is pinned once, on its template, below.
-          buildsItsTemplatesStep: template
-            ? JSON.stringify(
-                stepJson(recommendation.getMonitorStep(RECOMMENDATION_ARGS)),
-              ) === JSON.stringify(stepJson(template.getMonitorStep(ARGS)))
-            : false,
-        };
-      }),
+          const template: StorageArrayAlertTemplate | undefined =
+            getStorageArrayAlertTemplateById(recommendation.templateId);
+          return {
+            recommendationId: recommendation.recommendationId,
+            templateId: recommendation.templateId,
+            name: recommendation.name,
+            summary: recommendation.summary || null,
+            category: recommendation.category,
+            severity: recommendation.severity,
+            // The step itself is pinned once, on its template, below.
+            buildsItsTemplatesStep: template
+              ? JSON.stringify(
+                  stepJson(recommendation.getMonitorStep(RECOMMENDATION_ARGS)),
+                ) === JSON.stringify(stepJson(template.getMonitorStep(ARGS)))
+              : false,
+          };
+        }),
       recommendationCategories: MonitorRecommendationCatalog.getCategories(
         MonitorRecommendationResourceType.StorageArray,
         { storageSystem: input },
@@ -255,9 +253,7 @@ function computeGolden(): JSONObject {
   }
 
   const prefixes: JSONObject = {};
-  for (const system of StorageSystemUtil.getAllSystems().filter(
-    isPureSystem,
-  )) {
+  for (const system of StorageSystemUtil.getAllSystems().filter(isPureSystem)) {
     prefixes[system] = StorageSystemUtil.getMetricPrefix(system);
   }
 
@@ -358,8 +354,7 @@ function computeGolden(): JSONObject {
         byId: getStorageArrayAlertTemplateById(template.id)?.id || null,
         monitorStep: stepJson(template.getMonitorStep(ARGS)),
       };
-    },
-  );
+    });
 
   const templateCategories: JSONObject = {};
   for (const category of [

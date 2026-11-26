@@ -145,6 +145,62 @@ export const STORAGE_ARRAY_HARDWARE_KINDS: ReadonlyArray<string> = [
 ];
 
 /*
+ * One column of the list of a kind a platform has of its own (its
+ * StorageArrayKindDefinition.listColumns): which of the row's fields it
+ * shows, or which of its details, in the platform's words. Every object of
+ * every kind has the same fields (StorageArrayResource), so what a field
+ * means is the kind's: a quota's capacityBytes is its limit, a node's
+ * readBytesPerSec what is read through it.
+ */
+export type StorageArrayKindColumnShows =
+  | "status"
+  | "type"
+  | "model"
+  | "version"
+  | "group"
+  | "capacity"
+  | "used"
+  // How much of capacity is used, as the shared storage bar.
+  | "usage"
+  | "readBandwidth"
+  | "writeBandwidth"
+  | "temperature"
+  // One of the row's details (`detail`), read as `format` says.
+  | "detail"
+  | "lastSeen";
+
+export type StorageArrayKindColumnFormat =
+  | "text"
+  | "number"
+  | "percent"
+  | "bytes"
+  | "seconds"
+  | "yesNo";
+
+export interface StorageArrayKindColumn {
+  shows: StorageArrayKindColumnShows;
+  // Translation keys. A last-seen column keeps the page's own words.
+  title?: string | undefined;
+  description?: string | undefined;
+  hiddenByDefault?: boolean | undefined;
+  // For "detail": the key in the row's details, and how its value reads.
+  detail?: string | undefined;
+  format?: StorageArrayKindColumnFormat | undefined;
+  // For "usage": the used percent its bar turns amber and red at.
+  warningPercent?: number | undefined;
+  criticalPercent?: number | undefined;
+}
+
+// The fields a kind's list may open sorted by.
+export type StorageArrayKindSortField =
+  | "name"
+  | "status"
+  | "usedBytes"
+  | "capacityBytes"
+  | "readBytesPerSec"
+  | "writeBytesPerSec";
+
+/*
  * A kind of object only this platform has (StorageArrayResourceKind lists
  * the shared ones), with the words its tab, counts and lists use. Every
  * label is a translation key.
@@ -159,6 +215,15 @@ export interface StorageArrayKindDefinition {
   // What its tab's table lists, and what it says while it lists nothing.
   description: string;
   noItemsMessage: string;
+  /*
+   * Its list's columns after the name, in order. Left out, the list shows
+   * what any object can report: status, size, data reduction, performance.
+   */
+  listColumns?: ReadonlyArray<StorageArrayKindColumn> | undefined;
+  // The order its list opens in (by name, A to Z, unless it says).
+  sortBy?:
+    | { field: StorageArrayKindSortField; descending?: boolean | undefined }
+    | undefined;
 }
 
 /*
@@ -309,8 +374,31 @@ export interface StorageArrayLatestReading {
   labelAttribute: string;
 }
 
+/*
+ * One panel of the Overview's charts, for a platform whose figures are not
+ * read and write pairs (StorageArrayGoldenCharts): its catalog metrics drawn
+ * together, each line split by a label when it says one (a PowerScale
+ * protocol's `protocol`, its nodes' `node`), so the busiest show first.
+ * Words are translation keys.
+ */
+export interface StorageArrayOverviewChart {
+  title: string;
+  description: string;
+  lines: ReadonlyArray<{
+    metricId: string;
+    legend?: string | undefined;
+    groupByLabel?: string | undefined;
+  }>;
+}
+
 export interface StorageArrayOverview {
   goldenCharts?: StorageArrayGoldenCharts | undefined;
+  /*
+   * The Overview's charts in panels of the platform's own, in place of the
+   * golden charts, with what the card says about them (a translation key).
+   */
+  charts?: ReadonlyArray<StorageArrayOverviewChart> | undefined;
+  chartsDescription?: string | undefined;
   // One series per open alert the array raised (value 1), with labels.
   alertMetricName?: string | undefined;
   /*
@@ -341,9 +429,15 @@ export interface StorageArrayOverview {
  * One table of an array's Hardware tab. The Dashboard draws a kind's
  * columns; `layout` picks another set for a kind a platform reports
  * differently (a FlashBlade's parts carry a slot and a health, not a
- * temperature). Words are translation keys.
+ * temperature; a PowerScale's sensors a reading and no health: `readings`
+ * shows each part's latest reading in its unit - a temperature, a fan's
+ * speed in its details' `rpm`, or its details' `reading` in their `unit` -
+ * and the part it belongs to, its groupName). Words are translation keys.
  */
-export type StorageArrayHardwareTableLayout = "default" | "slot-and-health";
+export type StorageArrayHardwareTableLayout =
+  | "default"
+  | "slot-and-health"
+  | "readings";
 
 export interface StorageArrayHardwareTable {
   kind: string;

@@ -301,9 +301,77 @@ function getHardwareTableWords(kind: string): HardwareTableWords {
   };
 }
 
+/*
+ * A part's latest reading in its unit: a temperature, a fan's speed (its
+ * details' rpm), or its details' reading in their unit (a power sensor's
+ * volts or amps). A dash once it has fallen off the polls.
+ */
+export function getHardwareReading(item: StorageArrayResource): string {
+  const temperature: number | null = StorageArrayResourceUtils.freshMetricValue(
+    item,
+    item.temperatureCelsius,
+  );
+  if (temperature !== null) {
+    return StorageArrayResourceUtils.formatTemperature(temperature);
+  }
+  const rpm: number | null = StorageArrayResourceUtils.freshMetricValue(
+    item,
+    StorageArrayResourceUtils.getDetailNumber(item, "rpm"),
+  );
+  if (rpm !== null) {
+    return StorageArrayResourceUtils.formatReading(rpm, "rpm");
+  }
+  const reading: number | null = StorageArrayResourceUtils.freshMetricValue(
+    item,
+    StorageArrayResourceUtils.getDetailNumber(item, "reading"),
+  );
+  const unit: string = StorageArrayResourceUtils.getDetailString(item, "unit");
+  if (reading !== null && unit) {
+    return StorageArrayResourceUtils.formatReading(reading, unit);
+  }
+  return "";
+}
+
 function getHardwareColumns(
   table: StorageArrayHardwareTable,
 ): Columns<StorageArrayResource> {
+  if (
+    table.kind === StorageArrayResourceKind.Hardware &&
+    table.layout === "readings"
+  ) {
+    return [
+      {
+        field: {
+          componentType: true,
+        },
+        title: "Type",
+        type: FieldType.Element,
+        getElement: (item: StorageArrayResource): ReactElement => {
+          return textCell(
+            StorageArrayResourceUtils.formatStatusLabel(item.componentType),
+          );
+        },
+      },
+      {
+        field: {
+          details: true,
+        },
+        id: "reading",
+        title: "Reading",
+        headerTooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.hardwareReadingColumn,
+        type: FieldType.Element,
+        disableSort: true,
+        getElement: (item: StorageArrayResource): ReactElement => {
+          return textCell(getHardwareReading(item));
+        },
+      },
+      StorageArrayResourceColumns.getTextColumn({
+        field: "groupName",
+        title: "Node",
+      }),
+      StorageArrayResourceColumns.getLastSeenColumn(),
+    ];
+  }
   if (
     table.kind === StorageArrayResourceKind.Hardware &&
     table.layout === "slot-and-health"

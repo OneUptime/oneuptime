@@ -50,6 +50,69 @@ export const POWERSCALE_KIND_DEFINITIONS: Array<StorageArrayKindDefinition> = [
     noItemsMessage: translationKey(
       "No nodes in the inventory yet. They appear here a minute after the Storage Array Agent starts polling the cluster.",
     ),
+    listColumns: [
+      {
+        shows: "status",
+        title: translationKey("Health"),
+        description: translationKey(
+          "The health OneFS reports for the node: Healthy, Attention, Down or Invalid. Offline while the cluster lists it as offline.",
+        ),
+      },
+      {
+        shows: "type",
+        title: translationKey("Type"),
+        description: translationKey("A storage node or an accelerator."),
+      },
+      {
+        shows: "model",
+        title: translationKey("Model"),
+        description: translationKey("The node's model, from its chassis."),
+      },
+      {
+        shows: "version",
+        title: translationKey("OneFS"),
+        description: translationKey("The OneFS version the node runs."),
+      },
+      {
+        shows: "detail",
+        detail: "cpuBusyPercent",
+        format: "percent",
+        title: translationKey("CPU"),
+        description: translationKey("Share of the node's CPU time in use."),
+      },
+      {
+        shows: "readBandwidth",
+        title: translationKey("Read"),
+        description: translationKey(
+          "Bytes read out of /ifs per second through the node.",
+        ),
+      },
+      {
+        shows: "writeBandwidth",
+        title: translationKey("Write"),
+        description: translationKey(
+          "Bytes written into /ifs per second through the node.",
+        ),
+      },
+      {
+        shows: "detail",
+        detail: "serialNumber",
+        format: "text",
+        title: translationKey("Serial Number"),
+        hiddenByDefault: true,
+      },
+      {
+        shows: "detail",
+        detail: "readOnly",
+        format: "yesNo",
+        title: translationKey("Read-Only"),
+        description: translationKey(
+          "Whether the node is in read-only mode, so clients connected to it cannot write.",
+        ),
+        hiddenByDefault: true,
+      },
+      { shows: "lastSeen" },
+    ],
   },
   {
     kind: POWERSCALE_QUOTA_KIND,
@@ -66,6 +129,98 @@ export const POWERSCALE_KIND_DEFINITIONS: Array<StorageArrayKindDefinition> = [
     noItemsMessage: translationKey(
       "No quotas yet. They appear here within five minutes of the Storage Array Agent starting, once the cluster has a quota.",
     ),
+    listColumns: [
+      {
+        shows: "status",
+        title: translationKey("Status"),
+        description: translationKey(
+          "Where the quota stands against its limits: OK, Over Advisory Limit, Over Soft Limit, or Full at its hard limit.",
+        ),
+      },
+      {
+        shows: "type",
+        title: translationKey("Kind"),
+        description: translationKey(
+          "A directory, user or group quota, or a default one for users or groups.",
+        ),
+      },
+      {
+        shows: "usage",
+        title: translationKey("Used"),
+        description: translationKey(
+          "How much of its limit the quota uses: of its hard limit, or of its soft limit when it has no hard one.",
+        ),
+        // The lines the Quota Near Its Limit and Quota Full alerts fire at.
+        warningPercent: 90,
+        criticalPercent: 100,
+      },
+      {
+        shows: "detail",
+        detail: "hardLimitBytes",
+        format: "bytes",
+        title: translationKey("Hard Limit"),
+        description: translationKey(
+          "Writes to the quota are refused at this size.",
+        ),
+      },
+      {
+        shows: "detail",
+        detail: "softLimitBytes",
+        format: "bytes",
+        title: translationKey("Soft Limit"),
+        description: translationKey(
+          "Past this size, writes are refused once the grace period ends.",
+        ),
+      },
+      {
+        shows: "detail",
+        detail: "advisoryLimitBytes",
+        format: "bytes",
+        title: translationKey("Advisory Limit"),
+        description: translationKey("Past this size, OneFS only notifies."),
+        hiddenByDefault: true,
+      },
+      {
+        shows: "detail",
+        detail: "gracePeriodSeconds",
+        format: "seconds",
+        title: translationKey("Grace Period"),
+        description: translationKey(
+          "How long the quota may stay past its soft limit before writes are refused.",
+        ),
+        hiddenByDefault: true,
+      },
+      {
+        shows: "detail",
+        detail: "physicalBytes",
+        format: "bytes",
+        title: translationKey("With Protection"),
+        description: translationKey(
+          "What the quota holds, with the space its data protection takes.",
+        ),
+        hiddenByDefault: true,
+      },
+      {
+        shows: "detail",
+        detail: "inodes",
+        format: "number",
+        title: translationKey("Files and Directories"),
+        hiddenByDefault: true,
+      },
+      {
+        shows: "detail",
+        detail: "includesSnapshots",
+        format: "yesNo",
+        title: translationKey("Counts Snapshots"),
+        description: translationKey(
+          "Whether the quota counts the space its snapshots take.",
+        ),
+        hiddenByDefault: true,
+      },
+      { shows: "lastSeen" },
+    ],
+    // The largest first; the ten nearest their limit are on Resource Usage.
+    sortBy: { field: "usedBytes", descending: true },
   },
 ];
 
@@ -320,6 +475,70 @@ const DellPowerScalePlatform: StorageArrayPlatform = {
     alertDetailsUnavailable: translationKey(
       "OneFS reports the cluster is not healthy. Run isi event groups list on the cluster, or open the OneFS web administration interface, to see why.",
     ),
+    /*
+     * A protocol's latency and load, throughput, the busiest nodes and how
+     * full the cluster is: OneFS reports no read and write latency pairs, so
+     * its panels are its own.
+     */
+    charts: [
+      {
+        title: translationKey("Protocol Latency"),
+        description: translationKey(
+          "How long an operation takes per protocol, as clients see it, on the node where it is slowest.",
+        ),
+        lines: [
+          { metricId: "powerscale-protocol-latency", groupByLabel: "protocol" },
+        ],
+      },
+      {
+        title: translationKey("Protocol Operations"),
+        description: translationKey(
+          "Operations per second per protocol, on its busiest node.",
+        ),
+        lines: [
+          {
+            metricId: "powerscale-protocol-operations",
+            groupByLabel: "protocol",
+          },
+        ],
+      },
+      {
+        title: translationKey("Throughput"),
+        description: translationKey(
+          "Bytes read out of and written into /ifs per second, across the cluster.",
+        ),
+        lines: [
+          {
+            metricId: "powerscale-read-throughput",
+            legend: translationKey("Read"),
+          },
+          {
+            metricId: "powerscale-write-throughput",
+            legend: translationKey("Write"),
+          },
+        ],
+      },
+      {
+        title: translationKey("Busiest Nodes"),
+        description: translationKey("CPU in use on each node, busiest first."),
+        lines: [{ metricId: "powerscale-node-cpu-busy", groupByLabel: "node" }],
+      },
+      {
+        title: translationKey("Capacity Used"),
+        description: translationKey(
+          "Share of the cluster's capacity no longer available for writes. OneUptime's templates warn at 80% and alert at 90%.",
+        ),
+        lines: [
+          {
+            metricId: "powerscale-capacity-used-percent",
+            legend: translationKey("Capacity Used"),
+          },
+        ],
+      },
+    ],
+    chartsDescription: translationKey(
+      "Each protocol's latency and load, throughput, the busiest nodes and capacity used, for this cluster.",
+    ),
     countChips: [
       { kind: POWERSCALE_NODE_KIND, showWhenZero: true },
       { kind: POWERSCALE_QUOTA_KIND, showWhenZero: false },
@@ -345,7 +564,7 @@ const DellPowerScalePlatform: StorageArrayPlatform = {
     },
     {
       kind: StorageArrayResourceKind.Hardware,
-      layout: "default",
+      layout: "readings",
       tableId: "storage-array-powerscale-sensors-table",
       description: translationKey(
         "The fans and the temperature and power sensors of every node the agent polls, with their latest reading.",

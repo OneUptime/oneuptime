@@ -63,10 +63,11 @@ const ARRAY_ID: string = "5a7e0000-0000-4000-8000-0000000011a0";
  * Pure's families of the scan's allow-list: the platforms after Pure add
  * theirs (Dell PowerScale's powerscale_*), which a Pure array never sends.
  */
+const PURE_METRIC_NAME: RegExp = /^pure(fa|fb)_/;
 const PURE_SNAPSHOT_METRIC_NAMES: Set<string> = new Set(
   Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).filter(
     (metricName: string): boolean => {
-      return /^pure(fa|fb)_/.test(metricName);
+      return PURE_METRIC_NAME.test(metricName);
     },
   ),
 );

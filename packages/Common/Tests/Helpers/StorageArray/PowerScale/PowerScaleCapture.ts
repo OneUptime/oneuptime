@@ -58,7 +58,9 @@ function attributeValue(value: JSONValue): string {
   return "";
 }
 
-function attributesOf(attributes: JSONArray | undefined): Record<string, string> {
+function attributesOf(
+  attributes: JSONArray | undefined,
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const attribute of attributes || []) {
     const entry: JSONObject = attribute as JSONObject;
@@ -129,14 +131,14 @@ export function filterPowerScaleCapture(
         const metricObject: JSONObject = metric as JSONObject;
         const data: JSONObject = (metricObject["gauge"] ||
           metricObject["sum"]) as JSONObject;
-        const kept: JSONArray = ((data?.["dataPoints"] as JSONArray) || []).filter(
-          (datapoint: JSONValue): boolean => {
-            return keep(
-              metricObject["name"] as string,
-              attributesOf((datapoint as JSONObject)["attributes"] as JSONArray),
-            );
-          },
-        );
+        const kept: JSONArray = (
+          (data?.["dataPoints"] as JSONArray) || []
+        ).filter((datapoint: JSONValue): boolean => {
+          return keep(
+            metricObject["name"] as string,
+            attributesOf((datapoint as JSONObject)["attributes"] as JSONArray),
+          );
+        });
         if (kept.length > 0) {
           data["dataPoints"] = kept;
           metrics.push(metricObject);

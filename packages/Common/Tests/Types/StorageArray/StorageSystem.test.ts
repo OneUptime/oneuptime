@@ -236,9 +236,9 @@ describe("StorageSystemUtil.fromMetricName", () => {
 
 describe("StorageSystemUtil display helpers", () => {
   test("display, short and vendor names of the shipped platforms", () => {
-    expect(
-      StorageSystemUtil.getDisplayName(StorageSystem.DellPowerScale),
-    ).toBe("Dell PowerScale");
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerScale)).toBe(
+      "Dell PowerScale",
+    );
     expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerScale)).toBe(
       "PowerScale",
     );

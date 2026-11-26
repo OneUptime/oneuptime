@@ -132,8 +132,12 @@ describe("the capture", () => {
           });
           const allowed: Array<string> | null | undefined = documented[key];
           if (allowed) {
-            expect({ metricName, key, value, allowed: allowed.includes(value) })
-              .toEqual({ metricName, key, value, allowed: true });
+            expect({
+              metricName,
+              key,
+              value,
+              allowed: allowed.includes(value),
+            }).toEqual({ metricName, key, value, allowed: true });
           }
         }
       }
@@ -143,8 +147,10 @@ describe("the capture", () => {
 
   test("every value is a finite number", () => {
     for (const point of POINTS) {
-      expect({ metric: point.metricName, finite: Number.isFinite(point.value) })
-        .toEqual({ metric: point.metricName, finite: true });
+      expect({
+        metric: point.metricName,
+        finite: Number.isFinite(point.value),
+      }).toEqual({ metric: point.metricName, finite: true });
     }
   });
 });
@@ -213,8 +219,7 @@ describe("what the collector reworked, from the walks", () => {
       9,
     );
     expect(
-      onePoint("powerscale_node_cpu_busy_percent", { node: "ps-prod-2" })
-        .value,
+      onePoint("powerscale_node_cpu_busy_percent", { node: "ps-prod-2" }).value,
     ).toBeCloseTo(100 - Number(node2.get(`${ISILON}.2.2.3.5.0`)) / 10, 9);
   });
 
@@ -299,7 +304,9 @@ describe("what the collector reworked, from the walks", () => {
 describe("what the platform reads is what the capture carries", () => {
   test.each(
     DellPowerScalePlatform.metrics.map(
-      (metric: StorageArrayMetricDefinition): [string, StorageArrayMetricDefinition] => {
+      (
+        metric: StorageArrayMetricDefinition,
+      ): [string, StorageArrayMetricDefinition] => {
         return [metric.id, metric];
       },
     ),
@@ -326,7 +333,9 @@ describe("what the platform reads is what the capture carries", () => {
 
   test.each(
     DellPowerScalePlatform.alertTemplates.map(
-      (template: StorageArrayAlertTemplateSpec): [string, StorageArrayAlertTemplateSpec] => {
+      (
+        template: StorageArrayAlertTemplateSpec,
+      ): [string, StorageArrayAlertTemplateSpec] => {
         return [template.id, template];
       },
     ),

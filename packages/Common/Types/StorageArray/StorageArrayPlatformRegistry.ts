@@ -65,6 +65,14 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       return `it defines the kind ${definition.kind}, which is not one of its kinds`;
     }
     worded.add(definition.kind);
+    for (const column of definition.listColumns || []) {
+      if (column.shows === "detail" && (!column.detail || !column.format)) {
+        return `a column of its ${definition.kind} list shows a detail without naming it and how it reads`;
+      }
+      if (column.shows !== "lastSeen" && !column.title) {
+        return `a column of its ${definition.kind} list has no title`;
+      }
+    }
   }
 
   const named: Array<[string, string]> = [];
@@ -141,6 +149,14 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       charts.capacityUsed,
     ]) {
       charted.push([id, "its overview"]);
+    }
+  }
+  for (const chart of platform.overview.charts || []) {
+    if (chart.lines.length === 0) {
+      return `its overview's ${chart.title} chart draws no line`;
+    }
+    for (const line of chart.lines) {
+      charted.push([line.metricId, "its overview"]);
     }
   }
   for (const [id, where] of charted) {

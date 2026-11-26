@@ -532,10 +532,11 @@ afterEach(() => {
  * Pure's families of the allow-list: the platforms after Pure hold their
  * own (Dell PowerScale's in PowerScaleExtractor.test.ts).
  */
+const PURE_METRIC_NAME: RegExp = /^pure(fa|fb)_/;
 const PURE_SNAPSHOT_METRIC_NAMES: Array<string> = [
   ...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
 ].filter((metricName: string): boolean => {
-  return /^pure(fa|fb)_/.test(metricName);
+  return PURE_METRIC_NAME.test(metricName);
 });
 
 describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {

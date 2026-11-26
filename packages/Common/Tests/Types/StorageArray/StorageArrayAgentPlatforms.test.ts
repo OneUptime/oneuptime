@@ -144,7 +144,7 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         noun: entry.config.arrayNoun,
         // Only a collector that talks to the array itself asks about its TLS.
         tlsToArray:
-          (entry.config.talksTlsToArray ?? entry.config.exporterService === null)
+          entry.config.talksTlsToArray ?? entry.config.exporterService === null
             ? "yes"
             : "no",
       });

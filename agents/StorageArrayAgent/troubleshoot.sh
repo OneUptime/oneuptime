@@ -255,8 +255,128 @@ section "2. Array endpoint & API token"
 #   otel-collector-config.yaml                     https://<array>/metrics/*?namespace=purefa
 #   otel-collector-config.flasharray-exporter.yaml http://pure-fa-exporter:9490/metrics/*?endpoint=<array>
 #   otel-collector-config.flashblade.yaml          http://pure-fb-exporter:9491/metrics/*?endpoint=<array>
+#   otel-collector-config.powerscale.yaml          udp://<each node>:161, SNMP (ISILON-MIB)
 # The probe below asks the array endpoint the same way, with the same API
-# token, from the collector's own network namespace.
+# token, from the collector's own network namespace. A PowerScale is polled
+# over SNMP by the collector itself (powerscale_checks).
+
+# Dell PowerScale: no exporter and no HTTP endpoint. The address, the nodes
+# polled and the credential are checked, and each node is asked for its
+# cluster's name (ISILON-MIB clusterName) with snmpget when this machine has
+# it. The community or SNMPv3 passwords go to snmpget in a snmp.conf of its
+# own (SNMPCONFPATH), never on a command line.
+powerscale_checks() {
+  local endpoint receivers version community user level auth_type auth_pass
+  local priv_type priv_pass slots n address addresses conf_dir answer answered
+  endpoint=$(agent_env POWERSCALE_ENDPOINT)
+  receivers=$(agent_env POWERSCALE_SNMP_RECEIVERS)
+  version=$(agent_env POWERSCALE_SNMP_VERSION)
+  community=$(agent_env POWERSCALE_SNMP_COMMUNITY)
+  user=$(agent_env POWERSCALE_SNMP_USER)
+  level=$(agent_env POWERSCALE_SNMP_SECURITY_LEVEL)
+  auth_type=$(agent_env POWERSCALE_SNMP_AUTH_PROTOCOL)
+  auth_pass=$(agent_env POWERSCALE_SNMP_AUTH_PASSWORD)
+  priv_type=$(agent_env POWERSCALE_SNMP_PRIVACY_PROTOCOL)
+  priv_pass=$(agent_env POWERSCALE_SNMP_PRIVACY_PASSWORD)
+
+  if [ -z "$endpoint" ]; then
+    fail "POWERSCALE_ENDPOINT is not set — the collector doesn't know which node to read the cluster through."
+    add_finding "Re-run install.sh, or set POWERSCALE_ENDPOINT in $ENV_FILE to a node's own address (not the SmartConnect name), then: cd $DIR && docker compose up -d"
+    ARRAY_VERDICT="MISCONFIGURED"
+  fi
+  case "$endpoint" in
+    *://*)
+      fail "POWERSCALE_ENDPOINT='$endpoint' has a scheme — it must be the node's bare address."
+      add_finding "Remove the scheme from POWERSCALE_ENDPOINT in $ENV_FILE and restart the agent."
+      ARRAY_VERDICT="MISCONFIGURED" ;;
+    localhost|127.0.0.1)
+      fail "POWERSCALE_ENDPOINT points at localhost — inside the agent container that is the agent itself."
+      add_finding "POWERSCALE_ENDPOINT must be a node's address, reachable from a container."
+      ARRAY_VERDICT="MISCONFIGURED" ;;
+  esac
+
+  addresses=""
+  if [ -z "$receivers" ]; then
+    info "POWERSCALE_SNMP_RECEIVERS is not set — the agent polls the node at POWERSCALE_ENDPOINT alone."
+    add_finding "To read every node's drives, sensors and ports, re-run install.sh with POWERSCALE_NODES set to every node's address."
+    addresses="$endpoint"
+  else
+    slots=$(printf '%s' "$receivers" | grep -o 'snmp/node-[0-9]*' | sed 's#snmp/node-##')
+    for n in $slots; do
+      address=$(agent_env "POWERSCALE_NODE_$n")
+      if [ -z "$address" ]; then
+        fail "POWERSCALE_SNMP_RECEIVERS lists snmp/node-$n, but POWERSCALE_NODE_$n is not set."
+        add_finding "Re-run install.sh to write a node's address for every slot POWERSCALE_SNMP_RECEIVERS lists."
+        ARRAY_VERDICT="MISCONFIGURED"
+      else
+        addresses="${addresses:+$addresses }$address"
+      fi
+    done
+    if [ -n "$addresses" ]; then
+      pass "Polling $(printf '%s\n' $addresses | wc -l | tr -d ' ') node(s): $addresses"
+    fi
+  fi
+
+  case "${version:-v2c}" in
+    v3)
+      if [ -z "$user" ]; then
+        fail "POWERSCALE_SNMP_VERSION is v3 but POWERSCALE_SNMP_USER is not set."
+        add_finding "Set POWERSCALE_SNMP_USER (and its passwords) in $ENV_FILE to the cluster's SNMPv3 user (isi snmp settings view), then restart the agent."
+        ARRAY_VERDICT="MISCONFIGURED"
+      fi ;;
+    *)
+      if [ -z "$community" ]; then
+        fail "POWERSCALE_SNMP_COMMUNITY is not set — the cluster answers no SNMP v2c poll without it."
+        add_finding "Set POWERSCALE_SNMP_COMMUNITY in $ENV_FILE to the cluster's read-only community (isi snmp settings view), then restart the agent."
+        ARRAY_VERDICT="MISCONFIGURED"
+      fi ;;
+  esac
+
+  if [ "$ARRAY_VERDICT" != "UNKNOWN" ]; then
+    return
+  fi
+  if ! command -v snmpget >/dev/null 2>&1; then
+    info "snmpget is not installed here, so the nodes are not probed. Install Net-SNMP's tools (apt install snmp, or dnf install net-snmp-utils) to probe them, or look for 'Error scraping metrics' in: cd $DIR && docker compose logs"
+    return
+  fi
+
+  conf_dir=$(mktemp -d)
+  chmod 700 "$conf_dir"
+  if [ "${version:-v2c}" = "v3" ]; then
+    case "$level" in
+      auth_no_priv) level="authNoPriv" ;;
+      no_auth_no_priv) level="noAuthNoPriv" ;;
+      *) level="authPriv" ;;
+    esac
+    {
+      printf 'defVersion 3\ndefSecurityName %s\ndefSecurityLevel %s\n' "$user" "$level"
+      printf 'defAuthType %s\ndefAuthPassphrase %s\n' "$(printf '%s' "${auth_type:-SHA}" | sed 's/^SHA\([0-9]\)/SHA-\1/')" "$auth_pass"
+      printf 'defPrivType %s\ndefPrivPassphrase %s\n' "$(printf '%s' "${priv_type:-AES}" | sed 's/^AES\([0-9]\)/AES-\1/')" "$priv_pass"
+    } > "$conf_dir/snmp.conf"
+  else
+    printf 'defVersion 2c\ndefCommunity %s\n' "$community" > "$conf_dir/snmp.conf"
+  fi
+  chmod 600 "$conf_dir/snmp.conf"
+  answered=0
+  for address in $addresses; do
+    answer=$(SNMPCONFPATH="$conf_dir" snmpget -t 5 -r 1 -Oqv "$address" 1.3.6.1.4.1.12124.1.1.1.0 2>&1)
+    case "$answer" in
+      ""|*"Timeout"*|*"No Such"*|*"Unknown"*|*"error"*|*"Error"*)
+        fail "Node $address does not answer SNMP (${answer:-no answer})."
+        detail "Check that SNMP is on for this version (isi snmp settings view), that this machine reaches the node on UDP 161, and the community or SNMPv3 user." ;;
+      *)
+        pass "Node $address answers SNMP: cluster $(printf '%s' "$answer" | tr -d '"')."
+        answered=$((answered + 1)) ;;
+    esac
+  done
+  rm -rf "$conf_dir"
+  if [ "$answered" -gt 0 ]; then
+    ARRAY_VERDICT="OK"
+  else
+    ARRAY_VERDICT="UNREACHABLE"
+    add_finding "No node of the cluster answered SNMP from this machine. Turn SNMP on for the version the agent uses (isi snmp settings modify), allow UDP 161 from this machine to each node, and check the community or SNMPv3 user in $ENV_FILE."
+  fi
+}
 CONFIG_NAME=$(agent_env STORAGE_ARRAY_COLLECTOR_CONFIG)
 [ -z "$CONFIG_NAME" ] && CONFIG_NAME="otel-collector-config.yaml"
 CONFIG_FILE="$DIR/$CONFIG_NAME"
@@ -274,9 +394,11 @@ case "$CONFIG_NAME" in
     MODE="fa-exporter"; NEED_PROFILE="flasharray-exporter"; EXPECT_SYSTEM="purestorage.flasharray"; INFO_METRIC="purefa_info"; PLATFORM="FlashArray" ;;
   otel-collector-config.flashblade.yaml)
     MODE="fb-exporter"; NEED_PROFILE="flashblade"; EXPECT_SYSTEM="purestorage.flashblade"; INFO_METRIC="purefb_info"; PLATFORM="FlashBlade" ;;
+  otel-collector-config.powerscale.yaml)
+    MODE="snmp"; EXPECT_SYSTEM="dell.powerscale"; INFO_METRIC="powerscale_cluster_health"; PLATFORM="PowerScale cluster" ;;
   *)
     warn "STORAGE_ARRAY_COLLECTOR_CONFIG='$CONFIG_NAME' is not one of the shipped configs — skipping the array probe."
-    add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray) or otel-collector-config.flashblade.yaml (FlashBlade)."
+    add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray), otel-collector-config.flashblade.yaml (FlashBlade) or otel-collector-config.powerscale.yaml (PowerScale)."
     ARRAY_VERDICT="MISCONFIGURED" ;;
 esac
 
@@ -285,6 +407,7 @@ if [ -n "$MODE" ]; then
     native)      info "Mode: $PLATFORM, native OpenMetrics on the array ($CONFIG_NAME)" ;;
     fa-exporter) info "Mode: $PLATFORM through Pure's exporter, the pure-fa-exporter service ($CONFIG_NAME)" ;;
     fb-exporter) info "Mode: $PLATFORM through Pure's exporter, the pure-fb-exporter service ($CONFIG_NAME)" ;;
+    snmp)        info "Mode: $PLATFORM, polled over SNMP by the collector itself ($CONFIG_NAME)" ;;
   esac
 
   if [ -d "$DIR" ] && [ ! -f "$CONFIG_FILE" ]; then
@@ -312,6 +435,9 @@ if [ -n "$MODE" ]; then
     add_finding "Set STORAGE_SYSTEM=$EXPECT_SYSTEM in $ENV_FILE so OneUptime shows the right platform, then: cd $DIR && docker compose up -d"
   fi
 
+  if [ "$MODE" = "snmp" ]; then
+    powerscale_checks
+  else
   if [ "$MODE" = "fb-exporter" ]; then
     ENDPOINT_VAR="PURE_FB_ENDPOINT"; TOKEN_VAR="PURE_FB_API_TOKEN"
   else
@@ -451,6 +577,8 @@ if [ -n "$MODE" ]; then
           detail "Response head: $PROBE_HEAD" ;;
       esac
     fi
+  fi
+  # The end of the Pure Storage checks (a PowerScale's are powerscale_checks).
   fi
 fi
 

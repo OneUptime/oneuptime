@@ -9,6 +9,8 @@ import { StorageArrayKindDefinition } from "Common/Types/StorageArray/StorageArr
 import StorageArrayResourceTable from "../../../Components/StorageArray/StorageArrayResourceTable";
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
+import getStorageArrayKindColumns from "../../../Components/StorageArray/StorageArrayKindColumns";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 /*
  * The inventory of a kind a platform has of its own (#11000) - a NetApp
@@ -17,8 +19,11 @@ import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
  * (StorageArrayPlatform.kindDefinitions). Every object of every kind has
  * the same columns (StorageArrayResource), so the table shows what any of
  * them can report: its status, size, data reduction, latest performance
- * and when it was last seen. A kind that earns a page of its own (as
- * volumes and hosts have) gets one; this is where it starts.
+ * and when it was last seen - unless the platform says which of them its
+ * kind's list shows, in its words (StorageArrayKindDefinition.listColumns:
+ * a PowerScale node's health, model and CPU, a quota's limits), and the
+ * order it opens in. A kind that earns a page of its own (as volumes and
+ * hosts have) gets one; this is where it starts.
  */
 const StorageArrayInventory: FunctionComponent<
   PageComponentProps
@@ -43,16 +48,26 @@ const StorageArrayInventory: FunctionComponent<
       title={pluralName}
       description={definition?.description || ""}
       noItemsMessage={definition?.noItemsMessage || "Nothing here yet."}
-      columns={[
-        StorageArrayResourceColumns.getStatusColumn({
-          title: "Status",
-        }),
-        StorageArrayResourceColumns.getProvisionedColumn(),
-        StorageArrayResourceColumns.getPhysicalColumn(),
-        StorageArrayResourceColumns.getDataReductionColumn(),
-        ...StorageArrayResourceColumns.getPerformanceColumns(),
-        StorageArrayResourceColumns.getLastSeenColumn(),
-      ]}
+      sortBy={definition?.sortBy?.field}
+      sortOrder={
+        definition?.sortBy?.descending
+          ? SortOrder.Descending
+          : SortOrder.Ascending
+      }
+      columns={
+        definition?.listColumns
+          ? getStorageArrayKindColumns(definition.listColumns)
+          : [
+              StorageArrayResourceColumns.getStatusColumn({
+                title: "Status",
+              }),
+              StorageArrayResourceColumns.getProvisionedColumn(),
+              StorageArrayResourceColumns.getPhysicalColumn(),
+              StorageArrayResourceColumns.getDataReductionColumn(),
+              ...StorageArrayResourceColumns.getPerformanceColumns(),
+              StorageArrayResourceColumns.getLastSeenColumn(),
+            ]
+      }
     />
   );
 };

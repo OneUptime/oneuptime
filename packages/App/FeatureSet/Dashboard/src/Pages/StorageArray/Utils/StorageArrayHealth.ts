@@ -2,7 +2,11 @@ import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResou
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
-import { StorageArrayLatencyReading } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayKindDefinition,
+  StorageArrayLatencyReading,
+  StorageArrayPlatform,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   StorageUsage,
@@ -141,7 +145,40 @@ const HEALTHY_STATUSES: ReadonlyArray<string> = [
   "enabled",
   "online",
   "replicating",
+  // A network port that is up (a PowerScale node's).
+  "up",
 ];
+
+/*
+ * And the words each platform writes of its own (its componentStatuses): a
+ * PowerScale node's attention or offline, a drive's smartfail, a quota
+ * that is full. No platform's word is another's with another meaning.
+ */
+function isPlatformStatus(
+  normalized: string,
+  list: "critical" | "warning",
+): boolean {
+  return StorageArrayPlatformRegistry.getPlatforms().some(
+    (platform: StorageArrayPlatform): boolean => {
+      return platform.componentStatuses[list].includes(normalized);
+    },
+  );
+}
+
+function isCriticalStatus(normalized: string): boolean {
+  return (
+    CRITICAL_STATUSES.includes(normalized) ||
+    isPlatformStatus(normalized, "critical")
+  );
+}
+
+function isWarningStatus(normalized: string): boolean {
+  return (
+    !isCriticalStatus(normalized) &&
+    (WARNING_STATUSES.includes(normalized) ||
+      isPlatformStatus(normalized, "warning"))
+  );
+}
 
 /*
  * The array's status words as each language says them. A word the array
@@ -182,6 +219,9 @@ const STATUS_REASONS: Record<string, string> = {
   unrecognized: translationKey("Reports unrecognized"),
   "not ready": translationKey("Reports not ready"),
 };
+
+// Why a part needs attention, for a status only its platform writes.
+const REASON_STATUS_AS_WRITTEN: string = translationKey("Reports {{status}}");
 
 // The part kinds the rules read, as the inventory writes them.
 export type StorageArrayPartKind =
@@ -565,10 +605,10 @@ function assessStatusPart(
 
   let severity: ResourceAttentionSeverity | null = null;
   let tone: ResourcePartTone = "neutral";
-  if (CRITICAL_STATUSES.includes(normalized)) {
+  if (isCriticalStatus(normalized)) {
     severity = ResourceAttentionSeverity.Critical;
     tone = "danger";
-  } else if (WARNING_STATUSES.includes(normalized)) {
+  } else if (isWarningStatus(normalized)) {
     severity = ResourceAttentionSeverity.Warning;
     tone = "warning";
   } else if (HEALTHY_STATUSES.includes(normalized)) {
@@ -579,7 +619,16 @@ function assessStatusPart(
   return {
     severity: severity,
     status: { label: word.label, values: word.values, tone: tone },
-    reasons: severity && reason ? [{ text: reason }] : [],
+    reasons: !severity
+      ? []
+      : reason
+        ? [{ text: reason }]
+        : [
+            {
+              text: REASON_STATUS_AS_WRITTEN,
+              values: { status: formatStorageArrayStatus(normalized) },
+            },
+          ],
   };
 }
 
@@ -640,7 +689,7 @@ export function assessStorageArrayPart(
     return assessHost(row);
   }
 
-  if (STATUS_KINDS.includes(kind)) {
+  if (STATUS_KINDS.includes(kind) || getPlatformHardwareKind(kind)) {
     const fromStatus: StorageArrayAssessment | null = assessStatusPart(row);
     const assessment: StorageArrayAssessment = fromStatus || {
       severity: null,
@@ -877,6 +926,27 @@ export function isStorageArrayPartKind(
   return Boolean(kind && kind in KIND_ICONS);
 }
 
+/*
+ * A kind a platform has of its own whose status decides its hardware
+ * health (its hardwareKinds: a PowerScale node), with the platform's words
+ * for it; null for any other kind.
+ */
+export function getPlatformHardwareKind(
+  kind: string | null | undefined,
+): StorageArrayKindDefinition | null {
+  if (!kind || isStorageArrayPartKind(kind)) {
+    return null;
+  }
+  const isHardware: boolean = StorageArrayPlatformRegistry.getPlatforms().some(
+    (platform: StorageArrayPlatform): boolean => {
+      return (platform.hardwareKinds || []).includes(kind);
+    },
+  );
+  return isHardware
+    ? StorageArrayPlatformRegistry.getKindDefinition(kind)
+    : null;
+}
+
 export function getStorageArrayPartName(row: StorageArrayPartRow): string {
   return row.name || row.externalId || "";
 }
@@ -939,7 +1009,9 @@ export function getStorageArrayAttentionItems(data: {
   const hardwareKindOf: Map<string, StorageArrayPartKind> = new Map();
 
   for (const row of data.parts) {
-    if (!isStorageArrayPartKind(row.kind)) {
+    const platformKind: StorageArrayKindDefinition | null =
+      getPlatformHardwareKind(row.kind);
+    if (!isStorageArrayPartKind(row.kind) && !platformKind) {
       continue;
     }
     const assessment: StorageArrayAssessment = assessStorageArrayPart(
@@ -951,15 +1023,22 @@ export function getStorageArrayAttentionItems(data: {
     }
     const item: ResourceAttentionItem = {
       key: getStorageArrayAttentionKey(row),
-      kind: STORAGE_ARRAY_KIND_LABELS[row.kind],
-      icon: KIND_ICONS[row.kind],
+      kind: platformKind
+        ? platformKind.singularLabel
+        : STORAGE_ARRAY_KIND_LABELS[row.kind as StorageArrayPartKind],
+      icon: platformKind
+        ? platformKind.icon
+        : KIND_ICONS[row.kind as StorageArrayPartKind],
       name: getStorageArrayPartName(row),
       severity: assessment.severity,
       reasons: assessment.reasons,
       route: data.routeFor ? data.routeFor(row) : undefined,
     };
 
-    if (!STORAGE_ARRAY_HARDWARE_KINDS.includes(row.kind)) {
+    if (
+      platformKind ||
+      !STORAGE_ARRAY_HARDWARE_KINDS.includes(row.kind as StorageArrayPartKind)
+    ) {
       items.push(item);
       continue;
     }
@@ -971,14 +1050,14 @@ export function getStorageArrayAttentionItems(data: {
       hardwareKindOf.get(physical);
     if (!earlier || !earlierKind) {
       hardwareByName.set(physical, item);
-      hardwareKindOf.set(physical, row.kind);
+      hardwareKindOf.set(physical, row.kind as StorageArrayPartKind);
       items.push(item);
       continue;
     }
 
     // The more specific kind names the part; its reasons come first.
     const thisIsSpecific: boolean =
-      HARDWARE_KIND_SPECIFICITY.indexOf(row.kind) <
+      HARDWARE_KIND_SPECIFICITY.indexOf(row.kind as StorageArrayPartKind) <
       HARDWARE_KIND_SPECIFICITY.indexOf(earlierKind);
     const first: ResourceAttentionItem = thisIsSpecific ? item : earlier;
     const second: ResourceAttentionItem = thisIsSpecific ? earlier : item;
@@ -1011,7 +1090,7 @@ export function getStorageArrayAttentionItems(data: {
       route: first.route || second.route,
     });
     if (thisIsSpecific) {
-      hardwareKindOf.set(physical, row.kind);
+      hardwareKindOf.set(physical, row.kind as StorageArrayPartKind);
     }
   }
 
@@ -1038,6 +1117,16 @@ export function getStorageArrayHardwareItems(
       return STORAGE_ARRAY_KIND_LABELS[kind];
     }),
   );
+  // And each platform's own hardware kinds (a PowerScale's nodes).
+  for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+    for (const kind of platform.hardwareKinds || []) {
+      const definition: StorageArrayKindDefinition | null =
+        getPlatformHardwareKind(kind);
+      if (definition) {
+        kinds.add(definition.singularLabel);
+      }
+    }
+  }
   return items.filter((item: ResourceAttentionItem): boolean => {
     return kinds.has(item.kind);
   });

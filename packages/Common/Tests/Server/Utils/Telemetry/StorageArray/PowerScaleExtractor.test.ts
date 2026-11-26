@@ -207,13 +207,15 @@ describe("the recorded capture through the scan, as one batch", () => {
     expect(rowsOf(WHOLE, POWERSCALE_QUOTA_KIND)).toHaveLength(7);
     // Three nodes answered, ten bays each.
     expect(rowsOf(WHOLE, StorageArrayResourceKind.Drive)).toHaveLength(30);
-    // Four fans, four readable temperature sensors (a fifth reads N/A) and
-    // four power sensors per node.
+    /*
+     * Four fans, four readable temperature sensors (a fifth reads N/A) and
+     * four power sensors per node.
+     */
     expect(rowsOf(WHOLE, StorageArrayResourceKind.Hardware)).toHaveLength(36);
     // Four ports per node; the loopback is no port.
-    expect(rowsOf(WHOLE, StorageArrayResourceKind.NetworkInterface)).toHaveLength(
-      12,
-    );
+    expect(
+      rowsOf(WHOLE, StorageArrayResourceKind.NetworkInterface),
+    ).toHaveLength(12);
     expect(WHOLE.rows).toHaveLength(4 + 7 + 30 + 36 + 12);
   });
 });
@@ -349,7 +351,7 @@ describe("its quotas", () => {
     }
     expect(sizes).toEqual({
       "/ifs/data/home": 10 * TiB,
-      "/ifs/data/home (default user)": 1 * TiB,
+      "/ifs/data/home (default user)": TiB,
       "/ifs/data/home (user 2001)": 500 * GiB,
       // Checkmk's recorded row: a soft limit of 200 TiB and no hard limit.
       "/ifs/data/pacs": 219902325555200,
@@ -505,9 +507,10 @@ describe("its drives", () => {
     expect(isCriticalComponentStatus("dead", system)).toBe(true);
     expect(isCriticalComponentStatus("stalled", system)).toBe(true);
     for (const fine of ["healthy", "l3", "empty", "new", "preparing"]) {
-      expect({ fine, unhealthy: isUnhealthyComponentStatus(fine, system) }).toEqual(
-        { fine, unhealthy: false },
-      );
+      expect({
+        fine,
+        unhealthy: isUnhealthyComponentStatus(fine, system),
+      }).toEqual({ fine, unhealthy: false });
     }
   });
 });
@@ -618,9 +621,9 @@ describe("each receiver's poll alone, as the collector may export them", () => {
     expect(rowsOf(result, POWERSCALE_NODE_KIND)).toHaveLength(1);
     expect(rowsOf(result, StorageArrayResourceKind.Drive)).toHaveLength(10);
     expect(rowsOf(result, StorageArrayResourceKind.Hardware)).toHaveLength(12);
-    expect(rowsOf(result, StorageArrayResourceKind.NetworkInterface)).toHaveLength(
-      4,
-    );
+    expect(
+      rowsOf(result, StorageArrayResourceKind.NetworkInterface),
+    ).toHaveLength(4);
     expect(rowNamed(result, POWERSCALE_NODE_KIND, "ps-prod-2").status).toBe(
       "attention",
     );
@@ -643,9 +646,11 @@ describe("each receiver's poll alone, as the collector may export them", () => {
       getPowerScaleCapturedPoints().length,
     );
     const result: Scan = scan(reordered);
-    const summary: (rows: Array<StorageArrayResourceBufferEntry>) => Array<
-      [string, string, string | null]
-    > = (rows: Array<StorageArrayResourceBufferEntry>) => {
+    const summary: (
+      rows: Array<StorageArrayResourceBufferEntry>,
+    ) => Array<[string, string, string | null]> = (
+      rows: Array<StorageArrayResourceBufferEntry>,
+    ) => {
       return rows
         .map(
           (
@@ -866,7 +871,13 @@ describe("series by series", () => {
     const f: Feed = newFeed();
     f.feed(
       "powerscale_quota_usage_bytes",
-      { path: "/ifs/a", type: "1", id: "42", hard_defined: "1", hard_limit: "100" },
+      {
+        path: "/ifs/a",
+        type: "1",
+        id: "42",
+        hard_defined: "1",
+        hard_limit: "100",
+      },
       100,
     );
     f.feed(

@@ -26,6 +26,9 @@ export interface ComponentProps {
   columns: Columns<StorageArrayResource>;
   // The object's own page, when it has one; the name links to it.
   getDetailRoute?: ((item: StorageArrayResource) => Route) | undefined;
+  // The order the list opens in: by name, A to Z, unless it says.
+  sortBy?: keyof StorageArrayResource | undefined;
+  sortOrder?: SortOrder | undefined;
 }
 
 /*
@@ -55,8 +58,8 @@ const StorageArrayResourceTable: FunctionComponent<ComponentProps> = (
       isCreateable={false}
       isViewable={Boolean(props.getDetailRoute)}
       showRefreshButton={true}
-      sortBy="name"
-      sortOrder={SortOrder.Ascending}
+      sortBy={props.sortBy || "name"}
+      sortOrder={props.sortOrder || SortOrder.Ascending}
       selectMoreFields={{
         kind: true,
         externalId: true,
