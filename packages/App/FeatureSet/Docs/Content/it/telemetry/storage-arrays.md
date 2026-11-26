@@ -1,6 +1,6 @@
 # Agent per array di storage
 
-L'agent Array di storage di OneUptime monitora gli array di storage: capacità e riduzione dei dati, latenza, IOPS e larghezza di banda, volumi, host, pod e replica, stato dell'hardware, file system e bucket. È un OpenTelemetry Collector standard che raccoglie gli endpoint OpenMetrics dell'array con il token API di un utente in sola lettura, applica a ogni metrica l'identità del tuo array e la invia a OneUptime. I [monitor degli array di storage](/docs/monitor/storage-array-monitor) inviano avvisi su ciò che arriva.
+L'agent Array di storage di OneUptime monitora gli array di storage: capacità e riduzione dei dati, latenza, IOPS e larghezza di banda, volumi, host, pod e replica, stato dell'hardware, file system e bucket, e su NetApp ONTAP i suoi aggregati, SVM, LUN e relazioni SnapMirror. È un OpenTelemetry Collector standard che raccoglie gli endpoint OpenMetrics dell'array con il token API di un utente in sola lettura (oppure, per ONTAP, l'exporter Harvest di NetApp stessa, che gira accanto a esso), applica a ogni metrica l'identità del tuo array e la invia a OneUptime. I [monitor degli array di storage](/docs/monitor/storage-array-monitor) inviano avvisi su ciò che arriva.
 
 :::cards
 - [Installare l'agent](#installa-lagent): Un utente in sola lettura, poi lo script di installazione o Docker Compose.
@@ -18,6 +18,9 @@ Storage Arrays è un prodotto che funziona allo stesso modo per ogni produttore.
 | **Pure Storage FlashArray**, Purity//FA 6.7 e successivi | `purestorage.flasharray` | L'endpoint OpenMetrics proprio dell'array (`https://<array>/metrics/...?namespace=purefa`): accanto al collector non gira nulla | `otel-collector-config.yaml` (quella predefinita) |
 | **Pure Storage FlashArray**, Purity//FA precedente | `purestorage.flasharray` | L'exporter OpenMetrics per FlashArray di Pure, che lo stesso file Compose esegue come servizio `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | L'exporter OpenMetrics per FlashBlade di Pure, che lo stesso file Compose esegue come servizio `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **NetApp ONTAP** 9.12.1 e successivi (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), e **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, che lo stesso file Compose esegue come servizio `netapp-harvest`: accede all'API REST del cluster con un utente in sola lettura e la sua password | `otel-collector-config.netapp-ontap.yaml` |
+
+ONTAP non ha un endpoint di metriche proprio, quindi l'agent esegue accanto al collector l'exporter open source di NetApp, Harvest. Harvest legge l'API REST del cluster e serve ciò che ha letto sulla rete Compose, con ogni serie chiamata `netapp_<object>_<counter>`; il collector lo raccoglie e lo inoltra. Harvest non scrive mai sul cluster, e il suo rapporto AutoSupport a NetApp è disattivato.
 
 Pure Storage ha cambiato nome in **Everpure** a febbraio 2026. FlashArray, FlashBlade e Purity hanno mantenuto il loro nome, così come le metriche `purefa_*` e `purefb_*`, quindi tutto ciò che c'è in questa pagina vale per gli array venduti con l'uno o l'altro nome.
 
@@ -26,6 +29,8 @@ flowchart TB
     collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["L'array,<br/>porta 443"]
     collector -->|"FlashArray precedente,<br/>FlashBlade"| exporter["Exporter di Pure"]
     exporter -->|"Token API"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"utente in sola lettura,<br/>API REST"| cluster["Il cluster,<br/>porta 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
 ```
 
@@ -34,7 +39,7 @@ Un agent monitora un array: esegui un agent per array (vedi [Monitorare più arr
 ## Prima di iniziare
 
 - Docker Engine 20.10 o successivo con il plugin Docker Compose v2, su una macchina che raggiunge l'interfaccia di gestione dell'array via HTTPS (TCP 443).
-- Un account amministratore sull'array, per creare un utente con il ruolo integrato **readonly** e un token API per esso.
+- Un account amministratore sull'array, per creare un utente con il ruolo integrato **readonly** e un token API per esso. Su ONTAP, un amministratore del cluster (su Amazon FSx for NetApp ONTAP, `fsxadmin`), per creare un utente REST in sola lettura con una password.
 - Una chiave di acquisizione. Creane una in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e copiane il valore.
 
 ### Dove eseguire l'agent
@@ -62,6 +67,27 @@ pureadmin create --api-token oneuptime
 3. Dal menu ⋮ del nuovo utente, scegli **Create API Token…**, lascia vuoto **Expires In** e copia il token.
 @tab FlashBlade
 Crea allo stesso modo un utente con il ruolo **readonly** e un token API per esso: nelle impostazioni utente della GUI di FlashBlade, oppure con `pureadmin` nella CLI di Purity//FB. In una release senza utenti locali, usa un account di un servizio di directory (LDAP o Active Directory) il cui gruppo corrisponde al ruolo readonly. I token API di FlashBlade iniziano con `T-`.
+@tab ONTAP CLI
+Collegati via SSH all'indirizzo di gestione del cluster come amministratore. Il primo comando crea un ruolo REST che può leggere ogni API e nient'altro; il secondo crea un utente HTTP che lo detiene e ne chiede la password:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+L'agent accede con questo utente e questa password. Non serve alcun token API.
+@tab ONTAP System Manager
+1. Apri _Cluster → Settings → Users and Roles_.
+2. In **Roles**, scegli **Add**, chiama il ruolo `oneuptime-readonly`, inserisci `/api` come **REST API path** e scegli l'accesso **Read-Only**.
+3. In **Users**, scegli **Add**, chiama l'utente `oneuptime`, assegnagli il nuovo ruolo, aggiungi il metodo di accesso **HTTP** con **Password** e imposta la password.
+@tab Amazon FSx for NetApp ONTAP
+Collegati via SSH all'endpoint di gestione del file system (il suo nome DNS o il suo IP, dalla console FSx) come `fsxadmin` e crea l'utente con il ruolo in sola lettura predefinito di FSx. Il comando ne chiede la password:
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+AWS gestisce l'hardware del file system, quindi FSx non risponde a nessuno su dischi, shelf o sensori: la pagina **Hardware** dell'array ne elenca i nodi e le porte e lo spiega.
 :::
 
 ### Verificare se la FlashArray serve le proprie metriche
@@ -72,7 +98,7 @@ Pure documenta l'endpoint OpenMetrics nativo per **Purity//FA 6.7.0 e successivi
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-Una riga `purefa_info{...} 1` significa che l'array serve le sue metriche in modo nativo: usa la configurazione predefinita. Un `404` significa di no: usa la configurazione con exporter, che esegue l'exporter di Pure accanto al collector. Pure ha deprecato quell'exporter, quindi passa alla configurazione nativa una volta aggiornato l'array. Una FlashBlade passa sempre dall'exporter per FlashBlade di Pure, quindi in quel caso salta questo passaggio.
+Una riga `purefa_info{...} 1` significa che l'array serve le sue metriche in modo nativo: usa la configurazione predefinita. Un `404` significa di no: usa la configurazione con exporter, che esegue l'exporter di Pure accanto al collector. Pure ha deprecato quell'exporter, quindi passa alla configurazione nativa una volta aggiornato l'array. Una FlashBlade passa sempre dall'exporter per FlashBlade di Pure, e un cluster ONTAP da NetApp Harvest, quindi in quei casi salta questo passaggio.
 
 ### Installa e avvia l'agent
 
@@ -87,7 +113,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Lo script chiede di che array si tratta (una FlashArray che serve metriche native, una FlashArray con un Purity//FA precedente o una FlashBlade), poi il tuo URL di OneUptime, la chiave di acquisizione, un nome per l'array, l'indirizzo di gestione dell'array e il token API dell'utente in sola lettura (letto senza eco). Si installa in `/opt/oneuptime-storage-array-agent`, scarica il file Compose e tutte e tre le configurazioni del collector, scrive un file con permessi `0600` chiamato `.env` con la configurazione e il profilo Compose corrispondenti e avvia l'agent con Docker Compose. Mette tra virgolette ogni valore per Docker Compose così come l'hai digitato. Eseguirlo di nuovo riutilizza tutto ciò che c'è in un `.env` esistente invece di chiedere di nuovo, e conserva un file che hai modificato come `<file>.bak.<timestamp>` prima di sostituirlo.
+Lo script chiede di che array si tratta (una FlashArray che serve metriche native, una FlashArray con un Purity//FA precedente, una FlashBlade o un cluster NetApp ONTAP), poi il tuo URL di OneUptime, la chiave di acquisizione, un nome per l'array, l'indirizzo di gestione dell'array e il token API dell'utente in sola lettura, oppure per ONTAP il nome e la password dell'utente in sola lettura (letti senza eco). Si installa in `/opt/oneuptime-storage-array-agent`, scarica il file Compose, tutte le configurazioni del collector e i quattro file di Harvest, scrive un file con permessi `0600` chiamato `.env` con la configurazione e il profilo Compose corrispondenti e avvia l'agent con Docker Compose. Mette tra virgolette ogni valore per Docker Compose così come l'hai digitato. Eseguirlo di nuovo riutilizza tutto ciò che c'è in un `.env` esistente invece di chiedere di nuovo, e conserva un file che hai modificato come `<file>.bak.<timestamp>` prima di sostituirlo.
 @tab Docker Compose
 Scarica `docker-compose.yml` e i tre file `otel-collector-config*.yaml` dal tuo OneUptime in una nuova cartella:
 
@@ -114,7 +140,34 @@ PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-Per una FlashArray con un Purity//FA precedente, imposta `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` e `COMPOSE_PROFILES=flasharray-exporter`. Per una FlashBlade, imposta `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` e `COMPOSE_PROFILES=flashblade`, e compila `PURE_FB_ENDPOINT` e `PURE_FB_API_TOKEN` al posto della coppia `PURE_FA_*`. Avvia l'agent:
+Per una FlashArray con un Purity//FA precedente, imposta `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` e `COMPOSE_PROFILES=flasharray-exporter`. Per una FlashBlade, imposta `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` e `COMPOSE_PROFILES=flashblade`, e compila `PURE_FB_ENDPOINT` e `PURE_FB_API_TOKEN` al posto della coppia `PURE_FA_*`.
+
+Per un cluster NetApp ONTAP o Amazon FSx for NetApp ONTAP, scarica anche la configurazione ONTAP e i quattro file di Harvest:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+e usa questo `.env`. Tieni la password tra virgolette singole, come qui: così Docker Compose la legge esattamente come è scritta, qualunque cosa contenga. Una password che contiene un `'` va invece tra virgolette doppie, con `\"`, `\\` e `$$` per un `"`, un `\` e un `$`:
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+Avvia l'agent:
 
 ```bash
 docker compose up -d
@@ -128,7 +181,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` elenca il collector (`oneuptime-storage-array-agent`) e, con una configurazione con exporter, l'exporter (`pure-fa-exporter` o `pure-fb-exporter`). Una volta avviato, i log del collector dovrebbero mostrare questa riga:
+`docker compose ps` elenca il collector (`oneuptime-storage-array-agent`) e, con una configurazione con exporter, l'exporter (`pure-fa-exporter`, `pure-fb-exporter` o `netapp-harvest`). Una volta avviato, i log del collector dovrebbero mostrare questa riga:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -136,7 +189,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trovare l'array in OneUptime
 
-Apri **Prodotti → Infrastruttura → Array di storage → Tutti gli array di storage**. Dopo la prima raccolta (circa un minuto) l'array è lì con capacità, prestazioni, avvisi aperti e hardware. Volumi, host e pod arrivano entro 2 minuti, i file system e i bucket di una FlashBlade entro 5, e le directory della FlashArray entro 30. La pagina **Topologia** dell'array disegna i suoi host, volumi, file system e hardware su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
+Apri **Prodotti → Infrastruttura → Array di storage → Tutti gli array di storage**. Dopo la prima raccolta (circa un minuto) l'array è lì con capacità, prestazioni, avvisi aperti e hardware. Volumi, host e pod arrivano entro 2 minuti, i file system e i bucket di una FlashBlade entro 5, e le directory della FlashArray entro 30. Un cluster ONTAP compare non appena Harvest lo ha letto, e tutto il suo inventario entro circa 3 minuti, l'intervallo con cui Harvest ne interroga la configurazione. La pagina **Topologia** dell'array disegna i suoi host, volumi, file system e hardware su un'unica mappa: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
 
 ## Variabili d'ambiente
@@ -148,14 +201,17 @@ Lo script di installazione le scrive in `/opt/oneuptime-storage-array-agent/.env
 | `ONEUPTIME_URL` | Sì | Il tuo URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. Usa `http://` e la sua porta se l'istanza usa solo HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 | `STORAGE_ARRAY_NAME` | Sì | Il nome con cui l'array si registra in OneUptime, applicato a ogni metrica come attributo di risorsa `storage.array.name`. Mantienilo stabile: cambiarlo in seguito registra un secondo array. Senza di esso il collector rifiuta di avviarsi. |
-| `STORAGE_SYSTEM` | No | La piattaforma, applicata come attributo di risorsa `storage.system`: `purestorage.flasharray` o `purestorage.flashblade`. Il valore predefinito è `purestorage.flasharray`. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Quale configurazione fornita del collector viene eseguita: `otel-collector-config.yaml` (FlashArray, nativa: quella predefinita), `otel-collector-config.flasharray-exporter.yaml` (FlashArray precedente) o `otel-collector-config.flashblade.yaml` (FlashBlade). |
-| `COMPOSE_PROFILES` | No | Avvia l'exporter che la configurazione scelta raccoglie: vuoto per la configurazione nativa della FlashArray, `flasharray-exporter` o `flashblade` per le altre due. |
+| `STORAGE_SYSTEM` | No | La piattaforma, applicata come attributo di risorsa `storage.system`: `purestorage.flasharray`, `purestorage.flashblade` o `netapp.ontap`. Il valore predefinito è `purestorage.flasharray`. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Quale configurazione fornita del collector viene eseguita: `otel-collector-config.yaml` (FlashArray, nativa: quella predefinita), `otel-collector-config.flasharray-exporter.yaml` (FlashArray precedente), `otel-collector-config.flashblade.yaml` (FlashBlade) o `otel-collector-config.netapp-ontap.yaml` (ONTAP). |
+| `COMPOSE_PROFILES` | No | Avvia l'exporter che la configurazione scelta raccoglie: vuoto per la configurazione nativa della FlashArray, `flasharray-exporter`, `flashblade` o `netapp-ontap` per le altre. |
 | `PURE_FA_ENDPOINT` | FlashArray | L'indirizzo di gestione della FlashArray: un nome host o un IP, senza `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | Il token API dell'utente della FlashArray con il ruolo readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | L'indirizzo di gestione della FlashBlade: un nome host o un IP, senza `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | Il token API dell'utente della FlashBlade con il ruolo readonly. |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accetta il certificato autofirmato dell'array sull'endpoint nativo; `false` lo verifica. Il valore predefinito è `true`. Gli exporter di Pure non verificano mai il certificato dell'array, quindi non si applica a loro. |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | L'indirizzo di gestione del cluster (su FSx, l'endpoint di gestione del file system): un nome host o un IP, senza `https://`. |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | L'utente REST in sola lettura, come `oneuptime`. |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | La sua password. La legge solo Harvest, esattamente come è scritta. |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accetta il certificato autofirmato dell'array sull'endpoint nativo e in Harvest; `false` lo verifica. Il valore predefinito è `true`. Gli exporter di Pure non verificano mai il certificato dell'array, quindi non si applica a loro. |
 
 ## Come raccoglie l'agent
 
@@ -164,10 +220,11 @@ Lo script di installazione le scrive in `/opt/oneuptime-storage-array-agent/.env
 - **La latenza per volume e per host mantiene tre dimensioni.** Ogni volume e ogni host esporta la sua latenza in un massimo di sedici `dimension`. Una regola `metric_relabel_configs` mantiene `usec_per_read_op`, `usec_per_write_op` e `usec_per_mirrored_write_op` e scarta la suddivisione per limite di velocità QoS, coda, SAN e tempo di servizio, che moltiplica le serie di un array grande. La suddivisione a livello di array su `purefa_array_performance_latency_usec` viene mantenuta. Elimina la regola per mantenere anche la suddivisione per volume.
 - **Il token API è un token Bearer.** La configurazione nativa lo invia all'array stesso; le configurazioni con exporter lo inviano all'exporter solo sulla rete Compose, e le porte degli exporter non vengono mai pubblicate.
 - **Nessun `send_batch_max_size`.** OneUptime ricostruisce l'inventario da un'intera raccolta per richiesta, quindi il processor `batch` fornito non divide mai una raccolta tra più esportazioni. Mantieni le impostazioni del batch come fornite.
+- **ONTAP: Harvest interroga il cluster, il collector raccoglie da Harvest.** Harvest legge la configurazione e lo stato del cluster ogni 3 minuti, le sue prestazioni ogni minuto (latenze in microsecondi per operazione, operazioni e byte al secondo) e i suoi eventi EMS ogni 3 minuti, e serve il dato più recente di tutto su `netapp-harvest:12990`, che il collector raccoglie ogni 60 secondi con l'etichetta `scrape_endpoint: harvest`. I tre file `netapp-harvest-*.yaml` limitano Harvest a ciò che OneUptime legge. Le serie `netapp_metadata_*` di Harvest stesso indicano quali oggetti ha elencato per intero, così un volume eliminato esce dall'inventario mentre un oggetto che Harvest non ha potuto leggere mantiene il suo ultimo conteggio. Il collector scarta le misurazioni che Harvest fa di se stesso e le serie di prestazioni per disco, e trasforma la pianificazione di ogni relazione SnapMirror in `netapp_snapmirror_schedule_seconds` (una pianificazione oraria vale 3600), con cui SnapMirror Behind Schedule confronta il ritardo.
 
 ## Cosa raccoglie l'agent
 
-Le convenzioni semantiche di Pure sono condivise dall'endpoint nativo della FlashArray e da entrambi gli exporter. Ogni valore è un gauge che l'array calcola da sé (latenze in microsecondi per operazione, throughput al secondo), quindi non c'è da calcolare nessun tasso, e gli oggetti sono nominati da **etichette dei datapoint**: `name` per volumi, pod, directory, file system e bucket, `host` per gli host, `component_name` per l'hardware della FlashArray. L'agent aggiunge gli attributi di risorsa `storage.array.name` e `storage.system`, così OneUptime archivia tutto sotto il tuo array:
+Le convenzioni semantiche di Pure sono condivise dall'endpoint nativo della FlashArray e da entrambi gli exporter; quelle di ONTAP sono quelle di Harvest, descritte dopo la tabella. Ogni valore è un gauge che l'array calcola da sé (latenze in microsecondi per operazione, throughput al secondo), quindi non c'è da calcolare nessun tasso, e gli oggetti sono nominati da **etichette dei datapoint**: `name` per volumi, pod, directory, file system e bucket, `host` per gli host, `component_name` per l'hardware della FlashArray. L'agent aggiunge gli attributi di risorsa `storage.array.name` e `storage.system`, così OneUptime archivia tutto sotto il tuo array:
 
 | Endpoint | Famiglie di metriche | Cosa OneUptime ne costruisce |
 | --- | --- | --- |
@@ -179,6 +236,11 @@ Le convenzioni semantiche di Pure sono condivise dall'endpoint nativo della Flas
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | Il nome, la versione di Purity e l'ID di sistema della FlashBlade; capacità e riduzione dei dati; numero di avvisi aperti; lo stato dell'array; la pagina **Hardware** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | La pagina **File system**: spazio allocato e usato, riduzione dei dati, latenza, IOPS e larghezza di banda per file system |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | La pagina **Buckets**: spazio, quota, numero di oggetti e prestazioni per bucket, raggruppati per account |
+| ONTAP, tramite Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Il nome, la release e l'UUID del cluster; la sua capacità (la somma di quella dei suoi aggregati di dati) e la riduzione dei dati; la pagina **Volumi**; le pagine **Aggregati**, **SVM**, **LUN** e **SnapMirror**, con una pagina per oggetto |
+| Hardware ONTAP, tramite Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | La pagina **Hardware**: nodi, dischi, shelf, i loro alimentatori, ventole, moduli e sensori, i sensori dei nodi, e le porte Ethernet e Fibre Channel |
+| Problemi aperti ed eventi di ONTAP | `netapp_health_*`, `netapp_ems_events` | Il numero di avvisi aperti e la scheda **Avvisi attivi** (dischi rotti, guasti degli shelf, takeover HA, porte inattive, avvisi di integrità del sistema), e i modelli EMS |
+
+Su ONTAP ogni serie è di Harvest: un oggetto è nominato dalle sue etichette (`volume` all'interno della sua `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` per una relazione SnapMirror), uno stato è un `netapp_*_new_status` di 1 o 0 oppure una serie `netapp_*_labels` le cui etichette lo indicano, e ogni problema aperto è una serie `netapp_health_*_alerts` che esiste finché dura.
 
 La colonna **Integrità** di **Tutti gli array di storage** legge gli avvisi e l'hardware dell'array stesso nei suoi dati più recenti: **Critico** finché segnala un avviso critico aperto, o un componente hardware, un'unità o un controller critico, guasto, mancante o non integro; **Avviso** finché segnala un avviso di avvertimento aperto, o un componente degradato o sconosciuto; **OK** altrimenti; e **Sconosciuto** finché l'agent è disconnesso. La **Panoramica** dell'array giudica di più, come dice la sezione seguente. Nei criteri dei monitor gli attributi dell'array prendono il prefisso `resource.` (`resource.storage.array.name`, `resource.storage.system`), mentre le etichette dei datapoint restano senza prefisso (`name`, `host`, `dimension`, `space`).
 
@@ -191,8 +253,9 @@ La **Panoramica** dell'array ne indica lo stato, **Integro**, **Degradato** o **
 - **Host.** Un host che non raggiunge più l'array attraverso entrambi i controller richiede un'occhiata, con il motivo: attraverso un solo controller, su percorsi non uniformi o senza alcun percorso.
 - **Pod.** Un pod il cui collegamento di replica l'array segnala come non integro è critico, e uno indietro di più di un minuto richiede un'occhiata.
 - **File system.** Un file system di FlashBlade a cui resta meno del 10% della dimensione allocata richiede un'occhiata.
+- **Gli oggetti propri di un cluster ONTAP.** Un volume, un aggregato o una LUN che ONTAP segnala offline, un disco rotto, un componente di uno shelf in errore, un sensore di un nodo oltre la sua soglia critica e una porta inattiva sono critici; una SVM arrestata, un nodo con una ventola o un alimentatore guasti e un sensore oltre la sua soglia di avviso richiedono un'occhiata, con le parole di ONTAP stesso per il motivo. Una relazione SnapMirror che ONTAP segnala come non integra è critica, e una il cui ritardo supera una volta e mezza l'intervallo della sua pianificazione richiede un'occhiata.
 
-Gli elenchi **Host**, **Replica** e **File system** indicano lo stato di ogni parte con le stesse regole, con il motivo sotto. La pagina di un host e quella di un file system dicono cosa richiede attenzione e quali avvisi dell'array lo sorvegliano, con un passo per attivare gli altri, e la pagina di ogni parte, anche quella di un volume e di un bucket, dice cosa è aperto su di essa. Finché l'agent è disconnesso, lo stato mostra **Integrità sconosciuta**: l'ultimo rapporto dell'array non è più la verità. Ogni soglia qui sopra è quella a cui scatta il suo modello di avviso, come li elenca il [monitor degli array di storage](/docs/monitor/storage-array-monitor).
+Gli elenchi **Host**, **Replica** e **File system** indicano lo stato di ogni parte con le stesse regole, con il motivo sotto, e così fanno gli elenchi **Volumi**, **Aggregati**, **SVM**, **LUN** e **SnapMirror** di un cluster ONTAP, in cui ogni riga apre una pagina propria: il suo stato, cosa richiede attenzione, cosa è aperto su di essa, gli avvisi del cluster che la sorvegliano, ciò che ONTAP riporta su di essa e i suoi grafici. Le pagine di ogni piattaforma parlano con le parole della piattaforma: un volume ONTAP indica la sua SVM, il suo aggregato e quanto è pieno, e la sua pagina mostra in grafico le serie di ONTAP. Su Amazon FSx for NetApp ONTAP, la pagina **Hardware** elenca i nodi e le porte e spiega perché non ci sono dischi né shelf. La pagina di un host e quella di un file system dicono cosa richiede attenzione e quali avvisi dell'array lo sorvegliano, con un passo per attivare gli altri, e la pagina di ogni parte, anche quella di un volume e di un bucket, dice cosa è aperto su di essa. Finché l'agent è disconnesso, lo stato mostra **Integrità sconosciuta**: l'ultimo rapporto dell'array non è più la verità. Ogni soglia qui sopra è quella a cui scatta il suo modello di avviso, come li elenca il [monitor degli array di storage](/docs/monitor/storage-array-monitor).
 
 ## Facoltativo — Inviare il syslog dell'array
 
@@ -251,14 +314,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 L'agent riporta come sua **Versione dell'agente** la versione del collector fissata dai suoi file. Quando è più vecchia della versione fissata da questa release di OneUptime, compare un segnale di avviso accanto a essa nella pagina **Panoramica** dell'array. Selezionalo per vedere questi comandi. Un agent installato prima che i suoi file riportassero una versione non ne mostra nessuna finché non viene aggiornato in questo modo.
 
-L'immagine del collector è fissata in `docker-compose.yml` e le sue configurazioni sono file accanto, quindi scaricare le immagini da solo non porta avanti l'agent. Esegui di nuovo `install.sh`: riutilizza ogni valore del tuo `.env` esistente (non viene chiesto nulla di nuovo), aggiorna `docker-compose.yml` e le tre configurazioni del collector (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`) e ricrea l'agent così che il collector legga la sua nuova configurazione. Un agent installato fuori da `/opt/oneuptime-storage-array-agent` ha bisogno della sua cartella: `INSTALL_DIR=<folder> bash install.sh`.
+L'immagine del collector è fissata in `docker-compose.yml` e le sue configurazioni sono file accanto, quindi scaricare le immagini da solo non porta avanti l'agent. Esegui di nuovo `install.sh`: riutilizza ogni valore del tuo `.env` esistente (non viene chiesto nulla di nuovo), aggiorna `docker-compose.yml`, tutte le configurazioni del collector e i file di Harvest (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`) e ricrea l'agent così che il collector legga la sua nuova configurazione. Un agent installato fuori da `/opt/oneuptime-storage-array-agent` ha bisogno della sua cartella: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-L'hai installato invece con Docker Compose? Nella cartella dell'agent, scarica di nuovo il file Compose e le tre configurazioni del collector (e rifai le eventuali modifiche che ci avevi apportato), poi scarica le immagini e ricrea l'agent:
+L'hai installato invece con Docker Compose? Nella cartella dell'agent, scarica di nuovo il file Compose e le configurazioni del collector (per ONTAP, anche la configurazione ONTAP e i quattro file di Harvest, e rifai le eventuali modifiche che ci avevi apportato), poi scarica le immagini e ricrea l'agent:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -276,7 +339,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Poi elimina l'utente in sola lettura e il suo token API sull'array, se non ti servono più.
+Poi elimina l'utente in sola lettura e il suo token API sull'array, se non ti servono più. Su ONTAP, esegui `security login delete -user-or-group-name oneuptime -application http -authentication-method password`, poi `security login rest-role delete -role oneuptime-readonly -api /api`.
 
 ## Risoluzione dei problemi
 
@@ -313,8 +376,12 @@ Verifica di aver incollato il token API e non la password dell'utente, che l'ute
 Gli array presentano per impostazione predefinita un certificato autofirmato, di cui nessuna immagine Docker si fida. Imposta `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` (la scelta pratica su una rete di gestione privata), oppure installa sull'array un certificato di una CA di cui l'immagine del collector si fida.
 :::
 
-:::details pure-fa-exporter o pure-fb-exporter non viene risolto
-L'exporter non è in esecuzione: `COMPOSE_PROFILES` deve corrispondere a `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` per la configurazione con l'exporter per FlashArray, `flashblade` per la configurazione FlashBlade). Correggi `.env` ed esegui `docker compose up -d`; `docker compose ps` elencherà allora l'exporter.
+:::details pure-fa-exporter, pure-fb-exporter o netapp-harvest non viene risolto
+L'exporter non è in esecuzione: `COMPOSE_PROFILES` deve corrispondere a `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` per la configurazione con l'exporter per FlashArray, `flashblade` per la configurazione FlashBlade, `netapp-ontap` per la configurazione ONTAP). Correggi `.env` ed esegui `docker compose up -d`; `docker compose ps` elencherà allora l'exporter.
+:::
+
+:::details ONTAP: Harvest non riesce ad accedere, o manca un oggetto
+Leggi il log di Harvest: `docker compose logs netapp-harvest`. Un `401` o `Unauthorized` indica che il cluster ha rifiutato l'utente o la sua password: verifica che l'utente abbia il metodo di accesso **http** e il ruolo REST in sola lettura (`security login show -user-or-group-name oneuptime`), correggi `.env` ed esegui `docker compose up -d`. Un `403` o `not authorized` su un oggetto indica che il ruolo non raggiunge quell'API; il ruolo qui sopra raggiunge tutto `/api`. Su Amazon FSx for NetApp ONTAP, FSx risponde così per dischi, shelf e sensori a chiunque lo chieda: è previsto, e la pagina **Hardware** lo indica. `connection refused` o `no such host` indicano un `NETAPP_ONTAP_ENDPOINT` errato: è l'indirizzo di gestione del cluster (su FSx, l'endpoint di gestione), non quello di un nodo o di una SVM. Anche lo script di diagnostica controlla tutto questo.
 :::
 
 :::details Volumi o host eliminati restano nell'inventario
