@@ -63,6 +63,7 @@ describe("what a Network Device monitor can be built from", () => {
       CheckOn.SnmpTransceiverPastWarningThreshold,
       CheckOn.SnmpTransceiverReading,
       CheckOn.SnmpTransceiverRxPowerDrop,
+      CheckOn.SnmpFibreChannelCounterPerSecond,
     ]);
   });
 

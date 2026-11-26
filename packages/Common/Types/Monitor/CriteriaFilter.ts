@@ -197,6 +197,15 @@ export enum CheckOn {
    * the link goes down.
    */
   SnmpTransceiverRxPowerDrop = "SNMP Transceiver RX Power Drop (in dB)",
+  /*
+   * How fast one of a Fibre Channel port's counters grew, per second, since
+   * the device's previous poll: snmpMonitorOptions.fibreChannelCounter
+   * names which (a FibreChannelCounter - credit loss, discards, CRC errors
+   * ...), and the port is scoped like the interface CheckOns. Met when any
+   * port in scope matches. Not evaluated on a device with no Fibre Channel
+   * ports, nor until it has been polled twice.
+   */
+  SnmpFibreChannelCounterPerSecond = "SNMP Fibre Channel Counter (per second)",
 
   // DNS monitors.
   DnsResponseTime = "DNS Response Time (in ms)",
@@ -316,6 +325,11 @@ export interface SnmpMonitorOptions {
    * "voltage", "biasCurrent").
    */
   transceiverReading?: string | undefined;
+  /*
+   * For CheckOn.SnmpFibreChannelCounterPerSecond: which counter - a
+   * FibreChannelCounter value ("crcErrors", "creditLoss", "discards" ...).
+   */
+  fibreChannelCounter?: string | undefined;
 }
 
 export interface DatabaseMonitorOptions {
@@ -1480,6 +1494,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      checkOn === CheckOn.SnmpFibreChannelCounterPerSecond ||
       CriteriaFilterUtil.isTransceiverCheckOn(checkOn)
     );
   }

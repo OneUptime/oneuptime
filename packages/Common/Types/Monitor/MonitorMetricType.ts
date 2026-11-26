@@ -54,6 +54,13 @@ enum MonitorMetricType {
   SnmpInterfaceOutBitsPerSecond = "oneuptime.monitor.snmp.interface.out.bits.per.second",
   SnmpInterfaceUtilizationPercent = "oneuptime.monitor.snmp.interface.utilization.percent",
   SnmpInterfaceErrorsPerSecond = "oneuptime.monitor.snmp.interface.errors.per.second",
+  /*
+   * A Fibre Channel port's counters per second - CRC errors, link failures,
+   * discards, credit loss (SnmpFibreChannel) - one series per port and
+   * counter: interfaceName / interfaceIndex / fibreChannelCounter
+   * attributes. Written by the device's own poll of a SAN switch.
+   */
+  SnmpInterfaceFibreChannelPerSecond = "oneuptime.monitor.snmp.interface.fibre.channel.per.second",
 
   /*
    * One series per polled OID that returned a numeric value (oid / oidName

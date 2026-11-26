@@ -19,6 +19,10 @@ import SnmpMonitorResponse, {
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
+import SnmpFibreChannelCriteria from "./SnmpFibreChannelCriteria";
+import RmonAlarmTrapUtil, {
+  RmonAlarm,
+} from "../../../../Utils/NetworkEvent/RmonAlarmTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import MonitorStepSeries, {
@@ -66,6 +70,7 @@ export default class SnmpMonitorCriteria {
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      checkOn === CheckOn.SnmpFibreChannelCounterPerSecond ||
       checkOn === CheckOn.SnmpTableValue ||
       checkOn === CheckOn.SnmpTableRowCount ||
       checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
@@ -432,6 +437,16 @@ export default class SnmpMonitorCriteria {
       }
 
       if (isMatch) {
+        /*
+         * An RMON alarm - an MDS port-monitor policy's - says which counter
+         * crossed its threshold on which interface: the alert says so too.
+         */
+        const alarm: RmonAlarm | null = RmonAlarmTrapUtil.decode(snmpTrap);
+
+        if (alarm) {
+          return `Alarm: ${RmonAlarmTrapUtil.describe(alarm, snmpTrap.interfaceName)}. SNMP trap ${trapOid} received from ${snmpTrap.sourceIpAddress}.`;
+        }
+
         return `SNMP trap ${trapOid} received from ${snmpTrap.sourceIpAddress}.`;
       }
 
@@ -705,7 +720,12 @@ export default class SnmpMonitorCriteria {
 
     // Check the worst interface's error rate
     if (input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) {
-      threshold = CompareCriteria.convertToNumber(threshold);
+      /*
+       * A rate keeps its decimals: "more than 0.1 errors a second" is a
+       * Fibre Channel port's alert, and parsed as an integer it read as
+       * "more than 0", firing on a single error.
+       */
+      threshold = CompareCriteria.convertMetricThresholdToNumber(threshold);
 
       if (threshold === null || threshold === undefined) {
         return null;
@@ -729,6 +749,19 @@ export default class SnmpMonitorCriteria {
       return CompareCriteria.compareCriteriaNumbers({
         value: Math.max(...errorRates),
         threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    // A Fibre Channel counter's rate, on the worst port in scope.
+    if (
+      input.criteriaFilter.checkOn === CheckOn.SnmpFibreChannelCounterPerSecond
+    ) {
+      return SnmpFibreChannelCriteria.evaluate({
+        interfaces: SnmpMonitorCriteria.scopeInterfaces(
+          snmpResponse?.interfaces || [],
+          input.criteriaFilter,
+        ),
         criteriaFilter: input.criteriaFilter,
       });
     }
