@@ -319,16 +319,6 @@ import SignatureMethod from "Common/Types/SSO/SignatureMethod";
 import { DataSource } from "Common/node_modules/typeorm";
 import { EntityMetadata } from "Common/node_modules/typeorm/metadata/EntityMetadata";
 import { RelationMetadata } from "Common/node_modules/typeorm/metadata/RelationMetadata";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
 import dns from "dns";
 import http, { IncomingMessage } from "http";
 import { AddressInfo } from "net";
@@ -396,11 +386,7 @@ const TABLES: Array<string> = [
  * reads beyond their ids and names. Their other NOT NULL columns are
  * dropped; the tables the sign-ins write keep every constraint.
  */
-const ROW_FIXTURE_TABLES: Array<string> = [
-  "Project",
-  "Team",
-  "TeamPermission",
-];
+const ROW_FIXTURE_TABLES: Array<string> = ["Project", "Team", "TeamPermission"];
 
 // What the message page was asked to show, sent back as JSON by the stand-in.
 interface ShownPage {
@@ -455,10 +441,10 @@ describePostgres(
     const userInfo: JSONObject = {};
 
     // What the stand-ins were handed.
-    let sessionsMade: Array<JSONObject> = [];
-    let refusalsRecorded: Array<JSONObject> = [];
-    let teamJoinsRecorded: Array<string> = [];
-    let logLines: Array<{ level: string; text: string }> = [];
+    const sessionsMade: Array<JSONObject> = [];
+    const refusalsRecorded: Array<JSONObject> = [];
+    const teamJoinsRecorded: Array<string> = [];
+    const logLines: Array<{ level: string; text: string }> = [];
 
     const setClaims: (target: JSONObject, claims: JSONObject) => void = (
       target: JSONObject,
@@ -475,9 +461,10 @@ describePostgres(
      * What Microsoft Entra ID's v2.0 ID token says of someone: no
      * email_verified, which Entra never sends, and the address in `email`.
      */
-    const entraClaims: (data: { email: string; name: string }) => JSONObject = (
-      data: { email: string; name: string },
-    ): JSONObject => {
+    const entraClaims: (data: {
+      email: string;
+      name: string;
+    }) => JSONObject = (data: { email: string; name: string }): JSONObject => {
       return {
         ver: "2.0",
         tid: TENANT_ID,
@@ -488,18 +475,19 @@ describePostgres(
       };
     };
 
-    // ---------------------------------------------------------------------
-    // The database.
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * The database.
+     * ---------------------------------------------------------------------
+     */
 
     const junctionTablesOf: (table: string) => Array<string> = (
       table: string,
     ): Array<string> => {
-      const metadata: EntityMetadata | undefined = database.entityMetadatas.find(
-        (entity: EntityMetadata): boolean => {
+      const metadata: EntityMetadata | undefined =
+        database.entityMetadatas.find((entity: EntityMetadata): boolean => {
           return entity.tableName === table;
-        },
-      );
+        });
 
       if (!metadata) {
         throw new Error(`No entity has the table ${table}.`);
@@ -634,39 +622,43 @@ describePostgres(
       hasAcceptedInvitation: boolean;
     }
 
-    const membershipsOf: (userId: ObjectID) => Promise<Array<Membership>> =
-      async (userId: ObjectID): Promise<Array<Membership>> => {
-        const rows: Array<Record<string, unknown>> = await query(
-          `SELECT "projectId", "teamId", "hasAcceptedInvitation" FROM "TeamMember" WHERE "userId" = $1 AND "deletedAt" IS NULL ORDER BY "projectId", "teamId"`,
-          [userId.toString()],
-        );
+    const membershipsOf: (
+      userId: ObjectID,
+    ) => Promise<Array<Membership>> = async (
+      userId: ObjectID,
+    ): Promise<Array<Membership>> => {
+      const rows: Array<Record<string, unknown>> = await query(
+        `SELECT "projectId", "teamId", "hasAcceptedInvitation" FROM "TeamMember" WHERE "userId" = $1 AND "deletedAt" IS NULL ORDER BY "projectId", "teamId"`,
+        [userId.toString()],
+      );
 
-        return rows.map((row: Record<string, unknown>): Membership => {
+      return rows.map((row: Record<string, unknown>): Membership => {
+        return {
+          projectId: String(row["projectId"]),
+          teamId: String(row["teamId"]),
+          hasAcceptedInvitation: row["hasAcceptedInvitation"] === true,
+        };
+      });
+    };
+
+    const everyMembership: () => Promise<
+      Array<Membership & { userId: string }>
+    > = async (): Promise<Array<Membership & { userId: string }>> => {
+      const rows: Array<Record<string, unknown>> = await query(
+        `SELECT "userId", "projectId", "teamId", "hasAcceptedInvitation" FROM "TeamMember" WHERE "deletedAt" IS NULL`,
+      );
+
+      return rows.map(
+        (row: Record<string, unknown>): Membership & { userId: string } => {
           return {
+            userId: String(row["userId"]),
             projectId: String(row["projectId"]),
             teamId: String(row["teamId"]),
             hasAcceptedInvitation: row["hasAcceptedInvitation"] === true,
           };
-        });
-      };
-
-    const everyMembership: () => Promise<Array<Membership & { userId: string }>> =
-      async (): Promise<Array<Membership & { userId: string }>> => {
-        const rows: Array<Record<string, unknown>> = await query(
-          `SELECT "userId", "projectId", "teamId", "hasAcceptedInvitation" FROM "TeamMember" WHERE "deletedAt" IS NULL`,
-        );
-
-        return rows.map(
-          (row: Record<string, unknown>): Membership & { userId: string } => {
-            return {
-              userId: String(row["userId"]),
-              projectId: String(row["projectId"]),
-              teamId: String(row["teamId"]),
-              hasAcceptedInvitation: row["hasAcceptedInvitation"] === true,
-            };
-          },
-        );
-      };
+        },
+      );
+    };
 
     const accountCount: () => Promise<number> = async (): Promise<number> => {
       const rows: Array<Record<string, unknown>> = await query(
@@ -703,21 +695,28 @@ describePostgres(
      * team alone, whatever project the membership says it is in
      * (TeamMemberService.getUsersInTeams).
      */
-    const isOnTeam: (teamId: ObjectID, userId: ObjectID) => Promise<boolean> =
-      async (teamId: ObjectID, userId: ObjectID): Promise<boolean> => {
-        const users: Array<User> = await TeamMemberService.getUsersInTeams(
-          [teamId],
-          { acceptedOnly: true },
-        );
+    const isOnTeam: (
+      teamId: ObjectID,
+      userId: ObjectID,
+    ) => Promise<boolean> = async (
+      teamId: ObjectID,
+      userId: ObjectID,
+    ): Promise<boolean> => {
+      const users: Array<User> = await TeamMemberService.getUsersInTeams(
+        [teamId],
+        { acceptedOnly: true },
+      );
 
-        return users.some((user: User): boolean => {
-          return user.id?.toString() === userId.toString();
-        });
-      };
+      return users.some((user: User): boolean => {
+        return user.id?.toString() === userId.toString();
+      });
+    };
 
-    // ---------------------------------------------------------------------
-    // The providers, saved as their services save them.
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * The providers, saved as their services save them.
+     * ---------------------------------------------------------------------
+     */
 
     const makeGlobalOidc: (data?: {
       disableSignUpWithSso?: boolean | undefined;
@@ -900,9 +899,11 @@ describePostgres(
       return provider.id;
     };
 
-    // ---------------------------------------------------------------------
-    // The browser.
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * The browser.
+     * ---------------------------------------------------------------------
+     */
 
     let jar: BrowserCookieJar = new BrowserCookieJar(APP_HOST);
 
@@ -1030,7 +1031,10 @@ describePostgres(
         const next: globalThis.URL = new globalThis.URL(answer.location);
 
         // The dashboard is another app: a sign-in that gets there went through.
-        if (next.hostname === APP_HOST && next.pathname.startsWith("/dashboard")) {
+        if (
+          next.hostname === APP_HOST &&
+          next.pathname.startsWith("/dashboard")
+        ) {
           return { answers, final: answer, landedOn: answer.location };
         }
 
@@ -1055,13 +1059,14 @@ describePostgres(
       return JSON.parse(journey.final.body) as ShownPage;
     };
 
-    const signInWithGlobalOidc: (providerId: ObjectID) => Promise<Journey> =
-      async (providerId: ObjectID): Promise<Journey> => {
-        return await browse({
-          method: "GET",
-          url: `${SERVER}/identity/global-oidc/${providerId.toString()}`,
-        });
-      };
+    const signInWithGlobalOidc: (
+      providerId: ObjectID,
+    ) => Promise<Journey> = async (providerId: ObjectID): Promise<Journey> => {
+      return await browse({
+        method: "GET",
+        url: `${SERVER}/identity/global-oidc/${providerId.toString()}`,
+      });
+    };
 
     const signInWithProjectOidc: (
       projectId: ObjectID,
@@ -1225,9 +1230,11 @@ describePostgres(
         });
     };
 
-    // ---------------------------------------------------------------------
-    // Set up, once.
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * Set up, once.
+     * ---------------------------------------------------------------------
+     */
 
     beforeAll(async () => {
       database = new DataSource({
@@ -1305,7 +1312,12 @@ describePostgres(
       app.use(ExpressUrlEncoded({ extended: true }));
       app.use(ExpressJson());
 
-      for (const router of [OIDCRouter, GlobalOIDCRouter, SSORouter, GlobalSSORouter]) {
+      for (const router of [
+        OIDCRouter,
+        GlobalOIDCRouter,
+        SSORouter,
+        GlobalSSORouter,
+      ]) {
         app.use("/identity", router);
       }
 
@@ -1372,10 +1384,10 @@ describePostgres(
       setClaims(idTokenClaims, {});
       setClaims(userInfo, { sub: "00u1a2b3c4D5E6F7g8h9" });
 
-      sessionsMade = [];
-      refusalsRecorded = [];
-      teamJoinsRecorded = [];
-      logLines = [];
+      sessionsMade.length = 0;
+      refusalsRecorded.length = 0;
+      teamJoinsRecorded.length = 0;
+      logLines.length = 0;
 
       jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
       jest
@@ -1385,12 +1397,14 @@ describePostgres(
       for (const level of ["debug", "info", "warn", "error"] as const) {
         jest
           .spyOn(logger, level)
-          .mockImplementation((message: unknown): never => {
+          .mockImplementation((...args: Array<unknown>): void => {
+            const message: unknown = args[0];
+
             logLines.push({
               level: level,
-              text: message instanceof Error ? message.message : String(message),
+              text:
+                message instanceof Error ? message.message : String(message),
             });
-            return undefined as never;
           });
       }
 
@@ -1425,7 +1439,9 @@ describePostgres(
       jest
         .spyOn(UserSessionService, "createSession")
         .mockImplementation(
-          async (data: Parameters<typeof UserSessionService.createSession>[0]) => {
+          async (
+            data: Parameters<typeof UserSessionService.createSession>[0],
+          ) => {
             sessionsMade.push({
               userId: data.userId.toString(),
               signIn: data.signIn as unknown as JSONObject,
@@ -1455,12 +1471,14 @@ describePostgres(
 
       jest
         .spyOn(FailedSignInAuditLog, "record")
-        .mockImplementation((data: Parameters<typeof FailedSignInAuditLog.record>[0]) => {
-          refusalsRecorded.push({
-            userId: data.userId.toString(),
-            reason: data.reason,
-          });
-        });
+        .mockImplementation(
+          (data: Parameters<typeof FailedSignInAuditLog.record>[0]) => {
+            refusalsRecorded.push({
+              userId: data.userId.toString(),
+              reason: data.reason,
+            });
+          },
+        );
 
       // The message page, as its title and message.
       jest
@@ -1481,9 +1499,11 @@ describePostgres(
       jest.restoreAllMocks();
     });
 
-    // ---------------------------------------------------------------------
-    // The server's own OpenID Connect provider (Global OIDC).
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * The server's own OpenID Connect provider (Global OIDC).
+     * ---------------------------------------------------------------------
+     */
 
     describe("the server's own OpenID Connect provider", () => {
       test("with no project attached, someone new is turned away and no account is made: the reported case, now said in the server's log", async () => {
@@ -1772,7 +1792,7 @@ describePostgres(
         expect(await everyMembership()).toEqual([]);
       });
 
-      test("\"Must be invited first\" makes no account, even with a project attached", async () => {
+      test('"Must be invited first" makes no account, even with a project attached', async () => {
         const providerId: ObjectID = await makeGlobalOidc({
           disableSignUpWithSso: true,
         });
@@ -1801,7 +1821,7 @@ describePostgres(
         ).toBe(true);
       });
 
-      test("\"Attached projects only\" with every attachment off signs nobody in to a session every request would refuse", async () => {
+      test('"Attached projects only" with every attachment off signs nobody in to a session every request would refuse', async () => {
         const providerId: ObjectID = await makeGlobalOidc({
           restrictToAttachedProjects: true,
         });
@@ -1845,8 +1865,9 @@ describePostgres(
       });
 
       describe("an address the provider has not verified, or none at all, makes and signs in no account", () => {
-        for (const emailVerified of [false, "false", 0, "maybe"]) {
-          test(`email_verified ${JSON.stringify(emailVerified)}: nobody new, nobody linked, nothing joined`, async () => {
+        test.each([false, "false", 0, "maybe"])(
+          "email_verified %j: nobody new, nobody linked, nothing joined",
+          async (emailVerified: boolean | string | number) => {
             const providerId: ObjectID = await makeGlobalOidc();
             const platform: ProjectFixture = await makeProject("Platform");
             const account: User = await makeAccountByHand({
@@ -1865,7 +1886,7 @@ describePostgres(
               "megan@contoso.example",
             ]) {
               jar = new BrowserCookieJar(APP_HOST);
-              sessionsMade = [];
+              sessionsMade.length = 0;
 
               setClaims(idTokenClaims, {
                 ...entraClaims({ email: email, name: "Someone" }),
@@ -1892,8 +1913,8 @@ describePostgres(
                 reason: expect.any(String),
               },
             ]);
-          });
-        }
+          },
+        );
 
         test("no address in the ID token or from userinfo: nobody made, nothing joined", async () => {
           const providerId: ObjectID = await makeGlobalOidc();
@@ -1926,9 +1947,11 @@ describePostgres(
       });
     });
 
-    // ---------------------------------------------------------------------
-    // A project's own OpenID Connect provider.
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * A project's own OpenID Connect provider.
+     * ---------------------------------------------------------------------
+     */
 
     describe("a project's own OpenID Connect provider", () => {
       test("someone new joins that project's teams and nothing of any other project, and their SSO sign-in counts for that project alone", async () => {
@@ -2113,7 +2136,10 @@ describePostgres(
         });
 
         setClaims(idTokenClaims, {
-          ...entraClaims({ email: "megan@contoso.example", name: "Megan Bowen" }),
+          ...entraClaims({
+            email: "megan@contoso.example",
+            name: "Megan Bowen",
+          }),
           email_verified: false,
         });
 
@@ -2129,9 +2155,11 @@ describePostgres(
       });
     });
 
-    // ---------------------------------------------------------------------
-    // SAML: the server's own provider, and a project's.
-    // ---------------------------------------------------------------------
+    /*
+     * ---------------------------------------------------------------------
+     * SAML: the server's own provider, and a project's.
+     * ---------------------------------------------------------------------
+     */
 
     describe("the server's own SAML provider", () => {
       test("with no project attached, someone new is turned away and no account is made, and the server's log says why", async () => {

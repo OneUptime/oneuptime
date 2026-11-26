@@ -251,14 +251,15 @@ export const getSsoGlobalReachAnswerTitle: (values: unknown) => string = (
  * "everyone gets every project", and "Get one on their first sign-in" for
  * an account whatever is attached.
  */
-export const getSsoGlobalSignUpAnswerDescription: (values: unknown) => string =
-  (values: unknown): string => {
-    return (
-      (getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_INVITED
-        ? (SSO_GLOBAL_SIGN_UP_CHOICES[1] as RadioButton).description
-        : (SSO_GLOBAL_SIGN_UP_CHOICES[0] as RadioButton).description) || ""
-    );
-  };
+export const getSsoGlobalSignUpAnswerDescription: (
+  values: unknown,
+) => string = (values: unknown): string => {
+  return (
+    (getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_INVITED
+      ? (SSO_GLOBAL_SIGN_UP_CHOICES[1] as RadioButton).description
+      : (SSO_GLOBAL_SIGN_UP_CHOICES[0] as RadioButton).description) || ""
+  );
+};
 
 export const getSsoGlobalReachAnswerDescription: (values: unknown) => string = (
   values: unknown,

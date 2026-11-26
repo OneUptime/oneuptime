@@ -621,68 +621,71 @@ describe.each(FLOWS)("$name", (flow: Flow) => {
    * sign-in at all - it mails a link that makes one once confirmed, and
    * that link says "No teams added." itself (ProjectSsoSignInConfirmation).
    */
-  (flow.billing ? describe.skip : describe)("someone with no account, and no team of the project to put them in", () => {
-    beforeEach(() => {
-      userFindOneBy.mockResolvedValue(null);
-    });
+  (flow.billing ? describe.skip : describe)(
+    "someone with no account, and no team of the project to put them in",
+    () => {
+      beforeEach(() => {
+        userFindOneBy.mockResolvedValue(null);
+      });
 
-    test("a provider with no teams: no account is made, and it says 'No teams added.'", async () => {
-      providerFindOneBy.mockResolvedValue(provider([]));
+      test("a provider with no teams: no account is made, and it says 'No teams added.'", async () => {
+        providerFindOneBy.mockResolvedValue(provider([]));
 
-      await runFlow(flow);
-
-      expect(userCreateByEmail).not.toHaveBeenCalled();
-      expect(teamMemberCreate).not.toHaveBeenCalled();
-      expect(createSession).not.toHaveBeenCalled();
-      expect(render).toHaveBeenCalledTimes(1);
-      expect((render.mock.calls[0]![3] as { title: string }).title).toBe(
-        "No teams added.",
-      );
-    });
-
-    test("a provider whose teams are another project's: the same, and that project's teams are never joined", async () => {
-      // None of the provider's teams is a team of its project.
-      const findTeams: jest.SpyInstance = jest
-        .spyOn(TeamService, "findBy")
-        .mockResolvedValue([]);
-
-      try {
         await runFlow(flow);
 
         expect(userCreateByEmail).not.toHaveBeenCalled();
         expect(teamMemberCreate).not.toHaveBeenCalled();
         expect(createSession).not.toHaveBeenCalled();
+        expect(render).toHaveBeenCalledTimes(1);
         expect((render.mock.calls[0]![3] as { title: string }).title).toBe(
           "No teams added.",
         );
-      } finally {
-        findTeams.mockRestore();
-      }
-    });
+      });
 
-    test("a provider with teams of the project: the account is made, and joins them", async () => {
-      const created: Record<string, unknown> = {
-        _id: USER_ID,
-        id: new ObjectID(USER_ID),
-        email: new Email("new.person@example.com"),
-        name: "New Person",
-        isMasterAdmin: false,
-        isEmailVerified: true,
-        isBlocked: false,
-        timezone: null,
-      };
+      test("a provider whose teams are another project's: the same, and that project's teams are never joined", async () => {
+        // None of the provider's teams is a team of its project.
+        const findTeams: jest.SpyInstance = jest
+          .spyOn(TeamService, "findBy")
+          .mockResolvedValue([]);
 
-      userCreateByEmail.mockResolvedValue(created);
+        try {
+          await runFlow(flow);
 
-      await runFlow(flow);
+          expect(userCreateByEmail).not.toHaveBeenCalled();
+          expect(teamMemberCreate).not.toHaveBeenCalled();
+          expect(createSession).not.toHaveBeenCalled();
+          expect((render.mock.calls[0]![3] as { title: string }).title).toBe(
+            "No teams added.",
+          );
+        } finally {
+          findTeams.mockRestore();
+        }
+      });
 
-      expect(userCreateByEmail).toHaveBeenCalledTimes(1);
-      expect(
-        createdMemberships().map((membership: CreatedMembership): string => {
-          return membership.teamId;
-        }),
-      ).toEqual([MEMBERS_TEAM_ID, ADMIN_TEAM_ID]);
-      expect(createSession).toHaveBeenCalledTimes(1);
-    });
-  });
+      test("a provider with teams of the project: the account is made, and joins them", async () => {
+        const created: Record<string, unknown> = {
+          _id: USER_ID,
+          id: new ObjectID(USER_ID),
+          email: new Email("new.person@example.com"),
+          name: "New Person",
+          isMasterAdmin: false,
+          isEmailVerified: true,
+          isBlocked: false,
+          timezone: null,
+        };
+
+        userCreateByEmail.mockResolvedValue(created);
+
+        await runFlow(flow);
+
+        expect(userCreateByEmail).toHaveBeenCalledTimes(1);
+        expect(
+          createdMemberships().map((membership: CreatedMembership): string => {
+            return membership.teamId;
+          }),
+        ).toEqual([MEMBERS_TEAM_ID, ADMIN_TEAM_ID]);
+        expect(createSession).toHaveBeenCalledTimes(1);
+      });
+    },
+  );
 });

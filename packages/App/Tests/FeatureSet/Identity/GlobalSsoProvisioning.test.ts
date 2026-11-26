@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import GlobalSsoProvisioning, {
   GlobalSsoAttachments,
   GlobalSsoNewcomerRefusal,
@@ -194,95 +194,93 @@ beforeEach(() => {
 });
 
 describe("GlobalSsoProvisioning.readAttachments", () => {
-  for (const protocol of PROTOCOLS) {
-    describe(protocol.name, () => {
-      test("reads the provider's attachments that are on, by its own column, as OneUptime's own read", async () => {
-        protocol.findBy.mockResolvedValue([]);
+  describe.each(PROTOCOLS)("$name", (protocol: ProtocolCase) => {
+    test("reads the provider's attachments that are on, by its own column, as OneUptime's own read", async () => {
+      protocol.findBy.mockResolvedValue([]);
 
+      await GlobalSsoProvisioning.readAttachments({
+        providerType: protocol.providerType,
+        providerId: PROVIDER_ID,
+      });
+
+      expect(protocol.findBy).toHaveBeenCalledTimes(1);
+      expect(protocol.otherFindBy).not.toHaveBeenCalled();
+
+      const findBy: Record<string, unknown> = protocol.findBy.mock
+        .calls[0]![0] as Record<string, unknown>;
+
+      expect(findBy["query"]).toEqual({
+        [protocol.providerColumn]: PROVIDER_ID,
+        isEnabled: true,
+      });
+      expect(findBy["select"]).toEqual({
+        projectId: true,
+        teams: { _id: true },
+      });
+      expect(findBy["props"]).toEqual({ isRoot: true });
+    });
+
+    test("nothing attached: default-all, no project, nobody joins anything", async () => {
+      protocol.findBy.mockResolvedValue([]);
+
+      await expect(
+        GlobalSsoProvisioning.readAttachments({
+          providerType: protocol.providerType,
+          providerId: PROVIDER_ID,
+        }),
+      ).resolves.toEqual({
+        isDefaultAllMode: true,
+        attachedProjectIds: [],
+        joinableProjects: [],
+      });
+      expect(getProjectTeams).not.toHaveBeenCalled();
+    });
+
+    test("people join an attached project only in its own teams; one with none of its own is attached, and joins nobody", async () => {
+      protocol.findBy.mockResolvedValue([
+        attachment(PLATFORM, [PLATFORM_MEMBERS, PAYMENTS_OWNERS]),
+        attachment(PAYMENTS, []),
+      ]);
+
+      const read: GlobalSsoAttachments =
         await GlobalSsoProvisioning.readAttachments({
           providerType: protocol.providerType,
           providerId: PROVIDER_ID,
         });
 
-        expect(protocol.findBy).toHaveBeenCalledTimes(1);
-        expect(protocol.otherFindBy).not.toHaveBeenCalled();
+      expect(read.isDefaultAllMode).toBe(false);
+      expect(read.attachedProjectIds).toEqual([PLATFORM, PAYMENTS]);
+      expect(read.joinableProjects).toHaveLength(1);
+      expect(read.joinableProjects[0]!.projectId).toEqual(PLATFORM);
+      expect(idsOf(read.joinableProjects[0]!.teams)).toEqual([
+        PLATFORM_MEMBERS.toString(),
+      ]);
 
-        const findBy: Record<string, unknown> = protocol.findBy.mock
-          .calls[0]![0] as Record<string, unknown>;
+      // The teams are read only for an attachment that names some.
+      expect(getProjectTeams).toHaveBeenCalledTimes(1);
 
-        expect(findBy["query"]).toEqual({
-          [protocol.providerColumn]: PROVIDER_ID,
-          isEnabled: true,
-        });
-        expect(findBy["select"]).toEqual({
-          projectId: true,
-          teams: { _id: true },
-        });
-        expect(findBy["props"]).toEqual({ isRoot: true });
-      });
-
-      test("nothing attached: default-all, no project, nobody joins anything", async () => {
-        protocol.findBy.mockResolvedValue([]);
-
-        await expect(
-          GlobalSsoProvisioning.readAttachments({
-            providerType: protocol.providerType,
-            providerId: PROVIDER_ID,
-          }),
-        ).resolves.toEqual({
-          isDefaultAllMode: true,
-          attachedProjectIds: [],
-          joinableProjects: [],
-        });
-        expect(getProjectTeams).not.toHaveBeenCalled();
-      });
-
-      test("people join an attached project only in its own teams; one with none of its own is attached, and joins nobody", async () => {
-        protocol.findBy.mockResolvedValue([
-          attachment(PLATFORM, [PLATFORM_MEMBERS, PAYMENTS_OWNERS]),
-          attachment(PAYMENTS, []),
-        ]);
-
-        const read: GlobalSsoAttachments =
-          await GlobalSsoProvisioning.readAttachments({
-            providerType: protocol.providerType,
-            providerId: PROVIDER_ID,
-          });
-
-        expect(read.isDefaultAllMode).toBe(false);
-        expect(read.attachedProjectIds).toEqual([PLATFORM, PAYMENTS]);
-        expect(read.joinableProjects).toHaveLength(1);
-        expect(read.joinableProjects[0]!.projectId).toEqual(PLATFORM);
-        expect(idsOf(read.joinableProjects[0]!.teams)).toEqual([
-          PLATFORM_MEMBERS.toString(),
-        ]);
-
-        // The teams are read only for an attachment that names some.
-        expect(getProjectTeams).toHaveBeenCalledTimes(1);
-
-        // Payments' owners on Platform's attachment: said, by ids alone.
-        expect(warn).toHaveBeenCalledTimes(1);
-        expect(String(warn.mock.calls[0]![0])).toContain(
-          `attached to project ${PLATFORM.toString()} with 1 team(s) that are not teams of that project`,
-        );
-      });
-
-      test("an attachment naming only another project's team joins nobody", async () => {
-        protocol.findBy.mockResolvedValue([
-          attachment(PLATFORM, [PAYMENTS_OWNERS]),
-        ]);
-
-        const read: GlobalSsoAttachments =
-          await GlobalSsoProvisioning.readAttachments({
-            providerType: protocol.providerType,
-            providerId: PROVIDER_ID,
-          });
-
-        expect(read.attachedProjectIds).toEqual([PLATFORM]);
-        expect(read.joinableProjects).toEqual([]);
-      });
+      // Payments' owners on Platform's attachment: said, by ids alone.
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0])).toContain(
+        `attached to project ${PLATFORM.toString()} with 1 team(s) that are not teams of that project`,
+      );
     });
-  }
+
+    test("an attachment naming only another project's team joins nobody", async () => {
+      protocol.findBy.mockResolvedValue([
+        attachment(PLATFORM, [PAYMENTS_OWNERS]),
+      ]);
+
+      const read: GlobalSsoAttachments =
+        await GlobalSsoProvisioning.readAttachments({
+          providerType: protocol.providerType,
+          providerId: PROVIDER_ID,
+        });
+
+      expect(read.attachedProjectIds).toEqual([PLATFORM]);
+      expect(read.joinableProjects).toEqual([]);
+    });
+  });
 });
 
 describe("GlobalSsoProvisioning.getNewcomerRefusal", () => {
@@ -396,7 +394,9 @@ describe("GlobalSsoProvisioning.addToAttachedProjects", () => {
   test("joins each project they are not in yet, in its teams, and leaves a project they are in as it is", async () => {
     // A member of Platform already.
     teamMemberCountBy.mockImplementation(
-      (countBy: { query: Record<string, unknown> }): Promise<PositiveNumber> => {
+      (countBy: {
+        query: Record<string, unknown>;
+      }): Promise<PositiveNumber> => {
         return Promise.resolve(
           new PositiveNumber(
             String(countBy.query["projectId"]) === PLATFORM.toString() ? 1 : 0,
@@ -457,75 +457,73 @@ describe("GlobalSsoProvisioning.addToAttachedProjects", () => {
 });
 
 describe("GlobalSsoProvisioning.isSignInRestrictedFromEveryProject", () => {
-  for (const protocol of PROTOCOLS) {
-    describe(protocol.name, () => {
-      const nothingOn: GlobalSsoAttachments = {
-        isDefaultAllMode: true,
-        attachedProjectIds: [],
+  describe.each(PROTOCOLS)("$name", (protocol: ProtocolCase) => {
+    const nothingOn: GlobalSsoAttachments = {
+      isDefaultAllMode: true,
+      attachedProjectIds: [],
+      joinableProjects: [],
+    };
+
+    test("no attachment at all: the sign-in counts in every project", async () => {
+      protocol.countBy.mockResolvedValue(new PositiveNumber(0));
+
+      await expect(
+        GlobalSsoProvisioning.isSignInRestrictedFromEveryProject({
+          providerType: protocol.providerType,
+          providerId: PROVIDER_ID,
+          attachments: nothingOn,
+          userId: USER_ID,
+        }),
+      ).resolves.toBe(false);
+
+      // Every row, on or off.
+      expect(
+        (protocol.countBy.mock.calls[0]![0] as Record<string, unknown>)[
+          "query"
+        ],
+      ).toEqual({ [protocol.providerColumn]: PROVIDER_ID });
+    });
+
+    test("attachments, every one of them off: the sign-in counts in no project, as every request reads it", async () => {
+      protocol.countBy.mockResolvedValue(new PositiveNumber(2));
+
+      await expect(
+        GlobalSsoProvisioning.isSignInRestrictedFromEveryProject({
+          providerType: protocol.providerType,
+          providerId: PROVIDER_ID,
+          attachments: nothingOn,
+          userId: USER_ID,
+        }),
+      ).resolves.toBe(true);
+    });
+
+    test("attached projects: restricted unless they are in one of them", async () => {
+      const attached: GlobalSsoAttachments = {
+        isDefaultAllMode: false,
+        attachedProjectIds: [PLATFORM],
         joinableProjects: [],
       };
 
-      test("no attachment at all: the sign-in counts in every project", async () => {
-        protocol.countBy.mockResolvedValue(new PositiveNumber(0));
+      for (const [memberships, restricted] of [
+        [0, true],
+        [1, false],
+      ] as Array<[number, boolean]>) {
+        teamMemberCountBy.mockResolvedValueOnce(
+          new PositiveNumber(memberships),
+        );
 
         await expect(
           GlobalSsoProvisioning.isSignInRestrictedFromEveryProject({
             providerType: protocol.providerType,
             providerId: PROVIDER_ID,
-            attachments: nothingOn,
+            attachments: attached,
             userId: USER_ID,
           }),
-        ).resolves.toBe(false);
+        ).resolves.toBe(restricted);
+      }
 
-        // Every row, on or off.
-        expect(
-          (protocol.countBy.mock.calls[0]![0] as Record<string, unknown>)[
-            "query"
-          ],
-        ).toEqual({ [protocol.providerColumn]: PROVIDER_ID });
-      });
-
-      test("attachments, every one of them off: the sign-in counts in no project, as every request reads it", async () => {
-        protocol.countBy.mockResolvedValue(new PositiveNumber(2));
-
-        await expect(
-          GlobalSsoProvisioning.isSignInRestrictedFromEveryProject({
-            providerType: protocol.providerType,
-            providerId: PROVIDER_ID,
-            attachments: nothingOn,
-            userId: USER_ID,
-          }),
-        ).resolves.toBe(true);
-      });
-
-      test("attached projects: restricted unless they are in one of them", async () => {
-        const attached: GlobalSsoAttachments = {
-          isDefaultAllMode: false,
-          attachedProjectIds: [PLATFORM],
-          joinableProjects: [],
-        };
-
-        for (const [memberships, restricted] of [
-          [0, true],
-          [1, false],
-        ] as Array<[number, boolean]>) {
-          teamMemberCountBy.mockResolvedValueOnce(
-            new PositiveNumber(memberships),
-          );
-
-          await expect(
-            GlobalSsoProvisioning.isSignInRestrictedFromEveryProject({
-              providerType: protocol.providerType,
-              providerId: PROVIDER_ID,
-              attachments: attached,
-              userId: USER_ID,
-            }),
-          ).resolves.toBe(restricted);
-        }
-
-        // Never the attachments' rows: the ones on are known.
-        expect(protocol.countBy).not.toHaveBeenCalled();
-      });
+      // Never the attachments' rows: the ones on are known.
+      expect(protocol.countBy).not.toHaveBeenCalled();
     });
-  }
+  });
 });

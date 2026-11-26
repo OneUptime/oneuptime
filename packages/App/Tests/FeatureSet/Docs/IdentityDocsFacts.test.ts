@@ -685,24 +685,23 @@ describe("the SSO guide", () => {
      * A newcomer with a provider that has no teams of its project to put
      * them in: none at all, or only another project's (#11149).
      */
+    // Someone new: no account is made, and the page says so.
+    const newcomerRefused: RegExp =
+      /canAddNewcomers: projectTeams\.length > 0,[\s\S]{0,300}?if \(decision\.outcome === ProjectSsoGateOutcome\.NoTeams\) \{\s*return respondNoTeams\(/;
+    // Someone with an account, in none of the project's teams.
+    const memberRefused: RegExp =
+      /if \(teamMemberCount\.toNumber\(\) === 0\) \{[\s\S]{0,900}?SsoTeamMembership\.addToTeams\([\s\S]{0,300}?if \(joined === SsoTeamMembershipOutcome\.NoTeams\) \{\s*return respondNoTeams\(/;
+    const noTeamsPage: RegExp =
+      /const respondNoTeams: RespondNoTeamsFunction = [\s\S]{0,900}?title: SSO_NO_TEAMS_TITLE,/;
+
     for (const key of ["ssoApi", "oidcApi"]) {
       const source: string = readSource(key);
 
       expect({
         key,
-        // Someone new: no account is made, and the page says so.
-        newcomer:
-          /canAddNewcomers: projectTeams\.length > 0,[\s\S]{0,300}?if \(decision\.outcome === ProjectSsoGateOutcome\.NoTeams\) \{\s*return respondNoTeams\(/.test(
-            source,
-          ),
-        // Someone with an account, in none of the project's teams.
-        member:
-          /if \(teamMemberCount\.toNumber\(\) === 0\) \{[\s\S]{0,900}?SsoTeamMembership\.addToTeams\([\s\S]{0,300}?if \(joined === SsoTeamMembershipOutcome\.NoTeams\) \{\s*return respondNoTeams\(/.test(
-            source,
-          ),
-        page: /const respondNoTeams: RespondNoTeamsFunction = [\s\S]{0,900}?title: SSO_NO_TEAMS_TITLE,/.test(
-          source,
-        ),
+        newcomer: newcomerRefused.test(source),
+        member: memberRefused.test(source),
+        page: noTeamsPage.test(source),
       }).toEqual({ key, newcomer: true, member: true, page: true });
     }
 
@@ -2234,12 +2233,13 @@ describe("the Global SSO guide", () => {
       /if \(data\.attachments\.joinableProjects\.length === 0\) \{\s*return GlobalSsoNewcomerRefusal\.NoAttachedProjectHasTeams;/,
     );
 
+    const asksTheNewcomerRule: RegExp =
+      /if \(!alreadySavedUser\) \{[\s\S]{0,400}?GlobalSsoProvisioning\.getNewcomerRefusal\(/;
+
     for (const key of ["globalSsoApi", "globalOidcApi"]) {
       expect({
         key,
-        asks: /if \(!alreadySavedUser\) \{[\s\S]{0,400}?GlobalSsoProvisioning\.getNewcomerRefusal\(/.test(
-          readSource(key),
-        ),
+        asks: asksTheNewcomerRule.test(readSource(key)),
       }).toEqual({ key, asks: true });
     }
 

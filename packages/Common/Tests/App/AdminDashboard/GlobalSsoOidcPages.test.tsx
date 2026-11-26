@@ -1935,9 +1935,7 @@ describe("a provider's page says when nobody new can sign in (#11149)", () => {
 
       test("an attachment that is on, with teams, takes them: nothing is said", async () => {
         await renderPage(providerCase.page);
-        tableReads(providerCase, [
-          { isEnabled: true, teams: [membersTeam] },
-        ]);
+        tableReads(providerCase, [{ isEnabled: true, teams: [membersTeam] }]);
 
         expect(
           within(signUpRowFor(providerCase, false)).queryByTestId(
@@ -1971,7 +1969,7 @@ describe("a provider's page says when nobody new can sign in (#11149)", () => {
         ).toBeNull();
       });
 
-      test("\"Must be invited first\" gives nobody an account anyway: nothing is said", async () => {
+      test('"Must be invited first" gives nobody an account anyway: nothing is said', async () => {
         await renderPage(providerCase.page);
         tableReads(providerCase, []);
 
