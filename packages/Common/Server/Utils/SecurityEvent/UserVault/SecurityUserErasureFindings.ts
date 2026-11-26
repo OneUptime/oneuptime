@@ -135,7 +135,8 @@ export const MAX_FINDINGS_UNNAMED_PER_RUN: number = 50000;
  * many pages share their mutations, and a run that stops loses at most these
  * to read again.
  */
-export const FINDINGS_CHANGES_PER_FLUSH: number = 10 * MAX_FINDINGS_PER_MUTATION;
+export const FINDINGS_CHANGES_PER_FLUSH: number =
+  10 * MAX_FINDINGS_PER_MUTATION;
 
 /*
  * How long one run reads a project's findings: past it, the read stops where

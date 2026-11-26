@@ -998,7 +998,10 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         contributions: [
           {
             sourceKey: `rule:${RULE_ID.toString()}`,
-            firingKeys: [firingKey(legacy(CORRELATION)), firingKey(legacy(BOB))],
+            firingKeys: [
+              firingKey(legacy(CORRELATION)),
+              firingKey(legacy(BOB)),
+            ],
           },
         ],
       });
@@ -1115,7 +1118,8 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
       // After it: the rule fires on the token, and finds the same alert.
       expect(await fire(aliceToken)).toEqual([openAlice.toString()]);
       expect(await seriesFingerprintOf("Alert", openAlice)).toBe(
-        DetectionRuleEvaluator.buildFingerprints(rule(), aliceToken).fingerprint,
+        DetectionRuleEvaluator.buildFingerprints(rule(), aliceToken)
+          .fingerprint,
       );
       expect(create).not.toHaveBeenCalled();
     });
@@ -1477,7 +1481,10 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         findings: {
           number: 2,
           startedAt: "2026-11-26T10:20:00.000Z",
-          after: { time: "1764151200000000123", id: ObjectID.generate().toString() },
+          after: {
+            time: "1764151200000000123",
+            id: ObjectID.generate().toString(),
+          },
           changed: 0,
           unnamed: 0,
           isFinal: true,

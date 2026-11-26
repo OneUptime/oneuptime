@@ -1140,9 +1140,9 @@ describe("DetectionRuleEvaluator", () => {
       );
 
       // The lookup asked for each group's fingerprint, and the one it had before.
-      const query: JSONObject = (spies.alertFindBy.mock.calls[0]![0] as JSONObject)[
-        "query"
-      ] as JSONObject;
+      const query: JSONObject = (
+        spies.alertFindBy.mock.calls[0]![0] as JSONObject
+      )["query"] as JSONObject;
 
       expect(
         [...(query["seriesFingerprint"] as Includes).values].sort(),
@@ -4495,13 +4495,18 @@ describe("DetectionRuleEvaluator", () => {
     test("a firing is named by its stretch, its window and its group, the same every time", () => {
       const stretchStart: Date = LAST_RUN;
       const windowStart: Date = new Date("2026-09-18T11:45:00.000Z");
-      const alice: string = getDetectionFiringKey({ projectId: PROJECT_ID,
+      const alice: string = getDetectionFiringKey({
+        projectId: PROJECT_ID,
         stretchStart,
         groupValue: "alice",
       });
 
       expect(alice).toBe(
-        getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart, groupValue: "alice" }),
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
+          stretchStart,
+          groupValue: "alice",
+        }),
       );
       // The group's fingerprint keyed in the project (#11130).
       expect(alice).toBe(
@@ -4546,12 +4551,18 @@ describe("DetectionRuleEvaluator", () => {
       expect(
         new Set([
           alice,
-          getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart, groupValue: "bob" }),
-          getDetectionFiringKey({ projectId: PROJECT_ID,
+          getDetectionFiringKey({
+            projectId: PROJECT_ID,
+            stretchStart,
+            groupValue: "bob",
+          }),
+          getDetectionFiringKey({
+            projectId: PROJECT_ID,
             stretchStart: MARKED_UNTIL,
             groupValue: "alice",
           }),
-          getDetectionFiringKey({ projectId: PROJECT_ID,
+          getDetectionFiringKey({
+            projectId: PROJECT_ID,
             stretchStart,
             windowStart,
             groupValue: "alice",
@@ -4653,11 +4664,13 @@ describe("DetectionRuleEvaluator", () => {
         buildRule({ lastEvaluatedAt: LAST_RUN }),
       );
 
-      const aliceKey: string = getDetectionFiringKey({ projectId: PROJECT_ID,
+      const aliceKey: string = getDetectionFiringKey({
+        projectId: PROJECT_ID,
         stretchStart: LAST_RUN,
         groupValue: "alice",
       });
-      const bobKey: string = getDetectionFiringKey({ projectId: PROJECT_ID,
+      const bobKey: string = getDetectionFiringKey({
+        projectId: PROJECT_ID,
         stretchStart: LAST_RUN,
         groupValue: "bob",
       });
@@ -4737,10 +4750,15 @@ describe("DetectionRuleEvaluator", () => {
 
       // The marked stretch's firing has the name its first pass gave it.
       expect(handedSignals()[0]!.firingKey).toBe(
-        getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart: LAST_RUN, groupValue: "alice" }),
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
+          stretchStart: LAST_RUN,
+          groupValue: "alice",
+        }),
       );
       expect(handedSignals()[1]!.firingKey).toBe(
-        getDetectionFiringKey({ projectId: PROJECT_ID,
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
           stretchStart: MARKED_UNTIL,
           groupValue: "alice",
         }),
@@ -4902,7 +4920,8 @@ describe("DetectionRuleEvaluator", () => {
       expect(windowReads[0]!.arrivedAfter).toEqual(LAST_RUN);
       expect(windowReads[0]!.arrivedUntil).toEqual(MARKED_UNTIL);
       expect(handedSignals()[0]!.firingKey).toBe(
-        getDetectionFiringKey({ projectId: PROJECT_ID,
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
           stretchStart: LAST_RUN,
           windowStart,
           groupValue: "alice",
@@ -4957,7 +4976,8 @@ describe("DetectionRuleEvaluator", () => {
       expect(handedSignals()[0]!.firingKey).toBeUndefined();
       expect(
         writtenFindingUids(spies)[0]!.endsWith(
-          getDetectionFiringKey({ projectId: PROJECT_ID,
+          getDetectionFiringKey({
+            projectId: PROJECT_ID,
             stretchStart: new Date("2026-09-18T11:00:00.000Z"),
             groupValue: "alice",
           }),

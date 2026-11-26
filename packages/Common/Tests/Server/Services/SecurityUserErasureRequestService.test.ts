@@ -688,7 +688,9 @@ describe("the worker's moves keep and wipe the names (#11044)", () => {
       counts,
     });
 
-    expect(written[0]!["progress"]).toEqual(JSON.parse(JSON.stringify(progress)));
+    expect(written[0]!["progress"]).toEqual(
+      JSON.parse(JSON.stringify(progress)),
+    );
     expect(written[0]!["failureReason"]).toBeNull();
     expect(Object.keys(written[1]!)).not.toContain("progress");
   });

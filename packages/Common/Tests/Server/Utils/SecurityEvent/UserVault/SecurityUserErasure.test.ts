@@ -616,9 +616,9 @@ describe("a Pending request", () => {
     expect(world.calls.indexOf("keepNames")).toBeLessThan(
       world.calls.indexOf("queue"),
     );
-    expect(describeNames(world.keptNames[world.keptNames.length - 1]!)).toContain(
-      `${ALICE} / 198.51.100.4 -> ${tokenOf(ALICE)} / 198.51.100.4`,
-    );
+    expect(
+      describeNames(world.keptNames[world.keptNames.length - 1]!),
+    ).toContain(`${ALICE} / 198.51.100.4 -> ${tokenOf(ALICE)} / 198.51.100.4`);
   });
 
   test("hands Postgres every name the vault knew them by, each once, with what the rule left", async () => {
@@ -658,9 +658,11 @@ describe("a Pending request", () => {
       now: at(STARTED_AT),
     });
 
-    expect(world.calls.some((call: string): boolean => {
-      return call.startsWith("scan");
-    })).toBe(false);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("scan");
+      }),
+    ).toBe(false);
     expect(world.calls[world.calls.length - 1]).toMatch(/^completed /);
   });
 
@@ -707,13 +709,17 @@ describe("a project with more findings than one run reads (#11160)", () => {
     expect(world.progress?.findings?.endedAt).toBeTruthy();
     expect(world.progress?.findings?.number).toBe(1);
     expect(world.findings.naming.some(Boolean)).toBe(false);
-    expect(world.calls.some((call: string): boolean => {
-      return call.startsWith("attemptFailed") || call.startsWith("failed");
-    })).toBe(false);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("attemptFailed") || call.startsWith("failed");
+      }),
+    ).toBe(false);
     // Never Erased off the first pass, which started before nothing named them.
-    expect(world.calls.some((call: string): boolean => {
-      return call.startsWith("completed");
-    })).toBe(false);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("completed");
+      }),
+    ).toBe(false);
   });
 
   test("is Erased once a final pass, started after the settle, reads every finding and changes none", async () => {
@@ -876,9 +882,11 @@ describe("a project with more findings than one run reads (#11160)", () => {
       deadline,
     });
 
-    expect(world.calls.some((call: string): boolean => {
-      return call.startsWith("attemptFailed");
-    })).toBe(false);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("attemptFailed");
+      }),
+    ).toBe(false);
 
     world.scanError = null;
     await runAt(model, STARTED_AT + 2 * MINUTE);
@@ -918,9 +926,11 @@ describe("an InProgress request", () => {
     }
 
     expect(world.findings.reads).toHaveLength(reads);
-    expect(world.calls.some((call: string): boolean => {
-      return call.startsWith("completed");
-    })).toBe(false);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("completed");
+      }),
+    ).toBe(false);
   });
 
   test("still named a while after ClickHouse was told: told again, its counts never added twice", async () => {

@@ -1412,11 +1412,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
     test("reads only the project's own findings that name the person, and matches them in the worker", async () => {
       await seedFindings();
 
-      const found: FindingsScanResult =
-        await findRewrites({
-          projectId: PROJECT_ID,
-          names: ALICE_NAMES,
-        });
+      const found: FindingsScanResult = await findRewrites({
+        projectId: PROJECT_ID,
+        names: ALICE_NAMES,
+      });
       const foundIds: Array<string> = found.rewrites.map(
         (rewrite: FindingRewrite): string => {
           return rewrite.id;
@@ -1468,11 +1467,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
     test("takes the person out of each finding's message, observables and attributes, as the rule left them", async () => {
       await seedFindings();
 
-      const found: FindingsScanResult =
-        await findRewrites({
-          projectId: PROJECT_ID,
-          names: ALICE_NAMES,
-        });
+      const found: FindingsScanResult = await findRewrites({
+        projectId: PROJECT_ID,
+        names: ALICE_NAMES,
+      });
 
       expect(
         await SecurityUserErasureFindings.unnameFindings({
@@ -1632,11 +1630,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
     test("running it again finds nothing and changes nothing, and a mutation applied twice changes nothing more", async () => {
       await seedFindings();
 
-      const found: FindingsScanResult =
-        await findRewrites({
-          projectId: PROJECT_ID,
-          names: ALICE_NAMES,
-        });
+      const found: FindingsScanResult = await findRewrites({
+        projectId: PROJECT_ID,
+        names: ALICE_NAMES,
+      });
 
       await SecurityUserErasureFindings.unnameFindings({
         projectId: PROJECT_ID,
@@ -1762,12 +1759,11 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         clickhouse_settings: { wait_for_async_insert: 1 },
       });
 
-      const paged: FindingsScanResult =
-        await findRewrites({
-          projectId: PROJECT_ID,
-          names: ALICE_NAMES,
-          pageSize: 2,
-        });
+      const paged: FindingsScanResult = await findRewrites({
+        projectId: PROJECT_ID,
+        names: ALICE_NAMES,
+        pageSize: 2,
+      });
 
       expect(paged.rewrites).toHaveLength(4);
       expect(
@@ -1778,13 +1774,12 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         ).size,
       ).toBe(4);
 
-      const capped: FindingsScanResult =
-        await findRewrites({
-          projectId: PROJECT_ID,
-          names: ALICE_NAMES,
-          pageSize: 2,
-          maxRewrites: 3,
-        });
+      const capped: FindingsScanResult = await findRewrites({
+        projectId: PROJECT_ID,
+        names: ALICE_NAMES,
+        pageSize: 2,
+        maxRewrites: 3,
+      });
 
       expect(capped.rewrites).toHaveLength(3);
       expect(capped.isCapped).toBe(true);
@@ -1832,11 +1827,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       await findingsWritten(3);
 
-      const found: FindingsScanResult =
-        await findRewrites({
-          projectId: PROJECT_ID,
-          names: [besideName, patternedName, withBackslash],
-        });
+      const found: FindingsScanResult = await findRewrites({
+        projectId: PROJECT_ID,
+        names: [besideName, patternedName, withBackslash],
+      });
 
       expect(found.rewrites).toHaveLength(3);
 
@@ -2213,9 +2207,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             progress: SecurityUserErasureProgress;
             eventsUnnamed?: number | undefined;
           }): Promise<void> => {
-            progressKept.push(readErasureProgress(
-              JSON.parse(JSON.stringify(data.progress)),
-            ));
+            progressKept.push(
+              readErasureProgress(JSON.parse(JSON.stringify(data.progress))),
+            );
             update(data.requestId, {
               progress: toStoredErasureProgress(data.progress),
               ...(data.eventsUnnamed !== undefined
@@ -2369,7 +2363,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         SecurityUserErasureRequestStatus.InProgress,
       );
       expect(readErasureProgress(stored(request).progress).cleanSince).toBe(
-        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000).toISOString(),
+        new Date(
+          filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000,
+        ).toISOString(),
       );
 
       // Once none can be: the final read of the findings finds nothing to change.
@@ -2433,9 +2429,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       );
       expect(erasedNames).toHaveLength(2);
       // Two passes of the findings: the first, and the final check.
-      expect(readErasureProgress(stored(request).progress).findings?.number).toBe(
-        2,
-      );
+      expect(
+        readErasureProgress(stored(request).progress).findings?.number,
+      ).toBe(2);
     });
 
     test("a person the vault never knew is erased all the same, with nothing to count", async () => {
@@ -2513,7 +2509,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       expect(
         progressKept
           .filter((progress: SecurityUserErasureProgress): boolean => {
-            return progress.toldAt !== null && progress.toldAt >= new Date(firstDone).toISOString();
+            return (
+              progress.toldAt !== null &&
+              progress.toldAt >= new Date(firstDone).toISOString()
+            );
           })
           .every((progress: SecurityUserErasureProgress): boolean => {
             return (progress.findings?.changed || 0) === 0;
@@ -2812,7 +2811,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       // The final check, once the settle is over, finds them still naming the person, and changes them.
       const settled: number =
-        filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000 + DETECTION_TURN_SETTLE_MS;
+        filedAt.getTime() +
+        SUPPRESSION_SETTLE_MS +
+        61000 +
+        DETECTION_TURN_SETTLE_MS;
 
       await SecurityUserErasure.processOpenRequests(new Date(settled));
       expect(stored(request).status).toBe(
@@ -2824,9 +2826,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       // Another, once ClickHouse applied them: it finds nothing, and the request is done.
       await mutationsApplied();
-      await SecurityUserErasure.processOpenRequests(
-        new Date(settled + 60000),
-      );
+      await SecurityUserErasure.processOpenRequests(new Date(settled + 60000));
 
       expect(unnameFindings).toHaveBeenCalledTimes(2);
       expect(stored(request).status).toBe(
@@ -2872,7 +2872,10 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       // The final check finds it, and changes it: not done yet.
       const settled: number =
-        filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000 + DETECTION_TURN_SETTLE_MS;
+        filedAt.getTime() +
+        SUPPRESSION_SETTLE_MS +
+        61000 +
+        DETECTION_TURN_SETTLE_MS;
 
       await SecurityUserErasure.processOpenRequests(new Date(settled));
       expect(stored(request).status).toBe(
@@ -2880,9 +2883,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       );
 
       await mutationsApplied();
-      await SecurityUserErasure.processOpenRequests(
-        new Date(settled + 60000),
-      );
+      await SecurityUserErasure.processOpenRequests(new Date(settled + 60000));
 
       expect(stored(request).status).toBe(
         SecurityUserErasureRequestStatus.Completed,
@@ -2952,13 +2953,14 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       );
 
       const settled: number =
-        filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000 + DETECTION_TURN_SETTLE_MS;
+        filedAt.getTime() +
+        SUPPRESSION_SETTLE_MS +
+        61000 +
+        DETECTION_TURN_SETTLE_MS;
 
       await SecurityUserErasure.processOpenRequests(new Date(settled));
       await mutationsApplied();
-      await SecurityUserErasure.processOpenRequests(
-        new Date(settled + 60000),
-      );
+      await SecurityUserErasure.processOpenRequests(new Date(settled + 60000));
 
       expect(stored(request).status).toBe(
         SecurityUserErasureRequestStatus.Completed,
@@ -3325,7 +3327,8 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       const start: number = Date.now() - 2 * 60 * 60 * 1000;
 
       for (let index: number = 0; index < 1200; index++) {
-        const value: string = index % 5 === 0 ? ALICE : `user-${index}@example.org`;
+        const value: string =
+          index % 5 === 0 ? ALICE : `user-${index}@example.org`;
         const fingerprint: string = DetectionFingerprint.of({
           projectId: PROJECT_ID,
           kind: DetectionFingerprintKind.DetectionRule,
@@ -3456,7 +3459,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       expect(Number(left[0]!["c"])).toBe(0);
       expect(Number(rekeyed[0]!["c"])).toBe(240);
-      expect(await anyFindingNamingOf({ projectId: PROJECT_ID, names: ALICE_NAMES })).toBe(false);
+      expect(
+        await anyFindingNamingOf({ projectId: PROJECT_ID, names: ALICE_NAMES }),
+      ).toBe(false);
     });
 
     test("a run its deadline stops in the middle of the findings keeps where it got to, counts no failure, and the next run goes on (#11160)", async () => {
@@ -3492,9 +3497,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       jest
         .spyOn(SecurityUserErasureFindings, "readFindingsPage")
         .mockImplementation(
-          (
-            input: Parameters<typeof page>[0],
-          ): ReturnType<typeof page> => {
+          (input: Parameters<typeof page>[0]): ReturnType<typeof page> => {
             pages++;
 
             // The cron job's time runs out while the second page is read.

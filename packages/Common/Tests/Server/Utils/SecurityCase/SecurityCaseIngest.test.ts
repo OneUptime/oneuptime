@@ -738,7 +738,10 @@ describe("a firing handed again", () => {
     expect(
       hasDetectionTakenFiring({
         detection,
-        signal: signal({ firingKey: "run:2:each:new", formerFiringKeys: [FIRING] }),
+        signal: signal({
+          firingKey: "run:2:each:new",
+          formerFiringKeys: [FIRING],
+        }),
       }),
     ).toBe(true);
     expect(

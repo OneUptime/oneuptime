@@ -96,7 +96,9 @@ function projectIdText(projectId: ObjectID | string): string {
   const text: string = projectId.toString().trim().toLowerCase();
 
   if (!text) {
-    throw new BadDataException("A detection's fingerprint is made for a project.");
+    throw new BadDataException(
+      "A detection's fingerprint is made for a project.",
+    );
   }
 
   return text;
@@ -207,9 +209,7 @@ export default class DetectionFingerprint {
     kind: DetectionFingerprintKind;
     value: string | undefined | null;
   }): Array<string> {
-    return Array.from(
-      new Set<string>([this.of(data), this.legacyOf(data)]),
-    );
+    return Array.from(new Set<string>([this.of(data), this.legacyOf(data)]));
   }
 
   /*

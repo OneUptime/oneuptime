@@ -48,10 +48,12 @@ function expectedKeyed(data: {
     .update(`${data.label}=${data.value}`)
     .digest("hex");
 
+  const allDigits: RegExp = /^[0-9]+$/;
+
   for (let offset: number = 0; offset + 16 <= hex.length; offset += 16) {
     const part: string = hex.slice(offset, offset + 16);
 
-    if (!/^[0-9]+$/.test(part)) {
+    if (!allDigits.test(part)) {
       return part;
     }
   }

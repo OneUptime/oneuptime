@@ -56,7 +56,8 @@ describe("readErasureProgress", () => {
     for (const after of [
       { time: "soon", id: "finding-7" },
       { time: "1764151200000000123", id: "" },
-      { time: 1764151200000000123, id: "finding-7" },
+      // A number, as a JSON reader would hand one back: not the text a time is kept as.
+      { time: Number("1764151200000000123"), id: "finding-7" },
       { time: "1764151200000000123" },
       "finding-7",
     ]) {

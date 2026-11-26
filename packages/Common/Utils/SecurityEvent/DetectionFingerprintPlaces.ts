@@ -66,7 +66,9 @@ function isFingerprint(part: string | undefined): boolean {
   return typeof part === "string" && FINGERPRINT.test(part);
 }
 
-function sourceOfName(name: string | undefined): DetectionFingerprintKind | null {
+function sourceOfName(
+  name: string | undefined,
+): DetectionFingerprintKind | null {
   return name === DetectionFingerprintKind.DetectionRule ||
     name === DetectionFingerprintKind.ThreatIntel
     ? name

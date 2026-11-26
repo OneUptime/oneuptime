@@ -174,7 +174,9 @@ function distinctNames(names: Array<ErasedName>): Array<ErasedName> {
 }
 
 // A request's counts as they stand.
-function countsOf(request: SecurityUserErasureRequest): SecurityUserErasureCounts {
+function countsOf(
+  request: SecurityUserErasureRequest,
+): SecurityUserErasureCounts {
   return {
     vaultEntriesDeleted: request.vaultEntriesDeleted || 0,
     eventsUnnamed: request.eventsUnnamed || 0,

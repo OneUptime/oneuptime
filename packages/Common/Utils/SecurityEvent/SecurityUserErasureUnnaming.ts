@@ -333,9 +333,7 @@ export function unnameGroupingKey(
     return getEntityRiskKey(name.hashed);
   });
 
-  return changed
-    ? `${prefix}${unnamed.join(GROUP_VALUE_PART_SEPARATOR)}`
-    : key;
+  return changed ? `${prefix}${unnamed.join(GROUP_VALUE_PART_SEPARATOR)}` : key;
 }
 
 // The entity risk keys of the names: the rows of their risk.

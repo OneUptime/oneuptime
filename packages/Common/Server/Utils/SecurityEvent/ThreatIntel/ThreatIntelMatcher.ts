@@ -932,5 +932,4 @@ export default class ThreatIntelMatcher {
       formerFingerprints: former.map(sourced),
     };
   }
-
 }

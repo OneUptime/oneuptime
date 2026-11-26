@@ -194,7 +194,10 @@ describe("rewriteFingerprints", () => {
   const unkeyedAlice: string = MetricSeriesFingerprint.computeFingerprint({
     groupValue: ALICE,
   });
-  const keyedToken: string = keyed(TOKEN, DetectionFingerprintKind.DetectionRule);
+  const keyedToken: string = keyed(
+    TOKEN,
+    DetectionFingerprintKind.DetectionRule,
+  );
 
   test("a detection's fingerprint, the id of its finding and the firings it took, each in its place, written only if unchanged since read", async () => {
     let read: boolean = false;
@@ -249,7 +252,10 @@ describe("rewriteFingerprints", () => {
       PROJECT_ID.toString(),
       `detection-rule:${RULE_ID}:${keyedToken}`,
       `detection:${RULE_ID}:detection-rule:${RULE_ID}:${keyedToken}:run:1:each:${keyedToken}`,
-      JSON.stringify([`run:1:each:${keyedToken}`, "run:2:each:0123456789abcdef"]),
+      JSON.stringify([
+        `run:1:each:${keyedToken}`,
+        "run:2:each:0123456789abcdef",
+      ]),
     ]);
     // Written only if it is still as it was read.
     expect(writes[0]!.sql).toContain(
@@ -346,7 +352,10 @@ describe("rewriteFingerprints", () => {
     })!;
 
     expect(JSON.parse(write.parameters[2] as string)).toEqual([
-      { sourceKey: `rule:${RULE_ID}`, firingKeys: [`run:1:each:${keyedToken}`] },
+      {
+        sourceKey: `rule:${RULE_ID}`,
+        firingKeys: [`run:1:each:${keyedToken}`],
+      },
       { sourceKey: "intel:x", hits: 2 },
     ]);
     expect(write.sql).toContain(

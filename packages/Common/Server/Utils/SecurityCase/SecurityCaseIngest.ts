@@ -178,7 +178,9 @@ export function findRepeatedDetection(data: {
 
   const underFingerprint: SecurityDetection | undefined = data.detections.find(
     (detection: SecurityDetection): boolean => {
-      return detection.fingerprint === data.fingerprint && inOpenCase(detection);
+      return (
+        detection.fingerprint === data.fingerprint && inOpenCase(detection)
+      );
     },
   );
 
@@ -186,7 +188,9 @@ export function findRepeatedDetection(data: {
     return underFingerprint;
   }
 
-  const formers: Array<string> = data.formerFingerprints.map(cutShortDetectionText);
+  const formers: Array<string> = data.formerFingerprints.map(
+    cutShortDetectionText,
+  );
 
   return data.detections.find((detection: SecurityDetection): boolean => {
     return (
@@ -567,7 +571,10 @@ export default class SecurityCaseIngest {
          * where it got to. Its counts went up when the firing was taken -
          * under its name, or under the one it had before #11130.
          */
-        if (repeated && hasDetectionTakenFiring({ detection: repeated, signal })) {
+        if (
+          repeated &&
+          hasDetectionTakenFiring({ detection: repeated, signal })
+        ) {
           result.detectionsAlreadyTaken =
             (result.detectionsAlreadyTaken || 0) + 1;
           continue;

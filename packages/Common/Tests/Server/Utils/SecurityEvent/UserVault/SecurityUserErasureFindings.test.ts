@@ -807,7 +807,10 @@ class FakeFindings {
     }
   }
 
-  public page(after: FindingsCursor | null, limit: number): Array<ErasureFindingRow> {
+  public page(
+    after: FindingsCursor | null,
+    limit: number,
+  ): Array<ErasureFindingRow> {
     this.reads.push(after);
 
     return this.rows
@@ -899,7 +902,9 @@ describe("reading a project's findings, on from where the last read stopped (#11
     jest
       .spyOn(SecurityUserErasureFindings, "unnameFindings")
       .mockImplementation(
-        (data: { rewrites: ReadonlyArray<FindingRewrite> }): Promise<number> => {
+        (data: {
+          rewrites: ReadonlyArray<FindingRewrite>;
+        }): Promise<number> => {
           findings.apply(data.rewrites);
 
           return Promise.resolve(data.rewrites.length);
@@ -990,9 +995,7 @@ describe("reading a project's findings, on from where the last read stopped (#11
     // Each place it reports is past only findings whose change was already queued.
     for (const reported of progress) {
       const queued: Set<string> = new Set<string>(
-        findings.flushed
-          .slice(0, progress.indexOf(reported) + 1)
-          .flat(),
+        findings.flushed.slice(0, progress.indexOf(reported) + 1).flat(),
       );
 
       for (const row of findings.rows) {
@@ -1139,8 +1142,12 @@ describe("reading a project's findings, on from where the last read stopped (#11
     }
 
     expect(isAtEnd).toBe(true);
-    // 63 findings name the person, at most 9 a run.
-    expect(runs).toBe(Math.ceil(63 / 9) + (63 % 9 === 0 ? 1 : 0));
+    /*
+     * 63 findings name the person, at most 9 a run: seven runs change them,
+     * the seventh stopping at its cap on the last of them, and an eighth
+     * reads the rest and finds the end.
+     */
+    expect(runs).toBe(8);
     expect(findings.namingLeft()).toBe(0);
     expect(findings.flushed.flat()).toHaveLength(63);
     expect(new Set<string>(findings.flushed.flat()).size).toBe(63);
