@@ -72,10 +72,7 @@ type ColumnAccess = {
   update: Array<Permission>;
 };
 
-function accessOf(
-  model: Monitor | Incident,
-  column: string,
-): ColumnAccess {
+function accessOf(model: Monitor | Incident, column: string): ColumnAccess {
   return (
     model.getColumnAccessControlForAllColumns() as unknown as Record<
       string,
@@ -189,8 +186,9 @@ describe("Monitor.keepMonitoringDuringIncidents", () => {
   });
 
   test("its TableColumn is a required boolean defaulting to off", () => {
-    const metadata: TableColumnMetadata =
-      new Monitor().getTableColumnMetadata("keepMonitoringDuringIncidents");
+    const metadata: TableColumnMetadata = new Monitor().getTableColumnMetadata(
+      "keepMonitoringDuringIncidents",
+    );
 
     expect(metadata.type).toBe(TableColumnType.Boolean);
     expect(metadata.required).toBe(true);
@@ -249,8 +247,9 @@ describe("Incident.pauseMonitoring", () => {
   });
 
   test("its TableColumn is a required boolean defaulting to on", () => {
-    const metadata: TableColumnMetadata =
-      new Incident().getTableColumnMetadata("pauseMonitoring");
+    const metadata: TableColumnMetadata = new Incident().getTableColumnMetadata(
+      "pauseMonitoring",
+    );
 
     expect(metadata.type).toBe(TableColumnType.Boolean);
     expect(metadata.required).toBe(true);

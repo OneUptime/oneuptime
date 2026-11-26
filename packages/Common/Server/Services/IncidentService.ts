@@ -6676,15 +6676,13 @@ ${incidentSeverity.name}
               }
             }
 
-            isMonitorPauseWorkedOut = await this.updateMonitorsForIncidentEdit(
-              {
-                projectId: projectId,
-                incidentId: incidentId,
-                incidentNumberDisplay: incidentNumberDisplay,
-                carryForward: incidentCarryForward,
-                props: onUpdate.updateBy.props,
-              },
-            );
+            isMonitorPauseWorkedOut = await this.updateMonitorsForIncidentEdit({
+              projectId: projectId,
+              incidentId: incidentId,
+              incidentNumberDisplay: incidentNumberDisplay,
+              carryForward: incidentCarryForward,
+              props: onUpdate.updateBy.props,
+            });
           }
         }
 

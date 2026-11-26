@@ -1353,7 +1353,9 @@ describe("toPresentationInput: paused time left out of uptime", () => {
     ).toBe(false);
     expect(
       inputFor({
-        pause: { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
+        pause: {
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+        },
         isNewestRowOff: true,
       }).pause.isLeftOutOfUptime,
     ).toBe(false);

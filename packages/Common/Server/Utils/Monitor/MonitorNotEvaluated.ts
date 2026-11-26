@@ -174,9 +174,8 @@ export default class MonitorNotEvaluated {
           ...data.dataToProcess,
           evaluationSummary: evaluationSummary,
         } as DataToProcess,
-        keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
-          monitor,
-        ),
+        keepResponseContent:
+          MonitorRecordEvidence.keepsResponseContent(monitor),
         isNotEvaluated: true,
       });
     } catch (error) {

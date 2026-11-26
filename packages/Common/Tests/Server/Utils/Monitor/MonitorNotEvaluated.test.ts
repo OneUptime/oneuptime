@@ -106,7 +106,9 @@ afterEach(() => {
 function savedEntry(): {
   monitorId: ObjectID;
   projectId: ObjectID;
-  dataToProcess: DataToProcess & { evaluationSummary: MonitorEvaluationSummary };
+  dataToProcess: DataToProcess & {
+    evaluationSummary: MonitorEvaluationSummary;
+  };
   keepResponseContent: boolean;
   isNotEvaluated: boolean;
 } {
@@ -167,21 +169,18 @@ describe("getEvent: why it was not evaluated, for every reason", () => {
       "Not evaluated: the monitor is archived",
       "This monitor is archived, so this was not evaluated against its criteria and opened or resolved nothing.",
     ],
-  ])(
-    "%s",
-    (reason: MonitorPauseReason, title: string, message: string) => {
-      const event: MonitorEvaluationEvent = MonitorNotEvaluated.getEvent(reason);
+  ])("%s", (reason: MonitorPauseReason, title: string, message: string) => {
+    const event: MonitorEvaluationEvent = MonitorNotEvaluated.getEvent(reason);
 
-      expect(event.type).toBe("not-evaluated");
-      expect(event.notEvaluatedReason).toBe(reason);
-      expect(event.title).toBe(title);
-      expect(event.message).toBe(message);
-      // Worded in each reader's language from the sentences beside them.
-      expect(event.titleSentence).toBeDefined();
-      expect(event.messageSentence).toBeDefined();
-      expect(event.at).toBeInstanceOf(Date);
-    },
-  );
+    expect(event.type).toBe("not-evaluated");
+    expect(event.notEvaluatedReason).toBe(reason);
+    expect(event.title).toBe(title);
+    expect(event.message).toBe(message);
+    // Worded in each reader's language from the sentences beside them.
+    expect(event.titleSentence).toBeDefined();
+    expect(event.messageSentence).toBeDefined();
+    expect(event.at).toBeInstanceOf(Date);
+  });
 });
 
 describe("record: listed in the monitor's Logs, its arrival kept", () => {

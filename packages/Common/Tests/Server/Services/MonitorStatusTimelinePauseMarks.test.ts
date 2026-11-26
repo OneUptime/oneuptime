@@ -111,7 +111,9 @@ function newest(): StoredRow {
   )!;
 }
 
-async function changeStatus(statusId: ObjectID): Promise<MonitorStatusTimeline> {
+async function changeStatus(
+  statusId: ObjectID,
+): Promise<MonitorStatusTimeline> {
   const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
   timeline.projectId = PROJECT_ID;
   timeline.monitorId = MONITOR_ID;
@@ -185,7 +187,10 @@ afterEach(() => {
 
 describe("an incident's mark of paused time left out", () => {
   test("is marked left out though the monitor's switch is on, with the incident's words", async () => {
-    useTables({ isOfflineRowMonitoringOff: false, isMonitoringTurnedOff: false });
+    useTables({
+      isOfflineRowMonitoringOff: false,
+      isMonitoringTurnedOff: false,
+    });
 
     const written: MonitorStatusTimeline | null =
       await MonitorStatusTimelineService.recordMonitoringSwitch({
@@ -211,7 +216,10 @@ describe("an incident's mark of paused time left out", () => {
   });
 
   test("starts no On Create workflow: no status changed", async () => {
-    useTables({ isOfflineRowMonitoringOff: false, isMonitoringTurnedOff: false });
+    useTables({
+      isOfflineRowMonitoringOff: false,
+      isMonitoringTurnedOff: false,
+    });
 
     const written: MonitorStatusTimeline | null =
       await MonitorStatusTimelineService.recordMonitoringSwitch({
@@ -232,7 +240,10 @@ describe("an incident's mark of paused time left out", () => {
   });
 
   test("its end is marked counted again, with its own words", async () => {
-    useTables({ isOfflineRowMonitoringOff: true, isMonitoringTurnedOff: false });
+    useTables({
+      isOfflineRowMonitoringOff: true,
+      isMonitoringTurnedOff: false,
+    });
 
     await MonitorStatusTimelineService.recordMonitoringSwitch({
       monitorId: MONITOR_ID,
@@ -246,7 +257,10 @@ describe("an incident's mark of paused time left out", () => {
   });
 
   test("nothing is written when the newest status event already says so", async () => {
-    useTables({ isOfflineRowMonitoringOff: true, isMonitoringTurnedOff: false });
+    useTables({
+      isOfflineRowMonitoringOff: true,
+      isMonitoringTurnedOff: false,
+    });
 
     expect(
       await MonitorStatusTimelineService.recordMonitoringSwitch({
@@ -259,7 +273,10 @@ describe("an incident's mark of paused time left out", () => {
   });
 
   test("a status set after it takes the monitor's switch again, so it counts", async () => {
-    useTables({ isOfflineRowMonitoringOff: false, isMonitoringTurnedOff: false });
+    useTables({
+      isOfflineRowMonitoringOff: false,
+      isMonitoringTurnedOff: false,
+    });
 
     await MonitorStatusTimelineService.recordMonitoringSwitch({
       monitorId: MONITOR_ID,
@@ -278,7 +295,10 @@ describe("an incident's mark of paused time left out", () => {
   });
 
   test("a mark without the incident's words follows the monitor's switch, as before (#6480): with it on, there is nothing to mark", async () => {
-    useTables({ isOfflineRowMonitoringOff: false, isMonitoringTurnedOff: false });
+    useTables({
+      isOfflineRowMonitoringOff: false,
+      isMonitoringTurnedOff: false,
+    });
 
     /*
      * Asked to mark it off with no reason of its own, while the switch is
@@ -294,7 +314,10 @@ describe("an incident's mark of paused time left out", () => {
   });
 
   test("with monitoring turned off, the switch's own mark is written as before", async () => {
-    useTables({ isOfflineRowMonitoringOff: false, isMonitoringTurnedOff: true });
+    useTables({
+      isOfflineRowMonitoringOff: false,
+      isMonitoringTurnedOff: true,
+    });
 
     await MonitorStatusTimelineService.recordMonitoringSwitch({
       monitorId: MONITOR_ID,

@@ -311,7 +311,9 @@ describe("the words", () => {
 describe("the column it writes", () => {
   test("is the monitor's keepMonitoringDuringIncidents, a boolean off by default", () => {
     const column: { type: string; defaultValue?: unknown; required?: boolean } =
-      getTableColumns(new Monitor())[KEEP_MONITORING_DURING_INCIDENTS_COLUMN] as {
+      getTableColumns(new Monitor())[
+        KEEP_MONITORING_DURING_INCIDENTS_COLUMN
+      ] as {
         type: string;
         defaultValue?: unknown;
         required?: boolean;

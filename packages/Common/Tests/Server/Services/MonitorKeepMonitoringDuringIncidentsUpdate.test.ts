@@ -176,11 +176,12 @@ beforeEach(() => {
     .spyOn(NetworkDeviceService, "refreshStampsOfDevicesBoundToMonitors")
     .mockResolvedValue(undefined as never);
 
-  synced = getJestSpyOn(MonitorIncidentPause, "syncMonitors").mockImplementation(
-    (async (): Promise<void> => {
-      order.push("sync");
-    }) as never,
-  );
+  synced = getJestSpyOn(
+    MonitorIncidentPause,
+    "syncMonitors",
+  ).mockImplementation((async (): Promise<void> => {
+    order.push("sync");
+  }) as never);
 });
 
 afterEach(() => {
@@ -239,7 +240,10 @@ async function runUpdate(
 }
 
 // The monitors each syncMonitors call worked out, and the project it named.
-function syncedCalls(): Array<{ projectId: string; monitorIds: Array<string> }> {
+function syncedCalls(): Array<{
+  projectId: string;
+  monitorIds: Array<string>;
+}> {
   return synced.mock.calls.map((call: Array<unknown>) => {
     const data: { projectId: ObjectID; monitorIds: Array<ObjectID> } =
       call[0] as never;
@@ -328,7 +332,9 @@ describe("monitoring turned back on", () => {
 
 describe("any other update", () => {
   test("leaves the monitor's pause alone", async () => {
-    await runUpdate({ description: "Receives the payment provider's webhooks" });
+    await runUpdate({
+      description: "Receives the payment provider's webhooks",
+    });
 
     expect(synced).not.toHaveBeenCalled();
   });

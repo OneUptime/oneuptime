@@ -736,7 +736,12 @@ describe("the monitors apart, and the status they change to right under them", (
         0,
         4,
       ),
-    ).toEqual(["monitors", "changeMonitorStatusTo", "pauseMonitoring", "hosts"]);
+    ).toEqual([
+      "monitors",
+      "changeMonitorStatusTo",
+      "pauseMonitoring",
+      "hosts",
+    ]);
 
     const status: string = fieldObjectAround(
       incident,

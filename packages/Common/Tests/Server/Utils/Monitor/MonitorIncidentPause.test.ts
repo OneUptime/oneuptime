@@ -139,13 +139,17 @@ beforeEach(() => {
     "recordMonitoringSwitch",
   ).mockResolvedValue(null as never);
 
-  getJestSpyOn(IncidentService, "getIncidentLinkInDashboard").mockImplementation(
-    (async (_projectId: ObjectID, incidentId: ObjectID): Promise<URL> => {
-      return URL.fromString(
-        `https://oneuptime.example/incidents/${incidentId.toString()}`,
-      );
-    }) as never,
-  );
+  getJestSpyOn(
+    IncidentService,
+    "getIncidentLinkInDashboard",
+  ).mockImplementation((async (
+    _projectId: ObjectID,
+    incidentId: ObjectID,
+  ): Promise<URL> => {
+    return URL.fromString(
+      `https://oneuptime.example/incidents/${incidentId.toString()}`,
+    );
+  }) as never);
 });
 
 afterEach(() => {
@@ -177,11 +181,7 @@ async function syncState(): Promise<MonitorIncidentPauseState> {
 describe("pausesItsMonitors: an incident pauses its monitors by what it is", () => {
   test.each([
     ["declared by hand, holding its monitors, pausing monitoring", {}, true],
-    [
-      "from before Holds Monitors was recorded",
-      { holdsMonitors: null },
-      true,
-    ],
+    ["from before Holds Monitors was recorded", { holdsMonitors: null }, true],
     ["declared by OneUptime", { isCreatedAutomatically: true }, false],
     [
       "holding nothing: declared resolved, or resolved and reopened",
@@ -324,8 +324,8 @@ describe("syncPause: the flag is what the incidents say", () => {
     expect(state.pausingIncidents).toHaveLength(1);
     expect(flagsWritten()).toEqual([true]);
     expect(
-      (monitorUpdates.mock.calls[0]![0] as { props: { isRoot: boolean } })
-        .props.isRoot,
+      (monitorUpdates.mock.calls[0]![0] as { props: { isRoot: boolean } }).props
+        .isRoot,
     ).toBe(true);
   });
 
@@ -437,8 +437,8 @@ describe("markUptime: what the monitor's time counts as from here", () => {
 
     await MonitorIncidentPause.markUptime(await syncState());
 
-    const call: { isMonitoringOff: boolean; rootCause: string } = switches
-      .mock.calls[0]![0] as never;
+    const call: { isMonitoringOff: boolean; rootCause: string } = switches.mock
+      .calls[0]![0] as never;
 
     expect(call.isMonitoringOff).toBe(false);
     expect(call.rootCause).toBe(
@@ -452,8 +452,8 @@ describe("markUptime: what the monitor's time counts as from here", () => {
 
     await MonitorIncidentPause.markUptime(await syncState());
 
-    const call: { isMonitoringOff: boolean; rootCause: string } = switches
-      .mock.calls[0]![0] as never;
+    const call: { isMonitoringOff: boolean; rootCause: string } = switches.mock
+      .calls[0]![0] as never;
 
     expect(call.isMonitoringOff).toBe(false);
     expect(call.rootCause).toBe(
@@ -551,7 +551,10 @@ describe("getUptimeRootCause: the incidents named as links", () => {
 
 describe("syncMonitors: each monitor on its own", () => {
   test("works out each monitor and marks its time", async () => {
-    monitorsById.set(OTHER_MONITOR_ID.toString(), monitorWith({ id: OTHER_MONITOR_ID }));
+    monitorsById.set(
+      OTHER_MONITOR_ID.toString(),
+      monitorWith({ id: OTHER_MONITOR_ID }),
+    );
     incidentsFound = [incidentWith({ id: ObjectID.generate().toString() })];
 
     await MonitorIncidentPause.syncMonitors({
@@ -564,7 +567,10 @@ describe("syncMonitors: each monitor on its own", () => {
   });
 
   test("one monitor failing does not leave the rest as they were", async () => {
-    monitorsById.set(OTHER_MONITOR_ID.toString(), monitorWith({ id: OTHER_MONITOR_ID }));
+    monitorsById.set(
+      OTHER_MONITOR_ID.toString(),
+      monitorWith({ id: OTHER_MONITOR_ID }),
+    );
     incidentsFound = [incidentWith({ id: ObjectID.generate().toString() })];
 
     monitorUpdates.mockImplementationOnce((async (): Promise<void> => {
@@ -580,9 +586,7 @@ describe("syncMonitors: each monitor on its own", () => {
 
     expect(monitorUpdates).toHaveBeenCalledTimes(2);
     expect(
-      String(
-        (monitorUpdates.mock.calls[1]![0] as { id: ObjectID }).id,
-      ),
+      String((monitorUpdates.mock.calls[1]![0] as { id: ObjectID }).id),
     ).toBe(OTHER_MONITOR_ID.toString());
   });
 
