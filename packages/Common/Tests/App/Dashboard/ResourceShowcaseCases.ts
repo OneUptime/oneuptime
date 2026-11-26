@@ -6,6 +6,7 @@ import PODMAN_HOST_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Compo
 import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterShowcase";
 import PROXMOX_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Proxmox/ProxmoxClusterShowcase";
 import VMWARE_VCENTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareVCenterShowcase";
+import XCP_NG_POOL_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/XcpNg/XcpNgPoolShowcase";
 import CEPH_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Ceph/CephClusterShowcase";
 import STORAGE_ARRAY_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/StorageArray/StorageArrayShowcase";
 import IOT_FLEET_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/IoT/IoTFleetShowcase";
@@ -80,6 +81,13 @@ export const RESOURCE_SHOWCASE_CASES: Array<ResourceShowcaseCase> = [
     module: "Components/VMware/VMwareVCenterShowcase.ts",
     page: "Pages/VMware/VCenters.tsx",
     showcase: VMWARE_VCENTER_SHOWCASE,
+  },
+  {
+    label: "XCP-ng pools",
+    constant: "XCP_NG_POOL_SHOWCASE",
+    module: "Components/XcpNg/XcpNgPoolShowcase.ts",
+    page: "Pages/XcpNg/Pools.tsx",
+    showcase: XCP_NG_POOL_SHOWCASE,
   },
   {
     label: "Ceph clusters",

@@ -12,6 +12,7 @@
 - [Azure Monitor のメトリクスとログのストリーミング](/docs/telemetry/cloud-streaming-azure): 主要メトリクスを数分以内に、リソースログも、サブスクリプション内のイベント ハブから読み取ります。
 - [Google Cloud のログのストリーミング](/docs/telemetry/cloud-streaming-google-cloud): 書き込まれたそばからすべてのログを、Pub/Sub 経由でプッシュします。
 - [データセキュリティ](#データセキュリティ): 接続によってデータセキュリティが読み取れるものと、各レベルがコマンドに追加するもの。
+- [節約アクション](#節約アクション): 承認した節約を OneUptime が実行するための最小限のアクセス。
 - [AI に問題を修正させる](#ai-に問題を修正させる): コマンドをもう一つ実行すれば、OneUptime AI は見つけた問題を修正できます。
 :::
 
@@ -352,6 +353,26 @@ Compute Engine の VM のメモリとディスクの使用率は Google Cloud �
 - **リソースの状態。** 各読み取りはリソースの主要なメトリクスの最新値を保持して判定します。リソースには **正常**、**機能低下**、**異常** が理由とともに表示されます (ステータス チェックの失敗、ストレージの残りわずかなど)。メトリクスが止まると **報告なし** になります。**クラウド → 概要** とアカウントの概要には、対応が必要なものが緊急度の高い順に表示されます。リソースのページは、仮想マシンの CPU、メモリ、ネットワーク、ディスクのように、その種類を読む数値から始まり、前回の読み取りで届かなかった数値には **報告されていません** と表示されます。
 - **推奨モニター。** アカウントの **推奨事項** には、OneUptime がそのリソースに推奨するモニターが、リソースのタイプごとに、それぞれの対象リソースと設定済みの数とともに一覧表示されます。あるリソースに追加することも、同じタイプのすべてのリソースに一度に追加することもでき、サイドメニューはまだセットアップされていないものを数えます。リソースの **推奨事項** タブには、そのリソース向けのモニターが表示されます。各モニターは、接続が読み取る主要なメトリクスを 5 分ごとに、AWS では直近 30 分、Azure と Google Cloud では直近 15 分にわたって読み取り、対象のリソースにリンクされます。読み取り間隔が長い接続では、各モニターは 1 回の読み取りで届くすべての値を評価できるよう、より長い時間枠を読み取ります。1 時間ごとに読み取る場合は直近 2 時間です。間隔を変更する前に作成したモニターは、その時間枠をそのまま保持します。エラーやスロットリングされたリクエストのような件数はそのウィンドウ全体で合計されるため、[メトリクスをストリーミングする](/docs/telemetry/cloud-streaming)アカウントと読み取られるアカウントは同じようにアラートを出し、ストリーミングするアカウントのほうが早く出します。ACM が 1 日 2 回公開する証明書の有効期限までの日数は 1 時間ごとに読み取られます。そのモニターは直近 2 日間を読み取り、証明書の残りが 30 日以下になったとき、または証明書が期限切れになって ACM が公開をやめたときにアラートを出します。RDS インスタンスの接続数は、そのクラスとエンジンの接続上限の 90% と比較されます。[メンテナンスイベント](/docs/scheduled-maintenance/creating-events)がリソースを含んでいる間は、そのモニターはインシデントもアラートも作成しません。ヘルスチェックを設定した App Service アプリには、さらに二つが提案され、Azure Monitor がそのメトリクスを五分単位で保持するため直近 30 分を読み取ります: インスタンスがヘルスチェックに失敗したときのものと、半数未満のインスタンスしか合格しないときのものです。各インシデントには、失敗しているインスタンスを示す Azure Cloud Shell 用のコマンドが付きます。
 - **アカウントのコスト。** **クラウド → 支出 → コスト** は毎日の支出とその内訳を描き、**クラウド → 支出 → 節約** は支出を減らす方法を一覧にし、**クラウド → 支出 → 予算** は月のコストが想定を超える前にアラートを出します。[クラウドのコストと節約](/docs/telemetry/cloud-costs) を参照してください。
+
+## 節約アクション
+
+同じ接続で、OneUptime が見つけた節約を実行できるようにすることもできます: 所有者が承認したもの、節約の AI ルールが実行するもの、時間外スケジュールによる停止です ([クラウドのコストと節約](/docs/telemetry/cloud-costs#節約の実行))。**その他の項目** の **節約アクション** は、別の選択をするまで **オフ** です。フォームに表示されるコマンドもそれに合わせて変わります:
+
+| 節約アクション | OneUptime が変更できるもの | コマンドが追加するもの |
+| --- | --- | --- |
+| **オフ** | なし: 接続は読み取りのみです。 | なし |
+| **停止、起動、クリーンアップ** | インスタンスとデータベースの停止と起動、gp2 ボリュームの gp3 への変更、最終スナップショット取得後の未接続ディスクの削除とそこからの再作成、古いスナップショットや未使用イメージの削除、未使用アドレスの解放 | AWS: ロールまたはユーザーのインライン ポリシー `OneUptimeSavingsActions`。Azure: 各サブスクリプションのカスタム ロール **OneUptime Savings Actions**。Google Cloud: 各プロジェクトのカスタム ロール `oneuptimeSavingsActions` と、有効化した Compute Engine API |
+| **停止、起動、クリーンアップ、サイズ変更** | 上記すべてに加え、インスタンスやデータベースの推奨サイズへの変更 (再起動を伴います) | 同じもの (サイズ変更を含む) |
+
+ポリシーとロールが許可するのは次のアクションだけです:
+
+| クラウド | 停止、起動、クリーンアップ | サイズ変更 |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+AWS では、`ec2:CreateTags` はスナップショットやボリュームの作成時にのみ許可され、OneUptime がどの変更のために作成したかを記録します。何も自動では変わりません: どの変更も、所有者の承認、節約の AI ルール、またはスケジュールを待ちます。アクセスを取り消すには、**節約アクション** を **オフ** にして、ポリシーまたはロールを削除します。その後に依頼された変更は、理由を示して失敗し、何も変更しません。
 
 ## AI に問題を修正させる
 

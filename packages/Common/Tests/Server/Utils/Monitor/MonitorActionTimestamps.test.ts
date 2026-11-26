@@ -295,6 +295,7 @@ describe.each(ENTITY_KINDS)(
           iotFleetIds: [],
           databaseServerIds: [],
           storageArrayIds: [],
+          xcpNgPoolIds: [],
           cloudResourceIds: [],
           networkDeviceIds: [],
         });

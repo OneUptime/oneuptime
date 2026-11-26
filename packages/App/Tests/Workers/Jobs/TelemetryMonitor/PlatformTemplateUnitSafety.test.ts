@@ -62,6 +62,10 @@ import {
   getAllStorageArrayAlertTemplates,
   StorageArrayAlertTemplateArgs,
 } from "Common/Types/Monitor/StorageArrayAlertTemplates";
+import {
+  getAllXcpNgAlertTemplates,
+  XcpNgAlertTemplateArgs,
+} from "Common/Types/Monitor/XcpNgAlertTemplates";
 
 /*
  * SAFETY AUDIT: returning `nativeUnitsByMetricName` from the platform
@@ -163,6 +167,7 @@ import {
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
+  monitorXcpNg,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 const metricAggregateBy: jest.Mock =
@@ -191,6 +196,7 @@ type TemplateArgs = KubernetesAlertTemplateArgs &
   DockerSwarmAlertTemplateArgs &
   CephAlertTemplateArgs &
   StorageArrayAlertTemplateArgs &
+  XcpNgAlertTemplateArgs &
   IoTAlertTemplateArgs;
 
 type MonitorFunction = (data: {
@@ -217,6 +223,7 @@ const templateArgs: TemplateArgs = {
   vcenterIdentifier: "vcsa-prod",
   fleetIdentifier: "fleet-1",
   arrayIdentifier: "pure-prod-01",
+  poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
   onlineMonitorStatusId: ObjectID.generate(),
   offlineMonitorStatusId: ObjectID.generate(),
   defaultIncidentSeverityId: ObjectID.generate(),
@@ -274,6 +281,11 @@ const platformCases: Array<PlatformCase> = [
     monitorType: MonitorType.StorageArray,
     monitor: monitorStorageArray,
     templates: getAllStorageArrayAlertTemplates(),
+  },
+  {
+    monitorType: MonitorType.XcpNg,
+    monitor: monitorXcpNg,
+    templates: getAllXcpNgAlertTemplates(),
   },
   {
     monitorType: MonitorType.IoTDevice,

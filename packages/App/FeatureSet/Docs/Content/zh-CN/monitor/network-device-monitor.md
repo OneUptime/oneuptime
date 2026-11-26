@@ -901,7 +901,7 @@ SNMP walk failing 是警报而不是事件，这是有意为之：设备并没�
 
 ## SNMP Trap
 
-轮询会在下一次轮询时发现问题；Trap 能在几秒内发现问题。每个探测器都运行一个 SNMP Trap 接收器，接收 v1 和 v2c 的 Trap 和 Inform，并将它们转发给 OneUptime。
+轮询会在下一次轮询时发现问题；Trap 能在几秒内发现问题。每个探测器都运行一个 SNMP Trap 接收器，接收 v1、v2c 和 v3 的 Trap 和 Inform，并将它们转发给 OneUptime。它会确认每一个 Inform，这样设备就不会再重发。
 
 ```mermaid title="从 Trap 到事件"
 flowchart TB
@@ -925,6 +925,7 @@ flowchart TB
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | 设为 `false` 可关闭 Trap 接收器。 | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | 接收器监听的 UDP 端口。 | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | 每分钟转发的 Trap 数量，超出部分会被丢弃。 | `300` |
+| `PROBE_SNMP_ENGINE_ID` | 探测器的 SNMPv3 引擎 ID，十六进制（5 到 32 个八位组）。只有在要保留此探测器所替换的接收器的引擎 ID 时才设置。 | 由探测器的 ID 派生 |
 
 如果探测器运行在 Docker 中，请发布 UDP 端口，让 Trap 能够到达它：
 
@@ -940,6 +941,42 @@ docker run ... -p 162:162/udp oneuptime/probe
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3 Trap 和 Inform
+
+SNMPv3 Trap 用某个用户的密钥签名，通常还会加密，所以探测器只接收它认识的用户发来的 Trap，也就是分配给它的设备的 SNMPv3 凭据。每台设备自己的 SNMP 凭据、它的凭据配置文件和它所在站点的默认配置文件都算数，所以通过 v2c 轮询的设备仍然可以用站点的 SNMPv3 用户发送 Trap。探测器上无需任何设置：
+
+1. 为设备、它的凭据配置文件或它所在的站点设置设备发送 Trap 时使用的 SNMPv3 用户：用户名、安全级别，以及认证和隐私协议及其密码短语（参见 [SNMP 凭据和凭据配置文件](#snmp-凭据和凭据配置文件)）。
+2. 把设备的 SNMPv3 Trap 指向探测器。以 Cisco IOS 为例：
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime 每三十秒把各探测器自己设备的 SNMPv3 用户交给它，所以更改凭据、更改配置文件或把设备移到另一个探测器后，一分钟内就会生效，接收器在此期间持续监听。凭据和轮询时一样保持静态加密，探测器只把它们保存在内存中，从不写入日志。一个项目的用户绝不会到达另一个项目的探测器。
+
+接收器接受轮询所用的协议：MD5、SHA-1、SHA-256 和 SHA-512 认证，以及 DES、AES-128 和 AES-256 隐私。Trap 的安全性必须至少达到其用户所设置的级别：authPriv 用户的 Trap 如果未经认证或未加密，就会被拒绝。
+
+**Trap、Inform 和探测器的引擎 ID。** Trap 使用设备自己的 SNMP 引擎 ID 进行认证，所以无需设置。Inform 使用探测器的引擎 ID 进行认证，大多数设备会自己找到它。有些设备需要手动输入：在 Cisco IOS 上，先输入 `snmp-server engineID remote <probe-ip> <engine-id>`，再创建用户。打开**监视器 → 设置 → 探测器**并选择探测器：它的 **SNMP trap** 卡片会显示可复制的引擎 ID。引擎 ID 由探测器的 ID 派生，因此在重启、升级后以及探测器的各个副本之间都保持不变；设置 `PROBE_SNMP_ENGINE_ID` 可以改用其他 ID。
+
+Inform 都会得到确认，v2c 和 v3 都一样。因确认丢失而重发的 Inform 会再次得到确认，并且只记录一次。
+
+**时间窗口。** 和 Net-SNMP 的 `snmptrapd` 一样，如果某个 Trap 的引擎启动次数和时间比该设备上一个 Trap 倒退了超过 150 秒，接收器就会拒绝它：这是重放或延迟的副本，或者是设备重启后没有把这次重启计入引擎启动次数。Inform 必须在探测器自身时间的 150 秒以内。
+
+**被拒绝的 SNMPv3 trap** 从不转发，其内容也不会保存或写入日志：只记录来源、发送时所用的用户和原因。探测器的 **SNMP trap** 卡片会列出最近一天的记录，例如“来自 10.20.0.5 的 12 个 SNMPv3 trap 失败：未知用户“san-monitor””，每条都附有需要修改的内容。如果该地址是设备自己的地址之一，设备的**概览**和**日志**页面也会显示同样的内容。从该地址以该用户身份发来的 Trap 被接收后，这条记录就会清除。
+
+| 原因 | 需要修改的内容 |
+| --- | --- |
+| 未知用户 | 探测器上没有任何设备拥有该名称的 SNMPv3 用户。把它添加到设备的凭据、它的凭据配置文件或它所在站点的默认配置文件中，或者在设备上更正名称。 |
+| 认证密码短语或协议错误 | 让设备的认证密码短语和协议与 OneUptime 中该用户的设置一致。 |
+| 隐私密码短语或协议错误 | 让设备的隐私密码短语和协议与 OneUptime 中该用户的设置一致。 |
+| 超出时间窗口 | 设备的引擎时钟倒退了。一旦它把一次重启计入引擎启动次数，它的 Trap 就会再次被接收。 |
+| 发送到了其他引擎 ID | 有 Inform 被发送到了不是探测器的引擎 ID。请给设备设置探测器的引擎 ID。 |
+| 安全性低于为用户设置的级别 | 把设备的 Trap 安全级别设为 OneUptime 中该用户的级别。 |
+
+在 Trap 历史中，SNMPv3 Trap 会在其 OID 和 varbind 旁边说明它是如何到达的：版本 3、认证所用的用户、是否也经过加密，以及发送它的设备的引擎 ID。
+
 ### Trap 如何对应到监视器
 
 Trap 通过设备清单进行匹配：
@@ -948,7 +985,7 @@ Trap 通过设备清单进行匹配：
 2. OneUptime 查找分配给该探测器、且主机名或某个**其他地址**是 Trap 源 IP 地址的网络设备。
 3. Trap 会记录到设备的 Trap 历史中，匹配设备上的每个 网络设备 监视器都会根据其条件（通常是 **收到的 SNMP Trap（Trap OID）** 过滤器）评估它。
 
-匹配依据的是地址而不是凭据，所以仅 Ping 设备也能接收 Trap：你没有读取凭据的设备仍然可以发送 Trap。请用设备发送 Trap 时使用的地址注册设备，或在其**设置**页面上把该地址添加到**其他地址**。SNMPv1 通用 Trap（coldStart、linkDown、linkUp 等）会转换为其标准的 SNMPv2 通知 OID，所以无论 SNMP 版本如何，linkDown 都匹配 Trap OID `1.3.6.1.6.3.1.1.5.3`。
+匹配依据的是地址而不是凭据，所以仅 Ping 设备也能接收 v1 和 v2c 的 Trap：你没有读取凭据的设备仍然可以发送 Trap。SNMPv3 Trap 还需要签名所用的用户（参见 [SNMPv3 Trap 和 Inform](#snmpv3-trap-和-inform)），之后同样按地址匹配。请用设备发送 Trap 时使用的地址注册设备，或在其**设置**页面上把该地址添加到**其他地址**。SNMPv1 通用 Trap（coldStart、linkDown、linkUp 等）会转换为其标准的 SNMPv2 通知 OID，所以无论 SNMP 版本如何，linkDown 都匹配 Trap OID `1.3.6.1.6.3.1.1.5.3`。
 
 #### 示例：在 linkDown 时创建事件
 
@@ -1176,6 +1213,13 @@ PDF 包含：
 - 发布并放行到探测器的 UDP 162，或 `PROBE_SNMP_TRAP_RECEIVER_PORT` 中的端口。
 - 检查设备的主机名或其某个**其他地址**是否就是它发送 Trap 时使用的地址：Trap 正是这样匹配到设备的。
 - 检查探测器日志中的绑定错误：端口已被占用，或没有使用 1024 以下端口的权限。
+:::
+
+:::details SNMPv3 Trap 被拒绝
+- 打开**监视器 → 设置 → 探测器**并选择探测器：它的 **SNMP trap** 卡片会列出每个被拒绝的来源，以及原因和需要修改的内容。
+- SNMPv3 用户必须属于分配给该探测器的设备：设备自己的凭据、它的凭据配置文件或它所在站点的默认配置文件。分配给其他探测器的设备上的用户不算。
+- Inform 还需要探测器的引擎 ID，它显示在同一张卡片上。被设置了错误 ID 的设备会显示为发送到了其他引擎 ID。
+- 修改之后，探测器会在一分钟内开始使用新的用户。
 :::
 
 :::details 从探测器的网络测试 SNMP

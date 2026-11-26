@@ -111,7 +111,7 @@ La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: 
 | Tout autre type de données qu'un motif trouve à lui seul, comme un jeton GitHub | Une règle **Regex personnalisée** construite à partir des motifs propres au type de données. Un secret est caviardé. |
 | L'un de vos propres types de données, avec un motif | Ce motif, uniquement dans l'attribut où il a été trouvé |
 | Un type de données qui se distingue par les mots qui l'entourent, comme un numéro de routage bancaire | Sa forme, uniquement dans l'attribut où il a été trouvé |
-| Un type de données trouvé d'après le nom du champ, comme le nom d'une personne sous `customer_name`, ou une valeur sous une clé qui nomme un secret | Une règle **Attributs nommés**, qui masque la valeur entière de cet attribut |
+| Un type de données trouvé d'après le nom du champ, comme le nom d'une personne sous `customer_name` ou sous le paramètre `full_name` d'une URL, ou une valeur sous une clé qui nomme un secret | Une règle **Attributs nommés**, qui masque la valeur entière de cet attribut |
 | Une valeur sous une clé qui semble sensible, là où rien de plus étroit ne la masque | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
 | Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut qui contiennent le type de données. Pour une adresse IP, une adresse e-mail ou un numéro de carte, son filtre est **Correspond au type de modèle** avec ce type, qui trouve ce que trouve une règle de journaux ou de traces de ce **Type de modèle**, y compris les adresses IPv6 et les valeurs encodées en pourcentage ou écrites dans une autre écriture. Pour un autre type de données, c'est le propre motif du type, et quand aucun motif ne trouve ce type de données, la règle remplace chaque valeur de l'attribut |
 
@@ -170,7 +170,7 @@ Avant que OneUptime AI ne commence, la Sécurité des données relit, dans OneUp
 
 - **Un span ou un appel d'IA** : le fichier, la ligne et la fonction que nomment ses attributs `code.*`, et le nom du span.
 - **Une exception** : ses propres frames du haut de la pile, celles du code du service.
-- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`.
+- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`, et chaque mot dont ses enregistrements ne prouvent pas que le code l'a écrit, comme le nom d'une personne, remplacé par `<value>` : `Payment declined for Maria Gonzalez`, lu dans un seul enregistrement, devient `Payment declined for <value>`. Le nom d'un span et le nom d'une métrique sont lus de la même façon.
 - **Une métrique** : le nom de la métrique.
 - **Toute fuite** : sa clé d'attribut, par exemple `user.email`, que le code écrit généralement telle quelle.
 

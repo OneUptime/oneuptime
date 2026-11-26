@@ -162,7 +162,7 @@ Zie [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastructuur
 
-De groep in het menu met de machines en platforms die u draait: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Storage Arrays, Network en IoT. Een agent of een koppeling vult elk ervan, en elk laat zien hoe het met elke machine, elk cluster of elk apparaat erin gaat.
+De groep in het menu met de machines en platforms die u draait: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Storage Arrays, Network en IoT. Een agent of een koppeling vult elk ervan, en elk laat zien hoe het met elke machine, elk cluster of elk apparaat erin gaat.
 
 Zie [Hosts](/docs/telemetry/hosts).
 

@@ -343,6 +343,8 @@ describe("ChatInfrastructureAccess.getAiResourceType", () => {
   test.each([
     [AIResourceType.KubernetesCluster],
     [AIResourceType.StorageArray],
+    // No resource AI agent for an XCP-ng pool until #10998.
+    [AIResourceType.XcpNgPool],
     [AIResourceType.ServerlessFunction],
     [AIResourceType.CloudResource],
     [AIResourceType.IoTFleet],
@@ -365,6 +367,7 @@ describe("ChatInfrastructureAccess.getAiResourceType", () => {
             AIResourceType.KubernetesCluster,
             AIResourceType.OpenStackCloud,
             AIResourceType.StorageArray,
+            AIResourceType.XcpNgPool,
             AIResourceType.ServerlessFunction,
             AIResourceType.CloudResource,
             AIResourceType.IoTFleet,

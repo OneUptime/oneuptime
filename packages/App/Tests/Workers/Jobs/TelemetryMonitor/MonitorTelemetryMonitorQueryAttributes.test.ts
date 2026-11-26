@@ -60,6 +60,7 @@ import {
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
+  monitorXcpNg,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 type MonitorFunction = (data: {
@@ -166,6 +167,16 @@ const CASES: Array<MonitorCase> = [
     stepKey: "storageArrayMonitor",
     settings: { arrayIdentifier: "array-1" },
     added: { "resource.storage.array.name": "array-1" },
+  },
+  {
+    name: "XCP-ng",
+    run: monitorXcpNg,
+    stepKey: "xcpNgMonitor",
+    // The pool's UUID, by which ingest stores it: lower-cased.
+    settings: { poolIdentifier: "1E8B7C4A-3F2D-4B6E-9A1C-0D5E7F9B2A3C" },
+    added: {
+      "resource.xcp_ng.pool.id": "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+    },
   },
 ];
 

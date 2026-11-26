@@ -70,6 +70,7 @@ import {
   DRAFT_DATA_TYPE_EVAL_CASES,
 } from "./DataTypeDraftEvalSet";
 import { EXPOSURE_ASSESSMENT_CASES } from "./DataSecurityExposureEvalCases";
+import { RULE_FROM_SENTENCE_EVAL_CASES } from "./DataSecurityRuleDraftEvalCases";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1792,6 +1793,8 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...DESCRIBE_DATA_TYPE_EVAL_CASES,
   ...TELEMETRY_LEAK_FIX_CASES,
   ...EXPOSURE_ASSESSMENT_CASES,
+  // Rules from a sentence, for Ask AI and the MCP server (#10378).
+  ...RULE_FROM_SENTENCE_EVAL_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;

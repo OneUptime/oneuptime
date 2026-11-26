@@ -36,6 +36,7 @@ export const DASHBOARD_WIDGET_ID_LIST_SETTINGS: ReadonlyArray<string> = [
   "podmanHostIds",
   "proxmoxClusterIds",
   "vmwareVCenterIds",
+  "xcpNgPoolIds",
   "cephClusterIds",
   "storageArrayIds",
 ];

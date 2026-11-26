@@ -74,8 +74,8 @@ describe("Run Rules on Existing Resources docs page", () => {
       }
     }
 
-    // Data Observability's pipelines, which have owner rules only, the 35th.
-    expect(resources.size).toBe(35);
+    // Data Observability's pipelines, which have owner rules only, the 35th; XCP-ng pools the 36th.
+    expect(resources.size).toBe(36);
 
     for (const resource of resources) {
       expect(page).toContain(resource.toLowerCase());

@@ -75,7 +75,7 @@ Een incident dat via een formulier is gemeld, is een gewoon incident, met een pa
 
 - **Verborgen op statuspagina's.** **Zichtbaar op statuspagina** staat uit, net als **Statuspagina-abonnees op de hoogte stellen**. Tot een responder het publiceert, bereikt niets van het incident een statuspagina of een abonnee — behalve de wijziging van de monitorstatus van een sjabloon, hierboven.
 - **Door niemand gemeld.** De inzender is geen OneUptime-gebruiker, dus er staat geen gebruiker geregistreerd als melder van het incident.
-- **De eigenaren worden ingelicht.** De eigenaren die de instellingen en het sjabloon noemen, worden toegevoegd zodra de Slack- en Microsoft Teams-kanalen van het incident bestaan, en krijgen een melding — de melding **Incident aangemaakt** van het incident wacht tot zij de eigenaren ervan zijn, zodat ze naar hen gaat in plaats van naar de Projecteigenaren.
+- **De eigenaren worden ingelicht.** De eigenaren die de instellingen en het sjabloon noemen, worden toegevoegd voordat de Slack- en Microsoft Teams-kanalen van het incident worden aangemaakt, zodat je meldingsregels hen zien, en krijgen een melding — de melding **Incident aangemaakt** van het incident wacht tot zij de eigenaren ervan zijn, zodat ze naar hen gaat in plaats van naar de Projecteigenaren.
 - **Een privénotitie legt de inzending vast** — zie [De privénotitie](#de-privénotitie).
 
 Alles wat voor een nieuw incident wordt uitgevoerd, wordt ook voor deze uitgevoerd: privacy-, eigenaar-, label-, bereikbaarheids- en runbookregels, bereikbaarheidsbeleid en workflows met **Bij aanmaken: Incident**. Bereikbaarheidsregels passen bij de incidenten van een formulier zoals bij elke andere — ook op hun titel en beschrijving, die de inzender schreef.
@@ -117,7 +117,7 @@ Omdat het incident werd gemeld met **Statuspagina-abonnees op de hoogte stellen*
 
 Een waarschuwing die via een formulier is aangemaakt, is een gewone waarschuwing, op dezelfde manier gemaakt als een waarschuwing die je met de hand maakt met **Waarschuwing maken**:
 
-- **De eigenaren worden één keer ingelicht.** De eigenaren die de instellingen noemen, worden toegevoegd zodra de Slack- en Microsoft Teams-kanalen van de waarschuwing bestaan, en de melding **Waarschuwing aangemaakt** van de waarschuwing wacht tot zij de eigenaren ervan zijn, zodat ze naar hen gaat in plaats van naar de Projecteigenaren — en het is het enige bericht dat ze erover krijgen.
+- **De eigenaren worden één keer ingelicht.** De eigenaren die de instellingen noemen, worden toegevoegd voordat de Slack- en Microsoft Teams-kanalen van de waarschuwing worden aangemaakt, zodat je meldingsregels hen zien, en de melding **Waarschuwing aangemaakt** van de waarschuwing wacht tot zij de eigenaren ervan zijn, zodat ze naar hen gaat in plaats van naar de Projecteigenaren — en het is het enige bericht dat ze erover krijgen.
 - **Ze begint waar jij het zegt.** In de gebruikelijke beginstatus, tenzij de instelling **Initiële status** een latere noemt. Een waarschuwing die bevestigd of opgelost begint, roept niemand op: een formulier voor meldingen die alleen even bekeken hoeven te worden, kan dat zo instellen.
 - **Door niemand aangemaakt, en niet privé.** De inzender is geen OneUptime-gebruiker, dus er staat geen gebruiker geregistreerd als maker ervan. Een privacyregel kan haar toch privé maken.
 - **Een privénotitie legt de inzending vast** — zie [De privénotitie](#de-privénotitie).

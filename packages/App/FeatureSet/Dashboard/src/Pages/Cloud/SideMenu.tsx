@@ -133,6 +133,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Calendar,
         },
+        /*
+         * Off-hours schedules (#11010): non-production resources stopped
+         * outside working hours, and started again.
+         */
+        {
+          link: {
+            title: "Schedules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_SCHEDULES] as Route,
+            ),
+          },
+          icon: IconProp.Moon,
+        },
         {
           link: {
             title: "Budgets",
@@ -175,6 +188,16 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Settings,
+        },
+        // What OneUptime AI may do with a saving on its own (#11010).
+        {
+          link: {
+            title: "Savings AI Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
         },
       ],
     },

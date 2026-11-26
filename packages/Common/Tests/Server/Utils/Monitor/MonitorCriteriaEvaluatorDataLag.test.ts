@@ -59,6 +59,10 @@ import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "../../../../Types/Monitor/VMwareAlertTemplates";
+import {
+  XcpNgAlertTemplate,
+  getAllXcpNgAlertTemplates,
+} from "../../../../Types/Monitor/XcpNgAlertTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
@@ -667,6 +671,18 @@ const PLATFORMS: Array<PlatformCase> = [
       ),
     )!,
   },
+  {
+    type: MonitorType.XcpNg,
+    heading: "**XCP-ng Pool Details**",
+    step: firstMetricTemplateStep(
+      getAllXcpNgAlertTemplates().map((template: XcpNgAlertTemplate) => {
+        return template.getMonitorStep({
+          ...templateArgs(),
+          poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+        });
+      }),
+    )!,
+  },
 ];
 
 async function platformDetails(input: {
@@ -716,12 +732,12 @@ async function platformDetails(input: {
 }
 
 describe("every platform's details block", () => {
-  test("covers the six platforms with a details block of their own", () => {
+  test("covers the seven platforms with a details block of their own", () => {
     expect(
       PLATFORMS.map((platform: PlatformCase) => {
         return Boolean(platform.step);
       }),
-    ).toEqual([true, true, true, true, true, true]);
+    ).toEqual([true, true, true, true, true, true, true]);
   });
 
   for (const platform of PLATFORMS) {

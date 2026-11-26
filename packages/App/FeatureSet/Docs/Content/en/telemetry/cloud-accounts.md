@@ -12,6 +12,7 @@ Connect an AWS account, an Azure subscription or a Google Cloud project from the
 - [Stream Azure Monitor Metrics and Logs](/docs/telemetry/cloud-streaming-azure): Key metrics within minutes, and resource logs, read from event hubs in your subscription.
 - [Stream Google Cloud Logs](/docs/telemetry/cloud-streaming-google-cloud): Every log as it is written, pushed through Pub/Sub.
 - [Data security](#data-security): What the connection lets Data Security read, and what each level adds to the command.
+- [Savings actions](#savings-actions): The narrow access that lets OneUptime make the savings you approve.
 - [Let AI fix problems](#let-ai-fix-problems): One more command, and OneUptime AI can fix what it finds.
 :::
 
@@ -352,6 +353,26 @@ Two key metrics their clouds deprecate are no longer read: an Azure Cosmos DB ac
 - **A resource's health.** Each read keeps the newest value of a resource's key metrics and judges them: a resource reads **Healthy**, **Degraded** or **Unhealthy**, with why, such as failing status checks or storage nearly full, and **Not reporting** once its metrics stop. **Cloud → Overview** and an account's Overview list what needs attention, the most urgent first. A resource's page leads with the numbers its kind is read by, such as a virtual machine's CPU, memory, network and disks, and one that the last read did not bring reads **Not reported**.
 - **Recommended monitors.** An account's **Recommendations** lists the monitors OneUptime recommends for its resources, by type of resource, with the resources each one is for and how many have it already: add one to a resource, or to every resource of its type at once, and the side menu counts the ones still to set up. A resource's own **Recommendations** tab offers its own. Each monitor reads the key metrics the connection reads, every 5 minutes, over the last 30 minutes on AWS and the last 15 on Azure and Google Cloud, and is linked to its resource. A connection read less often gives each monitor a longer window, enough to judge every reading a read brings: read every hour, the last 2 hours. A monitor made before the interval changed keeps its window. A count, such as errors or throttled requests, is totalled over that window, so an account that [streams its metrics](/docs/telemetry/cloud-streaming) and one that is read alert alike, the streamed one sooner. A certificate's days to expiry, which ACM publishes twice a day, are read once an hour: its monitor reads the last 2 days and fires once the certificate has 30 days or fewer left, or once ACM stops publishing them because it expired. An RDS instance's connections are judged against 90% of the connection limit of its class and engine. While a [maintenance event](/docs/scheduled-maintenance/creating-events) holds a resource, its monitors open no incident or alert. An App Service app with a health check is offered two more, over the last 30 minutes, as Azure Monitor keeps its metric at five minutes: one for an instance failing it, and one for fewer than half of its instances passing it, each incident giving the command for Azure Cloud Shell that names the instance that fails.
 - **What the accounts cost.** **Cloud → Spend → Costs** draws each day's spend and where it goes, **Cloud → Spend → Savings** lists the ways to spend less, and **Cloud → Spend → Budgets** alerts before a month costs more than it should: [Cloud Costs and Savings](/docs/telemetry/cloud-costs).
+
+## Savings actions
+
+The same connection can let OneUptime make the savings it finds: the ones an owner approves, the ones an AI rule for savings makes, and the stops of an off-hours schedule ([Cloud Costs and Savings](/docs/telemetry/cloud-costs#act-on-savings)). Under **More fields**, **Savings actions** is **Off** until you choose otherwise, and the command the form shows changes with it:
+
+| Savings actions | What OneUptime may change | What the command adds |
+| --- | --- | --- |
+| **Off** | Nothing: the connection only reads. | Nothing |
+| **Stop, start and clean up** | Stop and start instances and databases, change a gp2 volume to gp3, delete an unattached disk after a final snapshot and make it again from it, delete an old snapshot or an unused image, and release an unused address | AWS: the inline policy `OneUptimeSavingsActions` on the role or the user. Azure: the custom role **OneUptime Savings Actions** on each subscription. Google Cloud: the custom role `oneuptimeSavingsActions` on each project, and the Compute Engine API turned on |
+| **Stop, start, clean up and resize** | All of the above, and resize an instance or a database to the size recommended, which restarts it | The same, with resizing in it |
+
+The policy and the roles allow these actions, and nothing else:
+
+| Cloud | Stop, start and clean up | Resize |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+On AWS, `ec2:CreateTags` is allowed only as a snapshot or a volume is made, to mark what OneUptime made with the change it is for. Nothing changes on its own: each change waits for an owner's approval, an AI rule for savings, or a schedule. To take the access back, set **Savings actions** to **Off** and delete the policy or the role; a change asked for after that fails, saying why, and changes nothing.
 
 ## Let AI fix problems
 

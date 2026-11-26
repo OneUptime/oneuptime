@@ -223,6 +223,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     // The tenant's readers of its reservations and savings plans (#11011).
     "Reservations Reader",
     "Savings plan Reader",
+    // The Azure role the connection's Savings actions grant (#11010).
+    "OneUptime Savings Actions",
   ],
   [CLOUD_COSTS]: [
     "Cost Management Reader",
@@ -371,6 +373,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Every commitment.",
     "An account's costs.",
     "A resource's cost.",
+    "What was saved.",
   ],
   // Cost groups (#11006): an example group's name is a lead too.
   [CLOUD_COST_ALLOCATION]: [

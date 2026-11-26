@@ -1,6 +1,6 @@
 # Cloudomkostninger og besparelser
 
-En forbundet cloudkonto siger også, hvad den koster, og hvordan den kunne koste mindre. OneUptime læser hver dags omkostninger fra din clouds egen fakturering og anbefalingerne fra din clouds egen anbefalingstjeneste, viser dem under **Cloud → Forbrug → Omkostninger** og **Cloud → Forbrug → Besparelser**, viser dine Savings Plans, reservationer og rabatter for forpligtet brug under **Cloud → Forbrug → Forpligtelser** og advarer, før en måned koster mere end sit budget under **Cloud → Forbrug → Budgetter**.
+En forbundet cloudkonto siger også, hvad den koster, og hvordan den kunne koste mindre. OneUptime læser hver dags omkostninger fra din clouds egen fakturering og anbefalingerne fra din clouds egen anbefalingstjeneste, viser dem under **Cloud → Forbrug → Omkostninger** og **Cloud → Forbrug → Besparelser**, viser dine Savings Plans, reservationer og rabatter for forpligtet brug under **Cloud → Forbrug → Forpligtelser** og advarer, før en måned koster mere end sit budget under **Cloud → Forbrug → Budgetter**. Når du tillader det, gennemfører den også de besparelser, en ejer godkender, stopper ressourcer, der ikke er produktion, uden for arbejdstid og kontrollerer hver ændring mod regningen.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer og Cost Optimization Hub, hver slået til én gang.
@@ -8,6 +8,9 @@ En forbundet cloudkonto siger også, hvad den koster, og hvordan den kunne koste
 - [Google Cloud](#google-cloud): Din faktureringseksport til BigQuery og Recommender.
 - [Faktureret, amortiseret og netto](#faktureret-amortiseret-og-netto): Hver omkostning på tre måder, så forpligtelser og kreditter lander, hvor pengene gik hen.
 - [Forpligtelser og fornyelser](#forpligtelser-og-fornyelser): Hver forpligtelse, advarsler før en udløber, eller mens den er underudnyttet, og hvad der skal fornyes eller købes.
+- [Gennemfør besparelser](#gennemfør-besparelser): Anvend en besparelse med ejerens godkendelse, og fortryd den.
+- [Tidsplaner uden for arbejdstid](#tidsplaner-uden-for-arbejdstid): Stop ressourcer, der ikke er produktion, om natten og i weekenden.
+- [AI-regler for besparelser](#ai-regler-for-besparelser): Forslag til ejere, eller ændringer inden for en grænse.
 - [Budgetter](#budgetter): En advarsel, når en måneds forbrug passerer en andel af dens budget.
 :::
 
@@ -114,7 +117,7 @@ Omkostninger, der blev læst, før de tre blev gemt, viser deres fakturerede bel
 
 ## Måder at bruge mindre på
 
-**Cloud → Forbrug → Besparelser** viser hver anbefaling, den største besparelse først: hvad der skal gøres, ved hvilken ressource, hvad der ville ændre sig, og hvad den sparer om måneden. Båndet over den lægger dem sammen, i alt og efter type: en mindre størrelse, en ressource, der står ubrugt, en forpligtelse. En anbefaling linker til siden for dens ressource, når OneUptime har ressourcen.
+**Cloud → Forbrug → Besparelser** viser hver anbefaling, den største besparelse først: hvad der skal gøres, ved hvilken ressource, hvad der ville ændre sig, og hvad den sparer om måneden. Båndet over den lægger dem sammen, i alt og efter type: en mindre størrelse, en ressource, der står ubrugt, en forpligtelse. En anbefaling linker til siden for dens ressource, når OneUptime har ressourcen, og en, som OneUptime kan gennemføre, har **Anvend**: se [Gennemfør besparelser](#gennemfør-besparelser).
 
 ### Størrelsestilpasning ud fra OneUptimes egne målinger
 
@@ -165,6 +168,62 @@ Forpligtelser opretter advarsler, der tilkalder via vagtpolitikker som enhver ad
 
 **Advar om forpligtelser** slår dem alle fra, og **Advarselsalvor**, **Vagtpolitikker** og **Ejere** siger, hvor alvorlige de er, hvem der tilkaldes, og hvem der ejer dem. Hver advarsel siger, hvad forpligtelsen dækker, og hvad den betalte, og peger på dens fornyelsesplan. En advarsel løses af sig selv, når dens forpligtelse udløber, fornyes eller ikke længere vises.
 
+## Gennemfør besparelser
+
+OneUptime gennemfører en besparelse gennem kontoens cloudforbindelse, så snart dens indstilling **Besparelseshandlinger** tillader det: [Besparelseshandlinger](/docs/telemetry/cloud-accounts#besparelseshandlinger) siger, hvad hvert valg giver adgang til. Den foretager kun ændringer i ét trin: Den stopper en ubrugt instans eller database, skifter et gp2-volumen til gp3, sletter en ikke-tilknyttet disk, et gammelt øjebliksbillede eller et ubrugt image, frigiver en ubrugt adresse og ændrer, når du tillader det, en instans' eller databases størrelse til den anbefalede. Den køber aldrig en forpligtelse: **Køb i konsollen** åbner din clouds side til det.
+
+:::steps
+### Vælg Anvend
+
+Under **Cloud → Forbrug → Besparelser** vælger du **Anvend** ved en besparelse. Dialogen siger, hvad der ændres, hvad den sparer om måneden, hvordan den fortrydes, eller at den ikke kan, og hvem der godkender den.
+
+### En ejer godkender den
+
+En person, der er angivet som ejer af ressourcen, eller et medlem af et team, der ejer den, og som også må redigere den, godkender ændringen. En ressource uden ejer godkendes af en Projektejer eller Projektadministrator. Når du selv må godkende den, gennemfører **Anvend** den med det samme, som dig. Ellers venter den under **Venter på godkendelse**, til en ejer vælger **Godkend**, eller **Skjul** med en årsag.
+
+### OneUptime gennemfører den
+
+Ændringen foretages gennem forbindelsen og står på ressourcens og kontoens tidslinjer, med hvem der godkendte den. Af en slettet disk tages først et sidste øjebliksbillede, medmindre du slår **Tag et sidste øjebliksbillede først** fra.
+:::
+
+Hver ændring siger, hvordan den fortrydes: **Fortryd** under **Foretagne ændringer** starter en stoppet instans igen, sætter et volumen eller en størrelse tilbage eller genskaber en slettet disk fra dens sidste øjebliksbillede. Det, der sletter for altid, som et øjebliksbillede, et image eller en frigivet adresse, kan ikke fortrydes, og dialogen siger det, før du anvender det. Hvor projektet kræver to godkendelser med **Kræv to godkendelser for mere risikable rettelser**, kræver en ændring, der ikke kan fortrydes, to personer.
+
+En ressource, hvis mærker siger, at den administreres som kode, for eksempel af Terraform eller CloudFormation, ændres i stedet i sin kode: Dialogen tilbyder **Åbn pull request** til det repository, der deklarerer den, så næste apply ikke tager besparelsen tilbage.
+
+### Bevist af regningen
+
+**Sparet denne måned** tæller kun det, din clouds regning viser. Så snart tre dage efter en ændring er faldet på plads på regningen, sammenlignes ressourcens pris pr. dag med ugen før ændringen: Den **Ses på regningen**, når prisen er faldet med mindst en fjerdedel af det lovede, **Ses ikke på regningen**, når den ikke er, og **Kan ikke måles**, når din cloud ikke fakturerer ressourcen ved navn. **Regningen kontrolleres** tæller de ændringer, der stadig venter på de dage.
+
+## Tidsplaner uden for arbejdstid
+
+Under **Cloud → Forbrug → Tidsplaner** stopper en tidsplan instanser og databaser, der ikke er produktion, uden for arbejdstid og starter dem igen:
+
+:::steps
+### Vælg ressourcerne
+
+Angiv det cloudmærke, der vælger dem, for eksempel `Schedule` = `office-hours`, i én konto eller i dem alle.
+
+### Sig, hvornår de kører
+
+Vælg arbejdsdagene, tidspunktet de starter, og tidspunktet de stopper, i 24-timersformat, og tidszonen.
+:::
+
+Når arbejdstiden slutter, stopper en tidsplan gennem sin kontos forbindelse hver kørende ressource, som dens mærke vælger, og som vides ikke at være produktion, og når den begynder, starter den kun det igen, den selv stoppede: En ressource, som nogen stoppede manuelt, forbliver stoppet. **Se ressourcer** viser, hvad en tidsplan vælger nu, og hvorfor den lader nogle køre. Den stopper EC2-instanser og RDS-databaser på AWS, virtuelle maskiner på Azure og Compute Engine-instanser på Google Cloud. AWS starter selv en database igen, der har været stoppet i syv dage.
+
+En tidsplan stopper aldrig produktion eller en ressource, hvis miljø intet siger. En ressource vides ikke at være produktion, når:
+
+- et af dens mærker siger det, under en nøgle som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med et ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
+- dens konto er markeret som **Ikke-produktion** under **Miljø** i kontoens **Indstillinger**;
+- eller en af dens etiketter siger det, for eksempel `Staging` eller `env: dev`.
+
+Produktion vinder: Et mærke, der siger `prod`, `production` eller `live`, eller en konto markeret som **Produktion**, holder en ressource kørende, uanset hvad andet siger. En ressources navn læses aldrig til det. Slår du en tidsplan fra, stopper den intet mere og starter det, den stoppede, når dens arbejdstid begynder; sletter du den, startes det, den stoppede, med det samme.
+
+## AI-regler for besparelser
+
+Med **Aktivér AI** slået til foreslår OneUptime AI efter hver læsning af kontoens besparelser hver besparelse, den kan gennemføre, til ressourcens ejere, og de godkender eller afviser den under **Venter på godkendelse**. Under **Cloud → Indstillinger → AI-regler for besparelser** siger en regel, hvad OneUptime AI gør med de besparelser, den passer på, efter typen af ændring, ressourcens miljø og dens cloud: **Fra**, **Foreslå til ejeren** eller **Handl uden at spørge**, op til en månedlig grænse. Uden regel foreslås hver besparelse, og ingen gennemføres; med regler kun det, en regel passer på, og mellem regler, der passer, vinder den mest forsigtige.
+
+En regel handler kun uden at spørge på en ressource, der vides ikke at være produktion, kun for en ændring, der kan fortrydes, kun op til den laveste grænse blandt de regler, der passer, og højst 10 gange i timen i et projekt: Alt andet foreslås. En ændring foretaget uden at spørge står på tidslinjerne med den regel, der foretog den, og dens ejere kan fortryde den. En afvist eller fortrudt besparelse foreslås ikke igen i 30 dage.
+
 ## Budgetter
 
 :::steps
@@ -204,6 +263,7 @@ Under listen fortæller kortet, hvad resten beløb sig til: det, der ikke er i n
 - **Hver forpligtelse.** **Cloud → Forbrug → Forpligtelser** viser hver med, hvornår den udløber, og hvor meget af den der bruges, dem, der snart udløber, med hvad der skal fornyes, og hvad der skal købes.
 - **En kontos omkostninger.** En kontos **Omkostninger** viser det samme for kontoen alene, med dens forpligtelser og dens måder at bruge mindre på.
 - **En ressources omkostning.** En ressources side viser, hvad den har kostet i denne måned og de sidste 30 dage, når dens cloud fakturerer den ved navn, med dens måder at bruge mindre på og dens størrelsestilpasning.
+- **Hvad der blev sparet.** **Cloud → Forbrug → Besparelser** åbner med, hvad de foretagne ændringer har sparet denne måned ifølge regningen, de ændringer, der venter på godkendelse, og de foretagne, samt de timer, tidsplaner har stoppet ressourcer.
 
 ## Fejlfinding
 
@@ -237,6 +297,14 @@ En forpligtelse, der fornyer sig selv, eller hvis fornyelse står i kø til at s
 
 :::details Beløbene udelader en konto
 Beløbene er i den valuta, de fleste af dine konti faktureres i. En konto, der faktureres i en anden, vises nedenunder med sin valuta, og et budget tæller kun de konti, der faktureres i dets egen.
+:::
+
+:::details En besparelse har ingen Anvend
+OneUptime foretager kun ændringer i ét trin: En forpligtelse eller en anbefaling, der ændrer mere end én ting, gennemføres i din clouds konsol. Anvend åbner en dialog, der siger, hvorfor den ikke kan gennemføres herfra, når kontoens forbindelse ikke tillader det: Slå dens **Besparelseshandlinger** til, og kør dens opsætningskommando igen.
+:::
+
+:::details En tidsplan lader en ressource køre
+**Se ressourcer** siger hvorfor: Den er produktion, intet siger, at den ikke er produktion, eller dens kontos forbindelse tillader ikke besparelseshandlinger. Mærk den, for eksempel `environment` = `dev`, eller markér dens konto som **Ikke-produktion**.
 :::
 
 :::details Denne måned er lavere end i din clouds konsol

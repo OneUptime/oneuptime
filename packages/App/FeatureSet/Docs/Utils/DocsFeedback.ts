@@ -53,6 +53,14 @@ export enum DocsFeedbackMode {
   Local = "local",
 }
 
+// What a page's "Was this page helpful?" is drawn with (getPageFeedback).
+export interface DocsPageFeedback {
+  page: string;
+  mode: DocsFeedbackMode;
+  // The GitHub issue a no offers, or null where OneUptime's GitHub is hidden.
+  githubIssueUrl: string | null;
+}
+
 export interface DocsFeedbackAnswer {
   // The page's address under /docs/<lang>/: "monitor/website-monitor".
   page: string;
@@ -120,6 +128,38 @@ export default class DocsFeedback {
       body: body,
       labels: ["documentation"],
     });
+  }
+
+  /*
+   * What "Was this page helpful?" offers on a page (Views/Partials/
+   * PageFeedback.ejs): the answer's mode, and the GitHub issue a no offers
+   * while this server shows OneUptime's GitHub (Admin Dashboard > Settings >
+   * Help and Support, #10940). Null where the answer would go nowhere -
+   * nothing is posted, and there is no GitHub to tell - so the page does not
+   * ask a question nobody hears.
+   */
+  public static getPageFeedback(data: {
+    page: string;
+    title: string;
+    lang: string;
+    mode: DocsFeedbackMode;
+    isGitHubShown: boolean;
+  }): DocsPageFeedback | null {
+    if (data.mode === DocsFeedbackMode.Local && !data.isGitHubShown) {
+      return null;
+    }
+
+    return {
+      page: data.page,
+      mode: data.mode,
+      githubIssueUrl: data.isGitHubShown
+        ? DocsFeedback.getGitHubIssueUrl({
+            page: data.page,
+            title: data.title,
+            lang: data.lang,
+          })
+        : null,
+    };
   }
 
   public static getEdition(): string {

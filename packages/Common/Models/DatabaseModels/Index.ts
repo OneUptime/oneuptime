@@ -78,6 +78,10 @@ import StorageArray from "./StorageArray";
 import StorageArrayOwnerTeam from "./StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "./StorageArrayOwnerUser";
 import StorageArrayResource from "./StorageArrayResource";
+import XcpNgPool from "./XcpNgPool";
+import XcpNgPoolOwnerTeam from "./XcpNgPoolOwnerTeam";
+import XcpNgPoolOwnerUser from "./XcpNgPoolOwnerUser";
+import XcpNgResource from "./XcpNgResource";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
@@ -104,6 +108,8 @@ import CloudCostLineItem from "./CloudCostLineItem";
 import CloudCostView from "./CloudCostView";
 import CloudCostRecommendation from "./CloudCostRecommendation";
 import CloudCostSetting from "./CloudCostSetting";
+import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
+import CloudSavingsAction from "./CloudSavingsAction";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -638,6 +644,8 @@ import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
 import StorageArrayOwnerRule from "./StorageArrayOwnerRule";
 import StorageArrayLabelRule from "./StorageArrayLabelRule";
+import XcpNgPoolOwnerRule from "./XcpNgPoolOwnerRule";
+import XcpNgPoolLabelRule from "./XcpNgPoolLabelRule";
 import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
 import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
@@ -679,6 +687,7 @@ import DockerHostFeed from "./DockerHostFeed";
 import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
 import CephClusterFeed from "./CephClusterFeed";
 import StorageArrayFeed from "./StorageArrayFeed";
+import XcpNgPoolFeed from "./XcpNgPoolFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
 import OpenStackCloudFeed from "./OpenStackCloudFeed";
@@ -993,6 +1002,8 @@ const AllModelTypes: Array<{
   CephClusterLabelRule,
   StorageArrayOwnerRule,
   StorageArrayLabelRule,
+  XcpNgPoolOwnerRule,
+  XcpNgPoolLabelRule,
   VMwareVCenterOwnerRule,
   VMwareVCenterLabelRule,
   RunbookOwnerRule,
@@ -1259,6 +1270,7 @@ const AllModelTypes: Array<{
   DockerSwarmClusterFeed,
   CephClusterFeed,
   StorageArrayFeed,
+  XcpNgPoolFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
   OpenStackCloudFeed,
@@ -1355,6 +1367,10 @@ const AllModelTypes: Array<{
   StorageArrayOwnerTeam,
   StorageArrayOwnerUser,
   StorageArrayResource,
+  XcpNgPool,
+  XcpNgPoolOwnerTeam,
+  XcpNgPoolOwnerUser,
+  XcpNgResource,
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,
@@ -1380,6 +1396,8 @@ const AllModelTypes: Array<{
   CloudCostLineItem,
   CloudCostRecommendation,
   CloudCostSetting,
+  CloudOffHoursSchedule,
+  CloudSavingsAction,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

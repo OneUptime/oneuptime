@@ -116,6 +116,8 @@ export enum RuleRunType {
   VMwareVCenterOwnerRule = "VMwareVCenterOwnerRule",
   WorkflowLabelRule = "WorkflowLabelRule",
   WorkflowOwnerRule = "WorkflowOwnerRule",
+  XcpNgPoolLabelRule = "XcpNgPoolLabelRule",
+  XcpNgPoolOwnerRule = "XcpNgPoolOwnerRule",
 }
 
 export interface RuleRunTypeMetadata {
@@ -426,6 +428,16 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
   ),
   [RuleRunType.WorkflowLabelRule]: metadata(Labels, "workflow", "workflows"),
   [RuleRunType.WorkflowOwnerRule]: metadata(Owners, "workflow", "workflows"),
+  [RuleRunType.XcpNgPoolLabelRule]: metadata(
+    Labels,
+    "XCP-ng pool",
+    "XCP-ng pools",
+  ),
+  [RuleRunType.XcpNgPoolOwnerRule]: metadata(
+    Owners,
+    "XCP-ng pool",
+    "XCP-ng pools",
+  ),
 };
 
 /*

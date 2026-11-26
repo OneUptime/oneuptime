@@ -23,6 +23,7 @@ import {
 import { getAllCephAlertTemplates } from "Common/Types/Monitor/CephAlertTemplates";
 import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAlertTemplates";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
+import { getAllXcpNgAlertTemplates } from "Common/Types/Monitor/XcpNgAlertTemplates";
 import { isEnglishCopy } from "../../FeatureSet/Docs/Utils/Translations";
 
 /*
@@ -1754,7 +1755,29 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
   // A load balancer's ezafe written with a hamza: the spelling Persian does not use.
   const LOAD_BALANCER_WITH_HAMZA: string = `متعادل${ZERO_WIDTH_NON_JOINER}کننده${ch(0x654)} بار`;
   // A repository, and money: neither is a pool.
-  const NOT_A_POOL: ReadonlyArray<string> = ["مخزن", "پول"];
+  const REPOSITORY: string = "مخزن";
+  /*
+   * Money as a word of its own: توپولوژی (topology) holds the same three
+   * letters, and "Open pool topology" names a pool and its topology.
+   */
+  const MONEY: RegExp = /(?:^|[^؀-ۿ])پول(?![؀-ۿ])/;
+  /*
+   * An XCP-ng storage repository is مخزن ذخیره‌سازی, as the glossary says,
+   * so a text whose English names a repository as well as a pool ("Storage
+   * repository of pool {{pool}}", "a shared one is reachable from every host
+   * of the pool") says مخزن for the repository, never for the pool.
+   */
+  const SAYS_REPOSITORY: RegExp = /\brepositor(?:y|ies)\b/i;
+  // Whether a text's Persian calls its pool something else than استخر.
+  const callsAPoolSomethingElse: (
+    english: string,
+    persian: string,
+  ) => boolean = (english: string, persian: string): boolean => {
+    if (MONEY.test(persian)) {
+      return true;
+    }
+    return !SAYS_REPOSITORY.test(english) && persian.includes(REPOSITORY);
+  };
 
   // English that says one of the four, outside its placeholders.
   const SAYS_ONE: RegExp =
@@ -1902,18 +1925,40 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     expect(pools.length).toBeGreaterThan(150);
     expect(
       pools
-        .filter(([, , persian]: [string, string, string]): boolean => {
+        .filter(([, english, persian]: [string, string, string]): boolean => {
           return (
-            !persian.includes(POOL) ||
-            NOT_A_POOL.some((word: string): boolean => {
-              return persian.includes(word);
-            })
+            !persian.includes(POOL) || callsAPoolSomethingElse(english, persian)
           );
         })
         .map(([key, , persian]: [string, string, string]): string => {
           return `${key} => ${persian}`;
         }),
     ).toEqual([]);
+  });
+
+  test("a storage repository of a pool keeps its own word, topology is no money, and a pool called a repository is still caught (control)", () => {
+    const repositoryOfPool: string = `مخزن ذخیره${ZERO_WIDTH_NON_JOINER}سازی استخر {{pool}}`;
+    expect(
+      callsAPoolSomethingElse(
+        "Storage repository of pool {{pool}}",
+        repositoryOfPool,
+      ),
+    ).toBe(false);
+    expect(
+      callsAPoolSomethingElse("Open pool topology", "باز کردن توپولوژی استخر"),
+    ).toBe(false);
+    // A pool worded as a repository, where the English names no repository.
+    expect(
+      callsAPoolSomethingElse("Resource pool {{pool}}", "مخزن منابع {{pool}}"),
+    ).toBe(true);
+    // A pool worded as money, whatever else the text names.
+    expect(
+      callsAPoolSomethingElse(
+        "Storage repository of pool {{pool}}",
+        "مخزن ذخیره‌سازی پول {{pool}}",
+      ),
+    ).toBe(true);
+    expect(callsAPoolSomethingElse("The buffer pool", "پول بافر")).toBe(true);
   });
 
   test("the check finds one kept in Latin letters, and leaves code, a command, an identifier and a name drawn in English alone (control)", () => {
@@ -1958,6 +2003,7 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     ...getAllOpenStackAlertTemplates(),
     ...getAllCephAlertTemplates(),
     ...getAllVMwareAlertTemplates(),
+    ...getAllXcpNgAlertTemplates(),
   ].map((template: { name: string }): string => {
     return template.name;
   });
@@ -1980,6 +2026,10 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     {
       name: "Cast, save, and share",
       why: "Chrome's menu item, named as Chrome draws it",
+    },
+    {
+      name: "«Pool»",
+      why: "the name OneUptime gives an XCP-ng pool Xen Orchestra names nothing (Pool and the start of its UUID), stored in English",
     },
   ];
 

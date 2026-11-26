@@ -202,6 +202,14 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     onboarding: "PROXMOX_CLUSTER_ONBOARDING",
     showcase: "PROXMOX_CLUSTER_SHOWCASE",
   }),
+  // A pool registers itself: the XCP-ng Agent beside its Xen Orchestra reports it.
+  addedByGuide({
+    label: "XCP-ng pools",
+    relativePath: "XcpNg/Pools.tsx",
+    modelType: "XcpNgPool",
+    onboarding: "XCP_NG_POOL_ONBOARDING",
+    showcase: "XCP_NG_POOL_SHOWCASE",
+  }),
   addedByForm({
     label: "vCenters",
     relativePath: "VMware/VCenters.tsx",
@@ -362,7 +370,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(17);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(18);
     expect(discoveredPages).toEqual(testedPages);
   });
 
@@ -385,7 +393,7 @@ describe("empty resource inventory page catalog", () => {
       return showcase.length > 0;
     });
 
-    expect(showcases).toHaveLength(16);
+    expect(showcases).toHaveLength(17);
     expect(new Set(showcases).size).toBe(showcases.length);
   });
 });

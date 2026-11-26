@@ -32,6 +32,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import OpenStackCloudService from "./OpenStackCloudService";
 import VMwareVCenterService from "./VMwareVCenterService";
+import XcpNgPoolService from "./XcpNgPoolService";
 import CephClusterService from "./CephClusterService";
 import StorageArrayService from "./StorageArrayService";
 import DatabaseServerService from "./DatabaseServerService";
@@ -43,6 +44,7 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../Models/DatabaseModels/XcpNgPool";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
@@ -1210,8 +1212,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
-   * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster,
-   * StorageArray, DatabaseServer). Used to scale billed
+   * KubernetesCluster, ProxmoxCluster, VMwareVCenter, XcpNgPool,
+   * CephCluster, StorageArray, DatabaseServer). Used to scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
    * to the project default.
@@ -1351,6 +1353,22 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           vmwareVCenter.id.toString(),
           vmwareVCenter.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const xcpNgPools: Array<XcpNgPool> = await XcpNgPoolService.findBy({
+      query: { projectId: projectId },
+      select: { _id: true, retainTelemetryDataForDays: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    for (const xcpNgPool of xcpNgPools) {
+      if (xcpNgPool.id && xcpNgPool.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          xcpNgPool.id.toString(),
+          xcpNgPool.retainTelemetryDataForDays,
         );
       }
     }

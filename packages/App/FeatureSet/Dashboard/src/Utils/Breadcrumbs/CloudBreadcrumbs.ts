@@ -33,6 +33,11 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Cloud",
       "Commitments",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SCHEDULES, [
+      "Project",
+      "Cloud",
+      "Schedules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_BUDGETS, [
       "Project",
       "Cloud",
@@ -91,6 +96,11 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Cloud",
       "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES, [
+      "Project",
+      "Cloud",
+      "Savings AI Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW, [
       "Project",

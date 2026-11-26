@@ -7,6 +7,7 @@ Point the help OneUptime offers at your own team: the support address, chat and 
 - [What each setting changes](#what-each-setting-changes): Every place, its default and its choices.
 - [Give feedback](#give-feedback): Where what people write is sent.
 - [The sign-in message](#the-sign-in-message): Whom to ask for an invitation.
+- [Set them from your configuration](#set-them-from-your-configuration): Helm values or `config.env`, for a new server.
 :::
 
 ## Change Where Help Goes
@@ -28,12 +29,12 @@ Until you change a place, it shows what OneUptime always has, so a server that n
 
 | Setting | Where people see it | Default | Your own |
 | --- | --- | --- | --- |
-| **Support Email** | Help › **Support Email**, **Contact Support** on the page that is not found, and the address an error screen asks people to send a support bundle to | `support@oneuptime.com` | An email address |
-| **Chat** | Help › **Chat on Slack** | OneUptime's community on Slack | A link. A Slack or Microsoft Teams link keeps its name; any other reads **Chat with Support** |
+| **Support Email** | Help › **Support Email**, **Contact Support** on the page that is not found, account emails, and the address an error screen asks people to send a support bundle to | `support@oneuptime.com` | An email address |
+| **Chat** | Help › **Chat on Slack**, and the chat link at the top of the API reference | OneUptime's community on Slack | A link. A Slack or Microsoft Teams link keeps its name; any other reads **Chat with Support** |
 | **Request Demo** | Help › **Request Demo** | Shown | Hidden only |
 | **Give Feedback** | Help › **Give feedback**, and **Give feedback** in Search | This server's admins | An email address, or a page of your own |
-| **Help and Support** | **Help and Support** in the footer, and **Contact** on the sign-in pages | `https://oneuptime.com/support` | A link |
-| **Report a Bug or Request a Feature** | The foot of the products menu, and the public GitHub issue offered after feedback | Shown | Hidden only |
+| **Help and Support** | **Help and Support** in the footer, **Contact** on the sign-in pages, and **Support** at the top of the API reference | `https://oneuptime.com/support` | A link |
+| **Report a Bug or Request a Feature** | The foot of the products menu, the public GitHub issue offered after feedback, and the GitHub links of the docs and the API reference | Shown | Hidden only |
 | **Get the Mobile App** | **How to Reach Me**, the on-call setup, a new member's first steps on Home, and **Mobile Apps** in **Project Settings** | The App Store and Google Play | A page of your own, such as your device manager's company portal |
 | **Message for People Who Need an Invitation** | The single sign-on screens that say "You need to be invited." and "No project access." | OneUptime's sentence | Your own words |
 
@@ -41,9 +42,17 @@ Every setting but the message can also be hidden. A link starts with `https://`,
 
 The Admin Dashboard's own Help menu, footer and products menu keep OneUptime's links: they are for this server's admins, who get help with the server from OneUptime.
 
+### Account Emails
+
+On a self-hosted server, account emails such as an invitation or a changed email address end by sending people to this server's admin, never to OneUptime's support. With a support address of your own, they name it, as a link: "Need help? Write to it-help@example.com." On the default, or hidden, they read as they always have.
+
+### The Docs and the API Reference
+
+The docs and the API reference this server serves follow the same settings. With **Report a Bug or Request a Feature** hidden, no page links to GitHub, and **Was this page helpful?** only asks where its answer is kept or sent. The API reference's top bar shows the chat and the help page you chose, or neither when they are hidden.
+
 ### Who Can Read Your Links
 
-The support address and the **Help and Support** link show on the sign-in pages too, so anyone who can open those pages can read them. A chat link and the mobile app's page are sent only to people who are signed in: a chat link is often an invitation into your workspace.
+The support address and the **Help and Support** link show on the sign-in pages too, so anyone who can open those pages can read them. A chat link and the mobile app's page are sent only to people who are signed in: a chat link is often an invitation into your workspace. For the same reason, the docs and the API reference, which anyone can read, show a chat link of your own only to someone signed in to this server.
 
 ## Give Feedback
 
@@ -78,6 +87,39 @@ With a page of your own, every prompt to get the mobile app points there: one QR
 - **Get the mobile app** leaves a new member's first steps on Home, which still finish when the person can be reached and a test page has reached them.
 - **How to Reach Me** and the on-call setup offer browsers only.
 - **Mobile Apps** leaves **Project Settings**.
+- Wherever OneUptime lists the ways to reach someone, such as the guided setups, Home, a team's compliance rules and Ask AI, it no longer names the app among them.
+
+## Set Them From Your Configuration
+
+A server installed from Helm or Docker Compose can start with these settings already made. Set them in the Helm chart's `helpAndSupport` values, or in `config.env` for Docker Compose:
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Helm value | `config.env` | What it takes |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | An email address, or `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | A link, or `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` or `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | An email address, a link, or `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | A link, or `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` or `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | A link, or `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | Plain text |
+
+- They are read when the server starts, only while nothing has been saved on **Help and Support**. From then on the page holds the settings: a change made there is kept, and a restart never sets it back.
+- A value changed in the configuration later is not applied, and the server's log says so. Change it on the page.
+- Each value is checked as the page checks it. One that would be refused, such as a `javascript:` link, is left out, and the page and the server's log say why. The others are still set.
+- Leave a value empty to keep OneUptime's default. `true` and `false` work for the two switches too.
+- The page marks each setting that came from your configuration, until you change it.
 
 ## Next Steps
 

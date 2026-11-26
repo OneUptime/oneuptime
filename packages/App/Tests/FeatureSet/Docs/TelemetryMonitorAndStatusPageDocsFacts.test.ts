@@ -1520,6 +1520,7 @@ describe("criteria", () => {
       "proxmox",
       "storage-array",
       "vmware",
+      "xcp-ng",
     ]) {
       expect(readPage("en", `monitor/${page}-monitor`)).toContain(
         "This monitor filters its queries by attributes, so each query, and each series of a grouped one, is compared with its own history, as far back as your metrics are kept. If that is under two weeks, a Sum, a Count or a query on a histogram stays in that state for good, and anything else is compared with every series of the metric. A percentile of a histogram always stays in that state.",
@@ -1531,7 +1532,7 @@ describe("criteria", () => {
       readSource(
         "App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
       ).match(/queryAttributes: readAttributes,/g),
-    ).toHaveLength(12);
+    ).toHaveLength(13);
     expect(readPage("en", "monitor/kubernetes-monitor")).toContain(
       'Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history.',
     );
@@ -2271,9 +2272,9 @@ describe("the Metrics monitor", () => {
 
     /*
      * And the alert or incident says how late: the details block of the
-     * whole monitor's root cause - the Metric Details and each of the six
-     * platforms' own blocks - and the lines a grouped monitor opens each
-     * series' alert and incident with.
+     * whole monitor's root cause - the Metric Details and each of the seven
+     * platforms' own blocks (XCP-ng's the seventh) - and the lines a grouped
+     * monitor opens each series' alert and incident with.
      */
     const evaluator: string = oneLine(
       readSource("Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts"),
@@ -2282,7 +2283,7 @@ describe("the Metrics monitor", () => {
     expect(
       evaluator.split("...MonitorCriteriaEvaluator.describeDataLag(").length -
         1,
-    ).toBe(7);
+    ).toBe(8);
     expect(evaluator).toContain(
       "return mdText`- ${r.rootCause} ${MetricWindowCoverage.describeLag(dataLagMs)}`;",
     );

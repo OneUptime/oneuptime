@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * New tables are empty, so their indexes and keys need no online DDL; the
  * two columns are nullable with no default, added without rewriting a row.
  */
-export class AddCloudCostBasesAndCommitments1809187711011
+export class AddCloudCostBasesAndCommitments1809187721011
   implements MigrationInterface
 {
-  public name: string = "AddCloudCostBasesAndCommitments1809187711011";
+  public name: string = "AddCloudCostBasesAndCommitments1809187721011";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

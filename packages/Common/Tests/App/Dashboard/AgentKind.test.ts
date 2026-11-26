@@ -17,6 +17,7 @@ import {
   PROXMOX_AGENT_VERSION,
   STORAGE_ARRAY_AGENT_VERSION,
   VMWARE_AGENT_VERSION,
+  XCP_NG_AGENT_VERSION,
   getAgentLatestVersion,
   getAgentVersionState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
@@ -98,6 +99,7 @@ const PINNED_COLLECTOR: Array<AgentKind> = [
   AgentKind.CephAgent,
   AgentKind.VMwareAgent,
   AgentKind.StorageArrayAgent,
+  AgentKind.XcpNgAgent,
 ];
 
 /*
@@ -642,6 +644,78 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
     expect(readRepoFile("agents", "ProxmoxAgent", "README.md")).toContain(
       `FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol`,
     );
+  });
+});
+
+/*
+ * The XCP-ng agent is the stock collector plus a config too, which the
+ * Dashboard does not embed (its guide downloads the file): the compose file
+ * pins the collector, and the config stamps that pin on every pool of the
+ * Xen Orchestra it reads.
+ */
+describe("the XCP-ng agent reports the collector its compose file pins", () => {
+  const config: string = readRepoFile(
+    "agents",
+    "XcpNgAgent",
+    "otel-collector-config.yaml",
+  );
+
+  test("its one collector config stamps the pin, in the resource processor its pipeline runs", () => {
+    expect(
+      fs
+        .readdirSync(path.join(REPO_ROOT, "agents", "XcpNgAgent"))
+        .filter((name: string): boolean => {
+          return COLLECTOR_CONFIG_FILE.test(name);
+        }),
+    ).toEqual(["otel-collector-config.yaml"]);
+    expect(stampIn(config)).toBe(XCP_NG_AGENT_VERSION);
+    const parsed: {
+      processors: {
+        resource: { attributes: Array<{ key: string; action: string }> };
+      };
+      service: { pipelines: Record<string, { processors: Array<string> }> };
+    } = yaml.load(config) as {
+      processors: {
+        resource: { attributes: Array<{ key: string; action: string }> };
+      };
+      service: { pipelines: Record<string, { processors: Array<string> }> };
+    };
+    expect(
+      parsed.processors.resource.attributes.filter(
+        (attribute: { key: string }): boolean => {
+          return attribute.key === "oneuptime.agent.version";
+        },
+      ),
+    ).toEqual([
+      {
+        key: "oneuptime.agent.version",
+        value: XCP_NG_AGENT_VERSION,
+        action: "upsert",
+      },
+    ]);
+    for (const pipeline of Object.values(parsed.service.pipelines)) {
+      expect(pipeline.processors).toContain("resource");
+    }
+  });
+
+  test("it runs the pinned collector, never :latest, and its kind compares with that pin", () => {
+    const compose: Record<string, unknown> = yaml.load(
+      readRepoFile("agents", "XcpNgAgent", "docker-compose.yml"),
+    ) as Record<string, unknown>;
+    const images: Array<string> = Object.values(
+      compose["services"] as Record<string, { image?: string }>,
+    ).map((service: { image?: string }): string => {
+      return service.image || "";
+    });
+    expect(images).toEqual([
+      `otel/opentelemetry-collector-contrib:${AGENT_KINDS[AgentKind.XcpNgAgent].collectorVersion}`,
+    ]);
+    expect(AGENT_KINDS[AgentKind.XcpNgAgent]).toEqual({
+      name: "OneUptime XCP-ng Agent",
+      latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+      pinnedVersion: XCP_NG_AGENT_VERSION,
+      collectorVersion: XCP_NG_AGENT_VERSION,
+    });
   });
 });
 

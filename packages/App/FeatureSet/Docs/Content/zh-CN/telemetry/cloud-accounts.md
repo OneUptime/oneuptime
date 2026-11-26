@@ -12,6 +12,7 @@
 - [流式传输 Azure Monitor 指标和日志](/docs/telemetry/cloud-streaming-azure): 几分钟内获得关键指标和资源日志，从你订阅中的事件中心读取。
 - [流式传输 Google Cloud 日志](/docs/telemetry/cloud-streaming-google-cloud): 每条日志一写入就通过 Pub/Sub 推送。
 - [数据安全](#数据安全): 该连接让数据安全可以读取什么，以及每个级别会给命令添加什么。
+- [节省操作](#节省操作): 让 OneUptime 执行你所批准节省的最小访问权限。
 - [让 AI 修复问题](#让-ai-修复问题): 再运行一条命令，OneUptime AI 就能修复它发现的问题。
 :::
 
@@ -352,6 +353,26 @@ Compute Engine VM 的内存和磁盘使用率不是 Google Cloud 自己的指标
 - **资源的健康状况。** 每次读取都会保存资源关键指标的最新值并加以判断：资源会显示 **健康**、**性能下降** 或 **不健康**，并附上原因，例如状态检查失败或存储快满，指标停止时会显示 **未上报**。**云 → 概览** 和账户的概览会列出需要关注的内容，最紧急的排在最前。资源页面以其类型所依据的数字开头，例如虚拟机的 CPU、内存、网络和磁盘；上次读取未带回的数字显示为 **未报告**。
 - **推荐的监视器。** 账户的 **建议** 按资源类型列出 OneUptime 为其资源推荐的监视器，以及每个监视器适用的资源和已有多少资源设置了它：可以将其添加到单个资源，或一次添加到同类型的所有资源，侧边菜单会统计仍待设置的数量。资源自己的 **建议** 选项卡会提供它自己的监视器。每个监视器每 5 分钟读取一次连接所读取的关键指标，在 AWS 上读取最近 30 分钟、在 Azure 和 Google Cloud 上读取最近 15 分钟的数据，并关联到其资源。读取间隔更长的连接会为每个监视器设置更长的窗口，足以判断每次读取带来的每个值：每小时读取一次时为最近 2 小时。在间隔更改之前创建的监视器会保留其窗口。计数（例如错误或被限流的请求）会在该时间窗口内汇总，因此[以流式方式传输指标](/docs/telemetry/cloud-streaming)的账户与被读取的账户会以相同方式警报，流式传输的账户会更早警报。ACM 每天发布两次的证书剩余天数每小时读取一次：其监视器读取最近 2 天的数据，在证书剩余 30 天或更少时，或在证书过期、ACM 停止发布时警报。RDS 实例的连接数会与其实例类和引擎连接上限的 90% 进行比较。当[维护事件](/docs/scheduled-maintenance/creating-events)包含某个资源时，其监视器不会创建事件或警报。设置了健康检查的 App Service 应用还会再获得两个推荐，读取最近 30 分钟，因为 Azure Monitor 以五分钟粒度保存其指标：一个针对某个实例未通过健康检查，另一个针对通过的实例不到一半；每个事件都会给出在 Azure Cloud Shell 中运行的命令，指出未通过的实例。
 - **账户的成本。** **云 → 支出 → 成本** 绘制每天的支出及其去向，**云 → 支出 → 节省** 列出减少支出的方法，**云 → 支出 → 预算** 会在某个月的成本超出应有水平之前发出警报：[云成本与节省](/docs/telemetry/cloud-costs)。
+
+## 节省操作
+
+同一个连接还可以让 OneUptime 执行它发现的节省：所有者批准的节省、节省 AI 规则执行的节省，以及非工作时间计划的停止操作（[云成本与节省](/docs/telemetry/cloud-costs#执行节省)）。在 **更多字段** 中，**节省操作** 默认为 **关闭**，直到你另行选择，表单显示的命令也会随之改变：
+
+| 节省操作 | OneUptime 可以更改什么 | 命令会添加什么 |
+| --- | --- | --- |
+| **关闭** | 无：连接只读取。 | 无 |
+| **停止、启动和清理** | 停止和启动实例与数据库，把 gp2 卷改为 gp3，在最终快照后删除未挂载的磁盘并能从中重新创建，删除旧快照或未使用的映像，以及释放未使用的地址 | AWS：角色或用户上的内联策略 `OneUptimeSavingsActions`。Azure：每个订阅上的自定义角色 **OneUptime Savings Actions**。Google Cloud：每个项目上的自定义角色 `oneuptimeSavingsActions`，并开启 Compute Engine API |
+| **停止、启动、清理和调整规格** | 以上全部，以及把实例或数据库调整为推荐的规格（会重启） | 同上，另含调整规格 |
+
+该策略和这些角色只允许以下操作：
+
+| 云 | 停止、启动和清理 | 调整规格 |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+在 AWS 上，只有在创建快照或卷时才允许 `ec2:CreateTags`，用于标明 OneUptime 是为哪项更改创建的。不会有任何东西自行更改：每项更改都要等待所有者批准、节省 AI 规则或计划。要收回访问权限，请把 **节省操作** 设为 **关闭**，并删除该策略或角色；之后请求的更改会失败、说明原因，并且不会更改任何东西。
 
 ## 让 AI 修复问题
 

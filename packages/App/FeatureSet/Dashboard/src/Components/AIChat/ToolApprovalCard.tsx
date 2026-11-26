@@ -18,6 +18,7 @@ import React, {
   useState,
 } from "react";
 import ToolActionSentence, { ToolActionSentences } from "./ToolActionSentence";
+import ToolActionEffects from "./ToolActionEffects";
 import {
   ASK_AI_GUIDED_SETUP_COPY,
   GuidedSetupForPlan,
@@ -31,10 +32,13 @@ import ProductEvents from "Common/UI/Utils/ProductEvents";
 import {
   ActionArgumentOptions,
   ActionArgumentPart,
+  DrawnActionEffects,
   DrawnActionSentence,
   getActionArgumentParts,
   getToolActionDescribedArguments,
   getToolActionDescription,
+  getToolActionEffects,
+  hasToolActionEffects,
   getToolActionLeavesOutLists,
   getToolActionNamedArguments,
   getToolActionReason,
@@ -289,6 +293,11 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
               );
               const description: Array<DrawnActionSentence> =
                 getToolActionDescription(action, translator);
+              // What changes, stops working and costs, and why it asks (#10378).
+              const effects: DrawnActionEffects = getToolActionEffects(
+                action,
+                translator,
+              );
               // What the action names, run together as one paragraph.
               const lineSentences: Array<DrawnActionSentence> =
                 description.filter((sentence: DrawnActionSentence) => {
@@ -407,6 +416,16 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                             </ul>
                           )}
                         </div>
+                      )}
+                      {/*
+                       * What the action does (#10378): what changes, what
+                       * stops working and what it costs, each a section
+                       * only where it applies, and why it asks in every
+                       * mode - read before Allow, in the reader's
+                       * language.
+                       */}
+                      {hasToolActionEffects(effects) && (
+                        <ToolActionEffects effects={effects} />
                       )}
                       {/*
                        * What else it runs with, an argument a line: its

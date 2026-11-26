@@ -16,6 +16,7 @@ import AIService, {
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
   AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
+  AI_DATA_SECURITY_RULE_DRAFT_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogResponse,
@@ -113,6 +114,9 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   },
   get [DataSecurityAiFeature.DescribeDataType](): string {
     return AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftRuleFromSentence](): string {
+    return AI_DATA_SECURITY_RULE_DRAFT_FEATURE;
   },
   get [DataSecurityAiFeature.DraftExposureAssessment](): string {
     return AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE;

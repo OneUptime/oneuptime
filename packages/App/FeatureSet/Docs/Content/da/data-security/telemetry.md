@@ -111,7 +111,7 @@ Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address i
 | Enhver anden datatype, et mønster finder af sig selv, f.eks. et GitHub-token | En regel af typen **Brugerdefineret regex**, lavet ud fra datatypens egne mønstre. En hemmelighed erstattes helt. |
 | En af dine egne datatyper, med et mønster | Det mønster, kun i den attribut, det blev fundet i |
 | En datatype, der kan skelnes ved ordene omkring den, f.eks. et routingnummer | Dens form, kun i den attribut, den blev fundet i |
-| En datatype, der findes ud fra feltets navn, f.eks. en persons navn under `customer_name`, eller en værdi under en nøgle, der nævner en hemmelighed | En regel af typen **Navngivne attributter**, som skjuler hele værdien af den attribut |
+| En datatype, der findes ud fra feltets navn, f.eks. en persons navn under `customer_name` eller under en URL's parameter `full_name`, eller en værdi under en nøgle, der nævner en hemmelighed | En regel af typen **Navngivne attributter**, som skjuler hele værdien af den attribut |
 | En værdi under en nøgle, der ligner noget følsomt, hvor intet smallere skjuler den | En regel af typen **Følsomme attributnøgler**, som erstatter hele værdien af hver sådan attribut |
 | Enhver datatype i en metriks attribut | En metrik-pipelineregel af typen **Redigér attribut bort** for tjenesten, som erstatter de af attributtens værdier, der indeholder datatypen, med `[REDACTED]`. For en IP-adresse, en e-mailadresse eller et kortnummer er dens filter **Matcher mønstertype** med den type, som finder det, en regel for logs eller traces med den **Mønstertype** finder, herunder IPv6-adresser og værdier, der er procentkodede eller i en anden skrift. For en anden datatype er det typens eget mønster, og hvor intet mønster finder datatypen, erstatter reglen hver værdi af attributten |
 
@@ -170,7 +170,7 @@ Før OneUptime AI går i gang, læser Datasikkerhed de poster, hvert læk blev s
 
 - **Et span eller et AI-kald**: filen, linjen og funktionen, som dets attributter `code.*` nævner, og spannets navn.
 - **En undtagelse**: dens egne øverste frames, dem i tjenestens kode.
-- **En loglinje**: filen, linjen og funktionen, som dens attributter nævner, hvis den har dem, dens logger og linjen som skabelon, hvor hver værdi er erstattet af navnet på sin type, f.eks. `User <Email address> signed up`.
+- **En loglinje**: filen, linjen og funktionen, som dens attributter nævner, hvis den har dem, dens logger og linjen som skabelon, hvor hver værdi er erstattet af navnet på sin type, f.eks. `User <Email address> signed up`, og hvert ord, dens poster ikke beviser, at koden skrev, f.eks. en persons navn, af `<value>`: `Payment declined for Maria Gonzalez`, læst fra én post, bliver til `Payment declined for <value>`. Et spans navn og en metriks navn læses på samme måde.
 - **En metrik**: metrikkens navn.
 - **Ethvert læk**: dets attributnøgle, f.eks. `user.email`, som koden som regel skriver, som den er.
 

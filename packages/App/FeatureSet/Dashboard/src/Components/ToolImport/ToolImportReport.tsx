@@ -53,6 +53,8 @@ import {
 import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKind";
 import ToolImportRunStatus from "Common/Types/ToolImport/ToolImportRunStatus";
 import ToolImportSource from "Common/Types/ToolImport/ToolImportSource";
+import { getMobileAppOffer } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -594,6 +596,12 @@ function getOnCallFinishSteps(data: {
   toolTitle: string;
   policies: Array<ToolImportReportRecord>;
   canTestPolicies: boolean;
+  /*
+   * Whether the server offers the mobile app (Admin Dashboard > Settings >
+   * Help and Support, #10945): where it does not, the app is not named as
+   * a way to be paged.
+   */
+  isMobileAppOffered: boolean;
 }): Array<FinishStep> {
   const translator: Translator = data.translator;
   const toolValues: { tool: string } = { tool: data.toolTitle };
@@ -612,9 +620,13 @@ function getOnCallFinishSteps(data: {
     },
     {
       title: translator.translateTemplate("Make sure everyone can be paged"),
-      description: translator.translateTemplate(
-        "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
-      ),
+      description: data.isMobileAppOffered
+        ? translator.translateTemplate(
+            "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
+          )
+        : translator.translateTemplate(
+            "People you invited accept their invitation, then add a phone number or an email address to be paged on.",
+          ),
       link: {
         title: translator.translateTemplate("Open On-Call Readiness"),
         route: RouteUtil.populateRouteParams(
@@ -709,6 +721,8 @@ const FinishTheSwitch: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const toolValues: { tool: string } = { tool: props.toolTitle };
+  const isMobileAppOffered: boolean =
+    getMobileAppOffer(useHelpAndSupport()) !== null;
 
   const steps: Array<FinishStep> =
     props.category === ToolImportCategory.Monitoring
@@ -730,6 +744,7 @@ const FinishTheSwitch: FunctionComponent<{
             ToolImportResourceKind.OnCallPolicy,
           ),
           canTestPolicies: getTestPolicyGate().isAllowed,
+          isMobileAppOffered: isMobileAppOffered,
         });
 
   return (

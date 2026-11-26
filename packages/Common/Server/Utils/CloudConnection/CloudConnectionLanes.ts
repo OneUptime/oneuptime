@@ -40,6 +40,8 @@ import CloudCommitmentAlertEvaluator from "./CloudCommitmentAlertEvaluator";
 import CloudCommitmentWriter, {
   CloudCommitmentWriteResult,
 } from "./CloudCommitmentWriter";
+import CloudSavingsAiEngine from "../CloudSavings/CloudSavingsAiEngine";
+import CloudSavingsBillReader from "../CloudSavings/CloudSavingsBillReader";
 import CloudCostWriter, { CloudCostWriteResult } from "./CloudCostWriter";
 import CloudSavingsWriter, {
   CloudSavingsWriteResult,
@@ -1171,6 +1173,15 @@ export default class CloudConnectionLanes {
       );
     }
 
+    /*
+     * The changes made for savings, read against the bill now read (#11010):
+     * a saving is said realised only once the bill shows it. Never throws.
+     */
+    await CloudSavingsBillReader.measureProject({
+      projectId: data.projectId,
+      now: data.now,
+    });
+
     return { ran: true, warnings, rowsWritten, accountsRead };
   }
 
@@ -1397,6 +1408,27 @@ export default class CloudConnectionLanes {
 
       // Never throws: a project's commitment alerts are checked hourly too.
       await CloudCommitmentAlertEvaluator.evaluateProject(data.projectId);
+
+      /*
+       * OneUptime AI on the savings just kept (#11010): each it could act on
+       * proposed to its resource's owner, made without asking where an AI
+       * rule for savings allows it, or left; a proposal of a saving no
+       * longer made expires. Never throws.
+       */
+      await CloudSavingsAiEngine.evaluateAccounts({
+        projectId: data.projectId,
+        cloudAccountIds: read.accounts
+          .filter((outcome: CloudCostAccountOutcome): boolean => {
+            return outcome.state === CloudCostState.Reading;
+          })
+          .map((outcome: CloudCostAccountOutcome): ObjectID | null => {
+            return rows.get(outcome.accountId.trim().toLowerCase())?.id || null;
+          })
+          .filter((id: ObjectID | null): boolean => {
+            return Boolean(id);
+          }) as Array<ObjectID>,
+        now: data.now,
+      });
 
       data.state.savingsReadAt = data.now.toISOString();
 

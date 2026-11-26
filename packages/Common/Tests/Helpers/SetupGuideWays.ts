@@ -41,6 +41,10 @@ import {
   getProxmoxSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
+  XCP_NG_CONNECT_METHODS,
+  getXcpNgSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
+import {
   OPENSTACK_DEPLOYMENT_TOOLS,
   OpenStackDeploymentTool,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
@@ -364,6 +368,33 @@ export function getProxmoxSetupGuideWays(): Array<SetupGuideWay> {
         hasApiKey: reader.hasApiKey,
         method: option,
         clusterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * The XCP-ng guide (#10995): the install script or Docker Compose, before
+ * and after a key is picked, for a new Xen Orchestra and on a pool's own
+ * Documentation tab - which names the Xen Orchestra the pool is read from,
+ * so the install script's command carries it as XO_NAME. One name a shell
+ * takes as it is, one it has to quote.
+ */
+export function getXcpNgSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: XCP_NG_CONNECT_METHODS,
+    names: ["xo-paris", "Prod XO 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof XCP_NG_CONNECT_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getXcpNgSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        method: option,
+        xenOrchestraName: name,
       });
     },
   });

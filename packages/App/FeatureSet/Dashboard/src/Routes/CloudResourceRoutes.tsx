@@ -52,6 +52,8 @@ import CloudCostSettings from "../Pages/Cloud/Settings/Costs";
 import CloudCostGroups from "../Pages/Cloud/CostGroups";
 import CloudCostViewPage from "../Pages/Cloud/CostView";
 import CloudCostGroupPage from "../Pages/Cloud/CostGroup";
+import CloudSchedules from "../Pages/Cloud/Schedules";
+import CloudSavingsAiRules from "../Pages/Cloud/Settings/SavingsAiRules";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -131,6 +133,26 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudCommitments
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_COMMITMENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SCHEDULES] || ""}
+          element={
+            <CloudSchedules
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SCHEDULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES] || ""}
+          element={
+            <CloudSavingsAiRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES] as Route
+              }
             />
           }
         />

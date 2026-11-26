@@ -16,15 +16,23 @@
 
 import FixSensitiveDataInTelemetryTaskHandler from "../../TaskHandlers/FixSensitiveDataInTelemetryTaskHandler";
 import { SubjectTaskDetails } from "../../Utils/BackendAPI";
+import { buildTelemetryLeakFixRequest } from "Common/Server/Utils/AI/DataSecurity/DataSecurityTelemetryFixPrompt";
+import { readLeakPlaces } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryLeakPlaces";
+import { TelemetrySampleSource } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetrySampleSource";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import { TelemetryLeakFixTaskContext } from "Common/Types/AI/CodeFixTaskContext";
+import DataTypeNamer from "Common/Types/DataSecurity/DataTypeNamer";
 import {
+  TelemetryLeakFixDecision,
   TelemetryLeakFixLeak,
   TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakHandling,
+  TelemetryLeakPlace,
   TelemetryLeakSignal,
+  decideTelemetryLeakFix,
 } from "Common/Types/DataSecurity/TelemetryLeakFix";
+import { buildTelemetryLeakTemplate } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
 import { describe, expect, test } from "@jest/globals";
 
 interface HandlerSeam {
@@ -294,6 +302,84 @@ describe("the pull request", () => {
     expect(body).not.toContain(TEMPLATE);
     expect(body).not.toContain("<Email address>");
     expect(body).not.toContain("src/signup.js:12");
+  });
+
+  /*
+   * #11098: a line read from one record - a person's name in it that no
+   * detector names - placed as the locator places it and written into the
+   * request as the server writes it. The name reaches neither the agent nor
+   * the pull request, even from an agent that quotes every template it was
+   * handed in its summary.
+   */
+  test("a line read from one record with a name in it: the name is in neither the agent's request nor the pull request", () => {
+    const namer: DataTypeNamer = DataTypeNamer.withoutCustomTypes();
+    const places: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.Logs,
+      rows: [
+        {
+          readFile1: "/usr/src/app/src/payments.js",
+          readLine1: "31",
+          readBody:
+            "Payment declined for Ottilie Quarrington (ottilie.q@northwind-mail.com)",
+        },
+      ],
+      location: "body",
+      templateOf: (text: string): string => {
+        return buildTelemetryLeakTemplate(text, {
+          nameOf: (dataTypeId: string): string => {
+            return namer.nameOf(dataTypeId);
+          },
+        });
+      },
+    });
+    const decision: TelemetryLeakFixDecision = decideTelemetryLeakFix([
+      {
+        ...leakOf({
+          signal: TelemetryLeakSignal.Logs,
+          location: "body",
+          key: undefined,
+          places,
+        }),
+      },
+    ]);
+    const context: TelemetryLeakFixTaskContext = fix({
+      leaks: decision.leaks,
+      placeCount: decision.placeCount,
+      strategy: decision.strategy,
+      startFiles: ["src/payments.js"],
+    });
+    const request: string = buildTelemetryLeakFixRequest({
+      serviceName: context.serviceName,
+      strategy: decision.strategy,
+      placeCount: decision.placeCount,
+      leaks: decision.leaks,
+      redactionKeys: decision.redactionKeys,
+      redactionDataTypes: decision.redactionDataTypes,
+      startFiles: context.startFiles,
+    }).text;
+    const prompt: string = handler.buildPrompt(
+      details({ ...context, request }),
+      null,
+    );
+    // An agent that quotes every template it was handed, against its instructions.
+    const quoted: string = decision.leaks
+      .flatMap((leak: TelemetryLeakFixLeak): Array<string> => {
+        return leak.places.map((place: TelemetryLeakPlace): string => {
+          return place.template || "";
+        });
+      })
+      .join("\n");
+    const body: string = handler.buildPullRequestBody(
+      details({ ...context, request }),
+      `Masked the value at ${quoted}`,
+    );
+
+    expect(quoted).toContain("Payment declined for <value>");
+    expect(prompt).toContain("Payment declined for <value>");
+
+    for (const sent of [request, prompt, body]) {
+      expect(sent).not.toMatch(/ottilie|quarrington/i);
+    }
   });
 
   test("a secret is to be rotated, said on the pull request", () => {

@@ -21,6 +21,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import XcpNgPool from "./XcpNgPool";
 import OpenStackCloud from "./OpenStackCloud";
 import VMwareVCenter from "./VMwareVCenter";
 import IoTFleet from "./IoTFleet";
@@ -1078,6 +1079,60 @@ export default class Alert extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: XcpNgPool,
+    title: "XCP-ng Pools",
+    description: "List of XCP-ng pools affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return XcpNgPool;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertXcpNgPool",
+    inverseJoinColumn: {
+      name: "xcpNgPoolId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public xcpNgPools?: Array<XcpNgPool> = undefined;
 
   @ColumnAccessControl({
     create: [

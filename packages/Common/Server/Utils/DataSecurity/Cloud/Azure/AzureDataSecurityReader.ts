@@ -18,6 +18,11 @@ import AzureCloudConnector, {
   explainExpiredAzureSecret,
 } from "../../../CloudConnection/Azure/AzureCloudConnector";
 import {
+  KqlText,
+  kql,
+  kqlLines,
+} from "../../../CloudConnection/Azure/AzureKql";
+import {
   Settled,
   mapWithConcurrency,
 } from "../../../CloudConnection/CloudConcurrency";
@@ -150,41 +155,40 @@ const GEO_REDUNDANT_SKUS: ReadonlySet<string> = new Set<string>([
 /*
  * The query. Each field is projected by name, so the listing holds the
  * settings read and nothing else; the system database of every SQL server
- * (master) is no store of anyone's.
+ * (master) is no store of anyone's. Each type is a literal of its own
+ * (AzureKql).
  */
-export const AZURE_DATA_SECURITY_QUERY: string = [
-  "Resources",
-  `| where type in~ (${AZURE_DATA_SECURITY_TYPES.map((type: string): string => {
-    return `'${type}'`;
-  }).join(", ")})`,
-  "| where not(type =~ 'microsoft.sql/servers/databases' and name =~ 'master')",
-  "| project id, name, type, location, resourceGroup, subscriptionId, tenantId, tags, kind,",
-  "  skuName = tostring(sku.name),",
-  "  publicNetworkAccess = tostring(properties.publicNetworkAccess),",
-  "  serverPublicNetworkAccess = tostring(properties.network.publicNetworkAccess),",
-  "  allowBlobPublicAccess = properties.allowBlobPublicAccess,",
-  "  allowSharedKeyAccess = properties.allowSharedKeyAccess,",
-  "  supportsHttpsTrafficOnly = properties.supportsHttpsTrafficOnly,",
-  "  minimumTlsVersion = tostring(properties.minimumTlsVersion),",
-  "  minimalTlsVersion = tostring(properties.minimalTlsVersion),",
-  "  networkAcls = properties.networkAcls,",
-  "  encryptionKeySource = tostring(properties.encryption.keySource),",
-  "  blobEncryptionEnabled = properties.encryption.services.blob.enabled,",
-  "  secondaryLocation = tostring(properties.secondaryLocation),",
-  "  privateEndpointConnections = properties.privateEndpointConnections,",
-  "  administratorLogin = tostring(properties.administratorLogin),",
-  "  administrators = properties.administrators,",
-  "  passwordAuth = tostring(properties.authConfig.passwordAuth),",
-  "  ipRules = properties.ipRules,",
-  "  isVirtualNetworkFilterEnabled = properties.isVirtualNetworkFilterEnabled,",
-  "  disableLocalAuth = properties.disableLocalAuth,",
-  "  capabilities = properties.capabilities,",
-  "  backupPolicy = properties.backupPolicy,",
-  "  locations = properties.locations,",
-  "  keyVaultKeyUri = tostring(properties.keyVaultKeyUri),",
-  "  backupRetentionDays = properties.backup.backupRetentionDays,",
-  "  dataEncryptionType = tostring(properties.dataEncryption.type)",
-].join("\n");
+export const AZURE_DATA_SECURITY_QUERY: KqlText = kqlLines([
+  kql`Resources`,
+  kql`| where type in~ (${AZURE_DATA_SECURITY_TYPES})`,
+  kql`| where not(type =~ ${SQL_DATABASE_TYPE} and name =~ 'master')`,
+  kql`| project id, name, type, location, resourceGroup, subscriptionId, tenantId, tags, kind,`,
+  kql`  skuName = tostring(sku.name),`,
+  kql`  publicNetworkAccess = tostring(properties.publicNetworkAccess),`,
+  kql`  serverPublicNetworkAccess = tostring(properties.network.publicNetworkAccess),`,
+  kql`  allowBlobPublicAccess = properties.allowBlobPublicAccess,`,
+  kql`  allowSharedKeyAccess = properties.allowSharedKeyAccess,`,
+  kql`  supportsHttpsTrafficOnly = properties.supportsHttpsTrafficOnly,`,
+  kql`  minimumTlsVersion = tostring(properties.minimumTlsVersion),`,
+  kql`  minimalTlsVersion = tostring(properties.minimalTlsVersion),`,
+  kql`  networkAcls = properties.networkAcls,`,
+  kql`  encryptionKeySource = tostring(properties.encryption.keySource),`,
+  kql`  blobEncryptionEnabled = properties.encryption.services.blob.enabled,`,
+  kql`  secondaryLocation = tostring(properties.secondaryLocation),`,
+  kql`  privateEndpointConnections = properties.privateEndpointConnections,`,
+  kql`  administratorLogin = tostring(properties.administratorLogin),`,
+  kql`  administrators = properties.administrators,`,
+  kql`  passwordAuth = tostring(properties.authConfig.passwordAuth),`,
+  kql`  ipRules = properties.ipRules,`,
+  kql`  isVirtualNetworkFilterEnabled = properties.isVirtualNetworkFilterEnabled,`,
+  kql`  disableLocalAuth = properties.disableLocalAuth,`,
+  kql`  capabilities = properties.capabilities,`,
+  kql`  backupPolicy = properties.backupPolicy,`,
+  kql`  locations = properties.locations,`,
+  kql`  keyVaultKeyUri = tostring(properties.keyVaultKeyUri),`,
+  kql`  backupRetentionDays = properties.backup.backupRetentionDays,`,
+  kql`  dataEncryptionType = tostring(properties.dataEncryption.type)`,
+]);
 
 /*
  * The built-in roles that reach a store's data, by their ids - the same in

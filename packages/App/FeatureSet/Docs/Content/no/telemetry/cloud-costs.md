@@ -1,6 +1,6 @@
 # Skykostnader og besparelser
 
-En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet mindre. OneUptime leser kostnadene for hver dag fra skyens egen fakturering og anbefalingene fra skyens egen anbefalingstjeneste, viser dem under **Sky → Forbruk → Kostnader** og **Sky → Forbruk → Besparelser**, viser Savings Plans, reservasjoner og rabatter for forpliktet bruk under **Sky → Forbruk → Forpliktelser**, og varsler før en måned koster mer enn budsjettet under **Sky → Forbruk → Budsjetter**.
+En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet mindre. OneUptime leser kostnadene for hver dag fra skyens egen fakturering og anbefalingene fra skyens egen anbefalingstjeneste, viser dem under **Sky → Forbruk → Kostnader** og **Sky → Forbruk → Besparelser**, viser Savings Plans, reservasjoner og rabatter for forpliktet bruk under **Sky → Forbruk → Forpliktelser**, og varsler før en måned koster mer enn budsjettet under **Sky → Forbruk → Budsjetter**. Når du tillater det, gjennomfører den også besparelsene en eier godkjenner, stopper ressurser som ikke er produksjon, utenfor arbeidstid, og kontrollerer hver endring mot regningen.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer og Cost Optimization Hub, hver slått på én gang.
@@ -8,6 +8,9 @@ En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet min
 - [Google Cloud](#google-cloud): Fakturaeksporten din til BigQuery, og Recommender.
 - [Fakturert, amortisert og netto](#fakturert-amortisert-og-netto): Hver kostnad på tre måter, så forpliktelser og kreditter havner der pengene gikk.
 - [Forpliktelser og fornyelser](#forpliktelser-og-fornyelser): Hver forpliktelse, varsler før en utløper eller mens den er underutnyttet, og hva som skal fornyes eller kjøpes.
+- [Gjennomfør besparelser](#gjennomfør-besparelser): Bruk en besparelse med eierens godkjenning, og angre den.
+- [Tidsplaner utenfor arbeidstid](#tidsplaner-utenfor-arbeidstid): Stopp ressurser som ikke er produksjon, om natten og i helgene.
+- [AI-regler for besparelser](#ai-regler-for-besparelser): Forslag til eiere, eller endringer innenfor en grense.
 - [Budsjetter](#budsjetter): Et varsel når forbruket i en måned passerer en andel av budsjettet.
 :::
 
@@ -114,7 +117,7 @@ Kostnader som ble lest før de tre ble lagret, viser det fakturerte beløpet på
 
 ## Måter å bruke mindre på
 
-**Sky → Forbruk → Besparelser** lister hver anbefaling, den største besparelsen først: hva som skal gjøres, ved hvilken ressurs, hva som ville endret seg og hva den sparer i måneden. Stripen over legger dem sammen, totalt og etter type: en mindre størrelse, en ressurs som står ubrukt, en forpliktelse. En anbefaling lenker til siden til ressursen sin når OneUptime har ressursen.
+**Sky → Forbruk → Besparelser** lister hver anbefaling, den største besparelsen først: hva som skal gjøres, ved hvilken ressurs, hva som ville endret seg og hva den sparer i måneden. Stripen over legger dem sammen, totalt og etter type: en mindre størrelse, en ressurs som står ubrukt, en forpliktelse. En anbefaling lenker til siden til ressursen sin når OneUptime har ressursen, og en som OneUptime kan gjennomføre, har **Bruk**: se [Gjennomfør besparelser](#gjennomfør-besparelser).
 
 ### Størrelsestilpasning ut fra OneUptimes egne målinger
 
@@ -165,6 +168,62 @@ Forpliktelser lager varsler som tilkaller via vaktpolicyer som ethvert varsel. U
 
 **Varsle om forpliktelser** slår dem alle av, og **Varselsalvor**, **Vaktpolicyer** og **Eiere** sier hvor alvorlige de er, hvem som tilkalles og hvem som eier dem. Hvert varsel sier hva forpliktelsen dekker og hva den betalte for, og viser til fornyelsesplanen. Et varsel løses av seg selv når forpliktelsen utløper, fornyes eller ikke lenger vises.
 
+## Gjennomfør besparelser
+
+OneUptime gjennomfører en besparelse gjennom kontoens skytilkobling så snart innstillingen **Besparelseshandlinger** tillater det: [Besparelseshandlinger](/docs/telemetry/cloud-accounts#besparelseshandlinger) sier hva hvert valg gir tilgang til. Den gjør bare endringer i ett trinn: Den stopper en ubrukt instans eller database, endrer et gp2-volum til gp3, sletter en disk som ikke er koblet til, et gammelt øyeblikksbilde eller et ubrukt image, frigir en ubrukt adresse og endrer, når du tillater det, størrelsen på en instans eller database til den anbefalte. Den kjøper aldri en forpliktelse: **Kjøp i konsollen** åpner skyens side for det.
+
+:::steps
+### Velg Bruk
+
+Under **Sky → Forbruk → Besparelser** velger du **Bruk** ved en besparelse. Dialogen sier hva som endres, hva den sparer i måneden, hvordan den angres eller at den ikke kan det, og hvem som godkjenner den.
+
+### En eier godkjenner den
+
+En person som er angitt som eier av ressursen, eller et medlem av et team som eier den, og som også kan redigere den, godkjenner endringen. En ressurs uten eier godkjennes av en Prosjekteier eller Prosjektadministrator. Når du selv kan godkjenne den, gjennomfører **Bruk** den med en gang, som deg. Ellers venter den under **Venter på godkjenning** til en eier velger **Godkjenn**, eller **Skjul** med en årsak.
+
+### OneUptime gjennomfører den
+
+Endringen gjøres gjennom tilkoblingen og står på ressursens og kontoens tidslinjer, med hvem som godkjente den. Av en slettet disk tas først et siste øyeblikksbilde, med mindre du slår av **Ta et siste øyeblikksbilde først**.
+:::
+
+Hver endring sier hvordan den angres: **Angre** under **Gjennomførte endringer** starter en stoppet instans igjen, setter et volum eller en størrelse tilbake, eller gjenoppretter en slettet disk fra det siste øyeblikksbildet. Det som sletter for godt, som et øyeblikksbilde, et image eller en frigitt adresse, kan ikke angres, og dialogen sier det før du bruker det. Der prosjektet krever to godkjenninger med **Krev to godkjenninger for mer risikable rettinger**, krever en endring som ikke kan angres, to personer.
+
+En ressurs der taggene sier at den administreres som kode, for eksempel av Terraform eller CloudFormation, endres i stedet i koden sin: Dialogen tilbyr **Åpne pull-forespørsel** til repositoriet som deklarerer den, så neste apply ikke tar besparelsen tilbake.
+
+### Bevist av regningen
+
+**Spart denne måneden** teller bare det skyens regning viser. Så snart tre dager etter en endring har satt seg på regningen, sammenlignes ressursens kostnad per dag med uken før endringen: Den er **Synlig på regningen** når kostnaden har falt med minst en fjerdedel av det som ble lovet, **Ikke synlig på regningen** når den ikke har det, og **Kan ikke måles** når skyen ikke fakturerer ressursen etter navn. **Regningen kontrolleres** teller endringene som fortsatt venter på de dagene.
+
+## Tidsplaner utenfor arbeidstid
+
+Under **Sky → Forbruk → Tidsplaner** stopper en tidsplan instanser og databaser som ikke er produksjon, utenfor arbeidstid, og starter dem igjen:
+
+:::steps
+### Velg ressursene
+
+Angi skytaggen som velger dem, for eksempel `Schedule` = `office-hours`, i én konto eller i alle.
+
+### Si når de kjører
+
+Velg arbeidsdagene, tidspunktet de starter og tidspunktet de stopper, i 24-timersformat, og tidssonen.
+:::
+
+Når arbeidstiden slutter, stopper en tidsplan gjennom kontoens tilkobling hver kjørende ressurs som taggen velger, og som er kjent for ikke å være produksjon, og når den begynner, starter den bare det den selv stoppet: En ressurs som noen stoppet manuelt, forblir stoppet. **Se ressurser** viser hva en tidsplan velger nå, og hvorfor den lar noen kjøre. Den stopper EC2-instanser og RDS-databaser på AWS, virtuelle maskiner på Azure og Compute Engine-instanser på Google Cloud. AWS starter selv en database som har vært stoppet i sju dager, igjen.
+
+En tidsplan stopper aldri produksjon, og aldri en ressurs der ingenting sier hvilket miljø den er i. En ressurs er kjent for ikke å være produksjon når:
+
+- en av taggene sier det, under en nøkkel som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med et ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
+- kontoen er merket som **Ikke-produksjon** under **Miljø** i kontoens **Innstillinger**;
+- eller en av etikettene sier det, for eksempel `Staging` eller `env: dev`.
+
+Produksjon vinner: En tagg som sier `prod`, `production` eller `live`, eller en konto merket som **Produksjon**, holder en ressurs kjørende uansett hva annet sier. Navnet på en ressurs leses aldri for dette. Slår du av en tidsplan, stopper den ingenting mer og starter det den stoppet når arbeidstiden begynner; sletter du den, startes det den stoppet, med en gang.
+
+## AI-regler for besparelser
+
+Med **Aktiver AI** slått på foreslår OneUptime AI etter hver lesing av kontoens besparelser hver besparelse den kan gjennomføre, for ressursens eiere, og de godkjenner eller avviser den under **Venter på godkjenning**. Under **Sky → Innstillinger → AI-regler for besparelser** sier en regel hva OneUptime AI gjør med besparelsene den passer på, etter type endring, ressursens miljø og skyen: **Av**, **Foreslå for eieren** eller **Handle uten å spørre**, opp til en månedlig grense. Uten regel foreslås hver besparelse, og ingen gjennomføres; med regler bare det en regel passer på, og mellom regler som passer, vinner den mest forsiktige.
+
+En regel handler bare uten å spørre på en ressurs som er kjent for ikke å være produksjon, bare for en endring som kan angres, bare opp til den laveste grensen blant reglene som passer, og høyst 10 ganger i timen i et prosjekt: Alt annet foreslås. En endring gjort uten å spørre står på tidslinjene med regelen som gjorde den, og eierne kan angre den. En avvist eller angret besparelse foreslås ikke igjen på 30 dager.
+
 ## Budsjetter
 
 :::steps
@@ -204,6 +263,7 @@ Under listen sier kortet hva resten utgjorde: det som ikke er i noe miljø, det 
 - **Hver forpliktelse.** **Sky → Forbruk → Forpliktelser** viser hver med når den utløper og hvor mye av den som brukes, dem som snart utløper med hva som skal fornyes, og hva som skal kjøpes.
 - **Kostnadene til en konto.** **Kostnader** for en konto viser det samme for kontoen alene, med forpliktelsene og måtene den kan bruke mindre på.
 - **Kostnaden til en ressurs.** Siden til en ressurs viser hva den har kostet denne måneden og de siste 30 dagene når skyen fakturerer den ved navn, med måtene den kan bruke mindre på og størrelsestilpasningen sin.
+- **Hva som ble spart.** **Sky → Forbruk → Besparelser** åpner med hva de gjennomførte endringene har spart denne måneden ifølge regningen, endringene som venter på godkjenning, og de gjennomførte, og timene tidsplaner har stoppet ressurser.
 
 ## Feilsøking
 
@@ -237,6 +297,14 @@ En forpliktelse som fornyer seg selv, eller der en fornyelse står i kø for å 
 
 :::details Beløpene utelater en konto
 Beløpene er i valutaen de fleste kontoene dine faktureres i. En konto som faktureres i en annen, er listet under med valutaen sin, og et budsjett teller bare kontoene som faktureres i budsjettets egen.
+:::
+
+:::details En besparelse har ingen Bruk
+OneUptime gjør bare endringer i ett trinn: En forpliktelse, eller en anbefaling som endrer mer enn én ting, gjøres i skyens konsoll. Bruk åpner en dialog som sier hvorfor den ikke kan gjøres herfra når kontoens tilkobling ikke tillater det: Slå på **Besparelseshandlinger** for den, og kjør oppsettkommandoen på nytt.
+:::
+
+:::details En tidsplan lar en ressurs kjøre
+**Se ressurser** sier hvorfor: Den er produksjon, ingenting sier at den ikke er produksjon, eller kontoens tilkobling tillater ikke besparelseshandlinger. Tagg den, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
 :::
 
 :::details Denne måneden er lavere enn i skyens konsoll

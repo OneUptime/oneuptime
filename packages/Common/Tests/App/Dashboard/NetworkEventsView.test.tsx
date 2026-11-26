@@ -1280,6 +1280,109 @@ describe("what a device said, word for word", () => {
     expect(
       within(panel).getByTestId("network-event-details-message"),
     ).toHaveTextContent("SNMP trap 1.3.6.1.6.3.1.1.5.3 (linkDown)");
+    // v1 and v2c name no user and no security of their own (#11005).
+    expect(panel).not.toHaveTextContent("SNMPv3 user");
+    expect(panel).not.toHaveTextContent("Security");
+  });
+
+  // What arrived, as v1 and v2c say their version (#11005).
+  test("an SNMPv3 trap says so, with the user it came as and how it was secured", async () => {
+    store = [];
+    put(
+      1,
+      {
+        ...TRAP_LINK_DOWN,
+        "snmpTrap.version": "3",
+        "snmpTrap.securityName": "san-monitor",
+        "snmpTrap.securityLevel": "authPriv",
+        "snmpTrap.engineId": "80001F888053414E2D53572D3031",
+      },
+      "SNMPv3 trap 1.3.6.1.6.3.1.1.5.3 (linkDown) received from 10.0.0.2",
+    );
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("interface.down");
+    const facts: Array<string> = within(panel)
+      .getAllByTestId("network-event-fact")
+      .map((fact: HTMLElement): string => {
+        return fact.textContent || "";
+      });
+
+    expect(facts).toContain("Reported asSNMPv3 trap");
+    expect(facts).toContain("SNMPv3 usersan-monitor");
+    expect(facts).toContain("SecurityAuthenticated and encrypted");
+  });
+
+  test.each([
+    [
+      "3",
+      "authNoPriv",
+      "Reported asSNMPv3 inform",
+      "Authenticated, not encrypted",
+    ],
+    ["2c", undefined, "Reported asSNMP inform", undefined],
+  ])(
+    "an SNMP v%s inform is told from a trap",
+    async (
+      version: string,
+      securityLevel: string | undefined,
+      reportedAs: string,
+      security: string | undefined,
+    ) => {
+      store = [];
+      put(
+        1,
+        {
+          ...TRAP_LINK_DOWN,
+          "snmpTrap.version": version,
+          "snmpTrap.isInform": "true",
+          ...(securityLevel
+            ? {
+                "snmpTrap.securityName": "san-monitor",
+                "snmpTrap.securityLevel": securityLevel,
+              }
+            : {}),
+        },
+        "SNMP inform 1.3.6.1.6.3.1.1.5.3 (linkDown)",
+      );
+      await renderView(NETWORK);
+
+      const panel: HTMLElement = await open("interface.down");
+      const facts: Array<string> = within(panel)
+        .getAllByTestId("network-event-fact")
+        .map((fact: HTMLElement): string => {
+          return fact.textContent || "";
+        });
+
+      expect(facts).toContain(reportedAs);
+
+      if (security) {
+        expect(facts).toContain(`Security${security}`);
+      } else {
+        expect(panel).not.toHaveTextContent("Security");
+      }
+    },
+  );
+
+  // A user name the history could not show (empty, or not text) is left out, not drawn blank.
+  test("an SNMPv3 trap whose user name the history does not hold leaves the user out", async () => {
+    store = [];
+    put(
+      1,
+      {
+        ...TRAP_LINK_DOWN,
+        "snmpTrap.version": "3",
+        "snmpTrap.securityLevel": "noAuthNoPriv",
+      },
+      "SNMPv3 trap 1.3.6.1.6.3.1.1.5.3 (linkDown)",
+    );
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("interface.down");
+
+    expect(panel).toHaveTextContent("Reported asSNMPv3 trap");
+    expect(panel).not.toHaveTextContent("SNMPv3 user");
+    expect(panel).toHaveTextContent("SecurityNot authenticated");
   });
 
   test("an event that names more than its subject lists the rest too", async () => {

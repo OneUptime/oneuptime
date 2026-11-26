@@ -85,13 +85,20 @@ describe("the Cloud product menu", () => {
       { title: "Cost Groups", href: `${CLOUD}/cost-groups` },
       { title: "Savings", href: `${CLOUD}/savings` },
       { title: "Commitments", href: `${CLOUD}/commitments` },
+      // Non-production resources stopped outside working hours (#11010).
+      { title: "Schedules", href: `${CLOUD}/schedules` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
     ]);
-    // The cost basis the pages open on, and when commitments alert, last.
+    // The rules, then the cost basis the pages open on and when commitments alert.
     expect(linksIn("Settings")).toEqual([
       { title: "Owner Rules", href: `${CLOUD}/settings/owner-rules` },
       { title: "Label Rules", href: `${CLOUD}/settings/label-rules` },
       { title: "Cost Settings", href: `${CLOUD}/settings/costs` },
+      // What OneUptime AI may do with a saving on its own (#11010).
+      {
+        title: "Savings AI Rules",
+        href: `${CLOUD}/settings/savings-ai-rules`,
+      },
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Archived", href: `${CLOUD}/archived` },

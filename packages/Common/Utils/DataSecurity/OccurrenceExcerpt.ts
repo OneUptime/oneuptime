@@ -7,6 +7,7 @@ import BUILT_IN_DETECTORS, { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { getHintedDataTypeIds } from "./FieldNameHints";
 import { maskModelFoundValue, maskValue } from "./Masking";
 import { RecognizedEntity } from "./Model/RecognizedEntity";
+import { QUERY_NAME_DATA_TYPE_ID } from "./QueryStringNames";
 import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
 
 /*
@@ -273,9 +274,13 @@ export function buildOccurrenceExcerpt(data: {
     },
   );
 
+  // A person's name: one a URL's query parameter names too (#11034).
+  const readsQueryStringNames: boolean =
+    data.dataTypeId === QUERY_NAME_DATA_TYPE_ID;
+
   // The finding's own data, found as the scan found it.
   const own: Array<MarkedMatch> =
-    ownDetectors.length > 0 || ownRecognized.length > 0
+    ownDetectors.length > 0 || ownRecognized.length > 0 || readsQueryStringNames
       ? findSensitiveValues(
           value,
           {
@@ -283,6 +288,7 @@ export function buildOccurrenceExcerpt(data: {
             hintedDataTypeIds: hinted,
             disabledDataTypeIds: options.disabledDataTypeIds,
             allowedValues: options.allowedValues,
+            readsQueryStringNames,
           },
           ownRecognized,
         )

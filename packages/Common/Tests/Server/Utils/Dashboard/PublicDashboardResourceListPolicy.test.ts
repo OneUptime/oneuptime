@@ -516,6 +516,55 @@ const MAPPING_CASES: Array<MappingCase> = [
     expectedLimit: 25,
   },
   {
+    name: "xcp-ng host, disabled ones",
+    componentType: DashboardComponentType.XcpNgHostList,
+    resourceType: "xcp-ng-resource",
+    argumentsObject: {
+      xcpNgPoolIds: ["pool"],
+      statusFilter: "disabled",
+    },
+    expectedQuery: {
+      kind: "Host",
+      xcpNgPoolId: new Includes(["pool"]),
+      isEnabled: false,
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
+    name: "xcp-ng host, not running ones",
+    componentType: DashboardComponentType.XcpNgHostList,
+    resourceType: "xcp-ng-resource",
+    argumentsObject: {
+      xcpNgPoolIds: ["pool"],
+      statusFilter: "not-running",
+    },
+    expectedQuery: {
+      kind: "Host",
+      xcpNgPoolId: new Includes(["pool"]),
+      isUp: false,
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
+    name: "xcp-ng VM, never a control domain",
+    componentType: DashboardComponentType.XcpNgVmList,
+    resourceType: "xcp-ng-resource",
+    argumentsObject: {
+      xcpNgPoolIds: ["pool"],
+      statusFilter: "running",
+    },
+    expectedQuery: {
+      kind: "VM",
+      isControlDomain: false,
+      xcpNgPoolId: new Includes(["pool"]),
+      isUp: true,
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
     name: "vmware virtual machine templates only, powered off",
     componentType: DashboardComponentType.VMwareVirtualMachineList,
     resourceType: "vmware-resource",
@@ -737,6 +786,17 @@ describe("PublicDashboardResourceListPolicy", () => {
       const vmwareVirtualMachine: JSONObject = build({
         componentType: DashboardComponentType.VMwareVirtualMachineList,
       }).select;
+      const xcpNgHost: JSONObject = build({
+        componentType: DashboardComponentType.XcpNgHostList,
+      }).select;
+      const xcpNgVm: JSONObject = build({
+        componentType: DashboardComponentType.XcpNgVmList,
+      }).select;
+
+      expect(xcpNgHost["isEnabled"]).toBe(true);
+      expect(xcpNgHost["parentHostName"]).toBeUndefined();
+      expect(xcpNgVm["parentHostName"]).toBe(true);
+      expect(xcpNgVm["isEnabled"]).toBeUndefined();
 
       expect(vmwareHost["cpuCapacityMhz"]).toBe(true);
       expect(vmwareHost["maxMemoryBytes"]).toBe(true);

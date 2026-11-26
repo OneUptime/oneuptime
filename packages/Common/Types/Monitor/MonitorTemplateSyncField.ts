@@ -224,6 +224,11 @@ export default class MonitorTemplateSyncFieldUtil {
         "cloudIdentifier",
         translationKey("OpenStack cloud"),
       ],
+      [MonitorType.XcpNg]: [
+        "xcpNgMonitor",
+        "poolIdentifier",
+        translationKey("XCP-ng pool"),
+      ],
       [MonitorType.DockerSwarm]: [
         "dockerSwarmMonitor",
         "clusterIdentifier",

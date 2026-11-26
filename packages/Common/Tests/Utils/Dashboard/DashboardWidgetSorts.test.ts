@@ -72,6 +72,7 @@ import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import PodmanResource from "../../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import VMwareResource from "../../../Models/DatabaseModels/VMwareResource";
+import XcpNgResource from "../../../Models/DatabaseModels/XcpNgResource";
 import CephResource from "../../../Models/DatabaseModels/CephResource";
 import StorageArrayResource from "../../../Models/DatabaseModels/StorageArrayResource";
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
@@ -266,6 +267,14 @@ const WIDGETS: Array<{
     {
       componentType: DashboardComponentType.VMwareVirtualMachineList,
       model: VMwareResource,
+    },
+    {
+      componentType: DashboardComponentType.XcpNgHostList,
+      model: XcpNgResource,
+    },
+    {
+      componentType: DashboardComponentType.XcpNgVmList,
+      model: XcpNgResource,
     },
     {
       componentType: DashboardComponentType.CephPoolList,
@@ -686,6 +695,7 @@ describe("status and severity sort by what they mean, worst first", () => {
     [DashboardComponentType.ProxmoxNodeList, "status", "isUp"],
     [DashboardComponentType.ProxmoxGuestList, "status", "isUp"],
     [DashboardComponentType.VMwareVirtualMachineList, "power", "isPoweredOn"],
+    [DashboardComponentType.XcpNgVmList, "status", "isUp"],
     [DashboardComponentType.DockerSwarmNodeList, "status", "isReady"],
     [DashboardComponentType.DockerSwarmServiceList, "status", "isReady"],
   ])(
@@ -1253,6 +1263,83 @@ describe("a status written as a word is read rank by rank", () => {
     for (const step of steps) {
       expect(step.sort).toEqual({ externalId: SortOrder.Ascending });
     }
+  });
+
+  test("XCP-ng hosts worst first: not running, running but disabled, running, then those missing a state", () => {
+    const steps: Array<DashboardWidgetListReadStep> =
+      getDashboardWidgetListReadSteps({
+        componentType: DashboardComponentType.XcpNgHostList,
+        choice: choice("status", DESC),
+        query: { projectId: "p", kind: "Host" },
+      });
+
+    expect(
+      steps.map((step: DashboardWidgetListReadStep) => {
+        return [step.query["isUp"], step.query["isEnabled"]];
+      }),
+    ).toEqual([
+      [false, undefined],
+      [true, false],
+      [true, true],
+      [expect.any(IsNull), undefined],
+      [true, expect.any(IsNull)],
+    ]);
+
+    // Rows a rank ties on keep the list's own order: by name.
+    for (const step of steps) {
+      expect(step.query["kind"]).toBe("Host");
+      expect(step.sort).toEqual({ name: SortOrder.Ascending });
+    }
+  });
+
+  test("XCP-ng hosts best first: running first, not running last, those missing a state still last", () => {
+    expect(
+      getDashboardWidgetListReadSteps({
+        componentType: DashboardComponentType.XcpNgHostList,
+        choice: choice("status", ASC),
+        query: { projectId: "p", kind: "Host" },
+      }).map((step: DashboardWidgetListReadStep) => {
+        return [step.query["isUp"], step.query["isEnabled"]];
+      }),
+    ).toEqual([
+      [true, true],
+      [true, false],
+      [false, undefined],
+      [expect.any(IsNull), undefined],
+      [true, expect.any(IsNull)],
+    ]);
+  });
+
+  test("XCP-ng hosts kept to the disabled ones read only the ranks a disabled host can be in", () => {
+    expect(
+      getDashboardWidgetListReadSteps({
+        componentType: DashboardComponentType.XcpNgHostList,
+        choice: choice("status", DESC),
+        query: { projectId: "p", kind: "Host", isEnabled: false },
+      }).map((step: DashboardWidgetListReadStep) => {
+        return [step.query["isUp"], step.query["isEnabled"]];
+      }),
+    ).toEqual([
+      [false, false],
+      [true, false],
+      [expect.any(IsNull), false],
+    ]);
+  });
+
+  test("XCP-ng hosts kept to the running ones read only the ranks a running host can be in", () => {
+    expect(
+      getDashboardWidgetListReadSteps({
+        componentType: DashboardComponentType.XcpNgHostList,
+        choice: choice("status", DESC),
+        query: { projectId: "p", kind: "Host", isUp: true },
+      }).map((step: DashboardWidgetListReadStep) => {
+        return [step.query["isUp"], step.query["isEnabled"]];
+      }),
+    ).toEqual([
+      [true, false],
+      [true, true],
+      [true, expect.any(IsNull)],
+    ]);
   });
 
   test("Ceph OSDs kept to the down ones read only the ranks a down OSD can be in", () => {

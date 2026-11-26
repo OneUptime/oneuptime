@@ -57,6 +57,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
       MonitorType.StorageArray,
     ])("returns true for %s", (monitorType: MonitorType) => {

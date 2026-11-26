@@ -77,6 +77,7 @@ import PodmanMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Comp
 import ProxmoxMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMonitorStepForm";
 import StorageArrayMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
+import XcpNgMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMonitorStepForm";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import Dictionary from "../../../Types/Dictionary";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
@@ -100,6 +101,9 @@ import MonitorStepProxmoxMonitor, {
 } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import { MonitorStepVMwareMonitorUtil } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepXcpNgMonitor, {
+  MonitorStepXcpNgMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorStepMetricQueries, {
   MetricMonitorStepSettings,
@@ -107,6 +111,10 @@ import MonitorStepMetricQueries, {
 
 // A query of someone's own, with a filter of its own.
 const OWN_FILTER: Dictionary<unknown> = { "own.key": "kept" };
+
+// Two XCP-ng pools, by the XAPI UUIDs their telemetry carries.
+const XCP_NG_POOL: string = "6b3e4a1c-2f9d-4e8b-a7c5-0d1e2f3a4b5c";
+const XCP_NG_OTHER_POOL: string = "8d2f6a0e-3b4c-4d5e-9f60-718293a4b5c6";
 
 const QUERY: MetricQueryConfigData = {
   metricAliasData: {
@@ -394,6 +402,39 @@ const FORM_CASES: Array<FormCase> = [
       return (
         <VMwareMonitorStepForm
           monitorStepVMwareMonitor={settings as never}
+          onChange={onChange as never}
+        />
+      );
+    },
+  },
+  {
+    name: "XCP-ng",
+    monitorType: MonitorType.XcpNg,
+    settings: {
+      ...MonitorStepXcpNgMonitorUtil.getDefault(),
+      // A pool is watched by its XAPI UUID, never its name.
+      poolIdentifier: XCP_NG_POOL,
+      resourceFilters: { scope: "host", hostName: "xcp-host-01" },
+      metricViewConfig: VIEW,
+    } as Settings,
+    charted: {
+      ...OWN_FILTER,
+      "resource.xcp_ng.pool.id": XCP_NG_POOL,
+      "xcp_ng.scope": "host",
+      host_name: "xcp-host-01",
+    },
+    elsewhere: (settings: Settings): Settings => {
+      return { ...settings, poolIdentifier: XCP_NG_OTHER_POOL };
+    },
+    resourceKey: "resource.xcp_ng.pool.id",
+    resourceElsewhere: XCP_NG_OTHER_POOL,
+    renderForm: (
+      settings: Settings,
+      onChange: (settings: Settings) => void,
+    ): React.ReactElement => {
+      return (
+        <XcpNgMonitorStepForm
+          monitorStepXcpNgMonitor={settings as never}
           onChange={onChange as never}
         />
       );
@@ -694,6 +735,114 @@ describe("the chart follows the resource filters as they are typed", () => {
     ) as unknown as MonitorStepProxmoxMonitor;
     expect(saved.resourceFilters.nodeName).toBe("pve2");
     expect(saved.metricViewConfig.queryConfigs).toEqual([QUERY]);
+  });
+
+  test("XCP-ng: a host name and a UUID narrow the chart, the UUID as ingest stores it", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+    const xcpNg: FormCase = FORM_CASES.find((formCase: FormCase) => {
+      return formCase.monitorType === MonitorType.XcpNg;
+    })!;
+
+    render(
+      <StatefulForm
+        formCase={xcpNg}
+        initial={
+          {
+            ...xcpNg.settings,
+            resourceFilters: {},
+          } as unknown as Settings
+        }
+        onChange={onChange}
+      />,
+    );
+    await openQueryBuilder();
+
+    expect(chartedAttributes()).toEqual({
+      ...OWN_FILTER,
+      "resource.xcp_ng.pool.id": XCP_NG_POOL,
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. xcp-host-01"), {
+      target: { value: "xcp-host-02" },
+    });
+    await settle();
+
+    expect(chartedAttributes()).toEqual({
+      ...OWN_FILTER,
+      "resource.xcp_ng.pool.id": XCP_NG_POOL,
+      host_name: "xcp-host-02",
+    });
+
+    // A UUID copied in capitals reads the series ingest stamped lower case.
+    fireEvent.change(
+      screen.getByPlaceholderText("e.g. 5c6d7e8f-1a2b-4c3d-9e8f-0a1b2c3d4e5f"),
+      { target: { value: "0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D" } },
+    );
+    await settle();
+
+    expect(chartedAttributes()).toEqual({
+      ...OWN_FILTER,
+      "resource.xcp_ng.pool.id": XCP_NG_POOL,
+      host_name: "xcp-host-02",
+      "xcp_ng.id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    });
+
+    // Saved as filters of the step, as typed, not of its query.
+    const saved: MonitorStepXcpNgMonitor = lastSaved(
+      onChange,
+    ) as unknown as MonitorStepXcpNgMonitor;
+    expect(saved.resourceFilters).toEqual({
+      hostName: "xcp-host-02",
+      xcpNgId: "0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D",
+    });
+    expect(saved.metricViewConfig.queryConfigs).toEqual([QUERY]);
+  });
+
+  test("XCP-ng: a pool picked by its name is watched by its UUID", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+    const xcpNg: FormCase = FORM_CASES.find((formCase: FormCase) => {
+      return formCase.monitorType === MonitorType.XcpNg;
+    })!;
+
+    getListMock.mockImplementation(() => {
+      return Promise.resolve({
+        data: [
+          { _id: "pool-1", poolIdentifier: XCP_NG_POOL, name: "Production" },
+          { _id: "pool-2", poolIdentifier: XCP_NG_OTHER_POOL, name: "Lab" },
+        ],
+        count: 2,
+        skip: 0,
+        limit: 2,
+      });
+    });
+
+    render(
+      <StatefulForm
+        formCase={xcpNg}
+        initial={xcpNg.settings}
+        onChange={onChange}
+      />,
+    );
+    await settle();
+    await openQueryBuilder();
+
+    // The pool field is the setup's first list, and names each pool.
+    const list: HTMLElement = screen.getAllByRole("combobox")[0]!;
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    const option: HTMLElement | undefined = (
+      await screen.findAllByTestId("dropdown-option-label")
+    ).find((element: HTMLElement) => {
+      return element.textContent === "Lab";
+    });
+    expect(option).toBeDefined();
+    fireEvent.click(option!);
+    await settle();
+
+    expect(lastSaved(onChange)["poolIdentifier"]).toBe(XCP_NG_OTHER_POOL);
+    expect(
+      (chartedAttributes() as Dictionary<unknown>)["resource.xcp_ng.pool.id"],
+    ).toBe(XCP_NG_OTHER_POOL);
+    expect(lastSaved(onChange).metricViewConfig?.queryConfigs).toEqual([QUERY]);
   });
 
   test("Kubernetes: a namespace narrows the chart to it", async () => {

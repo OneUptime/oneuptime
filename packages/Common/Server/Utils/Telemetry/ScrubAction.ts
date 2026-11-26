@@ -28,10 +28,11 @@ import ScrubHashToken from "./ScrubHashToken";
  *    #10393), anything else its first and last characters;
  *  - Hash: the project's token for it ("[HASHED:" and 16 hex characters),
  *    an IP address in one spelling for every way it is written, and an
- *    email address or a phone number percent-encoded, or a card, a phone
- *    number or a Social Security number in another script's digits, as the
- *    value it reads as (asItReads), so each has the token of the value
- *    written plainly; Mask reads them so too. An IP
+ *    email address, a phone number or a custom pattern's match
+ *    percent-encoded, or a card, a phone number, a Social Security number
+ *    or a custom pattern's match in another script's digits, as the value
+ *    it reads as (asItReads), so each has the token of the value written
+ *    plainly; Mask reads them so too. An IP
  *    Address rule's token and address are also told to the recorder a
  *    batch of logs or traces Security Events reads passes in
  *    (applyAndRecord), for Security Events' address vault (#10395).
@@ -186,7 +187,14 @@ export default class ScrubAction {
       case LogScrubPatternType.CreditCard:
       case LogScrubPatternType.SSN:
         return foldDigits(match);
+      /*
+       * A Custom Regex rule finds its pattern with a value's escapes read
+       * and in every script's digits too (ScrubRule's ReadingsScrubRegExp,
+       * #11031, #11033): a token after %3D, an IBAN in Arabic-Indic digits
+       * has the token of the one written plainly.
+       */
       case LogScrubPatternType.PhoneNumber:
+      case LogScrubPatternType.Custom:
         return foldDigits(PercentDecodedText.readableOf(match));
       default:
         return match;
@@ -256,6 +264,10 @@ export default class ScrubAction {
 
       case LogScrubPatternType.IPAddress:
         return ScrubIpAddress.mask(value);
+
+      case LogScrubPatternType.Custom:
+        // Its first and last characters as the value reads: escapes read, digits in ASCII.
+        return maskKeepingEnds(ScrubAction.asItReads(value, patternType));
 
       default:
         // First and last characters kept, whole (Utils/Telemetry/ScrubMask).

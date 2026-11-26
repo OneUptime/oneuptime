@@ -271,6 +271,9 @@ const OpenStackRoutes: LazyRoutes = lazy(() => {
 const VMwareRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/VMwareRoutes");
 });
+const XcpNgRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/XcpNgRoutes");
+});
 const IoTRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/IoTRoutes");
 });
@@ -963,6 +966,12 @@ const App: () => JSX.Element = () => {
               <PageRoute
                 path={RouteMap[PageMap.VMWARE_ROOT]?.toString() || ""}
                 element={<VMwareRoutes {...commonPageProps} />}
+              />
+
+              {/* XCP-ng */}
+              <PageRoute
+                path={RouteMap[PageMap.XCP_NG_ROOT]?.toString() || ""}
+                element={<XcpNgRoutes {...commonPageProps} />}
               />
 
               {/* IoT */}

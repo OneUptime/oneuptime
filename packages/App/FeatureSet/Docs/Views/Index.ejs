@@ -22,7 +22,8 @@
             t: t,
             lang: lang,
             supportedLanguages: supportedLanguages,
-            currentPath: typeof currentPath !== 'undefined' ? currentPath : ''
+            currentPath: typeof currentPath !== 'undefined' ? currentPath : '',
+            helpLinks: typeof helpLinks !== 'undefined' ? helpLinks : null
         }) %>
 
         <!-- Mobile top bar with menu button -->
@@ -77,7 +78,10 @@
                         t: t
                     }) %>
 
+                    <%# "Edit on GitHub", unless this server's admins hid OneUptime's GitHub (#10940). %>
+                    <% if (typeof helpLinks === 'undefined' || !helpLinks || helpLinks.isGitHubShown !== false) { %>
                     <%- include('./Partials/OpenSourceCommitment.ejs', { githubPath: githubPath, t: t, lang: lang }) %>
+                    <% } %>
                 </div>
             </div>
 

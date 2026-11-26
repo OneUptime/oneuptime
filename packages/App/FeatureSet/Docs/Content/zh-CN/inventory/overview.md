@@ -50,7 +50,7 @@ OneUptime 每 3 小时移除一次静默时间超过其类别时间窗口的发�
 | --- | --- |
 | Pod、Deployment、Proxmox 客户机、OpenStack 实例和 VMware 虚拟机 | 1 天 |
 | Kubernetes 节点和命名空间、Proxmox 节点、OpenStack Hypervisor、VMware 主机、集群和数据存储，以及你的链路所调用的数据库和远程服务 | 7 天 |
-| 服务、主机、Kubernetes、Proxmox 和 Ceph 集群、OpenStack 云、存储阵列、vCenter 和 Docker Swarm 集群 | 30 天 |
+| 服务、主机、Kubernetes、Proxmox 和 Ceph 集群、OpenStack 云、存储阵列、vCenter、XCP-ng 资源池和 Docker Swarm 集群 | 30 天 |
 
 OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 

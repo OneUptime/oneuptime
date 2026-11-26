@@ -41,6 +41,7 @@ export enum SavedViewScopeKind {
   StorageArray = "storage-array",
   VMwareVCenter = "vmware-vcenter",
   VMwareHost = "vmware-host",
+  XcpNgPool = "xcp-ng-pool",
   DatabaseServer = "database-server",
   ServerlessFunction = "serverless-function",
   // An environment's Logs tab, in App Platforms.

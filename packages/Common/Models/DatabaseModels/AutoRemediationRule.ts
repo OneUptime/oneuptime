@@ -15,6 +15,7 @@ import Route from "../../Types/API/Route";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationAction from "../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import { CloudSavingsAiAutonomy } from "../../Types/Cloud/CloudSavingsAi";
 import { DataSecurityAiAutonomy } from "../../Types/DataSecurity/DataSecurityAi";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -37,7 +38,28 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  ValueTransformer,
 } from "typeorm";
+
+// Postgres answers a decimal as text: read it back as the number it is.
+const decimalTransformer: ValueTransformer = {
+  to: (value: number | null | undefined): number | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return value;
+  },
+  from: (value: string | number | null | undefined): number | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (typeof value === "number") {
+      return value;
+    }
+    const parsed: number = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  },
+};
 
 /*
  * AN AI RULE: which new incidents (or alerts) OneUptime AI works on, and
@@ -1572,6 +1594,171 @@ export default class AutoRemediationRule extends RuleBaseModel {
     nullable: true,
   })
   public dataCategories?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    allowedValues: Object.values(CloudSavingsAiAutonomy),
+    title: "Cloud Saving: Autonomy",
+    description:
+      "Savings AI rules only: what OneUptime AI does with the cloud savings this rule matches that it can act on through the account's cloud connection. Off: nothing on its own. Suggest: proposed to an owner of the resource. WithoutAsking: made, up to the rule's monthly limit, on resources known not to be production, and only when it can be undone; anything else is proposed. Left out of a create, Suggest.",
+    example: "Suggest",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public cloudSavingAutonomy?: CloudSavingsAiAutonomy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Cloud Saving: Monthly Limit",
+    description:
+      "Savings AI rules only: the most a saving may be worth a month, in its currency, for OneUptime AI to make it without asking. A saving worth more is proposed instead. Empty for no limit.",
+    example: "500",
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  public cloudSavingMonthlyLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Cloud Saving: Changes",
+    description:
+      "Savings AI rules only: match savings whose change is one of these: Stop (idle instances and databases), ChangeVolumeType (gp2 to gp3), Resize (instances and databases), DeleteVolume (unattached disks, after a final snapshot). Leave empty to match every change.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public cloudSavingActionGroups?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Cloud Saving: Environments",
+    description:
+      "Savings AI rules only: match savings on resources in these environments: Production, NonProduction or Unknown, as their tags, their account and their labels say. Leave empty to match any environment.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public cloudSavingEnvironments?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Cloud Saving: Clouds",
+    description:
+      "Savings AI rules only: match savings in these clouds: aws, azure or gcp. Leave empty to match every cloud.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public cloudSavingProviders?: Array<string> = undefined;
 
   @ColumnAccessControl({
     create: [

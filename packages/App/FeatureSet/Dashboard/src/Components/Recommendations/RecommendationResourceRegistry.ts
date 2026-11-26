@@ -11,6 +11,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -1013,6 +1014,8 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *   Proxmox     name               model has no identifier column
  *   VMware      name               VMwareVCenter.name IS the agent-stamped
  *                                  `vmware.vcenter.name` attribute
+ *   XcpNg       poolIdentifier     the pool's XAPI UUID, the agent-stamped
+ *                                  `xcp_ng.pool.id` attribute
  *   Ceph        name               model has no identifier column
  *   StorageArray name              StorageArray.name IS the agent-stamped
  *                                  `storage.array.name` attribute
@@ -1250,6 +1253,16 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     resourceType: MonitorRecommendationResourceType.VMware,
     modelType: VMwareVCenter,
     identifierFieldName: "name",
+    displayNameFieldName: "name",
+  },
+  /*
+   * An XCP-ng pool's monitors are scoped by its XAPI UUID (the step's
+   * poolIdentifier), the `xcp_ng.pool.id` every template filters on.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.XcpNg,
+    modelType: XcpNgPool,
+    identifierFieldName: "poolIdentifier",
     displayNameFieldName: "name",
   },
   {

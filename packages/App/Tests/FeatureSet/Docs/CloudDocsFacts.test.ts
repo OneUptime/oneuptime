@@ -507,15 +507,30 @@ describe("the menu paths", () => {
         title: "Cloud",
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
-      // What the accounts cost, who it is for, how to spend less, the commitments and the budgets.
+      /*
+       * What the accounts cost and how it is shared out, how to spend less,
+       * the commitments, the off-hours schedules and the budgets.
+       */
       {
         title: "Spend",
-        items: ["Costs", "Cost Groups", "Savings", "Commitments", "Budgets"],
+        items: [
+          "Costs",
+          "Cost Groups",
+          "Savings",
+          "Commitments",
+          "Schedules",
+          "Budgets",
+        ],
       },
-      // The cost basis the pages open on, and when commitments alert.
+      // The cost basis and commitment alerts, then what OneUptime AI may do with a saving.
       {
         title: "Settings",
-        items: ["Owner Rules", "Label Rules", "Cost Settings"],
+        items: [
+          "Owner Rules",
+          "Label Rules",
+          "Cost Settings",
+          "Savings AI Rules",
+        ],
       },
       { title: "Advanced", items: ["Archived"] },
     ]);

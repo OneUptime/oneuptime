@@ -195,6 +195,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     iotFleetIds: [],
     databaseServerIds: [],
     storageArrayIds: [],
+    xcpNgPoolIds: [],
     cloudResourceIds: [],
     networkDeviceIds: [],
   };

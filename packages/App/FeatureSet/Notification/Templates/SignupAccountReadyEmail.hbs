@@ -12,7 +12,8 @@
   the address first, with SignupWelcomeEmail (#7988).
 
   Its help is the server's own, never OneUptime's support address:
-  whoever runs this server is who can help with it. Written out here, since
+  whoever runs this server is who can help with it - its support address,
+  where its admins set one (serverSupportEmail, #10941), else its admin. Written out here, since
   this email is only ever sent by a self-hosted server; every other email
   there says the same through Partials/SupportBlock (#8190).
   The first account on a server is its master admin (isMasterAdmin "true"),
@@ -34,7 +35,11 @@
 
 {{> ButtonBlock buttonUrl=adminDashboardLink buttonText="Open Admin Dashboard" secondary=true}}
 {{else}}
+{{#if @root.serverSupportEmail}}
+{{> InfoBlock info=(ttMailtoHtml "Need help? Write to {{address}}." address=@root.serverSupportEmail)}}
+{{else}}
 {{> InfoBlock info="Need help? Ask your server's admin."}}
+{{/if}}
 {{/ifCond}}
 
 {{> Footer this}}

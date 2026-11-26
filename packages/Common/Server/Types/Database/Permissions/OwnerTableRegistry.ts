@@ -48,6 +48,8 @@ import DockerSwarmClusterOwnerTeamService from "../../../Services/DockerSwarmClu
 import DockerSwarmClusterOwnerUserService from "../../../Services/DockerSwarmClusterOwnerUserService";
 import VMwareVCenterOwnerTeamService from "../../../Services/VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "../../../Services/VMwareVCenterOwnerUserService";
+import XcpNgPoolOwnerTeamService from "../../../Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService from "../../../Services/XcpNgPoolOwnerUserService";
 import DatabaseServerOwnerTeamService from "../../../Services/DatabaseServerOwnerTeamService";
 import DatabaseServerOwnerUserService from "../../../Services/DatabaseServerOwnerUserService";
 import MessageQueueOwnerTeamService from "../../../Services/MessageQueueOwnerTeamService";
@@ -106,6 +108,7 @@ import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../Services/XcpNgPoolService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
@@ -428,6 +431,21 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "vmwareVCenterId",
       canOwnTelemetry: true,
       modelService: VMwareVCenterService,
+    },
+  ],
+  [
+    /*
+     * Ingest stamps the pool's id on every row of its telemetry (serviceType
+     * XcpNgPool), so owning a pool grants its metrics, as a Proxmox
+     * cluster's or a vCenter's owners are granted theirs.
+     */
+    "XcpNgPool",
+    {
+      ownerUserService: XcpNgPoolOwnerUserService,
+      ownerTeamService: XcpNgPoolOwnerTeamService,
+      fkColumn: "xcpNgPoolId",
+      canOwnTelemetry: true,
+      modelService: XcpNgPoolService,
     },
   ],
   [
