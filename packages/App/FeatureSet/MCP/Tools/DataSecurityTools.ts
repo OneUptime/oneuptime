@@ -52,7 +52,7 @@ import { ALL_DATA_SECURITY_RESPONSE_ACTIONS } from "Common/Types/DataSecurity/Da
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
 import McpCredentialUtil, { McpCredentialInput } from "../Types/McpCredential";
-import { JSONSchema } from "../Types/McpTypes";
+import { JSONSchema, JSONSchemaProperty } from "../Types/McpTypes";
 import { getServerWritePolicy, getWritePolicyRefusal } from "./ToolGenerator";
 
 // A Data Security tool, as WorkflowTools lists its tools.
@@ -77,9 +77,9 @@ const AS_THE_PERSON: string =
 const ASKS_A_PERSON: string =
   "OneUptime asks a person before this in every mode, and this connection cannot show them a card: it is refused here, with the page in OneUptime where they do it.";
 
-const STRING: JSONSchema = { type: "string" };
+const STRING: JSONSchemaProperty = { type: "string" };
 
-function arrayOfStrings(description: string): JSONSchema {
+function arrayOfStrings(description: string): JSONSchemaProperty {
   return { type: "array", items: { type: "string" }, description };
 }
 

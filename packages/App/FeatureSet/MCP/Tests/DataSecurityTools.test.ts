@@ -498,7 +498,7 @@ describe("their arguments are Ask AI's", () => {
 
       expect(
         [
-          ...(((definition.inputSchema as JSONObject)["required"] as
+          ...(((definition.inputSchema as unknown as JSONObject)["required"] as
             | Array<string>
             | undefined) || []),
         ].sort(),
@@ -510,7 +510,7 @@ describe("their arguments are Ask AI's", () => {
         ].sort(),
       );
       // Nothing else: what the prepare works out is never the agent's to pass.
-      expect((definition.inputSchema as JSONObject)["additionalProperties"]).toBe(
+      expect((definition.inputSchema as unknown as JSONObject)["additionalProperties"]).toBe(
         false,
       );
     },
