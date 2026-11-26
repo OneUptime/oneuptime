@@ -255,6 +255,8 @@ section "2. Array endpoint & API token"
 #   otel-collector-config.yaml                     https://<array>/metrics/*?namespace=purefa
 #   otel-collector-config.flasharray-exporter.yaml http://pure-fa-exporter:9490/metrics/*?endpoint=<array>
 #   otel-collector-config.flashblade.yaml          http://pure-fb-exporter:9491/metrics/*?endpoint=<array>
+#   otel-collector-config.netapp-ontap.yaml        http://netapp-harvest:12990/metrics (Harvest logs
+#                                                  in to the cluster itself, with a user and password)
 # The probe below asks the array endpoint the same way, with the same API
 # token, from the collector's own network namespace.
 CONFIG_NAME=$(agent_env STORAGE_ARRAY_COLLECTOR_CONFIG)
@@ -274,9 +276,11 @@ case "$CONFIG_NAME" in
     MODE="fa-exporter"; NEED_PROFILE="flasharray-exporter"; EXPECT_SYSTEM="purestorage.flasharray"; INFO_METRIC="purefa_info"; PLATFORM="FlashArray" ;;
   otel-collector-config.flashblade.yaml)
     MODE="fb-exporter"; NEED_PROFILE="flashblade"; EXPECT_SYSTEM="purestorage.flashblade"; INFO_METRIC="purefb_info"; PLATFORM="FlashBlade" ;;
+  otel-collector-config.netapp-ontap.yaml)
+    MODE="harvest"; NEED_PROFILE="netapp-ontap"; EXPECT_SYSTEM="netapp.ontap"; INFO_METRIC="netapp_cluster_new_status"; PLATFORM="ONTAP cluster" ;;
   *)
     warn "STORAGE_ARRAY_COLLECTOR_CONFIG='$CONFIG_NAME' is not one of the shipped configs — skipping the array probe."
-    add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray) or otel-collector-config.flashblade.yaml (FlashBlade)."
+    add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray), otel-collector-config.flashblade.yaml (FlashBlade) or otel-collector-config.netapp-ontap.yaml (NetApp ONTAP)."
     ARRAY_VERDICT="MISCONFIGURED" ;;
 esac
 
@@ -285,6 +289,7 @@ if [ -n "$MODE" ]; then
     native)      info "Mode: $PLATFORM, native OpenMetrics on the array ($CONFIG_NAME)" ;;
     fa-exporter) info "Mode: $PLATFORM through Pure's exporter, the pure-fa-exporter service ($CONFIG_NAME)" ;;
     fb-exporter) info "Mode: $PLATFORM through Pure's exporter, the pure-fb-exporter service ($CONFIG_NAME)" ;;
+    harvest)     info "Mode: $PLATFORM through NetApp Harvest, the netapp-harvest service ($CONFIG_NAME)" ;;
   esac
 
   if [ -d "$DIR" ] && [ ! -f "$CONFIG_FILE" ]; then
@@ -314,6 +319,8 @@ if [ -n "$MODE" ]; then
 
   if [ "$MODE" = "fb-exporter" ]; then
     ENDPOINT_VAR="PURE_FB_ENDPOINT"; TOKEN_VAR="PURE_FB_API_TOKEN"
+  elif [ "$MODE" = "harvest" ]; then
+    ENDPOINT_VAR="NETAPP_ONTAP_ENDPOINT"; TOKEN_VAR="NETAPP_ONTAP_PASSWORD"
   else
     ENDPOINT_VAR="PURE_FA_ENDPOINT"; TOKEN_VAR="PURE_FA_API_TOKEN"
   fi
@@ -339,7 +346,21 @@ if [ -n "$MODE" ]; then
       add_finding "$ENDPOINT_VAR must be the array's management address, reachable from a container: its DNS name or IP, never localhost."
       ARRAY_VERDICT="MISCONFIGURED" ;;
   esac
-  if [ -z "$ARRAY_TOKEN" ]; then
+  if [ "$MODE" = "harvest" ]; then
+    # Harvest logs in with a user and its password; neither has a shape.
+    if [ -z "$(agent_env NETAPP_ONTAP_USERNAME)" ]; then
+      fail "NETAPP_ONTAP_USERNAME is not set — Harvest has no user to log in to the cluster with."
+      add_finding "Create the read-only REST user (README.md) and set NETAPP_ONTAP_USERNAME and NETAPP_ONTAP_PASSWORD in $ENV_FILE, then: cd $DIR && docker compose up -d"
+      ARRAY_VERDICT="MISCONFIGURED"
+    fi
+    if [ -z "$ARRAY_TOKEN" ]; then
+      fail "$TOKEN_VAR is not set — the cluster refuses Harvest without the read-only user's password."
+      add_finding "Set $TOKEN_VAR in $ENV_FILE to the read-only user's password (single-quoted), then: cd $DIR && docker compose up -d"
+      ARRAY_VERDICT="MISCONFIGURED"
+    else
+      pass "NETAPP_ONTAP_USERNAME and $TOKEN_VAR are set."
+    fi
+  elif [ -z "$ARRAY_TOKEN" ]; then
     fail "$TOKEN_VAR is not set — the array refuses every scrape without an API token."
     add_finding "Create an API token for a $PLATFORM user with the readonly role (README.md) and set $TOKEN_VAR in $ENV_FILE, then restart the agent."
     ARRAY_VERDICT="MISCONFIGURED"
@@ -367,6 +388,40 @@ if [ -n "$MODE" ]; then
           add_finding "Set STORAGE_ARRAY_INSECURE_SKIP_VERIFY to exactly true or false in $ENV_FILE and restart the agent."
           ARRAY_VERDICT="MISCONFIGURED" ;;
     esac
+  fi
+
+  if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "harvest" ]; then
+    # Harvest serves what it read on the compose network, with no token: ask
+    # it from the collector's network namespace, as the collector does.
+    PROBE_URL="http://netapp-harvest:12990/metrics"
+    info "Probing $PROBE_URL as the collector does."
+    PROBE_OUT=$(agent_netns_curl -sS -m 60 -w $'\nOUSTATUS:%{http_code}' "$PROBE_URL")
+    PROBE_EXIT=$?
+    PROBE_CODE=$(printf '%s\n' "$PROBE_OUT" | sed -n 's/^OUSTATUS:\([0-9]\{3\}\).*/\1/p' | head -1)
+    PROBE_BODY=$(printf '%s\n' "$PROBE_OUT" | sed '/^OUSTATUS:/,$d')
+    [ -z "$PROBE_CODE" ] && PROBE_CODE="000"
+    PROBE_HEAD=$(printf '%s' "$PROBE_BODY" | tr '\n' ' ' | head -c 220)
+    HARVEST_LOGS="cd $DIR && docker compose logs --tail 200 netapp-harvest"
+    if [ "$PROBE_EXIT" != "0" ] || [ "$PROBE_CODE" = "000" ]; then
+      fail "No answer from $PROBE_URL (curl exit $PROBE_EXIT)."
+      detail "curl: $PROBE_HEAD"
+      ARRAY_VERDICT="EXPORTER_DOWN"
+      add_finding "NetApp Harvest is not running, or not yet serving. Set COMPOSE_PROFILES=netapp-ontap in $ENV_FILE and run: cd $DIR && docker compose up -d (then check: docker compose ps, and $HARVEST_LOGS)."
+    elif [ "$PROBE_CODE" = "200" ] && printf '%s\n' "$PROBE_BODY" | grep -q "^$INFO_METRIC{"; then
+      ARRAY_VERDICT="OK"
+      INFO_NAME=$(metric_label "$INFO_METRIC" cluster "$PROBE_BODY")
+      SERIES=$(printf '%s\n' "$PROBE_BODY" | grep -c "^netapp_" || true)
+      pass "Harvest reads the cluster: ${INFO_NAME:-?}, $SERIES netapp_* series."
+      [ "$SKIP_VERIFY" = "true" ] && detail "TLS verification is OFF (STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true)."
+    elif [ "$PROBE_CODE" = "200" ]; then
+      fail "Harvest answers, but has not read the cluster: no $INFO_METRIC series."
+      ARRAY_VERDICT="UNREACHABLE"
+      add_finding "Harvest could not log in to $ENDPOINT, or has not polled it yet (it polls every 3 minutes). Read its log: $HARVEST_LOGS. 401 means the cluster refused NETAPP_ONTAP_USERNAME or $TOKEN_VAR (the user needs the http login method and the read-only REST role, README.md); x509 means TLS verification is on against the cluster's self-signed certificate; connection refused or no such host means a wrong $ENDPOINT_VAR (the cluster management address)."
+    else
+      fail "$PROBE_URL answered HTTP $PROBE_CODE."
+      ARRAY_VERDICT="UNREACHABLE"
+      add_finding "Harvest answers HTTP $PROBE_CODE: $PROBE_HEAD. Read its log: $HARVEST_LOGS"
+    fi
   fi
 
   if [ "$ARRAY_VERDICT" = "UNKNOWN" ]; then
@@ -715,7 +770,11 @@ elif [ "$ARRAY_VERDICT" != "OK" ] && [ "$ARRAY_VERDICT" != "UNKNOWN" ]; then
       printf "%s%sROOT CAUSE: the FlashArray has no native OpenMetrics endpoint (Purity//FA < 6.7).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
       printf "Switch to the exporter config (see Section 2).\n" ;;
     EXPORTER_DOWN)
-      printf "%s%sROOT CAUSE: Pure's exporter service is not running.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+      if [ "$MODE" = "harvest" ]; then
+        printf "%s%sROOT CAUSE: NetApp Harvest is not running.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+      else
+        printf "%s%sROOT CAUSE: Pure's exporter service is not running.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+      fi
       printf "COMPOSE_PROFILES must match STORAGE_ARRAY_COLLECTOR_CONFIG (see Section 2).\n" ;;
     TLS)
       printf "%s%sROOT CAUSE: the collector does not trust the array's TLS certificate.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
@@ -724,8 +783,13 @@ elif [ "$ARRAY_VERDICT" != "OK" ] && [ "$ARRAY_VERDICT" != "UNKNOWN" ]; then
       printf "%s%sROOT CAUSE: the array settings in .env are incomplete or invalid.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
       printf "Fix what Section 2 lists and restart the agent.\n" ;;
     *)
-      printf "%s%sROOT CAUSE: the collector cannot read the array (address / network).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
-      printf "Fix the array side (see Section 2) — usually the endpoint or a firewall.\n" ;;
+      if [ "$MODE" = "harvest" ]; then
+        printf "%s%sROOT CAUSE: NetApp Harvest cannot read the cluster (login / address / network).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+        printf "Read Harvest's log (see Section 2) — usually the user, its password or the endpoint.\n"
+      else
+        printf "%s%sROOT CAUSE: the collector cannot read the array (address / network).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+        printf "Fix the array side (see Section 2) — usually the endpoint or a firewall.\n"
+      fi ;;
   esac
 elif [ "$ARRAY_NAME_OK" != 1 ]; then
   printf "%s%sROOT CAUSE: STORAGE_ARRAY_NAME is missing — no array can register.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"

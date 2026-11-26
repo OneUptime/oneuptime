@@ -2,13 +2,14 @@
 
 Monitor storage arrays — capacity, latency, IOPS and bandwidth, volumes, hosts, pods and replication, hardware health, file systems and buckets — with OneUptime using a pre-configured OpenTelemetry Collector.
 
-The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the array's OpenMetrics endpoints with a read-only API token, stamps every metric with your array's identity, and ships it to OneUptime over OTLP. It supports:
+The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the array's OpenMetrics endpoints with a read-only API token (or, for ONTAP, the stock NetApp Harvest exporter beside it), stamps every metric with your array's identity, and ships it to OneUptime over OTLP. It supports:
 
 | Array | How the agent reads it | Collector config |
 |---|---|---|
 | **Pure Storage FlashArray**, Purity//FA 6.7 and later | The array's own OpenMetrics endpoint (`https://<array>/metrics/...?namespace=purefa`) — no sidecar | `otel-collector-config.yaml` (default) |
 | **Pure Storage FlashArray**, older Purity//FA | Pure's [FlashArray OpenMetrics exporter](https://github.com/PureStorage-OpenConnect/pure-fa-openmetrics-exporter), run as the `pure-fa-exporter` sidecar | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | Pure's [FlashBlade OpenMetrics exporter](https://github.com/PureStorage-OpenConnect/pure-fb-openmetrics-exporter), run as the `pure-fb-exporter` sidecar | `otel-collector-config.flashblade.yaml` |
+| **NetApp ONTAP** 9.12.1 and later (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), and **Amazon FSx for NetApp ONTAP** | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, run as the `netapp-harvest` sidecar: it logs in to the cluster's REST API with a read-only user and password | `otel-collector-config.netapp-ontap.yaml` |
 
 Pure Storage renamed itself **Everpure** in February 2026. FlashArray, FlashBlade and Purity kept their names, and so did the `purefa_*` / `purefb_*` metrics — everything here applies unchanged.
 
@@ -16,8 +17,8 @@ One agent monitors one array. Run one agent per array (see [Monitoring several a
 
 ## Prerequisites
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach the array's management interface over HTTPS (TCP 443)
-- A user on the array holding the **readonly** role, and an API token for it (see below)
+- Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach the array's management interface over HTTPS (TCP 443) — for ONTAP, the cluster management address
+- A user on the array holding the **readonly** role, and an API token for it — for ONTAP, a read-only REST user and its password (see below)
 - A **OneUptime ingestion key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_
 
 ### Creating the read-only user and its API token
@@ -35,6 +36,23 @@ The second command prints the token (a UUID). **FlashArray GUI:** open _Settings
 
 **FlashBlade:** create a user with the **readonly** role and an API token for it the same way — in the FlashBlade GUI's user settings, or with `pureadmin` in the Purity//FB CLI. Releases without local users take a directory-service (LDAP / Active Directory) account whose group maps to the readonly role instead. FlashBlade API tokens start with `T-`.
 
+**NetApp ONTAP** (SSH to the cluster as an administrator): a REST role that may read every API and nothing else, and an HTTP user with a password that holds it. The second command asks for the password:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+In System Manager, the same is _Cluster → Settings → Users and Roles_: add a role with the REST API path `/api` and **Read-Only** access, then a user with that role and the **HTTP** login method with a password. Harvest needs nothing more: it never writes to the cluster.
+
+**Amazon FSx for NetApp ONTAP** (SSH to the file system's management endpoint as `fsxadmin`): create the same user with FSx's predefined read-only role.
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+The agent's address is the file system's **management endpoint** (its DNS name or IP, from the FSx console). FSx runs the file system on hardware AWS manages and answers no one's questions about disks, shelves or sensors, so the cluster's Hardware tab lists its nodes and ports and says why the rest is missing.
+
 ### Native endpoint or exporter?
 
 Pure documents the native OpenMetrics endpoint for **Purity//FA 6.7.0 and later** (the deprecation notice on Pure's exporter says 6.6.11 and later). The quickest way to know is to ask the array, from the machine the agent will run on:
@@ -43,7 +61,7 @@ Pure documents the native OpenMetrics endpoint for **Purity//FA 6.7.0 and later*
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-A `purefa_info{...} 1` line means the array serves its metrics natively: use the default config. A 404 means it does not: use the exporter config. FlashBlade always goes through Pure's exporter.
+A `purefa_info{...} 1` line means the array serves its metrics natively: use the default config. A 404 means it does not: use the exporter config. FlashBlade always goes through Pure's exporter, and ONTAP always through NetApp Harvest: ONTAP has no metrics endpoint of its own.
 
 ## Quick Start — Install Script
 
@@ -54,7 +72,7 @@ bash install.sh
 
 Every OneUptime serves this script and the agent's files for its own release, at `<your OneUptime URL>/install/storage-array-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com` in the commands here. The first line saves the script as `install.sh`, so you can read it before you run it.
 
-The script asks which array this is (FlashArray with native metrics, an older FlashArray, or a FlashBlade), then for your OneUptime URL, telemetry ingestion key, a stable array name, the array's management address and the read-only user's API token (read without echo). It installs to `/opt/oneuptime-storage-array-agent`, downloads the compose file and all three collector configs, writes a `0600` `.env` file with the matching config and compose profile, and starts the agent with Docker Compose. Re-running it reuses everything in an existing `.env` instead of prompting again, and keeps any file you edited as `<file>.bak.<timestamp>` before replacing it.
+The script asks which array this is (FlashArray with native metrics, an older FlashArray, a FlashBlade, or a NetApp ONTAP cluster), then for your OneUptime URL, telemetry ingestion key, a stable array name, the array's management address and the read-only user's API token — for ONTAP, the read-only user's name and password — read without echo. It installs to `/opt/oneuptime-storage-array-agent`, downloads the compose file, every collector config and Harvest's four files, writes a `0600` `.env` file with the matching config and compose profile, and starts the agent with Docker Compose. Re-running it reuses everything in an existing `.env` instead of prompting again, and keeps any file you edited as `<file>.bak.<timestamp>` before replacing it.
 
 ## Quick Start — Docker Compose
 
@@ -83,6 +101,31 @@ STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 
 For an older FlashArray, set `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` and `COMPOSE_PROFILES=flasharray-exporter`. For a FlashBlade, set `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`, `COMPOSE_PROFILES=flashblade`, and `PURE_FB_ENDPOINT` / `PURE_FB_API_TOKEN` instead of the `PURE_FA_*` pair.
 
+For a NetApp ONTAP cluster or Amazon FSx for NetApp ONTAP, download the NetApp config and Harvest's four files too:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+and use this `.env`. Put the password in single quotes, as here: Compose then reads it exactly as written, whatever it holds (a password with a `'` in it goes in double quotes, with `\"`, `\\` and `$$` for a `"`, a `\` and a `$`):
+
+```bash
+ONEUPTIME_URL=https://oneuptime.com
+ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='the-read-only-user-password'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
 Then start the agent:
 
 ```bash
@@ -98,14 +141,17 @@ After the first scrape (about a minute) the array appears automatically in the *
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
 | `STORAGE_ARRAY_NAME` | Yes | The name this array registers under in OneUptime. Stamped on every metric as the `storage.array.name` resource attribute. Keep it stable — changing it registers a new array. The collector refuses to start without it |
-| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray` or `purestorage.flashblade` (default: `purestorage.flasharray`) |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray) or `otel-collector-config.flashblade.yaml` (FlashBlade) |
-| `COMPOSE_PROFILES` | No | Starts the exporter the config needs: empty for the native FlashArray config, `flasharray-exporter` or `flashblade` for the others |
+| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray`, `purestorage.flashblade` or `netapp.ontap` (default: `purestorage.flasharray`) |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) or `otel-collector-config.netapp-ontap.yaml` (ONTAP) |
+| `COMPOSE_PROFILES` | No | Starts the exporter the config needs: empty for the native FlashArray config, `flasharray-exporter`, `flashblade` or `netapp-ontap` for the others |
 | `PURE_FA_ENDPOINT` | FlashArray | The FlashArray's management address — host name or IP, no `https://` |
 | `PURE_FA_API_TOKEN` | FlashArray | API token of the FlashArray user with the readonly role |
 | `PURE_FB_ENDPOINT` | FlashBlade | The FlashBlade's management address — host name or IP, no `https://` |
 | `PURE_FB_API_TOKEN` | FlashBlade | API token of the FlashBlade user with the readonly role |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accepts the array's self-signed certificate on the native endpoint; `false` verifies it (default: `true`). Pure's exporters never verify the array's certificate, so it does not apply to them |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | The cluster's management address (for FSx, the file system's management endpoint) — host name or IP, no `https://` |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | The read-only REST user (`oneuptime` above) |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | Its password. Only Harvest reads it, exactly as written |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accepts the array's self-signed certificate on the native endpoint and in Harvest; `false` verifies it (default: `true`). Pure's exporters never verify the array's certificate, so it does not apply to them |
 
 ## Scrape Behavior
 
@@ -113,6 +159,8 @@ After the first scrape (about a minute) the array appears automatically in the *
 - **Every job labels its series `scrape_endpoint: <endpoint>`.** Each endpoint also exports `purefa_info` / `purefb_info`, so OneUptime knows which families a batch is the complete list of — that is how a deleted volume, host, pod, file system or bucket leaves the inventory instead of lingering. Keep the labels as shipped.
 - **Per-volume and per-host latency keeps three dimensions.** Each volume and host exports its latency in up to sixteen `dimension`s; a `metric_relabel_configs` rule keeps `usec_per_read_op`, `usec_per_write_op` and `usec_per_mirrored_write_op` and drops the QoS, queue, SAN and service-time breakdown, which multiplies the series count of a large array. The array-wide breakdown (`purefa_array_performance_latency_usec`) is kept. Delete the rule to keep the per-volume breakdown too.
 - **No `send_batch_max_size`.** OneUptime rebuilds the inventory from one whole scrape per request, so the `batch` processor never splits a scrape. Keep the batch settings as shipped.
+- **ONTAP: Harvest polls, the collector scrapes Harvest.** Harvest reads the cluster's configuration and state (Rest collector) every 3 minutes, its performance (KeyPerf for the cluster, nodes, aggregates, volumes and LUNs; RestPerf for ports and shelf parts) every minute and its EMS events every 3 minutes, and serves the latest of everything on `netapp-harvest:12990`, which the collector scrapes every 60 seconds (`scrape_endpoint: harvest`). The three `netapp-harvest-*.yaml` files limit Harvest to the objects OneUptime reads. Harvest's own `netapp_metadata_*` series say which objects it listed in full, so a deleted volume leaves the inventory and an object Harvest could not read (FSx's disks) keeps its last count. Harvest's measurements of itself are dropped. A SnapMirror relationship's schedule is turned into `netapp_snapmirror_schedule_seconds` (hourly: 3600), which the SnapMirror Behind Schedule alert compares its lag with.
+- **ONTAP: Harvest's AutoSupport is off.** Harvest would otherwise send NetApp a daily report about itself and the cluster; the agent sends nothing to anyone but your OneUptime.
 
 ## Collected Metrics
 
@@ -126,6 +174,8 @@ Pure's semantic conventions are shared by the FlashArray native endpoint and bot
 - **FlashBlade array** (`/metrics/array`): `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health`
 - **FlashBlade file systems** (`/metrics/filesystems`): `purefb_file_systems_space_*`, `purefb_file_systems_performance_*`
 - **FlashBlade object store** (`/metrics/objectstore`): `purefb_buckets_*`, `purefb_object_store_accounts_*`
+
+- **NetApp ONTAP** (all from Harvest, prefixed `netapp_`): the cluster's identity, health and subsystems (`netapp_cluster_*`, `netapp_subsystem_*`); nodes (`netapp_node_*`: health, model, version, failed fans and power supplies, CPU and uptime); aggregates (`netapp_aggr_*`: size, use, data reduction, state and performance); SVMs (`netapp_svm_*`); volumes and LUNs (`netapp_volume_*`, `netapp_lun_*`: size, use, state, latency, IOPS and throughput); disks, shelves and their parts, and the nodes' sensors (`netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`); Ethernet and Fibre Channel ports (`netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*`); SnapMirror relationships (`netapp_snapmirror_*`: lag, health, last transfer); ONTAP's own open problems (`netapp_health_*_alerts`: broken disks, shelf faults, HA takeover, ports down, system health alerts) and EMS events (`netapp_ems_events`, with Harvest's default list of events)
 
 See the [Storage Array monitor docs](https://oneuptime.com/docs/monitor/storage-array-monitor) for the metric catalog and the alert templates built on these series.
 
@@ -180,14 +230,14 @@ The unit assumes the agent lives in `/opt/oneuptime-storage-array-agent` (the in
 
 The collector and exporter images are pinned in `docker-compose.yml`, and the collector configs report the collector's pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the array's page; select it to see these commands.
 
-Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and the three collector configs (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml`, every collector config and Harvest's files (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again, then pull and recreate the agent (re-apply any change you made to those files):
+Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again (for ONTAP, the NetApp config and Harvest's four files too), then pull and recreate the agent (re-apply any change you made to those files):
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -207,7 +257,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Then delete the read-only user (and its API token) on the array if you no longer need it.
+Then delete the read-only user (and its API token) on the array if you no longer need it. On ONTAP: `security login delete -user-or-group-name oneuptime -application http -authentication-method password`, then `security login rest-role delete -role oneuptime-readonly -api /api`.
 
 ## Troubleshooting
 
@@ -238,9 +288,13 @@ Check that you pasted the token, not the user's password; that the user still ex
 
 Arrays present a self-signed certificate by default, which no Docker image trusts. Set `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` (the pragmatic choice on a private management network), or install a certificate on the array from a CA the collector image trusts.
 
-### `pure-fa-exporter` / `pure-fb-exporter` does not resolve
+### `pure-fa-exporter` / `pure-fb-exporter` / `netapp-harvest` does not resolve
 
-The exporter service is not running: `COMPOSE_PROFILES` must match `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` for the FlashArray exporter config, `flashblade` for the FlashBlade config). Fix `.env` and run `docker compose up -d`, then `docker compose ps` should list the exporter.
+The exporter service is not running: `COMPOSE_PROFILES` must match `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` for the FlashArray exporter config, `flashblade` for the FlashBlade config, `netapp-ontap` for the ONTAP config). Fix `.env` and run `docker compose up -d`, then `docker compose ps` should list the exporter.
+
+### ONTAP: Harvest cannot log in, or an object is missing
+
+Read Harvest's log: `docker compose logs netapp-harvest`. `401` or `Unauthorized` means the cluster refused the user or its password: check that the user has the **http** login method (`security login show -user-or-group-name oneuptime`) and holds the read-only REST role, then fix `.env` and run `docker compose up -d`. `403` or `not authorized` on one object means the role does not reach that API: the role above reaches all of `/api`. On Amazon FSx for NetApp ONTAP, FSx answers so for disks, shelves and sensors whoever asks; that is expected, and the cluster's Hardware tab says so. `connection refused` or `no such host` means a wrong `NETAPP_ONTAP_ENDPOINT`: it is the cluster management address (for FSx, the management endpoint), not a node's or an SVM's.
 
 ### Common Commands
 
@@ -251,9 +305,10 @@ docker compose ps
 # View collector logs
 docker logs -f oneuptime-storage-array-agent
 
-# View the exporter's logs (older FlashArray / FlashBlade)
+# View the exporter's logs (older FlashArray / FlashBlade / ONTAP)
 docker compose logs -f pure-fa-exporter
 docker compose logs -f pure-fb-exporter
+docker compose logs -f netapp-harvest
 
 # Check the collector's own counters (accepted / sent / failed datapoints)
 docker run --rm --network container:oneuptime-storage-array-agent curlimages/curl -s http://127.0.0.1:8888/metrics | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'

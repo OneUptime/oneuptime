@@ -134,20 +134,30 @@ reject_dollar() {
 #   2  the platform it stamps as storage.system
 #   3  the compose profile that starts the exporter it scrapes (- for none)
 #   4  the .env variable holding the array's management address
-#   5  the .env variable holding the read-only user's API token
-#   6  whether the collector itself talks TLS to the array (yes / no): only
-#      then is the certificate question asked
+#   5  the .env variable holding the read-only user's API token, or its
+#      password (field 12)
+#   6  whether the agent itself talks TLS to the array (yes / no): the
+#      collector, or an exporter that logs in to the array itself (NetApp
+#      Harvest). Only then is the certificate question asked
 #   7  what the array is called in a sentence
 #   8  the menu's line for it
 #   9  how the agent reads it, for the last message
+#  10  the .env variable holding the read-only user's name, for a platform
+#      that logs in with a user and a password (- for an API token alone)
+#  11  the files besides the collector config that its exporter reads,
+#      shipped next to this script, separated by commas (- for none)
+#  12  what field 5 holds: token (an API token, which the collector reads
+#      and expands once more, so it never holds a $) or password (the user's
+#      password, which only the exporter reads, exactly as typed)
 #
 # The Dashboard's setup guide offers the same platforms (each platform's
 # StorageArrayPlatform.agentConfigs); StorageArrayAgentPlatforms.test.ts
 # holds the two lists in step.
 PLATFORMS="
-otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)
-otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)
-otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)
+otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)|-|-|token
+otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)|-|-|token
+otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)|-|-|token
+otel-collector-config.netapp-ontap.yaml|netapp.ontap|netapp-ontap|NETAPP_ONTAP_ENDPOINT|NETAPP_ONTAP_PASSWORD|yes|ONTAP cluster|NetApp ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP (through NetApp Harvest)|through NetApp Harvest (netapp-harvest)|NETAPP_ONTAP_USERNAME|netapp-harvest.yml,netapp-harvest-rest.yaml,netapp-harvest-keyperf.yaml,netapp-harvest-restperf.yaml|password
 "
 
 # The table's lines, without the blank ones.
@@ -160,12 +170,15 @@ platform_field() {
     printf '%s' "$1" | cut -d '|' -f "$2"
 }
 
-# Every collector config, every address and token variable, and every
-# exporter's profile, each once, in the table's order.
+# Every collector config, every address, token, password and user
+# variable, every exporter's own file and every exporter's profile, each
+# once, in the table's order.
 PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_CONFIGS="${PLATFORM_CONFIGS% }"
-PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5 | tr '|' '\n' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5,10 | tr '|' '\n' | grep -v '^-$' | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_VARIABLES="${PLATFORM_VARIABLES% }"
+PLATFORM_EXTRA_FILES="$(platform_lines | cut -d '|' -f 11 | tr ',' '\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_EXTRA_FILES="${PLATFORM_EXTRA_FILES% }"
 PLATFORM_PROFILES="$(platform_lines | cut -d '|' -f 3 | grep -v '^-$' | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_PROFILES="${PLATFORM_PROFILES% }"
 
@@ -253,29 +266,46 @@ TOKEN_VARIABLE="$(platform_field "$PLATFORM_LINE" 5)"
 TLS_TO_ARRAY="$(platform_field "$PLATFORM_LINE" 6)"
 ARRAY_NOUN="$(platform_field "$PLATFORM_LINE" 7)"
 READ_HOW="$(platform_field "$PLATFORM_LINE" 9)"
+USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"
+SECRET_KIND="$(platform_field "$PLATFORM_LINE" 12)"
 
 while [ -z "$STORAGE_ARRAY_NAME" ]; do
     read -rp "Array name (shown in OneUptime, keep it stable, e.g. fa-prod-01): " STORAGE_ARRAY_NAME
 done
 reject_dollar STORAGE_ARRAY_NAME "$STORAGE_ARRAY_NAME"
 
-# The address and token go in the variables this platform's config reads.
+# The address and token (or user and password) go in the variables this
+# platform's config reads.
 while [ -z "${!ENDPOINT_VARIABLE}" ]; do
     read -rp "$ARRAY_NOUN management address (host name or IP, no https://): " "$ENDPOINT_VARIABLE"
 done
 printf -v "$ENDPOINT_VARIABLE" '%s' "$(normalize_endpoint "${!ENDPOINT_VARIABLE}")"
 reject_dollar "$ENDPOINT_VARIABLE" "${!ENDPOINT_VARIABLE}"
-while [ -z "${!TOKEN_VARIABLE}" ]; do
-    # -s: never echo the token to the terminal.
-    read -rsp "API token of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
-    echo ""
-done
-reject_dollar "$TOKEN_VARIABLE" "${!TOKEN_VARIABLE}"
+if [ "$USER_VARIABLE" != "-" ] && [ -n "$USER_VARIABLE" ]; then
+    while [ -z "${!USER_VARIABLE}" ]; do
+        read -rp "User name of the $ARRAY_NOUN's read-only user (README.md creates oneuptime): " "$USER_VARIABLE"
+    done
+fi
+if [ "$SECRET_KIND" = "password" ]; then
+    # Only the exporter reads it, exactly as typed: a $ is fine.
+    while [ -z "${!TOKEN_VARIABLE}" ]; do
+        # -s: never echo the password to the terminal.
+        read -rsp "Password of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
+        echo ""
+    done
+else
+    while [ -z "${!TOKEN_VARIABLE}" ]; do
+        # -s: never echo the token to the terminal.
+        read -rsp "API token of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
+        echo ""
+    done
+    reject_dollar "$TOKEN_VARIABLE" "${!TOKEN_VARIABLE}"
+fi
 
 # Only a config whose collector talks TLS to the array itself asks (an
 # exporter does not verify the array's certificate).
 if [ -z "$STORAGE_ARRAY_INSECURE_SKIP_VERIFY" ] && [ "$TLS_TO_ARRAY" = "yes" ]; then
-    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the collector cannot verify."
+    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the agent cannot verify."
     read -rp "Verify the array's certificate anyway (it is signed by a CA you trust)? [y/N]: " VERIFY_TLS
     if [[ "$VERIFY_TLS" =~ ^[Yy] ]]; then
         STORAGE_ARRAY_INSECURE_SKIP_VERIFY="false"
@@ -307,7 +337,7 @@ mkdir -p "$INSTALL_DIR"
 # OneUptime serves each of them for this script
 # (Common/Types/InstallScripts/InstallScripts.ts lists them, and
 # Tests/Ops/AgentInstallScriptsServed.test.js holds the two in step).
-AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS"
+AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}"
 AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 EDITED_FILES=()
 DIFFERING_FILES=()
@@ -409,9 +439,9 @@ else
     rm -f "$AGENT_FILES_RECORD"
 fi
 
-# Every platform's address and token variable, quoted for Compose: the ones
-# this platform does not read stay empty, so switching platforms later is an
-# .env edit.
+# Every platform's address, token, user and password variable, quoted for
+# Compose: the ones this platform does not read stay empty, so switching
+# platforms later is an .env edit.
 platform_env_lines() {
     local name
     for name in $PLATFORM_VARIABLES; do
@@ -419,7 +449,7 @@ platform_env_lines() {
     done
 }
 
-# Create .env file. It holds the array's API token, so it is created
+# Create .env file. It holds the array's API token or password, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
 # value is quoted for Compose (see compose_env_quote); the platform, the
 # config, the profile and the boolean are validated shapes and stay bare.

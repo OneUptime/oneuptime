@@ -356,12 +356,13 @@ fi
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the
-# FlashArray's native endpoint, or Pure's FlashArray / FlashBlade exporter).
-# Every one of them is validated.
+# FlashArray's native endpoint, Pure's FlashArray / FlashBlade exporter, or
+# NetApp Harvest for an ONTAP cluster). Every one of them is validated.
 STORAGE_ARRAY_AGENT_CONFIGS=(
   otel-collector-config.yaml
   otel-collector-config.flasharray-exporter.yaml
   otel-collector-config.flashblade.yaml
+  otel-collector-config.netapp-ontap.yaml
 )
 
 for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do

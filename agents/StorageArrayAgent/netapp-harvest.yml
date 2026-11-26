@@ -50,7 +50,8 @@ Pollers:
       ${NETAPP_ONTAP_ENDPOINT}
     auth_style: basic_auth
     # The read-only user (README.md, "Prepare the cluster"): an HTTP login
-    # with a readonly REST role, or fsxadmin on Amazon FSx for NetApp ONTAP.
+    # with a read-only REST role, on Amazon FSx for NetApp ONTAP too (fsxadmin
+    # creates it there).
     username: |2-
       ${NETAPP_ONTAP_USERNAME}
     password: |2-

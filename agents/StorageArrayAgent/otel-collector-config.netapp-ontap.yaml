@@ -39,6 +39,14 @@ receivers:
             - source_labels: [__name__]
               regex: netapp_(poller_.*|metadata_(exporter_.*|component_count|target_goroutines|target_ping|collector_(api_time|bytesRx|calc_time|metrics|numCalls|numPartials|parse_time|pluginInstances|plugin_time|poll_time|skips|task_time)))
               action: drop
+            # The performance of every disk partition, RAID group and plex,
+            # summed per aggregate and node, which RestPerf's disk template
+            # works out besides each shelf's parts (the reason it runs): some
+            # 130 series per disk every minute, which no page reads. Delete
+            # this rule to keep them.
+            - source_labels: [__name__]
+              regex: netapp_(aggr|node|plex|raid)_disk_.*
+              action: drop
 
   # Optional: receive the syslog the cluster forwards (ONTAP's EMS events and
   # audit log) — this is what powers the Logs tab of the storage array. Off
