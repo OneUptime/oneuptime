@@ -1,6 +1,6 @@
 # ストレージアレイ エージェント
 
-OneUptime の ストレージアレイ エージェントは、ストレージアレイを監視します。対象は容量とデータ削減、レイテンシ、IOPS と帯域幅、ボリューム、ホスト、ポッドとレプリケーション、ハードウェアのヘルス、ファイルシステムとバケットです。これは標準の OpenTelemetry Collector で、読み取り専用ユーザーの API トークンでアレイの OpenMetrics エンドポイントをスクレイプし、すべてのメトリクスにアレイの識別情報を付与して OneUptime に送信します。届いたデータには [ストレージアレイ モニター](/docs/monitor/storage-array-monitor) でアラートを出せます。
+OneUptime の ストレージアレイ エージェントは、ストレージアレイを監視します。対象は容量とデータ削減、レイテンシ、IOPS と帯域幅、ボリューム、ホスト、ポッドとレプリケーション、ハードウェアのヘルス、ファイルシステムとバケット、そして NetApp ONTAP ではアグリゲート、SVM、LUN、SnapMirror 関係です。これは標準の OpenTelemetry Collector で、読み取り専用ユーザーの API トークンでアレイの OpenMetrics エンドポイントをスクレイプし (ONTAP では、その横で動く NetApp 自身の Harvest エクスポーターをスクレイプします)、すべてのメトリクスにアレイの識別情報を付与して OneUptime に送信します。届いたデータには [ストレージアレイ モニター](/docs/monitor/storage-array-monitor) でアラートを出せます。
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): 読み取り専用ユーザー、続いてインストールスクリプトまたは Docker Compose。
@@ -18,6 +18,9 @@ Storage Arrays は、どのベンダーでも同じように動作する製品�
 | **Pure Storage FlashArray**、Purity//FA 6.7 以降 | `purestorage.flasharray` | アレイ自身の OpenMetrics エンドポイント (`https://<array>/metrics/...?namespace=purefa`)。Collector の横では何も動きません | `otel-collector-config.yaml` (既定) |
 | **Pure Storage FlashArray**、古い Purity//FA | `purestorage.flasharray` | Pure の FlashArray OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fa-exporter` サービスとして実行します | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure の FlashBlade OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fb-exporter` サービスとして実行します | `otel-collector-config.flashblade.yaml` |
+| **NetApp ONTAP** 9.12.1 以降 (AFF、FAS、ASA、ONTAP Select、Cloud Volumes ONTAP)、および **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11。同じ Compose ファイルが `netapp-harvest` サービスとして実行し、読み取り専用のユーザーとパスワードでクラスターの REST API にログインします | `otel-collector-config.netapp-ontap.yaml` |
+
+ONTAP には独自のメトリクスエンドポイントがないため、エージェントは NetApp のオープンソースのエクスポーターである Harvest を Collector の横で実行します。Harvest はクラスターの REST API を読み取り、読み取った内容を Compose ネットワーク上で提供します。各シリーズの名前は `netapp_<object>_<counter>` です。Collector はそれをスクレイプして送信します。Harvest がクラスターに書き込むことはなく、NetApp への AutoSupport レポートは無効になっています。
 
 Pure Storage は 2026 年 2 月に社名を **Everpure** に変更しました。FlashArray、FlashBlade、Purity は名前を変えず、`purefa_*` と `purefb_*` のメトリクスも同じなので、このページの内容はどちらの名前で販売されたアレイにも当てはまります。
 
@@ -26,6 +29,8 @@ flowchart TB
     collector["Collector"] -->|"FlashArray、<br/>Purity//FA 6.7+"| array["アレイ、<br/>ポート 443"]
     collector -->|"古い FlashArray、<br/>FlashBlade"| exporter["Pure のエクスポーター"]
     exporter -->|"API トークン"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"読み取り専用ユーザー、<br/>REST API"| cluster["クラスター、<br/>ポート 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
 ```
 
@@ -34,7 +39,7 @@ flowchart TB
 ## 始める前に
 
 - Docker Engine 20.10 以降と Docker Compose v2 プラグイン。マシンは HTTPS (TCP 443) でアレイの管理インターフェイスに到達できる必要があります。
-- アレイの管理者アカウント。組み込みの **readonly** ロールを持つユーザーと、その API トークンを作成するために使います。
+- アレイの管理者アカウント。組み込みの **readonly** ロールを持つユーザーと、その API トークンを作成するために使います。ONTAP では、パスワード付きの読み取り専用 REST ユーザーを作成するために、クラスター管理者 (Amazon FSx for NetApp ONTAP では `fsxadmin`) が必要です。
 - 取り込みキー。**プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成し、その値をコピーします。
 
 ### エージェントを実行する場所
@@ -62,6 +67,27 @@ pureadmin create --api-token oneuptime
 3. 新しいユーザーの ⋮ メニューから **Create API Token…** を選び、 **Expires In** を空のままにして、トークンをコピーします。
 @tab FlashBlade
 同じ方法で、 **readonly** ロールを持つユーザーとその API トークンを作成します。FlashBlade の GUI のユーザー設定で行うか、Purity//FB の CLI で `pureadmin` を使います。ローカルユーザーのないリリースでは、グループが readonly ロールに対応付けられたディレクトリサービス (LDAP または Active Directory) のアカウントを使います。FlashBlade の API トークンは `T-` で始まります。
+@tab ONTAP CLI
+管理者としてクラスター管理アドレスに SSH で接続します。1 つ目のコマンドは、すべての API を読み取ることだけができる REST ロールを作成します。2 つ目は、そのロールを持つ HTTP ユーザーを作成し、そのパスワードを尋ねます:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+エージェントはこのユーザーとパスワードでログインします。API トークンは使いません。
+@tab ONTAP System Manager
+1. _Cluster → Settings → Users and Roles_ を開きます。
+2. **Roles** で **Add** を選び、ロール名を `oneuptime-readonly` にして、**REST API path** に `/api` を入力し、**Read-Only** アクセスを選びます。
+3. **Users** で **Add** を選び、ユーザー名を `oneuptime` にして新しいロールを与え、**Password** を使う **HTTP** ログイン方法を追加して、パスワードを設定します。
+@tab Amazon FSx for NetApp ONTAP
+`fsxadmin` として、ファイルシステムの管理エンドポイント (FSx コンソールに表示される DNS 名または IP) に SSH で接続し、FSx の定義済みの読み取り専用ロールでユーザーを作成します。コマンドはそのパスワードを尋ねます:
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+ファイルシステムのハードウェアは AWS が運用するため、FSx はディスク、シェルフ、センサーについて誰にも答えません。アレイの **ハードウェア** ページはノードとポートを一覧表示し、そのことを示します。
 :::
 
 ### FlashArray が自身のメトリクスを提供しているか確認する
@@ -72,7 +98,7 @@ Pure は、ネイティブの OpenMetrics エンドポイントを **Purity//FA 
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-`purefa_info{...} 1` の行が出れば、アレイはメトリクスをネイティブに提供しています。既定の設定を使ってください。`404` なら提供していないので、エクスポーターの設定を使います。この設定は Collector の横で Pure のエクスポーターを実行します。Pure はこのエクスポーターを非推奨にしているので、アレイをアップグレードしたらネイティブの設定に移行してください。FlashBlade は常に Pure の FlashBlade エクスポーターを経由するため、この手順は不要です。
+`purefa_info{...} 1` の行が出れば、アレイはメトリクスをネイティブに提供しています。既定の設定を使ってください。`404` なら提供していないので、エクスポーターの設定を使います。この設定は Collector の横で Pure のエクスポーターを実行します。Pure はこのエクスポーターを非推奨にしているので、アレイをアップグレードしたらネイティブの設定に移行してください。FlashBlade は常に Pure の FlashBlade エクスポーターを、ONTAP クラスターは NetApp Harvest を経由するため、どちらもこの手順は不要です。
 
 ### エージェントをインストールして起動する
 
@@ -87,7 +113,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-スクリプトは、これがどのアレイか (ネイティブのメトリクスを提供する FlashArray、古い Purity//FA の FlashArray、または FlashBlade) を尋ね、続いて OneUptime の URL、取り込みキー、アレイの名前、アレイの管理アドレス、読み取り専用ユーザーの API トークン (エコーなしで読み取ります) を尋ねます。`/opt/oneuptime-storage-array-agent` にインストールし、Compose ファイルと 3 つの Collector 設定をすべてダウンロードし、対応する設定と Compose プロファイルを記した `0600` の `.env` ファイルを書き込み、Docker Compose でエージェントを起動します。各値は入力したとおりに Docker Compose 用に引用符で囲みます。再実行すると、再度尋ねる代わりに既存の `.env` の内容をすべて再利用し、編集したファイルは置き換える前に `<file>.bak.<timestamp>` として残します。
+スクリプトは、これがどのアレイか (ネイティブのメトリクスを提供する FlashArray、古い Purity//FA の FlashArray、FlashBlade、または NetApp ONTAP クラスター) を尋ね、続いて OneUptime の URL、取り込みキー、アレイの名前、アレイの管理アドレス、読み取り専用ユーザーの API トークン (ONTAP では読み取り専用ユーザーの名前とパスワード。エコーなしで読み取ります) を尋ねます。`/opt/oneuptime-storage-array-agent` にインストールし、Compose ファイル、すべての Collector 設定、Harvest の 4 つのファイルをダウンロードし、対応する設定と Compose プロファイルを記した `0600` の `.env` ファイルを書き込み、Docker Compose でエージェントを起動します。各値は入力したとおりに Docker Compose 用に引用符で囲みます。再実行すると、再度尋ねる代わりに既存の `.env` の内容をすべて再利用し、編集したファイルは置き換える前に `<file>.bak.<timestamp>` として残します。
 @tab Docker Compose
 `docker-compose.yml` と 3 つの `otel-collector-config*.yaml` ファイルを、お使いの OneUptime から新しいフォルダーにダウンロードします:
 
@@ -114,7 +140,34 @@ PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-古い Purity//FA の FlashArray では、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` と `COMPOSE_PROFILES=flasharray-exporter` を設定します。FlashBlade では、`STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`、`COMPOSE_PROFILES=flashblade` を設定し、`PURE_FB_ENDPOINT` と `PURE_FB_API_TOKEN` を入力します (`PURE_FA_*` の組の代わりに)。エージェントを起動します:
+古い Purity//FA の FlashArray では、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` と `COMPOSE_PROFILES=flasharray-exporter` を設定します。FlashBlade では、`STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`、`COMPOSE_PROFILES=flashblade` を設定し、`PURE_FB_ENDPOINT` と `PURE_FB_API_TOKEN` を入力します (`PURE_FA_*` の組の代わりに)。
+
+NetApp ONTAP クラスターまたは Amazon FSx for NetApp ONTAP では、ONTAP の設定と Harvest の 4 つのファイルもダウンロードします:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+続いて、次の `.env` を使います。パスワードはこの例のように一重引用符で囲んでください。そうすると Docker Compose は、中身にかかわらず書かれたとおりに読み取ります。`'` を含むパスワードは代わりに二重引用符で囲み、`\"`、`\\`、`$$` をそれぞれ `"`、`\`、`$` の代わりに書きます:
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+エージェントを起動します:
 
 ```bash
 docker compose up -d
@@ -128,7 +181,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` には Collector (`oneuptime-storage-array-agent`) と、エクスポーターの設定ではエクスポーター (`pure-fa-exporter` または `pure-fb-exporter`) が表示されます。Collector が起動すると、ログに次の行が表示されるはずです:
+`docker compose ps` には Collector (`oneuptime-storage-array-agent`) と、エクスポーターの設定ではエクスポーター (`pure-fa-exporter`、`pure-fb-exporter`、または `netapp-harvest`) が表示されます。Collector が起動すると、ログに次の行が表示されるはずです:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -136,7 +189,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime でアレイを見つける
 
-**製品 → インフラストラクチャ → ストレージアレイ → すべてのストレージアレイ** を開きます。最初のスクレイプの後 (約 1 分)、アレイが容量、パフォーマンス、未解決のアラート、ハードウェアとともに表示されます。ボリューム、ホスト、ポッドは 2 分以内に、FlashBlade のファイルシステムとバケットは 5 分以内に、FlashArray のディレクトリは 30 分以内に続きます。アレイの **トポロジー** ページは、ホスト、ボリューム、ファイルシステム、ハードウェアを 1 つのマップに描きます。[トポロジー](/docs/telemetry/topology#リソースごとのマップを開く) を参照してください。
+**製品 → インフラストラクチャ → ストレージアレイ → すべてのストレージアレイ** を開きます。最初のスクレイプの後 (約 1 分)、アレイが容量、パフォーマンス、未解決のアラート、ハードウェアとともに表示されます。ボリューム、ホスト、ポッドは 2 分以内に、FlashBlade のファイルシステムとバケットは 5 分以内に、FlashArray のディレクトリは 30 分以内に続きます。ONTAP クラスターは Harvest が読み取ると表示され、インベントリ全体は約 3 分以内 (Harvest が構成をポーリングする間隔) にそろいます。アレイの **トポロジー** ページは、ホスト、ボリューム、ファイルシステム、ハードウェアを 1 つのマップに描きます。[トポロジー](/docs/telemetry/topology#リソースごとのマップを開く) を参照してください。
 :::
 
 ## 環境変数
@@ -148,14 +201,17 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | はい | OneUptime の URL。`https://oneuptime.com` やセルフホストのインスタンスなど。インスタンスが HTTP のみの場合は、`http://` とそのポートを使います。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
 | `STORAGE_ARRAY_NAME` | はい | OneUptime でアレイが登録される名前で、すべてのメトリクスに `storage.array.name` リソース属性として付与されます。変えないでください。あとで変更すると別のアレイとして登録されます。これがないと Collector は起動を拒否します。 |
-| `STORAGE_SYSTEM` | いいえ | `storage.system` リソース属性として付与されるプラットフォーム。`purestorage.flasharray` または `purestorage.flashblade` です。既定は `purestorage.flasharray` です。 |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | いいえ | 実行する同梱の Collector 設定。`otel-collector-config.yaml` (FlashArray、ネイティブ。既定)、`otel-collector-config.flasharray-exporter.yaml` (古い FlashArray)、または `otel-collector-config.flashblade.yaml` (FlashBlade) です。 |
-| `COMPOSE_PROFILES` | いいえ | 選んだ設定がスクレイプするエクスポーターを起動します。ネイティブの FlashArray 設定では空、それ以外の設定では `flasharray-exporter` または `flashblade` です。 |
+| `STORAGE_SYSTEM` | いいえ | `storage.system` リソース属性として付与されるプラットフォーム。`purestorage.flasharray`、`purestorage.flashblade`、または `netapp.ontap` です。既定は `purestorage.flasharray` です。 |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | いいえ | 実行する同梱の Collector 設定。`otel-collector-config.yaml` (FlashArray、ネイティブ。既定)、`otel-collector-config.flasharray-exporter.yaml` (古い FlashArray)、`otel-collector-config.flashblade.yaml` (FlashBlade)、または `otel-collector-config.netapp-ontap.yaml` (ONTAP) です。 |
+| `COMPOSE_PROFILES` | いいえ | 選んだ設定がスクレイプするエクスポーターを起動します。ネイティブの FlashArray 設定では空、それ以外の設定では `flasharray-exporter`、`flashblade`、または `netapp-ontap` です。 |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArray の管理アドレス。ホスト名または IP で、`https://` は付けません。 |
 | `PURE_FA_API_TOKEN` | FlashArray | readonly ロールを持つ FlashArray ユーザーの API トークン。 |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade の管理アドレス。ホスト名または IP で、`https://` は付けません。 |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly ロールを持つ FlashBlade ユーザーの API トークン。 |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | いいえ | `true` はネイティブエンドポイントでアレイの自己署名証明書を受け入れ、`false` は検証します。既定は `true` です。Pure のエクスポーターはアレイの証明書を検証しないため、エクスポーターには関係しません。 |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | クラスター管理アドレス (FSx ではファイルシステムの管理エンドポイント)。ホスト名または IP で、`https://` は付けません。 |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | 読み取り専用の REST ユーザー (`oneuptime` など)。 |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | そのパスワード。Harvest だけが、書かれたとおりに読み取ります。 |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | いいえ | `true` はネイティブエンドポイントと Harvest でアレイの自己署名証明書を受け入れ、`false` は検証します。既定は `true` です。Pure のエクスポーターはアレイの証明書を検証しないため、エクスポーターには関係しません。 |
 
 ## エージェントのスクレイプ方法
 
@@ -164,10 +220,11 @@ Everything is ready. Begin running and processing data.
 - **ボリュームごととホストごとのレイテンシは 3 つのディメンションを残します**。各ボリュームとホストは、最大 16 の `dimension` に分けてレイテンシをエクスポートします。`metric_relabel_configs` ルールが `usec_per_read_op`、`usec_per_write_op`、`usec_per_mirrored_write_op` を残し、QoS のレート制限、キュー、SAN、サービス時間の内訳を落とします。この内訳は大きなアレイのシリーズ数を何倍にもするためです。`purefa_array_performance_latency_usec` のアレイ全体の内訳は残ります。ボリュームごとの内訳も残すには、このルールを削除します。
 - **API トークンは Bearer トークンです**。ネイティブの設定はそれをアレイ自体に送ります。エクスポーターの設定は Compose ネットワーク上でのみエクスポーターに送り、エクスポーターのポートが公開されることはありません。
 - **`send_batch_max_size` はありません**。OneUptime はリクエストごとに 1 回のスクレイプ全体からインベントリを再構築するため、同梱の `batch` プロセッサーはスクレイプを複数のエクスポートに分割しません。batch の設定は同梱のままにしてください。
+- **ONTAP: Harvest がクラスターをポーリングし、Collector が Harvest をスクレイプします**。Harvest はクラスターの構成と状態を 3 分ごと、パフォーマンスを毎分 (レイテンシは 1 操作あたりのマイクロ秒、操作数とバイト数は毎秒)、EMS イベントを 3 分ごとに読み取り、すべての最新の値を `netapp-harvest:12990` で提供します。Collector はそれを 60 秒ごとに `scrape_endpoint: harvest` のラベル付きでスクレイプします。3 つの `netapp-harvest-*.yaml` ファイルは、Harvest の読み取り対象を OneUptime が読むものに限定します。Harvest 自身の `netapp_metadata_*` シリーズは、どのオブジェクトを完全に一覧表示したかを示すため、削除されたボリュームはインベントリから消え、Harvest が読み取れなかったオブジェクトは最後の数を保ちます。Collector は Harvest 自身の測定値とディスクごとのパフォーマンスのシリーズを破棄し、各 SnapMirror 関係のスケジュールを `netapp_snapmirror_schedule_seconds` (1 時間ごとのスケジュールは 3600) に変換します。SnapMirror Behind Schedule は、これと遅延を比較します。
 
 ## エージェントが収集するもの
 
-Pure のセマンティック規約は、FlashArray のネイティブエンドポイントと両方のエクスポーターで共通です。すべての値はアレイ自身が算出するゲージ (レイテンシは操作あたりのマイクロ秒、スループットは毎秒) なので、レートを計算する必要はありません。オブジェクトは **データポイントラベル** で名前が付きます。ボリューム、ポッド、ディレクトリ、ファイルシステム、バケットは `name`、ホストは `host`、FlashArray のハードウェアは `component_name` です。エージェントが `storage.array.name` と `storage.system` のリソース属性を追加するため、OneUptime はすべてをアレイの下に整理します:
+Pure のセマンティック規約は、FlashArray のネイティブエンドポイントと両方のエクスポーターで共通です。ONTAP の規約は Harvest のもので、表の後で説明します。すべての値はアレイ自身が算出するゲージ (レイテンシは操作あたりのマイクロ秒、スループットは毎秒) なので、レートを計算する必要はありません。オブジェクトは **データポイントラベル** で名前が付きます。ボリューム、ポッド、ディレクトリ、ファイルシステム、バケットは `name`、ホストは `host`、FlashArray のハードウェアは `component_name` です。エージェントが `storage.array.name` と `storage.system` のリソース属性を追加するため、OneUptime はすべてをアレイの下に整理します:
 
 | エンドポイント | メトリクスファミリー | OneUptime がそこから作るもの |
 | --- | --- | --- |
@@ -179,6 +236,11 @@ Pure のセマンティック規約は、FlashArray のネイティブエンド�
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade の名前、Purity のバージョン、システム ID。容量とデータ削減。未解決のアラート数。アレイのヘルス。**ハードウェア** ページ |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **ファイルシステム** ページ: ファイルシステムごとのプロビジョニング容量と使用容量、データ削減、レイテンシ、IOPS、帯域幅 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **バケット** ページ: バケットごとの容量、クォータ、オブジェクト数、パフォーマンス。アカウントごとにグループ化 |
+| ONTAP、Harvest 経由 | `netapp_cluster_*`、`netapp_node_*`、`netapp_aggr_*`、`netapp_svm_*`、`netapp_volume_*`、`netapp_lun_*`、`netapp_snapmirror_*` | クラスターの名前、リリース、UUID。容量 (データアグリゲートの合計) とデータ削減。**ボリューム** ページ。**アグリゲート**、**SVM**、**LUN**、**SnapMirror** の各ページと、オブジェクトごとのページ |
+| ONTAP のハードウェア、Harvest 経由 | `netapp_disk_*`、`netapp_shelf_*`、`netapp_environment_sensor_*`、`netapp_net_port_*`、`netapp_nic_*`、`netapp_fcp_*` | **ハードウェア** ページ: ノード、ディスク、シェルフとその電源装置、ファン、モジュール、センサー、ノードのセンサー、Ethernet ポートと Fibre Channel ポート |
+| ONTAP の未解決の問題とイベント | `netapp_health_*`、`netapp_ems_events` | 未解決のアラート数と **アクティブなアラート** カード (破損したディスク、シェルフの障害、HA テイクオーバー、ダウンしたポート、システムヘルスアラート)、そして EMS のテンプレート |
+
+ONTAP では、すべてのシリーズが Harvest のものです。オブジェクトはラベルで名前が付きます。`volume` (その `svm` 内で)、`aggr`、`lun`、`node`、`disk`、`shelf`、SnapMirror 関係では `destination_location` です。状態は 1 または 0 の `netapp_*_new_status`、またはラベルが状態を示す `netapp_*_labels` シリーズで表され、未解決の問題はそれぞれ、続いている間だけ存在する `netapp_health_*_alerts` シリーズです。
 
 **すべてのストレージアレイ** の **ヘルス** 列は、アレイの最新データにあるアレイ自身のアラートとハードウェアを読み取ります。未解決の重大なアラート、または重大、故障、欠落、異常の状態にあるハードウェアコンポーネント、ドライブ、コントローラーを報告している間は **重大**、未解決の警告アラート、または劣化や不明の状態のコンポーネントを報告している間は **警告**、それ以外は **OK**、エージェントが切断されている間は **不明** です。アレイの **概要** は次のセクションのとおり、さらに多くを判断します。モニターの条件では、アレイの属性には `resource.` の接頭辞が付き (`resource.storage.array.name`、`resource.storage.system`)、データポイントラベルは接頭辞なしのままです (`name`、`host`、`dimension`、`space`)。
 
@@ -191,8 +253,9 @@ Pure のセマンティック規約は、FlashArray のネイティブエンド�
 - **ホスト。** 両方のコントローラー経由でアレイに到達できなくなったホストは確認が必要で、理由も示します。1 つのコントローラーのみ経由、経路の偏り、経路なしのいずれかです。
 - **Pod。** アレイがレプリカリンクを異常と報告する Pod は重大、1 分以上遅れている Pod は確認が必要です。
 - **ファイルシステム。** プロビジョニング済みサイズの空きが 10% 未満の FlashBlade のファイルシステムは確認が必要です。
+- **ONTAP クラスター自身のオブジェクト。** ONTAP がオフラインと報告するボリューム、アグリゲート、LUN、破損したディスク、エラー状態のシェルフ部品、重大しきい値を超えたノードのセンサー、ダウンしたポートは重大です。停止した SVM、ファンや電源装置が故障したノード、警告しきい値を超えたセンサーは確認が必要で、理由は ONTAP 自身の言葉で示します。ONTAP が異常と報告する SnapMirror 関係は重大で、スケジュール間隔の 1.5 倍を超えて遅れている関係は確認が必要です。
 
-**ホスト**、**レプリケーション**、**ファイルシステム** の一覧は、同じルールで各部分の状態を示し、その下に理由を表示します。ホストとファイルシステムの個別ページは、注意が必要なものと、それを監視するアレイのアラートを示し、残りを有効にする操作も 1 回で済みます。ボリュームやバケットを含むすべての部分のページは、未解決の項目を示します。エージェントが切断されている間、ヘルスは **ヘルス: 不明** になります。アレイの最後の報告はもう正しくないためです。上の各しきい値は、[ストレージアレイモニター](/docs/monitor/storage-array-monitor)に一覧があるとおり、それぞれのアラートテンプレートが発火する水準です。
+**ホスト**、**レプリケーション**、**ファイルシステム** の一覧は、同じルールで各部分の状態を示し、その下に理由を表示します。ONTAP クラスターの **ボリューム**、**アグリゲート**、**SVM**、**LUN**、**SnapMirror** の一覧も同様で、どの行からもその行専用のページが開きます。ページには、状態、注意が必要なもの、未解決の項目、それを監視するクラスターのアラート、ONTAP がそれについて報告している内容、グラフが表示されます。各プラットフォームのページは、そのプラットフォーム自身の言葉で示します。ONTAP のボリュームは SVM、アグリゲート、使用率を一覧に示し、そのページは ONTAP のシリーズをグラフにします。Amazon FSx for NetApp ONTAP では、**ハードウェア** ページがノードとポートを一覧表示し、ディスクやシェルフがない理由を示します。ホストとファイルシステムの個別ページは、注意が必要なものと、それを監視するアレイのアラートを示し、残りを有効にする操作も 1 回で済みます。ボリュームやバケットを含むすべての部分のページは、未解決の項目を示します。エージェントが切断されている間、ヘルスは **ヘルス: 不明** になります。アレイの最後の報告はもう正しくないためです。上の各しきい値は、[ストレージアレイモニター](/docs/monitor/storage-array-monitor)に一覧があるとおり、それぞれのアラートテンプレートが発火する水準です。
 
 ## オプション — アレイの syslog を送信する
 
@@ -251,14 +314,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 エージェントは、そのファイルが固定している Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime のリリースが固定しているバージョンより古い場合、アレイの **概要** ページで、その横に警告マークが表示されます。マークを選択すると、これらのコマンドが表示されます。ファイルがバージョンを報告するようになる前にインストールしたエージェントは、この方法でアップグレードするまでバージョンが表示されません。
 
-Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と 3 つの Collector 設定を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、エージェントを作り直すため、Collector は新しい設定を読み込みます。`/opt/oneuptime-storage-array-agent` 以外にインストールしたエージェントには、そのフォルダーの指定が必要です: `INSTALL_DIR=<folder> bash install.sh`。
+Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml`、すべての Collector 設定、Harvest のファイルを更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、エージェントを作り直すため、Collector は新しい設定を読み込みます。`/opt/oneuptime-storage-array-agent` 以外にインストールしたエージェントには、そのフォルダーの指定が必要です: `INSTALL_DIR=<folder> bash install.sh`。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-代わりに Docker Compose でインストールした場合は、エージェントのフォルダーで Compose ファイルと 3 つの Collector 設定を再度ダウンロードし (それらに加えた変更があれば、もう一度行います)、イメージをプルしてエージェントを作り直します:
+代わりに Docker Compose でインストールした場合は、エージェントのフォルダーで Compose ファイルと Collector 設定を再度ダウンロードし (ONTAP では ONTAP の設定と Harvest の 4 つのファイルも。それらに加えた変更があれば、もう一度行います)、イメージをプルしてエージェントを作り直します:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -276,7 +339,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-その後、不要になった場合はアレイで読み取り専用ユーザーとその API トークンを削除します。
+その後、不要になった場合はアレイで読み取り専用ユーザーとその API トークンを削除します。ONTAP では、`security login delete -user-or-group-name oneuptime -application http -authentication-method password` を実行してから、`security login rest-role delete -role oneuptime-readonly -api /api` を実行します。
 
 ## トラブルシューティング
 
@@ -313,8 +376,12 @@ OneUptime がアレイから 15 分間何も受信しないと、アレイは切
 アレイは既定で自己署名証明書を提示し、どの Docker イメージもそれを信頼しません。`STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` を設定するか (プライベートな管理ネットワークでは実用的な選択です)、Collector のイメージが信頼する CA の証明書をアレイにインストールします。
 :::
 
-:::details pure-fa-exporter または pure-fb-exporter が名前解決できない
-エクスポーターが動いていません。`COMPOSE_PROFILES` は `STORAGE_ARRAY_COLLECTOR_CONFIG` と一致している必要があります (`flasharray-exporter` は FlashArray のエクスポーター設定用、`flashblade` は FlashBlade の設定用)。`.env` を修正して `docker compose up -d` を実行すると、`docker compose ps` にエクスポーターが表示されます。
+:::details pure-fa-exporter、pure-fb-exporter、または netapp-harvest が名前解決できない
+エクスポーターが動いていません。`COMPOSE_PROFILES` は `STORAGE_ARRAY_COLLECTOR_CONFIG` と一致している必要があります (`flasharray-exporter` は FlashArray のエクスポーター設定用、`flashblade` は FlashBlade の設定用、`netapp-ontap` は ONTAP の設定用)。`.env` を修正して `docker compose up -d` を実行すると、`docker compose ps` にエクスポーターが表示されます。
+:::
+
+:::details ONTAP: Harvest がログインできない、またはオブジェクトが欠けている
+Harvest のログを確認します: `docker compose logs netapp-harvest`。`401` または `Unauthorized` は、クラスターがユーザーまたはそのパスワードを拒否したことを意味します。ユーザーが **http** ログイン方法と読み取り専用の REST ロールを持っていることを確認し (`security login show -user-or-group-name oneuptime`)、`.env` を修正して `docker compose up -d` を実行します。1 つのオブジェクトで `403` または `not authorized` が出る場合は、ロールがその API に届いていません。上のロールは `/api` 全体に届きます。Amazon FSx for NetApp ONTAP では、誰が尋ねても FSx はディスク、シェルフ、センサーについてそう答えます。これは想定どおりで、**ハードウェア** ページにもそう表示されます。`connection refused` または `no such host` は `NETAPP_ONTAP_ENDPOINT` の誤りを意味します。これはノードや SVM のアドレスではなく、クラスター管理アドレス (FSx では管理エンドポイント) です。診断スクリプトもこれらをすべて確認します。
 :::
 
 :::details 削除したボリュームやホストがインベントリに残る
