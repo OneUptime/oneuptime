@@ -57,6 +57,8 @@ export interface SecurityRiskFinding {
    * its risk once.
    */
   firingKey?: string | undefined;
+  // The names the same firing had before #11130: one counted under them is counted.
+  formerFiringKeys?: Array<string> | undefined;
 }
 
 // The most imported alerts one poll adds risk from: the most severe first.
@@ -78,6 +80,8 @@ export function riskFindingsForRuleMatches(data: {
   seenAt: Date;
   // Each group's firing, by its value: a scheduled run's (#10489).
   firingKeys?: Map<string, string> | undefined;
+  // The names each firing had before #11130, by its value.
+  formerFiringKeys?: Map<string, Array<string>> | undefined;
 }): Array<SecurityRiskFinding> {
   const { rule, parsedRule } = data;
 
@@ -133,6 +137,8 @@ export function riskFindingsForRuleMatches(data: {
     const firingKey: string | undefined = data.firingKeys?.get(
       matchGroup.groupValue,
     );
+    const formerFiringKeys: Array<string> =
+      data.formerFiringKeys?.get(matchGroup.groupValue) || [];
 
     findings.push({
       projectId: rule.projectId,
@@ -147,6 +153,7 @@ export function riskFindingsForRuleMatches(data: {
       seenAt: data.seenAt,
       detectionRuleId: rule.id,
       ...(firingKey ? { firingKey } : {}),
+      ...(firingKey && formerFiringKeys.length > 0 ? { formerFiringKeys } : {}),
     });
   }
 

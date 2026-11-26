@@ -2776,18 +2776,28 @@ describe("the agents the pages describe", () => {
     ["agents/DockerAgent/otel-collector-config.yaml", DOCKER],
     ["agents/PodmanAgent/otel-collector-config.yaml", PODMAN],
   ])(
-    "%s reads a level where one sits in the line, and falls back to the stream",
+    "%s reads a level where one sits in the line, and claims none for an unread stderr line",
     (configPath: string, page: string) => {
       const config: string = source(configPath);
 
+      // Only an unread stdout line takes the stream's INFO; an unread stderr
+      // line goes to the router's default, which sets no severity (#10972).
       expect(config).toContain(
-        'value: \'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")\'',
+        "- output: add-fallback-severity\n            expr: 'attributes[\"log.iostream\"] != \"stderr\"'\n        default: severity-unspecified",
+      );
+      expect(config).toContain(
+        "id: add-fallback-severity\n        field: attributes.severity_text\n        value: INFO\n",
+      );
+      expect(config).toContain("- type: noop\n        id: severity-unspecified");
+      expect(config).not.toContain('"stderr" ? "ERROR"');
+      expect(config).toContain(
+        "id: add-exception-severity\n        field: attributes.severity_text\n        value: ERROR\n",
       );
       expect(config).toContain(
         "is_first_entry: 'body matches \"^[^\\\\s\\\\}\\\\)\\\\]]\"'",
       );
       expect(englishPage(page)).toContain(
-        "A line with no level falls back to its stream: `stderr` is `ERROR`, `stdout` is `INFO`.",
+        "an exception's traceback is `ERROR`. A line with no level is `INFO` on `stdout`, and has no severity (Unspecified) on `stderr`.",
       );
     },
   );

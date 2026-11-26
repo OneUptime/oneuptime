@@ -203,7 +203,7 @@ O agente também acompanha o arquivo `*-json.log` de cada contêiner e envia cad
 | `resource.container.id` | O ID completo do contêiner. |
 | `resource.container.runtime` | Sempre `docker`. |
 | `attributes["log.iostream"]` | `stdout` ou `stderr`. |
-| `severityText` / `severityNumber` | Lidos de uma palavra-chave de nível onde houver um nível na linha (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Uma linha sem nível recorre ao seu fluxo: `stderr` é `ERROR`, `stdout` é `INFO`. |
+| `severityText` / `severityNumber` | Lidos do nível que a linha cita, onde houver um nível nela (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); o traceback de uma exceção é `ERROR`. Uma linha sem nível é `INFO` no `stdout`, e não tem severidade (Não especificado) no `stderr`. |
 | `body` | A linha que o contêiner escreveu. Linhas que começam com espaço ou com um colchete de fechamento, como as linhas de um stack trace, são unidas à linha anterior. |
 | `time` | O carimbo de data/hora do daemon do Docker para a linha. |
 

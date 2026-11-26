@@ -25,7 +25,7 @@ Les deux acceptent jusqu'à 100 incidents sélectionnés. Le résultat indique c
 
 ## Ce que fait l'ajout
 
-- **Une seule entrée dans le fil de l'épisode** nomme chaque incident ajouté : les 20 premiers par numéro et titre, puis combien d'autres. Elle est publiée une seule fois dans le canal Slack ou Microsoft Teams de l'épisode, et non une fois par incident. Un incident privé n'est désigné que par son numéro.
+- **Une seule entrée dans le fil de l'épisode** nomme chaque incident ajouté : les 20 premiers par numéro et titre, puis combien d'autres. Elle est publiée une seule fois dans le canal Slack ou Microsoft Teams de l'épisode, et non une fois par incident, et, pour un épisode créé avec ces incidents, elle y suit le message de création de l'épisode. Un incident privé n'est désigné que par son numéro.
 - **Le fil de chaque incident** indique à quel épisode il a été ajouté.
 - **La gravité de l'épisode** est relevée au niveau de l'incident le plus grave ajouté à un épisode existant, et n'est jamais abaissée. Un nouvel épisode commence avec la gravité que vous choisissez.
 - **Un épisode résolu reste résolu.** Y ajouter des incidents ne le rouvre pas, et l'ajout ne change jamais l'état d'un incident.

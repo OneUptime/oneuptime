@@ -62,6 +62,12 @@ export const AZURE_INVENTORY_PROPERTIES: ReadonlyArray<string> = [
   "provisioningState",
   "state",
   "vmSize",
+  /*
+   * A VM's own ID (properties.vmId): what the host OneUptime's collector
+   * runs on in it stamps as its host.id, so the two are linked
+   * (CloudHostLink, #11013).
+   */
+  "vmId",
   "powerState",
   "osType",
   "version",
@@ -157,6 +163,7 @@ export function buildAzureInventoryQuery(): KqlText {
     kql`  provisioningState = tostring(properties.provisioningState),`,
     kql`  state = tostring(properties.state),`,
     kql`  vmSize = tostring(properties.hardwareProfile.vmSize),`,
+    kql`  vmId = tostring(properties.vmId),`,
     kql`  powerState = tostring(properties.extended.instanceView.powerState.displayStatus),`,
     kql`  osType = tostring(properties.storageProfile.osDisk.osType),`,
     kql`  version = tostring(properties.version),`,

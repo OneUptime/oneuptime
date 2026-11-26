@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > Om één keer per probleem op te roepen in plaats van één keer per waarschuwing, zet je het bereikbaarheidsbeleid op je groeperingsregels en laat je het weg bij de waarschuwingen: uit de criteria van de monitor, het aanmaakformulier en je bereikbaarheidsregels voor waarschuwingen.
 
-Ook de eigenaren van de episode horen ervan: **Waarschuwingsepisode aangemaakt**, **Status van waarschuwingsepisode gewijzigd** en **Waarschuwing toegevoegd aan waarschuwingsepisode** staan standaard aan per e-mail, onder **Gebruikersinstellingen → Meldingsinstellingen**, op het tabblad **Waarschuwingen**. De **Episode-eigenaren** van de regel worden eigenaar van elke episode die ze opent, en worden ingelicht zoals elke andere eigenaar.
+Ook de eigenaren van de episode horen ervan: **Waarschuwingsepisode aangemaakt**, **Status van waarschuwingsepisode gewijzigd** en **Waarschuwing toegevoegd aan waarschuwingsepisode** staan standaard aan per e-mail, onder **Gebruikersinstellingen → Meldingsinstellingen**, op het tabblad **Waarschuwingen**. De **Episode-eigenaren** van de regel worden eigenaar van elke episode die ze opent, en worden ingelicht zoals elke andere eigenaar. Ze worden toegevoegd voordat Slack en Microsoft Teams van de episode horen, zodat een meldingsregel die vraagt wie eigenaar is van een episode, haar aanmaakbericht plaatst.
 
 ## Een episode met de hand aanmaken
 
@@ -166,7 +166,7 @@ Vul bij **Episodedetails** de **Titel** in en, als je wilt, een **Ernst van waar
 
 Kies bij **Bereikbaarheid en eigenaren** een **Bereikbaarheidsbeleid** dat draait wanneer de episode wordt aangemaakt, en haar **Eigenaren**. Klik daarna op **Episode aanmaken**.
 
-Elk team waarvan je lid bent, is onder **Eigenaren** één klik verwijderd, en de samenvatting noemt de eigenaarsregels die er meer zullen toevoegen.
+Elk team waarvan je lid bent, is onder **Eigenaren** één klik verwijderd, en de samenvatting noemt de eigenaarsregels die er meer zullen toevoegen. De eigenaren die je kiest, die van de eigenaarsregels en de labels van overeenkomende labelregels worden toegevoegd voordat Slack en Microsoft Teams van de episode horen, zodat een meldingsregel die vraagt wie eigenaar is van een episode, of welke labels ze heeft, haar ook plaatst.
 
 ### De waarschuwingen toevoegen
 

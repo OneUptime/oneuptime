@@ -373,6 +373,23 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Every commitment.",
     "An account's costs.",
     "A resource's cost.",
+    // Right-sizing on the memory OneUptime's host collector reads (#11013).
+    "The VM and the host are one machine",
+    "Memory is the host's used memory, without cache and buffers",
+    "Where both read memory",
+    // Required tags (#11012).
+    "Keys match whatever their case.",
+    "An allowed value can be a pattern.",
+    "One account's own tags.",
+    "Nothing is changed in your cloud.",
+    "Who is told.",
+    "How often.",
+    "When it is tagged.",
+    "A team-like key",
+    "An environment-like key",
+    "Any key",
+    "A tag that allows one value",
+    "Required tags.",
     "What was saved.",
   ],
   // Cost groups (#11006): an example group's name is a lead too.

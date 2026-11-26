@@ -229,8 +229,12 @@ describe("Telemetry ingestion key create form", () => {
           file: card.file,
           names: true,
         });
-        // "Kubernetes key": the product, then "key".
-        expect(name?.[1]).toMatch(/^[A-Z][A-Za-z ]* key$/);
+        /*
+         * "Kubernetes key": the product, then "key". A product's own name
+         * may join its words with a hyphen ("XCP-ng key"), never stand one
+         * apart.
+         */
+        expect(name?.[1]).toMatch(/^[A-Z][A-Za-z]*(?:[ -][A-Za-z]+)* key$/);
       }
 
       // No two products name their keys the same.

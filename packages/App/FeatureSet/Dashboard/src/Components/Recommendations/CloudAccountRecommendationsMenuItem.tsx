@@ -62,23 +62,22 @@ const CloudAccountRecommendationsMenuItem: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const [read, coverage]: [
-        CloudAccountRecommendationResources,
-        CloudAccountRecommendationCoverage,
-      ] = await Promise.all([
-        loadCloudAccountRecommendationResources({
+      const read: CloudAccountRecommendationResources =
+        await loadCloudAccountRecommendationResources({
           projectId: projectId,
           provider: account.provider as string,
           cloudAccountId: account.accountId as string,
-        }),
-        loadCloudAccountRecommendationCoverage(),
-      ]);
+        });
+
+      // Asked of the server about these resources' recommendations (#11074).
+      const coverage: CloudAccountRecommendationCoverage =
+        await loadCloudAccountRecommendationCoverage(read.resources);
 
       setCount(
         CloudAccountRecommendationPlan.getCounts(
           CloudAccountRecommendationPlan.buildGroups({
             resources: read.resources,
-            existingMonitors: coverage.existingMonitors,
+            coveredMonitorIds: coverage.coveredMonitorIds,
             dismissals: coverage.dismissals,
           }),
         ).available,

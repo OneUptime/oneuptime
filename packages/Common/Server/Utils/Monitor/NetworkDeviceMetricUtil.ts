@@ -32,6 +32,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { FIBRE_CHANNEL_COUNTERS } from "../../../Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import { NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME } from "../../../Types/NetworkDevice/NetworkDevicePingMetricNames";
 
 /*
@@ -74,6 +75,12 @@ export default class NetworkDeviceMetricUtil {
    * A fully populated 48-port QSFP switch stays well inside it.
    */
   public static readonly maxTransceiverPoints: number = 2048;
+
+  /*
+   * Fibre Channel counter rates per poll: nine per port at most. A 384-port
+   * director stays inside it; a larger one charts its first ports.
+   */
+  public static readonly maxFibreChannelPoints: number = 4096;
 
   // Retention handling mirrors MonitorMetricUtil (shared GlobalConfig knob).
   private static readonly DEFAULT_RETENTION_DAYS: number = 30;
@@ -315,6 +322,52 @@ export default class NetworkDeviceMetricUtil {
           unit: "errors/s",
           extraAttributes: interfaceAttributes,
         });
+      }
+
+      /*
+       * A SAN switch's Fibre Channel counters, per port and counter: what
+       * the Interfaces page charts, so a port's CRC errors, link failures
+       * or credit loss each have a history of their own.
+       */
+      let fibreChannelPoints: number = 0;
+
+      for (const snmpInterface of interfacesToEmit) {
+        const rates: JSONObject | undefined = snmpInterface.fibreChannel
+          ?.ratesPerSecond as JSONObject | undefined;
+
+        if (!rates) {
+          continue;
+        }
+
+        for (const counter of FIBRE_CHANNEL_COUNTERS) {
+          const rate: unknown = rates[counter];
+
+          if (typeof rate !== "number" || !isFinite(rate)) {
+            continue;
+          }
+
+          if (
+            fibreChannelPoints >= NetworkDeviceMetricUtil.maxFibreChannelPoints
+          ) {
+            break;
+          }
+
+          fibreChannelPoints++;
+
+          pushMetric({
+            metricName: MonitorMetricType.SnmpInterfaceFibreChannelPerSecond,
+            value: rate,
+            // One description per metric name: the counter is an attribute.
+            description:
+              "Fibre Channel counters per second of a SAN switch port (CRC errors, link failures, discards, credit loss)",
+            unit: "/s",
+            extraAttributes: {
+              interfaceName: snmpInterface.name,
+              interfaceIndex: snmpInterface.interfaceIndex.toString(),
+              fibreChannelCounter: counter,
+            },
+          });
+        }
       }
     }
 

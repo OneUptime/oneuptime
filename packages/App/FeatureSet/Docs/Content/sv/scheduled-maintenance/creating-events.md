@@ -84,9 +84,9 @@ På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, C
 I samma stund som du klickar på **Skapa underhållshändelse** går OneUptime igenom de här stegen, i den här ordningen:
 
 1. **Den får ett nummer och ett tillstånd.** Numret kommer från en räknare per projekt och visas med ditt prefix (`SM-42`). Händelsen börjar i ditt schemalagda tillstånd, oavsett vilket tillstånd en begäran nämner.
-2. **Dina chattverktyg får höra om den.** Slack- och Microsoft Teams-reglerna under **Arbetsyta** publicerar den i sina kanaler, och en regel kan skapa en kanal för händelsen. Dess flöde registrerar att den skapades.
-3. **Dess tillståndstidslinje börjar.** Den första raden i dess **Tillståndstidslinje** är ditt schemalagda tillstånd.
-4. **Ägare och etiketter läggs till**: de du valde, och sedan de från matchande ägar- och etikettregler.
+2. **Dess tillståndstidslinje börjar.** Den första raden i dess **Tillståndstidslinje** är ditt schemalagda tillstånd.
+3. **Ägare och etiketter läggs till**: de du valde, och sedan de från matchande ägar- och etikettregler.
+4. **Dina chattverktyg får höra om den.** Slack- och Microsoft Teams-reglerna under **Arbetsyta** publicerar den i sina kanaler, och en regel kan skapa en kanal för händelsen. Dess flöde registrerar att den skapades. Reglerna ser de ägare och etiketter som händelsen skapades med, så en regel som frågar vem som äger en händelse, eller vilka etiketter den har, publicerar den också. Det som har sagts om händelsen under tiden, till exempel ägarna som just lades till, kommer efter den i de kanalerna.
 5. **Runbook-regler startar** de runbooks som matchar händelsen.
 6. **Påminnelser schemaläggs**, när en påminnelseregel matchar, för dess ägare.
 

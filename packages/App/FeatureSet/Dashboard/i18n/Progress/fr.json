@@ -702,6 +702,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "pages",
+    "payments, search, platform-*",
     "persistent volume claim",
     "pod",
     "pods",

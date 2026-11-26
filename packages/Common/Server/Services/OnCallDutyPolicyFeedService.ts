@@ -115,9 +115,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
         data.onCallDutyPolicyFeedEventType;
       onCallDutyPolicyFeed.projectId = data.projectId;
 
-      if (!data.postedAt) {
-        onCallDutyPolicyFeed.postedAt = OneUptimeDate.getCurrentDate();
-      }
+      /*
+       * Filed when asked, else now: "On-Call Policy Created" is filed when
+       * the policy's create began, so it stays the first line of its feed
+       * although its owners are written before it. A time asked for used to
+       * be dropped, leaving the entry with none.
+       */
+      onCallDutyPolicyFeed.postedAt =
+        data.postedAt || OneUptimeDate.getCurrentDate();
 
       if (data.userId) {
         onCallDutyPolicyFeed.userId = data.userId;

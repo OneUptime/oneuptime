@@ -2,6 +2,10 @@ import ObjectID from "../../Types/ObjectID";
 import AlertGroupingRule from "../../Models/DatabaseModels/AlertGroupingRule";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
+import CreateBy from "../Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
@@ -1441,38 +1445,58 @@ class AlertGroupingEngineServiceClass {
       newEpisode.labels = episodeLabels;
     }
 
-    try {
-      const createdEpisode: AlertEpisode = await AlertEpisodeService.create({
-        data: newEpisode,
-        props: {
-          isRoot: true,
-        },
-      });
+    const createBy: CreateBy<AlertEpisode> = {
+      data: newEpisode,
+      props: {
+        isRoot: true,
+      },
+    };
 
-      /*
-       * The rule's Episode Owners become owners of the episode - only the
-       * project's own teams and members, as when owners are added by hand
-       * (see GroupingRuleEpisodeOwners). Each one added is notified like any
-       * owner.
-       */
-      if (createdEpisode.id) {
-        try {
-          await GroupingRuleEpisodeOwners.addOwnersToEpisode({
-            projectId: alert.projectId!,
-            episodeId: createdEpisode.id,
-            episodeIdColumn: "alertEpisodeId",
-            ownerUserService: AlertEpisodeOwnerUserService,
-            ownerTeamService: AlertEpisodeOwnerTeamService,
-            users: rule.episodeOwnerUsers,
-            teams: rule.episodeOwnerTeams,
-            ruleName: rule.name || rule.id?.toString(),
-          });
-        } catch (ownerError) {
-          logger.error(
-            `Error adding the grouping rule's owners to episode ${createdEpisode.id.toString()}: ${ownerError}`,
-            { projectId: alert.projectId?.toString() } as LogAttributes,
-          );
+    /*
+     * The rule's Episode Owners are added once the episode exists, right
+     * after its create returns: its notification rules wait a moment for
+     * them before they are matched, so a rule that asks who owns an alert
+     * episode posts its "Episode Created" (WorkspaceRuleOwnersOnCreate,
+     * #11188). Told once they are in - also when the create fails.
+     */
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+    try {
+      let createdEpisode: AlertEpisode;
+
+      try {
+        createdEpisode = await AlertEpisodeService.create(createBy);
+
+        /*
+         * The rule's Episode Owners become owners of the episode - only the
+         * project's own teams and members, as when owners are added by hand
+         * (see GroupingRuleEpisodeOwners). Each one added is notified like
+         * any owner.
+         */
+        if (createdEpisode.id) {
+          try {
+            await GroupingRuleEpisodeOwners.addOwnersToEpisode({
+              projectId: alert.projectId!,
+              episodeId: createdEpisode.id,
+              episodeIdColumn: "alertEpisodeId",
+              ownerUserService: AlertEpisodeOwnerUserService,
+              ownerTeamService: AlertEpisodeOwnerTeamService,
+              users: rule.episodeOwnerUsers,
+              teams: rule.episodeOwnerTeams,
+              ruleName: rule.name || rule.id?.toString(),
+            });
+          } catch (ownerError) {
+            logger.error(
+              `Error adding the grouping rule's owners to episode ${createdEpisode.id.toString()}: ${ownerError}`,
+              { projectId: alert.projectId?.toString() } as LogAttributes,
+            );
+          }
         }
+      } finally {
+        await CreatedNotificationHold.ownersAreIn(
+          createBy,
+          OwnersAddedBy.Caller,
+        );
       }
 
       // Add episode feed entry for episode creation

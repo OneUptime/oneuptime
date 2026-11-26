@@ -106,6 +106,16 @@ enum ProbeCapability {
    * wrote to its own log: at LOG_LEVEL=DEBUG, each step's whole result.
    */
   HideSecretValuesInLogs = "hideSecretValuesInLogs",
+  /*
+   * The probe polls a device in the SNMPv3 context the device names
+   * (SnmpV3Auth.contextName): each logical switch of a Brocade Virtual
+   * Fabric answers only in its own ("VF:128"). An older probe ignores the
+   * context and polls the agent's default context - another logical switch
+   * altogether, whose ports would be stored as this one's. So the server
+   * walks a device that names a context only on a probe that declares
+   * this, and only pings it on any other until the probe is updated.
+   */
+  SnmpV3Context = "snmpV3Context",
 }
 
 // The first probe release that walks SNMP tables.

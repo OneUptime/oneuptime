@@ -1,11 +1,13 @@
 # नेटवर्क वेंडर गाइड (Sophos, Extreme, Cambium)
 
-OneUptime से तीन आम नेटवर्क को शुरू से अंत तक कैसे मॉनिटर करें: अपनी IPsec टनल, WAN लिंक और SD-WAN के साथ Sophos Firewall (XGS, SFOS); अपने फ़ैब्रिक के साथ Extreme Networks स्विच (EXOS / Switch Engine और Fabric Engine / VOSS); और Cambium Networks cnMatrix स्विच और Enterprise Wi-Fi एक्सेस पॉइंट, हर रेडियो के चैनल और ट्रांसमिट पावर तक।
+OneUptime से तीन आम नेटवर्क को शुरू से अंत तक कैसे मॉनिटर करें: अपनी IPsec टनल, WAN लिंक और SD-WAN के साथ Sophos Firewall (XGS, SFOS); अपने फ़ैब्रिक के साथ Extreme Networks स्विच (EXOS / Switch Engine और Fabric Engine / VOSS); और Cambium Networks cnMatrix स्विच और Enterprise Wi-Fi एक्सेस पॉइंट, हर रेडियो के चैनल और ट्रांसमिट पावर तक। ये SAN स्विच भी कवर करते हैं, Brocade Fabric OS और Cisco MDS 9000, हर Fibre Channel पोर्ट की त्रुटियों तक।
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): टनल, WAN लिंक, गेटवे और SD-WAN।
 - [Extreme Networks](#extreme-networks-exos-switch-engine-और-fabric-engine-voss): स्विच, फ़ैब्रिक और उसका हार्डवेयर।
 - [Cambium Networks](#cambium-networks-enterprise-wi-fi-और-cnmatrix): हर रेडियो तक एक्सेस पॉइंट, और cnMatrix स्विच।
+- [Brocade Fabric OS](#brocade-fabric-os): Fibre Channel पोर्ट, ऑप्टिक, सेंसर और फ़ैब्रिक की घटनाएँ।
+- [Cisco MDS 9000](#cisco-mds-9000): Fibre Channel इंटरफ़ेस, VSAN, स्लो ड्रेन और पोर्ट-मॉनिटर अलार्म।
 :::
 
 ## यह कैसे काम करता है
@@ -145,6 +147,76 @@ Cambium कुल क्लाइंट संख्या केवल फ़�
 ### cnMaestro अलार्म
 
 cnMaestro अपने अलार्म, जैसे किसी एक्सेस पॉइंट का ऑफ़लाइन होना, किसी HTTPS वेबहुक पर भेज सकता है। उन अलार्म को SNMP डेटा के बगल में OneUptime घटनाओं में बदलने के लिए इसे किसी [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) की ओर इंगित करें।
+
+## Brocade Fabric OS
+
+| आप क्या देखना चाहते हैं | यह कहाँ से आता है |
+| --- | --- |
+| स्विच की स्थिति, फ़र्मवेयर, CPU और मेमोरी | SNMP, वेंडर टेम्पलेट **Brocade Fabric OS (SAN switches)** के साथ |
+| स्विच का स्टेटस, उसके सेंसर और उसकी बदली जा सकने वाली इकाइयाँ (FRU), पंक्ति दर पंक्ति | टेम्पलेट की टेबल `switch_status`, `sensors` और `frus` |
+| हर Fibre Channel पोर्ट का प्रकार, बंद पोर्ट के बंद होने का कारण, और उसकी प्रति सेकंड त्रुटियाँ, छोड़े गए फ़्रेम और क्रेडिट प्रतीक्षा | SW-MIB और FCMGMT-MIB, डिवाइस के **इंटरफ़ेस** पेज पर |
+| हर ऑप्टिक की प्राप्त और प्रेषित पावर, तापमान, वोल्टेज और बायस करंट | FA-EXT-MIB, **ट्रांसीवर** कार्ड पर |
+| स्विचों के बीच लिंक का बंद होना, फ़ैब्रिक का बँटना या फिर से कॉन्फ़िगर होना, ज़ोनिंग में बदलाव, MAPS अलर्ट, बदली गई FRU | SNMPv3 ट्रैप |
+
+Fabric OS चलाने वाला हर स्विच और डायरेक्टर `1.3.6.1.4.1.1588.2.1.1` के तहत सिस्टम ऑब्जेक्ट ID बताता है, इसलिए टेम्पलेट इन सभी पर लागू होता है और Brocade के किसी और उत्पाद पर नहीं: VDX और SLX स्विच अपना टेम्पलेट रखते हैं।
+
+### Fabric OS पर SNMP सेट करें
+
+:::steps
+1. प्रमाणीकरण और एन्क्रिप्शन, SHA और AES के साथ एक SNMPv3 उपयोगकर्ता जोड़ें: `snmpconfig --set snmpv3` उपयोगकर्ता, उसके प्रोटोकॉल और उसके पासफ़्रेज़ पूछता है।
+2. `snmpconfig --set mibCapability` से FA-MIB चालू करें। इसमें हर पोर्ट के 64-बिट त्रुटि काउंटर और उसका ऑप्टिक होते हैं; इसके बिना पोर्ट केवल अपनी CRC त्रुटियाँ, एन्कोडिंग त्रुटियाँ, छोड़े गए क्लास 3 फ़्रेम और क्रेडिट प्रतीक्षा 32-बिट काउंटर के रूप में बताता है।
+3. OneUptime में स्विच को उसके मैनेजमेंट पते और उस उपयोगकर्ता के साथ जोड़ें। **Auto-Apply Vendor Health Template** चालू होने पर पहला पोल टेम्पलेट **Brocade Fabric OS (SAN switches)** लागू करता है; नहीं तो इसे डिवाइस के **सेटिंग्स** पेज पर **Vendor Health Template** से लागू करें।
+:::
+
+इसके बाद डिवाइस का **इंटरफ़ेस** पेज हर Fibre Channel पोर्ट पर उसका प्रकार दिखाता है, जैसे E-Port या F-Port, और बताता है कि बंद पोर्ट क्यों बंद है, जैसे `switchshow` बताता है: No light, No module, Disabled। उसका **Fibre Channel पोर्ट** कार्ड हर पोर्ट की त्रुटियाँ, छोड़े गए फ़्रेम और क्रेडिट काउंटर प्रति सेकंड चार्ट करता है।
+
+किसी पोर्ट की CRC त्रुटियाँ, अमान्य ट्रांसमिशन शब्द, लिंक विफलताएँ और सिंक व सिग्नल का खोना उसकी त्रुटियाँ हैं: **SNMP इंटरफ़ेस त्रुटियाँ (प्रति सेकंड)** उन पर अलर्ट करता है, और अनुशंसित अलर्ट में **Fibre Channel port errors** शामिल है, दस सेकंड में एक से ज़्यादा त्रुटि पर। छोड़े गए फ़्रेम और क्रेडिट प्रतीक्षा त्रुटियाँ नहीं हैं; इनमें से किसी पर अलर्ट के लिए **SNMP Fibre Channel काउंटर (प्रति सेकंड)** का उपयोग करें।
+
+### Virtual Fabrics
+
+Virtual Fabrics वाला चेसिस हर लॉजिकल स्विच का जवाब उसके अपने SNMPv3 संदर्भ में देता है: `VF:` और लॉजिकल स्विच की फ़ैब्रिक ID। हर लॉजिकल स्विच के लिए एक डिवाइस जोड़ें, सभी चेसिस के मैनेजमेंट पते पर, और हर एक का **SNMP v3 संदर्भ** सेट करें (`VF:128`, `VF:20`); बिना संदर्भ वाला डिवाइस डिफ़ॉल्ट लॉजिकल स्विच पढ़ता है।
+
+### Brocade ट्रैप
+
+Fabric OS अपने ट्रैप SNMPv3 पर भेजता है। `snmpconfig --set snmpv3` से प्रोब को उस उपयोगकर्ता के ट्रैप प्राप्तकर्ता के रूप में जोड़ें जिससे OneUptime पोल करता है, UDP पोर्ट 162 पर: प्रोब उन डिवाइसों के उपयोगकर्ताओं के SNMPv3 ट्रैप लेता है जिन्हें वह पोल करता है ([SNMPv3 ट्रैप और इन्फ़ॉर्म](/docs/monitor/network-device-monitor#snmpv3-ट्रैप-और-इन्फ़ॉर्म) देखें), और हर लॉजिकल स्विच के ट्रैप उसका संदर्भ बताते हैं, इसलिए वे केवल उसके डिवाइस पर उठते हैं। Fabric OS अपग्रेड कुछ ट्रैप फिर से बंद कर सकता है: अपग्रेड के बाद उन्हें `snmpconfig --show mibCapability` से जाँचें, और किसी को `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn` से फिर चालू करें।
+
+Brocade स्विच के अनुशंसित अलर्ट में हर अहम फ़ैब्रिक घटना के लिए एक अलर्ट है: **Inter-switch link down** (किसी E-Port का ऑफ़लाइन होना), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert** और **Field-replaceable unit changed**।
+
+## Cisco MDS 9000
+
+| आप क्या देखना चाहते हैं | यह कहाँ से आता है |
+| --- | --- |
+| CPU और मेमोरी | SNMP, वेंडर टेम्पलेट **Cisco MDS 9000 (SAN switches)** के साथ |
+| पावर सप्लाई, मॉड्यूल और फ़ैन ट्रे, पंक्ति दर पंक्ति | टेम्पलेट की टेबल `power_supplies`, `modules` और `fan_trays` |
+| हर VSAN, उसकी स्थिति के साथ | टेम्पलेट की टेबल `vsans` |
+| हर fc इंटरफ़ेस का प्रकार, बंद इंटरफ़ेस के बंद होने का कारण, और उसकी प्रति सेकंड त्रुटियाँ, छोड़े गए फ़्रेम, क्रेडिट हानि और क्रेडिट प्रतीक्षा | CISCO-FC-FE-MIB, डिवाइस के **इंटरफ़ेस** पेज पर |
+| हर ऑप्टिक की रीडिंग और अलार्म सीमाएँ | CISCO-ENTITY-SENSOR-MIB, **ट्रांसीवर** कार्ड पर |
+| पोर्ट-मॉनिटर अलार्म, बंद लिंक, ज़ोन, VSAN, फ़ैब्रिक और FRU में बदलाव | ट्रैप |
+
+MDS हर दूसरे Cisco डिवाइस के साथ Cisco का एंटरप्राइज़ नंबर साझा करता है, इसलिए OneUptime इसे इसके मॉडल से, या `Cisco NX-OS(tm) m9` से शुरू होने वाले सिस्टम विवरण से पहचानता है: IOS, IOS-XE और Nexus स्विच अपना Cisco टेम्पलेट रखते हैं।
+
+### NX-OS पर SNMP सेट करें
+
+:::steps
+1. केवल पढ़ने वाला SNMPv3 उपयोगकर्ता जोड़ें: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`। `network-operator` भूमिका पढ़ती है और कुछ भी बदल नहीं सकती।
+2. उस उपयोगकर्ता के रूप में ट्रैप प्रोब को भेजें: `snmp-server host <probe-address> traps version 3 priv oneuptime`।
+3. डिफ़ॉल्ट रूप से बंद ट्रैप चालू करें: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf` और, ऑप्टिक के लिए, `snmp-server enable traps link cisco-xcvr-mon-status-chg`।
+4. OneUptime में स्विच को उसके मैनेजमेंट पते और उस उपयोगकर्ता के साथ जोड़ें: टेम्पलेट **Cisco MDS 9000 (SAN switches)** उसी तरह लागू होता है।
+:::
+
+MDS के अनुशंसित अलर्ट में **Credit loss (slow drain)** और **Timeout discards (slow drain)** शामिल हैं, हर इंटरफ़ेस पर एक बार: बफ़र क्रेडिट लौटाना बंद करने वाला होस्ट या ऐरे अपने पीछे के हर फ़्लो को धीमा कर देता है, और ये काउंटर इसे सबसे पहले दिखाते हैं।
+
+### पोर्ट-मॉनिटर अलार्म
+
+MDS की पोर्ट-मॉनिटर नीति किसी पोर्ट के काउंटर के सीमा पार करने पर RMON अलार्म उठाती है। अनुशंसित अलर्ट में **Port monitor alarm** शामिल है, जिसका अलर्ट काउंटर और इंटरफ़ेस का नाम बताता है, जैसे "Port monitor: Credit loss rising on fc1/5"। स्लो ड्रेन पर नज़र रखने वाली एक नीति:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## समस्या निवारण
 

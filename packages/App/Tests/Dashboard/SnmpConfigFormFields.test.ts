@@ -1,14 +1,18 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  getNetworkDeviceSnmpFormFields,
   getSnmpConfigFormFields,
   MAXIMUM_SNMP_PORT,
   MINIMUM_SNMP_PORT,
+  SNMP_V3_CONTEXT_FIELD_TITLE,
   SnmpConfigFormFieldOptions,
   validateSnmpPort,
 } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/SnmpConfigFormFields";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -870,10 +874,14 @@ function readNetworkDevicePage(relativePath: string): string {
 }
 
 describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () => {
+  /*
+   * The device forms spread the device's builder, which is the shared fields
+   * with the device's own v3 context among them (asserted below, executed).
+   */
   test.each(SNMP_FORM_PAGES)("%s spreads the shared fields", (page: string) => {
-    // Matches both the bare call and the options form the scan page uses.
+    // Matches both the bare call and the options form the pages use.
     expect(readNetworkDevicePage(page)).toContain(
-      "...getSnmpConfigFormFields(",
+      "...getNetworkDeviceSnmpFormFields(",
     );
   });
 
@@ -900,6 +908,174 @@ describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () =>
       );
     },
   );
+});
+
+/*
+ * A device's SNMP fields: the shared ones, and the SNMPv3 context the device
+ * is polled in (#11014) - a Brocade Virtual Fabric's logical switch answers
+ * only in its own context, "VF:<fabric ID>". It says which switch the device
+ * is, not who reads it, so it is the device's alone: the discovery scan and
+ * the credential profiles never ask it.
+ */
+describe("getNetworkDeviceSnmpFormFields — the device's v3 context", () => {
+  const FIELD_KEY_CONTEXT: string = "snmpV3ContextName";
+
+  function deviceFields(
+    options?: SnmpConfigFormFieldOptions,
+  ): Array<Field<NetworkDevice>> {
+    return getNetworkDeviceSnmpFormFields(options) as Array<
+      Field<NetworkDevice>
+    >;
+  }
+
+  function contextField(
+    options?: SnmpConfigFormFieldOptions,
+  ): Field<NetworkDevice> {
+    const field: Field<NetworkDevice> | undefined = deviceFields(options).find(
+      (item: Field<NetworkDevice>) => {
+        return getFieldKey(item) === FIELD_KEY_CONTEXT;
+      },
+    );
+
+    if (!field) {
+      throw new Error("The device's SNMP fields carry no v3 context");
+    }
+
+    return field;
+  }
+
+  test("is the shared fields in their order, with the context after the v3 keys and before the port", () => {
+    expect(deviceFields().map(getFieldKey)).toEqual([
+      FIELD_KEY_SNMP_VERSION,
+      FIELD_KEY_COMMUNITY,
+      FIELD_KEY_SECURITY_LEVEL,
+      FIELD_KEY_USERNAME,
+      FIELD_KEY_AUTH_PROTOCOL,
+      FIELD_KEY_AUTH_KEY,
+      FIELD_KEY_PRIV_PROTOCOL,
+      FIELD_KEY_PRIV_KEY,
+      FIELD_KEY_CONTEXT,
+      FIELD_KEY_PORT,
+    ]);
+  });
+
+  test("the shared fields are the same fields, untouched", () => {
+    const shared: Array<Field<NetworkDevice>> = getSnmpConfigFormFields();
+    const device: Array<Field<NetworkDevice>> = deviceFields().filter(
+      (field: Field<NetworkDevice>) => {
+        return getFieldKey(field) !== FIELD_KEY_CONTEXT;
+      },
+    );
+
+    expect(device.map(getFieldKey)).toEqual(shared.map(getFieldKey));
+
+    for (let index: number = 0; index < shared.length; index++) {
+      expect(device[index]!.title).toBe(shared[index]!.title);
+      expect(device[index]!.fieldType).toBe(shared[index]!.fieldType);
+      expect(device[index]!.required).toEqual(shared[index]!.required);
+    }
+  });
+
+  test("the scan's and the credential profiles' shared fields never ask it", () => {
+    expect(getSnmpConfigFormFields().map(getFieldKey)).not.toContain(
+      FIELD_KEY_CONTEXT,
+    );
+  });
+
+  test("is optional plain text, titled as the device's detail row is, with an example to copy", () => {
+    const field: Field<NetworkDevice> = contextField();
+
+    expect(field.title).toBe(SNMP_V3_CONTEXT_FIELD_TITLE);
+    expect(SNMP_V3_CONTEXT_FIELD_TITLE).toBe("SNMP v3 Context");
+    expect(field.fieldType).toBe(FormFieldSchemaType.Text);
+    expect(field.required).toBe(false);
+    expect(field.placeholder).toBe("VF:128");
+    expect(field.description).toContain("VF:");
+  });
+
+  /*
+   * A context is a SNMPv3 notion: v1 and v2c have none (a community string
+   * stands in), so the field shows for v3 alone, and follows the version
+   * when it changes inside an open form.
+   */
+  test.each([
+    [SnmpVersion.V1, false],
+    [SnmpVersion.V2c, false],
+    [SnmpVersion.V3, true],
+  ])("for %s, shown: %s", (version: SnmpVersion, shown: boolean) => {
+    const field: Field<NetworkDevice> = contextField();
+
+    expect(field.showIf).toBeDefined();
+    expect(
+      field.showIf!({ snmpVersion: version } as FormValues<NetworkDevice>),
+    ).toBe(shown);
+  });
+
+  test("shown on an edit screen whose device is already on v3", () => {
+    const values: FormValues<NetworkDevice> = buildEditFormValues({
+      snmpVersion: SnmpVersion.V3,
+      snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
+      snmpV3Username: "oneuptime",
+      snmpV3ContextName: "VF:20",
+    });
+
+    expect(contextField().showIf!(values)).toBe(true);
+  });
+
+  test("hidden with no version picked yet", () => {
+    expect(contextField().showIf!({} as FormValues<NetworkDevice>)).toBe(false);
+  });
+
+  test("lands on the SNMP step with the rest, when the form has steps", () => {
+    const fields: Array<Field<NetworkDevice>> = deviceFields({
+      stepId: "snmp",
+    });
+
+    expect(
+      fields.map((field: Field<NetworkDevice>) => {
+        return field.stepId;
+      }),
+    ).toEqual(
+      fields.map(() => {
+        return "snmp";
+      }),
+    );
+  });
+
+  test("carries no step when the form has none", () => {
+    expect(contextField().stepId).toBeUndefined();
+  });
+
+  test("folds into the same section as the rest, when the form folds them", () => {
+    const section: FormFieldCollapsibleSection<NetworkDevice> = {
+      id: "snmp",
+      title: "SNMP",
+    };
+
+    const fields: Array<Field<NetworkDevice>> = deviceFields({
+      collapsibleSection: section,
+    } as unknown as SnmpConfigFormFieldOptions);
+
+    // One section object for every field, so the form draws them as one fold.
+    for (const field of fields) {
+      expect(field.collapsibleSection).toBe(section);
+    }
+  });
+
+  test("returns a fresh array each call", () => {
+    const first: Array<Field<NetworkDevice>> = deviceFields();
+    const second: Array<Field<NetworkDevice>> = deviceFields();
+
+    expect(first).not.toBe(second);
+    expect(contextField()).not.toBe(contextField());
+  });
+
+  test("the model has the column the field writes", () => {
+    const device: NetworkDevice = new NetworkDevice();
+    device.snmpV3ContextName = "VF:128";
+
+    expect(device.snmpV3ContextName).toBe("VF:128");
+  });
 });
 
 /*

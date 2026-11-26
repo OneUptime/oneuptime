@@ -51,16 +51,23 @@ import {
   getGroupChangeHint,
   toCloudCostAllocationCsv,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostGroupFigures";
-import { NEVER_MATCHES } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostGroupWords";
+import {
+  FIELD_ORDER,
+  getFieldLabel,
+  NEVER_MATCHES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostGroupWords";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { percentagesAddUp } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostPercentagesEditor";
 import CloudCostQuickStart from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostQuickStart";
 import CloudCostRuleEditor, {
   CloudCostRuleOptions,
   changeConditionField,
+  getPickableRecords,
   getRuleEditorProblem,
   newCloudCostCondition,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostRuleEditor";
 import CloudCostRuleSummary, {
+  CloudCostConditionSentence,
   CloudCostRuleNames,
   emptyCloudCostRuleNames,
   getCloudCostValueText,
@@ -443,6 +450,48 @@ describe("the rule editor", () => {
     expect(newCloudCostCondition({ ...OPTIONS, tagKeys: [] }).field).toBe(
       CloudCostRuleField.Account,
     );
+  });
+
+  test("an archived label is never a new pick, but one a condition holds stays, and every one is named", () => {
+    const LIVE: string = "10000000-0000-4000-8000-0000000000d1";
+    const ARCHIVED: string = "10000000-0000-4000-8000-0000000000d2";
+    const labels: Map<string, string> = new Map([
+      [ARCHIVED, "Legacy"],
+      [LIVE, "Customer facing"],
+    ]);
+    const archived: Set<string> = new Set([ARCHIVED]);
+
+    // A new condition: the live label only, by name.
+    expect(getPickableRecords({ names: labels, archived, values: [] })).toEqual(
+      [[LIVE, "Customer facing"]],
+    );
+    // A condition that holds the archived one keeps it, whatever its case.
+    expect(
+      getPickableRecords({
+        names: labels,
+        archived,
+        values: [ARCHIVED.toUpperCase()],
+      }),
+    ).toEqual([
+      [LIVE, "Customer facing"],
+      [ARCHIVED, "Legacy"],
+    ]);
+    // Nothing archived: every record, by name.
+    expect(
+      getPickableRecords({ names: labels, archived: new Set(), values: [] }),
+    ).toHaveLength(2);
+
+    // A rule that names the archived label still says which.
+    const built: CloudCostRuleNames = names();
+    built.labels = labels;
+    built.archived = archived;
+    expect(
+      getCloudCostValueText({
+        field: CloudCostRuleField.Label,
+        value: ARCHIVED,
+        names: built,
+      }).text,
+    ).toBe("Legacy");
   });
 
   test("what keeps rules from being saved, in the reader's words", () => {
@@ -1067,5 +1116,93 @@ describe("Where the money goes, by cost group", () => {
     await openByGroup([view]);
 
     expect(post.mock.calls[0]![0].data).not.toHaveProperty("basis");
+  });
+});
+
+/*
+ * A rule's field is a label: the picker's options and its label, and the
+ * first words of a condition's sentence. "Kubernetes cluster" is a key the
+ * sentences that say it share, worded for the middle of a sentence in five
+ * languages ("clúster de Kubernetes"), so it starts with a capital here.
+ */
+describe("a rule's field, in the reader's language", () => {
+  const inLanguage: (
+    language: string,
+  ) => ReturnType<typeof createTranslator> = (
+    language: string,
+  ): ReturnType<typeof createTranslator> => {
+    const locale: Record<string, string> = readDashboardLocale(language);
+
+    return createTranslator((key: string): string | undefined => {
+      return locale[key];
+    }, language);
+  };
+
+  test("a key worded for the middle of a sentence starts with a capital", () => {
+    expect(readDashboardLocale("es")["Kubernetes cluster"]).toBe(
+      "clúster de Kubernetes",
+    );
+    expect(
+      getFieldLabel(CloudCostRuleField.KubernetesCluster, inLanguage("es")),
+    ).toBe("Clúster de Kubernetes");
+    expect(
+      getFieldLabel(CloudCostRuleField.KubernetesCluster, inLanguage("fr")),
+    ).toBe("Cluster Kubernetes");
+    expect(getFieldLabel(CloudCostRuleField.KubernetesCluster, ENGLISH)).toBe(
+      "Kubernetes cluster",
+    );
+  });
+
+  test("every field starts with a capital in every language that writes one", () => {
+    for (const language of [
+      "da",
+      "de",
+      "es",
+      "fr",
+      "it",
+      "nl",
+      "no",
+      "pt",
+      "ru",
+      "sv",
+    ]) {
+      const translator: ReturnType<typeof createTranslator> =
+        inLanguage(language);
+
+      for (const field of FIELD_ORDER) {
+        expect({
+          language,
+          field,
+          label: getFieldLabel(field, translator),
+        }).toEqual({
+          language,
+          field,
+          label: expect.stringMatching(/^\p{Lu}/u),
+        });
+      }
+    }
+  });
+
+  test("a condition's sentence starts with it", () => {
+    const CLUSTER: string = "10000000-0000-4000-8000-0000000000e1";
+    const built: CloudCostRuleNames = names();
+
+    built.clusters.set(CLUSTER, "prod-eu");
+
+    const { container } = render(
+      <CloudCostConditionSentence
+        condition={{
+          field: CloudCostRuleField.KubernetesCluster,
+          operator: CloudCostRuleOperator.Is,
+          values: [CLUSTER],
+        }}
+        names={built}
+      />,
+    );
+
+    // As it reads, without the marks that set a value apart.
+    expect((container.textContent || "").replace(/[\u2066-\u2069]/g, "")).toMatch(
+      /^Kubernetes cluster is .*prod-eu/,
+    );
   });
 });

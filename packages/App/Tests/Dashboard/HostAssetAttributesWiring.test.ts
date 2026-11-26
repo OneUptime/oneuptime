@@ -222,11 +222,31 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
         );
         const blocks: number = (doc.match(/ {2}resourcedetection:\n/g) || [])
           .length;
+        /*
+         * Each system detector's block, up to the next processor: the cloud
+         * step after it (#11013) lists resource_attributes of its own, for
+         * each of its detectors, to keep the host's name.
+         */
+        const systemBlocks: Array<string> = doc
+          .split(/^ {2}resourcedetection:\n/m)
+          .slice(1)
+          .map((rest: string): string => {
+            return rest.split(/^ {2}\S/m)[0] || "";
+          });
 
         expect(blocks).toBeGreaterThan(0);
-        expect((doc.match(/ {6}resource_attributes:\n/g) || []).length).toBe(
-          blocks,
-        );
+        expect(systemBlocks).toHaveLength(blocks);
+
+        for (const block of systemBlocks) {
+          expect(
+            (block.match(/ {6}resource_attributes:\n/g) || []).length,
+          ).toBe(1);
+        }
+
+        // Every config that detects the system detects its cloud too.
+        expect(
+          (doc.match(/ {2}resourcedetection\/cloud:\n/g) || []).length,
+        ).toBe(blocks);
 
         for (const key of [
           "host.arch",
