@@ -536,6 +536,7 @@ describe("Acme's monitors", () => {
     expect(ResourceHeartbeatUtil.getForMonitorStep(step)?.metricNames).toEqual([
       "purefa_info",
       "purefb_info",
+      "powermax_array_info",
       "acme_info",
     ]);
   });

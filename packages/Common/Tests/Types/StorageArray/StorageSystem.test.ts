@@ -38,10 +38,11 @@ const FLASHBLADE_ALIASES: Array<string> = [
 ];
 
 describe("StorageSystem enum", () => {
-  test("carries exactly the two launch platforms with vendor.product values", () => {
+  test("carries the two launch platforms, then Dell PowerMax, with vendor.product values", () => {
     expect(Object.entries(StorageSystem)).toEqual([
       ["PureStorageFlashArray", "purestorage.flasharray"],
       ["PureStorageFlashBlade", "purestorage.flashblade"],
+      ["DellPowerMax", "dell.powermax"],
     ]);
   });
 
@@ -49,6 +50,7 @@ describe("StorageSystem enum", () => {
     expect(StorageSystemUtil.getAllSystems()).toEqual([
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
+      StorageSystem.DellPowerMax,
     ]);
   });
 
@@ -246,9 +248,23 @@ describe("StorageSystemUtil display helpers", () => {
     expect(
       StorageSystemUtil.getShortName(StorageSystem.PureStorageFlashBlade),
     ).toBe("FlashBlade");
-    for (const system of StorageSystemUtil.getAllSystems()) {
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerMax)).toBe(
+      "Dell PowerMax",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerMax)).toBe(
+      "PowerMax",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerMax)).toBe(
+      "Dell",
+    );
+    for (const system of [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.PureStorageFlashBlade,
+    ]) {
       // Product names are unchanged by the Everpure rename.
       expect(StorageSystemUtil.getVendorName(system)).toBe("Pure Storage");
+    }
+    for (const system of StorageSystemUtil.getAllSystems()) {
       expect(StorageSystemUtil.getDisplayName(system)).toContain(
         StorageSystemUtil.getShortName(system),
       );

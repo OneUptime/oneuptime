@@ -19,6 +19,8 @@ import {
 } from "../../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import logger from "../../../../Server/Utils/Logger";
 import StorageArrayResourceKind from "../../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayPlatformRegistry from "../../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "../../../../Types/StorageArray/StorageArrayPlatform";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import { JSONObject } from "../../../../Types/JSON";
 import { readOwnValue } from "../../../../Utils/LookupTable";
@@ -529,22 +531,46 @@ afterEach(() => {
 });
 
 describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
-  test("every allow-listed family is a real Pure exporter series", () => {
-    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+  // The allow-list of Pure's families: every other platform reads its own.
+  function pureAllowListed(): Array<string> {
+    return [...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].filter(
+      (metricName: string): boolean => {
+        return /^pure(fa|fb)_/.test(metricName);
+      },
+    );
+  }
+
+  test("every allow-listed Pure family is a real Pure exporter series, and every other one is another platform's", () => {
+    for (const metricName of pureAllowListed()) {
       expect(PURE_LABELS[metricName]).toBeDefined();
       expect(metricName).toMatch(/^pure(fa|fb)_[a-z0-9_]+$/);
     }
+    const others: Set<string> = new Set(
+      StorageArrayPlatformRegistry.getPlatforms()
+        .filter((platform: StorageArrayPlatform): boolean => {
+          return !/^purestorage\./.test(platform.storageSystem);
+        })
+        .flatMap((platform: StorageArrayPlatform): ReadonlyArray<string> => {
+          return platform.snapshotMetricNames;
+        }),
+    );
+    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+      if (!/^pure(fa|fb)_/.test(metricName)) {
+        expect({ metricName, platform: others.has(metricName) }).toEqual({
+          metricName,
+          platform: true,
+        });
+      }
+    }
   });
 
-  test("allow-lists exactly the families the scan maps", () => {
+  test("allow-lists exactly the Pure families the scan maps", () => {
     const expected: Array<string> = Object.keys(PURE_LABELS).filter(
       (metricName: string) => {
         return !NOT_ALLOW_LISTED.includes(metricName);
       },
     );
-    expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
-      [...expected].sort(),
-    );
+    expect(pureAllowListed().sort()).toEqual([...expected].sort());
   });
 
   test("chart-only performance families stay out of the Postgres mirror", () => {

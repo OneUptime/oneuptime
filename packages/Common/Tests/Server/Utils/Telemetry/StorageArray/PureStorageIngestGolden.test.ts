@@ -405,7 +405,12 @@ function computeGolden(): Omit<GoldenFile, "note"> {
   }
 
   return {
-    snapshotMetricNames: Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).sort(),
+    // Pure's: each platform shipped since reads names of its own.
+    snapshotMetricNames: Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES)
+      .filter((name: string): boolean => {
+        return /^pure(fa|fb)_/.test(name);
+      })
+      .sort(),
     componentStatuses,
     systemResolution,
     cases,
@@ -486,7 +491,7 @@ describe("a Pure Storage array's metrics become what they became before #11000",
       });
 
     // Every family the scan reads is in the captures at least once.
-    expect(new Set(read)).toEqual(new Set(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES));
+    expect(new Set(read)).toEqual(new Set(computed.snapshotMetricNames));
     expect(passedOver.length).toBeGreaterThan(0);
   });
 });

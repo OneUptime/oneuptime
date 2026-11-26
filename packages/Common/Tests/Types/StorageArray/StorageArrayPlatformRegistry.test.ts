@@ -4,6 +4,8 @@ import { StorageArrayResourceScope } from "../../../Types/Monitor/MonitorStepSto
 import { BUILT_IN_STORAGE_ARRAY_PLATFORMS } from "../../../Types/StorageArray/Platforms/StorageArrayPlatforms";
 import PureStorageFlashArrayPlatform from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
+import DellPowerMaxPlatform from "../../../Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxPlatform";
+import StorageArrayProbeCollectors from "../../../Types/StorageArray/Collection/StorageArrayProbeCollectors";
 import {
   STORAGE_ARRAY_HARDWARE_KINDS,
   StorageArrayPlatform,
@@ -49,14 +51,16 @@ function systemsOf(
 }
 
 describe("the shipped platforms", () => {
-  test("are Pure Storage's FlashArray and FlashBlade, in that order", () => {
+  test("are Pure Storage's FlashArray and FlashBlade, then Dell PowerMax, in that order", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
+      StorageSystem.DellPowerMax,
     ]);
     expect(BUILT_IN_STORAGE_ARRAY_PLATFORMS).toEqual([
       PureStorageFlashArrayPlatform,
       PureStorageFlashBladePlatform,
+      DellPowerMaxPlatform,
     ]);
   });
 
@@ -312,10 +316,21 @@ describe.each(
       expect(table.description).not.toBe("");
       expect(table.noItemsMessage).not.toBe("");
     }
-    for (const kind of platform.hardwareKinds || STORAGE_ARRAY_HARDWARE_KINDS) {
-      expect(
-        Object.values(StorageArrayResourceKind) as Array<string>,
-      ).toContain(kind);
+    /*
+     * A platform's hardware may be a kind of its own (a PowerMax's
+     * directors): the inventory summary and the snapshot read every
+     * platform's hardwareKinds (StorageArrayResourceService.getHardwareKinds).
+     */
+    if (platform.hardwareKinds) {
+      for (const kind of platform.hardwareKinds) {
+        expect(platform.kinds).toContain(kind);
+      }
+    } else {
+      for (const kind of STORAGE_ARRAY_HARDWARE_KINDS) {
+        expect(
+          Object.values(StorageArrayResourceKind) as Array<string>,
+        ).toContain(kind);
+      }
     }
   });
 
@@ -341,8 +356,15 @@ describe.each(
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  test("its agent reads it through configs of its own, each with its exporter's profile", () => {
-    expect(platform.agentConfigs.length).toBeGreaterThan(0);
+  test("its agent reads it through configs of its own, each with its exporter's profile, or a probe reads its management server", () => {
+    /*
+     * A platform a probe collects from its management server (a PowerMax,
+     * through Unisphere) has no agent config; every other one has at least
+     * one.
+     */
+    expect(platform.agentConfigs.length > 0).toBe(
+      !StorageArrayProbeCollectors.isProbeCollected(platform.storageSystem),
+    );
     for (const config of platform.agentConfigs) {
       expect(config.collectorConfigFile).toMatch(
         /^otel-collector-config[a-z0-9.-]*\.yaml$/,
@@ -366,6 +388,7 @@ describe("registering a platform at runtime", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
+      StorageSystem.DellPowerMax,
       ACME_STORAGE_SYSTEM,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 1);
@@ -397,6 +420,7 @@ describe("registering a platform at runtime", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
+      StorageSystem.DellPowerMax,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 2);
     expect(
@@ -412,7 +436,9 @@ describe("registering a platform at runtime", () => {
     const before: number = StorageArrayPlatformRegistry.getVersion();
     StorageArrayPlatformRegistry.unregister("netapp.ontap");
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
-    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(2);
+    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(
+      BUILT_IN_STORAGE_ARRAY_PLATFORMS.length,
+    );
   });
 
   test("a series family of the array's own platform wins over an earlier platform's", () => {
@@ -453,7 +479,9 @@ describe("registering a platform at runtime", () => {
       'Storage array platform acme.array cannot be registered: "purefa" already names purestorage.flasharray',
     );
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
-    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(2);
+    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(
+      BUILT_IN_STORAGE_ARRAY_PLATFORMS.length,
+    );
   });
 
   test("registering it twice is refused", () => {
@@ -748,7 +776,7 @@ describe("what registration refuses", () => {
     for (const storageSystem of [
       "netapp.ontap",
       "dell.powerstore",
-      "dell.powermax",
+      "emc.vnx2",
       "dell.unity_xt",
       "hpe.3par-primera",
       "ibm.flashsystem9500",

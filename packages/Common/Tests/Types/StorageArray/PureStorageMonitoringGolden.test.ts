@@ -76,6 +76,65 @@ const GOLDEN_PATH: string = path.join(
 const FA: string = StorageSystem.PureStorageFlashArray;
 const FB: string = StorageSystem.PureStorageFlashBlade;
 
+/*
+ * The golden pins Pure's platforms. A platform registered after #11000
+ * (Dell PowerMax, #11004, and the next vendors) joins every list this test
+ * reads - all systems, all metrics, all templates - so each list is read
+ * for Pure's platforms alone: a new vendor changes nothing about how a Pure
+ * array is watched, and the golden stays as it was written.
+ */
+const PURE_SYSTEMS: ReadonlyArray<string> = [FA, FB];
+
+function isPureOnly(storageSystems: ReadonlyArray<string>): boolean {
+  return storageSystems.every((system: string): boolean => {
+    return PURE_SYSTEMS.includes(system);
+  });
+}
+
+function pureMetrics(
+  metrics: Array<StorageArrayMetricDefinition>,
+): Array<StorageArrayMetricDefinition> {
+  return metrics.filter((metric: StorageArrayMetricDefinition): boolean => {
+    return isPureOnly(metric.storageSystems);
+  });
+}
+
+function pureTemplates(
+  templates: Array<StorageArrayAlertTemplate>,
+): Array<StorageArrayAlertTemplate> {
+  return templates.filter((template: StorageArrayAlertTemplate): boolean => {
+    return isPureOnly(template.storageSystems);
+  });
+}
+
+function isPureRecommendation(recommendation: MonitorRecommendation): boolean {
+  const template: StorageArrayAlertTemplate | undefined =
+    getStorageArrayAlertTemplateById(recommendation.templateId);
+  return Boolean(template && isPureOnly(template.storageSystems));
+}
+
+// The shared kinds and Pure's: every kind a Pure array or page can name.
+const PURE_KINDS: ReadonlySet<string> = new Set<string>([
+  ...(Object.values(StorageArrayResourceKind) as Array<string>),
+  ...PURE_SYSTEMS.flatMap((system: string): Array<string> => {
+    return StorageArrayResourceKindUtil.getKindsForSystem(system);
+  }),
+]);
+
+function pureSystems(): Array<string> {
+  return StorageSystemUtil.getAllSystems().filter((system: string): boolean => {
+    return PURE_SYSTEMS.includes(system);
+  });
+}
+
+function pureKinds(): Array<string> {
+  return StorageArrayResourceKindUtil.getAllKinds().filter(
+    (kind: string): boolean => {
+      return PURE_KINDS.has(kind);
+    },
+  );
+}
+
 const SYSTEM_INPUTS: Array<string | null | undefined> = [
   FA,
   FB,
@@ -182,43 +241,45 @@ function computeGolden(): JSONObject {
       isFlashArray: StorageSystemUtil.isFlashArray(input),
       isFlashBlade: StorageSystemUtil.isFlashBlade(input),
       kinds: StorageArrayResourceKindUtil.getKindsForSystem(input),
-      metricCount: getStorageArrayMetricsForSystem(input).length,
-      metricIds: getStorageArrayMetricsForSystem(input).map(
+      metricCount: pureMetrics(getStorageArrayMetricsForSystem(input)).length,
+      metricIds: pureMetrics(getStorageArrayMetricsForSystem(input)).map(
         (metric: StorageArrayMetricDefinition): string => {
           return metric.id;
         },
       ),
-      templates: getStorageArrayAlertTemplatesForSystem(input).map(
-        (template: StorageArrayAlertTemplate): JSONObject => {
-          return {
-            id: template.id,
-            name: template.name,
-            storageSystems: template.storageSystems,
-          };
-        },
-      ),
+      templates: pureTemplates(
+        getStorageArrayAlertTemplatesForSystem(input),
+      ).map((template: StorageArrayAlertTemplate): JSONObject => {
+        return {
+          id: template.id,
+          name: template.name,
+          storageSystems: template.storageSystems,
+        };
+      }),
       defaultTemplateId: getStorageArrayDefaultAlertTemplateId(input),
       recommendations: MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.StorageArray,
         { storageSystem: input },
-      ).map((recommendation: MonitorRecommendation): JSONObject => {
-        const template: StorageArrayAlertTemplate | undefined =
-          getStorageArrayAlertTemplateById(recommendation.templateId);
-        return {
-          recommendationId: recommendation.recommendationId,
-          templateId: recommendation.templateId,
-          name: recommendation.name,
-          summary: recommendation.summary || null,
-          category: recommendation.category,
-          severity: recommendation.severity,
-          // The step itself is pinned once, on its template, below.
-          buildsItsTemplatesStep: template
-            ? JSON.stringify(
-                stepJson(recommendation.getMonitorStep(RECOMMENDATION_ARGS)),
-              ) === JSON.stringify(stepJson(template.getMonitorStep(ARGS)))
-            : false,
-        };
-      }),
+      )
+        .filter(isPureRecommendation)
+        .map((recommendation: MonitorRecommendation): JSONObject => {
+          const template: StorageArrayAlertTemplate | undefined =
+            getStorageArrayAlertTemplateById(recommendation.templateId);
+          return {
+            recommendationId: recommendation.recommendationId,
+            templateId: recommendation.templateId,
+            name: recommendation.name,
+            summary: recommendation.summary || null,
+            category: recommendation.category,
+            severity: recommendation.severity,
+            // The step itself is pinned once, on its template, below.
+            buildsItsTemplatesStep: template
+              ? JSON.stringify(
+                  stepJson(recommendation.getMonitorStep(RECOMMENDATION_ARGS)),
+                ) === JSON.stringify(stepJson(template.getMonitorStep(ARGS)))
+              : false,
+          };
+        }),
       recommendationCategories: MonitorRecommendationCatalog.getCategories(
         MonitorRecommendationResourceType.StorageArray,
         { storageSystem: input },
@@ -227,7 +288,7 @@ function computeGolden(): JSONObject {
   }
 
   const prefixes: JSONObject = {};
-  for (const system of StorageSystemUtil.getAllSystems()) {
+  for (const system of pureSystems()) {
     prefixes[system] = StorageSystemUtil.getMetricPrefix(system);
   }
 
@@ -237,11 +298,7 @@ function computeGolden(): JSONObject {
   }
 
   const kindLabels: JSONObject = {};
-  for (const kind of [
-    ...StorageArrayResourceKindUtil.getAllKinds(),
-    "Aggregate",
-    "constructor",
-  ]) {
+  for (const kind of [...pureKinds(), "Aggregate", "constructor"]) {
     kindLabels[kind] = {
       singular: StorageArrayResourceKindUtil.getSingularLabel(
         kind as StorageArrayResourceKind,
@@ -252,8 +309,9 @@ function computeGolden(): JSONObject {
     };
   }
 
-  const metrics: Array<StorageArrayMetricDefinition> =
-    getAllStorageArrayMetrics();
+  const metrics: Array<StorageArrayMetricDefinition> = pureMetrics(
+    getAllStorageArrayMetrics(),
+  );
 
   const metricNames: Array<string> = Array.from(
     new Set(
@@ -291,7 +349,7 @@ function computeGolden(): JSONObject {
       label: getStorageArrayMetricCategoryLabel(
         category as StorageArrayMetricCategory,
       ),
-      metricIds: getStorageArrayMetricsByCategory(category).map(
+      metricIds: pureMetrics(getStorageArrayMetricsByCategory(category)).map(
         (metric: StorageArrayMetricDefinition): string => {
           return metric.id;
         },
@@ -314,21 +372,21 @@ function computeGolden(): JSONObject {
     }
   }
 
-  const templates: Array<JSONObject> = getAllStorageArrayAlertTemplates().map(
-    (template: StorageArrayAlertTemplate): JSONObject => {
-      return {
-        id: template.id,
-        name: template.name,
-        summary: template.summary,
-        description: template.description,
-        category: template.category,
-        severity: template.severity,
-        storageSystems: template.storageSystems,
-        byId: getStorageArrayAlertTemplateById(template.id)?.id || null,
-        monitorStep: stepJson(template.getMonitorStep(ARGS)),
-      };
-    },
-  );
+  const templates: Array<JSONObject> = pureTemplates(
+    getAllStorageArrayAlertTemplates(),
+  ).map((template: StorageArrayAlertTemplate): JSONObject => {
+    return {
+      id: template.id,
+      name: template.name,
+      summary: template.summary,
+      description: template.description,
+      category: template.category,
+      severity: template.severity,
+      storageSystems: template.storageSystems,
+      byId: getStorageArrayAlertTemplateById(template.id)?.id || null,
+      monitorStep: stepJson(template.getMonitorStep(ARGS)),
+    };
+  });
 
   const templateCategories: JSONObject = {};
   for (const category of [
@@ -341,8 +399,8 @@ function computeGolden(): JSONObject {
     "Replication",
     "File Systems",
   ] as Array<StorageArrayAlertTemplateCategory>) {
-    templateCategories[category] = getStorageArrayAlertTemplatesByCategory(
-      category,
+    templateCategories[category] = pureTemplates(
+      getStorageArrayAlertTemplatesByCategory(category),
     ).map((template: StorageArrayAlertTemplate): string => {
       return template.id;
     });
@@ -351,9 +409,11 @@ function computeGolden(): JSONObject {
   const allRecommendations: Array<string> =
     MonitorRecommendationCatalog.getAllPossibleRecommendations(
       MonitorRecommendationResourceType.StorageArray,
-    ).map((recommendation: MonitorRecommendation): string => {
-      return recommendation.recommendationId;
-    });
+    )
+      .filter(isPureRecommendation)
+      .map((recommendation: MonitorRecommendation): string => {
+        return recommendation.recommendationId;
+      });
 
   const objectKinds: JSONObject = {};
   for (const name of [
@@ -417,11 +477,11 @@ function computeGolden(): JSONObject {
   }
 
   return {
-    allSystems: StorageSystemUtil.getAllSystems(),
+    allSystems: pureSystems(),
     systems,
     prefixes,
     platformOfMetric,
-    allKinds: StorageArrayResourceKindUtil.getAllKinds(),
+    allKinds: pureKinds(),
     kindLabels,
     metrics: JSON.parse(JSON.stringify(metrics)) as JSONValue,
     categories,

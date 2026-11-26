@@ -12,6 +12,7 @@ import {
 import StorageArrayExtractors from "../../../../../Server/Utils/Telemetry/StorageArray/StorageArrayExtractors";
 import FlashArrayExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashArrayExtractor";
 import FlashBladeExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashBladeExtractor";
+import PowerMaxExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerMaxExtractor";
 import {
   STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   deriveStorageArrayCountsByKind,
@@ -19,6 +20,7 @@ import {
 } from "../../../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import PureStorageFlashArrayPlatform from "../../../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "../../../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
+import DellPowerMaxPlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxPlatform";
 import { StorageArrayPlatform } from "../../../../../Types/StorageArray/StorageArrayPlatform";
 import StorageArrayPlatformRegistry from "../../../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageArrayResourceKind from "../../../../../Types/StorageArray/StorageArrayResourceKind";
@@ -75,10 +77,11 @@ function row(
 }
 
 describe("the shipped extractors", () => {
-  test("are FlashArray's and FlashBlade's, one for each shipped platform", () => {
+  test("are FlashArray's, FlashBlade's and PowerMax's, one for each shipped platform", () => {
     expect(StorageArrayExtractors.getExtractors()).toEqual([
       FlashArrayExtractor,
       FlashBladeExtractor,
+      PowerMaxExtractor,
     ]);
     expect(FlashArrayExtractor.storageSystem).toBe(FLASHARRAY);
     expect(FlashBladeExtractor.storageSystem).toBe(FLASHBLADE);
@@ -105,7 +108,9 @@ describe("the shipped extractors", () => {
     }).toThrow(
       "A storage array extractor for purestorage.flasharray is already registered",
     );
-    expect(StorageArrayExtractors.getExtractors()).toHaveLength(2);
+    expect(StorageArrayExtractors.getExtractors()).toHaveLength(
+      StorageArrayPlatformRegistry.getPlatforms().length,
+    );
   });
 });
 
@@ -114,6 +119,7 @@ describe("the ingest's gate", () => {
     const names: Array<string> = [
       ...PureStorageFlashArrayPlatform.snapshotMetricNames,
       ...PureStorageFlashBladePlatform.snapshotMetricNames,
+      ...DellPowerMaxPlatform.snapshotMetricNames,
     ];
     expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
       [...names].sort(),
