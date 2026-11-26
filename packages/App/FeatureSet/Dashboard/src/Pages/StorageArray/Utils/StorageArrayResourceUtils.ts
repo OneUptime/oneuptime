@@ -31,6 +31,7 @@ import {
   getReadingDirection,
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
+import StorageArrayStatusUtil from "Common/Types/StorageArray/StorageArrayStatusUtil";
 
 /*
  * Shared helpers for the Storage Array list/detail pages. The pages read
@@ -113,29 +114,51 @@ function normalizeStatus(status: string | null | undefined): string {
   return (status || "").trim().toLowerCase();
 }
 
+/*
+ * The lists above are the words every platform shares. A platform whose
+ * parts report in other words (a NetApp aggregate offline, a port down)
+ * adds its own (StorageArrayPlatform.componentStatuses), and a status is
+ * read against every platform's (StorageArrayStatusUtil).
+ */
 export function isCriticalResourceStatus(
   status: string | null | undefined,
 ): boolean {
-  return CRITICAL_RESOURCE_STATUSES.includes(normalizeStatus(status));
+  return (
+    CRITICAL_RESOURCE_STATUSES.includes(normalizeStatus(status)) ||
+    StorageArrayStatusUtil.isCritical(status)
+  );
 }
 
 export function isUnhealthyResourceStatus(
   status: string | null | undefined,
 ): boolean {
-  return UNHEALTHY_RESOURCE_STATUSES.includes(normalizeStatus(status));
+  return (
+    UNHEALTHY_RESOURCE_STATUSES.includes(normalizeStatus(status)) ||
+    StorageArrayStatusUtil.isCritical(status) ||
+    StorageArrayStatusUtil.isWarning(status)
+  );
 }
 
 export function getResourceStatusBadgeType(
   status: string | null | undefined,
 ): StatusBadgeType {
   const normalized: string = normalizeStatus(status);
-  if (CRITICAL_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    CRITICAL_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isCritical(normalized)
+  ) {
     return StatusBadgeType.Danger;
   }
-  if (WARNING_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    WARNING_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isWarning(normalized)
+  ) {
     return StatusBadgeType.Warning;
   }
-  if (HEALTHY_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    HEALTHY_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isHealthy(normalized)
+  ) {
     return StatusBadgeType.Success;
   }
   return StatusBadgeType.Neutral;

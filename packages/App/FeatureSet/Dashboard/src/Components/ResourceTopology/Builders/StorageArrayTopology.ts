@@ -22,6 +22,9 @@ import {
   toFiniteNumber,
 } from "../ResourceTopologyFormat";
 import { healthOfStatusWord } from "../ResourceTopologyStatusWords";
+import { storageArrayPlatformKind } from "../ResourceTopologyKinds";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { ResourceTopologyLinkTarget } from "../ResourceTopologyModel";
 import {
   StorageArrayAssessment,
   assessStorageArray,
@@ -34,7 +37,10 @@ import {
  * pods and volume groups and the volumes in them, its file systems,
  * directories and buckets, and — in one Hardware group, so the array's
  * structure reads first — its controllers, drives, network interfaces and
- * other components.
+ * other components. A kind only the array's platform has is a part too,
+ * worded by its platform: an ONTAP cluster's SVMs hold their volumes and
+ * LUNs (whose group is the SVM's name), beside its aggregates and
+ * SnapMirror relationships.
  *
  * Health is the rules' (Pages/StorageArray/Utils/StorageArrayHealth), as
  * the array's Overview, its lists and a part's page say it: a part the
@@ -157,6 +163,31 @@ function capacityFacts(row: StorageArrayResource): Array<ResourceTopologyFact> {
   return facts;
 }
 
+/*
+ * A part of a kind only its platform has opens its own page, where the
+ * platform draws one (StorageArrayKindPage.part).
+ */
+function ownPartLink(
+  row: StorageArrayResource,
+  arrayId: string,
+  storageSystem: string | null | undefined,
+): ResourceTopologyLinkTarget | null {
+  if (
+    !row.kind ||
+    !row.externalId ||
+    !StorageArrayPlatformRegistry.getKindDefinition(row.kind, storageSystem) ||
+    !StorageArrayPlatformRegistry.getKindPage(storageSystem, row.kind)?.part
+  ) {
+    return null;
+  }
+  return {
+    page: PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART,
+    modelId: arrayId,
+    subModelId: encodeURIComponent(row.kind),
+    partId: encodeURIComponent(row.externalId),
+  };
+}
+
 export function buildStorageArrayTopology(
   input: StorageArrayTopologyInput,
 ): ResourceTopologyGraph {
@@ -220,11 +251,45 @@ export function buildStorageArrayTopology(
     return groupIds.get(key)!;
   };
 
+  /*
+   * The parts of a kind only the array's platform has, by name: a part
+   * whose group is one of them sits under it (an ONTAP volume under its
+   * SVM) rather than under a group of its own.
+   */
+  const ownKindIds: Map<string, string> = new Map<string, string>();
+  const isOwnKind: (kind: string) => boolean = (kind: string): boolean => {
+    return Boolean(
+      StorageArrayPlatformRegistry.getKindDefinition(
+        kind,
+        input.array.storageSystem,
+      ),
+    );
+  };
+
   for (const row of input.rows) {
     if (row.kind === "Pod" && row.externalId) {
       podIds.set(row.externalId, `pod:${row.externalId}`);
     }
+    if (row.kind && row.externalId && isOwnKind(row.kind)) {
+      const ownId: string = `${row.kind.toLowerCase()}:${row.externalId}`;
+      const ownName: string = row.name || row.externalId;
+      if (!ownKindIds.has(ownName)) {
+        ownKindIds.set(ownName, ownId);
+      }
+    }
   }
+
+  // The part a row's group names, when it is a part of the map itself.
+  const ownGroupOf: (row: StorageArrayResource) => string | undefined = (
+    row: StorageArrayResource,
+  ): string | undefined => {
+    if (!row.groupName) {
+      return undefined;
+    }
+    const groupId: string | undefined = ownKindIds.get(row.groupName);
+    const selfId: string = `${(row.kind || "").toLowerCase()}:${row.externalId}`;
+    return groupId && groupId !== selfId ? groupId : undefined;
+  };
 
   for (const row of input.rows) {
     if (!row.kind || !row.externalId) {
@@ -262,6 +327,7 @@ export function buildStorageArrayTopology(
         kind = "storage.volume";
         parentId = row.groupName
           ? podIds.get(row.groupName) ||
+            ownGroupOf(row) ||
             ensureGroup("storage.volumegroup", row.groupName)
           : STORAGE_ARRAY_ROOT_ID;
         break;
@@ -276,7 +342,13 @@ export function buildStorageArrayTopology(
         break;
       default:
         if (!hardwareKind) {
-          continue;
+          if (!isOwnKind(row.kind)) {
+            continue;
+          }
+          // A kind only its platform has: under the part its group names.
+          kind = storageArrayPlatformKind(row.kind);
+          parentId = ownGroupOf(row) || STORAGE_ARRAY_ROOT_ID;
+          break;
         }
         kind = hardwareKind;
         parentId = STORAGE_ARRAY_HARDWARE_ID;
@@ -312,7 +384,7 @@ export function buildStorageArrayTopology(
             modelId: arrayId,
             subModelId: encodeURIComponent(row.externalId),
           }
-        : null,
+        : ownPartLink(row, arrayId, input.array.storageSystem),
     });
   }
 

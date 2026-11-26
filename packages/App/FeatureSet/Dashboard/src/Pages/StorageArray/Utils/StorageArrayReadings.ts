@@ -120,6 +120,41 @@ export async function loadStorageArrayLatency(data: {
   if (!latency) {
     return { readUsec: null, writeUsec: null };
   }
+  /*
+   * Read and write latency each on a metric of their own (an ONTAP
+   * cluster's): the newest reading of each for this array.
+   */
+  if (latency.readMetricName || latency.writeMetricName) {
+    const newest: (metricName: string | undefined) => Promise<number | null> =
+      async (metricName: string | undefined): Promise<number | null> => {
+        if (!metricName) {
+          return null;
+        }
+        const perArray: StorageArrayLatestPerLabel =
+          await loadStorageArrayLatestPerLabel({
+            arrayName: data.arrayName,
+            metricName: metricName,
+            labelAttribute: STORAGE_ARRAY_ATTRIBUTE,
+          });
+        return perArray.get(data.arrayName)?.value ?? null;
+      };
+    const [readUsec, writeUsec]: [number | null, number | null] =
+      await Promise.all([
+        newest(latency.readMetricName),
+        newest(latency.writeMetricName),
+      ]);
+    return { readUsec: readUsec, writeUsec: writeUsec };
+  }
+  if (
+    !latency.metricName ||
+    !latency.dimensionLabel ||
+    !latency.readDimension ||
+    !latency.writeDimension
+  ) {
+    return { readUsec: null, writeUsec: null };
+  }
+  const readDimension: string = latency.readDimension;
+  const writeDimension: string = latency.writeDimension;
   const perDimension: StorageArrayLatestPerLabel =
     await loadStorageArrayLatestPerLabel({
       arrayName: data.arrayName,
@@ -128,8 +163,8 @@ export async function loadStorageArrayLatency(data: {
       attributes: latency.attributes,
     });
   return {
-    readUsec: perDimension.get(latency.readDimension)?.value ?? null,
-    writeUsec: perDimension.get(latency.writeDimension)?.value ?? null,
+    readUsec: perDimension.get(readDimension)?.value ?? null,
+    writeUsec: perDimension.get(writeDimension)?.value ?? null,
   };
 }
 
