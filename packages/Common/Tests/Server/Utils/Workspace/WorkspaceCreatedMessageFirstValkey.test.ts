@@ -45,8 +45,22 @@ interface Server {
   name: string;
   redis: typeof RedisType;
   first: typeof WorkspaceCreatedMessageFirstType;
-  line: typeof WorkspaceCreatedMessageLineType;
+  /*
+   * The line every server shares, when the code has it: this suite runs on
+   * the code from before it too, to show what it fixed.
+   */
+  line: typeof WorkspaceCreatedMessageLineType | null;
   client: RedisClient;
+}
+
+// What the code before the shared line had of the hold: no shutdown of its own.
+interface HoldOnShutdown {
+  postEverythingHeldHere?: (() => Promise<void>) | undefined;
+}
+
+// What waits on a server goes now, as it does when the server shuts down.
+async function shutDown(server: Server): Promise<void> {
+  await (server.first as unknown as HoldOnShutdown).postEverythingHeldHere?.();
 }
 
 const LINE_KEY_PREFIX: string = "workspace-created-message-first:";
@@ -99,8 +113,12 @@ async function startServer(name: string): Promise<Server> {
     loaded.redis = require("../../../../Server/Infrastructure/Redis").default;
     loaded.first =
       require("../../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst").default;
-    loaded.line =
-      require("../../../../Server/Utils/Workspace/WorkspaceCreatedMessageLine").default;
+    try {
+      loaded.line =
+        require("../../../../Server/Utils/Workspace/WorkspaceCreatedMessageLine").default;
+    } catch {
+      loaded.line = null;
+    }
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
   });
 
@@ -128,14 +146,17 @@ function connect(
 
   tune(server.first, "HELD_FOR_AT_MOST_MS", times.heldForAtMostMs ?? 60_000);
   tune(server.first, "SHUTDOWN_WAITS_AT_MOST_MS", 50);
-  tune(
-    server.line,
-    "RELEASED_FOR_AT_MOST_MS",
-    times.releasedForAtMostMs ?? 60_000,
-  );
-  tune(server.line, "ASKED_EVERY_MS", 10);
-  tune(server.line, "STALLED_AFTER_MS", times.stalledAfterMs ?? 30_000);
-  tune(server.line, "KEPT_EVERY_MS", 50);
+
+  if (server.line) {
+    tune(
+      server.line,
+      "RELEASED_FOR_AT_MOST_MS",
+      times.releasedForAtMostMs ?? 60_000,
+    );
+    tune(server.line, "ASKED_EVERY_MS", 10);
+    tune(server.line, "STALLED_AFTER_MS", times.stalledAfterMs ?? 30_000);
+    tune(server.line, "KEPT_EVERY_MS", 50);
+  }
 }
 
 // A server that can no longer reach Valkey, as one that stopped.
@@ -272,7 +293,7 @@ afterEach(async () => {
   // Whatever a test left waiting goes, so nothing reaches the next one.
   for (const server of [serverA, serverB]) {
     connect(server);
-    await server.first.postEverythingHeldHere();
+    await shutDown(server);
   }
 
   jest.restoreAllMocks();
@@ -530,7 +551,8 @@ describe("a record held on one server", () => {
 
     expect(left).toBeGreaterThan(0);
     expect(left).toBeLessThanOrEqual(
-      serverA.first.HELD_FOR_AT_MOST_MS + serverA.line.RELEASED_FOR_AT_MOST_MS,
+      serverA.first.HELD_FOR_AT_MOST_MS +
+        (serverA.line?.RELEASED_FOR_AT_MOST_MS || 0),
     );
 
     await serverA.first.postHeld(incident);
@@ -711,7 +733,7 @@ describe("nothing waits for good", () => {
     });
 
     // The other server is shut down - a deploy - before the Created message.
-    await serverB.first.postEverythingHeldHere();
+    await shutDown(serverB);
 
     expect(channel.posts).toEqual(["B: Added Valeria as Incident Commander"]);
 
@@ -744,7 +766,7 @@ describe("nothing waits for good", () => {
       post: channel.message("B: Added Valeria as Incident Commander"),
     });
 
-    await serverA.first.postEverythingHeldHere();
+    await shutDown(serverA);
     await channel.waitFor(2, 3000);
 
     expect(channel.posts).toEqual([
