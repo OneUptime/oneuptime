@@ -7,10 +7,11 @@ import path from "path";
  *
  * Node's default heap is about 4 GB, and tsc keeps every file and type of
  * its program until it exits. Common's and App's compile scripts gave tsc
- * 8 GiB long ago; the Probe's ran plain `tsc`, and once #11166 (the SAN
- * switch packs) grew its program it ran out of memory there - in its
- * Docker image's build (`RUN npm run compile`) and in the Compile
- * workflow's Compile Probe step alike, which both run this script. Each of
+ * 8 GiB long ago; the Probe's ran plain `tsc`, and once its program grew
+ * (#11099's SNMPv3 trap receiver, then #11166's SAN switch packs) it ran
+ * out of memory there - in its Docker image's build (`RUN npm run
+ * compile`) and in the Compile workflow's Compile Probe step alike, which
+ * both run this script. Each of
  * these packages' compile sets the heap before tsc, keeping whatever
  * NODE_OPTIONS the caller set.
  */
