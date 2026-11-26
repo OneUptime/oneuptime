@@ -12,7 +12,12 @@ import {
 } from "Common/Types/ReadingDirection";
 import { removeHtmlMarkup, replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
-import { TemplateValues, Translator } from "Common/Types/Translator";
+import {
+  TemplateAround,
+  TemplateValues,
+  Translator,
+  getTemplateAround,
+} from "Common/Types/Translator";
 import { withDurationWordsHeld } from "Common/Types/NoBreakSpaces";
 
 /*
@@ -44,6 +49,9 @@ import { withDurationWordsHeld } from "Common/Types/NoBreakSpaces";
  *                                             value goes in as written
  *   info=(ttHtml "... for {{name}}." name=statusPageName)
  *                                             the same, escaped, for a raw slot
+ *   info=(ttMailtoHtml "Need help? Write to {{address}}." address=a)
+ *                                             the same, with the address a
+ *                                             mailto: link (MAILTO SLOT)
  *   {{tp "{{count}} resource" "{{count}} resources" count}}
  *                                             a sentence that depends on a
  *                                             count, in the language's forms
@@ -197,6 +205,55 @@ const asText: (value: unknown) => string = (value: unknown): string => {
  * In an email read from the left nothing changes: these are used only in
  * {{#if @root.isEmailRightToLeft}}.
  */
+
+/*
+ * MAILTO SLOT: a sentence that names an address people write to (the
+ * server's own support address, #10941), the address drawn as a mailto:
+ * link in it. The sentence is looked up whole, the address a slot of it
+ * (Translator's getTemplateAround: a language that lost the slot reads in
+ * English), and every word and value is escaped; the link is the one piece
+ * of markup, written here. Its href holds the address percent-encoded on
+ * either side of its @, so nothing in it reads as a mailto: query.
+ */
+export const MAILTO_LINK_STYLE: string =
+  "color: #111111; text-decoration: underline; font-weight: 500;";
+
+export const getMailtoHref: (address: string) => string = (
+  address: string,
+): string => {
+  const at: number = address.lastIndexOf("@");
+
+  if (at <= 0) {
+    return `mailto:${encodeURIComponent(address)}`;
+  }
+
+  return `mailto:${encodeURIComponent(address.slice(0, at))}@${encodeURIComponent(address.slice(at + 1))}`;
+};
+
+export const getSentenceWithMailtoHtml: (data: {
+  translator: Translator;
+  template: string;
+  values: TemplateValues;
+  escape: (text: string) => string;
+}) => string = (data: {
+  translator: Translator;
+  template: string;
+  values: TemplateValues;
+  escape: (text: string) => string;
+}): string => {
+  const address: string = String(data.values["address"] ?? "").trim();
+  const around: TemplateAround = getTemplateAround(
+    data.translator,
+    data.template,
+    "address",
+    data.values,
+  );
+  const link: string = address
+    ? `<a href="${data.escape(getMailtoHref(address))}" style="${MAILTO_LINK_STYLE}">${data.escape(address)}</a>`
+    : "";
+
+  return `${data.escape(around.before)}${link}${data.escape(around.after)}`;
+};
 
 // The elements that make a value a block of its own (see above).
 const BLOCK_ELEMENT_NAMES: ReadonlyArray<string> = [
@@ -412,6 +469,23 @@ export const registerEmailLanguageHelpers: (
           asText(template),
           toTemplateValues(options),
         ),
+      );
+    },
+  );
+
+  // A sentence whose {{address}} is a mailto: link (MAILTO SLOT above).
+  handlebars.registerHelper(
+    "ttMailtoHtml",
+    (template: unknown, options: unknown): Handlebars.SafeString => {
+      return new handlebars.SafeString(
+        getSentenceWithMailtoHtml({
+          translator: translatorOf(options),
+          template: asText(template),
+          values: toTemplateValues(options),
+          escape: (text: string): string => {
+            return handlebars.escapeExpression(text);
+          },
+        }),
       );
     },
   );

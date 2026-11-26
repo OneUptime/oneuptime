@@ -183,6 +183,47 @@ describe("saving one place", () => {
   });
 });
 
+describe("the support address account emails name (#10941)", () => {
+  test("is none until an admin sets one", async () => {
+    expect(await settings.getOwnSupportEmail()).toBeNull();
+  });
+
+  test("is the address an admin set", async () => {
+    settings.stored = {
+      supportEmail: { choice: "email", value: "IT-Help@Example.com" },
+    };
+
+    expect(await settings.getOwnSupportEmail()).toBe("it-help@example.com");
+  });
+
+  test("is none while the address is hidden", async () => {
+    settings.stored = { supportEmail: { choice: "hidden" } };
+
+    expect(await settings.getOwnSupportEmail()).toBeNull();
+  });
+
+  test("is none for a value written by hand that the page would refuse", async () => {
+    settings.stored = {
+      supportEmail: { choice: "email", value: "<script>@example.com" },
+    };
+
+    expect(await settings.getOwnSupportEmail()).toBeNull();
+  });
+
+  test("keeps the address read before when a read fails", async () => {
+    settings.stored = {
+      supportEmail: { choice: "email", value: "it-help@example.com" },
+    };
+
+    expect(await settings.getOwnSupportEmail()).toBe("it-help@example.com");
+
+    settings.time += 60_000;
+    settings.failNextRead = true;
+
+    expect(await settings.getOwnSupportEmail()).toBe("it-help@example.com");
+  });
+});
+
 describe("the sign-in message", () => {
   test("is the default sentence of each screen until an admin writes one", async () => {
     expect(await settings.getInviteMessage()).toBe(DEFAULT_INVITE_MESSAGE);

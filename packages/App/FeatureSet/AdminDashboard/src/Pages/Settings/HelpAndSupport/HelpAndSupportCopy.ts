@@ -166,7 +166,7 @@ export const HELP_ITEM_COPY: Readonly<Record<HelpItem, HelpItemCopy>> = {
   [HelpItem.SupportEmail]: {
     title: translationKey("Support Email"),
     where: translationKey(
-      "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.",
+      "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.",
     ),
     icon: IconProp.Email,
     card: HelpCard.HelpMenu,

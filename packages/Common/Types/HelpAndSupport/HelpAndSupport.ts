@@ -805,6 +805,28 @@ export const getSupportEmailAddress: (
   return setting.choice === HelpChoice.Default ? ONEUPTIME_SUPPORT_EMAIL : null;
 };
 
+/*
+ * The server's own support address, or null: on OneUptime's default, and
+ * hidden. What an account email names where it would otherwise say "Ask
+ * your server's admin" (#10941): an address an admin set, never
+ * OneUptime's, and nothing at all while the address is hidden.
+ */
+export const getOwnSupportEmailAddress: (
+  settings: HelpAndSupportSettings,
+) => string | null = (settings: HelpAndSupportSettings): string | null => {
+  const setting: HelpItemSetting = settings[HelpItem.SupportEmail];
+
+  if (
+    setting.choice !== HelpChoice.Email ||
+    !setting.value ||
+    getHelpEmailProblem(setting.value) !== null
+  ) {
+    return null;
+  }
+
+  return setting.value;
+};
+
 // Whether the support address is OneUptime's own.
 export const isOneUptimeSupportEmail: (
   settings: HelpAndSupportSettings,

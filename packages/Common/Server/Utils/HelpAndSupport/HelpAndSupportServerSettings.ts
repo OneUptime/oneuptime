@@ -10,6 +10,7 @@ import {
   HelpItemChange,
   getDefaultHelpAndSupportSettings,
   getInviteMessage,
+  getOwnSupportEmailAddress,
   readHelpAndSupportSettings,
   toHelpAndSupportJSON,
   withHelpItemChanged,
@@ -157,6 +158,15 @@ export class HelpAndSupportServerSettingsClass {
       await this.getSettings(),
       DEFAULT_NO_PROJECT_MESSAGE,
     );
+  }
+
+  /*
+   * The server's own support address, which account emails name where they
+   * would say "Ask your server's admin" (#10941), or null: OneUptime's
+   * default, hidden, or not read yet.
+   */
+  public async getOwnSupportEmail(): Promise<string | null> {
+    return getOwnSupportEmailAddress(await this.getSettings());
   }
 }
 
