@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * Informs the receiver has already forwarded, for a couple of minutes.
@@ -19,8 +20,8 @@ export const INFORM_RETRY_WINDOW_MS: number = 2 * 60 * 1000;
 export const MAX_INFORMS: number = 10000;
 
 export default class RecentInforms {
-  // Key -> when it is forgotten; the oldest first.
-  private readonly seen: Map<string, number> = new Map();
+  // Key -> when it is forgotten; the oldest first, answered in constant time.
+  private readonly seen: OldestKeyMap<string, number> = new OldestKeyMap();
 
   /*
    * True the first time an inform is seen within the window - forward it -
@@ -52,9 +53,7 @@ export default class RecentInforms {
     this.seen.set(key, data.nowMs + INFORM_RETRY_WINDOW_MS);
 
     while (this.seen.size > MAX_INFORMS) {
-      const oldest: string | undefined = this.seen.keys().next().value as
-        | string
-        | undefined;
+      const oldest: string | undefined = this.seen.oldestKey();
 
       if (oldest === undefined) {
         break;
