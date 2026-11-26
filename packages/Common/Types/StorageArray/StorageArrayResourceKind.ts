@@ -1,10 +1,19 @@
-import StorageSystem from "./StorageSystem";
-
 /*
  * The kinds of object a storage array's inventory holds
  * (StorageArrayResource.kind), in singular PascalCase like CephResource's
  * `Osd` / `Pool`. Stored as plain strings, so adding a kind never needs a
  * migration.
+ *
+ * These are the kinds more than one platform can share: a NetApp volume and
+ * a Pure volume are both a Volume, and look and alert alike. A kind only one
+ * platform has (NetApp's aggregates, PowerScale's quotas) need not be added
+ * here: its platform declares it, with its words, in its own
+ * StorageArrayPlatform.kindDefinitions. Which kinds a platform reports, and
+ * their words, are answered by StorageArrayResourceKindUtil.
+ *
+ * This file imports nothing on purpose: platform definitions import it, and
+ * it must never lead back to the registry that imports them (see
+ * StorageArrayPlatformImportsGuard.test.ts).
  */
 enum StorageArrayResourceKind {
   Volume = "Volume",
@@ -17,116 +26,6 @@ enum StorageArrayResourceKind {
   Directory = "Directory",
   FileSystem = "FileSystem",
   Bucket = "Bucket",
-}
-
-const KINDS_BY_SYSTEM: Record<
-  StorageSystem,
-  Array<StorageArrayResourceKind>
-> = {
-  [StorageSystem.PureStorageFlashArray]: [
-    StorageArrayResourceKind.Volume,
-    StorageArrayResourceKind.Host,
-    StorageArrayResourceKind.Pod,
-    StorageArrayResourceKind.Hardware,
-    StorageArrayResourceKind.Drive,
-    StorageArrayResourceKind.Controller,
-    StorageArrayResourceKind.NetworkInterface,
-    StorageArrayResourceKind.Directory,
-  ],
-  [StorageSystem.PureStorageFlashBlade]: [
-    StorageArrayResourceKind.Hardware,
-    StorageArrayResourceKind.FileSystem,
-    StorageArrayResourceKind.Bucket,
-  ],
-};
-
-const KIND_LABELS: Record<
-  StorageArrayResourceKind,
-  { singular: string; plural: string }
-> = {
-  [StorageArrayResourceKind.Volume]: { singular: "Volume", plural: "Volumes" },
-  [StorageArrayResourceKind.Host]: { singular: "Host", plural: "Hosts" },
-  [StorageArrayResourceKind.Pod]: { singular: "Pod", plural: "Pods" },
-  [StorageArrayResourceKind.Hardware]: {
-    singular: "Hardware Component",
-    plural: "Hardware Components",
-  },
-  [StorageArrayResourceKind.Drive]: { singular: "Drive", plural: "Drives" },
-  [StorageArrayResourceKind.Controller]: {
-    singular: "Controller",
-    plural: "Controllers",
-  },
-  [StorageArrayResourceKind.NetworkInterface]: {
-    singular: "Network Interface",
-    plural: "Network Interfaces",
-  },
-  [StorageArrayResourceKind.Directory]: {
-    singular: "Directory",
-    plural: "Directories",
-  },
-  [StorageArrayResourceKind.FileSystem]: {
-    singular: "File System",
-    plural: "File Systems",
-  },
-  [StorageArrayResourceKind.Bucket]: { singular: "Bucket", plural: "Buckets" },
-};
-
-export class StorageArrayResourceKindUtil {
-  public static getAllKinds(): Array<StorageArrayResourceKind> {
-    return Object.values(StorageArrayResourceKind);
-  }
-
-  /*
-   * The kinds a platform reports. An unknown system (an array discovered
-   * with a `storage.system` OneUptime has no extractor for) reports none.
-   */
-  public static getKindsForSystem(
-    system: string | null | undefined,
-  ): Array<StorageArrayResourceKind> {
-    /*
-     * Own keys only: `storage.system` is agent-supplied, and a well-formed
-     * value such as `constructor` would otherwise index Object.prototype
-     * and hand callers a function instead of a list.
-     */
-    if (
-      !system ||
-      !Object.prototype.hasOwnProperty.call(KINDS_BY_SYSTEM, system)
-    ) {
-      return [];
-    }
-    return KINDS_BY_SYSTEM[system as StorageSystem];
-  }
-
-  public static isKindForSystem(
-    kind: StorageArrayResourceKind,
-    system: string | null | undefined,
-  ): boolean {
-    return StorageArrayResourceKindUtil.getKindsForSystem(system).includes(
-      kind,
-    );
-  }
-
-  /*
-   * `kind` is a plain string column, so a row written by a newer build (a
-   * kind this one does not know) is shown under its raw kind rather than
-   * crashing the page that renders it.
-   */
-  public static getSingularLabel(kind: StorageArrayResourceKind): string {
-    return StorageArrayResourceKindUtil.getLabels(kind)?.singular || kind;
-  }
-
-  public static getPluralLabel(kind: StorageArrayResourceKind): string {
-    return StorageArrayResourceKindUtil.getLabels(kind)?.plural || kind;
-  }
-
-  private static getLabels(
-    kind: StorageArrayResourceKind,
-  ): { singular: string; plural: string } | undefined {
-    if (!Object.prototype.hasOwnProperty.call(KIND_LABELS, kind)) {
-      return undefined;
-    }
-    return KIND_LABELS[kind];
-  }
 }
 
 export default StorageArrayResourceKind;

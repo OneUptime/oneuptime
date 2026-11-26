@@ -58,8 +58,9 @@ import {
   ScrubbedAddressPlace,
   markClientAddressScrubbed,
 } from "../ScrubbedAddress";
-import { pickEventUser } from "../ScrubbedUser";
+import { locateHashedUserField, pickEventUser } from "../ScrubbedUser";
 import { isSharedScrubPlaceholder } from "../../../Types/Telemetry/ScrubRule";
+import { LlmUserIdAttributeKeys } from "../../../Types/Telemetry/LlmConventions";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -241,8 +242,30 @@ export const TRACE_SCAN_ATTRIBUTES_READ: ReadonlyArray<string> = Array.from(
       },
     ),
     ...TRACE_SCAN_OWNER_ATTRIBUTES,
+    /*
+     * The attributes an AI call's user (llmUserId) is copied from, so an
+     * event can say which one held it when a Hash rule hid it (#11045).
+     */
+    ...LlmUserIdAttributeKeys,
   ]),
 );
+
+/*
+ * Where a span held its user, when that is what a Hash rule left
+ * (ScrubbedUser.locateHashedUserField): `attributes.<key>` of the first of
+ * `keys` whose value it is, as the trace scan read it (#11045).
+ */
+export function locateSpanUserField(
+  span: Pick<TraceScanSpan, "attributes">,
+  user: string,
+  keys: ReadonlyArray<string> = TRACE_SCAN_ATTRIBUTE_KEYS.userId,
+): string {
+  return locateHashedUserField({
+    hashed: user,
+    attributes: span.attributes,
+    preferredKeys: keys,
+  });
+}
 
 // The attributes a server span's URL is read from, for the scan's prefilter.
 export const TRACE_SCAN_URL_ATTRIBUTES: ReadonlyArray<string> = [
@@ -421,6 +444,8 @@ interface SpanRequest {
   scrubbedClientAddress: ScrubbedAddress | null;
   userAgent: string;
   userId: string;
+  // Where the span held its user, when a Hash rule left it (#11045).
+  userField: string;
   route: string;
   outcome: SecurityEventRequestOutcome | undefined;
   attributes: JSONObject;
@@ -525,6 +550,7 @@ function readSpanRequest(
     scrubbedClientAddress,
     userAgent,
     userId,
+    userField: locateSpanUserField(span, userId),
     route,
     outcome: requestOutcomeFromStatusCode(statusCode),
     attributes,
@@ -610,6 +636,7 @@ export function buildTraceWebAttackEvent(
     }),
     principalIp: request.clientIp,
     principalUser: request.userId,
+    principalUserField: request.userField,
     targetResource: request.target,
     attributes: {
       ...request.attributes,
@@ -669,6 +696,7 @@ export function buildTraceSsrfEvent(
     }`,
     principalIp: request.clientIp,
     principalUser: request.userId,
+    principalUserField: request.userField,
     targetHost: marker.startsWith("%") ? "169.254.169.254" : marker,
     targetResource: request.target,
     attributes: {
@@ -803,6 +831,14 @@ export function buildPromptInjectionEvent(
     severity: OcsfSeverity.Medium,
     message: `Prompt injection attempt${model ? ` on ${model}` : ""}: "${excerpt}"`,
     principalUser: userId,
+    /*
+     * The AI call's user is copied from the first of its user attributes
+     * (LlmSpan): that one, as the column was, else the request's.
+     */
+    principalUserField: locateSpanUserField(span, userId, [
+      ...LlmUserIdAttributeKeys,
+      ...TRACE_SCAN_ATTRIBUTE_KEYS.userId,
+    ]),
     targetResource: model,
     attributes,
     traceId: span.traceId,

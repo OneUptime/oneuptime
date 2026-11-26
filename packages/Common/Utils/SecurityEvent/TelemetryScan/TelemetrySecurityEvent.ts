@@ -169,9 +169,16 @@ export interface TelemetrySecurityEventInput {
   severity: OcsfSeverity;
   message: string;
   principalUser?: string | undefined;
+  /*
+   * Where the record held its user, when that is what a Hash rule left
+   * (ScrubbedUser.locateHashedUserField): `attributes.<key>` of the span
+   * (#11045). Its records are searched for the token there.
+   */
+  principalUserField?: string | undefined;
   principalHost?: string | undefined;
   principalIp?: string | undefined;
   targetUser?: string | undefined;
+  targetUserField?: string | undefined;
   targetHost?: string | undefined;
   targetIp?: string | undefined;
   targetPort?: number | undefined;
@@ -242,6 +249,8 @@ export function buildTelemetrySecurityEvent(
     attributes,
     signal:
       input.kind === SecurityTelemetrySourceKind.Traces ? "trace" : undefined,
+    principalUserField: input.principalUserField,
+    targetUserField: input.targetUserField,
   });
 
   const resourceId: string = (input.resourceId || "").trim();

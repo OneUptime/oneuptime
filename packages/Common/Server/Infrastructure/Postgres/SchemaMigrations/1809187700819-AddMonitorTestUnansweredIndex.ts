@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * blocking the tests written meanwhile. Safe to run again after a stop part
  * way.
  */
-export class AddMonitorTestUnansweredIndex1809187690819
+export class AddMonitorTestUnansweredIndex1809187700819
   implements MigrationInterface
 {
-  public name: string = "AddMonitorTestUnansweredIndex1809187690819";
+  public name: string = "AddMonitorTestUnansweredIndex1809187700819";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

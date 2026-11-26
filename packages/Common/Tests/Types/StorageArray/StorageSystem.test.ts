@@ -1,6 +1,5 @@
-import StorageSystem, {
-  StorageSystemUtil,
-} from "../../../Types/StorageArray/StorageSystem";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { describe, expect, test } from "@jest/globals";
 
 /*
