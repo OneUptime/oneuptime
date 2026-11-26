@@ -522,6 +522,7 @@ Die `sysObjectID` des Geräts bestimmt, woher die Messwerte kommen: zuerst aus d
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), mit Flags für Signalverlust und Senderfehler | Nein |
 | Cambium Networks cnMatrix (4.5 und neuer) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nein |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), als Text gelesen: `-inf` heißt kein Licht | Nein |
 | Jedes andere Gerät | ENTITY-SENSOR-MIB (RFC 3433), über ENTITY-MIB den Ports zugeordnet | Nein |
 
 Die erste Abfrage liest alles. Spätere Abfragen lesen nur, was sich ändert — die Messwerte und die Seriennummern, an denen eine getauschte Optik zu erkennen ist —, und der Rest (Schwellenwerte, Identität, welche Optik in welchem Port steckt) wird erneut gelesen, wenn eine Optik eingesteckt, entfernt oder getauscht wird, und mindestens einmal pro Stunde. Ein Gerät ohne eine dieser MIBs kostet eine Anfrage pro versuchter MIB. Das Lesen hat sein eigenes Budget von 20 Sekunden, und ein Lesen, das in eine Zeitüberschreitung läuft oder abgebrochen wird, behält die letzten guten Optiken des Geräts, statt sie als verschwunden zu melden.

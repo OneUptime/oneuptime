@@ -522,6 +522,7 @@ Enhetens `sysObjectID` väljer var mätningarna kommer ifrån: tillverkarens ege
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), med flaggor för signalförlust och sändarfel | Nej |
 | Cambium Networks cnMatrix (4.5 och senare) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nej |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), läst som text: `-inf` betyder inget ljus | Nej |
 | Alla andra enheter | ENTITY-SENSOR-MIB (RFC 3433), matchad till portar via ENTITY-MIB | Nej |
 
 Den första avsökningen läser allt. Senare avsökningar läser bara det som ändras — mätningarna, och de serienummer som avslöjar en utbytt modul — och resten (tröskelvärden, identitet, vilken modul som sitter i vilken port) läses om när en modul sätts i, tas ut eller byts, och minst en gång i timmen. En enhet utan någon av dessa MIB:ar kostar en förfrågan per provad MIB. Läsningen har en egen budget på 20 sekunder, och en läsning som får timeout eller avbryts behåller enhetens senaste bra moduler i stället för att rapportera dem som borta.

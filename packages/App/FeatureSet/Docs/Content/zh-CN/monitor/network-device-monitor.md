@@ -522,6 +522,7 @@ flowchart TB
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | 是 |
 | MikroTik RouterOS | MIKROTIK-MIB（`mtxrOpticalTable`），带信号丢失和发射器故障标志 | 否 |
 | Cambium Networks cnMatrix（4.5 及更高版本） | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | 否 |
+| Brocade Fabric OS | FA-EXT-MIB（`swSfpStatTable`），按文本读取：`-inf` 表示无光 | 否 |
 | 其他所有设备 | ENTITY-SENSOR-MIB（RFC 3433），通过 ENTITY-MIB 匹配到端口 | 否 |
 
 首次轮询读取全部内容。之后的轮询只读取会变化的内容（读数，以及用于识别光模块被更换的序列号），其余内容（阈值、身份信息、哪个光模块在哪个端口）会在光模块插入、拔出或更换时重新读取，并且至少每小时读取一次。没有任何这些 MIB 的设备，每尝试一个 MIB 只花费一次请求。读取有自己的 20 秒时间预算，超时或被中断的读取会保留设备上一次正常的光模块信息，而不会报告它们消失了。

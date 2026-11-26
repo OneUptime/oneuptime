@@ -522,6 +522,7 @@ Il `sysObjectID` del dispositivo sceglie da dove vengono le letture: prima la ta
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Sì |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), con indicatori di perdita di segnale e guasto del trasmettitore | No |
 | Cambium Networks cnMatrix (4.5 e successivi) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | No |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), letto come testo: `-inf` significa nessuna luce | No |
 | Ogni altro dispositivo | ENTITY-SENSOR-MIB (RFC 3433), abbinata alle porte tramite ENTITY-MIB | No |
 
 Il primo polling legge tutto. I polling successivi leggono solo ciò che cambia — le letture, e i numeri di serie che distinguono un'ottica sostituita — e il resto (soglie, identità, quale ottica sta in quale porta) viene riletto quando un'ottica viene inserita, rimossa o sostituita, e almeno una volta all'ora. Un dispositivo senza nessuna di queste MIB costa una richiesta per ogni MIB provata. La lettura ha un proprio budget di 20 secondi, e una lettura che va in timeout o viene interrotta conserva le ultime ottiche valide del dispositivo invece di darle per scomparse.

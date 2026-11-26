@@ -522,6 +522,7 @@ De `sysObjectID` van het apparaat bepaalt waar de metingen vandaan komen: eerst 
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), met vlaggen voor signaalverlies en zenderfout | Nee |
 | Cambium Networks cnMatrix (4.5 en later) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nee |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), gelezen als tekst: `-inf` betekent geen licht | Nee |
 | Elk ander apparaat | ENTITY-SENSOR-MIB (RFC 3433), aan poorten gekoppeld via ENTITY-MIB | Nee |
 
 De eerste poll leest alles. Latere polls lezen alleen wat verandert — de metingen, en de serienummers die een verwisselde optic verraden — en de rest (drempels, identiteit, welke optic in welke poort zit) wordt opnieuw gelezen als een optic wordt geplaatst, verwijderd of verwisseld, en minstens één keer per uur. Een apparaat zonder een van deze MIB's kost één verzoek per geprobeerde MIB. Het lezen heeft een eigen budget van 20 seconden, en een leesactie die een time-out krijgt of wordt afgebroken, houdt de laatste goede optics van het apparaat in plaats van ze als verdwenen te melden.

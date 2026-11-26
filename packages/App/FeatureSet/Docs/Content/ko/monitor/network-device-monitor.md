@@ -522,6 +522,7 @@ Zabbix에서 옮겨 온다면 다음과 같이 대응합니다.
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | 예 |
 | MikroTik RouterOS | MIKROTIK-MIB(`mtxrOpticalTable`), 신호 손실 및 송신기 결함 플래그와 함께 | 아니요 |
 | Cambium Networks cnMatrix(4.5 이상) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | 아니요 |
+| Brocade Fabric OS | FA-EXT-MIB(`swSfpStatTable`), 텍스트로 읽으며 `-inf`는 빛이 없음을 뜻함 | 아니요 |
 | 그 밖의 모든 디바이스 | ENTITY-SENSOR-MIB(RFC 3433), ENTITY-MIB로 포트에 매칭 | 아니요 |
 
 첫 폴링은 모든 것을 읽습니다. 이후 폴링은 바뀌는 것(측정값, 그리고 교체된 광 모듈을 구별하는 시리얼 번호)만 읽고, 나머지(임계값, 정보, 어느 광 모듈이 어느 포트에 있는지)는 광 모듈이 삽입, 제거, 교체될 때와 적어도 한 시간에 한 번 다시 읽습니다. 이 MIB가 하나도 없는 디바이스는 시도한 MIB마다 요청 하나의 비용만 듭니다. 읽기에는 별도의 20초 예산이 있으며, 시간 초과되거나 중간에 끊긴 읽기는 광 모듈이 사라졌다고 보고하지 않고 디바이스의 마지막 정상 광 모듈 정보를 유지합니다.

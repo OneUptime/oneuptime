@@ -522,6 +522,7 @@ Enhetens `sysObjectID` velger hvor målingene kommer fra: produsentens egen tabe
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), med flagg for signaltap og senderfeil | Nei |
 | Cambium Networks cnMatrix (4.5 og nyere) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nei |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), lest som tekst: `-inf` betyr ikke noe lys | Nei |
 | Alle andre enheter | ENTITY-SENSOR-MIB (RFC 3433), matchet til porter gjennom ENTITY-MIB | Nei |
 
 Den første pollingen leser alt. Senere pollinger leser bare det som endres — målingene, og serienumrene som avslører en byttet modul — og resten (terskler, identitet, hvilken modul som står i hvilken port) leses på nytt når en modul settes inn, tas ut eller byttes, og minst én gang i timen. En enhet uten noen av disse MIB-ene koster én forespørsel per MIB som prøves. Lesingen har sitt eget budsjett på 20 sekunder, og en lesing som får tidsavbrudd eller avbrytes, beholder enhetens siste gode moduler i stedet for å rapportere dem som borte.

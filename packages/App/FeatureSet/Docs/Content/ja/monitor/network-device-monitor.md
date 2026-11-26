@@ -522,6 +522,7 @@ Zabbix から移行する場合の対応は次のとおりです。
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | あり |
 | MikroTik RouterOS | MIKROTIK-MIB(`mtxrOpticalTable`)。信号損失と送信機障害のフラグ付き | なし |
 | Cambium Networks cnMatrix(4.5 以降) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | なし |
+| Brocade Fabric OS | FA-EXT-MIB(`swSfpStatTable`)。テキストとして読み取り、`-inf` は光なし | なし |
 | その他すべてのデバイス | ENTITY-SENSOR-MIB(RFC 3433)。ENTITY-MIB を通じてポートに対応付け | なし |
 
 最初のポーリングですべてを読み取ります。以降のポーリングでは変化するもの(測定値と、交換された光モジュールを見分けるシリアル番号)だけを読み、残り(しきい値、識別情報、どの光モジュールがどのポートにあるか)は、光モジュールの挿入、取り外し、交換のとき、および少なくとも 1 時間に 1 回、読み直します。これらの MIB をどれも持たないデバイスでは、試した MIB ごとに 1 リクエストかかります。読み取りには専用の 20 秒の予算があり、タイムアウトしたり途中で打ち切られたりした読み取りは、光モジュールが消えたと報告するのではなく、デバイスの最後の正常な光モジュールを保持します。
