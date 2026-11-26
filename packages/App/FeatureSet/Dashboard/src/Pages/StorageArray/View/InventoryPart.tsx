@@ -17,9 +17,14 @@ import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 const StorageArrayInventoryPart: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * .../<array id>/inventory/<kind>/<externalId>: counted from the last
+   * segment (0), the kind is 1 back and the array 3 (Navigation's
+   * getLastRoute).
+   */
   const storageArrayId: ObjectID = Navigation.getLastParamAsObjectID(3);
   const kind: string = StorageArrayResourceUtils.externalIdFromRouteParam(
-    Navigation.getLastParamAsString(2),
+    Navigation.getLastParamAsString(1),
   );
   const externalId: string = StorageArrayResourceUtils.externalIdFromRouteParam(
     Navigation.getLastParamAsString(),

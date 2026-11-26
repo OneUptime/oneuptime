@@ -383,8 +383,9 @@ beforeEach(() => {
     .mockReturnValue(new ObjectID(ARRAY_ID));
   jest
     .spyOn(Navigation, "getLastParamAsString")
-    .mockImplementation((position?: number): string => {
-      return position === 2 ? mockKindParam : mockPartParam;
+    .mockImplementation((fromLast?: number): string => {
+      // As Navigation counts: the last segment is 0, the one before it 1.
+      return fromLast === 1 ? mockKindParam : mockPartParam;
     });
   const permissions: Array<Permission> = [Permission.ReadStorageArray];
   jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
