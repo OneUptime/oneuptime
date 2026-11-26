@@ -16,11 +16,28 @@ import {
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
+import Queue from "../../../Server/Infrastructure/Queue";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import NetworkDeviceAutoImportRuleEngineService from "../../../Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import logger from "../../../Server/Utils/Logger";
+import DiscoveryImportRunner from "../../../Server/Utils/NetworkDiscovery/DiscoveryImportRunner";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
+import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import NetworkDeviceDiscoveryImport from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryImport";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  DiscoveryImportDeviceOutcome,
+  DiscoveryImportHostResult,
+  DiscoveryImportMonitorOutcome,
+  DiscoveryImportStatus,
+  readDiscoveryImportHostResults,
+} from "../../../Types/NetworkDevice/DiscoveryImport";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
@@ -575,6 +592,182 @@ describePostgres(
         monitorsCreated: 0,
         monitorsSkippedAlreadyExisting: 4,
       });
+    }, 180000);
+
+    /*
+     * CREATE MONITORS (#10990): Network > Devices > Bulk Actions. The
+     * devices are selected on the Devices list - however they were added -
+     * and the same import a scan's hosts go through gives each one the
+     * template's monitor, as the person who asked, on the worker.
+     */
+    test("Create Monitors gives the selected devices their template's monitor, never a second one", async () => {
+      const userId: ObjectID = ObjectID.generate();
+      const permissions: Array<UserPermission> = [
+        Permission.ReadNetworkDevice,
+        Permission.CreateProjectMonitor,
+        Permission.ReadMonitorTemplate,
+      ].map((permission: Permission): UserPermission => {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: false,
+        };
+      });
+      const tenant: UserTenantAccessPermission = {
+        _type: "UserTenantAccessPermission",
+        projectId: projectId,
+        permissions: permissions,
+      };
+      const personProps: DatabaseCommonInteractionProps = {
+        tenantId: projectId,
+        userId: userId,
+        userTenantAccessPermission: { [projectId.toString()]: tenant },
+        ...ON_HIGHEST_PLAN,
+      };
+
+      // The worker reads the person's permissions again; Redis queues the job.
+      jest
+        .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+        .mockResolvedValue(personProps as never);
+      jest.spyOn(Queue, "addJob").mockResolvedValue({} as never);
+
+      const template: MonitorTemplate = await saveTemplate(
+        "Enterprise Switch Monitoring",
+      );
+
+      const plain: NetworkDevice = await saveDevice({
+        name: "RRKLCRLANSWI01",
+        address: "10.30.0.1",
+      });
+      const handMade: NetworkDevice = await saveDevice({
+        name: "RRKLCRLANSWI02",
+        address: "10.30.0.2",
+      });
+      const linked: NetworkDevice = await saveDevice({
+        name: "UN1782LANSWI03",
+        address: "10.30.0.3",
+      });
+      const camera: NetworkDevice = await saveDevice({
+        name: "LOBBY-CAM",
+        address: "10.30.0.9",
+      });
+      await database.query(
+        `UPDATE "${schema}"."NetworkDevice" SET "monitoringMethod" = 'Monitor' WHERE "_id" = $1`,
+        [camera.id!.toString()],
+      );
+
+      await insertDeviceMonitor({
+        name: "RRKLCRLANSWI02 uplink errors",
+        deviceId: handMade.id!,
+      });
+      // Create from template on the Monitors page: linked, watching the device.
+      await insertDeviceMonitor({
+        name: "UN1782LANSWI03 health",
+        deviceId: linked.id!,
+        monitorTemplateId: template.id!,
+      });
+
+      const selected: Array<string> = [plain, handMade, linked, camera].map(
+        (device: NetworkDevice): string => {
+          return device.id!.toString();
+        },
+      );
+
+      const resultsOf: (
+        row: NetworkDeviceDiscoveryImport,
+      ) => Promise<Array<DiscoveryImportHostResult>> = async (
+        row: NetworkDeviceDiscoveryImport,
+      ): Promise<Array<DiscoveryImportHostResult>> => {
+        const stored: NetworkDeviceDiscoveryImport | null =
+          await database.manager.findOne(NetworkDeviceDiscoveryImport, {
+            where: { _id: row.id!.toString() } as never,
+          });
+
+        expect(stored?.status).toBe(DiscoveryImportStatus.Completed);
+
+        return readDiscoveryImportHostResults(stored?.results);
+      };
+
+      const outcomeOf: (
+        results: Array<DiscoveryImportHostResult>,
+        device: NetworkDevice,
+      ) => DiscoveryImportMonitorOutcome = (
+        results: Array<DiscoveryImportHostResult>,
+        device: NetworkDevice,
+      ): DiscoveryImportMonitorOutcome => {
+        return results.find((result: DiscoveryImportHostResult): boolean => {
+          return result.existingDeviceId === device.id!.toString();
+        })!.monitor;
+      };
+
+      const first: NetworkDeviceDiscoveryImport =
+        await DiscoveryImportRunner.startFromDevices({
+          projectId: projectId,
+          props: personProps,
+          deviceIds: selected,
+          monitorTemplateId: template.id!.toString(),
+        });
+
+      await DiscoveryImportRunner.runProjectImports(projectId);
+
+      const firstResults: Array<DiscoveryImportHostResult> =
+        await resultsOf(first);
+
+      expect(
+        firstResults.every((result: DiscoveryImportHostResult): boolean => {
+          return result.device === DiscoveryImportDeviceOutcome.AlreadyAdded;
+        }),
+      ).toBe(true);
+      expect(outcomeOf(firstResults, plain)).toBe(
+        DiscoveryImportMonitorOutcome.Created,
+      );
+      expect(outcomeOf(firstResults, handMade)).toBe(
+        DiscoveryImportMonitorOutcome.Created,
+      );
+      // The monitor a person made from the template, read through what watches the device.
+      expect(outcomeOf(firstResults, linked)).toBe(
+        DiscoveryImportMonitorOutcome.AlreadyThere,
+      );
+      expect(outcomeOf(firstResults, camera)).toBe(
+        DiscoveryImportMonitorOutcome.Skipped,
+      );
+
+      for (const device of [plain, handMade]) {
+        const made: Array<Monitor> = await monitorsOf(device.id!);
+
+        expect(made).toHaveLength(1);
+        expect(made[0]!.monitorTemplateId?.toString()).toBe(
+          template.id!.toString(),
+        );
+        expect(made[0]!.createdByUserId?.toString()).toBe(userId.toString());
+      }
+
+      expect(await watchingMonitorsOf(linked.id!)).toHaveLength(1);
+      expect(await monitorsOf(camera.id!)).toHaveLength(0);
+
+      // Again: nothing is made twice.
+      const second: NetworkDeviceDiscoveryImport =
+        await DiscoveryImportRunner.startFromDevices({
+          projectId: projectId,
+          props: personProps,
+          deviceIds: selected,
+          monitorTemplateId: template.id!.toString(),
+        });
+
+      await DiscoveryImportRunner.runProjectImports(projectId);
+
+      const secondResults: Array<DiscoveryImportHostResult> =
+        await resultsOf(second);
+
+      for (const device of [plain, handMade, linked]) {
+        expect(outcomeOf(secondResults, device)).toBe(
+          DiscoveryImportMonitorOutcome.AlreadyThere,
+        );
+      }
+
+      expect(await monitorsOf(plain.id!)).toHaveLength(1);
+      expect(await monitorsOf(handMade.id!)).toHaveLength(1);
     }, 180000);
   },
 );

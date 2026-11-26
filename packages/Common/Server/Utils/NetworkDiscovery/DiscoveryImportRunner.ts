@@ -16,7 +16,9 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   ACTIVE_DISCOVERY_IMPORT_STATUSES,
+  DEFAULT_DISCOVERY_IMPORT_POLLING_INTERVAL_IN_MINUTES,
   DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON,
+  DISCOVERY_IMPORT_DEVICE_GONE_REASON,
   DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
   DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
   DISCOVERY_IMPORT_STOPPED_REASON,
@@ -31,6 +33,7 @@ import {
   DiscoveryImportSource,
   DiscoveryImportStatus,
   DiscoveryImportView,
+  MAX_DEVICES_PER_MONITOR_CREATION,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
   getDiscoveryImportHostKey,
   getRetryableHostResults,
@@ -97,10 +100,13 @@ import DeviceMonitorDuplicateCheck from "../NetworkDevice/DeviceMonitorDuplicate
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import ModelPermission from "../../Types/Database/Permissions/Index";
+import TablePermission from "../../Types/Database/Permissions/TablePermission";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import ActiveMonitorLimit from "../Billing/ActiveMonitorLimit";
 import CallerPlan from "../Billing/CallerPlan";
 import logger, { LogAttributes } from "../Logger";
 import RuleRecordScope from "../Rules/RuleRecordScope";
+import { RuleRunWriteProps } from "../Rules/RuleRun/RuleApplication";
 import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorization";
 
 /*
@@ -278,6 +284,20 @@ export const MONITOR_SKIPPED_MONITOR_BACKED: string =
   DISCOVERY_IMPORT_MONITOR_BACKED_REASON;
 export const MONITOR_SKIPPED_AMBIGUOUS_DEVICE: string =
   DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON;
+export const MONITOR_SKIPPED_DEVICE_GONE: string =
+  DISCOVERY_IMPORT_DEVICE_GONE_REASON;
+
+/*
+ * What a host of Create Monitors (issue #10990) carries: the device it is,
+ * and its name when it was selected, for the progress list.
+ */
+export interface ExistingDeviceFacts {
+  deviceId: string;
+  name: string;
+}
+
+// How many selected devices one read names, as the person.
+export const DEVICE_READ_CHUNK_SIZE: number = 500;
 
 /*
  * A scan's host at an address whose devices its probe cannot tell apart
@@ -308,6 +328,8 @@ const IMPORTED_DEVICE_SELECT: {
   monitoringMethod: true;
   probeId: true;
   monitorId: true;
+  // A device Create Monitors was asked about may have been archived since.
+  isArchived: true;
 } = {
   _id: true,
   projectId: true,
@@ -316,6 +338,7 @@ const IMPORTED_DEVICE_SELECT: {
   monitoringMethod: true,
   probeId: true,
   monitorId: true,
+  isArchived: true,
 };
 
 // The state one worker keeps while it imports one import's hosts.
@@ -603,6 +626,230 @@ export default class DiscoveryImportRunner {
   }
 
   /*
+   * CREATE MONITORS FOR DEVICES ALREADY IN THE INVENTORY (issue #10990).
+   *
+   * Network > Devices > Bulk Actions > Create Monitors: the devices the
+   * person selected - however they were added, a scan, by hand, a CSV, a
+   * controller - each get one monitor from the template they picked. Nothing
+   * is imported. The same import, run by the same worker one device at a
+   * time, as a scan's: progress anyone can trust, Stop, and Retry for the
+   * ones that failed. A device that has a monitor the template's would
+   * duplicate - from the same template, or for a Ping, IP, Port, NTP or web
+   * template one of the same kind checking the same thing - keeps it, and
+   * reads Already monitored (DeviceMonitorDuplicateCheck): running it twice
+   * makes nothing twice.
+   *
+   * As the person: they must be allowed to create monitors, and they give a
+   * monitor only to the devices they may read - one they may not is left
+   * out, as if it had not been selected. A device that takes its status
+   * from a bound monitor gets no Network Device monitor (it would have
+   * nothing to read), and says so.
+   */
+  public static async startFromDevices(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    deviceIds: unknown;
+    monitorTemplateId: unknown;
+  }): Promise<NetworkDeviceDiscoveryImport> {
+    const userId: ObjectID | undefined = data.props.userId;
+
+    if (!userId) {
+      throw new NotAuthorizedException(
+        "Creating monitors acts as the person who asks for it, so it needs a person signed in to the project.",
+      );
+    }
+
+    const deviceIds: Array<string> = this.readDeviceIds(data.deviceIds);
+    const templateId: ObjectID = this.readId(
+      data.monitorTemplateId,
+      "Pick the monitor template to create the monitors from.",
+    );
+
+    this.assertCanReadDevices(data.props);
+    this.assertCanCreateMonitors(data.props);
+
+    const template: MonitorTemplate = await this.readTemplateAsPerson({
+      templateId: templateId,
+      projectId: data.projectId,
+      props: data.props,
+    });
+
+    const devices: Array<NetworkDevice> = await this.readDevicesAsPerson({
+      projectId: data.projectId,
+      deviceIds: deviceIds,
+      props: data.props,
+    });
+
+    if (devices.length === 0) {
+      throw new BadDataException(
+        "None of the selected devices are in the Devices list any more. Refresh the list and select them again.",
+      );
+    }
+
+    await ActiveMonitorLimit.assertRoomFor({
+      projectId: data.projectId,
+    });
+
+    const settings: DiscoveryImportSettings = {
+      pollingIntervalInMinutes:
+        DEFAULT_DISCOVERY_IMPORT_POLLING_INTERVAL_IN_MINUTES,
+      applyVendorTemplates: false,
+      alerting: DiscoveryImportAlerting.MonitorTemplate,
+      monitorTemplateId: templateId.toString(),
+    };
+
+    const hosts: Array<DiscoveredNetworkDevice> = devices.map(
+      (device: NetworkDevice): DiscoveredNetworkDevice => {
+        const facts: ExistingDeviceFacts = {
+          deviceId: device.id!.toString(),
+          name: device.name || device.hostname || "",
+        };
+
+        return {
+          ipAddress: device.hostname || "",
+          existingDevice: facts,
+        } as unknown as DiscoveredNetworkDevice;
+      },
+    );
+
+    const row: NetworkDeviceDiscoveryImport =
+      new NetworkDeviceDiscoveryImport();
+    row.projectId = data.projectId;
+    row.status = DiscoveryImportStatus.Queued;
+    row.settings = settings as unknown as JSONObject;
+    row.hosts = hosts;
+    const results: Array<DiscoveryImportHostResult> = this.initialResults({
+      hosts: hosts,
+      scan: null,
+      settings: settings,
+    });
+    row.results = results as unknown as Array<JSONObject>;
+    row.progress = summarizeDiscoveryImportResults(
+      results,
+    ) as unknown as JSONObject;
+    row.createdByUserId = userId;
+    row.resumeCount = 0;
+
+    if (template.templateName) {
+      row.monitorTemplateName = template.templateName.substring(0, 100);
+    }
+
+    const created: NetworkDeviceDiscoveryImport =
+      await NetworkDeviceDiscoveryImportService.create({
+        data: row,
+        props: { isRoot: true },
+      });
+
+    await this.enqueue(data.projectId);
+
+    return created;
+  }
+
+  /*
+   * The devices the person selected: ids, each once, in the order sent.
+   * Refused when there are none, or more than one run gives monitors to.
+   */
+  public static readDeviceIds(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      throw new BadDataException("Select the devices to create monitors for.");
+    }
+
+    const deviceIds: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const item of value) {
+      if (typeof item !== "string" || !ObjectID.isValidUUID(item.trim())) {
+        continue;
+      }
+
+      const deviceId: string = item.trim();
+      const key: string = deviceId.toLowerCase();
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      deviceIds.push(deviceId);
+    }
+
+    if (deviceIds.length === 0) {
+      throw new BadDataException("Select the devices to create monitors for.");
+    }
+
+    if (deviceIds.length > MAX_DEVICES_PER_MONITOR_CREATION) {
+      throw new BadDataException(
+        `Monitors are created for up to ${MAX_DEVICES_PER_MONITOR_CREATION.toLocaleString("en-US")} devices at a time, and ${deviceIds.length.toLocaleString("en-US")} are selected. Narrow the list - by site, role or label - and create them in parts: devices that already have the template's monitor are left as they are.`,
+      );
+    }
+
+    return deviceIds;
+  }
+
+  /*
+   * The selected devices the person may read, in the order they were
+   * selected, read as them: a device a team's labels or ownership keep from
+   * them is not theirs to give a monitor, and is left out. Archived devices
+   * are left out too: nothing polls them.
+   */
+  private static async readDevicesAsPerson(data: {
+    projectId: ObjectID;
+    deviceIds: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<NetworkDevice>> {
+    const byId: Map<string, NetworkDevice> = new Map<string, NetworkDevice>();
+
+    for (
+      let offset: number = 0;
+      offset < data.deviceIds.length;
+      offset += DEVICE_READ_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = data.deviceIds.slice(
+        offset,
+        offset + DEVICE_READ_CHUNK_SIZE,
+      );
+
+      let found: Array<NetworkDevice>;
+
+      try {
+        found = await NetworkDeviceService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(chunk),
+            isArchived: false,
+          },
+          select: { _id: true, name: true, hostname: true },
+          limit: chunk.length,
+          skip: 0,
+          props: data.props,
+        });
+      } catch (error) {
+        if (isRefusalOfThePerson(error)) {
+          throw new NotAuthorizedException(
+            "You may not read this project's network devices, so you cannot give them monitors.",
+          );
+        }
+
+        throw error;
+      }
+
+      for (const device of found) {
+        if (device.id && device.hostname) {
+          byId.set(device.id.toString().toLowerCase(), device);
+        }
+      }
+    }
+
+    return data.deviceIds
+      .map((deviceId: string): NetworkDevice | undefined => {
+        return byId.get(deviceId.toLowerCase());
+      })
+      .filter((device: NetworkDevice | undefined): device is NetworkDevice => {
+        return Boolean(device);
+      });
+  }
+
+  /*
    * The hosts an import from the Discovered Devices list carries, in the
    * order they were selected: each device with an address, with what it is
    * created from. One with no address cannot be polled and is left out.
@@ -808,8 +1055,13 @@ export default class DiscoveryImportRunner {
     const settings: DiscoveryImportSettings = readDiscoveryImportSettings(
       earlier.settings,
     );
+    const source: DiscoveryImportSource = this.sourceOf(earlier);
 
-    this.assertCanCreateDevices(data.props);
+    if (source === DiscoveryImportSource.Devices) {
+      this.assertCanReadDevices(data.props);
+    } else {
+      this.assertCanCreateDevices(data.props);
+    }
 
     if (settings.alerting === DiscoveryImportAlerting.MonitorTemplate) {
       this.assertCanCreateMonitors(data.props);
@@ -833,7 +1085,9 @@ export default class DiscoveryImportRunner {
 
     if (hosts.length === 0) {
       throw new BadDataException(
-        "Every host of this import was imported, so there is nothing to try again.",
+        source === DiscoveryImportSource.Devices
+          ? "Every device was given its monitor or has one already, so there is nothing to try again."
+          : "Every host of this import was imported, so there is nothing to try again.",
       );
     }
 
@@ -853,7 +1107,7 @@ export default class DiscoveryImportRunner {
         props: data.props,
         withHosts: false,
       });
-    } else {
+    } else if (source === DiscoveryImportSource.DiscoveredDevices) {
       DiscoveredDevices.assertCanRead(data.props);
       await this.assertDiscoveredDeviceSettingsReadable({
         projectId: data.projectId,
@@ -1298,9 +1552,7 @@ export default class DiscoveryImportRunner {
     const view: DiscoveryImportView = {
       id: row.id!.toString(),
       scanId: row.networkDeviceDiscoveryScanId?.toString() || "",
-      source: row.networkDeviceDiscoveryScanId
-        ? DiscoveryImportSource.Scan
-        : DiscoveryImportSource.DiscoveredDevices,
+      source: DiscoveryImportRunner.sourceOf(row),
       status: row.status!,
       settings: settings,
       progress: progress,
@@ -1393,6 +1645,30 @@ export default class DiscoveryImportRunner {
       if (isRefusalOfThePerson(error)) {
         throw new NotAuthorizedException(
           "You may not create network devices in this project, so you cannot import them. Ask a Project Owner or Project Admin.",
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Create Monitors (issue #10990) gives devices that exist a monitor, so it
+   * asks the person to see the devices, not to create them.
+   */
+  public static assertCanReadDevices(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    try {
+      TablePermission.checkTableLevelPermissions(
+        NetworkDevice,
+        props,
+        DatabaseRequestType.Read,
+      );
+    } catch (error) {
+      if (isRefusalOfThePerson(error)) {
+        throw new NotAuthorizedException(
+          "You may not read this project's network devices, so you cannot give them monitors.",
         );
       }
 
@@ -1619,6 +1895,27 @@ export default class DiscoveryImportRunner {
 
     return data.hosts.map(
       (host: DiscoveredNetworkDevice): DiscoveryImportHostResult => {
+        const existing: ExistingDeviceFacts | null =
+          this.existingDeviceOf(host);
+
+        /*
+         * A device of Create Monitors (issue #10990): in the inventory
+         * already, so nothing is imported and its monitor is the work.
+         */
+        if (existing) {
+          return {
+            ipAddress: host.ipAddress,
+            existingDeviceId: existing.deviceId,
+            name: existing.name || host.ipAddress,
+            isPingOnly: false,
+            device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+            deviceId: existing.deviceId,
+            monitor: wantsMonitors
+              ? DiscoveryImportMonitorOutcome.Pending
+              : DiscoveryImportMonitorOutcome.NotRequested,
+          };
+        }
+
         const facts: DiscoveredDeviceImportFacts | null = this.factsOf(host);
 
         if (facts) {
@@ -1663,7 +1960,66 @@ export default class DiscoveryImportRunner {
     return getDiscoveryImportHostKey({
       ipAddress: host.ipAddress,
       endpointId: this.factsOf(host)?.endpointId,
+      existingDeviceId: this.existingDeviceOf(host)?.deviceId,
     });
+  }
+
+  // The device a host of Create Monitors is (issue #10990); null for any other.
+  private static existingDeviceOf(
+    host: DiscoveredNetworkDevice,
+  ): ExistingDeviceFacts | null {
+    const value: unknown = (host as unknown as Record<string, unknown>)[
+      "existingDevice"
+    ];
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return null;
+    }
+
+    const record: Record<string, unknown> = value as Record<string, unknown>;
+    const deviceId: unknown = record["deviceId"];
+
+    if (typeof deviceId !== "string" || !ObjectID.isValidUUID(deviceId)) {
+      return null;
+    }
+
+    return {
+      deviceId: deviceId,
+      name: typeof record["name"] === "string" ? record["name"] : "",
+    };
+  }
+
+  /*
+   * What an import's hosts were picked from: a scan's results, the
+   * Discovered Devices list, or the Devices list's Create Monitors - told by
+   * the scan it names, else by what its hosts and results carry. Read from
+   * the results as well as the hosts, because the API describes an import
+   * without its hosts.
+   */
+  public static sourceOf(
+    row: Pick<
+      NetworkDeviceDiscoveryImport,
+      "networkDeviceDiscoveryScanId" | "hosts" | "results"
+    >,
+  ): DiscoveryImportSource {
+    if (row.networkDeviceDiscoveryScanId) {
+      return DiscoveryImportSource.Scan;
+    }
+
+    const isOfDevices: boolean =
+      readDiscoveryImportHostResults(row.results).some(
+        (result: DiscoveryImportHostResult): boolean => {
+          return Boolean(result.existingDeviceId);
+        },
+      ) ||
+      (Array.isArray(row.hosts) &&
+        row.hosts.some((host: DiscoveredNetworkDevice): boolean => {
+          return Boolean(host && DiscoveryImportRunner.existingDeviceOf(host));
+        }));
+
+    return isOfDevices
+      ? DiscoveryImportSource.Devices
+      : DiscoveryImportSource.DiscoveredDevices;
   }
 
   private static async enqueue(projectId: ObjectID): Promise<void> {
@@ -1734,8 +2090,17 @@ export default class DiscoveryImportRunner {
       row.createdByUserId,
       row.projectId!,
     );
+    const source: DiscoveryImportSource = this.sourceOf(row);
 
-    this.assertCanCreateDevices(props);
+    /*
+     * Create Monitors (issue #10990) makes no device: it asks to see the
+     * devices, where an import asks to create them.
+     */
+    if (source === DiscoveryImportSource.Devices) {
+      this.assertCanReadDevices(props);
+    } else {
+      this.assertCanCreateDevices(props);
+    }
 
     if (settings.alerting === DiscoveryImportAlerting.MonitorTemplate) {
       this.assertCanCreateMonitors(props);
@@ -1743,7 +2108,8 @@ export default class DiscoveryImportRunner {
 
     /*
      * An import from the Discovered Devices list has no scan: what its
-     * devices are created from travels with each host.
+     * devices are created from travels with each host. Nor has Create
+     * Monitors: its devices exist.
      */
     const scan: NetworkDeviceDiscoveryScan | null =
       row.networkDeviceDiscoveryScanId
@@ -1755,7 +2121,7 @@ export default class DiscoveryImportRunner {
           })
         : null;
 
-    if (!scan) {
+    if (!scan && source === DiscoveryImportSource.DiscoveredDevices) {
       DiscoveredDevices.assertCanRead(props);
     }
 
@@ -2018,6 +2384,16 @@ export default class DiscoveryImportRunner {
     }
 
     if (result.monitor !== DiscoveryImportMonitorOutcome.Pending) {
+      return;
+    }
+
+    /*
+     * A device Create Monitors was asked about (issue #10990) that was
+     * deleted, or archived - nothing polls it - since it was selected.
+     */
+    if (result.existingDeviceId && (!device || device.isArchived)) {
+      result.monitor = DiscoveryImportMonitorOutcome.Skipped;
+      result.monitorError = MONITOR_SKIPPED_DEVICE_GONE;
       return;
     }
 
@@ -2551,10 +2927,19 @@ export default class DiscoveryImportRunner {
                       }),
                     }
                   : {}),
-                props: {
-                  isRoot: true,
-                  tenantId: state.projectId,
-                },
+                /*
+                 * As OneUptime, in the device's project, on the person's
+                 * behalf (issue #10990): their own check passed above, and
+                 * the monitor is theirs - its creator, and their entry in
+                 * the audit log. A root write in a project that only named
+                 * them in the row lost them: a write in a project keeps no
+                 * creator it is sent (UserAttribution), so every imported
+                 * monitor had none.
+                 */
+                props: RuleRunWriteProps.getInProject(
+                  state.props,
+                  state.projectId,
+                ),
               }),
             };
           },
