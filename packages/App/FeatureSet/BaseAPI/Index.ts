@@ -1632,9 +1632,8 @@ import ExceptionInstanceService, {
 import KubernetesCostAllocationService, {
   KubernetesCostAllocationService as KubernetesCostAllocationServiceType,
 } from "Common/Server/Services/KubernetesCostAllocationService";
-import CloudCostService, {
-  CloudCostService as CloudCostServiceType,
-} from "Common/Server/Services/CloudCostService";
+import CloudCostService from "Common/Server/Services/CloudCostService";
+import CloudCostAPI from "Common/Server/API/CloudCostAPI";
 import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -1995,7 +1994,6 @@ import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
-import CloudCost from "Common/Models/AnalyticsModels/CloudCost";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -4259,12 +4257,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(KubernetesCostAllocation, KubernetesCostAllocationService).getRouter(),
     );
 
+    /*
+     * Cloud costs: the analytics reads, and a breakdown and a FOCUS export
+     * of their own (#11009).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<CloudCost, CloudCostServiceType>(
-        CloudCost,
-        CloudCostService,
-      ).getRouter(),
+      new CloudCostAPI(CloudCostService).getRouter(),
     );
 
     app.use(
