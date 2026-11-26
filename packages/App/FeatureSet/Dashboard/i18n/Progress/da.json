@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8242
+    "keys": 64815,
+    "untranslated": 8251
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -439,6 +439,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "Valkey",
     "Version",
