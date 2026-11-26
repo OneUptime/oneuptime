@@ -507,8 +507,11 @@ describe("the menu paths", () => {
         title: "Cloud",
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
-      // What the accounts cost, how to spend less, and the budgets.
-      { title: "Spend", items: ["Costs", "Savings", "Budgets"] },
+      /*
+       * What the accounts cost, how to spend less, the budgets, and the
+       * tags the spend is told apart by (#11012).
+       */
+      { title: "Spend", items: ["Costs", "Savings", "Budgets", "Tags"] },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },
     ]);
@@ -528,6 +531,7 @@ describe("the menu paths", () => {
     expect(isMenuPath("Cloud", ["Label Rules"])).toBe(false);
     expect(isMenuPath("Cloud", ["Spend", "Costs"])).toBe(true);
     expect(isMenuPath("Cloud", ["Costs"])).toBe(false);
+    expect(isMenuPath("Cloud", ["Spend", "Tags"])).toBe(true);
     expect(isMenuPath("Cloud", ["Overview"])).toBe(true);
     expect(
       isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"]),
@@ -600,7 +604,14 @@ describe("a cloud account's own pages", () => {
 
     expect(sections).toContainEqual({
       title: "Basic",
-      items: ["Overview", "Resources", "Topology", "Recommendations", "Costs"],
+      items: [
+        "Overview",
+        "Resources",
+        "Topology",
+        "Recommendations",
+        "Costs",
+        "Tags",
+      ],
     });
     expect(accounts).toContain(
       "with their resources by type and Region, their **Costs**, their **Changes**, and a **Topology**",
