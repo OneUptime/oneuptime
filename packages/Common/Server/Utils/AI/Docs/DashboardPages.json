@@ -8262,6 +8262,147 @@
     "kind": "page"
   },
   {
+    "title": "All Pools",
+    "where": [
+      "XCP-ng"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "XCP-ng"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "XCP-ng",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "XCP-ng",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "XCP-ng",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "XCP-ng",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "Crossplane",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "crossplane provider",
+      "gitops",
+      "kubernetes manifest"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/crossplane",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
     "title": "All Clusters",
     "where": [
       "Ceph"
